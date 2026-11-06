@@ -54,6 +54,10 @@ What a provider logs or keeps is up to them, under their own privacy policy.
 
 A local brain, her own ears and her local voices stay on your PC. A custom brain or voice server gets what you send it, wherever you pointed it.
 
+## Omarchy integration (Linux)
+
+On Linux, when Capri is started with `--companion-bridge`, she starts a small listener on a random loopback port. It writes `companion-listener.json` in her data folder with mode 0600 and a random token. An Omarchy shell plugin can then ask her to speak a line, play a fixed gesture, change her quiet state, receive a coarse ambient event, report state, or show her pet or Mainframe. The listener is loopback only, rejects browser origins, caps request size and time, and has no way to run commands, open apps or bypass her safety rules. It is off unless she is started with that flag. The plugin and its event list live in their own repository.
+
 ## Windows or your antivirus warned me
 
 Her Windows builds aren't code signed, and each new release starts with no reputation, so you may see **Windows protected your PC**. Press **More info**, then **Run anyway**.

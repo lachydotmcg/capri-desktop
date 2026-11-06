@@ -490,6 +490,7 @@ namespace CapriDesktop
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             StartCare();
+            StartCompanion();
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
             // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
             fingers = Program.Smoke == null && Fingers.Problem == null;
@@ -2723,7 +2724,7 @@ namespace CapriDesktop
         internal bool QuietShown { get { return quietItem.IsChecked; } }
 
         // Quiet or a nap they asked for: no glances, pop-ins, check-ins, cheers or jokes.
-        private bool Hushed { get { return shushed || napAsked || napping; } }
+        private bool Hushed { get { return shushed || companionGuard || napAsked || napping; } }
 
         // Quiet, like Windows' quiet key, for when they focus or game: she stops what she's saying and doesn't glance, pop in,
         // check in, cheer or joke until it's turned off, but still answers when they talk to her. Starting her again ends it.

@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -125,6 +127,7 @@ namespace CapriDesktop
             {
                 foreach (Clip clip in pet.Clips) if (!clip.Even || clip.Strip.PixelSize.Height != 384) throw new Exception("A sprite strip doesn't split into even 384 px cells.");
                 checks.Add("PASS sprites: all " + pet.Clips.Count + " clips, standing and perched, load from the app and split into even cells");
+                CompanionBridgeCheck();
                 foreach (string clipName in new[] { "morning", "late", "miss" })
                 {
                     byte[] hello = Pet.Hello(clipName);
@@ -4624,6 +4627,74 @@ namespace CapriDesktop
                     }
                 }
                 scene.Save(Path.Combine(folder, name));
+            }
+        }
+
+        private void CompanionBridgeCheck()
+        {
+            string root = Path.Combine(folder, "companion");
+            Directory.CreateDirectory(root);
+            ConcurrentDictionary<string, bool> seen = new ConcurrentDictionary<string, bool>();
+            CompanionBridge bridge = new CompanionBridge(root);
+            bridge.Received = delegate(Dictionary<string, object> request)
+            {
+                string kind = HuskJson.Text(request, "kind");
+                seen[kind] = true;
+                if (kind == "state") return HuskJson.Map("ok", true, "version", 1, "quiet", false, "visible", true, "guards", new List<object>(), "capabilities", new List<object>());
+                if (kind == "nope") return HuskJson.Map("ok", false, "error", "unknown_kind");
+                return HuskJson.Map("ok", true);
+            };
+            try
+            {
+                bridge.Start();
+                string file = Path.Combine(root, CompanionBridge.Discovery);
+                if (!File.Exists(file)) throw new Exception("The companion discovery file is missing.");
+                if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(file) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new Exception("The companion discovery file is not private.");
+                Dictionary<string, object> route = HuskJson.Read(File.ReadAllText(file)) as Dictionary<string, object>;
+                HuskNumber number = HuskJson.Get(route, "port") as HuskNumber;
+                int port;
+                if (number == null || !int.TryParse(number.Text, out port) || port < 1) throw new Exception("The companion port is unreadable.");
+                string token = HuskJson.Text(route, "token");
+                if (token.Length < 32) throw new Exception("The companion token is too short.");
+                if (CompanionPost(port, token, "{\"kind\":\"state\"}", null, null) != 200 || !seen.ContainsKey("state")) throw new Exception("The companion state request failed.");
+                if (CompanionPost(port, "wrong", "{\"kind\":\"state\"}", null, null) != 403) throw new Exception("The companion bridge accepted a bad token.");
+                if (CompanionPost(port, token, "{\"kind\":\"state\"}", "Origin", "http://example.invalid") != 403) throw new Exception("The companion bridge accepted a browser origin.");
+                if (CompanionPost(port, token, "{\"kind\":\"nope\"}", null, null) != 200 || !seen.ContainsKey("nope")) throw new Exception("The companion bridge lost an unknown kind.");
+                if (CompanionPost(port, token, new string('x', CompanionBridge.BodyLimit + 1), null, null) != 413) throw new Exception("The companion bridge accepted an oversized body.");
+                if (CompanionGet(port, token) != 404) throw new Exception("The companion bridge answered a GET.");
+                bridge.Dispose();
+                bridge = null;
+                if (File.Exists(file)) throw new Exception("The companion bridge left its discovery file behind.");
+                checks.Add("PASS companion: the local bridge keeps its discovery file private, refuses bad tokens and browser origins, caps the body, answers POST /event, ignores GETs and unknown kinds, and removes its file when it stops");
+            }
+            finally
+            {
+                if (bridge != null) bridge.Dispose();
+                try { Directory.Delete(root, true); } catch (Exception) { }
+            }
+        }
+
+        private static int CompanionPost(int port, string token, string body, string header, string value)
+        {
+            using (HttpClient client = new HttpClient(new HttpClientHandler { UseProxy = false }))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, "http://127.0.0.1:" + port + "/event");
+                request.Headers.TryAddWithoutValidation("X-Capri-Token", token);
+                if (header != null) request.Headers.TryAddWithoutValidation(header, value);
+                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) return (int)response.StatusCode;
+            }
+        }
+
+        private static int CompanionGet(int port, string token)
+        {
+            using (HttpClient client = new HttpClient(new HttpClientHandler { UseProxy = false }))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:" + port + "/event");
+                request.Headers.TryAddWithoutValidation("X-Capri-Token", token);
+                using (HttpResponseMessage response = client.SendAsync(request).GetAwaiter().GetResult()) return (int)response.StatusCode;
             }
         }
 
