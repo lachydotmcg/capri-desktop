@@ -2244,6 +2244,8 @@ namespace CapriDesktop
         private readonly System.Windows.Forms.Timer signals;
         private readonly EventWaitHandle restore, shown;
         private readonly string settingsPath;
+        // The keep-all choice lives beside the settings, so the startup read and every later save use one path.
+        private string KeepAllMarker { get { return Path.Combine(Path.GetDirectoryName(settingsPath), "keep-all"); } }
         private readonly bool testing;
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private Preferences preferences;
@@ -2953,7 +2955,7 @@ namespace CapriDesktop
             if (!smoke) Brain.Keeper = brain;
             if (!smoke) brain.Load(Path.Combine(data, "chat.json"));
             Preferences retentionSettings;
-            string keepAllMarker = Path.Combine(data, "keep-all");
+            string keepAllMarker = KeepAllMarker;
             if (!smoke && unreadableNotice == null && Retention.Readable(settingsPath, out retentionSettings))
             {
                 bool keepEverything = Retention.KeepAll(retentionSettings.KeepAllHistory, File.Exists(keepAllMarker), Retention.Mentions(settingsPath, "\"KeepAllHistory\""));
@@ -6923,7 +6925,7 @@ namespace CapriDesktop
 
         internal void SetKeepAll(bool on)
         {
-            string marker = Path.Combine(data, "keep-all");
+            string marker = KeepAllMarker;
             if (on)
             {
                 // The choice keeps its own copy beside the settings, so a file that fails to save or gets reset
@@ -6948,9 +6950,12 @@ namespace CapriDesktop
                 preferences.KeepAllHistory = true;
                 return;
             }
-            try { if (File.Exists(marker)) File.Delete(marker); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            if (!Retention.ClearMarker(marker))
+            {
+                // The marker still protects them; put the choice back on rather than let the switch say off.
+                preferences.KeepAllHistory = true;
+                SavePreferences();
+            }
         }
 
         private static readonly double[] WanderPaces = { 3, 1, 0.45, 0.18 };
@@ -15951,7 +15956,7 @@ namespace CapriDesktop
             if (notice != null || (File.Exists(settingsPath) && !Retention.WholeFile(settingsPath)))
             {
                 // The serializer can read a half-written file without throwing; keep the choice safe anyway.
-                try { File.WriteAllText(Path.Combine(data, "keep-all"), "1"); }
+                try { File.WriteAllText(KeepAllMarker, "1"); }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
             }

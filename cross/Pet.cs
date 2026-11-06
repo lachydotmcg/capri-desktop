@@ -3939,21 +3939,33 @@ namespace CapriDesktop
                 Sync();
                 return;
             }
-            Saved.KeepAllHistory = false;
-            Save();
+            KeepAllOff(folder, Saved, Save, Sync, Retention.ClearMarker);
+        }
+
+        // Turning the switch off must not say off when the marker survives: the marker still keeps everything.
+        // Split from the window so the smoke can exercise the failed clear without a second Pet.
+        internal static bool KeepAllOff(string folder, Settings saved, Action save, Action sync, Func<string, bool> clearMarker)
+        {
+            string marker = Path.Combine(folder, "keep-all");
+            saved.KeepAllHistory = false;
+            save();
             Settings disk;
             bool reached = Retention.Readable(Path.Combine(folder, "cross.json"), out disk) && !disk.KeepAllHistory;
             if (!reached)
             {
                 // The save didn't land: keep protecting rather than delete on a choice she never stored.
-                Saved.KeepAllHistory = true;
-                Sync();
-                return;
+                saved.KeepAllHistory = true;
+                sync();
+                return true;
             }
-            try { if (File.Exists(marker)) File.Delete(marker); }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-            Sync();
+            if (!clearMarker(marker))
+            {
+                // The marker still protects them; put the choice back on rather than let the switch say off.
+                saved.KeepAllHistory = true;
+                save();
+            }
+            sync();
+            return saved.KeepAllHistory;
         }
 
         internal bool Remembers { get { return memoriesItem.IsChecked; } }

@@ -119,6 +119,16 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException) { return false; }
         }
 
+        // Deletes the keep-all marker. False means her file is still there, so the caller can keep the choice on
+        // instead of showing off while the marker still protects everything.
+        internal static bool ClearMarker(string path)
+        {
+            try { if (File.Exists(path)) File.Delete(path); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return !File.Exists(path);
+        }
+
         private static bool Whole(string text)
         {
             text = text ?? "";
