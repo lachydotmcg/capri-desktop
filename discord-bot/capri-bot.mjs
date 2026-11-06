@@ -26,23 +26,25 @@ const back = async message => {
   return message.fetchReference().catch(() => null)
 }
 
+// The asker's last three messages and her own last two in the last ten minutes, so she follows them and doesn't repeat herself.
 const recent = async message => {
-  const found = []
+  const found = [], hers = []
   let before = message.id
-  for (let page = 0; found.length < 3 && page < 2; page++) {
+  for (let page = 0; (found.length < 3 || hers.length < 2) && page < 2; page++) {
     const batch = await message.channel.messages.fetch({ limit: 100, before })
     const rows = [...batch.values()].sort((a, b) => b.createdTimestamp - a.createdTimestamp || (BigInt(a.id) < BigInt(b.id) ? 1 : -1))
     if (!rows.length) break
     for (const row of rows) {
-      if (row.createdTimestamp < message.createdTimestamp - 600000) return found
-      if (row.author.id === message.author.id && !row.author.bot) found.push(row)
-      if (found.length === 3) return found
+      if (row.createdTimestamp < message.createdTimestamp - 600000) return [...found, ...hers]
+      if (row.author.id === message.author.id && !row.author.bot && found.length < 3) found.push(row)
+      if (row.author.id === client.user.id && hers.length < 2) hers.push(row)
+      if (found.length === 3 && hers.length === 2) return [...found, ...hers]
     }
     const last = rows.at(-1).id
     if (last === before || rows.length < 100) break
     before = last
   }
-  return found
+  return [...found, ...hers]
 }
 
 const chain = async (message, replied) => {
@@ -109,7 +111,7 @@ client.on('messageCreate', async message => {
     const response = await fetch(url, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + secret, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: message.author.id, question: asked, history: turns, context: context(message, replied, own), image }),
+      body: JSON.stringify({ user: message.author.id, question: asked, history: turns, context: context(message, replied, own, client.user.id), image }),
       redirect: 'error',
       signal: AbortSignal.timeout(60000)
     })
@@ -125,6 +127,6 @@ client.on('messageCreate', async message => {
   }
 })
 
-client.once('ready', () => { console.log('Capri is online.') })
+client.once('clientReady', () => { console.log('Capri is online.') })
 client.on('error', () => { console.error('Discord connection failed.') })
 client.login(token).catch(() => { console.error('Could not connect Capri. Check DISCORD_TOKEN and Message Content Intent.'); process.exit(1) })

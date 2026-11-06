@@ -81,6 +81,14 @@ test('context bounds the referenced message and the total text', () => {
   assert.equal(context(message(), null), '')
 })
 
+test('context adds her own last two lines without their links, and skips the one they replied to', () => {
+  const said = (id, content, ago) => message(content, { id, author: { id: me, username: 'Capri Bot', bot: true }, createdTimestamp: now - ago })
+  const replied = said('70', 'Pick it under VOICE.\n\nHer voice: <https://capriai.app/help/#voice>', 50000)
+  const recent = [said('71', 'Took you long enough.', 400000), said('72', 'There you are.\n\nHelp page: <https://capriai.app/help/>', 300000), said('73', 'Cute try.', 200000), replied, said('74', 'too old', 600001)]
+  assert.equal(context(message('and then?'), replied, recent, me), 'Replied to Capri Bot: Pick it under VOICE.\nYou said: There you are.\nYou said: Cute try.')
+  assert.equal(context(message('and then?'), null, recent), '')
+})
+
 test('history follows three complete pairs in conversation order', () => {
   const chain = []
   for (let i = 4; i > 0; i--) {

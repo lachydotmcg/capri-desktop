@@ -13,13 +13,19 @@ export const trigger = (message, me, replied = null, channels = new Set()) => {
 
 export const question = (text, me) => plain(String(text || '').replace(new RegExp('<@!?' + me + '>', 'g'), ' ').trim().replace(prefix, '')).slice(0, 600)
 
-export const context = (message, replied, recent = []) => {
+const linkLine = /^[^:\n]+: <https?:\/\/[^\s<>]+>$/
+const spoken = text => plain(String(text || '').split('\n').filter(line => !linkLine.test(line)).join(' '))
+
+export const context = (message, replied, recent = [], me = null) => {
   const lines = []
-  if (replied) lines.push(('Replied to ' + name(replied) + ': ' + plain(replied.content)).slice(0, 400))
-  const own = recent.filter(entry => entry.id !== message.id && entry.channelId === message.channelId && entry.author?.id === message.author.id && !entry.author.bot && entry.createdTimestamp >= message.createdTimestamp - 600000 && entry.createdTimestamp <= message.createdTimestamp)
-    .sort((a, b) => b.createdTimestamp - a.createdTimestamp || (BigInt(a.id) < BigInt(b.id) ? 1 : -1))
-    .slice(0, 3).reverse()
+  if (replied) lines.push(('Replied to ' + name(replied) + ': ' + spoken(replied.content)).slice(0, 400))
+  const fresh = entry => entry.id !== message.id && entry.channelId === message.channelId && entry.createdTimestamp >= message.createdTimestamp - 600000 && entry.createdTimestamp <= message.createdTimestamp
+  const newest = (a, b) => b.createdTimestamp - a.createdTimestamp || (BigInt(a.id) < BigInt(b.id) ? 1 : -1)
+  const own = recent.filter(entry => fresh(entry) && entry.author?.id === message.author.id && !entry.author.bot).sort(newest).slice(0, 3).reverse()
   for (const entry of own) lines.push(('Earlier from ' + name(entry) + ': ' + plain(entry.content)).slice(0, 250))
+  // Her own last lines in the channel, so she doesn't greet the next person the same way (Lachy, 6 Nov).
+  const hers = me ? recent.filter(entry => fresh(entry) && entry.author?.id === me && entry.id !== replied?.id).sort(newest).slice(0, 2).reverse() : []
+  for (const entry of hers) lines.push(('You said: ' + spoken(entry.content)).slice(0, 250))
   return lines.join('\n').slice(0, 1200)
 }
 
@@ -30,7 +36,7 @@ export const history = (chain, me) => {
     if (answer?.author?.id !== me || !asked?.author || asked.author.bot || asked.author.id === me || answer.reference?.messageId !== asked.id) break
     if (i && chain[i - 1].reference?.messageId !== answer.id) break
     const text = question(asked.content, me).slice(0, 500)
-    const said = plain((answer.content || '').split('\n').filter(line => !/^[^:\n]+: <https?:\/\/[^\s<>]+>$/.test(line)).join(' ')).slice(0, 500)
+    const said = spoken(answer.content).slice(0, 500)
     if (!text || !said) break
     turns.unshift({ role: 'user', text }, { role: 'assistant', text: said })
   }
