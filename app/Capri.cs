@@ -29136,12 +29136,18 @@ namespace CapriDesktop
             }
 
             internal Func<MixDevice> CableRead;
+            // A device that's slow to answer, like a Bluetooth headset waking up: while its gate is shut, a look at the mics, at
+            // who hears the cable or at the cables waits for it (#100).
+            internal WaitHandle MicHeld, HeardHeld, CablesHeld;
+
+            private static void Held(WaitHandle gate) { if (gate != null) gate.WaitOne(8000); }
 
             public MixDevice Cable(string chosen) { return CableRead == null ? CableThere : CableRead(); }
 
             // Explicit, since Cables is also the list of cables the mix opened.
             System.Collections.Generic.List<MixDevice> IMixDevices.Cables()
             {
+                Held(CablesHeld);
                 if (CableChoices != null) return new System.Collections.Generic.List<MixDevice>(CableChoices);
                 System.Collections.Generic.List<MixDevice> cables = new System.Collections.Generic.List<MixDevice>();
                 if (CableThere != null) cables.Add(CableThere);
@@ -29151,11 +29157,11 @@ namespace CapriDesktop
             // The programs the smoke test says are hearing the cable's far end.
             internal readonly System.Collections.Generic.List<string> Listeners = new System.Collections.Generic.List<string>();
 
-            public System.Collections.Generic.List<string> Listening(string mic) { lock (Listeners) return new System.Collections.Generic.List<string>(Listeners); }
+            public System.Collections.Generic.List<string> Listening(string mic) { Held(HeardHeld); lock (Listeners) return new System.Collections.Generic.List<string>(Listeners); }
 
             public bool Boost(MixDevice cable, out double boost, out bool muted) { boost = FarBoost; muted = FarMuted; return cable != null && cable.Far != null && !FarUnread; }
 
-            public MixDevice Mic(string chosen) { lock (Mics) return MicMix.MicFor(Mics, chosen, DefaultMic); }
+            public MixDevice Mic(string chosen) { Held(MicHeld); lock (Mics) return MicMix.MicFor(Mics, chosen, DefaultMic); }
 
             public IMixMic OpenMic(MixDevice mic)
             {
@@ -29563,6 +29569,239 @@ namespace CapriDesktop
             }
             if (mainframe.Visible != shownWas || mainframe.WindowState != stateWas || mainframe.SettingsShown != settingsWas || preferences.MainframeSize != sizeWas) throw new Exception("The device checks did not restore the Mainframe.");
             checks.Add("PASS device checks restore the Mainframe window, page and size");
+        }
+
+        // #100: the sound page's looks at Windows run in the background. A speaker, mic or virtual mic that's slow to answer, like a
+        // Bluetooth headset waking up, leaves her window free: its menu opens at once and says she's still checking, fills in once
+        // the device answers, and only its own line waits. Each device here is a stand-in held behind a gate the check opens.
+        private void SmokeSlowDevices(System.Collections.Generic.List<string> checks)
+        {
+            bool inPlaceWas = DeviceLook.InPlace;
+            Func<System.Collections.Generic.List<Speaker.Output>> speakersWas = Speaker.Devices;
+            Func<int, string> speakerDefaultWas = speakerDefault;
+            Func<System.Collections.Generic.List<Mic>> micsWas = hearingDevices;
+            Func<string> micDefaultWas = hearingDefault, outputWas = hearingOutput;
+            Func<bool> privacyWas = hearingPrivacy;
+            Func<bool?> onlineWas = hearingOnline;
+            Func<string, string, bool> handsFreeWas = hearingHandsFree;
+            IMixDevices mixWas = MicMix.Devices;
+            string speakerWas = preferences.Speaker, chosenWas = Speaker.Chosen, outputIdWas = Speaker.DefaultId, waveIdWas = Speaker.WaveDefaultId;
+            string micWas = preferences.Mic, mixMicWas = preferences.MixMic, mixCableWas = preferences.MixCable;
+            bool voiceInMicWas = preferences.VoiceInMic, settingsWas = mainframe.SettingsShown, shownWas = mainframe.Visible;
+            FormWindowState stateWas = mainframe.WindowState;
+            Speaker.Output pickWas = speakerPick;
+            ManualResetEvent speakersHeld = new ManualResetEvent(true), micsHeld = new ManualResetEvent(true), mixMicHeld = new ManualResetEvent(true), heardHeld = new ManualResetEvent(true), cablesHeld = new ManualResetEvent(true);
+            int speakerReads = 0;
+            // Her window's messages run until done, or for up to most ms: false when it ran out.
+            Func<Func<bool>, int, bool> until = delegate(Func<bool> done, int most)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (!done() && waited.ElapsedMilliseconds < most) { Application.DoEvents(); Thread.Sleep(5); }
+                return done();
+            };
+            // Her window still answers: a message posted to it now runs within a second.
+            Func<bool> answers = delegate
+            {
+                bool ran = false;
+                BeginInvoke((MethodInvoker)delegate { ran = true; });
+                return until(delegate { return ran; }, 1000);
+            };
+            // One part of what the setup window shows: on | Input | Output | the state line | the name to pick | who hears it.
+            Func<int, string> mixPart = delegate(int part)
+            {
+                string shown = mainframe.MixShown;
+                string[] parts = shown == null ? new string[0] : shown.Split(new[] { " | " }, StringSplitOptions.None);
+                return part < parts.Length ? parts[part] : null;
+            };
+            try
+            {
+                System.Collections.Generic.List<Speaker.Output> outputs = new System.Collections.Generic.List<Speaker.Output>
+                {
+                    new Speaker.Output("slow-speakers", "Speakers (slow stand-in)", 0),
+                    new Speaker.Output("slow-headset", "Headset Earphone (slow stand-in)", 1)
+                };
+                System.Collections.Generic.List<Mic> mics = new System.Collections.Generic.List<Mic> { new Mic("slow-mic", "Microphone (slow stand-in)"), new Mic("slow-headset-mic", "Headset Microphone (slow stand-in)") };
+                Speaker.Devices = delegate
+                {
+                    Interlocked.Increment(ref speakerReads);
+                    speakersHeld.WaitOne(8000);
+                    lock (outputs) return new System.Collections.Generic.List<Speaker.Output>(outputs);
+                };
+                speakerDefault = delegate(int role) { return "slow-speakers"; };
+                hearingDevices = delegate { micsHeld.WaitOne(8000); lock (mics) return new System.Collections.Generic.List<Mic>(mics); };
+                hearingDefault = delegate { return "slow-mic"; };
+                hearingOutput = delegate { return "Speakers (slow stand-in)"; };
+                hearingPrivacy = delegate { return false; };
+                hearingOnline = delegate { return null; };
+                hearingHandsFree = delegate { return false; };
+                StandInDevices pc = new StandInDevices();
+                pc.CableThere = new MixDevice("{0.0.0.00000000}.{slow-cable}", "CABLE Input (VB-Audio Virtual Cable)", "{0.0.1.00000000}.{slow-cable-out}");
+                pc.Mics.Add(new MixDevice("{0.0.1.00000000}.{slow-mix-mic}", "Microphone (slow stand-in)"));
+                pc.DefaultMic = "{0.0.1.00000000}.{slow-mix-mic}";
+                lock (pc.Listeners) pc.Listeners.Add("Discord");
+                pc.MicHeld = mixMicHeld;
+                pc.HeardHeld = heardHeld;
+                pc.CablesHeld = cablesHeld;
+                MicMix.Devices = pc;
+                preferences.Speaker = Speaker.Chosen = null;
+                preferences.Mic = "slow-mic";
+                preferences.MixMic = preferences.MixCable = null;
+                // The switch on without a mix running, so the setup window says who hears it.
+                preferences.VoiceInMic = true;
+                mainframe.Restore();
+                mainframe.ShowSettings(false);
+                until(delegate { return false; }, 200);
+                // Every gate open and every look in place: she knows these devices to start with.
+                RefreshHearingDevices();
+                cableLooked = -10;
+                mainframe.ShowVoiceInMic();
+                DeviceLook.InPlace = false;
+
+                // Her speaker's menu with a speaker that's slow to answer: it opens at once and says she's still checking, her window
+                // keeps going, her voice takes the speakers she knows, the Mic line still moves, asking again while she's looking makes
+                // one more look instead of one each, and the menu fills in once the speaker answers.
+                speakersHeld.Reset();
+                lock (outputs) outputs.Add(new Speaker.Output("slow-hdmi", "HDMI output (slow stand-in)", 2));
+                int readsBefore = speakerReads;
+                Stopwatch took = Stopwatch.StartNew();
+                mainframe.OpenSpeakerMenu();
+                long speakerOpened = took.ElapsedMilliseconds;
+                string speakerChecking = mainframe.SpeakerMenuShown;
+                bool speakerUp = mainframe.DeviceMenuOpen(0), speakerAnswers = answers();
+                bool speakerAsked = until(delegate { return Volatile.Read(ref speakerReads) == readsBefore + 1; }, 5000);
+                took.Restart();
+                int voiceList = Speaker.List().Count;
+                long voiceWaited = took.ElapsedMilliseconds;
+                lock (mics) mics[0] = new Mic("slow-mic", "Microphone renamed (slow stand-in)");
+                LookMics();
+                bool micMoved = until(delegate { return mainframe.MicShown == "Mic: Microphone renamed (slow stand-in)"; }, 5000);
+                bool speakerStillOut = speakerLook.Looking && mainframe.SpeakerMenuShown == speakerChecking;
+                for (int i = 0; i < 5; i++) LookSpeakers();
+                int readsWhileOut = Volatile.Read(ref speakerReads);
+                speakersHeld.Set();
+                bool speakerFilled = until(delegate { return !speakerLook.Looking && mainframe.SpeakerMenuShown.IndexOf(Mainframe.CheckingSpeakers, StringComparison.Ordinal) < 0; }, 5000);
+                string speakerFull = mainframe.SpeakerMenuShown;
+                int readsAfter = Volatile.Read(ref speakerReads);
+                bool speakerStayed = mainframe.DeviceMenuOpen(0);
+                if (speakerOpened > 2000 || !speakerUp || speakerChecking != "Default (follows Windows) (picked) | " + Mainframe.CheckingSpeakers || !speakerAnswers || !speakerAsked
+                    || voiceWaited > 1000 || voiceList != 2 || !micMoved || !speakerStillOut || readsWhileOut != readsBefore + 1 || readsAfter < readsBefore + 2 || !speakerFilled
+                    || speakerFull != "Default (follows Windows) (picked) | Speakers (slow stand-in) | Headset Earphone (slow stand-in) | HDMI output (slow stand-in)")
+                    throw new Exception("Her speaker menu waited on a slow speaker: opened in " + speakerOpened + " ms (up " + speakerUp + ", still up " + speakerStayed + ") showing " + speakerChecking + ", her window answered " + speakerAnswers + ", her voice waited " + voiceWaited + " ms for " + voiceList + " speakers, the Mic line moved " + micMoved + " while the look was out " + speakerStillOut + ", reads " + readsBefore + " to " + readsWhileOut + " while out and " + readsAfter + " after, filled " + speakerFull);
+                checks.Add("PASS her speaker menu opens at once on a speaker that's slow to answer and says " + Mainframe.CheckingSpeakers + ", her window keeps going, her voice takes the speakers she knows, the Mic line still moves meanwhile, asking again while she's looking makes one more look instead of one each, and the menu fills in once the speaker answers");
+
+                // VOICE's Mic menu with a mic that's slow to answer, the same way, and Her speaker's line still moves meanwhile.
+                mainframe.CloseDeviceMenus();
+                micsHeld.Reset();
+                lock (mics) mics.Add(new Mic("slow-webcam", "Webcam Microphone (slow stand-in)"));
+                took.Restart();
+                mainframe.PickHearingMic();
+                long micOpened = took.ElapsedMilliseconds;
+                string micChecking = mainframe.MicMenuShown;
+                bool micUp = mainframe.DeviceMenuOpen(1), micAnswers = answers();
+                preferences.Speaker = Speaker.Chosen = "slow-headset";
+                LookSpeakers();
+                bool speakerMoved = until(delegate { return mainframe.SpeakerShown == "Her speaker: Headset Earphone (slow stand-in)"; }, 5000);
+                bool micStillOut = micLook.Looking && mainframe.MicMenuShown == micChecking;
+                micsHeld.Set();
+                bool micFilled = until(delegate { return !micLook.Looking && mainframe.MicMenuShown.IndexOf(Mainframe.CheckingMics, StringComparison.Ordinal) < 0; }, 5000);
+                string micFull = mainframe.MicMenuShown;
+                if (micOpened > 2000 || !micUp || micChecking != "Windows default | " + Mainframe.CheckingMics || !micAnswers || !speakerMoved || !micStillOut || !micFilled
+                    || micFull != "Windows default | Microphone renamed (slow stand-in) (picked) | Headset Microphone (slow stand-in) | Webcam Microphone (slow stand-in)")
+                    throw new Exception("VOICE's Mic menu waited on a slow mic: opened in " + micOpened + " ms (up " + micUp + ") showing " + micChecking + ", her window answered " + micAnswers + ", Her speaker's line moved " + speakerMoved + " while the look was out " + micStillOut + ", filled " + micFull);
+                checks.Add("PASS VOICE's Mic menu opens at once on a mic that's slow to answer and says " + Mainframe.CheckingMics + ", her window keeps going, Her speaker's line still moves meanwhile, and the menu fills in once the mic answers");
+
+                // Her voice in your mic's window with a mic that's slow to answer: it opens at once, who hears it and its Output show
+                // straight away while only its Input line waits, and its every-second check of who hears her never holds it up.
+                mainframe.CloseDeviceMenus();
+                CallApp callApp = CallApps.Current;
+                string notCallApp = callApp.Has("Discord") || callApp.Has("obs64") ? "" : " " + callApp.Name + " doesn't yet.";
+                mixMicHeld.Reset();
+                lock (pc.Mics) { pc.Mics.Clear(); pc.Mics.Add(new MixDevice("{0.0.1.00000000}.{slow-mix-mic}", "Headset Microphone (slow stand-in)")); }
+                lock (pc.Listeners) pc.Listeners.Add("obs64");
+                mixMicLooked = -10;
+                took.Restart();
+                mainframe.ShowMixWindow();
+                long mixOpened = took.ElapsedMilliseconds;
+                bool mixAnswers = answers();
+                bool heardFirst = until(delegate { return mixPart(5) == "Discord and OBS hear it now." + notCallApp; }, 5000);
+                string inputWaiting = mixPart(1), outputShown = mixPart(2);
+                bool mixMicOut = mixMicLook.Looking;
+                mixMicHeld.Set();
+                bool inputMoved = until(delegate { return mixPart(1) == "Headset Microphone (slow stand-in)"; }, 5000);
+                heardHeld.Reset();
+                lock (pc.Listeners) pc.Listeners.Remove("obs64");
+                took.Restart();
+                mainframe.ShowVoiceInMic();
+                long syncTook = took.ElapsedMilliseconds;
+                bool heardAnswers = answers();
+                bool heardOut = heardLook.Looking;
+                heardHeld.Set();
+                bool heardMoved = until(delegate { return mixPart(5) == "Discord hears it now." + notCallApp; }, 5000);
+                if (mixOpened > 2000 || !mixAnswers || !heardFirst || inputWaiting != "Microphone (slow stand-in)" || outputShown != "CABLE Output (VB-Audio Virtual Cable)" || !mixMicOut || !inputMoved
+                    || syncTook > 1000 || !heardAnswers || !heardOut || !heardMoved)
+                    throw new Exception("Her voice in your mic's window waited on a slow device: opened in " + mixOpened + " ms, her window answered " + mixAnswers + "/" + heardAnswers + ", who hears it showed " + heardFirst + " while Input was " + inputWaiting + " and Output " + outputShown + " with the mic's look out " + mixMicOut + ", Input moved " + inputMoved + ", a sync took " + syncTook + " ms with who hears it out " + heardOut + ", then moved " + heardMoved + ": " + mainframe.MixShown);
+                checks.Add("PASS her voice in your mic's window opens at once with a mic that's slow to answer: who hears it and its Output show straight away while only its Input line waits, and its every-second check of who hears her runs in the background, so a slow answer never holds the window up");
+
+                // Her mix's Output menu with virtual mics that are slow to answer, and its Input menu with slow mics, the same way.
+                mainframe.CloseMix();
+                mainframe.ShowSettings(true);
+                // A click on Output brings her Mainframe to the front first. The closed setup window doesn't always hand it back
+                // here, and Windows moving the front window later closes any menu that's open.
+                mainframe.Restore();
+                until(delegate { return false; }, 300);
+                cablesHeld.Reset();
+                took.Restart();
+                mainframe.OpenMixOutputs();
+                long outputsOpened = took.ElapsedMilliseconds;
+                string outputsChecking = mainframe.MixOutputMenuShown;
+                bool outputsUp = mainframe.DeviceMenuOpen(3);
+                cablesHeld.Set();
+                bool outputsFilled = until(delegate { return !choicesLook.Looking && mainframe.MixOutputMenuShown.IndexOf(Mainframe.CheckingCables, StringComparison.Ordinal) < 0; }, 5000);
+                string outputsFull = mainframe.MixOutputMenuShown + (mainframe.DeviceMenuOpen(3) ? "" : " (closed by then)");
+                mainframe.CloseDeviceMenus();
+                micsHeld.Reset();
+                took.Restart();
+                mainframe.OpenMixInputs();
+                long inputsOpened = took.ElapsedMilliseconds;
+                string inputsChecking = mainframe.MixInputMenuShown;
+                bool inputsUp = mainframe.DeviceMenuOpen(2);
+                micsHeld.Set();
+                bool inputsFilled = until(delegate { return !micLook.Looking && mainframe.MixInputMenuShown.IndexOf(Mainframe.CheckingMics, StringComparison.Ordinal) < 0; }, 5000);
+                string inputsFull = mainframe.MixInputMenuShown;
+                mainframe.CloseDeviceMenus();
+                if (outputsOpened > 2000 || !outputsUp || outputsChecking != "Automatic: VB-CABLE, else Steam's (picked) | " + Mainframe.CheckingCables || !outputsFilled
+                    || outputsFull != "Automatic: VB-CABLE, else Steam's (picked) | CABLE Output (VB-Audio Virtual Cable)"
+                    || inputsOpened > 2000 || !inputsUp || inputsChecking != "Same as her ears (VOICE > Mic) (picked) | " + Mainframe.CheckingMics || !inputsFilled
+                    || inputsFull != "Same as her ears (VOICE > Mic) (picked) | Microphone renamed (slow stand-in) | Headset Microphone (slow stand-in) | Webcam Microphone (slow stand-in)")
+                    throw new Exception("Her mix's Output or Input menu waited on a slow device: Output opened in " + outputsOpened + " ms (up " + outputsUp + ") showing " + outputsChecking + ", filled " + outputsFull + "; Input opened in " + inputsOpened + " ms (up " + inputsUp + ") showing " + inputsChecking + ", filled " + inputsFull);
+                checks.Add("PASS her voice in your mic's Output and Input menus open at once on virtual mics and mics that are slow to answer, say " + Mainframe.CheckingCables + " and " + Mainframe.CheckingMics + ", and fill in once they answer");
+            }
+            finally
+            {
+                foreach (ManualResetEvent gate in new[] { speakersHeld, micsHeld, mixMicHeld, heardHeld, cablesHeld }) gate.Set();
+                // Every look still out answers and lands before her devices go back.
+                until(delegate { return DeviceLook.Busy == 0; }, 10000);
+                DeviceLook.InPlace = inPlaceWas;
+                mainframe.CloseDeviceMenus();
+                mainframe.CloseMix();
+                Speaker.Devices = speakersWas;
+                speakerDefault = speakerDefaultWas;
+                hearingDevices = micsWas; hearingDefault = micDefaultWas; hearingOutput = outputWas;
+                hearingPrivacy = privacyWas; hearingOnline = onlineWas; hearingHandsFree = handsFreeWas;
+                MicMix.Devices = mixWas;
+                preferences.Speaker = speakerWas; Speaker.Chosen = chosenWas; speakerPick = pickWas;
+                preferences.Mic = micWas; preferences.MixMic = mixMicWas; preferences.MixCable = mixCableWas; preferences.VoiceInMic = voiceInMicWas;
+                RefreshHearingDevices();
+                Speaker.DefaultId = outputIdWas; Speaker.WaveDefaultId = waveIdWas;
+                cableLooked = -10;
+                mixMicLooked = -10;
+                mainframe.ShowVoiceInMic();
+                mainframe.ShowSettings(settingsWas);
+                mainframe.WindowState = stateWas;
+                if (!shownWas) mainframe.Hide();
+                SavePreferences();
+                if (DeviceLook.Busy == 0) foreach (ManualResetEvent gate in new[] { speakersHeld, micsHeld, mixMicHeld, heardHeld, cablesHeld }) gate.Dispose();
+            }
         }
 
         private static void SmokeSound(System.Collections.Generic.List<string> checks, string output)
@@ -30544,6 +30783,7 @@ namespace CapriDesktop
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
             Section(checks, "SmokeDeviceChoices", delegate { SmokeDeviceChoices(checks); });
+            Section(checks, "SmokeSlowDevices", delegate { SmokeSlowDevices(checks); });
             Section(checks, "SmokeDucking", delegate { SmokeDucking(checks, output); });
             Section(checks, "SmokeVoiceInMic", delegate { SmokeVoiceInMic(checks, output); });
             Section(checks, "SmokeCallMic", delegate { SmokeCallMic(checks); });

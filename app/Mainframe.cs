@@ -4337,6 +4337,19 @@ namespace CapriDesktop
         }
 
         internal void PickSpeakerChoice(int at) { capri.RefreshSpeakers(); SpeakerChoices(capri.SpeakerDevices); speakerMenu.Items[at == 0 ? 0 : at + 1].PerformClick(); }
+
+        // The sound page's device menus opened as a click opens them and read as they show now, for the smoke test's slow
+        // devices (#100). DeviceMenuOpen goes by number: Her speaker, Mic, her mix's Input, then its Output.
+        internal void OpenSpeakerMenu() { ShowSpeakers(); }
+        internal void OpenMixInputs() { ShowMixInputs(mixInput); }
+        internal void OpenMixOutputs() { ShowMixOutputs(mixOutput); }
+        internal string SpeakerMenuShown { get { return PickChoices(speakerMenu); } }
+        internal string MicMenuShown { get { return PickChoices(micMenu); } }
+        internal string MixInputMenuShown { get { return PickChoices(mixInputMenu); } }
+        internal string MixOutputMenuShown { get { return PickChoices(mixOutputMenu); } }
+        internal string MicShown { get { return mics.Text; } }
+        internal bool DeviceMenuOpen(int which) { return new[] { speakerMenu, micMenu, mixInputMenu, mixOutputMenu }[which].Visible; }
+        internal void CloseDeviceMenus() { foreach (ContextMenuStrip menu in new[] { speakerMenu, micMenu, mixInputMenu, mixOutputMenu }) menu.Close(); }
         internal void PickScreenChoice(int at) { ScreenChoices(); screenMenu.Items[at == 0 ? 0 : at + 1].PerformClick(); }
 
         // On a small desktop Windows clamps the window narrower than its page, so a clamped window skips the inside-the-window checks, like Outside's callers.
