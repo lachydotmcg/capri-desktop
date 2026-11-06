@@ -12414,9 +12414,9 @@ namespace CapriDesktop
             lock (earsModelGate)
             {
                 earsModelWanted = open;
-                if (earsModelBusy) return;
                 // Watch Along can load it too, so closing always unloads.
-                if (!open) earsModelLoaded = true;
+                if (!open) earsModelUnload = true;
+                if (earsModelBusy) return;
                 earsModelBusy = true;
             }
             ThreadPool.QueueUserWorkItem(delegate
@@ -12427,11 +12427,12 @@ namespace CapriDesktop
                     lock (earsModelGate)
                     {
                         wanted = earsModelWanted;
-                        if (wanted == earsModelLoaded) { earsModelBusy = false; return; }
+                        if (wanted == earsModelLoaded && (wanted || !earsModelUnload)) { earsModelBusy = false; return; }
                         earsModelLoaded = wanted;
+                        if (!wanted) earsModelUnload = false;
                     }
                     try { if (wanted) parakeet.Warm(); else parakeet.Dispose(); }
-                    catch (Exception error) { lock (earsModelGate) earsModelLoaded = earsModelWanted = false; Brain.Log("ears", -1, Voice.Short(error.Message)); }
+                    catch (Exception error) { lock (earsModelGate) { earsModelLoaded = false; if (wanted) earsModelWanted = false; } Brain.Log("ears", -1, Voice.Short(error.Message)); }
                 }
             });
         }
@@ -12513,7 +12514,7 @@ namespace CapriDesktop
         // They open once her hello's out of the way and come back after whatever closed them (hiding her, Quiet, a lost mic), unless they closed them on purpose.
         private bool earsClosed;
         private readonly object earsModelGate = new object();
-        private bool earsModelWanted, earsModelLoaded, earsModelBusy;
+        private bool earsModelWanted, earsModelLoaded, earsModelBusy, earsModelUnload;
         private double listenAt;
 
         private void AgentVoice()
