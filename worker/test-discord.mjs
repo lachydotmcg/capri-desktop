@@ -36,6 +36,9 @@ assert.equal(got.answered, true);
 assert.match(system, /never customer support/);
 assert.match(system, /Lines starting You said are your own recent messages/);
 assert.doesNotMatch(system, /you're just here for Capri help/);
+// Haiku copied quoted sample lines word for word on the live worker, so her Discord rules carry none.
+assert.doesNotMatch(system, /rearranging the server|Nobody rewires me/);
+assert.match(system, /say I, me and my/);
 console.log('PASS a hello gets her own line and no links');
 
 // A help answer names its chapter: the LINK line goes, and that chapter is the one link.
