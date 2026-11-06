@@ -10434,8 +10434,8 @@ namespace CapriDesktop
 
         private void ShowTiers()
         {
-            string nvidia = Voice.Unprotect(preferences.NvidiaKey), paid = Voice.Unprotect(preferences.PaidKey);
-            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : Voice.Tail(paid), Cloud.KindOf(nvidia));
+            string nvidia = Voice.Unprotect(preferences.NvidiaKey), paid = Voice.Unprotect(preferences.PaidKey), plan = Plans.KindOf(paid);
+            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : plan != null ? Plans.Plan(plan) : Voice.Tail(paid), Cloud.KindOf(nvidia), plan != null);
         }
 
         private void Keep(Cloud remote)
@@ -10477,6 +10477,9 @@ namespace CapriDesktop
             ConnectText(key, 2);
         }
 
+        // MAX INTELLIGENCE on their own Claude or ChatGPT plan, through Claude Code or Codex on this PC (Lachy, 6 Nov).
+        internal void UsePlan(string kind) { ConnectText(kind == "codex" ? Plans.CodexKey : Plans.ClaudeKey, 2); }
+
         private void ConnectText(string key, int targetTier)
         {
             ++providerListing;
@@ -10494,7 +10497,7 @@ namespace CapriDesktop
         {
             problem = Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem);
             Cloud remote = brain.Remote;
-            if (connecting && remote != null && remote.Kind != "local") problem = "Still using your " + remote.Company + " key. " + problem;
+            if (connecting && remote != null && remote.Kind != "local") problem = (remote.Plan ? "Still using your " + Plans.Plan(remote.Kind) + ". " : "Still using your " + remote.Company + " key. ") + problem;
             mainframe.ShowProblem(problem);
         }
 
@@ -10532,12 +10535,16 @@ namespace CapriDesktop
             int listing = cloudListing, refresh = ++cloudRefresh;
             int pickedTier = targetTier < 0 ? preferences.Tier : targetTier;
             Cloud probe = new Cloud(key, null);
-            if (connecting) mainframe.ShowProblem("Checking key...");
+            if (connecting) mainframe.ShowProblem(probe.Plan ? "Looking for " + probe.Name + "..." : "Checking key...");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 System.Collections.Generic.List<string> found = null;
                 string problem = null;
-                try { found = Brain.CloudModels(key, pickedTier == 1); }
+                try
+                {
+                    found = Brain.CloudModels(key, pickedTier == 1);
+                    if (connecting && probe.Plan) PlanBrain.Check(probe.Kind);
+                }
                 catch (BrainException error) { problem = error.Message; }
                 catch (Exception error) { Brain.Log("https://" + probe.Company.ToLowerInvariant() + "/models", -1, error.Message); problem = brain.Remote != null && brain.Remote.Key == key && brain.Remote.Model != null ? probe.Company + " is slow. Using " + brain.Remote.Model + "." : "Couldn't reach " + probe.Company + ". Check your internet."; }
                 Post(delegate
@@ -28402,6 +28409,124 @@ namespace CapriDesktop
             }
         }
 
+        // Their plan as her brain: Claude Code and Codex run hidden with her prompt on stdin, none of their own tools, no MCP servers,
+        // nothing saved and no API key from the environment; a screenshot goes along as a picture; a signed-out app, a used-up plan
+        // and a missing app each get her plain line; a reply they talk over ends the app at once; and My plan sits on MAX
+        // INTELLIGENCE's rung with the plan in use ticked.
+        private void SmokePlanBrain(System.Collections.Generic.List<string> checks)
+        {
+            string claudeWas = PlanBrain.ClaudeOverride, codexWas = PlanBrain.CodexOverride, folderWas = PlanBrain.FolderOverride;
+            string keyWas = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+            string root = Path.Combine(Path.GetTempPath(), "capri-plan-" + Guid.NewGuid().ToString("N")), runs = Path.Combine(root, "runs");
+            try
+            {
+                if (Cloud.KindOf(Plans.ClaudeKey) != "claudecode" || Cloud.KindOf(Plans.CodexKey) != "codex") throw new Exception("Her plans aren't their own kinds of brain.");
+                Cloud claudePlan = new Cloud(Plans.ClaudeKey, "haiku"), codexPlan = new Cloud(Plans.CodexKey, "default");
+                if (!claudePlan.Plan || claudePlan.Name != "Claude Code" || claudePlan.Company != "Anthropic" || codexPlan.Name != "Codex" || codexPlan.Company != "OpenAI") throw new Exception("Her plans have the wrong names.");
+                if (Brain.HasTools(claudePlan) || Brain.HasTools(codexPlan)) throw new Exception("A plan brain was sent native tools instead of her written ones.");
+                if (!Brain.ModelFits("claudecode", "sonnet") || Brain.ModelFits("claudecode", "gpt-5") || !Brain.ModelFits("codex", "default") || Brain.DefaultCloudModel("claudecode", Plans.Models("claudecode")) != "haiku") throw new Exception("Her plan models are wrong.");
+                Directory.CreateDirectory(runs);
+                PlanBrain.FolderOverride = runs;
+                PlanBrain.ClaudeOverride = Path.Combine(root, "missing.cmd");
+                try { Brain.CloudModels(Plans.ClaudeKey); throw new Exception("A missing Claude Code was picked."); }
+                catch (BrainException missing) { if (missing.Message != Plans.Missing("claudecode")) throw new Exception("A missing Claude Code said: " + missing.Message); }
+                // Pretend apps: each keeps its arguments, what it was sent and the environment it got, then answers like the real one.
+                string claude = Path.Combine(root, "claude.cmd"), codex = Path.Combine(root, "codex.cmd");
+                Action<string, bool> claudeSays = delegate(string json, bool slow)
+                {
+                    File.WriteAllText(claude, "@echo off\r\necho %* > \"%~dp0claude-args.txt\"\r\necho [%ANTHROPIC_API_KEY%][%CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC%] > \"%~dp0claude-env.txt\"\r\nfindstr \"^\" > \"%~dp0claude-stdin.txt\"\r\n"
+                        + (slow ? "ping -n 8 127.0.0.1 > nul\r\n" : "") + "echo {\"type\":\"system\",\"subtype\":\"init\",\"tools\":[]}\r\necho " + json + "\r\n", Encoding.ASCII);
+                };
+                // Its own folder is kept before shift moves %0 along.
+                File.WriteAllText(codex, "@echo off\r\nsetlocal\r\nset \"here=%~dp0\"\r\nset \"out=\"\r\necho %* > \"%here%codex-args.txt\"\r\n:next\r\nif \"%~1\"==\"\" goto read\r\nif \"%~1\"==\"-o\" set \"out=%~2\"\r\nshift\r\ngoto next\r\n:read\r\nfindstr \"^\" > \"%here%codex-stdin.txt\"\r\n> \"%out%\" echo Codex says hi.\r\n", Encoding.ASCII);
+                PlanBrain.ClaudeOverride = claude;
+                PlanBrain.CodexOverride = codex;
+                Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-ant-not-their-plan");
+                claudeSays("{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"Hey choom.\"}", false);
+                Brain onClaude = new Brain { Remote = claudePlan, Model = "haiku" };
+                string said = onClaude.Aside("You are Capri. Keep it short.", "say hi", 90);
+                string args = File.ReadAllText(Path.Combine(root, "claude-args.txt")), sent = File.ReadAllText(Path.Combine(root, "claude-stdin.txt")), env = File.ReadAllText(Path.Combine(root, "claude-env.txt")).Trim();
+                if (said != "Hey choom.") throw new Exception("Claude Code's reply came out as " + said);
+                foreach (string flag in new[] { "-p ", "--tools \"\"", "--strict-mcp-config", "--no-session-persistence", "--setting-sources project", "--input-format stream-json", "--output-format stream-json", "--append-system-prompt-file", "--model haiku", "--safe-mode", "--disable-slash-commands" })
+                    if (args.IndexOf(flag, StringComparison.Ordinal) < 0) throw new Exception("Claude Code ran without " + flag + ": " + args);
+                if (sent.IndexOf("\"type\":\"user\"", StringComparison.Ordinal) < 0 || sent.IndexOf("say hi", StringComparison.Ordinal) < 0) throw new Exception("Claude Code wasn't sent her message: " + sent);
+                if (env != "[][1]") throw new Exception("Claude Code got an API key or its extra traffic: " + env);
+                if (Directory.GetDirectories(runs).Length != 0) throw new Exception("A plan run left its files behind.");
+                // An older Claude Code without --safe-mode answers on a second go without it.
+                File.WriteAllText(claude, "@echo off\r\necho %* > \"%~dp0claude-args.txt\"\r\necho %* | findstr /c:\"--safe-mode\" > nul\r\nif not errorlevel 1 (\r\necho error: unknown option '--safe-mode' 1>&2\r\nexit /b 1\r\n)\r\nfindstr \"^\" > \"%~dp0claude-stdin.txt\"\r\necho {\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"Hey older choom.\"}\r\n", Encoding.ASCII);
+                said = onClaude.Aside("You are Capri.", "say hi", 90);
+                args = File.ReadAllText(Path.Combine(root, "claude-args.txt"));
+                PlanBrain.Retry();
+                if (said != "Hey older choom." || args.IndexOf("--safe-mode", StringComparison.Ordinal) >= 0 || args.IndexOf("--disable-slash-commands", StringComparison.Ordinal) < 0) throw new Exception("An older Claude Code didn't answer without --safe-mode: " + said + " / " + args);
+                claudeSays("{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"Hey choom.\"}", false);
+                // A screenshot goes along as a picture.
+                if (onClaude.See(new byte[] { 1, 2, 3 }, "Look", "What's on screen?", 90) != "Hey choom.") throw new Exception("Claude Code's look didn't come back.");
+                sent = File.ReadAllText(Path.Combine(root, "claude-stdin.txt"));
+                if (sent.IndexOf("\"type\":\"image\"", StringComparison.Ordinal) < 0 || sent.IndexOf("AQID", StringComparison.Ordinal) < 0) throw new Exception("Her screenshot didn't reach Claude Code.");
+                // Signed out, out of plan, and the check when they pick it.
+                claudeSays("{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"result\":\"Failed to authenticate: OAuth session expired and could not be refreshed\"}", false);
+                try { onClaude.Aside("You are Capri.", "say hi", 90); throw new Exception("A signed-out Claude Code answered."); }
+                catch (BrainException signedOut) { if (!signedOut.Told || signedOut.Message != "Claude Code isn't signed in. Run claude and sign in.") throw new Exception("A signed-out Claude Code said: " + signedOut.Message); }
+                try { PlanBrain.Check("claudecode"); throw new Exception("Picking a signed-out Claude Code passed its check."); }
+                catch (BrainException picked) { if (picked.Message != "Claude Code isn't signed in. Run claude and sign in.") throw new Exception("Picking a signed-out Claude Code said: " + picked.Message); }
+                claudeSays("{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":true,\"result\":\"You've hit your usage limit. Resets 5pm\"}", false);
+                try { onClaude.Aside("You are Capri.", "say hi", 90); throw new Exception("A used-up plan answered."); }
+                catch (BrainException limited) { if (limited.Message != "Your Claude plan is out of messages for now.") throw new Exception("A used-up plan said: " + limited.Message); }
+                // Codex: her prompt and rules on stdin, a read-only sandbox, nothing kept, and its own model unless they picked one.
+                Brain onCodex = new Brain { Remote = codexPlan, Model = "default" };
+                said = onCodex.Aside("You are Capri.", "say hi", 90);
+                args = File.ReadAllText(Path.Combine(root, "codex-args.txt"));
+                sent = File.ReadAllText(Path.Combine(root, "codex-stdin.txt"));
+                if (said != "Codex says hi.") throw new Exception("Codex's reply came out as " + said);
+                foreach (string flag in new[] { "exec ", "--skip-git-repo-check", "--ephemeral", "--sandbox read-only", " -o ", "features.shell_tool=false", "features.browser_use=false", "features.plugins=false" })
+                    if (args.IndexOf(flag, StringComparison.Ordinal) < 0) throw new Exception("Codex ran without " + flag + ": " + args);
+                if (args.IndexOf(" -m ", StringComparison.Ordinal) >= 0 || !args.TrimEnd().EndsWith(" -", StringComparison.Ordinal)) throw new Exception("Codex was given a model or no stdin prompt: " + args);
+                if (sent.IndexOf("<instructions>", StringComparison.Ordinal) < 0 || sent.IndexOf("You are Capri.", StringComparison.Ordinal) < 0 || sent.IndexOf("say hi", StringComparison.Ordinal) < 0) throw new Exception("Codex wasn't sent her rules and message: " + sent);
+                onCodex.See(new byte[] { 1, 2, 3 }, "Look", "What's on screen?", 90);
+                if (File.ReadAllText(Path.Combine(root, "codex-args.txt")).IndexOf(" -i ", StringComparison.Ordinal) < 0) throw new Exception("Her screenshot didn't reach Codex.");
+                // Talked over: the app ends at once.
+                claudeSays("{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"Too late.\"}", true);
+                Stopwatch stopping = Stopwatch.StartNew();
+                long stoppedIn = -1;
+                try
+                {
+                    PlanBrain.Think("claudecode", "haiku", new System.Collections.Generic.List<ChatMessage> { new ChatMessage("user", "hi") }, delegate { return stopping.ElapsedMilliseconds > 400; });
+                    throw new Exception("A talked-over plan reply finished anyway.");
+                }
+                catch (WebException cut)
+                {
+                    stoppedIn = stopping.ElapsedMilliseconds;
+                    if (cut.Status != WebExceptionStatus.RequestCanceled || stoppedIn > 2500) throw new Exception("A talked-over plan reply took " + stoppedIn + " ms to stop.");
+                }
+                // My plan on MAX INTELLIGENCE's rung, with the plan in use ticked and named.
+                foreach (int dpi in new[] { 96, 144, 192 })
+                {
+                    mainframe.LayoutScale(dpi, 100);
+                    mainframe.ShowTiers(2, null, Plans.Plan("claudecode"), null, true);
+                    mainframe.ShowCloud(claudePlan, Plans.Models("claudecode"));
+                    string problem = mainframe.TiersProblem;
+                    if (problem != null) throw new Exception("BRAIN with My plan doesn't fit at " + dpi + " DPI: " + problem);
+                }
+                mainframe.LayoutScale(96, 100);
+                if (!mainframe.PlanTicked(0) || mainframe.PlanTicked(1)) throw new Exception("My plan didn't tick the plan in use.");
+                if (mainframe.TextStatus != "tier 2 | Claude Code · haiku | Using your Claude plan · Claude Code on this PC | Using your Claude plan | Forget") throw new Exception("BRAIN showed " + mainframe.TextStatus);
+                checks.Add("PASS your plan as her brain: Claude Code and Codex run hidden with her prompt on stdin, none of their own tools, no MCP servers, nothing saved and no API key from the environment; a screenshot goes along as a picture; signed out, out of plan and not installed each get her plain line; a reply talked over ends the app " + stoppedIn + " ms after it starts; and My plan fits MAX INTELLIGENCE's rung at 100%, 150% and 200%");
+            }
+            finally
+            {
+                PlanBrain.ClaudeOverride = claudeWas;
+                PlanBrain.CodexOverride = codexWas;
+                PlanBrain.FolderOverride = folderWas;
+                Environment.SetEnvironmentVariable("ANTHROPIC_API_KEY", keyWas);
+                mainframe.LayoutScale(96, 100);
+                ShowTiers();
+                if (brain.Remote != null) mainframe.ShowCloud(brain.Remote, cloudModels);
+                try { Directory.Delete(root, true); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+
         // Her own lines in their language: her brain's numbered translations come back in batches and are kept in lines-<language>.txt,
         // her pat lines and sys labels use them, English and her brain's own replies stay as they are, and a bad or failed reply
         // leaves its lines in English.
@@ -31919,6 +32044,7 @@ namespace CapriDesktop
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
+            Section(checks, "SmokePlanBrain", delegate { SmokePlanBrain(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
             Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });

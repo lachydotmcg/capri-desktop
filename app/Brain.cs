@@ -335,9 +335,11 @@ namespace CapriDesktop
         internal Cloud(string key, string model) { Code = IsCode(key); Key = Code ? key.Trim().ToUpperInvariant() : key; Kind = KindOf(Key); Model = model; }
         internal Cloud(int port, string model, string address = null) { Host = Brain.LocalAddress(address) ?? Brain.LocalHost(port); Port = new Uri(Host).Port; Kind = "local"; Model = model; }
         internal bool Claude { get { return Kind == "anthropic"; } }
-        internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "google" ? "Gemini" : Kind == "openai" ? "ChatGPT" : Company; } }
+        // Their own Claude or ChatGPT plan, through Claude Code or Codex on their PC.
+        internal bool Plan { get { return Plans.Is(Kind); } }
+        internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "google" ? "Gemini" : Kind == "openai" ? "ChatGPT" : Plan ? Plans.App(Kind) : Company; } }
         internal string Company { get { return Kind == "local" ? Name : CompanyOf(Kind); } }
-        internal static string CompanyOf(string kind) { return kind == "anthropic" ? "Anthropic" : kind == "deepseek" ? "DeepSeek" : kind == "nvidia" ? "NVIDIA" : kind == "google" ? "Google AI" : kind == "openrouter" ? "OpenRouter" : kind == "openai" ? "OpenAI" : "That provider"; }
+        internal static string CompanyOf(string kind) { return kind == "anthropic" || kind == "claudecode" ? "Anthropic" : kind == "deepseek" ? "DeepSeek" : kind == "nvidia" ? "NVIDIA" : kind == "google" ? "Google AI" : kind == "openrouter" ? "OpenRouter" : kind == "openai" || kind == "codex" ? "OpenAI" : "That provider"; }
         internal string Source { get { return Kind + (Kind == "local" ? "|" + Host : "") + "|" + Model; } }
         internal string Sight { get { return Kind == "local" || Kind == "google" || Kind == "openrouter" ? Source : Model; } }
 
@@ -357,6 +359,7 @@ namespace CapriDesktop
         internal static string KindOf(string key)
         {
             if (string.IsNullOrEmpty(key)) return null;
+            if (Plans.KindOf(key) != null) return Plans.KindOf(key);
             // Google AI Studio gives out keys that start AQ. now (Senshy, Echo, ALASTOR and lluvia.flac, 1 Nov).
             if (key.StartsWith("AIza", StringComparison.Ordinal) || key.StartsWith("AQ.", StringComparison.Ordinal)) return "google";
             if (key.StartsWith("sk-or-", StringComparison.Ordinal)) return "openrouter";
@@ -368,6 +371,37 @@ namespace CapriDesktop
         }
 
         internal static bool MediumKind(string kind) { return kind == "nvidia" || kind == "google" || kind == "openrouter"; }
+    }
+
+    // Their Claude or ChatGPT plan under MAX INTELLIGENCE, saved like a key but holding only which app runs it. Running the app
+    // is in PlanBrain, on Windows.
+    internal static class Plans
+    {
+        internal const string ClaudeKey = "plan:claude", CodexKey = "plan:codex";
+        internal static readonly string[] ClaudeModels = { "haiku", "sonnet", "opus" };
+        internal static readonly string[] CodexModels = { "default" };
+
+        internal static string KindOf(string key) { return key == ClaudeKey ? "claudecode" : key == CodexKey ? "codex" : null; }
+
+        internal static bool Is(string kind) { return kind == "claudecode" || kind == "codex"; }
+
+        internal static string App(string kind) { return kind == "codex" ? "Codex" : "Claude Code"; }
+
+        internal static string Plan(string kind) { return kind == "codex" ? "ChatGPT plan" : "Claude plan"; }
+
+        internal static List<string> Models(string kind) { return new List<string>(kind == "codex" ? CodexModels : ClaudeModels); }
+
+        internal static string Shown(string kind, string id)
+        {
+            if (kind == "codex") return id == "default" ? "Codex's own model" : id;
+            return id == "haiku" ? "Haiku · fastest" : id == "sonnet" ? "Sonnet" : id == "opus" ? "Opus · smartest, uses your plan fastest" : id;
+        }
+
+        internal static string Missing(string kind)
+        {
+            // Short enough for the BRAIN note; her Help page says how to install each.
+            return "Install " + App(kind) + " and sign in to it first.";
+        }
     }
 
     internal sealed class BrainException : Exception
@@ -1563,7 +1597,8 @@ namespace CapriDesktop
 
         private static bool Images(CloudModel model) { return model != null && model.Architecture != null && model.Architecture.Input != null && Array.IndexOf(model.Architecture.Input, "image") >= 0; }
         private static bool Tools(CloudModel model) { return model != null && model.Parameters != null && Array.IndexOf(model.Parameters, "tools") >= 0; }
-        internal static bool HasTools(Cloud remote) { return remote == null || remote.Kind != "openrouter" || Tools(Listed(remote.Kind, remote.Model)); }
+        // Claude Code and Codex get her tools written out, since they run with none of their own.
+        internal static bool HasTools(Cloud remote) { return remote == null || !remote.Plan && (remote.Kind != "openrouter" || Tools(Listed(remote.Kind, remote.Model))); }
 
         internal bool Sighted(Cloud remote)
         {
@@ -1671,6 +1706,13 @@ namespace CapriDesktop
         internal static List<string> CloudModels(string key, bool freeOnly = false)
         {
             string kind = Cloud.KindOf(key);
+            if (Plans.Is(kind))
+            {
+#if !CROSS
+                if (PlanBrain.Find(kind) == null) throw new BrainException(Plans.Missing(kind), true);
+#endif
+                return Plans.Models(kind);
+            }
             bool claude = kind == "anthropic";
             HttpWebRequest request = Create((claude ? ClaudeAddress(key, "/models") : Address(kind, "/models")) + (claude ? "?limit=100" : ""), 30000);
             Sign(request, key, claude);
@@ -1778,12 +1820,14 @@ namespace CapriDesktop
         // A model's name in a model menu, marked when it's recommended.
         internal static string Shown(string kind, string id)
         {
+            if (Plans.Is(kind)) return Plans.Shown(kind, id);
             return kind == "nvidia" && Array.IndexOf(NvidiaRecommended, id) >= 0 ? id + Recommended : id;
         }
 
         internal static bool ModelFits(string kind, string id)
         {
             if (string.IsNullOrWhiteSpace(id)) return false;
+            if (Plans.Is(kind)) return Plans.Models(kind).Contains(id);
             if (kind == "google") return id.StartsWith("gemini-", StringComparison.Ordinal);
             if (kind == "openai") return Regex.IsMatch(id, @"^(gpt-|o\d|chatgpt-)");
             if (kind == "anthropic") return id.StartsWith("claude-", StringComparison.Ordinal);
@@ -2613,7 +2657,7 @@ namespace CapriDesktop
             string data = Convert.ToBase64String(jpeg);
             string parts = null;
             if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}]";
-            else if (remote != null || Local != null || Server != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64," + data + "\"}}]";
+            else if (remote != null && !remote.Plan || Local != null || Server != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64," + data + "\"}}]";
             ChatMessage asked = new ChatMessage("user", parts != null ? Parts : instruction);
             if (parts == null) asked.Images = new[] { data };
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), asked };
@@ -2727,7 +2771,7 @@ namespace CapriDesktop
                 blocks.Add("{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}");
                 parts = "[" + string.Join(",", blocks.ToArray()) + "]";
             }
-            else if (pictures.Count > 0 && (remote != null || Local != null || Server != null))
+            else if (pictures.Count > 0 && (remote != null && !remote.Plan || Local != null || Server != null))
             {
                 List<string> blocks = pictures.ConvertAll(data => "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64," + data + "\"}}");
                 blocks.Insert(0, "{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}");
@@ -2834,11 +2878,23 @@ namespace CapriDesktop
             return Regex.IsMatch(problem ?? "", @"does not support (tools|tool use|function calling)|doesn't support tools|(?:tools?|tool use|function calling) (?:are |is )?(?:not supported|unsupported)|unsupported (?:tools?|function calling)|(?:tools?|tool_choice).*(?:not supported|not allowed|not enabled)|no endpoints found that support tool", RegexOptions.IgnoreCase);
         }
 
+        // Their Claude or ChatGPT plan, through Claude Code or Codex on this PC: her chat goes as text and her tools come back
+        // written out, and a reply they talk over ends its run.
+        private string Planned(Cloud remote, List<ChatMessage> messages, int ticket)
+        {
+#if CROSS
+            throw new BrainException("Your plan as my brain works on Windows for now. Pick another brain under BRAIN.", true);
+#else
+            return PlanBrain.Think(remote.Kind, remote.Model, messages, delegate { lock (gate) return ticket >= 0 && ticket != cancelled; });
+#endif
+        }
+
         private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false)
         {
             Check(ticket);
             Cloud remote = Remote;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
+            if (remote != null && remote.Plan) return Planned(remote, messages, ticket);
             if (remote != null && remote.Claude) return AskClaude(remote, messages, tools, calls, parts, ticket, claudeTools, routing, 0, job);
             if (remote != null)
             {

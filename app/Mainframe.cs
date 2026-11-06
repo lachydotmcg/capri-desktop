@@ -243,6 +243,8 @@ namespace CapriDesktop
         private readonly Key textConnect;
         private readonly Key freeKey;
         private readonly ContextMenuStrip freeKeyMenu;
+        private readonly Key planKey;
+        private readonly ContextMenuStrip planMenu;
         private readonly Label freeWarning;
         private readonly Label paidNote;
         private readonly Key movePaid;
@@ -430,7 +432,7 @@ namespace CapriDesktop
             setup.Loud = true;
             hint = Caption("Have Ollama? Open it, then press Refresh.", 28, 264, Look.Mono(9f, FontStyle.Italic, GraphicsUnit.Point), Faint);
             tierNote = Caption("Pick one. Only one brain runs at a time.", 28, 168, Look.Mono(8.5f, FontStyle.Italic, GraphicsUnit.Point), Faint);
-            string[,] tiers = { { "NORMAL", "Free · local model" }, { "MEDIUM INTELLIGENCE", "Free" }, { "MAX INTELLIGENCE", "Cloud API keys" } };
+            string[,] tiers = { { "NORMAL", "Free · local model" }, { "MEDIUM INTELLIGENCE", "Free" }, { "MAX INTELLIGENCE", "Key or plan" } };
             for (int i = 0; i < rungs.Length; i++)
             {
                 int picked = i;
@@ -440,7 +442,7 @@ namespace CapriDesktop
                 rung.Font = Type(9.5f, true);
                 rung.HintFont = Type(9f);
                 rung.AccessibleName = tiers[i, 0] + ", " + tiers[i, 1];
-                rung.Bounds = new Rectangle(28, 184 + 24 * i, i == 1 ? 232 : 328, 24);
+                rung.Bounds = new Rectangle(28, 184 + 24 * i, i > 0 ? 232 : 328, 24);
                 rung.CheckedChanged += delegate { if (!syncing && rungs[picked].Checked) capri.ChooseTier(picked); };
                 Controls.Add(rung);
                 rungs[i] = rung;
@@ -461,6 +463,20 @@ namespace CapriDesktop
             freeKey = Make("Free key", 266, 209, 90, 22, delegate { ShowFreeKeys(); });
             freeKey.Chevron = true;
             freeKey.AccessibleName = "Free key: NVIDIA, Google AI Studio (Gemini) or OpenRouter";
+            // Their own Claude or ChatGPT plan in place of a key, through Claude Code or Codex on this PC (Lachy, 6 Nov).
+            planMenu = Dropdown();
+            planMenu.AccessibleName = "Your plan";
+            ToolStripMenuItem claudePlan = Choice("Claude plan · runs Claude Code on this PC", false, delegate { capri.UsePlan("claudecode"); });
+            claudePlan.AccessibleName = "Claude plan";
+            claudePlan.Tag = "claudecode";
+            planMenu.Items.Add(claudePlan);
+            ToolStripMenuItem codexPlan = Choice("ChatGPT plan · runs Codex on this PC", false, delegate { capri.UsePlan("codex"); });
+            codexPlan.AccessibleName = "ChatGPT plan";
+            codexPlan.Tag = "codex";
+            planMenu.Items.Add(codexPlan);
+            planKey = Make("My plan", 266, 233, 90, 22, delegate { ShowPlans(); });
+            planKey.Chevron = true;
+            planKey.AccessibleName = "My plan: Claude through Claude Code, or ChatGPT through Codex";
             textEntry = Input(28, 262, 244);
             textEntry.Box.UseSystemPasswordChar = true;
             textEntry.Box.AccessibleName = "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key";
@@ -1418,6 +1434,21 @@ namespace CapriDesktop
 
         internal bool FreeKeysShown { get { return freeKeyMenu.Visible; } }
 
+        internal void ShowPlans()
+        {
+            DismissHint();
+            planMenu.Show(planKey, new Point(planKey.Width, planKey.Height), ToolStripDropDownDirection.BelowLeft);
+            planMenu.Items[0].Select();
+        }
+
+        internal bool PlansShown { get { return planMenu.Visible; } }
+
+        internal void PickPlan(int index) { ((ToolStripMenuItem)planMenu.Items[index]).PerformClick(); planMenu.Close(); }
+
+        internal bool PlanTicked(int index) { return ((ToolStripMenuItem)planMenu.Items[index]).Checked; }
+
+        internal Rectangle PlanBounds { get { return planKey.Bounds; } }
+
         internal int FreeKeyChoices { get { return freeKeyMenu.Items.Count; } }
 
         internal void PickFreeKey(int index) { ((ToolStripMenuItem)freeKeyMenu.Items[index]).PerformClick(); freeKeyMenu.Close(); }
@@ -2046,7 +2077,7 @@ namespace CapriDesktop
                 unit = nextUnit;
                 foreach (LayoutItem item in layout) item.Apply(unit, layoutFallback);
                 shownFallback = layoutFallback;
-                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu }) menu.Font = Font;
+                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, planMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu }) menu.Font = Font;
                 foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
                 if (languageFont != null) { languageFont.Dispose(); languageFont = null; }
                 foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lifted);
@@ -2567,6 +2598,7 @@ namespace CapriDesktop
             tierNote.Top = Scaled(168 + top);
             for (int i = 0; i < rungs.Length; i++) rungs[i].Top = Scaled(184 + 24 * i + top);
             freeKey.Top = Scaled(209 + top);
+            planKey.Top = Scaled(233 + top);
             textEntry.Top = Scaled(262 + top);
             textConnect.Top = textEntry.Top;
             textEntry.Visible = textConnect.Visible = tier > 0;
@@ -2613,7 +2645,7 @@ namespace CapriDesktop
             if (disposing) { glide.Stop(); glide.Dispose(); if (languageFont != null) languageFont.Dispose(); }
             if (disposing) DisposeHints();
             if (disposing) { speakerMenu.Dispose(); screenMenu.Dispose(); if (miniMenu != null) miniMenu.Dispose(); }
-            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); mixInputMenu.Dispose(); mixOutputMenu.Dispose(); }
+            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); planMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); mixInputMenu.Dispose(); mixOutputMenu.Dispose(); }
             if (disposing && languageFont != null) languageFont.Dispose();
             base.Dispose(disposing);
             if (disposing) foreach (LayoutItem item in layout) item.Dispose();
@@ -3392,8 +3424,9 @@ namespace CapriDesktop
         internal void ShowCloud(Cloud remote, List<string> found)
         {
             brainName.Text = remote.Name + (remote.Model == null ? "" : " · " + remote.Model);
-            brainNote.Text = remote.Code ? remote.CodeNote : remote.Kind == "local" ? "Running on this PC · :" + remote.Port : remote.Kind == "nvidia" ? NvidiaNote : "Using your " + remote.Company + " key";
-            models.Text = remote.Code ? "Claude Haiku 5.5" : remote.Model;
+            brainNote.Text = remote.Code ? remote.CodeNote : remote.Kind == "local" ? "Running on this PC · :" + remote.Port : remote.Kind == "nvidia" ? NvidiaNote
+                : remote.Plan ? "Using your " + Plans.Plan(remote.Kind) + " · " + remote.Name + " on this PC" : "Using your " + remote.Company + " key";
+            models.Text = remote.Code ? "Claude Haiku 5.5" : remote.Plan ? Plans.Shown(remote.Kind, remote.Model) : remote.Model;
             models.Visible = remote.Model != null;
             hint.Visible = false;
             if (remote.Kind == "local") { LocalMenu(null, remote); Arrange(false); return; }
@@ -3432,8 +3465,14 @@ namespace CapriDesktop
 
         private int KeyRow { get { return tier > 0 ? 128 + (tier != 1 ? 0 : paidTextKey != null ? 86 : 20) : 94; } }
 
-        internal void ShowTiers(int pick, string nvidiaTail, string paidTail, string mediumKind = null)
+        // paidPlan: MAX INTELLIGENCE runs on their plan, and paidTail names it.
+        internal void ShowTiers(int pick, string nvidiaTail, string paidTail, string mediumKind = null, bool paidPlan = false)
         {
+            foreach (ToolStripItem item in planMenu.Items)
+            {
+                ToolStripMenuItem choice = item as ToolStripMenuItem;
+                if (choice != null) choice.Checked = paidPlan && paidTail == Plans.Plan((string)choice.Tag);
+            }
             int old = tier;
             tier = Math.Max(0, Math.Min(rungs.Length - 1, pick));
             if (old != tier) textEntry.Box.Clear();
@@ -3446,7 +3485,7 @@ namespace CapriDesktop
             textEntry.Box.AccessibleName = tier == 1 ? "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key" : "Google AI, OpenRouter, NVIDIA, OpenAI, Anthropic or DeepSeek API key";
             textEntry.AccessibleName = textEntry.Box.AccessibleName;
             tierNote.Text = tier == 1 ? mediumKind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : tier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
-            textEntry.Cue = textSaved ? "Key saved, ends " + tail : tier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
+            textEntry.Cue = textSaved ? (tier == 2 && paidPlan ? "Using your " + tail : "Key saved, ends " + tail) : tier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
             RelabelText();
             Arrange(expanded);
         }
@@ -3477,6 +3516,7 @@ namespace CapriDesktop
                 if (tierNote.Right > ClientSize.Width) return "the tier note (right " + tierNote.Right + ") runs past the Mainframe (" + ClientSize.Width + ")";
                 if (rungs[0].Top < tierNote.Bottom || rungs[1].Top < rungs[0].Bottom || rungs[2].Top < rungs[1].Bottom) return "the rungs overlap the tier note or each other";
                 if (freeKey.Left < rungs[1].Right || freeKey.Top < rungs[1].Top || freeKey.Bottom > rungs[1].Bottom) return "Free key (" + freeKey.Bounds + ") overlaps or leaves its rung (" + rungs[1].Bounds + ")";
+                if (planKey.Left < rungs[2].Right || planKey.Top < rungs[2].Top || planKey.Bottom > rungs[2].Bottom || planKey.Right > Scaled(356)) return "My plan (" + planKey.Bounds + ") overlaps or leaves its rung (" + rungs[2].Bounds + ")";
                 if (end > voiceHead.Top) return "BRAIN (bottom " + end + ") runs into VOICE (top " + voiceHead.Top + ")";
                 if (rungs[0].Right > ClientSize.Width) return "the rungs (right " + rungs[0].Right + ") run past the Mainframe (" + ClientSize.Width + ")";
                 return null;

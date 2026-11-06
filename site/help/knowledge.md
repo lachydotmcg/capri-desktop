@@ -332,7 +332,7 @@ Her right-click menu, the Type box, the installer and her pop-up notes (like "Ca
 - "Pick one. Only one brain runs at a time." with NORMAL. MEDIUM INTELLIGENCE lists "NVIDIA, Gemini, OpenRouter", or says "Most NVIDIA models can't see your screen." with NVIDIA on that row. Three rows:
   - NORMAL: "Free · local model", marked "Start with this!". Use her built-in brain, Ollama, LM Studio, Jan, KoboldCpp or llama.cpp on your PC. New installs start here.
   - MEDIUM INTELLIGENCE: "Free". Accepts NVIDIA, Google AI Studio (Gemini) or OpenRouter keys. OpenRouter only lists models ending :free.
-  - MAX INTELLIGENCE: "Cloud API keys". Accepts Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek keys. Full model list, including paid models.
+  - MAX INTELLIGENCE: "Key or plan". Accepts Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek keys, or your own Claude or ChatGPT plan through My plan. Full model list, including paid models.
 - The key box shows when MEDIUM INTELLIGENCE or MAX INTELLIGENCE is picked. Paste a key and press Connect. Once saved it shows "Key saved, ends XXXX".
   - MEDIUM INTELLIGENCE: "NVIDIA / Google AI Studio / OpenRouter".
   - MAX INTELLIGENCE: "Paste a brain API key".
@@ -342,6 +342,14 @@ Her right-click menu, the Type box, the installer and her pop-up notes (like "Ca
 - A row with no key yet runs her NORMAL brain until you connect one.
 - Forget: shows in red when the box is empty and a key is saved. It removes that row's key and moves her back to NORMAL.
 - Used HIGHER? It's now MEDIUM INTELLIGENCE; your key and model are kept. Existing MAX INTELLIGENCE setups stay on MAX.
+- My plan (the button on the MAX INTELLIGENCE row, 0.8.5) runs her brain on your own Claude or ChatGPT plan, with no API key:
+  - Claude plan runs Claude Code on this PC, and ChatGPT plan runs Codex.
+  - Install the app and sign in to it with your own account first. For Claude Code, install it from claude.com/claude-code, then run claude and sign in. For Codex, run npm install -g @openai/codex, then codex login.
+  - When you pick it, she checks the app is there and signed in. If not, BRAIN says "Install Claude Code and sign in to it first." or "Claude Code isn't signed in. Run claude and sign in."
+  - The model menu then lists Haiku (fastest), Sonnet and Opus (smartest, uses your plan fastest) for Claude, or Codex's own model for Codex.
+  - She runs the app hidden with none of its own tools, no add-ons and nothing saved, and never touches its sign-in. Her own tools, like opening apps and using your PC, still work.
+  - Replies take a few seconds longer than with a key and count toward your plan's limits. When the plan runs out for now she says "Your Claude plan is out of messages for now."
+  - Windows only for now. To stop, empty the box and press Forget, paste a key, or pick another row.
 - Provider (0.8.3): opens Brain provider for an OpenAI-compatible Address and Key. A connected provider shows as My provider in BRAIN. See "How do I set up OpenRouter or LM Studio?" in section 9.
 
 With NORMAL selected, Refresh also looks for local servers. Start your server with a model loaded, then pick it in the model menu. Its name appears on the BRAIN status line.
@@ -627,7 +635,7 @@ Pick one of the three rows under BRAIN:
 The row you picked under BRAIN. Only one runs at a time.
 - NORMAL: the local brain you picked. This can be Ollama, her built-in brain or a local server. Start the server, press Refresh and use the model menu to choose it.
 - MEDIUM INTELLIGENCE: your NVIDIA, Google AI Studio (Gemini) or OpenRouter key. OpenRouter is limited to :free models here.
-- MAX INTELLIGENCE: your Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key, with the full model list including paid models.
+- MAX INTELLIGENCE: your Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key, or your own Claude or ChatGPT plan through My plan, with the full model list including paid models.
 
 If the row you picked has no key yet, she uses her NORMAL brain until you connect one. To go back to Ollama or the built-in brain, pick NORMAL. Your keys stay saved.
 
