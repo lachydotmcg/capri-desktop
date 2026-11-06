@@ -12415,6 +12415,8 @@ namespace CapriDesktop
             {
                 earsModelWanted = open;
                 if (earsModelBusy) return;
+                // Watch Along can load it too, so closing always unloads.
+                if (!open) earsModelLoaded = true;
                 earsModelBusy = true;
             }
             ThreadPool.QueueUserWorkItem(delegate
