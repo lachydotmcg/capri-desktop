@@ -1136,7 +1136,7 @@ namespace CapriDesktop
             }
             if (page == null || current == null || !ExploreAllowed(current, full, paused) || current.Window != page.Window || current.Title != page.Title
                 || under != page.Window || before != cursor || bounds.IsEmpty || !bounds.Contains(cursor) || !away()) return false;
-            SendMouse(0x0800, -120);
+            using (InControl.Hold()) SendMouse(0x0800, -120);
             return true;
         }
 

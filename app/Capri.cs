@@ -8323,10 +8323,22 @@ namespace CapriDesktop
         {
             if (!exploring && !exploreBusy) return;
             exploring = false;
+            ExploreHold(false);
             exploreWindow = IntPtr.Zero;
             exploreTicket++;
             watchTicket++;
             herPointer.End();
+        }
+
+        // Her sign stays up the whole time she explores while they're away, so whoever comes back sees why the page is
+        // scrolling, and it goes once their first touch stops her (#106).
+        private bool exploreHeld;
+
+        private void ExploreHold(bool on)
+        {
+            if (on == exploreHeld) return;
+            exploreHeld = on;
+            if (on) InControl.Begin(); else InControl.End();
         }
 
         private bool ExploreFree()
@@ -8370,6 +8382,7 @@ namespace CapriDesktop
                     if (!exploring)
                     {
                         exploring = true;
+                        ExploreHold(true);
                         exploreBegan = now;
                         exploreWindow = page.Window;
                         herPointer.Begin(Head());
