@@ -77,7 +77,7 @@ says = 'Sorted.';
 await discord({ question: 'voice?', name: ' Sovi‮ ' });
 assert.equal(sent.at(-1).content, 'Sovi: voice?');
 assert.match(system, /Different names are different people/);
-assert.match(system, /talk about yourself as being in this server/);
+assert.match(system, /you live in this server/);
 assert.match(system, /Never write @everyone or @here/);
 await discord({ question: 'voice?' });
 assert.equal(sent.at(-1).content, 'voice?');
