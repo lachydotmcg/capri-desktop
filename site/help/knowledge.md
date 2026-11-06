@@ -54,13 +54,21 @@ A mic is only needed for voice chat.
 - All files: https://github.com/lachydotmcg/capri-desktop/releases/latest
 
 ### How do I install Capri VR? (0.8.3)
-Capri Room is her mixed-reality version for Meta Quest 3 and 3S, made by fadievr. She walks around your real room and sits on your furniture.
+Capri Room is her mixed-reality version for Meta Quest 3 and 3S, made by fadievr. She walks around your real room and sits on your furniture. Do Space Setup first (Settings > Physical Space > Space Setup) so she knows where your floor, tables, couches and beds are.
 
-1. Download Capri-VR-Quest.apk from her GitHub release page: https://github.com/lachydotmcg/capri-desktop/releases/latest.
-2. Turn on Developer Mode for your headset.
-3. Install the APK with SideQuest or Meta Quest Developer Hub.
-4. On the headset, open Library > Unknown Sources and open Capri Room.
-5. Allow spatial data and microphone access.
+Install (sideload):
+1. Turn on Developer Mode: make a free account at developers.meta.com, then in the Meta Horizon phone app go to Devices > your Quest > Developer Mode > On.
+2. Download the newest CapriRoom-v….apk from the latest release: https://github.com/fadievr/capri-room/releases/latest
+3. Install it with SideQuest or Meta Quest Developer Hub: plug in your Quest, allow USB debugging in the headset, and drag the APK onto the app.
+4. In the headset, open Library > Unknown Sources > Capri Room.
+5. Allow spatial data (so she can see your room) and the microphone (so she can hear you).
+
+Or the easier way, all in the headset:
+1. Open the Meta Quest Browser and sign in to GitHub.
+2. Go to https://github.com/fadievr/capri-room/releases, download the newest APK to the headset and open it.
+3. If it says the headset isn't allowed to launch apps from Files, press Go to settings and hit Allow.
+4. Open the APK again, and it installs by itself.
+5. Open Library > Unknown Sources > Capri Room, then allow spatial data and the microphone.
 
 Press Y in the headset to open her settings. Her brain and voice keys stay on the headset.
 
