@@ -894,6 +894,9 @@ namespace CapriDesktop
         [DataMember] public int PopMax;
         // Frames a second of her perch: 10, 15, 20, 30, 40, 50 or 60. 30 shows the art as drawn.
         [DataMember] public int PerchFps = 30;
+        // Power saver: 0 off, 1 in games (the default), 2 always. While it works she draws herself less often sitting still,
+        // runs her background checks less often and listens at a gentler pace (issue #111, 6 Nov).
+        [DataMember] public int PowerSaver = 1;
         // Her Mainframe's size: 0 for Auto, which grows it on a screen whose desktop is bigger than its panel (Virtual Super
         // Resolution, DSR), or 100 to 200 for that percent of the screen's own scale.
         [DataMember] public int MainframeSize;
@@ -1056,6 +1059,7 @@ namespace CapriDesktop
             WanderPace = 1;
             PopPace = 1;
             PerchFps = 30;
+            PowerSaver = 1;
             MainframeSize = 0;
             CheckIns = true;
             CareWater = CareStretch = CareLate = CareMeal = CareGame = CareBored = true;
@@ -2381,6 +2385,7 @@ namespace CapriDesktop
             Sfx.Untyped = delegate { try { typist.Clear(); } catch (Exception) { } };
             preferences.WanderPace = Math.Max(0, Math.Min(3, preferences.WanderPace));
             preferences.PopPace = Math.Max(0, Math.Min(2, preferences.PopPace));
+            preferences.PowerSaver = Math.Max(0, Math.Min(2, preferences.PowerSaver));
             clip = idle;
             nextGlitch = 30 + random.NextDouble() * 30;
             Text = "Capri";
@@ -7013,6 +7018,19 @@ namespace CapriDesktop
 
         internal int PerchFps { get { return preferences.PerchFps; } }
 
+        // Power saver: Off, In games or Always, from HABITS or her settings tool.
+        internal int PowerSaver { get { return preferences.PowerSaver; } }
+
+        internal void SetPowerSaver(int level)
+        {
+            preferences.PowerSaver = Math.Max(0, Math.Min(2, level));
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        // Power saver is working now: Always, or In games while a game or anything full screen is in front.
+        internal bool Saving { get { return preferences.PowerSaver == 2 || preferences.PowerSaver == 1 && frontBusy; } }
+
         internal void SetPerchFps(int fps)
         {
             preferences.PerchFps = PerchRate(fps);
@@ -9881,6 +9899,7 @@ namespace CapriDesktop
                 case "mainframe_size": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), MainframeSize));
                 case "mainframe_colours": return MainframeColours;
                 case "perch_fps": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), PerchFps));
+                case "power_saver": return Math.Max(0, Math.Min(2, PowerSaver));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
                 case "reply_limit": return ReplyLength;
                 case "game_comments": return CommentPace;
@@ -9928,6 +9947,7 @@ namespace CapriDesktop
                 case "mainframe_size": SetMainframeSize(Hands.ValuesFor(name)[step]); mainframe.ResizeSettings(); break;
                 case "mainframe_colours": SetMainframeColours(step); break;
                 case "perch_fps": SetPerchFps(Hands.ValuesFor(name)[step]); break;
+                case "power_saver": SetPowerSaver(step); break;
                 case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
                 case "reply_limit": SetReplyLength(step); break;
                 case "game_comments": SetCommentPace(step); break;
@@ -23959,7 +23979,7 @@ namespace CapriDesktop
                     { "explore_after", "exploreAfter", "ExploreAfter" }, { "glance_gap", "gap", "GlanceGap" }, { "watch_memory", "watchMemory", "WatchMemory" },
                     { "voice_pitch", "pitchSlider", "VoicePitch" }, { "voice_robot", "robotSlider", "VoiceRobot" }, { "voice_glitch", "glitchSlider", "VoiceGlitch" },
                     { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "mainframe_colours", "frameColours", "MainframeColours" }, { "perch_fps", "perchFps", "PerchFps" },
-                    { "reply_limit", "replyLength", "ReplyLength" }, { "game_comments", "comments", "CommentPace" },
+                    { "power_saver", "powerSaver", "PowerSaver" }, { "reply_limit", "replyLength", "ReplyLength" }, { "game_comments", "comments", "CommentPace" },
                     { "clip_length", "clipLength", "ClipSeconds" }, { "clip_fps", "clipRate", "ClipFps" }, { "clip_resolution", "clipSize", "ClipResolution" }, { "clip_bitrate", "clipBits", "ClipMbps" }
                 };
                 for (int i = 0; i < sliders.GetLength(0); i++)
