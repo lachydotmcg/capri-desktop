@@ -51,17 +51,14 @@ namespace CapriDesktop
 
     internal static class CallApps
     {
+        // The call apps people here use (Lachy, 6 Nov: no one in the community calls on Telegram or Signal, and Skype is gone). Any
+        // other app making sound is still in the menu, from Windows' volume mixer.
         internal static readonly CallApp[] Apps = {
             new CallApp("Discord", "Discord", "Discord", "DiscordPTB", "DiscordCanary"),
             new CallApp("Zoom", "Zoom", "Zoom"),
             new CallApp("Microsoft Teams", "Teams", "ms-teams", "Teams"),
             new CallApp("WhatsApp", "WhatsApp", "WhatsApp"),
-            new CallApp("Telegram", "Telegram", "Telegram"),
-            new CallApp("Slack", "Slack", "slack"),
-            new CallApp("Signal", "Signal", "Signal"),
-            new CallApp("Skype", "Skype", "Skype", "SkypeApp"),
             new CallApp("TeamSpeak", "TeamSpeak", "ts3client_win64", "ts3client_win32", "TeamSpeak"),
-            new CallApp("Mumble", "Mumble", "mumble"),
             new CallApp("Steam voice chat", "Steam", "steam", "steamwebhelper"),
             new CallApp("Browser (Google Meet, web calls)", "Browser", "chrome", "msedge", "firefox", "brave", "opera", "vivaldi", "MicrosoftEdge", "MicrosoftEdgeCP")
         };
@@ -688,9 +685,7 @@ namespace CapriDesktop
             string[][] names = {
                 new[] { "Discord", "Discord", "DiscordPTB", "DiscordCanary" }, new[] { "Zoom", "Zoom" },
                 new[] { "Microsoft Teams", "ms-teams", "Teams" }, new[] { "WhatsApp", "WhatsApp" },
-                new[] { "Telegram", "Telegram" }, new[] { "Slack", "slack" }, new[] { "Signal", "Signal" },
-                new[] { "Skype", "Skype", "SkypeApp" }, new[] { "TeamSpeak", "ts3client_win64", "ts3client_win32", "TeamSpeak" },
-                new[] { "Mumble", "mumble" }, new[] { "Steam voice chat", "steam", "steamwebhelper" },
+                new[] { "TeamSpeak", "ts3client_win64", "ts3client_win32", "TeamSpeak" }, new[] { "Steam voice chat", "steam", "steamwebhelper" },
                 new[] { "Browser (Google Meet, web calls)", "chrome", "msedge", "firefox", "brave", "opera", "vivaldi", "MicrosoftEdge", "MicrosoftEdgeCP" }
             };
             if (ChoicesWrong(names)) throw new Exception("The call app choices changed.");
@@ -701,7 +696,7 @@ namespace CapriDesktop
                     CallPick picked = CallApps.Pick(app[0], processes, null);
                     if (picked == null || picked.Id != 12 || picked.App.Choice != app[0]) throw new Exception("Call app didn't resolve " + app[i] + ".");
                 }
-            checks.Add("PASS call app names: every listed app and its Windows process names resolve, including old and new Teams, Skype, TeamSpeak and Edge builds");
+            checks.Add("PASS call app names: every listed app and its Windows process names resolve, including old and new Teams, TeamSpeak and Edge builds");
 
             List<CallProcess> open = new List<CallProcess> {
                 new CallProcess { Id = 1, Name = "Discord", Started = new DateTime(2026, 11, 1) },
@@ -774,8 +769,8 @@ namespace CapriDesktop
                 CallApps.Choose("Zoom");
                 if (CallApps.Find() != 0 || CallApps.Current.Name != "Teams") throw new Exception("An old app lookup overwrote a new call app choice.");
 
-                List<CallProcess> two = new List<CallProcess> { new CallProcess { Id = 90, Name = "Zoom" }, new CallProcess { Id = 91, Name = "slack" }, new CallProcess { Id = 92, Name = "chrome" } };
-                AppSound zoom = new AppSound { Id = 90, Playing = true, Level = 1, Peak = 0.1f }, slack = new AppSound { Id = 91, Playing = true, Level = 1, Peak = 0.1f }, video = new AppSound { Id = 92, Playing = true, Level = 1, Peak = 0.1f };
+                List<CallProcess> two = new List<CallProcess> { new CallProcess { Id = 90, Name = "Zoom" }, new CallProcess { Id = 91, Name = "WhatsApp" }, new CallProcess { Id = 92, Name = "chrome" } };
+                AppSound zoom = new AppSound { Id = 90, Playing = true, Level = 1, Peak = 0.1f }, whatsapp = new AppSound { Id = 91, Playing = true, Level = 1, Peak = 0.1f }, video = new AppSound { Id = 92, Playing = true, Level = 1, Peak = 0.1f };
                 List<AppSound> playing = new List<AppSound> { video };
                 CallApps.Processes = delegate { return two; };
                 CallApps.Sounds = delegate { return new List<AppSound>(playing); };
@@ -784,25 +779,25 @@ namespace CapriDesktop
                 playing.Add(zoom);
                 if (CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("Auto didn't take Zoom next to a browser video.");
                 CallApps.Heard(90, owner);
-                playing.Remove(zoom); playing.Add(slack);
+                playing.Remove(zoom); playing.Add(whatsapp);
                 if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("A ping in another app pulled Auto off the call.");
-                if (CallApps.Find() != 91 || CallApps.Current.Name != "Slack") throw new Exception("Auto never moved to the app that kept making sound.");
+                if (CallApps.Find() != 91 || CallApps.Current.Name != "WhatsApp") throw new Exception("Auto never moved to the app that kept making sound.");
                 CallApps.Left(90, owner);
                 CallApps.Heard(91, owner);
                 playing.Add(zoom);
-                if (CallApps.Find() != 91 || CallApps.Find() != 91 || CallApps.Find() != 91 || CallApps.Current.Name != "Slack") throw new Exception("Auto left the app she's hearing while it still made sound.");
+                if (CallApps.Find() != 91 || CallApps.Find() != 91 || CallApps.Find() != 91 || CallApps.Current.Name != "WhatsApp") throw new Exception("Auto left the app she's hearing while it still made sound.");
                 CallApps.Left(91, owner);
                 if (CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("Auto stayed with an app after her ears let go of it.");
                 CallApps.Heard(90, owner);
                 two.Add(new CallProcess { Id = 93, Name = "Discord" });
                 if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("A silent Discord opening pulled Auto off the call she's hearing.");
-                playing.Remove(zoom); playing.Remove(slack);
+                playing.Remove(zoom); playing.Remove(whatsapp);
                 if (CallApps.Find() != 0 || CallApps.Find() != 0 || CallApps.Find() != 0 || CallApps.Find() != 0 || CallApps.Current.Name != "Zoom") throw new Exception("A quiet spell on the call she's hearing moved Auto to a silent Discord.");
                 AppSound discord = new AppSound { Id = 93, Playing = true, Level = 1, Peak = 0.1f };
                 playing.Add(discord);
                 if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 93 || CallApps.Current.Name != "Discord") throw new Exception("Auto didn't go back to Discord once Discord made sound and the call she was hearing stayed quiet.");
                 CallApps.Left(90, owner);
-                playing.Remove(discord); playing.Add(slack);
+                playing.Remove(discord); playing.Add(whatsapp);
                 two.RemoveAt(two.Count - 1);
                 checks.Add("PASS Auto never takes a browser video for the call, stays on the app she's hearing through a ping elsewhere, Discord opening, a quiet spell or while it still makes sound, and moves after about three seconds of another call app's sound");
                 playing.Add(zoom);
@@ -822,7 +817,7 @@ namespace CapriDesktop
 
                 // Picking Auto mid-call used to reset her to Discord, so a silent Discord took her off Zoom while Zoom made sound.
                 two.Add(new CallProcess { Id = 93, Name = "Discord" });
-                playing.Remove(slack);
+                playing.Remove(whatsapp);
                 CallApps.Choose("Zoom");
                 if (CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("Zoom wasn't found before the switch to Auto.");
                 CallApps.Heard(90, owner);

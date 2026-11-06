@@ -940,20 +940,17 @@ Right-click her > Open Capri Mainframe > Settings > VOICE > Call mode (beta) tur
 Without her own ears, call mode hears offline to keep each speaker separate, so the hearing line under VOICE says "Hearing offline for call mode" in grey. Nothing is wrong. Her own ears hear better: set Hearing under VOICE to Her own ears to get them.
 
 ### Does call mode work with Zoom? (0.8.3)
-Yes, on Windows. On her call panel, click the call app's name and pick Zoom. The full menu is:
+Yes, on Windows. On her call panel, click the call app's name and pick Zoom. The call apps in the menu are (0.8.5):
 - Auto
 - Discord
 - Zoom
 - Microsoft Teams
 - WhatsApp
-- Telegram
-- Slack
-- Signal
-- Skype
 - TeamSpeak
-- Mumble
 - Steam voice chat
 - Browser (Google Meet, web calls)
+
+Any other app making sound, like Telegram, is listed below them.
 
 Auto prefers Discord, then a call app making sound. It stays on the call it's hearing while that app makes sound; a ping in another app doesn't pull her away. Auto never picks Browser or Steam. Pick Steam voice chat or Browser (Google Meet, web calls) yourself. Browser captures sound from all tabs.
 
