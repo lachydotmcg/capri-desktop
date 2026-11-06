@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Capri mods: install and make settings mods, colour sets, skins, skills, code mods and startup intros.">
+  <title>Capri mods</title>
+  <link rel="icon" type="image/x-icon" href="../assets/chip.ico">
+  <link rel="stylesheet" href="../style.css?v=0.8.4">
+  <script src="../guide.js" defer></script>
+  <script src="../helper.js?v=0.8.4" defer></script>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <a href="../" aria-label="Capri home"><img class="chip" src="../assets/chip.png" alt="Capri's chip" width="72" height="50"></a>
+      <div class="links">
+        <span class="text-links"><a class="guide-link" href="../setup/" aria-label="Setup guide"><span class="guide-long">Setup guide</span><span class="guide-short">Guide</span></a><a class="guide-link" href="../help/">Help</a></span>
+        <a class="download" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Download</span></a>
+        <a class="discord" href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer" aria-label="Discord"><svg viewBox="0 0 24 24" aria-hidden="true"><path id="discord-mark" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg></a>
+        <a class="github" href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.62 1.22 3.26.93.1-.73.39-1.22.71-1.5-2.5-.29-5.13-1.25-5.13-5.57 0-1.23.44-2.23 1.16-3.02-.12-.28-.5-1.43.11-2.98 0 0 .95-.3 3.1 1.15a10.83 10.83 0 0 1 5.64 0c2.15-1.45 3.1-1.15 3.1-1.15.61 1.55.23 2.7.11 2.98.72.79 1.16 1.79 1.16 3.02 0 4.33-2.64 5.28-5.15 5.56.4.35.76 1.03.76 2.08v3.11c0 .3.2.65.78.54A11.25 11.25 0 0 0 12 .75Z"/></svg></a>
+      </div>
+    </header>
+    <main class="guide help">
+      <h1>Capri <em>mods</em></h1>
+      <p class="lead">Get mods for her, or make your own.</p>
+      <nav class="guide-jump" aria-label="Topics"><a href="#kinds">Kinds</a><a href="#install">Install</a><a href="#folders">Folders</a><a href="#details">Details</a><a href="#settings">Settings</a><a href="#skins">Skins</a><a href="#skills">Skills</a><a href="#code">Code mods</a><a href="#intros">Intros</a><a href="#safety">Safety</a><a href="#share">Share</a><a href="#fixes">Fixes</a></nav>
+
+      <section id="kinds" class="step">
+        <h2>Kinds of mod</h2>
+        <p class="note">Mods need Capri 0.8.3 or newer, and skills need 0.8.4. Everything works on Windows, Mac and Linux, except code mods and intros.</p>
+
+        <h3>Settings mod <small>.capri-mod</small></h3>
+        <dl class="keys">
+          <dt>Changes</dt><dd>names she answers to, how she hears her name, a hearing log</dd>
+          <dt>Can't change</dt><dd>any other setting. Her voice, brain and personality stay as they are</dd>
+        </dl>
+
+        <h3>Colour set <small>.capri-mod</small></h3>
+        <dl class="keys">
+          <dt>Changes</dt><dd>her hair, accents, eyes, edges and body, on her own art and on skins</dd>
+          <dt>Can't change</dt><dd>any shapes in her art. One set is on at a time</dd>
+        </dl>
+
+        <h3>Skin <small>.capri-skin</small></h3>
+        <dl class="keys">
+          <dt>Changes</dt><dd>her art, strip by strip. Any strip you leave out stays hers</dd>
+          <dt>Can't change</dt><dd>strip sizes, her sounds or what she does. One skin is on at a time</dd>
+        </dl>
+
+        <h3>Skill <small>.capri-skill</small></h3>
+        <dl class="keys">
+          <dt>Changes</dt><dd>what she knows while she plays a game you listed</dd>
+          <dt>Can't change</dt><dd>anything outside game jobs. It's text, so it runs no code</dd>
+        </dl>
+
+        <h3>Code mod <small>.capri-code, Windows only</small></h3>
+        <dl class="keys">
+          <dt>Changes</dt><dd>anything C# can do. It runs inside Capri with full access to your PC</dd>
+          <dt>Can't change</dt><dd>nothing's off limits. She asks before it runs. <a href="#safety">Read Safety first</a></dd>
+        </dl>
+
+        <h3>Startup intro <small>.capri-code, Windows only</small></h3>
+        <dl class="keys">
+          <dt>Changes</dt><dd>what plays when she starts: full screen, up to 15 seconds</dd>
+          <dt>Can't change</dt><dd>nothing's off limits here either, since it's a code mod</dd>
+        </dl>
+        <p class="note">No kind of mod replaces her sounds or her voice.</p>
+      </section>
+
+      <section id="install" class="step">
+        <h2>Install, turn off, remove</h2>
+        <ol class="moves">
+          <li>Right-click her &gt; <b>Open Capri Mainframe</b></li>
+          <li><b>Mods</b> in the title bar, beside <b>Settings</b>. Mac and Linux: <b>Mods</b> on the CAPRI heading</li>
+          <li><b>Browse mods</b>, then <b>Install</b>. Mac and Linux: <b>Download</b></li>
+        </ol>
+        <dl class="keys">
+          <dt>Browse mods</dt><dd>search by name, author or description. Filter with <b>All</b>, <b>Settings</b>, <b>Code</b>, <b>Skins</b> or <b>Skills</b>. Mac and Linux have no Skills button, so skills show under <b>All</b></dd>
+          <dt>Import mod</dt><dd>pick a mod file you already have. It turns on, and replaces any mod with the same id</dd>
+          <dt>On, Off</dt><dd>works straight away and lasts after a restart</dd>
+          <dt>Remove</dt><dd>deletes it at once, with no second ask. The file you imported from stays where it was</dd>
+          <dt>Reinstall</dt><dd>fetches the latest copy from the directory. She never updates a mod by herself</dd>
+          <dt>Rate</dt><dd>installed mods only, 1 to 5 stars. Rating again replaces your old rating</dd>
+          <dt>Her colours</dt><dd><b>Hair</b>, <b>Accents</b>, <b>Eyes</b>, <b>Edges</b> and <b>Body</b> on the Mods page. Mac and Linux: hex boxes, then <b>Save colors</b>. They save as a mod called My Colors. <b>Reset colors</b> brings hers back</dd>
+        </dl>
+        <h3>How many at once</h3>
+        <dl class="keys">
+          <dt>Skins</dt><dd>one. Turning one on turns the last one off</dd>
+          <dt>Colour sets</dt><dd>one, on top of any skin</dd>
+          <dt>The rest</dt><dd>as many as you like</dd>
+        </dl>
+        <h3>New in 0.8.5</h3>
+        <dl class="keys">
+          <dt>Colour sets</dt><dd>they show under <b>Skins</b>, marked COLOURS. In 0.8.4 they show under <b>Settings</b></dd>
+        </dl>
+        <p class="note">The list comes from GitHub, and download counts and stars come from Capri's counter. Installing or rating sends it the mod's folder name. It stores a salted hash of your IP, never the IP itself.</p>
+      </section>
+
+      <section id="folders" class="step">
+        <h2>Where mods live</h2>
+        <p class="note"><b>Mods folder</b> on the Mods page opens this folder on any system.</p>
+        <dl class="keys">
+          <dt>Windows</dt><dd><code>%LOCALAPPDATA%\Capri\mods</code></dd>
+          <dt>Linux</dt><dd><code>~/.config/Capri/mods</code></dd>
+          <dt>Mac</dt><dd><code>~/Library/Application Support/Capri/mods</code></dd>
+        </dl>
+        <h3>What's in it</h3>
+        <dl class="keys">
+          <dt>&lt;id&gt;.capri-…</dt><dd>each mod you installed</dd>
+          <dt>&lt;id&gt;-skin</dt><dd>a skin, unpacked</dd>
+          <dt>&lt;id&gt;-data</dt><dd>a code mod's own folder. <b>Remove</b> leaves it there, so delete it yourself</dd>
+          <dt>off.txt</dt><dd>the ids you turned off</dd>
+          <dt>approved.txt</dt><dd>the code mods you approved, with each file's SHA-256</dd>
+          <dt>my-colors.capri-mod</dt><dd>the colours you picked</dd>
+          <dt>hearing-log.txt</dt><dd>only while a hearing log mod is on</dd>
+        </dl>
+        <h3>Adding files by hand</h3>
+        <p class="note"><b>Import mod</b> is the easy way. A file you drop in yourself works like this:</p>
+        <dl class="keys">
+          <dt>When it shows</dt><dd>at her next restart, import or remove</dd>
+          <dt>File name</dt><dd>has to match the mod's id, or she skips it</dd>
+          <dt>Skins</dt><dd>always import them, since they need unpacking</dd>
+          <dt>Code mods</dt><dd>show as CHANGED and stay off until you press <b>On</b> and approve</dd>
+        </dl>
+      </section>
+
+      <section id="details" class="step">
+        <h2>What every mod needs</h2>
+        <p class="note">Settings mods and <code>skin.json</code> use these as JSON keys. Skills and code mods use them as header lines.</p>
+        <dl class="keys">
+          <dt>format</dt><dd>required, always <code>1</code>. Skills write it <code>capri-skill: 1</code>, code mods <code>// capri-mod: 1</code></dd>
+          <dt>id</dt><dd>required. Lowercase letters, numbers and dashes, up to 48 characters. It starts with a letter or number</dd>
+          <dt>name</dt><dd>required, up to 40 characters</dd>
+          <dt>version</dt><dd>optional, up to 20 characters</dd>
+          <dt>author</dt><dd>optional, up to 40 characters</dd>
+          <dt>description</dt><dd>optional, up to 200 characters</dd>
+        </dl>
+        <p class="note">Give every mod its own id, even across kinds. On, Off and approval all go by id, so two mods with the same id switch together.</p>
+        <h3>Size limits</h3>
+        <table class="sheet">
+          <thead><tr><th>Kind</th><th>File</th><th>Largest</th></tr></thead>
+          <tbody>
+            <tr><td>Settings, colours</td><td>JSON</td><td class="num">64 KB</td></tr>
+            <tr><td>Skill</td><td>Text</td><td class="num">64 KB</td></tr>
+            <tr><td>Code mod</td><td>C# text</td><td class="num">256 KB</td></tr>
+            <tr><td>Skin</td><td>Zip of PNGs</td><td class="num">96 MB</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="settings" class="step">
+        <h2>Settings mods</h2>
+        <figure class="code">
+          <figcaption class="code-head"><span>my-names.capri-mod</span><button class="copy" type="button" data-copy="ex-names">Copy</button></figcaption>
+<pre id="ex-names">{
+  "format": 1,
+  "id": "my-names",
+  "name": "My Names",
+  "version": "1.0.0",
+  "author": "You",
+  "description": "She answers to Nova too.",
+  "wake_names": ["Nova", "Big Z"],
+  "heard_as": ["Capris"],
+  "sounds_like": true
+}</pre>
+        </figure>
+        <p class="note">A settings mod sets at least one of these. She ignores any other key.</p>
+        <dl class="keys">
+          <dt>wake_names</dt><dd>up to 20 names. She answers to them, and her brain knows them as nicknames. They count as whole words, in any case</dd>
+          <dt>heard_as</dt><dd>up to 60 spellings that count as her name, for when her ears get it wrong. Her brain isn't told these</dd>
+          <dt>sounds_like</dt><dd><code>true</code> also counts words that sound like Capri or a wake name. It doesn't cover <code>heard_as</code></dd>
+          <dt>hearing_log</dt><dd><code>true</code> keeps <code>hearing-log.txt</code> in the mods folder, with each line marked FOR HER or ignored. Turning the mod off deletes the log</dd>
+          <dt>colors</dt><dd>her colours. <a href="#colours">See below</a></dd>
+          <dt>Names</dt><dd>2 to 32 letters or numbers, with single spaces, dashes or apostrophes between them</dd>
+          <dt>“Hey Capri”</dt><dd>doesn't use these names. It only listens for those two words</dd>
+          <dt>Mac, Linux</dt><dd>there's no voice chat, so only <code>wake_names</code> matter, as nicknames for her brain. A hearing log lists the lines you type</dd>
+        </dl>
+        <p class="note">Examples: <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/custom-names" target="_blank" rel="noopener noreferrer">Custom Names</a>, <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/sharper-ears" target="_blank" rel="noopener noreferrer">Sharper Ears</a>, <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/hearing-log" target="_blank" rel="noopener noreferrer">Hearing Log</a>.</p>
+
+        <h3 id="colours">Colour sets</h3>
+        <figure class="code">
+          <figcaption class="code-head"><span>colors-ocean.capri-mod</span><button class="copy" type="button" data-copy="ex-colours">Copy</button></figcaption>
+<pre id="ex-colours">{
+  "format": 1,
+  "id": "colors-ocean",
+  "name": "Colors: Ocean",
+  "version": "1.0.0",
+  "author": "You",
+  "colors": {
+    "hair": "#1E90FF",
+    "accent": "#00E5C3",
+    "eyes": "#FFD54A"
+  }
+}</pre>
+        </figure>
+        <p class="note">Each colour is <code>#RRGGBB</code>. Set at least one. Any you leave out stay hers.</p>
+        <table class="sheet">
+          <thead><tr><th>Key</th><th>Recolours</th><th>Hers</th></tr></thead>
+          <tbody>
+            <tr><td>hair</td><td>her reds</td><td class="num">#FF0046</td></tr>
+            <tr><td>accent</td><td>her greens</td><td class="num">#00E86E</td></tr>
+            <tr><td>eyes</td><td>her blues</td><td class="num">#1870F0</td></tr>
+            <tr><td>edges</td><td>her violets</td><td class="num">#7854F0</td></tr>
+            <tr><td>body</td><td>her darks</td><td class="num">#05030A</td></tr>
+          </tbody>
+        </table>
+        <p class="note">Colours go by hue, so a set recolours skins too. Whites and pale greys stay as they are.</p>
+      </section>
+
+      <section id="skins" class="step">
+        <h2>Skins</h2>
+        <ol class="moves">
+          <li>Start from <a href="https://github.com/lachydotmcg/capri-desktop/tree/main/assets/sprites" target="_blank" rel="noopener noreferrer">her strips on GitHub</a>, or rename any <code>.capri-skin</code> to <code>.zip</code> and open it</li>
+          <li>Paint over the PNG strips and keep each size exactly</li>
+          <li>Add a <code>skin.json</code></li>
+          <li>Zip the files with no folder around them, then rename the zip to <code>my-skin.capri-skin</code></li>
+          <li><b>Import mod</b></li>
+        </ol>
+        <figure class="code">
+          <figcaption class="code-head"><span>skin.json</span><button class="copy" type="button" data-copy="ex-skin">Copy</button></figcaption>
+<pre id="ex-skin">{
+  "format": 1,
+  "id": "my-skin",
+  "name": "My Skin",
+  "version": "1.0.0",
+  "author": "You",
+  "description": "Capri in blue."
+}</pre>
+        </figure>
+        <p class="note">That file plus one correctly sized strip, like <code>idle.png</code>, is already a working skin.</p>
+        <dl class="keys">
+          <dt>In the zip</dt><dd><code>skin.json</code> and PNG strips, at the top level, and nothing else</dd>
+          <dt>Limits</dt><dd>64 files, 96 MB, 256 MB unpacked, 32 MB for one PNG</dd>
+          <dt>File names</dt><dd>exactly the names below, with a lowercase <code>.png</code></dd>
+          <dt>Sizes</dt><dd>exact, or she refuses the skin</dd>
+          <dt>Frames</dt><dd>side by side in one row. Strip width divided by frames is one frame's width</dd>
+          <dt>Missing strips</dt><dd>she uses her own art for those</dd>
+        </dl>
+
+        <h3>Her strips</h3>
+        <table class="sheet" id="strips">
+          <thead><tr><th>Strip</th><th>Size</th><th>Frames</th><th>fps</th></tr></thead>
+          <tbody>
+            <tr><td>idle<br>grin</td><td class="num">3840 x 384</td><td class="num">16</td><td class="num">8</td></tr>
+            <tr><td>blink<br>blink_glitch</td><td class="num">960 x 384</td><td class="num">4</td><td class="num">8</td></tr>
+            <tr><td>glitch</td><td class="num">2400 x 384</td><td class="num">10</td><td class="num">15</td></tr>
+            <tr><td>dangle</td><td class="num">5760 x 384</td><td class="num">24</td><td class="num">10</td></tr>
+            <tr><td>sleep</td><td class="num">3840 x 384</td><td class="num">16</td><td class="num">6</td></tr>
+            <tr><td>wake</td><td class="num">3120 x 384</td><td class="num">13</td><td class="num">15</td></tr>
+            <tr><td>walk</td><td class="num">2880 x 384</td><td class="num">12</td><td class="num">12</td></tr>
+            <tr><td>arrive</td><td class="num">3360 x 384</td><td class="num">14</td><td class="num">15</td></tr>
+            <tr><td>leave</td><td class="num">2880 x 384</td><td class="num">12</td><td class="num">15</td></tr>
+            <tr><td>mouth</td><td class="num">1200 x 384</td><td class="num">5</td><td class="num">12</td></tr>
+            <tr><td>perch<br>perch_talk<br>perch_music</td><td class="num">11760 x 384</td><td class="num">60</td><td class="num">30</td></tr>
+            <tr><td>perch_blink<br>perch_blink_glitch</td><td class="num">1568 x 384</td><td class="num">8</td><td class="num">30</td></tr>
+            <tr><td>perch_glitch</td><td class="num">2880 x 384</td><td class="num">10</td><td class="num">15</td></tr>
+            <tr><td>perch_arrive</td><td class="num">4032 x 384</td><td class="num">14</td><td class="num">15</td></tr>
+            <tr><td>perch_leave</td><td class="num">3456 x 384</td><td class="num">12</td><td class="num">15</td></tr>
+            <tr><td>laydown<br>laydown_talk<br>laydown_sleep</td><td class="num">22320 x 250</td><td class="num">60</td><td class="num">30</td></tr>
+            <tr><td>laydown_blink<br>laydown_blink_glitch</td><td class="num">2976 x 250</td><td class="num">8</td><td class="num">30</td></tr>
+            <tr><td>laydown_glitch</td><td class="num">4400 x 250</td><td class="num">10</td><td class="num">15</td></tr>
+            <tr><td>laydown_leave</td><td class="num">5280 x 250</td><td class="num">12</td><td class="num">15</td></tr>
+            <tr><td>dance</td><td class="num">3840 x 384</td><td class="num">16</td><td class="num">16</td></tr>
+            <tr><td>face</td><td class="num">400 x 400</td><td class="num">1</td><td class="num">-</td></tr>
+          </tbody>
+        </table>
+        <dl class="keys">
+          <dt>_flipped</dt><dd>every <code>perch</code> and <code>laydown</code> strip also has one, like <code>perch_flipped</code>, at the same size. It's her facing-left art, stored facing right on the same frames, and she draws it mirrored. Leave one out and she wears her own art when she faces left there</dd>
+          <dt>blink</dt><dd>swaps in over <code>idle</code> frames 10 to 13</dd>
+          <dt>perch_blink</dt><dd>swaps in over <code>perch</code> frames 29 to 36, and <code>laydown_blink</code> does the same on <code>laydown</code>. Frame 5 of <code>perch_blink</code> is also how she sleeps sitting up</dd>
+          <dt>mouth</dt><dd>her talking mouth, drawn over her standing art</dd>
+          <dt>dance</dt><dd>Mac and Linux only. Windows dances on <code>idle</code></dd>
+          <dt>face</dt><dd>accepted, but she doesn't use it from a skin</dd>
+          <dt>Mac, Linux</dt><dd>don't draw <code>perch_talk</code>, <code>laydown</code> or <code>_flipped</code> strips</dd>
+        </dl>
+        <p class="note">Published skins hold 41 strips: everything except <code>dance</code>, <code>face</code> and <code>mouth</code>. Example: <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/maid-suit" target="_blank" rel="noopener noreferrer">Maid Suit</a>.</p>
+      </section>
+
+      <section id="skills" class="step">
+        <h2>Skills</h2>
+        <figure class="code">
+          <figcaption class="code-head"><span>mc-basics.capri-skill</span><button class="copy" type="button" data-copy="ex-skill">Copy</button></figcaption>
+<pre id="ex-skill">---
+capri-skill: 1
+id: mc-basics
+name: Minecraft basics
+version: 1.0.0
+author: You
+description: Getting through the first night.
+games: Minecraft
+---
+Punch trees first, then make a crafting table.
+Build a small shelter before dark.
+Carry torches into caves.</pre>
+        </figure>
+        <dl class="keys">
+          <dt>Header</dt><dd>the file opens with a <code>---</code> line. Each header line is <code>key: value</code> with a lowercase key, and a second <code>---</code> closes it</dd>
+          <dt>games</dt><dd>required. Up to 20 names split by commas, each up to 60 characters</dd>
+          <dt>Know-how</dt><dd>everything under the second <code>---</code>. It can't be empty</dd>
+        </dl>
+        <h3>When she uses it</h3>
+        <dl class="keys">
+          <dt>Game jobs</dt><dd>while she plays a listed game for you. Normal chat never sees it</dd>
+          <dt>Matching</dt><dd>only letters and numbers count, in any case. <code>BloonsTD6</code> matches <code>Bloons TD 6</code></dd>
+          <dt>Window titles</dt><dd>she trims them, so <code>Minecraft 26.3 - Singleplayer</code> counts as <code>Minecraft</code></dd>
+          <dt>Many names</dt><dd>list them all, like <code>Bloons TD 6, BloonsTD6, BTD6</code></dd>
+          <dt>Her brief</dt><dd>she's told to follow it over her general advice. Your saved controls for that game come after it</dd>
+          <dt>Every turn</dt><dd>it goes to her brain each turn of the job, so keep it tight on a paid key</dd>
+        </dl>
+        <p class="note">Example: <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/btd6-strategy" target="_blank" rel="noopener noreferrer">BTD6 strategy</a>.</p>
+      </section>
+
+      <section id="code" class="step">
+        <h2>Code mods <small>Windows only</small></h2>
+        <p class="note">C# that Capri compiles and runs inside herself. Import this one, press <b>Yes</b>, then type <code>mod check</code> to her.</p>
+        <figure class="code">
+          <figcaption class="code-head"><span>hello-capri.capri-code</span><button class="copy" type="button" data-copy="ex-code">Copy</button></figcaption>
+<pre id="ex-code">// capri-mod: 1
+// id: hello-capri
+// name: Hello Capri
+// version: 1.0.0
+// author: You
+// description: Answers "mod check".
+
+using CapriDesktop;
+
+public class HelloCapri : ICapriMod
+{
+    private ICapriHost capri;
+
+    public void Start(ICapriHost host)
+    {
+        capri = host;
+        capri.Log("Started.");
+    }
+
+    public bool Heard(string words)
+    {
+        string line = words.ToLowerInvariant();
+        if (!line.Contains("mod check"))
+            return false;
+        capri.Say("Code mod online.");
+        capri.Sound("hop");
+        return true;
+    }
+
+    public void Stop()
+    {
+        capri.Log("Stopped.");
+    }
+}</pre>
+        </figure>
+
+        <h3>The file</h3>
+        <dl class="keys">
+          <dt>Header</dt><dd><code>// key: value</code> lines at the very top. The first line that doesn't fit ends it, so plain comments go below it</dd>
+          <dt>intro</dt><dd>an extra header line, <code>// intro: yes</code>. <a href="#intros">Startup intros</a></dd>
+          <dt>C#</dt><dd>C# 5 on .NET Framework. No <code>$"..."</code>, <code>?.</code>, <code>nameof</code> or <code>=&gt;</code> members</dd>
+          <dt>References</dt><dd><code>System</code>, <code>System.Core</code>, <code>System.Drawing</code>, <code>System.Windows.Forms</code> and Capri. Anything else won't compile, including <code>System.Xml</code> and <code>System.Net.Http</code></dd>
+          <dt>One class</dt><dd>exactly one non-abstract class implements <code>ICapriMod</code>, with a constructor that takes nothing</dd>
+        </dl>
+
+        <h3>The API</h3>
+        <figure class="code">
+          <figcaption class="code-head"><span>namespace CapriDesktop</span><button class="copy" type="button" data-copy="ex-api">Copy</button></figcaption>
+<pre id="ex-api">public interface ICapriMod
+{
+    void Start(ICapriHost capri);
+    bool Heard(string words);
+    void Stop();
+}
+
+public interface ICapriHost
+{
+    string Folder { get; }
+    void Say(string line);
+    void Log(string line);
+    Bitmap Art(string name);
+    void PlayIntro();
+    void Sound(string name);
+}
+
+public interface ICapriIntro
+{
+    double Seconds { get; }
+    void Begin(Bitmap desktop,
+        Rectangle screen, Rectangle her);
+    void Draw(Graphics graphics,
+        Rectangle screen, Rectangle her,
+        double at);
+}</pre>
+        </figure>
+        <p class="note">Those three interfaces are the whole public API. Everything else in Capri is internal and can change in any update.</p>
+        <dl class="keys">
+          <dt>Start</dt><dd>runs when the mod turns on and each time she starts. Save <code>capri</code> for later calls</dd>
+          <dt>Heard</dt><dd>gets each line you say or type to her, trimmed. Return <code>true</code> and she does nothing else with it</dd>
+          <dt>Stop</dt><dd>runs on Off, Remove, re-import and when she quits. Clean up here</dd>
+          <dt>Folder</dt><dd>your own folder, <code>mods\&lt;id&gt;-data</code>. It stays after Remove</dd>
+          <dt>Say</dt><dd>she says the line word for word, in her bubble and voice, after whatever she's saying now. Cut to 500 characters</dd>
+          <dt>Log</dt><dd>adds a line to <code>errors.txt</code>, marked <code>mod &lt;id&gt;</code></dd>
+          <dt>Art</dt><dd>a <a href="#strips">strip</a> by name, like <code>idle</code>, in her current skin and colours. A new <code>Bitmap</code> each time, so dispose it. <code>null</code> if there's no such strip</dd>
+          <dt>Sound</dt><dd>plays <code>arrive</code>, <code>leave</code>, <code>hop</code>, <code>click</code> or <code>bonk</code>. Anything else does nothing</dd>
+          <dt>PlayIntro</dt><dd>plays the running intro now</dd>
+        </dl>
+
+        <h3>What Heard gets</h3>
+        <dl class="keys">
+          <dt>Typed</dt><dd>every line</dd>
+          <dt>Spoken</dt><dd>every line. With <b>Listen for Capri</b> on, only lines with her name or a mod's name in them</dd>
+          <dt>Call mode</dt><dd>only your own words that carry her name, or your answers</dd>
+          <dt>Whole line</dt><dd>“Capri, mod check” arrives with her name in it, so search inside the line</dd>
+          <dt>All mods</dt><dd>every running mod sees the line, even after one returns <code>true</code></dd>
+          <dt>Never</dt><dd>her system lines, dropped files, screen text or your friends on a call</dd>
+        </dl>
+
+        <h3>Threads and errors</h3>
+        <dl class="keys">
+          <dt>UI thread</dt><dd><code>Start</code>, <code>Heard</code> and <code>Stop</code> run on it. A slow one freezes her, so move long work to your own thread</dd>
+          <dt>Constructor</dt><dd>can run on a background thread at startup. Do your setup in <code>Start</code></dd>
+          <dt>Your threads</dt><dd>catch everything. An uncaught error on a background thread ends Capri. <code>Say</code> is safe to call from them</dd>
+          <dt>Start throws</dt><dd>on import, the mod saves and turns off. At startup it stays off for that run and tries again next time</dd>
+          <dt>Heard throws</dt><dd>counts as not taken. The error goes to <code>errors.txt</code></dd>
+        </dl>
+        <p class="note">Examples: <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/hello-code" target="_blank" rel="noopener noreferrer">Hello Code</a> keeps a count in its folder, and <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/dice-decider" target="_blank" rel="noopener noreferrer">Dice &amp; Decider</a> is a full one.</p>
+      </section>
+
+      <section id="intros" class="step">
+        <h2>Startup intros <small>Windows only</small></h2>
+        <p class="note">A code mod with <code>// intro: yes</code> whose class also implements <code>ICapriIntro</code>.</p>
+        <figure class="code">
+          <figcaption class="code-head"><span>red-flash.capri-code</span><button class="copy" type="button" data-copy="ex-intro">Copy</button></figcaption>
+<pre id="ex-intro">// capri-mod: 1
+// id: red-flash
+// name: Red Flash
+// version: 1.0.0
+// author: You
+// description: A red flash when she starts.
+// intro: yes
+
+using System.Drawing;
+using CapriDesktop;
+
+public class RedFlash : ICapriMod, ICapriIntro
+{
+    public void Start(ICapriHost capri) { }
+    public void Stop() { }
+
+    public bool Heard(string words)
+    {
+        return false;
+    }
+
+    public double Seconds { get { return 2; } }
+
+    public void Begin(Bitmap desktop,
+        Rectangle screen, Rectangle her) { }
+
+    public void Draw(Graphics g,
+        Rectangle screen, Rectangle her,
+        double at)
+    {
+        double left = 1 - at / Seconds;
+        int fade = (int)(200 * left);
+        using (Brush red = new SolidBrush(
+            Color.FromArgb(fade, 255, 0, 70)))
+        {
+            g.FillRectangle(red, screen);
+        }
+    }
+}</pre>
+        </figure>
+        <dl class="keys">
+          <dt>Order</dt><dd>she waits up to 8 seconds for code mods to start, plays the intro, then arrives</dd>
+          <dt>Seconds</dt><dd>0 to 15. Longer is cut to 15, and 0 skips it</dd>
+          <dt>Begin</dt><dd>runs once. <code>desktop</code> is a screenshot of her screen, or black if that fails. <code>her</code> is where her body sits</dd>
+          <dt>Draw</dt><dd>runs about every 15 ms on a clear, click-through window over her screen. <code>at</code> is the seconds so far</dd>
+          <dt>Skipped</dt><dd>when <b>Glitch in at startup</b> is off, she's hidden or something's full screen</dd>
+          <dt>Two intros</dt><dd>only one plays</dd>
+          <dt>Errors</dt><dd>a throw in <code>Begin</code> or <code>Draw</code> ends the intro, and she still arrives</dd>
+          <dt>Testing</dt><dd>call <code>capri.PlayIntro()</code> from <code>Heard</code> and skip the restarts</dd>
+        </dl>
+        <p class="note">Example: <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/startup-intros" target="_blank" rel="noopener noreferrer">Startup Intros</a>.</p>
+      </section>
+
+      <section id="safety" class="step">
+        <h2>Safety and approval</h2>
+        <h3>Code mods have full trust</h3>
+        <dl class="keys">
+          <dt>Runs as</dt><dd>part of Capri, with your access to your PC</dd>
+          <dt>Can reach</dt><dd>your files, your accounts and the API keys she has saved</dd>
+          <dt>Sandbox</dt><dd>none. Her SECURITY settings don't apply to code mods</dd>
+          <dt>Her warning</dt><dd>“Nothing limits what it can do, and Capri doesn't check whether it's safe.”</dd>
+        </dl>
+        <h3>What approval means</h3>
+        <dl class="keys">
+          <dt>Import</dt><dd>she asks every time, even for the same file, and <b>No</b> is the default</dd>
+          <dt>The ask</dt><dd>shows the mod's name, version, who it says it's by and the file's SHA-256. Anyone can type any author</dd>
+          <dt>No</dt><dd>saves nothing and runs nothing</dd>
+          <dt>Yes</dt><dd>saves the file and keeps its SHA-256 in <code>approved.txt</code></dd>
+          <dt>Any edit</dt><dd>one changed byte shows it as CHANGED and turns it off until you approve it again</dd>
+          <dt>Each start</dt><dd>she checks the file against its approval before she runs it</dd>
+          <dt>Remove</dt><dd>drops the approval. Anything the mod already did stays done</dd>
+        </dl>
+        <p class="note">Approval only records that you said yes to that exact file.</p>
+        <h3>Stay safe</h3>
+        <ol class="moves">
+          <li>Install from the directory, or from people you trust</li>
+          <li>Read code mods first. Cards mark them RUNS CODE, <b>View</b> opens the mod on GitHub, and a <code>.capri-code</code> file is plain text</li>
+          <li>Read skills too. They're instructions her brain follows during a game job</li>
+          <li>Only get Capri from <a href="https://capriai.app">capriai.app</a> or <a href="https://github.com/lachydotmcg/capri-desktop/releases" target="_blank" rel="noopener noreferrer">her GitHub</a></li>
+          <li>Think a mod took your keys? Remove it, then make new keys on each provider's site</li>
+          <li>Found a bad mod? Tell us in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a></li>
+        </ol>
+        <p class="note">Settings mods, colour sets and skins run no code.</p>
+      </section>
+
+      <section id="share" class="step">
+        <h2>Share a mod</h2>
+        <ol class="moves">
+          <li>Check your mod imports and works</li>
+          <li>Fork <a href="https://github.com/lachydotmcg/capri-mods" target="_blank" rel="noopener noreferrer">capri-mods</a>, the directory on GitHub. A free account is enough. On Windows, <b>Publish</b> on your mod's row has the link and <b>Show my mod file</b></li>
+          <li>Add a folder, <code>mods/&lt;id&gt;/</code>, with the three files below</li>
+          <li>Open a pull request</li>
+        </ol>
+        <figure class="code">
+          <figcaption class="code-head"><span>Your folder</span></figcaption>
+<pre id="ex-tree">mods/my-names/
+  my-names.capri-mod
+  README.md
+  preview.png</pre>
+        </figure>
+        <figure class="code">
+          <figcaption class="code-head"><span>README.md</span><button class="copy" type="button" data-copy="ex-readme">Copy</button></figcaption>
+<pre id="ex-readme"># My Names
+
+She answers to Nova and Big Z.
+
+- Kind: settings mod
+- Made by: You</pre>
+        </figure>
+        <dl class="keys">
+          <dt>Mod file</dt><dd>one per folder, named after its id, so <b>Installed</b> and ratings work</dd>
+          <dt>Folder</dt><dd>use the id. Letters, numbers, dots, dashes and underscores, up to 64 characters</dd>
+          <dt>README</dt><dd>line 1 is <code># Name</code>. The first plain line is the description on its card. <code>- Made by:</code> is required</dd>
+          <dt>preview.png</dt><dd>around 16:9, up to 2 MB and 4096 px each way. Cards crop it, so keep the subject in the middle</dd>
+          <dt>index.json</dt><dd>leave it alone. It's rebuilt after your mod is merged</dd>
+          <dt>Updates</dt><dd>open a new pull request with a higher <code>version</code>. People get it with <b>Reinstall</b></dd>
+          <dt>Credit</dt><dd>built on her art or code? Credit the Capri project. Its <a href="https://github.com/lachydotmcg/capri-desktop/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer">licence</a> is noncommercial</dd>
+        </dl>
+        <h3>What gets checked</h3>
+        <dl class="keys">
+          <dt>Every mod</dt><dd>checked for malware before it goes up</dd>
+          <dt>Skins</dt><dd><code>skin.json</code> and strips, and nothing else in the zip</dd>
+          <dt>Code mods</dt><dd>read by hand for what they do with your files, the web and other programs</dd>
+          <dt>Previews</dt><dd>looked at by a person</dd>
+          <dt>Names</dt><dd>names from other people's shows or games can get flagged</dd>
+        </dl>
+      </section>
+
+      <section id="fixes" class="step">
+        <h2>Fixes</h2>
+        <p class="note">Refused files and failed mods also go in <code>errors.txt</code>, beside the mods folder. The Mods page only shows the first problem, so check that file for the rest.</p>
+
+        <h3>Importing</h3>
+        <dl class="stuck">
+          <dt>“That file isn't valid mod JSON.”</dt><dd>A comma or quote is off. Run it through a JSON checker.</dd>
+          <dt>“That mod needs format 0, and this Capri reads format 1.”</dt><dd>Add <code>"format": 1</code>.</dd>
+          <dt>“That mod doesn't change anything.”</dt><dd>Add <code>wake_names</code>, <code>heard_as</code>, <code>sounds_like</code>, <code>hearing_log</code> or <code>colors</code>. She ignores other keys.</dd>
+          <dt>“Skipped …: its file name doesn't match its id, ….”</dt><dd>Rename the file to its id, or use <b>Import mod</b>.</dd>
+        </dl>
+
+        <h3>Skins</h3>
+        <dl class="stuck">
+          <dt>“… can't be in a skin. Keep every file at the top of the zip.”</dt><dd>Your zip has a folder in it. Select the files themselves and zip those. A Mac's <code>__MACOSX</code> folder counts too.</dd>
+          <dt>“… isn't one of her sprite strips.”</dt><dd>Use the <a href="#strips">names above</a>, with a lowercase <code>.png</code>. Take out anything else, like a README.</dd>
+          <dt>She turns back to her own art facing left</dt><dd>That strip's <code>_flipped</code> version is missing.</dd>
+        </dl>
+
+        <h3>Skills</h3>
+        <dl class="stuck">
+          <dt>“… isn't a header line.”</dt><dd>Only <code>key: value</code> lines with lowercase keys go in the header. Close it with a second <code>---</code>.</dd>
+          <dt>She ignores a skill</dt><dd>Check it's <b>On</b>, then check the game's name in <code>games:</code>. Skills only reach her when she plays the game for you.</dd>
+        </dl>
+
+        <h3>Code mods</h3>
+        <dl class="stuck">
+          <dt>“A code mod starts with a // capri-mod: 1 line.”</dt><dd>Put it first. A plain comment above it ends the header.</dd>
+          <dt>“That code didn't compile, line …”</dt><dd>Hover the message to read it all. Most often it's something newer than C# 5, or a reference she doesn't load.</dd>
+          <dt>“That mod failed while starting: … It's saved, and off until you turn it on again.”</dt><dd>Your <code>Start</code> threw an error. The full error is in <code>errors.txt</code>.</dd>
+          <dt>“CHANGED, approve it again.”</dt><dd>The file changed since you approved it. Press <b>On</b> to approve the new one.</dd>
+          <dt>“Windows only for now”</dt><dd>Mac and Linux can't run code mods.</dd>
+        </dl>
+
+        <h3>The directory</h3>
+        <dl class="stuck">
+          <dt>“Couldn't reach the mods directory: …”</dt><dd>Check your internet. GitHub also limits how often one address can ask, so try again later.</dd>
+          <dt>You don't have a mod's new version</dt><dd>Press <b>Reinstall</b>. She never updates a mod by herself.</dd>
+        </dl>
+
+        <h3>Still stuck?</h3>
+        <ol class="moves">
+          <li>Right-click her &gt; <b>Help</b> &gt; <b>Copy error details</b></li>
+          <li>Paste it in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a> with the mod's name and what you tried</li>
+        </ol>
+      </section>
+
+      <p class="credit">Something out of date? Tell us in the Discord.</p>
+      <footer id="support" class="support"><p class="support-head">Support Capri on Ko-fi</p><p class="support-links"><a href="https://ko-fi.com/lachysdev" target="_blank" rel="noopener noreferrer"><img src="../assets/kofi/lachysdev.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>Lachy</b><small>developer</small></a><a href="https://ko-fi.com/xorulance" target="_blank" rel="noopener noreferrer"><img src="../assets/kofi/xorulance.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>Lance and xoru</b><small>managers</small></a><a href="https://ko-fi.com/balddcmod" target="_blank" rel="noopener noreferrer"><img src="../assets/kofi/balddcmod.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>BaldDcMod</b><small>Discord moderator</small></a></p><p class="fan-notice">Capri is an unofficial fan project and is not approved or endorsed by CD PROJEKT RED, the anime's rights holders or its voice actors.</p></footer>
+    </main>
+  </div>
+</body>
+</html>
