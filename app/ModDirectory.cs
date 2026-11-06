@@ -23,6 +23,8 @@ namespace CapriDesktop
         internal long Size;
         internal int Downloads, Votes;
         internal double Rating;
+        // A colour set, like Colors: Bubblegum: a settings mod the index files with skins, so it shows under Skins (Lachy, 6 Nov).
+        internal bool Colours;
         internal string Title
         {
             get
@@ -38,7 +40,7 @@ namespace CapriDesktop
             get
             {
                 string extension = Path.GetExtension(FileName);
-                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? "RUNS CODE." : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? "SKIN." : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? "SKILL." : "SETTINGS.";
+                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? "RUNS CODE." : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? "SKIN." : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? "SKILL." : Colours ? "COLOURS." : "SETTINGS.";
             }
         }
         internal string Id { get { return Path.GetFileNameWithoutExtension(FileName); } }
@@ -47,7 +49,7 @@ namespace CapriDesktop
             get
             {
                 string extension = Path.GetExtension(FileName);
-                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? 2 : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? 3 : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? 4 : 1;
+                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? 2 : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? 3 : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? 4 : Colours ? 3 : 1;
             }
         }
     }
@@ -109,6 +111,7 @@ namespace CapriDesktop
             [DataMember(Name = "name")] public string Name;
             [DataMember(Name = "author")] public string Author;
             [DataMember(Name = "about")] public string About;
+            [DataMember(Name = "kind")] public string Kind;
         }
 
         [DataContract]
@@ -150,6 +153,8 @@ namespace CapriDesktop
                 listing.Name = Plain(entry.Name, 120);
                 listing.Author = Plain(entry.Author, 80);
                 listing.About = Plain(entry.About, 600);
+                // Only a settings mod can move, and only to Skins: the index never makes code or a skill look like something else.
+                listing.Colours = entry.Kind == "skin" && string.Equals(Path.GetExtension(listing.FileName), Mods.Extension, StringComparison.OrdinalIgnoreCase);
             }
         }
 

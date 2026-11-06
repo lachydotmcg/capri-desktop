@@ -48441,6 +48441,13 @@ namespace CapriDesktop
                 if (ModDirectory.Filter(found, "VOCYN", 0).Count != 1 || ModDirectory.Filter(found, "nova keeps", 1).Count != 1 || ModDirectory.Filter(found, "wide", 1).Count != 1 || ModDirectory.Filter(found, "far-names.capri-mod", 1).Count != 1 || ModDirectory.Filter(found, "Vocyn nova", 2).Count != 0) throw new Exception("Search missed an author, description, name, file or kind.");
                 checks.Add("PASS mods directory: only mods/<folder>/<mod file> is listed with its preview.png; other files, paths out of the folder, huge files and bad fingerprints are not");
                 checks.Add("PASS mods index: exact folder and file matches add names, authors and descriptions; mismatches fall back, index-only entries stay out, and search covers the new text");
+                // Colors: Bubblegum and the other colour sets sat under Settings (Lachy, 6 Nov). The index files them as skins now, and only a settings mod can move.
+                indexJson = Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[{\"folder\":\"far-names\",\"file\":\"far-names.capri-mod\",\"name\":\"Colors: Far\",\"kind\":\"skin\"},{\"folder\":\"directory-code\",\"file\":\"directory-code.capri-code\",\"name\":\"Code\",\"kind\":\"skin\"}]}");
+                List<ModListing> shelved = ModDirectory.Browse();
+                indexJson = goodIndex;
+                if (found[1].Colours || shelved[1].KindIndex != 3 || shelved[1].Kind != "COLOURS." || ModDirectory.Filter(shelved, "", 3).Count != 1 || ModDirectory.Filter(shelved, "", 1).Count != 0
+                    || shelved[1].FileName != "far-names.capri-mod" || shelved[1].Sha != settingsSha || shelved[0].KindIndex != 2 || shelved[0].Kind != "RUNS CODE.") throw new Exception("A colour set stayed under Settings, or the index moved a code mod.");
+                checks.Add("PASS mods index: a settings mod the index files as a skin, like a colour set, shows under Skins as COLOURS. and installs the same file; a code mod it calls a skin stays RUNS CODE.");
                 foreach (byte[] badIndex in new[] { Encoding.UTF8.GetBytes("{broken"), Encoding.UTF8.GetBytes("null"), Encoding.UTF8.GetBytes(indexText.Replace("\"format\":1", "\"format\":2")), Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[null,{}]}"), Encoding.UTF8.GetBytes(indexText + new string(' ', 2 * 1024 * 1024)) })
                 {
                     indexJson = badIndex;
