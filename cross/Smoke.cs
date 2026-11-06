@@ -864,7 +864,30 @@ namespace CapriDesktop
                 bool commaSkipped = !Retention.WholeFile(halfSettings);
                 File.Delete(halfSettings);
                 if (!keepRules || !halfSkipped || !wholeRead || !commaSkipped) throw new Exception("Keep all history didn't follow the switch, the marker or a settings file without the choice, or half-written or trailing-comma settings weren't treated as unreadable.");
-                checks.Add("PASS keep all history: the switch, its marker or a settings file from before the choice all keep everything, and half-written or trailing-comma settings are left alone");
+                // A marker she cannot clear must leave the switch on, not show off while the marker still keeps everything.
+                string deniedDir = Path.Combine(folder, "denied-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(deniedDir);
+                string deniedMarker = Path.Combine(deniedDir, "keep-all");
+                File.WriteAllText(deniedMarker, "1");
+                string clearMe = Path.Combine(deniedDir, "clear-me");
+                File.WriteAllText(clearMe, "1");
+                if (!Retention.ClearMarker(clearMe) || File.Exists(clearMe)) throw new Exception("ClearMarker did not remove a marker it could delete.");
+                string deniedConfig = Path.Combine(deniedDir, "cross.json");
+                File.WriteAllText(deniedConfig, "{\"KeepAllHistory\":false}");
+                Settings denied = new Settings { KeepAllHistory = true };
+                bool deniedSynced = false;
+                Action deniedSave = delegate { File.WriteAllText(deniedConfig, "{\"KeepAllHistory\":" + (denied.KeepAllHistory ? "true" : "false") + "}"); };
+                try
+                {
+                    bool deniedEffective = Pet.KeepAllOff(deniedDir, denied, deniedSave, delegate { deniedSynced = true; }, delegate { return false; });
+                    if (!deniedEffective || !denied.KeepAllHistory || !deniedSynced || !File.Exists(deniedMarker) || File.ReadAllText(deniedConfig) != "{\"KeepAllHistory\":true}")
+                        throw new Exception("Keep all history showed off while its marker still kept everything.");
+                }
+                finally
+                {
+                    Directory.Delete(deniedDir, true);
+                }
+                checks.Add("PASS keep all history: the switch, its marker or a settings file from before the choice all keep everything, a marker she cannot delete leaves the switch on, and half-written or trailing-comma settings are left alone");
                 // Her recall cache keeps a bounded set of days and forgets the ones she no longer has; the shared word
                 // set is bounded too, so a long history can't grow it until the app closes.
                 string dugDir = Path.Combine(folder, "dug-" + Guid.NewGuid().ToString("N"));

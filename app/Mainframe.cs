@@ -1164,7 +1164,18 @@ namespace CapriDesktop
                 Button close = DialogButton("Close", 404, 190, 100, Neon.SheetDim);
                 close.Click += delegate { dialog.Close(); };
                 CheckBox keepAll = new CheckBox { Bounds = new Rectangle(16, 116, 480, 22), Text = "Keep all history", ForeColor = Neon.SheetInk, BackColor = Color.Transparent, FlatStyle = FlatStyle.Flat, Checked = capri.KeepsAll, AccessibleName = "Keep all history. On: she never deletes a chat or transcript. Off: chats go after a week and transcripts after a year" };
-                keepAll.CheckedChanged += delegate { capri.SetKeepAll(keepAll.Checked); };
+                bool syncing = false;
+                keepAll.CheckedChanged += delegate
+                {
+                    if (syncing) return;
+                    capri.SetKeepAll(keepAll.Checked);
+                    if (keepAll.Checked != capri.KeepsAll)
+                    {
+                        syncing = true;
+                        keepAll.Checked = capri.KeepsAll;
+                        syncing = false;
+                    }
+                };
                 Label keepAllNote = Hint("On: she never deletes a chat or transcript. Off: chats go after a week and transcripts after a year.", 142, 34);
                 dialog.CancelButton = close;
                 dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, keepAll, keepAllNote, close });
