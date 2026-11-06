@@ -283,6 +283,8 @@ namespace CapriDesktop
             string chosen = CallApps.Clean(name);
             CallApp app = CallApps.Get(chosen);
             string label = CallApps.CleanName(chosen, everyday ?? (app == null ? null : app.Name));
+            // Any pick, theirs or hers putting back theirs, ends her holding on to the one they'd made.
+            preferences.CallAppBefore = preferences.CallAppNameBefore = null;
             if (chosen == CallAppChoice && label == preferences.CallAppName) return;
             callEars.Stop();
             if (pushing) { lock (waking) pushed = null; PushDone(); }
@@ -338,6 +340,12 @@ namespace CapriDesktop
             callAnswer = -1;
             if (pushing) { lock (waking) pushed = null; PushDone(); }
             if (chatting) StopChat();
+            // Off a game's call she put herself on for a job, the call app they'd picked comes back.
+            if (!on && preferences.CallAppBefore != null)
+            {
+                string back = preferences.CallAppBefore, backName = preferences.CallAppNameBefore;
+                ChooseCallApp(back, backName);
+            }
             typer.CallMode = on;
             SavePreferences();
             mainframe.VoiceNote(on ? "Call mode (beta) on. " + CallSession.EchoLine : "Call mode off.", false);
@@ -817,6 +825,72 @@ namespace CapriDesktop
             Gather(part.Samples);
         }
 
+        // Her conversation-only answer to a call line beside the job: in her bubble over its status, in the call's captions, and
+        // out loud, which call mode puts in their mic. The job plays on and its turn stays the user's.
+        private Func<string, string> callAsideTest;
+
+        private void CallAside(string text, Job running)
+        {
+            BargeIn();
+            int version = callSession.Generation;
+            string doing = running.Words ?? running.Task;
+            Func<string, string> test = callAsideTest;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string said = null;
+                try { said = test != null ? test(text) : brain.AskCall(text, callSession, version, delegate { return CallModeOn && callSession.Current(version); }, doing); }
+                catch (Exception error) { if (!(error is WebException)) Brain.Log("call aside", -1, error.GetType().Name + ": " + error.Message); }
+                if (string.IsNullOrWhiteSpace(said)) return;
+                Post(delegate
+                {
+                    if (!CallModeOn || !callSession.Current(version)) return;
+                    string seen = Brain.Visible(said);
+                    callAnswers++;
+                    CallSaid("CAPRI", seen);
+                    if (!MidJob(running) || job != running) { AsideAfter(seen, 0); return; }
+                    double now = clock.Elapsed.TotalSeconds;
+                    asideShown = seen;
+                    asideUntil = now + BubbleHold(seen.Length);
+                    UpdateTalk(now);
+                    SayAside(said, running);
+                });
+            });
+        }
+
+        // A game job that means talking to people, like Mic Up or making friends, puts her on that game's call with no asking first,
+        // so players hear her and she hears them (Lachy, 6 Nov: "she should have the autonomy to do that"). Her voice only goes in
+        // their mic in call mode. Their own call app pick comes back once call mode goes off.
+        private void CallForGame(Job running, string program, string name)
+        {
+            if (job != running || !MidJob(running) || quitting) return;
+            string chosen = CallApps.Clean(program + ".exe");
+            if (chosen == "Auto" || CallModeOn && CallAppChoice == chosen) return;
+            if (CallAppChoice != chosen)
+            {
+                string before = preferences.CallAppBefore ?? CallAppChoice;
+                string beforeName = preferences.CallAppBefore != null ? preferences.CallAppNameBefore : preferences.CallAppName;
+                ChooseCallApp(chosen, name);
+                preferences.CallAppBefore = before;
+                preferences.CallAppNameBefore = beforeName;
+                SavePreferences();
+            }
+            callJoining = true;
+            try
+            {
+                if (!CallModeOn) ToggleCallMode();
+                if (!chatting && !testing) StartLocal();
+            }
+            finally { callJoining = false; }
+            // The job's own turn keeps her hands on the call.
+            callUser = asking;
+            callUserVersion = callSession.Generation;
+            if (!callMicWarned && (MicMix.Current == null || !MicMix.Current.Mixing))
+            {
+                callMicWarned = true;
+                PlayLine(CallMicNotice, running);
+            }
+        }
+
         private void CallKeep(CallChunk chunk)
         {
             lock (waking)
@@ -857,6 +931,9 @@ namespace CapriDesktop
             bool answer = sure.Length > 0 && (CallSession.Agrees(sure) || CallSession.Refuses(sure));
             if (Hands.HeardName(sure) || answer && (callSession.FriendAsked || OwnCallQuestion())) { Hear(sure, text, "> you: ", 0, true, text); return; }
             if (sure.Length > 0) callSession.DropFriend();
+            // Mid-job the call gets her answer beside the job, so someone talking on it can't end the job or take its turn (F-6nov-18).
+            Job running = job;
+            if (MidJob(running)) { CallAside(text, running); return; }
             int version = callSession.Generation;
             int friendTurn = callSession.FriendTurn;
             bool friendAnswer = CallSession.Agrees(discord) || CallSession.Refuses(discord);
@@ -907,6 +984,75 @@ namespace CapriDesktop
                     Answer(ticket, string.IsNullOrWhiteSpace(said) ? Brain.Wordless : said, state, quiet);
                 });
             });
+        }
+
+        // Lachy, 6 Nov: in Mic Up nobody heard her, since her voice only goes in their mic in call mode, and a player talking on a
+        // call took her job's turn. A game job that means talking to people puts her on the game's call itself.
+        private void SmokeCallJob(List<string> checks)
+        {
+            foreach (string talky in new[] { "play Mic Up and make some new friends", "hop on mike up", "go on roblox and talk to some random people", "make friends in brookhaven", "join a server and chat with the other players" })
+                if (!Computer.Social(talky)) throw new Exception("A job about talking to people wasn't one: " + talky);
+            foreach (string alone in new[] { "play bedwars on roblox", "mine some diamonds in minecraft", "open my friends list on steam", "play songs by the weeknd" })
+                if (Computer.Social(alone)) throw new Exception("A job with nobody to talk to put her on a call: " + alone);
+            if (!Computer.GameWindow(new Sight { Window = new IntPtr(1), Title = "Roblox", Program = "RobloxPlayerBeta" })) throw new Exception("Roblox's window wasn't a game's.");
+            Job jobWas = job;
+            string workWas = working, appWas = preferences.CallApp, nameWas = preferences.CallAppName, beforeWas = preferences.CallAppBefore, beforeNameWas = preferences.CallAppNameBefore, shownWas = asideShown;
+            bool callWas = CallModeOn, savedCallWas = preferences.CallMode, chatWas = chatting, localWas = local, mutedWas = ears.Muted, warnedWas = callMicWarned;
+            int userWas = callUser, userVersionWas = callUserVersion, answerWas = callAnswer, askWas = asking;
+            double untilWas = asideUntil;
+            CallApp[] appsWas = CallApps.All, lastWas = CallApps.Last;
+            Action<string> stopWas = stopTest;
+            Func<string, string> asideWas = callAsideTest;
+            List<string> stopped = new List<string>(), heard = new List<string>();
+            const string Reply = "Thanks, yours is cool too.";
+            Action<Func<bool>> wait = delegate(Func<bool> done) { for (int tries = 0; !done() && tries < 60; tries++) { Application.DoEvents(); Thread.Sleep(50); } Application.DoEvents(); };
+            try
+            {
+                if (CallModeOn) callSession.Change(false);
+                preferences.CallMode = false;
+                preferences.CallApp = "Auto"; preferences.CallAppName = null; preferences.CallAppBefore = preferences.CallAppNameBefore = null; CallApps.Choose("Auto");
+                chatting = local = false; ears.Muted = false;
+                stopTest = delegate(string line) { stopped.Add(line); };
+                callAsideTest = delegate(string line) { heard.Add(line); return Reply; };
+                Job talking = new Job("play mic up and make some new friends");
+                job = talking; working = "On it. Esc stops me."; asideUntil = -1;
+                int turn = asking;
+                CallForGame(talking, "RobloxPlayerBeta", "Roblox");
+                if (!CallModeOn || CallAppChoice != "RobloxPlayerBeta.exe" || preferences.CallAppName != "Roblox" || preferences.CallAppBefore != "Auto") throw new Exception("A Mic Up job didn't put her on Roblox's call: call mode " + CallModeOn + ", " + CallAppChoice + ".");
+                if (job != talking || asking != turn || !CallHands(turn) || !EarsBesideJob) throw new Exception("Going on Roblox's call took her job's turn or hands.");
+                if (asideShown != CallMicNotice) throw new Exception("She didn't say the call can't hear her without her voice in their mic.");
+                asideUntil = -1;
+                HearCall("nice avatar, what are you doing here", false, true);
+                wait(delegate { return asideShown == Reply; });
+                if (heard.Count != 1 || !heard[0].StartsWith(CallSession.Others, StringComparison.Ordinal) || asideShown != Reply) throw new Exception("A player's line mid-job didn't get her answer beside the job.");
+                if (job != talking || asking != turn || !CallHands(turn) || stopped.Count != 0) throw new Exception("A player's line mid-job took her job's turn or hands.");
+                HearCall("capri stop", false, true);
+                wait(delegate { return heard.Count == 2; });
+                if (heard.Count != 2 || stopped.Count != 0 || job != talking || asking != turn) throw new Exception("Someone on the call stopped her job.");
+                HearCall("Capri, stop", false, false);
+                wait(delegate { return stopped.Count > 0; });
+                if (stopped.Count != 1 || heard.Count != 2) throw new Exception("Their own stop on a call didn't reach the job.");
+                callAsideTest = null;
+                ToggleCallMode();
+                if (CallModeOn || CallAppChoice != "Auto" || preferences.CallAppBefore != null) throw new Exception("Call mode going off didn't put back their call app: " + CallAppChoice + ".");
+                CallForGame(talking, "RobloxPlayerBeta", "Roblox");
+                ChooseCallApp("Discord");
+                ToggleCallMode();
+                if (CallModeOn || CallAppChoice != "Discord") throw new Exception("Call mode going off took back the call app they picked on her game's call: " + CallAppChoice + ".");
+                checks.Add("PASS a game job about talking to people, like Mic Up, puts her on the game's call itself, and says so when her voice can't reach their mic; mid-job a player's line gets her answer beside the job, keeps its turn and hands, and can't stop it, while their own stop does; call mode off puts back their call app unless they picked one since (Lachy, 6 Nov)");
+            }
+            finally
+            {
+                stopTest = stopWas; callAsideTest = asideWas;
+                callSession.Change(callWas); preferences.CallMode = savedCallWas; typer.CallMode = callWas;
+                CallApps.Restore(appsWas, lastWas);
+                preferences.CallApp = appWas; preferences.CallAppName = nameWas; CallApps.Choose(appWas, nameWas);
+                preferences.CallAppBefore = beforeWas; preferences.CallAppNameBefore = beforeNameWas;
+                chatting = chatWas; local = localWas; ears.Muted = mutedWas; callMicWarned = warnedWas;
+                job = jobWas; working = workWas; asideShown = shownWas; asideUntil = untilWas;
+                callUser = userWas; callUserVersion = userVersionWas; callAnswer = answerWas; asking = askWas;
+                CloseTalk(); SavePreferences();
+            }
         }
 
         private void SmokeCallDisplay(List<string> checks)

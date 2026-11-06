@@ -1936,11 +1936,13 @@ namespace CapriDesktop
             Once(calls);
         }
 
-        internal string AskCall(string text, CallSession session, int version, Func<bool> current = null)
+        // Mid-job (doing), she knows what her hands are on, so she can talk about it with the people on the call.
+        internal string AskCall(string text, CallSession session, int version, Func<bool> current = null, string doing = null)
         {
             string model = Model;
             if (model == null) throw new BrainException(Offline);
-            List<ChatMessage> messages = session.Request(version, Persona + Speech() + (Cues ? Cueing : "") + "\nThis turn is conversation only. You have no tools or private context here. Never claim to have taken an action.", text);
+            string job = doing == null ? "" : "\nRight now your hands are on a job for the user: " + Voice.Quote(doing) + ". It carries on while you talk, and only the user can change it.";
+            List<ChatMessage> messages = session.Request(version, Persona + Speech() + (Cues ? Cueing : "") + "\nThis turn is conversation only. You have no tools or private context here. Never claim to have taken an action." + job, text);
             if (messages == null) return null;
             int ticket;
             lock (gate) ticket = cancelled;

@@ -794,6 +794,9 @@ namespace CapriDesktop
         [DataMember] public bool CallMode;
         [DataMember] public string CallApp = "Auto";
         [DataMember] public string CallAppName;
+        // Their own call app pick while she's on a game's call for a job, so it comes back once call mode goes off.
+        [DataMember] public string CallAppBefore;
+        [DataMember] public string CallAppNameBefore;
         [DataMember] public int HuskMode;
         // Switched off on the call panel: in call mode she hears only your mic, not Discord.
         [DataMember] public bool CallDiscordOff;
@@ -2126,7 +2129,8 @@ namespace CapriDesktop
         private int quietRun;
         // A line heard mid-job while the one before it was still turning into words waits here for its turn.
         private short[][] heldLine;
-        private int heldTicket, heldRequest;
+        private CallChunk[] heldCall;
+        private int heldTicket, heldRequest, heldCallVersion;
         private double heldWake;
         private double voiceUntil;
         private bool spoke;
@@ -9653,6 +9657,8 @@ namespace CapriDesktop
             running.Says = delegate(string line) { Post(delegate { if (Computer.Streaming) ChatLine(line, running); else PlayLine(line, running); }); };
             running.Blind = delegate { if (!running.Playing || preferences.SlowHands) blindModel = driver.Model; };
             running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
+            bool social = Computer.Social(running.Task + " " + running.Words);
+            string[] called = { null };
             running.Seen = delegate(Sight sight)
             {
                 if (sight == null || sight.Window == IntPtr.Zero) return;
@@ -9661,6 +9667,8 @@ namespace CapriDesktop
                 string name = AppName(sight);
                 // It shows while she's hidden too, beside her glow, so they can always see which app she's in (#106).
                 Post(delegate { if (job == running && preferences.Motion) takeover.Follow(window, name, bounds, preferences.Size / 240f); });
+                string program = sight.Program;
+                if (social && !string.IsNullOrEmpty(program) && program != called[0] && Computer.GameWindow(sight)) { called[0] = program; Post(delegate { CallForGame(running, program, name); }); }
             };
             running.Busy = delegate(string what) { Post(delegate { taskPanel.Busy(running, what); }); };
             running.Stepped = delegate(JobStep step) { Post(delegate { taskPanel.Add(running, step); }); if (step.Finished) AgentStep(running); };
@@ -12585,7 +12593,8 @@ namespace CapriDesktop
 
         // Mid-job what they say goes to the job and never starts a new reply, so her ears hear on while a line turns into words, and a
         // line isn't stale because she said something since (Lachy, 6 Nov: "Hey Capri while she was working didn't work at all").
-        private bool EarsBesideJob { get { return MidJob(job) && !CallModeOn; } }
+        // On a call too: mid-job, the call's lines get her answer beside the job instead of a new turn.
+        private bool EarsBesideJob { get { return MidJob(job); } }
 
         private void CheckEars(double now)
         {
@@ -12710,8 +12719,9 @@ namespace CapriDesktop
                 if (transcribing)
                 {
                     // Mid-job, a line finished while the one before is still turning into words goes next, joined to any already waiting.
-                    // A PC too busy to keep up keeps the newest 30 seconds.
-                    if (heldLine == null) heldLine = taken;
+                    // A PC too busy to keep up keeps the newest 30 seconds. On a call, who said what in it waits with it.
+                    CallChunk[] callPart = CallModeOn ? CallLine(taken) : null;
+                    if (heldLine == null) { heldLine = taken; heldCall = callPart; }
                     else
                     {
                         int kept = Math.Min(heldLine.Length, Math.Max(0, 300 - taken.Length));
@@ -12719,10 +12729,19 @@ namespace CapriDesktop
                         Array.Copy(heldLine, heldLine.Length - kept, joined, 0, kept);
                         Array.Copy(taken, 0, joined, kept, taken.Length);
                         heldLine = joined;
+                        if (callPart != null && heldCall != null && heldCall.Length >= kept)
+                        {
+                            CallChunk[] calls = new CallChunk[kept + callPart.Length];
+                            Array.Copy(heldCall, heldCall.Length - kept, calls, 0, kept);
+                            Array.Copy(callPart, 0, calls, kept, callPart.Length);
+                            heldCall = calls;
+                        }
+                        else heldCall = callPart;
                     }
                     heldTicket = ticket;
                     heldRequest = request;
                     heldWake = wake;
+                    heldCallVersion = callSession.Generation;
                     return;
                 }
                 transcribing = true;
@@ -12818,20 +12837,24 @@ namespace CapriDesktop
         private void NextLine()
         {
             short[][] next;
-            int ticket, request;
+            CallChunk[] call;
+            int ticket, request, callVersion;
             double wake;
             lock (waking)
             {
                 next = heldLine;
+                call = heldCall;
                 heldLine = null;
+                heldCall = null;
                 ticket = heldTicket;
                 request = heldRequest;
                 wake = heldWake;
+                callVersion = heldCallVersion;
                 if (next == null || ticket != chatTicket || !local || !chatting) return;
                 transcribing = true;
                 transcribingAt = Environment.TickCount;
             }
-            Post(delegate { Transcribe(next, ticket, request, wake); });
+            Post(delegate { Transcribe(next, ticket, request, wake, call, callVersion); });
         }
 
         private void HeardLocally(int ticket, int request, string text, string problem, CallTranscript line = null, int callVersion = -1)
@@ -32494,6 +32517,7 @@ namespace CapriDesktop
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
             Section(checks, "SmokeRedaction", delegate { SmokeRedaction(checks); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
+            Section(checks, "SmokeCallJob", delegate { SmokeCallJob(checks); });
             Section(checks, "SmokeHeartbeat", delegate { SmokeHeartbeat(checks); });
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });

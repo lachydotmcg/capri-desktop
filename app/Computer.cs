@@ -928,6 +928,11 @@ namespace CapriDesktop
             return (GameTitles.IsMatch(text) || GameWords.IsMatch(text)) && !Watching.IsMatch(text) && !Messaging.IsMatch(text);
         }
 
+        // A job that means talking to people, like Mic Up or making friends in a game, puts her on the game's call (Lachy, 6 Nov).
+        private static readonly Regex Sociable = new Regex(@"\b(mic up|mike up|make (?:(?:some|a few|new|more) )*friends|meet (?:(?:some|new) )*people|(?:talk|chat|speak|sociali[sz]e|hang out|vibe|joke around) (?:to|with) (?:the )?(?:(?:other|some|new|random) )*(?:people|players|everyone|everybody|strangers|randoms|folks|kids|others|them|guys|lobby|server)|say (?:hi|hello) to (?:people|everyone|everybody|players|them)|(?:roast|rizz up|troll|prank|befriend|entertain) (?:the )?(?:(?:other|some|random) )*(?:people|players|everyone|everybody|strangers|randoms|kids)|voice ?chat)\b", RegexOptions.IgnoreCase);
+
+        internal static bool Social(string job) { return Sociable.IsMatch(job ?? ""); }
+
         // A job about a song, video or show, whatever words they used to ask for it.
         internal static bool Media(string job) { return Watching.IsMatch(job ?? ""); }
 
