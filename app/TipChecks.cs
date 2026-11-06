@@ -75,9 +75,10 @@ namespace CapriDesktop
                 overHint = null;
                 Stopwatch delay = Stopwatch.StartNew();
                 MoveOverHint(checkIns);
+                if (waitingHint != hints[checkIns] || !hintDelay.Enabled) throw new Exception("The first Mainframe hover did not queue the check-ins tip with its delay enabled.");
                 PumpTips(250);
                 if (HintVisible) throw new Exception("A Mainframe tip appeared before the hover delay.");
-                AwaitHint();
+                AwaitHint(checkIns, delay);
                 if (delay.ElapsedMilliseconds < 350 || delay.ElapsedMilliseconds > 1200) throw new Exception("Mainframe tip hover delay was " + delay.ElapsedMilliseconds + " ms.");
                 if (ActiveControl != focus || Native.GetForegroundWindow() != foreground || hintCard.ContainsFocus)
                     throw new Exception("A Mainframe tip took keyboard focus.");
@@ -111,7 +112,7 @@ namespace CapriDesktop
                     dismissedHint = null;
                     overHint = null;
                     MoveOverHint(checkIns);
-                    AwaitHint();
+                    AwaitHint(checkIns);
                     TipMessage(checkIns, message, message == 0x0100 ? (int)Keys.Escape : 0);
                     if (HintVisible) throw new Exception("A Mainframe tip stayed after Esc, click or scroll.");
                     MoveOverHint(checkIns);
@@ -165,7 +166,7 @@ namespace CapriDesktop
                         dismissedHint = null;
                         overHint = null;
                         MoveOverHint(control);
-                        AwaitHint();
+                        AwaitHint(control);
                         CheckHintPlace(control);
                         if (hintCard.Width > Px(360)) throw new Exception("A tip is wider than 360 scaled pixels.");
                         if (percent != 200) SaveTipPreview(output, (control == checkIns ? "switch" : control == volume ? "slider" : "picker") + "-" + percent + ".png");
@@ -249,11 +250,23 @@ namespace CapriDesktop
             finally { tipSent = false; }
         }
 
-        private void AwaitHint()
+        private void AwaitHint(Control control = null, Stopwatch delay = null)
         {
             Stopwatch clock = Stopwatch.StartNew();
-            while (!HintVisible && clock.ElapsedMilliseconds < 4000) { Application.DoEvents(); Thread.Sleep(10); }
-            if (!HintVisible) throw new Exception("A Mainframe tip never appeared after its delay: waiting " + (waitingHint != null) + ", over " + (overHint == null ? "nothing" : overHint.Title) + ", mouse buttons " + Control.MouseButtons + ", shown " + Visible + ", " + WindowState + ", page " + ClientRectangle + ", check-ins " + checkIns.Bounds + " hidden " + Hidden(checkIns) + ", screen " + Screen.FromControl(this).WorkingArea + ".");
+            int retries = 0;
+            while (!HintVisible && clock.ElapsedMilliseconds < 4000)
+            {
+                if (control != null && waitingHint == null && !HintVisible && retries < 2)
+                {
+                    retries++;
+                    dismissedHint = null;
+                    if (delay != null) delay.Restart();
+                    MoveOverHint(control);
+                }
+                Application.DoEvents();
+                Thread.Sleep(10);
+            }
+            if (!HintVisible) throw new Exception("A Mainframe tip never appeared after its delay: retries " + retries + ", waiting " + (waitingHint != null) + ", over " + (overHint == null ? "nothing" : overHint.Title) + ", mouse buttons " + Control.MouseButtons + ", shown " + Visible + ", " + WindowState + ", page " + ClientRectangle + ", check-ins " + checkIns.Bounds + " hidden " + Hidden(checkIns) + ", screen " + Screen.FromControl(this).WorkingArea + ".");
         }
 
         private static void PumpTips(int milliseconds)
