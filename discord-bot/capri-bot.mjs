@@ -1,12 +1,20 @@
-import { existsSync } from 'node:fs'
+import { appendFileSync, existsSync } from 'node:fs'
 import { appendFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { trigger, question, context, history, attachment, result, chunks, fallback, empty } from './lib.mjs'
+import { trigger, question, context, history, attachment, result, chunks, fallback, empty, name } from './lib.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 if (existsSync(path.join(here, '.env'))) process.loadEnvFile(path.join(here, '.env'))
+
+// She stopped once with nothing to show why (6 Nov), so a crash leaves its first line in bot.log before she exits.
+const died = error => {
+  try { appendFileSync(path.join(here, 'bot.log'), new Date().toISOString() + ' crashed ' + String(error?.stack || error).split('\n')[0].slice(0, 300) + '\n') } catch {}
+  process.exit(1)
+}
+process.on('uncaughtException', died)
+process.on('unhandledRejection', died)
 
 const token = process.env.DISCORD_TOKEN?.trim()
 const secret = process.env.CAPRI_RELAY_SECRET?.trim()
@@ -26,23 +34,25 @@ const back = async message => {
   return message.fetchReference().catch(() => null)
 }
 
+// The asker's last three messages and her own last two in the last ten minutes, so she follows them and doesn't repeat herself.
 const recent = async message => {
-  const found = []
+  const found = [], hers = []
   let before = message.id
-  for (let page = 0; found.length < 3 && page < 2; page++) {
+  for (let page = 0; (found.length < 3 || hers.length < 2) && page < 2; page++) {
     const batch = await message.channel.messages.fetch({ limit: 100, before })
     const rows = [...batch.values()].sort((a, b) => b.createdTimestamp - a.createdTimestamp || (BigInt(a.id) < BigInt(b.id) ? 1 : -1))
     if (!rows.length) break
     for (const row of rows) {
-      if (row.createdTimestamp < message.createdTimestamp - 600000) return found
-      if (row.author.id === message.author.id && !row.author.bot) found.push(row)
-      if (found.length === 3) return found
+      if (row.createdTimestamp < message.createdTimestamp - 600000) return [...found, ...hers]
+      if (row.author.id === message.author.id && !row.author.bot && found.length < 3) found.push(row)
+      if (row.author.id === client.user.id && hers.length < 2) hers.push(row)
+      if (found.length === 3 && hers.length === 2) return [...found, ...hers]
     }
     const last = rows.at(-1).id
     if (last === before || rows.length < 100) break
     before = last
   }
-  return found
+  return [...found, ...hers]
 }
 
 const chain = async (message, replied) => {
@@ -109,7 +119,7 @@ client.on('messageCreate', async message => {
     const response = await fetch(url, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + secret, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: message.author.id, question: asked, history: turns, context: context(message, replied, own), image }),
+      body: JSON.stringify({ user: message.author.id, name: name(message), question: asked, history: turns, context: context(message, replied, own, client.user.id), image }),
       redirect: 'error',
       signal: AbortSignal.timeout(60000)
     })
@@ -125,6 +135,9 @@ client.on('messageCreate', async message => {
   }
 })
 
-client.once('ready', () => { console.log('Capri is online.') })
+client.once('clientReady', () => {
+  console.log('Capri is online.')
+  try { appendFileSync(path.join(here, 'bot.log'), new Date().toISOString() + ' online\n') } catch {}
+})
 client.on('error', () => { console.error('Discord connection failed.') })
 client.login(token).catch(() => { console.error('Could not connect Capri. Check DISCORD_TOKEN and Message Content Intent.'); process.exit(1) })
