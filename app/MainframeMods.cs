@@ -38,6 +38,8 @@ namespace CapriDesktop
             Explain(modBrowse, "Browse mods", "MainframeMods.cs");
             Explain(folder, "Open mods folder", "MainframeMods.cs");
             modStatus = ModLabel("", 28, 138, 328, 36, Font, Faint);
+            // A long import error, like a compiler's, is cut to two lines here, and hovering it shows the whole thing.
+            ((Note)modStatus).Hovers = true;
             modListHead = Section("INSTALLED >", 0, 180);
             modEmpty = ModLabel("No mods yet. Import a " + Mods.Extension + " file.", 28, ModRowTop, 328, 20, Font, Faint);
             for (int i = 0; i < ModRows; i++)
@@ -140,7 +142,7 @@ namespace CapriDesktop
                 if (mod == null) continue;
                 modNames[i].Text = mod.File.Name + (string.IsNullOrEmpty(mod.File.Version) ? "" : " v" + mod.File.Version);
                 modNames[i].ForeColor = mod.On ? White : Faint;
-                modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Code ? "RUNS CODE. " : mod.Skin ? "SKIN. " : "") + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "") + (mod.Code || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames))).Trim();
+                modAbouts[i].Text = ((mod.Changed ? "CHANGED, approve it again. " : mod.Code ? "RUNS CODE. " : mod.Skin ? "SKIN. " : mod.Skill ? "SKILL. " : "") + (string.IsNullOrEmpty(mod.File.Author) ? "" : "by " + mod.File.Author + ". ") + (mod.File.Description ?? "") + (mod.Code || mod.File.WakeNames.Length == 0 ? "" : " Names: " + string.Join(", ", mod.File.WakeNames)) + (mod.Skill ? " For " + mod.File.Games[0] + "." : "")).Trim();
                 modAbouts[i].ForeColor = mod.Changed ? Rose : Faint;
                 modSwitches[i].Text = mod.On ? "On" : "Off";
                 modSwitches[i].Accent = mod.On ? Cyan : Rose;
@@ -176,7 +178,7 @@ namespace CapriDesktop
             using (OpenFileDialog dialog = new OpenFileDialog())
             {
                 dialog.Title = "Import a Capri mod";
-                dialog.Filter = "Capri mods (*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ")|*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension;
+                dialog.Filter = "Capri mods (*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension + ")|*" + Mods.Extension + ";*" + Mods.CodeExtension + ";*" + Mods.SkinExtension + ";*" + Mods.SkillExtension;
                 if (dialog.ShowDialog(this) == DialogResult.OK) ImportMod(dialog.FileName);
             }
         }
@@ -192,15 +194,20 @@ namespace CapriDesktop
                     return false;
                 }
                 FillMods();
-                ModSays(mod.Code ? mod.File.Name + " is on and running." : mod.File.WakeNames.Length == 0 ? mod.File.Name + " is on." : mod.File.Name + " is on. She now answers to " + Mods.Listed(mod.File.WakeNames) + " too.", false);
+                ModSays(mod.Code ? mod.File.Name + " is on and running." : mod.Skill ? mod.File.Name + " is on. She uses it when she plays " + mod.File.Games[0] + "." : mod.File.WakeNames.Length == 0 ? mod.File.Name + " is on." : mod.File.Name + " is on. She now answers to " + Mods.Listed(mod.File.WakeNames) + " too.", false);
                 return true;
             }
             catch (ModException error)
             {
+                // Its whole reason goes to errors.txt too, and the list shows a code mod that saved but didn't start as off.
+                Brain.Log("mods", -1, Path.GetFileName(file) + ": " + error.Message);
+                FillMods();
                 ModSays(error.Message, true);
                 return false;
             }
         }
+
+        internal bool ModStatusHovers { get { Note note = modStatus as Note; return note != null && note.Hovers; } }
 
         private static string DirectoryProblem(Exception error, string lead)
         {

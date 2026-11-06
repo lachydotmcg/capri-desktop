@@ -458,7 +458,7 @@ namespace CapriDesktop
                 }
                 catch (Exception error)
                 {
-                    ClipResult failed = new ClipResult { Problem = "Couldn't save that clip: " + error.Message };
+                    ClipResult failed = new ClipResult { Problem = "Couldn't save that clip: " + Brain.Plainly("clips", error) };
                     lock (gate) pending = null;
                     if (save != null) { save.Dispose(); save.Done.SetResult(failed); }
                     return Task.FromResult(failed);
@@ -480,7 +480,7 @@ namespace CapriDesktop
                 }
                 ClipResult result;
                 try { result = encode(save); }
-                catch (Exception error) { result = new ClipResult { Problem = "Couldn't save that clip: " + error.Message }; }
+                catch (Exception error) { result = new ClipResult { Problem = "Couldn't save that clip: " + Brain.Plainly("clips", error) }; }
                 finally { save.Dispose(); }
                 result.Path = save.Path;
                 result.Merged = save.Merged;
@@ -741,9 +741,10 @@ namespace CapriDesktop
             catch (COMException error)
             {
                 bool missing = error.ErrorCode == unchecked((int)0xc00d5212) || error.ErrorCode == unchecked((int)0x80040154);
-                return new ClipResult { Problem = missing ? "Windows couldn't find an H.264 encoder on this PC, so I couldn't save a video." : "Windows couldn't encode that clip: " + error.Message, Unavailable = missing };
+                if (!missing) Brain.Log("clips", -1, "Media Foundation 0x" + error.ErrorCode.ToString("X8") + ": " + error.Message);
+                return new ClipResult { Problem = missing ? "Windows couldn't find an H.264 encoder on this PC, so I couldn't save a video." : "Windows couldn't encode that clip. Try again.", Unavailable = missing };
             }
-            catch (Exception error) { return new ClipResult { Problem = "Couldn't save that clip: " + error.Message }; }
+            catch (Exception error) { return new ClipResult { Problem = "Couldn't save that clip: " + Brain.Plainly("clips", error) }; }
             finally
             {
                 if (temporary != null) { try { File.Delete(temporary); } catch (Exception) { } }

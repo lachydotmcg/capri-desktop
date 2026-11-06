@@ -266,6 +266,18 @@ namespace CapriDesktop
             return slim;
         }
 
+        // Codex names its tools, like exec_command, and those mean nothing to them, so its approval says what it wants to do.
+        internal static string Wants(string tool, Dictionary<string, object> input)
+        {
+            if (tool == "exec_command" || tool == "shell_command")
+            {
+                string command = Regex.Replace(HuskJson.Text(input, "cmd").Length > 0 ? HuskJson.Text(input, "cmd") : HuskJson.Text(input, "command"), @"\s+", " ").Trim();
+                return command.Length > 0 ? "It wants to run " + Cap(command, 120) : "It wants to run a command.";
+            }
+            if (tool == "apply_patch") return "It wants to change files.";
+            return tool.Length > 0 ? "It wants to use " + tool + "." : "";
+        }
+
         internal static Dictionary<string, object> Adapt(Dictionary<string, object> evt, string source)
         {
             if (evt == null || !(HuskJson.Get(evt, "hook_event_name") is string)) return null;
@@ -278,7 +290,7 @@ namespace CapriDesktop
             {
                 outEvent["hook_event_name"] = "Notification";
                 outEvent["notification_type"] = "permission_prompt";
-                outEvent["message"] = HuskJson.Text(input, "description").Length > 0 ? HuskJson.Text(input, "description") : "Codex needs approval: " + (tool.Length > 0 ? tool : "tool");
+                outEvent["message"] = HuskJson.Text(input, "description").Length > 0 ? HuskJson.Text(input, "description") : Wants(tool, input);
             }
             if (tool == "apply_patch")
             {
@@ -671,8 +683,46 @@ namespace CapriDesktop
 
         private static void Backup(string file)
         {
-            if (File.Exists(file)) File.Copy(file, file + ".capri-backup-" + DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss-fffffff", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
+            if (!File.Exists(file)) return;
+            string copy = file + ".capri-backup-" + DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss-fffffff", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N");
+#if CROSS
+            // A settings folder that is itself a link, like GNU Stow folding ~/.claude into a dotfiles repo, would put her copy
+            // in the repo, where a git-crypt rule for settings.json doesn't cover it, so it goes in her data folder instead.
+            if (BackupFolder != null && Folded(file))
+            {
+                string kept = Path.Combine(BackupFolder, "husk-backups");
+                Directory.CreateDirectory(kept);
+                copy = Path.Combine(kept, Path.GetFileName(copy));
+            }
+#endif
+            File.Copy(file, copy);
         }
+
+#if CROSS
+        // Her data folder, for backups of settings in a linked folder. Her pet sets it.
+        internal static string BackupFolder;
+
+        // Whether a folder on the way to this file is a link: inside their home folder any of them up to it, and elsewhere just
+        // the file's own folder, so a system link like macOS's /var doesn't count.
+        private static bool Folded(string file)
+        {
+            try
+            {
+                string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('/');
+                DirectoryInfo folder = new FileInfo(Path.GetFullPath(file)).Directory;
+                bool inside = home.Length > 0 && folder != null && folder.FullName.StartsWith(home + "/", StringComparison.Ordinal);
+                for (; folder != null; folder = folder.Parent)
+                {
+                    if (folder.FullName.TrimEnd('/') == home) break;
+                    if (folder.LinkTarget != null) return true;
+                    if (!inside) break;
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return false;
+        }
+#endif
 
 #if CROSS
         private sealed class Part
@@ -823,18 +873,23 @@ namespace CapriDesktop
 #endif
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(file)));
             string temp = file + ".capri-" + Guid.NewGuid().ToString("N") + ".tmp";
+#if CROSS
+            bool standIn = false;
+#endif
             try
             {
 #if CROSS
                 try { Write(temp, file, text, false); }
                 catch (Exception error)
                 {
-                    if (file == opened || !(error is UnauthorizedAccessException || error is IOException)) throw;
-                    // A link into somewhere she can't write, like Nix's read-only store, is replaced by the file itself, as before.
+                    // Only a link into somewhere she isn't allowed to write, or a read-only file system like Nix's store, is
+                    // replaced by the file itself. Any other failure, like a full disk, leaves their link alone and says so.
+                    if (file == opened || !(error is UnauthorizedAccessException || error is IOException && error.HResult == ReadOnlyFileSystem)) throw;
                     if (File.Exists(temp)) File.Delete(temp);
                     file = opened;
                     temp = file + ".capri-" + Guid.NewGuid().ToString("N") + ".tmp";
                     Write(temp, file, text, true);
+                    standIn = true;
                 }
 #else
                 File.WriteAllText(temp, text, new UTF8Encoding(false));
@@ -842,21 +897,38 @@ namespace CapriDesktop
                 Backup(opened);
                 if (File.Exists(file)) File.Replace(temp, file, null);
                 else File.Move(temp, file);
+#if CROSS
+                if (standIn) lock (unlinked) if (!unlinked.Contains(opened)) unlinked.Add(opened);
+#endif
             }
             finally { if (File.Exists(temp)) File.Delete(temp); }
         }
 
 #if CROSS
+        // EROFS, which .NET gives as the IOException's HResult on Linux and macOS.
+        private const int ReadOnlyFileSystem = 30;
+        private static readonly List<string> unlinked = new List<string>();
+
+        // Settings files that linked into somewhere she can't write and are files of their own now, since she last asked.
+        internal static string[] TakeUnlinked()
+        {
+            lock (unlinked)
+            {
+                string[] taken = unlinked.ToArray();
+                unlinked.Clear();
+                return taken;
+            }
+        }
+
         // The new copy keeps the file's encoding and is born as private as the file it replaces, so a settings file holding
-        // secrets is never open to others. One standing in for a read-only link stays theirs to edit.
+        // secrets is never open to others. One standing in for a read-only link is theirs alone to read and edit (0600).
         private static void Write(string temp, string file, string text, bool editable)
         {
             Encoding encoding = new UTF8Encoding(false);
             if (File.Exists(file))
                 using (StreamReader reader = new StreamReader(file, encoding, true)) { reader.ReadToEnd(); encoding = reader.CurrentEncoding; }
             if (OperatingSystem.IsWindows()) { File.WriteAllText(temp, text, encoding); return; }
-            UnixFileMode mode = File.Exists(file) ? File.GetUnixFileMode(file) : UnixFileMode.UserRead | UnixFileMode.UserWrite;
-            if (editable) mode |= UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            UnixFileMode mode = editable || !File.Exists(file) ? UnixFileMode.UserRead | UnixFileMode.UserWrite : File.GetUnixFileMode(file);
             FileStreamOptions options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, UnixCreateMode = mode };
             using (FileStream stream = new FileStream(temp, options))
             using (StreamWriter writer = new StreamWriter(stream, encoding)) writer.Write(text);
@@ -943,10 +1015,16 @@ namespace CapriDesktop
         {
             if (disposed) return;
             mode = Math.Max(0, Math.Min(3, mode));
+#if CROSS
+            Unlinked = new string[0];
+#endif
             if (mode == 0)
             {
                 Stop();
                 HuskHooks.Configure(0, exe);
+#if CROSS
+                Unlinked = Relinks(true);
+#endif
                 return;
             }
             HuskBridge opened = bridge;
@@ -960,6 +1038,9 @@ namespace CapriDesktop
             }
             try { HuskHooks.Configure(mode, exe); }
             catch { if (fresh) opened.Dispose(); throw; }
+#if CROSS
+            finally { Unlinked = Relinks(false); }
+#endif
             lock (gate)
             {
                 if (disposed) { opened.Dispose(); return; }
@@ -970,6 +1051,31 @@ namespace CapriDesktop
                 pending = null; burst = 0; reads.Clear();
             }
         }
+
+#if CROSS
+        // Settings files Code/Husk Mode made into files of their own because they linked into a folder she can't change, like
+        // Nix's store. Change sets it: the new ones when it turns on, and all of them when it turns off, which doesn't link
+        // them back. They're kept in her data folder in between, so a restart doesn't lose them.
+        internal string[] Unlinked = new string[0];
+
+        private string[] Relinks(bool off)
+        {
+            string file = Path.Combine(folder, "husk-unlinked.txt");
+            string[] fresh = HuskHooks.TakeUnlinked();
+            List<string> all = new List<string>();
+            try { if (File.Exists(file) && new FileInfo(file).Length < 65536) all.AddRange(File.ReadAllLines(file)); }
+            catch (Exception) { }
+            all.RemoveAll(string.IsNullOrWhiteSpace);
+            foreach (string path in fresh) if (!all.Contains(path)) all.Add(path);
+            try
+            {
+                if (off) { if (File.Exists(file)) File.Delete(file); }
+                else if (fresh.Length > 0) { Directory.CreateDirectory(folder); File.WriteAllLines(file, all.ToArray()); }
+            }
+            catch (Exception) { }
+            return off ? all.ToArray() : fresh;
+        }
+#endif
 
         private bool Watches(string source) { return (Mode & (source == "codex" ? 2 : 1)) != 0; }
         private string Words(int index, params object[] args) { return HuskWords.Line(Language(), index, args); }

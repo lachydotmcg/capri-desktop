@@ -192,6 +192,8 @@ namespace CapriSetup
                 key.SetValue("InstallLocation", destination);
                 key.SetValue("DisplayIcon", Path.Combine(destination, "Capri.exe"));
                 key.SetValue("UninstallString", "\"" + Path.Combine(destination, "Uninstall.exe") + "\" --uninstall");
+                // Package managers like winget remove her through this one, with no window.
+                key.SetValue("QuietUninstallString", "\"" + Path.Combine(destination, "Uninstall.exe") + "\" --silent --uninstall");
                 key.SetValue("NoModify", 1, RegistryValueKind.DWord);
                 key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
                 key.SetValue("EstimatedSize", (Payload().Length + new FileInfo(Application.ExecutablePath).Length) / 1024, RegistryValueKind.DWord);
@@ -398,15 +400,24 @@ namespace CapriSetup
                 CloseEverything(destination);
                 string uninstaller = Path.Combine(destination, "Uninstall.exe");
                 SetupFiles.Retire(uninstaller, string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase));
-                SetupFiles.RemoveApp(Path.Combine(destination, "Capri.exe"));
-                foreach (string pack in Packs)
+                try
                 {
-                    string folder = Path.Combine(destination, pack);
-                    Patiently(delegate { if (Directory.Exists(folder)) Directory.Delete(folder, true); });
+                    SetupFiles.RemoveApp(Path.Combine(destination, "Capri.exe"));
+                    foreach (string pack in Packs)
+                    {
+                        string folder = Path.Combine(destination, pack);
+                        Patiently(delegate { if (Directory.Exists(folder)) Directory.Delete(folder, true); });
+                    }
+                    DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Capri.lnk"), destination);
+                    DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Capri.lnk"), destination);
+                    SetupFiles.Unmark(destination);
                 }
-                DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Capri.lnk"), destination);
-                DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Capri.lnk"), destination);
-                SetupFiles.Unmark(destination);
+                catch
+                {
+                    // Her uninstall entry still points at the uninstaller, so it goes back for the next try.
+                    SetupFiles.Unretire(uninstaller, Application.ExecutablePath);
+                    throw;
+                }
                 Registry.CurrentUser.DeleteSubKeyTree(RegistryPath, false);
                 File.Delete(Path.Combine(destination, ".capri-install"));
                 if (!silent) Notice.Tell(null, "Capri has been removed.\n\nYour position and size settings were kept in " + destination + ".", "Capri", false);

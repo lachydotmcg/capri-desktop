@@ -38,7 +38,7 @@ namespace CapriDesktop
             get
             {
                 string extension = Path.GetExtension(FileName);
-                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? "RUNS CODE." : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? "SKIN." : "SETTINGS.";
+                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? "RUNS CODE." : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? "SKIN." : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? "SKILL." : "SETTINGS.";
             }
         }
         internal string Id { get { return Path.GetFileNameWithoutExtension(FileName); } }
@@ -47,7 +47,7 @@ namespace CapriDesktop
             get
             {
                 string extension = Path.GetExtension(FileName);
-                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? 2 : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? 3 : 1;
+                return string.Equals(extension, Mods.CodeExtension, StringComparison.OrdinalIgnoreCase) ? 2 : string.Equals(extension, Mods.SkinExtension, StringComparison.OrdinalIgnoreCase) ? 3 : string.Equals(extension, Mods.SkillExtension, StringComparison.OrdinalIgnoreCase) ? 4 : 1;
             }
         }
     }
@@ -61,7 +61,7 @@ namespace CapriDesktop
     internal static class ModDirectory
     {
         internal const string Page = "https://github.com/lachydotmcg/capri-mods";
-        internal static readonly string[] Kinds = { "All", "Settings", "Code", "Skins" };
+        internal static readonly string[] Kinds = { "All", "Settings", "Code", "Skins", "Skills" };
         private const string Api = "https://api.github.com/repos/lachydotmcg/capri-mods/git/";
         private const long Largest = 96L * 1024 * 1024;
         private const long LargestList = 16L * 1024 * 1024;
@@ -75,7 +75,7 @@ namespace CapriDesktop
         private static readonly Regex PreviewFile = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/preview\.png$");
         internal static string PreviewFolder = Path.Combine(Path.GetTempPath(), "capri-mod-previews");
         internal static Func<string, string, byte[]> Post = Push;
-        private static readonly Regex Listed = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/([A-Za-z0-9][A-Za-z0-9._-]{0,63}\.capri-(?:mod|code|skin))$");
+        private static readonly Regex Listed = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/([A-Za-z0-9][A-Za-z0-9._-]{0,63}\.capri-(?:mod|code|skin|skill))$");
         private static readonly Regex Blob = new Regex(@"^[0-9a-f]{40}$");
         internal static Func<string, long, byte[]> Get = Fetch;
 

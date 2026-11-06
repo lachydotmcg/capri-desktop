@@ -370,7 +370,7 @@ namespace CapriDesktop
                     }
                     catch (Exception error) { results.Add(Hands.Problem(error)); }
                 }
-                string resultLine = Security.Reply(results) ?? string.Join(" ", results.ToArray());
+                string resultLine = Security.Reply(results) ?? Hands.Shown(string.Join(" ", results.ToArray()));
                 Post(delegate { AsideSay(string.IsNullOrEmpty(resultLine) ? Lines.Pick(Lines.GotIt) : resultLine, running, text, replyId); });
             });
         }

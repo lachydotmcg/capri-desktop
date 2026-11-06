@@ -1556,6 +1556,44 @@ namespace CapriDesktop
 
         internal static string Problem(Exception error) { return "That didn't work: " + (string.IsNullOrWhiteSpace(error.Message) ? "no error details came back." : error.Message); }
 
+        // Her job tools, which her chat tools' list doesn't have.
+        private static readonly string[] JobTools = { "ask", "done", "note", "say", "learn", "wait", "wait_for", "click", "type", "key", "drag", "scroll", "move", "start_coordinate" };
+        private static Regex brainOnly, calling;
+
+        // Tool results are written for her brain, and some tell it which tool to call next or name her tools and their settings,
+        // like "Call ask and say..." or "list_windows names its program". What people see or hear of one leaves that out: a
+        // sentence or a clause after a colon or comma that holds it goes, and a result that was only for her brain becomes
+        // "That didn't work." Her brain still gets the whole result.
+        internal static string Shown(string result)
+        {
+            if (string.IsNullOrWhiteSpace(result)) return result;
+            if (brainOnly == null)
+            {
+                List<string> names = new List<string>(JobTools);
+                for (int i = 0; i < Count; i++) names.Add(Name(i));
+                string every = string.Join("|", names.ConvertAll(name => Regex.Escape(name)).ToArray());
+                string snakes = string.Join("|", names.FindAll(name => name.IndexOf('_') > 0).ConvertAll(name => Regex.Escape(name)).ToArray());
+                calling = new Regex(@"\b[Cc]all (?:" + every + @")\b");
+                // A snake_case tool name, but not a file that happens to share one, like read_file.txt.
+                brainOnly = new Regex(@"\b(?:" + snakes + @")\b(?!\.\w)|\bThere's no (?:tool|[a-z_]+ action) called\b|\bthat (?:" + every + @") call\b");
+            }
+            if (!calling.IsMatch(result) && !brainOnly.IsMatch(result)) return result;
+            List<string> kept = new List<string>();
+            foreach (string sentence in Regex.Split(result.Trim(), @"(?<=[.!?])\s+"))
+            {
+                Match call = calling.Match(sentence), named = brainOnly.Match(sentence);
+                Match found = !call.Success || named.Success && named.Index < call.Index ? named : call;
+                if (!found.Success) { kept.Add(sentence); continue; }
+                // What comes before the colon or comma ahead of it can stand alone, like "More pages are available" before
+                // "call read_file...", unless it's only the start of an "If..." or "When...".
+                int cut = sentence.LastIndexOfAny(new[] { ':', ',' }, Math.Max(0, found.Index - 1));
+                string head = cut > 0 ? sentence.Substring(0, cut).Trim() : "";
+                if (head.Length >= 8 && !Regex.IsMatch(head, @"^(If|When|Once|Before|After|Unless)\b") && !calling.IsMatch(head) && !brainOnly.IsMatch(head)) kept.Add(head + ".");
+            }
+            string spoken = string.Join(" ", kept.ToArray()).Trim();
+            return spoken.Length == 0 ? "That didn't work." : spoken;
+        }
+
         internal static void Forget() { lock (gate) cached = null; }
 
         private static readonly string[] Swaps = { @"\bi'?m\b", "they're", @"\bi am\b", "they are", @"\bi was\b", "they were", @"\bi've\b", "they've", @"\bi'll\b", "they'll", @"\bi'd\b", "they'd", @"\bi\b", "they", @"\bmyself\b", "themselves", @"\bmy\b", "their", @"\bmine\b", "theirs", @"\bme\b", "them" };
@@ -5395,7 +5433,7 @@ namespace CapriDesktop
             }
             else if (action == "up" || action == "down")
             {
-                if (action == "up" && now >= 100 && !muted) return name + " is already at 100% in the volume mixer. Its own volume slider inside the app, or the PC's volume with media, can still go up.";
+                if (action == "up" && now >= 100 && !muted) return name + " is already at 100% in the volume mixer. Its own volume slider inside the app, or the PC's volume, can still go up.";
                 if (action == "down" && now <= 0) return name + " is already at 0% in the volume mixer.";
                 int step = leveled && level > 0 ? level : 20;
                 target = Math.Max(0, Math.Min(100, action == "up" ? now + step : now - step));

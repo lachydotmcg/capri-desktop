@@ -2,7 +2,7 @@
   const repo = 'lachydotmcg/capri-desktop';
   const install = document.querySelector('#install');
   const systems = document.querySelectorAll('.systems a[data-os]');
-  const files = { windows: 'Capri-Setup.exe', mac: 'Capri-mac-apple-silicon.zip', intel: 'Capri-mac-intel.zip', linux: 'Capri-linux-x64.tar.gz', quest: 'Capri-VR-Quest.apk' };
+  const files = { windows: 'Capri-Setup.exe', mac: 'Capri-mac-apple-silicon.zip', intel: 'Capri-mac-intel.zip', linux: 'Capri-linux-x64.tar.gz', appimage: 'Capri-linux-x64.AppImage', quest: 'Capri-VR-Quest.apk' };
   const agent = navigator.userAgent;
   const platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || agent;
   let system = /Android|iPhone|iPad|CrOS/.test(agent) ? 'windows' : /mac/i.test(platform) && navigator.maxTouchPoints < 2 ? 'mac' : /linux|x11/i.test(platform) ? 'linux' : 'windows';

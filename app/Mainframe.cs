@@ -83,6 +83,9 @@ namespace CapriDesktop
         // key saved, one row under it folds away and the rest moves up; under the other rows, this one folds away instead.
         private const int KeyAt = 310;
         private const int KeyFold = 36;
+        private const int HearingFixAt = 474;
+        private const int HearingFixRow = 35;
+        private int hearingFold;
         private float voiceFilled = -1;
         private readonly Label installNote;
         private readonly Companion capri;
@@ -346,6 +349,7 @@ namespace CapriDesktop
         private readonly Slider pops;
         private readonly Readout popsName;
         private readonly Key popTimes, gameNotes, miniGames;
+        private ContextMenuStrip miniMenu;   // kept like the other menus; disposing it in its own Closed crashed WinForms
         private readonly Key notesKey, memoriesKey;
         private readonly Toggle dance;
         private readonly Slider replies;
@@ -1065,11 +1069,11 @@ namespace CapriDesktop
             return games;
         }
 
-        private void ShowMiniGames()
+        internal ContextMenuStrip ShowMiniGames()
         {
-            ContextMenuStrip games = MiniChoices();
-            games.Closed += delegate { games.Dispose(); };
-            games.Show(miniGames, new Point(0, miniGames.Height));
+            if (miniMenu == null) miniMenu = MiniChoices();
+            miniMenu.Show(miniGames, new Point(0, miniGames.Height));
+            return miniMenu;
         }
 
         private void SaveClipOptions()
@@ -1100,8 +1104,8 @@ namespace CapriDesktop
         {
             using (Form dialog = new Form())
             {
-                dialog.AutoScaleDimensions = new SizeF(96f, 96f);
-                dialog.AutoScaleMode = AutoScaleMode.Dpi;
+                dialog.SuspendLayout();
+                dialog.AutoScaleMode = AutoScaleMode.None;
                 dialog.Text = "Obsidian memory vault";
                 dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
                 dialog.MaximizeBox = false;
@@ -1161,6 +1165,7 @@ namespace CapriDesktop
                 close.Click += delegate { dialog.Close(); };
                 dialog.CancelButton = close;
                 dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, close });
+                Fit(dialog);
                 dialog.ShowDialog(this);
             }
         }
@@ -2088,6 +2093,18 @@ namespace CapriDesktop
 
             internal void Apply(float scale, bool fallback)
             {
+                Refont(scale, fallback);
+                control.MaximumSize = new Size(At(maximum.Width, scale), At(maximum.Height, scale));
+                if (!(control is Form))
+                {
+                    Label label = control as Label;
+                    if (label != null && label.AutoSize) control.Location = new Point(At(bounds.X, scale), At(bounds.Y, scale));
+                    else control.Bounds = Rectangle.FromLTRB(At(bounds.Left, scale), At(bounds.Top, scale), At(bounds.Right, scale), At(bounds.Bottom, scale));
+                }
+            }
+
+            internal void Refont(float scale, bool fallback)
+            {
                 Font oldFont = scaledFont, oldHint = scaledHint, oldFlag = scaledFlag;
                 scaledFont = Pixels(font, scale, fallback);
                 scaledHint = Pixels(hint, scale, fallback);
@@ -2097,13 +2114,6 @@ namespace CapriDesktop
                 Toggle toggle = control as Toggle;
                 if (rung != null) { rung.HintFont = scaledHint; rung.FlagFont = scaledFlag; }
                 if (toggle != null) toggle.HintFont = scaledHint;
-                control.MaximumSize = new Size(At(maximum.Width, scale), At(maximum.Height, scale));
-                if (!(control is Form))
-                {
-                    Label label = control as Label;
-                    if (label != null && label.AutoSize) control.Location = new Point(At(bounds.X, scale), At(bounds.Y, scale));
-                    else control.Bounds = Rectangle.FromLTRB(At(bounds.Left, scale), At(bounds.Top, scale), At(bounds.Right, scale), At(bounds.Bottom, scale));
-                }
                 if (oldFont != null) oldFont.Dispose();
                 if (oldHint != null) oldHint.Dispose();
                 if (oldFlag != null) oldFlag.Dispose();
@@ -2184,6 +2194,74 @@ namespace CapriDesktop
             if (rung != null) { rung.HintFont = Bigger(rung.HintFont, factor); rung.FlagFont = Bigger(rung.FlagFont, factor); }
             Toggle toggle = control as Toggle;
             if (toggle != null) toggle.HintFont = Bigger(toggle.HintFont, factor);
+        }
+
+        private void Fit(Form sheet)
+        {
+            new Rescaler(sheet, DeviceScale(), TextScale(), layoutFallback);
+            sheet.Location = new Point(Left + (Width - sheet.Width) / 2, Top + (Height - sheet.Height) / 2);
+        }
+
+        private sealed class Rescaler : NativeWindow
+        {
+            [StructLayout(LayoutKind.Sequential)] private struct Edges { internal int Left, Top, Right, Bottom; }
+
+            private readonly Form form;
+            private readonly float text;
+            private readonly bool fallback;
+            private readonly List<LayoutItem> items = new List<LayoutItem>();
+            private Size client;
+            internal float Unit;
+
+            internal Rescaler(Form form, float screen, float text, bool fallback)
+            {
+                this.form = form;
+                this.text = text;
+                this.fallback = fallback;
+                Unit = screen * text;
+                form.Tag = this;
+                Remember(form);
+                foreach (LayoutItem item in items) item.Refont(Unit, fallback);
+                form.Scale(new SizeF(Unit, Unit));
+                client = form.ClientSize;
+                form.ResumeLayout(false);
+                foreach (Control control in form.Controls) control.PerformLayout();
+                if (form.IsHandleCreated) AssignHandle(form.Handle);
+                form.HandleCreated += delegate { AssignHandle(form.Handle); Frame(); };
+                form.HandleDestroyed += delegate { ReleaseHandle(); };
+                form.Disposed += delegate { foreach (LayoutItem item in items) item.Dispose(); };
+            }
+
+            private void Remember(Control control)
+            {
+                items.Add(new LayoutItem(control));
+                foreach (Control child in control.Controls) Remember(child);
+            }
+
+            private void Frame()
+            {
+                if (form.FormBorderStyle == FormBorderStyle.None || !form.IsHandleCreated) return;
+                form.Size = new Size(client.Width + form.Width - form.ClientSize.Width, client.Height + form.Height - form.ClientSize.Height);
+            }
+
+            protected override void WndProc(ref Message message)
+            {
+                if (message.Msg != 0x02E0) { base.WndProc(ref message); return; }
+                Edges suggested = (Edges)Marshal.PtrToStructure(message.LParam, typeof(Edges));
+                float next = (message.WParam.ToInt64() & 0xFFFF) / 96f * text;
+                float ratio = next / Unit;
+                message.Result = IntPtr.Zero;
+                if (Math.Abs(ratio - 1f) < 0.01f) return;
+                Unit = next;
+                form.SuspendLayout();
+                foreach (LayoutItem item in items) item.Refont(Unit, fallback);
+                form.Scale(new SizeF(ratio, ratio));
+                client = new Size((int)Math.Round(client.Width * ratio), (int)Math.Round(client.Height * ratio));
+                form.ResumeLayout(false);
+                foreach (Control control in form.Controls) control.PerformLayout();
+                form.Location = new Point(suggested.Left, suggested.Top);
+                Frame();
+            }
         }
 
         private static Font Bigger(Font font, float factor) { return font == null ? null : new Font(font.FontFamily, font.SizeInPoints * factor, font.Style, GraphicsUnit.Point); }
@@ -2329,7 +2407,7 @@ namespace CapriDesktop
             int shift = (expanded ? SetupHeight : 0) + KeyRow;
             int below = voiceFilled >= 0 ? InstallRow : 0;
             if (expanded) Dots(graphics, s, 210, filled);
-            if (below > 0) Dots(graphics, s, InstallAt + 24 + shift - arrangedFold, voiceFilled);
+            if (below > 0) Dots(graphics, s, InstallAt + 24 + shift - arrangedFold - hearingFold, voiceFilled);
         }
 
         // The dotted bar her brain setup and her voice downloads share.
@@ -2441,8 +2519,12 @@ namespace CapriDesktop
             SecuritySheet guarded = form as SecuritySheet;
             LayersSheet layers = form as LayersSheet;
             MixSheet mix = form as MixSheet;
-            float zoom = guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : mix != null ? mix.Zoom : 1f;
-            return form.CurrentAutoScaleDimensions.Width / 96f * zoom;
+            ServerSheet server = form as ServerSheet;
+            ExtrasSheet extras = form as ExtrasSheet;
+            ModSheet mods = form as ModSheet;
+            float zoom = guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : mix != null ? mix.Zoom : server != null ? server.Zoom : extras != null ? extras.Zoom : mods != null ? mods.Zoom : 1f;
+            Rescaler scaler = form.Tag as Rescaler;
+            return (scaler != null ? scaler.Unit : 1f) * zoom;
         }
 
         private int Scaled(int value) { return loaded ? (int)Math.Round(value * Unit()) : value; }
@@ -2465,8 +2547,9 @@ namespace CapriDesktop
             paidNote.Visible = movePaid.Visible = tier == 1 && paidTextKey != null;
             int below = voiceFilled >= 0 ? InstallRow : 0;
             int fold = arrangedFold = Fold;
-            foreach (KeyValuePair<Control, int> entry in lower) entry.Key.Top = Scaled(entry.Value + shift + (entry.Value >= InstallAt ? below : 0) - (entry.Value > KeyAt ? fold : 0));
-            installNote.Top = Scaled(InstallAt + 2 + shift - fold);
+            hearingFold = hearingActions.Length == 0 ? HearingFixRow : 0;
+            foreach (KeyValuePair<Control, int> entry in lower) entry.Key.Top = Scaled(entry.Value + shift + (entry.Value >= InstallAt ? below : 0) - (entry.Value > KeyAt ? fold : 0) - (entry.Value > HearingFixAt ? hearingFold : 0));
+            installNote.Top = Scaled(InstallAt + 2 + shift - fold - hearingFold);
             installNote.Visible = below > 0;
             foreach (Label step in steps) step.Visible = setupShown;
             setup.Visible = setupShown;
@@ -2476,7 +2559,7 @@ namespace CapriDesktop
             updateNote.MaximumSize = new Size(Scaled(328), 0);
             if (keysNote != null) keysNote.MaximumSize = new Size(Scaled(328), 0);
             if (paged) pageView = Fit();
-            ClientSize = new Size(Scaled(paged ? Wide + Column : Wide), Scaled(paged ? pageView : Tall + shift + below - fold));
+            ClientSize = new Size(Scaled(paged ? Wide + Column : Wide), Scaled(paged ? pageView : Tall + shift + below - fold - hearingFold));
             ScrollPage(pageScroll);
             bool scrolls = paged && pageView < PageNow;
             topRim.Visible = bottomRim.Visible = scrolls;
@@ -2498,7 +2581,7 @@ namespace CapriDesktop
         {
             if (disposing) { glide.Stop(); glide.Dispose(); if (languageFont != null) languageFont.Dispose(); }
             if (disposing) DisposeHints();
-            if (disposing) { speakerMenu.Dispose(); screenMenu.Dispose(); }
+            if (disposing) { speakerMenu.Dispose(); screenMenu.Dispose(); if (miniMenu != null) miniMenu.Dispose(); }
             if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); mixInputMenu.Dispose(); mixOutputMenu.Dispose(); callAppMenu.Dispose(); }
             if (disposing && languageFont != null) languageFont.Dispose();
             base.Dispose(disposing);
@@ -3268,7 +3351,7 @@ namespace CapriDesktop
             Arrange(false);
         }
 
-        private int KeyRow { get { return tier > 0 ? 128 + (tier == 1 && paidTextKey != null ? 86 : 0) : 94; } }
+        private int KeyRow { get { return tier > 0 ? 128 + (tier != 1 ? 0 : paidTextKey != null ? 86 : 20) : 94; } }
 
         internal void ShowTiers(int pick, string nvidiaTail, string paidTail, string mediumKind = null)
         {
@@ -3417,7 +3500,7 @@ namespace CapriDesktop
             installNote.Text = total > 0 ? text + " · " + Engine.Amount(done) + " of " + Engine.Amount(total) : text + "...";
             voiceFilled = total > 0 ? Math.Min(1f, done / (float)total) : 0f;
             if (opening) Arrange(expanded);
-            else Invalidate(new Rectangle(0, Scaled(InstallAt + 20 + (expanded ? SetupHeight : 0) + KeyRow - arrangedFold), Width, Scaled(14)));
+            else Invalidate(new Rectangle(0, Scaled(InstallAt + 20 + (expanded ? SetupHeight : 0) + KeyRow - arrangedFold - hearingFold), Width, Scaled(14)));
         }
 
         internal void HideInstall()
@@ -3864,6 +3947,8 @@ namespace CapriDesktop
 
         internal string ServerHintPlace { get { return sheet.HintPlace; } }
 
+        internal bool ServerScaledToScreen { get { return sheet.ScaledToScreen; } }
+
         internal void DropFishVoices() { sheet.DropVoices(); }
 
         internal string FishVoicesShown { get { return sheet.Voices; } }
@@ -4184,21 +4269,22 @@ namespace CapriDesktop
         internal void PickSpeakerChoice(int at) { SpeakerChoices(); speakerMenu.Items[at == 0 ? 0 : at + 1].PerformClick(); }
         internal void PickScreenChoice(int at) { ScreenChoices(); screenMenu.Items[at == 0 ? 0 : at + 1].PerformClick(); }
 
+        // On a small desktop Windows clamps the window narrower than its page, so a clamped window skips the inside-the-window checks, like Outside's callers.
         internal string DeviceRowsFit()
         {
             if (!paged)
             {
-                if (Hidden(speakers) || !speakers.Visible || !ClientRectangle.Contains(speakers.Bounds)) return "Her speaker is hidden or outside VOICE";
+                if (Hidden(speakers) || !speakers.Visible || !PageClamped && !ClientRectangle.Contains(speakers.Bounds)) return "Her speaker is hidden or outside VOICE";
                 if (speakers.Top < Math.Max(mics.Bottom, micTest.Bottom) || hearingNote.Top < speakers.Bottom) return "Her speaker overlaps the mic or hearing row";
                 foreach (Control control in Controls)
                     if (control != speakers && control.Visible && !Hidden(control) && control.Bounds.IntersectsWith(speakers.Bounds)) return "Her speaker overlaps " + control.Text;
             }
             else
             {
-                if (Hidden(screens) || !screens.Visible || !PageArea.Contains(screens.Bounds)) return "Screens is hidden or outside WATCH";
+                if (Hidden(screens) || !screens.Visible || !PageClamped && !PageArea.Contains(screens.Bounds)) return "Screens is hidden or outside WATCH";
                 if (screens.Top < watch.Bottom || caughtUp.Top < screens.Bottom) return "Screens overlaps a WATCH row";
             }
-            return TextFits() ?? Overlap() ?? (paged ? Outside() : null);
+            return TextFits() ?? Overlap() ?? (paged && !PageClamped ? Outside() : null);
         }
 
         internal void ShowMicTest(bool listening, double level, bool muted)
@@ -4242,6 +4328,7 @@ namespace CapriDesktop
             hearingNote.Text = status.Text;
             hearingNote.AccessibleName = status.Text;
             hearingNote.ForeColor = status.Problem ? Hot : Faint;
+            bool wasFolded = hearingActions.Length == 0;
             hearingActions = status.Actions;
             for (int i = 0; i < hearingFixes.Length; i++)
             {
@@ -4249,6 +4336,7 @@ namespace CapriDesktop
                 hearingFixes[i].Visible = shown;
                 if (shown) hearingFixes[i].AccessibleName = hearingFixes[i].Text = HearingStatus.Name(status.Actions[i]);
             }
+            if (loaded && wasFolded != (hearingActions.Length == 0)) Arrange(expanded);
         }
 
         internal string HearingText { get { return hearingNote.Text; } }
@@ -4263,7 +4351,8 @@ namespace CapriDesktop
         {
             get
             {
-                if (string.IsNullOrEmpty(hearingNote.AccessibleName) || hearingNote.Bottom > hearingFixes[0].Top || hearingFixes[0].Bottom > muteShortcut.Top) return false;
+                if (string.IsNullOrEmpty(hearingNote.AccessibleName) || hearingNote.Bottom > muteShortcut.Top) return false;
+                if (hearingActions.Length > 0 && (hearingNote.Bottom > hearingFixes[0].Top || hearingFixes[0].Bottom > muteShortcut.Top)) return false;
                 for (int i = 0; i < hearingFixes.Length; i++)
                     if (hearingFixes[i].Visible != (i < hearingActions.Length) || i < hearingActions.Length && (string.IsNullOrEmpty(hearingFixes[i].AccessibleName) || hearingFixes[i].Text != HearingStatus.Name(hearingActions[i]))) return false;
                 return !hearingFixes[0].Bounds.IntersectsWith(hearingFixes[1].Bounds);
@@ -4287,6 +4376,7 @@ namespace CapriDesktop
         internal bool SpeechFixShown { get { return speechFix && voiceNote.Cursor == Cursors.Hand && voiceNote.Text.EndsWith(OpenSpeech, StringComparison.Ordinal); } }
 
         internal string VoiceNoteText { get { return voiceNote.Text; } }
+        internal bool VoiceNoteWarning { get { return voiceNote.ForeColor == Hot; } }
 
         internal void UpdateNote(string text, bool problem)
         {
@@ -4389,7 +4479,10 @@ namespace CapriDesktop
             strip.Renderer = new MenuLook();
             strip.BackColor = Ground;
             strip.ForeColor = White;
-            strip.Font = Font;
+            // Its own copy: rescaling disposes the Mainframe's font, and a menu holding that one throws the next time it draws (nathanZW, #78).
+            Font own = new Font(Font, Font.Style);
+            strip.Font = own;
+            strip.Disposed += delegate { own.Dispose(); };
             strip.ShowImageMargin = false;
             strip.ShowCheckMargin = true;
             dropdowns.RemoveAll(delegate(ContextMenuStrip old) { return old.IsDisposed || (old.OwnerItem != null && old.OwnerItem.IsDisposed); });
@@ -4442,13 +4535,16 @@ namespace CapriDesktop
 
         private sealed class Note : Label
         {
+            // A note that takes the mouse, like the Mods status line, shows the rest of a line cut short with "..." on hover.
+            internal bool Hovers;
+
             internal Note() { SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true); }
 
             protected override void OnPaintBackground(PaintEventArgs e) { Backdrop(e.Graphics, this, ScaleOf(this)); }
 
             protected override void WndProc(ref Message message)
             {
-                if (message.Msg == 0x0084) { message.Result = new IntPtr(-1); return; }
+                if (message.Msg == 0x0084 && !Hovers) { message.Result = new IntPtr(-1); return; }
                 base.WndProc(ref message);
             }
         }
@@ -5209,6 +5305,7 @@ namespace CapriDesktop
 
             internal ServerSheet(Mainframe owner, float zoom)
             {
+                SuspendLayout();
                 this.owner = owner;
                 Zoom = zoom;
                 Text = VoiceServer.Menu;
@@ -5216,8 +5313,7 @@ namespace CapriDesktop
                 ShowInTaskbar = false;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.Manual;
-                AutoScaleMode = AutoScaleMode.Dpi;
-                AutoScaleDimensions = new SizeF(96, 96);
+                AutoScaleMode = AutoScaleMode.None;
                 Font = Mainframe.Type(9.5f);
                 BackColor = Ground;
                 ForeColor = White;
@@ -5264,6 +5360,7 @@ namespace CapriDesktop
                     Grow(this, zoom);
                     Scale(new SizeF(zoom, zoom));
                 }
+                owner.Fit(this);
             }
 
             // CUSTOM LOCAL's choices or CLOUD VOICE's, with what they set up for that row, or else the service asked for ready to go.
@@ -5321,6 +5418,17 @@ namespace CapriDesktop
                 if (step == 0) return;
                 foreach (Control control in Controls) if (control.Top >= line) control.Top += step;
                 ClientSize = new Size(ClientSize.Width, ClientSize.Height + step);
+            }
+
+            internal bool ScaledToScreen
+            {
+                get
+                {
+                    if (Math.Abs(service.Width - 328 * ScaleOf(this)) > 1 || Math.Abs(service.Height - 28 * ScaleOf(this)) > 1) return false;
+                    foreach (Entry entry in new[] { url, model, speaker })
+                        if (Math.Abs(entry.Box.Top - (entry.Height - entry.Box.Height) / 2) > 1 || entry.Box.Right > entry.Width) return false;
+                    return true;
+                }
             }
 
             // For the smoke test: "fits", or the first two shown controls that cross.
@@ -5682,6 +5790,7 @@ namespace CapriDesktop
 
             internal SecuritySheet(Mainframe owner, float zoom)
             {
+                SuspendLayout();
                 this.owner = owner;
                 Zoom = zoom;
                 Text = "Security";
@@ -5689,8 +5798,7 @@ namespace CapriDesktop
                 ShowInTaskbar = false;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.Manual;
-                AutoScaleMode = AutoScaleMode.Dpi;
-                AutoScaleDimensions = new SizeF(96, 96);
+                AutoScaleMode = AutoScaleMode.None;
                 Font = Type(9f * zoom);
                 BackColor = Ground;
                 ForeColor = White;
@@ -5736,6 +5844,7 @@ namespace CapriDesktop
                     toggles[i] = box;
                     Caption(Security.Lines[i], x, y + 24, small, Faint);
                 }
+                owner.Fit(this);
                 Sync();
             }
 
@@ -5812,7 +5921,7 @@ namespace CapriDesktop
             {
                 float s = ScaleOf(this);
                 // A small desktop clamps the window, so check the size it was drawn for.
-                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, Z(Wide)), Math.Max(ClientSize.Height, Z(Tall)));
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, (int)Math.Round(Wide * s)), Math.Max(ClientSize.Height, (int)Math.Round(Tall * s)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];
@@ -5894,6 +6003,7 @@ namespace CapriDesktop
 
             internal ExtrasSheet(Mainframe owner, float zoom)
             {
+                SuspendLayout();
                 this.owner = owner;
                 Zoom = zoom;
                 Text = "Extras";
@@ -5903,8 +6013,7 @@ namespace CapriDesktop
                 TopMost = true;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.Manual;
-                AutoScaleMode = AutoScaleMode.Dpi;
-                AutoScaleDimensions = new SizeF(96, 96);
+                AutoScaleMode = AutoScaleMode.None;
                 Font = Type(9f * zoom);
                 BackColor = Ground;
                 ForeColor = White;
@@ -5932,6 +6041,7 @@ namespace CapriDesktop
                 done.Bounds = Box(Wide - 128, Tall - 44, 100, 26);
                 done.Click += delegate { Close(); };
                 Controls.Add(done);
+                owner.Fit(this);
                 Sync();
             }
 
@@ -5994,7 +6104,7 @@ namespace CapriDesktop
             {
                 float s = ScaleOf(this);
                 // A small desktop clamps the window, so check the size it was drawn for.
-                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, Z(Wide)), Math.Max(ClientSize.Height, Z(Tall)));
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, (int)Math.Round(Wide * s)), Math.Max(ClientSize.Height, (int)Math.Round(Tall * s)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];
@@ -6073,6 +6183,7 @@ namespace CapriDesktop
 
             internal LayersSheet(Mainframe owner, float zoom)
             {
+                SuspendLayout();
                 this.owner = owner;
                 Zoom = zoom;
                 Text = "Voice layers";
@@ -6080,8 +6191,7 @@ namespace CapriDesktop
                 ShowInTaskbar = false;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.Manual;
-                AutoScaleMode = AutoScaleMode.Dpi;
-                AutoScaleDimensions = new SizeF(96, 96);
+                AutoScaleMode = AutoScaleMode.None;
                 Font = Type(9.5f * zoom);
                 BackColor = Ground;
                 ForeColor = White;
@@ -6157,6 +6267,7 @@ namespace CapriDesktop
                     pitches[at].Released += delegate { if (!syncing) owner.capri.HearVoiceStyle(); };
                     delays[at].Released += delegate { if (!syncing) owner.capri.HearVoiceStyle(); };
                 }
+                owner.Fit(this);
                 Sync();
             }
 
@@ -6257,7 +6368,7 @@ namespace CapriDesktop
             {
                 float s = ScaleOf(this);
                 // A small desktop clamps the window, so check the size it was drawn for.
-                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, Z(Wide)), Math.Max(ClientSize.Height, Z(Tall)));
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, (int)Math.Round(Wide * s)), Math.Max(ClientSize.Height, (int)Math.Round(Tall * s)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];
@@ -6355,6 +6466,7 @@ namespace CapriDesktop
 
             internal MixSheet(Mainframe owner, float zoom)
             {
+                SuspendLayout();
                 this.owner = owner;
                 Zoom = zoom;
                 Text = "Her voice in your mic";
@@ -6362,8 +6474,7 @@ namespace CapriDesktop
                 ShowInTaskbar = false;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.Manual;
-                AutoScaleMode = AutoScaleMode.Dpi;
-                AutoScaleDimensions = new SizeF(96, 96);
+                AutoScaleMode = AutoScaleMode.None;
                 Font = Type(9.5f * zoom);
                 BackColor = Ground;
                 ForeColor = White;
@@ -6409,6 +6520,7 @@ namespace CapriDesktop
                 elsewhere = Caption("", 28, 438, Font, Faint);
                 ticks.Interval = 1000;
                 ticks.Tick += delegate { Sync(); };
+                owner.Fit(this);
                 Sync();
             }
 
@@ -6474,7 +6586,7 @@ namespace CapriDesktop
                 Retext(input, capri.MixInputName ?? "No mic found");
                 Retext(output, cable ? far : NoOutput);
                 Retext(pick, far);
-                pick.Left = pickStep.Right + Z(4);
+                pick.Left = pickStep.Right + (int)Math.Round(4 * ScaleOf(this));
                 Retext(elsewhere, "Roblox or any other app: pick " + far + " as its mic.");
                 string said;
                 Color colour = Hot;
@@ -6530,7 +6642,7 @@ namespace CapriDesktop
             {
                 float s = ScaleOf(this);
                 // A small desktop clamps the window, so check the size it was drawn for.
-                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, Z(Wide)), Math.Max(ClientSize.Height, Z(Tall)));
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, (int)Math.Round(Wide * s)), Math.Max(ClientSize.Height, (int)Math.Round(Tall * s)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];

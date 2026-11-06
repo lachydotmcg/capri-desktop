@@ -8,7 +8,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <DefineConstants>$(DefineConstants);CROSS</DefineConstants>
     <NoWarn>$(NoWarn);CS0649;CS0169;CS0414;CA1416;SYSLIB0014</NoWarn>
-    <Version>0.8.3</Version>
+    <Version>0.8.4</Version>
     <Product>Capri</Product>
     <ApplicationIcon>../assets/chip.ico</ApplicationIcon>
     <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
@@ -30,6 +30,7 @@
     <Compile Include="../app/ModDirectory.cs" Link="Shared/ModDirectory.cs" />
     <Compile Include="../app/ArtColors.cs" Link="Shared/ArtColors.cs" />
     <Compile Include="../app/SkinMods.cs" Link="Shared/SkinMods.cs" />
+    <Compile Include="../app/SkillMods.cs" Link="Shared/SkillMods.cs" />
     <Compile Include="../app/SoundsLike.cs" Link="Shared/SoundsLike.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />
     <Compile Include="../app/VoicePack.cs" Link="Shared/VoicePack.cs" />

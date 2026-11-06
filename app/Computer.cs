@@ -539,9 +539,12 @@ namespace CapriDesktop
 
         internal const string SignInYourself = "You'll need to sign in yourself first. I don't type passwords. Tell me when you're in and I'll carry on.";
         internal const string NoCart = "That didn't work: nothing went in the cart, because their job didn't ask for that. If the job is done, call done and say only what you did before this.";
+        // What they see and hear of a guard rail like NoCart: the result itself tells her brain what to do next.
+        internal const string NoCartShown = "Nothing goes in your cart unless you ask";
         internal const string PayYourself = "It's at the payment page. You'll need to put in your card details and pay yourself. I don't type card numbers.";
         internal const string CardYourself = "You'll need to put in your card details yourself. I don't type card numbers.";
         internal const string NoCard = "That didn't work: they put in card details themselves. Call ask and say the page is ready for their card.";
+        internal const string NoCardShown = "Your card details are yours to put in";
         // Card number, expiry and security code boxes are theirs to fill, like password boxes, unless Type passwords and card numbers is on.
         private static readonly Regex CardField = new Regex(@"\b(card ?(number|no)|credit card|debit card|cvv2?|cvc2?|security code|expiry|expiration|exp\.? date|valid (thru|until))\b", RegexOptions.IgnoreCase);
 
@@ -550,6 +553,7 @@ namespace CapriDesktop
         internal static bool PaymentPage(Sight sight) { return sight != null && sight.Targets.Exists(CardBox); }
 
         internal const string NotGiven = "That didn't work: their job doesn't give that, so it would be made up. Don't guess their details. Call ask and ask them for what this form needs.";
+        internal const string NotGivenShown = "Your job doesn't say what to put there";
         // Name, email, phone, address, birthday and passport boxes only take what the job, her notes or the screens gave her.
         private static readonly Regex PersonalField = new Regex(@"\b(full|first|last|given|family|middle|legal|passenger|traveller|traveler|guest|cardholder|contact|recipient|your)[ -]?names?\b|\bsurname\b|^\W*names?\W*$|\bname on (the )?card\b|\be-?mail\b|\b(phone|mobile|telephone)\b|\b(street|home|postal|billing|shipping|delivery|residential|mailing) address\b|^\W*address\W*$|\baddress line\b|\b(postcode|post code|zip( code)?|suburb)\b|\b(date of birth|birth ?date|birthday|dob)\b|\bpassport\b", RegexOptions.IgnoreCase);
 
@@ -3293,7 +3297,7 @@ namespace CapriDesktop
             if (doing != null)
             {
                 Steps.Add(name + ": " + (failed ? result : done + "."));
-                Mark(new JobStep { Tool = name, Label = failed ? Clean(result, "That didn't work.").TrimEnd('.') : done, Finished = true, Failed = failed });
+                Mark(new JobStep { Tool = name, Label = failed ? Clean(result != null && result.StartsWith(Computer.OffScreen, StringComparison.Ordinal) ? Computer.OffScreen : Hands.Shown(result), "That didn't work.").TrimEnd('.') : done, Finished = true, Failed = failed });
             }
             if (name == "type" && !failed) typed = Regex.Replace(masked.Text ?? "", @"\s+", " ").Trim();
             return result;
@@ -3356,28 +3360,50 @@ namespace CapriDesktop
             Action<string> progress = Progress;
             if (progress != null) progress(Computer.Status(tool, masked, sight));
             Mark(new JobStep { Tool = tool, Label = Computer.Status(tool, masked, sight).TrimEnd('.') });
-            string result;
+            // A guard rail's result tells her brain what to do next; what they see and hear of it is "shown".
+            string result, shown = null;
             Match unknown = tool == "type" ? Regex.Match(args.Text ?? "", @"\$([a-z][a-z0-9_]*)") : Match.Empty;
             if (tool == "learn") result = GameNotes.Learn(Game(), args.Text);
             else if (tool == "note") result = Note(args);
-            else if (tool == "type" && Computer.Placeholder(args.Text)) result = "That didn't work: " + Voice.Quote(args.Text.Trim()) + " is a blank to fill in, not the real words. Type the real text: check the screen before this one, or your notes.";
-            else if (tool == "type" && Computer.DetailsForm(sight, sight == null ? null : sight.Find(args.Target), Task) && (Computer.StandIn(args.Text) || !Computer.Given(args.Text, Known(sight)))) result = Computer.NotGiven;
-            else if (tool == "type" && Computer.StandIn(args.Text)) result = "That didn't work: " + Voice.Quote(args.Text.Trim()) + " isn't the real thing, and you don't know it. Call ask: tell them to sign in themselves, or ask for what's missing.";
-            else if (tool == "click" && Computer.AgreesToCookies(Task, sight == null ? null : sight.Find(args.Target), sight)) result = "That didn't work: don't agree to cookies for them. Click " + Computer.CookieWayOut(sight).Label + " instead.";
-            else if (tool == "click" && Computer.AddsToCart(Task, sight == null ? null : sight.Find(args.Target))) result = Computer.NoCart;
+            else if (tool == "type" && Computer.Placeholder(args.Text))
+            {
+                result = "That didn't work: " + Voice.Quote(args.Text.Trim()) + " is a blank to fill in, not the real words. Type the real text: check the screen before this one, or your notes.";
+                shown = Voice.Quote(args.Text.Trim()) + " is a blank, not the real words";
+            }
+            else if (tool == "type" && Computer.DetailsForm(sight, sight == null ? null : sight.Find(args.Target), Task) && (Computer.StandIn(args.Text) || !Computer.Given(args.Text, Known(sight)))) { result = Computer.NotGiven; shown = Computer.NotGivenShown; }
+            else if (tool == "type" && Computer.StandIn(args.Text))
+            {
+                result = "That didn't work: " + Voice.Quote(args.Text.Trim()) + " isn't the real thing, and you don't know it. Call ask: tell them to sign in themselves, or ask for what's missing.";
+                shown = Voice.Quote(args.Text.Trim()) + " isn't the real thing";
+            }
+            else if (tool == "click" && Computer.AgreesToCookies(Task, sight == null ? null : sight.Find(args.Target), sight))
+            {
+                result = "That didn't work: don't agree to cookies for them. Click " + Computer.CookieWayOut(sight).Label + " instead.";
+                shown = "I don't accept cookies for you";
+            }
+            else if (tool == "click" && Computer.AddsToCart(Task, sight == null ? null : sight.Find(args.Target))) { result = Computer.NoCart; shown = Computer.NoCartShown; }
             // Type passwords and card numbers on (Blackwall): the card is theirs to give, so she types it when their job does.
-            else if (tool == "type" && !Security.On(Security.Secrets) && Computer.CardBox(sight == null ? null : sight.Find(args.Target))) result = Computer.NoCard;
-            else if (tool == "type" && Computer.MadeUpEmail(args.Text, Known(sight)) != null) result = Computer.SigningIn(sight, Task) ? "That didn't work: don't make up an email address. If the page needs theirs, call ask and tell them to sign in themselves." : Computer.NotGiven;
-            else if (unknown.Success && Task.IndexOf(unknown.Value, StringComparison.Ordinal) < 0) result = "That didn't work: there's no note called " + unknown.Value + ". Call note first, then write it.";
+            else if (tool == "type" && !Security.On(Security.Secrets) && Computer.CardBox(sight == null ? null : sight.Find(args.Target))) { result = Computer.NoCard; shown = Computer.NoCardShown; }
+            else if (tool == "type" && Computer.MadeUpEmail(args.Text, Known(sight)) != null)
+            {
+                bool signing = Computer.SigningIn(sight, Task);
+                result = signing ? "That didn't work: don't make up an email address. If the page needs theirs, call ask and tell them to sign in themselves." : Computer.NotGiven;
+                shown = signing ? "I won't make up an email address" : Computer.NotGivenShown;
+            }
+            else if (unknown.Success && Task.IndexOf(unknown.Value, StringComparison.Ordinal) < 0)
+            {
+                result = "That didn't work: there's no note called " + unknown.Value + ". Call note first, then write it.";
+                shown = "I had no note called " + unknown.Groups[1].Value;
+            }
             else
             {
                 try { result = Computer.Act(tool, args, sight); }
                 catch (Exception error) { result = Hands.Problem(error); }
             }
-            if (secret) result = Hush(result, args.Text);
+            if (secret) { result = Hush(result, args.Text); if (shown != null) shown = Hush(shown, args.Text); }
             Steps.Add(Computer.Describe(tool, masked, sight) + ": " + result);
             bool failed = Computer.Failed(result) || Computer.Interrupted;
-            Mark(new JobStep { Tool = tool, Label = failed ? Clean(result, "That didn't work.").TrimEnd('.') : Computer.Did(tool, masked, sight), Finished = true, Failed = failed });
+            Mark(new JobStep { Tool = tool, Label = failed ? Clean(shown ?? Hands.Shown(result), "That didn't work.").TrimEnd('.') : Computer.Did(tool, masked, sight), Finished = true, Failed = failed });
             return result;
         }
 

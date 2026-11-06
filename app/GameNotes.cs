@@ -11,6 +11,8 @@ namespace CapriDesktop
     internal static class GameNotes
     {
         internal static string Folder;
+        // The skill mods that are on for a game, from her mods list. Null tells her none.
+        internal static Func<string, string> Skills;
         // The newest notes go in the prompt once a file outgrows it. The file itself keeps everything.
         private const int MostTold = 4000;
         private static readonly object writing = new object();
@@ -49,14 +51,8 @@ namespace CapriDesktop
             "Write up to 3 short lines, each starting with \"- \", about the game itself that you'd want to know next time: a control you worked out, how long something takes, what worked in it, what didn't and why, what killed you, or where something is. " +
             "Only write what you actually found out from these moves, in plain words. Nothing about the user or their stream, nothing about your tools or your own replies, and nothing that only matters to this one run. If you learned nothing new about the game, reply with only the word: nothing";
 
-        // "Minecraft 26.3 - Singleplayer" is Minecraft, and "Cyberpunk 2077 (C) 2020 by CD Projekt RED" is Cyberpunk 2077.
-        internal static string Name(string title)
-        {
-            string name = Regex.Replace(title ?? "", @"[®™©*]", " ");
-            name = Regex.Replace(name, @"\s+[-–—|:(\[].*$", "");
-            name = Regex.Replace(name, @"\s+v?\d+(\.\d+)+.*$", "", RegexOptions.IgnoreCase);
-            return Regex.Replace(name, @"\s+", " ").Trim(' ', '.');
-        }
+        // Mac and Linux name games the same way for their skills, so the trimming lives with the mods.
+        internal static string Name(string title) { return Mods.GameName(title); }
 
         private static string Place(string game)
         {
@@ -172,6 +168,8 @@ namespace CapriDesktop
                     brief.Append(" " + Kinds[i, 1]);
                     break;
                 }
+            Func<string, string> skills = Skills;
+            if (skills != null) brief.Append(skills(game));
             string keys = GameKeys.Summary(game);
             if (keys != null) brief.Append("\nIts keys on this PC: " + keys + ".");
             string notes = Read(game);

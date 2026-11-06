@@ -13,6 +13,13 @@ namespace CapriDesktop
         internal const string PrivacyOff = "Online speech recognition is off in Windows. Turn it on in Settings > Privacy & security > Speech.";
         internal const string MicBlocked = "Windows is blocking the mic. Turn on Microphone access and Let desktop apps access your microphone in Settings > Privacy & security > Microphone.";
         internal const string NoMic = "Windows can't find a mic. Plug one in, or pick one in Settings > System > Sound.";
+        // Windows speech's own errors and status names go in errors.txt. People get a plain line with what to do.
+        internal const string OwnFix = " Set Hearing under VOICE to Her own ears, or type to me.";
+        internal const string NotStarted = "Windows speech didn't start." + OwnFix;
+        internal const string Stopped = "Windows speech stopped." + OwnFix;
+        internal const string Missing = "Windows speech isn't on this PC." + OwnFix;
+        internal const string Offline = "Windows speech lost its internet connection. Check your internet, or set Hearing under VOICE to Her own ears, which work offline.";
+        internal const string MicUnused = "Windows speech couldn't use your mic. Make it the default in Settings > System > Sound > Input, or set Hearing under VOICE to Her own ears.";
         internal static Func<Dictation> Make = delegate { return new WindowsDictation(); };
         internal static Func<string> DefaultMic = delegate
         {
@@ -43,7 +50,14 @@ namespace CapriDesktop
             if (error.HResult == unchecked((int)0x80045509)) return PrivacyOff;
             if (error.HResult == unchecked((int)0x80070005)) return MicBlocked;
             if (error.HResult == unchecked((int)0xC00DABE0)) return NoMic;
-            return "Windows speech recognition didn't start: " + Voice.Short(error.Message);
+            return NotStarted;
+        }
+
+        // What errors.txt keeps of it: Windows' code and its own words.
+        internal static string Logged(Exception error)
+        {
+            while (error is AggregateException && error.InnerException != null) error = error.InnerException;
+            return "0x" + error.HResult.ToString("X8") + " " + error.GetType().Name + ": " + error.Message;
         }
     }
 
@@ -79,7 +93,7 @@ namespace CapriDesktop
             {
                 string problem = null;
                 try { Open(); }
-                catch (Exception error) { problem = Explain(error); Brain.Log("ears", -1, "Windows speech failed (0x" + error.HResult.ToString("X8") + "): " + problem); Close(); }
+                catch (Exception error) { problem = Explain(error); Brain.Log("ears", -1, "Windows speech failed (" + Logged(error) + "): " + problem); Close(); }
                 started(problem);
             });
         }
@@ -180,6 +194,7 @@ namespace CapriDesktop
                 catch (Exception error)
                 {
                     lock (gate) busy = false;
+                    Brain.Log("ears", -1, "Windows speech stopped (" + Logged(error) + ").");
                     Fail(Explain(error));
                     return;
                 }
@@ -226,7 +241,8 @@ namespace CapriDesktop
                     return;
                 }
             }
-            Fail(status == SpeechRecognitionResultStatus.NetworkFailure ? "Windows speech recognition lost its internet connection." : status == SpeechRecognitionResultStatus.MicrophoneUnavailable ? "Windows speech recognition couldn't use the mic." : "Windows speech recognition stopped (" + status + ").");
+            // Its status is in errors.txt from the line above.
+            Fail(status == SpeechRecognitionResultStatus.NetworkFailure ? Offline : status == SpeechRecognitionResultStatus.MicrophoneUnavailable ? MicUnused : Stopped);
         }
 
         private void Fail(string problem)

@@ -2307,8 +2307,9 @@ namespace CapriDesktop
     // It sits in the bottom-right corner until they drag it somewhere else, and she sits on top of it while she works.
     internal sealed class TaskPanel : Overlay
     {
-        private const int Columns = 36;
+        internal const int Columns = 36;
         private const int MostRows = 7;
+        internal const int EndingRows = 5, SnagRows = 3;
         private const string Speaker = "CAPRI: ";
         private readonly Timer ticks = new Timer();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
@@ -2502,9 +2503,34 @@ namespace CapriDesktop
             if (Location != was && Moved != null) Moved();
         }
 
+        // A line too long for its rows keeps its first sentence and its last, which is usually the fix, like "Run Capri as
+        // administrator too" or "Pick one under BRAIN in Capri Mainframe", then only the first sentence's start before its colon
+        // with the last, and only then is cut short.
+        internal static List<string> Fitted(string lead, string text, int columns, int rows)
+        {
+            List<string> lines = Look.Wrap(lead + text, columns);
+            if (lines.Count <= rows) return lines;
+            string[] sentences = System.Text.RegularExpressions.Regex.Split((text ?? "").Trim(), @"(?<=[.!?])\s+");
+            if (sentences.Length > 1)
+            {
+                string first = sentences[0], last = sentences[sentences.Length - 1];
+                int colon = first.IndexOf(": ", StringComparison.Ordinal);
+                foreach (string shorter in new[] { first + " " + last, colon > 0 ? first.Substring(0, colon) + ". " + last : null })
+                {
+                    if (shorter == null) continue;
+                    List<string> kept = Look.Wrap(lead + shorter, columns);
+                    if (kept.Count <= rows) return kept;
+                }
+            }
+            lines.RemoveRange(rows, lines.Count - rows);
+            lines[rows - 1] = Look.Cut(lines[rows - 1], columns - 3) + "...";
+            return lines;
+        }
+
         internal static Bitmap Frame(string task, IList<JobStep> steps, string busy, string outcome, string ending, bool caret, double fade, float s)
         {
-            string status = Speaker + (outcome == null ? "working on your task." : ending.Length > 0 ? ending : outcome == "done" ? "done." : "stopped.");
+            string told = outcome == null ? "working on your task." : ending.Length > 0 ? ending : outcome == "done" ? "done." : "stopped.";
+            string status = Speaker + told;
             System.Text.StringBuilder every = new System.Text.StringBuilder(task + status + busy);
             foreach (JobStep step in steps) every.Append(step.Label);
             using (Font text = Look.Mono(14 * s, FontStyle.Regular, GraphicsUnit.Pixel, every.ToString()))
@@ -2514,16 +2540,26 @@ namespace CapriDesktop
                 float cw = Look.CharWidth(text), line = 19 * s, margin = 12 * s;
                 List<string> you = Look.Wrap("> you: " + System.Text.RegularExpressions.Regex.Replace(task ?? "", @"\s+", " ").Trim(), Columns);
                 if (you.Count > 2) { you.RemoveRange(2, you.Count - 2); you[1] = Look.Cut(you[1], Columns - 3) + "..."; }
-                List<string> said = Look.Wrap(status, Columns);
-                if (said.Count > 3) { said.RemoveRange(3, said.Count - 3); said[2] = Look.Cut(said[2], Columns - 3) + "..."; }
+                // Her ending gets five rows, so its fix fits, like "Pick one under BRAIN in Capri Mainframe."
+                List<string> said = Fitted(Speaker, told, Columns, EndingRows);
                 int hidden = steps.Count > MostRows ? steps.Count - (MostRows - 1) : 0;
                 List<string> rows = new List<string>();
                 List<Color> inks = new List<Color>();
                 if (hidden > 0) { rows.Add("  +" + hidden + " earlier steps"); inks.Add(Look.Dim); }
+                int snag = -1;
+                for (int i = 0; i < steps.Count; i++) if (steps[i].Finished && steps[i].Failed) snag = i;
                 for (int i = hidden > 0 ? steps.Count - (MostRows - 1) : 0; i < steps.Count; i++)
                 {
+                    Color ink = steps[i].Failed ? Look.Red : steps[i].Finished ? Look.Dim : Look.Neon;
+                    // The newest snag wraps onto up to three rows, so its fix shows, like "Run Capri as administrator too".
+                    if (i == snag)
+                    {
+                        List<string> wrapped = Fitted("", steps[i].Label, Columns - 2, SnagRows);
+                        for (int w = 0; w < wrapped.Count; w++) { rows.Add((w == 0 ? "• " : "  ") + wrapped[w]); inks.Add(ink); }
+                        continue;
+                    }
                     rows.Add((steps[i].Finished ? "• " : "> ") + steps[i].Label + (steps[i].Finished ? "" : "..."));
-                    inks.Add(steps[i].Failed ? Look.Red : steps[i].Finished ? Look.Dim : Look.Neon);
+                    inks.Add(ink);
                 }
                 bool thinking = outcome == null && busy != null;
                 if (thinking) { rows.Add("> " + busy); inks.Add(Look.Neon); }

@@ -89,7 +89,8 @@ namespace CapriDesktop
 
         internal static string MissingFor(bool mac, string session, string desktop)
         {
-            if (mac) return "You couldn't take a screenshot. Tell them to allow Capri under System Settings > Privacy & Security > Screen Recording, then open you again. If Capri is already on that list, they should remove it with the minus button first.";
+            // Said as it is when the step failed, so it's written for them, like the Linux line below.
+            if (mac) return "Couldn't take a screenshot. Allow Capri under System Settings > Privacy & Security > Screen Recording, then open Capri again. If Capri is already on that list, remove it with the minus button first.";
             string tool = Kde(desktop) ? "Spectacle for KDE" : string.Equals(session, "wayland", StringComparison.OrdinalIgnoreCase)
                 ? (desktop ?? "").ToLowerInvariant().Contains("gnome") ? "gnome-screenshot for GNOME" : "grim for your desktop" : "scrot or maim";
             return "Couldn't take a screenshot. Install " + tool + ", then ask again.";
