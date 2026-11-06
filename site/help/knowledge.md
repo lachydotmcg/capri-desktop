@@ -1205,7 +1205,7 @@ Turn it off: Mainframe > Settings > Mini player, or the player's menu > Turn off
 ### Sleep
 If you don't touch the mouse or keyboard for a while, she falls asleep. Move the mouse to wake her. Mainframe > Settings > Sleep sets the time, or Never. On Mac and Linux it's right-click her > Move > Fall asleep after.
 
-To put her to sleep yourself (0.7.6 and newer): right-click her > Move > Go to sleep, or tell her "go to sleep", "take a nap" or "go to bed". She finishes what she's saying, gets off her window and sleeps until you click her, talk to her or say "wake up". Using the mouse and keyboard doesn't wake her from that, and her pop-ins, check-ins and Watch my screen rest until she's up. Telling her "go to sleep" never puts your PC to sleep; "put my PC to sleep" does.
+To put her to sleep yourself (0.7.6 and newer): right-click her > Move > Go to sleep, or tell her "go to sleep", "take a nap" or "go to bed". She finishes what she's saying, then sleeps right where she is until you click her, talk to her or say "wake up". Since 0.8.5, on a window, a desktop icon, her mini player, a Sit here spot or the taskbar she lies down along it if there's room, or sleeps sitting up if there isn't (eyes shut, a slow bob and little pink z's), and wakes still sitting. If the window moves she rides along asleep; if it closes or gets covered she sleeps on standing. Mac and Linux nap sitting up too. Using the mouse and keyboard doesn't wake her from that, and her pop-ins, check-ins and Watch my screen rest until she's up. Telling her "go to sleep" never puts your PC to sleep; "put my PC to sleep" does.
 
 ### Startup glitch
 When she starts, crimson glitch tendrils tear out from behind her, different every time, while she beams in with her sound. Mainframe > Settings > Glitch in at startup turns all of it on or off. Off: she just appears. On Mac and Linux it's right-click her > Move > Glitch in at startup; off, she starts back where she sat last time, with no glitch or sound.
@@ -1214,7 +1214,7 @@ When she starts, crimson glitch tendrils tear out from behind her, different eve
 Mainframe > Settings > Sounds sets her sound effects (arrive, leave, hops, clicks). Volume sets her spoken voice. Pitch, Speed, Robot and Glitch change how all her voices sound. Typing sound turns the soft typing sound on or off.
 
 ### Sleeping
-"Go to sleep" or "good night, Capri". She gets up when you talk to her or move her. On her own she dozes off when the PC is quiet for as long as Settings says, and sleeps until you're back. She also lies down awake for a couple of minutes now and then.
+"Go to sleep" or "good night, Capri". She gets up when you talk to her or move her. On her own she dozes off when the PC is quiet for as long as Settings says, right where she sits (since 0.8.5), and sleeps until you're back. She also lies down awake for a couple of minutes now and then.
 
 ---
 
