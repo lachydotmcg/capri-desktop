@@ -2142,6 +2142,8 @@ namespace CapriDesktop
         private const string SlowLocal = "Still thinking. My brain runs on your PC, so this is slow.";
         internal int VoiceWait = 3000;
         internal int FreeWait = 8000;
+        // A yelp waits this long at most for her voice before its words show, and the voice follows (5 Nov throw demo).
+        internal int YelpWait = 1000;
         private bool localWarned;
         private double quietSince = -1;
         private double wokeAt = -1;
@@ -13315,7 +13317,8 @@ namespace CapriDesktop
             talkState = TalkState.Thinking;
             box.Leaving = -1;
             UpdateAnimation();
-            int wait = speak == free ? Math.Max(VoiceWait, FreeWait) : VoiceWait;
+            // A quick line about being thrown or touched never sits as an empty bubble while a slow voice loads.
+            int wait = ticket == yelpTicket ? Math.Min(YelpWait, VoiceWait) : speak == free ? Math.Max(VoiceWait, FreeWait) : VoiceWait;
             hdSpeaking = preferences.HdVoice && speak == free ? ticket : -1;
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -27778,6 +27781,38 @@ namespace CapriDesktop
                 checks.Add("PASS the voice check after her voice lands waits for what she's answering, so it can't cancel what they asked");
             }
             finally { preferences.Silent = waitsSilent; voiceCheckDue = waitsDue; CloseTalk(); }
+            // Thrown with her server voice slow to answer, her yelp used to sit as an empty bubble for up to 8 s (5 Nov throw demo).
+            Func<string, byte[]> yelpSpeakWas = Speak, yelpFreeWas = FreeSpeak;
+            bool yelpSilentWas = preferences.Silent, yelpQuietWas = preferences.Quiet, yelpHdWas = preferences.HdVoice, yelpServedWas = preferences.ServerVoice, yelpHiddenWas = hidden, yelpDockedWas = docked;
+            int yelpWaitWas = VoiceWait, yelpFreeWaitWas = FreeWait;
+            try
+            {
+                CloseTalk();
+                hidden = docked = false;
+                preferences.Silent = preferences.Quiet = preferences.HdVoice = preferences.ServerVoice = false;
+                VoiceWait = 3000;
+                FreeWait = 8000;
+                short[] yelpSamples = new short[8000];
+                for (int at = 0; at < yelpSamples.Length; at++) yelpSamples[at] = (short)(5000 * Math.Sin(at * 0.05));
+                byte[] yelpWav = Voice.Wave(yelpSamples, 16000);
+                Speak = FreeSpeak = delegate { Thread.Sleep(1800); return yelpWav; };
+                const string yelpLine = "Hey, put me down!";
+                Stopwatch yelpTook = Stopwatch.StartNew();
+                Yelp("throws you", yelpLine, true);
+                while (reply != yelpLine && yelpTook.ElapsedMilliseconds < 4000) { Application.DoEvents(); Thread.Sleep(5); }
+                long yelpShown = yelpTook.ElapsedMilliseconds;
+                while (voiceUntil == 0 && yelpTook.ElapsedMilliseconds < 6000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (reply != yelpLine || yelpShown > YelpWait + 700 || voiceUntil == 0) throw new Exception("A voiced yelp with a slow voice sat empty or lost its voice: words after " + yelpShown + " ms, voiced " + (voiceUntil != 0) + ", reply " + reply);
+                checks.Add("PASS a voiced yelp shows its words within a second while a slow voice loads, and her voice follows once it's ready");
+            }
+            finally
+            {
+                Speak = yelpSpeakWas; FreeSpeak = yelpFreeWas;
+                preferences.Silent = yelpSilentWas; preferences.Quiet = yelpQuietWas; preferences.HdVoice = yelpHdWas; preferences.ServerVoice = yelpServedWas;
+                hidden = yelpHiddenWas; docked = yelpDockedWas;
+                VoiceWait = yelpWaitWas; FreeWait = yelpFreeWaitWas;
+                CloseTalk();
+            }
         }
 
         private static void WaitVoice(Func<bool> done, string problem)
