@@ -826,7 +826,9 @@ namespace CapriDesktop
         }
         // Their Obsidian vault folder when her notes live there, so she can say where they are.
         internal static volatile string VaultFolder;
-        internal static string Greeting(int hour) { return hour >= 5 && hour < 12 ? "Good morning, choom." : hour >= 22 || hour < 5 ? "Isn't it late, choom?" : "Miss me, choom?"; }
+        internal static string Greeting(int hour) { return Greetings[hour >= 5 && hour < 12 ? 0 : hour >= 22 || hour < 5 ? 1 : 2]; }
+
+        internal static readonly string[] Greetings = { "Good morning, choom.", "Isn't it late, choom?", "Miss me, choom?" };
 
         internal static string GreetingClip(int hour) { return hour >= 5 && hour < 12 ? "morning" : hour >= 22 || hour < 5 ? "late" : "miss"; }
 
@@ -4559,6 +4561,228 @@ namespace CapriDesktop
                     catch (UnauthorizedAccessException) { }
                 }
             }
+        }
+    }
+
+    // Her own fixed lines, like her hellos, pat lines, yelps, check-ins and settings lines, and the labels after "> sys: " in her
+    // bubble, in their language. Her brain translates them a batch at a time, once per language, into lines-<language>.txt in her
+    // data folder, so from then on she has them straight away. A line that isn't translated yet shows in English, and English
+    // needs nothing (Natural Stupidity, 6 Nov: "startup messages, pets and everything marked by sys: is still in english").
+    internal static class Said
+    {
+        internal static string Folder;
+        // Her brain's one-off call, its system and user text in and its reply out, and whether it can take one now.
+        internal static Func<string, string, string> Ask;
+        internal static Func<bool> Ready = delegate { return false; };
+        internal static readonly TimeSpan Wait = TimeSpan.FromMinutes(10);
+        private const int Batch = 40, Most = 3000, Longest = 400;
+        private static readonly object gate = new object();
+        private static readonly List<string> known = new List<string>();
+        private static readonly HashSet<string> knownSet = new HashSet<string>(StringComparer.Ordinal), labels = new HashSet<string>(StringComparer.Ordinal);
+        private static readonly Dictionary<string, int> missed = new Dictionary<string, int>(StringComparer.Ordinal);
+        private static string language;
+        private static Dictionary<string, string> lines = new Dictionary<string, string>(StringComparer.Ordinal);
+        // Her translations themselves, so a line that's already theirs is never sent again.
+        private static HashSet<string> made = new HashSet<string>(StringComparer.Ordinal);
+        private static bool warming;
+        private static DateTime failed = DateTime.MinValue;
+
+        // Lines she says as they are, so they're translated ahead of time.
+        internal static void Know(params IEnumerable<string>[] sets)
+        {
+            lock (gate) foreach (IEnumerable<string> set in sets) foreach (string line in set) Add(line, false);
+        }
+
+        // The labels her bubble shows after "> sys: ".
+        internal static void Labels(params string[] names)
+        {
+            lock (gate) foreach (string name in names) Add(name, true);
+        }
+
+        private static bool Add(string line, bool label)
+        {
+            if (!Fits(line) || !knownSet.Contains(line) && known.Count >= Most) return false;
+            if (knownSet.Add(line)) known.Add(line);
+            if (label) labels.Add(line);
+            return true;
+        }
+
+        // A line worth translating: some letters, on one line, and not a whole paragraph.
+        private static bool Fits(string line)
+        {
+            return !string.IsNullOrWhiteSpace(line) && line.Length <= Longest && line.IndexOfAny(new[] { '\t', '\r', '\n' }) < 0 && Regex.IsMatch(line, @"\p{L}");
+        }
+
+        // The line in their language when she has it. One she knows that isn't translated yet starts her brain on it.
+        internal static string In(string line) { return Find(line, false, false); }
+
+        // The same for a line made in code that isn't in her sets, like a settings or Tell line, so it's learnt and translated too.
+        internal static string Learn(string line) { return Find(line, true, false); }
+
+        // The same for a label after "> sys: ".
+        internal static string Label(string name) { return Find(name, true, true); }
+
+        internal static bool Knows(string line) { lock (gate) return line != null && knownSet.Contains(line); }
+
+        private static string Find(string line, bool learn, bool label)
+        {
+            string tongue = Brain.Language;
+            if (tongue == null || line == null) return line;
+            bool warm;
+            lock (gate)
+            {
+                Open(tongue);
+                string translated;
+                if (lines.TryGetValue(line, out translated)) return translated;
+                if (made.Contains(line)) return line;
+                warm = knownSet.Contains(line) || learn && Add(line, label);
+            }
+            if (warm) Warm();
+            return line;
+        }
+
+        // Their language's translations, read from her data folder the first time she needs them.
+        private static void Open(string tongue)
+        {
+            if (tongue == language) return;
+            language = tongue;
+            lines = new Dictionary<string, string>(StringComparer.Ordinal);
+            made = new HashSet<string>(StringComparer.Ordinal);
+            missed.Clear();
+            failed = DateTime.MinValue;
+            string path = PathFor(tongue);
+            if (path == null || !File.Exists(path)) return;
+            try
+            {
+                foreach (string row in File.ReadAllLines(path, Encoding.UTF8))
+                {
+                    int tab = row.IndexOf('\t');
+                    if (tab <= 0 || tab == row.Length - 1) continue;
+                    lines[row.Substring(0, tab)] = row.Substring(tab + 1);
+                    made.Add(row.Substring(tab + 1));
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        internal static string PathFor(string tongue)
+        {
+            string folder = Folder, name = Regex.Replace((tongue ?? "").ToLowerInvariant(), @"[^\p{L}\p{Nd}]+", "-").Trim('-');
+            return folder == null || name.Length == 0 ? null : Path.Combine(folder, "lines-" + name + ".txt");
+        }
+
+        // Reads the file again next time, for a new data folder.
+        internal static void Reload() { lock (gate) language = null; }
+
+        // Translates the lines she knows that aren't in their language yet, off her thread. After a failed call she waits ten
+        // minutes before trying again.
+        internal static void Warm()
+        {
+            lock (gate)
+            {
+                if (warming || Ask == null || Brain.Language == null || DateTime.UtcNow - failed < Wait) return;
+                warming = true;
+            }
+            bool ready;
+            try { ready = Ready(); }
+            catch (Exception) { ready = false; }
+            if (!ready) { lock (gate) warming = false; return; }
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate { Work(); });
+        }
+
+        // One pass over what's missing, a batch at a time, each kept as soon as it's back. A line her brain leaves out twice stays
+        // English until she restarts.
+        internal static void Work()
+        {
+            try
+            {
+                while (true)
+                {
+                    string tongue = Brain.Language;
+                    if (tongue == null) return;
+                    List<string> batch = new List<string>();
+                    List<bool> named = new List<bool>();
+                    lock (gate)
+                    {
+                        Open(tongue);
+                        foreach (string line in known)
+                        {
+                            int misses;
+                            if (lines.ContainsKey(line) || missed.TryGetValue(line, out misses) && misses >= 2) continue;
+                            batch.Add(line);
+                            named.Add(labels.Contains(line));
+                            if (batch.Count == Batch) break;
+                        }
+                    }
+                    if (batch.Count == 0) return;
+                    string reply;
+                    try { reply = Ask(Rules(tongue), Numbered(batch, named)); }
+                    catch (Exception) { lock (gate) failed = DateTime.UtcNow; return; }
+                    Dictionary<string, string> got = Read(reply, batch, named);
+                    lock (gate)
+                    {
+                        // They picked another language while this batch was out: it's dropped, and the next pass is for theirs.
+                        if (tongue != language) continue;
+                        foreach (string line in batch)
+                        {
+                            string translated;
+                            if (got.TryGetValue(line, out translated)) { lines[line] = translated; made.Add(translated); continue; }
+                            int misses;
+                            missed.TryGetValue(line, out misses);
+                            missed[line] = misses + 1;
+                        }
+                    }
+                    Keep(tongue, got);
+                }
+            }
+            finally { lock (gate) warming = false; }
+        }
+
+        internal static string Rules(string tongue)
+        {
+            return "You translate the fixed lines of Capri, a cheeky cyberpunk girl from Night City who lives on the user's PC as a desktop companion, into " + tongue + ". " +
+                "Keep her voice: playful, sassy and short, with her jokes. Keep her Night City slang words (choom, preem, corpo), Night City, Capri, ElevenLabs and anything in [square brackets] as they are. " +
+                "Lines that start with (label) are tiny lowercase labels in her chat log after \"sys:\", naming what the user just did to her or what just happened, " +
+                "like \"pets you\" (the user is petting her), \"throws you\" (the user threw her) or \"startup\" (she just started up). Translate those as short labels, without (label). " +
+                "Reply with only the same numbered lines in " + tongue + ", one per line, and nothing else.";
+        }
+
+        private static string Numbered(List<string> batch, List<bool> named)
+        {
+            StringBuilder text = new StringBuilder();
+            for (int i = 0; i < batch.Count; i++) text.Append(i + 1).Append(". ").Append(named[i] ? "(label) " : "").Append(batch[i]).Append('\n');
+            return text.ToString();
+        }
+
+        // Her brain's numbered lines matched back by number. One that's missing, empty or far longer than the English is left out.
+        internal static Dictionary<string, string> Read(string reply, List<string> batch, List<bool> named)
+        {
+            Dictionary<string, string> got = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (string row in (reply ?? "").Split('\n'))
+            {
+                Match numbered = Regex.Match(row, @"^\s*\**([0-9]{1,3})\s*[.):]\**\s*(.+?)\s*$");
+                if (!numbered.Success) continue;
+                int at = int.Parse(numbered.Groups[1].Value) - 1;
+                if (at < 0 || at >= batch.Count || got.ContainsKey(batch[at])) continue;
+                string text = numbered.Groups[2].Value;
+                if (named[at]) text = Regex.Replace(text, @"^\([^()]{1,20}\)\s*", "");
+                if (text.Length > 1 && text[0] == '"' && text[text.Length - 1] == '"' && batch[at][0] != '"') text = text.Substring(1, text.Length - 2).Trim();
+                if (text.Length == 0 || text.Length > Math.Max(48, batch[at].Length * 4) || text.IndexOf('\t') >= 0) continue;
+                got[batch[at]] = text;
+            }
+            return got;
+        }
+
+        private static void Keep(string tongue, Dictionary<string, string> got)
+        {
+            string path = PathFor(tongue);
+            if (path == null || got.Count == 0) return;
+            StringBuilder rows = new StringBuilder();
+            foreach (KeyValuePair<string, string> pair in got) rows.Append(pair.Key).Append('\t').Append(pair.Value).Append('\n');
+            try { File.AppendAllText(path, rows.ToString(), new UTF8Encoding(false)); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
     }
 

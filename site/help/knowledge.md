@@ -1130,6 +1130,8 @@ Mainframe > Settings > Language. She replies in that language. Changing it start
 
 On a new install she starts in your PC's own display language when it's one she speaks, and in English otherwise. Change it any time.
 
+Her own fixed lines follow your language too (0.8.5). That covers her hello at startup, pat lines, yelps when she's thrown, check-ins, settings lines and the labels after "sys:" in her bubble. Her brain translates them once for each language, a few calls in the background, and she keeps them in lines-<language>.txt in her data folder (%LOCALAPPDATA%\Capri). Until then a line can still come out in English, so the first pat or two after you switch might be English. Delete that file to have them translated again. Her recorded hello is English, so in another language she says her hello with her normal voice.
+
 Ask her to do things in any of her languages: "öffne Spotify", "abre Discord" and "打开Spotify" all work. Volume, mute, pause and skip ("mach lauter", "wycisz", "下一首") work instantly, even before she has a brain, in English, Spanish, French, German, Portuguese, Italian, Polish, Dutch, Russian, Ukrainian, Turkish, Indonesian, Japanese, Chinese and Korean. In her other languages her brain handles them.
 
 ### Does she remember what she learns in a game?

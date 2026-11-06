@@ -2387,6 +2387,7 @@ namespace CapriDesktop
             if (!smoke) MixVoice();
             kokoro.Style = LocalVoice.Find(preferences.VoiceStyle);
             Brain.Language = Brain.LanguageCode(preferences.Language) == "en" ? null : preferences.Language;
+            KnowLines(data);
             PointEars();
             Brain.Nickname = Brain.Nick(preferences.Nickname).Length == 0 ? null : Brain.Nick(preferences.Nickname);
             Brain.Wordiness = Math.Max(0, Math.Min(2, preferences.Wordiness));
@@ -4080,7 +4081,8 @@ namespace CapriDesktop
             box.Prompt = "> sys: ";
             if (holiday != null) holidaySaid = now.Date;
             // Her recorded hello costs nothing and needs no key. It wears their filters and layers, and a voice they've chosen says it instead (john_sandevistan, 31 Oct).
-            bool recorded = holiday == null && !preferences.Silent && !preferences.HdVoice && !preferences.ServerVoice && preferences.VoiceStyle == null;
+            // It's in English, so once her hello is in their language she says that one herself.
+            bool recorded = holiday == null && !preferences.Silent && !preferences.HdVoice && !preferences.ServerVoice && preferences.VoiceStyle == null && Said.In(line) == line;
             if (recorded)
             {
                 Func<string, byte[]> free, chosen = PickVoice(false, out free);
@@ -4494,6 +4496,8 @@ namespace CapriDesktop
         // (Ashy, 2 Nov). Docked over a game, her HUD shows it.
         private void SayOwn(string shown, string line)
         {
+            // Her check-ins file's lines are learnt too, so they come out in their language like the rest.
+            line = Said.Learn(line);
             if (docked) { Say(line); return; }
             Remark(shown, line, InChat || Hushed || (preferences.Quiet && !preferences.ServerVoice) || FullScreen());
         }
@@ -6793,6 +6797,22 @@ namespace CapriDesktop
             brain.Forget();
             SavePreferences();
             PointEars();
+            Said.Warm();
+        }
+
+        // Her fixed lines and the labels after "> sys: ", which her brain translates into their language once and she keeps in her
+        // data folder (Natural Stupidity, 6 Nov). Lines made in code elsewhere, like Tell's, are learnt as she says them.
+        private void KnowLines(string data)
+        {
+            Said.Folder = data;
+            Said.Ask = delegate(string system, string user) { return brain.Aside(system, user, 3000); };
+            Said.Ready = delegate { return !testing && brain.Model != null; };
+            Said.Know(Brain.Greetings, Brain.HalloweenLines, PetLines, PatPeaceLines, ThrowLines, WarnLines, DizzyLines, SulkLines, DodgeLines, SorryLines, AloneLines,
+                PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines, WakeLines, Swarm.HaulLines, Swarm.NoteLines, Swarm.FakeLines,
+                Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
+                new[] { FirstDodgeLine, ElevenOffLine, ElevenOnLine, FreeOnLine, VoiceOffLine, VoiceOnLine, NoVoiceCredits, HdWaking, Brain.Offline, Brain.Wordless,
+                    Brain.ResetKept, Brain.ResetDone, Meeting.AskName, Meeting.AskCalled, Meeting.AskPronouns, Meeting.AskInto, Meeting.Again, Swarm.Owned, Swarm.Sorry });
+            Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday");
         }
 
         internal string Nickname { get { return Brain.Nickname ?? ""; } }
@@ -13484,7 +13504,7 @@ namespace CapriDesktop
                         if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
                         said = CallLine(ticket, said);
                         if (CallHands(ticket)) callSession.Keep(callUserVersion, callRecord, said, Brain.Recall, delegate { return ticket == asking; });
-                        Answer(ticket, said, state, quiet);
+                        Answer(ticket, said, state, quiet, problem == null);
                         if (said == Brain.Offline) FindBrain();
                     });
                 }
@@ -13513,10 +13533,19 @@ namespace CapriDesktop
             return true;
         }
 
-        private void Answer(int ticket, string said, TalkState state, bool quiet = false)
+        // Her brain's latest reply, which Begin leaves as it came.
+        private int thoughtTicket = -1;
+
+        // Her own line in their language. One shown after "> sys: " is learnt when it's new, so Tell's and her settings' lines are too.
+        private string Own(string line) { return box.Prompt == "> sys: " ? Said.Learn(line) : Said.In(line); }
+
+        // A line from her brain is thought, and already in their language.
+        private void Answer(int ticket, string said, TalkState state, bool quiet = false, bool thought = false)
         {
             if (ticket != asking || IsDisposed) return;
             if (ticket == newsTicket && state == TalkState.Dormant) { Begin(ticket, News.Line, TalkState.Talking, null); return; }
+            if (thought) thoughtTicket = ticket;
+            else said = Own(said);
             said = CallLine(ticket, said);
             // Each answer owns its text and completion; talking over her cancels only its audio (ticket 35).
             int turn = ++answerTurn;
@@ -13656,6 +13685,8 @@ namespace CapriDesktop
             if (ticket != asking || IsDisposed || !FollowDelivery(ticket)) return;
             if (ticket == newsTicket && NewsBusy(newsQuiet)) { newsTicket = -1; asking++; CloseTalk(); return; }
             if (ticket == followTicket && !followLogged) { brain.Followed(said); followLogged = true; }
+            // A line with a recording of its own stays the way it was recorded.
+            if (wav == null && ticket != thoughtTicket) said = Own(said);
             if (slowWarned && brain.Remote != null && state != TalkState.Dormant) mainframe.ShowCloud(brain.Remote, cloudModels);
             reply = said;
             replyStart = clock.Elapsed.TotalSeconds;
@@ -13740,7 +13771,7 @@ namespace CapriDesktop
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
             box.State = talkState;
-            box.Heard = heard;
+            box.Heard = box.Prompt == "> sys: " ? Said.Label(heard) : heard;
             box.Reply = talkState == TalkState.Thinking ? (AsideNow(now) ?? working ?? (slowWarned ? (brain.Remote != null ? "Still thinking. Waiting for " + brain.Remote.Company + "." : SlowLocal) : null)) : reply;
             box.Revealed = revealed;
             float s = TalkScale();
@@ -28371,6 +28402,95 @@ namespace CapriDesktop
             }
         }
 
+        // Her own lines in their language: her brain's numbered translations come back in batches and are kept in lines-<language>.txt,
+        // her pat lines and sys labels use them, English and her brain's own replies stay as they are, and a bad or failed reply
+        // leaves its lines in English.
+        private void SmokeSaid(System.Collections.Generic.List<string> checks)
+        {
+            string languageWas = Brain.Language, folderWas = Said.Folder, heardWas = heard, promptWas = box.Prompt;
+            Func<string, string, string> askWas = Said.Ask;
+            Func<bool> readyWas = Said.Ready;
+            string folder = Path.Combine(Path.GetTempPath(), "capri-said-" + Guid.NewGuid().ToString("N"));
+            int asks = 0;
+            string rules = null;
+            try
+            {
+                Directory.CreateDirectory(folder);
+                Said.Folder = folder;
+                Said.Reload();
+                Said.Ready = delegate { return false; };
+                // A pretend brain: each numbered line comes back with [es] in front, and a label keeps its mark, which she strips.
+                Said.Ask = delegate(string system, string user)
+                {
+                    asks++;
+                    rules = system;
+                    StringBuilder back = new StringBuilder("Here you go:\n");
+                    foreach (string row in user.Split('\n'))
+                    {
+                        Match numbered = Regex.Match(row, @"^([0-9]+)\. (\(label\) )?(.+)$");
+                        if (numbered.Success) back.Append(numbered.Groups[1].Value).Append(". ").Append(numbered.Groups[2].Value).Append("[es] ").Append(numbered.Groups[3].Value).Append('\n');
+                    }
+                    return back.ToString();
+                };
+                Brain.Language = null;
+                if (Said.In(PetLines[0]) != PetLines[0] || Said.Label("pets you") != "pets you") throw new Exception("English changed her own lines.");
+                Brain.Language = "Spanish";
+                if (Said.In(PetLines[0]) != PetLines[0]) throw new Exception("A line she hasn't translated yet wasn't left in English.");
+                Said.Work();
+                if (asks < 3) throw new Exception("Her lines weren't sent in batches: " + asks + " asks.");
+                if (rules == null || !rules.Contains("into Spanish") || !rules.Contains("choom")) throw new Exception("Her translation rules lost the language or her slang.");
+                string pet = Said.In(PetLines[0]), hello = Said.In(Brain.Greetings[0]), label = Said.Label("pets you");
+                if (pet != "[es] " + PetLines[0] || hello != "[es] " + Brain.Greetings[0] || label != "[es] pets you") throw new Exception("Her lines weren't in their language: " + pet + " / " + hello + " / " + label);
+                if (Said.In("Some reply her brain wrote.") != "Some reply her brain wrote." || Said.Knows("Some reply her brain wrote.")) throw new Exception("A line she doesn't know was learnt or changed.");
+                if (Said.In(pet) != pet || Said.Learn(pet) != pet || Said.Knows(pet)) throw new Exception("A translated line was sent again.");
+                // Her file keeps them, and a fresh start reads them back without asking her brain.
+                string[] rows = File.ReadAllLines(Said.PathFor("Spanish"), Encoding.UTF8);
+                if (Array.IndexOf(rows, PetLines[0] + "\t[es] " + PetLines[0]) < 0 || Array.IndexOf(rows, "pets you\t[es] pets you") < 0) throw new Exception("Her translations weren't kept in " + Said.PathFor("Spanish") + ".");
+                int before = asks;
+                Said.Reload();
+                if (Said.In(PetLines[1]) != "[es] " + PetLines[1] || asks != before) throw new Exception("Her kept translations weren't read back.");
+                // A line made in code is learnt the first time she says it, then translated.
+                string told = "Copied my error log just now, choom.";
+                if (Said.Learn(told) != told || !Said.Knows(told)) throw new Exception("A Tell line wasn't learnt.");
+                Said.Work();
+                if (Said.In(told) != "[es] " + told) throw new Exception("A learnt line wasn't translated.");
+                // Her bubble: a pat says its line in Spanish under a Spanish label, and her brain's reply after "> sys: " stays as it came.
+                heard = "pets you";
+                box.Prompt = "> sys: ";
+                Answer(++asking, PetLines[2], TalkState.Talking, true);
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                if (reply != "[es] " + PetLines[2] || box.Heard != "[es] pets you") throw new Exception("Her pat came out as " + reply + " under " + box.Heard + ".");
+                Answer(++asking, "Hola, choom. Tu cerebro nuevo funciona.", TalkState.Talking, true, true);
+                if (reply != "Hola, choom. Tu cerebro nuevo funciona." || Said.Knows(reply)) throw new Exception("Her brain's reply was changed or sent to translate: " + reply);
+                // A bad reply leaves its lines in English: an empty line, one far too long, a number out of range and no number at all.
+                Said.Ask = delegate(string system, string user) { asks++; return "1. \n2. " + new string('x', 400) + "\n99. Nope\nNo numbers here"; };
+                Brain.Language = "French";
+                Said.Work();
+                if (Said.In(PetLines[0]) != PetLines[0] || Said.In(PetLines[1]) != PetLines[1]) throw new Exception("A bad reply changed her lines: " + Said.In(PetLines[0]));
+                // A brain that can't answer stops the pass, and her lines stay English.
+                Said.Ask = delegate { throw new WebException("Offline."); };
+                Brain.Language = "German";
+                Said.Work();
+                if (Said.In(PetLines[0]) != PetLines[0]) throw new Exception("A failed reply changed her line.");
+                checks.Add("PASS her own lines: her brain translates her pat lines, hellos and sys labels in batches, she keeps them in lines-<language>.txt and reads them back, a pat comes out in Spanish under a Spanish label, lines from code are learnt as she says them, English and her brain's replies stay as they are, and bad or failed replies leave English");
+            }
+            finally
+            {
+                Brain.Language = languageWas;
+                Said.Folder = folderWas;
+                Said.Ask = askWas;
+                Said.Ready = readyWas;
+                Said.Reload();
+                heard = heardWas;
+                box.Prompt = promptWas;
+                asking++;
+                CloseTalk();
+                try { Directory.Delete(folder, true); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+
         private void SmokeLanguages(System.Collections.Generic.List<string> checks)
         {
             int sizeWas = MainframeSize;
@@ -31798,6 +31918,7 @@ namespace CapriDesktop
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
+            Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
             Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });
