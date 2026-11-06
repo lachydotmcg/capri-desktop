@@ -2280,6 +2280,7 @@ namespace CapriDesktop
             heardLook = new DeviceLook(this);
             speakerLook = new DeviceLook(this);
             micLook = new DeviceLook(this);
+            choicesLook = new DeviceLook(this);
             voice = new Voice(new Speaker(smoke));
             AllowDrop = true;
             instant = smoke;
@@ -6613,13 +6614,37 @@ namespace CapriDesktop
         // The cable her mix plays into, the chosen one or the one it picks itself, or null when there's none.
         internal MixDevice MixOutput { get { return CableReady ? cableThere : null; } }
 
-        internal System.Collections.Generic.List<MixDevice> MixOutputs
+        // A virtual cable Settings' Output can pick, by the name Discord lists its far end under.
+        internal sealed class MixChoice
         {
-            get
+            internal readonly MixDevice Cable;
+            internal readonly string Name;
+            internal MixChoice(MixDevice cable, string name) { Cable = cable; Name = name; }
+        }
+
+        private readonly DeviceLook choicesLook;
+        private System.Collections.Generic.List<MixChoice> mixChoices = new System.Collections.Generic.List<MixChoice>();
+
+        // The cables her last look found for Settings' Output menu.
+        internal System.Collections.Generic.List<MixChoice> MixChoices { get { return new System.Collections.Generic.List<MixChoice>(mixChoices); } }
+
+        // Settings' Output menu looks at Windows' cables in the background (#100), and fills in when the look is back.
+        internal void LookMixOutputs()
+        {
+            IMixDevices devices = MicMix.Devices;
+            choicesLook.Ask(delegate
             {
-                try { return MicMix.Devices.Cables(); }
-                catch (Exception) { return new System.Collections.Generic.List<MixDevice>(); }
-            }
+                System.Collections.Generic.List<MixChoice> found = new System.Collections.Generic.List<MixChoice>();
+                System.Collections.Generic.List<MixDevice> cables;
+                try { cables = devices.Cables(); }
+                catch (Exception) { cables = new System.Collections.Generic.List<MixDevice>(); }
+                foreach (MixDevice cable in cables) found.Add(new MixChoice(cable, MicMix.FarName(cable)));
+                return found;
+            }, delegate(System.Collections.Generic.List<MixChoice> found)
+            {
+                if (found != null) mixChoices = found;
+                if (mainframe != null && !mainframe.IsDisposed) mainframe.ShowMixChoices();
+            });
         }
 
         // The programs her last look found hearing her mix's far end, like Discord, for the setup steps to say it's working. Each
