@@ -136,17 +136,21 @@ namespace CapriDesktop
             return GetCursorInfo(ref state) && state.Flags == 0;
         };
 
+        // Rocking and turning move their mouse too, so both hold her sign up (#106).
         private static void Steer(Point at)
         {
             steered = CursorHidden() || GameUnder(at);
             if (!steered) return;
-            foreach (int counts in new[] { 2, -2, 1, -1 })
+            using (InControl.Hold(at))
             {
-                if (interrupted) return;
-                Nudge(counts, 0);
-                Thread.Sleep(30);
+                foreach (int counts in new[] { 2, -2, 1, -1 })
+                {
+                    if (interrupted) return;
+                    Nudge(counts, 0);
+                    Thread.Sleep(30);
+                }
+                Thread.Sleep(90);
             }
-            Thread.Sleep(90);
         }
 
         private static void Turn(int dx, int dy)
@@ -154,14 +158,15 @@ namespace CapriDesktop
             int longest = Math.Max(Math.Abs(dx), Math.Abs(dy));
             int steps = Math.Max(1, (int)Math.Ceiling(longest / 48.0));
             int sentX = 0, sentY = 0;
-            for (int i = 1; i <= steps && !interrupted; i++)
-            {
-                int wantX = (int)Math.Round((double)dx * i / steps), wantY = (int)Math.Round((double)dy * i / steps);
-                Nudge(wantX - sentX, wantY - sentY);
-                sentX = wantX;
-                sentY = wantY;
-                Thread.Sleep(4);
-            }
+            using (InControl.Hold())
+                for (int i = 1; i <= steps && !interrupted; i++)
+                {
+                    int wantX = (int)Math.Round((double)dx * i / steps), wantY = (int)Math.Round((double)dy * i / steps);
+                    Nudge(wantX - sentX, wantY - sentY);
+                    sentX = wantX;
+                    sentY = wantY;
+                    Thread.Sleep(4);
+                }
         }
 
         internal static string Traced(ToolArguments args)

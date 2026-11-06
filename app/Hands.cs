@@ -537,6 +537,100 @@ namespace CapriDesktop
         internal OpenWindow(IntPtr handle, string title, string program) { Handle = handle; Title = title; Program = program; }
     }
 
+    // #106 (Lachy, 6 Nov): a couple of people saw their mouse move and keys get typed and didn't know it was her. Whenever she
+    // moves their mouse or presses their keys, however briefly, she holds this, and a sign is up while anything holds it, so a
+    // mouse that moves with no sign up wasn't her. Holds are counted, so overlapping ones keep the sign up until the last one
+    // lets go, and it stays a moment after that so a run of quick presses doesn't flicker. Her window draws the sign: Changed
+    // tells it to look at On and At again, from whatever thread changed them, with true when the sign has just come up.
+    internal static class InControl
+    {
+        internal const string Line = "Capri's using your mouse. Esc stops her.";
+        // How long the sign stays after the last hold lets go, in ms.
+        internal static int Linger = 500;
+        private static readonly object gate = new object();
+        private static int holds, endedAt;
+        private static bool up;
+        private static System.Drawing.Point? at;
+        private static System.Threading.Timer settle;
+        internal static Action<bool> Changed = delegate { };
+
+        internal static bool On { get { lock (gate) return up; } }
+
+        internal static int Holds { get { lock (gate) return holds; } }
+
+        // Where she last put their mouse while the sign has been up, or null while she's only pressed keys, which go to the
+        // window in front.
+        internal static System.Drawing.Point? At { get { lock (gate) return at; } }
+
+        internal static void Begin() { Begin(null); }
+
+        internal static void Begin(System.Drawing.Point? spot)
+        {
+            bool rising, moved;
+            lock (gate)
+            {
+                holds++;
+                rising = !up;
+                moved = spot.HasValue && spot != at;
+                up = true;
+                if (spot.HasValue) at = spot;
+            }
+            if (rising || moved) Changed(rising);
+        }
+
+        // She's still holding it and has moved their mouse there.
+        internal static void Near(System.Drawing.Point spot)
+        {
+            bool moved;
+            lock (gate)
+            {
+                moved = up && spot != at;
+                if (up) at = spot;
+            }
+            if (moved) Changed(false);
+        }
+
+        internal static void End()
+        {
+            lock (gate)
+            {
+                if (holds == 0 || --holds > 0) return;
+                endedAt = Environment.TickCount;
+                if (settle == null) settle = new System.Threading.Timer(Settle);
+                settle.Change(Math.Max(0, Linger), Timeout.Infinite);
+            }
+        }
+
+        // The sign goes once nothing has held it for Linger ms. A hold that came and went meanwhile pushes that back.
+        private static void Settle(object state)
+        {
+            lock (gate)
+            {
+                if (holds > 0 || !up) return;
+                int left = Linger - unchecked(Environment.TickCount - endedAt);
+                if (left > 0) { settle.Change(left, Timeout.Infinite); return; }
+                up = false;
+                at = null;
+            }
+            Changed(false);
+        }
+
+        // A hold that lets go once, when it's disposed, for around one press, drag or chord.
+        internal static IDisposable Hold() { return Hold(null); }
+
+        internal static IDisposable Hold(System.Drawing.Point? spot)
+        {
+            Begin(spot);
+            return new Holding();
+        }
+
+        private sealed class Holding : IDisposable
+        {
+            private int done;
+            public void Dispose() { if (Interlocked.Exchange(ref done, 1) == 0) End(); }
+        }
+    }
+
     internal static class Hands
     {
         internal const string SpokenName = @"(?:\b[ck]app?r(?:i|ee|ie|y)\b|\b(?:kopri|recovery|капри|كابري)\b|(?<![\p{L}\p{M}\p{N}_])कैप्री(?![\p{L}\p{M}\p{N}_])|カプリ|卡普里|카프리)";

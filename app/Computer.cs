@@ -2010,6 +2010,7 @@ namespace CapriDesktop
                 Track(next);
                 if (carry)
                 {
+                    InControl.Near(next);
                     PutCursor(next);
                     if (steered) { Nudge(1, 0); Nudge(-1, 0); }
                     leftAt = next;
@@ -2018,12 +2019,14 @@ namespace CapriDesktop
             }
         }
 
-        // Moving the mouse doesn't stop her; only Esc does. A borrow remembers where they last left it.
+        // Moving the mouse doesn't stop her; only Esc does. A borrow remembers where they last left it. Her sign is up from
+        // the borrow until she gives it back, on the screen she put it on.
         internal static void Borrow(Point at)
         {
             Point now = CursorAt();
             if (!lent || !Near(now, leftAt)) lentFrom = now;
-            if (!lent) Lending(true);
+            if (!lent) { InControl.Begin(at); Lending(true); }
+            else InControl.Near(at);
             lent = true;
             PutCursor(at);
             Steer(at);
@@ -2038,6 +2041,7 @@ namespace CapriDesktop
             lent = false;
             if (!Streaming && Near(CursorAt(), leftAt)) PutCursor(lentFrom);
             Lending(false);
+            InControl.End();
         }
 
         private static bool Near(Point a, Point b) { return Math.Abs(a.X - b.X) <= 2 && Math.Abs(a.Y - b.Y) <= 2; }
@@ -2117,14 +2121,20 @@ namespace CapriDesktop
 
         private static void Wheel(int notches) { Mouse(0x0800, notches * 120); }
 
+        // Every press, scroll and key she sends holds her sign up (#106), and a button or key she's holding down keeps it up
+        // until she lets go of it.
         private static void Mouse(int flags, int data)
         {
+            using (InControl.Hold())
             lock (inputGate)
             {
                 if (closing && (flags & 0x002A) != 0) return;
+                int was = heldButtons;
                 SendMouse(flags, data);
                 heldButtons |= flags & 0x002A;
                 heldButtons &= ~((flags & 0x0054) >> 1);
+                if (was == 0 && heldButtons != 0) InControl.Begin();
+                else if (was != 0 && heldButtons == 0) InControl.End();
                 Monitor.PulseAll(inputGate);
             }
         }
@@ -2143,11 +2153,15 @@ namespace CapriDesktop
 
         private static void Key(short key, bool up, bool extended = false)
         {
+            using (InControl.Hold())
             lock (inputGate)
             {
                 if (closing && !up) return;
+                int was = heldKeys.Count;
                 SendKey(key, up, extended);
                 if (up) heldKeys.Remove(key); else heldKeys.Add(key);
+                if (was == 0 && heldKeys.Count != 0) InControl.Begin();
+                else if (was != 0 && heldKeys.Count == 0) InControl.End();
                 Monitor.PulseAll(inputGate);
             }
         }
@@ -2164,19 +2178,20 @@ namespace CapriDesktop
 
         private static void Write(string text)
         {
-            foreach (char letter in text)
-            {
-                if (interrupted) return;
-                if (letter == '\n') { Keys("enter"); continue; }
-                if (letter == '\r') continue;
-                Input[] inputs =
+            using (InControl.Hold())
+                foreach (char letter in text)
                 {
-                    new Input { Type = 1, Data = new InputUnion { Key = new KeyInput { Scan = (short)letter, Flags = 0x0004 } } },
-                    new Input { Type = 1, Data = new InputUnion { Key = new KeyInput { Scan = (short)letter, Flags = 0x0004 | 0x0002 } } }
-                };
-                SendInput(2, inputs, Marshal.SizeOf(typeof(Input)));
-                Thread.Sleep(18);
-            }
+                    if (interrupted) return;
+                    if (letter == '\n') { Keys("enter"); continue; }
+                    if (letter == '\r') continue;
+                    Input[] inputs =
+                    {
+                        new Input { Type = 1, Data = new InputUnion { Key = new KeyInput { Scan = (short)letter, Flags = 0x0004 } } },
+                        new Input { Type = 1, Data = new InputUnion { Key = new KeyInput { Scan = (short)letter, Flags = 0x0004 | 0x0002 } } }
+                    };
+                    SendInput(2, inputs, Marshal.SizeOf(typeof(Input)));
+                    Thread.Sleep(18);
+                }
         }
 
         internal static short Code(string name)
@@ -2599,11 +2614,14 @@ namespace CapriDesktop
             if (stepped != null) stepped(step);
         }
 
-        // A brain error partway through, like a rate limit mid-drag, still lets go of the mouse and hands it back.
+        // A brain error partway through, like a rate limit mid-drag, still lets go of the mouse and hands it back. Her sign is
+        // up for the whole job, on any brain, thinking included, and goes once she's handed their mouse back (#106).
         internal string Run()
         {
+            InControl.Begin();
             try { return Running(); }
             catch { Computer.Finish(); Show(null); throw; }
+            finally { InControl.End(); }
         }
 
         private string Running()

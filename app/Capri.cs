@@ -1974,6 +1974,7 @@ namespace CapriDesktop
         private readonly Tear tear = new Tear();
         private readonly Shatter shatter = new Shatter();
         private readonly Takeover takeover = new Takeover();
+        private readonly ControlGlow controlGlow = new ControlGlow();
         private readonly TaskPanel taskPanel = new TaskPanel();
         private readonly HerPointer herPointer = new HerPointer();
         // Her mini player, what Windows' media session last said, and the presses on their way to the app playing it.
@@ -2305,6 +2306,19 @@ namespace CapriDesktop
             Computer.Track = herPointer.MoveTo;
             Computer.Tapped = delegate { Post(herPointer.Tap); };
             Computer.Lending = Lend;
+            // #106: her glow round the screen she's working on comes up whenever anything of hers holds their mouse or keys, even
+            // while she's hidden. The first press from another thread waits a moment for it, so it's up before anything moves.
+            InControl.Changed = delegate(bool rising)
+            {
+                if (IsDisposed || !IsHandleCreated) return;
+                if (!InvokeRequired) { controlGlow.Sync(); return; }
+                try
+                {
+                    IAsyncResult synced = BeginInvoke(new Action(controlGlow.Sync));
+                    if (rising) synced.AsyncWaitHandle.WaitOne(150);
+                }
+                catch (InvalidOperationException) { }
+            };
             taskPanel.Moved += delegate { if (onPanel) { HoldPanel(); Location = anchor; } };
             updater = new Updater(data, Application.ExecutablePath, smoke);
             updateExit = delegate { quitting = true; ClearMarks(); Close(); };
@@ -8873,11 +8887,12 @@ namespace CapriDesktop
 
         private bool PanelUnseen(bool unseen)
         {
-            // Her mini player and her reactions feed too, so they never hide what she's working on.
-            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen);
+            // Her mini player and her reactions feed too, so they never hide what she's working on, and her glow where Windows can't
+            // keep it out of screenshots by itself.
+            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen);
             try
             {
-                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen); }));
+                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen); }));
                 return unseen && done.AsyncWaitHandle.WaitOne(1000) && (bool)EndInvoke(done);
             }
             catch (InvalidOperationException) { return false; }
@@ -14031,6 +14046,7 @@ namespace CapriDesktop
             tear.Close();
             shatter.Close();
             takeover.Close();
+            controlGlow.Close();
             taskPanel.Close();
             tray.Visible = false;
             SavePreferences();
