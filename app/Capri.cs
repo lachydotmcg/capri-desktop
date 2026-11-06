@@ -9457,7 +9457,8 @@ namespace CapriDesktop
                 IntPtr window = sight.Window;
                 Rectangle bounds = sight.Bounds;
                 string name = AppName(sight);
-                Post(delegate { if (job == running && preferences.Motion && !hidden) takeover.Follow(window, name, bounds, preferences.Size / 240f); });
+                // It shows while she's hidden too, beside her glow, so they can always see which app she's in (#106).
+                Post(delegate { if (job == running && preferences.Motion) takeover.Follow(window, name, bounds, preferences.Size / 240f); });
             };
             running.Busy = delegate(string what) { Post(delegate { taskPanel.Busy(running, what); }); };
             running.Stepped = delegate(JobStep step) { Post(delegate { taskPanel.Add(running, step); }); if (step.Finished) AgentStep(running); };
