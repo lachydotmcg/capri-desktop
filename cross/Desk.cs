@@ -33,7 +33,9 @@ namespace CapriDesktop
                 {
                     // On Wayland, XWayland only knows where the mouse is while it's over an X window, such as her while she's held.
                     Desk desk = new X11Desk();
-                    return Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") == null ? desk : new BareDesk { HeldAt = desk.Pointer };
+                    if (Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") == null) return desk;
+                    if (Program.Smoke == null && KWinBridge.Start()) return new KWinDesk { HeldAt = desk.Pointer };
+                    return new BareDesk { HeldAt = desk.Pointer };
                 }
             }
             catch (Exception) { }
