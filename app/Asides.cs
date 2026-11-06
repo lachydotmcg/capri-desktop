@@ -43,9 +43,10 @@ namespace CapriDesktop
         private static readonly string[] Playing = { "{0} in, and it's a game, so it goes as long as it goes.", "No finish line on this one, {0} so far.", "{0} in. I'll stop when you say." };
 
         // What's plain from their words alone, or null when her fast head has to read them. A tool comes back with its arguments.
-        internal static AsideKind? Plain(string said, out string tool, out ToolArguments args)
+        // With a brain to ask (brainy), "play" that isn't clearly music goes to her head too.
+        internal static AsideKind? Plain(string said, out string tool, out ToolArguments args, bool brainy = false)
         {
-            bool direct = Hands.Heard(said, out tool, out args);
+            bool direct = Hands.Heard(said, out tool, out args, brainy);
             string text = Hands.Asked(said);
             if (direct && tool == "power") return AsideKind.Tool;
             if (direct && tool == "watch_for") return AsideKind.Tool;
@@ -265,7 +266,7 @@ namespace CapriDesktop
             if (held != null) Security.Drop();
             string tool;
             ToolArguments args;
-            AsideKind? plain = Asides.Plain(text, out tool, out args);
+            AsideKind? plain = Asides.Plain(text, out tool, out args, brain.Model != null);
             if (plain == AsideKind.Stop) { Brain.Transcribe(local ? "You (voice)" : "You", text); StopJob(Lines.Pick(Lines.Stopped)); return; }
             if (plain == AsideKind.Status) { AsideStatus(text, running); return; }
             if (plain == AsideKind.Screen) { AsideScreen(text, args, running); return; }

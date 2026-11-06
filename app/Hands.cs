@@ -2389,7 +2389,7 @@ namespace CapriDesktop
             bool mouse = kit == null || kit.Has("use_computer");
             string directTool;
             ToolArguments directArgs;
-            if (Direct(said, out directTool, out directArgs) && (directTool == "play_music" || directTool == "mini_game" || directTool == "website_nickname" || directTool == "find_file" || directTool == "open_website"))
+            if (Direct(said, out directTool, out directArgs, true) && (directTool == "play_music" || directTool == "mini_game" || directTool == "website_nickname" || directTool == "find_file" || directTool == "open_website"))
             {
                 calls.Clear();
                 calls.Add(new KeyValuePair<string, ToolArguments>(directTool, directArgs));
@@ -2455,7 +2455,7 @@ namespace CapriDesktop
             if (Regex.IsMatch(target, @"^(this|that)$", RegexOptions.IgnoreCase)) return Plain(song ?? "") == Plain(target);
             bool pointed = Regex.IsMatch(target, @"^(this|that|these|those|my|our)\b", RegexOptions.IgnoreCase);
             bool joined = Regex.IsMatch(target, @"\b(with|against)\s+(me|us|you)$", RegexOptions.IgnoreCase);
-            return (pointed && joined) || ((pointed || joined) && Playable.IsMatch(target)) || PlainGame.IsMatch(target) || Nickname(target) != null;
+            return (pointed && joined) || ((pointed || joined) && Playable.IsMatch(target)) || PlainGame.IsMatch(target) || Nickname(target) != null || Regex.IsMatch(target, @"^(?:the\s+)?(?:mic|mike)\s+up\b", RegexOptions.IgnoreCase);
         }
 
         // "Play gmod yourself" is how Gaming Mode hands on what came after it: her hands on a game whatever it's called, not a song to search for (Dante, 1 Nov).
@@ -3176,7 +3176,7 @@ namespace CapriDesktop
             if (args.App == null && (args.Action == "volume_up" || args.Action == "volume_down") && Regex.IsMatch(said ?? "", @"\bspotify\b", RegexOptions.IgnoreCase)) args.App = "spotify";
         }
 
-        internal static bool Heard(string said, out string tool, out ToolArguments args)
+        internal static bool Heard(string said, out string tool, out ToolArguments args, bool brainy = false)
         {
 #if !CROSS
             if (CallSession.Blank(said)) { tool = null; args = new ToolArguments(); return false; }
@@ -3189,7 +3189,7 @@ namespace CapriDesktop
             if (sentences.Length > 1) tries.Add(sentences[sentences.Length - 1]);
             tries.Add(said ?? "");
             foreach (string attempt in tries)
-                if (Direct(attempt, out tool, out args) && !(tool == "routine" && args.Action == "run"))
+                if (Direct(attempt, out tool, out args, brainy) && !(tool == "routine" && args.Action == "run"))
                 {
                     if (tool == "gaming_mode" && attempt != said && GamingMeaning.IsMatch(GamingLead.Replace(Asked(sentences[sentences.Length - 1]), ""))) continue;
                     if (tool == "media" && Regex.IsMatch(attempt, @"\b(keep|carry on|continue|go on) playing\b", RegexOptions.IgnoreCase) && GameOpen() != null) break;
@@ -3292,7 +3292,17 @@ namespace CapriDesktop
             return Regex.IsMatch(Asked(said), @"^(?:listen to this(?: (?:video|call|stream|game))?|what did (?:he|she|they) just say|what (?:are they|is (?:he|she)) saying|what's (?:he|she) saying|hear this|(?:translate )?what (?:they're|he's|she's|they are|he is|she is) saying)(?: (?:in|on) (?:this|the) (?:video|call|stream|game))?$", RegexOptions.IgnoreCase);
         }
 
-        internal static bool Direct(string said, out string tool, out ToolArguments args)
+        // With a brain to ask (brainy), "play" only goes straight to music when it's clearly music: a song, artist, album or
+        // playlist word, "on Spotify", some music, or a short title with nothing after it. Anything more is hers to work out.
+        // Lachy, 6 Nov: "play Mic Up and make some new friends" was typed whole into Spotify, again.
+        private static bool ClearMusic(string target, bool onApp)
+        {
+            if (onApp || Regex.IsMatch(target, @"\b(songs?|tracks?|tunes?|albums?|playlists?|music|soundtracks?|ost|remix(es)?|lofi|lo-fi|beats|radio|by)\b", RegexOptions.IgnoreCase)) return true;
+            return target.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length <= 5
+                && !Regex.IsMatch(target, @"\b(and|then|until|till|unless|while|so)\b|&|\b(with|against|for)\s+(?:(?:some|a few|my|the|other|random|new)\s+)?(me|us|you|them|him|her|people|friends|everyone|everybody|someone|somebody|others|players|randoms|strangers|kids)\b", RegexOptions.IgnoreCase);
+        }
+
+        internal static bool Direct(string said, out string tool, out ToolArguments args, bool brainy = false)
         {
             if (Planned(said, out tool, out args)) return true;
             tool = null;
@@ -3469,6 +3479,7 @@ namespace CapriDesktop
                 if (Regex.IsMatch(target, @"^(with|along|around|a game|games?\b|dead|nice|fair|it\b|me\b|us\b|together|this$|that$|((a|any|some|random) )?playlists?$)", RegexOptions.IgnoreCase)) return false;
                 // "play the wasd minigame" is a game, not a song to search Spotify for (a tester, 30 Oct), and so is a game that's open.
                 if (!found.Groups[3].Success && (Playable.IsMatch(target) || PlainGame.IsMatch(target) || Nickname(target) != null || Showing(target))) return false;
+                if (brainy && !ClearMusic(target, found.Groups[3].Success)) return false;
                 if (found.Groups[3].Success) args.App = found.Groups[3].Value.ToLowerInvariant();
                 if (Regex.IsMatch(target, @"^(music$|some music$|((a|any|some|random) )?(song|track|tune|music)s?$|(something|anything)\b(?!\s+by\s))", RegexOptions.IgnoreCase)) { tool = "play_music"; args.Kind = "song"; args.Song = Pick(); return true; }
                 Match kind = Regex.Match(target, @"^(?:(?:the|my|your)\s+)?(.+?)\s+(playlist|album)$", RegexOptions.IgnoreCase);
@@ -3925,7 +3936,8 @@ namespace CapriDesktop
 
         // Games that go by one plain word, so "play solitaire" isn't a song to search Spotify for.
         private static readonly Regex PlainGame = new Regex(@"^(?:(?:a|some|another)\s+)?(?:(?:game|round|hand)\s+of\s+)?(?:chess|checkers|poker|blackjack|solitaire|sudoku|tetris|minesweeper|wordle|uno)$", RegexOptions.IgnoreCase);
-        private static readonly Regex Playable = new Regex(@"\b(games?|mini ?games?|obby|obbies|levels?|rounds?|match(es)?|matchmaking|ranked|deathmatch|map|mode|bedwars|skywars|roblox|minecraft|fortnite|valorant|counter[- ]?strike|wasd)\b", RegexOptions.IgnoreCase);
+        // Mic Up is a Roblox game, which her ears hear as Mike Up (Lachy, 6 Nov).
+        private static readonly Regex Playable = new Regex(@"\b(games?|mini ?games?|obby|obbies|levels?|rounds?|match(es)?|matchmaking|ranked|deathmatch|map|mode|bedwars|skywars|mic up|mike up|roblox|minecraft|fortnite|valorant|counter[- ]?strike|wasd)\b", RegexOptions.IgnoreCase);
 
         // What players call their games, for when nothing installed goes by the name they said ("open cs", a tester, 30 Oct).
         private static readonly string[,] Nicknames = { { "cs", "counter strike" }, { "cs2", "counter strike 2" }, { "csgo", "counter strike" }, { "cs go", "counter strike" }, { "val", "valorant" }, { "valo", "valorant" }, { "mc", "minecraft" }, { "gta", "grand theft auto" }, { "gta 5", "grand theft auto v" }, { "gta v", "grand theft auto v" }, { "lol", "league of legends" }, { "r6", "rainbow six" }, { "cod", "call of duty" }, { "ow", "overwatch" }, { "rl", "rocket league" }, { "fn", "fortnite" }, { "tf2", "team fortress 2" }, { "dbd", "dead by daylight" }, { "gmod", "garry s mod" }, { "g mod", "garry s mod" } };

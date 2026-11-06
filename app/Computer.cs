@@ -918,7 +918,7 @@ namespace CapriDesktop
         // Songs, videos and shows aren't games, so the music jobs her quick tools hand her cursor stay quick, and neither is a
         // message that only talks about one.
         private static readonly Regex GameTitles = new Regex(@"\b(roblox|minecraft|fortnite|valorant|terraria|stardew valley|among us|geometry dash|rocket league|apex legends|overwatch|league of legends|genshin impact|counter-strike|osu!)(?!\w)", RegexOptions.IgnoreCase);
-        private static readonly Regex GameWords = new Regex(@"\b(play|playing|plays|games?|gaming|gameplay|obby|obbies|bedwars|skywars|blox fruits|brookhaven|speedrun\w*|pvp)\b", RegexOptions.IgnoreCase);
+        private static readonly Regex GameWords = new Regex(@"\b(play|playing|plays|games?|gaming|gameplay|obby|obbies|bedwars|skywars|blox fruits|brookhaven|mic up|mike up|speedrun\w*|pvp)\b", RegexOptions.IgnoreCase);
         private static readonly Regex Watching = new Regex(@"\b(songs?|music|tracks?|albums?|playlists?|artists?|videos?|podcasts?|radio|audiobooks?|episodes?|movies?|films?|series|trailers?|spotify|youtube|soundcloud|netflix|lofi|lo-fi|tunes|ins?trumentals?|remix(es)?|lyrics|soundtracks?|ost|karaoke|mixtapes?|beats)\b", RegexOptions.IgnoreCase);
         private static readonly Regex Messaging = new Regex(@"^\W*(send|message|text|dm|pm|tell|reply|respond|post|tweet|email|write)\b", RegexOptions.IgnoreCase);
 

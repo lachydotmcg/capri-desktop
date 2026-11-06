@@ -13227,7 +13227,8 @@ namespace CapriDesktop
             // Mid-job they can stop it, and the agent gets the job's latest to answer from. Her hands carry on either way.
             Job midJob = job;
             if (!answering && MidJob(midJob)) AgentMidJob(text, midJob);
-            bool shortcut = !answering && Hands.Heard(text, out tool, out args);
+            // The agent has her hands too, so a "play" that isn't clearly music is its to work out (Lachy, 6 Nov: Mic Up went to Spotify).
+            bool shortcut = !answering && Hands.Heard(text, out tool, out args, agent != null);
             lock (shortcutGate) { if (!answering) { toolAsked = shortcut; heardLast = text; toolDone = null; } }
             if (shortcut)
             {
@@ -18441,7 +18442,8 @@ namespace CapriDesktop
                     new[] { "play this chess match with me", "this chess match with me", "mini_game" },
                     new[] { "play that", "Neon Nights", "play_music" },
                     new[] { "play video games by lana del rey", "Video Games", "play_music" },
-                    new[] { "play stay with me", "stay with me", "play_music" }
+                    new[] { "play stay with me", "stay with me", "play_music" },
+                    new[] { "play mike up and make some new friends", "Mike Up", "use_computer" }
                 })
                 {
                     picked.Clear();
@@ -18449,6 +18451,19 @@ namespace CapriDesktop
                     Hands.Rescue(filed[0], picked);
                     if (picked.Count != 1 || picked[0].Key != filed[2]) throw new Exception("\"" + filed[0] + "\" filed under music as \"" + filed[1] + "\" ended up as " + (picked.Count == 0 ? "nothing" : picked[0].Key) + ".");
                 }
+                // Lachy, 6 Nov: "play Mic Up and make some new friends" was typed whole into Spotify, again. With a brain to ask, "play"
+                // goes straight to music only when it's clearly music, and Mic Up, however her ears spell it, is a Roblox game.
+                foreach (string notMusic in new[] { "Hey Capri, play Mike Up and make some new friends.", "play mic up", "play the floor is lava and make some new friends", "play hide and seek with me", "play tag with some randoms" })
+                    if (Hands.Heard(notMusic, out heardTool, out heardArgs, true) && heardTool == "play_music") throw new Exception("With a brain to ask, a game went to Spotify: " + notMusic);
+                foreach (string clearlyMusic in new[] { "play blinding lights", "play never gonna give you up", "play some music", "play lofi beats on spotify", "play songs by the weeknd", "play my driving playlist" })
+                    if (!Hands.Heard(clearlyMusic, out heardTool, out heardArgs, true) || heardTool != "play_music") throw new Exception("With a brain to ask, music stopped going straight to music: " + clearlyMusic + " went to " + heardTool);
+                if (Hands.Heard("play mike up and make some new friends", out heardTool, out heardArgs) && heardTool == "play_music") throw new Exception("Mic Up went to Spotify with no brain to ask.");
+                if (!Hands.Heard("play stay with me", out heardTool, out heardArgs) || heardTool != "play_music") throw new Exception("With no brain to ask, a short title stopped going to music.");
+                string asideTool;
+                ToolArguments asideArgs;
+                if (Asides.Plain("play the floor is lava and make some new friends", out asideTool, out asideArgs, true) == AsideKind.Tool) throw new Exception("Mid-job, a game ask ran as a song beside the job.");
+                if (!Computer.Gaming("hop on mike up for a bit")) throw new Exception("A Mic Up job wasn't a game job.");
+                checks.Add("PASS with a brain to ask, play goes straight to music only when it's clearly music, before her brain, after its pick and mid-job, and Mic Up or Mike Up is a Roblox game (Lachy, 6 Nov)");
                 // A brain that opens Spotify's web player for someone with the app gets the app (Bende, 3 Nov).
                 foreach (string[] spotifyWeb in new[]
                 {
