@@ -2953,7 +2953,12 @@ namespace CapriDesktop
             if (!smoke) Brain.Keeper = brain;
             if (!smoke) brain.Load(Path.Combine(data, "chat.json"));
             Preferences retentionSettings;
-            if (!smoke && unreadableNotice == null && Retention.Readable(settingsPath, out retentionSettings)) Retention.Sweep(Brain.TranscriptPath, Path.Combine(data, "chat.json"), retentionSettings.KeepAllHistory, DateTime.Now);
+            string keepAllMarker = Path.Combine(data, "keep-all");
+            if (!smoke && unreadableNotice == null && Retention.Readable(settingsPath, out retentionSettings))
+            {
+                bool keepEverything = Retention.KeepAll(retentionSettings.KeepAllHistory, File.Exists(keepAllMarker), Retention.Mentions(settingsPath, "\"KeepAllHistory\""));
+                Retention.Sweep(Brain.TranscriptPath, Path.Combine(data, "chat.json"), keepEverything, DateTime.Now);
+            }
             Voice.Loudness = Math.Max(0, Math.Min(150, preferences.Volume));
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, preferences.VoicePitch));
             VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, preferences.VoiceSpeed));
@@ -6918,8 +6923,31 @@ namespace CapriDesktop
 
         internal void SetKeepAll(bool on)
         {
-            preferences.KeepAllHistory = on;
+            string marker = Path.Combine(data, "keep-all");
+            if (on)
+            {
+                // The choice keeps its own copy beside the settings, so a file that fails to save or gets reset
+                // can't turn deletion back on.
+                try { File.WriteAllText(marker, "1"); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                preferences.KeepAllHistory = true;
+                SavePreferences();
+                return;
+            }
+            preferences.KeepAllHistory = false;
             SavePreferences();
+            Preferences disk;
+            bool reached = Retention.Readable(settingsPath, out disk) && !disk.KeepAllHistory;
+            if (!reached)
+            {
+                // The save didn't land: keep protecting rather than delete on a choice she never stored.
+                preferences.KeepAllHistory = true;
+                return;
+            }
+            try { if (File.Exists(marker)) File.Delete(marker); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
 
         private static readonly double[] WanderPaces = { 3, 1, 0.45, 0.18 };
