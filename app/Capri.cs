@@ -2639,6 +2639,7 @@ namespace CapriDesktop
                 // Power saver: while it works her background checks run once a second, on every 4th tick. Her ears, keys, speech,
                 // Watch my screen, game reactions, timers, pill and staying on top keep every tick.
                 bool background = BackgroundDue(++signalTicks);
+                Ears.Gentle = Saving;
                 CheckKeepAwake();
                 double signalNow = clock.Elapsed.TotalSeconds;
                 if (husk != null) husk.Tick();
@@ -10862,7 +10863,7 @@ namespace CapriDesktop
             SayHeldEarsNote();
             if (chatting && local && dictation != null && earsReady && now >= dictationMicAt)
             {
-                dictationMicAt = now + 2;
+                dictationMicAt = now + (Saving ? 6 : 2);
                 string current = Dictation.DefaultMic();
                 // The cable is caught even when it was already the default as Windows speech opened, so the id never changed.
                 bool cable = MicMix.IsCableOut(Ears.DefaultName());
@@ -10951,7 +10952,7 @@ namespace CapriDesktop
             if (!WakeReady) { if (wakeOpen) CloseWake(); GetWake(now); return; }
             if (wakeAskedVoice || wakeTries > 0) { wakeAskedVoice = false; wakeTries = 0; wakeRetryAt = -1; }
             heyCapri.Held = now < voiceUntil || speaker.Busy;
-            if (now >= wakeMuteAt) { wakeMuteAt = now + 2; wakeMicMuted = MicMuted(preferences.Mic) == true; wakeHandsFree = HandsFreeMic(preferences.Mic); }
+            if (now >= wakeMuteAt) { wakeMuteAt = now + (Saving ? 6 : 2); wakeMicMuted = MicMuted(preferences.Mic) == true; wakeHandsFree = HandsFreeMic(preferences.Mic); }
             if (WakePaused) { if (wakeOpen) CloseWake(); return; }
             // A Bluetooth headset's mic would keep the headset on a call, playing everything at call quality, for as long as she
             // listens (a tester, 30 Oct), so she leaves it shut and says why once. Voice chat still uses it.

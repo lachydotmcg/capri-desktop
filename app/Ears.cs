@@ -59,6 +59,9 @@ namespace CapriDesktop
         internal string OpenedId { get { return openedId; } }
         internal volatile bool Muted;
         internal volatile string Chosen;
+        // Power saver over a game (issue #111): her mics are polled and their routes checked less often. Every chunk still gets
+        // heard and decoded, so Hey Capri and Listen for Capri keep working; she might just take a moment longer to hear you.
+        internal static volatile bool Gentle;
         private IntPtr device;
         private IntPtr[] headers;
         private Thread worker;
@@ -116,7 +119,7 @@ namespace CapriDesktop
                 if (!running) return false;
                 if (Environment.TickCount - lastChunk > 5000 || (modern != null && !modern.Alive)) return true;
                 if (Environment.TickCount - routeAt < 0) return false;
-                routeAt = Environment.TickCount + 2000;
+                routeAt = Environment.TickCount + (Gentle ? 6000 : 2000);
                 return DeviceChanged;
             }
         }
@@ -663,12 +666,12 @@ namespace CapriDesktop
                 {
                     int waiting;
                     Check(capture.GetNextPacketSize(out waiting), "packet size");
-                    if (waiting == 0) { Thread.Sleep(15); continue; }
+                    if (waiting == 0) { Thread.Sleep(Ears.Gentle ? 30 : 15); continue; }
                     IntPtr data;
                     int frames, flags;
                     long position, time;
                     int result = capture.GetBuffer(out data, out frames, out flags, out position, out time);
-                    if (result == 0x08890001) { Thread.Sleep(15); continue; }
+                    if (result == 0x08890001) { Thread.Sleep(Ears.Gentle ? 30 : 15); continue; }
                     Check(result, "get buffer");
                     try { pcm.Read(data, frames, (flags & 2) != 0, hear); }
                     finally { Check(capture.ReleaseBuffer(frames), "release buffer"); }
@@ -2801,7 +2804,8 @@ namespace CapriDesktop
                 double heardAt = now(), checkedAt = heardAt, openedAt = -10, estimateAt = heardAt + 1;
                 while (playing == run)
                 {
-                    Thread.Sleep(10);
+                    // Its 100 ms of buffer leaves room for Power saver's slower pace.
+                    Thread.Sleep(Ears.Gentle ? 30 : 10);
                     double at = now();
                     if (tap != null && at - checkedAt > 5)
                     {
