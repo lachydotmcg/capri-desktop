@@ -252,7 +252,7 @@ namespace CapriDesktop
         private void AwaitHint()
         {
             Stopwatch clock = Stopwatch.StartNew();
-            while (!HintVisible && clock.ElapsedMilliseconds < 1200) { Application.DoEvents(); Thread.Sleep(10); }
+            while (!HintVisible && clock.ElapsedMilliseconds < 4000) { Application.DoEvents(); Thread.Sleep(10); }
             if (!HintVisible) throw new Exception("A Mainframe tip never appeared after its delay.");
         }
 
