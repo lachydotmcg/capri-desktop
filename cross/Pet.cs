@@ -703,7 +703,7 @@ namespace CapriDesktop
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
             Settings retentionSettings;
-            if (Program.Smoke == null && Retention.Readable(Path.Combine(folder, "cross.json"), out retentionSettings)) Retention.Sweep(Brain.TranscriptPath, Path.Combine(folder, "chat.json"), retentionSettings.KeepAllHistory, DateTime.Now);
+            if (Program.Smoke == null && !settingsReset && Retention.Readable(Path.Combine(folder, "cross.json"), out retentionSettings)) Retention.Sweep(Brain.TranscriptPath, Path.Combine(folder, "chat.json"), retentionSettings.KeepAllHistory, DateTime.Now);
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder);
             StartReminders();
@@ -5379,9 +5379,12 @@ namespace CapriDesktop
                 CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp };
         }
 
+        private bool settingsReset;
         private Settings Load()
         {
-            return ReadSettings(Path.Combine(folder, "cross.json"), out unreadableNotice, out settingsWriteBlocked);
+            Settings loaded = ReadSettings(Path.Combine(folder, "cross.json"), out unreadableNotice, out settingsWriteBlocked);
+            settingsReset = unreadableNotice != null;
+            return loaded;
         }
 
         internal const string UnreadableName = "cross.unreadable.json";

@@ -1041,8 +1041,10 @@ namespace CapriDesktop
                 bool halfSkipped = !Retention.WholeFile(halfSettings);
                 File.WriteAllText(halfSettings, "{\"KeepAllHistory\":true}");
                 bool wholeRead = Retention.WholeFile(halfSettings);
+                File.WriteAllText(halfSettings, "{\"Language\":\"en\",}");
+                bool commaSkipped = !Retention.WholeFile(halfSettings);
                 File.Delete(halfSettings);
-                if (!keepAllSaved || !halfSkipped || !wholeRead) throw new Exception("Keep all history didn't save, or half-written settings weren't treated as unreadable.");
+                if (!keepAllSaved || !halfSkipped || !wholeRead || !commaSkipped) throw new Exception("Keep all history didn't save, or half-written or trailing-comma settings weren't treated as unreadable.");
                 checks.Add("PASS keep all history: the Memory Vault switch saves the choice that stops her deleting chats and transcripts, and half-written settings are left alone");
                 // Her recall cache keeps a bounded set of days and forgets the ones she no longer has; the shared word
                 // set is bounded too, so a long history can't grow it until the app closes.
@@ -1064,7 +1066,9 @@ namespace CapriDesktop
                     Brain.DugDays = 2;
                     Brain.DugBytes = long.MaxValue;
                     Brain.Recalled("remember when we tested retention");
-                    dugTrimmed = Brain.DugHeld == 2;
+                    dugTrimmed = Brain.DugHeld == 2
+                        && Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"))
+                        && !Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-3).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
                     for (int i = 0; i < 3; i++) File.Delete(Path.Combine(dugDir, dugDay.AddDays(-i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
                     Brain.Recalled("remember when we tested retention");
                     dugForgotten = Brain.DugHeld == 1;
