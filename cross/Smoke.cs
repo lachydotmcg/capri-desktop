@@ -772,6 +772,52 @@ namespace CapriDesktop
                 if (!meetAsked || !meetNudged || !meetNamed || !meetPronouns || !meetKept || !meetSkipped || !meetStopped || !meetHandedOn)
                     throw new Exception("Getting to know them went wrong: asked " + meetAsked + ", nudged " + meetNudged + ", named " + meetNamed + ", pronouns " + meetPronouns + ", kept " + meetKept + " (" + meetNotes.Replace("\n", " | ") + "), skipped " + meetSkipped + ", stopped " + meetStopped + ", handed on " + meetHandedOn);
                 checks.Add("PASS getting to know you: Settings > Get to know me asks what to call them, their pronouns and what they're into in her typing box, writes them to me.md and calls them by their name; skip, stop and asking again work, and something for her to do ends it and is heard as usual");
+                pet.GetToKnow();
+                pet.Talk.Submit("call me Alex");
+                pet.Talk.Submit("she");
+                pet.Talk.Submit("Cyberpunk and I live in Brisbane");
+                string partialReply = pet.Talk.Reply;
+                string partialNotes = Brain.Notes();
+                bool partialHonest = partialReply == Brain.Private + " Some of what you told me is in my notes, me.md. " + Meeting.Again
+                    && partialNotes == "- Name: Alex\n- Pronouns: she/her" && !pet.GettingToKnow;
+                Brain.Unnote("everything");
+                pet.GetToKnow();
+                pet.Talk.Submit("call me Alex");
+                pet.Talk.Submit("my email is alex@example.com");
+                pet.Talk.Submit("stop");
+                string partialStopReply = pet.Talk.Reply;
+                bool partialStopHonest = partialStopReply == Brain.Private + " Some of what you told me is in my notes, me.md. " + Meeting.Again
+                    && Brain.Notes() == "- Name: Alex" && !pet.GettingToKnow;
+                Brain.Unnote("everything");
+                pet.SetNickname("choom");
+                pet.Talk.Dismiss();
+                if (!partialHonest || !partialStopHonest)
+                    throw new Exception("Her partial notes were misreported: " + partialReply + " / " + partialNotes + " / " + partialStopReply);
+                checks.Add("PASS partial notes: she explains that only some answers were saved when a private answer was rejected, including when the meeting is stopped");
+                string originalMemoryPath = Brain.MemoryPath;
+                string fullMemoryPath = Path.Combine(folder, "partial-full-" + Guid.NewGuid().ToString("N") + ".md");
+                try
+                {
+                    File.WriteAllText(fullMemoryPath, "- Name: Earlier\n" + new string('x', 8001));
+                    Brain.MemoryPath = fullMemoryPath;
+                    Meeting fullMeeting = new Meeting();
+                    string called;
+                    fullMeeting.Start();
+                    fullMeeting.Take("call me Alex", out called);
+                    string fullBefore = File.ReadAllText(fullMemoryPath);
+                    fullMeeting.Take("my email is alex@example.com", out called);
+                    string fullReply = fullMeeting.Take("Cyberpunk", out called);
+                    if (File.ReadAllText(fullMemoryPath) != fullBefore || !fullReply.Contains(Brain.Private)
+                        || !fullReply.Contains("My notes are full. Clear some out in me.md first.")
+                        || !fullReply.Contains("Some of what you told me is in my notes, me.md.") || fullReply.Contains("It's all in my notes"))
+                        throw new Exception("Her partial notes and full-notes error were misreported: " + fullReply);
+                    checks.Add("PASS partial notes with full notes: she reports both the privacy rejection and the save failure without claiming every answer was saved");
+                }
+                finally
+                {
+                    Brain.MemoryPath = originalMemoryPath;
+                    if (File.Exists(fullMemoryPath)) File.Delete(fullMemoryPath);
+                }
                 string streetNote = Brain.Note("I live at 12 Baker Street");
                 string cardNote = Brain.Note("my card number is 4111 1111 1111 1111");
                 string emailLabel = Brain.Jot("Email", "Alex");
