@@ -535,7 +535,12 @@ namespace CapriDesktop
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
             Settings retentionSettings;
-            if (Program.Smoke == null && !settingsReset && Retention.Readable(Path.Combine(folder, "cross.json"), out retentionSettings)) Retention.Sweep(Brain.TranscriptPath, Path.Combine(folder, "chat.json"), retentionSettings.KeepAllHistory, DateTime.Now);
+            string retentionSettingsFile = Path.Combine(folder, "cross.json");
+            if (Program.Smoke == null && !settingsReset && Retention.Readable(retentionSettingsFile, out retentionSettings))
+            {
+                bool keepEverything = Retention.KeepAll(retentionSettings.KeepAllHistory, File.Exists(Path.Combine(folder, "keep-all")), Retention.Mentions(retentionSettingsFile, "\"KeepAllHistory\""));
+                Retention.Sweep(Brain.TranscriptPath, Path.Combine(folder, "chat.json"), keepEverything, DateTime.Now);
+            }
             Limbs.Attach(Brain);
             StartAwake();
             Hands.Look = LookAt;
@@ -3375,8 +3380,33 @@ namespace CapriDesktop
 
         internal void SetKeepAll(bool on)
         {
-            Saved.KeepAllHistory = on;
+            string marker = Path.Combine(folder, "keep-all");
+            if (on)
+            {
+                // The choice keeps its own copy beside the settings, so a file that fails to save or gets reset
+                // can't turn deletion back on.
+                try { File.WriteAllText(marker, "1"); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                Saved.KeepAllHistory = true;
+                Save();
+                Sync();
+                return;
+            }
+            Saved.KeepAllHistory = false;
             Save();
+            Settings disk;
+            bool reached = Retention.Readable(Path.Combine(folder, "cross.json"), out disk) && !disk.KeepAllHistory;
+            if (!reached)
+            {
+                // The save didn't land: keep protecting rather than delete on a choice she never stored.
+                Saved.KeepAllHistory = true;
+                Sync();
+                return;
+            }
+            try { if (File.Exists(marker)) File.Delete(marker); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
             Sync();
         }
 

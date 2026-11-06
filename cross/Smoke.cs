@@ -854,12 +854,7 @@ namespace CapriDesktop
                 if (!pruned || !chatsKept || !allKept || !guardedKept || !zones)
                     throw new Exception("Retention went wrong: pruned " + pruned + ", chats kept " + chatsKept + ", keep all " + allKept + ", guarded " + guardedKept + ", zones " + zones);
                 checks.Add("PASS retention: a day older than a year and a chat older than a week go, a day exactly a year old, a chat six days and 23 hours old in any time zone, a recent chat, a nested or uppercase sighting, a half-written file and a file without her own time all stay, and Keep all history keeps everything");
-                bool keepAllWas = pet.Saved.KeepAllHistory;
-                pet.SetKeepAll(true);
-                bool keepAllSaved = pet.Saved.KeepAllHistory;
-                pet.SetKeepAll(false);
-                keepAllSaved = keepAllSaved && !pet.Saved.KeepAllHistory;
-                pet.SetKeepAll(keepAllWas);
+                bool keepRules = Retention.KeepAll(false, false, false) && !Retention.KeepAll(false, false, true) && Retention.KeepAll(false, true, true) && Retention.KeepAll(true, false, true);
                 string halfSettings = Path.Combine(folder, "half-settings-" + Guid.NewGuid().ToString("N") + ".json");
                 File.WriteAllText(halfSettings, "{\"KeepAllHistory\":true");
                 bool halfSkipped = !Retention.WholeFile(halfSettings);
@@ -868,8 +863,8 @@ namespace CapriDesktop
                 File.WriteAllText(halfSettings, "{\"Language\":\"en\",}");
                 bool commaSkipped = !Retention.WholeFile(halfSettings);
                 File.Delete(halfSettings);
-                if (!keepAllSaved || !halfSkipped || !wholeRead || !commaSkipped) throw new Exception("Keep all history didn't save, or half-written or trailing-comma settings weren't treated as unreadable.");
-                checks.Add("PASS keep all history: the Memory Vault switch saves the choice that stops her deleting chats and transcripts, and half-written settings are left alone");
+                if (!keepRules || !halfSkipped || !wholeRead || !commaSkipped) throw new Exception("Keep all history didn't follow the switch, the marker or a settings file without the choice, or half-written or trailing-comma settings weren't treated as unreadable.");
+                checks.Add("PASS keep all history: the switch, its marker or a settings file from before the choice all keep everything, and half-written or trailing-comma settings are left alone");
                 // Her recall cache keeps a bounded set of days and forgets the ones she no longer has; the shared word
                 // set is bounded too, so a long history can't grow it until the app closes.
                 string dugDir = Path.Combine(folder, "dug-" + Guid.NewGuid().ToString("N"));

@@ -76,6 +76,20 @@ namespace CapriDesktop
             return true;
         }
 
+        // The keep-all choice survives a settings file that no longer has it: a marker beside the settings, and a
+        // settings file from before the choice existed counts as keep-all.
+        internal static bool KeepAll(bool chosen, bool marker, bool mentioned)
+        {
+            return chosen || marker || !mentioned;
+        }
+
+        internal static bool Mentions(string path, string token)
+        {
+            try { return File.ReadAllText(path).IndexOf(token, StringComparison.Ordinal) >= 0; }
+            catch (IOException) { return true; }
+            catch (UnauthorizedAccessException) { return true; }
+        }
+
         // Reads a settings file only when it is whole, so a half-written one can't hand back a silent default and let
         // a sweep run with keep-all reset. The caller passes its own settings type.
         internal static bool Readable<T>(string path, out T saved) where T : class
