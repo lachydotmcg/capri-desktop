@@ -1403,6 +1403,9 @@ namespace CapriDesktop
         // Puts dots over a password she typed into a password box, wherever it would show or be saved.
         internal static Func<string, string> Hush = delegate(string text) { return text; };
         internal static Action<byte[]> Chord = PressChord;
+        // Every key her shortcuts, media keys and tab closing press on Windows, each under her sign (#106). The smoke test
+        // watches it instead of pressing real keys.
+        internal static Action<byte, byte, int> KeyEvent = delegate(byte key, byte scan, int flags) { Native.keybd_event(key, scan, flags, UIntPtr.Zero); };
         // Discord drops keys pressed before its page has the keyboard, a moment after it comes to the front (deafen took two tries, 2 Nov).
         internal static Func<IntPtr, bool> Typable = PageFocused;
         internal const int FocusWait = 400;
@@ -4981,15 +4984,18 @@ namespace CapriDesktop
         // A beat apart and with their scan codes, so an app that reads either one, like Discord's page, gets the whole chord.
         private static void PressChord(byte[] keys)
         {
-            for (int i = 0; i < keys.Length; i++)
+            using (InControl.Hold())
             {
-                if (i > 0) Thread.Sleep(KeyGap);
-                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), keys[i] == 0x5B ? 0x1 : 0, UIntPtr.Zero);
-            }
-            for (int i = keys.Length - 1; i >= 0; i--)
-            {
-                Thread.Sleep(KeyGap);
-                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), (keys[i] == 0x5B ? 0x1 : 0) | 0x2, UIntPtr.Zero);
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    if (i > 0) Thread.Sleep(KeyGap);
+                    KeyEvent(keys[i], (byte)MapVirtualKey(keys[i], 0), keys[i] == 0x5B ? 0x1 : 0);
+                }
+                for (int i = keys.Length - 1; i >= 0; i--)
+                {
+                    Thread.Sleep(KeyGap);
+                    KeyEvent(keys[i], (byte)MapVirtualKey(keys[i], 0), (keys[i] == 0x5B ? 0x1 : 0) | 0x2);
+                }
             }
         }
 
@@ -5006,8 +5012,11 @@ namespace CapriDesktop
 
         private static void Tap(byte key)
         {
-            Native.keybd_event(key, 0, 0x1, UIntPtr.Zero);
-            Native.keybd_event(key, 0, 0x1 | 0x2, UIntPtr.Zero);
+            using (InControl.Hold())
+            {
+                KeyEvent(key, 0, 0x1);
+                KeyEvent(key, 0, 0x1 | 0x2);
+            }
         }
 
         private static readonly string[,] KnownSongs =
@@ -5965,10 +5974,13 @@ namespace CapriDesktop
             }
             if (!Front(handle)) return false;
             if (action != "close_tab") return true;
-            Native.keybd_event(0x11, 0, 0, UIntPtr.Zero);
-            Native.keybd_event(0x57, 0, 0, UIntPtr.Zero);
-            Native.keybd_event(0x57, 0, 0x2, UIntPtr.Zero);
-            Native.keybd_event(0x11, 0, 0x2, UIntPtr.Zero);
+            using (InControl.Hold())
+            {
+                KeyEvent(0x11, 0, 0);
+                KeyEvent(0x57, 0, 0);
+                KeyEvent(0x57, 0, 0x2);
+                KeyEvent(0x11, 0, 0x2);
+            }
             return true;
         }
 
