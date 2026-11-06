@@ -826,6 +826,7 @@ namespace CapriDesktop
         [DataMember] public int ReplyLength;
         // Remember our chats is on by default: transcripts and memories.md stay on this PC.
         [DataMember] public bool Remembers = true;
+        [DataMember] public bool KeepAllHistory;
         [DataMember] public bool ClipGames;
         [DataMember] public bool ClipMoments;
         [DataMember] public string ClipFolder;
@@ -2340,6 +2341,8 @@ namespace CapriDesktop
             Brain.Digging = !smoke;
             if (!smoke) Brain.Keeper = brain;
             if (!smoke) brain.Load(Path.Combine(data, "chat.json"));
+            Preferences retentionSettings;
+            if (!smoke && Retention.Readable(settingsPath, out retentionSettings)) Retention.Sweep(Brain.TranscriptPath, Path.Combine(data, "chat.json"), retentionSettings.KeepAllHistory, DateTime.Now);
             Voice.Loudness = Math.Max(0, Math.Min(150, preferences.Volume));
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, preferences.VoicePitch));
             VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, preferences.VoiceSpeed));
@@ -5844,6 +5847,7 @@ namespace CapriDesktop
         }
 
         internal bool Remembers { get { return preferences.Remembers; } }
+        internal bool KeepsAll { get { return preferences.KeepAllHistory; } }
 
         internal bool ClipsOn { get { return preferences.ClipGames; } }
 
@@ -5882,6 +5886,12 @@ namespace CapriDesktop
             Brain.Keeping = preferences.Remembers;
             SavePreferences();
             mainframe.Sync();
+        }
+
+        internal void SetKeepAll(bool on)
+        {
+            preferences.KeepAllHistory = on;
+            SavePreferences();
         }
 
         private static readonly double[] WanderPaces = { 3, 1, 0.45, 0.18 };

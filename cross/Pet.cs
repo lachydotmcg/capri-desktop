@@ -42,6 +42,7 @@ namespace CapriDesktop
         [DataMember] internal bool StayOnModel;
         [DataMember] internal int HuskMode;
         [DataMember] internal bool NoMemories;
+        [DataMember] internal bool KeepAllHistory;
         [DataMember] internal bool NoCheckIns;
         [DataMember] internal int? PopPace;
         [DataMember] internal bool Watch;
@@ -533,6 +534,8 @@ namespace CapriDesktop
             VoiceFx.Layers = LayersOf(Saved);
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
+            Settings retentionSettings;
+            if (Program.Smoke == null && Retention.Readable(Path.Combine(folder, "cross.json"), out retentionSettings)) Retention.Sweep(Brain.TranscriptPath, Path.Combine(folder, "chat.json"), retentionSettings.KeepAllHistory, DateTime.Now);
             Limbs.Attach(Brain);
             StartAwake();
             Hands.Look = LookAt;
@@ -3366,6 +3369,13 @@ namespace CapriDesktop
         {
             Saved.NoMemories = !on;
             Brain.Keeping = on;
+            Save();
+            Sync();
+        }
+
+        internal void SetKeepAll(bool on)
+        {
+            Saved.KeepAllHistory = on;
             Save();
             Sync();
         }

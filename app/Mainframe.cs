@@ -1115,7 +1115,7 @@ namespace CapriDesktop
                 dialog.BackColor = Neon.Sheet;
                 dialog.ForeColor = Neon.SheetInk;
                 dialog.Font = Look.Mono(9f, FontStyle.Regular, GraphicsUnit.Point);
-                dialog.ClientSize = new Size(520, 170);
+                dialog.ClientSize = new Size(520, 236);
                 // Their own Obsidian vaults, read from Obsidian's list on this PC: picking one keeps her memories in its Capri Memories note.
                 List<KeyValuePair<string, string>> vaults = Companion.ObsidianVaults();
                 List<string> vaultNotes = new List<string> { "" };
@@ -1161,10 +1161,13 @@ namespace CapriDesktop
                         if (picker.ShowDialog(dialog) == DialogResult.OK) useVault(picker.FileName);
                     }
                 };
-                Button close = DialogButton("Close", 404, 124, 100, Neon.SheetDim);
+                Button close = DialogButton("Close", 404, 190, 100, Neon.SheetDim);
                 close.Click += delegate { dialog.Close(); };
+                CheckBox keepAll = new CheckBox { Bounds = new Rectangle(16, 116, 480, 22), Text = "Keep all history", ForeColor = Neon.SheetInk, BackColor = Color.Transparent, FlatStyle = FlatStyle.Flat, Checked = capri.KeepsAll, AccessibleName = "Keep all history. On: she never deletes a chat or transcript. Off: chats go after a week and transcripts after a year" };
+                keepAll.CheckedChanged += delegate { capri.SetKeepAll(keepAll.Checked); };
+                Label keepAllNote = Hint("On: she never deletes a chat or transcript. Off: chats go after a week and transcripts after a year.", 142, 34);
                 dialog.CancelButton = close;
-                dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, close });
+                dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, keepAll, keepAllNote, close });
                 Fit(dialog);
                 dialog.ShowDialog(this);
             }

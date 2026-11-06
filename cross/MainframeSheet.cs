@@ -628,7 +628,11 @@ namespace CapriDesktop
                 catch (Exception) { if (!closed) note.Text = "Couldn't open the note picker."; }
             };
             Button("Close", 388, 164, 104, 26, Close);
-            return 214;
+            var keepAll = Put(Page, new NeonSwitch { Text = "Keep all history" }, 56, 200, 432, 22, "Keep all history");
+            keepAll.IsCheckedChanged += (_, _) => { if (!syncing) pet.SetKeepAll(keepAll.Checked); };
+            readers.Add(() => keepAll.Checked = pet.Saved.KeepAllHistory);
+            Caption("On: she never deletes a chat or transcript. Off: chats go after a week and transcripts after a year.", 28, 224, 464, 18, MainframeTheme.Faint, 34.0 / 3);
+            return 252;
         }
         private void Sync()
         {
