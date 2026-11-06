@@ -2636,6 +2636,9 @@ namespace CapriDesktop
             signals.Interval = 250;
             signals.Tick += delegate
             {
+                // Power saver: while it works her background checks run once a second, on every 4th tick. Her ears, keys, speech,
+                // Watch my screen, game reactions, timers, pill and staying on top keep every tick.
+                bool background = BackgroundDue(++signalTicks);
                 CheckKeepAwake();
                 double signalNow = clock.Elapsed.TotalSeconds;
                 if (husk != null) husk.Tick();
@@ -2655,40 +2658,40 @@ namespace CapriDesktop
                 if (!testing) CheckWatchAlong(signalNow);
                 if (!testing) CheckIdle(signalIdle);
                 if (!testing) CheckGlance(signalNow, signalIdle);
-                if (!testing) CheckWander(signalNow, signalIdle);
-                if (!testing) CheckSulk(signalNow);
+                if (!testing && background) CheckWander(signalNow, signalIdle);
+                if (!testing && background) CheckSulk(signalNow);
                 if (!testing) CheckMusic(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckPlayer(clock.Elapsed.TotalSeconds);
-                if (!testing) CheckHome(clock.Elapsed.TotalSeconds);
-                if (!testing) CheckLag(clock.Elapsed.TotalSeconds);
+                if (!testing && background) CheckHome(clock.Elapsed.TotalSeconds);
+                if (!testing && background) CheckLag(clock.Elapsed.TotalSeconds);
                 CheckGame(clock.Elapsed.TotalSeconds);
                 CheckReactions();
                 if (!testing) CheckInkEsc(signalNow);
-                if (!testing) Clip.RestAll(Environment.TickCount);
+                if (!testing && background) Clip.RestAll(Environment.TickCount);
                 if (!testing) CheckPopIn(signalNow, signalIdle);
                 if (!testing) CheckReminders(DateTime.Now);
                 if (!testing) lookout.Deliver();
                 if (!testing) CheckNudge(signalNow, signalIdle);
-                if (!testing) CheckCare(signalNow, signalIdle);
-                if (!testing) CheckHoliday(DateTime.Now, signalIdle);
-                if (!testing) CheckNews(signalIdle);
-                if (!testing)
+                if (!testing && background) CheckCare(signalNow, signalIdle);
+                if (!testing && background) CheckHoliday(DateTime.Now, signalIdle);
+                if (!testing && background) CheckNews(signalIdle);
+                if (!testing && background)
                 {
                     presence.Crowd = cloneWindow == null ? 0 : cloneWindow.Swarm.Bodies.Count + 1;
                     presence.Show(preferences.NoDiscord ? null : Doing);
                 }
-                if (!testing) CheckHd(clock.Elapsed.TotalSeconds);
+                if (!testing && background) CheckHd(clock.Elapsed.TotalSeconds);
                 StayOnTop();
-                CheckSeat(clock.Elapsed.TotalSeconds);
+                if (background) CheckSeat(clock.Elapsed.TotalSeconds);
                 CheckChat(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckHearing(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckSoundNotice();
                 CheckEars(clock.Elapsed.TotalSeconds);
                 CheckWake(clock.Elapsed.TotalSeconds);
-                CheckSlow(clock.Elapsed.TotalSeconds);
+                if (background) CheckSlow(clock.Elapsed.TotalSeconds);
                 CheckVoiceInMic(signalNow);
                 UpdatePill(clock.Elapsed.TotalSeconds);
-                if (!testing && UpdateDue(preferences.UpdateCheckedAt, DateTime.UtcNow.Ticks, clock.Elapsed.TotalSeconds, updateStarted)) CheckForUpdates(false);
+                if (!testing && background && UpdateDue(preferences.UpdateCheckedAt, DateTime.UtcNow.Ticks, clock.Elapsed.TotalSeconds, updateStarted)) CheckForUpdates(false);
             };
             signals.Start();
             Size = CanvasSize(preferences.Size);
@@ -7049,6 +7052,12 @@ namespace CapriDesktop
 
         // Power saver is working now: Always, or In games while a game or anything full screen is in front.
         internal bool Saving { get { return preferences.PowerSaver == 2 || preferences.PowerSaver == 1 && frontBusy; } }
+
+        // Her quarter-second signals' ticks: while Power saver works, her background checks run on every 4th, once a second.
+        internal const int SaverEvery = 4;
+        private int signalTicks;
+
+        private bool BackgroundDue(int tick) { return !Saving || tick % SaverEvery == 0; }
 
         internal void SetPerchFps(int fps)
         {
