@@ -343,24 +343,137 @@ namespace CapriDesktop
         // On X11 and XWayland an empty input shape lets every click fall through to the window under her pointer.
         private void PassThrough()
         {
-            if (passThrough || !OperatingSystem.IsLinux()) return;
+            if (!passThrough) passThrough = ClicksThrough(this);
+        }
+
+        // Her sign uses it too. True once clicks go through the window.
+        internal static bool ClicksThrough(Window window)
+        {
+            if (!OperatingSystem.IsLinux()) return false;
             try
             {
-                IPlatformHandle handle = TryGetPlatformHandle();
-                if (handle == null) return;
+                IPlatformHandle handle = window.TryGetPlatformHandle();
+                if (handle == null) return false;
                 IntPtr display = XOpenDisplay(IntPtr.Zero);
-                if (display == IntPtr.Zero) return;
+                if (display == IntPtr.Zero) return false;
                 XShapeCombineRectangles(display, handle.Handle, 2, 0, 0, IntPtr.Zero, 0, 0, 0);
                 XFlush(display);
                 XCloseDisplay(display);
-                passThrough = true;
+                return true;
             }
-            catch (Exception) { }
+            catch (Exception) { return false; }
         }
 
         [DllImport("libX11.so.6")] private static extern IntPtr XOpenDisplay(IntPtr name);
         [DllImport("libX11.so.6")] private static extern int XCloseDisplay(IntPtr display);
         [DllImport("libX11.so.6")] private static extern int XFlush(IntPtr display);
         [DllImport("libXext.so.6")] private static extern void XShapeCombineRectangles(IntPtr display, IntPtr window, int kind, int x, int y, IntPtr rectangles, int count, int op, int ordering);
+    }
+
+    // #106 on Linux, like Windows' ControlGlow: while a job has their mouse and keyboard, a thin pink and cyan glow round the
+    // screen she's working on, with her line on a badge just above the bottom of it. Clicks go straight through it and it never
+    // takes the focus. It shows even while she's hidden, and hides for her own screenshots, since Linux can't keep a window
+    // out of them.
+    internal sealed class ControlGlow : Window
+    {
+        private readonly Edge edge = new Edge();
+        private PixelRect area, work, shownOn;
+        private double scale = 1;
+        private bool passThrough, unseen;
+
+        internal ControlGlow()
+        {
+            Look.Overlay(this, "Capri in control");
+            Content = edge;
+            IsHitTestVisible = false;
+            Opened += delegate { if (!passThrough) passThrough = HerCursor.ClicksThrough(this); };
+        }
+
+        // Round this screen, in desktop pixels, with its work area for the badge.
+        internal void Cover(PixelRect screen, PixelRect working, double scaling)
+        {
+            area = screen;
+            work = working;
+            scale = scaling > 0 ? scaling : 1;
+            if (unseen || (IsVisible && shownOn == screen)) return;
+            Position = screen.Position;
+            Width = screen.Width / scale;
+            Height = screen.Height / scale;
+            edge.Work = new Rect((working.X - screen.X) / scale, (working.Y - screen.Y) / scale, working.Width / scale, working.Height / scale);
+            edge.InvalidateVisual();
+            if (!IsVisible)
+            {
+                Show();
+                Look.OnTopAgain(this);
+            }
+            shownOn = screen;
+        }
+
+        internal void Off()
+        {
+            unseen = false;
+            shownOn = default(PixelRect);
+            if (IsVisible) Hide();
+        }
+
+        // Hides it for the moment she takes a screenshot. True when it hid.
+        internal bool Unseen(bool hide)
+        {
+            if (hide)
+            {
+                if (!IsVisible) return false;
+                unseen = true;
+                Hide();
+                return true;
+            }
+            if (!unseen) return false;
+            unseen = false;
+            shownOn = default(PixelRect);
+            Cover(area, work, scale);
+            return false;
+        }
+
+        // A soft pink to cyan glow in from the edges, a crisp pink line round the edge with a thin cyan one just inside it, and
+        // the line on a badge like Windows' takeover one, centred above the bottom of the work area.
+        private sealed class Edge : Control
+        {
+            internal Rect Work;
+
+            private static byte Mix(byte from, byte to, double t) { return (byte)Math.Round(from + (to - from) * t); }
+
+            public override void Render(DrawingContext graphics)
+            {
+                Rect all = new Rect(Bounds.Size);
+                const int Reach = 16;
+                for (int i = 0; i < Reach; i++)
+                {
+                    double t = (double)i / Reach;
+                    byte alpha = (byte)Math.Round(120 * (1 - t) * (1 - t));
+                    if (alpha == 0) continue;
+                    Color mixed = Color.FromArgb(alpha, Mix(Look.Pink.R, Look.Cyan.R, t), Mix(Look.Pink.G, Look.Cyan.G, t), Mix(Look.Pink.B, Look.Cyan.B, t));
+                    graphics.DrawRectangle(null, new Pen(new SolidColorBrush(mixed), 1), all.Deflate(i + 0.5));
+                }
+                graphics.DrawRectangle(null, new Pen(new SolidColorBrush(Color.FromArgb(235, Look.Pink.R, Look.Pink.G, Look.Pink.B)), 2), all.Deflate(1));
+                graphics.DrawRectangle(null, new Pen(new SolidColorBrush(Color.FromArgb(220, Look.Cyan.R, Look.Cyan.G, Look.Cyan.B)), 1.5), all.Deflate(4.25));
+                Rect room = Work.Width > 0 && Work.Height > 0 ? Work : all;
+                int cut = InControl.Line.IndexOf(". ", StringComparison.Ordinal) + 2;
+                FormattedText lead = Look.Text(InControl.Line.Substring(0, cut), Look.Bold, 11, Look.Pink), rest = Look.Text(InControl.Line.Substring(cut), Look.Bold, 11, Colors.White);
+                double pad = 7, tall = 26, slant = tall * 0.35, wide = slant + pad + lead.WidthIncludingTrailingWhitespace + rest.Width + pad + slant;
+                double left = room.X + (room.Width - wide) / 2, top = room.Bottom - tall - 14;
+                StreamGeometry slab = new StreamGeometry();
+                using (StreamGeometryContext pen = slab.Open())
+                {
+                    pen.BeginFigure(new Point(left + slant, top), true);
+                    pen.LineTo(new Point(left + wide, top));
+                    pen.LineTo(new Point(left + wide - slant, top + tall));
+                    pen.LineTo(new Point(left, top + tall));
+                    pen.EndFigure(true);
+                }
+                graphics.DrawGeometry(new SolidColorBrush(Color.FromArgb(240, 22, 15, 30)), new Pen(new SolidColorBrush(Look.Red), 1.6), slab);
+                double x = left + slant + pad, y = top + (tall - lead.Height) / 2;
+                graphics.DrawText(lead, new Point(x, y));
+                graphics.DrawText(rest, new Point(x + lead.WidthIncludingTrailingWhitespace, y));
+            }
+        }
     }
 }

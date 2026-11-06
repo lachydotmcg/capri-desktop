@@ -560,10 +560,14 @@ namespace CapriDesktop
                 Chores.Mouse = delegate { return Dispatcher.UIThread.Invoke(MouseShare) ?? KWinMouse.Ask(); };
                 Chores.Says = delegate(string line) { Dispatcher.UIThread.Post(delegate { Reply(asking, "(chat)", line); }); };
                 // Her own pointer, like Windows': it glides while their mouse stays put, and hides for her screenshots.
-                Chores.Track = delegate(double x, double y) { Dispatcher.UIThread.Post(delegate { HerPointer.Point(DesktopPixel(x, y)); }); };
+                Chores.Track = delegate(double x, double y) { Dispatcher.UIThread.Post(delegate { PixelPoint at = DesktopPixel(x, y); HerPointer.Point(at); glowAt = at; SyncGlow(); }); };
                 Chores.Tapped = delegate { Dispatcher.UIThread.Post(delegate { HerPointer.Tap(); }); };
                 Chores.Hidden = delegate(bool hidden) { Dispatcher.UIThread.Invoke(delegate { if (hidden) HerPointer.Hide(); else if (herPointer != null) { HerPointer.Show(); Look.OnTopAgain(herPointer); } }); };
                 Chores.Parked = delegate { Dispatcher.UIThread.Post(delegate { if (herPointer != null) herPointer.Park(); }); };
+                // Her sign round the screen she's working on, like Windows' (#106): up for the whole job, even while she's hidden,
+                // and out of her own screenshots.
+                InControl.Changed = delegate { Dispatcher.UIThread.Post(delegate { Program.Guard(SyncGlow); }); };
+                Chores.SignHidden = delegate(bool hide) { return Dispatcher.UIThread.Invoke(new Func<bool>(delegate { return controlGlow != null && controlGlow.Unseen(hide); })); };
             }
             if (Program.Smoke == null) presence = new Presence(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             // A cloud key they saved thinks for her instead of Ollama, on the model they picked.
@@ -1063,6 +1067,27 @@ namespace CapriDesktop
         private HerCursor herPointer;
 
         private HerCursor HerPointer { get { if (herPointer == null) herPointer = new HerCursor { Topmost = true }; return herPointer; } }
+
+        private ControlGlow controlGlow;
+        private PixelPoint? glowAt;
+
+        // Up while a job has their mouse and keys, round the screen her pointer is on, or the one with their mouse before she
+        // moves, and gone once she lets go. A desktop that can't show her own window see-through gets none, since it would cover
+        // their whole screen.
+        private void SyncGlow()
+        {
+            if (!InControl.On)
+            {
+                glowAt = null;
+                if (controlGlow != null) controlGlow.Off();
+                return;
+            }
+            if (ActualTransparencyLevel != WindowTransparencyLevel.Transparent) return;
+            if (controlGlow == null) controlGlow = new ControlGlow();
+            PixelPoint? at = glowAt ?? Mouse();
+            Screen screen = (at.HasValue ? Screens.ScreenFromPoint(at.Value) : null) ?? Screens.Primary;
+            if (screen != null) controlGlow.Cover(screen.Bounds, screen.WorkingArea, screen.Scaling);
+        }
 
         // A spot 0 to 1 across the bounding box of every screen, in desktop pixels: where her pointer goes for it.
         private PixelPoint DesktopPixel(double x, double y)

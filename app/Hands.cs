@@ -537,14 +537,19 @@ namespace CapriDesktop
         internal OpenWindow(IntPtr handle, string title, string program) { Handle = handle; Title = title; Program = program; }
     }
 
-    // #106 (Lachy, 6 Nov): a couple of people saw their mouse move and keys get typed and didn't know it was her. Whenever she
+    // #106 (Lachy, 5 Nov): a couple of people saw their mouse move and keys get typed and didn't know it was her. Whenever she
     // moves their mouse or presses their keys, however briefly, she holds this, and a sign is up while anything holds it, so a
     // mouse that moves with no sign up wasn't her. Holds are counted, so overlapping ones keep the sign up until the last one
     // lets go, and it stays a moment after that so a run of quick presses doesn't flicker. Her window draws the sign: Changed
     // tells it to look at On and At again, from whatever thread changed them, with true when the sign has just come up.
     internal static class InControl
     {
+#if CROSS
+        // Linux has no Esc watch: anything they say or type to her cuts off the step she's thinking about, which ends the job.
+        internal const string Line = "Capri's using your mouse. Say stop to stop her.";
+#else
         internal const string Line = "Capri's using your mouse. Esc stops her.";
+#endif
         // How long the sign stays after the last hold lets go, in ms.
         internal static int Linger = 500;
         private static readonly object gate = new object();
