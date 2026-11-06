@@ -785,6 +785,154 @@ namespace CapriDesktop
                     || dugBoss.IndexOf("earlier moments that may connect", StringComparison.Ordinal) < 0 || dugBoss.IndexOf("You: we finally beat the smoke boss", StringComparison.Ordinal) < 0 || dugShown.IndexOf("we finally beat the smoke boss", StringComparison.Ordinal) >= 0 || dugSmall != "")
                     throw new Exception("Remember our chats went wrong: " + transcribed + " | " + rememberedOn + " | " + stoppedWriting + " | " + recalledBoss + " | " + dugBoss + " | " + dugShown + " | " + dugSmall);
                 checks.Add("PASS remember our chats: on by default here too, a chat line goes in today's transcript, \"remember when\" finds it, talking about it again digs it up unasked unless it's already in her chat, small talk digs up nothing, off writes nothing, and Open her memories makes memories.md");
+                // Retention: a day older than a year and a chat older than a week go; the exact boundaries, a nested old
+                // sighting and anything she can't read stay; keep-all keeps both. The chat uses her own serializer.
+                string keepDir = Path.Combine(folder, "retention-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(keepDir);
+                DateTime keepNow = new DateTime(2026, 3, 1, 12, 0, 0);
+                string oldestDay = Path.Combine(keepDir, "2025-02-28.md");
+                string edgeDay = Path.Combine(keepDir, "2025-03-01.md");
+                string newDay = Path.Combine(keepDir, "2026-02-25.md");
+                string oddDay = Path.Combine(keepDir, "notes.md");
+                File.WriteAllText(oldestDay, "old");
+                File.WriteAllText(edgeDay, "edge");
+                File.WriteAllText(newDay, "new");
+                File.WriteAllText(oddDay, "keep");
+                string chat = Path.Combine(keepDir, "chat.json"), chatKept = Path.Combine(keepDir, "recent-chat.json");
+                string nestedChat = Path.Combine(keepDir, "nested-chat.json"), brokenChat = Path.Combine(keepDir, "broken-chat.json");
+                Action<string, int, string> savedChat = delegate(string path, int days, string nested)
+                {
+                    using (FileStream stream = File.Create(path))
+                        new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(SavedChat)).WriteObject(stream, new SavedChat
+                        {
+                            At = keepNow.AddDays(-days).ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                            Messages = new[] { new ChatMessage("user", "hello") },
+                            Seen = nested == null ? null : new[] { new Sighting { At = nested, Saw = "screen" } }
+                        });
+                };
+                savedChat(chat, 8, null);
+                savedChat(chatKept, 2, null);
+                savedChat(nestedChat, 2, keepNow.AddDays(-400).ToString("o", System.Globalization.CultureInfo.InvariantCulture));
+                File.WriteAllText(brokenChat, "{\"at\":\"2026-02-21T12:00:00\",");
+                Retention.Sweep(keepDir, chat, false, keepNow);
+                bool pruned = !File.Exists(oldestDay) && File.Exists(edgeDay) && File.Exists(newDay) && File.Exists(oddDay) && !File.Exists(chat);
+                Retention.Sweep(keepDir, chatKept, false, keepNow);
+                Retention.Sweep(keepDir, nestedChat, false, keepNow);
+                Retention.Sweep(keepDir, brokenChat, false, keepNow);
+                bool chatsKept = File.Exists(chatKept) && File.Exists(nestedChat) && File.Exists(brokenChat);
+                File.WriteAllText(oldestDay, "old");
+                savedChat(chat, 8, null);
+                Retention.Sweep(keepDir, chat, true, keepNow);
+                bool allKept = File.Exists(oldestDay) && File.Exists(chat);
+                string[] guarded = {
+                    "{\"seen\":[{\"at\":\"2026-02-21T12:00:00\",\"saw\":\"old sight\"}],\"at\":\"2026-02-28T12:00:00\",\"messages\":[{\"role\":\"user\",\"content\":\"recent\"}]}",
+                    "{\"seen\":[{\"at\":\"2026-02-28T12:00:00\",\"saw\":\"screen\",\"metadata\":{\"At\":\"2026-02-21T12:00:00\"}}],\"at\":\"2026-02-28T12:00:00\",\"messages\":[]}",
+                    "{\"At\":\"2026-02-21T12:00:00\",\"messages\":[]}",
+                    "{\"at\":\"2026-02-21T12:00:00\",\"messages\":[{\"role\":\"user\",\"content\":\"old\"}]",
+                    "{\"At\":\"2026-02-21T12:00:00\",",
+                    "{\"seen\":[{\"at\":\"2026-02-21T12:00:00\",\"saw\":\"old sight\"}],\"messages\":[]}",
+                    "{\"seen\":[{\"At\":\"2026-02-21T12:00:00\"}],\"messages\":[]}"
+                };
+                bool guardedKept = true;
+                for (int i = 0; i < guarded.Length; i++)
+                {
+                    string guardPath = Path.Combine(keepDir, "guard-" + i + ".json");
+                    File.WriteAllText(guardPath, guarded[i]);
+                    byte[] guardBefore = File.ReadAllBytes(guardPath);
+                    string guardResult = Retention.Sweep(null, guardPath, false, keepNow);
+                    if (!File.Exists(guardPath) || Convert.ToBase64String(File.ReadAllBytes(guardPath)) != Convert.ToBase64String(guardBefore) || guardResult != "Removed 0 old transcripts and 0 old chats.") guardedKept = false;
+                }
+                string earlyChat = Path.Combine(keepDir, "early-chat.json"), lateChat = Path.Combine(keepDir, "late-chat.json"), offsetChat = Path.Combine(keepDir, "offset-chat.json");
+                File.WriteAllText(earlyChat, "{\"at\":\"2026-03-01T12:00:00Z\",\"messages\":[]}");
+                File.WriteAllText(lateChat, "{\"at\":\"2026-03-01T12:00:00Z\",\"messages\":[]}");
+                File.WriteAllText(offsetChat, "{\"at\":\"2026-03-01T22:00:00+10:00\",\"messages\":[]}");
+                Retention.Sweep(null, earlyChat, false, new DateTime(2026, 3, 8, 11, 30, 0, DateTimeKind.Utc));
+                Retention.Sweep(null, lateChat, false, new DateTime(2026, 3, 8, 13, 0, 0, DateTimeKind.Utc));
+                Retention.Sweep(null, offsetChat, false, new DateTime(2026, 3, 8, 11, 30, 0, DateTimeKind.Utc));
+                bool zones = File.Exists(earlyChat) && !File.Exists(lateChat) && File.Exists(offsetChat);
+                Directory.Delete(keepDir, true);
+                if (!pruned || !chatsKept || !allKept || !guardedKept || !zones)
+                    throw new Exception("Retention went wrong: pruned " + pruned + ", chats kept " + chatsKept + ", keep all " + allKept + ", guarded " + guardedKept + ", zones " + zones);
+                checks.Add("PASS retention: a day older than a year and a chat older than a week go, a day exactly a year old, a chat six days and 23 hours old in any time zone, a recent chat, a nested or uppercase sighting, a half-written file and a file without her own time all stay, and Keep all history keeps everything");
+                bool keepRules = Retention.KeepAll(false, false, false) && !Retention.KeepAll(false, false, true) && Retention.KeepAll(false, true, true) && Retention.KeepAll(true, false, true);
+                string halfSettings = Path.Combine(folder, "half-settings-" + Guid.NewGuid().ToString("N") + ".json");
+                File.WriteAllText(halfSettings, "{\"KeepAllHistory\":true");
+                bool halfSkipped = !Retention.WholeFile(halfSettings);
+                File.WriteAllText(halfSettings, "{\"KeepAllHistory\":true}");
+                bool wholeRead = Retention.WholeFile(halfSettings);
+                File.WriteAllText(halfSettings, "{\"Language\":\"en\",}");
+                bool commaSkipped = !Retention.WholeFile(halfSettings);
+                File.Delete(halfSettings);
+                if (!keepRules || !halfSkipped || !wholeRead || !commaSkipped) throw new Exception("Keep all history didn't follow the switch, the marker or a settings file without the choice, or half-written or trailing-comma settings weren't treated as unreadable.");
+                // A marker she cannot clear must leave the switch on, not show off while the marker still keeps everything.
+                string deniedDir = Path.Combine(folder, "denied-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(deniedDir);
+                string deniedMarker = Path.Combine(deniedDir, "keep-all");
+                File.WriteAllText(deniedMarker, "1");
+                string clearMe = Path.Combine(deniedDir, "clear-me");
+                File.WriteAllText(clearMe, "1");
+                if (!Retention.ClearMarker(clearMe) || File.Exists(clearMe)) throw new Exception("ClearMarker did not remove a marker it could delete.");
+                string deniedConfig = Path.Combine(deniedDir, "cross.json");
+                File.WriteAllText(deniedConfig, "{\"KeepAllHistory\":false}");
+                Settings denied = new Settings { KeepAllHistory = true };
+                bool deniedSynced = false;
+                Action deniedSave = delegate { File.WriteAllText(deniedConfig, "{\"KeepAllHistory\":" + (denied.KeepAllHistory ? "true" : "false") + "}"); };
+                try
+                {
+                    bool deniedEffective = Pet.KeepAllOff(deniedDir, denied, deniedSave, delegate { deniedSynced = true; }, delegate { return false; });
+                    if (!deniedEffective || !denied.KeepAllHistory || !deniedSynced || !File.Exists(deniedMarker) || File.ReadAllText(deniedConfig) != "{\"KeepAllHistory\":true}")
+                        throw new Exception("Keep all history showed off while its marker still kept everything.");
+                }
+                finally
+                {
+                    Directory.Delete(deniedDir, true);
+                }
+                checks.Add("PASS keep all history: the switch, its marker or a settings file from before the choice all keep everything, a marker she cannot delete leaves the switch on, and half-written or trailing-comma settings are left alone");
+                // Her recall cache keeps a bounded set of days and forgets the ones she no longer has; the shared word
+                // set is bounded too, so a long history can't grow it until the app closes.
+                string dugDir = Path.Combine(folder, "dug-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(dugDir);
+                DateTime dugDay = new DateTime(2026, 3, 1, 9, 0, 0);
+                for (int i = 0; i < 4; i++)
+                    File.WriteAllText(Path.Combine(dugDir, dugDay.AddDays(-i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"), "*09:00 You: we tested retention on day " + i + "\n");
+                string dugWas = Brain.TranscriptPath;
+                bool dugKeepingWas = Brain.Keeping;
+                int dugDaysWas = Brain.DugDays, sharedCapWas = Brain.SharedCap;
+                long dugBytesWas = Brain.DugBytes;
+                bool dugTrimmed, dugForgotten, sharedBounded;
+                try
+                {
+                    Brain.TranscriptPath = dugDir;
+                    Brain.Keeping = true;
+                    Brain.ForgetDug();
+                    Brain.DugDays = 2;
+                    Brain.DugBytes = long.MaxValue;
+                    Brain.Recalled("remember when we tested retention");
+                    dugTrimmed = Brain.DugHeld == 2
+                        && Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"))
+                        && !Brain.DugHolds(Path.Combine(dugDir, dugDay.AddDays(-3).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
+                    for (int i = 0; i < 3; i++) File.Delete(Path.Combine(dugDir, dugDay.AddDays(-i).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
+                    Brain.Recalled("remember when we tested retention");
+                    dugForgotten = Brain.DugHeld == 1;
+                    Directory.Delete(dugDir, true);
+                    Brain.Recalled("remember when we tested retention");
+                    dugForgotten = dugForgotten && Brain.DugHeld == 0;
+                    Brain.SharedCap = 2;
+                    Brain.Recalled("remember when alpha beta gamma delta");
+                    sharedBounded = Brain.SharedHeld <= 2;
+                }
+                finally
+                {
+                    Brain.TranscriptPath = dugWas;
+                    Brain.Keeping = dugKeepingWas;
+                    Brain.DugDays = dugDaysWas;
+                    Brain.DugBytes = dugBytesWas;
+                    Brain.SharedCap = sharedCapWas;
+                    if (Directory.Exists(dugDir)) Directory.Delete(dugDir, true);
+                }
+                if (!dugTrimmed || !dugForgotten || !sharedBounded)
+                    throw new Exception("Her recall cache went wrong: trimmed " + dugTrimmed + ", forgotten " + dugForgotten + ", shared " + sharedBounded);
+                checks.Add("PASS recall cache: days beyond the cap go oldest first, a day whose file is gone leaves the cache, and the shared word set stays bounded");
                 // Screenshots here show her and her bubble, so her glance and look prompts say she isn't part of their screen, and her
                 // glances go in the transcript but never into memories.md (a Bazzite user).
                 string unfolded = Path.Combine(Brain.TranscriptPath, "unfolded.txt");
