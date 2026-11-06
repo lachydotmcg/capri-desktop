@@ -114,8 +114,8 @@ Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https:
 **Nine mods to start, all by Vocyn:** four colour sets (Bubblegum, Cyber Cyan, Royal and Toxic), Custom Names, Sharper Ears, Hearing Log, Hello Code and Startup Intros.
 
 <p align="center">
-  <img src="assets/readme/intros.gif" alt="The Startup Intros mod playing its three intros: Hijack, Shatter and Wake" width="640">
-  <br><sub>Startup Intros, drawn by the mod's own code. Say "intro shatter" to lock one in, or "intro shuffle" to mix them up.</sub>
+  <img src="assets/readme/intros.png" alt="The Startup Intros mod's card showing its three intros: Hijack, Shatter and Wake" width="640">
+  <br><sub>Startup Intros. Say "intro shatter" to lock one in, or "intro shuffle" to mix them up.</sub>
 </p>
 
 - **Settings mods** (`.capri-mod`) only change her settings, and **skins** (`.capri-skin`) change how she looks
