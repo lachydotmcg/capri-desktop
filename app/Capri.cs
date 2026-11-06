@@ -45975,9 +45975,11 @@ namespace CapriDesktop
                                 for (int x = 0; x < rippleMiddle - 4; x++) if (rippled.GetPixel(x, rippleMiddle).A > 40) ringLeft = true;
                                 Color pointerBody = Color.Empty;
                                 Point pointerBodySpot = Point.Empty;
+                                // A solid pink pixel of her pointer: her bolts land somewhere new each time, and a soft bolt edge
+                                // drawn over the test's green isn't red enough to count as drawn (CI, 6 Nov).
                                 for (int x = rippleMiddle; x < rippleMiddle + rippled.Width / 5 && pointerBody.IsEmpty; x++)
-                                    for (int y = rippleMiddle; y < rippleMiddle + rippled.Width / 5; y++) { Color seen = rippled.GetPixel(x, y); if (seen.A > 200 && seen.R > 200 && seen.G < 120) { pointerBody = seen; pointerBodySpot = new Point(x, y); break; } }
-                                pointerRippled = herPointer.Rippling && ringLeft && pointerBody.A > 200 && pointerBody.R > 200 && pointerBody.G < 120;
+                                    for (int y = rippleMiddle; y < rippleMiddle + rippled.Width / 5; y++) { Color seen = rippled.GetPixel(x, y); if (seen.A > 245 && seen.R > 215 && seen.G < 120) { pointerBody = seen; pointerBodySpot = new Point(x, y); break; } }
+                                pointerRippled = herPointer.Rippling && ringLeft && pointerBody.A > 245 && pointerBody.R > 215 && pointerBody.G < 120;
                                 rippled.Save(Path.Combine(output, "her-pointer.png"), System.Drawing.Imaging.ImageFormat.Png);
                                 // Recordings show her pointer; her own screenshots smear it out like her sprite.
                                 Rectangle pointerScreen = Screen.FromPoint(pointerGoal).Bounds;
