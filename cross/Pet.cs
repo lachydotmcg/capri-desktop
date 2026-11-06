@@ -4778,7 +4778,15 @@ namespace CapriDesktop
                 NewSettings newer = null;
                 try { using (FileStream stream = File.OpenRead(Path.Combine(folder, "cross-new.json"))) newer = (NewSettings)new DataContractJsonSerializer(typeof(NewSettings)).ReadObject(stream); }
                 catch (Exception) { }
-                settingsReset = false;
+                string settingsFile = Path.Combine(folder, "cross.json");
+                settingsReset = !Retention.WholeFile(settingsFile);
+                if (settingsReset)
+                {
+                    // The serializer can read a half-written file without throwing; keep the choice safe anyway.
+                    try { File.WriteAllText(Path.Combine(folder, "keep-all"), "1"); }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
                 return Kept(saved, newer);
             }
             // A new install starts in the computer's own language when she speaks it.
