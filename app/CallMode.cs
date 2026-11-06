@@ -320,7 +320,21 @@ namespace CapriDesktop
         private bool callCaptionRun;
         // Discord while she talks, and the answer it last stopped.
         private readonly CallOver callOver = new CallOver();
+        private DateTime callPressed = DateTime.MinValue;
         private int callOverAudio = -1;
+
+        // Clicks that queued behind a slow switch each flipped call mode (6 Nov: five flips in four seconds, her ears left shut), so a
+        // press within a second of the last one is that press again.
+        internal void PressCallMode()
+        {
+            if ((DateTime.UtcNow - callPressed).TotalSeconds < 1) { mainframe.ShowCallApp(); return; }
+            ToggleCallMode();
+            callPressed = DateTime.UtcNow;
+        }
+
+        // A call she can't hear is no call, so call mode opens her ears. Off a call they stay as they were, or come back for Listen for
+        // Capri unless you shut them yourself.
+        internal static bool EarsAfterCall(bool on, bool wereOpen, bool listening, bool shut) { return on || wereOpen || listening && !shut; }
 
         internal void ToggleCallMode()
         {
@@ -349,7 +363,7 @@ namespace CapriDesktop
             typer.CallMode = on;
             SavePreferences();
             mainframe.VoiceNote(on ? "Call mode (beta) on. " + CallSession.EchoLine : "Call mode off.", false);
-            if (wasChatting && !testing) ToggleChat();
+            if (!chatting && !testing && EarsAfterCall(on, wasChatting, preferences.ListenCapri, earsClosed)) ToggleChat();
             UpdateCallEars();
             mainframe.ShowCallApp();
             ShowCallPanel();
@@ -435,8 +449,8 @@ namespace CapriDesktop
         }
 
         private void ExpandCallPanel() { callSmall = false; ShowCallWindow(); }
-        private void CallEnd() { if (CallModeOn) ToggleCallMode(); }
-        private void CallAgain() { if (!CallModeOn) ToggleCallMode(); }
+        private void CallEnd() { if (CallModeOn) PressCallMode(); }
+        private void CallAgain() { if (!CallModeOn) PressCallMode(); }
         private void CallMic()
         {
             if (!CallModeOn) return;
@@ -1190,6 +1204,7 @@ namespace CapriDesktop
                 CallSpoke(asking, "Too late.", TalkState.Talking);
                 view = CallViewNow();
                 if (view.Length != endedLength || view.Answers != 6) throw new Exception("An ended call's length or answers changed.");
+                callPressed = DateTime.MinValue;
                 callPill.Press(6);
                 if (!CallModeOn || callAnswers != 0 || callSaid != null || callPill.Ended || !callPill.Visible || callPill.Location != pillAt || callEndTicks.Enabled) throw new Exception("Call again did not reset and restore the last call window.");
                 ToggleCallMode();
@@ -1200,6 +1215,17 @@ namespace CapriDesktop
                 if (mainframe.VoiceNoteText != "Call mode (beta) on. " + CallSession.EchoLine || LocalListening.IndexOf(CallSession.EchoLine, StringComparison.Ordinal) < 0)
                     throw new Exception("Call mode didn't say to turn Echo Cancellation and Noise Suppression off: " + mainframe.VoiceNoteText);
                 checks.Add("PASS call mode's echo line: turning it on, and listening in it, say \"" + CallSession.EchoLine + "\"");
+                callPressed = DateTime.MinValue;
+                PressCallMode();
+                bool pressed = CallModeOn;
+                PressCallMode();
+                PressCallMode();
+                if (CallModeOn != pressed) throw new Exception("Clicks queued behind a slow switch flipped call mode again.");
+                if (!pressed) ToggleCallMode();
+                foreach (bool[] row in new[] { new[] { true, false, false, true, true }, new[] { false, true, false, true, true }, new[] { false, false, true, false, true }, new[] { false, false, true, true, false }, new[] { false, false, false, false, false } })
+                    if (EarsAfterCall(row[0], row[1], row[2], row[3]) != row[4]) throw new Exception("Her ears after a call came out wrong.");
+                checks.Add("PASS call mode: queued clicks flip it once, on opens her ears whatever they were, and off keeps them as they were or brings them back for Listen for Capri unless you shut them");
+                callPressed = DateTime.MinValue;
                 callPill.Press(7);
                 callPanel.PressButton(4);
                 if (!callPanel.Ended || !callPanel.Visible || callPill.Visible) throw new Exception("The panel hang-up skipped its ended card.");

@@ -12171,7 +12171,7 @@ namespace CapriDesktop
 
         private void ToggleChat()
         {
-            if (chatting) { earsClosed = preferences.ListenCapri; StopChat(); return; }
+            if (chatting) { earsClosed = preferences.ListenCapri; Brain.Log("ears", -1, "Shut by her wave, its key or her voice_chat tool."); StopChat(); return; }
             earsClosed = false;
             WakeRest(true);
             // Listen for Capri needs her own ears; otherwise voice chat follows the VOICE pick.
@@ -12407,6 +12407,33 @@ namespace CapriDesktop
         }
 
         // Her own Parakeet ears hear the picked mic offline, about as well as Windows' online speech, so no warning.
+        // Her ears' model follows whether they're open, one load or unload at a time, so a quick off and on can't leave it unloaded
+        // behind open ears, and costs no reload.
+        private void EarsModel(bool open)
+        {
+            lock (earsModelGate)
+            {
+                earsModelWanted = open;
+                if (earsModelBusy) return;
+                earsModelBusy = true;
+            }
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                while (true)
+                {
+                    bool wanted;
+                    lock (earsModelGate)
+                    {
+                        wanted = earsModelWanted;
+                        if (wanted == earsModelLoaded) { earsModelBusy = false; return; }
+                        earsModelLoaded = wanted;
+                    }
+                    try { if (wanted) parakeet.Warm(); else parakeet.Dispose(); }
+                    catch (Exception error) { lock (earsModelGate) earsModelLoaded = false; Brain.Log("ears", -1, Voice.Short(error.Message)); }
+                }
+            });
+        }
+
         private void ListenOwn()
         {
             hearingOffline = false;
@@ -12424,7 +12451,7 @@ namespace CapriDesktop
             }
             earsReady = true;
             CheckEars(clock.Elapsed.TotalSeconds);
-            if (!testing) ThreadPool.QueueUserWorkItem(delegate { try { parakeet.Warm(); } catch (Exception error) { Brain.Log("ears", -1, Voice.Short(error.Message)); } });
+            if (!testing) EarsModel(true);
             EarsReady(promised);
         }
 
@@ -12483,6 +12510,8 @@ namespace CapriDesktop
 
         // They open once her hello's out of the way and come back after whatever closed them (hiding her, Quiet, a lost mic), unless they closed them on purpose.
         private bool earsClosed;
+        private readonly object earsModelGate = new object();
+        private bool earsModelWanted, earsModelLoaded, earsModelBusy;
         private double listenAt;
 
         private void AgentVoice()
@@ -13350,7 +13379,7 @@ namespace CapriDesktop
             ears.Stop();
             ears.Muted = false;
             Hearing.Own = null;
-            if (!testing) ThreadPool.QueueUserWorkItem(delegate { parakeet.Dispose(); });
+            if (!testing) EarsModel(false);
             Hush();
             dropping = false;
             checkedIn = false;

@@ -324,6 +324,8 @@ namespace CapriDesktop
                 if (settingUpEars || SettingUpVoice) return windows && earsReady ? new HearingStatus("Her ears are downloading: " + progress + " · Windows speech on", false) : new HearingStatus("Her ears are downloading: " + progress, false, HearingAction.Type);
                 return new HearingStatus("Her ears aren't installed", true, HearingAction.Own, HearingAction.Windows);
             }
+            // Shut on purpose, "ready" read as if she was listening (6 Nov).
+            if (earsClosed && !chatting) return new HearingStatus("Her ears are off: click her wave to open them", false);
             // Only once nothing's wrong, so it never hides a problem.
             Mic device = HearingMic(windows);
             if (device != null && hearingHandsFree(device.Id, device.Name))
