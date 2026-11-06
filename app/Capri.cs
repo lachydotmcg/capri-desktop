@@ -6933,6 +6933,9 @@ namespace CapriDesktop
                 catch (UnauthorizedAccessException) { }
                 preferences.KeepAllHistory = true;
                 SavePreferences();
+                Preferences diskOn;
+                bool durable = File.Exists(marker) || (Retention.Readable(settingsPath, out diskOn) && diskOn.KeepAllHistory);
+                if (!durable) preferences.KeepAllHistory = false;
                 return;
             }
             preferences.KeepAllHistory = false;
@@ -15945,6 +15948,14 @@ namespace CapriDesktop
             string notice;
             Preferences value = ReadPreferences(settingsPath, out notice);
             if (notice != null) unreadableNotice = notice;
+            if (notice != null)
+            {
+                // Settings that existed but couldn't be read leave the keep-all choice unknown, so this PC keeps
+                // everything from now on until they choose otherwise.
+                try { File.WriteAllText(Path.Combine(data, "keep-all"), "1"); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
             return value;
         }
 

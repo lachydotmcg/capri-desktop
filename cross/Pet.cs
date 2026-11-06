@@ -3933,6 +3933,9 @@ namespace CapriDesktop
                 catch (UnauthorizedAccessException) { }
                 Saved.KeepAllHistory = true;
                 Save();
+                Settings diskOn;
+                bool durable = File.Exists(marker) || (Retention.Readable(Path.Combine(folder, "cross.json"), out diskOn) && diskOn.KeepAllHistory);
+                if (!durable) Saved.KeepAllHistory = false;
                 Sync();
                 return;
             }
@@ -5414,6 +5417,14 @@ namespace CapriDesktop
         {
             Settings loaded = ReadSettings(Path.Combine(folder, "cross.json"), out unreadableNotice, out settingsWriteBlocked);
             settingsReset = unreadableNotice != null;
+            if (settingsReset)
+            {
+                // Settings that existed but couldn't be read leave the keep-all choice unknown, so this PC keeps
+                // everything from now on until they choose otherwise: the marker outlives the next save.
+                try { File.WriteAllText(Path.Combine(folder, "keep-all"), "1"); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
             return loaded;
         }
 
