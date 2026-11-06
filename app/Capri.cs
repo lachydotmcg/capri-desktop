@@ -41709,7 +41709,7 @@ namespace CapriDesktop
                             string earsRoot = Path.Combine(Path.GetDirectoryName(settingsPath), "ears-test");
                             if (Directory.Exists(earsRoot)) Directory.Delete(earsRoot, true);
                             string earsSource = Path.Combine(earsRoot, "source");
-                            const string englishInside = "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8", europeanInside = "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8";
+                            const string englishInside = "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8", europeanInside = "sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8";
                             System.Collections.Generic.Dictionary<string, byte[]> earsPacks = new System.Collections.Generic.Dictionary<string, byte[]>();
                             foreach (string inside in new[] { englishInside, europeanInside })
                             {
@@ -41794,7 +41794,7 @@ namespace CapriDesktop
                             if (!englishFirst || !europeanApart || !europeanIn || !turkishNone) throw new Exception("Her ears didn't pick the pack for the language: English " + englishFirst + ", European apart " + europeanApart + ", European in " + europeanIn + ", Turkish none " + turkishNone);
                             Directory.Delete(earsRoot, true);
                             if (LocalEars.PackSize != 482468385 || LocalEars.PackSha.Length != 64 || !LocalEars.PackUrl.StartsWith("https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/", StringComparison.Ordinal)) throw new Exception("Her ears point at the wrong download.");
-                            if (LocalEars.EuropeanSize != 487170055 || LocalEars.EuropeanSha != "5793d0fd397c5778d2cf2126994d58e9d56b1be7c04d13c7a15bb1b4eafb16bf" || LocalEars.EuropeanUrl != "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/" + europeanInside + ".tar.bz2") throw new Exception("Her European ears point at the wrong download.");
+                            if (LocalEars.EuropeanSize != 487131623 || LocalEars.EuropeanSha != "9f84fa1a60bc6c55455bf24241bacd1ec76171321e0086c4bef829472f128dc7" || LocalEars.EuropeanUrl != "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8.tar.bz2") throw new Exception("Her European ears point at the wrong download.");
                             bool spokenRight = LocalEars.Spoken("en", "en") == "en" && LocalEars.Spoken("en", "ES") == "es" && LocalEars.Spoken("es", "en") == "es" && LocalEars.Spoken("tr", "en") == "tr" && LocalEars.Spoken("en", "ja") == "ja" && LocalEars.Spoken("en", "") == "en";
                             LocalEars sorting = new LocalEars(Path.GetDirectoryName(settingsPath));
                             string europeanFor = "", noneFor = "";
@@ -41802,7 +41802,7 @@ namespace CapriDesktop
                             foreach (string code in new[] { "tr", "vi", "id", "fil", "no", "ja", "zh" }) { sorting.Language = code; if (sorting.Model != null) noneFor += code + " "; }
                             sorting.Language = "en";
                             if (!spokenRight || europeanFor.Length > 0 || noneFor.Length > 0 || sorting.Model != LocalEars.Pack) throw new Exception("Her ears picked the wrong pack: spoken " + spokenRight + ", missed European " + europeanFor + ", wrongly heard " + noneFor);
-                            checks.Add("PASS her own ears pack: Parakeet's .tar.bz2 downloads with its checksum, unpacks with Windows tar into ears, and only counts as ready once her free voice brings sherpa-onnx; English gets v2, Spanish and v3's other 23 European languages get v3 in its own folder (her language, or Windows' when she's on English), the rest keep Windows speech");
+                            checks.Add("PASS her own ears pack: Parakeet's .tar.bz2 downloads with its checksum, unpacks with Windows tar into ears, and only counts as ready once her free voice brings sherpa-onnx; English gets v2, Spanish and Ultra's other 23 European languages get Ultra in its own folder (her language, or Windows' when she's on English), the rest keep Windows speech");
                             string bunzipRoot = Path.Combine(Path.GetDirectoryName(settingsPath), "bunzip-test");
                             string bunzipSource = Path.Combine(bunzipRoot, "source");
                             Directory.CreateDirectory(Path.Combine(bunzipSource, "pack"));

@@ -1792,9 +1792,9 @@ namespace CapriDesktop
         }
     }
 
-    // Her own ears: NVIDIA's Parakeet TDT 0.6B (CC-BY-4.0), run by the sherpa-onnx her free voice ships. v2 hears English;
-    // v3 hears 25 European languages and works out which one it's hearing. They hear whichever mic is picked, offline,
-    // without Windows' online speech setting.
+    // Her own ears: Parakeet TDT 0.6B (CC-BY-4.0), run by the sherpa-onnx her free voice ships. NVIDIA's v2 hears English;
+    // Ultra, NVIDIA's v3 trained further by Moondream, hears 25 European languages and works out which one it's hearing.
+    // They hear whichever mic is picked, offline, without Windows' online speech setting.
     internal sealed class LocalEars : IDisposable
     {
         internal const string Pack = "parakeet-tdt-0.6b-v2-int8";
@@ -1802,12 +1802,12 @@ namespace CapriDesktop
         internal static string PackSha = "157c157bc51155e03e37d2466522a3a737dd9c72bb25f36eb18912964161e1ad";
         internal static long PackSize = 482468385;
         private const string Inside = "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8";
-        internal const string EuropeanPack = "parakeet-tdt-0.6b-v3-int8";
-        internal static string EuropeanUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2";
-        internal static string EuropeanSha = "5793d0fd397c5778d2cf2126994d58e9d56b1be7c04d13c7a15bb1b4eafb16bf";
-        internal static long EuropeanSize = 487170055;
-        private const string EuropeanInside = "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8";
-        // What v3 hears, as two-letter language codes.
+        internal const string EuropeanPack = "parakeet-tdt-0.6b-ultra-int8";
+        internal static string EuropeanUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8.tar.bz2";
+        internal static string EuropeanSha = "9f84fa1a60bc6c55455bf24241bacd1ec76171321e0086c4bef829472f128dc7";
+        internal static long EuropeanSize = 487131623;
+        private const string EuropeanInside = "sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8";
+        // What Ultra hears, as two-letter language codes.
         internal static readonly string[] European = { "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el", "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "es", "sv", "ru", "uk" };
         internal static readonly string[] Needed = { "encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", "tokens.txt" };
         private readonly string root;
@@ -1832,7 +1832,7 @@ namespace CapriDesktop
 
         internal bool Fits { get { return IntPtr.Size == 8 && Array.IndexOf(European, language) >= 0; } }
 
-        // The pack that hears their language: v2 for English, v3 for its other languages, none for the rest, which keep Windows speech.
+        // The pack that hears their language: v2 for English, Ultra for its other languages, none for the rest, which keep Windows speech.
         internal string Model { get { return !Fits ? null : language == "en" ? Pack : EuropeanPack; } }
 
         internal long Size { get { return Model == EuropeanPack ? EuropeanSize : PackSize; } }
