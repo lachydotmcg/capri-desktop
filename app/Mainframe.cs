@@ -6553,6 +6553,7 @@ namespace CapriDesktop
                 steps[4] = Caption("", 28, 370, Font, White);
                 live = Caption("", 28, 404, Font, Faint);
                 elsewhere = Caption("", 28, 438, Font, Faint);
+                // Every second it asks again who hears her. Her looks at Windows run in the background, so it never waits (#100).
                 ticks.Interval = 1000;
                 ticks.Tick += delegate { Sync(); };
                 owner.Fit(this);
@@ -6589,14 +6590,15 @@ namespace CapriDesktop
                 return made;
             }
 
-            // The switch, the mix's devices, what's wrong if anything, the name to pick in Discord, and who hears it now.
+            // The switch, the mix's devices, what's wrong if anything, the name to pick in Discord, and who hears it now, as her last
+            // looks at Windows found them.
             internal void Sync()
             {
                 Companion capri = owner.capri;
                 MixDevice there = capri.MixOutput;
                 bool cable = there != null, on = capri.VoiceInMic;
                 bool vb = capri.VbCableReady;
-                string problem = capri.VoiceInMicProblem, setup = capri.CableSetupLine, far = MicMix.FarName(there);
+                string problem = capri.VoiceInMicProblem, setup = capri.CableSetupLine, far = capri.MixFarName;
                 CallApp app = CallApps.Current;
                 bool isDiscord = app.Name == "Discord";
                 Retext(callHead, "IN " + app.Caption + " >");

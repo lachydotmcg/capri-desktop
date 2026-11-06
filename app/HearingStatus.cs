@@ -952,4 +952,61 @@ namespace CapriDesktop
             poked.Dispose();
         }
     }
+
+    // One kind of look at Windows' sound devices for her sound page (#100), like who hears her voice in your mic. Windows can
+    // take a moment to answer, so it reads in the background and hands what it found back on her window's thread, one look at
+    // a time: a device that's slow to answer, like a Bluetooth headset waking up, only holds up its own line, and asking while
+    // it's looking makes one more look once it's done, with what was asked last. Before her window is up, and in the smoke
+    // test, it looks in place, so a check reads what it asked for straight away.
+    internal sealed class DeviceLook
+    {
+        // The smoke test's. Its own section turns it off to check the background.
+        internal static bool InPlace;
+        private static int busy;
+        private readonly Control owner;
+        private Action again;
+        private bool looking;
+
+        internal DeviceLook(Control owner) { this.owner = owner; }
+
+        // Looks still out, so the smoke test can wait for them before it puts her devices back.
+        internal static int Busy { get { return Volatile.Read(ref busy); } }
+
+        internal bool Looking { get { return looking; } }
+
+        // What read finds goes to take on her window's thread, or null when Windows wouldn't answer. A look that comes back later
+        // goes on screen through shown, since nothing else is drawing then.
+        internal void Ask<T>(Func<T> read, Action<T> take, Action shown = null) where T : class
+        {
+            if (looking) { again = delegate { Ask(read, take, shown); }; return; }
+            if (InPlace || !owner.IsHandleCreated) { take(Read(read)); return; }
+            looking = true;
+            Interlocked.Increment(ref busy);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                T found = Read(read);
+                try { owner.BeginInvoke((MethodInvoker)delegate { Back(delegate { take(found); if (shown != null) shown(); }); }); }
+                catch (InvalidOperationException) { Interlocked.Decrement(ref busy); }
+            });
+        }
+
+        private void Back(Action took)
+        {
+            looking = false;
+            Action next = again;
+            again = null;
+            try { took(); }
+            finally
+            {
+                if (next != null) next();
+                Interlocked.Decrement(ref busy);
+            }
+        }
+
+        private static T Read<T>(Func<T> read) where T : class
+        {
+            try { return read(); }
+            catch (Exception error) { Brain.Log("sound devices", -1, error.GetType().Name + ": " + error.Message); return null; }
+        }
+    }
 }

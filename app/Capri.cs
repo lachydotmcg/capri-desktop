@@ -2273,6 +2273,11 @@ namespace CapriDesktop
             dance = new Clip(idle);
             Takeover.Face = LoadArt("Capri.Sprite.face.png");
             testing = smoke;
+            // Her sound page's looks at Windows' devices hand back on this window, and look in place in the smoke test (#100).
+            DeviceLook.InPlace = smoke;
+            cableLook = new DeviceLook(this);
+            mixMicLook = new DeviceLook(this);
+            heardLook = new DeviceLook(this);
             voice = new Voice(new Speaker(smoke));
             AllowDrop = true;
             instant = smoke;
@@ -6339,11 +6344,21 @@ namespace CapriDesktop
         private MicMix micMix;
         private MixDevice cableThere;
         private bool vbCable;
+        // The name Discord lists the cable's far end under, from the same look as the cable.
+        private string cableFar;
         private double cableLooked = -10, micMixShown;
         // Settings' Input row: the pick and device list it last read, and the mic's name then.
         private string mixMicFor, mixMicName;
         private IMixDevices mixMicFrom;
         private double mixMicLooked = -10;
+        // Who her last look found hearing the cable's far end, and which far end that was.
+        private System.Collections.Generic.List<string> mixHeard = new System.Collections.Generic.List<string>();
+        private string mixHeardOn;
+        // Settings' rows and the setup window show what her looks at Windows found, and each look runs in the background (#100):
+        // the cable, the mic and who hears it each on their own, so a device that's slow to answer only holds up its own line and
+        // the window never freezes while Windows answers. While a look's answer goes on screen, the rows don't ask again.
+        private readonly DeviceLook cableLook, mixMicLook, heardLook;
+        private bool showingLook;
         // VB-CABLE's setup while it's open from Settings, the setup file it was unpacked to and the hold on it, and Settings' line
         // about it. The gate keeps Set up and the setup closing, which Windows reports on another thread, from crossing.
         private readonly object cableSetupGate = new object();
@@ -6356,29 +6371,66 @@ namespace CapriDesktop
 
         internal bool VoiceInMic { get { return preferences.VoiceInMic; } }
 
-        // A virtual cable's input is there, VB-CABLE's or Steam's. Settings asks each time it syncs, so Windows' device list is
-        // read at most every 3 s.
+        // A virtual cable's input is there, VB-CABLE's or Steam's, as her last look at Windows' device list found it. Settings
+        // asks each time it syncs, so the list is looked at again at most every 3 s.
         internal bool CableReady
         {
             get
             {
                 double now = clock.Elapsed.TotalSeconds;
-                if (now >= cableLooked + 3 || now < cableLooked)
-                {
-                    cableLooked = now;
-                    try { cableThere = MicMix.Devices.Cable(preferences.MixCable); }
-                    catch (Exception) { cableThere = null; }
-                    vbCable = cableThere != null && !MicMix.IsSteam(cableThere.Name);
-                    if (cableThere != null && !vbCable)
-                    {
-                        try { vbCable = MicMix.Devices.Cables().Exists(delegate(MixDevice each) { return !MicMix.IsSteam(each.Name); }); }
-                        catch (Exception) { }
-                    }
-                    if (vbCable && cableSetup == null) cableSetupLine = null;
-                }
+                if (!showingLook && (now >= cableLooked + 3 || now < cableLooked)) LookCable(now);
                 return cableThere != null;
             }
         }
+
+        // What a look at her mix's cable found: the cable, whether VB-CABLE's is there too, and the name of its far end.
+        private sealed class CableSeen
+        {
+            internal MixDevice Cable;
+            internal bool Vb;
+            internal string Far;
+        }
+
+        private void LookCable(double now)
+        {
+            cableLooked = now;
+            IMixDevices devices = MicMix.Devices;
+            string chosen = preferences.MixCable;
+            cableLook.Ask(delegate
+            {
+                CableSeen seen = new CableSeen();
+                try { seen.Cable = devices.Cable(chosen); }
+                catch (Exception) { }
+                seen.Vb = seen.Cable != null && !MicMix.IsSteam(seen.Cable.Name);
+                if (seen.Cable != null && !seen.Vb)
+                {
+                    try { seen.Vb = devices.Cables().Exists(delegate(MixDevice each) { return !MicMix.IsSteam(each.Name); }); }
+                    catch (Exception) { }
+                }
+                seen.Far = MicMix.FarName(seen.Cable);
+                return seen;
+            }, delegate(CableSeen seen)
+            {
+                if (seen == null) return;
+                cableThere = seen.Cable;
+                vbCable = seen.Vb;
+                cableFar = seen.Far;
+                if (vbCable && cableSetup == null) cableSetupLine = null;
+            }, ShowMixLooked);
+        }
+
+        // A look that came back puts what it found on Settings' rows and the setup window, which read it without asking again.
+        private void ShowMixLooked()
+        {
+            if (mainframe == null || mainframe.IsDisposed) return;
+            bool was = showingLook;
+            showingLook = true;
+            try { mainframe.ShowVoiceInMic(); }
+            finally { showingLook = was; }
+        }
+
+        // What Discord or Roblox lists the cable's far end as, from the same look as the cable.
+        internal string MixFarName { get { return cableFar ?? MicMix.FarName(null); } }
 
         // What they pick as their mic in Discord or Roblox for the cable that's there.
         internal string CableEnd { get { return CableReady ? MicMix.EndOf(cableThere) : MicMix.CableEnd; } }
@@ -6532,8 +6584,9 @@ namespace CapriDesktop
             mainframe.ShowVoiceInMic();
         }
 
-        // The mic her mix hears, by name: the one it opens for the pick, so a new pick shows at once, else the one it has open.
-        // Null when there's none. Settings asks each time it syncs, so Windows' list is read for a new pick, else at most every 3 s.
+        // The mic her mix hears, by name: the one it opens for the pick, as her last look found it, else the one it has open.
+        // Null when there's none. Settings asks each time it syncs, so Windows' list is looked at for a new pick, else at most
+        // every 3 s, and a new pick shows once that look is back.
         internal string MixInputName
         {
             get
@@ -6541,13 +6594,13 @@ namespace CapriDesktop
                 double now = clock.Elapsed.TotalSeconds;
                 string pick = MixMicPick;
                 IMixDevices devices = MicMix.Devices;
-                if (pick != mixMicFor || devices != mixMicFrom || now >= mixMicLooked + 3 || now < mixMicLooked)
+                if (!showingLook && (pick != mixMicFor || devices != mixMicFrom || now >= mixMicLooked + 3 || now < mixMicLooked))
                 {
                     mixMicFor = pick;
                     mixMicFrom = devices;
                     mixMicLooked = now;
-                    try { MixDevice mic = devices.Mic(pick); mixMicName = mic == null ? null : mic.Name; }
-                    catch (Exception) { mixMicName = null; }
+                    mixMicLook.Ask(delegate { MixDevice mic = devices.Mic(pick); return mic == null ? null : mic.Name; },
+                        delegate(string name) { if (pick == mixMicFor && devices == mixMicFrom) mixMicName = name; }, ShowMixLooked);
                 }
                 if (mixMicName != null) return mixMicName;
                 MicMix running = micMix;
@@ -6567,14 +6620,25 @@ namespace CapriDesktop
             }
         }
 
-        // The programs hearing her mix's far end right now, like Discord, for the setup steps to say it's working.
+        // The programs her last look found hearing her mix's far end, like Discord, for the setup steps to say it's working. Each
+        // ask looks again in the background, which the setup window does every second while it's open.
         internal System.Collections.Generic.List<string> MixListeners
         {
             get
             {
                 MixDevice cable = MixOutput;
-                try { return cable == null || cable.Far == null ? new System.Collections.Generic.List<string>() : MicMix.Devices.Listening(cable.Far); }
-                catch (Exception) { return new System.Collections.Generic.List<string>(); }
+                string far = cable == null ? null : cable.Far;
+                if (far == null) return new System.Collections.Generic.List<string>();
+                if (!showingLook)
+                {
+                    IMixDevices devices = MicMix.Devices;
+                    heardLook.Ask(delegate { return devices.Listening(far); }, delegate(System.Collections.Generic.List<string> heard)
+                    {
+                        mixHeard = heard ?? new System.Collections.Generic.List<string>();
+                        mixHeardOn = far;
+                    }, ShowMixLooked);
+                }
+                return mixHeardOn == far ? new System.Collections.Generic.List<string>(mixHeard) : new System.Collections.Generic.List<string>();
             }
         }
 
