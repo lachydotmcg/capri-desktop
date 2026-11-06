@@ -253,7 +253,7 @@ namespace CapriDesktop
         {
             Stopwatch clock = Stopwatch.StartNew();
             while (!HintVisible && clock.ElapsedMilliseconds < 4000) { Application.DoEvents(); Thread.Sleep(10); }
-            if (!HintVisible) throw new Exception("A Mainframe tip never appeared after its delay.");
+            if (!HintVisible) throw new Exception("A Mainframe tip never appeared after its delay: waiting " + (waitingHint != null) + ", over " + (overHint == null ? "nothing" : overHint.Title) + ", mouse buttons " + Control.MouseButtons + ", shown " + Visible + ", " + WindowState + ", page " + ClientRectangle + ", check-ins " + checkIns.Bounds + " hidden " + Hidden(checkIns) + ", screen " + Screen.FromControl(this).WorkingArea + ".");
         }
 
         private static void PumpTips(int milliseconds)
