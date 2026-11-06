@@ -2124,6 +2124,10 @@ namespace CapriDesktop
         private volatile bool noiseHold;
         private System.Collections.Generic.List<short[]> utterance;
         private int quietRun;
+        // A line heard mid-job while the one before it was still turning into words waits here for its turn.
+        private short[][] heldLine;
+        private int heldTicket, heldRequest;
+        private double heldWake;
         private double voiceUntil;
         private bool spoke;
         private bool checkedIn;
@@ -11118,6 +11122,7 @@ namespace CapriDesktop
                 Brain.Log("ears", -1, "A line took over 30 s to turn into words, so she listened again.");
                 transcribing = false;
                 nameOver = false;
+                NextLine();
                 CheckEars(now);
             }
             // A mic that stopped sending, unplugged, lost in sleep or dropped by its driver, is opened again, like Hey Capri's.
@@ -12296,7 +12301,7 @@ namespace CapriDesktop
             hearingOffline = false;
             hearingSpeechProblem = null;
             nameOver = false;
-            lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
+            lock (waking) { utterance = null; heldLine = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsAwaited = false;
             if (HearingStatus.Own(HearingChoice, OwnEars)) { ListenOwn(); return; }
             if (HearingChoice == 1) { if (parakeet.Fits) AwaitEars(null); else HearingNote(); return; }
@@ -12373,7 +12378,7 @@ namespace CapriDesktop
         // No Windows speech and her own ears aren't in yet: they type until the ears land, then she switches on her own.
         private void AwaitEars(string why)
         {
-            lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
+            lock (waking) { utterance = null; heldLine = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsReady = false;
             earsAwaited = true;
             Hearing.Own = null;
@@ -12398,7 +12403,7 @@ namespace CapriDesktop
         {
             hearingOffline = false;
             hearingSpeechProblem = null;
-            lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
+            lock (waking) { utterance = null; heldLine = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             bool promised = earsAwaited;
             earsAwaited = false;
             Hearing.Own = parakeet;
@@ -12420,7 +12425,7 @@ namespace CapriDesktop
             hearingOffline = true;
             hearingSpeechProblem = why;
             Hearing.Own = null;
-            lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
+            lock (waking) { utterance = null; heldLine = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsAwaited = false;
             try { if (!testing && !ears.Listening) ears.Start(); }
             catch (VoiceException error)
@@ -12578,10 +12583,14 @@ namespace CapriDesktop
             return true;
         }
 
+        // Mid-job what they say goes to the job and never starts a new reply, so her ears hear on while a line turns into words, and a
+        // line isn't stale because she said something since (Lachy, 6 Nov: "Hey Capri while she was working didn't work at all").
+        private bool EarsBesideJob { get { return MidJob(job) && !CallModeOn; } }
+
         private void CheckEars(double now)
         {
             // A job leaves her thinking until it ends, but her ears stay open through it so they can tell her more.
-            earsShut = local && (!earsReady || transcribing || ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || now < voiceUntil && !nameOver);
+            earsShut = local && (!earsReady || transcribing && !EarsBesideJob || ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || now < voiceUntil && !nameOver);
             if (!earsShut) return;
             lock (waking) { utterance = null; preroll.Clear(); loudRun = 0; quietRun = 0; }
             pill.SetLevel(0);
@@ -12611,7 +12620,7 @@ namespace CapriDesktop
             }
             lock (waking)
             {
-                if (!local || !earsReady || dictation != null || ears.Muted || earsShut && !nameOver || transcribing) { utterance = null; preroll.Clear(); loudRun = 0; quietRun = 0; return; }
+                if (!local || !earsReady || dictation != null || ears.Muted || earsShut && !nameOver || transcribing && !EarsBesideJob) { utterance = null; preroll.Clear(); loudRun = 0; quietRun = 0; return; }
                 // The room's level is its quietest moment: it drops straight to anything quieter and creeps up 2% a chunk between lines, never mid-line. It starts no higher than the old fixed level allows.
                 if (room < 0) room = Math.Min(Math.Max(level, 0.0003), WakeLevel / RoomMargin);
                 else if (level < room) room = Math.Max(level, 0.0003);
@@ -12652,9 +12661,29 @@ namespace CapriDesktop
                     if (high < low * 1.2) { room = Math.Max(room, low); utterance = null; quietRun = 0; nameOver = false; return; }
                 }
                 if (quietRun < 9 && utterance.Count < 150) return;
-                short[][] taken = utterance.ToArray();
                 bool capped = quietRun < 9;
-                utterance = null;
+                // Listening for her name, 15 seconds without a pause still gets its words checked for it: a game's sound never pauses,
+                // and holding for a pause left her deaf all through a Roblox job (Lachy, 6 Nov). It's cut at its quietest moment in the
+                // last two seconds so a word isn't split, and the rest starts the next piece.
+                bool named = capped && preferences.ListenCapri && !pushing && !CallModeOn;
+                short[][] taken;
+                if (named)
+                {
+                    int cut = utterance.Count - 20;
+                    double cutLevel = VoiceLevel(utterance[cut]);
+                    for (int i = cut + 1; i < utterance.Count; i++)
+                    {
+                        double piece = VoiceLevel(utterance[i]);
+                        if (piece < cutLevel) { cut = i; cutLevel = piece; }
+                    }
+                    taken = utterance.GetRange(0, cut + 1).ToArray();
+                    utterance.RemoveRange(0, cut + 1);
+                }
+                else
+                {
+                    taken = utterance.ToArray();
+                    utterance = null;
+                }
                 quietRun = 0;
                 int ticket = chatTicket;
                 int request = asking;
@@ -12664,15 +12693,36 @@ namespace CapriDesktop
                     double quietest = 1;
                     for (int i = 4; i < taken.Length; i++) quietest = Math.Min(quietest, VoiceLevel(taken[i]));
                     room = Math.Max(room, quietest);
-                    noiseHold = true;
                     nameOver = false;
-                    Post(delegate { if (ticket == chatTicket && local) Missed("I heard 15 seconds without a pause. Try a shorter line or lower your mic volume.", false); });
-                    return;
+                    if (!named)
+                    {
+                        noiseHold = true;
+                        Post(delegate { if (ticket == chatTicket && local) Missed("I heard 15 seconds without a pause. Try a shorter line or lower your mic volume.", false); });
+                        return;
+                    }
                 }
-                if (!LineCounts(taken, wake, clock.Elapsed.TotalSeconds))
+                else if (!LineCounts(taken, wake, clock.Elapsed.TotalSeconds))
                 {
                     nameOver = false;
                     Post(delegate { ModList.LogHearing("(a sound too short or quiet to count as speech)", false); });
+                    return;
+                }
+                if (transcribing)
+                {
+                    // Mid-job, a line finished while the one before is still turning into words goes next, joined to any already waiting.
+                    // A PC too busy to keep up keeps the newest 30 seconds.
+                    if (heldLine == null) heldLine = taken;
+                    else
+                    {
+                        int kept = Math.Min(heldLine.Length, Math.Max(0, 300 - taken.Length));
+                        short[][] joined = new short[kept + taken.Length][];
+                        Array.Copy(heldLine, heldLine.Length - kept, joined, 0, kept);
+                        Array.Copy(taken, 0, joined, kept, taken.Length);
+                        heldLine = joined;
+                    }
+                    heldTicket = ticket;
+                    heldRequest = request;
+                    heldWake = wake;
                     return;
                 }
                 transcribing = true;
@@ -12731,11 +12781,13 @@ namespace CapriDesktop
         {
             if (callVersion >= 0 && !callSession.Current(callVersion)) return;
             if (ticket != chatTicket || !local || !chatting) return;
-            if (request != asking) { transcribing = false; nameOver = false; CheckEars(clock.Elapsed.TotalSeconds); return; }
-            if (ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || clock.Elapsed.TotalSeconds < voiceUntil && !nameOver || !Speech(taken, wake))
+            if (request != asking && !EarsBesideJob) { transcribing = false; nameOver = false; NextLine(); CheckEars(clock.Elapsed.TotalSeconds); return; }
+            // Mid-job a line was heard with her ears open, so her voice starting since doesn't make it hers.
+            if (ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || clock.Elapsed.TotalSeconds < voiceUntil && !nameOver && !EarsBesideJob || !Speech(taken, wake))
             {
                 transcribing = false;
                 nameOver = false;
+                NextLine();
                 CheckEars(clock.Elapsed.TotalSeconds);
                 if (!earsShut) Missed(NoWords, false);
                 return;
@@ -12762,14 +12814,35 @@ namespace CapriDesktop
             });
         }
 
+        // The line that waited mid-job for the one before it to turn into words gets its turn.
+        private void NextLine()
+        {
+            short[][] next;
+            int ticket, request;
+            double wake;
+            lock (waking)
+            {
+                next = heldLine;
+                heldLine = null;
+                ticket = heldTicket;
+                request = heldRequest;
+                wake = heldWake;
+                if (next == null || ticket != chatTicket || !local || !chatting) return;
+                transcribing = true;
+                transcribingAt = Environment.TickCount;
+            }
+            Post(delegate { Transcribe(next, ticket, request, wake); });
+        }
+
         private void HeardLocally(int ticket, int request, string text, string problem, CallTranscript line = null, int callVersion = -1)
         {
             if (callVersion >= 0 && !callSession.Current(callVersion)) return;
             if (ticket != chatTicket || !chatting || !local) return;
             transcribing = false;
             nameOver = false;
+            NextLine();
             CheckEars(clock.Elapsed.TotalSeconds);
-            if (request != asking || ears.Muted) { if (!preferences.ListenCapri) mainframe.VoiceNote(LocalListening, false); return; }
+            if (request != asking && !EarsBesideJob || ears.Muted) { if (!preferences.ListenCapri) mainframe.VoiceNote(LocalListening, false); return; }
             if (problem != null)
             {
                 HearingResult(problem, false);
@@ -13259,7 +13332,7 @@ namespace CapriDesktop
             checkedIn = false;
             quietSince = -1;
             wokeAt = -1;
-            lock (waking) { resting = false; backlog = null; preroll.Clear(); loudRun = 0; utterance = null; quietRun = 0; noiseHold = false; }
+            lock (waking) { resting = false; backlog = null; preroll.Clear(); loudRun = 0; utterance = null; heldLine = null; quietRun = 0; noiseHold = false; }
             earsShut = false;
             transcribing = false;
             nameOver = false;
@@ -24405,6 +24478,168 @@ namespace CapriDesktop
             }
         }
 
+        // Lachy, 6 Nov: "Hey Capri while she was working didn't work at all". A dozen lines with her name, over the last 35 seconds of a
+        // 15-minute Roblox job, never reached it, and nothing about them was logged. Her own ears lost lines three ways in a game: the
+        // game's steady sound held them shut waiting for a pause that never came, a line said while the one before was still turning
+        // into words was thrown away, and a line was dropped if she said anything before its words came back.
+        private void SmokeJobEars(System.Collections.Generic.List<string> checks, string output)
+        {
+            bool listenWas = preferences.ListenCapri, toldWas = preferences.ListenCapriTold, freeToldWas = preferences.FreeChatTold, quietWas = preferences.Quiet, silentWas = preferences.Silent, heyWas = preferences.HeyCapri, freeChatWas = FreeChatOn, keepingWas = Brain.Keeping;
+            bool? ownWas = ownEarsTest;
+            Func<short[], string> hearingWas = Hearing.Run;
+            Func<string, byte[]> speakWas = Speak, freeSpeakWas = FreeSpeak;
+            Func<string, string, byte[][], string> headWas = headTest;
+            Action<string> asideWas = asideTest, stopWas = stopTest;
+            Job runningWas = job;
+            string workingWas = working, transcriptWas = Brain.TranscriptPath;
+            TalkState talkWas = talkState;
+            const string said = "Hey Capri, you're kinda just mindlessly mining in the exact same spot.";
+            ManualResetEvent slow = new ManualResetEvent(true), entered = new ManualResetEvent(false);
+            int asides = 0;
+            Func<int, short[]> wave = delegate(int amplitude)
+            {
+                short[] samples = new short[Ears.Chunk];
+                for (int at = 0; at < samples.Length; at++) samples[at] = (short)(Math.Sin(at * Math.PI / 40) * amplitude);
+                return samples;
+            };
+            Action<int, int> sound = delegate(int amplitude, int chunks) { for (int at = 0; at < chunks; at++) Gather(wave(amplitude)); };
+            Action<int> voice = delegate(int chunks) { for (int at = 0; at < chunks; at++) Gather(wave(at % 2 == 0 ? 14000 : 20000)); };
+            // Roblox's digging: two loud hits, then three quiet chunks, and never the 0.9 s pause that ends a line.
+            Action<int> dig = delegate(int chunks) { for (int at = 0; at < chunks; at++) Gather(wave(at % 5 < 2 ? 3000 : 400)); };
+            Action<Func<bool>, int> pump = delegate(Func<bool> done, int limit)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (!done() && waited.ElapsedMilliseconds < limit) { Application.DoEvents(); Thread.Sleep(5); }
+            };
+            Job running = new Job("play the game until I tell you to stop");
+            Action reopen = delegate
+            {
+                slow.Set();
+                pump(delegate { return !transcribing; }, 3000);
+                if (chatting) StopChat();
+                ToggleChat();
+                if (!local || !chatting || !earsReady) throw new Exception("Her own ears didn't open for the job check.");
+                talkState = job != null ? TalkState.Thinking : TalkState.Off;
+                heard = "";
+            };
+            System.Collections.Generic.List<string> lost = new System.Collections.Generic.List<string>();
+            int barges = 0, asidesBefore = 0;
+            Action listen = delegate { barges = bargeIns; asidesBefore = asides; };
+            Action<string> reached = delegate(string how)
+            {
+                pump(delegate { return heard == said && asides > asidesBefore; }, 5000);
+                if (heard != said || bargeIns == barges) lost.Add(how);
+            };
+            try
+            {
+                StopChat();
+                CloseTalk();
+                Brain.TranscriptPath = Path.Combine(output, "job-ears");
+                Directory.CreateDirectory(Brain.TranscriptPath);
+                Brain.Keeping = true;
+                preferences.ListenCapri = preferences.ListenCapriTold = preferences.FreeChatTold = true;
+                preferences.Quiet = preferences.Silent = true;
+                preferences.HeyCapri = false;
+                FreeChatOn = true;
+                ownEarsTest = true;
+                Speak = FreeSpeak = delegate { return null; };
+                stopTest = delegate { };
+                headTest = delegate { return "Got it."; };
+                asideTest = delegate { Interlocked.Increment(ref asides); };
+                Hearing.Run = delegate(short[] samples)
+                {
+                    entered.Set();
+                    slow.WaitOne(5000);
+                    int loudest = 0;
+                    foreach (short sample in samples) loudest = Math.Max(loudest, Math.Abs((int)sample));
+                    // Only their voice has words in it: the game's sound and the other lines don't.
+                    return loudest >= 19000 ? said : "";
+                };
+                job = running;
+                working = "Holding left click. Esc stops me.";
+
+                reopen();
+                listen();
+                sound(100, 6); voice(8); sound(100, 12);
+                reached("a line in a quiet moment");
+
+                reopen();
+                listen();
+                dig(160); voice(8); dig(160);
+                bool held = noiseHold;
+                reached("a line over the game's steady sound" + (held ? ", with her ears holding for a pause" : ""));
+
+                reopen();
+                listen();
+                slow.Reset();
+                entered.Reset();
+                sound(100, 6); sound(9000, 3); sound(12000, 3); sound(100, 12);
+                pump(delegate { return entered.WaitOne(0); }, 3000);
+                sound(100, 4); voice(8); sound(100, 12);
+                slow.Set();
+                reached("a line said while the one before was still turning into words");
+
+                reopen();
+                listen();
+                sound(100, 6); voice(8); sound(100, 12);
+                asking++;
+                reached("a line she spoke after, before its words were made out");
+
+                reopen();
+                listen();
+                slow.Reset();
+                entered.Reset();
+                sound(100, 6); voice(8); sound(100, 12);
+                pump(delegate { return entered.WaitOne(0); }, 3000);
+                asking++;
+                slow.Set();
+                reached("a line she spoke after while its words were made out");
+                if (lost.Count > 0) throw new Exception("Mid-job her own ears lost " + string.Join("; ", lost.ToArray()) + ".");
+
+                reopen();
+                listen();
+                dig(320);
+                pump(delegate { return false; }, 500);
+                if (noiseHold || utterance == null || heard == said || bargeIns != barges) throw new Exception("Roblox's digging held her ears or reached the job: holding " + noiseHold + ", listening " + (utterance != null) + ", heard " + heard + ".");
+                checks.Add("PASS mid-job her own ears hear a line with her name in a quiet moment, over Roblox's never-pausing digging, while the line before is still turning into words, and when she speaks before its words come back; the game's sound alone reaches nothing and doesn't hold them (Lachy, 6 Nov)");
+
+                job = null;
+                working = null;
+                preferences.ListenCapri = false;
+                reopen();
+                dig(160);
+                pump(delegate { return false; }, 300);
+                if (!noiseHold) throw new Exception("Free voice chat stopped holding for a pause after 15 seconds of sound.");
+                checks.Add("PASS free voice chat without Listen for Capri still takes 15 seconds without a pause as the room and holds for a pause");
+            }
+            finally
+            {
+                slow.Set();
+                pump(delegate { return !transcribing; }, 3000);
+                StopChat();
+                CloseTalk();
+                preferences.ListenCapri = listenWas;
+                preferences.ListenCapriTold = toldWas;
+                preferences.FreeChatTold = freeToldWas;
+                preferences.Quiet = quietWas;
+                preferences.Silent = silentWas;
+                preferences.HeyCapri = heyWas;
+                FreeChatOn = freeChatWas;
+                ownEarsTest = ownWas;
+                Hearing.Run = hearingWas;
+                Speak = speakWas;
+                FreeSpeak = freeSpeakWas;
+                headTest = headWas;
+                asideTest = asideWas;
+                stopTest = stopWas;
+                job = runningWas;
+                working = workingWas;
+                talkState = talkWas;
+                Brain.TranscriptPath = transcriptWas;
+                Brain.Keeping = keepingWas;
+            }
+        }
+
         // Lachy, 6 Nov: "pull up Roblox and just play whatever the hell you want" stopped at Roblox's "Enter: skip tutorial" to ask
         // "Should I send that?", since Roblox has a chat, and her reply wrapped up over the question. A game's own Enter is a game
         // key on both her hands, Enter straight after typing in its chat still asks under Trusted, and a held job's reply is what
@@ -32180,6 +32415,7 @@ namespace CapriDesktop
             Section(checks, "SmokeGameHolds", delegate { SmokeGameHolds(checks); });
             Section(checks, "SmokeGameAsks", delegate { SmokeGameAsks(checks); });
             Section(checks, "SmokeGameEnter", delegate { SmokeGameEnter(checks); });
+            Section(checks, "SmokeJobEars", delegate { SmokeJobEars(checks, output); });
             Section(checks, "SmokeWorkingOut", delegate { SmokeWorkingOut(checks); });
             Section(checks, "SmokePlannerChecks", delegate { SmokePlannerChecks(checks); });
             Section(checks, "SmokeSettingTurns", delegate { SmokeSettingTurns(checks); });
