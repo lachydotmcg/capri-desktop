@@ -200,9 +200,8 @@ namespace CapriDesktop
 
         private int ShownScroll { get { return sliding ? slideAt : pageScroll; } }
 
-        private static int LookStamp { get { return Ground.ToArgb() ^ (Glow.ToArgb() << 1) ^ (Band.ToArgb() << 2) ^ (Hot.ToArgb() << 3); } }
 
-        private bool PictureInPlace { get { return pagePicture != null && !pictureStale && pictureLook == LookStamp && slideCanvas != null && slideCanvas.Tall == ClientSize.Height && pagePicture.Wide == ClientSize.Width && pagePicture.Tall == PictureTall; } }
+        private bool PictureInPlace { get { return pagePicture != null && !pictureStale && pictureLook == Neon.PaletteStamp && slideCanvas != null && slideCanvas.Tall == ClientSize.Height && pagePicture.Wide == ClientSize.Width && pagePicture.Tall == PictureTall; } }
 
         private int PictureTall { get { return Math.Max(Scaled(PageNow), ClientSize.Height); } }
 
@@ -211,15 +210,33 @@ namespace CapriDesktop
             if (!paged || !Visible || WindowState == FormWindowState.Minimized) { pictureTimer.Stop(); return; }
             if (sliding || glide.Enabled) return;
             if (pictureStale && pictureWaits && pictureAge.ElapsedMilliseconds < PictureSettleMs) return;
-            if (!PictureInPlace)
+            bool drawn = TryPicture(delegate
             {
-                try { RestartPicture(); }
-                catch (OutOfMemoryException) { DropPicture(); return; }
-                catch (ArgumentException) { DropPicture(); return; }
+                if (!PictureInPlace) RestartPicture();
+                System.Diagnostics.Stopwatch budget = System.Diagnostics.Stopwatch.StartNew();
+                while (piecesWaiting.Count > 0 && budget.ElapsedMilliseconds < PictureBudgetMs) DrawNextPiece();
+            });
+            if (drawn && piecesWaiting.Count == 0) pictureTimer.Stop();
+        }
+
+        private bool TryPicture(Action draw)
+        {
+            try
+            {
+                draw();
+                return true;
             }
-            System.Diagnostics.Stopwatch budget = System.Diagnostics.Stopwatch.StartNew();
-            while (piecesWaiting.Count > 0 && budget.ElapsedMilliseconds < PictureBudgetMs) DrawNextPiece();
-            if (piecesWaiting.Count == 0) pictureTimer.Stop();
+            catch (OutOfMemoryException) { }
+            catch (ArgumentException) { }
+            catch (ExternalException) { }
+            DropPicture();
+            return false;
+        }
+
+        private static void Free(ref PixelLayer layer)
+        {
+            if (layer != null) layer.Dispose();
+            layer = null;
         }
 
         private void RestartPicture()
@@ -231,7 +248,7 @@ namespace CapriDesktop
                 pagePicture = new PixelLayer(wide, tall);
             }
             pictureStale = false;
-            pictureLook = LookStamp;
+            pictureLook = Neon.PaletteStamp;
             piecesWaiting.Clear();
             pieceQueued.Clear();
             float s = Unit();
@@ -258,7 +275,7 @@ namespace CapriDesktop
         private void DrawGlowColumn(float s)
         {
             int tall = (int)Math.Ceiling(210 * s);
-            if (glowColumn != null) glowColumn.Dispose();
+            Free(ref glowColumn);
             glowColumn = new PixelLayer(1, tall);
             Color ground = Ground;
             using (Bitmap fade = new Bitmap(1, tall, PixelFormat.Format32bppArgb))
@@ -295,9 +312,9 @@ namespace CapriDesktop
         private void DrawFrameStrips(float s)
         {
             int inset = Scaled(PictureFrameInset), wide = ClientSize.Width, tall = ClientSize.Height;
-            if (frameRows != null) frameRows.Dispose();
-            if (frameColumns != null) frameColumns.Dispose();
-            if (slideCanvas != null) slideCanvas.Dispose();
+            Free(ref frameRows);
+            Free(ref frameColumns);
+            Free(ref slideCanvas);
             slideCanvas = new PixelLayer(wide, tall);
             frameRows = new PixelLayer(wide, inset * 2);
             frameColumns = new PixelLayer(inset * 2, tall);
@@ -339,12 +356,11 @@ namespace CapriDesktop
 
         private void DropLayers()
         {
-            if (pagePicture != null) pagePicture.Dispose();
-            if (glowColumn != null) glowColumn.Dispose();
-            if (frameRows != null) frameRows.Dispose();
-            if (frameColumns != null) frameColumns.Dispose();
-            if (slideCanvas != null) slideCanvas.Dispose();
-            pagePicture = glowColumn = frameRows = frameColumns = slideCanvas = null;
+            Free(ref pagePicture);
+            Free(ref glowColumn);
+            Free(ref frameRows);
+            Free(ref frameColumns);
+            Free(ref slideCanvas);
             piecesWaiting.Clear();
             pieceQueued.Clear();
         }
@@ -396,6 +412,7 @@ namespace CapriDesktop
             {
                 exact = slideMiddle = glideTo;
                 glide.Stop();
+                pumpToken = null;
                 slideHold.Start();
             }
             slideExact = exact;
@@ -407,7 +424,7 @@ namespace CapriDesktop
         {
             if (sliding) return true;
             if (!PictureInPlace || piecesWaiting.Count > PictureRushLimit || !IsHandleCreated) return false;
-            while (piecesWaiting.Count > 0) DrawNextPiece();
+            if (!TryPicture(delegate { while (piecesWaiting.Count > 0) DrawNextPiece(); })) return false;
             pictureQuiet = true;
             if (slideCover == null)
             {
@@ -519,17 +536,58 @@ namespace CapriDesktop
             pictureTimer.Stop();
         }
 
+        private int ComparedTop { get { return (int)Math.Ceiling(210 * Unit()) + Scaled(PictureFrameInset); } }
+
+        private bool Compared(Control control, Size real)
+        {
+            int margin = Scaled(PictureFrameInset);
+            return control.Parent == this && control.Visible && control.Width > 0 && control.Height > 0 && control.Left >= margin && control.Right <= real.Width - margin && control.Top >= ComparedTop && control.Bottom <= real.Height - margin;
+        }
+
+        private static bool PixelsDiffer(Color one, Color other)
+        {
+            return Math.Abs(one.R - other.R) > 8 || Math.Abs(one.G - other.G) > 8 || Math.Abs(one.B - other.B) > 8;
+        }
+
         private string PictureDiffers(Bitmap real, int scrolledBy)
         {
-            int margin = Scaled(PictureFrameInset), top = (int)Math.Ceiling(210 * Unit()) + margin, compared = 0, different = 0;
-            for (int y = top; y < real.Height - margin; y += 3)
+            foreach (Control control in scrolled)
+            {
+                if (!Compared(control, real.Size)) continue;
+                int checkedPixels = 0, wrong = 0;
+                for (int y = control.Top; y < control.Bottom; y += 2)
+                    for (int x = control.Left; x < control.Right; x += 2)
+                    {
+                        checkedPixels++;
+                        if (PixelsDiffer(real.GetPixel(x, y), pagePicture.Picture.GetPixel(x, y + scrolledBy))) wrong++;
+                    }
+                if (wrong * 100 > checkedPixels) return (control.Text.Length > 0 ? control.Text : control.GetType().Name) + " differs in " + wrong + " of " + checkedPixels + " pixels";
+            }
+            int margin = Scaled(PictureFrameInset), compared = 0, different = 0;
+            for (int y = ComparedTop; y < real.Height - margin; y += 3)
                 for (int x = margin; x < real.Width - margin; x += 3)
                 {
-                    Color shown = real.GetPixel(x, y), held = pagePicture.Picture.GetPixel(x, y + scrolledBy);
                     compared++;
-                    if (Math.Abs(shown.R - held.R) > 8 || Math.Abs(shown.G - held.G) > 8 || Math.Abs(shown.B - held.B) > 8) different++;
+                    if (PixelsDiffer(real.GetPixel(x, y), pagePicture.Picture.GetPixel(x, y + scrolledBy))) different++;
                 }
             return different * 100 > compared ? different + " of " + compared + " pixels" : null;
+        }
+
+        private string MissingPieceProblem()
+        {
+            using (Bitmap real = RealPage())
+            {
+                Size size = real.Size;
+                Control blanked = scrolled.Find(control => control is Key && control.Text.Length > 0 && Compared(control, size));
+                if (blanked == null) return null;
+                using (Graphics page = Graphics.FromImage(pagePicture.Picture))
+                using (Brush ground = new SolidBrush(Ground))
+                    page.FillRectangle(ground, blanked.Left, blanked.Top + Scaled(pageScroll), blanked.Width, blanked.Height);
+                string found = PictureDiffers(real, Scaled(pageScroll));
+                PieceChanged(blanked);
+                FinishPicture();
+                return found == null ? "Blanking " + blanked.Text + " in the picture wasn't noticed." : null;
+            }
         }
 
         private Bitmap RealPage()
@@ -568,7 +626,7 @@ namespace CapriDesktop
             if (problem != null) throw new Exception(problem);
             string cost = frameCost.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
             string rate = framesASecond.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " frames a second, longest gap " + longestGap.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms";
-            checks.Add((frameCost <= 16 && framesASecond >= 45 ? "PASS" : "LIMIT") + " Settings slides as one picture at " + cost + " ms a frame at 200% and " + rate + ", each frame reaching the screen whole, turning back at once and easing only a flick's lumps, without moving a control until it stops; the picture matches the real page and survives reopening Settings, a control that repaints is redrawn in it, and a press, a layout change or minimising brings the real page straight back where it had slid to");
+            checks.Add((frameCost <= 16 && framesASecond >= 45 ? "PASS" : "LIMIT") + " Settings slides as one picture at " + cost + " ms a frame at 200% and " + rate + ", each frame reaching the screen whole, turning back at once and easing only a flick's lumps, without moving a control until it stops; the picture matches the real page control by control and survives reopening Settings, a control that repaints is redrawn in it, with no memory for it she scrolls the old way, and a press, a layout change or minimising brings the real page straight back where it had slid to");
         }
 
         private string SlideProblem(out double frameCost, out double framesASecond, out double longestGap)
@@ -577,6 +635,8 @@ namespace CapriDesktop
             string differs;
             using (Bitmap real = RealPage()) differs = PictureDiffers(real, 0);
             if (differs != null) return "The picture of Settings doesn't match the page: " + differs;
+            string missing = MissingPieceProblem();
+            if (missing != null) return missing;
             Control watched = scrolled.Find(control => control.Parent == this && control.Visible && control.Left < ClientSize.Width);
             if (watched == null) return "Settings had nothing to watch.";
             int watchedTop = watched.Top;
@@ -609,6 +669,7 @@ namespace CapriDesktop
             if (slideFrames.Count > 1) framesASecond = (slideFrames.Count - 1) * 1000 / ((slideFrames[slideFrames.Count - 1] - slideFrames[0]) * tick);
             for (int frame = 1; frame < slideFrames.Count; frame++) longestGap = Math.Max(longestGap, (slideFrames[frame] - slideFrames[frame - 1]) * tick);
             slideFrames = null;
+            if (sliding && pumpToken != null) return "The frame thread kept running after the page settled.";
             Settle();
 
             for (int round = 0; round < 5; round++)
@@ -686,6 +747,15 @@ namespace CapriDesktop
             ScrollWheel(-120);
             if (!sliding) return "The first wheel turn after reopening Settings didn't slide.";
             Settle();
+
+            int beforeFallback = pageScroll;
+            bool survived = TryPicture(delegate { throw new OutOfMemoryException(); });
+            if (survived || pagePicture != null) return "Running out of memory for the picture didn't drop it.";
+            DropPicture();
+            ScrollWheel(-120);
+            if (sliding) return "With no picture the wheel still tried to slide.";
+            Settle();
+            if (pageScroll == beforeFallback) return "With no picture the wheel didn't scroll the old way.";
             return null;
         }
     }

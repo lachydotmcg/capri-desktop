@@ -21,6 +21,19 @@ namespace CapriDesktop
         private static Color[] now = Looks[0];
         private static int shade;
 
+        internal static int PaletteStamp
+        {
+            get
+            {
+                unchecked
+                {
+                    int stamp = 17;
+                    foreach (Color colour in now) stamp = stamp * 31 + colour.ToArgb();
+                    return stamp;
+                }
+            }
+        }
+
         internal static Color Ground { get { return now[0]; } }
         internal static Color Glow { get { return now[1]; } }
         internal static Color Band { get { return now[2]; } }
