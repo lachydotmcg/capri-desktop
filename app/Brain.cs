@@ -20,6 +20,7 @@ namespace CapriDesktop
             + "Keep personal details out of her memories: Mainframe > Settings > HABITS > Security. It's on in every preset but Blackwall. With it on, her notes and what she remembers leave out addresses, card numbers, emails and other personal details.\n"
             + "Naps anywhere: when nobody's touched the mouse or keyboard for Fall asleep after, or you ask her to go to sleep, she dozes off sitting up right where she sits, and wakes still sitting.\n"
             + "Linux on KDE's Wayland: she sees every app window now, so she sits on them and can switch to, minimise and close them.\n"
+            + "Linux jobs: while she uses your mouse and keyboard, a pink and cyan glow goes round the screen she's working on, with a badge that says Say stop to stop her.\n"
             + "Settings she can't read: she keeps a copy as cross.unreadable.json and tells you they were reset, instead of quietly starting fresh.\n"
             + "Check for updates says how it went when you click it.\n"
             + "Brain trouble: a provider's error goes in the BRAIN note instead of being read out, and her offline line says to press Set up her brain or Free key.";
@@ -29,6 +30,9 @@ namespace CapriDesktop
             + "Call mode (beta) hears any app, like Roblox: click the call app's name on her call panel, and its menu lists every app in Windows' volume mixer under the call apps. She hears the one you pick and everything it opens, and keeps it after a restart. Auto never picks one of these.\n"
             + "Keep personal details out of her memories: Mainframe > Settings > HABITS > Security > HER MEMORY. It's on in every preset but Blackwall. With it on, her notes, Get to know me and what she remembers seeing leave out addresses, card numbers, emails and other personal details.\n"
             + "Naps anywhere: when your PC goes quiet for MOVES > Sleep, or you ask her to go to sleep, she dozes off right where she sits, on a window, a desktop icon, her mini player or the taskbar. With no room to lie down, she sleeps sitting up and wakes still sitting.\n"
+            + "Power saver: Mainframe > Settings > HABITS > Power saver is In games by default. While a game or anything full screen is in front, she draws herself less often while she sits still, runs her background checks less often and listens at a gentler pace. Always does that all the time.\n"
+            + "Her sign when she uses your mouse or keys: a pink and cyan glow goes round the screen she's working on, with a badge that says Esc stops her. It shows even while she's hidden, so a mouse that moves with no glow wasn't her.\n"
+            + "The VOICE page never freezes on a slow mic or speaker, like a Bluetooth headset waking up: its menus open at once, say Still checking, and fill in a moment later.\n"
             + "Damaged saves: if her saved reminders, routines or website nicknames can't be read, she keeps a copy of the old file and carries on with what she could read.\n"
             + "Clearer lines: a turned-down brain key names the company, like NVIDIA, and a game or window that runs as administrator comes with the steps to run her as administrator too.";
         internal const string Line = "I just updated to " + Version + ": call mode hears any app, like Roblox, and personal details stay out of my memories. Ask me what's new for the menu paths.";
