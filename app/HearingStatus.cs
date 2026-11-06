@@ -158,14 +158,65 @@ namespace CapriDesktop
         {
             if (mainframe == null || mainframe.IsDisposed) return;
             RefreshSpeakers();
+            TakeMics(ReadMics(hearingDevices, hearingDefault, hearingPrivacy, hearingOutput, hearingOnline));
+        }
+
+        // What a look at her mics found: Windows' list and its default, whether Windows' privacy blocks the mic, whether its default
+        // speakers are a cable, and whether online speech is on. Each look is numbered as it starts, so one that answers after a
+        // newer one is dropped.
+        private sealed class MicsSeen
+        {
+            internal int Asked;
+            internal List<Mic> Found;
+            internal string Usual;
+            internal bool Blocked, CableOut;
+            internal bool? Online;
+        }
+
+        private readonly DeviceLook micLook;
+        private int micsAsked, micsTaken;
+
+        // VOICE's mic menus look in the background (#100), so a mic that's slow to answer only holds up its own line.
+        internal void LookMics()
+        {
+            if (mainframe == null || mainframe.IsDisposed) return;
+            Func<List<Mic>> devices = hearingDevices;
+            Func<string> usual = hearingDefault, output = hearingOutput;
+            Func<bool> privacy = hearingPrivacy;
+            Func<bool?> online = hearingOnline;
+            micLook.Ask(delegate { return ReadMics(devices, usual, privacy, output, online); }, TakeMics);
+        }
+
+        private MicsSeen ReadMics(Func<List<Mic>> devices, Func<string> usual, Func<bool> privacy, Func<string> output, Func<bool?> online)
+        {
+            MicsSeen seen = new MicsSeen();
+            seen.Asked = Interlocked.Increment(ref micsAsked);
+            seen.Found = devices();
+            seen.Usual = usual();
+            seen.Blocked = privacy();
+            seen.CableOut = HearingStatus.CableOutput(output());
+            seen.Online = online();
+            return seen;
+        }
+
+        private void TakeMics(MicsSeen seen)
+        {
+            if (mainframe == null || mainframe.IsDisposed) return;
+            if (seen == null || seen.Asked <= micsTaken)
+            {
+                Mic shown = Ears.Find(preferences.Mic, hearingMics);
+                mainframe.ShowMic(shown == null ? null : shown.Name);
+                return;
+            }
+            micsTaken = seen.Asked;
             List<Mic> before = hearingMics;
             string defaultBefore = hearingDefaultId;
             bool blockedBefore = hearingBlocked;
-            hearingMics = hearingDevices();
-            hearingDefaultId = hearingDefault();
-            hearingBlocked = hearingPrivacy();
-            hearingCableOut = HearingStatus.CableOutput(hearingOutput());
-            bool? online = hearingOnline();
+            hearingMics = seen.Found;
+            hearingDefaultId = seen.Usual;
+            hearingBlocked = seen.Blocked;
+            hearingCableOut = seen.CableOut;
+            bool? online = seen.Online;
             bool speechChanged = online == true && hearingSpeechProblem == Dictation.PrivacyOff;
             if (speechChanged) hearingSpeechProblem = null;
             else if (online == false && HearingWindows && !(dictation != null && earsReady)) hearingSpeechProblem = Dictation.PrivacyOff;

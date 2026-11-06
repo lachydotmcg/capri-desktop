@@ -2278,6 +2278,8 @@ namespace CapriDesktop
             cableLook = new DeviceLook(this);
             mixMicLook = new DeviceLook(this);
             heardLook = new DeviceLook(this);
+            speakerLook = new DeviceLook(this);
+            micLook = new DeviceLook(this);
             voice = new Voice(new Speaker(smoke));
             AllowDrop = true;
             instant = smoke;
@@ -10475,14 +10477,54 @@ namespace CapriDesktop
             else if (line == ScreenMissing) mainframe.ScreenNote(line);
         }
 
+        // What a look at her speakers found: Windows' outputs, and its defaults for her voice and her sounds. Each look is
+        // numbered as it starts, so one that answers after a newer one is dropped.
+        private sealed class SpeakersSeen
+        {
+            internal int Asked;
+            internal System.Collections.Generic.List<Speaker.Output> Found;
+            internal string Usual, Wave;
+        }
+
+        private readonly DeviceLook speakerLook;
+        private int speakersAsked, speakersTaken;
+
         internal void RefreshSpeakers()
         {
             if (mainframe == null || mainframe.IsDisposed) return;
-            speakerDevices = Speaker.List(true);
-            Speaker.DefaultId = speakerDefault(1);
-            Speaker.WaveDefaultId = speakerDefault(0);
-            Speaker.Output picked = Speaker.Resolve(speakerDevices);
-            if (picked != null) speakerPick = picked;
+            TakeSpeakers(ReadSpeakers(speakerDefault));
+        }
+
+        // Her speaker menu looks in the background (#100), so a speaker that's slow to answer only holds up Her speaker's line.
+        internal void LookSpeakers()
+        {
+            if (mainframe == null || mainframe.IsDisposed) return;
+            Func<int, string> defaults = speakerDefault;
+            speakerLook.Ask(delegate { return ReadSpeakers(defaults); }, TakeSpeakers);
+        }
+
+        private SpeakersSeen ReadSpeakers(Func<int, string> defaults)
+        {
+            SpeakersSeen seen = new SpeakersSeen();
+            seen.Asked = Interlocked.Increment(ref speakersAsked);
+            seen.Found = Speaker.List(true);
+            seen.Usual = defaults(1);
+            seen.Wave = defaults(0);
+            return seen;
+        }
+
+        private void TakeSpeakers(SpeakersSeen seen)
+        {
+            if (mainframe == null || mainframe.IsDisposed) return;
+            if (seen != null && seen.Asked > speakersTaken)
+            {
+                speakersTaken = seen.Asked;
+                speakerDevices = seen.Found;
+                Speaker.DefaultId = seen.Usual;
+                Speaker.WaveDefaultId = seen.Wave;
+                Speaker.Output picked = Speaker.Resolve(speakerDevices);
+                if (picked != null) speakerPick = picked;
+            }
             mainframe.ShowSpeaker(SpeakerName);
             // Once that speaker is back, or another is picked, the note that said it was gone goes.
             if (mainframe.VoiceNoteText == SpeakerMissing && (preferences.Speaker == null || Speaker.Find(preferences.Speaker, speakerDevices) != null)) mainframe.VoiceNote("", false);
@@ -10503,7 +10545,9 @@ namespace CapriDesktop
             preferences.Speaker = string.IsNullOrEmpty(id) ? null : id;
             Speaker.Chosen = preferences.Speaker;
             SavePreferences();
-            RefreshSpeakers();
+            // The pick shows at once from her menu's look, and she looks again in the background.
+            mainframe.ShowSpeaker(SpeakerName);
+            LookSpeakers();
         }
 
         internal sealed class WatchScreen
