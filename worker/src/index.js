@@ -239,11 +239,22 @@ const modListed = async folder => {
 
 const modRows = 'SELECT f.folder AS folder, COALESCE(d.count, 0) AS downloads, COALESCE(r.rating, 0) AS rating, COALESCE(r.votes, 0) AS votes FROM (SELECT folder FROM mod_downloads UNION SELECT folder FROM mod_ratings) f LEFT JOIN mod_downloads d ON d.folder = f.folder LEFT JOIN (SELECT folder, AVG(stars) AS rating, COUNT(*) AS votes FROM mod_ratings GROUP BY folder) r ON r.folder = f.folder';
 
+// Every open of the app's Mods window asks for this list, and modRows reads every download and rating. Running it each time used up D1's
+// free daily reads on 6 Nov and took the whole worker down, so opens read one stored copy and only a stale copy runs modRows.
+const modListAge = 600000;
+
+const modList = async (env, ctx) => {
+  const stored = await env.DB.prepare('SELECT at, body FROM mod_stats WHERE id = 1').first().catch(() => null);
+  if (stored && Date.now() - stored.at < modListAge) return JSON.parse(stored.body);
+  const { results } = await env.DB.prepare(modRows).all();
+  ctx.waitUntil(env.DB.prepare('INSERT INTO mod_stats (id, at, body) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET at = excluded.at, body = excluded.body').bind(Date.now(), JSON.stringify(results)).run().catch(() => {}));
+  return results;
+};
+
 const mods = async (request, env, ctx, path, reply) => {
   if (path === '/mods') {
     if (request.method !== 'GET') return reply({ error: 'Not found' }, 404);
-    const { results } = await env.DB.prepare(modRows).all();
-    return reply({ mods: results });
+    return reply({ mods: await modList(env, ctx) });
   }
   if (request.method !== 'POST' || (path !== '/mods/download' && path !== '/mods/rate')) return reply({ error: 'Not found' }, 404);
   const sent = await request.json().catch(() => null);
@@ -264,6 +275,7 @@ const mods = async (request, env, ctx, path, reply) => {
     const tap = await env.DB.prepare('INSERT OR IGNORE INTO taps (key, day) VALUES (?, ?)').bind(key, day).run();
     if (tap.meta.changes === 1) await env.DB.prepare('INSERT INTO mod_downloads (folder, count) VALUES (?, 1) ON CONFLICT (folder) DO UPDATE SET count = count + 1').bind(folder).run();
     ctx.waitUntil(env.DB.prepare('DELETE FROM taps WHERE day < ?').bind(day).run());
+    return reply({ ok: true });
   }
   return reply(await env.DB.prepare(modRows + ' WHERE f.folder = ?').bind(folder).first());
 };
