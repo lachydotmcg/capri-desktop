@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { appendFileSync, existsSync } from 'node:fs'
 import { appendFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
@@ -7,6 +7,14 @@ import { trigger, question, context, history, attachment, result, chunks, fallba
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 if (existsSync(path.join(here, '.env'))) process.loadEnvFile(path.join(here, '.env'))
+
+// She stopped once with nothing to show why (6 Nov), so a crash leaves its first line in bot.log before she exits.
+const died = error => {
+  try { appendFileSync(path.join(here, 'bot.log'), new Date().toISOString() + ' crashed ' + String(error?.stack || error).split('\n')[0].slice(0, 300) + '\n') } catch {}
+  process.exit(1)
+}
+process.on('uncaughtException', died)
+process.on('unhandledRejection', died)
 
 const token = process.env.DISCORD_TOKEN?.trim()
 const secret = process.env.CAPRI_RELAY_SECRET?.trim()
@@ -127,6 +135,9 @@ client.on('messageCreate', async message => {
   }
 })
 
-client.once('clientReady', () => { console.log('Capri is online.') })
+client.once('clientReady', () => {
+  console.log('Capri is online.')
+  try { appendFileSync(path.join(here, 'bot.log'), new Date().toISOString() + ' online\n') } catch {}
+})
 client.on('error', () => { console.error('Discord connection failed.') })
 client.login(token).catch(() => { console.error('Could not connect Capri. Check DISCORD_TOKEN and Message Content Intent.'); process.exit(1) })
