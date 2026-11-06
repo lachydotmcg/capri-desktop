@@ -621,6 +621,14 @@ namespace CapriDesktop
 
         internal Bitmap Image { get { return shown; } }
 
+        // Lets go of its picture while it's hidden, so a big one doesn't sit in memory between uses.
+        internal void Forget()
+        {
+            if (Visible || shown == null) return;
+            shown.Dispose();
+            shown = null;
+        }
+
         internal void Present(Bitmap image, Point at)
         {
             Rectangle target = new Rectangle(at, image.Size);
@@ -1784,7 +1792,7 @@ namespace CapriDesktop
         internal const double VineLength = 1.6;
         internal static readonly RectangleF FacePlate = new RectangleF(140, 145, 110, 110);
         internal static readonly RectangleF Zoom = new RectangleF(45, 45, 300, 300);
-        private static readonly StringFormat Spaced = Typographic();
+        internal static readonly StringFormat Spaced = Typographic();
         // Her face tearing through the window first is off for now (too intrusive, Lachy 27 Oct 2026); the badge and brackets still show.
         internal static bool HackIn;
         internal static Bitmap Face;
@@ -2131,7 +2139,7 @@ namespace CapriDesktop
                 }
         }
 
-        private static void Badge(Graphics graphics, RectangleF slab, RectangleF iconAt, string lead, string name, Font font, float pad, float icon, double typed, double fade, Bitmap face, bool glitch, Random pick, float scale)
+        internal static void Badge(Graphics graphics, RectangleF slab, RectangleF iconAt, string lead, string name, Font font, float pad, float icon, double typed, double fade, Bitmap face, bool glitch, Random pick, float scale)
         {
             int a = (int)(255 * fade);
             using (GraphicsPath shape = new GraphicsPath())
@@ -2172,6 +2180,168 @@ namespace CapriDesktop
                 using (ImageAttributes look = Tint(Color.Empty, fade))
                     graphics.DrawImage(face, Rect(iconAt), FacePlate.X, FacePlate.Y, FacePlate.Width, FacePlate.Height, GraphicsUnit.Pixel, look);
             using (Pen ring = new Pen(Color.FromArgb(a, Shatter.Mint), 1.4f * scale)) graphics.DrawRectangle(ring, iconAt.X, iconAt.Y, iconAt.Width, iconAt.Height);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) ticks.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+
+    // #106: whenever she has their mouse or keys, a thin pink and cyan glow round the screen she's working on, with "Capri's
+    // using your mouse. Esc stops her." on a badge like the takeover one, just above the bottom of the screen. Clicks go
+    // straight through it and it never takes focus. It shows even while she's hidden, and like the takeover badge it stays out
+    // of screenshots, so her own never show it to her. Windows 10 before its 2004 update can't keep a window out of them, so
+    // there it hides for the moment she takes one.
+    internal sealed class ControlGlow : Overlay
+    {
+        private readonly Timer ticks = new Timer();
+        private Rectangle area;
+        private bool excluded;
+        private bool unseen;
+
+        internal ControlGlow() : base("Capri in control")
+        {
+            ticks.Interval = 250;
+            ticks.Tick += delegate { Sync(); };
+        }
+
+        [DllImport("user32.dll")] private static extern bool SetWindowDisplayAffinity(IntPtr window, uint affinity);
+        [DllImport("user32.dll")] private static extern bool GetWindowDisplayAffinity(IntPtr window, out uint affinity);
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                CreateParams value = base.CreateParams;
+                value.ExStyle |= 0x00000020;
+                return value;
+            }
+        }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            try { excluded = SetWindowDisplayAffinity(Handle, 0x11); }
+            catch (EntryPointNotFoundException) { excluded = false; }
+        }
+
+        // Where it goes: the screen she last put their mouse on while it's been up, or else the one with the window in front,
+        // where her keys go. Tests swap it.
+        internal static Func<Rectangle> Working = delegate
+        {
+            Point? at = InControl.At;
+            return at.HasValue ? Screen.FromPoint(at.Value).Bounds : Computer.Display();
+        };
+
+        internal Rectangle Area { get { return area; } }
+
+        internal bool Excluded { get { return excluded; } }
+
+        internal uint Affinity { get { uint value; return IsHandleCreated && GetWindowDisplayAffinity(Handle, out value) ? value : 0; } }
+
+        // Up while she holds their mouse or keys, on the screen she's working on, and gone once she lets go. Her window calls
+        // this whenever InControl changes, and it looks again four times a second while it's up, so it follows her to another
+        // screen.
+        internal void Sync()
+        {
+            if (IsDisposed) return;
+            if (!InControl.On) { Off(); return; }
+            if (!ticks.Enabled) ticks.Start();
+            if (unseen) return;
+            Rectangle where;
+            try { where = Working(); }
+            catch (Exception) { where = Screen.PrimaryScreen.Bounds; }
+            if (where.Width < 64 || where.Height < 64 || (Visible && Image != null && where == area)) return;
+            Bitmap frame = Image;
+            if (frame == null || where != area)
+            {
+                float scale;
+                using (Graphics screen = Graphics.FromHwnd(IntPtr.Zero)) scale = Math.Max(1f, screen.DpiX / 96f);
+                Rectangle work = Screen.FromRectangle(where).WorkingArea;
+                frame = Frame(where.Size, new Rectangle(work.X - where.X, work.Y - where.Y, work.Width, work.Height), scale);
+            }
+            area = where;
+            Present(frame, where.Location);
+            // Above whatever else stays on top, like a game's overlay. Her own pointer puts itself back above it as it moves.
+            Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+        }
+
+        internal void Off()
+        {
+            ticks.Stop();
+            unseen = false;
+            if (Visible) Hide();
+            Forget();
+        }
+
+        // Hides it for the moment she takes a screenshot, where Windows can't keep it out of one. True when it hid.
+        internal bool Unseen(bool hide)
+        {
+            if (excluded || IsDisposed || !IsHandleCreated) return false;
+            if (hide)
+            {
+                if (!Visible) return false;
+                unseen = true;
+                Hide();
+                return true;
+            }
+            if (unseen)
+            {
+                unseen = false;
+                Sync();
+            }
+            return false;
+        }
+
+        // A screen this size: a soft pink to cyan glow in from its edges, a crisp pink line round the edge with a thin cyan one
+        // just inside it, like the colours on her pointer, and the line on a takeover badge, centred above the bottom of the
+        // work area, which is given in the screen's own pixels.
+        internal static Bitmap Frame(Size size, Rectangle work, float scale)
+        {
+            Bitmap image = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppPArgb);
+            using (Graphics graphics = Graphics.FromImage(image))
+            {
+                int reach = Math.Max(6, (int)Math.Round(16 * scale)), edge = Math.Max(2, (int)Math.Round(2 * scale)), seam = Math.Max(1, (int)Math.Round(1.5f * scale));
+                for (int i = 0; i < reach; i++)
+                {
+                    double t = (double)i / reach;
+                    int alpha = (int)Math.Round(120 * (1 - t) * (1 - t));
+                    if (alpha <= 0) continue;
+                    using (Brush glow = new SolidBrush(Color.FromArgb(alpha, Mix(Look.Pink.R, Look.Cyan.R, t), Mix(Look.Pink.G, Look.Cyan.G, t), Mix(Look.Pink.B, Look.Cyan.B, t)))) Ring(graphics, glow, size, i, 1);
+                }
+                using (Brush pink = new SolidBrush(Color.FromArgb(235, Look.Pink))) Ring(graphics, pink, size, 0, edge);
+                using (Brush cyan = new SolidBrush(Color.FromArgb(220, Look.Cyan))) Ring(graphics, cyan, size, edge + seam, seam);
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                int cut = InControl.Line.IndexOf(". ", StringComparison.Ordinal) + 2;
+                string lead = InControl.Line.Substring(0, cut), rest = InControl.Line.Substring(cut);
+                using (Font font = Look.Mono(11 * scale, FontStyle.Bold))
+                {
+                    float tall = 26 * scale, icon = 20 * scale, pad = 7 * scale;
+                    float wide = pad + icon + pad + graphics.MeasureString(lead, font, PointF.Empty, Takeover.Spaced).Width + graphics.MeasureString(rest, font, PointF.Empty, Takeover.Spaced).Width + pad * 1.4f;
+                    float left = work.Left + (work.Width - wide) / 2f, top = work.Bottom - tall - 14 * scale;
+                    RectangleF slab = new RectangleF(left, top, wide, tall);
+                    Takeover.Badge(graphics, slab, new RectangleF(left + pad, top + (tall - icon) / 2, icon, icon), lead, rest, font, pad, icon, 1, 1, Takeover.Face, false, new Random(7), scale);
+                }
+            }
+            return image;
+        }
+
+        private static int Mix(int from, int to, double t) { return (int)Math.Round(from + (to - from) * t); }
+
+        // A band `thick` pixels wide, `inset` pixels in from the edge, all the way round.
+        private static void Ring(Graphics graphics, Brush brush, Size size, int inset, int thick)
+        {
+            int wide = size.Width - inset * 2, tall = size.Height - inset * 2;
+            if (wide <= thick * 2 || tall <= thick * 2) return;
+            graphics.FillRectangle(brush, inset, inset, wide, thick);
+            graphics.FillRectangle(brush, inset, size.Height - inset - thick, wide, thick);
+            graphics.FillRectangle(brush, inset, inset + thick, thick, tall - thick * 2);
+            graphics.FillRectangle(brush, size.Width - inset - thick, inset + thick, thick, tall - thick * 2);
         }
 
         protected override void Dispose(bool disposing)

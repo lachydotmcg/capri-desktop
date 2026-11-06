@@ -542,7 +542,7 @@ namespace CapriDesktop
             }
             foreach (CloneHaul haul in Swarm.Hauls) if (!haul.Holding) Track(haul);
             Point? dragged = Swarm.Tick(now, passed, took < SlowTick, handsFree, new Point(cursor.X - room.X, cursor.Y - room.Y), handsFree && !Mousing());
-            if (dragged != null) Cursor.Position = new Point(room.X + dragged.Value.X, room.Y + dragged.Value.Y);
+            Nab(dragged == null ? (Point?)null : new Point(room.X + dragged.Value.X, room.Y + dragged.Value.Y));
             foreach (CloneHaul haul in Swarm.Hauls) if (haul.Holding) Carry(haul);
             if (unsaved && now >= markAt)
             {
@@ -555,6 +555,28 @@ namespace CapriDesktop
             Frames++;
             Action<double> ticked = Ticked;
             if (ticked != null) ticked(now);
+        }
+
+        // While one of them has their cursor, it goes where she drags it and her sign is up (#106), until she lets go of it or
+        // they're put away. The smoke test watches PutCursor instead of moving the real one.
+        internal Action<Point> PutCursor = delegate(Point at) { Cursor.Position = at; };
+        private bool nabbing;
+
+        internal bool Nabbing { get { return nabbing; } }
+
+        internal void Nab(Point? to)
+        {
+            if (to.HasValue)
+            {
+                if (!nabbing) { nabbing = true; InControl.Begin(to.Value); }
+                else InControl.Near(to.Value);
+                PutCursor(to.Value);
+            }
+            else if (nabbing)
+            {
+                nabbing = false;
+                InControl.End();
+            }
         }
 
         private List<CloneHaul> Offered()
@@ -845,6 +867,7 @@ namespace CapriDesktop
             closing = true;
             if (disposing)
             {
+                Nab(null);
                 ticks.Dispose();
                 if (hint != null) { hint.Dispose(); hint = null; }
                 foreach (Bitmap cell in cells.Values) cell.Dispose();

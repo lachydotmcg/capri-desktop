@@ -1985,6 +1985,7 @@ namespace CapriDesktop
         private readonly Tear tear = new Tear();
         private readonly Shatter shatter = new Shatter();
         private readonly Takeover takeover = new Takeover();
+        private readonly ControlGlow controlGlow = new ControlGlow();
         private readonly TaskPanel taskPanel = new TaskPanel();
         private readonly HerPointer herPointer = new HerPointer();
         // Her mini player, what Windows' media session last said, and the presses on their way to the app playing it.
@@ -2319,6 +2320,19 @@ namespace CapriDesktop
             Computer.Track = herPointer.MoveTo;
             Computer.Tapped = delegate { Post(herPointer.Tap); };
             Computer.Lending = Lend;
+            // #106: her glow round the screen she's working on comes up whenever anything of hers holds their mouse or keys, even
+            // while she's hidden. The first press from another thread waits a moment for it, so it's up before anything moves.
+            InControl.Changed = delegate(bool rising)
+            {
+                if (IsDisposed || !IsHandleCreated) return;
+                if (!InvokeRequired) { controlGlow.Sync(); return; }
+                try
+                {
+                    IAsyncResult synced = BeginInvoke(new Action(controlGlow.Sync));
+                    if (rising) synced.AsyncWaitHandle.WaitOne(150);
+                }
+                catch (InvalidOperationException) { }
+            };
             taskPanel.Moved += delegate { if (onPanel) { HoldPanel(); Location = anchor; } };
             updater = new Updater(data, Application.ExecutablePath, smoke);
             updateExit = delegate { quitting = true; ClearMarks(); Close(); };
@@ -8394,10 +8408,22 @@ namespace CapriDesktop
         {
             if (!exploring && !exploreBusy) return;
             exploring = false;
+            ExploreHold(false);
             exploreWindow = IntPtr.Zero;
             exploreTicket++;
             watchTicket++;
             herPointer.End();
+        }
+
+        // Her sign stays up the whole time she explores while they're away, so whoever comes back sees why the page is
+        // scrolling, and it goes once their first touch stops her (#106).
+        private bool exploreHeld;
+
+        private void ExploreHold(bool on)
+        {
+            if (on == exploreHeld) return;
+            exploreHeld = on;
+            if (on) InControl.Begin(); else InControl.End();
         }
 
         private bool ExploreFree()
@@ -8441,6 +8467,7 @@ namespace CapriDesktop
                     if (!exploring)
                     {
                         exploring = true;
+                        ExploreHold(true);
                         exploreBegan = now;
                         exploreWindow = page.Window;
                         herPointer.Begin(Head());
@@ -8958,11 +8985,12 @@ namespace CapriDesktop
 
         private bool PanelUnseen(bool unseen)
         {
-            // Her mini player and her reactions feed too, so they never hide what she's working on.
-            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen);
+            // Her mini player and her reactions feed too, so they never hide what she's working on, and her glow where Windows can't
+            // keep it out of screenshots by itself.
+            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen);
             try
             {
-                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen); }));
+                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen) | controlGlow.Unseen(unseen); }));
                 return unseen && done.AsyncWaitHandle.WaitOne(1000) && (bool)EndInvoke(done);
             }
             catch (InvalidOperationException) { return false; }
@@ -9514,7 +9542,8 @@ namespace CapriDesktop
                 IntPtr window = sight.Window;
                 Rectangle bounds = sight.Bounds;
                 string name = AppName(sight);
-                Post(delegate { if (job == running && preferences.Motion && !hidden) takeover.Follow(window, name, bounds, preferences.Size / 240f); });
+                // It shows while she's hidden too, beside her glow, so they can always see which app she's in (#106).
+                Post(delegate { if (job == running && preferences.Motion) takeover.Follow(window, name, bounds, preferences.Size / 240f); });
             };
             running.Busy = delegate(string what) { Post(delegate { taskPanel.Busy(running, what); }); };
             running.Stepped = delegate(JobStep step) { Post(delegate { taskPanel.Add(running, step); }); if (step.Finished) AgentStep(running); };
@@ -14165,6 +14194,7 @@ namespace CapriDesktop
             tear.Close();
             shatter.Close();
             takeover.Close();
+            controlGlow.Close();
             taskPanel.Close();
             tray.Visible = false;
             SavePreferences();
@@ -22353,6 +22383,404 @@ namespace CapriDesktop
                 Computer.CursorAt = cursorWas;
                 Computer.CursorHidden = hiddenWas;
                 Computer.GameUnder = gameUnderWas;
+            }
+        }
+
+        // #106: her sign is up whenever anything of hers has their mouse or keys, on the screen she's working on, even while
+        // she's hidden, with the line on it, out of her own screenshots, through overlapping uses, and gone once the last one
+        // lets go. Every press here is faked, so nothing reaches the real desktop.
+        private void SmokeControlSign(System.Collections.Generic.List<string> checks)
+        {
+            Action<int, int> mouseWas = Computer.SendMouse, nudgeWas = Computer.Nudge;
+            Action<short, bool, bool> keyWas = Computer.SendKey;
+            Action<Point> putWas = Computer.PutCursor, tappedWas = Computer.Tapped, trackWas = Computer.Track;
+            Func<Point> cursorWas = Computer.CursorAt;
+            Func<bool> cursorHiddenWas = Computer.CursorHidden, escapeWas = Computer.Escape;
+            Func<Point, bool> gameUnderWas = Computer.GameUnder;
+            Action haltedWas = Computer.Halted;
+            Action<bool> lendingWas = Computer.Lending;
+            Func<Rectangle, byte[]> grayWas = Computer.GrayFrame;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<Sight> glimpseWas = Computer.Glimpse, lookWas = Computer.Look;
+            Func<Target> focusWas = Computer.Focus;
+            Func<Point, Target> underWas = Computer.Under;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Func<IntPtr> frontWas = Computer.Front;
+            Func<string> gameWas = Computer.GameOpen;
+            Func<System.Collections.Generic.List<Tune>> mediaWas = Computer.ExploreMedia;
+            bool flinchedWas = Computer.Flinched;
+            Action<byte, byte, int> keyEventWas = Hands.KeyEvent;
+            Func<Rectangle> workingWas = ControlGlow.Working;
+            int lingerWas = InControl.Linger;
+            bool hiddenWas = hidden, manualWas = manualHidden, exploringWas = exploring, clonesWere = cloneWindow != null;
+            System.Reflection.FieldInfo excludedField = typeof(ControlGlow).GetField("excluded", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            bool excludedWas = controlGlow.Excluded;
+            // Lets her window run what other threads sent it until done says so, for at most ms.
+            Func<Func<bool>, int, bool> until = delegate(Func<bool> done, int ms)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (!done())
+                {
+                    if (waited.ElapsedMilliseconds > ms) return false;
+                    Application.DoEvents();
+                    Thread.Sleep(5);
+                }
+                return true;
+            };
+            Func<bool> never = delegate { return false; };
+            Func<bool> up = delegate { return InControl.On && controlGlow.Visible; };
+            Func<bool> down = delegate { return !InControl.On && !controlGlow.Visible && InControl.Holds == 0; };
+            Point real = new Point(40, 40);
+            int sent = 0, blind = 0, most = 0;
+            bool escNow = false;
+            // Each faked press counts, and one that went out with the sign down counts against it.
+            Action saw = delegate
+            {
+                Interlocked.Increment(ref sent);
+                if (!InControl.On || !controlGlow.Visible) Interlocked.Increment(ref blind);
+                most = Math.Max(most, InControl.Holds);
+            };
+            Action reset = delegate { sent = 0; blind = 0; most = 0; };
+            try
+            {
+                Computer.Escape = delegate { return escNow; };
+                Computer.Halted = delegate { };
+                Computer.Tapped = delegate { };
+                Computer.Track = delegate { };
+                Computer.Lending = delegate { };
+                Computer.CursorAt = delegate { return real; };
+                Computer.PutCursor = delegate(Point to) { real = to; };
+                Computer.CursorHidden = delegate { return false; };
+                Computer.GameUnder = delegate { return false; };
+                Computer.SendMouse = delegate(int flags, int data) { saw(); };
+                Computer.SendKey = delegate(short code, bool released, bool extended) { saw(); };
+                Computer.Nudge = delegate(int dx, int dy) { saw(); real.Offset(dx, dy); };
+                Computer.GrayFrame = delegate(Rectangle area) { return new byte[Computer.GrayWidth * Computer.GrayHeight]; };
+                Hands.KeyEvent = delegate(byte key, byte scan, int flags) { saw(); };
+                Computer.Finish();
+                Computer.Arm();
+                InControl.Linger = 120;
+                if (!until(down, 2000)) throw new Exception("Her sign was up before anything of hers held their mouse: " + InControl.Holds + " holds, shown " + controlGlow.Visible + ".");
+
+                // The sign itself: up at once on her window's thread, on the screen her keys go to, the size of that screen.
+                InControl.Begin();
+                Rectangle keysScreen = Computer.Display();
+                Bitmap drawn = controlGlow.Image;
+                if (!up() || controlGlow.Area != keysScreen || controlGlow.Bounds != keysScreen || drawn == null || drawn.Size != keysScreen.Size)
+                    throw new Exception("Her sign didn't come up round the screen her keys go to: shown " + controlGlow.Visible + " at " + controlGlow.Area + " for " + keysScreen + ".");
+                int style = Native.GetWindowLong(controlGlow.Handle, -20);
+                bool through = (style & 0x20) != 0 && (style & 0x80000) != 0 && (style & 0x80) != 0 && (style & 0x08000000) != 0 && (style & 0x8) != 0;
+                Point rimAt = new Point(controlGlow.Area.Left + 1, controlGlow.Area.Top + controlGlow.Area.Height / 2);
+                bool passes = Native.GetAncestor(Native.WindowFromPoint(new Native.Point(rimAt.X, rimAt.Y)), 2) != controlGlow.Handle;
+                bool unfocused = Native.GetForegroundWindow() != controlGlow.Handle && !controlGlow.ContainsFocus && Form.ActiveForm != controlGlow;
+                if (!through || !passes || !unfocused) throw new Exception("Her sign could take a click or the focus: styles " + style.ToString("X") + ", click goes through " + passes + ", unfocused " + unfocused + ".");
+                // A pink edge with a cyan line just inside it, and nothing over the middle of the screen.
+                int pinkAt = -1, cyanAt = -1;
+                for (int x = 0; x < Math.Min(24, drawn.Width); x++)
+                {
+                    Color pixel = drawn.GetPixel(x, drawn.Height / 2);
+                    if (pinkAt < 0 && pixel.A >= 200 && pixel.R > 200 && pixel.G < 120 && pixel.B > 80) pinkAt = x;
+                    if (pinkAt >= 0 && cyanAt < 0 && pixel.A >= 180 && pixel.R < 150 && pixel.G > 150 && pixel.B > 180) cyanAt = x;
+                }
+                if (pinkAt != 0 || cyanAt <= 0 || drawn.GetPixel(drawn.Width / 2, drawn.Height / 2).A != 0) throw new Exception("Her sign's edge isn't pink with a cyan line inside it, or it covers the middle of the screen: pink at " + pinkAt + ", cyan at " + cyanAt + ".");
+                // The line, read back off the badge at the bottom by Windows' own OCR.
+                float dpi;
+                using (Graphics screen = Graphics.FromHwnd(IntPtr.Zero)) dpi = Math.Max(1f, screen.DpiX / 96f);
+                Rectangle work = Screen.FromRectangle(controlGlow.Area).WorkingArea;
+                work.Offset(-controlGlow.Area.X, -controlGlow.Area.Y);
+                int bandWide = Math.Min(work.Width, (int)Math.Ceiling(640 * dpi)), bandTall = Math.Min(work.Bottom, (int)Math.Ceiling(56 * dpi));
+                Rectangle band = new Rectangle(work.Left + (work.Width - bandWide) / 2, work.Bottom - bandTall, bandWide, bandTall);
+                string read = "";
+                int ink = 0;
+                using (Bitmap strip = new Bitmap(band.Width, band.Height, PixelFormat.Format24bppRgb))
+                {
+                    using (Graphics paint = Graphics.FromImage(strip))
+                    {
+                        paint.Clear(Color.Black);
+                        paint.DrawImage(drawn, new Rectangle(Point.Empty, band.Size), band, GraphicsUnit.Pixel);
+                    }
+                    for (int y = 0; y < strip.Height; y++)
+                        for (int x = 0; x < strip.Width; x++)
+                        {
+                            Color pixel = strip.GetPixel(x, y);
+                            if (pixel.R > 200 && pixel.G < 110 && pixel.B > 90) ink++;
+                        }
+                    System.Threading.Tasks.Task<System.Collections.Generic.List<string>> reading = System.Threading.Tasks.Task.Run(new Func<System.Collections.Generic.List<string>>(delegate { return Ocr.Lines(strip, 3, 8000); }));
+                    until(delegate { return reading.IsCompleted; }, 9000);
+                    if (reading.IsCompleted && !reading.IsFaulted && reading.Result != null) read = string.Join(" ", reading.Result.ToArray());
+                }
+                string plain = Regex.Replace(read.ToLowerInvariant(), "[^a-z]+", " ");
+                if (ink < 20) throw new Exception("Her sign has no badge with pink writing above the bottom of the screen.");
+                // OCR can miss a letter of her small mono font (it read "•ouse" once), so most of the line's words will do.
+                string[] lineWords = { "capri", "using", "your", "mouse", "esc", "stops", "her" };
+                int wordsRead = 0;
+                foreach (string word in lineWords) if (Regex.IsMatch(plain, @"\b" + word + @"\b")) wordsRead++;
+                bool readBack = wordsRead >= lineWords.Length - 2;
+                if (read.Trim().Length > 0 && !readBack) throw new Exception("Her sign's badge doesn't say the line: OCR read \"" + read + "\".");
+                if (InControl.Line != "Capri's using your mouse. Esc stops her.") throw new Exception("Her sign's line changed: " + InControl.Line);
+                if (!readBack) checks.Add("LIMIT her sign's line: Windows' OCR couldn't read here, so only the badge's pink writing was checked");
+
+                // While she's hidden it still comes up.
+                InControl.End();
+                if (!until(down, 1500)) throw new Exception("Her sign stayed up after she let go of their keys.");
+                manualHidden = hidden = true;
+                InControl.Begin();
+                bool hiddenUp = up();
+                InControl.End();
+                manualHidden = manualWas;
+                hidden = hiddenWas;
+                if (!hiddenUp) throw new Exception("Her sign didn't come up while she was hidden.");
+                if (!until(down, 1500)) throw new Exception("Her sign stayed up after a hold while she was hidden.");
+
+                // The screen she put their mouse on, and the next one when she moves it there.
+                Screen[] screens = Screen.AllScreens;
+                Rectangle firstScreen = screens[0].Bounds, lastScreen = screens[screens.Length - 1].Bounds;
+                Point onFirst = new Point(firstScreen.Left + 12, firstScreen.Top + 12), onLast = new Point(lastScreen.Right - 12, lastScreen.Bottom - 12);
+                InControl.Begin(onFirst);
+                bool firstRight = up() && controlGlow.Area == firstScreen && InControl.At == onFirst;
+                InControl.Near(onLast);
+                bool followed = up() && controlGlow.Area == lastScreen && InControl.At == onLast;
+                InControl.End();
+                if (!firstRight || !followed) throw new Exception("Her sign wasn't on the screen she put their mouse on: " + controlGlow.Area + " for " + firstScreen + " then " + lastScreen + ".");
+                if (!until(down, 1500)) throw new Exception("Her sign stayed up after she moved their mouse.");
+                // And it follows the screen she's working on by itself while it's up.
+                Rectangle fakeA = new Rectangle(firstScreen.X + 40, firstScreen.Y + 30, 800, 600), fakeB = new Rectangle(firstScreen.X + 120, firstScreen.Y + 90, 640, 480), wanted = fakeA;
+                ControlGlow.Working = delegate { return wanted; };
+                InControl.Begin();
+                bool onA = up() && controlGlow.Area == fakeA;
+                wanted = fakeB;
+                bool onB = until(delegate { return controlGlow.Area == fakeB; }, 1500) && up();
+                InControl.End();
+                ControlGlow.Working = workingWas;
+                if (!onA || !onB) throw new Exception("Her sign didn't follow her to another screen while it was up: " + controlGlow.Area + ".");
+                if (!until(down, 1500)) throw new Exception("Her sign stayed up after following her.");
+                checks.Add("PASS her sign comes up round the screen she's working on, the one with their mouse or the window her keys go to, follows her to another screen, has \"" + InControl.Line + "\" on a badge above the bottom" + (readBack ? " (read back by OCR)" : "") + ", a pink edge with a cyan line inside it, lets clicks through, never takes the focus, and shows while she's hidden" + (screens.Length > 1 ? ", across " + screens.Length + " screens" : ""));
+                if (screens.Length == 1) checks.Add("LIMIT her sign on a second screen: this PC has one, so only a made-up second screen was checked");
+
+                // Out of her own screenshots: Windows keeps it out of them, and where it can't, it hides for the moment she takes one.
+                InControl.Begin();
+                bool kept = controlGlow.Excluded && controlGlow.Affinity == 0x11;
+                excludedField.SetValue(controlGlow, false);
+                PanelUnseen(true);
+                bool hidFor = !controlGlow.Visible && InControl.On;
+                controlGlow.Sync();
+                bool stayedHid = !controlGlow.Visible;
+                PanelUnseen(false);
+                bool cameBack = up();
+                excludedField.SetValue(controlGlow, excludedWas);
+                InControl.End();
+                if (!hidFor || !stayedHid || !cameBack) throw new Exception("Where Windows can't keep her sign out of screenshots, it didn't hide for her own and come back: hid " + hidFor + ", stayed hidden " + stayedHid + ", back " + cameBack + ".");
+                if (excludedWas && !kept) throw new Exception("Windows was told to keep her sign out of screenshots but reports affinity " + controlGlow.Affinity + ".");
+                if (!until(down, 1500)) throw new Exception("Her sign stayed up after the screenshot check.");
+                checks.Add(kept ? "PASS her sign stays out of screenshots: Windows keeps it out of every capture (display affinity 0x11), and on Windows that can't, it hides for the moment she takes her own and comes back after"
+                    : "PASS her sign hides for the moment she takes her own screenshot and comes back after, where Windows can't keep it out of captures");
+                if (!kept) checks.Add("LIMIT her sign and captures: Windows wouldn't keep it out of captures here (affinity " + controlGlow.Affinity + "), so her own screenshots hide it instead");
+
+                // Overlapping uses keep it up until the last lets go, a quick press in its last moment keeps it up with no gap, and
+                // it goes a moment after.
+                InControl.Linger = 300;
+                InControl.Begin();
+                InControl.Begin();
+                IDisposable once = InControl.Hold();
+                once.Dispose();
+                once.Dispose();
+                InControl.End();
+                bool keptByOther = up() && InControl.Holds == 1;
+                until(never, 450);
+                bool stillUp = up();
+                InControl.End();
+                bool lingered = up() && InControl.Holds == 0;
+                until(never, 180);
+                using (InControl.Hold()) { }
+                bool noGap = up();
+                until(never, 200);
+                bool pushedBack = up();
+                bool gone = until(down, 1500);
+                bool forgot = controlGlow.Image == null;
+                InControl.End();
+                InControl.End();
+                bool unbroken = InControl.Holds == 0 && !InControl.On;
+                if (!keptByOther || !stillUp || !lingered || !noGap || !pushedBack || !gone || !forgot || !unbroken)
+                    throw new Exception("Her sign didn't keep up through overlapping uses and go after: kept by the other " + keptByOther + ", still up " + stillUp + ", lingered " + lingered + ", no gap " + noGap + ", pushed back " + pushedBack + ", gone " + gone + ", picture let go " + forgot + ", extra lets-go ignored " + unbroken + ".");
+                checks.Add("PASS her sign stays up while uses overlap and through a quick press in its last moment, goes a moment after the last one lets go and lets go of its picture, and a hold let go twice only counts once");
+                InControl.Linger = 120;
+
+                // A job: up while she thinks, for every press, key and scroll, and for buttons and keys she holds down until she lets go.
+                reset();
+                string clicked = Computer.Member("left_click", new ToolArguments(), null);
+                bool clickRight = controlGlow.Area == Screen.FromPoint(real).Bounds;
+                if (clicked != "Clicked." || sent != 2 || blind != 0 || InControl.Holds != 0 || !clickRight) throw new Exception("A job's click went out without her sign, or left it held: " + clicked + ", " + sent + " sent, " + blind + " with no sign, " + InControl.Holds + " holds.");
+                reset();
+                string keyed = Computer.Member("key", new ToolArguments { Text = "ctrl+a" }, null);
+                if (sent != 4 || blind != 0 || most < 2 || InControl.Holds != 0) throw new Exception("A job's keys went out without her sign, or a held key didn't hold it: " + keyed + ", " + sent + " sent, " + blind + " with no sign, " + most + " holds at most.");
+                reset();
+                string scrolled = Computer.Member("scroll", new ToolArguments { Way = "down", Amount = 2 }, null);
+                if (sent != 2 || blind != 0 || InControl.Holds != 0) throw new Exception("A job's scroll went out without her sign: " + scrolled + ", " + sent + " sent, " + blind + " with no sign.");
+                reset();
+                Computer.Member("left_mouse_down", new ToolArguments(), null);
+                bool heldDown = up() && InControl.Holds >= 2;
+                until(never, 300);
+                bool heldOn = up();
+                Computer.Member("left_mouse_up", new ToolArguments(), null);
+                if (!heldDown || !heldOn || sent != 2 || blind != 0 || InControl.Holds != 0) throw new Exception("A held mouse button didn't keep her sign up until she let go: held " + heldDown + ", kept " + heldOn + ", " + InControl.Holds + " holds after.");
+                reset();
+                Computer.Member("hold_key", new ToolArguments { Text = "shift", Duration = 0.3 }, null);
+                if (sent != 2 || blind != 0 || most < 2 || InControl.Holds != 0) throw new Exception("A held key didn't keep her sign up: " + sent + " sent, " + blind + " with no sign, " + most + " holds at most.");
+                if (!until(down, 1500)) throw new Exception("Her sign stayed up after a job's presses.");
+                // Games: walking, holding a button, rocking a game's own cursor and turning the camera.
+                Sight game = new Sight { Program = "capri-sign-check", Bounds = new Rectangle(firstScreen.X, firstScreen.Y, 1280, 720) };
+                reset();
+                Computer.Walk("w", "0.2", "no", game);
+                Computer.MouseHold("right", "0.2", null, "no", game);
+                int gameHolds = sent;
+                Computer.CursorHidden = delegate { return true; };
+                Computer.Borrow(new Point(firstScreen.X + 300, firstScreen.Y + 300));
+                Computer.GiveBack();
+                Computer.CursorHidden = delegate { return false; };
+                int rocked = sent - gameHolds;
+                Computer.TurnView(new ToolArguments { Right = 30 }, game);
+                int turned = sent - gameHolds - rocked;
+                if (gameHolds < 4 || rocked < 4 || turned < 1 || blind != 0 || InControl.Holds != 0) throw new Exception("A game's input went out without her sign: " + gameHolds + " walk and hold presses, " + rocked + " rocks, " + turned + " turns, " + blind + " with no sign, " + InControl.Holds + " holds after.");
+                if (!until(down, 1500)) throw new Exception("Her sign stayed up after a game's input.");
+                // A whole job on her worker thread, thinking included, with a real click through her hands.
+                Computer.Shoot = delegate { return new Picture { Jpeg = new byte[] { 1, 2, 3 }, Size = new Size(1280, 720), Area = new Rectangle(firstScreen.X, firstScreen.Y, 1280, 720) }; };
+                Computer.Glimpse = Computer.Look = delegate { return new Sight { Window = new IntPtr(9), Title = "Notepad", Program = "notepad", Bounds = new Rectangle(firstScreen.X, firstScreen.Y, 1280, 720) }; };
+                Computer.Focus = delegate { return null; };
+                Computer.Under = delegate { return null; };
+                Computer.Front = delegate { return new IntPtr(9); };
+                Computer.GameOpen = delegate { return null; };
+                Computer.Use = delegate(string name, ToolArguments args, Picture picture) { return Computer.Member(name, args, picture); };
+                bool firstUp = false;
+                Thread riser = new Thread(delegate() { InControl.Begin(); firstUp = controlGlow.Visible; InControl.End(); }) { IsBackground = true };
+                riser.Start();
+                until(delegate { return !riser.IsAlive; }, 3000);
+                if (!firstUp) throw new Exception("Her sign wasn't up yet when a hold from another thread started.");
+                reset();
+                int turns = 0;
+                bool thoughtUnder = true;
+                string ended = null;
+                Exception jobError = null;
+                Job clicking = new Job("click the corner");
+                clicking.Drive = delegate(string system, string tools, string messages)
+                {
+                    thoughtUnder &= InControl.On && controlGlow.Visible;
+                    if (++turns > 1) return Brain.Parsed("{\"stop_reason\":\"end_turn\",\"content\":[{\"type\":\"text\",\"text\":\"Clicked the corner.\"}]}");
+                    return Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"c1\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[5,5]}}]}");
+                };
+                Thread worker = new Thread(delegate() { try { ended = clicking.Run(); } catch (Exception problem) { jobError = problem; } }) { IsBackground = true };
+                worker.Start();
+                if (!until(delegate { return !worker.IsAlive; }, 20000)) throw new Exception("A faked job didn't finish.");
+                if (jobError != null) throw new Exception("A faked job failed: " + jobError.Message);
+                if (ended != "Clicked the corner." || turns != 2 || !thoughtUnder || sent != 2 || blind != 0 || InControl.Holds != 0) throw new Exception("A job on her worker didn't keep her sign up while it thought and clicked: " + ended + ", " + turns + " turns, thinking under it " + thoughtUnder + ", " + sent + " sent, " + blind + " with no sign, " + InControl.Holds + " holds after.");
+                if (!until(down, 1500)) throw new Exception("Her sign stayed up after a job.");
+                // Esc mid-click stops her, and the sign goes with her.
+                reset();
+                Computer.SendMouse = delegate(int flags, int data) { saw(); if ((flags & 0x2A) != 0) escNow = true; };
+                string escaped = Computer.Member("left_click", new ToolArguments(), null);
+                escNow = false;
+                Thread.Sleep(70);
+                Computer.Finish();
+                Computer.Arm();
+                Computer.SendMouse = delegate(int flags, int data) { saw(); };
+                if (escaped != Computer.Escaped || blind != 0 || InControl.Holds != 0 || !until(down, 1500)) throw new Exception("Esc mid-click didn't stop her and take her sign down: " + escaped + ", " + InControl.Holds + " holds, shown " + controlGlow.Visible + ".");
+                checks.Add("PASS her sign is up through a whole job on any thread, while she thinks and for every click, key and scroll, for buttons and keys she holds down until she lets go, for a game's walks, holds, cursor rocks and camera turns, and Esc mid-click stops her and takes it down");
+
+                // Her quick shortcuts and Discord keys, media keys and closing a tab.
+                reset();
+                Hands.Chord(new byte[] { 0x11, 0x10, 0x4D });
+                Hands.Press(0xB3);
+                int quick = sent;
+                bool tabFronted;
+                using (Form tabs = new Form())
+                {
+                    tabs.Text = "Capri sign check";
+                    tabs.StartPosition = FormStartPosition.Manual;
+                    tabs.ShowInTaskbar = false;
+                    tabs.Bounds = new Rectangle(screens[0].WorkingArea.Left + 40, screens[0].WorkingArea.Top + 40, 320, 200);
+                    tabs.Show();
+                    Application.DoEvents();
+                    tabFronted = Hands.Steer(new OpenWindow(tabs.Handle, tabs.Text, "capri"), "close_tab");
+                }
+                if (quick != 8 || (tabFronted && sent != 12) || blind != 0 || InControl.Holds != 0) throw new Exception("Her shortcuts, media keys or tab closing went out without her sign: " + quick + " shortcut and media presses, " + (sent - quick) + " tab presses, " + blind + " with no sign.");
+                if (!until(down, 1500)) throw new Exception("Her sign stayed up after her shortcuts.");
+                checks.Add("PASS her sign is up for her quick shortcuts, Discord keys and media keys" + (tabFronted ? ", and for closing a tab" : ""));
+                if (!tabFronted) checks.Add("LIMIT her sign for closing a tab: a test window couldn't come to the front here, so its Ctrl+W wasn't sent");
+
+                // Exploring while they're away: each scroll, and the whole time she's at it until she stops.
+                reset();
+                Computer.ExploreMedia = delegate { return new System.Collections.Generic.List<Tune>(); };
+                Sight page = new Sight { Window = new IntPtr(7), Program = "chrome", Title = "Geography - Wikipedia", Bounds = new Rectangle(0, 0, 800, 600) };
+                Point readAt = new Point(200, 200);
+                bool scrolledAway = Computer.ScrollAway(page, page.Bounds, page, readAt, readAt, page.Window, false, delegate { return true; });
+                if (!scrolledAway || sent != 1 || blind != 0 || InControl.Holds != 0) throw new Exception("Her scroll while exploring went out without her sign: scrolled " + scrolledAway + ", " + sent + " sent, " + blind + " with no sign.");
+                exploring = true;
+                ExploreHold(true);
+                bool exploreUp = up() && InControl.Holds == 1;
+                until(never, 300);
+                bool exploreKept = up();
+                StopExplore();
+                bool exploreLet = InControl.Holds == 0 && !exploreHeld;
+                if (!exploreUp || !exploreKept || !exploreLet || !until(down, 1500)) throw new Exception("Her sign wasn't up the whole time she explored, or stayed after: up " + exploreUp + ", kept " + exploreKept + ", let go " + exploreLet + ".");
+                checks.Add("PASS her sign is up the whole time she explores while they're away and for each scroll she sends, and goes once she stops");
+
+                // A clone with their cursor.
+                Clone("spawn", 1);
+                CloneWindow clones = cloneWindow;
+                if (clones == null) throw new Exception("No clone came out for the cursor check.");
+                Point grabbed = new Point(firstScreen.X + 220, firstScreen.Y + 180), dragged = new Point(lastScreen.Right - 220, lastScreen.Bottom - 180);
+                clones.PutCursor = delegate(Point to) { real = to; };
+                clones.Nab(grabbed);
+                bool nabUp = up() && clones.Nabbing && real == grabbed && InControl.At == grabbed && controlGlow.Area == firstScreen;
+                clones.Nab(dragged);
+                bool nabFollowed = real == dragged && InControl.At == dragged && controlGlow.Area == lastScreen && InControl.Holds == 1;
+                clones.Nab(null);
+                bool nabLet = InControl.Holds == 0 && !clones.Nabbing;
+                clones.Nab(grabbed);
+                ClonesOff();
+                bool nabOff = InControl.Holds == 0;
+                if (!nabUp || !nabFollowed || !nabLet || !nabOff || !until(down, 1500)) throw new Exception("Her sign wasn't up while a clone had their cursor, or stayed after: up " + nabUp + ", followed " + nabFollowed + ", let go " + nabLet + ", put away " + nabOff + ".");
+                checks.Add("PASS her sign is up while a clone has their cursor, follows it where it's dragged, and goes when the clone lets go or they're put away");
+            }
+            finally
+            {
+                escNow = false;
+                Computer.Finish();
+                Computer.SendMouse = mouseWas;
+                Computer.SendKey = keyWas;
+                Computer.Nudge = nudgeWas;
+                Computer.PutCursor = putWas;
+                Computer.Tapped = tappedWas;
+                Computer.Track = trackWas;
+                Computer.CursorAt = cursorWas;
+                Computer.CursorHidden = cursorHiddenWas;
+                Computer.GameUnder = gameUnderWas;
+                Computer.Halted = haltedWas;
+                Computer.Lending = lendingWas;
+                Computer.GrayFrame = grayWas;
+                Computer.Shoot = shootWas;
+                Computer.Glimpse = glimpseWas;
+                Computer.Look = lookWas;
+                Computer.Focus = focusWas;
+                Computer.Under = underWas;
+                Computer.Use = useWas;
+                Computer.Front = frontWas;
+                Computer.GameOpen = gameWas;
+                Computer.ExploreMedia = mediaWas;
+                Computer.Flinched = flinchedWas;
+                Computer.Arm();
+                Computer.Escape = escapeWas;
+                Hands.KeyEvent = keyEventWas;
+                ControlGlow.Working = workingWas;
+                excludedField.SetValue(controlGlow, excludedWas);
+                manualHidden = manualWas;
+                hidden = hiddenWas;
+                if (exploring && !exploringWas) StopExplore();
+                if (cloneWindow != null && !clonesWere) ClonesOff();
+                // Whatever a failed check left held lets go, so her sign isn't up for the sections after.
+                while (InControl.Holds > 0) InControl.End();
+                until(down, 1500);
+                InControl.Linger = lingerWas;
+                controlGlow.Sync();
             }
         }
 
@@ -30883,6 +31311,7 @@ namespace CapriDesktop
             Section(checks, "SmokePackageMarker", delegate { SmokePackageMarker(checks, output); });
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
+            Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
             Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });
