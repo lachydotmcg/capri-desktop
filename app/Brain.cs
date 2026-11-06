@@ -4038,7 +4038,7 @@ namespace CapriDesktop
         private static readonly Regex Into = new Regex(@"^(?:i'?m (?:really |mostly |super )?into|i am (?:really |mostly )?into|into|i (?:really )?(?:like|love|enjoy)|mostly|probably|honestly|um+|uh+)[\s,:]+", RegexOptions.IgnoreCase);
         private static readonly Regex Asked = new Regex(@"^\W*(what|who|how|why|when|where|which|can|could|would|will|should|do|does|did|is|are|r u|have you)\b.*\?\W*$", RegexOptions.IgnoreCase);
         private int step = -1;
-        private bool kept, loved;
+        private bool kept, loved, privateRejected;
         private string trouble;
         private string name;
 
@@ -4047,7 +4047,7 @@ namespace CapriDesktop
         internal string Start()
         {
             step = 0;
-            kept = loved = false;
+            kept = loved = privateRejected = false;
             trouble = null;
             name = null;
             return AskName;
@@ -4126,13 +4126,14 @@ namespace CapriDesktop
         {
             if (Regex.Replace(value ?? "", @"\W", "").Length == 0) return false;
             string problem = Brain.Jot(label, value);
-            if (problem != null) { trouble = problem; return false; }
+            if (problem != null) { if (problem == Brain.Private) privateRejected = true; trouble = problem; return false; }
             kept = true;
             return true;
         }
 
         private string Wrap(bool stopped)
         {
+            if (kept && privateRejected) return (trouble == Brain.Private ? trouble : Brain.Private + " " + trouble) + " Some of what you told me is in my notes, me.md. " + Again;
             string end = kept ? (stopped ? "No worries. What you told me is in my notes, me.md. " : (loved ? "Love that" : "Thanks") + (name != null ? ", " + name : "") + ". It's all in my notes now, me.md. ") : stopped ? "No worries, choom. " : "All good, choom. ";
             return (trouble != null ? trouble + " " : "") + end + Again;
         }
