@@ -2638,8 +2638,7 @@ namespace CapriDesktop
             {
                 // Power saver: while it works her background checks run once a second, on every 4th tick. Her ears, keys, speech,
                 // Watch my screen, game reactions, timers, pill and staying on top keep every tick.
-                bool background = BackgroundDue(++signalTicks);
-                Ears.Gentle = Saving;
+                bool background = SaverTick();
                 CheckKeepAwake();
                 double signalNow = clock.Elapsed.TotalSeconds;
                 if (husk != null) husk.Tick();
@@ -7060,6 +7059,12 @@ namespace CapriDesktop
 
         private bool BackgroundDue(int tick) { return !Saving || tick % SaverEvery == 0; }
 
+        // One signals tick under Power saver: her ears' pace follows it, and it says whether the background checks run this tick.
+        private bool SaverTick() { Ears.Gentle = Saving; return BackgroundDue(++signalTicks); }
+
+        // How often she looks at her mic's mute switch for Hey Capri, and at Windows' default mic for Windows speech, in seconds.
+        private double MicLookGap { get { return Saving ? 6 : 2; } }
+
         internal void SetPerchFps(int fps)
         {
             preferences.PerchFps = PerchRate(fps);
@@ -10863,7 +10868,7 @@ namespace CapriDesktop
             SayHeldEarsNote();
             if (chatting && local && dictation != null && earsReady && now >= dictationMicAt)
             {
-                dictationMicAt = now + (Saving ? 6 : 2);
+                dictationMicAt = now + MicLookGap;
                 string current = Dictation.DefaultMic();
                 // The cable is caught even when it was already the default as Windows speech opened, so the id never changed.
                 bool cable = MicMix.IsCableOut(Ears.DefaultName());
@@ -10952,7 +10957,7 @@ namespace CapriDesktop
             if (!WakeReady) { if (wakeOpen) CloseWake(); GetWake(now); return; }
             if (wakeAskedVoice || wakeTries > 0) { wakeAskedVoice = false; wakeTries = 0; wakeRetryAt = -1; }
             heyCapri.Held = now < voiceUntil || speaker.Busy;
-            if (now >= wakeMuteAt) { wakeMuteAt = now + (Saving ? 6 : 2); wakeMicMuted = MicMuted(preferences.Mic) == true; wakeHandsFree = HandsFreeMic(preferences.Mic); }
+            if (now >= wakeMuteAt) { wakeMuteAt = now + MicLookGap; wakeMicMuted = MicMuted(preferences.Mic) == true; wakeHandsFree = HandsFreeMic(preferences.Mic); }
             if (WakePaused) { if (wakeOpen) CloseWake(); return; }
             // A Bluetooth headset's mic would keep the headset on a call, playing everything at call quality, for as long as she
             // listens (a tester, 30 Oct), so she leaves it shut and says why once. Voice chat still uses it.
@@ -20942,6 +20947,259 @@ namespace CapriDesktop
             checks.Add("PASS over a game she gives way below normal, but her window's thread stays level with the game's, so a game on every core can't freeze her");
         }
 
+        // Power saver (issue #111): HABITS' row saves, syncs and stays in Simple Settings. Only while it works, over a faked game
+        // for In games or all the time for Always, she rests at 15 fps, runs her background checks once a second and her ears go
+        // at a gentler pace; Off, or In games with nothing in front, leaves every interval as it was.
+        private void SmokePowerSaver(System.Collections.Generic.List<string> checks, string output)
+        {
+            int saverWas = preferences.PowerSaver, fpsWas = preferences.PerchFps, gapWas = GlanceGap;
+            bool busyWas = frontBusy, ridingWas = riding, facingWas = facingLeft, simpleWas = simpleTest, pageWas = mainframe.SettingsShown, framesWere = frames.Enabled;
+            bool heyWas = preferences.HeyCapri, listenWas = preferences.ListenCapri, clipsWas = preferences.ClipGames, advancedWas = preferences.AdvancedSettings;
+            Ledge seatWas = seat;
+            Clip clipWas = clip;
+            string speechWas = speech, logWas = Brain.LogPath;
+            double movedWas = seatMovedAt;
+            try
+            {
+                // In games for new and old settings; each choice saves, loads and shows from HABITS' slider and her settings tool.
+                Preferences older = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}")));
+                if (new Preferences().PowerSaver != 1 || Preferences.Fresh().PowerSaver != 1 || older.PowerSaver != 1) throw new Exception("Power saver didn't start on In games: new " + new Preferences().PowerSaver + ", fresh " + Preferences.Fresh().PowerSaver + ", old settings " + older.PowerSaver);
+                string[] names = { "Off", "In games", "Always" };
+                for (int level = 0; level < names.Length; level++)
+                {
+                    SetPowerSaver(level);
+                    if (preferences.PowerSaver != level || LoadPreferences().PowerSaver != level || mainframe.PowerSaverShown != names[level] || LevelOf("power_saver") != level)
+                        throw new Exception("Power saver " + names[level] + " didn't save, load and show: " + preferences.PowerSaver + " / " + LoadPreferences().PowerSaver + " / " + mainframe.PowerSaverShown);
+                }
+                SetPowerSaver(-4);
+                int low = preferences.PowerSaver;
+                SetPowerSaver(9);
+                int high = preferences.PowerSaver;
+                if (low != 0 || high != 2) throw new Exception("Power saver didn't clamp: " + low + " / " + high);
+                mainframe.ShowSettings(true);
+                SetPowerSaver(0);
+                mainframe.SlidePowerSaver(1);
+                bool slidIn = preferences.PowerSaver == 1 && LoadPreferences().PowerSaver == 1 && mainframe.PowerSaverShown == "In games";
+                mainframe.SlidePowerSaver(5);
+                bool slidUp = preferences.PowerSaver == 2 && LoadPreferences().PowerSaver == 2 && mainframe.PowerSaverShown == "Always";
+                mainframe.SlidePowerSaver(-5);
+                bool slidDown = preferences.PowerSaver == 0 && LoadPreferences().PowerSaver == 0 && mainframe.PowerSaverShown == "Off";
+                if (!slidIn || !slidUp || !slidDown) throw new Exception("HABITS' Power saver slider didn't save: in games " + slidIn + ", up " + slidUp + ", down " + slidDown);
+                string told = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "power_saver", Level = "In games" });
+                string listed = Hands.Do("capri_settings", new ToolArguments { Action = "list", Name = "power_saver" });
+                if (preferences.PowerSaver != 1 || LoadPreferences().PowerSaver != 1 || mainframe.PowerSaverShown != "In games" || told == null || !told.Contains("In games") || listed == null || !listed.Contains("Power saver: In games"))
+                    throw new Exception("Her settings tool didn't move Power saver: " + told + " / " + listed);
+                if (preferences.HeyCapri != heyWas || preferences.ListenCapri != listenWas || preferences.ClipGames != clipsWas || GlanceGap != gapWas) throw new Exception("Power saver changed one of their own settings.");
+                simpleTest = true;
+                preferences.AdvancedSettings = false;
+                mainframe.ShowSettings(true);
+                string simpleRows = mainframe.SaverRows, simpleOverlap = mainframe.Overlap();
+                simpleTest = false;
+                preferences.AdvancedSettings = advancedWas;
+                mainframe.ShowSettings(true);
+                string advancedRows = mainframe.SaverRows, advancedOverlap = mainframe.Overlap();
+                if (simpleRows != "shown | folded" || advancedRows != "shown | shown" || simpleOverlap != null || advancedOverlap != null)
+                    throw new Exception("Power saver's row didn't fit Simple and Advanced Settings: " + simpleRows + " / " + advancedRows + ", overlap " + simpleOverlap + " / " + advancedOverlap);
+                string facts = SelfKnow.Matching("What is the Power saver setting in Capri?") ?? "", gameFacts = SelfKnow.Matching("what does power saver in games do?") ?? "";
+                if (!facts.StartsWith("Power saver: Mainframe > Settings > HABITS > Power saver is Off, In games (the default) or Always.", StringComparison.Ordinal) || !gameFacts.StartsWith("Power saver:", StringComparison.Ordinal))
+                    throw new Exception("Her self knowledge didn't explain Power saver: " + facts + " / " + gameFacts);
+                checks.Add("PASS Power saver: HABITS' row is In games for new and old settings, saves and loads Off, In games and Always from its slider and her settings tool, clamps, stays in Simple Settings with Perch folded under it, and leaves Hey Capri, Listen for Capri, Clip my games and Watch my screen as set");
+
+                // Resting on a seat: only while Power saver works is she drawn at 15 fps, on whole ticks of Windows' clock.
+                seat = new Ledge { Floor = true, Left = anchor.X - 400, Right = anchor.X + Width + 400, Y = Hip().Y };
+                riding = false;
+                speech = null;
+                seatMovedAt = -10;
+                preferences.PerchFps = 30;
+                Play(perch);
+                double restNow = clock.Elapsed.TotalSeconds;
+                if (!SittingStill || !Quiet(restNow) || Dizzy(restNow) || docked || exploring)
+                    throw new Exception("She wasn't resting for the Power saver check: talk " + talkState + ", bubble " + box.Visible + ", typing " + typer.Visible + ", docked " + docked + ", exploring " + exploring);
+                Func<int, bool, string> paced = delegate(int level, bool game)
+                {
+                    preferences.PowerSaver = level;
+                    frontBusy = game;
+                    double at = clock.Elapsed.TotalSeconds;
+                    return FrameInterval(at) + " ms at " + PerchRateNow(at) + " fps";
+                };
+                string usualPace = "33 ms at 30 fps", restPace = "61 ms at 15 fps";
+                string[] pacesWanted = { usualPace, usualPace, usualPace, restPace, restPace, restPace };
+                System.Collections.Generic.List<string> paces = new System.Collections.Generic.List<string>();
+                for (int level = 0; level < 3; level++) foreach (bool game in new[] { false, true }) paces.Add(paced(level, game));
+                if (string.Join(", ", paces.ToArray()) != string.Join(", ", pacesWanted))
+                    throw new Exception("Resting, her frame pace didn't follow Power saver (Off, In games, Always; without and with a game): " + string.Join(", ", paces.ToArray()));
+                preferences.PowerSaver = 1;
+                frontBusy = true;
+                speech = "hi";
+                int talking = FrameInterval(clock.Elapsed.TotalSeconds);
+                speech = null;
+                riding = true;
+                int carried = FrameInterval(clock.Elapsed.TotalSeconds);
+                riding = false;
+                seatMovedAt = clock.Elapsed.TotalSeconds;
+                int followed = FrameInterval(clock.Elapsed.TotalSeconds);
+                seatMovedAt = -10;
+                Play(perchDance);
+                int dancing = FrameInterval(clock.Elapsed.TotalSeconds);
+                Play(laydown);
+                int lyingDown = FrameInterval(clock.Elapsed.TotalSeconds);
+                Play(perch);
+                preferences.PerchFps = 10;
+                int slowPerch = FrameInterval(clock.Elapsed.TotalSeconds);
+                preferences.PerchFps = 60;
+                int fastPerch = FrameInterval(clock.Elapsed.TotalSeconds);
+                preferences.PerchFps = 30;
+                if (talking != 33 || carried != 33 || followed != 33 || dancing != 33 || lyingDown != 61 || slowPerch != 92 || fastPerch != 61)
+                    throw new Exception("Power saver's rest went wrong over a faked game: talking " + talking + ", carried " + carried + ", window moving " + followed + ", dancing " + dancing + ", lying " + lyingDown + ", 10 fps perch " + slowPerch + ", 60 fps perch " + fastPerch);
+                double stepAt = clock.Elapsed.TotalSeconds;
+                drawnAt = anchor;
+                drawnFacing = facingLeft;
+                drawnStep = (long)((stepAt - clipStart) * SaverFps);
+                double sameStep = clipStart + (drawnStep + 0.5) / SaverFps, nextStep = clipStart + (drawnStep + 1.5) / SaverFps;
+                bool skipsSame = Steady(sameStep), drawsNext = !Steady(nextStep);
+                preferences.PowerSaver = 0;
+                bool drawsOff = !Steady(sameStep);
+                preferences.PowerSaver = 1;
+                if (!skipsSame || !drawsNext || !drawsOff) throw new Exception("Resting at 15 fps didn't skip a tick inside one frame: same frame skipped " + skipsSame + ", next frame drawn " + drawsNext + ", Off drawn " + drawsOff);
+
+                // What resting costs over a faked game: a timer paced like her frame timer runs her frame work, Off then In games.
+                string drawn = null;
+                if (IsHandleCreated && !hidden)
+                {
+                    frames.Stop();
+                    System.Windows.Forms.Timer probe = new System.Windows.Forms.Timer();
+                    int seen = bodyPaints, ticked = 0, drew = 0;
+                    long spent = 0;
+                    double until = 0;
+                    probe.Tick += delegate
+                    {
+                        if (clock.Elapsed.TotalSeconds >= until) { probe.Stop(); return; }
+                        frames.Stop();
+                        long start = Stopwatch.GetTimestamp();
+                        Tick();
+                        spent += Stopwatch.GetTimestamp() - start;
+                        ticked++;
+                        if (bodyPaints != seen) { drew++; seen = bodyPaints; }
+                        int next = FrameInterval(clock.Elapsed.TotalSeconds);
+                        if (probe.Interval != next) probe.Interval = next;
+                    };
+                    Func<double, double> pump = delegate(double seconds)
+                    {
+                        double from = clock.Elapsed.TotalSeconds;
+                        until = from + seconds;
+                        probe.Interval = FrameInterval(from);
+                        probe.Start();
+                        while (clock.Elapsed.TotalSeconds < until)
+                        {
+                            Native.MsgWaitForMultipleObjectsEx(0, null, 5, 0x04FF, 0x0004);
+                            Application.DoEvents();
+                        }
+                        probe.Stop();
+                        return clock.Elapsed.TotalSeconds - from;
+                    };
+                    double[] tickRates = new double[2], drawRates = new double[2], workRates = new double[2];
+                    try
+                    {
+                        frontBusy = true;
+                        for (int pass = 0; pass < 2; pass++)
+                        {
+                            preferences.PowerSaver = pass;
+                            pump(0.3);
+                            ticked = drew = 0;
+                            spent = 0;
+                            double took = pump(1.2);
+                            tickRates[pass] = ticked / took;
+                            drawRates[pass] = drew / took;
+                            workRates[pass] = spent * 1000.0 / Stopwatch.Frequency / took;
+                        }
+                    }
+                    finally { probe.Dispose(); }
+                    drawn = "resting over a faked game, Off ticked " + tickRates[0].ToString("0") + " and drew " + drawRates[0].ToString("0") + " times a second (" + workRates[0].ToString("0.0") + " ms of frame work a second), In games " + tickRates[1].ToString("0") + " and " + drawRates[1].ToString("0") + " (" + workRates[1].ToString("0.0") + " ms)";
+                    if (drawRates[1] >= drawRates[0] || tickRates[1] >= tickRates[0] || drawRates[1] < 5) throw new Exception("Power saver didn't draw her less often: " + drawn);
+                }
+                checks.Add("PASS Power saver's rest: only over a faked game for In games, or always for Always, does she sit at 61 ms and 15 fps (92 ms at a 10 fps perch, lying down too); Off and In games with nothing in front keep 33 ms at 30 fps, talking, being carried, dancing or a moving window under her keep 33 ms, and at 15 fps a tick inside the same frame isn't drawn" + (drawn == null ? "" : "; " + drawn));
+                if (drawn == null) checks.Add("LIMIT Power saver's frame timing wasn't probed: she was hidden");
+
+                // Her quarter-second signals: background checks on every 4th tick, and her ears' gentler pace, only while it works.
+                Func<int, bool, string> cadence = delegate(int level, bool game)
+                {
+                    preferences.PowerSaver = level;
+                    frontBusy = game;
+                    int due = 0;
+                    for (int i = 0; i < 8; i++) if (SaverTick()) due++;
+                    return due + "/8, ears " + (Ears.Gentle ? "gentle" : "usual") + " " + Ears.MicPollMs + "/" + Ears.BeatPollMs + "/" + Ears.RouteMs + " ms, mic looks " + MicLookGap + " s";
+                };
+                string usualCadence = "8/8, ears usual 15/10/2000 ms, mic looks 2 s", savingCadence = "2/8, ears gentle 30/30/6000 ms, mic looks 6 s";
+                string[] cadencesWanted = { usualCadence, usualCadence, usualCadence, savingCadence, savingCadence, savingCadence };
+                System.Collections.Generic.List<string> cadences = new System.Collections.Generic.List<string>();
+                for (int level = 0; level < 3; level++) foreach (bool game in new[] { false, true }) cadences.Add(cadence(level, game));
+                if (string.Join(", ", cadences.ToArray()) != string.Join(", ", cadencesWanted))
+                    throw new Exception("Her signals didn't follow Power saver (Off, In games, Always; without and with a game): " + string.Join(", ", cadences.ToArray()));
+                // Her WASAPI mic's loop, with nothing waiting, really looks about half as often, and an open mic's route is checked every 6 s.
+                Brain.LogPath = Path.Combine(output, "power-saver-log.txt");
+                int[] looks = new int[2], routeGaps = new int[2];
+                MicCheck idleMic = new MicCheck { Empty = true };
+                try
+                {
+                    using (SoundIn listening = new SoundIn("fake-saver-mic", delegate { }, idleMic, idleMic))
+                    {
+                        for (int pass = 0; pass < 2; pass++)
+                        {
+                            Ears.Gentle = pass == 1;
+                            Thread.Sleep(120);
+                            int from = Thread.VolatileRead(ref idleMic.Polls);
+                            Thread.Sleep(800);
+                            looks[pass] = Thread.VolatileRead(ref idleMic.Polls) - from;
+                        }
+                    }
+                }
+                finally { Ears.Gentle = false; idleMic.Dispose(); }
+                if (looks[0] < 20 || looks[1] * 4 > looks[0] * 3) throw new Exception("Her mic's loop didn't slow down: " + looks[0] + " looks in 0.8 s usually, " + looks[1] + " gently");
+                System.Reflection.FieldInfo routeField = typeof(Ears).GetField("routeAt", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                MicCheck routeMic = new MicCheck();
+                int routeAsks = 0;
+                try
+                {
+                    using (Ears routed = new Ears(delegate(string id, Action<short[]> hear) { return new SoundIn(id, hear, routeMic, routeMic); }, delegate { routeAsks++; return "fake-saver-route"; }, delegate { return false; }))
+                    {
+                        routed.Start();
+                        for (int pass = 0; pass < 2; pass++)
+                        {
+                            Ears.Gentle = pass == 1;
+                            routeField.SetValue(routed, Environment.TickCount - 1);
+                            int asked = routeAsks;
+                            bool stalled = routed.Stalled;
+                            routeGaps[pass] = (int)routeField.GetValue(routed) - Environment.TickCount;
+                            if (stalled || routeAsks == asked) throw new Exception("Her mic's route check didn't run: stalled " + stalled + ", asked " + (routeAsks - asked));
+                        }
+                    }
+                }
+                finally { Ears.Gentle = false; routeMic.Dispose(); }
+                if (routeGaps[0] < 1800 || routeGaps[0] > 2000 || routeGaps[1] < 5800 || routeGaps[1] > 6000) throw new Exception("Her mic's route check wasn't 2 s, then 6 s gently: " + routeGaps[0] + " / " + routeGaps[1] + " ms");
+                checks.Add("PASS Power saver's checks: only over a faked game for In games, or always for Always, do her background checks run on 2 of 8 quarter-second ticks and her ears go gentler, her WASAPI mic looking every 30 ms instead of 15 (" + looks[1] + " looks in 0.8 s instead of " + looks[0] + "), her beat listener every 30 ms instead of 10, her mic's route every 6 s instead of 2 and her mute and default-mic checks every 6 s instead of 2; Off and In games with nothing in front keep every tick");
+                checks.Add("LIMIT Power saver: her CPU use in a heavy game needs Task Manager on a real PC, before and after; these checks fake the game in front");
+            }
+            finally
+            {
+                Brain.LogPath = logWas;
+                preferences.PerchFps = fpsWas;
+                frontBusy = busyWas;
+                seat = seatWas;
+                riding = ridingWas;
+                speech = speechWas;
+                seatMovedAt = movedWas;
+                facingLeft = facingWas;
+                preferences.AdvancedSettings = advancedWas;
+                SetPowerSaver(saverWas);
+                SaverTick();
+                simpleTest = simpleWas;
+                mainframe.ShowSettings(pageWas);
+                Play(clipWas);
+                if (framesWere) frames.Start();
+                RenderFrame();
+            }
+        }
+
         // The CLIP SAVED popup and chime, and clips opening from it and from Settings (Lachy, 2 Nov).
         private void SmokeClipPopup(System.Collections.Generic.List<string> checks, string output)
         {
@@ -28626,7 +28884,9 @@ namespace CapriDesktop
                 if (SessionFailure < 0) service = null;
                 return SessionFailure;
             }
-            public int GetNextPacketSize(out int frames) { frames = Empty ? 0 : Math.Min(137, 9600 - at); return Result("packet size"); }
+            // How many times her mic's loop has looked for a packet, for Power saver's pace.
+            internal int Polls;
+            public int GetNextPacketSize(out int frames) { Interlocked.Increment(ref Polls); frames = Empty ? 0 : Math.Min(137, 9600 - at); return Result("packet size"); }
             public int GetBuffer(out IntPtr data, out int frames, out int flags, out long position, out long time)
             {
                 frames = held = Math.Min(137, 9600 - at); data = IntPtr.Add(audio, at * 24); flags = 0; position = at; time = 0;
@@ -30556,6 +30816,7 @@ namespace CapriDesktop
             Section(checks, "SmokeHeartbeat", delegate { SmokeHeartbeat(checks); });
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
+            Section(checks, "SmokePowerSaver", delegate { SmokePowerSaver(checks, output); });
             Section(checks, "SmokeHaul", delegate { SmokeHaul(checks); });
             Section(checks, "SmokeIcons", delegate { SmokeIcons(checks); });
             Section(checks, "SmokeChaosScreen", delegate { SmokeChaosScreen(checks); });
