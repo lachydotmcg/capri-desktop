@@ -1399,6 +1399,11 @@ namespace CapriDesktop
         internal static Func<string> NowPlaying = SpotifyTitle;
         internal static Func<string, bool> SongPlaying = PlayingSong;
         internal static Func<string, string, string> Work = delegate { return "Using the mouse and keyboard isn't ready on this PC yet."; };
+        // The question her last job stopped on to ask first. Her reply is then what ran and that question, word for word: a
+        // wrap-up from her brain after it made her sound like she'd given up (Lachy, 6 Nov).
+        private static string heldOn;
+        internal static void Held(string question) { Volatile.Write(ref heldOn, question); }
+        internal static bool Holds(string result) { string question = Volatile.Read(ref heldOn); return question != null && result == question; }
         internal static Func<string, string> Resume = delegate { return null; };
         internal static Func<string, KeyValuePair<string, ToolArguments>> Plan = delegate { return new KeyValuePair<string, ToolArguments>(); };
         internal static Func<ToolArguments, string> Remind = delegate { return "Couldn't open your reminders."; };

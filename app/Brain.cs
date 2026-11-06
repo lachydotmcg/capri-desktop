@@ -2302,7 +2302,8 @@ namespace CapriDesktop
                 // SECURITY held a call to ask them first: they get what did run and her question word for word, with no second brain call.
                 // What she did leaves out the checks her brain made to find out where things stand.
                 List<string> deeds = Deeds(calls, results);
-                string held = Security.Reply(results);
+                // So does a job that stopped to ask first: what ran, then its question.
+                string held = Security.Reply(results) ?? (results.Exists(Hands.Holds) ? Hands.Shown(string.Join(" ", deeds.ToArray())) : null);
                 done = held ?? Hands.Shown(string.Join(" ", deeds.ToArray()));
                 Cloud remote = Remote;
                 string pulled = held ?? (results.Count == 1 ? Hands.Pulled(results[0]) : null);
@@ -2486,6 +2487,8 @@ namespace CapriDesktop
                     did.Add(Written(call.Key, args));
                     saw.Add(facts[facts.Count - 1]);
                     if (Security.IsHold(result)) return null;
+                    // A job that stopped to ask first ends the turn on its question too.
+                    if (call.Key == "use_computer" && Hands.Holds(result)) return null;
 #if !CROSS
                     if (Computer.Stopped(result)) return null;
 #endif

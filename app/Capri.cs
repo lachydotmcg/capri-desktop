@@ -9577,6 +9577,7 @@ namespace CapriDesktop
             {
                 Job plain = new Job(task, asked);
                 string finished = Work(plain);
+                Hands.Held(plain.Outcome == "waiting" ? finished : null);
                 if (!Computer.Streaming || plain.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return finished; }
             }
             // On stream only their Esc ends it (Lachy, 30 Oct: "play for hours ... while im asleep"). Anything else that stops
@@ -24404,6 +24405,134 @@ namespace CapriDesktop
             }
         }
 
+        // Lachy, 6 Nov: "pull up Roblox and just play whatever the hell you want" stopped at Roblox's "Enter: skip tutorial" to ask
+        // "Should I send that?", since Roblox has a chat, and her reply wrapped up over the question. A game's own Enter is a game
+        // key on both her hands, Enter straight after typing in its chat still asks under Trusted, and a held job's reply is what
+        // ran and its question, with no wrap-up.
+        private static void SmokeGameEnter(System.Collections.Generic.List<string> checks)
+        {
+            Sight roblox = new Sight { Window = new IntPtr(7), Title = "Roblox", Program = "RobloxPlayerBeta" };
+            Sight discord = new Sight { Window = new IntPtr(7), Title = "#general - Discord", Program = "Discord" };
+            ToolArguments enter = new ToolArguments { Keys = "enter" };
+            if (Computer.Risk("press", enter, roblox) != null || Computer.Risk("press", enter, roblox, true) != "send" || Computer.Risk("type", new ToolArguments { Text = "gg", Enter = "yes" }, roblox) != "send" || Computer.Risk("press", enter, discord) != "send")
+                throw new Exception("Enter in a game or a chat app read wrong.");
+            const string play = "pull up roblox and just play whatever the hell you want";
+            string securityWas = Security.Saved;
+            Func<Sight> lookWas = Computer.Look, glimpseWas = Computer.Glimpse;
+            Func<string, ToolArguments, Sight, string> actWas = Computer.Act;
+            Func<IntPtr> frontWas = Computer.Front;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<Target> focusWas = Computer.Focus;
+            Func<Point, Target> underWas = Computer.Under;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            try
+            {
+                Security.Jobs(false);
+                System.Collections.Generic.List<string> acts = new System.Collections.Generic.List<string>();
+                Computer.Look = delegate { return roblox; };
+                Computer.Glimpse = delegate { return roblox; };
+                Computer.Front = delegate { return new IntPtr(7); };
+                Computer.Act = delegate(string name, ToolArguments a, Sight s) { acts.Add(name + ":" + (a.Keys ?? a.Text ?? a.Name ?? "")); return "Did it."; };
+                string[] script = null;
+                int line = 0;
+                Func<string, string, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>, string> think = delegate(string system, string user, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
+                script = new[] { "press{\"keys\": \"enter\"}", "done{\"text\": \"Skipped the tutorial.\"}" };
+                Job skipping = new Job(play);
+                skipping.Think = think;
+                string skipped = skipping.Run();
+                if (skipped != "Skipped the tutorial." || skipping.Asking || string.Join(",", acts.ToArray()) != "press:enter") throw new Exception("Her own hands asked about a game's Enter: " + skipped + " / " + string.Join(",", acts.ToArray()));
+                acts.Clear();
+                line = 0;
+                script = new[] { "press{\"keys\": \"/\"}", "type{\"text\": \"gg\"}", "press{\"keys\": \"enter\"}", "done{\"text\": \"Said gg.\"}" };
+                Job chatting = new Job(play);
+                chatting.Think = think;
+                string chatAsk = chatting.Run();
+                bool chatHeld = chatAsk == "Should I send \"gg\"?" && chatting.Asking && string.Join(",", acts.ToArray()) == "press:/,type:gg";
+                string chatSaid = chatting.Run();
+                if (!chatHeld || chatSaid != "Said gg." || chatting.Asking || string.Join(",", acts.ToArray()) != "press:/,type:gg,press:enter") throw new Exception("Her own hands sent a line in a game's chat without asking, or lost it after yes: " + chatAsk + " / " + chatSaid + " / " + string.Join(",", acts.ToArray()));
+                // Claude's hands, which Lachy's run used.
+                Computer.Shoot = delegate(Rectangle? part) { return new Picture { Jpeg = new byte[] { 1, 2, 3 }, Size = new Size(1280, 720), Area = new Rectangle(0, 0, 2560, 1440) }; };
+                Computer.Focus = delegate { return null; };
+                Computer.Under = delegate(Point at) { return null; };
+                System.Collections.Generic.List<string> moves = new System.Collections.Generic.List<string>();
+                Computer.Use = delegate(string name, ToolArguments a, Picture seen) { moves.Add(name + (a.Text == null ? "" : " " + a.Text)); return "Done."; };
+                string[] driveScript = null;
+                int turn = 0;
+                Func<string, string, string, ClaudeReply> drive = delegate(string system, string tools, string messages) { return Brain.Parsed(driveScript[Math.Min(turn++, driveScript.Length - 1)]); };
+                driveScript = new[]
+                {
+                    "{\"content\":[{\"type\":\"tool_use\",\"id\":\"k1\",\"name\":\"key\",\"toolset_name\":\"computer\",\"input\":{\"text\":\"Return\"}}],\"stop_reason\":\"tool_use\"}",
+                    "{\"content\":[{\"type\":\"text\",\"text\":\"Skipped the tutorial.\"}],\"stop_reason\":\"end_turn\"}"
+                };
+                Job driveSkip = new Job(play);
+                driveSkip.Drive = drive;
+                string driveSkipped = driveSkip.Run();
+                if (driveSkipped != "Skipped the tutorial." || driveSkip.Asking || string.Join(",", moves.ToArray()) != "key Return") throw new Exception("Claude's hands asked about a game's Enter: " + driveSkipped + " / " + string.Join(",", moves.ToArray()));
+                moves.Clear();
+                turn = 0;
+                driveScript = new[]
+                {
+                    "{\"content\":[{\"type\":\"tool_use\",\"id\":\"t1\",\"name\":\"type\",\"toolset_name\":\"computer\",\"input\":{\"text\":\"gg\"}},{\"type\":\"tool_use\",\"id\":\"k2\",\"name\":\"key\",\"toolset_name\":\"computer\",\"input\":{\"text\":\"Return\"}}],\"stop_reason\":\"tool_use\"}",
+                    "{\"content\":[{\"type\":\"text\",\"text\":\"Said gg.\"}],\"stop_reason\":\"end_turn\"}"
+                };
+                Job driveChat = new Job(play);
+                driveChat.Drive = drive;
+                string driveAsk = driveChat.Run();
+                if (driveAsk != "Should I send \"gg\"?" || !driveChat.Asking || string.Join(",", moves.ToArray()) != "type gg") throw new Exception("Claude's hands sent a line in a game's chat without asking: " + driveAsk + " / " + string.Join(",", moves.ToArray()));
+            }
+            finally
+            {
+                Security.Load(securityWas);
+                Computer.Look = lookWas;
+                Computer.Glimpse = glimpseWas;
+                Computer.Act = actWas;
+                Computer.Front = frontWas;
+                Computer.Shoot = shootWas;
+                Computer.Focus = focusWas;
+                Computer.Under = underWas;
+                Computer.Use = useWas;
+            }
+            Func<string, string, string> toolCall = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake;
+            string openAiWas = Brain.OpenAi;
+            Func<string> openWas = Computer.GameOpen;
+            Brain.OpenAi = FakeServer(new string[]
+            {
+                toolCall("open_app", "{\"name\":\"Roblox\"}"), toolCall("use_computer", "{\"task\":\"buy the cat hat in the shop\"}"),
+                "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"I opened Roblox and I'm in the shop with the tutorial running.\"}}]}"
+            }, asked, out fake);
+            try
+            {
+                const string held = "Should I press \"Buy now\"?";
+                Hands.Held(held);
+                if (!Hands.Holds(held) || Hands.Holds("Should I press \"Send\"?") || Hands.Holds(null)) throw new Exception("A held job's question was matched wrong.");
+                Brain working = new Brain();
+                working.Remote = new Cloud("sk-proj-test", "gpt-5-mini");
+                working.Model = "gpt-5-mini";
+                working.OwnSteps = true;
+                working.Act = delegate(string name, ToolArguments args)
+                {
+                    if (name != "use_computer") return "Opened " + args.Name + ".";
+                    Hands.Held(held);
+                    return held;
+                };
+                Computer.GameOpen = delegate { return null; };
+                string reply = working.Ask("open roblox and buy me the cat hat");
+                int calledBrain;
+                lock (asked) calledBrain = asked.Count;
+                if (Regex.Replace(reply ?? "", @"\s+", " ") != "Opened Roblox. " + held || calledBrain != 2) throw new Exception("A held job's question didn't end her reply, or her brain wrapped up over it: " + reply + " after " + calledBrain + " brain calls");
+            }
+            finally
+            {
+                Hands.Held(null);
+                Brain.OpenAi = openAiWas;
+                Computer.GameOpen = openWas;
+                fake.Stop();
+            }
+            checks.Add("PASS a game's own Enter is a game key: \"pull up Roblox and play\" skips Roblox's tutorial with Enter on her own and on Claude's hands without asking; Enter straight after typing in a game's chat still asks under Trusted, quoting what it would send, and goes on after yes; a held job's reply is what ran and its question, word for word, with no wrap-up from her brain");
+        }
+
         // F57: a strong brain works a job out itself. CS isn't open, so it opens it, hands the match to a job and only then says so;
         // a promise with no tool behind it gets one reminder, then her line that nothing's happened yet; chat stays chat.
         private static void SmokeWorkingOut(System.Collections.Generic.List<string> checks)
@@ -32050,6 +32179,7 @@ namespace CapriDesktop
             Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });
             Section(checks, "SmokeGameHolds", delegate { SmokeGameHolds(checks); });
             Section(checks, "SmokeGameAsks", delegate { SmokeGameAsks(checks); });
+            Section(checks, "SmokeGameEnter", delegate { SmokeGameEnter(checks); });
             Section(checks, "SmokeWorkingOut", delegate { SmokeWorkingOut(checks); });
             Section(checks, "SmokePlannerChecks", delegate { SmokePlannerChecks(checks); });
             Section(checks, "SmokeSettingTurns", delegate { SmokeSettingTurns(checks); });

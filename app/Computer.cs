@@ -779,7 +779,7 @@ namespace CapriDesktop
             return Status(tool, args, sight).TrimEnd('.');
         }
 
-        internal static string Risk(string tool, ToolArguments args, Sight sight)
+        internal static string Risk(string tool, ToolArguments args, Sight sight, bool typedFirst = false)
         {
             // Win + R, Win + L, Ctrl + Alt + Del and the like ask first unless Things your request didn't mention is on.
             if (tool == "press" && Barred(Chorded(args.Keys))) return "keys";
@@ -792,6 +792,10 @@ namespace CapriDesktop
             }
             bool enter = (tool == "type" && args.Enter == "yes") || (tool == "press" && Regex.IsMatch(args.Keys ?? "", @"^\s*enter\s*$", RegexOptions.IgnoreCase));
             if (!enter) return null;
+            // A game's own Enter starts, skips and confirms things. Roblox has a chat, so its "Enter: skip tutorial" held her job to
+            // ask "Should I send that?" and it sounded like she'd given up (Lachy, 6 Nov). Straight after typing, Enter still sends
+            // what she typed into the game's chat.
+            if (tool == "press" && !typedFirst && GameWindow(sight)) return null;
             Target box = (tool == "type" ? target : null) ?? (sight == null ? null : sight.Targets.Find(found => found.Focused));
             string name = box == null ? "" : box.Name;
             bool chatApp = sight != null && (Talky.IsMatch(sight.Program) || Talky.IsMatch(sight.Title));
@@ -2642,7 +2646,7 @@ namespace CapriDesktop
                 KeyValuePair<string, ToolArguments> waiting = Waiting;
                 Waiting = default(KeyValuePair<string, ToolArguments>);
                 if (risk != null) approved.Add(risk);
-                Perform(waiting.Key, waiting.Value, WaitingSight);
+                Track(waiting.Key, waiting.Value, Computer.Failed(Perform(waiting.Key, waiting.Value, WaitingSight)));
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
             }
             // No step limit: bigger brains can work for hours, and Esc stops her.
@@ -2737,7 +2741,7 @@ namespace CapriDesktop
                     return End("done", Regex.IsMatch(args.Text ?? "", @"^\W*(done)?\W*$", RegexOptions.IgnoreCase) ? Summary() : said);
                 }
                 if (tool == "type" && args.Enter != "yes" && (told.Contains("send") || approved.Contains("send")) && Computer.ChatBox(args, sight)) args.Enter = "yes";
-                string danger = Computer.Risk(tool, args, sight);
+                string danger = Computer.Risk(tool, args, sight, typed != null);
                 // Paying with the card boxes still empty can't work, and the card is theirs to type, so she hands over instead of asking.
                 if (danger == "buy" && !Security.On(Security.Secrets) && sight != null && sight.Targets.Exists(found => Computer.CardBox(found) && string.IsNullOrEmpty(found.Value))) return End("asked", Computer.PayYourself);
                 if (Needs(danger))
@@ -2745,9 +2749,11 @@ namespace CapriDesktop
                     Waiting = new KeyValuePair<string, ToolArguments>(tool, args);
                     WaitingSight = sight;
                     risk = danger;
-                    return End("waiting", Computer.Question(tool, args, sight));
+                    // Straight after typing, her question says what Enter would send.
+                    return End("waiting", danger == "send" && tool == "press" && typed != null ? Computer.Question("type", new ToolArguments { Text = typed }, sight) : Computer.Question(tool, args, sight));
                 }
                 string result = Perform(tool, args, sight);
+                Track(tool, args, Computer.Failed(result));
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 // A second Add to cart the job never asked for means the job was done before it.
                 if (result == Computer.NoCart && ++carts >= 2) return End("done", Summary() + " I didn't add anything to your cart.");
@@ -3268,7 +3274,7 @@ namespace CapriDesktop
             if (box != null) { box.Number = 1; box.Focused = true; gate.Targets.Add(box); }
             string text = name == "type" ? Regex.Replace(args.Text ?? "", @"\s+", " ").Trim() : typed;
             question = Computer.Question("type", new ToolArguments { Text = text }, gate);
-            return Computer.Risk("press", new ToolArguments { Keys = "enter" }, gate);
+            return Computer.Risk("press", new ToolArguments { Keys = "enter" }, gate, name == "type" || typed != null);
         }
 
         // Does one call and shows it in her task panel as it happens.
@@ -3321,8 +3327,20 @@ namespace CapriDesktop
                 Steps.Add(name + ": " + (failed ? result : done + "."));
                 Mark(new JobStep { Tool = name, Label = failed ? Clean(result != null && result.StartsWith(Computer.OffScreen, StringComparison.Ordinal) ? Computer.OffScreen : Hands.Shown(result), "That didn't work.").TrimEnd('.') : done, Finished = true, Failed = failed });
             }
-            if (name == "type" && !failed) typed = Regex.Replace(masked.Text ?? "", @"\s+", " ").Trim();
+            Track(name, masked, failed);
             return result;
+        }
+
+        // What she typed waits in its box until her next step that does something else. An Enter straight after it sends it, so
+        // in a game that's the one Enter that can ask first (Lachy, 6 Nov).
+        private void Track(string tool, ToolArguments args, bool failed)
+        {
+            if (tool == "type")
+            {
+                string kept = Regex.Replace(args.Text ?? "", @"\s+", " ").Trim();
+                typed = failed || args.Enter == "yes" || Regex.IsMatch(args.Text ?? "", @"\n\s*$") || kept.Length == 0 ? null : kept;
+            }
+            else if (!Regex.IsMatch(tool, "^(say|wait|wait_for|note|learn|look|zoom|screenshot)$")) typed = null;
         }
 
         // The talk so far as Claude's messages, with only the newest pictures. They go three at a time, so the turns before
