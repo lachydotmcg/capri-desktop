@@ -546,12 +546,14 @@ namespace CapriDesktop
             freeSetup.Loud = true;
             freeSetup.Visible = false;
             micMenu = Dropdown();
+            micMenu.Closed += delegate { micsWaiting = false; };
             mics = Lower(Make("Mic: default", 28, 382, 244, 28, delegate { ShowMics(); }));
             mics.Chevron = true;
             mics.AccessibleName = "Microphone";
             micTest = Lower(Make("Test", 280, 382, 76, 28, delegate { capri.TestMic(); }));
             micTest.AccessibleName = "Test microphone input";
             speakerMenu = Dropdown();
+            speakerMenu.Closed += delegate { speakersWaiting = false; };
             speakers = Lower(Make("Her speaker: Default", 28, 418, 328, 28, delegate { ShowSpeakers(); }, "Her speaker"));
             speakers.Chevron = true;
             speakers.Ellipsis = true;
@@ -696,10 +698,12 @@ namespace CapriDesktop
             cableKey.AccessibleName = "Get VB-CABLE: opens VB-Audio's own setup, which Windows asks you to let run. Click Install Driver in it, then restart your PC. VB-CABLE is donationware from vb-cable.com";
             cableKey.Visible = false;
             mixInputMenu = Dropdown();
+            mixInputMenu.Closed += delegate { mixInputsWaiting = false; };
             mixInput = Make("Input: default", 28, MixAt + 76, 328, 22, delegate { ShowMixInputs(mixInput); }, "Her voice in your mic");
             mixInput.Chevron = true;
             mixInput.AccessibleName = "Her mix's input: the mic that goes in with her voice";
             mixOutputMenu = Dropdown();
+            mixOutputMenu.Closed += delegate { mixOutputsWaiting = false; };
             mixOutput = Make("Output: none", 28, MixAt + 104, 244, 22, delegate { ShowMixOutputs(mixOutput); }, "Her voice in your mic");
             mixOutput.Chevron = true;
             mixOutput.AccessibleName = "Her mix's output: the virtual mic it plays into, which you pick as your mic in your call app";
@@ -1529,44 +1533,65 @@ namespace CapriDesktop
 
         internal void SlideMicLoudness(int index) { micLoudness.Slide(index); }
 
+        // Her mix's Input and Output menus open at once and look in the background too, like VOICE's Mic menu (#100).
+        private bool mixInputsWaiting, mixOutputsWaiting;
+        internal const string CheckingCables = "Still checking your virtual mics...";
+
         // Her mix's Input: the mic her ears use, or one of its own. Never a cable's far end, which carries her voice.
         private void ShowMixInputs(Control under)
         {
-            capri.RefreshHearingDevices();
+            MixInputChoices(null);
+            mixInputMenu.Show(under, new Point(0, under.Height));
+            capri.LookMics();
+        }
+
+        private void MixInputChoices(List<Mic> all)
+        {
             string chosen = capri.MixInputPick;
-            List<Mic> found = capri.HearingMics.FindAll(delegate(Mic mic) { return !MicMix.IsCableOut(mic.Name); });
+            List<Mic> found = all == null ? null : all.FindAll(delegate(Mic mic) { return !MicMix.IsCableOut(mic.Name); });
+            mixInputsWaiting = found == null;
             mixInputMenu.Items.Clear();
-            mixInputMenu.Items.Add(Choice("Same as her ears (VOICE > Mic)", Ears.Find(chosen, found) == null, delegate { capri.ChooseMixInput(null); }));
+            mixInputMenu.Items.Add(Choice("Same as her ears (VOICE > Mic)", found == null ? string.IsNullOrEmpty(chosen) : Ears.Find(chosen, found) == null, delegate { mixInputsWaiting = false; capri.ChooseMixInput(null); }));
+            if (found == null) { mixInputMenu.Items.Add(new ToolStripSeparator()); mixInputMenu.Items.Add(Checking(CheckingMics)); return; }
             if (found.Count > 0) mixInputMenu.Items.Add(new ToolStripSeparator());
             foreach (Mic mic in found)
             {
                 string id = mic.Id;
-                mixInputMenu.Items.Add(Choice(mic.Name, id == chosen, delegate { capri.ChooseMixInput(id); }));
+                mixInputMenu.Items.Add(Choice(mic.Name, id == chosen, delegate { mixInputsWaiting = false; capri.ChooseMixInput(id); }));
             }
-            mixInputMenu.Show(under, new Point(0, under.Height));
         }
 
         // Her mix's Output: VB-CABLE's or Steam's virtual mic, by the name Discord lists it under, or VB-CABLE's setup.
         private void ShowMixOutputs(Control under)
         {
+            MixOutputItems(null);
+            mixOutputMenu.Show(under, new Point(0, under.Height));
+            capri.LookMixOutputs();
+        }
+
+        // Her look at your virtual mics is back, so an Output menu that's still checking fills in.
+        internal void ShowMixChoices() { if (mixOutputsWaiting) MixOutputItems(capri.MixChoices); }
+
+        private void MixOutputItems(List<Companion.MixChoice> cables)
+        {
             string chosen = capri.MixOutputPick;
-            List<MixDevice> cables = capri.MixOutputs;
             bool vb = false;
+            mixOutputsWaiting = cables == null;
             mixOutputMenu.Items.Clear();
-            mixOutputMenu.Items.Add(Choice("Automatic: VB-CABLE, else Steam's", cables.Find(delegate(MixDevice each) { return each.Id == chosen; }) == null, delegate { capri.ChooseMixOutput(null); }));
+            mixOutputMenu.Items.Add(Choice("Automatic: VB-CABLE, else Steam's", cables == null ? string.IsNullOrEmpty(chosen) : cables.Find(delegate(Companion.MixChoice each) { return each.Cable.Id == chosen; }) == null, delegate { mixOutputsWaiting = false; capri.ChooseMixOutput(null); }));
+            if (cables == null) { mixOutputMenu.Items.Add(new ToolStripSeparator()); mixOutputMenu.Items.Add(Checking(CheckingCables)); return; }
             if (cables.Count > 0) mixOutputMenu.Items.Add(new ToolStripSeparator());
-            foreach (MixDevice cable in cables)
+            foreach (Companion.MixChoice cable in cables)
             {
-                string id = cable.Id;
-                vb |= !MicMix.IsSteam(cable.Name);
-                mixOutputMenu.Items.Add(Choice(MicMix.FarName(cable), id == chosen, delegate { capri.ChooseMixOutput(id); }));
+                string id = cable.Cable.Id;
+                vb |= !MicMix.IsSteam(cable.Cable.Name);
+                mixOutputMenu.Items.Add(Choice(cable.Name, id == chosen, delegate { mixOutputsWaiting = false; capri.ChooseMixOutput(id); }));
             }
             if (!vb)
             {
                 mixOutputMenu.Items.Add(new ToolStripSeparator());
-                mixOutputMenu.Items.Add(Choice("Get VB-CABLE (free)...", false, delegate { capri.SetUpCable(); }));
+                mixOutputMenu.Items.Add(Choice("Get VB-CABLE (free)...", false, delegate { mixOutputsWaiting = false; capri.SetUpCable(); }));
             }
-            mixOutputMenu.Show(under, new Point(0, under.Height));
         }
 
         // Her voice in your mic's setup steps, over the Mainframe like VOICE LAYERS.
@@ -4245,6 +4270,9 @@ namespace CapriDesktop
         {
             mics.Text = "Mic: " + (name ?? "default");
             mics.Invalidate();
+            // Her look at your mics is back, so a menu that's still checking fills in.
+            if (micsWaiting) MicChoices(capri.HearingMics);
+            if (mixInputsWaiting) MixInputChoices(capri.HearingMics);
         }
 
         internal void ShowSpeaker(string name)
@@ -4252,25 +4280,39 @@ namespace CapriDesktop
             speakers.Text = "Her speaker: " + (name ?? "Default");
             speakers.AccessibleName = "Her speaker: " + (name ?? "Default (follows Windows)");
             speakers.Invalidate();
+            if (speakersWaiting) SpeakerChoices(capri.SpeakerDevices);
         }
 
-        private void SpeakerChoices()
+        // VOICE's Mic and Her speaker menus open at once and look up your devices in the background (#100). Until that look is
+        // back, a menu says she's still checking, and picking from it or closing it stops the wait.
+        private bool micsWaiting, speakersWaiting;
+        internal const string CheckingSpeakers = "Still checking your speakers...", CheckingMics = "Still checking your mics...";
+
+        private static ToolStripMenuItem Checking(string text) { return new ToolStripMenuItem(text) { Enabled = false }; }
+
+        // Default, then the speakers her last look found, or while she's still looking, a line that says so.
+        private void SpeakerChoices(List<Speaker.Output> found)
         {
-            capri.RefreshSpeakers();
+            speakersWaiting = found == null;
             speakerMenu.Items.Clear();
-            speakerMenu.Items.Add(Choice("Default (follows Windows)", string.IsNullOrEmpty(capri.SpeakerId), delegate { capri.ChooseSpeaker(null); }));
-            List<Speaker.Output> found = capri.SpeakerDevices;
+            speakerMenu.Items.Add(Choice("Default (follows Windows)", string.IsNullOrEmpty(capri.SpeakerId), delegate { speakersWaiting = false; capri.ChooseSpeaker(null); }));
+            if (found == null) { speakerMenu.Items.Add(new ToolStripSeparator()); speakerMenu.Items.Add(Checking(CheckingSpeakers)); return; }
             bool missing = !string.IsNullOrEmpty(capri.SpeakerId) && Speaker.Find(capri.SpeakerId, found) == null;
             if (found.Count > 0 || missing) speakerMenu.Items.Add(new ToolStripSeparator());
             foreach (Speaker.Output output in found)
             {
                 string id = output.Id;
-                speakerMenu.Items.Add(Choice(output.Name, string.Equals(id, capri.SpeakerId, StringComparison.OrdinalIgnoreCase), delegate { capri.ChooseSpeaker(id); }));
+                speakerMenu.Items.Add(Choice(output.Name, string.Equals(id, capri.SpeakerId, StringComparison.OrdinalIgnoreCase), delegate { speakersWaiting = false; capri.ChooseSpeaker(id); }));
             }
             if (missing) speakerMenu.Items.Add(new ToolStripMenuItem(capri.SpeakerName) { Checked = true, Enabled = false });
         }
 
-        private void ShowSpeakers() { SpeakerChoices(); speakerMenu.Show(speakers, new Point(0, speakers.Height)); }
+        private void ShowSpeakers()
+        {
+            SpeakerChoices(null);
+            speakerMenu.Show(speakers, new Point(0, speakers.Height));
+            capri.LookSpeakers();
+        }
 
         internal void ShowWatchScreen(string name)
         {
@@ -4300,7 +4342,8 @@ namespace CapriDesktop
         internal string SpeakerShown { get { return speakers.Text; } }
         internal string WatchScreenShown { get { return screens.Text; } }
 
-        internal string SpeakerChoicesShown { get { SpeakerChoices(); return PickChoices(speakerMenu); } }
+        // Her speaker's choices as a fresh look finds them, for the smoke test.
+        internal string SpeakerChoicesShown { get { capri.RefreshSpeakers(); SpeakerChoices(capri.SpeakerDevices); return PickChoices(speakerMenu); } }
         internal string ScreenChoicesShown { get { ScreenChoices(); return PickChoices(screenMenu); } }
 
         private static string PickChoices(ContextMenuStrip menu)
@@ -4314,7 +4357,20 @@ namespace CapriDesktop
             return string.Join(" | ", choices.ToArray());
         }
 
-        internal void PickSpeakerChoice(int at) { SpeakerChoices(); speakerMenu.Items[at == 0 ? 0 : at + 1].PerformClick(); }
+        internal void PickSpeakerChoice(int at) { capri.RefreshSpeakers(); SpeakerChoices(capri.SpeakerDevices); speakerMenu.Items[at == 0 ? 0 : at + 1].PerformClick(); }
+
+        // The sound page's device menus opened as a click opens them and read as they show now, for the smoke test's slow
+        // devices (#100). DeviceMenuOpen goes by number: Her speaker, Mic, her mix's Input, then its Output.
+        internal void OpenSpeakerMenu() { ShowSpeakers(); }
+        internal void OpenMixInputs() { ShowMixInputs(mixInput); }
+        internal void OpenMixOutputs() { ShowMixOutputs(mixOutput); }
+        internal string SpeakerMenuShown { get { return PickChoices(speakerMenu); } }
+        internal string MicMenuShown { get { return PickChoices(micMenu); } }
+        internal string MixInputMenuShown { get { return PickChoices(mixInputMenu); } }
+        internal string MixOutputMenuShown { get { return PickChoices(mixOutputMenu); } }
+        internal string MicShown { get { return mics.Text; } }
+        internal bool DeviceMenuOpen(int which) { return new[] { speakerMenu, micMenu, mixInputMenu, mixOutputMenu }[which].Visible; }
+        internal void CloseDeviceMenus() { foreach (ContextMenuStrip menu in new[] { speakerMenu, micMenu, mixInputMenu, mixOutputMenu }) menu.Close(); }
         internal void PickScreenChoice(int at) { ScreenChoices(); screenMenu.Items[at == 0 ? 0 : at + 1].PerformClick(); }
 
         // On a small desktop Windows clamps the window narrower than its page, so a clamped window skips the inside-the-window checks, like Outside's callers.
@@ -4354,18 +4410,25 @@ namespace CapriDesktop
 
         private void ShowMics()
         {
-            capri.RefreshHearingDevices();
+            MicChoices(null);
+            micMenu.Show(mics, new Point(0, mics.Height));
+            capri.LookMics();
+        }
+
+        // Windows default, then the mics her last look found, or while she's still looking, a line that says so.
+        private void MicChoices(List<Mic> found)
+        {
             string chosen = capri.MicId;
-            List<Mic> found = capri.HearingMics;
+            micsWaiting = found == null;
             micMenu.Items.Clear();
-            micMenu.Items.Add(Choice("Windows default", Ears.Find(chosen, found) == null, delegate { capri.ChooseMic(null); }));
+            micMenu.Items.Add(Choice("Windows default", found == null ? string.IsNullOrEmpty(chosen) : Ears.Find(chosen, found) == null, delegate { micsWaiting = false; capri.ChooseMic(null); }));
+            if (found == null) { micMenu.Items.Add(new ToolStripSeparator()); micMenu.Items.Add(Checking(CheckingMics)); return; }
             if (found.Count > 0) micMenu.Items.Add(new ToolStripSeparator());
             foreach (Mic mic in found)
             {
                 string id = mic.Id;
-                micMenu.Items.Add(Choice(mic.Name, id == chosen, delegate { capri.ChooseMic(id); }));
+                micMenu.Items.Add(Choice(mic.Name, id == chosen, delegate { micsWaiting = false; capri.ChooseMic(id); }));
             }
-            micMenu.Show(mics, new Point(0, mics.Height));
         }
 
         internal void ShowHearing(HearingStatus status)
@@ -4490,12 +4553,13 @@ namespace CapriDesktop
             return false;
         }
 
-        // Back from editing personality.md in Notepad, her personality key catches up.
+        // Back from editing personality.md in Notepad, her personality key catches up, and she looks at your devices again in the
+        // background.
         protected override void OnActivated(EventArgs e)
         {
             base.OnActivated(e);
             ShowPersonality();
-            if (loaded) capri.RefreshHearingDevices();
+            if (loaded) capri.LookHearingDevices();
         }
 
         private static ToolStripMenuItem Choice(string text, bool chosen, EventHandler click)
@@ -6574,6 +6638,7 @@ namespace CapriDesktop
                 steps[4] = Caption("", 28, 370, Font, White);
                 live = Caption("", 28, 404, Font, Faint);
                 elsewhere = Caption("", 28, 438, Font, Faint);
+                // Every second it asks again who hears her. Her looks at Windows run in the background, so it never waits (#100).
                 ticks.Interval = 1000;
                 ticks.Tick += delegate { Sync(); };
                 owner.Fit(this);
@@ -6610,14 +6675,15 @@ namespace CapriDesktop
                 return made;
             }
 
-            // The switch, the mix's devices, what's wrong if anything, the name to pick in Discord, and who hears it now.
+            // The switch, the mix's devices, what's wrong if anything, the name to pick in Discord, and who hears it now, as her last
+            // looks at Windows found them.
             internal void Sync()
             {
                 Companion capri = owner.capri;
                 MixDevice there = capri.MixOutput;
                 bool cable = there != null, on = capri.VoiceInMic;
                 bool vb = capri.VbCableReady;
-                string problem = capri.VoiceInMicProblem, setup = capri.CableSetupLine, far = MicMix.FarName(there);
+                string problem = capri.VoiceInMicProblem, setup = capri.CableSetupLine, far = capri.MixFarName;
                 CallApp app = CallApps.Current;
                 bool isDiscord = app.Name == "Discord";
                 Retext(callHead, "IN " + app.Caption + " >");

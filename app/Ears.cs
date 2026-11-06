@@ -710,6 +710,8 @@ namespace CapriDesktop
         private static readonly object gate = new object();
         private static Func<List<Output>> listed;
         private static List<Output> outputs;
+        // Each read of Windows' outputs is numbered, so one that answers after a newer one doesn't replace it.
+        private static int reads, kept;
         private static string missingId;
         private static bool fellBack;
         private readonly bool silent;
@@ -794,13 +796,23 @@ namespace CapriDesktop
             return found;
         }
 
+        // Windows' outputs: the last read, or a fresh one. A fresh read happens outside the lock, so a speaker that's slow to answer,
+        // like a Bluetooth headset waking up, never holds up her voice, which takes the last read meanwhile (#100).
         internal static List<Output> List(bool fresh = false)
         {
+            Func<List<Output>> read;
+            int reading;
             lock (gate)
             {
-                Func<List<Output>> read = Devices;
-                if (fresh || listed != read) { outputs = read(); listed = read; }
-                return outputs;
+                read = Devices;
+                if (!fresh && listed == read) return outputs;
+                reading = ++reads;
+            }
+            List<Output> found = read();
+            lock (gate)
+            {
+                if (reading > kept) { outputs = found; listed = read; kept = reading; }
+                return found;
             }
         }
 
