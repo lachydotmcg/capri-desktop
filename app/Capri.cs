@@ -28263,6 +28263,114 @@ namespace CapriDesktop
             }
         }
 
+        // A menu longer than its screen stays on the screen with her arrows, opens with its tick in view, and scrolls on the wheel
+        // wherever Windows sends it, to its last row and back, without the Mainframe page moving behind it (Ashy, 6 Nov).
+        private void SmokeLongMenus(System.Collections.Generic.List<string> checks)
+        {
+            BindingFlags inner = BindingFlags.Instance | BindingFlags.NonPublic;
+            foreach (ToolStripDropDown drop in new ToolStripDropDown[] { menu, playerMenu })
+                if (!Mainframe.MenuLook.HasArrows(drop)) throw new Exception("Her right-click or player menu has no arrows of hers.");
+            foreach (ContextMenuStrip drop in mainframe.Dropdowns)
+                if (!Mainframe.MenuLook.HasArrows(drop)) throw new Exception("A Mainframe menu has no arrows of hers: " + (drop.Items.Count > 0 ? drop.Items[0].Text : "empty"));
+            if (callPanel != null && !Mainframe.MenuLook.HasArrows((ToolStripDropDown)typeof(CallPanel).GetField("apps", inner).GetValue(callPanel))) throw new Exception("The call panel's app menu has no arrows of hers.");
+            Point atWas = mainframe.Location;
+            bool shownWas = mainframe.Visible;
+            FormWindowState stateWas = mainframe.WindowState;
+            ContextMenuStrip list = (ContextMenuStrip)typeof(Mainframe).GetMethod("Dropdown", inner).Invoke(mainframe, null);
+            ContextMenuStrip nest = new ContextMenuStrip { Renderer = new Mainframe.MenuLook() };
+            try
+            {
+                mainframe.WindowState = FormWindowState.Normal;
+                mainframe.Show();
+                ToolStripItem[] rows = new ToolStripItem[300];
+                for (int i = 0; i < rows.Length; i++) rows[i] = new ToolStripMenuItem("Model " + i) { Checked = i == 250 };
+                list.Items.AddRange(rows);
+                Func<ToolStripDropDown, int> first = delegate(ToolStripDropDown drop)
+                {
+                    for (int i = 0; i < drop.Items.Count; i++) if (drop.Items[i].Bounds.Top >= drop.DisplayRectangle.Top) return i;
+                    return -1;
+                };
+                Action<IntPtr, Point, int> wheel = delegate(IntPtr window, Point at, int notches)
+                {
+                    Native.PostMessage(window, 0x020A, new IntPtr((notches * 120) << 16), new IntPtr((at.Y << 16) | (at.X & 0xFFFF)));
+                    Application.DoEvents();
+                };
+                bool looked = false;
+                // Every screen, then back the other way, so a menu first fitted to a tall screen has to fit a shorter one.
+                List<Screen> screens = new List<Screen>(Screen.AllScreens);
+                for (int i = screens.Count - 2; i >= 0; i--) screens.Add(screens[i]);
+                foreach (Screen screen in screens)
+                    foreach (bool low in new[] { false, true })
+                    {
+                        Rectangle area = screen.WorkingArea;
+                        mainframe.Location = new Point(area.Left + 20, low ? Math.Max(area.Top, area.Bottom - mainframe.Height - 20) : area.Top + 20);
+                        list.Show(mainframe, new Point(28, 162));
+                        Application.DoEvents();
+                        string where = " (screen " + area + ", Mainframe " + (low ? "low)" : "high)");
+                        Rectangle work = Screen.FromRectangle(list.Bounds).WorkingArea;
+                        if (!list.Visible || !work.Contains(list.Bounds)) throw new Exception("A long menu ran off its screen: " + list.Bounds + " in " + work + where);
+                        Label up = Mainframe.MenuLook.Arrow(list, true), down = Mainframe.MenuLook.Arrow(list, false);
+                        float s = list.DeviceDpi / 96f;
+                        if (!Mainframe.MenuLook.Scrolls(list) || !up.Visible || !down.Visible || up.Height < 12 * s || down.Height < 12 * s) throw new Exception("A long menu's arrows are missing or too small: " + up.Height + " and " + down.Height + " px" + where);
+                        if (rows[250].Bounds.Top < list.DisplayRectangle.Top || rows[250].Bounds.Bottom > list.DisplayRectangle.Bottom) throw new Exception("A long menu opened without its ticked row in view: row 250 at " + rows[250].Bounds + ", view " + list.DisplayRectangle + ", first row " + first(list) + ", menu " + list.Bounds + ", up " + up.Enabled + ", down " + down.Enabled + ", dpi " + list.DeviceDpi + where);
+                        if (!looked)
+                        {
+                            looked = true;
+                            using (Bitmap shot = new Bitmap(list.Width, list.Height))
+                            {
+                                list.DrawToBitmap(shot, new Rectangle(Point.Empty, shot.Size));
+                                Color panel = Mainframe.MenuLook.Panel;
+                                int lit = 0;
+                                for (int y = down.Top; y < down.Bottom; y++)
+                                    for (int x = down.Left + down.Width / 3; x < down.Right - down.Width / 3; x++)
+                                    {
+                                        Color seen = shot.GetPixel(x, y);
+                                        if (Math.Abs(seen.R - panel.R) + Math.Abs(seen.G - panel.G) + Math.Abs(seen.B - panel.B) > 150) lit++;
+                                    }
+                                if (lit < 6) throw new Exception("A long menu's down arrow doesn't show on her panel (" + lit + " bright pixels).");
+                            }
+                            int pageWas = (int)typeof(Mainframe).GetField("pageScroll", inner).GetValue(mainframe);
+                            int from = first(list);
+                            wheel(mainframe.Handle, mainframe.PointToScreen(new Point(8, 8)), -1);
+                            if (first(list) <= from) throw new Exception("A wheel turn sent to the Mainframe didn't scroll the open menu.");
+                            if ((int)typeof(Mainframe).GetField("pageScroll", inner).GetValue(mainframe) != pageWas) throw new Exception("A wheel turn scrolled the Mainframe page behind an open menu.");
+                            from = first(list);
+                            wheel(list.Handle, new Point(list.Left + list.Width / 2, list.Top + list.Height / 2), -1);
+                            if (first(list) <= from) throw new Exception("A wheel turn over the menu didn't scroll it.");
+                            wheel(list.Handle, new Point(list.Left + list.Width / 2, list.Top + list.Height / 2), 150);
+                            if (first(list) != 0 || up.Enabled) throw new Exception("Wheeling up didn't reach the menu's first row: " + first(list));
+                            wheel(list.Handle, new Point(list.Left + list.Width / 2, list.Top + list.Height / 2), -150);
+                            if (rows[299].Bounds.Bottom > list.DisplayRectangle.Bottom || down.Enabled) throw new Exception("Wheeling down didn't reach the menu's last row.");
+                            for (int i = 0; i < 5; i++) Mainframe.MenuLook.Step(list, true);
+                            if (rows[299].Bounds.Bottom < list.DisplayRectangle.Bottom - rows[299].Height) throw new Exception("Scrolling at the last row went past it.");
+                        }
+                        list.Close();
+                    }
+                ToolStripMenuItem games = new ToolStripMenuItem("Games");
+                for (int i = 0; i < 300; i++) games.DropDownItems.Add("Game " + i);
+                nest.Items.Add(games);
+                nest.Show(mainframe, new Point(28, 162));
+                games.ShowDropDown();
+                Application.DoEvents();
+                ToolStripDropDown sub = games.DropDown;
+                if (!Mainframe.MenuLook.HasArrows(sub) || !Mainframe.MenuLook.Scrolls(sub) || Mainframe.MenuLook.Arrow(sub, false).Height < 12 * sub.DeviceDpi / 96f) throw new Exception("A long submenu WinForms made has no arrows of hers.");
+                int subFrom = first(sub);
+                wheel(sub.Handle, new Point(sub.Left + sub.Width / 2, sub.Top + sub.Height / 2), -2);
+                if (first(sub) <= subFrom || first(nest) != 0) throw new Exception("A wheel turn over a long submenu didn't scroll it alone.");
+                checks.Add("PASS long menus: a 300-row menu fits its screen on every screen with the Mainframe high or low, shows her arrows at a clickable size, opens with its ticked row in view, scrolls on a wheel turn sent to the Mainframe or the menu without moving the page, stops at its first and last rows, and a long submenu WinForms makes gets the same; her right-click, player and Mainframe menus all have it");
+            }
+            finally
+            {
+                list.Close();
+                nest.Close();
+                list.Dispose();
+                nest.Dispose();
+                mainframe.Location = atWas;
+                mainframe.WindowState = stateWas;
+                if (!shownWas) mainframe.Hide();
+            }
+        }
+
         private void SmokeLanguages(System.Collections.Generic.List<string> checks)
         {
             int sizeWas = MainframeSize;
@@ -31689,6 +31797,7 @@ namespace CapriDesktop
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
+            Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
             Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });

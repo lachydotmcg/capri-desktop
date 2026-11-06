@@ -4215,6 +4215,8 @@ namespace CapriDesktop
         public bool PreFilterMessage(ref Message m)
         {
             FilterHints(ref m);
+            // An open menu takes the wheel before the page does (Ashy, 6 Nov).
+            if (MenuLook.Wheel(m)) return true;
             // A wheel turn over Mainframe belongs to it, including at either end of the page (Lachy, 2 Nov).
             if (m.Msg == 0x020A)
             {
@@ -5114,6 +5116,7 @@ namespace CapriDesktop
                 drop.DropShadowEnabled = false;
                 drop.SizeChanged += delegate { Shape(drop); };
                 Shape(drop);
+                Scrolling(drop as ToolStripDropDownMenu);
             }
 
             // Cuts a menu to its clipped corners: big at the top left and bottom right, small at the others.
@@ -5124,18 +5127,210 @@ namespace CapriDesktop
                 Neon.Clip(drop, 10 * s, 4 * s);
             }
 
-            protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+            // A menu taller than its screen: WinForms fits it to the screen with scroll buttons, but on .NET Framework they're 9 px
+            // strips with a black arrow, lost on her dark panel, and the wheel scrolled the Mainframe behind it instead, so a long
+            // model list looked cut off at the bottom of the screen (Ashy, 6 Nov). Her menus get her own arrows, scroll on the
+            // wheel and while the mouse rests on an arrow, and open with the ticked choice in view.
+            private const System.Reflection.BindingFlags Inner = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            private static readonly System.Reflection.PropertyInfo NeedsScroll = typeof(ToolStripDropDownMenu).GetProperty("RequiresScrollButtons", Inner);
+            private static readonly System.Reflection.PropertyInfo UpButton = typeof(ToolStripDropDownMenu).GetProperty("UpScrollButton", Inner);
+            private static readonly System.Reflection.PropertyInfo DownButton = typeof(ToolStripDropDownMenu).GetProperty("DownScrollButton", Inner);
+            private static readonly System.Reflection.MethodInfo ScrollOne = typeof(ToolStripDropDownMenu).GetMethod("ScrollInternal", Inner, null, new[] { typeof(bool) }, null);
+            private static readonly System.Reflection.MethodInfo PlaceButtons = typeof(ToolStripDropDownMenu).GetMethod("UpdateScrollButtonLocations", Inner, null, System.Type.EmptyTypes, null);
+            private static readonly Dictionary<int, Bitmap> blanks = new Dictionary<int, Bitmap>();
+            [ThreadStatic] private static HashSet<ToolStripDropDownMenu> scrolling;
+            [ThreadStatic] private static List<ToolStripDropDownMenu> open;   // oldest first
+            [ThreadStatic] private static System.Windows.Forms.Timer drift;
+            [ThreadStatic] private static Label drifting;
+            [ThreadStatic] private static ToolStripDropDownMenu wheeled;
+            [ThreadStatic] private static int turned;
+
+            private static bool CanScroll { get { return NeedsScroll != null && UpButton != null && DownButton != null && ScrollOne != null && PlaceButtons != null; } }
+
+            internal static bool HasArrows(ToolStripDropDown drop) { ToolStripDropDownMenu menu = drop as ToolStripDropDownMenu; return menu != null && scrolling != null && scrolling.Contains(menu); }
+
+            internal static bool Scrolls(ToolStripDropDown drop)
             {
-                if (!(e.ToolStrip is ToolStripDropDown)) { base.OnRenderToolStripBackground(e); return; }
-                float s = Unit(e.ToolStrip);
-                Size size = e.ToolStrip.Size;
-                using (Brush ground = new SolidBrush(Panel)) e.Graphics.FillRectangle(ground, 0, 0, size.Width, size.Height);
+                ToolStripDropDownMenu menu = drop as ToolStripDropDownMenu;
+                return menu != null && CanScroll && (bool)NeedsScroll.GetValue(menu, null);
+            }
+
+            internal static Label Arrow(ToolStripDropDown drop, bool up) { return ((ToolStripControlHost)(up ? UpButton : DownButton).GetValue(drop, null)).Control as Label; }
+
+            private static void Scrolling(ToolStripDropDownMenu menu)
+            {
+                if (menu == null || !CanScroll) return;
+                if (scrolling == null)
+                {
+                    scrolling = new HashSet<ToolStripDropDownMenu>();
+                    open = new List<ToolStripDropDownMenu>();
+                    Application.AddMessageFilter(new WheelTaker());
+                }
+                if (!scrolling.Add(menu)) return;
+                menu.Disposed += delegate { if (scrolling != null) { scrolling.Remove(menu); open.Remove(menu); } };
+                foreach (bool up in new[] { true, false })
+                {
+                    bool upward = up;
+                    Label arrow = Arrow(menu, up);
+                    if (arrow == null) continue;
+                    arrow.BackColor = Panel;
+                    typeof(Control).GetProperty("DoubleBuffered", Inner).SetValue(arrow, true, null);
+                    arrow.Paint += delegate(object sender, PaintEventArgs e) { PaintArrow(e.Graphics, menu, arrow, upward); };
+                    arrow.EnabledChanged += delegate { arrow.Invalidate(); };
+                    arrow.MouseEnter += delegate { Drift(arrow); };
+                    arrow.MouseLeave += delegate { if (drifting == arrow) drifting = null; arrow.Invalidate(); };
+                }
+                Sized(menu);
+                // A submenu WinForms makes for an item uses this look without being handed it, so it's set up as its parent opens.
+                menu.Opening += delegate
+                {
+                    Sized(menu);
+                    foreach (ToolStripItem item in menu.Items)
+                    {
+                        ToolStripMenuItem parent = item as ToolStripMenuItem;
+                        if (parent != null && parent.HasDropDownItems) Scrolling(parent.DropDown as ToolStripDropDownMenu);
+                    }
+                };
+                menu.Opened += delegate
+                {
+                    open.Remove(menu);
+                    open.Add(menu);
+                    PlaceButtons.Invoke(menu, null);
+                    ShowTicked(menu);
+                };
+                menu.Closed += delegate { open.Remove(menu); };
+            }
+
+            // A scroll button is as tall as its picture and 4 px, so a clear picture sizes it to her scale.
+            private static void Sized(ToolStripDropDownMenu menu)
+            {
+                int tall = (int)Math.Round(12 * Unit(menu));
+                Bitmap blank;
+                lock (blanks) if (!blanks.TryGetValue(tall, out blank)) blanks[tall] = blank = new Bitmap(1, tall);
+                foreach (bool up in new[] { true, false })
+                {
+                    Label arrow = Arrow(menu, up);
+                    if (arrow != null && arrow.Image != blank) arrow.Image = blank;
+                }
+            }
+
+            // Her panel and rim under the button, then a cyan arrow, or a faint outline at the end of the list.
+            private static void PaintArrow(Graphics graphics, ToolStripDropDownMenu menu, Label arrow, bool up)
+            {
+                float s = Unit(menu);
+                GraphicsState state = graphics.Save();
+                graphics.TranslateTransform(-arrow.Left, -arrow.Top);
+                Ground(graphics, menu);
+                Neon.Frame(graphics, menu.Size, s, 10 * s, 4 * s, 30 * s, 18 * s);
+                graphics.Restore(state);
+                if (arrow.Enabled && drifting == arrow)
+                    using (Brush band = new SolidBrush(Chosen)) graphics.FillRectangle(band, 4 * s, 1, arrow.Width - 8 * s, arrow.Height - 2);
+                float x = arrow.Width / 2f, y = arrow.Height / 2f, half = 6 * s, rise = 3 * s;
+                PointF[] mark = up
+                    ? new[] { new PointF(x - half, y + rise), new PointF(x, y - rise), new PointF(x + half, y + rise) }
+                    : new[] { new PointF(x - half, y - rise), new PointF(x, y + rise), new PointF(x + half, y - rise) };
+                SmoothingMode was = graphics.SmoothingMode;
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                if (arrow.Enabled) using (Brush fill = new SolidBrush(Cyan)) graphics.FillPolygon(fill, mark);
+                using (Pen pen = new Pen(arrow.Enabled ? Cyan : Faint, 1.3f * s)) { pen.LineJoin = LineJoin.Miter; graphics.DrawPolygon(pen, mark); }
+                graphics.SmoothingMode = was;
+            }
+
+            // Resting the mouse on an arrow keeps scrolling that way, like a Windows menu.
+            private static void Drift(Label arrow)
+            {
+                drifting = arrow;
+                arrow.Invalidate();
+                if (drift == null)
+                {
+                    drift = new System.Windows.Forms.Timer { Interval = 60 };
+                    drift.Tick += delegate
+                    {
+                        Label over = drifting;
+                        ToolStripDropDownMenu menu = over == null ? null : over.Parent as ToolStripDropDownMenu;
+                        if (menu == null || !menu.Visible || !over.Enabled || !over.ClientRectangle.Contains(over.PointToClient(Cursor.Position))) { drift.Stop(); return; }
+                        Step(menu, over == Arrow(menu, false));
+                    };
+                }
+                drift.Start();
+            }
+
+            // One row up or down while there's more that way: asked for more, WinForms scrolls past the last row.
+            internal static bool Step(ToolStripDropDown drop, bool down)
+            {
+                ToolStripDropDownMenu menu = drop as ToolStripDropDownMenu;
+                if (!Scrolls(menu)) return false;
+                ToolStripItem edge = (ToolStripItem)(down ? DownButton : UpButton).GetValue(menu, null);
+                if (!edge.Enabled) return false;
+                ScrollOne.Invoke(menu, new object[] { !down });
+                return true;
+            }
+
+            // A long list opens with its tick about halfway down, like her model among hundreds.
+            private static void ShowTicked(ToolStripDropDownMenu menu)
+            {
+                if (!Scrolls(menu)) return;
+                ToolStripItem ticked = null;
+                foreach (ToolStripItem item in menu.Items)
+                {
+                    ToolStripMenuItem choice = item as ToolStripMenuItem;
+                    if (choice != null && choice.Checked && choice.Available) { ticked = choice; break; }
+                }
+                if (ticked == null) return;
+                for (int rows = menu.Items.Count; rows > 0; rows--)
+                {
+                    Rectangle view = menu.DisplayRectangle;
+                    if (ticked.Bounds.Top < view.Top) { if (!Step(menu, false)) return; }
+                    else if (ticked.Bounds.Top > view.Top + view.Height / 2) { if (!Step(menu, true)) return; }
+                    else return;
+                }
+            }
+
+            // While one of her menus is open a wheel turn scrolls it, the one under the mouse or else the newest that scrolls, and
+            // never the window behind, the way a Windows menu holds the wheel.
+            internal static bool Wheel(Message m)
+            {
+                if (m.Msg != 0x020A || open == null) return false;
+                open.RemoveAll(delegate(ToolStripDropDownMenu menu) { return menu.IsDisposed || !menu.Visible; });
+                if (open.Count == 0) return false;
+                long at = m.LParam.ToInt64();
+                Point point = new Point(unchecked((short)(at & 0xFFFF)), unchecked((short)((at >> 16) & 0xFFFF)));
+                ToolStripDropDownMenu target = null;
+                for (int i = open.Count - 1; i >= 0 && target == null; i--) if (open[i].Bounds.Contains(point)) target = open[i];
+                for (int i = open.Count - 1; i >= 0 && target == null; i--) if (Scrolls(open[i])) target = open[i];
+                if (target == null) return true;
+                if (target != wheeled) { wheeled = target; turned = 0; }
+                turned += unchecked((short)((m.WParam.ToInt64() >> 16) & 0xFFFF));
+                int notches = turned / 120;
+                turned -= notches * 120;
+                int lines = SystemInformation.MouseWheelScrollLines;
+                if (lines < 1 || lines > 20) lines = 3;
+                for (int row = 0; row < Math.Abs(notches) * lines; row++) if (!Step(target, notches < 0)) break;
+                return true;
+            }
+
+            private sealed class WheelTaker : IMessageFilter
+            {
+                public bool PreFilterMessage(ref Message m) { return Wheel(m); }
+            }
+
+            private static void Ground(Graphics graphics, ToolStrip strip)
+            {
+                float s = Unit(strip);
+                Size size = strip.Size;
+                using (Brush ground = new SolidBrush(Panel)) graphics.FillRectangle(ground, 0, 0, size.Width, size.Height);
                 float glow = Math.Min(size.Height, 90 * s);
                 using (LinearGradientBrush wine = new LinearGradientBrush(new RectangleF(0, -1, 16, glow + 2), Glow, Panel, LinearGradientMode.Vertical))
                 {
                     wine.Blend = Fade;
-                    e.Graphics.FillRectangle(wine, 0, 0, size.Width, glow);
+                    graphics.FillRectangle(wine, 0, 0, size.Width, glow);
                 }
+            }
+
+            protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+            {
+                if (!(e.ToolStrip is ToolStripDropDown)) { base.OnRenderToolStripBackground(e); return; }
+                Ground(e.Graphics, e.ToolStrip);
             }
 
             protected override void OnRenderImageMargin(ToolStripRenderEventArgs e)
