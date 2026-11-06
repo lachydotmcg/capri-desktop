@@ -68,6 +68,7 @@ namespace CapriDesktop
         private static readonly int[] Sleeps = { 0, 60, 120, 300, 600, 1800 };
         private static readonly string[] SleepNames = { "Never", "1 min", "2 min", "5 min", "10 min", "30 min" };
         private static readonly string[] PopNames = { "Rarely", "Sometimes", "Often" };
+        private static readonly string[] SaverNames = { "Off", "In games", "Always" };
         private static readonly string[] BubbleNames = { "Quick", "Normal", "Long" };
         private static readonly string[] SoundNames = { "Off", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private static readonly string[] WanderNames = { "Off", "Rarely", "Sometimes", "Often", "Restless" };
@@ -275,7 +276,8 @@ namespace CapriDesktop
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1316, 1368 }, new[] { 1368, 1396 } };
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 680, 1090 }, new[] { 1286, 2112 } };
+        // Power saver's row stays in Simple Settings, so the right column's last band starts a row lower, at Perch.
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 680, 1090 }, new[] { 1314, 2140 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -363,6 +365,8 @@ namespace CapriDesktop
         private readonly Label customNote;
         private readonly Slider perchFps;
         private readonly Readout perchFpsName;
+        private readonly Slider powerSaver;
+        private readonly Readout powerSaverName;
         // Her Mainframe size: Auto, or 100% to 200% of the screen's own scale.
         private static readonly int[] FrameSizes = { 0, 100, 125, 150, 175, 200 };
         private static readonly string[] FrameSizeNames = { "Auto", "100%", "125%", "150%", "175%", "200%" };
@@ -884,6 +888,11 @@ namespace CapriDesktop
             blackwallNote.AutoSize = false;
             blackwallNote.TextAlign = ContentAlignment.MiddleRight;
             blackwallNote.Bounds = new Rectangle(28 + c, 819, 328, 18);
+            // Power saver: Off, In games or Always (issue #111). Simple Settings keeps it; the rows from Perch down fold under it.
+            powerSaver = Setting("Power saver", SaverNames, c, 840, "Power saver: how lightly she runs in games, or always");
+            powerSaverName = new Readout(powerSaver);
+            powerSaver.Changed += delegate { if (syncing) return; powerSaverName.Text = SaverNames[powerSaver.Value]; capri.SetPowerSaver(powerSaver.Value); };
+            int afterSaver = Controls.Count;
             // Frames a second while she sits on a window. Her sway takes 2 s at every fps; past 30 she draws in-betweens.
             perchFps = Setting("Perch", PerchNames, c, 840, "Her perch frames per second");
             perchFpsName = new Readout(perchFps);
@@ -904,6 +913,9 @@ namespace CapriDesktop
             exploreAfter = Setting("Explore after", AwayNames, c, 1000, "How long you are away before she scrolls a browser or reader");
             exploreAfterName = new Readout(exploreAfter);
             exploreAfter.Changed += delegate { if (!syncing) capri.SetExploreAfter(AwayTimes[exploreAfter.Value]); };
+            // Power saver's row moves the rest of HABITS down one.
+            for (int belowSaver = afterSaver; belowSaver < Controls.Count; belowSaver++)
+                if (Controls[belowSaver].Left >= c) Controls[belowSaver].Top += Row;
             int gamesFrom = Controls.Count;
             Section("GAMES >", 0, 914);
             miniGames = Make("Play...", 140, 911, 96, 20, delegate { ShowMiniGames(); });
@@ -2739,6 +2751,8 @@ namespace CapriDesktop
             if (!localAddress.Box.Focused) localAddress.Box.Text = capri.LocalAddress;
             perchFps.Value = Math.Max(0, Array.IndexOf(Companion.PerchRates, capri.PerchFps));
             ShowPerch();
+            powerSaver.Value = Math.Max(0, Math.Min(SaverNames.Length - 1, capri.PowerSaver));
+            powerSaverName.Text = SaverNames[powerSaver.Value];
             syncing = false;
         }
 
@@ -2758,6 +2772,13 @@ namespace CapriDesktop
         internal void SlideReplyLength(int index) { replyLength.Slide(index); }
 
         internal void SlidePerch(int steps) { Press(perchFps, steps); }
+
+        internal string PowerSaverShown { get { return powerSaverName.Text; } }
+
+        internal void SlidePowerSaver(int steps) { Press(powerSaver, steps); }
+
+        // Simple Settings keeps Power saver on the page and folds Perch away under it; Advanced Settings shows both.
+        internal string SaverRows { get { return (Folded(powerSaver) ? "folded" : "shown") + " | " + (Folded(perchFps) ? "folded" : "shown"); } }
 
         internal string PopsShown { get { return popsName.Text; } }
 
