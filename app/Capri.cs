@@ -1896,6 +1896,8 @@ namespace CapriDesktop
         private const string FirstDodgeLine = "No. Don't touch me.";
         private double coveredSince = -1;
         private double seatLost = -1;
+        // When the window under her last moved, so Power saver's slow rest waits a second after it.
+        private double seatMovedAt = -10;
         private System.Collections.Generic.List<Rectangle> icons = new System.Collections.Generic.List<Rectangle>();
         private bool iconsBusy;
         private double iconsAt = -10;
@@ -2874,6 +2876,8 @@ namespace CapriDesktop
             // Thrown, she covers a lot of screen a frame, so she's drawn every 1/64 s; dizzy, her sway needs 30 a second.
             if (Flying) return frontBusy ? 33 : 15;
             if (Dizzy(now)) return 33;
+            // Power saver: resting, she ticks on whole ticks of Windows' clock at her rest rate, like a slow perch.
+            if (Resting(now)) return Math.Max(1, 64 / Math.Max(1, (int)Math.Min(clip.Fps, Math.Min(preferences.PerchFps, SaverFps)))) * 1000 / 64 - 1;
             if (frontBusy)
             {
                 if (docked) return 66;
@@ -2886,10 +2890,22 @@ namespace CapriDesktop
             return Math.Max(1, 64 / fps) * 1000 / 64 - 1;
         }
 
+        // Power saver (issue #111): sitting or lying still on her seat with nothing about her moving, she's drawn at most 15 times
+        // a second, half her perch art's 30. Anything that moves, talks or dances gets her usual rate back by the next tick.
+        internal const int SaverFps = 15;
+
+        private bool Resting(double now)
+        {
+            return Saving && SittingStill && !docked && !exploring && (clip == perch || clip == laydown || clip == laydownSleep) && now - seatMovedAt >= 1 && !Dizzy(now) && Quiet(now);
+        }
+
+        // Her perch's frames a second right now: the rate they picked, or Power saver's while she rests.
+        private int PerchRateNow(double now) { return Resting(now) ? Math.Min(preferences.PerchFps, SaverFps) : preferences.PerchFps; }
+
         // A tick off 30 fps with nothing new to show: she's only sitting, still where she was drawn, and her perch frame hasn't changed.
         private bool Steady(double now)
         {
-            int fps = preferences.PerchFps;
+            int fps = PerchRateNow(now);
             return fps != 30 && clip == perch && SittingStill && Quiet(now) && !Dizzy(now) && anchor == drawnAt && facingLeft == drawnFacing && (long)((now - clipStart) * fps) == drawnStep;
         }
 
@@ -2947,6 +2963,8 @@ namespace CapriDesktop
             nodGain = 0;
             veiled = false;
             arrivalDue = next == arrive || next == perchArrive;
+            // Out of Power saver's slow rest, her next frame comes at her usual pace.
+            if (frames != null && frames.Interval > 33 && next != perch && next != laydown && next != laydownSleep && Saving) frames.Interval = 33;
         }
 
         private bool FollowBeat(double now)
@@ -3000,7 +3018,8 @@ namespace CapriDesktop
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
             int index = (int)((now - clipStart) * clip.Fps);
             perchMix = 0;
-            if ((clip == perch || clip == perchDance || clip == laydown || clip == laydownSleep) && preferences.PerchFps != 30) index = PerchIndex(now - clipStart, preferences.PerchFps, out perchMix);
+            int perchRate = PerchRateNow(now);
+            if ((clip == perch || clip == perchDance || clip == laydown || clip == laydownSleep) && perchRate != 30) index = PerchIndex(now - clipStart, perchRate, out perchMix);
             if (clip == leave || clip == perchLeave || clip == laydownLeave) return Math.Min(index, clip.Count - 1);
             if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = 0; }
             if (clip == arrive && index >= arrive.Count)
@@ -8122,6 +8141,7 @@ namespace CapriDesktop
             }
             seatLost = -1;
             if (bounds == seat.Bounds) return;
+            seatMovedAt = now;
             int dx = bounds.Width == seat.Bounds.Width ? bounds.Left - seat.Bounds.Left : 0;
             int x = Math.Max(bounds.Left + 8, Math.Min(Hip().X + dx, bounds.Right - 8));
             seat.Bounds = bounds;
@@ -13579,7 +13599,7 @@ namespace CapriDesktop
             drawnBreath = Breath(now);
             drawnTilt = Tilt(now);
             drawnNotes = preferences.Motion && notes.Exists(note => now - note.Born < NoteLife);
-            drawnStep = veiled || now < veilUntil ? -1 : (long)((now - clipStart) * preferences.PerchFps);
+            drawnStep = veiled || now < veilUntil ? -1 : (long)((now - clipStart) * PerchRateNow(now));
             drawnAt = anchor;
             drawnFacing = facingLeft;
         }
