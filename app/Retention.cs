@@ -107,10 +107,12 @@ namespace CapriDesktop
 
         private static bool Whole(string text)
         {
+            text = text ?? "";
             int depth = 0;
             bool quoted = false, escaped = false;
-            foreach (char c in text ?? "")
+            for (int i = 0; i < text.Length; i++)
             {
+                char c = text[i];
                 if (quoted)
                 {
                     if (escaped) { escaped = false; continue; }
@@ -118,9 +120,16 @@ namespace CapriDesktop
                     if (c == '"') quoted = false;
                     continue;
                 }
-                if (c == '"') quoted = true;
-                else if (c == '{') depth++;
-                else if (c == '}') { depth--; if (depth < 0) return false; }
+                if (c == '"') { quoted = true; continue; }
+                if (c == '{' || c == '[') { depth++; continue; }
+                if (c == '}' || c == ']') { depth--; if (depth < 0) return false; continue; }
+                // A comma right before a closing brace is not JSON, even though her own serializer reads it.
+                if (c == ',')
+                {
+                    int next = i + 1;
+                    while (next < text.Length && char.IsWhiteSpace(text[next])) next++;
+                    if (next < text.Length && (text[next] == '}' || text[next] == ']')) return false;
+                }
             }
             return !quoted && depth == 0;
         }

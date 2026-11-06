@@ -1237,6 +1237,7 @@ namespace CapriDesktop
         private static readonly Dictionary<string, Dug> dug = new Dictionary<string, Dug>(StringComparer.OrdinalIgnoreCase);
         private static long dugBytes;
         internal static int DugHeld { get { lock (dug) return dug.Count; } }
+        internal static bool DugHolds(string day) { lock (dug) return dug.ContainsKey(day); }
         internal static void ForgetDug() { lock (dug) { dug.Clear(); dugBytes = 0; } }
 
         // Lines from her chat logs, and notes too old for her prompt, that match what they said, found by a word search on this PC with no brain call.
@@ -1344,12 +1345,12 @@ namespace CapriDesktop
                         List<Moment> read = new List<Moment>();
                         foreach (string line in lines) if (line.StartsWith("*", StringComparison.Ordinal)) read.Add(new Moment(on, line, Words(Said(on, line))));
                         if (kept != null) dugBytes -= kept.Bytes;
-                        kept = new Dug { Stamp = stamp, Lines = read, Bytes = DugSize(read) };
+                        kept = new Dug { Stamp = stamp, Lines = read, Bytes = DugSize(read), Used = DateTime.UtcNow.Ticks };
                         dugBytes += kept.Bytes;
                         dug[day] = kept;
-                        if (dug.Count > DugDays || dugBytes > DugBytes) TrimDug();
                     }
-                    kept.Used = DateTime.UtcNow.Ticks;
+                    else kept.Used = DateTime.UtcNow.Ticks;
+                    if (dug.Count > DugDays || dugBytes > DugBytes) TrimDug();
                     moments.AddRange(kept.Lines);
                 }
             lock (dug) TrimDug();

@@ -535,7 +535,7 @@ namespace CapriDesktop
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
             Settings retentionSettings;
-            if (Program.Smoke == null && Retention.Readable(Path.Combine(folder, "cross.json"), out retentionSettings)) Retention.Sweep(Brain.TranscriptPath, Path.Combine(folder, "chat.json"), retentionSettings.KeepAllHistory, DateTime.Now);
+            if (Program.Smoke == null && !settingsReset && Retention.Readable(Path.Combine(folder, "cross.json"), out retentionSettings)) Retention.Sweep(Brain.TranscriptPath, Path.Combine(folder, "chat.json"), retentionSettings.KeepAllHistory, DateTime.Now);
             Limbs.Attach(Brain);
             StartAwake();
             Hands.Look = LookAt;
@@ -4735,6 +4735,7 @@ namespace CapriDesktop
                 CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, HuskMode = saved.HuskMode };
         }
 
+        private bool settingsReset;
         private Settings Load()
         {
             try
@@ -4744,10 +4745,11 @@ namespace CapriDesktop
                 NewSettings newer = null;
                 try { using (FileStream stream = File.OpenRead(Path.Combine(folder, "cross-new.json"))) newer = (NewSettings)new DataContractJsonSerializer(typeof(NewSettings)).ReadObject(stream); }
                 catch (Exception) { }
+                settingsReset = false;
                 return Kept(saved, newer);
             }
             // A new install starts in the computer's own language when she speaks it.
-            catch (Exception) { return new Settings { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) }; }
+            catch (Exception) { settingsReset = true; return new Settings { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) }; }
         }
 
         internal void Save()
