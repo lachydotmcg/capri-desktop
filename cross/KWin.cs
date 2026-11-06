@@ -68,7 +68,7 @@ namespace CapriDesktop
                     Connection connecting = made;
                     Task.Run(() => connecting.ConnectAsync().AsTask()).WaitAsync(TimeSpan.FromSeconds(3)).GetAwaiter().GetResult();
                     made.AddMethodHandler(new Handler());
-                    scriptPath = Path.Combine(Path.GetTempPath(), Plugin + "-" + Environment.ProcessId + ".js");
+                    scriptPath = Path.Combine(Folder(), Plugin + "-" + Environment.ProcessId + ".js");
                     File.WriteAllText(scriptPath, Script(made.UniqueName));
                     // A bridge left by a Capri that crashed would call a name nobody holds any more, so it goes first.
                     Call(made, "/Scripting", "org.kde.kwin.Scripting", "unloadScript", Plugin);
@@ -121,7 +121,7 @@ namespace CapriDesktop
             if (window == null || talk == null) return false;
             string body = action == "minimize" ? "w.minimized = true;" : action == "close" ? "w.closeWindow();" : "w.minimized = false; workspace.activeWindow = w;";
             string tag = Plugin + "-act-" + Guid.NewGuid().ToString("N").Substring(0, 12);
-            string path = Path.Combine(Path.GetTempPath(), tag + ".js");
+            string path = Path.Combine(Folder(), tag + ".js");
             try
             {
                 File.WriteAllText(path, "var l = workspace.windowList(); for (var i = 0; i < l.length; i++) { var w = l[i]; if (String(w.internalId) == " + JsonSerializer.Serialize(window.Key) + ") { " + body + " break; } }");
@@ -138,6 +138,14 @@ namespace CapriDesktop
                 try { File.Delete(path); }
                 catch (Exception) { }
             }
+        }
+
+        // Her scripts go in the session's own runtime folder, which only you can open, rather than the shared /tmp, where
+        // someone else on the PC could swap one before KWin reads it.
+        private static string Folder()
+        {
+            string runtime = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
+            return !string.IsNullOrEmpty(runtime) && Directory.Exists(runtime) ? runtime : Path.GetTempPath();
         }
 
         private static int Load(Connection talk, string path, string plugin = Plugin)
