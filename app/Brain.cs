@@ -14,30 +14,22 @@ namespace CapriDesktop
     // fixed text she shows without a brain all read it, so the next release only edits these lines.
     internal static class News
     {
+        internal const string Version = "0.8.6";
 #if CROSS
-        internal const string Version = "0.8.5";
         internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
-            + "Keep personal details out of her memories: Mainframe > Settings > HABITS > Security. It's on in every preset but Blackwall. With it on, her notes and what she remembers leave out addresses, card numbers, emails and other personal details.\n"
-            + "Naps anywhere: when nobody's touched the mouse or keyboard for Fall asleep after, or you ask her to go to sleep, she dozes off sitting up right where she sits, and wakes still sitting.\n"
-            + "Linux on KDE's Wayland: she sees every app window now, so she sits on them and can switch to, minimise and close them.\n"
-            + "Linux jobs: while she uses your mouse and keyboard, a pink and cyan glow goes round the screen she's working on, with a badge that says Say stop to stop her.\n"
-            + "Settings she can't read: she keeps a copy as cross.unreadable.json and tells you they were reset, instead of quietly starting fresh.\n"
-            + "Check for updates says how it went when you click it.\n"
-            + "Brain trouble: a provider's error goes in the BRAIN note instead of being read out, and her offline line says to press Set up her brain or Free key.";
-        internal const string Line = "I just updated to " + Version + ": personal details stay out of my memories, and clearer lines when something goes wrong. Ask me what's new for the menu paths.";
+            + "Her new stand: she stands in her artist's new animation, facing left or right. If it broke your mod, turn on Legacy stand under CAPRI in her Mainframe and her old stand comes back straight away.\n"
+            + "Skins with their own idle keep it, and colour mods work on both stands.";
+        internal const string Line = "I just updated to " + Version + ": I've got a new stand, and Legacy stand brings back my old one if it broke your mod. Ask me what's new for the menu paths.";
 #else
-        internal const string Version = "0.8.5.1";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Her own ears download again. The files they come from changed on 7 November, which broke the download on every copy of Capri, with lines like came out the wrong size or keeps stopping. She gets the same ears from Capri's own copy now, and a download left half done starts over by itself. For a language other than English, pick it under Mainframe > Settings > YOU > Language and she downloads the ears that hear it.\n"
-            + "Call mode (beta) hears any app, like Roblox: click the call app's name on her call panel, and its menu lists every app in Windows' volume mixer under the call apps. She hears the one you pick and everything it opens, and keeps it after a restart. Auto never picks one of these.\n"
-            + "Keep personal details out of her memories: Mainframe > Settings > HABITS > Security > HER MEMORY. It's on in every preset but Blackwall. With it on, her notes, Get to know me and what she remembers seeing leave out addresses, card numbers, emails and other personal details.\n"
-            + "Naps anywhere: when your PC goes quiet for MOVES > Sleep, or you ask her to go to sleep, she dozes off right where she sits, on a window, a desktop icon, her mini player or the taskbar. With no room to lie down, she sleeps sitting up and wakes still sitting.\n"
-            + "Power saver: Mainframe > Settings > HABITS > Power saver is In games by default. While a game or anything full screen is in front, she draws herself less often while she sits still, runs her background checks less often and listens at a gentler pace. Always does that all the time.\n"
-            + "Her sign when she uses your mouse or keys: a pink and cyan glow goes round the screen she's working on, with a badge that says Esc stops her. It shows even while she's hidden, so a mouse that moves with no glow wasn't her.\n"
-            + "The VOICE page never freezes on a slow mic or speaker, like a Bluetooth headset waking up: its menus open at once, say Still checking, and fill in a moment later.\n"
-            + "Damaged saves: if her saved reminders, routines or website nicknames can't be read, she keeps a copy of the old file and carries on with what she could read.\n"
-            + "Clearer lines: a turned-down brain key names the company, like NVIDIA, and a game or window that runs as administrator comes with the steps to run her as administrator too.";
-        internal const string Line = "I just updated to " + Version + ": my ears download again, and call mode hears any app, like Roblox. Ask me what's new for the menu paths.";
+            + "Play a game: say play and its name, like play Bloons TD 6, by voice or text. She opens it if it isn't open, picks a mode or map herself and keeps playing until you tell her to stop or press Esc. Give her an end, like one round or 10 minutes, and she stops there.\n"
+            + "Her new stand: she stands in her artist's new animation. If it broke your mod, Mainframe > Settings > CAPRI > Legacy stand brings back her old one straight away.\n"
+            + "File editor: Mainframe > Settings > YOU > File editor, or File editor in her right-click menu, opens personality.md and me.md in her own panel. Change the text, then press Save or Ctrl + S.\n"
+            + "Listen for Capri: once you've said her name she keeps listening for 20 seconds, so you can carry on without saying it again.\n"
+            + "Her clicks: when she uses your mouse, a new click effect plays at her pointer's tip, in her colour mods' colours.\n"
+            + "Call panel: its hover tips show on one line again.\n"
+            + "From 0.8.5.1: her own ears download again, from Capri's own copy. For a language other than English, pick it under Mainframe > Settings > YOU > Language and she downloads the ears that hear it.";
+        internal const string Line = "I just updated to " + Version + ": tell me to play a game and I'll keep playing till you stop me, and I've got a new stand and a file editor. Ask me what's new for the menu paths.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 

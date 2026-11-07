@@ -30898,7 +30898,7 @@ namespace CapriDesktop
                     if (found != null && found.StartsWith("What's new:", StringComparison.Ordinal)) throw new Exception("Update help took ordinary chat: " + ordinary);
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
-                foreach (string fact in new[] { "Her own ears download again", "YOU > Language", "Call mode (beta)", "call app's name on her call panel", "Roblox", "HABITS > Security > HER MEMORY", "Keep personal details out of her memories", "website nicknames", "Naps anywhere", "sleeps sitting up", "Power saver", "Esc stops her", "Still checking" })
+                foreach (string fact in new[] { "Play a game", "Bloons TD 6", "keeps playing until you tell her to stop", "CAPRI > Legacy stand", "YOU > File editor", "Ctrl + S", "20 seconds", "click effect", "hover tips", "Her own ears download again", "YOU > Language" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
                 Hear("what's new?");

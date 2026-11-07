@@ -2467,7 +2467,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross news that finishes while busy stays pending and returns when free");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in new[] { "HABITS > Security", "Keep personal details out of her memories", "cross.unreadable.json", "Check for updates", "BRAIN note", "Naps anywhere", "KDE's Wayland", "Say stop to stop her" })
+                foreach (string fact in new[] { "Her new stand", "Legacy stand", "broke your mod", "colour mods" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
                 // Whole words, so "requests for your OK" isn't read as Quest.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "code mods", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
