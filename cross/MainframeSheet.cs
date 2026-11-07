@@ -308,7 +308,7 @@ namespace CapriDesktop
                 names[i].IsVisible = abouts[i].IsVisible = switches[i].IsVisible = removes[i].IsVisible = mod != null;
                 if (mod == null) continue;
                 names[i].Text = mod.File.Name;
-                abouts[i].Text = (mod.File.Author == null ? "" : "by " + mod.File.Author + "  ") + (mod.File.Description ?? (mod.Skin ? "Skin" : mod.Skill ? "Skill" : "Settings"));
+                abouts[i].Text = (mod.File.Author == null ? "" : "by " + mod.File.Author + "  ") + (mod.File.Description ?? (mod.Skin ? (mod.File.Accessory ? "Accessory" : "Skin") : mod.Skill ? "Skill" : "Settings"));
                 switches[i].Text = mod.On ? "On" : "Off"; switches[i].Picked = mod.On;
                 switches[i].IsEnabled = !working; removes[i].IsEnabled = !working;
                 names[i].InvalidateVisual(); abouts[i].InvalidateVisual(); switches[i].InvalidateVisual();

@@ -1,0 +1,76 @@
+// capri-mod: 1
+// id: hooks-tour
+// name: Hooks Tour
+// version: 1.0.0
+// author: Vocyn
+// description: Shows the mod hooks: say "get bigger" or "get smaller", count head pats, a heart over her head, a menu item and options.
+// permissions: chat, settings, personality
+
+using System;
+using System.Drawing;
+using System.IO;
+using System.Windows.Forms;
+using CapriDesktop;
+
+public class HooksTour : ICapriMod
+{
+    private ICapriHost capri;
+    private string saved;
+    private int pats;
+    private bool heart = true;
+
+    public void Start(ICapriHost host)
+    {
+        capri = host;
+        saved = Path.Combine(host.Folder, "pats.txt");
+        if (File.Exists(saved)) int.TryParse(File.ReadAllText(saved), out pats);
+
+        // "get bigger" and "get smaller" change her size before her brain sees them.
+        host.Chat.Sending += delegate(CapriMessage message)
+        {
+            string said = message.Text.ToLowerInvariant();
+            int step = said.Contains("get bigger") ? 60 : said.Contains("get smaller") ? -60 : 0;
+            if (step == 0) return;
+            message.Cancel = true;
+            capri.Settings.Size = capri.Settings.Size + step;
+            capri.Say(step > 0 ? "Bigger it is." : "Shrinking down.");
+        };
+
+        host.Her.Patted += delegate
+        {
+            pats++;
+            File.WriteAllText(saved, pats.ToString());
+            if (pats % 10 == 0) capri.Ui.Bubble("That's " + pats + " head pats.");
+        };
+
+        host.Ui.Drawing += delegate(CapriFrame frame)
+        {
+            if (!heart) return;
+            int size = Math.Max(10, frame.Size / 14), x = frame.Head.X - size / 2, y = Math.Max(0, frame.Head.Y - size * 2);
+            frame.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using (Brush pink = new SolidBrush(Color.FromArgb(230, 255, 92, 160)))
+            {
+                frame.Graphics.FillEllipse(pink, x, y, size / 2 + 1, size / 2 + 1);
+                frame.Graphics.FillEllipse(pink, x + size / 2, y, size / 2 + 1, size / 2 + 1);
+                frame.Graphics.FillPolygon(pink, new[] { new Point(x, y + size / 4), new Point(x + size + 1, y + size / 4), new Point(x + size / 2, y + size) });
+            }
+        };
+
+        host.Ui.AddMenuItem("Head pat count", delegate { capri.Ui.Bubble(pats + " head pats so far."); });
+
+        host.Ui.SetOptions("Hooks Tour", delegate
+        {
+            CheckBox box = new CheckBox { Text = "Heart over her head", Checked = heart, AutoSize = true, ForeColor = Color.White, Location = new Point(0, 4) };
+            box.CheckedChanged += delegate { heart = box.Checked; capri.Ui.Redraw(); };
+            Panel panel = new Panel { Size = new Size(320, 48) };
+            panel.Controls.Add(box);
+            return panel;
+        });
+
+        host.Personality.Add("Someone is counting their head pats for you, and you secretly like it.");
+    }
+
+    public bool Heard(string words) { return false; }
+
+    public void Stop() { }
+}

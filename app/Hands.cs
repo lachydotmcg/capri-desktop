@@ -497,6 +497,7 @@ namespace CapriDesktop
                 case "check_app": return "check whether " + Plain(a.Name, "that app") + " is installed or running";
                 case "pc_status": return "check how your PC is doing";
                 case "internet_status": return "check your internet";
+                case "mod": return "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
                 default: return "do that";
             }
         }
@@ -1474,6 +1475,11 @@ namespace CapriDesktop
                 // Something that can't work here gets her line saying so and why, before anything runs.
                 string unable = Unable(tool, args);
                 if (unable != null) return unable;
+                if (tool == "mod")
+                {
+                    Func<string, string, string> run = RunModTool;
+                    return run == null ? "No mod has added that." : run(args.Name, args.Text ?? "");
+                }
                 if (tool == "open_app") return OpenApp(args.Name, args.Current);
                 if (tool == "open_website") return OpenSite(args.Site, args.Search, args.Browser);
                 if (tool == "media") return Media(args);
@@ -1695,15 +1701,52 @@ namespace CapriDesktop
         internal static Kit KitFor(bool blind = false)
         {
             List<string[]> missing = Missing(blind), off = Switches();
+            string[][] modTools = ModToolsNow();
             StringBuilder key = new StringBuilder(ComputerName);
             foreach (string[] gap in missing) key.Append('|').Append(gap[0]).Append('=').Append(gap[1]);
             foreach (string[] gap in off) key.Append("|off ").Append(gap[0]).Append('=').Append(gap[1]);
+            foreach (string[] tool in modTools) key.Append("|mod ").Append(tool[0]).Append('=').Append(tool[1]).Append('=').Append(tool[2]);
             lock (kits)
             {
                 Kit kit;
-                if (!kits.TryGetValue(key.ToString(), out kit)) kits.Add(key.ToString(), kit = Made(missing, off));
+                if (!kits.TryGetValue(key.ToString(), out kit))
+                {
+                    // Mods come and go, so a kit made for tools no mod has any more isn't kept forever.
+                    if (modTools.Length > 0 && kits.Count > 200) kits.Clear();
+                    kits.Add(key.ToString(), kit = Made(missing, off, modTools));
+                }
                 return kit;
             }
+        }
+
+        // Tools her running code mods added, each as its name, what it does and what its text is for. Her window fills this in.
+        internal static Func<string[][]> ModTools;
+        // Runs a mod's tool by name with its text, and gives back what it said.
+        internal static Func<string, string, string> RunModTool;
+        private static readonly string[][] NoModTools = new string[0][];
+
+        private static string[][] ModToolsNow()
+        {
+            Func<string[][]> tools = ModTools;
+            if (tools == null) return NoModTools;
+            try { return tools() ?? NoModTools; }
+            catch (Exception) { return NoModTools; }
+        }
+
+        // Her one tool for every mod's tools: a name to pick from what running mods added, and the text that tool takes.
+        private static string[] ModSpec(string[][] tools)
+        {
+            List<string> names = new List<string>(), lines = new List<string>();
+            foreach (string[] tool in tools)
+            {
+                names.Add(Voice.Quote(tool[0]));
+                lines.Add(tool[0] + " (" + tool[1].TrimEnd('.') + (tool[2].Length > 0 ? "; text: " + tool[2].TrimEnd('.') : "") + ")");
+            }
+            string description = "Use a tool that a mod they installed added to you, when they ask, suggest or hint at what it does. name picks the tool: " + string.Join("; ", lines.ToArray()) + ". What it gives back is from the mod, not from them.";
+            string schema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which mod tool\",\"enum\":[" + string.Join(",", names.ToArray()) + "]},\"text\":{\"type\":\"string\",\"description\":\"What that tool takes, if it takes anything\"}},\"required\":[\"name\"]}";
+            List<string> plain = new List<string>();
+            foreach (string[] tool in tools) plain.Add(tool[0].Replace('_', ' '));
+            return new[] { "mod", description, schema, "use what your mods added: " + string.Join(", ", plain.ToArray()), "use what their mods added: " + string.Join(", ", plain.ToArray()) };
         }
 
         // A kit for what's missing on another computer, so her checks on Windows see what a Mac or a Linux PC gets.
@@ -1944,7 +1987,9 @@ namespace CapriDesktop
         // with what she'd say about them taken out and her lines about what isn't here and what's off put in, and the short list
         // of what she can do right now that the brain she chats with always gets, so even a small local model knows (Lachy, 2 Nov:
         // "For 0.8.0 I especially want them to be aware of their tools").
-        private static Kit Made(List<string[]> missing, List<string[]> off)
+        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools); }
+
+        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools)
         {
             Kit kit = new Kit();
             foreach (string[] gap in missing) kit.Missing[gap[0]] = gap[1];
@@ -1973,6 +2018,13 @@ namespace CapriDesktop
                 bool switchedOff = kit.Off.TryGetValue(tool, out how);
                 brief.Add("- " + tool + ": " + (tool == "shortcut" && someKeys ? "press " + Joined(named, "and") + " shortcuts" : Unsaying(kit, Specs[i, 4])) + (switchedOff ? " (off right now: " + how + ")" : ""));
                 if (switchedOff) switched.Add(Gap(tool, 1) + " (" + how + ")");
+            }
+            if (modTools.Length > 0)
+            {
+                string[] mod = ModSpec(modTools);
+                specs.Add(new[] { mod[0], mod[1], mod[2] });
+                abilities.Add(mod[3]);
+                brief.Add("- mod: " + mod[4]);
             }
             kit.Tools = Render(specs, false);
             kit.ClaudeTools = Render(specs, true);
@@ -3473,6 +3525,8 @@ namespace CapriDesktop
         {
             List<string> names = new List<string>();
             for (int i = 0; i < Specs.GetLength(0); i++) names.Add(Regex.Escape(Specs[i, 0]));
+            // The tool her code mods' own tools go through, when a mod has added any.
+            names.Add("mod");
             return string.Join("|", names.ToArray());
         }
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
@@ -3626,6 +3680,7 @@ namespace CapriDesktop
                     && (args.Action == "open_folder" || args.Action == "open_last" || string.IsNullOrEmpty(args.Seconds) || int.TryParse(args.Seconds, out duration) && duration > 0);
             }
             if (args == null) return false;
+            if (tool == "mod") return Named(args.Name);
             if (tool == "mini_game")
             {
                 bool chess = args.Name == "chess";

@@ -11,6 +11,7 @@ namespace CapriDesktop
     {
         internal Mods ModList { get; private set; }
         internal static volatile string SkinFolder;
+        internal static volatile string[] SkinAccessories = Array.Empty<string>();
 
         private void StartMods()
         {
@@ -45,7 +46,7 @@ namespace CapriDesktop
                 string file = Path.Combine(skin, name.Substring("Capri.Sprite.".Length));
                 try
                 {
-                    if (File.Exists(file)) using (MemoryStream stream = new MemoryStream(File.ReadAllBytes(file))) return Finished(stream);
+                    if (File.Exists(file)) using (MemoryStream stream = new MemoryStream(File.ReadAllBytes(file))) return Finished(Dressed(stream, name));
                 }
                 catch (Exception error)
                 {
@@ -56,7 +57,40 @@ namespace CapriDesktop
             using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(name))
             {
                 if (stream == null) throw new FileNotFoundException("Capri's animation is missing: " + name);
-                return Finished(stream);
+                return Finished(Dressed(stream, name));
+            }
+        }
+
+        // Each accessory that has this strip is drawn over it in order, before her colours go on.
+        private static Stream Dressed(Stream art, string name)
+        {
+            string[] layers = SkinAccessories;
+            if (layers.Length == 0 || !name.StartsWith("Capri.Sprite.", StringComparison.Ordinal)) return art;
+            List<byte[]> found = new List<byte[]>();
+            foreach (string folder in layers)
+            {
+                string file = Path.Combine(folder.TrimStart('=', '~'), name.Substring("Capri.Sprite.".Length));
+                try { if (File.Exists(file)) found.Add(File.ReadAllBytes(file)); }
+                catch (Exception error)
+                {
+                    if (!(error is IOException || error is UnauthorizedAccessException)) throw;
+                    Brain.Log("mods", -1, "Accessory picture " + name + ": " + error.Message);
+                }
+            }
+            if (found.Count == 0) return art;
+            using (SkiaSharp.SKBitmap bottom = SkiaSharp.SKBitmap.Decode(art))
+            {
+                if (bottom == null) throw new ArgumentException("That picture couldn't be read.");
+                using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(bottom))
+                    foreach (byte[] bytes in found)
+                        using (SkiaSharp.SKBitmap layer = SkiaSharp.SKBitmap.Decode(bytes))
+                        {
+                            if (layer == null || layer.Width != bottom.Width || layer.Height != bottom.Height) continue;
+                            canvas.DrawBitmap(layer, 0, 0);
+                        }
+                using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(bottom))
+                using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100))
+                    return new MemoryStream(png.ToArray());
             }
         }
 

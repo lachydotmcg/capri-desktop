@@ -1401,6 +1401,7 @@ namespace CapriDesktop
         internal readonly int Count;
         internal readonly double Fps;
         internal readonly float Height;
+        internal string Title { get { return name; } }
         // How far a cell's middle sits from the middle of her square, as a share of her size. Narrow cells cut to the art need it.
         internal readonly float ShiftX, ShiftY;
 
@@ -2474,6 +2475,7 @@ namespace CapriDesktop
             ModList = new Mods(data);
             GameNotes.Skills = ModList.SkillsFor;
             ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
+            ModList.HeardSpeech = ModsHeard;
             ModList.SkinChanged = Reskinned;
             if (SkinFolder != null || ArtColors.Active) Clip.ReloadAll();
             Shown += delegate { ModList.StartCode(Post); };
@@ -2495,6 +2497,7 @@ namespace CapriDesktop
             brain.Act = delegate(string tool, ToolArguments args)
             {
                 string result = DoTool(tool, args);
+                ModsToolUsed(tool, result);
                 return tool == "clip" && result != null && result.StartsWith("Saved ", StringComparison.Ordinal) ? ClipBuffer.Spoken(result) + " The CLIP SAVED popup shows where it went." : result;
             };
             brain.OwnSteps = !testing;
@@ -2896,12 +2899,15 @@ namespace CapriDesktop
         internal static Bitmap LoadArt(string name)
         {
             Bitmap skinned = SkinArt(name);
-            if (skinned != null) return skinned;
+            if (skinned != null) using (Bitmap layered = Dressed(skinned, name)) return Finished(layered);
             using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
             {
                 if (image == null) return null;
                 using (Bitmap original = new Bitmap(image))
-                    return Finished(original);
+                {
+                    if (SkinAccessories.Length == 0) return Finished(original);
+                    using (Bitmap layered = Dressed(new Bitmap(original), name)) return Finished(layered);
+                }
             }
         }
 
@@ -3944,6 +3950,7 @@ namespace CapriDesktop
         {
             if (preferences.Hologram) return;
             EndWalk();
+            ModsPatted();
             // A head pat makes up with her when she's sulking over being thrown, and her pat line says so (Zr4, F44).
             patForgives = Sulking;
             Forgive();
@@ -4168,6 +4175,7 @@ namespace CapriDesktop
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == HideKeyId) { ToggleHidden(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == QuietKeyId) { ToggleShush(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == GameKeyId) { ToggleGaming(); return; }
+            if (message.Msg == 0x0312 && ModHotkey(message.WParam.ToInt32())) return;
             if (message.Msg == 0x02E0) { anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
             base.WndProc(ref message);
         }
@@ -4190,6 +4198,7 @@ namespace CapriDesktop
             if (!pendingClick) return;
             pendingClick = false;
             if (preferences.Hologram || hidden || riding || dragging || pressed) return;
+            ModsClicked();
             React();
         }
 
@@ -5190,6 +5199,9 @@ namespace CapriDesktop
 
         private string DoTool(string tool, ToolArguments args, int ticket, bool beside = false)
         {
+            // A code mod's ToolUsing can stop it before anything runs, and says why.
+            string vetoed = ModsVeto(tool, args);
+            if (vetoed != null) return vetoed;
             if (args != null && args.FromFriend && (!Hands.CallAllowed(tool, args) || args.Current == null || !args.Current())) return "That call request has ended.";
             if (CallModeOn && !CallHands(ticket)) return CallSession.Conversation;
             if (ticket == callUser && (ticket != asking || !callSession.Current(callUserVersion))) return "That call request has ended.";
@@ -8412,6 +8424,7 @@ namespace CapriDesktop
             using (Bitmap screen = !area.IsEmpty ? (InvokeRequired ? (Bitmap)Invoke(new Func<Rectangle, Bitmap>(CaptureScreen), area) : CaptureScreen(area)) : InvokeRequired ? (Bitmap)Invoke(new Func<Bitmap>(CaptureScreen)) : CaptureScreen())
             {
                 if (screen == null) return BlackScreen;
+                ModsLooked(screen);
                 shot = Jpeg(screen, 1280);
             }
             string seen;
@@ -8461,6 +8474,7 @@ namespace CapriDesktop
                 {
                     if (screen == null) { lastPrint = null; mainframe.ShowProblem(BlackScreen); return; }
                     if (!Changed(screen, lastGlance < 0 || now - lastGlance >= 300)) return;
+                    ModsLooked(screen);
                     shot = Jpeg(screen, 1280);
                 }
             }
@@ -12880,6 +12894,12 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            if (prompt == "> you: " && switches == 0)
+            {
+                string sent = ModsSending(text);
+                if (sent == null) return;
+                text = sent;
+            }
             Func<int, string> callReply = prompt == "> you: " ? FriendAnswer(text) : null;
             int callVersion = (callInput || prompt == "> you: ") && CallModeOn ? callSession.Generation : -1;
             string callContext = callVersion < 0 ? null : callSession.Context(callVersion);
@@ -13034,6 +13054,7 @@ namespace CapriDesktop
             if (ticket != asking || IsDisposed) return;
             if (ticket == newsTicket && state == TalkState.Dormant) { Begin(ticket, News.Line, TalkState.Talking, null); return; }
             said = CallLine(ticket, said);
+            if (state != TalkState.Dormant) said = ModsReplying(said ?? "", ticket == remarkTicket ? "remark" : "reply");
             // Each answer owns its text and completion; talking over her cancels only its audio (ticket 35).
             int turn = ++answerTurn;
             CancelAnswerAudio();
@@ -13046,6 +13067,7 @@ namespace CapriDesktop
             // Her Fish Audio voice says her reply's emotion cues (F54). Her bubble and every other voice never see them.
             bool cued = FishCues(speak, free);
             string words = Voice.Spoken((cued ? Brain.Cued(said ?? "") : said ?? "").Replace(Computer.Dots, "the password"), cued);
+            if (speak != null && state != TalkState.Dormant) words = ModsSpeaking(words);
             if (speak == null || words.Length == 0 || state == TalkState.Dormant) { Begin(ticket, said, state, null); return; }
             answerVoice = ticket;
             reply = null;
@@ -13185,6 +13207,7 @@ namespace CapriDesktop
             Say(said);
             CallSpoke(ticket, said, state);
             PlayReply(said, wav);
+            if (state != TalkState.Dormant) ModsReplied(said, ticket == remarkTicket ? "remark" : "reply");
             if (seconds < 0.2 && state != TalkState.Dormant && TypingSound) Sfx.Type(said, pace, ticket);
             else Sfx.Untype();
             if (ticket == newsTicket) KeepNews();
@@ -13200,6 +13223,7 @@ namespace CapriDesktop
             mouths = Voice.Mouths(wav, MouthRate);
             Played(wav);
             PlayVoice(wav);
+            ModsSpoke(said);
         }
 
         private void PlayVoice(byte[] wav)
@@ -13310,6 +13334,7 @@ namespace CapriDesktop
             {
                 graphics.Clear(Color.Transparent);
                 Draw(graphics, shown, cell, talk, tween);
+                ModsDraw(graphics, shown, cell);
             }
             if (preferences.Hologram) TintHologram(frame);
             bodySurface.Show(Handle, anchor);
@@ -13731,6 +13756,7 @@ namespace CapriDesktop
             preferences.X = spot.X;
             preferences.Y = spot.Y;
             preferences.HasPosition = true;
+            ModsSaved();
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(settingsPath));
@@ -13755,6 +13781,7 @@ namespace CapriDesktop
             Hands.Finder.Stop();
             clips.Dispose();
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplaysChanged;
+            UnhookModSystem();
             StopRide();
             clickDelay.Stop();
             frames.Stop();

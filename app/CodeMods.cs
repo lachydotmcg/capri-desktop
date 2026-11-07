@@ -21,6 +21,26 @@ namespace CapriDesktop
         Bitmap Art(string name);
         void PlayIntro();
         void Sound(string name);
+        int Api { get; }
+        string CapriVersion { get; }
+        bool Has(string permission);
+        ICapriChat Chat { get; }
+        ICapriMemory Memory { get; }
+        ICapriUi Ui { get; }
+        ICapriMainframe Mainframe { get; }
+        ICapriScreen Screen { get; }
+        ICapriVoice Voice { get; }
+        ICapriTimers Timers { get; }
+        ICapriPersonality Personality { get; }
+        ICapriSettings Settings { get; }
+        ICapriSkins Skins { get; }
+        ICapriBody Her { get; }
+        ICapriBrain Brain { get; }
+        ICapriStore Store { get; }
+        ICapriSystem System { get; }
+        ICapriMods Mods { get; }
+        ICapriKeys Keys { get; }
+        ICapriSounds Sounds { get; }
     }
 
     public interface ICapriIntro
@@ -44,6 +64,7 @@ namespace CapriDesktop
         private const string ApprovedFile = "approved.txt";
         private static readonly Regex HeaderLine = new Regex(@"^//\s*([a-z-]+)\s*:\s*(.*?)\s*$");
         private readonly Dictionary<string, ICapriMod> running = new Dictionary<string, ICapriMod>();
+        private readonly Dictionary<string, ICapriHost> hosts = new Dictionary<string, ICapriHost>();
         internal Func<string, ICapriHost> HostFor;
 
         internal int Running { get { return running.Count; } }
@@ -83,11 +104,41 @@ namespace CapriDesktop
                     case "author": read.Author = value; break;
                     case "description": read.Description = value; break;
                     case "intro": read.Intro = value == "yes"; break;
+                    case "permissions": read.Permissions = ReadPermissions(value); break;
+                    case "requires": ReadRequires(value, read); break;
                 }
             }
             if (!marked) throw new ModException("A code mod starts with a // capri-mod: 1 line.");
             CheckDetails(read);
+            if (read.NeedsApi > Api) throw new ModException((read.Name ?? read.Id) + " needs a newer Capri: it's written for mod API " + read.NeedsApi + ", and this Capri has " + Api + ".");
             return read;
+        }
+
+        // "// requires: api 3, focus-timer": the mod API it needs, and the mods that must be installed and on before it starts.
+        private static void ReadRequires(string value, ModFile read)
+        {
+            List<string> mods = new List<string>();
+            foreach (string part in Regex.Split(value ?? "", @"\s*,\s*"))
+            {
+                string wanted = part.Trim().ToLowerInvariant();
+                if (wanted.Length == 0) continue;
+                Match api = Regex.Match(wanted, @"^api\s*(\d{1,3})$");
+                if (api.Success) { read.NeedsApi = Math.Max(read.NeedsApi, int.Parse(api.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)); continue; }
+                if (!Regex.IsMatch(wanted, @"^[a-z0-9][a-z0-9-]{0,47}$")) throw new ModException("\"" + part.Trim() + "\" in // requires: isn't a mod id or an api number, like api 3.");
+                if (!mods.Contains(wanted)) mods.Add(wanted);
+            }
+            read.Requires = mods.ToArray();
+        }
+
+        // The mods this one needs that aren't installed and on, by name, or null when it has them all.
+        private string MissingRequired(string id)
+        {
+            Mod mod = All.Find(each => each.File.Id == id);
+            if (mod == null || mod.File.Requires == null) return null;
+            List<string> missing = new List<string>();
+            foreach (string wanted in mod.File.Requires)
+                if (!All.Exists(each => each.File.Id == wanted && each.On || each.File.Id == wanted && running.ContainsKey(wanted))) missing.Add(wanted);
+            return missing.Count == 0 ? null : string.Join(", ", missing.ToArray());
         }
 
         internal static string HashOf(byte[] bytes)
@@ -248,13 +299,18 @@ namespace CapriDesktop
         private void StartOne(string id, ICapriMod made)
         {
             StopOne(id);
-            try { made.Start(HostFor(id)); }
+            string missing = MissingRequired(id);
+            if (missing != null) throw new ModException("That mod needs " + missing + " installed and on first.");
+            ICapriHost host = HostFor(id);
+            try { made.Start(host); }
             catch (Exception error)
             {
+                Close(host);
                 Brain.Log("mod " + id, -1, Inner(error).ToString());
                 throw new ModException("That mod failed while starting: " + Inner(error).Message);
             }
             running[id] = made;
+            hosts[id] = host;
         }
 
         private void StopOne(string id)
@@ -264,6 +320,17 @@ namespace CapriDesktop
             running.Remove(id);
             try { mod.Stop(); }
             catch (Exception error) { Brain.Log("mod " + id, -1, Inner(error).ToString()); }
+            ICapriHost host;
+            if (hosts.TryGetValue(id, out host)) { hosts.Remove(id); Close(host); }
+        }
+
+        // A stopped mod's hooks, timers, menu items and notes go with its host.
+        private static void Close(ICapriHost host)
+        {
+            IDisposable done = host as IDisposable;
+            if (done == null) return;
+            try { done.Dispose(); }
+            catch (Exception error) { Brain.Log("mods", -1, error.ToString()); }
         }
 
         internal void StopCode()
@@ -325,65 +392,6 @@ namespace CapriDesktop
 
     internal sealed partial class Companion
     {
-        private sealed class ModHost : ICapriHost
-        {
-            private readonly Companion capri;
-            private readonly string id;
-
-            internal ModHost(Companion owner, string name)
-            {
-                capri = owner;
-                id = name;
-            }
-
-            public string Folder
-            {
-                get
-                {
-                    string home = Path.Combine(capri.ModList.Folder, id + "-data");
-                    Directory.CreateDirectory(home);
-                    return home;
-                }
-            }
-
-            public void Say(string line)
-            {
-                string said = (line ?? "").Trim();
-                if (said.Length == 0) return;
-                if (said.Length > 500) said = said.Substring(0, 500);
-                capri.Post(delegate { capri.Remark("(mod)", said); });
-            }
-
-            public void Log(string line) { Brain.Log("mod " + id, -1, line ?? ""); }
-
-            public Bitmap Art(string name)
-            {
-                if (name == null || !Regex.IsMatch(name, "^[a-z_]+$")) return null;
-                return LoadArt("Capri.Sprite." + name + ".png");
-            }
-
-            public void Sound(string name)
-            {
-                switch (name)
-                {
-                    case "arrive": Sfx.Play(Cue.Arrive); break;
-                    case "leave": Sfx.Play(Cue.Leave); break;
-                    case "hop": Sfx.Play(Cue.Hop); break;
-                    case "click": Sfx.Play(Cue.Click); break;
-                    case "bonk": Sfx.Play(Cue.Bonk); break;
-                }
-            }
-
-            public void PlayIntro()
-            {
-                capri.Post(delegate
-                {
-                    ICapriIntro intro = capri.ModList.Intro;
-                    if (intro != null && capri.introScreen == null) capri.RunIntro(intro, null);
-                });
-            }
-        }
-
         private const double LongestIntro = 15, IntroWait = 8;
         private IntroScreen introScreen;
 
@@ -719,6 +727,7 @@ namespace CapriDesktop
                 if (mods.Running != 0) throw new Exception("A throwing mod could not be removed.");
                 if (mainframe.ImportMod(sample("noheader" + Mods.CodeExtension, "using System;"))) throw new Exception("A file with no details was let in.");
                 checks.Add("PASS code mods: broken code is refused with its reason, and a mod that throws can't take her down");
+                CheckModHooks(checks, output);
                 CheckIntros(checks, output);
             }
             finally

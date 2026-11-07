@@ -540,9 +540,9 @@ Press Install on the mod you want. View opens its folder on GitHub so you can re
 
 Already have a mod file? Press Import mod on the Mods page and pick it. The file types are:
 - .capri-mod: settings mods, including colour sets.
-- .capri-skin: skins that change how she looks.
+- .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
-- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes. Code mods are Windows only for now.
+- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings. Code mods are Windows only for now. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. Mod tools aren't in voice chat yet.
 
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
 

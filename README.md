@@ -118,8 +118,8 @@ Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https:
   <br><sub>Startup Intros. Say "intro shatter" to lock one in, or "intro shuffle" to mix them up.</sub>
 </p>
 
-- **Settings mods** (`.capri-mod`) only change her settings, and **skins** (`.capri-skin`) change how she looks
-- **Code mods** (`.capri-code`) run code on your PC, so she asks before one runs, and again if it's edited
+- **Settings mods** (`.capri-mod`) only change her settings, and **skins** (`.capri-skin`) change how she looks. Skins **stack**: turn on several and each goes on top, so a cat ears skin goes over any outfit
+- **Code mods** (`.capri-code`) run code on your PC, so she asks before one runs, and again if it's edited. They can hook her chat, voice, memory, settings, skins, menu and drawing, give her brain new tools, add hotkeys and react when you're away, and the approve box lists the permissions each one asks for. See [mods/MODDING.md](mods/MODDING.md)
 - Every mod in the directory is checked for malware before it goes up
 - **Recolour her yourself:** press Hair, Accents, Eyes, Edges or Body on the Mods page. She saves it as a My Colors mod you can share
 - **Share yours:** fork [capri-mods](https://github.com/lachydotmcg/capri-mods), add a folder with the mod, a README and a `preview.png`, then open a pull request
