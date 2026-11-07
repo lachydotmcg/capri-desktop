@@ -309,6 +309,7 @@ namespace CapriDesktop
             private readonly Key[] installs = new Key[Cards], views = new Key[Cards];
             private readonly Key[] filters = new Key[ModDirectory.Kinds.Length];
             private readonly Entry search;
+            private readonly ComboBox sort;
             private readonly Label status, empty, page;
             private readonly Key back, next;
             private readonly Dictionary<string, Image> pictures = new Dictionary<string, Image>();
@@ -320,6 +321,14 @@ namespace CapriDesktop
 
             internal ModsSheet(Mainframe owner, float zoom) : base(owner, zoom, "Mods directory", "MODS DIRECTORY >", Wide, Tall)
             {
+                Words("Sort", 438, 20, 36, 18, Small(), Faint);
+                sort = new ComboBox { Bounds = Box(474, 15, 198, 26), DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat, BackColor = Field, ForeColor = Neon.SheetInk, Font = Small() };
+                sort.AccessibleName = "Sort mods by";
+                sort.AccessibleDescription = "Sort mods";
+                sort.Items.AddRange(new object[] { "Directory order", "Most downloaded", "Top rated" });
+                sort.SelectedIndex = 0;
+                sort.SelectedIndexChanged += delegate { first = 0; Fill(); };
+                Controls.Add(sort);
                 Words("The directory checks mods for malware first. Code mods still ask before they run.", 28, 52, 688, 16, Small(), Faint);
                 search = new Entry();
                 search.Bounds = Box(28, 74, 270, 26);
@@ -451,7 +460,7 @@ namespace CapriDesktop
 
             private void Fill()
             {
-                shown = ModDirectory.Filter(listings, search.Box.Text, filter);
+                shown = ModDirectory.Filter(listings, search.Box.Text, filter, (ModSort)sort.SelectedIndex);
                 first = Math.Max(0, Math.Min(first, (Math.Max(0, shown.Count - 1) / Cards) * Cards));
                 empty.Visible = shown.Count == 0;
                 empty.Text = listings.Count == 0 ? "Nothing to show from the mods directory." : "No mods match that.";
@@ -599,8 +608,10 @@ namespace CapriDesktop
             internal bool CanRateCard(int card) { return stars[card].Visible && stars[card].CanRate; }
             internal bool Across3 { get { return titles[0].Top == titles[2].Top && titles[0].Left < titles[1].Left && titles[1].Left < titles[2].Left && titles[3].Top > titles[0].Top; } }
             internal bool Filtered(int kind) { return filters[kind].Accent == Cyan; }
+            internal int SortSelected { get { return sort.SelectedIndex; } }
             internal void PressNext() { next.PerformClick(); }
             internal void PressFilter(int kind) { filters[kind].PerformClick(); }
+            internal void PressSort(int choice) { sort.SelectedIndex = choice; }
             internal void Type2(string text) { search.Box.Text = text; }
             internal void PressInstall(int card) { Install(card); }
             internal void PressStars(int card, int picked) { stars[card].Pick(picked); }

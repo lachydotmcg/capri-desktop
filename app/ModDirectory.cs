@@ -60,6 +60,13 @@ namespace CapriDesktop
         internal double Rating;
     }
 
+    internal enum ModSort
+    {
+        Directory,
+        MostDownloaded,
+        TopRated
+    }
+
     internal static class ModDirectory
     {
         internal const string Page = "https://github.com/lachydotmcg/capri-mods";
@@ -204,6 +211,30 @@ namespace CapriDesktop
                 foreach (string word in words) if (named.IndexOf(word, StringComparison.OrdinalIgnoreCase) < 0) return false;
                 return true;
             });
+        }
+
+        internal static List<ModListing> Filter(List<ModListing> listings, string search, int kind, ModSort sort)
+        {
+            List<ModListing> found = Filter(listings, search, kind);
+            if (sort == ModSort.Directory) return found;
+            found.Sort(delegate(ModListing a, ModListing b)
+            {
+                int order;
+                if (sort == ModSort.TopRated)
+                {
+                    bool aRated = a.Votes > 0, bRated = b.Votes > 0;
+                    if (aRated != bRated) return aRated ? -1 : 1;
+                    order = b.Rating.CompareTo(a.Rating);
+                    if (order != 0) return order;
+                    order = b.Votes.CompareTo(a.Votes);
+                    if (order != 0) return order;
+                    order = b.Downloads.CompareTo(a.Downloads);
+                }
+                else order = b.Downloads.CompareTo(a.Downloads);
+                if (order != 0) return order;
+                return StringComparer.OrdinalIgnoreCase.Compare(a.Folder + "/" + a.FileName, b.Folder + "/" + b.FileName);
+            });
+            return found;
         }
 
         internal static string Download(ModListing listing, string under)

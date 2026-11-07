@@ -53,6 +53,8 @@ namespace CapriDesktop
                 "Search narrows the mods directory by name, author, description, folder or file as you type. A mod has to match every word.", "MainframeModsWindow.cs", "Search mods"),
             new Topic("Mod filter", "filter mods|only skins|only code mods",
                 "All, Settings, Code and Skins show only that kind of mod from the directory, and work together with search.", "MainframeModsWindow.cs", "Mod filter"),
+            new Topic("Sort mods", "sort mods|most downloaded mods|top rated mods|newest mods",
+                "The directory can sort by most downloaded or top rated after search and type filters. Unrated mods go after rated ones; newest needs dates the directory index doesn't provide yet.", "MainframeModsWindow.cs", "Sort mods"),
             new Topic("Install mod", "install from the directory|download a mod",
                 "Install downloads that mod, checks it matches the directory's listing and imports it. Code mods still ask before they run.", "MainframeModsWindow.cs", "Install mod"),
             new Topic("View mod", "view a mod|read a mod|see a mod on github",
