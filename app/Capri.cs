@@ -13217,6 +13217,8 @@ namespace CapriDesktop
         {
             if (CallModeOn) return CallSession.Conversation;
             if (args == null) args = new ToolArguments();
+            // The agent can stop at opening a game they told her to play, which leaves the job undone (Lachy, 7 Nov).
+            if (tool == "open_app" && Hands.KitFor(brain.Blind).Has("use_computer") && Hands.ToldToPlay(args.Asked, args.Name)) { args = new ToolArguments { Task = Hands.Asked(args.Asked) }; tool = "use_computer"; }
             args.FromAgent = opened != null;
             stirred = Environment.TickCount;
             lock (shortcutGate)
@@ -13352,9 +13354,13 @@ namespace CapriDesktop
             agentComment = false;
             // The agent saying the same line again never gets as far as their ears.
             if (SaidAgain(said)) return;
-            string promised = null;
-            lock (shortcutGate) if (!toolAsked && heardLast != null && Hands.Promised(said)) { promised = heardLast; heardLast = null; }
-            if (promised != null) { string missed = said; ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(4000); lock (shortcutGate) if (toolAsked) return; Brain.Log("https://api.elevenlabs.io/v1/convai/conversation", -1, "Voice chat said she'd do it but no tool ran. Heard: " + promised + " | Said: " + missed); }); }
+            string owed = null;
+            lock (shortcutGate)
+            {
+                if (!toolAsked && heardLast != null && Hands.Owed(said, heardLast)) owed = heardLast;
+                heardLast = null;
+            }
+            if (owed != null) KeepPromise(owed, said, asking, agent);
             Brain.Transcribe("Capri (voice)", said);
             reply = said;
             lock (shortcutGate) if (toolDone != null && toolDone.StartsWith("The closest match is ", StringComparison.Ordinal)) reply = toolDone;
@@ -18462,7 +18468,7 @@ namespace CapriDesktop
                     { "open spotify and play my driving playlist", "play_music" },
                     { "Capri, can you open spotify and play Blinding Lights for me?", "play_music" },
                     { "let's watch some youtube", "open_website" }, { "lets watch youtube", "open_website" },
-                    { "let's play minecraft", "open_app" }, { "let's listen to some music", "play_music" },
+                    { "let's play minecraft", "use_computer" }, { "let's listen to some music", "play_music" },
                     { "play chess", "mini_game" }, { "open chess", "mini_game" }, { "play Chess by The Artist", "play_music" },
                     { "wanna watch some youtube", "open_website" }, { "we should open spotify", "open_app" },
                     { "how about some youtube", "open_website" }, { "time for some youtube", "open_website" }, { "put on some youtube", "open_website" },
@@ -18525,9 +18531,9 @@ namespace CapriDesktop
                 }
                 // Lachy, 6 Nov: "play Mic Up and make some new friends" was typed whole into Spotify, again. With a brain to ask, "play"
                 // goes straight to music only when it's clearly music, and Mic Up, however her ears spell it, is a Roblox game.
-                foreach (string notMusic in new[] { "Hey Capri, play Mike Up and make some new friends.", "play mic up", "play the floor is lava and make some new friends", "play hide and seek with me", "play tag with some randoms" })
+                foreach (string notMusic in new[] { "Hey Capri, play Mike Up and make some new friends.", "play mic up", "play the floor is lava and make some new friends", "play hide and seek with me", "play tag with some randoms", "Hey Capri, play Balloons Tower Defense 6.", "play blinding lights" })
                     if (Hands.Heard(notMusic, out heardTool, out heardArgs, true) && heardTool == "play_music") throw new Exception("With a brain to ask, a game went to Spotify: " + notMusic);
-                foreach (string clearlyMusic in new[] { "play blinding lights", "play never gonna give you up", "play some music", "play lofi beats on spotify", "play songs by the weeknd", "play my driving playlist" })
+                foreach (string clearlyMusic in new[] { "play some music", "play lofi beats on spotify", "play songs by the weeknd", "play my driving playlist" })
                     if (!Hands.Heard(clearlyMusic, out heardTool, out heardArgs, true) || heardTool != "play_music") throw new Exception("With a brain to ask, music stopped going straight to music: " + clearlyMusic + " went to " + heardTool);
                 if (Hands.Heard("play mike up and make some new friends", out heardTool, out heardArgs) && heardTool == "play_music") throw new Exception("Mic Up went to Spotify with no brain to ask.");
                 if (!Hands.Heard("play stay with me", out heardTool, out heardArgs) || heardTool != "play_music") throw new Exception("With no brain to ask, a short title stopped going to music.");
@@ -24456,7 +24462,7 @@ namespace CapriDesktop
                     must(Hands.Heard("Hey Capri, " + asks[ask, 0] + " please", out routed, out arguments) && routed == "mini_game" && arguments.Name == asks[ask, 1], "A spoken desktop game was routed wrong.");
                 }
                 string named; ToolArguments namedArgs;
-                must(Hands.Direct("play minecraft", out named, out namedArgs) && named == "open_app" && namedArgs.Name == "minecraft", "Minecraft stopped opening its app.");
+                must(Hands.Direct("play minecraft", out named, out namedArgs) && named == "use_computer" && namedArgs.Task == "play minecraft", "Minecraft stopped being a job she plays.");
                 must(!Hands.Direct("play wasd minigame", out named, out namedArgs) && !Hands.Direct("play Stardew Valley", out named, out namedArgs) && !Hands.Heard("keep playing", out named, out namedArgs), "An external game became a board or a song.");
                 must(Hands.Direct("play some music", out named, out namedArgs) && named == "play_music", "Music stopped routing to music.");
                 foreach (string notSong in new[] { "play this", "play that", "play tetris", "play solitaire", "play poker", "play a game of sudoku" })
@@ -32716,6 +32722,7 @@ namespace CapriDesktop
             Section(checks, "SmokeClipToggle", delegate { SmokeClipToggle(checks); });
             Section(checks, "SmokeGameEars", delegate { SmokeGameEars(checks); });
             Section(checks, "SmokeMinis", delegate { SmokeMinis(checks); });
+            Section(checks, "SmokePlayJobs", delegate { SmokePlayJobs(checks); });
             Section(checks, "SmokeInk", delegate { SmokeInk(checks); });
             Section(checks, "SmokeUnreadableSettings", delegate { SmokeUnreadableSettings(checks, output); });
             Section(checks, "SmokeBrainNotes", delegate { SmokeBrainNotes(checks); });

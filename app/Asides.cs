@@ -845,6 +845,59 @@ namespace CapriDesktop
             });
         }
 
+        // How long a reply with no tool behind it waits before her brain looks, since the agent's tool call can land just after its words.
+        internal int KeepWait = 2500;
+        private Func<string, string, List<KeyValuePair<string, ToolArguments>>> keepTest;
+
+        // Text chat never lets a brain's "I'll do it" stand with no tool behind it, but voice chat only logged it, so "opening Bloons
+        // TD 6 for you" was the end of it (Lachy, 7 Nov). Now her own brain gets a second look with every tool, and a promise to do
+        // something they clearly asked for runs as a job even if that brain has nothing to say.
+        private void KeepPromise(string words, string said, int ticket, Agent told)
+        {
+            bool promised = Hands.Promised(said);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                Thread.Sleep(KeepWait);
+                lock (shortcutGate) if (toolAsked) return;
+                if (ticket != asking) return;
+                if (promised) Brain.Log("https://api.elevenlabs.io/v1/convai/conversation", -1, "Voice chat said she'd do it but no tool ran. Heard: " + words + " | Said: " + said);
+                Hands.Kit kit = Hands.KitFor(brain.Blind);
+                List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>>();
+                try
+                {
+                    Func<string, string, List<KeyValuePair<string, ToolArguments>>> test = keepTest;
+                    if (test != null) calls.AddRange(test(words, said));
+                    else brain.QuickTools(Hands.Keeping, Hands.KeepAsk(words, said), 300, calls, kit);
+                }
+                catch (Exception error)
+                {
+                    calls.Clear();
+                    if (!(error is WebException) && !(error is BrainException)) Brain.Log("voice chat promise", -1, error.GetType().Name + ": " + error.Message);
+                }
+                string unable = Hands.Rescue(words, calls, kit) ? kit.Unable("use_computer", null) : null;
+                if (calls.Count == 0 && unable == null && promised && Hands.Wants(words))
+                {
+                    if (kit.Has("use_computer")) calls.Add(Hands.Forced(words));
+                    else unable = kit.Unable("use_computer", null);
+                }
+                // They've said something else, or the agent's own call landed while her brain looked.
+                if (ticket != asking) return;
+                lock (shortcutGate) if (toolAsked) return;
+                if (calls.Count == 0)
+                {
+                    if (told != null && told.Ready && (promised || unable != null)) told.Tell(unable ?? Hands.KeptNothing);
+                    return;
+                }
+                foreach (KeyValuePair<string, ToolArguments> call in calls)
+                {
+                    string done = AgentAct(told, call.Key, call.Value ?? new ToolArguments());
+                    if (done == StartedLater || done == AlreadyLater || done == FoldedLater) { if (told != null && told.Ready) told.Tell(done); }
+                    else if (Security.IsHold(done)) { if (told != null && told.Ready) told.Say(done); return; }
+                    else Finished(told, call.Key, done, ticket);
+                }
+            });
+        }
+
         // ElevenLabs' agent sometimes says a line twice, which reached them word for word (their transcript, 30 Oct). The same
         // line again within half a minute is cut: its audio is dropped until she has something new to say.
         private bool repeating;

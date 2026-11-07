@@ -97,7 +97,7 @@ namespace CapriDesktop
     internal sealed class Agent : IDisposable
     {
         internal const double Pace = 15;
-        internal const int Version = 37;
+        internal const int Version = 38;
         private const string Patience = "\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45}";
         internal event Action<int> Opened;
         internal event Action<string> Heard;
@@ -114,7 +114,7 @@ namespace CapriDesktop
         internal Func<string, ToolArguments, string> Act;
 
         // Her voice chat's prompt. With a brain that can't see, she's told she can't look at their screen, the same as in text chat.
-        internal static string Prompt { get { Brain keeper = Brain.Keeper; return Brain.Persona + Hands.NoteFor(Hands.KitFor(keeper != null && keeper.Blind)) + "\nYou are talking out loud in a live voice chat: keep every reply to one or two short spoken sentences, and never write tags in square brackets.\nIf the user goes quiet, they're busy, gaming or muted: stay quiet until they talk to you. Never check in, ask if they're still there, beg them to talk or say they left you hanging.\nSo the voice says your slang right, always spell choom as chewm, preem as preme and yezzirrr as yessirrr. Say chewm rarely, at most once every few replies and never on its own.\nWhen your hands are on a job it runs by itself, so keep talking with them like normal. Lines starting Capri's hands tell you how it's going: use them if they ask, and don't announce them otherwise. If they add to the job or change it, call use_computer once with their words and say so in a few words. Never say a job is done until you're told it finished."; } }
+        internal static string Prompt { get { Brain keeper = Brain.Keeper; return Brain.Persona + Hands.NoteFor(Hands.KitFor(keeper != null && keeper.Blind)) + "\nYou are talking out loud in a live voice chat: keep every reply to one or two short spoken sentences, and never write tags in square brackets.\nIf the user goes quiet, they're busy, gaming or muted: stay quiet until they talk to you. Never check in, ask if they're still there, beg them to talk or say they left you hanging.\nSo the voice says your slang right, always spell choom as chewm, preem as preme and yezzirrr as yessirrr. Say chewm rarely, at most once every few replies and never on its own.\nYour words can't touch their PC: only a tool can. When they ask for anything on it, call the tool in that same turn, and never say you're opening, playing or doing something unless you called the tool for it. Saying it with no tool does nothing and leaves them waiting.\nWhen your hands are on a job it runs by itself, so keep talking with them like normal. Lines starting Capri's hands tell you how it's going: use them if they ask, and don't announce them otherwise. If they add to the job or change it, call use_computer once with their words and say so in a few words. Never say a job is done until you're told it finished."; } }
 
         // ElevenLabs keeps its own copy of her prompt, so her agent is tuned again after an update, or when it was tuned with an edited personality.md before 0.7.6.
         internal static bool Stale(int version, string personality) { return version < Version || (personality ?? "") != Brain.PersonalityStamp; }
@@ -306,7 +306,7 @@ namespace CapriDesktop
             else if (item.Type == "client_tool_call" && item.Call != null && item.Call.Id != null)
             {
                 AgentToolCall call = item.Call;
-                if (call.Name == "app_window" && call.Arguments != null) call.Arguments.Asked = lastHeard ?? "";
+                if ((call.Name == "app_window" || call.Name == "open_app") && call.Arguments != null) call.Arguments.Asked = lastHeard ?? "";
                 Func<string, ToolArguments, string> act = Act;
                 Interlocked.Increment(ref toolBusy);
                 ThreadPool.QueueUserWorkItem(delegate
