@@ -364,7 +364,9 @@ namespace CapriDesktop
             heartbeat.Tick += (_, _) => Program.Guard(Heartbeat);
             Opened += (_, _) => { Sync(); status.Start(); heartbeat.Start(); };
             Closed += (_, _) => { closed = true; status.Stop(); heartbeat.Stop(); pet.SettingsChanged -= Sync; foreach (Window sheet in sheets.ToArray()) sheet.Close(); CloseMenus(); };
-            Closing += (_, e) => { if (!finishing) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };
+            // Only her own Close puts Mainframe away, like on Windows. A Mac's Quit, logging out or shutting down asks every window at
+            // once, and one saying no calls all of it off after her other windows have already gone.
+            Closing += (_, e) => { if (!finishing && e.CloseReason == WindowCloseReason.WindowClosing) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };
             Sync();
         }
 
