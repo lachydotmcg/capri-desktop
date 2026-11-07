@@ -140,7 +140,7 @@ namespace CapriDesktop
                     "Maximized notepad on screen 3.",
                     "Restored notepad from maximized to its normal size.",
                     "notepad isn't minimized or maximized, so it's already at its normal size.",
-                    "Couldn't maximize task manager: it's running as admin, and Windows only lets me move admin windows when I run as admin too.",
+                    Arrange.Admin("maximize", "task manager"),
                     "Couldn't snap frozen: it isn't responding right now.",
                     "Moved spotify to the top right corner of screen 3.",
                     "Moved spotify to 1160, 139 on screen 3.",
@@ -270,7 +270,7 @@ namespace CapriDesktop
                 string adminPin = Hands.Do("app_window", new ToolArguments { Name = "task manager", Action = "pin_on_top" }), frozenPin = Hands.Do("app_window", new ToolArguments { Name = "frozen", Action = "pin_on_top" });
                 if (pinned != "Kept discord on top of your other windows. Say unpin discord to let it go." || !kept || pinnedAgain != "discord is already kept on top of your other windows."
                     || unpinned != "discord isn't kept on top any more." || pretend[new IntPtr(31)].Pinned || unpinnedAgain != "discord isn't kept on top, so it's already in among your other windows."
-                    || adminPin != "Couldn't pin task manager: it's running as admin, and Windows only lets me move admin windows when I run as admin too." || frozenPin != "Couldn't pin frozen: it isn't responding right now."
+                    || adminPin != Arrange.Admin("pin", "task manager") || frozenPin != "Couldn't pin frozen: it isn't responding right now."
                     || !Hands.Failed(adminPin) || Hands.Failed(pinned) || Security.Asking("app_window", new ToolArguments { Name = "Discord", Action = "pin_on_top" }) != "keep Discord on top of your other windows")
                     throw new Exception("Her window tool didn't keep a window on top or let it go: " + pinned + " / " + pinnedAgain + " / " + unpinned + " / " + unpinnedAgain + " / " + adminPin + " / " + frozenPin);
                 string[,] pinAsks = { { "keep discord on top", "pin_on_top" }, { "pin chrome", "pin_on_top" }, { "keep spotify on top of everything", "pin_on_top" }, { "unpin discord", "unpin" }, { "stop keeping discord on top", "unpin" } };

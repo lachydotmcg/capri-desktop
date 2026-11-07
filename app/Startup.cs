@@ -103,6 +103,40 @@ namespace CapriDesktop
             throw new IOException("The uninstaller is still open. Close it and try removing Capri again.");
         }
 
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(int access, bool inherit, int id);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode)] private static extern bool QueryFullProcessImageName(IntPtr process, int flags, System.Text.StringBuilder name, ref int size);
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
+
+        // A program started as administrator won't show its modules here, but Windows still names its file, so setup can tell
+        // it's hers. held says this copy can't close it.
+        internal static string FileOf(System.Diagnostics.Process process, out bool held)
+        {
+            held = false;
+            try { return process.MainModule.FileName; }
+            catch (System.ComponentModel.Win32Exception) { }
+            catch (InvalidOperationException) { return null; }
+            catch (NotSupportedException) { return null; }
+            IntPtr handle = OpenProcess(0x1000, false, process.Id);
+            if (handle == IntPtr.Zero) return null;
+            try
+            {
+                System.Text.StringBuilder name = new System.Text.StringBuilder(1024);
+                int size = name.Capacity;
+                if (!QueryFullProcessImageName(handle, 0, name, ref size)) return null;
+                held = true;
+                return name.ToString(0, size);
+            }
+            finally { CloseHandle(handle); }
+        }
+
+        // The only folders setup's administrator copy will close things in: one named Capri with her install marker.
+        internal static bool Closable(string folder)
+        {
+            if (string.IsNullOrEmpty(folder)) return false;
+            folder = Path.GetFullPath(folder).TrimEnd('\\');
+            return string.Equals(Path.GetFileName(folder), "Capri", StringComparison.OrdinalIgnoreCase) && File.Exists(Path.Combine(folder, ".capri-install"));
+        }
+
         internal static void Patiently(Action remove)
         {
             for (int tries = 1; ; tries++)

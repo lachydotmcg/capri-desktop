@@ -110,11 +110,13 @@ namespace CapriDesktop
     // silent no. Typing passwords and card numbers is the one exception: with it off they type those themselves. Trusted, the
     // default, is how she worked before the window, and Blackwall is Blackwall mode (Bypass all permissions before 0.7.4) plus
     // listening for "Hey Capri". The gate is in code: her tools stop here, and her jobs' steps stop in Computer's checks.
+    // Toggle 13, Keep personal details out of her memories (#88, Lachy, 5 Nov), is on in every preset but Blackwall: on, her
+    // notes, Get to know me and what she sees leave addresses, numbers and emails out (Brain.Discreet). Off is how she was before.
     internal static class Security
     {
-        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Count = 12;
+        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, Count = 13;
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm" };
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories" };
         internal static readonly string[] Lines =
         {
             "On: she opens them when you ask. Off: she asks first.",
@@ -132,12 +134,13 @@ namespace CapriDesktop
             "On: she does the extra steps a job needs. Off: she asks first.",
             "On: she types the ones your job gives her. Off: you type them.",
             "On: she listens on this PC for her name. Off: she doesn't.",
-            "Call mode only. Your mic or typing must confirm each ask."
+            "Call mode only. Your mic or typing must confirm each ask.",
+            "On: addresses, emails and numbers stay out. Off: they don't."
         };
         internal static readonly string[] Presets = { "Lockdown", "Guarded", "Trusted", "Blackwall", "Custom" };
         private static readonly string[] Told =
         {
-            "Everything is off: she asks first before she does anything on your PC.",
+            "She asks first before she does anything on your PC.",
             "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.",
             "She does what you ask, and asks first before paying or anything you didn't mention.",
             "She never asks, types passwords and card numbers, and listens for \"Hey Capri\".",
@@ -145,9 +148,10 @@ namespace CapriDesktop
         };
         // The Settings line under her SECURITY button, short enough for its row.
         private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
-        // Lockdown has them all off, Guarded the first three on, Trusted the first seven and Blackwall all eleven.
-        private static readonly int[] Masks = { 0, 0x7, 0x7F, 0x7FF };
-        private static int mask = 0x7F;
+        // Lockdown has the first twelve off, Guarded the first three on, Trusted the first seven and Blackwall the first eleven.
+        // Keeping personal details out of her memories is on in all of them but Blackwall.
+        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal), 0x7FF };
+        private static int mask = 0x7F | (1 << Personal);
         private static readonly object gate = new object();
         // Toggle 11 is her wake word's own setting on Windows, read and set through these. Elsewhere it's kept here with the rest.
         internal static Func<bool> HeyOn;
@@ -198,15 +202,16 @@ namespace CapriDesktop
             if (changed != null) changed();
         }
 
-        // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" alone. Nothing is saved.
-        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
+        // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" and the toggles after it alone.
+        // Nothing is saved.
+        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
 
         // The preset their toggles match, or Custom. "Hey Capri" only counts where there's a wake word.
         internal static int Preset
         {
             get
             {
-                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0);
+                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0);
                 for (int i = 0; i < Masks.Length; i++) if ((bits & counted) == (Masks[i] & counted)) return i;
                 return Custom;
             }
@@ -234,25 +239,32 @@ namespace CapriDesktop
         internal static string Of(int preset) { return Marks(Masks[preset]); }
 
         // Friend requests take an 11th mark only when they're on, so a build from before them still reads the save instead of
-        // falling back to Trusted.
+        // falling back to Trusted. Keeping personal details out of her memories takes a 12th, after the 11th, only when it isn't
+        // what the first ten give it (Kept), so a save that never changed it reads there too.
         private static string Marks(int bits)
         {
-            bool friends = (bits & (1 << Friends)) != 0;
-            char[] marks = new char[friends ? Wake + 1 : Wake];
+            bool friends = (bits & (1 << Friends)) != 0, personal = (bits & (1 << Personal)) != 0, odd = personal != Kept(bits);
+            char[] marks = new char[odd ? Wake + 2 : friends ? Wake + 1 : Wake];
             for (int i = 0; i < Wake; i++) marks[i] = (bits & (1 << i)) != 0 ? '1' : '0';
-            if (friends) marks[Wake] = '1';
+            if (friends || odd) marks[Wake] = friends ? '1' : '0';
+            if (odd) marks[Wake + 1] = personal ? '1' : '0';
             return new string(marks);
         }
+
+        // Whether toggles 1 to 10 keep personal details out of her memories when their save doesn't say: yes, unless all ten
+        // are on, like Blackwall's. A save from before the toggle gets its preset's default this way, and a Custom mix gets it on.
+        private static bool Kept(int bits) { return (bits & 0x3FF) != 0x3FF; }
 
         // Their saved toggles, or Trusted for anything unreadable. "Hey Capri" stays where it lives.
         internal static void Load(string saved, bool wake = false)
         {
             int bits = 0;
-            if (saved == null || saved.Length != Wake && saved.Length != Wake + 1 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted] & 0x3FF;
+            if (saved == null || saved.Length < Wake || saved.Length > Wake + 2 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
             else
             {
                 for (int i = 0; i < Wake; i++) if (saved[i] == '1') bits |= 1 << i;
                 if (saved.Length > Wake && saved[Wake] == '1') bits |= 1 << Friends;
+                if (saved.Length > Wake + 1 ? saved[Wake + 1] == '1' : Kept(bits)) bits |= 1 << Personal;
             }
             lock (gate) mask = bits | (wake ? 1 << Wake : 0);
         }
@@ -526,6 +538,105 @@ namespace CapriDesktop
         internal OpenWindow(IntPtr handle, string title, string program) { Handle = handle; Title = title; Program = program; }
     }
 
+    // #106 (Lachy, 5 Nov): a couple of people saw their mouse move and keys get typed and didn't know it was her. Whenever she
+    // moves their mouse or presses their keys, however briefly, she holds this, and a sign is up while anything holds it, so a
+    // mouse that moves with no sign up wasn't her. Holds are counted, so overlapping ones keep the sign up until the last one
+    // lets go, and it stays a moment after that so a run of quick presses doesn't flicker. Her window draws the sign: Changed
+    // tells it to look at On and At again, from whatever thread changed them, with true when the sign has just come up.
+    internal static class InControl
+    {
+#if CROSS
+        // Linux has no Esc watch: anything they say or type to her cuts off the step she's thinking about, which ends the job.
+        internal const string Line = "Capri's using your mouse. Say stop to stop her.";
+#else
+        internal const string Line = "Capri's using your mouse. Esc stops her.";
+#endif
+        // How long the sign stays after the last hold lets go, in ms.
+        internal static int Linger = 500;
+        private static readonly object gate = new object();
+        private static int holds, endedAt;
+        private static bool up;
+        private static System.Drawing.Point? at;
+        private static System.Threading.Timer settle;
+        internal static Action<bool> Changed = delegate { };
+
+        internal static bool On { get { lock (gate) return up; } }
+
+        internal static int Holds { get { lock (gate) return holds; } }
+
+        // Where she last put their mouse while the sign has been up, or null while she's only pressed keys, which go to the
+        // window in front.
+        internal static System.Drawing.Point? At { get { lock (gate) return at; } }
+
+        internal static void Begin() { Begin(null); }
+
+        internal static void Begin(System.Drawing.Point? spot)
+        {
+            bool rising, moved;
+            lock (gate)
+            {
+                holds++;
+                rising = !up;
+                moved = spot.HasValue && spot != at;
+                up = true;
+                if (spot.HasValue) at = spot;
+            }
+            if (rising || moved) Changed(rising);
+        }
+
+        // She's still holding it and has moved their mouse there.
+        internal static void Near(System.Drawing.Point spot)
+        {
+            bool moved;
+            lock (gate)
+            {
+                moved = up && spot != at;
+                if (up) at = spot;
+            }
+            if (moved) Changed(false);
+        }
+
+        internal static void End()
+        {
+            lock (gate)
+            {
+                if (holds == 0 || --holds > 0) return;
+                endedAt = Environment.TickCount;
+                if (settle == null) settle = new System.Threading.Timer(Settle);
+                settle.Change(Math.Max(0, Linger), Timeout.Infinite);
+            }
+        }
+
+        // The sign goes once nothing has held it for Linger ms. A hold that came and went meanwhile pushes that back.
+        private static void Settle(object state)
+        {
+            lock (gate)
+            {
+                if (holds > 0 || !up) return;
+                int left = Linger - unchecked(Environment.TickCount - endedAt);
+                if (left > 0) { settle.Change(left, Timeout.Infinite); return; }
+                up = false;
+                at = null;
+            }
+            Changed(false);
+        }
+
+        // A hold that lets go once, when it's disposed, for around one press, drag or chord.
+        internal static IDisposable Hold() { return Hold(null); }
+
+        internal static IDisposable Hold(System.Drawing.Point? spot)
+        {
+            Begin(spot);
+            return new Holding();
+        }
+
+        private sealed class Holding : IDisposable
+        {
+            private int done;
+            public void Dispose() { if (Interlocked.Exchange(ref done, 1) == 0) End(); }
+        }
+    }
+
     internal static class Hands
     {
         internal const string SpokenName = @"(?:\b[ck]app?r(?:i|ee|ie|y)\b|\b(?:kopri|recovery|капри|كابري)\b|(?<![\p{L}\p{M}\p{N}_])कैप्री(?![\p{L}\p{M}\p{N}_])|カプリ|卡普里|카프리)";
@@ -778,7 +889,7 @@ namespace CapriDesktop
             { "layer_1_pitch", "Layer 1 pitch", "Voice" }, { "layer_1_delay", "Layer 1 delay", "Voice" }, { "layer_2_pitch", "Layer 2 pitch", "Voice" }, { "layer_2_delay", "Layer 2 delay", "Voice" },
             { "sounds", "Sound effects", "Voice" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
             { "game_comments", "Game comments pace", "Games" }, { "clip_length", "Default clip length", "Clips" }, { "clip_fps", "Clip frame rate", "Clips" }, { "clip_resolution", "Clip resolution", "Clips" }, { "clip_bitrate", "Clip bitrate", "Clips" },
-            { "typing_sound", "Typing sound mode", "Voice" }, { "mainframe_colours", "Mainframe colours", "Capri" }
+            { "typing_sound", "Typing sound mode", "Voice" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" }
         };
         internal static readonly string[][] OwnSteps =
         {
@@ -804,7 +915,8 @@ namespace CapriDesktop
 #endif
             new[] { "Auto", "100%", "125%", "150%", "175%", "200%" }, new[] { "10 fps", "15 fps", "20 fps", "30 fps", "40 fps", "50 fps", "60 fps" }, LanguageSteps(), new[] { "Auto", "256", "2K", "8K" },
             new[] { "Off", "Events only", "Chatty" }, new[] { "15 s", "30 s", "45 s", "1 min", "1.5 min", "2 min" }, new[] { "Up to 15 fps", "Up to 24 fps", "Up to 30 fps", "Up to 60 fps" },
-            new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }, new[] { "Night City", "Black", "White", "Grey" }
+            new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }, new[] { "Night City", "Black", "White", "Grey" },
+            new[] { "Off", "In games", "Always" }
         };
         // What each step of a slider stands for, where its steps are times, rates or percents, so set takes 45 s or 720p as well.
         private static readonly Dictionary<string, int[]> OwnValues = new Dictionary<string, int[]>
@@ -885,7 +997,8 @@ namespace CapriDesktop
             { "voice_layers", "copies of your voice, pitched and delayed" }, { "player_full_screen", "your music player over full screen apps" },
             { "sleep", "how long a quiet PC takes to send you to sleep" }, { "replies", "how long your replies are" }, { "bubble", "how long your replies stay up" },
             { "reply_limit", "the longest a reply can be" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
-            { "explore_after", "how long they're away before you explore" }
+            { "explore_after", "how long they're away before you explore" },
+            { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace" }
         };
 
         private static string Meant(string name)
@@ -1287,6 +1400,11 @@ namespace CapriDesktop
         internal static Func<string> NowPlaying = SpotifyTitle;
         internal static Func<string, bool> SongPlaying = PlayingSong;
         internal static Func<string, string, string> Work = delegate { return "Using the mouse and keyboard isn't ready on this PC yet."; };
+        // The question her last job stopped on to ask first. Her reply is then what ran and that question, word for word: a
+        // wrap-up from her brain after it made her sound like she'd given up (Lachy, 6 Nov).
+        private static string heldOn;
+        internal static void Held(string question) { Volatile.Write(ref heldOn, question); }
+        internal static bool Holds(string result) { string question = Volatile.Read(ref heldOn); return question != null && result == question; }
         internal static Func<string, string> Resume = delegate { return null; };
         internal static Func<string, KeyValuePair<string, ToolArguments>> Plan = delegate { return new KeyValuePair<string, ToolArguments>(); };
         internal static Func<ToolArguments, string> Remind = delegate { return "Couldn't open your reminders."; };
@@ -1298,6 +1416,9 @@ namespace CapriDesktop
         // Puts dots over a password she typed into a password box, wherever it would show or be saved.
         internal static Func<string, string> Hush = delegate(string text) { return text; };
         internal static Action<byte[]> Chord = PressChord;
+        // Every key her shortcuts, media keys and tab closing press on Windows, each under her sign (#106). The smoke test
+        // watches it instead of pressing real keys.
+        internal static Action<byte, byte, int> KeyEvent = delegate(byte key, byte scan, int flags) { Native.keybd_event(key, scan, flags, UIntPtr.Zero); };
         // Discord drops keys pressed before its page has the keyboard, a moment after it comes to the front (deafen took two tries, 2 Nov).
         internal static Func<IntPtr, bool> Typable = PageFocused;
         internal const int FocusWait = 400;
@@ -1583,7 +1704,7 @@ namespace CapriDesktop
                 // A snake_case tool name, but not a file that happens to share one, like read_file.txt.
                 brainOnly = new Regex(@"\b(?:" + snakes + @")\b(?!\.\w)|\bThere's no (?:tool|[a-z_]+ action) called\b|\bthat (?:" + every + @") call\b");
             }
-            if (!calling.IsMatch(result) && !brainOnly.IsMatch(result)) return result;
+            if (!calling.IsMatch(result) && !brainOnly.IsMatch(result)) return ToYou(result);
             List<string> kept = new List<string>();
             foreach (string sentence in Regex.Split(result.Trim(), @"(?<=[.!?])\s+"))
             {
@@ -1597,7 +1718,39 @@ namespace CapriDesktop
                 if (head.Length >= 8 && !Regex.IsMatch(head, @"^(If|When|Once|Before|After|Unless)\b") && !calling.IsMatch(head) && !brainOnly.IsMatch(head)) kept.Add(head + ".");
             }
             string spoken = string.Join(" ", kept.ToArray()).Trim();
-            return spoken.Length == 0 ? "That didn't work." : spoken;
+            return ToYou(spoken.Length == 0 ? "That didn't work." : spoken);
+        }
+
+        // Tool results call the person "they" for her brain. What people see or hear of one says "you", phrase by phrase:
+        // "their" means other people too, like a provider in "Add credits on their site", so there's no general swap.
+        private static readonly string[,] Yours =
+        {
+            { "they type passwords themselves", "type the password yourself" },
+            { "their PC", "your PC" }, { "their internet", "your internet" }, { "their DNS", "your DNS" },
+            { "their windows", "your windows" }, { "no app windows are open on their", "no app windows are open on your" },
+            { "their apps", "your apps" }, { "their YouTube tab", "your YouTube tab" }, { "their monitors", "your monitors" },
+            { "their other screen", "your other screen" }, { "their mic mute", "your mic mute" }, { "their Liked Songs", "your Liked Songs" },
+            { "you can't see their screen right now", "I can't see your screen right now" },
+            { "you looked at their screen. You see", "on your screen" },
+            { "you stopped because they asked you something else", "I stopped because you asked me something else" }
+        };
+        private static Dictionary<string, string> yourWords;
+        private static Regex yourPhrases;
+
+        private static string ToYou(string shown)
+        {
+            if (yourPhrases == null)
+            {
+                Dictionary<string, string> words = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < Yours.GetLength(0); i++) words[Yours[i, 0]] = Yours[i, 1];
+                yourWords = words;
+                yourPhrases = new Regex(@"\b(?:" + string.Join("|", new List<string>(words.Keys).ConvertAll(phrase => Regex.Escape(phrase)).ToArray()) + @")\b", RegexOptions.IgnoreCase);
+            }
+            return yourPhrases.Replace(shown, match =>
+            {
+                string word = yourWords[match.Value];
+                return char.IsUpper(match.Value[0]) ? char.ToUpperInvariant(word[0]) + word.Substring(1) : word;
+            });
         }
 
         internal static void Forget() { lock (gate) cached = null; }
@@ -2288,7 +2441,7 @@ namespace CapriDesktop
             bool mouse = kit == null || kit.Has("use_computer");
             string directTool;
             ToolArguments directArgs;
-            if (Direct(said, out directTool, out directArgs) && (directTool == "play_music" || directTool == "mini_game" || directTool == "website_nickname" || directTool == "find_file" || directTool == "open_website"))
+            if (Direct(said, out directTool, out directArgs, true) && (directTool == "play_music" || directTool == "mini_game" || directTool == "website_nickname" || directTool == "find_file" || directTool == "open_website"))
             {
                 calls.Clear();
                 calls.Add(new KeyValuePair<string, ToolArguments>(directTool, directArgs));
@@ -2354,7 +2507,7 @@ namespace CapriDesktop
             if (Regex.IsMatch(target, @"^(this|that)$", RegexOptions.IgnoreCase)) return Plain(song ?? "") == Plain(target);
             bool pointed = Regex.IsMatch(target, @"^(this|that|these|those|my|our)\b", RegexOptions.IgnoreCase);
             bool joined = Regex.IsMatch(target, @"\b(with|against)\s+(me|us|you)$", RegexOptions.IgnoreCase);
-            return (pointed && joined) || ((pointed || joined) && Playable.IsMatch(target)) || PlainGame.IsMatch(target) || Nickname(target) != null;
+            return (pointed && joined) || ((pointed || joined) && Playable.IsMatch(target)) || PlainGame.IsMatch(target) || Nickname(target) != null || Regex.IsMatch(target, @"^(?:the\s+)?(?:mic|mike)\s+up\b", RegexOptions.IgnoreCase);
         }
 
         // "Play gmod yourself" is how Gaming Mode hands on what came after it: her hands on a game whatever it's called, not a song to search for (Dante, 1 Nov).
@@ -3075,7 +3228,7 @@ namespace CapriDesktop
             if (args.App == null && (args.Action == "volume_up" || args.Action == "volume_down") && Regex.IsMatch(said ?? "", @"\bspotify\b", RegexOptions.IgnoreCase)) args.App = "spotify";
         }
 
-        internal static bool Heard(string said, out string tool, out ToolArguments args)
+        internal static bool Heard(string said, out string tool, out ToolArguments args, bool brainy = false)
         {
 #if !CROSS
             if (CallSession.Blank(said)) { tool = null; args = new ToolArguments(); return false; }
@@ -3088,7 +3241,7 @@ namespace CapriDesktop
             if (sentences.Length > 1) tries.Add(sentences[sentences.Length - 1]);
             tries.Add(said ?? "");
             foreach (string attempt in tries)
-                if (Direct(attempt, out tool, out args) && !(tool == "routine" && args.Action == "run"))
+                if (Direct(attempt, out tool, out args, brainy) && !(tool == "routine" && args.Action == "run"))
                 {
                     if (tool == "gaming_mode" && attempt != said && GamingMeaning.IsMatch(GamingLead.Replace(Asked(sentences[sentences.Length - 1]), ""))) continue;
                     if (tool == "media" && Regex.IsMatch(attempt, @"\b(keep|carry on|continue|go on) playing\b", RegexOptions.IgnoreCase) && GameOpen() != null) break;
@@ -3191,7 +3344,17 @@ namespace CapriDesktop
             return Regex.IsMatch(Asked(said), @"^(?:listen to this(?: (?:video|call|stream|game))?|what did (?:he|she|they) just say|what (?:are they|is (?:he|she)) saying|what's (?:he|she) saying|hear this|(?:translate )?what (?:they're|he's|she's|they are|he is|she is) saying)(?: (?:in|on) (?:this|the) (?:video|call|stream|game))?$", RegexOptions.IgnoreCase);
         }
 
-        internal static bool Direct(string said, out string tool, out ToolArguments args)
+        // With a brain to ask (brainy), "play" only goes straight to music when it's clearly music: a song, artist, album or
+        // playlist word, "on Spotify", some music, or a short title with nothing after it. Anything more is hers to work out.
+        // Lachy, 6 Nov: "play Mic Up and make some new friends" was typed whole into Spotify, again.
+        private static bool ClearMusic(string target, bool onApp)
+        {
+            if (onApp || Regex.IsMatch(target, @"\b(songs?|tracks?|tunes?|albums?|playlists?|music|soundtracks?|ost|remix(es)?|lofi|lo-fi|beats|radio|by)\b", RegexOptions.IgnoreCase)) return true;
+            return target.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length <= 5
+                && !Regex.IsMatch(target, @"\b(and|then|until|till|unless|while|so)\b|&|\b(with|against|for)\s+(?:(?:some|a few|my|the|other|random|new)\s+)?(me|us|you|them|him|her|people|friends|everyone|everybody|someone|somebody|others|players|randoms|strangers|kids)\b", RegexOptions.IgnoreCase);
+        }
+
+        internal static bool Direct(string said, out string tool, out ToolArguments args, bool brainy = false)
         {
             if (Planned(said, out tool, out args)) return true;
             tool = null;
@@ -3368,6 +3531,7 @@ namespace CapriDesktop
                 if (Regex.IsMatch(target, @"^(with|along|around|a game|games?\b|dead|nice|fair|it\b|me\b|us\b|together|this$|that$|((a|any|some|random) )?playlists?$)", RegexOptions.IgnoreCase)) return false;
                 // "play the wasd minigame" is a game, not a song to search Spotify for (a tester, 30 Oct), and so is a game that's open.
                 if (!found.Groups[3].Success && (Playable.IsMatch(target) || PlainGame.IsMatch(target) || Nickname(target) != null || Showing(target))) return false;
+                if (brainy && !ClearMusic(target, found.Groups[3].Success)) return false;
                 if (found.Groups[3].Success) args.App = found.Groups[3].Value.ToLowerInvariant();
                 if (Regex.IsMatch(target, @"^(music$|some music$|((a|any|some|random) )?(song|track|tune|music)s?$|(something|anything)\b(?!\s+by\s))", RegexOptions.IgnoreCase)) { tool = "play_music"; args.Kind = "song"; args.Song = Pick(); return true; }
                 Match kind = Regex.Match(target, @"^(?:(?:the|my|your)\s+)?(.+?)\s+(playlist|album)$", RegexOptions.IgnoreCase);
@@ -3827,7 +3991,8 @@ namespace CapriDesktop
 
         // Games that go by one plain word, so "play solitaire" isn't a song to search Spotify for.
         private static readonly Regex PlainGame = new Regex(@"^(?:(?:a|some|another)\s+)?(?:(?:game|round|hand)\s+of\s+)?(?:chess|checkers|poker|blackjack|solitaire|sudoku|tetris|minesweeper|wordle|uno)$", RegexOptions.IgnoreCase);
-        private static readonly Regex Playable = new Regex(@"\b(games?|mini ?games?|obby|obbies|levels?|rounds?|match(es)?|matchmaking|ranked|deathmatch|map|mode|bedwars|skywars|roblox|minecraft|fortnite|valorant|counter[- ]?strike|wasd)\b", RegexOptions.IgnoreCase);
+        // Mic Up is a Roblox game, which her ears hear as Mike Up (Lachy, 6 Nov).
+        private static readonly Regex Playable = new Regex(@"\b(games?|mini ?games?|obby|obbies|levels?|rounds?|match(es)?|matchmaking|ranked|deathmatch|map|mode|bedwars|skywars|mic up|mike up|roblox|minecraft|fortnite|valorant|counter[- ]?strike|wasd)\b", RegexOptions.IgnoreCase);
 
         // What players call their games, for when nothing installed goes by the name they said ("open cs", a tester, 30 Oct).
         private static readonly string[,] Nicknames = { { "cs", "counter strike" }, { "cs2", "counter strike 2" }, { "csgo", "counter strike" }, { "cs go", "counter strike" }, { "val", "valorant" }, { "valo", "valorant" }, { "mc", "minecraft" }, { "gta", "grand theft auto" }, { "gta 5", "grand theft auto v" }, { "gta v", "grand theft auto v" }, { "lol", "league of legends" }, { "r6", "rainbow six" }, { "cod", "call of duty" }, { "ow", "overwatch" }, { "rl", "rocket league" }, { "fn", "fortnite" }, { "tf2", "team fortress 2" }, { "dbd", "dead by daylight" }, { "gmod", "garry s mod" }, { "g mod", "garry s mod" } };
@@ -4898,15 +5063,18 @@ namespace CapriDesktop
         // A beat apart and with their scan codes, so an app that reads either one, like Discord's page, gets the whole chord.
         private static void PressChord(byte[] keys)
         {
-            for (int i = 0; i < keys.Length; i++)
+            using (InControl.Hold())
             {
-                if (i > 0) Thread.Sleep(KeyGap);
-                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), keys[i] == 0x5B ? 0x1 : 0, UIntPtr.Zero);
-            }
-            for (int i = keys.Length - 1; i >= 0; i--)
-            {
-                Thread.Sleep(KeyGap);
-                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), (keys[i] == 0x5B ? 0x1 : 0) | 0x2, UIntPtr.Zero);
+                for (int i = 0; i < keys.Length; i++)
+                {
+                    if (i > 0) Thread.Sleep(KeyGap);
+                    KeyEvent(keys[i], (byte)MapVirtualKey(keys[i], 0), keys[i] == 0x5B ? 0x1 : 0);
+                }
+                for (int i = keys.Length - 1; i >= 0; i--)
+                {
+                    Thread.Sleep(KeyGap);
+                    KeyEvent(keys[i], (byte)MapVirtualKey(keys[i], 0), (keys[i] == 0x5B ? 0x1 : 0) | 0x2);
+                }
             }
         }
 
@@ -4923,8 +5091,11 @@ namespace CapriDesktop
 
         private static void Tap(byte key)
         {
-            Native.keybd_event(key, 0, 0x1, UIntPtr.Zero);
-            Native.keybd_event(key, 0, 0x1 | 0x2, UIntPtr.Zero);
+            using (InControl.Hold())
+            {
+                KeyEvent(key, 0, 0x1);
+                KeyEvent(key, 0, 0x1 | 0x2);
+            }
         }
 
         private static readonly string[,] KnownSongs =
@@ -5882,10 +6053,13 @@ namespace CapriDesktop
             }
             if (!Front(handle)) return false;
             if (action != "close_tab") return true;
-            Native.keybd_event(0x11, 0, 0, UIntPtr.Zero);
-            Native.keybd_event(0x57, 0, 0, UIntPtr.Zero);
-            Native.keybd_event(0x57, 0, 0x2, UIntPtr.Zero);
-            Native.keybd_event(0x11, 0, 0x2, UIntPtr.Zero);
+            using (InControl.Hold())
+            {
+                KeyEvent(0x11, 0, 0);
+                KeyEvent(0x57, 0, 0);
+                KeyEvent(0x57, 0, 0x2);
+                KeyEvent(0x11, 0, 0x2);
+            }
             return true;
         }
 

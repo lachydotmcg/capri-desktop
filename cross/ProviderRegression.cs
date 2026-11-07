@@ -200,8 +200,9 @@ namespace CapriDesktop
                     Brain.LogPath = uiLog;
                     pet.Brain.SetServer(a.Address, key);
                     pet.Hear("hello test");
-                    if (!Wait(() => (pet.Talk.Reply ?? "").Contains("Invalid credential"))) failures.Add("S3 streaming error not shown");
-                    if ((pet.Talk.Reply ?? "").Contains(key) || (File.Exists(uiLog) && File.ReadAllText(uiLog).Contains(key))) failures.Add("S3 streaming key reached UI or errors.txt");
+                    // As on Windows, she says where the error is, and the provider's own text goes in the BRAIN note (119c02a).
+                    if (!Wait(() => (pet.MainframeProblem ?? "").Contains("Invalid credential") && (pet.Talk.Reply ?? "").Contains("The error is under BRAIN"))) failures.Add("S3 streaming error not in the BRAIN note: " + pet.Talk.Reply + " | " + pet.MainframeProblem);
+                    if ((pet.Talk.Reply ?? "").Contains(key) || (pet.MainframeProblem ?? "").Contains(key) || (File.Exists(uiLog) && File.ReadAllText(uiLog).Contains(key))) failures.Add("S3 streaming key reached UI or errors.txt");
                     Brain.LogPath = log;
                     a.StreamError = false; a.Redirect = true; a.Destination = b.Address + "/stolen";
                     try { Brain.ServerModels(a.Address, key); failures.Add("S3 model redirect accepted"); } catch (BrainException) { }

@@ -226,6 +226,11 @@ namespace CapriDesktop
             }
         }
 
+        // A download's three ways to fail, in one place, so the lines that shorten them can tell which it was.
+        internal static string Stalled(string label) { return "The download of " + label + " keeps stopping. Check your connection and try again."; }
+        internal static string WrongSize(string label) { return "The download of " + label + " came out the wrong size. Try again."; }
+        internal static string Unmatched(string label) { return "The download of " + label + " didn't match its checksum. Try again."; }
+
         internal static void Fetch(string url, string target, long size, string sha256, string label, Action<string, long, long> progress, Func<bool> stopped)
         {
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
@@ -267,13 +272,13 @@ namespace CapriDesktop
                 if (have < size)
                 {
                     stalls = have > before ? 0 : stalls + 1;
-                    if (stalls >= 4) throw new IOException("The download of " + label + " keeps stopping. Check your connection and try again.");
+                    if (stalls >= 4) throw new IOException(Stalled(label));
                     Thread.Sleep(1500 * stalls);
                 }
             }
-            if (have != size) { File.Delete(part); throw new IOException("The download of " + label + " came out the wrong size. Try again."); }
+            if (have != size) { File.Delete(part); throw new IOException(WrongSize(label)); }
             progress("Checking " + label, size, size);
-            if (!string.Equals(Hash(part), sha256, StringComparison.OrdinalIgnoreCase)) { File.Delete(part); throw new IOException("The download of " + label + " didn't match its checksum. Try again."); }
+            if (!string.Equals(Hash(part), sha256, StringComparison.OrdinalIgnoreCase)) { File.Delete(part); throw new IOException(Unmatched(label)); }
             if (File.Exists(target)) File.Delete(target);
             File.Move(part, target);
         }

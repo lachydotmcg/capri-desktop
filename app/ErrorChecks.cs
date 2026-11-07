@@ -80,7 +80,7 @@ namespace CapriDesktop
                 { Brain.NoCredits, "Free key" }, { Brain.Meaning(402, ""), "Free key" },
                 { Brain.PlusRejected, "platform.openai.com" }, { Brain.Meaning(401, "{\"error\":\"bad key\"}", false, true), "platform.openai.com" },
                 { Brain.NotAKey, "Copy the whole key" }, { Brain.Unserved, "Free key" }, { Brain.NoFreeModels, "Refresh" },
-                { Brain.Blocked, "Built-in" }
+                { Brain.Blocked, "Built-in" }, { Brain.Rejected("NVIDIA"), "Forget" }, { Brain.Rejected(null), "Forget" }
             };
             for (int i = 0; i < lines.GetLength(0); i++)
             {
@@ -146,18 +146,28 @@ namespace CapriDesktop
                     { "Windows speech failed: ", Dictation.MicUnused, "Windows speech couldn't use your mic" },
                     { "Windows speech failed: ", Dictation.Stopped, "Windows speech stopped" },
                     { "Windows speech failed: ", Dictation.Missing, "Windows speech isn't on this PC" },
-                    { "Her ears didn't download: ", "The download of her ears keeps stopping. Check your connection and try again.", "Her ears didn't download: The download of her ears..." },
+                    { HearingStatus.EarsUndownloaded, Engine.Stalled("her ears"), "Her ears' download keeps stopping. Check your connection" },
+                    { HearingStatus.EarsUndownloaded, Engine.WrongSize("her ears"), "Her ears' download is the wrong size. Try again" },
+                    { HearingStatus.EarsUndownloaded, Engine.Unmatched("her ears"), "Her ears' download failed its checksum. Try again" },
+                    { HearingStatus.EarsUndownloaded, "Test download failure", "Her ears didn't download: Test download failure" },
                     { "Windows speech failed: ", "The connection was lost.", "Windows speech failed: The connection was lost" }
                 };
                 for (int i = 0; i < reasons.GetLength(0); i++)
                 {
                     bool alone = reasons[i, 0] == "Mic failed: ";
                     HearingStatus status = HearingStatus.Explained(reasons[i, 0], reasons[i, 1], alone, true, HearingAction.Sound, HearingAction.Type);
-                    string whole = reasons[i, 1].StartsWith("Windows speech ", StringComparison.Ordinal) || alone ? reasons[i, 1] : reasons[i, 0] + reasons[i, 1];
+                    bool ownDownload = reasons[i, 0] == HearingStatus.EarsUndownloaded && reasons[i, 1].StartsWith("The download of her ears ", StringComparison.Ordinal);
+                    string whole = reasons[i, 1].StartsWith("Windows speech ", StringComparison.Ordinal) || ownDownload || alone ? reasons[i, 1] : reasons[i, 0] + reasons[i, 1];
                     bool shortened = status.Text != whole.TrimEnd('.');
                     if (status.Text != reasons[i, 2] || status.Text.Length > HearingStatus.LineRoom || status.Text.Contains("WASAPI") || status.Text.Contains("0x") || status.Said != (shortened ? whole : status.Text))
                         throw new Exception("A hearing line read wrong: " + reasons[i, 1] + " became " + status.Text + " and said " + status.Said);
                 }
+                // An install's error is kept whole up to 120 characters, so the download lines reach these notes with their fix.
+                string wake = Engine.Stalled("her wake word"), wakeLine = WakeLine(Voice.Short(wake, 120), 30);
+                if (Voice.Short(Engine.Stalled("her ears"), 120) != Engine.Stalled("her ears") || Voice.Short(new string('x', 200), 120).Length != 120
+                    || wakeLine != "\"Hey Capri\" didn't download: The download of her wake word keeps stopping. Check your connection. I'll try again in 30 seconds.")
+                    throw new Exception("A download line lost its fix: " + wakeLine);
+                checks.Add("PASS her ears' and Hey Capri's download lines keep the reason and its fix whole, said once");
                 if (HearingStatus.Reason("Your mic stopped sending sound partway through a sentence, so the rest went missing completely") != "Your mic stopped sending sound partway through a..." || HearingStatus.Reason("") != "No words came back")
                     throw new Exception("A long hearing reason was cut mid-word or without \"...\": " + HearingStatus.Reason("Your mic stopped sending sound partway through a sentence, so the rest went missing completely"));
                 if (Dictation.Explain(new IOException("The text associated with this error code could not be found.")) != Dictation.NotStarted || !Dictation.Logged(new IOException("The text associated with this error code could not be found.")).Contains("could not be found"))
@@ -284,6 +294,95 @@ namespace CapriDesktop
             checks.Add("PASS Codex asking for your OK says what it wants to do, like \"It wants to run git status\", instead of \"Codex needs approval: exec_command\", and keeps its own description when it gives one");
         }
 
+        // Jobs flag 3: tool results call the person "they" for her brain, and what people see or hear says "you".
+        private static void SmokeShownToYou(List<string> checks)
+        {
+            string[,] spoken =
+            {
+                { "Won't type in a password box. They type passwords themselves.", "Won't type in a password box. Type the password yourself." },
+                { "Couldn't check their internet just now.", "Couldn't check your internet just now." },
+                { "Their PC isn't connected to any network: no Ethernet or Wi-Fi is up.", "Your PC isn't connected to any network: no Ethernet or Wi-Fi is up." },
+                { "Their internet is working, over Wi-Fi: pings to example.com took 12 ms on average, 9 ms at best, but web addresses don't look up, so sites won't load: their DNS is the problem.", "Your internet is working, over Wi-Fi: pings to example.com took 12 ms on average, 9 ms at best, but web addresses don't look up, so sites won't load: your DNS is the problem." },
+                { "Couldn't read how their PC is doing just now.", "Couldn't read how your PC is doing just now." },
+                { "Couldn't read their windows just now: no desktop", "Couldn't read your windows just now: no desktop" },
+                { "No app windows are open on their PC.", "No app windows are open on your PC." },
+                { "No app windows are open on their Mac.", "No app windows are open on your Mac." },
+                { "Couldn't read their apps just now: no catalog", "Couldn't read your apps just now: no catalog" },
+                { "Their YouTube tab is on Never Fade Away.", "Your YouTube tab is on Never Fade Away." },
+                { "Couldn't find their monitors just now.", "Couldn't find your monitors just now." },
+                { "Toggled their mic mute in Discord (Ctrl + Shift + M).", "Toggled your mic mute in Discord (Ctrl + Shift + M)." },
+                { "Opened their Liked Songs in Spotify, but couldn't press play. Hit the green Play button.", "Opened your Liked Songs in Spotify, but couldn't press play. Hit the green Play button." },
+                { "In front: Notepad, on their other screen.", "In front: Notepad, on your other screen." },
+                { "You can't see their screen right now.", "I can't see your screen right now." },
+                { "You looked at their screen. You see: An open folder.", "On your screen: An open folder." },
+                { "You stopped because they asked you something else.", "I stopped because you asked me something else." },
+                { "Their PC isn't connected. Call list_windows to read their windows.", "Your PC isn't connected." },
+                { "Add credits on their site.", "Add credits on their site." },
+                { "They play chess. Ask them about their day.", "They play chess. Ask them about their day." },
+                { "Their PCs have their windowsills and their appscripts.", "Their PCs have their windowsills and their appscripts." },
+                { "Couldn't read these controls. Check access to their folder.", "Couldn't read these controls. Check access to their folder." },
+                { "", "" }
+            };
+            for (int i = 0; i < spoken.GetLength(0); i++)
+                if (Hands.Shown(spoken[i, 0]) != spoken[i, 1]) throw new Exception("A tool result didn't say \"you\": \"" + spoken[i, 0] + "\" became \"" + Hands.Shown(spoken[i, 0]) + "\".");
+            checks.Add("PASS tool results people see or hear say \"you\" and \"your\" where her brain's copy says \"they\" and \"their\" (the password box, internet and PC checks, windows, apps, monitors), keep capitals, and leave anyone else's \"their\", like a provider's site, alone");
+        }
+
+        // Jobs flag 12: a damaged reminders.json, routines.json or websites.json is kept aside before anything saves over it,
+        // she says so once, and each list works again.
+        private static void SmokeSavedLists(List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "saved-lists-" + Guid.NewGuid().ToString("N")), logWas = Brain.LogPath;
+            Directory.CreateDirectory(folder);
+            try
+            {
+                Brain.LogPath = Path.Combine(folder, "errors.txt");
+                const string damaged = "[{\"Text\":\"call Mum about the secret\",";
+                string[] names = { "reminders", "routines", "websites" }, labels = { "reminders", "routines", "website nicknames" };
+                string[] empty = { "You have no reminders waiting.", "You have no saved routines.", "You haven't given me any website nicknames yet." };
+                foreach (string name in names) File.WriteAllText(Path.Combine(folder, name + ".json"), damaged);
+                DateTime now = new DateTime(2026, 11, 6, 14, 10, 0);
+                Reminders lists = new Reminders(folder, now);
+                Websites sites = new Websites(folder);
+                Func<ToolArguments, string>[] tools = { lists.Remind, lists.Routine, sites.Do };
+                ToolArguments[] adds = { new ToolArguments { Text = "stretch", When = "in 20 minutes" }, new ToolArguments { Action = "save", Phrase = "movie", Steps = "open netflix" }, new ToolArguments { Action = "save", Name = "school", Site = "https://example.com/school" } };
+                for (int i = 0; i < names.Length; i++)
+                {
+                    string first = tools[i](new ToolArguments { Action = "list" }), again = tools[i](new ToolArguments { Action = "list" });
+                    string told = "Your saved " + labels[i] + " couldn't be read, so I started a new list. The old file is kept as " + names[i] + ".unreadable.json in %LocalAppData%\\Capri.";
+                    string kept = Path.Combine(folder, names[i] + ".unreadable.json");
+                    if (first != told + "\n" + empty[i] || again != empty[i] || !File.Exists(kept) || File.ReadAllText(kept) != damaged)
+                        throw new Exception("A damaged " + names[i] + ".json wasn't kept and told once: " + first + " / " + again);
+                    tools[i](adds[i]);
+                }
+                Reminders reread = new Reminders(folder, now);
+                Websites resites = new Websites(folder);
+                string[] saved = { reread.Remind(new ToolArguments { Action = "list" }), reread.Routine(new ToolArguments { Action = "list" }), resites.Do(new ToolArguments { Action = "list" }) };
+                string[] added = { "stretch", "movie", "school" };
+                for (int i = 0; i < names.Length; i++)
+                    if (!saved[i].Contains(added[i]) || saved[i].Contains("couldn't be read")) throw new Exception("A list didn't save again after a damaged file: " + saved[i]);
+                string log = File.ReadAllText(Brain.LogPath);
+                if (log.Contains("secret") || !log.Contains("reminders.json couldn't be read (") || !log.Contains("websites.unreadable.json"))
+                    throw new Exception("errors.txt quoted a damaged file, or didn't say what happened: " + log);
+
+                File.WriteAllText(Path.Combine(folder, "reminders.json"), "[{\"Text\":\"call Mum\",\"When\":\"2026-11-07T09:00:00.0000000\",\"Said\":false},{\"Text\":\"\",\"When\":\"soon\",\"Said\":false}]");
+                string some = new Reminders(folder, now).Remind(new ToolArguments { Action = "list" });
+                if (!some.StartsWith("Some of your saved reminders couldn't be read, so I kept the rest.", StringComparison.Ordinal) || !some.Contains("call Mum"))
+                    throw new Exception("A reminders.json with one bad reminder lost the good one or didn't say so: " + some);
+
+                string fresh = Path.Combine(folder, "fresh");
+                Directory.CreateDirectory(fresh);
+                if (new Reminders(fresh, now).Remind(new ToolArguments { Action = "list" }) != empty[0] || new Websites(fresh).Do(new ToolArguments { Action = "list" }) != empty[2] || Directory.GetFiles(fresh).Length != 0)
+                    throw new Exception("A new install's missing lists said something or made files.");
+            }
+            finally
+            {
+                Brain.LogPath = logWas;
+                try { Directory.Delete(folder, true); } catch (IOException) { }
+            }
+            checks.Add("PASS a damaged reminders.json, routines.json or websites.json is kept as .unreadable.json before anything saves over it, she says so once in her next reply about it, errors.txt names only the error's kind, a bad reminder keeps the good ones, and each list saves again");
+        }
+
         // The task panel keeps the fix in a long ending or snag: the ending gets five rows and the newest failed step three,
         // and one that still won't fit keeps its first sentence's start and its last sentence before it's ever cut short.
         private static void SmokeJobPanelFixes(List<string> checks)
@@ -297,7 +396,7 @@ namespace CapriDesktop
             bool fits = true;
             foreach (List<string> each in new[] { snag, lost, plain, endless }) foreach (string row in each) if (Look.Cells(row) > (each == lost ? TaskPanel.Columns : room)) fits = false;
             string snagText = string.Join(" ", snag.ToArray()), lostText = string.Join(" ", lost.ToArray());
-            if (!fits || snag.Count > TaskPanel.SnagRows || snagText.IndexOf("Run Capri as administrator too", StringComparison.Ordinal) < 0 || !snagText.StartsWith("Couldn't click or type there", StringComparison.Ordinal)
+            if (!fits || snag.Count > TaskPanel.SnagRows || !snagText.EndsWith(Computer.AsAdmin, StringComparison.Ordinal) || !snagText.StartsWith("Couldn't click or type there", StringComparison.Ordinal)
                 || lost.Count > TaskPanel.EndingRows || !lost[0].StartsWith("CAPRI: Got lost", StringComparison.Ordinal) || !lostText.EndsWith("Pick one under BRAIN in Capri Mainframe.", StringComparison.Ordinal)
                 || plain.Count != 1 || plain[0] != "Couldn't find the Send button" || endless.Count != TaskPanel.SnagRows || !endless[TaskPanel.SnagRows - 1].EndsWith("...", StringComparison.Ordinal))
                 throw new Exception("The task panel cut a fix off: " + snagText + " / " + lostText + " / " + string.Join(" ", plain.ToArray()) + " / " + string.Join(" ", endless.ToArray()));
@@ -312,7 +411,7 @@ namespace CapriDesktop
             using (Bitmap frame = TaskPanel.Frame("end the task in task manager", shortSnag, null, "done", "", false, 1, 1)) doneHigh = frame.Height;
             if (longHigh - shortHigh != 19 * (snag.Count - 1) || olderHigh != shortHigh || endHigh - doneHigh != 19 * (lost.Count - 1))
                 throw new Exception("The task panel didn't make room for a fix: " + shortHigh + " / " + longHigh + " / " + olderHigh + " / " + endHigh + " / " + doneHigh);
-            checks.Add("PASS the task panel shows the fix: an ending like \"Got lost before I could start that job...\" reaches \"Pick one under BRAIN in Capri Mainframe.\", the newest failed step wraps to show \"Run Capri as administrator too\", older steps stay one row, and one that still won't fit keeps its start and its last sentence before it's cut");
+            checks.Add("PASS the task panel shows the fix: an ending like \"Got lost before I could start that job...\" reaches \"Pick one under BRAIN in Capri Mainframe.\", the newest failed step wraps to show how to run her as administrator, through \"pick Run as administrator\", older steps stay one row, and one that still won't fit keeps its start and its last sentence before it's cut");
         }
 
         // Call mode hearing offline is its own choice, so the hearing line and VOICE show it as a grey note, while Windows speech
@@ -540,6 +639,24 @@ namespace CapriDesktop
                     throw new Exception("A missing server line doesn't name the antivirus and the fix inside its note: " + gone);
             checks.Add("PASS a missing llama-server.exe or tts-server.exe says your antivirus likely took it and to allow it, whole inside the BRAIN and VOICE notes");
 
+            // Jobs flag 5: the three admin lines say how to run her as administrator, the same way.
+            foreach (string line in new[] { Computer.AdminWindow, Arrange.Admin("move", "Task Manager"), AdminKeys })
+                if (!line.EndsWith(Computer.AsAdmin + ".", StringComparison.Ordinal) || line.Contains(" as admin ") || line.Contains(" as admin,")) throw new Exception("An admin line doesn't say how to run her as administrator: " + line);
+            checks.Add("PASS the three admin lines end the same way: Quit Capri from her menu, then Run as administrator from her shortcut");
+
+            // Hearing flag 12: call mode's browser reads as "your browser" in her lines, and other apps keep their names.
+            CallApp browser = Array.Find(CallApps.Apps, app => app.Name == "Browser"), zoom = Array.Find(CallApps.Apps, app => app.Name == "Zoom");
+            if (browser.NotOpen != "Your browser isn't open." || browser.Said != "your browser" || zoom.NotOpen != "Zoom isn't open." || zoom.Said != "Zoom")
+                throw new Exception("Call mode's browser reads oddly: " + browser.NotOpen + " / " + browser.Said);
+            checks.Add("PASS call mode says \"Your browser isn't open.\" and \"She hears you and your browser.\" instead of naming \"Browser\" like an app");
+
+            // Jobs flag 8: typed text in a job's question, status and steps reads as typed, not as JSON.
+            ToolArguments typedArgs = new ToolArguments { Text = "hi\nC:\\Users\tcat" };
+            string typedQuoted = "\"hi C:\\Users cat\"";
+            foreach (string line in new[] { Computer.Question("type", typedArgs, null), Computer.Status("type", typedArgs, null), Computer.Did("type", typedArgs, null), Computer.Moving("type", typedArgs, null, true) })
+                if (!line.Contains(typedQuoted) || line.Contains("\\u00") || line.Contains("\\\\")) throw new Exception("Typed text in a job line reads as code: " + line);
+            checks.Add("PASS typed text in a job's question, status and step rows reads as typed, with no \\u000a or doubled backslashes");
+
             // A12: an empty reply says the same line, with its fix, whether her brain threw it or sent blank words.
             string emptyShort = Brain.Brief(Brain.Wordless);
             if (emptyShort == null || emptyShort.Length > 60 || emptyShort.IndexOf("another model", StringComparison.Ordinal) < 0) throw new Exception("The empty reply's BRAIN line lost its fix: " + emptyShort);
@@ -572,7 +689,7 @@ namespace CapriDesktop
             // A1: brain setup shows a stalled download in the BRAIN note, which cut it at "Check your connection a...".
             foreach (string label in new[] { "the engine", "Gemma 4 E4B", "Qwen3.5 9B Instruct" })
             {
-                string stalled = "The download of " + label + " keeps stopping. Check your connection and try again.", shown = Brain.Brief(stalled);
+                string stalled = Engine.Stalled(label), shown = Brain.Brief(stalled);
                 if (shown == null || shown.Length > 60 || shown.EndsWith("...", StringComparison.Ordinal) || shown.IndexOf("Check your connection", StringComparison.Ordinal) < 0)
                     throw new Exception("A stalled brain download lost its fix in the BRAIN note: " + (shown ?? stalled));
             }

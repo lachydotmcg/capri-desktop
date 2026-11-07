@@ -43,9 +43,10 @@ namespace CapriDesktop
         private static readonly string[] Playing = { "{0} in, and it's a game, so it goes as long as it goes.", "No finish line on this one, {0} so far.", "{0} in. I'll stop when you say." };
 
         // What's plain from their words alone, or null when her fast head has to read them. A tool comes back with its arguments.
-        internal static AsideKind? Plain(string said, out string tool, out ToolArguments args)
+        // With a brain to ask (brainy), "play" that isn't clearly music goes to her head too.
+        internal static AsideKind? Plain(string said, out string tool, out ToolArguments args, bool brainy = false)
         {
-            bool direct = Hands.Heard(said, out tool, out args);
+            bool direct = Hands.Heard(said, out tool, out args, brainy);
             string text = Hands.Asked(said);
             if (direct && tool == "power") return AsideKind.Tool;
             if (direct && tool == "watch_for") return AsideKind.Tool;
@@ -265,7 +266,7 @@ namespace CapriDesktop
             if (held != null) Security.Drop();
             string tool;
             ToolArguments args;
-            AsideKind? plain = Asides.Plain(text, out tool, out args);
+            AsideKind? plain = Asides.Plain(text, out tool, out args, brain.Model != null);
             if (plain == AsideKind.Stop) { Brain.Transcribe(local ? "You (voice)" : "You", text); StopJob(Lines.Pick(Lines.Stopped)); return; }
             if (plain == AsideKind.Status) { AsideStatus(text, running); return; }
             if (plain == AsideKind.Screen) { AsideScreen(text, args, running); return; }
@@ -383,7 +384,7 @@ namespace CapriDesktop
         private string AsideRun(string tool, ToolArguments args, Job running, int ticket)
         {
             if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return "That turn has ended.";
-            if (!Hands.Valid(tool, args)) return "Couldn't read that tool call.";
+            if (!Hands.Valid(tool, args)) return "Couldn't read that tool call. Try again.";
             if (MidJob(running) && job == running && (tool == "use_computer" || tool == "stream" && args.Action != "stop"))
             {
                 string held = Security.Gate(tool, args);
@@ -677,7 +678,7 @@ namespace CapriDesktop
         // runs as admin, like Task Manager, gets nothing.
         private IntPtr keyFront;
         private readonly HashSet<string> keyWarnings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private const string AdminKeys = "This game runs as admin, so Windows hides your keys from me while it's in front. Start me as admin to use push-to-talk here.";
+        private const string AdminKeys = "This game runs as administrator, so Windows hides your keys from me while it's in front. To use them here, " + Computer.AsAdmin + ".";
 
         private void CheckKeyAccess()
         {
@@ -775,7 +776,7 @@ namespace CapriDesktop
         {
             if (CallModeOn) { if (problem != null) mainframe.VoiceNote(problem, true); else if (line != null) HearCall(line, true); return; }
             if (problem != null) { mainframe.VoiceNote(problem, true); return; }
-            if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote("I couldn't make out any words. Try closer to the mic.", false); return; }
+            if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote(NoWords, false); return; }
             mainframe.VoiceNote(chatting && local && preferences.ListenCapri ? LocalListening : "Heard you.", false);
             Commentary.Stage.Hear(text, true);
             Hear(text, text, "> you: ");

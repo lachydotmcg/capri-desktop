@@ -15,6 +15,22 @@ namespace CapriDesktop
         internal bool SuggestionHints { get { return hints.ContainsKey(notesKey) && hints.ContainsKey(memoriesKey) && hints.ContainsKey(popTimes) && hints.ContainsKey(gameNotes) && hints.ContainsKey(miniGames); } }
         internal string SpeakerTip { get { return speakers.AccessibleDescription; } }
         internal string ScreenTip { get { return screens.AccessibleDescription; } }
+        private string screenNote;
+        internal string ScreenNoteText { get { return screenNote; } }
+
+        internal void ScreenNote(string text)
+        {
+            if (screenNote == text) return;
+            screenNote = text;
+            DescribeHints();
+            if (waitingHint != null && waitingHint.Control == screens) DismissHint();
+        }
+
+        private string HintFacts(SettingHint hint)
+        {
+            return hint.Control == screens && screenNote != null ? screenNote + " " + HintCard.Unpathed(hint.Topic.Facts) : hint.Topic.Facts;
+        }
+
         private readonly Timer hintDelay = new Timer { Interval = 400 };
         private HintCard hintCard;
         private SettingHint waitingHint, overHint, dismissedHint;
@@ -66,7 +82,7 @@ namespace CapriDesktop
             hint.Topic = topic;
             hint.Title = title ?? (control.Text.Length > 0 ? control.Text : topic.Name);
             using (Font ink = HintCard.Ink(Unit()))
-                hint.Text = HintCard.Brief(topic.Facts, ink, Math.Max(1, Scaled(332)), 6);
+                hint.Text = HintCard.Brief(HintFacts(hint), ink, Math.Max(1, Scaled(332)), 6);
             DescribeHint(hint);
         }
 
@@ -96,6 +112,7 @@ namespace CapriDesktop
             Explain(refresh, "Refresh");
             Explain(provider, "Provider", "Mainframe.cs", null, "Provider");
             Explain(freeKey, "Free key", "Mainframe.cs", null, "Free key providers");
+            Explain(planKey, "My plan", "Mainframe.cs", null, "My plan");
             Explain(setup, "Set up her brain", "Mainframe.cs", hint, "Set up her brain");
             for (int i = 0; i < rungs.Length; i++) Explain(rungs[i], i == 2 ? "MAX INTELLIGENCE" : i == 1 ? "MEDIUM INTELLIGENCE" : "NORMAL");
             Explain(textEntry, "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key", "Mainframe.cs", null, "Brain API key");
@@ -116,7 +133,6 @@ namespace CapriDesktop
             Explain(mics, "Mic: default", "Mainframe.cs", null, "Microphone");
             Explain(speakers, "Her speaker", "Mainframe.cs", null, "Her speaker");
             Explain(screens, "Screens", "Mainframe.cs", FindHintLabel("Screens"), "Screens to watch");
-            Explain(callApp, "Call app", "Mainframe.cs", callAppName, "Call app");
             Explain(shortcut, "KEYS >", "Mainframe.cs", null, "Talk key");
             Explain(muteShortcut, "Mic: default", "Mainframe.cs", null, "Mute mic key");
             Explain(voiceNote, "Mic: default", "Mainframe.cs", null, "Voice status");
@@ -171,7 +187,7 @@ namespace CapriDesktop
             using (Font ink = HintCard.Ink(Unit()))
                 foreach (SettingHint hint in hintRows)
                 {
-                    hint.Text = HintCard.Brief(hint.Topic.Facts, ink, Math.Max(1, Scaled(332)), 6);
+                    hint.Text = HintCard.Brief(HintFacts(hint), ink, Math.Max(1, Scaled(332)), 6);
                     DescribeHint(hint);
                 }
         }
@@ -216,7 +232,7 @@ namespace CapriDesktop
             if (hint == null || !HintShows(hint) || Control.MouseButtons != MouseButtons.None || (mouseHint ? overHint != hint : !hint.Control.ContainsFocus)) { DismissHint(); return; }
             if (hintCard == null) hintCard = new HintCard();
             Rectangle area = Screen.FromRectangle(hint.Bounds).WorkingArea;
-            if (!hintCard.Place(hint.Title, hint.Topic.Facts, Unit(), hint.Bounds, area)) { DismissHint(); return; }
+            if (!hintCard.Place(hint.Title, HintFacts(hint), Unit(), hint.Bounds, area)) { DismissHint(); return; }
             hint.Text = hintCard.Body;
             DescribeHint(hint);
             hintCard.Show(this);
