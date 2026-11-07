@@ -1498,7 +1498,7 @@ namespace CapriDesktop
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem = null;
-                try { husk.Change(mode, Application.ExecutablePath); }
+                try { husk.Change(mode, Packaged.Launcher(Application.ExecutablePath)); }
                 catch (Exception error) { problem = error.Message; }
                 Post(delegate
                 {
