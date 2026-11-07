@@ -2,7 +2,7 @@
 
 Plain answers for setting up and using Capri. The Help page (site/help/index.html) is made from this file, and the support chat on the website answers from it.
 
-Written for Capri 0.8.4 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
+Written for Capri 0.8.5 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
 
 Menu paths are written like this: right-click her > Open Capri Mainframe. Button and menu names are in the same words the app uses.
 
@@ -332,7 +332,7 @@ Her right-click menu, the Type box, the installer and her pop-up notes (like "Ca
 - "Pick one. Only one brain runs at a time." with NORMAL. MEDIUM INTELLIGENCE lists "NVIDIA, Gemini, OpenRouter", or says "Most NVIDIA models can't see your screen." with NVIDIA on that row. Three rows:
   - NORMAL: "Free · local model", marked "Start with this!". Use her built-in brain, Ollama, LM Studio, Jan, KoboldCpp or llama.cpp on your PC. New installs start here.
   - MEDIUM INTELLIGENCE: "Free". Accepts NVIDIA, Google AI Studio (Gemini) or OpenRouter keys. OpenRouter only lists models ending :free.
-  - MAX INTELLIGENCE: "Cloud API keys". Accepts Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek keys. Full model list, including paid models.
+  - MAX INTELLIGENCE: "Key or plan". Accepts Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek keys, or your own Claude or ChatGPT plan through My plan. Full model list, including paid models.
 - The key box shows when MEDIUM INTELLIGENCE or MAX INTELLIGENCE is picked. Paste a key and press Connect. Once saved it shows "Key saved, ends XXXX".
   - MEDIUM INTELLIGENCE: "NVIDIA / Google AI Studio / OpenRouter".
   - MAX INTELLIGENCE: "Paste a brain API key".
@@ -342,6 +342,14 @@ Her right-click menu, the Type box, the installer and her pop-up notes (like "Ca
 - A row with no key yet runs her NORMAL brain until you connect one.
 - Forget: shows in red when the box is empty and a key is saved. It removes that row's key and moves her back to NORMAL.
 - Used HIGHER? It's now MEDIUM INTELLIGENCE; your key and model are kept. Existing MAX INTELLIGENCE setups stay on MAX.
+- My plan (the button on the MAX INTELLIGENCE row, 0.8.5) runs her brain on your own Claude or ChatGPT plan, with no API key:
+  - Claude plan runs Claude Code on this PC, and ChatGPT plan runs Codex.
+  - Install the app and sign in to it with your own account first. For Claude Code, install it from claude.com/claude-code, then run claude and sign in. For Codex, run npm install -g @openai/codex, then codex login.
+  - When you pick it, she checks the app is there and signed in. If not, BRAIN says "Install Claude Code and sign in to it first." or "Claude Code isn't signed in. Run claude and sign in."
+  - The model menu then lists Haiku (fastest), Sonnet and Opus (smartest, uses your plan fastest) for Claude, or Codex's own model for Codex.
+  - She runs the app hidden with none of its own tools, no add-ons and nothing saved, and never touches its sign-in. Her own tools, like opening apps and using your PC, still work.
+  - Replies take a few seconds longer than with a key and count toward your plan's limits. When the plan runs out for now she says "Your Claude plan is out of messages for now."
+  - Windows only for now. To stop, empty the box and press Forget, paste a key, or pick another row.
 - Provider (0.8.3): opens Brain provider for an OpenAI-compatible Address and Key. A connected provider shows as My provider in BRAIN. See "How do I set up OpenRouter or LM Studio?" in section 9.
 
 With NORMAL selected, Refresh also looks for local servers. Start your server with a model loaded, then pick it in the model menu. Its name appears on the BRAIN status line.
@@ -366,6 +374,7 @@ With NORMAL selected, Refresh also looks for local servers. Start your server wi
 - Mic: "Mic: default" or "Mic: <name>". Click it to pick a mic. "Windows default" follows your Windows setting.
 - Test beside Mic: checks the picked mic for up to 10 seconds and shows its level. Stop ends the check early. Picking a voice plays her test line.
 - Her speaker (0.8.3): picks where her voice and sounds play. Default follows Windows.
+- Still checking (0.8.5 and newer): her Mic, Her speaker and Her voice in your mic menus open at once. While she's still looking up your devices they say "Still checking your mics..." or "Still checking your speakers..." and fill in a moment later, so a slow device, like a Bluetooth headset waking up, never freezes the page.
 - "Ctrl + Alt + N mutes mic": click it to change the key (it opens Settings with Mute mic ready to change).
 - A line under VOICE shows the voice status, like "Free voice, runs on your PC.", "ElevenLabs · <voice name>", "Needs your Voice ID.", or the last voice error and its fix.
 - While her free voice or ears download, a row with a dotted bar shows the download, like "Installing the local speech model · 100 MB of 316 MB".
@@ -400,7 +409,7 @@ VOICE ("Every voice, ElevenLabs too" on the right of the heading, then the Layer
 - Sounds: her sound effects. Off, or 10% to 100%. Default 60%.
 - Typing sound: "When she types". A soft typing sound while her text replies type out.
 - Free voice in games (0.7.6 and newer): only shows while her HD voice is on, under Typing sound. Off by default, so her HD voice keeps talking while a game or video is full screen. Turn it on and her free voice talks while anything is full screen, so the game gets your graphics card back.
-- Call mode (beta) (0.8.3): hears you and the call app separately. Call app chooses Auto or a named app. See "Call mode (beta)" in section 12.
+- Call mode (beta) (0.8.3): hears you and the call app separately. The call app menu on her call panel (click the call app's name) chooses Auto, a named call app, or any app in Windows' volume mixer, like Roblox (0.8.5). See "Call mode (beta)" in section 12.
 - Her voice in your mic (0.8.3): off by default. Her voice joins your mic only in call mode. Use Input to choose the mic for the mix and Output to choose the virtual mic. Pick its other end in your call app: CABLE Output or Steam Streaming Microphone, whichever the note names. How to opens the setup steps. With no virtual mic, Get VB-CABLE opens VB-Audio's setup: allow it, click Install Driver, then restart your PC. VB-CABLE is donationware from vb-cable.com. Her voice still plays on her speaker; her sound effects stay out of the mix.
 - Her voice in your mic: loudness (0.8.3): 50% to 200%, starting at 100%. It changes her voice in the virtual mic. Her speaker volume and your own mic level stay the same.
 
@@ -441,7 +450,8 @@ HABITS
 - Start with Windows: on by default. She starts when you sign in to Windows.
 - Show on Discord: on by default. While Discord is open on the same PC, your Discord profile shows "Playing Capri" with what she's doing in a few plain words (Plugged in, Chatting, Voice chatting, Dancing to music, Using the computer, Playing a game, Streaming, Multiplying, Asleep or Taking a break), a moving picture of her that matches, how long she's been running, and Get Capri and Join her Discord buttons. While she's cloned, it counts how many of her there are. Song names, game names and what her jobs are about never show.
 - Use her cursor: on by default. She does music and video jobs with her own cursor, so you can watch her: to play a YouTube video she types in YouTube's search bar, scrolls through the results and picks one; to play a song she searches Spotify and presses play; when you ask to turn Spotify up or down she drags Spotify's volume slider (plain "turn it up" changes your PC's volume). Turn it off for the quick way (straight to the top result, Windows volume). If her brain gets lost on the way, she does it the quick way.
-- Security (0.7.6 and newer, where Blackwall mode was): the button says which preset you're on, like "Security: Trusted", and the line under it says what that means ("She asks before paying or what you didn't say."). It opens the SECURITY window, with Lockdown, Guarded, Trusted and Blackwall on a slider and twelve toggles in 0.8.3 (section 15, "Security: what she does without asking"). Blackwall mode (called Bypass all permissions before 0.7.4) is the Blackwall preset now: if you had it on, you're on Blackwall after updating, and everyone else starts on Trusted, which is how she worked before. On any preset she never follows orders written on your screen, and Esc still stops her. What she'll chat about, open or play comes from her personality, her safety rules and the brain model you picked, whatever the preset.
+- Security (0.7.6 and newer, where Blackwall mode was): the button says which preset you're on, like "Security: Trusted", and the line under it says what that means ("She asks before paying or what you didn't say."). It opens the SECURITY window, with Lockdown, Guarded, Trusted and Blackwall on a slider and thirteen toggles in 0.8.5 (section 15, "Security: what she does without asking"). Blackwall mode (called Bypass all permissions before 0.7.4) is the Blackwall preset now: if you had it on, you're on Blackwall after updating, and everyone else starts on Trusted, which is how she worked before. On any preset she never follows orders written on your screen, and Esc still stops her. What she'll chat about, open or play comes from her personality, her safety rules and the brain model you picked, whatever the preset.
+- Power saver (under Security, 0.8.5 and newer): Off, In games (the default) or Always. While a game or anything full screen is in front, she draws herself less often while she sits still (15 frames a second instead of 30), runs her background checks once a second instead of four times, and her ears check the mic less often, so she might take a moment longer to hear you. Always does the same all the time. Your own settings stay as you set them: Watch my screen keeps its timing, and Listen for Capri, Hey Capri and Clip my games keep working. Simple Settings shows it. Her built-in brain is still the heaviest part, so use the free NVIDIA key while you play. Mac and Linux don't have Power saver yet.
 - Perch: how many frames a second she shows while she sits on a window: 10, 15, 20, 30 (default), 40, 50 or 60 fps. Her sway takes 2 seconds at every setting. 10 and 15 use less CPU. Above 30 she draws in-between frames, so she moves more smoothly but uses more CPU, and the HABITS line says "Perch over 30 fps uses more CPU". On Mac and Linux her perch stays at 30.
 - Remember our chats (under Use her cursor): on by default. She writes every chat into a daily transcript and folds older chats into memories.md. Both stay on your PC (section 13).
 - Open her memories (at the right of HABITS' heading): edits memories.md inside Mainframe. Save writes your changes. Daily transcripts stay in the transcripts folder.
@@ -534,7 +544,7 @@ Right-click her > Open Capri Mainframe > Settings > MOVES > Pop-in times. Set Sh
 Use preset returns to the Pop-ins slider's pace. Moving that slider also clears your custom times. CAPRI > Check in on me still decides whether she visits.
 
 ### How do I get mods? (0.8.3)
-Right-click her > Open Capri Mainframe > CAPRI > Mods. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins and Skills filter the list.
+Right-click her > Open Capri Mainframe > Mods, beside Settings. On Mac and Linux it's on the CAPRI heading. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins and Skills filter the list.
 
 Press Install on the mod you want. View opens its folder on GitHub so you can read about it first. Once installed, click its stars to rate it from 1 to 5.
 
@@ -547,10 +557,10 @@ Already have a mod file? Press Import mod on the Mods page and pick it. The file
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
 
 ### How do I publish a mod? (0.8.3)
-In Mainframe > CAPRI > Mods, press Publish beside an imported mod. It shows the steps for submitting your mod on GitHub: fork capri-mods, add a folder under mods with your mod file, README.md and preview.png, then open a pull request.
+In Mainframe > Mods, press Publish beside an imported mod. It shows the steps for submitting your mod on GitHub: fork capri-mods, add a folder under mods with your mod file, README.md and preview.png, then open a pull request.
 
 ### What are skills? (0.8.4)
-A skill is a mod with know-how for a game, like which towers to buy and when. Whenever she plays that game, every skill that's on for it goes into her plan, and she follows it over her general advice. Her first skill is Lachy's BTD6 plan: Mainframe > CAPRI > Mods > Browse mods, then Skills.
+A skill is a mod with know-how for a game, like which towers to buy and when. Whenever she plays that game, every skill that's on for it goes into her plan, and she follows it over her general advice. Her first skill is Lachy's BTD6 plan: Mainframe > Mods > Browse mods, then Skills.
 
 She knows the game from its window title, leaving out version numbers and anything after a dash, so "Bloons TD 6" and "BloonsTD6" both count. Skills work on Windows, Mac and Linux. Off on the Mods page stops one.
 
@@ -625,7 +635,7 @@ Pick one of the three rows under BRAIN:
 The row you picked under BRAIN. Only one runs at a time.
 - NORMAL: the local brain you picked. This can be Ollama, her built-in brain or a local server. Start the server, press Refresh and use the model menu to choose it.
 - MEDIUM INTELLIGENCE: your NVIDIA, Google AI Studio (Gemini) or OpenRouter key. OpenRouter is limited to :free models here.
-- MAX INTELLIGENCE: your Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key, with the full model list including paid models.
+- MAX INTELLIGENCE: your Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key, or your own Claude or ChatGPT plan through My plan, with the full model list including paid models.
 
 If the row you picked has no key yet, she uses her NORMAL brain until you connect one. To go back to Ollama or the built-in brain, pick NORMAL. Your keys stay saved.
 
@@ -753,6 +763,7 @@ Her brain goes on your C: drive. Free up that much space on C:, then try again. 
 
 ### My games lag while she's running
 Her built-in brain uses your graphics card and memory, and so do games. Use the free NVIDIA key while you play. Her brain then runs on NVIDIA's servers, not your PC.
+Keep Power saver (Settings > HABITS) on In games, the default, or Always. Over a game she then draws herself less often while she sits still, runs her background checks less often and listens at a gentler pace. Watch my screen, Listen for Capri, Hey Capri and Clip my games keep working.
 
 ---
 
@@ -932,27 +943,29 @@ ElevenLabs now uses v4 by default, the same as her voice chat. Fish Audio and he
 ### Call mode (beta) (0.8.3)
 Call mode hears your mic and the selected call app separately, so she knows which words are yours. Your requests addressed to Capri can use her usual tools and SECURITY settings. Friends can chat with her or answer a choice you've left to the call, such as which game to open.
 
-Right-click her > Open Capri Mainframe > Settings > VOICE > Call mode (beta) turns it on. Use Call app below it to choose what she hears. Turning call mode on doesn't join a call for you.
+Right-click her > Open Capri Mainframe > Settings > VOICE > Call mode (beta) turns it on. On her call panel, click the call app's name to choose what she hears. Turning call mode on doesn't join a call for you.
 
 Without her own ears, call mode hears offline to keep each speaker separate, so the hearing line under VOICE says "Hearing offline for call mode" in grey. Nothing is wrong. Her own ears hear better: set Hearing under VOICE to Her own ears to get them.
 
 ### Does call mode work with Zoom? (0.8.3)
-Yes, on Windows. Pick Zoom under right-click her > Open Capri Mainframe > Settings > VOICE > Call app. The full menu is:
+Yes, on Windows. On her call panel, click the call app's name and pick Zoom. The call apps in the menu are (0.8.5):
 - Auto
 - Discord
 - Zoom
 - Microsoft Teams
 - WhatsApp
-- Telegram
-- Slack
-- Signal
-- Skype
 - TeamSpeak
-- Mumble
 - Steam voice chat
 - Browser (Google Meet, web calls)
 
+Any other app making sound, like Telegram, is listed below them.
+
 Auto prefers Discord, then a call app making sound. It stays on the call it's hearing while that app makes sound; a ping in another app doesn't pull her away. Auto never picks Browser or Steam. Pick Steam voice chat or Browser (Google Meet, web calls) yourself. Browser captures sound from all tabs.
+
+### Can call mode hear Roblox or another app? (0.8.5)
+Yes, on Windows. On her call panel, click the call app's name: the apps in Windows' volume mixer are listed below the call apps, like Roblox. Pick one and she hears it and everything it opens. She keeps your pick after a restart, even while that app is closed. Auto never picks one of these for you.
+
+Ask her to play a game that's about talking to people, like Mic Up in Roblox, and she puts herself on the game's call once she sees the game: call mode turns on with that game as the call app, and the call app you had comes back when call mode goes off. While her hands are on the job, she answers players beside it, and only you can change the job.
 
 ### Can she join a call for me? (0.8.3)
 Ask her to join the call and pass on a message. In Discord she clicks a voice channel's Join button already on screen, or the server voice channel with people in it. In another call app she clicks the Join button already on screen. If there is no Join button showing there, she tells you. She doesn't start a new call.
@@ -999,7 +1012,7 @@ Say "Hey Capri" and she starts voice chat, the same as Ctrl + Alt + V. If she's 
 ### Free voice chat
 Voice chat follows your pick under VOICE. PREBUILT LOCAL, CUSTOM LOCAL, Fish Audio and OpenAI voices use free voice chat with your picked brain. With OFF selected, she types her answers. CLOUD VOICE > ElevenLabs uses ElevenLabs voice chat when connected. A cloud brain or voice still uses its own service when selected.
 - She listens with her own offline ears, a download the first time: "My ears are still downloading, so type to me for now. I'll say when I can hear you."
-- Her ears hear English and 24 other European languages, Spanish, French, German, Italian, Portuguese, Dutch, Polish, Russian and Ukrainian among them. English and the rest are separate downloads, so switching between them downloads the other pack once.
+- Her ears hear English and 24 other European languages, Spanish, French, German, Italian, Portuguese, Dutch, Polish, Russian and Ukrainian among them. English and the rest are separate downloads, so switching between them downloads the other pack once. From 0.8.5 her 24 other languages use Parakeet Ultra: if you already used her ears in one of them, she downloads the new pack once, 487 MB. The old pack stays in her ears folder, about 670 MB, and you can delete it.
 - She listens for her language from Settings. If she's on English because nobody changed it and Windows isn't, she listens for your Windows language, for people who speak their own language to her.
 - She hears English as another language, like Japanese? Mainframe > Settings > Language, pick English (even if it already says English). From 0.7.6 a picked English means she listens in English whatever language Windows is in.
 - Her other languages (Turkish, Norwegian, Chinese, Hindi, Arabic and the rest) use Windows speech instead. From 0.7.6 Windows speech listens in the language you picked when Windows has it, not just in Windows' own speech language.
@@ -1052,7 +1065,7 @@ Your push-to-talk key still reaches the game. Pick one that won't also fire a we
 In free voice chat, you can speak while she's answering. When she hears you over her own voice, she stops speaking and listens. Holding push to talk also cuts her speech so you can talk. Cutting off her voice doesn't stop a mouse and keyboard job; say "stop" or press Esc for that.
 
 ### Listen for Capri
-Mainframe > Settings > VOICE > Listen for Capri keeps the mic open whenever she's running, with no key to press, and only answers when what you say includes her name. Ctrl + Alt + V closes her ears and opens them again. While she's hidden or on Quiet they stay closed, and they come back with her. It can be anywhere in the sentence: "what's the weather capri" works. Stop words and push to talk work without her name. With ElevenLabs picked she uses her own ears and speaks in your ElevenLabs voice, so listening costs no credits and replies use text to speech credits.
+Mainframe > Settings > VOICE > Listen for Capri keeps the mic open whenever she's running, with no key to press, and only answers when what you say includes her name. Ctrl + Alt + V closes her ears and opens them again. While she's hidden or on Quiet they stay closed, and they come back with her. It can be anywhere in the sentence: "what's the weather capri" works. Stop words and push to talk work without her name. With ElevenLabs picked she uses her own ears and speaks in your ElevenLabs voice, so listening costs no credits and replies use text to speech credits. If you shut her ears yourself, the hearing line under VOICE says "Her ears are off: click her wave to open them", and turning call mode on opens them too.
 
 ---
 
@@ -1092,7 +1105,7 @@ With Remember our chats on (Mainframe > Settings > HABITS, on by default), she r
 - memories.md follows the same rule as her notes: no addresses, schools, phone numbers, emails, passwords, full names, birthdays or bank details. Chat lines with them stay in your transcript but never go to her brain for folding, and her searches skip them.
 - transcripts\unfolded.txt holds the newest lines she hasn't folded in yet.
 
-Where they are: right-click her > Open Capri Mainframe > Settings > HABITS > Open her memories edits memories.md inside Mainframe. On Windows it's %LOCALAPPDATA%\Capri\memories.md and %LOCALAPPDATA%\Capri\transcripts. On Mac and Linux it's ~/.config/Capri/memories.md and ~/.config/Capri/transcripts. The files stay on your computer; a cloud brain receives the text it uses to recall or fold chats.
+Where they are: right-click her > Open Capri Mainframe > Settings > HABITS > Open her memories edits memories.md inside Mainframe. On Windows it's %LOCALAPPDATA%\Capri\memories.md and %LOCALAPPDATA%\Capri\transcripts. On Mac it's ~/Library/Application Support/Capri/memories.md and ~/Library/Application Support/Capri/transcripts. On Linux it's ~/.config/Capri/memories.md and ~/.config/Capri/transcripts. The files stay on your computer; a cloud brain receives the text it uses to recall or fold chats.
 
 What folding costs: with her built-in brain or Ollama it's free and runs on your PC. With an API key it's one small request each time, about 600 to 2,000 words in and up to 300 words out, which is usually well under a cent. The free NVIDIA key costs nothing. She folds about once every 10 to 15 messages (less often with a longer Memory setting) and once a day, and waits until the chat has been quiet for 20 seconds so she doesn't hold up a reply.
 
@@ -1126,6 +1139,8 @@ She writes the answers to her notes, me.md, as "Name: ...", "Pronouns: ..." and 
 Mainframe > Settings > Language. She replies in that language. Changing it starts a fresh chat.
 
 On a new install she starts in your PC's own display language when it's one she speaks, and in English otherwise. Change it any time.
+
+Her own fixed lines follow your language too (0.8.5). That covers her hello at startup, pat lines, yelps when she's thrown, check-ins, settings lines and the labels after "sys:" in her bubble. Her brain translates them once for each language, a few calls in the background, and she keeps them in lines-<language>.txt in her data folder (%LOCALAPPDATA%\Capri). Until then a line can still come out in English, so the first pat or two after you switch might be English. Delete that file to have them translated again. Her recorded hello is English, so in another language she says her hello with her normal voice.
 
 Ask her to do things in any of her languages: "öffne Spotify", "abre Discord" and "打开Spotify" all work. Volume, mute, pause and skip ("mach lauter", "wycisz", "下一首") work instantly, even before she has a brain, in English, Spanish, French, German, Portuguese, Italian, Polish, Dutch, Russian, Ukrainian, Turkish, Indonesian, Japanese, Chinese and Korean. In her other languages her brain handles them.
 
@@ -1210,7 +1225,7 @@ Turn it off: Mainframe > Settings > Mini player, or the player's menu > Turn off
 ### Sleep
 If you don't touch the mouse or keyboard for a while, she falls asleep. Move the mouse to wake her. Mainframe > Settings > Sleep sets the time, or Never. On Mac and Linux it's right-click her > Move > Fall asleep after.
 
-To put her to sleep yourself (0.7.6 and newer): right-click her > Move > Go to sleep, or tell her "go to sleep", "take a nap" or "go to bed". She finishes what she's saying, gets off her window and sleeps until you click her, talk to her or say "wake up". Using the mouse and keyboard doesn't wake her from that, and her pop-ins, check-ins and Watch my screen rest until she's up. Telling her "go to sleep" never puts your PC to sleep; "put my PC to sleep" does.
+To put her to sleep yourself (0.7.6 and newer): right-click her > Move > Go to sleep, or tell her "go to sleep", "take a nap" or "go to bed". She finishes what she's saying, then sleeps right where she is until you click her, talk to her or say "wake up". Since 0.8.5, on a window, a desktop icon, her mini player, a Sit here spot or the taskbar she lies down along it if there's room, or sleeps sitting up if there isn't (eyes shut, a slow bob and little pink z's), and wakes still sitting. If the window moves she rides along asleep; if it closes or gets covered she sleeps on standing. Mac and Linux nap sitting up too. Using the mouse and keyboard doesn't wake her from that, and her pop-ins, check-ins and Watch my screen rest until she's up. Telling her "go to sleep" never puts your PC to sleep; "put my PC to sleep" does.
 
 ### Startup glitch
 When she starts, crimson glitch tendrils tear out from behind her, different every time, while she beams in with her sound. Mainframe > Settings > Glitch in at startup turns all of it on or off. Off: she just appears. On Mac and Linux it's right-click her > Move > Glitch in at startup; off, she starts back where she sat last time, with no glitch or sound.
@@ -1219,7 +1234,7 @@ When she starts, crimson glitch tendrils tear out from behind her, different eve
 Mainframe > Settings > Sounds sets her sound effects (arrive, leave, hops, clicks). Volume sets her spoken voice. Pitch, Speed, Robot and Glitch change how all her voices sound. Typing sound turns the soft typing sound on or off.
 
 ### Sleeping
-"Go to sleep" or "good night, Capri". She gets up when you talk to her or move her. On her own she dozes off when the PC is quiet for as long as Settings says, and sleeps until you're back. She also lies down awake for a couple of minutes now and then.
+"Go to sleep" or "good night, Capri". She gets up when you talk to her or move her. On her own she dozes off when the PC is quiet for as long as Settings says, right where she sits (since 0.8.5), and sleeps until you're back. She also lies down awake for a couple of minutes now and then.
 
 ---
 
@@ -1301,6 +1316,7 @@ For Discord she brings Discord to the front, presses the keys, then switches you
 - "Send hi to Sam on Discord", "Search for cats in Chrome", "End the call"
 - Her own pink pointer glides over and clicks. Your mouse stays where you left it: she only borrows it for each click and gives it back. Recordings show her pointer.
 - A "CAPRI: working on your task" box in the corner shows each step, and she sits on top of it while she works, so she never covers her pointer. Drag her or the box to move both; the box stays where you put it for later jobs until Capri restarts. When it fades she goes back to where she was. A "Capri is controlling ..." badge shows on the app she's using. Screen recordings and your screenshots show the box but not the badge, and her own screenshots look straight through both.
+- While she uses your mouse or keys (0.8.5 and newer), a thin pink and cyan glow goes round the screen she's working on, with "Capri's using your mouse. Esc stops her." on a badge just above the bottom. It's up for jobs on any brain, her shortcuts and media keys, games, Explore while you're away and her clones grabbing your cursor, and it goes the moment she gives control back. It shows even while she's hidden, so if your mouse moves with no glow, it wasn't her. Clicks go straight through it, and on Windows it stays out of screenshots and recordings. On Linux the badge says "Say stop to stop her."
 - Press Esc or tell her to stop: "You pressed Esc, so I stopped." Esc works even while she's holding a key down or pressing one over and over, and it stops the whole ask: if you asked for eight songs, the rest don't play. Moving your mouse doesn't stop her.
 - If her brain fails partway through a job (a rate limit, a timeout or an outage), she lets go of any mouse button she was holding and gives your mouse back.
 - One job uses your mouse at a time. Ask for another while she's busy and it waits its turn.
@@ -1328,10 +1344,10 @@ Now and then she asks you to say please. Reply "please" and she does it.
 - She has no file tool yet, so she can't read what's inside your files.
 
 ### Security: what she does without asking (0.7.6 and newer)
-Capri Mainframe > Settings > HABITS > Security (where Blackwall mode was) opens the SECURITY window. A slider picks a preset, and twelve toggles under it control her permissions in 0.8.3. Each toggle has a line saying what on and off mean. For action permissions, off means she asks first and does it when you say yes. With Type passwords and card numbers off, you type those yourself. Friends on a call can ask, you confirm is a separate opt-in for call mode. Esc or the X closes the window, and it's saved straight away, after updates too.
+Capri Mainframe > Settings > HABITS > Security (where Blackwall mode was) opens the SECURITY window. A slider picks a preset, and thirteen toggles under it control her permissions and her memory in 0.8.5. Each toggle has a line saying what on and off mean. For action permissions, off means she asks first and does it when you say yes. With Type passwords and card numbers off, you type those yourself. Friends on a call can ask, you confirm is a separate opt-in for call mode. Esc or the X closes the window, and it's saved straight away, after updates too.
 
 The presets:
-- Lockdown: everything off. She asks first before she does anything on your PC.
+- Lockdown: every action toggle off. She asks first before she does anything on your PC.
 - Guarded: Open apps, games and sites, Music, media and volume, and Shortcuts on. She asks first for the rest.
 - Trusted (the default): the first seven on. She does what you ask, and asks first before paying or anything you didn't mention. It's how she worked before 0.7.6.
 - Blackwall: the first eleven toggles on, Listen for "Hey Capri" too. She does your requests without asking, and types the passwords and card numbers your job gives her. Friends on a call can ask, you confirm still starts off and always needs your confirmation. It's what Blackwall mode was (Bypass all permissions before 0.7.4). If you had Blackwall mode on, you're on Blackwall after updating; everyone else starts on Trusted.
@@ -1350,6 +1366,7 @@ The toggles, in order:
 10. Type passwords and card numbers. Off, she never types them: "You'll need to sign in yourself first."
 11. Listen for "Hey Capri": she listens on this PC for her name. Only Blackwall turns it on.
 12. Friends on a call can ask, you confirm (0.8.3): off by default. In call mode, each friend's request waits for your mic or typing to confirm. See "Why can't my friends make her do things?" in section 12.
+13. Keep personal details out of her memories (0.8.5), under HER MEMORY: on in every preset but Blackwall. On, her notes leave out anything with an address, Get to know me leaves out answers like an email or a card number, what she remembers seeing leaves out addresses, numbers and emails, and in her jobs a form's name, email, address and card boxes show her "(value hidden)". Off, they work as before 0.8.5, and her notes still leave out passwords, card numbers, schools and home addresses.
 
 How she asks:
 - With one of the first six off, she answers "Open Spotify? Say yes and I will." Say yes (or yeah, sure, ok, do it) and she does it. Say no and she leaves it: "Okay, I left it alone." Say anything else and she drops it and answers that instead.
@@ -1568,7 +1585,7 @@ Smaller brains on your PC sometimes guess wrong, like saying you have a document
 ### What does she send?
 A picture of the screen your active window is on. With her built-in brain, Ollama or a local server it stays on your PC. With a cloud brain it goes to that service. Jobs, screen watches and live game comments can use pictures too.
 
-She can fill in the game underneath her sprite and her own windows when Windows supplies a usable picture of it. Only those covered spots are replaced; other visible windows stay in her picture. Some games return black or old pictures, so this isn't always possible. Move her or her HUD if she still can't read something underneath.
+She can fill in the game underneath her sprite and her own windows when Windows supplies a usable picture of it. Only those covered spots are replaced; other visible windows stay in her picture. Some games return black or old pictures, so this isn't always possible. Move her if she still can't read something underneath.
 
 ### Can she watch for something and tell me when it happens?
 Ask "tell me when my health is low", "let me know when the download finishes" or "warn me if the boss spawns". She needs a brain that can see. You don't need to turn on Watch my screen; these watches are separate.
@@ -1649,7 +1666,7 @@ Errors:
 4. If you want: delete the keys you made for Capri on ElevenLabs and NVIDIA (or OpenAI, Claude, DeepSeek).
 
 ### Mac
-Quit Capri, then move Capri from Applications to the Bin (Trash). Her settings are in ~/.config/Capri.
+Quit Capri, then move Capri from Applications to the Bin (Trash). Her settings are in ~/Library/Application Support/Capri.
 
 ### Linux
 Quit Capri, then delete the Capri folder you unpacked. Her settings are in ~/.config/Capri.
@@ -1695,7 +1712,8 @@ Quit Capri, then delete the Capri folder you unpacked. Her settings are in ~/.co
 
 ### Where are my files?
 - Windows: %LOCALAPPDATA%\Capri (settings.json, me.md, memories.md, chat.json, errors.txt, and the transcripts and brain folders)
-- Mac and Linux: ~/.config/Capri
+- Mac: ~/Library/Application Support/Capri
+- Linux: ~/.config/Capri
 
 On Windows, %LOCALAPPDATA%\Capri also contains reminders.json, routines.json and check-ins.md. Her per-game notes are in its games folder. Saved videos are separate, in Videos\Capri Clips, and stay there when you turn clipping off.
 
@@ -1710,7 +1728,7 @@ On Windows, %LOCALAPPDATA%\Capri also contains reminders.json, routines.json and
 
 It copies your Capri version, which brain and voice you use, and the last 25 lines of her error log. It's made to leave out your keys. It can include a few words from a voice chat that went wrong, so read it before you post it.
 
-On Mac and Linux, her error log is errors.txt in ~/.config/Capri.
+On Mac, her error log is errors.txt in ~/Library/Application Support/Capri. On Linux, it's errors.txt in ~/.config/Capri.
 
 ### Where to get help
 - Mainframe > Help, or right-click her > Help > Help page: opens this Help page.
@@ -1919,7 +1937,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "Waiting for NVIDIA. You can pick another model.": try again or pick another model in the Model menu. Free keys can be rate limited and slow. Most NVIDIA models can't see your screen.
 - "NVIDIA didn't answer in time.": try again or pick another model.
 - She changed NVIDIA models by herself: the model she was using didn't answer, so she used another one for that reply. Your pick stays.
-- "Key rejected. Press Forget, then paste it again.": the key is wrong or was deleted. Copy it again from the company's site.
+- "NVIDIA rejected the key for my brain. Press Forget under BRAIN in Capri Mainframe, then paste it again." (or OpenRouter, Anthropic or DeepSeek; the BRAIN note says "Key rejected. Press Forget, then paste it again."): her brain's key is wrong or was deleted. Copy it again from that company's site. Her voice keys (Fish Audio, ElevenLabs) are separate and name themselves in their own errors, so a new voice key won't fix this one.
 - "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.": you pasted something else, or only part of the key. NVIDIA keys start with nvapi-. The BRAIN note says "Not a key she knows. Copy the whole key again and paste it."
 - "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.": OpenAI, Claude and DeepSeek need paid credits. Add credits, or press Free key for a free NVIDIA key.
 - "That model isn't on your key. Pick another one.": pick another model in the Model menu.
@@ -1937,7 +1955,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - Her replies are too long or too short: Mainframe > Settings > Replies.
 - She makes things up: smaller brains on your PC do this sometimes. The free NVIDIA key is smarter.
 - "Your PC doesn't have enough free RAM" or "Your storage is full": see section 10.
-- Games lag or stutter while she runs: use the free NVIDIA key.
+- Games lag or stutter while she runs: use the free NVIDIA key, and keep Power saver (Settings > HABITS) on In games or Always.
 - Whole PC freezes: quit Capri and see if it stops. Try the free NVIDIA key instead of the built-in brain, and tell us in the Discord with Copy error details, your graphics card, RAM and which brain. (One PC that froze also froze without Capri.)
 - NVIDIA asks for a phone number: that's NVIDIA's sign-up check. It's needed to make the free key.
 
@@ -1985,7 +2003,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "I can't hear anything from your mic.": 20 seconds of free voice chat brought no sound at all. Pick your mic under VOICE > Mic. If it's right, open Windows Settings > Privacy & security > Microphone and turn on "Let desktop apps access your microphone".
 - "Free voice chat on, but Windows speech only hears your default mic": while her own ears download, or in a language they don't know, Windows speech uses your Windows default mic. Make the mic you want the default in Windows.
 - "Free voice chat on, but I'm hearing offline, so I'll miss some words. Turn on Online speech recognition...": in a language her own ears don't know, Windows speech needs Online speech recognition, in Windows Settings > Privacy & security > Speech. In newer versions, click the line under VOICE in the Mainframe to open that page. If the switch isn't there or is greyed out, your organisation, a family account or your region has turned it off; she still hears you offline, just less well.
-- "Out of ElevenLabs credits, so voice chat is off.": wait for your credits to refill, or upgrade.
+- "Out of ElevenLabs credits, so voice chat is off.": you're on an older version. Update, and she switches to free voice chat by herself when your credits run out.
 - "Can't open my voice link. Right-click me and open Capri Mainframe. The reason and the fix are under VOICE.": open the Mainframe and read the line under VOICE.
 - "ElevenLabs didn't make the agent." or "ElevenLabs didn't open a voice link.": make a new key with Restrict key off and paste it.
 - "The agent sends X audio. Set it to PCM in ElevenLabs.": someone changed the "Capri" agent's audio setting. In ElevenLabs, set the Capri agent's output audio to PCM, or delete that agent and start voice chat again.
@@ -2063,7 +2081,7 @@ When she plays a game for you she goes into Gaming Mode by herself once the game
 
 ## 24. Needs checking
 Things in this file the team should confirm before the support chat relies on them:
-1. Mac data folder. Written as ~/.config/Capri (the code uses .NET's ApplicationData folder; Linux confirmed by a user screenshot, Mac not checked).
+1. Mac data folder. Written as ~/Library/Application Support/Capri (the code uses .NET's ApplicationData folder, which is Application Support on Mac in .NET 8 and newer, and her Mac build is .NET 10; Linux confirmed by a user screenshot, Mac not checked on a real Mac).
 2. The ElevenLabs permissions for a restricted key (from the old setup guide screenshot: Text to Speech and Models Access, ElevenAgents and Voices Read, ElevenAgents Write). Several testers still got "Key can't do that" with Restrict key off. Cause unknown: older versions said it for every refusal. Newer versions show ElevenLabs' own reason, so the next report should name it.
 3. How many credits ElevenLabs voice chat uses (ElevenLabs bills agent minutes differently from text to speech). The free plan's credit amount isn't stated on purpose.
 4. Voice chat in other languages hasn't been tested with a real key.
