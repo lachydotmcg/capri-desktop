@@ -4944,12 +4944,15 @@ namespace CapriDesktop
             }
             finally
             {
-                GlitchOut(delegate
+                Action goodbye = delegate
                 {
                     Save();
                     frames.Stop();
                     desktop.Shutdown(0);
-                });
+                };
+                // Only her frames can finish her glitch-out, and they stop with her window, so if it's gone she leaves right away.
+                if (frames.IsEnabled) GlitchOut(goodbye);
+                else goodbye();
             }
         }
 
