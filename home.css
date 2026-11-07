@@ -285,7 +285,7 @@ button, input { font: inherit; color: inherit; }
 [data-ui] .player .heart { fill: #fd004f; stroke: #fd004f; }
 
 /* The song's YouTube player. Their rules: on show while it plays, at least 200px each way, nothing in front of it. */
-#song-box { position: fixed; left: 16px; bottom: 16px; z-index: 110; width: min(356px, 24vw); height: 200px; overflow: hidden; border-radius: 10px; background: #0e0c14; box-shadow: 0 0 0 2px #fd004f, 0 0 0 5px #3ad6eb33; }
+#song-box { position: fixed; left: 16px; bottom: 16px; z-index: 110; width: 200px; height: 200px; overflow: hidden; border-radius: 10px; background: #0e0c14; box-shadow: 0 0 0 2px #fd004f, 0 0 0 5px #3ad6eb33; }
 #song-box.off { visibility: hidden; pointer-events: none; }
 #song-box iframe, #song-video { display: block; width: 100%; height: 100%; border: 0; }
 
@@ -440,7 +440,7 @@ button, input { font: inherit; color: inherit; }
 }
 
 @media (max-width: 900px) {
-  #song-box { bottom: 84px; width: min(356px, calc(100vw - 32px)); }
+  #song-box { bottom: 84px; }
   :root { --head: 52px; --lead: 20px; --pad: 20px; --edge: 16px; }
   .split { display: block; padding-top: 64px; }
   .col { position: static; padding: 0 var(--pad); }
