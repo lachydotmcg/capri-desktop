@@ -296,13 +296,17 @@ namespace CapriDesktop
             return null;
         }
 
+        private const string MicConsent = @"SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone";
+
+        // Their switch for her: Let desktop apps for a normal install, and her own line on that page for a Store copy.
+        internal static string MicSwitch { get { return MicConsent + @"\" + (Packaged.Family ?? "NonPackaged"); } }
+
         internal static bool PrivacyBlocked()
         {
-            const string path = @"SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\microphone";
             try
             {
-                using (RegistryKey machine = Registry.LocalMachine.OpenSubKey(path))
-                using (RegistryKey desktop = Registry.CurrentUser.OpenSubKey(path + @"\NonPackaged"))
+                using (RegistryKey machine = Registry.LocalMachine.OpenSubKey(MicConsent))
+                using (RegistryKey desktop = Registry.CurrentUser.OpenSubKey(MicSwitch))
                     return Denied(machine == null ? null : machine.GetValue("Value") as string, desktop == null ? null : desktop.GetValue("Value") as string);
             }
             catch (Exception) { return false; }

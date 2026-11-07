@@ -11,7 +11,7 @@ namespace CapriDesktop
     internal abstract class Dictation : IDisposable
     {
         internal const string PrivacyOff = "Online speech recognition is off in Windows. Turn it on in Settings > Privacy & security > Speech.";
-        internal const string MicBlocked = "Windows is blocking the mic. Turn on Microphone access and Let desktop apps access your microphone in Settings > Privacy & security > Microphone.";
+        internal static string MicBlocked { get { return "Windows is blocking the mic. Turn on Microphone access and " + (Packaged.Is ? "Capri" : "Let desktop apps access your microphone") + " in Settings > Privacy & security > Microphone."; } }
         internal const string NoMic = "Windows can't find a mic. Plug one in, or pick one in Settings > System > Sound.";
         // Windows speech's own errors and status names go in errors.txt. People get a plain line with what to do.
         internal const string OwnFix = " Set Hearing under VOICE to Her own ears, or type to me.";
