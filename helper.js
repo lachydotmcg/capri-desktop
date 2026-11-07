@@ -336,16 +336,16 @@
   };
   form.addEventListener('submit', event => { event.preventDefault(); ask(input.value); });
 
-  let before = null;
-  try { before = JSON.parse(saved.get() || 'null'); } catch (error) { }
-  if (before && Array.isArray(before.log)) {
-    chat.log = before.log.filter(line => line && (line.from === 'you' || line.from === 'capri') && typeof line.text === 'string');
-    chat.history = Array.isArray(before.history) ? before.history : [];
+  let past = null;
+  try { past = JSON.parse(saved.get() || 'null'); } catch (error) { }
+  if (past && Array.isArray(past.log)) {
+    chat.log = past.log.filter(line => line && (line.from === 'you' || line.from === 'capri') && typeof line.text === 'string');
+    chat.history = Array.isArray(past.history) ? past.history : [];
   }
   if (!chat.log.length) chat.log.push({ from: 'capri', text: greeting });
   for (const line of chat.log) say(line.from, line.text, line.links, typeof line.thumb === 'string' && line.thumb.startsWith('data:image/jpeg;base64,') ? line.thumb : null);
   showChips();
-  if (before) place(before.open === true, false, true);
+  if (past) place(past.open === true, false, true);
   else setTimeout(() => { if (panel.hidden && tab.hidden) place(false, false); }, 900);
   callOut();
 })();
