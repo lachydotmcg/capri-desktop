@@ -32618,6 +32618,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeWheel", delegate { mainframe.CheckWheelStaysHere(checks); });
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
+            Section(checks, "SmokeClickEffect", delegate { SmokeClickEffect(checks, output); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
@@ -46978,7 +46979,7 @@ namespace CapriDesktop
                             Point theirSpot = new Point(pointerArea.Left + 40, pointerArea.Top + 40), theirMouse = theirSpot;
                             Point pointerGoal = new Point(pointerArea.Left + pointerArea.Width / 2, pointerArea.Top + pointerArea.Height / 2);
                             Func<Form, bool> letThrough = delegate(Form form) { return (Native.GetWindowLong(form.Handle, -20) & 0x20) != 0; };
-                            bool pointerOn, pointerOnce, pointerSat, pointerGlided, pointerStayed, pointerRippled, mouseLent, mouseBack, mouseKept, hoverBack, pointerOff;
+                            bool pointerOn, pointerOnce, pointerSat, pointerGlided, pointerStayed, pointerClicked, mouseLent, mouseBack, mouseKept, hoverBack, pointerOff;
                             Computer.CursorAt = delegate { return theirMouse; };
                             Computer.PutCursor = delegate(Point to) { theirMouse = to; };
                             try
@@ -47002,29 +47003,31 @@ namespace CapriDesktop
                                 mouseLent = theirMouse == pointerGoal && letThrough(this) && letThrough(taskPanel);
                                 herPointer.Tap();
                                 Thread.Sleep(120);
+                                // The click art's frame for this moment lies around her pointer's tip. SmokeClickEffect looks at them all.
+                                int clickCell = herPointer.ClickFrame;
+                                bool clickDrawn;
+                                using (Bitmap clickPicture = herPointer.Picture(clickCell)) clickDrawn = clickCell >= 0 && ClickShown(herPointer, clickPicture, clickCell) > 0.6;
                                 herPointer.Render();
-                                Bitmap rippled = herPointer.Image;
-                                int rippleMiddle = rippled.Width / 2;
-                                bool ringLeft = false;
-                                for (int x = 0; x < rippleMiddle - 4; x++) if (rippled.GetPixel(x, rippleMiddle).A > 40) ringLeft = true;
+                                Bitmap clicked = herPointer.Image;
+                                int clickMiddle = clicked.Width / 2;
                                 Color pointerBody = Color.Empty;
                                 Point pointerBodySpot = Point.Empty;
                                 // A solid pink pixel of her pointer: her bolts land somewhere new each time, and a soft bolt edge
                                 // drawn over the test's green isn't red enough to count as drawn (CI, 6 Nov).
-                                for (int x = rippleMiddle; x < rippleMiddle + rippled.Width / 5 && pointerBody.IsEmpty; x++)
-                                    for (int y = rippleMiddle; y < rippleMiddle + rippled.Width / 5; y++) { Color seen = rippled.GetPixel(x, y); if (seen.A > 245 && seen.R > 215 && seen.G < 120) { pointerBody = seen; pointerBodySpot = new Point(x, y); break; } }
-                                pointerRippled = herPointer.Rippling && ringLeft && pointerBody.A > 245 && pointerBody.R > 215 && pointerBody.G < 120;
-                                rippled.Save(Path.Combine(output, "her-pointer.png"), System.Drawing.Imaging.ImageFormat.Png);
+                                for (int x = clickMiddle; x < clickMiddle + clicked.Width / 5 && pointerBody.IsEmpty; x++)
+                                    for (int y = clickMiddle; y < clickMiddle + clicked.Width / 5; y++) { Color seen = clicked.GetPixel(x, y); if (seen.A > 245 && seen.R > 215 && seen.G < 120) { pointerBody = seen; pointerBodySpot = new Point(x, y); break; } }
+                                pointerClicked = herPointer.Clicking && clickDrawn && pointerBody.A > 245 && pointerBody.R > 215 && pointerBody.G < 120;
+                                clicked.Save(Path.Combine(output, "her-pointer.png"), System.Drawing.Imaging.ImageFormat.Png);
                                 // Recordings show her pointer; her own screenshots smear it out like her sprite.
                                 Rectangle pointerScreen = Screen.FromPoint(pointerGoal).Bounds;
                                 using (Bitmap pointerShot = new Bitmap(pointerScreen.Width, pointerScreen.Height, PixelFormat.Format32bppArgb))
                                 {
-                                    using (Graphics graphics = Graphics.FromImage(pointerShot)) { graphics.Clear(Color.FromArgb(40, 120, 60)); graphics.DrawImage(rippled, herPointer.Left - pointerScreen.X, herPointer.Top - pointerScreen.Y, rippled.Width, rippled.Height); }
+                                    using (Graphics graphics = Graphics.FromImage(pointerShot)) { graphics.Clear(Color.FromArgb(40, 120, 60)); graphics.DrawImage(clicked, herPointer.Left - pointerScreen.X, herPointer.Top - pointerScreen.Y, clicked.Width, clicked.Height); }
                                     Point bodyAt = new Point(herPointer.Left - pointerScreen.X + pointerBodySpot.X, herPointer.Top - pointerScreen.Y + pointerBodySpot.Y);
                                     bool drawnIn = pointerShot.GetPixel(bodyAt.X, bodyAt.Y).R > 200;
                                     PaintOut(pointerShot, pointerScreen);
                                     Color smeared = pointerShot.GetPixel(bodyAt.X, bodyAt.Y);
-                                    pointerRippled &= drawnIn && smeared.R < 120 && smeared.G > 80;
+                                    pointerClicked &= drawnIn && smeared.R < 120 && smeared.G > 80;
                                 }
                                 Computer.GiveBack();
                                 mouseBack = theirMouse == theirSpot && !letThrough(this) && !letThrough(taskPanel);
@@ -47053,8 +47056,8 @@ namespace CapriDesktop
                             }
                             File.WriteAllText(HerCursor.Marker, "");
                             bool cursorRecovered = HerCursor.Recover() && cursorSwaps.Count == 1 && !cursorSwaps[0] && !File.Exists(HerCursor.Marker) && !HerCursor.Recover();
-                            if (!pointerOn || !pointerOnce || !pointerSat || !pointerGlided || !pointerStayed || !pointerRippled || !mouseLent || !mouseBack || !mouseKept || !hoverBack || !pointerOff || !cursorRecovered) throw new Exception("Her pointer: on " + pointerOn + ", once " + pointerOnce + ", sat " + pointerSat + ", glided " + pointerGlided + ", stayed " + pointerStayed + ", rippled " + pointerRippled + ", lent " + mouseLent + ", back " + mouseBack + ", kept " + mouseKept + ", hover " + hoverBack + ", off " + pointerOff + ", recovered " + cursorRecovered);
-                            checks.Add("PASS her pointer: a job shows her own click-through pink pointer beside her on the task panel without swapping Windows' cursor, she stays sitting there while it glides alone and ripples on a click, their mouse is only borrowed for the press, she and the panel let it through only then, it goes back unless they moved it, asking or finishing puts it away, and an old cursor-swap marker still restores Windows' pointer");
+                            if (!pointerOn || !pointerOnce || !pointerSat || !pointerGlided || !pointerStayed || !pointerClicked || !mouseLent || !mouseBack || !mouseKept || !hoverBack || !pointerOff || !cursorRecovered) throw new Exception("Her pointer: on " + pointerOn + ", once " + pointerOnce + ", sat " + pointerSat + ", glided " + pointerGlided + ", stayed " + pointerStayed + ", clicked " + pointerClicked + ", lent " + mouseLent + ", back " + mouseBack + ", kept " + mouseKept + ", hover " + hoverBack + ", off " + pointerOff + ", recovered " + cursorRecovered);
+                            checks.Add("PASS her pointer: a job shows her own click-through pink pointer beside her on the task panel without swapping Windows' cursor, she stays sitting there while it glides alone and plays her click effect on a click, their mouse is only borrowed for the press, she and the panel let it through only then, it goes back unless they moved it, asking or finishing puts it away, and an old cursor-swap marker still restores Windows' pointer");
                             // Her right-click menu with Move dropped open, and her type box with a draft in it, each on a plain
                             // backdrop and cut to its own shape, for checking her look.
                             ToolStripMenuItem moveItem = (ToolStripMenuItem)wanderItem.OwnerItem;
