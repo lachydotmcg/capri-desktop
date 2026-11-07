@@ -1019,6 +1019,9 @@ Voice chat follows your pick under VOICE. PREBUILT LOCAL, CUSTOM LOCAL, Fish Aud
 - If her ears don't download, she says so and tries again by herself after 30 seconds, then 1, 2 and 4 minutes, then every 5.
 - "Free voice chat on" appears the first time only. After that, check the status under Mainframe > VOICE to see that it's on.
 
+### "The download of her ears came out the wrong size" or "keeps stopping"
+This hit every copy of Capri up to 0.8.5 from 7 November 2026: the files her ears download changed at the source, so the download can't finish, and trying again doesn't help. 0.8.5.1 fixes it. Update (right-click her > Check for updates), then start free voice chat again. She gets the same ears from Capri's own copy, and a download left half done starts over by itself. For a language other than English, pick it under Mainframe > Settings > YOU > Language and she downloads the ears that hear it. Typing to her works meanwhile.
+
 ### "Couldn't unpack her ears: tar.exe: Error opening archive: Can't initialize filter"
 This happened on Windows 10 with 0.7.0 and 0.7.1: Windows 10's built-in tar can't unpack the ears download. 0.7.2 fixes it. Update (right-click her > Check for updates), then start free voice chat again. Typing to her works meanwhile.
 
