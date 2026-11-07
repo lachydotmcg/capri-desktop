@@ -138,7 +138,8 @@ def card(name, sprite, count, step, wait, seed, every=8, push=4, bands=3, room=0
 def crowd(name, wait, seed):
     rng = random.Random(seed)
     back = panel()
-    bodies = fit(cells('idle', 16), 0.62)
+    standing = cells('idle', 60)
+    bodies = fit([standing[i * 60 // 16] for i in range(16)], 0.62)
     spots = [(-68, 46), (70, 46), (-40, -44), (44, -44), (0, 26)]
     frames = []
     for i in range(16):
@@ -167,7 +168,7 @@ def badge(name, picture, width, seed):
 
 pad = controller()
 arrow = cursor()
-card('plugged', 'idle', 16, 1, 120, 1)
+card('plugged', 'idle', 60, 4, 170, 1)
 card('chatting', 'perch_talk', 60, 4, 130, 2)
 card('dancing', 'perch_music', 60, 4, 130, 3)
 card('asleep', 'laydown_sleep', 60, 4, 170, 4, every=15)

@@ -845,6 +845,8 @@ namespace CapriDesktop
         // Off until they turn it on (Lachy, 2 Nov: "Chaos when upset can be off by default"). It replaced NoUpsetChaos, which
         // was on by default, so everyone starts with it off.
         [DataMember] public bool UpsetChaos;
+        // Off until they turn it on (Lachy, 7 Nov: "Maybe add a legacy stand"): her stand from 0.8.5, for mods her new one broke.
+        [DataMember] public bool LegacyStand;
         [DataMember] public string Language;
         [DataMember] public string Nickname;
         [DataMember] public int Wordiness;
@@ -1430,21 +1432,29 @@ namespace CapriDesktop
         private Bitmap flipped;
         private bool fetching;
         private int stripUsed, flippedUsed;
-        internal readonly int Count;
-        internal readonly double Fps;
+        private readonly int count;
+        private readonly double fps;
+        private readonly float shiftX, shiftY;
+        // The cells a strip can still come in after her own art moved on, a skin's or Legacy stand's: this wide means count cells
+        // at fps, drawn unshifted, with no facing-left set of their own.
+        private int oldWide, oldCount;
+        private double oldFps;
+        internal int Count { get { return source != null ? source.Count : Old ? oldCount : count; } }
+        internal double Fps { get { return source != null ? source.Fps : Old ? oldFps : fps; } }
         internal readonly float Height;
         // How far a cell's middle sits from the middle of her square, as a share of her size. Narrow cells cut to the art need it.
-        internal readonly float ShiftX, ShiftY;
+        internal float ShiftX { get { return source != null ? source.ShiftX : Old ? 0 : shiftX; } }
+        internal float ShiftY { get { return source != null ? source.ShiftY : Old ? 0 : shiftY; } }
 
         internal Clip(string name, int count, double fps, float height, float shiftX = 0, float shiftY = 0, bool lazy = false)
         {
             this.name = name;
             this.lazy = lazy;
-            Count = count;
-            Fps = fps;
+            this.count = count;
+            this.fps = fps;
             Height = height;
-            ShiftX = shiftX;
-            ShiftY = shiftY;
+            this.shiftX = shiftX;
+            this.shiftY = shiftY;
             if (!Companion.HasArt(Resource(false))) throw new FileNotFoundException("Capri's " + name + " animation is missing. Rebuild with assets/sprites.");
             flippable = Companion.HasArt(Resource(true));
             if (!lazy) strip = Companion.LoadArt(Resource(false));
@@ -1455,12 +1465,21 @@ namespace CapriDesktop
         internal Clip(Clip art)
         {
             source = art;
-            Count = art.Count;
-            Fps = art.Fps;
             Height = art.Height;
-            ShiftX = art.ShiftX;
-            ShiftY = art.ShiftY;
         }
+
+        internal Clip Older(int wide, int cells, double rate)
+        {
+            oldWide = wide;
+            oldCount = cells;
+            oldFps = rate;
+            return this;
+        }
+
+        // Whether the art that's in sits in the old cells: a skin's strip, or Legacy stand's.
+        internal bool Old { get { return source != null ? source.Old : oldWide > 0 && Strip.Width == oldWide; } }
+
+        private bool Turns { get { return flippable && !Old; } }
 
         private string Resource(bool left) { return "Capri.Sprite." + name + (left ? "_flipped" : "") + ".png"; }
 
@@ -1488,7 +1507,7 @@ namespace CapriDesktop
             get
             {
                 if (source != null) return source.Flipped;
-                if (!flippable) return null;
+                if (!Turns) return null;
                 flippedUsed = Environment.TickCount;
                 Bitmap art = flipped;
                 if (art == null) Warm(true);
@@ -1502,7 +1521,7 @@ namespace CapriDesktop
             get
             {
                 if (source != null) return source.FlippedNow;
-                if (!flippable) return null;
+                if (!Turns) return null;
                 flippedUsed = Environment.TickCount;
                 lock (gate)
                 {
@@ -1512,13 +1531,13 @@ namespace CapriDesktop
             }
         }
 
-        internal bool HasFlipped { get { return source != null ? source.HasFlipped : flippable; } }
+        internal bool HasFlipped { get { return source != null ? source.HasFlipped : Turns; } }
 
         // Loads the art for that way round here and now, if it isn't in, for when she needs it this frame.
         internal void Load(bool left)
         {
             if (source != null) { source.Load(left); return; }
-            bool wantLeft = left && flippable;
+            bool wantLeft = left && Turns;
             if (wantLeft) flippedUsed = Environment.TickCount; else stripUsed = Environment.TickCount;
             lock (gate)
             {
@@ -1532,14 +1551,14 @@ namespace CapriDesktop
         internal bool Ready(bool left)
         {
             if (source != null) return source.Ready(left);
-            return left && flippable ? flipped != null : strip != null;
+            return left && Turns ? flipped != null : strip != null;
         }
 
         // Starts loading the art for that way round off her thread, and counts as using it, so it stays in while she asks.
         internal void Warm(bool left)
         {
             if (source != null) { source.Warm(left); return; }
-            bool wantLeft = left && flippable;
+            bool wantLeft = left && Turns;
             if (wantLeft) flippedUsed = Environment.TickCount; else stripUsed = Environment.TickCount;
             lock (gate)
             {
@@ -1638,9 +1657,19 @@ namespace CapriDesktop
 
     internal sealed partial class Companion : Form
     {
-        private readonly Clip idle = new Clip("idle", 16, 8, 1.11f);
-        private readonly Clip blink = new Clip("blink", 4, 8, 1.11f);
-        private readonly Clip blinkGlitch = new Clip("blink_glitch", 4, 8, 1.11f);
+        // her artist's standing set: 60 frames at the 24 fps they're stamped with. Its float is taken out of the frames, so her
+        // toes stay on the row every standing clip ends on and her face stays still in its cell, and her breathing floats her
+        // instead. The cells are cut to her outline, 11 px right of her square's middle in 384 px art at her standing scale,
+        // which keeps her body where it is in those clips. Facing left she's in her artist's flipped set on the same cells.
+        private const float IdleShiftX = 11f / 384 * 1.11f;
+        private readonly Clip idle = new Clip("idle", 60, 24, 1.11f, IdleShiftX).Older(Mods.OldIdleWide, 16, 8);
+        // Her closed eye on frames 25 to 32 of that loop, and her mouth for that face, drawn where it sits in the cell.
+        private readonly Clip idleBlink = new Clip("idle_blink", 8, 24, 1.11f, IdleShiftX);
+        private readonly Clip idleBlinkGlitch = new Clip("idle_blink_glitch", 8, 24, 1.11f, IdleShiftX);
+        private readonly Clip idleMouth = new Clip("idle_mouth", 5, 12, 1.11f, IdleShiftX);
+        // A skin with a 16-cell idle.png keeps what went with those cells: this blink and the mouth further down.
+        private readonly Clip blink = new Clip("blink", 4, 8, 1.11f, 0, 0, true);
+        private readonly Clip blinkGlitch = new Clip("blink_glitch", 4, 8, 1.11f, 0, 0, true);
         private readonly Clip grin = new Clip("grin", 16, 8, 1.11f);
         private readonly Clip glitch = new Clip("glitch", 10, 15, 1.11f);
         private readonly Clip dangle = new Clip("dangle", 24, 10, 1.11f);
@@ -1661,7 +1690,7 @@ namespace CapriDesktop
         private readonly Clip perchSleep;
         private const int PerchSleepCell = 4;
         private const double ZLife = 3.6;
-        private readonly Clip mouth = new Clip("mouth", 5, 12, 1.11f);
+        private readonly Clip mouth = new Clip("mouth", 5, 12, 1.11f, 0, 0, true);
         private readonly Clip walk = new Clip("walk", 12, 12, 1.11f);
         private readonly Clip dance;
         // her artist's music perch: she sways to the song on her window, and her beat nod goes on top. Same cells as her perch.
@@ -2220,6 +2249,7 @@ namespace CapriDesktop
         private double meetAt = -1;
         private bool voiceCheckDue;
         private const int BlinkFrom = 9;
+        private const int IdleBlinkFrom = 24;
         // Her perch blinks where her artist drew it: loop frames 29 to 36 (index 28 on).
         private const int PerchBlinkFrom = 28;
         // Her perch fps choices. The art is 30 fps: slower holds each frame longer, faster mixes in-betweens of neighbouring frames.
@@ -2551,7 +2581,7 @@ namespace CapriDesktop
             GameNotes.Skills = ModList.SkillsFor;
             ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
             ModList.SkinChanged = Reskinned;
-            if (SkinFolder != null || ArtColors.Active) Clip.ReloadAll();
+            ArtAtStart();
             Shown += delegate { ModList.StartCode(Post); };
             mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             PrepareHusk(data);
@@ -2941,13 +2971,17 @@ namespace CapriDesktop
         }
 
         // Power saver (issue #111): sitting or lying still on her seat with nothing about her moving, she's drawn at most 15 times
-        // a second, half her perch art's 30. Anything that moves, talks or dances gets her usual rate back by the next tick.
+        // a second, half her perch art's 30, and so is her standing loop while she only stands there. Anything that moves, talks
+        // or dances gets her usual rate back by the next tick.
         internal const int SaverFps = 15;
 
         private bool Resting(double now)
         {
-            return Saving && SittingStill && !docked && !exploring && (clip == perch || clip == laydown || clip == laydownSleep) && now - seatMovedAt >= 1 && !Dizzy(now) && Quiet(now);
+            return Saving && !docked && !exploring && !Dizzy(now) && Quiet(now) && (StandingStill || (SittingStill && (clip == perch || clip == laydown || clip == laydownSleep) && now - seatMovedAt >= 1));
         }
+
+        // In her standing loop with nothing moving her, and that loop is quicker than Power saver's rest.
+        private bool StandingStill { get { return clip == idle && clip.Fps > SaverFps && seat == null && !riding && !dragging && !walking && !falling && !Sulking && outro == null; } }
 
         // Her perch's frames a second right now: the rate they picked, or Power saver's while she rests.
         private int PerchRateNow(double now) { return Resting(now) ? Math.Min(preferences.PerchFps, SaverFps) : preferences.PerchFps; }
@@ -2992,7 +3026,7 @@ namespace CapriDesktop
         {
             Bitmap skinned = SkinArt(name);
             if (skinned != null) return skinned;
-            using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+            using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream(Mods.StandArt(name, LegacyArt)))
             {
                 if (image == null) return null;
                 using (Bitmap original = new Bitmap(image))
@@ -3064,12 +3098,14 @@ namespace CapriDesktop
             // Lying needs her ledge still under her: anything else sits her back up first, her hip where it was.
             if (lying && (seat == null || riding || onPanel || walking || falling || hanging || dragging)) SitUp(false);
             if (seated) { if (lying) WarmLie(); else WarmPerch(); }
+            if (facingLeft && (clip == idle || clip == dance)) WarmStand();
             if (perched && (!seated || (lain && !lying && clip != laydownLeave)) && !walking) Play(lying ? laydown : perch);
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
             int index = (int)((now - clipStart) * clip.Fps);
             perchMix = 0;
             int perchRate = PerchRateNow(now);
             if ((clip == perch || clip == perchDance || clip == laydown || clip == laydownSleep) && perchRate != 30) index = PerchIndex(now - clipStart, perchRate, out perchMix);
+            if (clip == idle && Resting(now)) index = (int)((long)((now - clipStart) * SaverFps) * clip.Fps / SaverFps);
             if (clip == perchSleep) return PerchSleepCell;
             if (clip == leave || clip == perchLeave || clip == laydownLeave) return Math.Min(index, clip.Count - 1);
             if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = 0; }
@@ -3104,7 +3140,8 @@ namespace CapriDesktop
         private Clip Blinks(bool glitchy)
         {
             if (clip == perch) return glitchy ? perchBlinkGlitch : perchBlink;
-            if (clip != laydown) return glitchy ? blinkGlitch : blink;
+            if (clip != laydown && idle.Old) return glitchy ? blinkGlitch : blink;
+            if (clip != laydown) return glitchy ? idleBlinkGlitch : idleBlink;
             Clip lain = glitchy ? laydownBlinkGlitch : laydownBlink;
             return lain.Ready(facingLeft) ? lain : null;
         }
@@ -3869,7 +3906,7 @@ namespace CapriDesktop
             {
                 if (hanging) LetGo();
                 Play(perched ? perch : idle);
-                blinkWith = perched ? perchBlink : blink;
+                blinkWith = Blinks(false);
             }
             else return "I don't have an animation called " + name + ".";
             frames.Start();
@@ -6412,6 +6449,25 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
+        internal bool LegacyStand { get { return preferences.LegacyStand; } }
+
+        // Her clips start out in her own art, so anything saved that changes it goes on before she's first drawn.
+        private void ArtAtStart()
+        {
+            LegacyArt = preferences.LegacyStand;
+            if (SkinFolder != null || ArtColors.Active || LegacyArt) Clip.ReloadAll();
+        }
+
+        // Her art swaps the way a skin's does, so it shows on the next frame with no restart.
+        internal void ToggleLegacyStand()
+        {
+            preferences.LegacyStand = !preferences.LegacyStand;
+            LegacyArt = preferences.LegacyStand;
+            Reskinned();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         internal bool VoiceWorking { get { return voice.Ready && !preferences.Quiet && !voiceBroken; } }
 
         internal bool TypingSound { get { return preferences.Typing == 1 || (preferences.Typing == 0 && !VoiceWorking); } }
@@ -8433,6 +8489,22 @@ namespace CapriDesktop
         private bool simpleTest;
         internal bool AdvancedSettings { get { return (testing && !simpleTest) || preferences.AdvancedSettings; } }
         internal void ToggleAdvancedSettings() { preferences.AdvancedSettings = !preferences.AdvancedSettings; SavePreferences(); }
+        // For a check to see Settings as people first see it. ToggleAdvancedSettings can't do that under test.
+        internal void InSimpleSettings(Action check)
+        {
+            bool simpleWas = simpleTest, advancedWas = preferences.AdvancedSettings;
+            try
+            {
+                simpleTest = true;
+                preferences.AdvancedSettings = false;
+                check();
+            }
+            finally
+            {
+                simpleTest = simpleWas;
+                preferences.AdvancedSettings = advancedWas;
+            }
+        }
         internal int ExploreAfter { get { return preferences.ExploreAfter > 0 ? preferences.ExploreAfter : 300; } }
 
         internal void ToggleKeepAwake()
@@ -10023,6 +10095,7 @@ namespace CapriDesktop
                 case "dance_to_music": return Dancing;
                 case "head_pats": return HeadPats;
                 case "chaos_when_upset": return UpsetChaos;
+                case "legacy_stand": return LegacyStand;
                 case "sit_on_windows": return Sitting;
                 case "always_on_top": return OnTop;
                 case "mini_player": return PlayerOn;
@@ -10072,6 +10145,7 @@ namespace CapriDesktop
                 case "dance_to_music": ToggleDance(); return null;
                 case "head_pats": ToggleHeadPats(); return null;
                 case "chaos_when_upset": ToggleUpsetChaos(); return null;
+                case "legacy_stand": ToggleLegacyStand(); return null;
                 case "sit_on_windows": ToggleSitting(); return null;
                 case "always_on_top": ToggleOnTop(); return null;
                 case "mini_player": TogglePlayer(); return null;
@@ -13966,7 +14040,7 @@ namespace CapriDesktop
                 if ((clip == arrive || clip == perchArrive) && !instant && preferences.Motion) Arrival(now);
             }
             Clip shown = clip;
-            int blinkFrom = clip == perch || clip == laydown ? PerchBlinkFrom : BlinkFrom;
+            int blinkFrom = clip == perch || clip == laydown ? PerchBlinkFrom : idle.Old ? BlinkFrom : IdleBlinkFrom;
             int following = (cell + 1) % clip.Count, loopCell = cell;
             if ((clip == idle || clip == perch || clip == laydown) && blinkWith != null && cell >= blinkFrom && cell < blinkFrom + blinkWith.Count) { shown = blinkWith; cell -= blinkFrom; }
             int talk = MouthCell(now, shown);
@@ -14121,6 +14195,15 @@ namespace CapriDesktop
         // While she sits, the perch art she might need next loads off her thread, facing whichever way she does: her talking
         // frames once she's answering or in voice chat, and facing left her artist's flipped set, with the music perch while a
         // song plays.
+        // Facing left, her standing art that's about to show loads off her thread, like her perch's.
+        private void WarmStand()
+        {
+            if (idle.Old) return;
+            idle.Warm(true);
+            idleBlink.Warm(true);
+            idleBlinkGlitch.Warm(true);
+        }
+
         private void WarmPerch()
         {
             if (TalkingNow || talkState != TalkState.Off || chatting) perchTalk.Warm(facingLeft);
@@ -14135,17 +14218,18 @@ namespace CapriDesktop
 
         private int MouthCell(double now, Clip shown)
         {
-            if (chatting && speaker.Busy) return docked || (clip == idle && shown != blinkGlitch) ? speaker.Shape() : -1;
+            bool drawn = docked || (clip == idle && shown != blinkGlitch && shown != idleBlinkGlitch);
+            if (chatting && speaker.Busy) return drawn ? speaker.Shape() : -1;
             if (speech == null) return -1;
             int step = (int)((now - speechStart) * MouthRate);
             if (mouths != null)
             {
                 if (step >= mouths.Length) { speech = null; mouths = null; return -1; }
-                return docked || (clip == idle && shown != blinkGlitch) ? mouths[step] : -1;
+                return drawn ? mouths[step] : -1;
             }
             int letter = (int)(step / MouthRate * LettersPerSecond);
             if (letter >= speech.Length) { speech = null; return -1; }
-            return docked || (clip == idle && shown != blinkGlitch) ? MouthFor(speech[letter], step) : -1;
+            return drawn ? MouthFor(speech[letter], step) : -1;
         }
 
         internal static int MouthFor(char letter, int step)
@@ -14204,9 +14288,13 @@ namespace CapriDesktop
             float shiftX = shown.ShiftX * preferences.Size, shiftY = shown.ShiftY * preferences.Size;
             if (shown == walk && walking && preferences.Motion) Wisp(graphics, now, Math.Sign(walkTo - anchor.X) * (facingLeft ? -1 : 1), wide, tall);
             float nod = shown == dance || shown == perchDance ? NodDepth() : 0;
-            if (nod > 0.002f) Nod(graphics, strip, cell, width, wide, tall, nod, shown == perchDance, shiftX, shiftY);
+            if (nod > 0.002f) Nod(graphics, strip, cell, width, wide, tall, nod, shown == perchDance ? SitNeck : idle.Old ? OldNeck : StandNeck, shiftX, shiftY);
             else graphics.DrawImage(strip, new RectangleF(-wide / 2f + shiftX, -tall / 2f + shiftY, wide, tall), new RectangleF(cell * width, 0, width, strip.Height), GraphicsUnit.Pixel);
-            if (talk >= 0) graphics.DrawImage(mouth.Strip, new RectangleF(-wide / 2f, -tall / 2f, wide, tall), new RectangleF(talk * width, 0, width, mouth.Strip.Height), GraphicsUnit.Pixel);
+            if (talk >= 0)
+            {
+                Bitmap lips = (idle.Old ? mouth : idleMouth).Strip;
+                graphics.DrawImage(lips, new RectangleF(-wide / 2f + shiftX, -tall / 2f + shiftY, wide, tall), new RectangleF(talk * width, 0, width, lips.Height), GraphicsUnit.Pixel);
+            }
             if (notes.Count > 0 && preferences.Motion) Notes(graphics, now, seat != null || riding || onPanel);
             if (dozing) Zs(graphics, now);
         }
@@ -14339,13 +14427,16 @@ namespace CapriDesktop
             return edges;
         }
 
-        internal static void Nod(Graphics graphics, Bitmap strip, int cell, int width, float wide, float tall, float nod, bool sitting, float shiftX = 0, float shiftY = 0)
+        // The rows her head ends, her chest begins and her neck sits on, for each way she can dance.
+        private static readonly float[] SitNeck = { 196, 232, 214 }, OldNeck = { 138, 176, 152 }, StandNeck = { 118, 156, 132 };
+
+        internal static void Nod(Graphics graphics, Bitmap strip, int cell, int width, float wide, float tall, float nod, float[] rows, float shiftX = 0, float shiftY = 0)
         {
             int high = strip.Height;
             float scale = tall / high, left = cell * width, drop = nod * 10, lean = nod * 0.22f;
             // Her neck rows are measured in her square; a cell that starts lower down has them higher up.
             float rowsDown = shiftY / scale;
-            float head = (sitting ? 196 : 138) - rowsDown, chest = (sitting ? 232 : 176) - rowsDown, neck = (sitting ? 214 : 152) - rowsDown;
+            float head = rows[0] - rowsDown, chest = rows[1] - rowsDown, neck = rows[2] - rowsDown;
             Func<float, float, PointF> at = delegate(float x, float y)
             {
                 float w = y <= head ? 1 : y >= chest ? 0 : (chest - y) / (chest - head);
@@ -15384,7 +15475,12 @@ namespace CapriDesktop
                 if (bodyPaints != desktopPaints) throw new Exception("A hidden body painted.");
                 hidden = false;
                 frontBusy = true;
-                if (FrameInterval(clock.Elapsed.TotalSeconds) != 115) throw new Exception("An idle sprite did not use its artwork's cadence over a game.");
+                int savedOverGame = preferences.PowerSaver;
+                preferences.PowerSaver = 0;
+                if (FrameInterval(clock.Elapsed.TotalSeconds) != 33) throw new Exception("An idle sprite did not use its artwork's cadence over a game.");
+                preferences.PowerSaver = 1;
+                if (FrameInterval(clock.Elapsed.TotalSeconds) != 61) throw new Exception("Her idle didn't rest at Power saver's pace over a game.");
+                preferences.PowerSaver = savedOverGame;
                 riding = true;
                 if (FrameInterval(clock.Elapsed.TotalSeconds) != 33) throw new Exception("Moving over a game became choppy.");
                 riding = false;
@@ -15925,7 +16021,7 @@ namespace CapriDesktop
             Rectangle napIdleBounds = SpriteBounds(idle.Strip, idle.Count);
             Rectangle napLieBounds = SpriteBounds(laydown.Strip, laydown.Count);
             Rectangle napSleepBounds = SpriteBounds(laydownSleep.Strip, laydownSleep.Count);
-            if (idle.Strip.Width / idle.Count != 240 || idle.Strip.Height != 384 || napIdleBounds != new Rectangle(31, 17, 181, 350)
+            if (idle.Strip.Width / idle.Count != 116 || idle.Strip.Height != 384 || napIdleBounds != new Rectangle(4, 20, 110, 347)
                 || laydown.Strip.Width / laydown.Count != 372 || laydown.Strip.Height != 250 || napLieBounds != new Rectangle(4, 2, 364, 245) || napSleepBounds != new Rectangle(4, 2, 357, 246)) throw new Exception("Her sprite bounds changed; check the lying scale against her idle again.");
             bool scaleLeftWas = facingLeft, scaleLyingWas = lying, scaleVeiledWas = veiled, scaleMotionWas = preferences.Motion;
             double scaleVeilWas = veilUntil, scaleLeanWas = leanAngle;
@@ -15975,7 +16071,7 @@ namespace CapriDesktop
                 frame = scaleFrameWas; clip = scaleClipWas; facingLeft = scaleLeftWas; lying = scaleLyingWas; veiled = scaleVeiledWas;
                 veilUntil = scaleVeilWas; leanAngle = scaleLeanWas; preferences.Motion = scaleMotionWas;
             }
-            checks.Add("PASS lying sprite scale: idle 240x384 with opaque bounds 31,17 181x350; laydown 372x250 with 4,2 364x245; sleep 4,2 357x246; every lying and flipped clip uses the same 85% scale, keeps its seat row and has a pixel-shaped hit area");
+            checks.Add("PASS lying sprite scale: idle 116x384 with opaque bounds 4,20 110x347; laydown 372x250 with 4,2 364x245; sleep 4,2 357x246; every lying and flipped clip uses the same 85% scale, keeps its seat row and has a pixel-shaped hit area");
         }
 
         private static void CheckOcr(System.Collections.Generic.List<string> checks, string output)
@@ -19259,6 +19355,9 @@ namespace CapriDesktop
                 { "how does your wake word work?", "Listen for \"Hey Capri\"" },
                 { "how do I turn off head pats?", "Head pats" },
                 { "how do I turn off chaos when upset?", "Chaos when upset" },
+                { "how do I turn on the legacy stand?", "Legacy stand" },
+                { "how do I get your old stand back?", "Legacy stand" },
+                { "what do I do if your new stand broke my mod?", "Legacy stand" },
                 { "where did my settings go?", "Advanced Settings" },
                 { "what is the extras window?", "Extras" },
                 { "what is the call app setting?", "Call app" },
@@ -25258,7 +25357,7 @@ namespace CapriDesktop
                 {
                     { "voice", true }, { "quiet", false }, { "mic", null }, { "check_ins", true }, { "wander", false }, { "clip_my_games", false }, { "save_big_moments", false }, { "live_reactions", true }, { "gaming_mode", true }, { "hologram", false },
                     { "watch_my_screen", false }, { "game_comments", true },
-                    { "dance_to_music", true }, { "head_pats", true }, { "chaos_when_upset", false }, { "sit_on_windows", true }, { "always_on_top", true }, { "mini_player", true }, { "typing_sound", false }, { "follow_ups", true }, { "hide_in_full_screen", false }, { "glitch_in", true }
+                    { "dance_to_music", true }, { "head_pats", true }, { "chaos_when_upset", false }, { "legacy_stand", false }, { "sit_on_windows", true }, { "always_on_top", true }, { "mini_player", true }, { "typing_sound", false }, { "follow_ups", true }, { "hide_in_full_screen", false }, { "glitch_in", true }
                 };
                 System.Collections.Generic.List<string> flipped = new System.Collections.Generic.List<string>();
                 Hands.SettingOn = delegate(string name) { return state.ContainsKey(name) ? state[name] : null; };
@@ -25276,7 +25375,7 @@ namespace CapriDesktop
                 string stuck = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "wander" }), gaming = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "gaming_mode" });
                 string uncommented = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "game_comments" });
                 if (!settings.StartsWith("How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off; Watch my screen off; Game comments on; "
-                    + "Dance to music on; Head pats on; Chaos when upset off; Sit on windows on; Always on top on; Mini player on; Typing sound off; Follow-up messages on; Hide in full screen off; Glitch in at startup on; ", StringComparison.Ordinal)
+                    + "Dance to music on; Head pats on; Chaos when upset off; Legacy stand off; Sit on windows on; Always on top on; Mini player on; Typing sound off; Follow-up messages on; Hide in full screen off; Glitch in at startup on; ", StringComparison.Ordinal)
                     || !settings.Contains("my size: Medium; Wander: Off; Pop-ins: Sometimes; Sleep: 5 min; my voice's volume: 80%; my voice's speed: 1.2x; Replies: Medium; Bubble: Normal;")
                     || uncommented != "Turned Game comments off."
                     || clipped != "Turned Clip my games on." || again != "Clip my games was already on." || silent != "Turned my voice off." || deaf != "Couldn't change my voice chat mic: voice chat isn't on."
@@ -25504,7 +25603,7 @@ namespace CapriDesktop
                 preferences.HdVoice = preferences.ServerVoice = false;
                 // A settings file that's been read once is tuned, so reading one back here never retunes a voice left at its start.
                 preferences.VoiceTuned = preferences.VoiceRetuned = true;
-                for (int i = 22; i < Hands.OwnSwitches.GetLength(0); i++) switches[Hands.OwnSwitches[i, 0]] = SettingOn(Hands.OwnSwitches[i, 0]) == true;
+                for (int i = 23; i < Hands.OwnSwitches.GetLength(0); i++) switches[Hands.OwnSwitches[i, 0]] = SettingOn(Hands.OwnSwitches[i, 0]) == true;
                 for (int i = 8; i < Hands.OwnLevels.GetLength(0); i++) levels[Hands.OwnLevels[i, 0]] = LevelOf(Hands.OwnLevels[i, 0]);
                 string[,] toggles =
                 {
@@ -32624,6 +32723,8 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeWheel", delegate { mainframe.CheckWheelStaysHere(checks); });
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
+            Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
+            Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
@@ -36732,7 +36833,7 @@ namespace CapriDesktop
                                 animate("grin");
                                 playFacts.Add(clip == grin);
                                 animate("blink");
-                                playFacts.Add(clip == idle && blinkWith == blink);
+                                playFacts.Add(clip == idle && blinkWith == idleBlink);
                                 animate("dance");
                                 CheckMusic(clock.Elapsed.TotalSeconds);
                                 playFacts.Add(danceAsked && clip == dance && Doing == "Dancing");
@@ -36789,7 +36890,7 @@ namespace CapriDesktop
                             if (MouthCell(said, idle) != 2) throw new Exception("First letter did not open her teeth.");
                             speechStart = said - 2.5 / MouthRate;
                             if (MouthCell(said, idle) != 4) throw new Exception("Capital O did not scream.");
-                            if (MouthCell(said, blinkGlitch) != -1) throw new Exception("Mouth drew over a glitched blink.");
+                            if (MouthCell(said, blinkGlitch) != -1 || MouthCell(said, idleBlinkGlitch) != -1) throw new Exception("Mouth drew over a glitched blink.");
                             using (Bitmap quiet = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
                             using (Bitmap open = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
                             {
@@ -37567,9 +37668,9 @@ namespace CapriDesktop
                                 if (new Preferences().NoDiscord || !discordShownOn || !discordTurnedOff || !discordBackOn) throw new Exception("The Show on Discord switch went wrong: shown " + discordShownOn + ", off " + discordTurnedOff + ", back on " + discordBackOn);
                                 checks.Add("PASS Discord status: on by default, a pretend Discord hears her hello with the app's id and 'Dancing to music' with her picture, start time and Get Capri button, she hangs up when it's turned off, her moving art and glitch controller (with her version on the end so Discord fetches them fresh), plain words and clone count go out and fall back to the plain line if Discord says no, her states read Plugged in, Dancing to music, Dancing (asked, with no music), Asleep and Voice chatting, and the Mainframe switch turns it off and back on");
                             }
-                            Clip[] strips = { idle, blink, blinkGlitch, grin, glitch, dangle, sleep, wake, perch, perchBlink, perchBlinkGlitch, perchGlitch, idle };
+                            Clip[] strips = { idle, idleBlink, idleBlinkGlitch, grin, glitch, dangle, sleep, wake, perch, perchBlink, perchBlinkGlitch, perchGlitch, idle };
                             int[] cells = { 0, 1, 1, 0, 1, 3, 0, 4, 8, 1, 1, 1, 0 };
-                            if (mouth.Strip.Width % mouth.Count != 0 || mouth.Strip.Width / mouth.Count != idle.Strip.Width / idle.Count || mouth.Strip.Height != idle.Strip.Height) throw new Exception("Mouth strip does not match the idle cells.");
+                            if (idleMouth.Strip.Width % idleMouth.Count != 0 || idleMouth.Strip.Width / idleMouth.Count != idle.Strip.Width / idle.Count || idleMouth.Strip.Height != idle.Strip.Height) throw new Exception("Mouth strip does not match the idle cells.");
                             using (Bitmap sheet = new Bitmap(Width * strips.Length, Height, PixelFormat.Format32bppArgb))
                             {
                                 for (int i = 0; i < strips.Length; i++)

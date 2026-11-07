@@ -243,7 +243,10 @@
         <table class="sheet" id="strips">
           <thead><tr><th>Strip</th><th>Size</th><th>Frames</th><th>fps</th></tr></thead>
           <tbody>
-            <tr><td>idle<br>grin</td><td class="num">3840 x 384</td><td class="num">16</td><td class="num">8</td></tr>
+            <tr><td>idle</td><td class="num">6960 x 384</td><td class="num">60</td><td class="num">24</td></tr>
+            <tr><td>idle_blink<br>idle_blink_glitch</td><td class="num">928 x 384</td><td class="num">8</td><td class="num">24</td></tr>
+            <tr><td>idle_mouth</td><td class="num">580 x 384</td><td class="num">5</td><td class="num">12</td></tr>
+            <tr><td>grin</td><td class="num">3840 x 384</td><td class="num">16</td><td class="num">8</td></tr>
             <tr><td>blink<br>blink_glitch</td><td class="num">960 x 384</td><td class="num">4</td><td class="num">8</td></tr>
             <tr><td>glitch</td><td class="num">2400 x 384</td><td class="num">10</td><td class="num">15</td></tr>
             <tr><td>dangle</td><td class="num">5760 x 384</td><td class="num">24</td><td class="num">10</td></tr>
@@ -267,15 +270,16 @@
           </tbody>
         </table>
         <dl class="keys">
-          <dt>_flipped</dt><dd>every <code>perch</code> and <code>laydown</code> strip also has one, like <code>perch_flipped</code>, at the same size. It's her facing-left art, stored facing right on the same frames, and she draws it mirrored. Leave one out and she wears her own art when she faces left there</dd>
-          <dt>blink</dt><dd>swaps in over <code>idle</code> frames 10 to 13</dd>
+          <dt>_flipped</dt><dd>every <code>idle</code>, <code>perch</code> and <code>laydown</code> strip except <code>idle_mouth</code> also has one, like <code>perch_flipped</code>, at the same size. It's her facing-left art, stored facing right on the same frames, and she draws it mirrored. Leave one out and she wears her own art when she faces left there</dd>
+          <dt>idle_blink</dt><dd>swaps in over <code>idle</code> frames 25 to 32</dd>
           <dt>perch_blink</dt><dd>swaps in over <code>perch</code> frames 29 to 36, and <code>laydown_blink</code> does the same on <code>laydown</code>. Frame 5 of <code>perch_blink</code> is also how she sleeps sitting up</dd>
-          <dt>mouth</dt><dd>her talking mouth, drawn over her standing art</dd>
+          <dt>idle_mouth</dt><dd>her talking mouth, drawn over her standing art. Keep her face where it is in every <code>idle</code> frame so it lands on her jaw</dd>
+          <dt>Older skins</dt><dd>a 3840 x 384 <code>idle</code> still works. It's 16 frames at 8 fps, mirrored when she faces left, and it goes with <code>blink</code> and <code>blink_glitch</code> over frames 10 to 13 and <code>mouth</code>, at 1200 x 384. Only that size of <code>idle</code> uses those three</dd>
           <dt>dance</dt><dd>Mac and Linux only. Windows dances on <code>idle</code></dd>
           <dt>face</dt><dd>accepted, but she doesn't use it from a skin</dd>
           <dt>Mac, Linux</dt><dd>don't draw <code>perch_talk</code>, <code>laydown</code> or <code>_flipped</code> strips</dd>
         </dl>
-        <p class="note">Published skins hold 41 strips: everything except <code>dance</code>, <code>face</code> and <code>mouth</code>. Example: <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/maid-suit" target="_blank" rel="noopener noreferrer">Maid Suit</a>.</p>
+        <p class="note">Skins published so far use the older <code>idle</code> and hold 41 strips: everything except <code>dance</code>, <code>face</code>, <code>mouth</code> and the new <code>idle_</code> strips. Example: <a href="https://github.com/lachydotmcg/capri-mods/tree/HEAD/mods/maid-suit" target="_blank" rel="noopener noreferrer">Maid Suit</a>.</p>
       </section>
 
       <section id="skills" class="step">

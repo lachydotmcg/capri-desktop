@@ -1022,7 +1022,7 @@ namespace CapriDesktop
                 // OpenAI refuses every tool when one's description runs past 1024 characters, so none of hers may.
                 for (int i = 0; i < Hands.Count; i++)
                     if (Hands.Description(i).Length > 1024) throw new Exception("OpenAI would refuse " + Hands.Name(i) + "'s description: " + Hands.Description(i).Length + " characters.");
-                foreach (string name in new[] { "voice", "quiet", "mic", "check_ins", "wander", "dance_to_music", "head_pats", "chaos_when_upset", "sit_on_windows", "always_on_top", "mini_player", "typing_sound", "follow_ups", "hide_in_full_screen", "glitch_in", "clip_my_games", "save_big_moments", "live_reactions", "gaming_mode", "hologram", "watch_my_screen", "game_comments" })
+                foreach (string name in new[] { "voice", "quiet", "mic", "check_ins", "wander", "dance_to_music", "head_pats", "chaos_when_upset", "legacy_stand", "sit_on_windows", "always_on_top", "mini_player", "typing_sound", "follow_ups", "hide_in_full_screen", "glitch_in", "clip_my_games", "save_big_moments", "live_reactions", "gaming_mode", "hologram", "watch_my_screen", "game_comments" })
                     if (!Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = name })) throw new Exception("Her settings tool's switch " + name + " wasn't taken.");
                 foreach (string name in new[] { "size", "wander", "pop_ins", "sleep", "volume", "voice_speed", "replies", "bubble" })
                     if (!Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = name, Level = "up" })) throw new Exception("Her settings tool's slider " + name + " wasn't taken.");
@@ -1045,7 +1045,8 @@ namespace CapriDesktop
                 string[,] claims =
                 {
                     { "There, I made myself bigger!", "capri_settings" }, { "Okay, I stopped wandering.", "capri_settings" }, { "Turned off head pats, choom.", "capri_settings" }, { "Set my volume to 50%.", "capri_settings" },
-                    { "I switched Always on top off.", "capri_settings" }, { "Want me to make myself bigger?", "" }, { "You can make me bigger in Settings.", "" }, { "Head pats are on by default.", "" }, { "Should I stop wandering?", "" }
+                    { "I switched Always on top off.", "capri_settings" }, { "Turned on the legacy stand, choom.", "capri_settings" }, { "I switched legacy stand off.", "capri_settings" },
+                    { "Want me to make myself bigger?", "" }, { "You can make me bigger in Settings.", "" }, { "Head pats are on by default.", "" }, { "Legacy stand is off by default.", "" }, { "Should I stop wandering?", "" }
                 };
                 for (int i = 0; i < claims.GetLength(0); i++)
                     if ((Hands.Claimed(claims[i, 0], none) ?? "") != claims[i, 1]) throw new Exception("\"" + claims[i, 0] + "\" read as a claim for " + (Hands.Claimed(claims[i, 0], none) ?? "nothing") + " instead of " + (claims[i, 1].Length == 0 ? "nothing" : claims[i, 1]));
@@ -1059,7 +1060,8 @@ namespace CapriDesktop
                 {
                     calls("capri_settings", "{\"action\":\"set\",\"name\":\"size\",\"level\":\"bigger\"}"), says("There, a bit bigger, choom."),
                     calls("capri_settings", "{\"action\":\"off\",\"name\":\"wander\"}"), says("Okay, I'll stay put."),
-                    says("Done, I made myself bigger."), says("Done, I made myself bigger.")
+                    says("Done, I made myself bigger."), says("Done, I made myself bigger."),
+                    calls("capri_settings", "{\"action\":\"on\",\"name\":\"legacy_stand\"}"), says("Back on my old stand.")
                 }, asked, out fake);
                 Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
                 Brain.Keeping = false;
@@ -1076,6 +1078,14 @@ namespace CapriDesktop
                     || !sent[0].Contains("like set size bigger for make yourself bigger") || !sent[0].Contains("\"voice_speed\"") || !sent[1].Contains("Set my size to Medium+.") || !sent[3].Contains("Turned Wander off.")
                     || !sent[5].Contains("You said you did something that needs capri_settings"))
                     throw new Exception("Her planner didn't change her settings with the tool: " + grown + " / " + still + " / " + faked + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                // In plain words, the way Chaos when upset gets there: nothing routes it by its wording, so her brain has to see the
+                // switch and what it's for in the tool she's handed, and turning it on goes through the tool like the rest.
+                switches["legacy_stand"] = false;
+                did.Clear();
+                string older = planner.Ask("can you go back to your old stand?");
+                lock (asked) sent = asked.ToArray();
+                if (older != "Back on my old stand." || string.Join(",", did.ToArray()) != "capri_settings:legacy_stand:on" || switches["legacy_stand"] != true || !sent[6].Contains("\"legacy_stand\"") || !sent[6].Contains("your old stand, for mods your new one broke") || !sent[7].Contains("Turned Legacy stand on."))
+                    throw new Exception("A plain request didn't reach Legacy stand as a tool: " + older + " / " + string.Join(",", did.ToArray()));
                 checks.Add("PASS her settings tool moves her sliders: size, wander, pop-ins, sleep, her voice's volume and speed, replies and bubble, by a step's name, a number, or a step up or down, says when one is already as far as it goes, when a step doesn't exist and when a slider didn't move, and flips her everyday switches like head pats, dancing, sitting on windows and always on top; only sliders take set and nothing she mustn't touch is in reach; her steps match her Mainframe's; saying she changed one with no tool is a claim; a planner makes herself bigger and stops wandering with the tool");
             }
             finally
@@ -1098,7 +1108,7 @@ namespace CapriDesktop
         // and each slider moved and read back from the setting itself, with nothing of her own said over her brain's reply.
         private void SmokeOwnSliders(List<string> checks)
         {
-            bool danceWas = preferences.NoDance, patsWas = preferences.NoHeadPats, chaosWas = preferences.UpsetChaos, sitWas = preferences.NoSitting, topWas = preferences.OnTop, playerWas = preferences.NoPlayer;
+            bool danceWas = preferences.NoDance, patsWas = preferences.NoHeadPats, chaosWas = preferences.UpsetChaos, legacyWas = preferences.LegacyStand, sitWas = preferences.NoSitting, topWas = preferences.OnTop, playerWas = preferences.NoPlayer;
             bool followWas = preferences.FollowUps, fullWas = preferences.HideFullScreen, introWas = preferences.NoIntro;
             int typingWas = preferences.Typing, sizeWas = preferences.Size, wanderWas = WanderLevel, popWas = preferences.PopPace, sleepWas = preferences.SleepAfter, volumeWas = Voice.Loudness, speedWas = VoiceFx.Speed, wordsWas = Brain.Wordiness, bubbleWas = preferences.BubbleTime;
             Action<short[]> typeOutWas = Sfx.TypeOut;
@@ -1110,7 +1120,7 @@ namespace CapriDesktop
                 List<string> wrong = new List<string>();
                 string[,] switches =
                 {
-                    { "dance_to_music", "Dance to music" }, { "head_pats", "Head pats" }, { "chaos_when_upset", "Chaos when upset" }, { "sit_on_windows", "Sit on windows" }, { "always_on_top", "Always on top" },
+                    { "dance_to_music", "Dance to music" }, { "head_pats", "Head pats" }, { "chaos_when_upset", "Chaos when upset" }, { "legacy_stand", "Legacy stand" }, { "sit_on_windows", "Sit on windows" }, { "always_on_top", "Always on top" },
                     { "mini_player", "Mini player" }, { "typing_sound", "Typing sound" }, { "follow_ups", "Follow-up messages" }, { "hide_in_full_screen", "Hide in full screen" }, { "glitch_in", "Glitch in at startup" }
                 };
                 Func<string, bool> real = delegate(string name)
@@ -1120,6 +1130,7 @@ namespace CapriDesktop
                         case "dance_to_music": return !preferences.NoDance;
                         case "head_pats": return !preferences.NoHeadPats;
                         case "chaos_when_upset": return preferences.UpsetChaos;
+                        case "legacy_stand": return preferences.LegacyStand;
                         case "sit_on_windows": return !preferences.NoSitting;
                         case "always_on_top": return preferences.OnTop;
                         case "mini_player": return !preferences.NoPlayer;
@@ -1159,7 +1170,7 @@ namespace CapriDesktop
                     || volume != "Set my voice's volume to 50%." || Voice.Loudness != 50 || preferences.Volume != 50 || speed != "Set my voice's speed to 1.3x." || VoiceFx.Speed != 130
                     || replies != "Set Replies to Long." || Brain.Wordiness != 2 || bubble != "Set Bubble to Quick." || preferences.BubbleTime != 0 || asking != askingWas)
                     throw new Exception("Her settings tool didn't move her real sliders: " + listed + " / " + bigger + " / " + giant + " / " + wander + " / " + still + " / " + pops + " / " + sleep + " / " + volume + " / " + speed + " / " + replies + " / " + bubble + " / asking moved " + (asking - askingWas));
-                checks.Add("PASS her settings tool flips Dance to music, Head pats, Chaos when upset, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Hide in full screen and Glitch in at startup the way their own switches do, moves her size, wander, pop-ins, sleep, voice volume and speed, replies and bubble the way her Mainframe's sliders do, reads each one back from the setting itself, and never talks over her brain's reply");
+                checks.Add("PASS her settings tool flips Dance to music, Head pats, Chaos when upset, Legacy stand, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Hide in full screen and Glitch in at startup the way their own switches do, moves her size, wander, pop-ins, sleep, voice volume and speed, replies and bubble the way her Mainframe's sliders do, reads each one back from the setting itself, and never talks over her brain's reply");
             }
             finally
             {
@@ -1167,6 +1178,7 @@ namespace CapriDesktop
                 if (preferences.NoDance != danceWas) ToggleDance();
                 if (preferences.NoHeadPats != patsWas) ToggleHeadPats();
                 if (preferences.UpsetChaos != chaosWas) ToggleUpsetChaos();
+                if (preferences.LegacyStand != legacyWas) ToggleLegacyStand();
                 if (preferences.NoSitting != sitWas) ToggleSitting();
                 if (preferences.OnTop != topWas) ToggleOnTop();
                 if (preferences.NoPlayer != playerWas) TogglePlayer();

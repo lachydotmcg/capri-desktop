@@ -125,6 +125,8 @@ namespace CapriDesktop
             if (step == 0)
             {
                 foreach (Clip clip in pet.Clips) if (!clip.Even || clip.Strip.PixelSize.Height != 384) throw new Exception("A sprite strip doesn't split into even 384 px cells.");
+                Clip stand = pet.Clips[0];
+                if (stand.Old || stand.Count != 60 || stand.Fps != 24 || stand.Wide != 116) throw new Exception("Her standing loop isn't 60 cells of 116 px at 24 fps: " + stand.Count + " at " + stand.Fps + ", " + stand.Wide + " px.");
                 checks.Add("PASS sprites: all " + pet.Clips.Count + " clips, standing and perched, load from the app and split into even cells");
                 foreach (string clipName in new[] { "morning", "late", "miss" })
                 {
@@ -3027,7 +3029,7 @@ namespace CapriDesktop
                 { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
                 { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
                 { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" },
-                { "Head pats", "head_pats", "NoHeadPats" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" }
+                { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" }
             };
             for (int i = 0; i < toggles.GetLength(0); i++)
                 foreach (bool on in new[] { true, false })
@@ -3112,6 +3114,7 @@ namespace CapriDesktop
             for (int i = 0; i < 7; i++)
                 if (old.CareTime((CareKind)i) != defaults[i] || old.CareOn((CareKind)i) != (i != 2)) throw new Exception("Care defaults differ from Windows.");
             if (old.NoHeadPats || old.NoFollowUps || old.NoKeepAwake) throw new Exception("A new switch defaulted off in older settings.");
+            if (old.LegacyStand) throw new Exception("Legacy stand didn't start off in older settings.");
             foreach (CareKind kind in new[] { CareKind.Water, CareKind.Stretch, CareKind.Eyes, CareKind.Game, CareKind.Bored })
             {
                 now = 0;
@@ -3480,11 +3483,77 @@ namespace CapriDesktop
             using (SkiaSharp.SKBitmap preview = new SkiaSharp.SKBitmap(320, 180))
             {
                 preview.Erase(new SkiaSharp.SKColor(12, 11, 20));
-                using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(preview)) canvas.DrawBitmap(art, new SkiaSharp.SKRect(0, 0, 240, 384), new SkiaSharp.SKRect(104, 0, 216.5f, 180));
+                using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(preview)) canvas.DrawBitmap(art, new SkiaSharp.SKRect(0, 0, 116, 384), new SkiaSharp.SKRect(133, 0, 187.4f, 180));
                 using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(preview))
                 using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) return png.ToArray();
             }
         }
+
+        // Legacy stand: his line on its row, her 0.8.5 strip byte for byte, a live swap each way through its switch and her tool, saved
+        // in both settings files, colours on it, and a skin's own idle over it.
+        private void LegacyChecks(Mainframe frame, ModsWindow sheet, Clip idle, string blue, string input)
+        {
+            Mods mods = pet.ModList;
+            System.Reflection.BindingFlags own = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            TextBlock tip = ToolTip.GetTip(frame.Row("Legacy stand")) as TextBlock;
+            if (Mods.LegacyTip != "Incase it broke your mod, soz!" || tip == null || tip.Text != "Incase it broke your mod, soz!") throw new Exception("Legacy stand's tip isn't his line: " + (tip == null ? "no tip" : tip.Text));
+            if (new Settings().LegacyStand || pet.LegacyStand || frame.Value("Legacy stand") != "Off" || idle.Old || idle.Count != 60 || idle.Fps != 24) throw new Exception("Legacy stand didn't start off on her new stand.");
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream("Capri.Sprite.idle_legacy.png"))
+            using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
+                if (stream == null || BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant() != LegacySha) throw new Exception("Legacy stand's strip isn't 0.8.5's, byte for byte.");
+            checks.Add("PASS legacy stand: off by default, 0.8.5's strip byte for byte in the app, and its tip is exactly his line");
+
+            Clip mouth = (Clip)typeof(Pet).GetField("mouth", own).GetValue(pet), idleMouth = (Clip)typeof(Pet).GetField("idleMouth", own).GetValue(pet);
+            Clip blink = (Clip)typeof(Pet).GetField("blink", own).GetValue(pet), blinkGlitch = (Clip)typeof(Pet).GetField("blinkGlitch", own).GetValue(pet);
+            System.Reflection.MethodInfo blinks = typeof(Pet).GetMethod("Blinks", own);
+            SkiaSharp.SKColor hairNew = ModPixel(idle.Strip, 36, 74);
+            Body drawn = (Body)typeof(Pet).GetField("body", own).GetValue(pet);
+            drawn.Shown = idle;
+            drawn.Cell = 59;
+            frame.Change("Legacy stand", 1);
+            if (drawn.Cell != 59 % 16) throw new Exception("Legacy stand left her on a cell its strip doesn't have: " + drawn.Cell);
+            if (!pet.LegacyStand || !SettingsCopy().LegacyStand || frame.Value("Legacy stand") != "On" || !idle.Old || idle.Count != 16 || idle.Fps != 8 || idle.ShiftX != 0 || idle.ShiftY != 0 || idle.Wide != 240 || !idle.Even)
+                throw new Exception("Legacy stand didn't swap her live to 16 cells at 8 fps: " + idle.Count + " at " + idle.Fps + ".");
+            if (ModPixel(idle.Strip, 95, 90) != new SkiaSharp.SKColor(251, 0, 72) || blinks.Invoke(pet, new object[] { false }) != blink || blinks.Invoke(pet, new object[] { true }) != blinkGlitch || mouth.Wide != 240 || blink.Wide != 240)
+                throw new Exception("Legacy stand wasn't 0.8.5's strip, blink and mouth.");
+            string home = Path.Combine(folder, "legacy-settings"); Directory.CreateDirectory(home);
+            string settingsFile = Path.Combine(home, "cross.json"), notice;
+            using (FileStream stream = File.Create(settingsFile)) new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, pet.Saved);
+            using (FileStream stream = File.Create(Path.Combine(home, "cross-new.json"))) new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Pet.NewSettings)).WriteObject(stream, Pet.Newest(pet.Saved));
+            if (!Pet.ReadSettings(settingsFile, out notice).LegacyStand) throw new Exception("Legacy stand didn't save.");
+            frame.Change("Legacy stand", 0);
+            if (pet.LegacyStand || SettingsCopy().LegacyStand || frame.Value("Legacy stand") != "Off" || idle.Old || idle.Count != 60 || idle.Fps != 24 || idle.Wide != 116 || ModPixel(idle.Strip, 36, 74) != hairNew)
+                throw new Exception("Legacy stand off didn't bring her new stand back: " + idle.Count + " at " + idle.Fps + ".");
+            if (!Hands.KitFor().Tools.Contains("\"legacy_stand\"") || !Hands.CrossSetting("legacy_stand")) throw new Exception("Her tools here don't have Legacy stand.");
+            string turned = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "legacy_stand" });
+            if (turned != "Turned Legacy stand on." || !pet.LegacyStand || idle.Count != 16) throw new Exception("Her settings tool didn't turn Legacy stand on: " + turned);
+            turned = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "legacy_stand" });
+            if (turned != "Turned Legacy stand off." || pet.LegacyStand || idle.Count != 60) throw new Exception("Her settings tool didn't turn Legacy stand off: " + turned);
+            checks.Add("PASS legacy stand: its switch and her tool swap her live to 16 cells at 8 fps with her 0.8.5 strip, blink and mouth and back to 60 at 24 fps, and it saves");
+
+            frame.Change("Legacy stand", 1);
+            SkiaSharp.SKColor accent = ModPixel(idle.Strip, 120, 200);
+            if (!sheet.ImportMod(blue)) throw new Exception("A colour mod was refused on Legacy stand.");
+            SkiaSharp.SKColor hair = ModPixel(idle.Strip, 95, 90), sameAccent = ModPixel(idle.Strip, 120, 200);
+            if (!idle.Old || hair.Blue < 200 || hair.Red > 30 || Math.Abs(sameAccent.Green - accent.Green) > 4) throw new Exception("A colour mod didn't reach Legacy stand: " + hair);
+            frame.Change("Legacy stand", 0);
+            if (ModPixel(idle.Strip, 36, 74).Blue < 200) throw new Exception("A colour mod dropped off when Legacy stand went off.");
+            frame.Change("Legacy stand", 1);
+            if (ModPixel(idle.Strip, 95, 90).Blue < 200) throw new Exception("A colour mod dropped off when Legacy stand came on.");
+            foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+            if (ModPixel(idle.Strip, 95, 90) != new SkiaSharp.SKColor(251, 0, 72)) throw new Exception("Taking a colour mod off left Legacy stand coloured.");
+            PixelSize size = Pet.ArtSize("Capri.Sprite.idle.png");
+            if (!sheet.ImportMod(ModSkin(input, "smoke-legacy-old", "idle.png", Mods.OldIdleWide, Mods.OldIdleHigh)) || !idle.Old || ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("Legacy stand went over a skin's own old idle.");
+            foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+            if (!sheet.ImportMod(ModSkin(input, "smoke-legacy-new", "idle.png", size.Width, size.Height)) || idle.Old || idle.Count != 60 || idle.Fps != 24 || ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("Legacy stand went over a skin's own new idle.");
+            foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+            if (!idle.Old || idle.Count != 16) throw new Exception("Taking a skin off lost Legacy stand.");
+            frame.Change("Legacy stand", 0);
+            if (idle.Old || idle.Count != 60) throw new Exception("Legacy stand stayed on after its switch went off.");
+            checks.Add("PASS legacy stand: colour mods work on it, either way round, and a skin's own idle wins over it, old cells or new");
+        }
+
+        private const string LegacySha = "ed63f8c677afa9c2be8b76e850547882b88fa76ea9206e3d20f758cce65ed2a0";
 
         private void ModsChecks(Mainframe frame)
         {
@@ -3519,15 +3588,15 @@ namespace CapriDesktop
                 checks.Add("PASS mods settings: import, on, off, reload and remove share Windows' names, spellings, sounds-like and hearing-log behavior");
 
                 Clip idle = pet.Clips[0], walk = pet.Clips[10];
-                SkiaSharp.SKColor original = ModPixel(idle.Strip, 95, 90), accent = ModPixel(idle.Strip, 120, 200);
+                SkiaSharp.SKColor original = ModPixel(idle.Strip, 36, 74), accent = ModPixel(idle.Strip, 52, 218);
                 string blue = ModSample(input, "smoke-blue", "\"colors\":{\"hair\":\"#0000FF\"}");
                 if (!sheet.ImportMod(blue)) throw new Exception("A colour mod was refused.");
-                SkiaSharp.SKColor hair = ModPixel(idle.Strip, 95, 90), sameAccent = ModPixel(idle.Strip, 120, 200);
+                SkiaSharp.SKColor hair = ModPixel(idle.Strip, 36, 74), sameAccent = ModPixel(idle.Strip, 52, 218);
                 if (hair.Blue < 200 || hair.Red > 30 || hair.Alpha != original.Alpha || Math.Abs(sameAccent.Green - accent.Green) > 4) throw new Exception("A colour mod did not recolour her hair alone.");
                 mods.Load();
-                if (ModPixel(idle.Strip, 95, 90).Blue < 200) throw new Exception("A colour mod did not survive reload.");
+                if (ModPixel(idle.Strip, 36, 74).Blue < 200) throw new Exception("A colour mod did not survive reload.");
                 sheet.SwitchMod(0);
-                if (ModPixel(idle.Strip, 95, 90) != original) throw new Exception("A colour mod did not restore her original art when off.");
+                if (ModPixel(idle.Strip, 36, 74) != original) throw new Exception("A colour mod did not restore her original art when off.");
                 sheet.SwitchMod(0);
                 mods.SetColour(ArtColors.Eyes, "#FFAA00");
                 if (mods.All.FindAll(m => m.On && m.File.Colors != null).Count != 1 || mods.ColoursNow[ArtColors.Hair] != "#0000FF") throw new Exception("Picked colors lost the other slots or left two sets on.");
@@ -3536,9 +3605,9 @@ namespace CapriDesktop
                 sheet.SaveColours();
                 if (mods.ColoursNow[ArtColors.Hair] != "#0000FF" || !sheet.StatusText.Contains("isn't a colour")) throw new Exception("Invalid color entry saved part of a change.");
                 ModColour(sheet, "Eyes").Box.Text = "#FFAA00"; sheet.SaveColours(); mods.Load();
-                if (mods.ColoursNow[ArtColors.Hair] != "#00FF00" || ModPixel(idle.Strip, 95, 90).Green < 200) throw new Exception("The Mods window did not save and apply picked colors.");
+                if (mods.ColoursNow[ArtColors.Hair] != "#00FF00" || ModPixel(idle.Strip, 36, 74).Green < 200) throw new Exception("The Mods window did not save and apply picked colors.");
                 mods.ResetColours();
-                if (ModPixel(idle.Strip, 95, 90) != original || ArtColors.Active) throw new Exception("Reset did not restore her colors.");
+                if (ModPixel(idle.Strip, 36, 74) != original || ArtColors.Active) throw new Exception("Reset did not restore her colors.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
                 foreach (string bad in new[] { "red", "#12", "#GGGGGG" })
                 {
@@ -3552,13 +3621,13 @@ namespace CapriDesktop
                 string skin = ModSkin(input, "smoke-skin", "idle.png", size.Width, size.Height);
                 if (!sheet.ImportMod(skin) || ModPixel(idle.Strip, 0, 0).Red != 255 || ModPixel(walk.Strip, 0, 0) != walkWas) throw new Exception("A skin did not swap its strip or changed a strip it doesn't hold.");
                 sheet.SwitchMod(0);
-                if (ModPixel(idle.Strip, 95, 90) != original) throw new Exception("Turning a skin off did not restore her art.");
+                if (ModPixel(idle.Strip, 36, 74) != original) throw new Exception("Turning a skin off did not restore her art.");
                 sheet.SwitchMod(0); mods.Load();
                 if (ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("A skin did not survive reload.");
                 sheet.ImportMod(blue);
                 if (ModPixel(idle.Strip, 0, 0).Blue < 200) throw new Exception("Colors did not apply to a skin.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
-                if (Pet.SkinFolder != null || ModPixel(idle.Strip, 95, 90) != original || Directory.Exists(Path.Combine(mods.Folder, "smoke-skin-skin"))) throw new Exception("Removing skins left her art changed.");
+                if (Pet.SkinFolder != null || ModPixel(idle.Strip, 36, 74) != original || Directory.Exists(Path.Combine(mods.Folder, "smoke-skin-skin"))) throw new Exception("Removing skins left her art changed.");
                 string[] badSkins = { ModSkin(input, "smoke-size", "idle.png", 10, 10), ModSkin(input, "smoke-path", "../idle.png", size.Width, size.Height), ModSkin(input, "smoke-unknown", "other.png", size.Width, size.Height) };
                 foreach (string bad in badSkins)
                 {
@@ -3567,6 +3636,15 @@ namespace CapriDesktop
                 }
                 if (Directory.GetDirectories(mods.Folder, "skin-import-*").Length != 0) throw new Exception("A refused skin left its temporary folder.");
                 checks.Add("PASS mods skins: import swaps art, missing strips keep hers, off and removal restore it, reload and colors work, and invalid sizes and paths are refused");
+
+                string oldSkin = ModSkin(input, "smoke-old", "idle.png", Mods.OldIdleWide, Mods.OldIdleHigh);
+                if (!sheet.ImportMod(oldSkin) || !idle.Old || idle.Count != 16 || idle.Fps != 8 || idle.ShiftX != 0 || !idle.Even || idle.Wide != 240) throw new Exception("A skin from before her standing set didn't keep its 16 cells: " + idle.Count + " at " + idle.Fps + ".");
+                mods.Load();
+                if (!idle.Old) throw new Exception("An old skin didn't stay in its cells after a reload.");
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+                if (idle.Old || idle.Count != 60 || idle.Fps != 24 || idle.Wide != 116) throw new Exception("Taking an old skin off didn't bring her new stand back.");
+                checks.Add("PASS mods old skins: a 3840 x 384 idle.png keeps its 16 cells at 8 fps through a reload, and off brings her new stand back");
+                LegacyChecks(frame, sheet, idle, blue, input);
 
                 string code = Path.Combine(input, "smoke-code" + Mods.CodeExtension); File.WriteAllText(code, "This must never be compiled.");
                 bool asked = false;
