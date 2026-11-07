@@ -216,7 +216,7 @@ namespace CapriDesktop
 #if CROSS
         internal static string Data { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri"); } }
 #else
-        internal static string Data { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri"); } }
+        internal static string Data { get { return Packaged.Home(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)); } }
 #endif
 
         internal static string Cap(string text, int limit) { return text.Length > limit ? text.Substring(0, limit - 1) + "\u2026" : text; }

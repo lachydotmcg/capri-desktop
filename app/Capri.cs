@@ -64,7 +64,7 @@ namespace CapriDesktop
                 }
                 try
                 {
-                    string data = smoke || bench ? Path.GetFullPath(args[1]) : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri");
+                    string data = smoke || bench ? Path.GetFullPath(args[1]) : Packaged.Home(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
                     Brain.LogPath = Path.Combine(data, "errors.txt");
                     // Whatever ends her, their own cursor comes back, and a crash goes in errors.txt.
                     AppDomain.CurrentDomain.ProcessExit += delegate { HerCursor.Off(); };
