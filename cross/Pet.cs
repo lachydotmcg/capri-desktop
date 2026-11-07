@@ -103,7 +103,8 @@ namespace CapriDesktop
         private readonly int count;
         private readonly double fps;
         private readonly double shiftX, shiftY;
-        // The cells a skin's strip can still come in after her own art moved on: this wide means count cells at fps, drawn unshifted.
+        // The cells a strip can still come in after her own art moved on, a skin's or Legacy stand's: this wide means count cells at
+        // fps, drawn unshifted.
         private int oldWide, oldCount;
         private double oldFps;
         internal int Count { get { return Old ? oldCount : count; } }
@@ -132,7 +133,7 @@ namespace CapriDesktop
             return this;
         }
 
-        // Whether the art that's in is a skin's strip in the old cells.
+        // Whether the art that's in sits in the old cells: a skin's strip, or Legacy stand's.
         internal bool Old { get { return oldWide > 0 && Strip.PixelSize.Width == oldWide; } }
 
         internal void Reload()
@@ -2713,6 +2714,7 @@ namespace CapriDesktop
             switch (name)
             {
                 case "head_pats": return HeadPats;
+                case "legacy_stand": return LegacyStand;
                 case "follow_ups": return FollowUps;
                 case "keep_awake": return KeepAwake;
                 case "voice": return Speaks;
@@ -2742,6 +2744,7 @@ namespace CapriDesktop
             switch (name)
             {
                 case "head_pats": SetHeadPats(on); break;
+                case "legacy_stand": SetLegacyStand(on); break;
                 case "follow_ups": SetFollowUps(on); break;
                 case "keep_awake": SetKeepAwake(on); break;
                 case "voice": SetSpeak(on); break;
@@ -4835,6 +4838,7 @@ namespace CapriDesktop
             [DataMember] internal int[] CareTimes;
             [DataMember] internal long CareNight;
             [DataMember] internal bool NoHeadPats;
+            [DataMember] internal bool LegacyStand;
             [DataMember] internal bool NoFollowUps;
             [DataMember] internal bool NoKeepAwake;
             [DataMember] internal string Vault;
@@ -4864,6 +4868,7 @@ namespace CapriDesktop
             saved.CareTimes = newer.CareTimes;
             saved.CareNight = newer.CareNight;
             saved.NoHeadPats = newer.NoHeadPats;
+            saved.LegacyStand = newer.LegacyStand;
             saved.NoFollowUps = newer.NoFollowUps;
             saved.NoKeepAwake = newer.NoKeepAwake;
             saved.Vault = newer.Vault;
@@ -4875,7 +4880,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, HuskMode = saved.HuskMode };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, HuskMode = saved.HuskMode };
         }
 
         private Settings Load()

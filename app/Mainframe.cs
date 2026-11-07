@@ -114,6 +114,7 @@ namespace CapriDesktop
         private readonly Toggle headPats;
         private readonly Toggle upsetChaos;
         private readonly Toggle hologram;
+        private readonly Toggle legacyStand;
         private readonly Toggle startup;
         private readonly Toggle discord;
         private readonly Toggle cursor;
@@ -279,7 +280,7 @@ namespace CapriDesktop
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1316, 1368 }, new[] { 1368, 1396 } };
         // Power saver's row stays in Simple Settings, so the right column's last band starts a row lower, at Perch.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 680, 1090 }, new[] { 1314, 2140 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 708, 1118 }, new[] { 1342, 2168 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -825,6 +826,8 @@ namespace CapriDesktop
             // Hologram stays reversible here even while clicks pass through her body (Lachy, 2 Nov).
             hologram = Switch("Hologram", c, 278, delegate { if (!syncing) capri.ToggleHologram(); });
             hologram.AccessibleName = "Hologram. Clicks pass through her body, talk pill and bubble. Turn this off to give her clicks back";
+            legacyStand = Switch("Legacy stand", c, 306, delegate { if (!syncing) capri.ToggleLegacyStand(); });
+            legacyStand.AccessibleName = "Legacy stand. She goes back to her old stand";
             int afterPats = Controls.Count;
             Section("WATCH >", c, 208);
             watch = Switch("Watch my screen", c, 232, delegate { if (!syncing) capri.ToggleWatch(); });
@@ -987,9 +990,9 @@ namespace CapriDesktop
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
                 if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row;
-            // Mainframe colours, Head pats, Chaos when upset and Hologram each take a row under Mainframe size.
+            // Mainframe colours, Head pats, Chaos when upset, Hologram and Legacy stand each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
-                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 4;
+                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 5;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
                 if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
             // The hearing row and Her voice in your mic's rows push GAMES down under KEYS too.
@@ -1715,6 +1718,26 @@ namespace CapriDesktop
 
         internal bool HeadPatsShown { get { return headPats.Checked; } }
         internal bool UpsetChaosShown { get { return upsetChaos.Checked; } }
+        internal bool LegacyStandShown { get { return legacyStand.Checked; } }
+        internal string LegacyStandTip { get { return legacyStand.AccessibleDescription; } }
+        internal void FlipLegacyStand() { legacyStand.Checked = !legacyStand.Checked; }
+        // How far down each column of the Settings page reaches in the view that's open, against the page's height.
+        internal string PageReach
+        {
+            get
+            {
+                int left = 0, right = 0;
+                foreach (KeyValuePair<Control, int> entry in pageLeft)
+                {
+                    if (Folded(entry.Key) || Hidden(entry.Key)) continue;
+                    if (entry.Value >= Column) right = Math.Max(right, entry.Key.Bottom);
+                    else left = Math.Max(left, entry.Key.Bottom);
+                }
+                int down = Scaled(pageScroll);
+                return (left + down) + " | " + (right + down) + " | " + Scaled(PageNow);
+            }
+        }
+        internal bool LegacyStandInPage { get { return !Folded(legacyStand) && !Hidden(legacyStand) && PageArea.Contains(legacyStand.Bounds); } }
 
         internal string WanderShown { get { return wanderName.Text; } }
 
@@ -2853,6 +2876,7 @@ namespace CapriDesktop
             dance.Checked = capri.Dancing;
             headPats.Checked = capri.HeadPats;
             upsetChaos.Checked = capri.UpsetChaos;
+            legacyStand.Checked = capri.LegacyStand;
             hologram.Checked = capri.HologramOn;
             bubble.Value = capri.BubbleTime;
             bubbleName.Text = BubbleNames[bubble.Value];

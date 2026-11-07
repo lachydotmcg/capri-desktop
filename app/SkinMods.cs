@@ -23,6 +23,10 @@ namespace CapriDesktop
         private const string SkinDetails = "skin.json";
         // Skins made before her artist's standing set hold idle.png in her old 16 cells of 240 by 384, and they still draw in those.
         internal const int OldIdleWide = 3840, OldIdleHigh = 384;
+        // Legacy stand's hover tip, the same on every platform: Lachy's line, his spelling, and nothing else.
+        internal const string LegacyTip = "Incase it broke your mod, soz!";
+        // Legacy stand's art is her own strip from 0.8.5, in those same old cells. Skins are read first, so a skin's idle.png wins.
+        internal static string StandArt(string name, bool legacy) { return legacy && name == "Capri.Sprite.idle.png" ? "Capri.Sprite.idle_legacy.png" : name; }
         internal Action SkinChanged;
 
         private string SkinHome(string id) { return Path.Combine(folder, id + "-skin"); }
@@ -212,6 +216,7 @@ namespace CapriDesktop
     internal sealed partial class Companion
     {
         internal static volatile string SkinFolder;
+        internal static volatile bool LegacyArt;
 
         internal static Size ArtSize(string name)
         {
@@ -422,6 +427,231 @@ namespace CapriDesktop
                 }
             }
             return kinds;
+        }
+
+        private const string LegacySha = "ed63f8c677afa9c2be8b76e850547882b88fa76ea9206e3d20f758cce65ed2a0";
+
+        // Legacy stand: off to start, her 0.8.5 strip byte for byte, a live swap each way through its row and her tool, saved, drawn
+        // the way she stood in 0.8.5, colours on it, and a skin's own idle over it.
+        private void CheckLegacyStand(List<string> checks, string output)
+        {
+            Mods mods = ModList;
+            bool motionWas = preferences.Motion, leftWas = facingLeft, veiledWas = veiled, legacyWas = preferences.LegacyStand;
+            double veilWas = veilUntil, leanWas = leanAngle, glitchWas = nextGlitch;
+            Clip clipWas = clip;
+            Ledge seatWas = seat;
+            bool ridingWas = riding, draggingWas = dragging, walkingWas = walking, fallingWas = falling, busyWas = frontBusy;
+            string speechWas = speech;
+            try
+            {
+                seat = null;
+                riding = dragging = walking = falling = frontBusy = false;
+                speech = null;
+                preferences.Motion = false;
+                veiled = false;
+                veilUntil = -1;
+                leanAngle = 0;
+                nextGlitch = double.MaxValue;
+                facingLeft = false;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                Play(idle);
+
+                Preferences older;
+                using (MemoryStream saved = new MemoryStream(Encoding.UTF8.GetBytes("{}"))) older = (Preferences)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Preferences)).ReadObject(saved);
+                if (new Preferences().LegacyStand || older.LegacyStand || LegacyStand || mainframe.LegacyStandShown || LegacyArt) throw new Exception("Legacy stand didn't start off.");
+                if (idle.Old || dance.Old || idle.Count != 60 || idle.Fps != 24 || idle.ShiftX != IdleShiftX || !idle.HasFlipped) throw new Exception("With Legacy stand off she wasn't on her new stand.");
+                using (Stream strip = Assembly2.GetManifestResourceStream("Capri.Sprite.idle_legacy.png"))
+                using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
+                    if (strip == null || BitConverter.ToString(sha.ComputeHash(strip)).Replace("-", "").ToLowerInvariant() != LegacySha) throw new Exception("Legacy stand's strip isn't 0.8.5's, byte for byte.");
+                if (mainframe.LegacyStandTip != "Incase it broke your mod, soz!" || mainframe.LegacyStandTip != Mods.LegacyTip) throw new Exception("Legacy stand's tip isn't his line: " + mainframe.LegacyStandTip);
+                checks.Add("PASS legacy stand: off by default in new and older settings, 0.8.5's strip byte for byte in the build, and its tip is exactly his line");
+
+                using (Bitmap plain = Stood(idle, 29)) plain.Save(Path.Combine(output, "new-right.png"), ImageFormat.Png);
+                int newFloor;
+                double newMiddle;
+                using (Bitmap plain = Stood(idle, 0)) Footing(plain, out newFloor, out newMiddle);
+                System.Diagnostics.Stopwatch swap = System.Diagnostics.Stopwatch.StartNew();
+                mainframe.FlipLegacyStand();
+                swap.Stop();
+                long swapOn = swap.ElapsedMilliseconds;
+                if (!LegacyStand || !LegacyArt || !mainframe.LegacyStandShown || !LoadPreferences().LegacyStand) throw new Exception("Legacy stand's row didn't turn it on and save it.");
+                // A restart with it on: her clips come up in her own art, then startup puts it back.
+                LegacyArt = false;
+                Clip.ReloadAll();
+                if (idle.Old || idle.Count != 60) throw new Exception("Her clips didn't go back to her own art for the restart.");
+                ArtAtStart();
+                if (!LegacyArt) throw new Exception("A restart with Legacy stand on lost it.");
+                if (!idle.Old || !dance.Old || idle.Count != 16 || idle.Fps != 8 || dance.Count != 16 || dance.Fps != 8 || idle.ShiftX != 0 || idle.ShiftY != 0 || idle.Strip.Width != Mods.OldIdleWide || idle.Strip.Height != Mods.OldIdleHigh)
+                    throw new Exception("Legacy stand didn't swap her live to 16 cells at 8 fps: " + idle.Count + " at " + idle.Fps + ".");
+                if (drawnClip != null && !IsHandleCreated) throw new Exception("Legacy stand left an old frame up.");
+                Color hairOld = idle.Strip.GetPixel(95, 90);
+                if (hairOld.A != 255 || hairOld.R != 251 || hairOld.G != 0 || hairOld.B != 72) throw new Exception("Legacy stand wasn't 0.8.5's strip: " + hairOld);
+                if (idle.HasFlipped || idle.Flipped != null || idle.FlippedNow != null) throw new Exception("Legacy stand wore her new facing-left art.");
+                int oldFloor;
+                double oldMiddle;
+                Rectangle area;
+                using (Bitmap cell = Stood(idle, 5))
+                {
+                    Footing(cell, out oldFloor, out oldMiddle);
+                    area = SpriteBounds(cell, 1);
+                    cell.Save(Path.Combine(output, "legacy-right.png"), ImageFormat.Png);
+                }
+                if (Math.Abs(oldFloor - newFloor) > 2 || Math.Abs(oldMiddle - newMiddle) > 6) throw new Exception("Legacy stand's feet or body moved off her new stand's: " + oldFloor + ", " + oldMiddle + " against " + newFloor + ", " + newMiddle);
+                facingLeft = true;
+                if (Art(idle) != idle.Strip) throw new Exception("Facing left, Legacy stand didn't draw its own art.");
+                using (Bitmap cell = Stood(idle, 5))
+                {
+                    Rectangle mirrored = SpriteBounds(cell, 1);
+                    if (Math.Abs(Width - mirrored.Right - area.Left) > 2) throw new Exception("Facing left, Legacy stand didn't mirror: " + mirrored + " against " + area);
+                    cell.Save(Path.Combine(output, "legacy-left.png"), ImageFormat.Png);
+                }
+                facingLeft = false;
+                Play(idle);
+                if (Blinks(false) != blink || Blinks(true) != blinkGlitch) throw new Exception("Legacy stand lost her old blink.");
+                preferences.Motion = true;
+                clipStart = clock.Elapsed.TotalSeconds - (BlinkFrom + 0.5) / idle.Fps;
+                blinkWith = blink;
+                idleCycle = 0;
+                if (Advance(clock.Elapsed.TotalSeconds) != BlinkFrom) throw new Exception("Legacy stand's loop didn't run at 8 fps.");
+                preferences.Motion = false;
+                using (Bitmap shut = Stood(blink, 1)) shut.Save(Path.Combine(output, "legacy-blink.png"), ImageFormat.Png);
+                using (Bitmap quiet = Stood(idle, 5))
+                using (Bitmap saying = Stood(idle, 5, 3))
+                {
+                    Rectangle jaw;
+                    if (Changed(quiet, 0, saying, 0, quiet.Width, out jaw) < 20) throw new Exception("Legacy stand lost her old mouth.");
+                    int jawRow = PaddingSize + (int)(preferences.Size * (0.5f + (130 - 192) * 1.11f / 384));
+                    if (Math.Abs(jaw.Top - jawRow) > 14) throw new Exception("Legacy stand's mouth moved: " + jaw + " against row " + jawRow);
+                    saying.Save(Path.Combine(output, "legacy-talk.png"), ImageFormat.Png);
+                }
+                frontBusy = true;
+                if (Resting(clock.Elapsed.TotalSeconds) || FrameInterval(clock.Elapsed.TotalSeconds) != 115) throw new Exception("Legacy stand lost her old pace over a game.");
+                frontBusy = false;
+                swap.Restart();
+                mainframe.FlipLegacyStand();
+                swap.Stop();
+                if (LegacyStand || LegacyArt || mainframe.LegacyStandShown || LoadPreferences().LegacyStand) throw new Exception("Legacy stand's row didn't turn it off and save it.");
+                if (idle.Old || dance.Old || idle.Count != 60 || idle.Fps != 24 || dance.Count != 60 || idle.ShiftX != IdleShiftX || !idle.HasFlipped) throw new Exception("Legacy stand off didn't bring her new stand back: " + idle.Count + " at " + idle.Fps + ".");
+                Play(idle);
+                if (Blinks(false) != idleBlink || Blinks(true) != idleBlinkGlitch) throw new Exception("Legacy stand off didn't bring her new blink back.");
+                checks.Add("PASS legacy stand: its row swaps her live to 16 cells at 8 fps in 0.8.5's place, mirrored facing left, with the old blink, mouth and pace, and back to 60 at 24 fps, saving each way and coming back after a restart, in " + swapOn + " ms on and " + swap.ElapsedMilliseconds + " ms off");
+
+                string turned = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "legacy_stand" });
+                if (turned != "Turned Legacy stand on." || !LegacyStand || !mainframe.LegacyStandShown || idle.Count != 16) throw new Exception("Her settings tool didn't turn Legacy stand on: " + turned);
+                string again = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "legacy_stand" });
+                string listed = Hands.Do("capri_settings", new ToolArguments { Action = "list", Name = "legacy_stand" });
+                turned = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "legacy_stand" });
+                if (turned != "Turned Legacy stand off." || LegacyStand || mainframe.LegacyStandShown || idle.Count != 60 || again != "Legacy stand was already on." || listed.IndexOf("Legacy stand on", StringComparison.Ordinal) < 0)
+                    throw new Exception("Her settings tool didn't read or turn Legacy stand off: " + turned + " / " + again + " / " + listed);
+                if (!SelfKnow.Matching("how do I get your old stand back?").StartsWith("Legacy stand:", StringComparison.Ordinal)) throw new Exception("Her help didn't find Legacy stand from plain words.");
+                checks.Add("PASS legacy stand: her settings tool turns it on and off, reads it back and keeps Mainframe's row in step, and her help finds it from plain words");
+
+                bool settingsWas = mainframe.SettingsShown;
+                string reach = "";
+                Action<bool> fits = delegate (bool advanced)
+                {
+                    mainframe.ShowSettings(true);
+                    if (mainframe.AdvancedShown != advanced) throw new Exception("Settings didn't open " + (advanced ? "Advanced." : "Simple."));
+                    reach += (advanced ? "Advanced " : "Simple ") + mainframe.PageReach + "; ";
+                    if (!mainframe.LegacyStandInPage) throw new Exception("Legacy stand's row is off the page: " + reach);
+                    string[] parts = mainframe.PageReach.Split('|');
+                    if (Math.Max(int.Parse(parts[0].Trim()), int.Parse(parts[1].Trim())) > int.Parse(parts[2].Trim())) throw new Exception("The Settings page runs past its height: " + reach);
+                };
+                InSimpleSettings(delegate { fits(false); });
+                fits(true);
+                mainframe.ShowSettings(settingsWas);
+                checks.Add("PASS legacy stand: its row shows in Simple and Advanced Settings and everything below it still fits the page (" + reach.TrimEnd(' ', ';') + ")");
+
+                mainframe.FlipLegacyStand();
+                Color accent = idle.Strip.GetPixel(120, 200);
+                ArtColors.Set(new[] { "#0000FF", null, null, null, null });
+                Clip.ReloadAll();
+                Color tinted = idle.Strip.GetPixel(95, 90), sameAccent = idle.Strip.GetPixel(120, 200);
+                if (!idle.Old || idle.Count != 16 || tinted.B < 200 || tinted.R > 30 || Math.Abs(sameAccent.G - accent.G) > 4) throw new Exception("A colour mod didn't reach Legacy stand: " + tinted);
+                mainframe.FlipLegacyStand();
+                if (idle.Strip.GetPixel(36, 74).B < 200) throw new Exception("A colour mod dropped off when Legacy stand went off.");
+                mainframe.FlipLegacyStand();
+                if (idle.Strip.GetPixel(95, 90).B < 200) throw new Exception("A colour mod dropped off when Legacy stand came on.");
+                ArtColors.Set(new string[ArtColors.Slots]);
+                Clip.ReloadAll();
+                Color plainHair = idle.Strip.GetPixel(95, 90);
+                if (plainHair.R != 251 || plainHair.B != 72) throw new Exception("Taking colours off left Legacy stand coloured: " + plainHair);
+
+                Func<string, int, Color, Mod> wear = delegate(string id, int wide, Color paint)
+                {
+                    string file = Path.Combine(output, id + Mods.SkinExtension);
+                    File.Delete(file);
+                    using (ZipArchive zip = ZipFile.Open(file, ZipArchiveMode.Create))
+                    using (Bitmap art = new Bitmap(wide, Mods.OldIdleHigh, PixelFormat.Format32bppArgb))
+                    using (MemoryStream made = new MemoryStream())
+                    {
+                        Put(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\"}"));
+                        using (Graphics paper = Graphics.FromImage(art)) paper.Clear(paint);
+                        art.Save(made, ImageFormat.Png);
+                        Put(zip, "idle.png", made.ToArray());
+                    }
+                    return mods.Import(file, null);
+                };
+                Mod worn = wear("legacy-old", Mods.OldIdleWide, Color.FromArgb(255, 10, 200, 90));
+                try
+                {
+                    Color skinned = idle.Strip.GetPixel(10, 10);
+                    if (worn == null || !idle.Old || skinned.G != 200 || skinned.R != 10) throw new Exception("Legacy stand went over a skin's own old idle: " + skinned);
+                    mods.Remove(worn);
+                    worn = null;
+                    if (!idle.Old || idle.Strip.GetPixel(10, 10).A != 0) throw new Exception("Taking a skin off lost Legacy stand.");
+                    worn = wear("legacy-new", Companion.ArtSize("Capri.Sprite.idle.png").Width, Color.FromArgb(255, 20, 40, 220));
+                    skinned = idle.Strip.GetPixel(10, 10);
+                    if (worn == null || idle.Old || idle.Count != 60 || idle.Fps != 24 || skinned.B != 220 || !LegacyStand) throw new Exception("Legacy stand went over a skin's own new idle: " + idle.Count + ", " + skinned);
+                    mods.Remove(worn);
+                    worn = null;
+                    if (!idle.Old || idle.Count != 16) throw new Exception("Taking a new skin off lost Legacy stand.");
+                }
+                finally { if (worn != null) mods.Remove(worn); }
+                string folder = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), "..", "..", "mods"));
+                string cyan = Path.Combine(folder, "colors-cyber-cyan" + Mods.Extension), maidFile = Path.Combine(folder, "maid-suit" + Mods.SkinExtension);
+                if (File.Exists(cyan))
+                {
+                    Mod colours = mods.Import(cyan, null);
+                    using (Bitmap coloured = Stood(idle, 5)) coloured.Save(Path.Combine(output, "legacy-colour.png"), ImageFormat.Png);
+                    mods.Remove(colours);
+                }
+                else checks.Add("LIMIT legacy stand: the colour preset isn't beside this build, so its preview wasn't drawn");
+                if (File.Exists(maidFile))
+                {
+                    Mod maid = mods.Import(maidFile, null);
+                    try
+                    {
+                        if (maid == null || !idle.Old || idle.Strip.GetPixel(95, 90).ToArgb() == plainHair.ToArgb() && idle.Strip.GetPixel(120, 240).ToArgb() == accent.ToArgb()) throw new Exception("The Maid Suit didn't win over Legacy stand.");
+                        using (Bitmap dressed = Stood(idle, 0)) dressed.Save(Path.Combine(output, "legacy-maid.png"), ImageFormat.Png);
+                    }
+                    finally { if (maid != null) mods.Remove(maid); }
+                }
+                else checks.Add("LIMIT legacy stand: the Maid Suit file isn't beside this build, so a real skin wasn't tried over it");
+                mainframe.FlipLegacyStand();
+                if (LegacyStand || idle.Old || idle.Count != 60) throw new Exception("Legacy stand stayed on after its row went off.");
+                checks.Add("PASS legacy stand: colour mods work on it, either way round, and a skin's own idle wins over it, old cells or new");
+            }
+            finally
+            {
+                foreach (Mod left in mods.All.ToArray()) if (left.Skin || left.File.Colors != null) mods.Remove(left);
+                ArtColors.Set(new string[ArtColors.Slots]);
+                if (preferences.LegacyStand != legacyWas) ToggleLegacyStand();
+                preferences.Motion = motionWas;
+                facingLeft = leftWas;
+                veiled = veiledWas;
+                veilUntil = veilWas;
+                leanAngle = leanWas;
+                nextGlitch = glitchWas;
+                seat = seatWas;
+                riding = ridingWas;
+                dragging = draggingWas;
+                walking = walkingWas;
+                falling = fallingWas;
+                frontBusy = busyWas;
+                speech = speechWas;
+                Play(clipWas);
+            }
         }
 
         // Her artist's standing set: its timing, its floor and body line against every clip she moves to and from, facing either

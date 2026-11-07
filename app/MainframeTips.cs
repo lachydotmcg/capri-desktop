@@ -28,6 +28,7 @@ namespace CapriDesktop
 
         private string HintFacts(SettingHint hint)
         {
+            if (hint.Exact != null) return hint.Exact;
             return hint.Control == screens && screenNote != null ? screenNote + " " + HintCard.Unpathed(hint.Topic.Facts) : hint.Topic.Facts;
         }
 
@@ -56,6 +57,8 @@ namespace CapriDesktop
             internal Control Control, Label;
             internal SelfKnow.Topic Topic;
             internal string Title, Text;
+            // A tip that's exactly these words, with no heading, instead of her help on the setting.
+            internal string Exact;
 
             internal Rectangle Bounds
             {
@@ -163,6 +166,9 @@ namespace CapriDesktop
             for (int i = 0; i < careTimes.Length; i++) Explain(careTimes[i], Care.Names[i], "Care.cs", null, Care.Names[i] + " time");
             Explain(clipChoose, "Save folder", "Mainframe.cs", FindHintLabel("Save folder"), "Save folder");
             Explain(clipsFolder, "Save folder", "Mainframe.cs", null, "Open clips folder");
+            // Lachy's line is the whole tip here. What the setting does is in SelfKnow, for when they ask her.
+            hints[legacyStand].Exact = Mods.LegacyTip;
+            hints[legacyStand].Title = "";
             hintDelay.Tick += delegate { ShowHint(); };
             Deactivate += delegate { DismissHint(); };
             VisibleChanged += delegate { if (!Visible) DismissHint(); };
@@ -293,6 +299,7 @@ namespace CapriDesktop
             private Rectangle titleBox, bodyBox;
             private string title;
             internal string Body;
+            internal string Heading { get { return title; } }
 
             internal HintCard()
             {
@@ -375,7 +382,9 @@ namespace CapriDesktop
                 int width = Math.Min((int)Math.Round(360 * unit), room.Width), inside = width - padding * 2;
                 if (inside < bodyFont.Height * 3) return false;
                 title = name;
-                int titleHeight = Measure(name, titleFont, inside).Height;
+                bool headed = name.Length > 0;
+                if (!headed) gap = 0;
+                int titleHeight = headed ? Measure(name, titleFont, inside).Height : 0;
                 int lines = Math.Min(6, (room.Height - padding * 2 - gap - titleHeight) / bodyFont.Height);
                 if (lines < 1) return false;
                 Body = Brief(facts, bodyFont, inside, lines);
@@ -384,8 +393,9 @@ namespace CapriDesktop
                 if (bodyHeight + titleHeight + gap + padding * 2 > room.Height) return false;
                 titleBox = new Rectangle(padding, padding, inside, titleHeight);
                 bodyBox = new Rectangle(padding, titleBox.Bottom + gap, inside, bodyHeight);
-                ClientSize = new Size(width, bodyBox.Bottom + padding);
-                AccessibleName = title;
+                // A card with no heading is only as wide as its words.
+                ClientSize = new Size(headed ? width : Math.Min(width, Measure(Body, bodyFont, inside).Width + padding * 2), bodyBox.Bottom + padding);
+                AccessibleName = headed ? title : Body;
                 AccessibleDescription = Body;
                 Neon.Clip(this, 9 * unit, 3 * unit);
                 return true;

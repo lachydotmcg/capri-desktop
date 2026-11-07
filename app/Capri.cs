@@ -845,6 +845,8 @@ namespace CapriDesktop
         // Off until they turn it on (Lachy, 2 Nov: "Chaos when upset can be off by default"). It replaced NoUpsetChaos, which
         // was on by default, so everyone starts with it off.
         [DataMember] public bool UpsetChaos;
+        // Off until they turn it on (Lachy, 7 Nov: "Maybe add a legacy stand"): her stand from 0.8.5, for mods her new one broke.
+        [DataMember] public bool LegacyStand;
         [DataMember] public string Language;
         [DataMember] public string Nickname;
         [DataMember] public int Wordiness;
@@ -1433,8 +1435,8 @@ namespace CapriDesktop
         private readonly int count;
         private readonly double fps;
         private readonly float shiftX, shiftY;
-        // The cells a skin's strip can still come in after her own art moved on: this wide means count cells at fps, drawn
-        // unshifted, with no facing-left set of their own.
+        // The cells a strip can still come in after her own art moved on, a skin's or Legacy stand's: this wide means count cells
+        // at fps, drawn unshifted, with no facing-left set of their own.
         private int oldWide, oldCount;
         private double oldFps;
         internal int Count { get { return source != null ? source.Count : Old ? oldCount : count; } }
@@ -1474,7 +1476,7 @@ namespace CapriDesktop
             return this;
         }
 
-        // Whether the art that's in is a skin's strip in the old cells.
+        // Whether the art that's in sits in the old cells: a skin's strip, or Legacy stand's.
         internal bool Old { get { return source != null ? source.Old : oldWide > 0 && Strip.Width == oldWide; } }
 
         private bool Turns { get { return flippable && !Old; } }
@@ -2579,7 +2581,7 @@ namespace CapriDesktop
             GameNotes.Skills = ModList.SkillsFor;
             ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
             ModList.SkinChanged = Reskinned;
-            if (SkinFolder != null || ArtColors.Active) Clip.ReloadAll();
+            ArtAtStart();
             Shown += delegate { ModList.StartCode(Post); };
             mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             PrepareHusk(data);
@@ -3024,7 +3026,7 @@ namespace CapriDesktop
         {
             Bitmap skinned = SkinArt(name);
             if (skinned != null) return skinned;
-            using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+            using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream(Mods.StandArt(name, LegacyArt)))
             {
                 if (image == null) return null;
                 using (Bitmap original = new Bitmap(image))
@@ -6447,6 +6449,25 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
+        internal bool LegacyStand { get { return preferences.LegacyStand; } }
+
+        // Her clips start out in her own art, so anything saved that changes it goes on before she's first drawn.
+        private void ArtAtStart()
+        {
+            LegacyArt = preferences.LegacyStand;
+            if (SkinFolder != null || ArtColors.Active || LegacyArt) Clip.ReloadAll();
+        }
+
+        // Her art swaps the way a skin's does, so it shows on the next frame with no restart.
+        internal void ToggleLegacyStand()
+        {
+            preferences.LegacyStand = !preferences.LegacyStand;
+            LegacyArt = preferences.LegacyStand;
+            Reskinned();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         internal bool VoiceWorking { get { return voice.Ready && !preferences.Quiet && !voiceBroken; } }
 
         internal bool TypingSound { get { return preferences.Typing == 1 || (preferences.Typing == 0 && !VoiceWorking); } }
@@ -8468,6 +8489,22 @@ namespace CapriDesktop
         private bool simpleTest;
         internal bool AdvancedSettings { get { return (testing && !simpleTest) || preferences.AdvancedSettings; } }
         internal void ToggleAdvancedSettings() { preferences.AdvancedSettings = !preferences.AdvancedSettings; SavePreferences(); }
+        // For a check to see Settings as people first see it. ToggleAdvancedSettings can't do that under test.
+        internal void InSimpleSettings(Action check)
+        {
+            bool simpleWas = simpleTest, advancedWas = preferences.AdvancedSettings;
+            try
+            {
+                simpleTest = true;
+                preferences.AdvancedSettings = false;
+                check();
+            }
+            finally
+            {
+                simpleTest = simpleWas;
+                preferences.AdvancedSettings = advancedWas;
+            }
+        }
         internal int ExploreAfter { get { return preferences.ExploreAfter > 0 ? preferences.ExploreAfter : 300; } }
 
         internal void ToggleKeepAwake()
@@ -10058,6 +10095,7 @@ namespace CapriDesktop
                 case "dance_to_music": return Dancing;
                 case "head_pats": return HeadPats;
                 case "chaos_when_upset": return UpsetChaos;
+                case "legacy_stand": return LegacyStand;
                 case "sit_on_windows": return Sitting;
                 case "always_on_top": return OnTop;
                 case "mini_player": return PlayerOn;
@@ -10107,6 +10145,7 @@ namespace CapriDesktop
                 case "dance_to_music": ToggleDance(); return null;
                 case "head_pats": ToggleHeadPats(); return null;
                 case "chaos_when_upset": ToggleUpsetChaos(); return null;
+                case "legacy_stand": ToggleLegacyStand(); return null;
                 case "sit_on_windows": ToggleSitting(); return null;
                 case "always_on_top": ToggleOnTop(); return null;
                 case "mini_player": TogglePlayer(); return null;
@@ -19310,6 +19349,9 @@ namespace CapriDesktop
                 { "how does your wake word work?", "Listen for \"Hey Capri\"" },
                 { "how do I turn off head pats?", "Head pats" },
                 { "how do I turn off chaos when upset?", "Chaos when upset" },
+                { "how do I turn on the legacy stand?", "Legacy stand" },
+                { "how do I get your old stand back?", "Legacy stand" },
+                { "what do I do if your new stand broke my mod?", "Legacy stand" },
                 { "where did my settings go?", "Advanced Settings" },
                 { "what is the extras window?", "Extras" },
                 { "what is the call app setting?", "Call app" },
@@ -25309,7 +25351,7 @@ namespace CapriDesktop
                 {
                     { "voice", true }, { "quiet", false }, { "mic", null }, { "check_ins", true }, { "wander", false }, { "clip_my_games", false }, { "save_big_moments", false }, { "live_reactions", true }, { "gaming_mode", true }, { "hologram", false },
                     { "watch_my_screen", false }, { "game_comments", true },
-                    { "dance_to_music", true }, { "head_pats", true }, { "chaos_when_upset", false }, { "sit_on_windows", true }, { "always_on_top", true }, { "mini_player", true }, { "typing_sound", false }, { "follow_ups", true }, { "hide_in_full_screen", false }, { "glitch_in", true }
+                    { "dance_to_music", true }, { "head_pats", true }, { "chaos_when_upset", false }, { "legacy_stand", false }, { "sit_on_windows", true }, { "always_on_top", true }, { "mini_player", true }, { "typing_sound", false }, { "follow_ups", true }, { "hide_in_full_screen", false }, { "glitch_in", true }
                 };
                 System.Collections.Generic.List<string> flipped = new System.Collections.Generic.List<string>();
                 Hands.SettingOn = delegate(string name) { return state.ContainsKey(name) ? state[name] : null; };
@@ -25327,7 +25369,7 @@ namespace CapriDesktop
                 string stuck = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "wander" }), gaming = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "gaming_mode" });
                 string uncommented = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "game_comments" });
                 if (!settings.StartsWith("How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off; Watch my screen off; Game comments on; "
-                    + "Dance to music on; Head pats on; Chaos when upset off; Sit on windows on; Always on top on; Mini player on; Typing sound off; Follow-up messages on; Hide in full screen off; Glitch in at startup on; ", StringComparison.Ordinal)
+                    + "Dance to music on; Head pats on; Chaos when upset off; Legacy stand off; Sit on windows on; Always on top on; Mini player on; Typing sound off; Follow-up messages on; Hide in full screen off; Glitch in at startup on; ", StringComparison.Ordinal)
                     || !settings.Contains("my size: Medium; Wander: Off; Pop-ins: Sometimes; Sleep: 5 min; my voice's volume: 80%; my voice's speed: 1.2x; Replies: Medium; Bubble: Normal;")
                     || uncommented != "Turned Game comments off."
                     || clipped != "Turned Clip my games on." || again != "Clip my games was already on." || silent != "Turned my voice off." || deaf != "Couldn't change my voice chat mic: voice chat isn't on."
@@ -25555,7 +25597,7 @@ namespace CapriDesktop
                 preferences.HdVoice = preferences.ServerVoice = false;
                 // A settings file that's been read once is tuned, so reading one back here never retunes a voice left at its start.
                 preferences.VoiceTuned = preferences.VoiceRetuned = true;
-                for (int i = 22; i < Hands.OwnSwitches.GetLength(0); i++) switches[Hands.OwnSwitches[i, 0]] = SettingOn(Hands.OwnSwitches[i, 0]) == true;
+                for (int i = 23; i < Hands.OwnSwitches.GetLength(0); i++) switches[Hands.OwnSwitches[i, 0]] = SettingOn(Hands.OwnSwitches[i, 0]) == true;
                 for (int i = 8; i < Hands.OwnLevels.GetLength(0); i++) levels[Hands.OwnLevels[i, 0]] = LevelOf(Hands.OwnLevels[i, 0]);
                 string[,] toggles =
                 {
@@ -32676,6 +32718,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
+            Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });

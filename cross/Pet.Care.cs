@@ -8,6 +8,7 @@ namespace CapriDesktop
 {
     internal sealed partial class Settings
     {
+        [DataMember] internal bool LegacyStand;
         [DataMember] internal string CareSwitches;
         [DataMember] internal int[] CareTimes;
         [DataMember] internal long CareNight;
@@ -55,6 +56,7 @@ namespace CapriDesktop
         private readonly FollowUp followUp = new FollowUp();
         internal Action<Action> FollowQueue = run => ThreadPool.QueueUserWorkItem(_ => run());
         internal bool HeadPats { get { return !Saved.NoHeadPats; } }
+        internal bool LegacyStand { get { return Saved.LegacyStand; } }
         internal bool FollowUps { get { return !Saved.NoFollowUps; } }
 
         private void StartCare()
@@ -69,6 +71,8 @@ namespace CapriDesktop
         internal void SetCare(CareKind kind, bool on) { Saved.SetCare(kind, on, CareTime(kind)); if (!on && kind == CareKind.Bored) ForgetNudges(); Save(); }
         internal void SetCareTime(CareKind kind, int time) { Saved.SetCare(kind, CareOn(kind), time); Save(); }
         internal void SetHeadPats(bool on) { Saved.NoHeadPats = !on; ForgetPets(); Save(); }
+        // Her art swaps the way a skin's does, so it shows on the next frame with no restart.
+        internal void SetLegacyStand(bool on) { Saved.LegacyStand = on; LegacyArt = on; Reskinned(); Save(); }
         internal void SetFollowUps(bool on) { Saved.NoFollowUps = !on; if (!on) Answered(); Save(); }
         internal void OpenCare()
         {
