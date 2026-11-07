@@ -195,6 +195,9 @@ namespace CapriDesktop
 
         internal const string Playing =
             "\nThis job plays a game, and you're a real gamer who has played everything. Work out which game this is and use what you already know about it: its goal, its controls, how it's meant to be played, and what a good player would do next. Play like that person, not like someone following steps." +
+            "\nIf the game isn't open, open it with open_app, then get yourself into a game: press play and pick the mode, map or difficulty yourself, without asking." +
+            "\nIf what they named turns out to be a song or a video, not a game, play it and finish." +
+            "\nUnless they gave you an end, like one round, a win or a length of time, you keep playing until they stop you: when a run ends, win or lose, start the next one, and never finish just because a game ended." +
             "\nEach turn, look closely at the screen: where you are, what's around you, what's a threat, what you're trying to do right now. Then act. Send several moves in one turn when they belong together, like look, then walk, then mouse_hold, because the game doesn't wait while you think. Then check what changed." +
             "\nTo face something in a 3D game, call look with its x and y. Ordinary mouse moves don't turn a game's camera, and a click only hits what's at the crosshair in the middle of the view. Use walk to move, mouse_hold to mine, shoot, aim or use things, and key presses for the rest. In menus, inventories and maps the mouse is a normal pointer, so click as usual." +
             "\nMost PC games use wasd to move, space to jump, shift to run, ctrl or c to crouch, e or f to use things, r to reload, tab for scores or inventory, m for the map and esc to pause. If you lose track of how far up or down you're looking, call look with level yes. If you die or fail, respawn or retry and carry on, and work out what got you. If a click doesn't do what you wanted, try the other mouse button, then holding it. Story choices and dialogue options in their game are theirs: leave them alone unless they asked you to play the story. Games hitch: if one seems frozen or ignores you, wait 20 seconds and look again before you think it's stuck. Getting lost or stuck is normal, so turn around, go back, jump, or try another way, and keep playing until what they asked for is done or they say stop." +
@@ -2328,7 +2331,8 @@ namespace CapriDesktop
         internal Func<string, string, string, ClaudeReply> Drive;
         // Any brain that can see: a picture, what it's told and what to do, and its reply. Null for Claude's own computer tools.
         internal Func<byte[], string, string, string> Seer;
-        private int hitches;
+        private int hitches, hitchedAt;
+        internal int HitchPlay = 20;
         // Whether her fast hands can call the advisor, when they last did, and whether that ask failed.
         internal Func<bool> Advised;
         private int consulted;
@@ -2336,16 +2340,18 @@ namespace CapriDesktop
         private bool advisorDown;
         private bool Consults { get { Func<bool> advised = Advised; return Drive != null && advised != null && advised(); } }
 
-        // A game job that stops short gets sent back three times at most: games hitch, and players get lost.
+        // A game job that stops short gets sent back three times at most: games hitch, and players get lost. A long stretch of play
+        // clears the count, because a run ending isn't the job ending (Lachy, 7 Nov: "play until they tell me to stop").
         private bool Hitched(string words)
         {
             if (!Playing) return false;
             // Going round again is how Esc ends it, and it's how something they said gets done.
             if (Computer.Interrupted || Told()) return true;
+            if (turns - hitchedAt >= HitchPlay) hitches = 0;
             if (hitches >= 3) return false;
             bool unfinished = Unfinished(words);
             if (Computer.Interrupted || Told()) return true;
-            if (unfinished) hitches++;
+            if (unfinished) { hitches++; hitchedAt = turns; }
             return unfinished;
         }
 
