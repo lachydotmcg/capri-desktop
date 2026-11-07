@@ -352,7 +352,8 @@ namespace CapriDesktop
         private readonly Readout popsName;
         private readonly Key popTimes, gameNotes, miniGames;
         private ContextMenuStrip miniMenu;   // kept like the other menus; disposing it in its own Closed crashed WinForms
-        private readonly Key notesKey, memoriesKey;
+        private readonly Key notesKey, memoriesKey, filesKey;
+        internal void PressFiles() { InvokeOnClick(filesKey, EventArgs.Empty); }
         private readonly Toggle dance;
         private readonly Slider replies;
         private readonly Readout repliesName;
@@ -625,12 +626,16 @@ namespace CapriDesktop
             advancedKey.Accent = Cyan;
             advancedKey.Loud = true;
             Section("YOU >", 0, 58);
-            notesKey = Make("Open her notes", 236, 55, 120, 20, delegate { EditNotes(false); });
+            notesKey = Make("Open her notes", 184, 55, 96, 20, delegate { EditNotes(false); });
             notesKey.AccessibleName = "Open her notes: edit me.md here, or her note in your Obsidian vault";
+            filesKey = Make("File editor", 286, 55, 70, 20, delegate { capri.OpenFiles(0); });
+            filesKey.AccessibleName = "File editor: edit personality.md and me.md in one panel";
             // Their personality.md (back in 0.8.0): the key says whose personality she's using, and its menu edits or resets it.
             personalityMenu = Dropdown();
-            personalityKey = Make("Her personality", 92, 55, 136, 20, delegate { ShowPersonalityMenu(); });
+            personalityKey = Make("Her personality", 72, 55, 106, 20, delegate { ShowPersonalityMenu(); });
             personalityKey.AccessibleName = "Her personality: edit personality.md, or put her default back";
+            // Her own font fits all three on this row. Windows' fallback font is wider, so there they end in dots rather than spill.
+            personalityKey.Ellipsis = notesKey.Ellipsis = filesKey.Ellipsis = true;
             Named("Language", 0, 82);
             languageMenu = Dropdown();
             languageMenu.AccessibleName = "Her language";

@@ -124,7 +124,20 @@ namespace CapriDesktop
         [DllImport("gdi32.dll")] private static extern IntPtr AddFontMemResourceEx(IntPtr font, uint length, IntPtr reserved, ref uint count);
         [DllImport("gdi32.dll")] private static extern bool RemoveFontMemResourceEx(IntPtr font);
 
-        private static FontFamily Embedded(string name)
+        // Her other embedded fonts, each in a collection of its own, because a collection hands back its families by name, not
+        // in the order they went in.
+        private static readonly Dictionary<string, FontFamily> others = new Dictionary<string, FontFamily>();
+
+        internal static FontFamily Face(string name)
+        {
+            FontFamily family;
+            if (!others.TryGetValue(name, out family)) others[name] = family = Embedded(name, new PrivateFontCollection());
+            return family;
+        }
+
+        private static FontFamily Embedded(string name) { return Embedded(name, fonts); }
+
+        private static FontFamily Embedded(string name, PrivateFontCollection fonts)
         {
             IntPtr memory = IntPtr.Zero, resource = IntPtr.Zero;
             try
