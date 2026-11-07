@@ -224,13 +224,13 @@ namespace CapriDesktop
                 File.WriteAllText(file, "{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\",\"colors\":" + colours + "}");
                 return file;
             };
-            Func<Color> hair = delegate { return idle.Strip.GetPixel(95, 90); };
+            Func<Color> hair = delegate { return idle.Strip.GetPixel(52, 84); };
             Func<int[]> census = delegate
             {
                 Bitmap art = idle.Strip;
                 int[] seen = new int[4];
                 for (int y = 0; y < art.Height; y += 2)
-                    for (int x = 0; x < 240; x += 2)
+                    for (int x = 0; x < art.Width / idle.Count; x += 2)
                     {
                         Color c = art.GetPixel(x, y);
                         if (c.A < 200) continue;
@@ -294,7 +294,8 @@ namespace CapriDesktop
                     for (int i = 0; i < Across; i++)
                     {
                         Mod preset = i == 0 ? null : mods.Import(Path.Combine(folder, presets[i - 1] + Mods.Extension), null);
-                        paper.DrawImage(idle.Strip, new Rectangle(i * CellW, row * CellH, CellW, CellH), new Rectangle(0, 0, CellW, CellH), GraphicsUnit.Pixel);
+                        int wide = idle.Strip.Width / idle.Count;
+                        paper.DrawImage(idle.Strip, new Rectangle(i * CellW + (CellW - wide) / 2, row * CellH, wide, CellH), new Rectangle(0, 0, wide, CellH), GraphicsUnit.Pixel);
                         if (preset != null) mods.Remove(preset);
                     }
                 }

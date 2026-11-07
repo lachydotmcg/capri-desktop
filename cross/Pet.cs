@@ -100,22 +100,40 @@ namespace CapriDesktop
         private Bitmap strip;
         internal Bitmap Strip { get { if (strip == null) strip = Pet.ReadArt(name); return strip; } }
         private readonly string name;
-        internal readonly int Count;
-        internal readonly double Fps;
+        private readonly int count;
+        private readonly double fps;
+        private readonly double shiftX, shiftY;
+        // The cells a skin's strip can still come in after her own art moved on: this wide means count cells at fps, drawn unshifted.
+        private int oldWide, oldCount;
+        private double oldFps;
+        internal int Count { get { return Old ? oldCount : count; } }
+        internal double Fps { get { return Old ? oldFps : fps; } }
         internal readonly double Height;
         // How far a cell's middle sits from the middle of her square, as a share of her size. Narrow cells cut to the art need it.
-        internal readonly double ShiftX, ShiftY;
+        internal double ShiftX { get { return Old ? 0 : shiftX; } }
+        internal double ShiftY { get { return Old ? 0 : shiftY; } }
 
         internal Clip(string name, int count, double fps, double height, double shiftX = 0, double shiftY = 0)
         {
             this.name = "Capri.Sprite." + name + ".png";
-            Count = count;
-            Fps = fps;
+            this.count = count;
+            this.fps = fps;
             Height = height;
-            ShiftX = shiftX;
-            ShiftY = shiftY;
+            this.shiftX = shiftX;
+            this.shiftY = shiftY;
             Reload();
         }
+
+        internal Clip Older(int wide, int cells, double rate)
+        {
+            oldWide = wide;
+            oldCount = cells;
+            oldFps = rate;
+            return this;
+        }
+
+        // Whether the art that's in is a skin's strip in the old cells.
+        internal bool Old { get { return oldWide > 0 && Strip.PixelSize.Width == oldWide; } }
 
         internal void Reload()
         {
@@ -207,6 +225,7 @@ namespace CapriDesktop
         internal const double PerchTop = 0.17;
         internal const double PerchRight = 0.69;
         private const int BlinkFrom = 9;
+        private const int IdleBlinkFrom = 24;
         // Her perch blinks where her artist drew it: loop frames 29 to 36 (index 28 on).
         private const int PerchBlinkFrom = 28;
         // her artist's perch: 60 frames at 30 fps in cells cut to her outline, 26 px left of her square's middle and 36 px down it in 384 px art.
@@ -242,7 +261,15 @@ namespace CapriDesktop
         internal Func<string, string> Think;
         internal Settings Saved;
         private readonly IClassicDesktopStyleApplicationLifetime desktop;
-        private readonly Clip idle = new Clip("idle", 16, 8, 1.11);
+        // her artist's standing set, like on Windows: 60 frames at the 24 fps they're stamped with, its float taken out so her toes
+        // stay on the row every standing clip ends on, in cells cut to her outline, 11 px right of her square's middle in 384 px art.
+        private const double IdleShiftX = 11.0 / 384 * 1.11;
+        private readonly Clip idle = new Clip("idle", 60, 24, 1.11, IdleShiftX).Older(Mods.OldIdleWide, 16, 8);
+        // Her closed eye on frames 25 to 32 of that loop, and her mouth for that face, drawn where it sits in the cell.
+        private readonly Clip idleBlink = new Clip("idle_blink", 8, 24, 1.11, IdleShiftX);
+        private readonly Clip idleBlinkGlitch = new Clip("idle_blink_glitch", 8, 24, 1.11, IdleShiftX);
+        private readonly Clip idleMouth = new Clip("idle_mouth", 5, 12, 1.11, IdleShiftX);
+        // A skin with a 16-cell idle.png keeps what went with those cells: this blink and the mouth further down.
         private readonly Clip blink = new Clip("blink", 4, 8, 1.11);
         private readonly Clip blinkGlitch = new Clip("blink_glitch", 4, 8, 1.11);
         private readonly Clip glitch = new Clip("glitch", 10, 15, 1.11);
@@ -647,7 +674,6 @@ namespace CapriDesktop
             WindowStartupLocation = WindowStartupLocation.Manual;
             Unfocus(this);
             body.Size = Array.IndexOf(Sizes, Saved.Size) >= 0 ? Saved.Size : 240;
-            body.Mouth = mouth;
             RenderOptions.SetBitmapInterpolationMode(body, BitmapInterpolationMode.HighQuality);
             Content = body;
             Fit();
@@ -714,7 +740,7 @@ namespace CapriDesktop
         internal Clip PerchGlitch { get { return perchGlitch; } }
         internal Clip Perched { get { return perch; } }
         internal Clip SatAsleep { get { return perchSleep; } }
-        internal IList<Clip> Clips { get { return new[] { idle, blink, blinkGlitch, glitch, dangle, perch, perchBlink, perchBlinkGlitch, perchGlitch, mouth, walk, dance, perchDance, arrive, leave, perchArrive, perchLeave, grin, sleep, wake }; } }
+        internal IList<Clip> Clips { get { return new[] { idle, blink, blinkGlitch, glitch, dangle, perch, perchBlink, perchBlinkGlitch, perchGlitch, mouth, walk, dance, perchDance, arrive, leave, perchArrive, perchLeave, grin, sleep, wake, idleBlink, idleBlinkGlitch, idleMouth }; } }
         internal Clip Arrival { get { return arrive; } }
         internal Clip PerchArrival { get { return perchArrive; } }
         internal Clip SeatDance { get { return perchDance; } }
@@ -1208,7 +1234,7 @@ namespace CapriDesktop
                 {
                     idleCycle = cycle;
                     double roll = random.NextDouble();
-                    blinkWith = roll < 0.1 ? (clip == perch ? perchBlinkGlitch : blinkGlitch) : roll < 0.55 ? (clip == perch ? perchBlink : blink) : null;
+                    blinkWith = roll < 0.1 ? Blinks(true) : roll < 0.55 ? Blinks(false) : null;
                     if (now >= nextGlitch && Talk.Quiet)
                     {
                         nextGlitch = now + 30 + random.NextDouble() * 30;
@@ -1219,7 +1245,7 @@ namespace CapriDesktop
             }
             int cell = clip == perchSleep ? PerchSleepCell : index % clip.Count;
             Clip shown = clip;
-            int blinkFrom = clip == perch ? PerchBlinkFrom : BlinkFrom;
+            int blinkFrom = clip == perch ? PerchBlinkFrom : idle.Old ? BlinkFrom : IdleBlinkFrom;
             if ((clip == idle || clip == perch) && blinkWith != null && cell >= blinkFrom && cell < blinkFrom + blinkWith.Count) { shown = blinkWith; cell -= blinkFrom; }
             bool settled = !dragging && clip != dangle && !Asleep;
             body.Breathe = settled ? Math.Sin(now * 1.75) * 2.2 : clip == perchSleep ? Math.Sin(now * 1.2) * body.Size / 80 : 0;
@@ -1238,8 +1264,17 @@ namespace CapriDesktop
             }
             body.Shown = shown;
             body.Cell = cell;
-            body.Talking = clip == idle && shown != blinkGlitch ? Talk.MouthCell(now) : -1;
+            body.Mouth = idle.Old ? mouth : idleMouth;
+            body.Talking = clip == idle && shown != blinkGlitch && shown != idleBlinkGlitch ? Talk.MouthCell(now) : -1;
             body.InvalidateVisual();
+        }
+
+        // Her blink for the loop she's in, glitchy or not.
+        private Clip Blinks(bool glitchy)
+        {
+            if (clip == perch) return glitchy ? perchBlinkGlitch : perchBlink;
+            if (idle.Old) return glitchy ? blinkGlitch : blink;
+            return glitchy ? idleBlinkGlitch : idleBlink;
         }
 
         private List<long> Ours()
@@ -2645,7 +2680,7 @@ namespace CapriDesktop
             else if (name == "blink")
             {
                 Play(perched ? perch : idle);
-                blinkWith = perched ? perchBlink : blink;
+                blinkWith = Blinks(false);
             }
             else return "I don't have an animation called " + name + ".";
             return name == "idle" ? "Back to my idle." : name == "glitch" ? "Glitched." : name == "grin" ? "Grinning." : "Blinked.";
@@ -5075,7 +5110,7 @@ namespace CapriDesktop
             {
                 if (attention || act.Kind == "compact" || act.Kind == "failure") Play(seat == null ? glitch : perchGlitch);
                 else if (act.Kind == "done" && seat == null) Play(grin);
-                else if (act.Kind == "error") { Play(seat == null ? idle : perch); blinkWith = seat == null ? blink : perchBlink; }
+                else if (act.Kind == "error") { Play(seat == null ? idle : perch); blinkWith = Blinks(false); }
             }
             if (!Hushed && !away && (attention || act.Kind == "failure" || act.Kind == "error")) Sfx.Play(Cue.Bonk);
             else if (!Hushed && !away && act.Kind == "done") Sfx.Play(Cue.Click);

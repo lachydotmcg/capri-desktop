@@ -125,6 +125,8 @@ namespace CapriDesktop
             if (step == 0)
             {
                 foreach (Clip clip in pet.Clips) if (!clip.Even || clip.Strip.PixelSize.Height != 384) throw new Exception("A sprite strip doesn't split into even 384 px cells.");
+                Clip stand = pet.Clips[0];
+                if (stand.Old || stand.Count != 60 || stand.Fps != 24 || stand.Wide != 116) throw new Exception("Her standing loop isn't 60 cells of 116 px at 24 fps: " + stand.Count + " at " + stand.Fps + ", " + stand.Wide + " px.");
                 checks.Add("PASS sprites: all " + pet.Clips.Count + " clips, standing and perched, load from the app and split into even cells");
                 foreach (string clipName in new[] { "morning", "late", "miss" })
                 {
@@ -3480,7 +3482,7 @@ namespace CapriDesktop
             using (SkiaSharp.SKBitmap preview = new SkiaSharp.SKBitmap(320, 180))
             {
                 preview.Erase(new SkiaSharp.SKColor(12, 11, 20));
-                using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(preview)) canvas.DrawBitmap(art, new SkiaSharp.SKRect(0, 0, 240, 384), new SkiaSharp.SKRect(104, 0, 216.5f, 180));
+                using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(preview)) canvas.DrawBitmap(art, new SkiaSharp.SKRect(0, 0, 116, 384), new SkiaSharp.SKRect(133, 0, 187.4f, 180));
                 using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(preview))
                 using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) return png.ToArray();
             }
@@ -3519,15 +3521,15 @@ namespace CapriDesktop
                 checks.Add("PASS mods settings: import, on, off, reload and remove share Windows' names, spellings, sounds-like and hearing-log behavior");
 
                 Clip idle = pet.Clips[0], walk = pet.Clips[10];
-                SkiaSharp.SKColor original = ModPixel(idle.Strip, 95, 90), accent = ModPixel(idle.Strip, 120, 200);
+                SkiaSharp.SKColor original = ModPixel(idle.Strip, 36, 74), accent = ModPixel(idle.Strip, 52, 218);
                 string blue = ModSample(input, "smoke-blue", "\"colors\":{\"hair\":\"#0000FF\"}");
                 if (!sheet.ImportMod(blue)) throw new Exception("A colour mod was refused.");
-                SkiaSharp.SKColor hair = ModPixel(idle.Strip, 95, 90), sameAccent = ModPixel(idle.Strip, 120, 200);
+                SkiaSharp.SKColor hair = ModPixel(idle.Strip, 36, 74), sameAccent = ModPixel(idle.Strip, 52, 218);
                 if (hair.Blue < 200 || hair.Red > 30 || hair.Alpha != original.Alpha || Math.Abs(sameAccent.Green - accent.Green) > 4) throw new Exception("A colour mod did not recolour her hair alone.");
                 mods.Load();
-                if (ModPixel(idle.Strip, 95, 90).Blue < 200) throw new Exception("A colour mod did not survive reload.");
+                if (ModPixel(idle.Strip, 36, 74).Blue < 200) throw new Exception("A colour mod did not survive reload.");
                 sheet.SwitchMod(0);
-                if (ModPixel(idle.Strip, 95, 90) != original) throw new Exception("A colour mod did not restore her original art when off.");
+                if (ModPixel(idle.Strip, 36, 74) != original) throw new Exception("A colour mod did not restore her original art when off.");
                 sheet.SwitchMod(0);
                 mods.SetColour(ArtColors.Eyes, "#FFAA00");
                 if (mods.All.FindAll(m => m.On && m.File.Colors != null).Count != 1 || mods.ColoursNow[ArtColors.Hair] != "#0000FF") throw new Exception("Picked colors lost the other slots or left two sets on.");
@@ -3536,9 +3538,9 @@ namespace CapriDesktop
                 sheet.SaveColours();
                 if (mods.ColoursNow[ArtColors.Hair] != "#0000FF" || !sheet.StatusText.Contains("isn't a colour")) throw new Exception("Invalid color entry saved part of a change.");
                 ModColour(sheet, "Eyes").Box.Text = "#FFAA00"; sheet.SaveColours(); mods.Load();
-                if (mods.ColoursNow[ArtColors.Hair] != "#00FF00" || ModPixel(idle.Strip, 95, 90).Green < 200) throw new Exception("The Mods window did not save and apply picked colors.");
+                if (mods.ColoursNow[ArtColors.Hair] != "#00FF00" || ModPixel(idle.Strip, 36, 74).Green < 200) throw new Exception("The Mods window did not save and apply picked colors.");
                 mods.ResetColours();
-                if (ModPixel(idle.Strip, 95, 90) != original || ArtColors.Active) throw new Exception("Reset did not restore her colors.");
+                if (ModPixel(idle.Strip, 36, 74) != original || ArtColors.Active) throw new Exception("Reset did not restore her colors.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
                 foreach (string bad in new[] { "red", "#12", "#GGGGGG" })
                 {
@@ -3552,13 +3554,13 @@ namespace CapriDesktop
                 string skin = ModSkin(input, "smoke-skin", "idle.png", size.Width, size.Height);
                 if (!sheet.ImportMod(skin) || ModPixel(idle.Strip, 0, 0).Red != 255 || ModPixel(walk.Strip, 0, 0) != walkWas) throw new Exception("A skin did not swap its strip or changed a strip it doesn't hold.");
                 sheet.SwitchMod(0);
-                if (ModPixel(idle.Strip, 95, 90) != original) throw new Exception("Turning a skin off did not restore her art.");
+                if (ModPixel(idle.Strip, 36, 74) != original) throw new Exception("Turning a skin off did not restore her art.");
                 sheet.SwitchMod(0); mods.Load();
                 if (ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("A skin did not survive reload.");
                 sheet.ImportMod(blue);
                 if (ModPixel(idle.Strip, 0, 0).Blue < 200) throw new Exception("Colors did not apply to a skin.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
-                if (Pet.SkinFolder != null || ModPixel(idle.Strip, 95, 90) != original || Directory.Exists(Path.Combine(mods.Folder, "smoke-skin-skin"))) throw new Exception("Removing skins left her art changed.");
+                if (Pet.SkinFolder != null || ModPixel(idle.Strip, 36, 74) != original || Directory.Exists(Path.Combine(mods.Folder, "smoke-skin-skin"))) throw new Exception("Removing skins left her art changed.");
                 string[] badSkins = { ModSkin(input, "smoke-size", "idle.png", 10, 10), ModSkin(input, "smoke-path", "../idle.png", size.Width, size.Height), ModSkin(input, "smoke-unknown", "other.png", size.Width, size.Height) };
                 foreach (string bad in badSkins)
                 {
@@ -3567,6 +3569,14 @@ namespace CapriDesktop
                 }
                 if (Directory.GetDirectories(mods.Folder, "skin-import-*").Length != 0) throw new Exception("A refused skin left its temporary folder.");
                 checks.Add("PASS mods skins: import swaps art, missing strips keep hers, off and removal restore it, reload and colors work, and invalid sizes and paths are refused");
+
+                string oldSkin = ModSkin(input, "smoke-old", "idle.png", Mods.OldIdleWide, Mods.OldIdleHigh);
+                if (!sheet.ImportMod(oldSkin) || !idle.Old || idle.Count != 16 || idle.Fps != 8 || idle.ShiftX != 0 || !idle.Even || idle.Wide != 240) throw new Exception("A skin from before her standing set didn't keep its 16 cells: " + idle.Count + " at " + idle.Fps + ".");
+                mods.Load();
+                if (!idle.Old) throw new Exception("An old skin didn't stay in its cells after a reload.");
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+                if (idle.Old || idle.Count != 60 || idle.Fps != 24 || idle.Wide != 116) throw new Exception("Taking an old skin off didn't bring her new stand back.");
+                checks.Add("PASS mods old skins: a 3840 x 384 idle.png keeps its 16 cells at 8 fps through a reload, and off brings her new stand back");
 
                 string code = Path.Combine(input, "smoke-code" + Mods.CodeExtension); File.WriteAllText(code, "This must never be compiled.");
                 bool asked = false;

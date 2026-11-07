@@ -23,6 +23,7 @@ namespace CapriDesktop
         private void Reskinned()
         {
             foreach (Clip shown in Clips) shown.Reload();
+            blinkWith = null;
             if (body != null) body.InvalidateVisual();
         }
 
