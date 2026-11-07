@@ -686,7 +686,7 @@ namespace CapriDesktop
             typing.AccessibleName = "Typing sound. A soft typing sound while her text replies type out";
             listenCapri = Switch("Listen for Capri", 0, 400, delegate { if (!syncing) capri.ToggleListenCapri(); });
             Caption("Say her name anywhere to chat", 28, 428, small, Faint);
-            listenCapri.AccessibleName = "Listen for Capri. Keep the mic open; say her name anywhere in your sentence. Stop and push to talk still work";
+            listenCapri.AccessibleName = "Listen for Capri. Keep the mic open; say her name anywhere in your sentence, then just talk until you go quiet. Stop and push to talk still work";
             Caption("Hearing", 28, 454, Type(9.5f), Rose).AccessibleName = "Hearing";
             hearingMenu = Dropdown();
             hearingMenu.AccessibleName = "Hearing engine choices";
@@ -6480,7 +6480,7 @@ namespace CapriDesktop
                 Extra(0, "Watch my screen", "She glances at your screen and comments. Costs a little on a paid brain.", small, delegate { owner.capri.ToggleWatch(); });
                 Extra(1, "Comment on my games", "She talks about your game as you play. Costs a little on a paid brain.", small, delegate { owner.capri.SetCommentPace(toggles[1].Checked ? 2 : 0); owner.Sync(); });
                 Extra(2, "Clip my games", "Keeps the last two minutes of your game in memory. Say clip that to save it.", small, delegate { owner.capri.ToggleClips(); });
-                Extra(3, "Listen for Capri", "She keeps listening and answers when you say her name.", small, delegate { owner.capri.ToggleListenCapri(); });
+                Extra(3, "Listen for Capri", "She keeps listening. Say her name, then just talk until you go quiet.", small, delegate { owner.capri.ToggleListenCapri(); });
                 Key done = new Key();
                 done.Text = "Done";
                 done.Font = Type(9f * zoom, true);
