@@ -1828,7 +1828,6 @@ namespace CapriDesktop
             int shift = Scaled(next);
             // Every control moves at once, in one batch Windows applies together, and the page paints once after.
             // Moving them one by one sent Windows a few hundred moves for every turn of the wheel.
-            Native.SendMessage(Handle, 0x000B, IntPtr.Zero, IntPtr.Zero);
             SuspendLayout();
             try
             {
@@ -1842,7 +1841,7 @@ namespace CapriDesktop
                 bool moved = batch != IntPtr.Zero && EndDeferWindowPos(batch);
                 foreach (Control control in scrolled) if (!moved || !batched.Contains(control)) control.Top = tops[control] - shift;
             }
-            finally { ResumeLayout(false); Native.SendMessage(Handle, 0x000B, new IntPtr(1), IntPtr.Zero); }
+            finally { ResumeLayout(false); }
             Invalidate(true);
             Update();
         }
@@ -1892,6 +1891,33 @@ namespace CapriDesktop
             if (!glide.Enabled) return;
             glide.Stop();
             MovePage(glideTo);
+        }
+
+        internal void CheckWheelStaysHere(List<string> checks)
+        {
+            FormWindowState wasState = WindowState;
+            bool wasPaged = paged;
+            int wasScroll = pageScroll;
+            Restore();
+            ShowSettings(true);
+            Settle();
+            Control moving = scrolled.Find(control => control.IsHandleCreated && control.Parent == this && control.Visible);
+            if (moving == null) throw new Exception("Settings had nothing to scroll.");
+            int moves = 0, gone = 0;
+            EventHandler watch = delegate { moves++; if (!Neon.ShownToWindows(this)) gone++; };
+            moving.LocationChanged += watch;
+            try
+            {
+                MovePage(ScrollRow);
+                MovePage(0);
+            }
+            finally { moving.LocationChanged -= watch; }
+            ShowSettings(wasPaged);
+            ScrollPage(wasScroll);
+            WindowState = wasState;
+            if (moves == 0) throw new Exception("Scrolling Settings did not move its controls.");
+            if (gone > 0) throw new Exception("Scrolling Settings hid the Mainframe from Windows for " + gone + " of " + moves + " moves, so a wheel turn could reach the window behind it.");
+            checks.Add("PASS Mainframe wheel: Windows still sees the Mainframe while its Settings page scrolls, so a wheel turn can't fall through to the window behind it");
         }
 
         // How long one frame of scrolling takes here, painting included, in ms. It leaves the page where it was.
