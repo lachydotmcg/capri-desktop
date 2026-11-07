@@ -425,7 +425,8 @@ namespace CapriDesktop
                 title = name;
                 Body = "";
                 int pad = (int)Math.Ceiling(12 * unit), gap = (int)Math.Ceiling(8 * unit);
-                Size words = TextRenderer.MeasureText(name, titleFont, Size.Empty, Wrap);
+                // Measured with no width, a title wraps after every letter, which squashed the call panel's tips (Lachy, 7 Nov).
+                Size words = Measure(name, titleFont, Math.Min((int)Math.Round(360 * unit), area.Width) - pad * 2);
                 titleBox = new Rectangle(pad, pad, words.Width, words.Height);
                 bodyBox = Rectangle.Empty;
                 ClientSize = new Size(words.Width + pad * 2, words.Height + pad * 2);
