@@ -3473,6 +3473,27 @@ namespace CapriDesktop
             return file;
         }
 
+        // An accessory: see-through except a green square in the top left.
+        private static string ModAccessory(string into, string id, int width, int height)
+        {
+            string file = Path.Combine(into, id + Mods.SkinExtension);
+            if (File.Exists(file)) File.Delete(file);
+            using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(file, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                ModEntry(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\",\"accessory\":true}"));
+                using (SkiaSharp.SKBitmap art = new SkiaSharp.SKBitmap(width, height))
+                {
+                    art.Erase(SkiaSharp.SKColors.Transparent);
+                    using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(art))
+                    using (SkiaSharp.SKPaint green = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(0, 255, 0) })
+                        canvas.DrawRect(0, 0, 8, 8, green);
+                    using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(art))
+                    using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) ModEntry(zip, "idle.png", png.ToArray());
+                }
+            }
+            return file;
+        }
+
         private static byte[] ModPreviewBytes()
         {
             using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream("Capri.Sprite.idle.png"))
@@ -3555,6 +3576,18 @@ namespace CapriDesktop
                 if (ModPixel(idle.Strip, 95, 90) != original) throw new Exception("Turning a skin off did not restore her art.");
                 sheet.SwitchMod(0); mods.Load();
                 if (ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("A skin did not survive reload.");
+                string ears = ModAccessory(input, "smoke-ears", size.Width, size.Height);
+                if (!sheet.ImportMod(ears)) throw new Exception("An accessory was refused.");
+                Mod earsMod = mods.All.Find(m => m.File.Id == "smoke-ears"), skinMod = mods.All.Find(m => m.File.Id == "smoke-skin");
+                SkiaSharp.SKColor topped = ModPixel(idle.Strip, 1, 1), under = ModPixel(idle.Strip, 20, 20);
+                if (earsMod == null || !earsMod.On || !skinMod.On || topped.Green < 200 || topped.Red > 30 || under.Red != 255) throw new Exception("An accessory did not draw over the outfit under it, or took the outfit off.");
+                mods.Set(earsMod, false, null);
+                if (ModPixel(idle.Strip, 1, 1).Red != 255 || !skinMod.On) throw new Exception("Taking an accessory off did not bring the outfit back.");
+                mods.Set(skinMod, false, null); mods.Set(earsMod, true, null);
+                if (ModPixel(idle.Strip, 1, 1).Green < 200 || ModPixel(idle.Strip, 95, 90) != original) throw new Exception("An accessory did not draw over her own art.");
+                mods.Remove(earsMod); mods.Set(mods.All.Find(m => m.File.Id == "smoke-skin"), true, null);
+                if (Pet.SkinAccessories.Length != 0 || ModPixel(idle.Strip, 1, 1).Red != 255) throw new Exception("Removing an accessory left it drawn.");
+                checks.Add("PASS mods accessories: an accessory draws over the outfit under it or her own art, keeps the outfit on, and off and remove take it away");
                 sheet.ImportMod(blue);
                 if (ModPixel(idle.Strip, 0, 0).Blue < 200) throw new Exception("Colors did not apply to a skin.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);

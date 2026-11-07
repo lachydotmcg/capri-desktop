@@ -35,7 +35,7 @@ namespace CapriDesktop
 
         private void PublishMod(int row)
         {
-            Mod mod = capri.ModList.All[modFirst + row];
+            Mod mod = Listed[modFirst + row];
             PublishSheet sheet = new PublishSheet(this, SheetZoom(PublishSheet.Wide, PublishSheet.Tall), mod);
             sheet.ShowDialog(this);
             sheet.Dispose();
