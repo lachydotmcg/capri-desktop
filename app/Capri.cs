@@ -748,7 +748,7 @@ namespace CapriDesktop
                     System.Collections.Generic.List<string> passed = new System.Collections.Generic.List<string>();
                     string[] given = Environment.GetCommandLineArgs();
                     for (int i = 1; i < given.Length; i++) passed.Add(given[i].IndexOf(' ') >= 0 ? "\"" + given[i] + "\"" : given[i]);
-                    ProcessStartInfo start = new ProcessStartInfo(Application.ExecutablePath, string.Join(" ", passed.ToArray())) { UseShellExecute = false };
+                    ProcessStartInfo start = new ProcessStartInfo(Packaged.Launcher(Application.ExecutablePath), string.Join(" ", passed.ToArray())) { UseShellExecute = false };
                     start.EnvironmentVariables[Restarted] = DateTime.UtcNow.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     Process.Start(start);
                 }
