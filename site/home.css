@@ -422,6 +422,9 @@ button, input { font: inherit; color: inherit; }
 .col .win-pitch { padding: 32px 28px 36px; }
 
 /* ---------- Widths ---------- */
+@media (max-width: 1400px) {
+  [data-ui] .stage-tries { max-width: min(416px, 100% - 24px); }
+}
 @media (max-width: 1240px) {
   :root { --pad: 40px; --head: 72px; }
   .nav { gap: 16px; padding-left: 26px; }

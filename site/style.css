@@ -246,5 +246,19 @@ h1 em { font-weight: 600; }
   .support-links a { padding: 8px 12px; }
 }
 @media (max-width: 360px) { .support { padding-bottom: 165px; } }
+/* Mods docs: a one-line lead, named code blocks with a copy button, and small data tables. */
+.lead { margin: -8px 0 22px; color: #6b6f74; font-size: 15px; text-align: center; }
+.lead + .guide-jump { max-width: 520px; margin-left: auto; margin-right: auto; }
+.code { margin: 12px 0 8px; border: 1px solid #e3e5e8; border-radius: 8px; background: #f6f7f8; overflow: hidden; }
+.code-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; padding: 5px 7px 5px 13px; border-bottom: 1px solid #e3e5e8; color: #6b6f74; font: 12px "Share Tech Mono", Consolas, monospace; }
+.code-head span { min-width: 0; overflow-wrap: anywhere; }
+.code .copy { position: static; flex: none; padding: 3px 11px; border-width: 1px; }
+.code pre { margin: 0; padding: 12px 13px; overflow-x: auto; color: #202225; font: 13px/1.55 "Share Tech Mono", Consolas, monospace; tab-size: 4; }
+.sheet { width: 100%; margin: 10px 0 4px; border-collapse: collapse; font-size: 14px; }
+.sheet th { padding: 0 12px 6px 0; color: #8a8e93; font: 12px "Share Tech Mono", Consolas, monospace; text-align: left; white-space: nowrap; }
+.sheet td { padding: 6px 12px 6px 0; border-top: 1px solid #e7e8e5; color: #6b6f74; vertical-align: top; }
+.sheet td:first-child { color: #202225; font: 13px/1.5 "Share Tech Mono", Consolas, monospace; }
+.sheet td.num { font: 13px/1.5 "Share Tech Mono", Consolas, monospace; white-space: nowrap; }
+.sheet th:last-child, .sheet td:last-child { padding-right: 0; }
 @media print { .helper { display: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
