@@ -30898,7 +30898,7 @@ namespace CapriDesktop
                     if (found != null && found.StartsWith("What's new:", StringComparison.Ordinal)) throw new Exception("Update help took ordinary chat: " + ordinary);
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
-                foreach (string fact in new[] { "Play a game", "Bloons TD 6", "keeps playing until you tell her to stop", "CAPRI > Legacy stand", "YOU > File editor", "Ctrl + S", "20 seconds", "click effect", "hover tips", "Her own ears download again", "YOU > Language" })
+                foreach (string fact in new[] { "Play a game", "Bloons TD 6", "keeps playing until you tell her to stop", "CAPRI > Legacy stand", "YOU > File editor", "Ctrl + S", "20 seconds", "click effect", "hover tips", "her own ears download again", "YOU > Language" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
                 Hear("what's new?");
@@ -40486,7 +40486,7 @@ namespace CapriDesktop
                                     Hands.Roll = delegate { return 0; };
                                     string[,] routes =
                                     {
-                                        { "hey capri, can you open spotify for me?", "open_app|spotify||" }, { "Play Roblox", "open_app|Roblox||" }, { "open youtube", "open_website|youtube||" },
+                                        { "hey capri, can you open spotify for me?", "open_app|spotify||" }, { "Play Roblox", "use_computer|||" }, { "open youtube", "open_website|youtube||" },
                                         { "launch google.com please", "open_website|google.com||" }, { "play Blinding Lights by The Weeknd on YouTube.", "play_music|Blinding Lights by The Weeknd|song|youtube" },
                                         { "play my lofi beats playlist", "play_music|my lofi beats|playlist|" }, { "play something by Drake", "play_music|Drake|artist|" }, { "play my liked songs", "play_music|Liked Songs|playlist|" },
                                         { "skip this song", "media||next|" }, { "turn it up", "media||volume_up|" }, { "close discord", "app_window|discord|close|" }, { "minimise word", "app_window|word|minimize|" },
@@ -40534,7 +40534,7 @@ namespace CapriDesktop
                                         { "can u open Spotify plz", "open_app|Spotify||", "true" },
                                         { "open youtube", "open_website|youtube||", "true" },
                                         { "launch google.com please", "open_website|google.com||", "true" },
-                                        { "Play Roblox", "open_app|Roblox||", "true" },
+                                        { "Play Roblox", "use_computer|||", "true" },
                                         { "play Elden Ring", "play_music|Elden Ring|song|", "true" },
                                         { "play Blinding Lights", "play_music|Blinding Lights|song|", "true" },
                                         { "I wish we could go to the moon", "play_music|I Really Want to Stay at Your House|song|", "false" },
