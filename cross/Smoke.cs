@@ -5041,7 +5041,27 @@ namespace CapriDesktop
             lines.Insert(0, "Capri cross-platform smoke test on " + System.Runtime.InteropServices.RuntimeInformation.OSDescription);
             if (failure != null) lines.Add("FAIL " + failure);
             File.WriteAllLines(Path.Combine(folder, "smoke-test.txt"), lines);
-            pet.Finish(failure == null ? 0 : 1);
+            if (failure != null || !SystemQuit(lines)) pet.Finish(1);
+        }
+
+        // Last of all, because it ends her. A Mac's Quit and logging out close her windows this way, and one window saying no leaves
+        // her half gone with no way to quit (#154). The FAIL goes in first, so dying in here fails the run too.
+        private bool SystemQuit(List<string> lines)
+        {
+            string file = Path.Combine(folder, "smoke-test.txt");
+            lines.Add("FAIL A system quit with her Mainframe and a sheet open did not end her.");
+            File.WriteAllLines(file, lines);
+            bool ended = false;
+            try
+            {
+                pet.OpenMainframe();
+                pet.Frame.OpenServer();
+                ended = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)Application.Current.ApplicationLifetime).TryShutdown(0);
+            }
+            catch (Exception error) { lines.Add("INFO " + error.Message); }
+            if (ended) lines[lines.Count - 1] = "PASS a system quit with her Mainframe and a sheet open closes every window and ends her";
+            File.WriteAllLines(file, lines);
+            return ended;
         }
     }
 }
