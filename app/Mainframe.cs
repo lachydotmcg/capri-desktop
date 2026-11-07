@@ -383,7 +383,8 @@ namespace CapriDesktop
 
         internal Mainframe(Companion owner, Icon icon, string version)
         {
-            glide.Tick += delegate { Glide(); };
+            glide.Tick += delegate { if (pumpToken == null) Glide(); };
+            WireSlide();
             heartbeat.Tick += delegate { Heartbeat(); };
             VisibleChanged += delegate { heartbeat.Enabled = Visible; };
             capri = owner;
@@ -1502,7 +1503,7 @@ namespace CapriDesktop
             int lift = hd ? 0 : Row;
             if (lift == lifted) return;
             lifted = lift;
-            int back = pageScroll;
+            int back = ShownScroll;
             ScrollPage(0);
             foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lift);
             CloseGaps();
@@ -1749,6 +1750,7 @@ namespace CapriDesktop
             if (on && Right > area.Right) Left = Math.Max(area.Left, area.Right - Width);
             // She opens centred on the shorter main page, so the taller Settings page can hang off the bottom.
             if (on && Bottom > area.Bottom) Top = Math.Max(area.Top, area.Bottom - Height);
+            if (on) PictureOpened(); else pictureForget.Start();
         }
 
         // Each page's controls where they belong and the other page's far off to the right, with her title bar's buttons at
@@ -1792,6 +1794,7 @@ namespace CapriDesktop
         private void Scrolls(Control control)
         {
             scrolled.Add(control);
+            WatchForPicture(control);
             control.Enter += delegate { Reveal(control); };
         }
 
@@ -1799,6 +1802,7 @@ namespace CapriDesktop
         private void Reveal(Control control)
         {
             if (!paged || pageView >= PageNow || Control.MouseButtons != MouseButtons.None) return;
+            EndSlide();
             float s = Unit();
             int edge = Scaled(8);
             // Near the top it goes all the way up, so the header shows too.
@@ -1811,6 +1815,7 @@ namespace CapriDesktop
         private void ScrollPage(int to)
         {
             glide.Stop();
+            EndSlide();
             MovePage(to);
         }
 
@@ -1823,9 +1828,19 @@ namespace CapriDesktop
             DismissHint();
             int next = paged ? Math.Max(0, Math.Min(PageNow - pageView, to)) : 0;
             if (next == pageScroll) return;
+            MoveControls(next);
+            pictureQuiet = true;
+            Invalidate(true);
+            pictureQuiet = false;
+            Update();
+        }
+
+        private void MoveControls(int next)
+        {
             if (pageScroll == 0) foreach (Control control in scrolled) tops[control] = control.Top;
             pageScroll = next;
             int shift = Scaled(next);
+            pictureQuiet = true;
             // Every control moves at once, in one batch Windows applies together, and the page paints once after.
             // Moving them one by one sent Windows a few hundred moves for every turn of the wheel.
             SuspendLayout();
@@ -1841,14 +1856,13 @@ namespace CapriDesktop
                 bool moved = batch != IntPtr.Zero && EndDeferWindowPos(batch);
                 foreach (Control control in scrolled) if (!moved || !batched.Contains(control)) control.Top = tops[control] - shift;
             }
-            finally { ResumeLayout(false); }
-            Invalidate(true);
-            Update();
+            finally { ResumeLayout(false); pictureQuiet = false; }
         }
 
         private void Glide()
         {
-            if (IsDisposed || !paged) { glide.Stop(); return; }
+            if (IsDisposed || !paged) { glide.Stop(); EndSlide(); return; }
+            if (sliding) { slideCover.Invalidate(); return; }
             double t = Math.Min(1, glideClock.Elapsed.TotalMilliseconds / GlideMs);
             double eased = 1 - Math.Pow(1 - t, 3);
             MovePage((int)Math.Round(glideFrom + (glideTo - glideFrom) * eased));
@@ -1888,9 +1902,14 @@ namespace CapriDesktop
         // Ends a glide where it was headed, for checks that read where the page is.
         internal void Settle()
         {
-            if (!glide.Enabled) return;
+            bool gliding = glide.Enabled;
             glide.Stop();
-            MovePage(glideTo);
+            if (sliding)
+            {
+                if (gliding) slideAt = glideTo;
+                EndSlide();
+            }
+            else if (gliding) MovePage(glideTo);
         }
 
         internal void CheckWheelStaysHere(List<string> checks)
@@ -1954,12 +1973,23 @@ namespace CapriDesktop
             int by = wheel / 120;
             wheel -= by * 120;
             if (by == 0) return;
-            int from = glide.Enabled ? glideTo : pageScroll;
+            int from = glide.Enabled ? glideTo : ShownScroll;
             int to = Math.Max(0, Math.Min(PageNow - pageView, from - by));
+            bool turned = sliding && glide.Enabled && (to - from) * (glideTo - slideExact) < 0;
+            if (turned)
+            {
+                from = (int)Math.Round(slideExact);
+                to = Math.Max(0, Math.Min(PageNow - pageView, from - by));
+                slideMiddle = slideExact;
+            }
             if (to == from) return;
+            slideHold.Stop();
+            bool wasMoving = sliding && glide.Enabled;
+            if (BeginSlide()) StartFramePump();
+            PaceSlide(delta, turned);
             glideFrom = pageScroll;
             glideTo = to;
-            glideClock.Restart();
+            if (!wasMoving) glideClock.Restart();
             glide.Start();
             Glide();
         }
@@ -2455,6 +2485,7 @@ namespace CapriDesktop
             base.OnSizeChanged(e);
             if (sizedState == FormWindowState.Minimized && WindowState != FormWindowState.Minimized && SmokeRun.Worker) RestoredBy = Callers() + " by message " + outerMessage;
             sizedState = WindowState;
+            SlideSizeChanged();
             Shape();
             Invalidate(true);
         }
@@ -2510,6 +2541,13 @@ namespace CapriDesktop
                 for (int i = 0; i < count; i++) graphics.FillRectangle(i < lit ? on : off, 28 * s + i * pitch, y * s, pitch - 2 * s, 5 * s);
         }
 
+        private static void DrawBand(Graphics graphics, RectangleF band, float s)
+        {
+            using (Brush fill = new SolidBrush(Band)) graphics.FillRectangle(fill, band);
+            using (Brush rule = new SolidBrush(Rule)) graphics.FillRectangle(rule, band.Left, band.Top, band.Width, Math.Max(1, (int)s));
+            using (Brush tick = new SolidBrush(Hot)) graphics.FillRectangle(tick, band.Left, band.Top + 7 * s, 2.5f * s, band.Height - 13 * s);
+        }
+
         // What's behind a control: her ground, the wine glow at the top of its window and any section band it crosses, all
         // measured from the window, so every control reads as cut out of one panel.
         private static void Backdrop(Graphics graphics, Control control, float s)
@@ -2522,7 +2560,7 @@ namespace CapriDesktop
             GraphicsState state = graphics.Save();
             graphics.TranslateTransform(-x, -y);
             float glow = 210 * s;
-            if (y < glow)
+            if (y < glow && !picturing)
                 using (LinearGradientBrush wine = new LinearGradientBrush(new RectangleF(0, -1, 16, glow + 2), Glow, Ground, LinearGradientMode.Vertical))
                 {
                     wine.Blend = Fade;
@@ -2534,9 +2572,7 @@ namespace CapriDesktop
                 if (head == null || head.Span <= 0 || !head.Visible || head.Left >= window.ClientSize.Width) continue;
                 RectangleF band = head.Band(s);
                 if (band.Bottom <= y || band.Top >= y + control.Height || band.Right <= x || band.Left >= x + control.Width) continue;
-                using (Brush fill = new SolidBrush(Band)) graphics.FillRectangle(fill, band);
-                using (Brush rule = new SolidBrush(Rule)) graphics.FillRectangle(rule, band.Left, band.Top, band.Width, Math.Max(1, (int)s));
-                using (Brush tick = new SolidBrush(Hot)) graphics.FillRectangle(tick, band.Left, band.Top + 7 * s, 2.5f * s, band.Height - 13 * s);
+                DrawBand(graphics, band, s);
             }
             graphics.Restore(state);
         }
@@ -2649,7 +2685,7 @@ namespace CapriDesktop
             if (keysNote != null) keysNote.MaximumSize = new Size(Scaled(328), 0);
             if (paged) pageView = Fit();
             ClientSize = new Size(Scaled(paged ? Wide + Column : Wide), Scaled(paged ? pageView : Tall + shift + below - fold - hearingFold));
-            ScrollPage(pageScroll);
+            ScrollPage(ShownScroll);
             bool scrolls = paged && pageView < PageNow;
             topRim.Visible = bottomRim.Visible = scrolls;
             if (scrolls)
@@ -2668,6 +2704,7 @@ namespace CapriDesktop
 
         protected override void Dispose(bool disposing)
         {
+            if (disposing) { slideHold.Stop(); slideHold.Dispose(); pictureTimer.Stop(); pictureTimer.Dispose(); pictureForget.Stop(); pictureForget.Dispose(); DropPicture(); }
             if (disposing) { glide.Stop(); glide.Dispose(); if (languageFont != null) languageFont.Dispose(); }
             if (disposing) DisposeHints();
             if (disposing) { speakerMenu.Dispose(); screenMenu.Dispose(); if (miniMenu != null) miniMenu.Dispose(); }
