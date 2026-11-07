@@ -1105,7 +1105,7 @@ With Remember our chats on (Mainframe > Settings > HABITS, on by default), she r
 - memories.md follows the same rule as her notes: no addresses, schools, phone numbers, emails, passwords, full names, birthdays or bank details. Chat lines with them stay in your transcript but never go to her brain for folding, and her searches skip them.
 - transcripts\unfolded.txt holds the newest lines she hasn't folded in yet.
 
-Where they are: right-click her > Open Capri Mainframe > Settings > HABITS > Open her memories edits memories.md inside Mainframe. On Windows it's %LOCALAPPDATA%\Capri\memories.md and %LOCALAPPDATA%\Capri\transcripts. On Mac and Linux it's ~/.config/Capri/memories.md and ~/.config/Capri/transcripts. The files stay on your computer; a cloud brain receives the text it uses to recall or fold chats.
+Where they are: right-click her > Open Capri Mainframe > Settings > HABITS > Open her memories edits memories.md inside Mainframe. On Windows it's %LOCALAPPDATA%\Capri\memories.md and %LOCALAPPDATA%\Capri\transcripts. On Mac it's ~/Library/Application Support/Capri/memories.md and ~/Library/Application Support/Capri/transcripts. On Linux it's ~/.config/Capri/memories.md and ~/.config/Capri/transcripts. The files stay on your computer; a cloud brain receives the text it uses to recall or fold chats.
 
 What folding costs: with her built-in brain or Ollama it's free and runs on your PC. With an API key it's one small request each time, about 600 to 2,000 words in and up to 300 words out, which is usually well under a cent. The free NVIDIA key costs nothing. She folds about once every 10 to 15 messages (less often with a longer Memory setting) and once a day, and waits until the chat has been quiet for 20 seconds so she doesn't hold up a reply.
 
@@ -1666,7 +1666,7 @@ Errors:
 4. If you want: delete the keys you made for Capri on ElevenLabs and NVIDIA (or OpenAI, Claude, DeepSeek).
 
 ### Mac
-Quit Capri, then move Capri from Applications to the Bin (Trash). Her settings are in ~/.config/Capri.
+Quit Capri, then move Capri from Applications to the Bin (Trash). Her settings are in ~/Library/Application Support/Capri.
 
 ### Linux
 Quit Capri, then delete the Capri folder you unpacked. Her settings are in ~/.config/Capri.
@@ -1712,7 +1712,8 @@ Quit Capri, then delete the Capri folder you unpacked. Her settings are in ~/.co
 
 ### Where are my files?
 - Windows: %LOCALAPPDATA%\Capri (settings.json, me.md, memories.md, chat.json, errors.txt, and the transcripts and brain folders)
-- Mac and Linux: ~/.config/Capri
+- Mac: ~/Library/Application Support/Capri
+- Linux: ~/.config/Capri
 
 On Windows, %LOCALAPPDATA%\Capri also contains reminders.json, routines.json and check-ins.md. Her per-game notes are in its games folder. Saved videos are separate, in Videos\Capri Clips, and stay there when you turn clipping off.
 
@@ -1727,7 +1728,7 @@ On Windows, %LOCALAPPDATA%\Capri also contains reminders.json, routines.json and
 
 It copies your Capri version, which brain and voice you use, and the last 25 lines of her error log. It's made to leave out your keys. It can include a few words from a voice chat that went wrong, so read it before you post it.
 
-On Mac and Linux, her error log is errors.txt in ~/.config/Capri.
+On Mac, her error log is errors.txt in ~/Library/Application Support/Capri. On Linux, it's errors.txt in ~/.config/Capri.
 
 ### Where to get help
 - Mainframe > Help, or right-click her > Help > Help page: opens this Help page.
@@ -2080,7 +2081,7 @@ When she plays a game for you she goes into Gaming Mode by herself once the game
 
 ## 24. Needs checking
 Things in this file the team should confirm before the support chat relies on them:
-1. Mac data folder. Written as ~/.config/Capri (the code uses .NET's ApplicationData folder; Linux confirmed by a user screenshot, Mac not checked).
+1. Mac data folder. Written as ~/Library/Application Support/Capri (the code uses .NET's ApplicationData folder, which is Application Support on Mac in .NET 8 and newer, and her Mac build is .NET 10; Linux confirmed by a user screenshot, Mac not checked on a real Mac).
 2. The ElevenLabs permissions for a restricted key (from the old setup guide screenshot: Text to Speech and Models Access, ElevenAgents and Voices Read, ElevenAgents Write). Several testers still got "Key can't do that" with Restrict key off. Cause unknown: older versions said it for every refusal. Newer versions show ElevenLabs' own reason, so the next report should name it.
 3. How many credits ElevenLabs voice chat uses (ElevenLabs bills agent minutes differently from text to speech). The free plan's credit amount isn't stated on purpose.
 4. Voice chat in other languages hasn't been tested with a real key.
