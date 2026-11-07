@@ -589,6 +589,9 @@ Settings > CAPRI > Head pats turns them off. Rubbing the cursor over her then do
 ### Chaos when upset switch
 Insult her, like "you're annoying", and her clones might come out: 1 chance in 3 the first time, 2 in 3 the next, and the third insult always does it. She tells you to hold Esc, and a note near her says so too. It never happens during a job, a game, a stream or voice chat. English insults count by themselves, and in other languages her brain decides. Settings > CAPRI > Chaos when upset turns it off. It's on by default. Windows only for now.
 
+### Legacy stand switch
+Settings > CAPRI > Legacy stand puts her back on her stand from 0.8.5, in case the new one broke your mod. It's off by default, changes straight away and stays on after a restart. Colour mods work on it, and a skin with its own idle.png still wins.
+
 ## 8. Right-click menu and tray icon (Windows)
 
 Right-click her, or right-click her tray icon. Both show the same menu:
@@ -1068,7 +1071,7 @@ Your push-to-talk key still reaches the game. Pick one that won't also fire a we
 In free voice chat, you can speak while she's answering. When she hears you over her own voice, she stops speaking and listens. Holding push to talk also cuts her speech so you can talk. Cutting off her voice doesn't stop a mouse and keyboard job; say "stop" or press Esc for that.
 
 ### Listen for Capri
-Mainframe > Settings > VOICE > Listen for Capri keeps the mic open whenever she's running, with no key to press, and only answers when what you say includes her name. Ctrl + Alt + V closes her ears and opens them again. While she's hidden or on Quiet they stay closed, and they come back with her. It can be anywhere in the sentence: "what's the weather capri" works. Stop words and push to talk work without her name. With ElevenLabs picked she uses her own ears and speaks in your ElevenLabs voice, so listening costs no credits and replies use text to speech credits. If you shut her ears yourself, the hearing line under VOICE says "Her ears are off: click her wave to open them", and turning call mode on opens them too.
+Mainframe > Settings > VOICE > Listen for Capri keeps the mic open whenever she's running, with no key to press, and answers when what you say includes her name. It can be anywhere in the sentence: "what's the weather capri" works. That starts a chat, so you can keep talking without her name until 20 seconds pass with nothing said to her and her not speaking. On a job, over her own voice, during Watch Along, while she listens to PC sound and in call mode, only lines with her name reach her. Muting your mic, a job starting or closing her ears ends the chat. Ctrl + Alt + V closes her ears and opens them again. While she's hidden or on Quiet they stay closed, and they come back with her. Stop words and push to talk work without her name. With ElevenLabs picked she uses her own ears and speaks in your ElevenLabs voice, so listening costs no credits and replies use text to speech credits. If you shut her ears yourself, the hearing line under VOICE says "Her ears are off: click her wave to open them", and turning call mode on opens them too.
 
 ---
 
@@ -1288,7 +1291,7 @@ With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how mu
 
 ### Her own settings (0.8.0)
 With a cloud brain, ask her to change her own settings and she says how each one is set afterwards: "make yourself bigger", "stop wandering", "talk a bit faster", "turn off head pats", "stop sitting on my windows", "stop commenting on my game".
-- Switches: her voice, Quiet, Check in on me, Dance to music, Head pats, Chaos when upset, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Hide in full screen, Glitch in at startup, Clip my games, Save big moments, Live reactions, Gaming Mode (only when you say Gaming Mode), Hologram, Watch my screen and Comments (on means only when something happens).
+- Switches: her voice, Quiet, Check in on me, Dance to music, Head pats, Chaos when upset, Legacy stand, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Hide in full screen, Glitch in at startup, Clip my games, Save big moments, Live reactions, Gaming Mode (only when you say Gaming Mode), Hologram, Watch my screen and Comments (on means only when something happens).
 - Sliders: Size, Wander, Pop-ins, Sleep, Volume, Speed, Replies and Bubble, a step at a time or to the step you name ("set your size to Large").
 - Keys, brains, her voice service, SECURITY, Remember what she sees, Listen for "Hey Capri" and Remember our chats stay yours to change in the Mainframe.
 
@@ -1381,6 +1384,8 @@ How she asks:
 On Mac and Linux it's right-click her > Settings > Security: the four presets and the five toggles Mac and Linux have (1 to 5), each with its line. Her mouse and keyboard jobs and "Hey Capri" are Windows-only so far, so there Trusted and Blackwall both do what you ask without asking first.
 
 ### Can she play a game for me?
+Say "play" and the game, like "play Bloons TD 6", by voice or text. She opens it if it isn't open, picks a mode or map herself and keeps playing until you tell her to stop or press Esc. Give her an end, like one round, a win or 10 minutes, and she stops there. With SECURITY's mouse and keyboard switch off, she asks first.
+
 Ask her what you want done in the game. She works from the screen with mouse and keyboard input: turning the camera, walking, jumping, holding buttons and using menus. She checks what changed and tries another way when a click keeps doing nothing.
 
 She acts in turns, so fast driving and other moves that need instant reactions are difficult. She can use a game's auto drive or fast travel when available. A game that seems frozen gets a wait and another look. Press Esc or tell her to stop to take over.
