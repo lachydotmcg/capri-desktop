@@ -49074,6 +49074,9 @@ namespace CapriDesktop
                 sheet.LoadMods();
                 if (sheet.ShownCount != 2 || sheet.TitleOf(1) != "Names: Far & Wide" || sheet.AuthorOf(1) != "by Vocyn" || sheet.AboutOf(1) != about || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.TitleOf(2) != null || !sheet.PictureOn(1) || sheet.PictureOn(0) || !sheet.Across3) throw new Exception("The mods window didn't show its names, authors and descriptions 3 across.");
                 if (sheet.StatsOf(1) != "4.5 (8) \u00B7 1.2K downloads" || sheet.StatsOf(0) != "No ratings \u00B7 0 downloads" || sheet.CanRateCard(1)) throw new Exception("The mods window's numbers were wrong: " + sheet.StatsOf(1) + " / " + sheet.StatsOf(0));
+                sheet.PressSort((int)ModSort.TopRated);
+                if (sheet.TitleOf(0) != "Names: Far & Wide" || sheet.StatsOf(1) != "No ratings \u00B7 0 downloads") throw new Exception("Top rated didn't put rated mods ahead of unrated ones.");
+                sheet.PressSort((int)ModSort.Directory);
                 string crowded = sheet.Crowded();
                 if (crowded != null) throw new Exception("The mods window doesn't fit: " + crowded);
                 sheet.Picture(Path.Combine(output, "mods-window.png"));
@@ -49145,9 +49148,11 @@ namespace CapriDesktop
                 string smaller = tree;
                 tree = many.ToString().TrimEnd(',') + "]}";
                 sheet.LoadMods();
+                sheet.PressSort((int)ModSort.MostDownloaded);
                 if (sheet.PageShown != "Page 1 of 2" || sheet.TitleOf(5) != "Tall Hat") throw new Exception("The mods window's first page was wrong.");
                 sheet.PressNext();
-                if (sheet.PageShown != "Page 2 of 2" || sheet.TitleOf(0) != "Wide Hat" || sheet.TitleOf(2) != null) throw new Exception("The mods window's second page was wrong.");
+                if (sheet.PageShown != "Page 2 of 2" || sheet.TitleOf(0) != "Wide Hat" || sheet.TitleOf(2) != null || sheet.SortSelected != (int)ModSort.MostDownloaded) throw new Exception("The mods window's second page lost its sort.");
+                checks.Add("PASS mods window sorting: most downloaded and top rated follow search and type filtering, unrated mods follow rated ones, and the choice stays across pages");
                 sheet.Type2("HAIR red");
                 if (sheet.ShownCount != 1 || sheet.TitleOf(0) != "Red Hair" || sheet.PageShown != null) throw new Exception("Search didn't find the mod with every word.");
                 sheet.Type2("");

@@ -3625,6 +3625,18 @@ namespace CapriDesktop
             byte[] json = Encoding.UTF8.GetBytes(tree.ToString());
             List<ModListing> parsed = ModDirectory.Parse(json);
             if (parsed.Count != 4 || parsed[0].PreviewSha != previewSha || parsed[1].KindIndex != 3 || parsed[2].KindIndex != 2 || ModDirectory.Filter(parsed, "blue hair", 1).Count != 1) throw new Exception("The directory did not parse its tree, previews and kinds.");
+            List<ModListing> ranked = new List<ModListing>
+            {
+                new ModListing { Folder = "z-high", FileName = "z-high.capri-mod", Name = "Red Mod", Downloads = 30, Rating = 4.8, Votes = 1 },
+                new ModListing { Folder = "a-voted", FileName = "a-voted.capri-mod", Name = "Red Mod", Downloads = 5, Rating = 4.1, Votes = 12 },
+                new ModListing { Folder = "b-unrated", FileName = "b-unrated.capri-mod", Name = "Red Mod", Downloads = 1000, Rating = 5, Votes = 0 },
+                new ModListing { Folder = "c-code", FileName = "c-code.capri-code", Name = "Red Code", Downloads = 5000, Rating = 5, Votes = 3 }
+            };
+            List<ModListing> byDownloads = ModDirectory.Filter(ranked, "red", 1, ModSort.MostDownloaded);
+            List<ModListing> byRating = ModDirectory.Filter(ranked, "red", 1, ModSort.TopRated);
+            if (byDownloads.Count != 3 || byDownloads[0].Folder != "b-unrated" || byDownloads[1].Folder != "z-high"
+                || byRating.Count != 3 || byRating[0].Folder != "z-high" || byRating[1].Folder != "a-voted" || byRating[2].Folder != "b-unrated")
+                throw new Exception("The directory didn't sort filtered mods by downloads and rating, with unrated mods last.");
             string about = "A blue colour set for her hair.";
             string indexText = "{\"format\":1,\"mods\":[{\"folder\":\"a-blue-hair\",\"file\":\"" + Path.GetFileName(blue) + "\",\"name\":\"Colors: Blue & Bright\",\"author\":\"Vocyn\",\"about\":\"" + about + "\",\"kind\":\"code\",\"sha\":\"wrong\",\"size\":1}"
                 + ",{\"folder\":\"b-sample-skin\",\"file\":\"wrong.capri-skin\",\"name\":\"Wrong file\",\"author\":\"Wrong\",\"about\":\"Wrong\"}"
