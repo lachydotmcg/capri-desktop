@@ -550,7 +550,7 @@ namespace CapriDesktop
                 screen.Name = screen.Primary ? "main screen" : "screen " + (screen.Number > 0 ? screen.Number : order.IndexOf(screen) + 1);
         }
 
-        private static int DpiAt(Point point)
+        internal static int DpiAt(Point point)
         {
             try
             {

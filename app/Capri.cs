@@ -2485,6 +2485,7 @@ namespace CapriDesktop
             menu.Items.Add(title);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
+            menu.Items.Add(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }));
             visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
             menu.Items.Add(visibilityItem);
             ToolStripMenuItem sizes = new ToolStripMenuItem("Size");
@@ -2924,7 +2925,7 @@ namespace CapriDesktop
             if (!quitting && !testing && !shutdown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
             // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock
             // or clear her running marker: WM_ENDSESSION clears it once the shutdown is certain.
-            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); callEars.Stop(); }
+            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); callEars.Stop(); if (fileEditor != null) fileEditor.KeepDrafts(); }
         }
 
         private void Tick()
@@ -5954,7 +5955,12 @@ namespace CapriDesktop
             frames.Start();
         }
 
-        internal void Quit() { quitting = true; ClearMarks(); if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake(); quitClose = Close; GlitchOut(quitClose); }
+        // Unsaved changes in her file editor ask first, and the quit goes on once they've answered.
+        internal void Quit()
+        {
+            if (fileEditor != null && !fileEditor.Clear(Quit)) return;
+            quitting = true; ClearMarks(); if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake(); quitClose = Close; GlitchOut(quitClose);
+        }
 
         private void StartHeartbeat()
         {
@@ -6027,6 +6033,20 @@ namespace CapriDesktop
         internal string PlayMini(string name)
         {
             return Hands.Do("mini_game", new ToolArguments { Name = name, Action = "open" });
+        }
+
+        private FileEditor fileEditor;
+
+        // Her file editor on personality.md (0) or me.md (1). There's only ever one, and asking again brings it up.
+        internal void OpenFiles(int which)
+        {
+            if (fileEditor == null || fileEditor.Over || fileEditor.IsDisposed)
+            {
+                fileEditor = new FileEditor();
+                fileEditor.Saved += delegate { mainframe.ShowPersonality(); };
+                fileEditor.Motion = preferences.Motion;
+            }
+            fileEditor.Open(which);
         }
 
         internal void OpenPersonality()
@@ -33251,6 +33271,7 @@ namespace CapriDesktop
             Section(checks, "SmokeReminders", delegate { SmokeReminders(checks); });
             Section(checks, "SmokeSavedLists", delegate { SmokeSavedLists(checks, output); });
             Section(checks, "SmokeNoteEditor", delegate { SmokeNoteEditor(checks); });
+            Section(checks, "SmokeFileEditor", delegate { SmokeFileEditor(checks, output); });
             Section(checks, "SmokePopTimes", delegate { SmokePopTimes(checks); });
             Section(checks, "SmokeCalendarReminders", delegate { SmokeCalendarReminders(checks); });
             Section(checks, "SmokeGameControls", delegate { SmokeGameControls(checks); });
@@ -37650,7 +37671,7 @@ namespace CapriDesktop
                             checks.Add("PASS size menu");
                             System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
                             foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
-                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
+                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,File editor,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
                             Ledge popSeat = seat;

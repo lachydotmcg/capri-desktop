@@ -719,6 +719,9 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException) { return false; }
         }
 
+        // personality.md for her file editor. Her safety lines aren't in it: they stay in Safety, and only her prompt reads them.
+        internal static WrittenNote OpenPersonality() { return new WrittenNote(PersonalityPath, PersonalityFile, personalityGate); }
+
         // Puts her default back with no are-you-sure, so anything they wrote is copied to personality.backup.md first. Returns the
         // backup's path, "" when there was nothing of theirs to keep, or null when it couldn't.
         internal static string ResetPersonality()
