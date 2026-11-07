@@ -218,18 +218,18 @@ let modFolders = { at: 0, names: new Set() };
 
 const folderName = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
-const modListed = async folder => {
+const modIndex = 'https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/index.json';
+
+// A mod with a download on record is listed, so most checks never leave D1. Asking GitHub's API every time failed about half of these on
+// 7 Nov, which lost install counts and ratings. A new mod is checked against the index the app lists mods from, which also covers skills.
+const modListed = async (env, folder) => {
   if (!folderName.test(folder) || folder.includes('..')) return false;
+  if (await env.DB.prepare('SELECT 1 FROM mod_downloads WHERE folder = ?').bind(folder).first()) return true;
   if (Date.now() - modFolders.at > 300000) {
-    const answer = await fetch('https://api.github.com/repos/lachydotmcg/capri-mods/git/trees/HEAD?recursive=1', { headers: { 'User-Agent': 'capri-reactions', Accept: 'application/vnd.github+json' } });
+    const answer = await fetch(modIndex, { headers: { 'User-Agent': 'capri-reactions' } });
     if (answer.ok) {
-      const { tree } = await answer.json();
-      const names = new Set();
-      for (const entry of tree || []) {
-        const match = /^mods\/([^/]+)\/[^/]+\.capri-(?:mod|code|skin)$/.exec(entry.path || '');
-        if (match && entry.type === 'blob') names.add(match[1]);
-      }
-      modFolders = { at: Date.now(), names };
+      const { mods } = await answer.json();
+      modFolders = { at: Date.now(), names: new Set((mods || []).map(mod => mod.folder)) };
     } else if (!modFolders.at) {
       throw new Error('GitHub said ' + answer.status);
     }
@@ -260,7 +260,7 @@ const mods = async (request, env, ctx, path, reply) => {
   const sent = await request.json().catch(() => null);
   const folder = sent && typeof sent.folder === 'string' ? sent.folder : '';
   let listed;
-  try { listed = await modListed(folder); }
+  try { listed = await modListed(env, folder); }
   catch { return reply({ error: 'Try again soon' }, 503); }
   if (!listed) return reply({ error: 'No such mod' }, 404);
   const visitor = request.headers.get('CF-Connecting-IP') || 'local';

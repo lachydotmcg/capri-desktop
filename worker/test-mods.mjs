@@ -14,10 +14,16 @@ writeFileSync(join(sdk, 'package.json'), JSON.stringify({ name: '@anthropic-ai/s
 writeFileSync(join(sdk, 'index.js'), 'export default class Anthropic {}');
 writeFileSync(join(room, 'package.json'), JSON.stringify({ type: 'module' }));
 copyFileSync(join(here, 'src', 'index.js'), join(room, 'index.js'));
-const { default: worker } = await import(pathToFileURL(join(room, 'index.js')).href);
+const load = async name => (await import(pathToFileURL(join(room, 'index.js')).href + '?' + name)).default;
+const worker = await load('first');
 process.on('exit', () => rmSync(room, { recursive: true, force: true }));
 
-globalThis.fetch = async () => Response.json({ tree: [{ path: 'mods/far-names/far-names.capri-mod', type: 'blob' }, { path: 'mods/other/other.capri-mod', type: 'blob' }] });
+let indexUp = true;
+const asked = [];
+globalThis.fetch = async url => {
+  asked.push(String(url));
+  return indexUp ? Response.json({ format: 1, mods: [{ folder: 'far-names', kind: 'settings' }, { folder: 'other', kind: 'settings' }, { folder: 'btd6-strategy', kind: 'skill' }, { folder: 'brand-new', kind: 'code' }] }) : new Response('slow down', { status: 429 });
+};
 
 const database = migrations => {
   const sqlite = new DatabaseSync(':memory:');
@@ -32,9 +38,9 @@ const database = migrations => {
   return { DB: { prepare: sql => statement(sql) }, SALT: 'salt', ran, sqlite };
 };
 
-const send = async (env, method, path, body, visitor = '203.0.113.7') => {
+const send = async (env, method, path, body, visitor = '203.0.113.7', target = worker) => {
   const waits = [];
-  const answer = await worker.fetch(new Request('https://worker.test' + path, {
+  const answer = await target.fetch(new Request('https://worker.test' + path, {
     method,
     headers: { 'CF-Connecting-IP': visitor, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined
@@ -62,7 +68,7 @@ assert.equal(env.ran.filter(sql => sql.startsWith('SELECT at, body')).length, 10
 env.ran.length = 0;
 const install = await send(env, 'POST', '/mods/download', { folder: 'far-names' });
 assert.deepEqual(install, { status: 200, body: { ok: true } });
-assert.equal(env.ran.filter(sql => sql.startsWith('SELECT')).length, 0, 'An install read rows back.');
+assert.deepEqual(env.ran.filter(sql => sql.startsWith('SELECT')), ['SELECT 1 FROM mod_downloads WHERE folder = ?'], 'An install read more than its one lookup.');
 await send(env, 'POST', '/mods/download', { folder: 'far-names' });
 assert.equal(env.sqlite.prepare("SELECT count FROM mod_downloads WHERE folder = 'far-names'").get().count, 8);
 await send(env, 'POST', '/mods/download', { folder: 'far-names' }, '203.0.113.8');
@@ -71,6 +77,10 @@ assert.equal(env.sqlite.prepare("SELECT count FROM mod_downloads WHERE folder = 
 // A rating answers with that mod's fresh numbers, since the app shows them straight away.
 const rated = await send(env, 'POST', '/mods/rate', { folder: 'far-names', stars: 2 }, '203.0.113.9');
 assert.deepEqual(rated, { status: 200, body: { folder: 'far-names', downloads: 9, rating: 10 / 3, votes: 3 } });
+
+// Skill mods can be rated and counted like the other kinds.
+assert.equal((await send(env, 'POST', '/mods/rate', { folder: 'btd6-strategy', stars: 5 })).status, 200);
+assert.equal((await send(env, 'POST', '/mods/download', { folder: 'btd6-strategy' })).status, 200);
 
 // A stale copy refreshes once, and the list catches up.
 env.ran.length = 0;
@@ -85,9 +95,33 @@ const old = database(['0001_reactions.sql', '0006_mods.sql']);
 old.sqlite.exec("INSERT INTO mod_downloads VALUES ('far-names', 2)");
 assert.deepEqual((await send(old, 'GET', '/mods')).body, { mods: [{ folder: 'far-names', downloads: 2, rating: 0, votes: 0 }] });
 
+// Mods on record never need GitHub, so a fresh worker counts them and takes their ratings while the index is down.
+asked.length = 0;
+indexUp = false;
+const fresh = await load('index-down');
+assert.equal((await send(env, 'POST', '/mods/download', { folder: 'far-names' }, '203.0.113.20', fresh)).status, 200);
+assert.equal((await send(env, 'POST', '/mods/rate', { folder: 'far-names', stars: 3 }, '203.0.113.20', fresh)).status, 200);
+assert.deepEqual(asked, [], 'A mod on record asked GitHub.');
+
+// A mod with nothing on record has to wait for the index, then counts.
+assert.equal((await send(env, 'POST', '/mods/download', { folder: 'brand-new' }, '203.0.113.20', fresh)).status, 503);
+assert.deepEqual(asked, ['https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/index.json']);
+indexUp = true;
+assert.equal((await send(env, 'POST', '/mods/download', { folder: 'brand-new' }, '203.0.113.20', fresh)).status, 200);
+assert.equal(env.sqlite.prepare("SELECT count FROM mod_downloads WHERE folder = 'brand-new'").get().count, 1);
+
+// A worker that already has the index keeps using it when a refresh fails.
+const clock = Date.now;
+Date.now = () => clock() + 301000;
+indexUp = false;
+assert.equal((await send(env, 'POST', '/mods/rate', { folder: 'other', stars: 4 }, '203.0.113.21', fresh)).status, 200);
+assert.equal((await send(env, 'POST', '/mods/download', { folder: 'never-heard-of-it' }, '203.0.113.21', fresh)).status, 404);
+Date.now = clock;
+indexUp = true;
+
 // Refusals don't change.
 assert.equal((await send(env, 'POST', '/mods/download', { folder: 'not-listed' })).status, 404);
 assert.equal((await send(env, 'POST', '/mods/rate', { folder: 'far-names', stars: 9 })).status, 400);
 assert.equal((await send(env, 'POST', '/mods')).status, 404);
 
-console.log('PASS mods list reads one stored row, refreshes when stale, works before the migration, installs read nothing back, ratings answer fresh');
+console.log('PASS mods list reads one stored row, refreshes when stale, works before the migration, installs read nothing back, ratings answer fresh, skills count, and GitHub trouble costs only brand-new mods');
