@@ -140,7 +140,6 @@ namespace CapriDesktop
         private readonly Toggle followUps;
         private readonly Key huskMode;
         private readonly ContextMenuStrip huskMenu;
-        private static readonly string[] HuskNames = { "Off", "Claude Code", "Codex", "Both" };
         private readonly Slider watchMemory;
         private readonly Readout watchMemoryName;
         private static readonly int[] WatchLines = { 8, 16, 24, 48, 96 };
@@ -851,10 +850,10 @@ namespace CapriDesktop
             huskMode = Make("Off", ValueAt + c, 357, ValueWide, 22, delegate { huskMenu.Show(huskMode, new Point(0, huskMode.Height)); }, "Code/Husk Mode");
             huskMode.Chevron = true;
             huskMode.AccessibleName = "Code/Husk Mode";
-            for (int i = 0; i < HuskNames.Length; i++)
+            for (int i = 0; i < HuskWatch.Names.Length; i++)
             {
-                int choice = i;
-                huskMenu.Items.Add(Choice(HuskNames[i], false, delegate { capri.SetHusk(choice); }));
+                int choice = HuskWatch.Modes[i];
+                huskMenu.Items.Add(Choice(HuskWatch.Names[i], false, delegate { capri.SetHusk(choice); }));
             }
             int afterHusk = Controls.Count;
             stayOnModel = Switch("Stay on my model", c, 354, delegate { if (!syncing) capri.ToggleStayOnModel(); });
@@ -2762,9 +2761,13 @@ namespace CapriDesktop
         internal void Sync()
         {
             syncing = true;
-            huskMode.Text = HuskNames[capri.HuskMode];
+            huskMode.Text = HuskWatch.Names[HuskWatch.Choice(capri.HuskMode)];
             huskMode.Enabled = !capri.HuskChanging;
-            for (int i = 0; i < huskMenu.Items.Count; i++) ((ToolStripMenuItem)huskMenu.Items[i]).Checked = i == capri.HuskMode;
+            for (int i = 0; i < huskMenu.Items.Count; i++)
+            {
+                ((ToolStripMenuItem)huskMenu.Items[i]).Checked = i == HuskWatch.Choice(capri.HuskMode);
+                huskMenu.Items[i].Visible = i < HuskWatch.Choices(capri.HuskMode).Length;
+            }
             huskMode.Invalidate();
             hearingChoice.Text = HearingStatus.Choices[capri.HearingChoice];
             hearingChoice.AccessibleName = "Hearing: " + hearingChoice.Text;
@@ -2919,7 +2922,7 @@ namespace CapriDesktop
         internal bool CaughtUpShown { get { return caughtUp.Checked; } }
         internal bool FollowUpsShown { get { return followUps.Checked; } }
         internal string HuskShown { get { return huskMode.Text; } }
-        internal bool HuskPicker { get { return huskMode.Chevron && huskMenu.Items.Count == 4 && huskMenu.Items[0].Text == "Off" && huskMenu.Items[1].Text == "Claude Code" && huskMenu.Items[2].Text == "Codex" && huskMenu.Items[3].Text == "Both"; } }
+        internal bool HuskPicker { get { return huskMode.Chevron && huskMenu.Items.Count == 6 && huskMenu.Items[0].Text == "Off" && huskMenu.Items[1].Text == "Claude Code" && huskMenu.Items[2].Text == "Codex" && huskMenu.Items[3].Text == "OpenCode" && huskMenu.Items[4].Text == "All" && huskMenu.Items[5].Text == "Claude Code + Codex"; } }
         internal int WatchMemoryShown { get { return WatchLines[watchMemory.Value]; } }
         internal void FlipFollowUps() { followUps.Checked = !followUps.Checked; }
 

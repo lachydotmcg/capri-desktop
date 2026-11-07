@@ -319,11 +319,12 @@ namespace CapriDesktop
             Slider("Every", Pet.GlanceGapNames, 380, 372, () => Nearest(Pet.GlanceGaps, pet.GlanceGap), i => pet.SetGlanceGap(Pet.GlanceGaps[i]));
             Section("BRAIN", 380, 442);
             huskLabel = Caption("Code/Husk Mode", 408, 472, 146, 16);
-            huskMode = Picker("Code/Husk Mode", 564, 469, 172, delegate { return pet.HuskMode; }, pet.SetHusk);
+            readers.Add(delegate { if (huskMode != null) huskMode.Options(HuskWatch.Choices(pet.HuskMode)); });
+            huskMode = Picker("Code/Husk Mode", 564, 469, 172, delegate { return HuskWatch.Choice(pet.HuskMode); }, delegate(int choice) { pet.SetHusk(HuskWatch.Modes[choice]); });
             huskMode.Height = 22;
-            huskMode.Options(Pet.HuskNames);
+            huskMode.Options(HuskWatch.Choices(pet.HuskMode));
             readers.Add(delegate { huskMode.IsEnabled = !pet.HuskChanging; });
-            ToolTip.SetTip(huskMode, "Watch Claude Code or Codex through her hooks. Restart the coding app after changing this.");
+            ToolTip.SetTip(huskMode, "Watch Claude Code, Codex or OpenCode through her hooks or plugin. Restart the coding app after changing this.");
             Toggle("Stay on my model", 380, 466, () => pet.Saved.StayOnModel, pet.SetStay);
             Slider("Replies", Lengths, 380, 494, () => Brain.Wordiness, pet.SetReplies);
             Slider("Memory", Lengths, 380, 522, () => Array.IndexOf(Recalls, Brain.Recall), i => pet.SetRecall(Recalls[i]));

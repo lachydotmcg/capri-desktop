@@ -33267,8 +33267,8 @@ namespace CapriDesktop
         {
             folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
-            string claudeWas = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR"), codexWas = Environment.GetEnvironmentVariable("CODEX_HOME");
-            string claudeFolder = Path.Combine(folder, "claude"), codexFolder = Path.Combine(folder, "codex");
+            string claudeWas = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR"), codexWas = Environment.GetEnvironmentVariable("CODEX_HOME"), opencodeWas = Environment.GetEnvironmentVariable("OPENCODE_CONFIG_DIR");
+            string claudeFolder = Path.Combine(folder, "claude"), codexFolder = Path.Combine(folder, "codex"), opencodeFolder = Path.Combine(folder, "opencode");
             Directory.CreateDirectory(claudeFolder); Directory.CreateDirectory(codexFolder);
             string exe = Path.Combine(folder, "installed", "Capri.exe");
             HuskWatch watch = null;
@@ -33287,6 +33287,7 @@ namespace CapriDesktop
             {
                 Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", claudeFolder);
                 Environment.SetEnvironmentVariable("CODEX_HOME", codexFolder);
+                Environment.SetEnvironmentVariable("OPENCODE_CONFIG_DIR", opencodeFolder);
                 foreach (string source in new[] { "claude", "codex" })
                 {
                     string file = HuskHooks.PathFor(source);
@@ -33419,6 +33420,61 @@ namespace CapriDesktop
                     if (logins.Contains(secretWord)) throw new Exception("A login, cookie or token wasn't redacted: " + logins);
                 if (Brain.Redacted(counts) != counts) throw new Exception("Redaction hid a count, a comparison or a git or docker flag: " + Brain.Redacted(counts));
                 checks.Add("PASS husk Codex mapping: apply_patch update/add/delete files, both shell tools, approval text, question/title fallback, invalid input and separate Codex session IDs; keys, tokens, passwords, logins and cookies are scrubbed from every event, and counts and comparisons stay readable");
+                string plugin = HuskHooks.PathFor("opencode"), plugins = Path.GetDirectoryName(plugin), theirs = "export default { id: 'theirs' }\n";
+                if (plugin != Path.Combine(opencodeFolder, "plugins", "capri.js")) throw new Exception("The OpenCode plugin isn't in OPENCODE_CONFIG_DIR's plugins folder.");
+                Directory.CreateDirectory(plugins);
+                File.WriteAllText(plugin, theirs);
+                string claudeOn = File.ReadAllText(claudeFile), codexOn = File.ReadAllText(codexFile);
+                HuskHooks.Configure(7, exe);
+                string written = File.ReadAllText(plugin);
+                string[] kept = Directory.GetFiles(plugins, "capri.js.capri-backup-*");
+                if (!written.StartsWith(HuskHooks.PluginMark, StringComparison.Ordinal) || !written.Contains("const exe = " + HuskJson.Write(Path.GetFullPath(exe))) || !written.Contains("['--hook', 'opencode']") || !written.Contains("ctx.event.subscribe()") || kept.Length != 1 || File.ReadAllText(kept[0]) != theirs) throw new Exception("The OpenCode plugin wasn't written with her exe, or their file wasn't backed up.");
+                if (File.ReadAllText(claudeFile) != claudeOn || File.ReadAllText(codexFile) != codexOn) throw new Exception("All changed the Claude Code or Codex hooks that were already on.");
+                if (HuskHooks.Configure(7, exe) || File.ReadAllText(plugin) != written || Directory.GetFiles(plugins).Length != 2) throw new Exception("Installing the OpenCode plugin twice changed it or made another backup.");
+                string moved = Path.Combine(folder, "moved", "Capri.exe");
+                HuskHooks.Configure(7, moved);
+                if (!File.ReadAllText(plugin).Contains(HuskJson.Write(Path.GetFullPath(moved))) || Directory.GetFiles(plugins).Length != 2) throw new Exception("A moved Capri didn't rewrite her own plugin, or backed up her own old copy.");
+                HuskHooks.Configure(3, exe);
+                if (File.Exists(plugin) || Directory.GetFiles(plugins).Length != 1 || File.ReadAllText(claudeFile) != claudeOn || File.ReadAllText(codexFile) != codexOn) throw new Exception("Turning OpenCode off left her plugin, removed their backup or changed the other hooks.");
+                File.WriteAllText(plugin, theirs);
+                HuskHooks.Configure(3, exe);
+                if (File.ReadAllText(plugin) != theirs) throw new Exception("OpenCode off removed a capri.js that wasn't hers.");
+                File.Delete(plugin);
+                Dictionary<string, object> ocShell = HuskHook.Adapt(HuskJson.Map("type", "session.tool.called", "session", "oc1", "cwd", "/project", "id", "t1", "tool", "shell", "input", HuskJson.Map("command", "npm test")), "opencode");
+                Dictionary<string, object> ocRead = HuskHook.Adapt(HuskJson.Map("type", "session.tool.called", "session", "oc1", "tool", "read", "input", HuskJson.Map("path", "C:\\p\\a.cs")), "opencode");
+                Dictionary<string, object> ocWrote = HuskHook.Adapt(HuskJson.Map("type", "session.tool.success", "session", "oc1", "tool", "write", "input", HuskJson.Map("filePath", "b.cs", "content", "x")), "opencode");
+                Dictionary<string, object> ocCustom = HuskHook.Adapt(HuskJson.Map("type", "session.tool.failed", "session", "oc1", "tool", "webfetch", "error", "File not found"), "opencode");
+                if (HuskJson.Text(ocShell, "hook_event_name") != "PreToolUse" || HuskJson.Text(ocShell, "session_id") != "opencode:oc1" || HuskJson.Text(ocShell, "cwd") != "/project" || HuskJson.Text(ocShell, "tool_use_id") != "t1" || HuskJson.Text(ocShell, "tool_name") != "Bash" || HuskJson.Text(HuskJson.Get(ocShell, "tool_input") as Dictionary<string, object>, "command") != "npm test"
+                    || HuskJson.Text(ocRead, "tool_name") != "Read" || HuskJson.Text(HuskJson.Get(ocRead, "tool_input") as Dictionary<string, object>, "file_path") != "C:\\p\\a.cs" || HuskJson.Text(ocWrote, "hook_event_name") != "PostToolUse" || HuskJson.Text(ocWrote, "tool_name") != "Write" || HuskJson.Text(HuskJson.Get(ocWrote, "tool_input") as Dictionary<string, object>, "file_path") != "b.cs"
+                    || HuskJson.Text(ocCustom, "hook_event_name") != "PostToolUseFailure" || HuskJson.Text(ocCustom, "tool_name") != "webfetch" || HuskJson.Text(ocCustom, "error") != "File not found") throw new Exception("OpenCode tools weren't mapped to her tool events.");
+                Dictionary<string, object> asksShell = HuskHook.Adapt(HuskJson.Map("type", "permission.asked", "session", "oc1", "action", "shell", "resources", new List<object> { "git push" }), "opencode");
+                Dictionary<string, object> asksEdit = HuskHook.Adapt(HuskJson.Map("type", "permission.asked", "session", "oc1", "action", "edit", "resources", new List<object> { "a.cs" }), "opencode");
+                Dictionary<string, object> asksOther = HuskHook.Adapt(HuskJson.Map("type", "permission.asked", "session", "oc1", "action", "webfetch"), "opencode");
+                if (HuskJson.Text(asksShell, "hook_event_name") != "Notification" || HuskJson.Text(asksShell, "notification_type") != "permission_prompt" || HuskJson.Text(asksShell, "message") != "It wants to run git push" || HuskJson.Text(asksEdit, "message") != "It wants to change files." || HuskJson.Text(asksOther, "message") != "It wants to use webfetch.") throw new Exception("OpenCode approvals didn't say what it wants.");
+                string[] lifecycle = { "session.created", "SessionStart", "session.inbox.enqueued", "UserPromptSubmit", "session.execution.succeeded", "Stop", "session.execution.failed", "StopFailure", "session.execution.interrupted", "Interrupt", "session.compaction.started", "PreCompact", "subagent.started", "SubagentStart", "subagent.stopped", "SubagentStop", "session.deleted", "SessionEnd" };
+                for (int i = 0; i < lifecycle.Length; i += 2)
+                    if (HuskJson.Text(HuskHook.Adapt(HuskJson.Map("type", lifecycle[i], "session", "oc1"), "opencode"), "hook_event_name") != lifecycle[i + 1]) throw new Exception("OpenCode's " + lifecycle[i] + " wasn't mapped.");
+                Dictionary<string, object> ocDone = HuskHook.Adapt(HuskJson.Map("type", "session.execution.succeeded", "session", "", "reply", "All tests pass.", "title", "Fix tests"), "opencode");
+                Dictionary<string, object> ocAsked = HuskHook.Adapt(HuskJson.Map("type", "session.inbox.enqueued", "session", "oc1", "prompt", "Fix the tests"), "opencode");
+                Dictionary<string, object> ocAgent = HuskHook.Adapt(HuskJson.Map("type", "subagent.started", "session", "oc1", "agent", "oc2"), "opencode");
+                if (HuskJson.Text(ocDone, "session_id") != "opencode:default" || HuskJson.Text(ocDone, "last_assistant_message") != "All tests pass." || HuskJson.Text(ocDone, "session_title") != "Fix tests" || HuskJson.Text(ocAsked, "prompt") != "Fix the tests" || HuskJson.Text(ocAgent, "agent_id") != "oc2") throw new Exception("OpenCode's reply, title, prompt or subagent was lost.");
+                if (HuskHook.Adapt(null, "opencode") != null || HuskHook.Adapt(HuskJson.Map(), "opencode") != null || HuskHook.Adapt(HuskJson.Map("type", "session.text.delta", "session", "oc1"), "opencode") != null || HuskHook.Adapt(HuskJson.Map("type", "SessionStart", "session", "oc1"), "opencode") != null || HuskHook.Adapt(HuskEvent("Stop"), "opencode") != null) throw new Exception("The OpenCode adapter accepted an event it doesn't know.");
+                if (HuskWatch.SourceOf("opencode:oc1") != "opencode" || HuskWatch.SourceOf("codex:x") != "codex" || HuskWatch.SourceOf("x") != "claude" || HuskWatch.Name("opencode") != "OpenCode") throw new Exception("OpenCode sessions aren't kept apart or named.");
+                if (HuskAssistant("opencode", "msedge", "Code/Husk Mode for OpenCode · Issue #195") || !HuskAssistant("opencode", "WindowsTerminal", "OC | Capri-Builds tech stack") || !HuskAssistant("opencode", "OpenCode", "OpenCode") || HuskAssistant("opencode", "WindowsTerminal", "Windows PowerShell") || !HuskAssistant("codex", "WindowsTerminal", "Codex") || !HuskAssistant("claude", "WindowsTerminal", "Claude Code")) throw new Exception("A browser tab about OpenCode was taken for its window, its OC terminal or app was missed, or Claude Code and Codex windows stopped matching.");
+                if (HuskWatch.Choice(4) != 3 || HuskWatch.Choice(7) != 4 || HuskWatch.Choice(3) != 5 || HuskWatch.Choice(5) != 0 || HuskWatch.Allowed(6) != 0 || HuskWatch.Allowed(4) != 4 || HuskWatch.Allowed(3) != 3 || string.Join("|", HuskWatch.Choices(1)) != "Off|Claude Code|Codex|OpenCode|All" || HuskWatch.Choices(3)[5] != "Claude Code + Codex" || HuskWatch.Note(4) != "Restart OpenCode to use my plugin." || HuskWatch.Note(3) != "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.") throw new Exception("Her picker's OpenCode and All choices, or Both kept from before, don't match their modes or notes.");
+                using (HuskBridge server = new HuskBridge(Path.Combine(folder, "opencode-bridge")))
+                {
+                    List<Dictionary<string, object>> received = new List<Dictionary<string, object>>();
+                    object receivedGate = new object();
+                    server.Received = delegate(Dictionary<string, object> evt) { lock (receivedGate) received.Add(evt); };
+                    server.Start();
+                    string discovery = Path.Combine(folder, "opencode-bridge", HuskHook.Discovery);
+                    using (MemoryStream bytes = new MemoryStream(Encoding.UTF8.GetBytes(HuskJson.Write(HuskJson.Map("type", "session.tool.called", "session", "oc1", "tool", "write", "input", HuskJson.Map("filePath", "c.cs", "content", "abcd")))))) if (HuskHook.Run("opencode", bytes, discovery) != 0) throw new Exception("The OpenCode husk hook did not exit zero.");
+                    HuskWait(delegate { lock (receivedGate) return received.Count == 1; }, "The OpenCode husk hook did not post its event.");
+                    lock (receivedGate)
+                        if (HuskJson.Text(received[0], "session_id") != "opencode:oc1" || HuskJson.Text(received[0], "tool_name") != "Write" || HuskJson.Write(HuskJson.Get(HuskJson.Get(received[0], "tool_input") as Dictionary<string, object>, "content_len")) != "4") throw new Exception("The OpenCode event changed on its way to her: " + HuskJson.Write(received[0]));
+                }
+                checks.Add("PASS husk OpenCode: plugin in OPENCODE_CONFIG_DIR with her exe, their capri.js backed up and kept when off, idempotent rewrite when she moves, other hooks untouched; tools, approvals, prompts, replies, subagents and lifecycle mapped, unknown events refused, separate opencode sessions, picker order and notes, its window found by the OC terminal and never a browser tab about it, real loopback delivery");
 
                 SmokeHuskEvents(checks, folder, exe, permission, questionEvent, out watch);
             }
@@ -33433,6 +33489,7 @@ namespace CapriDesktop
                 mainframe.Sync();
                 Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", claudeWas);
                 Environment.SetEnvironmentVariable("CODEX_HOME", codexWas);
+                Environment.SetEnvironmentVariable("OPENCODE_CONFIG_DIR", opencodeWas);
             }
         }
 
@@ -33518,7 +33575,7 @@ namespace CapriDesktop
             if (watch.Context().Contains("Reading a.js")) throw new Exception("Husk brain context kept more than the last three actions.");
             husk = watch;
             mainframe.Sync();
-            if (mainframe.HuskShown != "Both") throw new Exception("The husk Both choice was not shown.");
+            if (mainframe.HuskShown != "Claude Code + Codex") throw new Exception("Both, kept from before OpenCode, was not shown as Claude Code + Codex.");
             string liveFacts = null;
             TellHusk(delegate(string facts) { liveFacts = facts; });
             if (liveFacts == null || !liveFacts.Contains("Running npm test") || !liveFacts.Contains("Do not announce them otherwise")) throw new Exception("Live voice chat lost husk observations.");
@@ -33629,7 +33686,7 @@ namespace CapriDesktop
             HuskClone("husk-ui", false);
             if (!huskClones.Swarm.Bodies[0].Returning) throw new Exception("Husk clone overlay missed its return event.");
             HuskClonesOff();
-            checks.Add("PASS husk settings and clones: saved off/Claude/Codex/Both choice, help and hover tip, templates for every spoken language, ten-minute greetings, assistant filtering, duplicate subagent start ignored and passive clones split and return without cursor, notes or window tricks");
+            checks.Add("PASS husk settings and clones: saved off/Claude/Codex/OpenCode/All choice and Both kept as Claude Code + Codex, help and hover tip, templates for every spoken language, ten-minute greetings, assistant filtering, duplicate subagent start ignored and passive clones split and return without cursor, notes or window tricks");
 
             watch.Change(3, exe);
             watch.Receive(HuskHook.Adapt(HuskEvent("PreToolUse", "tool_name", "exec_command", "tool_input", HuskJson.Map("cmd", "npm test")), "codex"));
