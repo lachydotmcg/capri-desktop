@@ -1184,9 +1184,10 @@ namespace CapriDesktop
         // The package manager that installed her, from the marker her installer writes, or null when she updates herself.
         // "manual" or no marker leaves her updater alone; a marker she can't read or doesn't know still holds it back. It's
         // read in her own folder, where her installer writes it and where her own update would install her, even when this
-        // Capri.exe runs from somewhere else.
+        // Capri.exe runs from somewhere else. A Store copy always updates through the Store, whatever a website install left there.
         internal string Package()
         {
+            if (Packaged.Is) return Packaged.Store;
             string path = Path.Combine(Path.GetDirectoryName(folder), SetupFiles.Marker);
             try { File.GetAttributes(path); }
             catch (FileNotFoundException) { return null; }
