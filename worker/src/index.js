@@ -174,6 +174,7 @@ const claudeModel = 'claude-haiku-5-5';
 const perVisitor = 40;
 const perVisitorPictures = 10;
 const perDay = 2000;
+const perDayDiscord = 500;
 const look = 'Write down the exact words you can read in this screenshot, like titles, messages and buttons, then name the app or window in a few words. Plain text, under 60 words.';
 const anchors = { 2: 'install', 3: 'mac', 4: 'linux', 5: 'first-run', 6: 'first-run', 7: 'mainframe', 8: 'menu', 9: 'brain', 10: 'brain', 11: 'voice', 12: 'voice-chat', 13: 'notes', 14: 'moving', 15: 'do', 16: 'screen', 17: 'updates', 18: 'uninstall', 19: 'privacy', 20: 'get-help', 21: 'mac-linux', 22: 'older', 23: 'fixes' };
 const skip = new Set('a an and any also are as at be but by can could do does doing done for from get got has have her hers here how i if in into is it its just know like make me my not of on one or please say said says she so some stuff that the their them then there they thing this to too up want was way we what when where which who why will with would you your capri choom help'.split(' '));
@@ -450,8 +451,9 @@ const respond = async (request, env, ctx, reply, body, user) => {
   ctx.waitUntil(env.DB.prepare('DELETE FROM helps WHERE day < ?').bind(day).run());
   if (mine.count > perVisitor) return reply({ reply: "That's a lot of questions for one day, choom. The Help page has everything, or ask in the Discord.", links: [{ title: 'Help page', href: site + 'help/' }, { title: 'Discord', href: discord }] }, 429);
   if (image && mine.pictures > perVisitorPictures) return reply({ reply: "That's a lot of pictures for one day. Type out what yours says and I'll help.", links: [{ title: 'Help page', href: site + 'help/' }] }, 429);
-  const all = await env.DB.prepare('INSERT INTO help_days (day, count) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET count = count + 1 RETURNING count').bind(day).first();
-  if (all.count > perDay) return reply({ reply: "I'm swamped today. The Help page has everything, or ask in the Discord.", links: [{ title: 'Help page', href: site + 'help/' }, { title: 'Discord', href: discord }] }, 429);
+  // The Discord counts on its own negative day, so a busy website can't silence the bot (Lachy, 7 Nov).
+  const all = await env.DB.prepare('INSERT INTO help_days (day, count) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET count = count + 1 RETURNING count').bind(user ? -day : day).first();
+  if (all.count > (user ? perDayDiscord : perDay)) return reply({ reply: "I'm swamped today. The Help page has everything, or ask in the Discord.", links: [{ title: 'Help page', href: site + 'help/' }, { title: 'Discord', href: discord }] }, 429);
 
   let sections = [];
   try { sections = await knowledge(env); } catch (error) { }

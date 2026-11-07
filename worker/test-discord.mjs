@@ -92,3 +92,35 @@ assert.ok(got.links.length >= 1);
 assert.match(system, /corner of your own website/);
 assert.match(system, /you're just here for Capri help/);
 console.log('PASS the website helper keeps its voice and links');
+
+// The website and the Discord each count their own day, so a busy website can't silence the bot.
+const today = Math.floor(Date.now() / 86400000);
+const days = new Map([[today, 2000]]);
+const realDB = env.DB;
+env.DB = { prepare: sql => {
+  let values = [];
+  return {
+    bind(...bound) { values = bound; return this; },
+    first: async () => {
+      if (!sql.includes('help_days')) return { count: 1, pictures: 0 };
+      days.set(values[0], (days.get(values[0]) ?? 0) + 1);
+      return { count: days.get(values[0]) };
+    },
+    run: async () => ({})
+  };
+} };
+const website = async () => worker.fetch(new Request('https://worker.test/help', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: 'how do I change her voice?' }) }), env, ctx);
+says = 'Still here.';
+const swamped = await website();
+assert.equal(swamped.status, 429);
+assert.match((await swamped.json()).reply, /swamped/);
+got = await discord({ question: 'how do I change her voice?' });
+assert.equal(got.answered, true);
+assert.equal(days.get(-today), 1);
+assert.equal(days.get(today), 2001);
+days.set(-today, 500);
+got = await discord({ question: 'how do I change her voice?' });
+assert.match(got.reply, /swamped/);
+assert.equal(got.answered, undefined);
+env.DB = realDB;
+console.log('PASS a busy website leaves the Discord its own limit');
