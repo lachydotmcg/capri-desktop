@@ -712,7 +712,7 @@ namespace CapriDesktop
             voiceInMicNote.Click += delegate { if (voiceInMicNote.Text == CableSetup.Credit) capri.OpenCablePage(); };
             voiceInMicState = Caption("", 28, MixAt + 50, small, Faint);
             cableKey = Make("Get VB-CABLE", 244, MixAt + 76, 112, 22, delegate { capri.SetUpCable(); }, "Her voice in your mic");
-            cableKey.AccessibleName = "Get VB-CABLE: opens VB-Audio's own setup, which Windows asks you to let run. Click Install Driver in it, then restart your PC. VB-CABLE is donationware from vb-cable.com";
+            cableKey.AccessibleName = Packaged.Is ? "Get VB-CABLE: opens VB-Audio's page, where you can get it. VB-CABLE is donationware from vb-cable.com" : "Get VB-CABLE: opens VB-Audio's own setup, which Windows asks you to let run. Click Install Driver in it, then restart your PC. VB-CABLE is donationware from vb-cable.com";
             cableKey.Visible = false;
             mixInputMenu = Dropdown();
             mixInputMenu.Closed += delegate { mixInputsWaiting = false; };

@@ -6556,6 +6556,8 @@ namespace CapriDesktop
         // with Settings open or not, what it unpacked goes, the device list is read again, and the line says to restart.
         internal void SetUpCable()
         {
+            // A Store copy carries no driver and starts no setup, so it's VB-Audio's own page.
+            if (Packaged.Is) { OpenCablePage(); return; }
             if (cableStarting || CableSetupOpen) return;
             cableStarting = true;
             try
