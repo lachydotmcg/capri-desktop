@@ -14,8 +14,8 @@ namespace CapriDesktop
     // fixed text she shows without a brain all read it, so the next release only edits these lines.
     internal static class News
     {
-        internal const string Version = "0.8.5";
 #if CROSS
+        internal const string Version = "0.8.5";
         internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
             + "Keep personal details out of her memories: Mainframe > Settings > HABITS > Security. It's on in every preset but Blackwall. With it on, her notes and what she remembers leave out addresses, card numbers, emails and other personal details.\n"
             + "Naps anywhere: when nobody's touched the mouse or keyboard for Fall asleep after, or you ask her to go to sleep, she dozes off sitting up right where she sits, and wakes still sitting.\n"
@@ -26,7 +26,9 @@ namespace CapriDesktop
             + "Brain trouble: a provider's error goes in the BRAIN note instead of being read out, and her offline line says to press Set up her brain or Free key.";
         internal const string Line = "I just updated to " + Version + ": personal details stay out of my memories, and clearer lines when something goes wrong. Ask me what's new for the menu paths.";
 #else
+        internal const string Version = "0.8.5.1";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
+            + "Her own ears download again. The files they come from changed on 7 November, which broke the download on every copy of Capri, with lines like came out the wrong size or keeps stopping. She gets the same ears from Capri's own copy now, and a download left half done starts over by itself. For a language other than English, pick it under Mainframe > Settings > YOU > Language and she downloads the ears that hear it.\n"
             + "Call mode (beta) hears any app, like Roblox: click the call app's name on her call panel, and its menu lists every app in Windows' volume mixer under the call apps. She hears the one you pick and everything it opens, and keeps it after a restart. Auto never picks one of these.\n"
             + "Keep personal details out of her memories: Mainframe > Settings > HABITS > Security > HER MEMORY. It's on in every preset but Blackwall. With it on, her notes, Get to know me and what she remembers seeing leave out addresses, card numbers, emails and other personal details.\n"
             + "Naps anywhere: when your PC goes quiet for MOVES > Sleep, or you ask her to go to sleep, she dozes off right where she sits, on a window, a desktop icon, her mini player or the taskbar. With no room to lie down, she sleeps sitting up and wakes still sitting.\n"
@@ -35,7 +37,7 @@ namespace CapriDesktop
             + "The VOICE page never freezes on a slow mic or speaker, like a Bluetooth headset waking up: its menus open at once, say Still checking, and fill in a moment later.\n"
             + "Damaged saves: if her saved reminders, routines or website nicknames can't be read, she keeps a copy of the old file and carries on with what she could read.\n"
             + "Clearer lines: a turned-down brain key names the company, like NVIDIA, and a game or window that runs as administrator comes with the steps to run her as administrator too.";
-        internal const string Line = "I just updated to " + Version + ": call mode hears any app, like Roblox, and personal details stay out of my memories. Ask me what's new for the menu paths.";
+        internal const string Line = "I just updated to " + Version + ": my ears download again, and call mode hears any app, like Roblox. Ask me what's new for the menu paths.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
