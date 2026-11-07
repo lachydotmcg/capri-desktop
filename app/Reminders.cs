@@ -6,9 +6,68 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace CapriDesktop
 {
+    // A saved list she can't read, or one with entries she can't read, is copied to <name>.unreadable.json before anything
+    // saves over it, like her settings, and she carries on with the entries she could read. They hear about it once, ahead of
+    // her next reply about that list. While the copy keeps failing, she doesn't save over the file.
+    internal sealed class SavedList<T>
+    {
+        private readonly string path, label, kept;
+        private string note;
+        private bool uncopied;
+
+        internal SavedList(string path, string label)
+        {
+            this.path = path;
+            this.label = label;
+            kept = Path.GetFileNameWithoutExtension(path) + ".unreadable.json";
+        }
+
+        internal List<T> Read(Predicate<T> readable)
+        {
+            if (!File.Exists(path)) return new List<T>();
+            List<T> saved = null;
+            Exception error = null;
+            try { using (FileStream input = File.OpenRead(path)) saved = (List<T>)new DataContractJsonSerializer(typeof(List<T>)).ReadObject(input); }
+            catch (Exception reading) { error = reading; }
+            if (saved == null) saved = new List<T>();
+            int count = saved.Count;
+            saved.RemoveAll(item => item == null || !readable(item));
+            if (error == null && saved.Count == count) return saved;
+            Exception copying = Companion.CopyUnreadable(path, kept);
+            uncopied = copying != null;
+            // Only the kind of error goes in errors.txt: its message can quote the file.
+            Brain.Log("startup", -1, Path.GetFileName(path) + (error == null ? " had entries she couldn't read" : " couldn't be read (" + error.GetType().Name + ")")
+                + (uncopied ? " or copied (" + copying.GetType().Name + "), so she won't save over it until she can copy it." : ". The old file is kept as " + kept + "."));
+            note = (saved.Count == 0 ? "Your saved " + label + " couldn't be read, so I started a new list." : "Some of your saved " + label + " couldn't be read, so I kept the rest.")
+                + (uncopied ? " I couldn't keep a copy of the old file yet, so I won't save over it until I can." : " The old file is kept as " + kept + " in %LocalAppData%\\Capri.");
+            return saved;
+        }
+
+        internal void Write(List<T> items, string ending)
+        {
+            if (uncopied)
+            {
+                if (Companion.CopyUnreadable(path, kept) != null) throw new IOException("Couldn't keep a copy of your old " + Path.GetFileName(path) + ", so I didn't save over it. Try again in a moment.");
+                uncopied = false;
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            string temporary = path + ending;
+            using (FileStream output = File.Create(temporary)) new DataContractJsonSerializer(typeof(List<T>)).WriteObject(output, items);
+            if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path);
+        }
+
+        // Her reply, with what happened to the file ahead of it the first time.
+        internal string Told(string reply)
+        {
+            string told = Interlocked.Exchange(ref note, null);
+            return told == null ? reply : told + "\n" + reply;
+        }
+    }
+
     [DataContract]
     internal sealed class Reminder
     {
@@ -30,8 +89,8 @@ namespace CapriDesktop
     internal sealed class Reminders
     {
         private readonly object gate = new object();
-        private readonly string remindersPath, routinesPath;
-        private readonly string remindersError, routinesError;
+        private readonly SavedList<Reminder> remindersFile;
+        private readonly SavedList<Routine> routinesFile;
         private List<Reminder> reminders;
         private List<Routine> routines;
         [ThreadStatic] private static HashSet<string> running;
@@ -39,56 +98,24 @@ namespace CapriDesktop
 
         internal Reminders(string folder, DateTime started)
         {
-            remindersPath = Path.Combine(folder, "reminders.json");
-            routinesPath = Path.Combine(folder, "routines.json");
-            reminders = Read<Reminder>(remindersPath, out remindersError);
-            routines = Read<Routine>(routinesPath, out routinesError);
-            foreach (Reminder reminder in reminders)
+            remindersFile = new SavedList<Reminder>(Path.Combine(folder, "reminders.json"), "reminders");
+            routinesFile = new SavedList<Routine>(Path.Combine(folder, "routines.json"), "routines");
+            reminders = remindersFile.Read(delegate(Reminder reminder)
             {
                 DateTime due;
-                if (reminder == null || string.IsNullOrWhiteSpace(reminder.Text) || !DateTime.TryParseExact(reminder.When, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out due))
-                {
-                    remindersError = "Couldn't read a saved reminder.";
-                    break;
-                }
+                if (string.IsNullOrWhiteSpace(reminder.Text) || !DateTime.TryParseExact(reminder.When, "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out due)) return false;
                 reminder.Late = !reminder.Said && due <= started;
-            }
-            foreach (Routine routine in routines)
-                if (routine == null || Key(routine.Phrase).Length == 0 || string.IsNullOrWhiteSpace(routine.Steps)) { routinesError = "Couldn't read a saved routine."; break; }
+                return true;
+            });
+            routines = routinesFile.Read(routine => Key(routine.Phrase).Length > 0 && !string.IsNullOrWhiteSpace(routine.Steps));
         }
 
-        private static List<T> Read<T>(string path, out string problem)
-        {
-            problem = null;
-            try
-            {
-                if (!File.Exists(path)) return new List<T>();
-                using (FileStream input = File.OpenRead(path))
-                {
-                    List<T> saved = (List<T>)new DataContractJsonSerializer(typeof(List<T>)).ReadObject(input);
-                    if (saved == null) throw new SerializationException("The saved list is empty.");
-                    return saved;
-                }
-            }
-            catch (IOException readIo) { problem = "Couldn't read " + Path.GetFileName(path) + ": " + readIo.Message; }
-            catch (UnauthorizedAccessException readAccess) { problem = "Couldn't read " + Path.GetFileName(path) + ": " + readAccess.Message; }
-            catch (SerializationException readJson) { problem = "Couldn't read " + Path.GetFileName(path) + ": " + readJson.Message; }
-            return new List<T>();
-        }
+        internal string Remind(ToolArguments args) { return remindersFile.Told(RemindReply(args)); }
 
-        private static void Write<T>(string path, List<T> saved)
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            string temporary = path + ".new";
-            using (FileStream output = File.Create(temporary)) new DataContractJsonSerializer(typeof(List<T>)).WriteObject(output, saved);
-            if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path);
-        }
-
-        internal string Remind(ToolArguments args)
+        private string RemindReply(ToolArguments args)
         {
             lock (gate)
             {
-                if (remindersError != null) return remindersError;
                 if (args.Action == "list")
                 {
                     List<Reminder> waiting = reminders.FindAll(pending => !pending.Said);
@@ -105,7 +132,7 @@ namespace CapriDesktop
                         ?? changed.Find(part => !part.Said && (" " + Key(part.Text) + " ").Contains(" " + wanted + " "));
                     if (cancelled == null) return "Couldn't find that reminder.";
                     changed.Remove(cancelled);
-                    Write(remindersPath, changed);
+                    remindersFile.Write(changed, ".new");
                     reminders = changed;
                     return "Cancelled your reminder: " + cancelled.Text;
                 }
@@ -113,7 +140,7 @@ namespace CapriDesktop
                 if (string.IsNullOrWhiteSpace(args.Text)) return "What should I remind you about?";
                 if (!Parse(args.When, Now(), out when)) return "What time should I remind you? Try in 20 minutes or on 5 December at 9am.";
                 changed.Add(new Reminder { Text = args.Text.Trim(), When = DateTime.SpecifyKind(when, DateTimeKind.Unspecified).ToString("o", CultureInfo.InvariantCulture) });
-                Write(remindersPath, changed);
+                remindersFile.Write(changed, ".new");
                 reminders = changed;
                 return "I'll remind you " + when.ToString("f") + ": " + args.Text.Trim();
             }
@@ -123,23 +150,23 @@ namespace CapriDesktop
         {
             lock (gate)
             {
-                if (remindersError != null) return null;
                 Reminder next = null;
                 foreach (Reminder candidate in reminders)
                     if (!candidate.Said && candidate.Due <= now && (next == null || candidate.Due < next.Due)) next = candidate;
                 if (next == null) return null;
                 next.Said = true;
-                try { Write(remindersPath, reminders); }
+                try { remindersFile.Write(reminders, ".new"); }
                 catch { next.Said = false; throw; }
                 return next.Late ? "Late reminder, due " + next.Due.ToString("f") + ": " + next.Text : "Reminder: " + next.Text;
             }
         }
 
-        internal string Routine(ToolArguments args)
+        internal string Routine(ToolArguments args) { return routinesFile.Told(RoutineReply(args)); }
+
+        private string RoutineReply(ToolArguments args)
         {
             lock (gate)
             {
-                if (routinesError != null) return routinesError;
                 if (args.Action == "list")
                 {
                     List<string> lines = routines.ConvertAll(listedRoutine => listedRoutine.Phrase + ": " + listedRoutine.Steps);
@@ -160,7 +187,7 @@ namespace CapriDesktop
                     if (existing != null) changed.Remove(existing);
                     changed.Add(new Routine { Phrase = phrase, Steps = args.Steps.Trim() });
                 }
-                Write(routinesPath, changed);
+                routinesFile.Write(changed, ".new");
                 routines = changed;
                 return args.Action == "forget" ? "Forgot your routine: " + phrase : "When you say " + phrase + ", I'll " + args.Steps.Trim();
             }
@@ -170,7 +197,6 @@ namespace CapriDesktop
         {
             lock (gate)
             {
-                if (routinesError != null) return null;
                 Routine found = routines.Find(item => Key(item.Phrase) == Key(phrase));
                 return found == null ? null : found.Steps;
             }
@@ -179,7 +205,7 @@ namespace CapriDesktop
         internal string Run(string phrase, Func<string, string> run)
         {
             string steps = Steps(phrase);
-            if (steps == null) return "Couldn't find that routine.";
+            if (steps == null) return routinesFile.Told("Couldn't find that routine.");
             if (running == null) running = new HashSet<string>();
             string key = Key(phrase);
             if (!running.Add(key)) return "Already doing that routine.";

@@ -1,59 +1,416 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#0b0914">
   <meta name="description" content="Bring Capri back to life on your desktop! :)">
   <title>Capri</title>
   <link rel="icon" type="image/x-icon" href="assets/chip.ico">
-  <link rel="stylesheet" href="style.css?v=0.8.4">
-  <script src="app.js" defer></script>
+  <link rel="preload" href="assets/fonts/BigShoulders-800.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/PublicSans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/sprites/perch.webp" as="image">
+  <link rel="preload" href="assets/sprites/laydown.png" as="image">
+  <link rel="stylesheet" href="home.css?v=0.8.4">
+  <script src="home.js?v=0.8.4" defer></script>
   <script src="helper.js?v=0.8.4" defer></script>
 </head>
 <body>
-  <div class="page">
-    <header class="header">
-      <img class="chip" src="assets/chip.png" alt="Capri's chip" width="72" height="50">
-      <div class="links">
-        <span class="text-links"><a class="guide-link" href="setup/" aria-label="Setup guide"><span class="guide-long">Setup guide</span><span class="guide-short">Guide</span></a><a class="guide-link" href="help/">Help</a><a class="guide-link" href="mods/">Mods</a></span>
-        <a id="install" class="download" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg><span>Download</span><span class="download-count"></span></a>
-        <a class="discord" href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer" aria-label="Discord"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg></a>
-        <a class="github" href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .75a11.25 11.25 0 0 0-3.56 21.92c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.65-1.25-1.65-1.02-.7.08-.69.08-.69 1.13.08 1.72 1.16 1.72 1.16 1 1.72 2.62 1.22 3.26.93.1-.73.39-1.22.71-1.5-2.5-.29-5.13-1.25-5.13-5.57 0-1.23.44-2.23 1.16-3.02-.12-.28-.5-1.43.11-2.98 0 0 .95-.3 3.1 1.15a10.83 10.83 0 0 1 5.64 0c2.15-1.45 3.1-1.15 3.1-1.15.61 1.55.23 2.7.11 2.98.72.79 1.16 1.79 1.16 3.02 0 4.33-2.64 5.28-5.15 5.56.4.35.76 1.03.76 2.08v3.11c0 .3.2.65.78.54A11.25 11.25 0 0 0 12 .75Z"/></svg></a>
+  <a class="skip" href="#desktop">Skip to what she does</a>
+
+  <nav class="nav" aria-label="Site">
+    <a class="home" href="#top" aria-label="Capri, back to the top"><img src="assets/chip.png" alt="" width="48" height="33"></a>
+    <span class="links">
+      <a href="#desktop">Features</a>
+      <a href="https://capriai.app/setup/">Setup</a>
+      <a href="https://capriai.app/help/">Help</a>
+      <a class="social" href="https://discord.gg/capridesktop" aria-label="Discord" title="Discord"><svg class="nav-icon" viewBox="0 2.8 24 18.4" aria-hidden="true" focusable="false"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.445.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03ZM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.419 0 1.334-.955 2.42-2.157 2.42Zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.419 0 1.334-.946 2.42-2.157 2.42Z"/></svg></a>
+      <a class="social" href="https://github.com/lachydotmcg/capri-desktop" aria-label="GitHub" title="GitHub"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .297C5.37.297 0 5.67 0 12.297c0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.043-1.61-4.043-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.237 1.838 1.237 1.07 1.835 2.807 1.305 3.492.998.108-.776.418-1.305.762-1.605-2.665-.3-5.467-1.334-5.467-5.93 0-1.31.467-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.52 11.52 0 0 1 3-.404c1.02.005 2.045.138 3 .404 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg></a>
+      <a class="social" href="https://ko-fi.com/lachysdev" aria-label="Ko-fi" title="Ko-fi"><svg class="nav-icon" viewBox="0 0 24 15.26" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M0 0.68L0 12.89L0.16 13.63L0.63 14.42L1.16 14.84L1.95 15.16L13.95 15.21L14.74 15.16L15.26 15L15.95 14.63L16.53 14.05L16.79 13.63L17.11 12.68L17.21 11.47L18.16 11.47L19.53 11.26L20.47 10.95L21.32 10.53L22.05 10L22.89 9.11L23.53 8L23.79 7.21L23.95 6.21L23.89 4.89L23.74 4.11L23.21 2.79L22.47 1.79L21.63 1.05L20.47 0.42L19.68 0.16L18.84 0L0.58 0L0.16 0.32zM12.21 3.79L13 4.37L13.42 5.05L13.58 5.68L13.58 6.32L13.37 7.16L13 7.84L12.47 8.47L8.74 12.11L8.53 12.11L6.32 10.11L4.32 8.05L3.89 7.26L3.68 6.47L3.68 5.42L3.79 5L4.16 4.37L4.58 4L4.95 3.79L5.74 3.58L6.53 3.58L7.32 3.79L8.16 4.26L8.58 4.68L9.63 3.89L10.47 3.58L11.21 3.53zM17.32 2.89L18.84 2.89L19.74 3.21L20.47 3.84L20.95 4.79L21 6.21L20.63 7.32L20.37 7.68L19.84 8.16L18.95 8.58L17.58 8.63L17.26 8.53z"/></svg></a>
+    </span>
+    <details class="menu">
+      <summary>Menu</summary>
+      <div class="menu-links">
+        <a href="#desktop">Features</a>
+        <a href="#talk">Talk</a>
+        <a href="#hands">Your PC</a>
+        <a href="#chaos">Chaos mode</a>
+        <a href="#proof">Numbers</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#get">Install</a>
+        <a href="#top">Top</a>
+        <a href="https://capriai.app/setup/">Setup</a>
+        <a href="https://capriai.app/help/">Help</a>
+        <a class="social" href="https://discord.gg/capridesktop" aria-label="Discord" title="Discord"><svg class="nav-icon" viewBox="0 2.8 24 18.4" aria-hidden="true" focusable="false"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.211.375-.445.865-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03ZM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.419 0 1.334-.955 2.42-2.157 2.42Zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.419 0 1.334-.946 2.42-2.157 2.42Z"/></svg> Discord</a>
+        <a class="social" href="https://github.com/lachydotmcg/capri-desktop" aria-label="GitHub" title="GitHub"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 .297C5.37.297 0 5.67 0 12.297c0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.043-1.61-4.043-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.237 1.838 1.237 1.07 1.835 2.807 1.305 3.492.998.108-.776.418-1.305.762-1.605-2.665-.3-5.467-1.334-5.467-5.93 0-1.31.467-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23a11.52 11.52 0 0 1 3-.404c1.02.005 2.045.138 3 .404 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg> GitHub</a>
+        <a class="social" href="https://ko-fi.com/lachysdev" aria-label="Ko-fi" title="Ko-fi"><svg class="nav-icon" viewBox="0 0 24 15.26" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M0 0.68L0 12.89L0.16 13.63L0.63 14.42L1.16 14.84L1.95 15.16L13.95 15.21L14.74 15.16L15.26 15L15.95 14.63L16.53 14.05L16.79 13.63L17.11 12.68L17.21 11.47L18.16 11.47L19.53 11.26L20.47 10.95L21.32 10.53L22.05 10L22.89 9.11L23.53 8L23.79 7.21L23.95 6.21L23.89 4.89L23.74 4.11L23.21 2.79L22.47 1.79L21.63 1.05L20.47 0.42L19.68 0.16L18.84 0L0.58 0L0.16 0.32zM12.21 3.79L13 4.37L13.42 5.05L13.58 5.68L13.58 6.32L13.37 7.16L13 7.84L12.47 8.47L8.74 12.11L8.53 12.11L6.32 10.11L4.32 8.05L3.89 7.26L3.68 6.47L3.68 5.42L3.79 5L4.16 4.37L4.58 4L4.95 3.79L5.74 3.58L6.53 3.58L7.32 3.79L8.16 4.26L8.58 4.68L9.63 3.89L10.47 3.58L11.21 3.53zM17.32 2.89L18.84 2.89L19.74 3.21L20.47 3.84L20.95 4.79L21 6.21L20.63 7.32L20.37 7.68L19.84 8.16L18.95 8.58L17.58 8.63L17.26 8.53z"/></svg> Ko-fi</a>
       </div>
-    </header>
-    <main>
-      <h1>Bring Capri <em>back</em> to life on your desktop! :)</h1>
-      <div id="demo" class="demo" tabindex="-1" role="region" aria-label="Interactive browser demonstration of Capri">
-        <button id="demo-capri" class="demo-capri" aria-label="Capri. Drag to move, click to react, or use arrow keys and Enter."><span class="sprite"></span></button>
-        <div id="taskbar" class="taskbar"><span class="xp-start" aria-hidden="true"></span><button id="demo-restore" class="xp-app" type="button" aria-label="Bring Capri back"><img src="assets/chip.png" alt="" width="16" height="11">Capri</button></div>
-        <div id="talk-pill" class="talk-pill" hidden>
-          <button id="talk-type" type="button" aria-label="Type to Capri"><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-45 12 12)"><rect x="4" y="9.5" width="12" height="5" rx="1.2"/><path d="M16.6 9.5 21 12l-4.4 2.5Z"/><path class="gap" d="M7.2 9v6M16 9v6"/></g></svg></button>
-          <span aria-hidden="true"></span>
-          <button id="talk-voice" type="button" aria-label="Talk to Capri out loud"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.8 9.5v5M8.4 7v10M12 5v14M15.6 7.5v9M19.2 10v4"/></svg></button>
+    </details>
+    <a id="install" class="download" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><span>Download</span> <span class="download-count">47.9K</span></a>
+  </nav>
+
+  <main id="main">
+    <div class="split">
+      <div class="stage-col">
+        <div class="stage desk" id="stage" data-ui data-scene="hero" role="region" aria-label="Live demo: Capri on a desktop">
+          <div class="win notes" id="win-notes" role="group" aria-label="Your editable me.md">
+            <div class="bar"><span>me.md</span><button class="close" type="button" aria-label="Close me.md"><i class="cls" aria-hidden="true"></i></button></div>
+            <textarea class="sheet" id="me-notes" aria-label="Edit me.md" spellcheck="false" maxlength="2000">name: choom
+into: Minecraft, lo-fi
+up late again</textarea>
+          </div>
+
+          <div class="win player paused" id="win-player" role="group" aria-label="Music player">
+            <div class="row bar"><span class="title">I'm In Love With Myself</span><button class="close" type="button" aria-label="Close music player"><i class="cls" aria-hidden="true"></i></button></div>
+            <div class="row"><span class="artist">Cyberpunk: Edgerunners 2</span><span class="time"><span id="player-time">0:00</span> / <span id="player-duration">0:00</span></span></div>
+            <input class="seek" id="player-seek" type="range" min="0" max="100" value="0" step="0.1" aria-label="Seek in song" disabled>
+            <div class="ctrls">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+              <button class="transport" id="player-prev" type="button" aria-label="Restart song"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6v12M19 6l-9 6 9 6z"/></svg></button>
+              <button class="pause" id="player-play" type="button" aria-label="Play song"><svg class="is-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7v10M15 7v10"/></svg><svg class="is-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6.5v11l8.5-5.5z"/></svg></button>
+              <button class="transport" id="player-next" type="button" aria-label="Restart song from next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6v12M5 6l9 6-9 6z"/></svg></button>
+              <svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>
+            </div>
+          </div>
+
+          <div class="win notes chat-log gone" id="win-log" role="group" aria-label="Conversation log" inert>
+            <div class="bar"><span>chat.log</span><div class="log-actions"><button id="clear-log" type="button">Clear</button><button class="close" type="button" aria-label="Close chat.log"><i class="cls" aria-hidden="true"></i></button></div></div>
+            <ol id="chat-log" tabindex="0" aria-label="Stage conversation, oldest first"></ol>
+          </div>
+
+          <button class="her" id="her" type="button" aria-label="Capri. Click to poke, drag and fling, double-click to sleep or wake, or use the arrow keys and Enter."><span class="sprite" data-fit="perch"></span></button>
+
+          <div class="talkbox" id="talkbox">
+            <svg class="frame"></svg>
+            <p class="heard">&gt; you: hi</p>
+            <p class="reply"><span class="name">CAPRI:</span> <span class="words">Hey choom! Net's been quiet, too quiet. Time to stir up some trouble.</span><span class="caret"></span></p>
+          </div>
+
+          <div class="pill" id="pill">
+            <button type="button" id="pill-type" aria-label="Type to Capri"><svg viewBox="0 0 24 24" aria-hidden="true"><g transform="rotate(-45 12 12)"><rect x="4" y="9.5" width="12" height="5" rx="1.2"/><path d="M16.6 9.5 21 12l-4.4 2.5Z"/><path class="gap" d="M7.2 9v6M16 9v6"/></g></svg></button>
+            <span class="sep" aria-hidden="true"></span>
+            <button type="button" id="pill-voice" class="wave" aria-label="Talk to Capri out loud"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.8 9.5v5M8.4 7v10M12 5v14M15.6 7.5v9M19.2 10v4"/></svg></button>
+          </div>
+
+          <svg class="pointer pink" id="her-cursor" viewBox="0 0 28 34" aria-hidden="true"><path d="M3 2v24l6-6 5 11 5-2-5-10h10L3 2Z"/></svg>
+
+          <p class="ride-hint" id="ride-hint" hidden>ctrl + alt + c to unseat Capri</p>
+          <div class="stage-tries" id="stage-tries" role="group" aria-label="Things to try with Capri">
+            <span>try:</span>
+            <button type="button" data-try="poke">poke</button>
+            <button type="button" data-try="show me chaos mode">show me chaos mode</button>
+            <button type="button" data-try="play the song">play the song</button>
+            <button type="button" data-try="help">ask her</button>
+            <span>drag + fling / double-click to nap</span>
+          </div>
+
+          <div class="taskbar">
+            <span class="start"><img src="assets/chip.png" alt="" width="34" height="24"></span>
+            <button class="task on" id="task-capri" type="button" aria-label="Bring Capri back"><img src="assets/chip.png" alt="" width="20" height="14">Capri</button>
+            <button class="task" id="task-notes" type="button" aria-label="Open me.md">me.md</button>
+            <button class="task" id="task-music" type="button" aria-label="Open music and play song">Music</button>
+            <button class="task" id="task-log" type="button" aria-label="Open chat.log" aria-controls="win-log" aria-expanded="false">Log</button>
+            <span class="tray">
+              <button class="motion" id="motion" type="button" aria-pressed="false" aria-label="Pause motion"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="is-pause" d="M8 6v12M16 6v12"/><path class="is-play" d="M8 5.5v13l10.5-6.5z"/></svg></button>
+              <img src="assets/chip.png" alt="" width="20" height="14">
+              <time class="clock" id="clock">9:41 pm</time>
+            </span>
+          </div>
+          <p class="sr-only" id="stage-status" role="status"></p>
         </div>
-        <div id="talk-box" class="talk-box" hidden aria-hidden="true"><svg class="talk-frame"></svg><p class="talk-heard"></p><p class="talk-reply"><span class="talk-name">CAPRI:</span> <span class="talk-words"></span><span class="talk-caret"></span></p></div>
-        <form id="talk-typer" class="talk-typer" hidden><svg class="talk-frame" aria-hidden="true"></svg><label for="talk-input">&gt; you:</label><input id="talk-input" type="text" maxlength="240" autocomplete="off" spellcheck="false" enterkeyhint="send"></form>
-        <div id="player-cursor" class="player-cursor" aria-hidden="true"><svg viewBox="0 0 28 34"><path d="M3 2v24l6-6 5 11 5-2-5-10h10L3 2Z"/></svg></div>
-        <span id="demo-status" class="sr-only" role="status"></span>
       </div>
-      <p class="hint">ctrl + alt + c to unseat Capri</p>
-      <p class="systems"><a data-os="windows" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-Setup.exe">Windows</a><a data-os="mac" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-mac-apple-silicon.zip">Mac</a><a data-os="intel" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-mac-intel.zip">Intel Mac</a><a data-os="linux" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-linux-x64.tar.gz">Linux</a><a data-os="appimage" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-linux-x64.AppImage">Linux AppImage</a><a data-os="quest" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-VR-Quest.apk">Quest VR</a></p>
-      <p class="fan-notice fan-top">Capri is an unofficial fan project and is not approved or endorsed by CD PROJEKT RED, the anime's rights holders or its voice actors.</p>
-      <button id="star" class="star" type="button" data-api="https://capri-reactions.lachydotmcg.workers.dev/star" aria-pressed="false">⭐<span></span></button>
-    </main>
-    <aside id="changelog" class="changelog" aria-label="Latest changes" hidden><p class="changelog-head">CHANGELOG</p><div class="changelog-window"><ol class="changelog-track"></ol></div></aside>
-    <footer id="support" class="support"><p class="support-head">Support Capri on Ko-fi</p><p class="support-links"><a href="https://ko-fi.com/lachysdev" target="_blank" rel="noopener noreferrer"><img src="assets/kofi/lachysdev.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>Lachy</b><small>developer</small></a><a href="https://ko-fi.com/xorulance" target="_blank" rel="noopener noreferrer"><img src="assets/kofi/xorulance.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>Lance and xoru</b><small>managers</small></a><a href="https://ko-fi.com/balddcmod" target="_blank" rel="noopener noreferrer"><img src="assets/kofi/balddcmod.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>BaldDcMod</b><small>Discord moderator</small></a></p><p class="fan-notice">Capri is an unofficial fan project and is not approved or endorsed by CD PROJEKT RED, the anime's rights holders or its voice actors.</p></footer>
-  </div>
-  <dialog id="heads-up" class="heads-up" aria-label="Before you install">
-    <div>
-      <p data-os="windows">This is a new app, so it's not 'signed' yet, Windows may warn you, and VirusTotal may freak out 😭. The code’s all open source, so you can check it yourself if you're worried: <a href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer">github.com/lachydotmcg/capri-desktop</a>. If you see “Windows protected your PC”, click More info, then Run anyway. :) Need help after that? See the <a href="setup/">setup guide</a> or ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
+
+      <div class="col">
+        <header class="hero" id="top" data-scene="hero">
+          <div class="pitch">
+            <p class="lead">Bring Capri back to life on your desktop! :)</p>
+            <p class="systems">
+              <a data-os="windows" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-Setup.exe">Windows</a>
+              <a data-os="mac" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-mac-apple-silicon.zip">Mac</a>
+              <a data-os="intel" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-mac-intel.zip">Intel Mac</a>
+              <a data-os="linux" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-linux-x64.tar.gz">Linux</a>
+              <a data-os="appimage" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-linux-x64.AppImage">Linux AppImage</a>
+              <a data-os="quest" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-VR-Quest.apk">Quest VR</a>
+            </p>
+            <p class="sys"><span data-version>v0.8.4</span> <span aria-hidden="true">/</span> <span data-released>6 Nov</span> <span aria-hidden="true">/</span> Free</p>
+            <p class="fan">Capri is an unofficial fan project and is not approved or endorsed by CD PROJEKT RED, the anime's rights holders or its voice actors.</p>
+          </div>
+
+          <h1 class="wordmark" id="wordmark"><span class="wm">Capri</span><span class="wm-cut one" aria-hidden="true">Capri</span><span class="wm-cut two" aria-hidden="true">Capri</span></h1>
+        </header>
+
+        <section class="chapter" id="desktop" data-scene="desktop" aria-labelledby="desktop-h">
+          <h2 class="reveal" id="desktop-h">On your windows</h2>
+          <p class="hud reveal" style="--d: 60ms">Tiny to Giant <span aria-hidden="true">/</span> any monitor</p>
+          <p class="lead reveal" style="--d: 120ms">She sits on your windows, your taskbar, your icons and the bottom of your screen.</p>
+
+          <dl class="keys panel reveal" style="--d: 180ms">
+            <div><dt>Drag</dt><dd>toss her and she flails</dd></div>
+            <div><dt>Shift-drop</dt><dd>she sits anywhere</dd></div>
+            <div><dt>Ctrl-drop</dt><dd>she hangs</dd></div>
+            <div><dt>Double-click</dt><dd>nap, then wake her up</dd></div>
+            <div><dt>Type "ride my cursor"</dt><dd>she hops on</dd></div>
+            <div><dt>Ctrl + Alt + C</dt><dd>she hops off</dd></div>
+            <div><dt>Ctrl + Alt + H</dt><dd>hide her, show her</dd></div>
+          </dl>
+
+          <div class="tries reveal" style="--d: 240ms" data-ui>
+            <button class="say" type="button" data-say="come here"><svg class="frame" aria-hidden="true"></svg><span aria-hidden="true">&gt; you: </span>come here</button>
+            <button class="say" type="button" data-say="go to sleep"><svg class="frame" aria-hidden="true"></svg><span aria-hidden="true">&gt; you: </span>go to sleep</button>
+          </div>
+          <div class="echo" data-ui aria-hidden="true" hidden><svg class="frame"></svg><p class="heard"></p><p class="reply"><span class="name">CAPRI:</span> <span class="words"></span><span class="caret"></span></p></div>
+
+          <div class="pair">
+            <figure class="shot reveal" style="--d: 300ms">
+              <img src="assets/pictures/tossed.webp" width="240" height="384" alt="Capri tossed through the air, arms and hair flying" loading="lazy">
+              <figcaption><b>Tossed</b> drag and let go</figcaption>
+            </figure>
+            <figure class="shot reveal" style="--d: 360ms">
+              <img src="assets/pictures/sleep.webp" width="240" height="384" alt="Capri asleep, curled up and floating" loading="lazy">
+              <figcaption><b>Asleep</b> she sleeps and wakes</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="chapter" id="talk" data-scene="talk" aria-labelledby="talk-h">
+          <h2 class="reveal" id="talk-h">Talk to her</h2>
+          <p class="hud reveal" style="--d: 60ms">Replies in 80 languages</p>
+          <p class="lead reveal" style="--d: 120ms">Type here for setup help or just say hi. Install her chip to talk out loud on your PC.</p>
+
+          <div class="stage mini small desk" id="mini" data-ui role="img" aria-label="Capri answering in her speech box">
+            <div class="her stand"><span class="sprite" data-fit="stand"></span></div>
+            <div class="talkbox">
+              <svg class="frame" aria-hidden="true"></svg>
+              <p class="heard">&gt; you: hi capri</p>
+              <p class="reply"><span class="name">CAPRI:</span> <span class="words">Hey choom. Need a hand setting me up?</span><span class="caret"></span></p>
+            </div>
+            <div class="taskbar">
+              <span class="start"><img src="assets/chip.png" alt="" width="34" height="24"></span>
+              <span class="task on"><img src="assets/chip.png" alt="" width="20" height="14">Capri</span>
+            </div>
+          </div>
+
+          <form class="typer reveal" id="typer" data-ui style="--d: 180ms" autocomplete="off">
+            <svg class="frame" aria-hidden="true"></svg>
+            <label for="say">&gt; you:</label>
+            <input id="say" type="text" maxlength="500" spellcheck="false" placeholder="ask her, then Enter" enterkeyhint="send">
+          </form>
+
+          <dl class="keys reveal" style="--d: 240ms">
+            <div><dt>Pencil</dt><dd>type to her, or Ctrl + Alt + T</dd></div>
+            <div><dt>Wave</dt><dd>voice chat, free on your PC</dd></div>
+            <div><dt>“Hey Capri”</dt><dd>say it and she listens (Windows, English)</dd></div>
+            <div><dt>Quiet</dt><dd>Ctrl + Alt + P, until you press it again</dd></div>
+          </dl>
+
+          <div class="pair">
+            <figure class="shot reveal" style="--d: 300ms">
+              <img src="assets/pictures/chatting.gif" width="256" height="256" alt="Capri perched with one leg up, her Discord status animation for chatting" loading="lazy">
+              <figcaption><b>Chatting</b> her Discord status</figcaption>
+            </figure>
+            <figure class="shot reveal" style="--d: 360ms">
+              <img src="assets/pictures/voice.gif" width="256" height="256" alt="Capri lying back, her Discord status animation for voice chat" loading="lazy">
+              <figcaption><b>Voice chat</b> her Discord status</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <section class="chapter" id="hands" data-scene="music" aria-labelledby="hands-h">
+          <h2 class="reveal" id="hands-h">Your PC, her cursor</h2>
+          <p class="hud reveal" style="--d: 60ms">Esc stops her</p>
+          <p class="lead reveal" style="--d: 120ms">Ask and she does it: opens apps, games and sites, plays your music, clips your game. Bigger jobs get her own pink cursor.</p>
+
+          <div class="tries reveal" style="--d: 180ms" data-ui>
+            <button class="say" type="button" data-say="open spotify"><svg class="frame" aria-hidden="true"></svg><span aria-hidden="true">&gt; you: </span>open spotify</button>
+            <button class="say" type="button" data-say="pause"><svg class="frame" aria-hidden="true"></svg><span aria-hidden="true">&gt; you: </span>pause</button>
+            <button class="say" type="button" data-say="what's playing?"><svg class="frame" aria-hidden="true"></svg><span aria-hidden="true">&gt; you: </span>what's playing?</button>
+          </div>
+          <div class="echo" data-ui aria-hidden="true" hidden><svg class="frame"></svg><p class="heard"></p><p class="reply"><span class="name">CAPRI:</span> <span class="words"></span><span class="caret"></span></p></div>
+
+          <figure class="shot wide reveal" style="--d: 240ms">
+            <img src="assets/pictures/clip-popup.png" width="477" height="306" alt="Her Clip saved pop-up after clipping a Valorant game, pointing to the Videos, Capri Clips folder" loading="lazy">
+            <figcaption><b>Clip saved</b> her pop-up after a clip</figcaption>
+          </figure>
+
+          <dl class="keys grid reveal" style="--d: 300ms">
+            <div><dt>Apps</dt><dd>opens, switches, minimizes and closes apps and tabs</dd></div>
+            <div><dt>Music</dt><dd>Spotify, YouTube, AIMP, foobar2000, Winamp, MusicBee and more</dd></div>
+            <div><dt>Discord</dt><dd>mute, deafen, send messages</dd></div>
+            <div><dt>Clips</dt><dd>clip, screenshot, record</dd></div>
+            <div><dt>Jobs</dt><dd>her pink cursor and a steps panel</dd></div>
+            <div><dt>Linux</dt><dd>any MPRIS music player</dd></div>
+          </dl>
+        </section>
+    <section class="chaos" id="chaos" aria-labelledby="chaos-h">
+      <p class="seam-tag">Beta <span aria-hidden="true">/</span> Windows only</p>
+      <div class="chaos-top">
+        <h2 class="glitchable reveal" id="chaos-h"><span class="wm">Chaos mode</span><span class="wm-cut one" aria-hidden="true">Chaos mode</span><span class="wm-cut two" aria-hidden="true">Chaos mode</span></h2>
+        <img class="reveal" style="--d: 90ms" src="assets/pictures/clones.gif" width="256" height="256" alt="Five Capris crowding one picture, her Discord status animation for chaos mode" loading="lazy">
+      </div>
+
+      <div class="swarm desk reveal" id="swarm" data-ui style="--d: 140ms" role="group" aria-label="Clones of Capri dragging windows around a desktop">
+        <div class="win notes tilt-a">
+          <div class="bar"><span>me.md</span><span class="ctl" aria-hidden="true"><i class="min"></i><i class="max"></i><i class="cls"></i></span></div>
+          <div class="sheet"><span>name: choom</span><span>into: Minecraft, lo-fi</span><span>up late again</span></div>
+        </div>
+        <div class="win player tilt-b" aria-hidden="true">
+          <div class="row"><span class="title">I'm In Love With Myself</span><i class="cls"></i></div>
+          <div class="row"><span class="artist">Cyberpunk: Edgerunners 2</span><span class="time">0:00</span></div>
+          <div class="seek"><b></b><i></i></div>
+        </div>
+
+        <div class="her stand clone c1" data-clip="dangle" data-start="9"><span class="sprite" data-fit="stand"></span></div>
+        <div class="her perch clone c2" data-clip="perch" data-start="22"><span class="sprite" data-fit="perch"></span></div>
+        <div class="her stand clone c3" data-clip="idle" data-start="3"><span class="sprite" data-fit="stand"></span></div>
+        <div class="her stand clone c4" data-clip="idle" data-start="4"><span class="sprite" data-fit="stand"></span></div>
+        <div class="her stand clone c5" data-clip="idle" data-start="11"><span class="sprite" data-fit="stand"></span></div>
+        <div class="her stand clone c6" data-clip="idle" data-start="7"><span class="sprite" data-fit="stand"></span></div>
+        <div class="her stand clone c7" data-clip="idle" data-start="7"><span class="sprite" data-fit="stand"></span></div>
+
+        <div class="note n1" aria-hidden="true"><svg class="frame"></svg><p>redecorating</p></div>
+        <div class="note n2" aria-hidden="true"><svg class="frame"></svg><p>we voted. you lost.</p></div>
+        <div class="note n3" aria-hidden="true"><svg class="frame"></svg><p>deleting your minecraft world</p><span class="fill"><b></b></span></div>
+        <div class="note n4" aria-hidden="true"><svg class="frame"></svg><p>your mouse is mine</p></div>
+
+        <div class="taskbar">
+          <span class="start"><img src="assets/chip.png" alt="" width="34" height="24"></span>
+          <span class="task on"><img src="assets/chip.png" alt="" width="20" height="14">Capri <span id="clone-count">×7</span></span>
+          <span class="tray"><button class="esc" id="esc" type="button"><kbd>Esc</kbd><span>hold esc if you're scared</span></button></span>
+        </div>
+        <p class="sr-only" id="swarm-status" role="status"></p>
+      </div>
+
+      <div class="chaos-text">
+        <div>
+          <p class="lead reveal">Ask for clones and they keep multiplying. They talk to each other, steal your cursor and drag your windows around. Hold Esc and it all goes back.</p>
+          <div class="tries reveal" style="--d: 90ms" data-ui>
+            <button class="say" type="button" data-clones="3"><svg class="frame" aria-hidden="true"></svg><span aria-hidden="true">&gt; you: </span>make 3 clones</button>
+            <button class="say" type="button" data-clones="all"><svg class="frame" aria-hidden="true"></svg><span aria-hidden="true">&gt; you: </span>clone yourself</button>
+          </div>
+        </div>
+        <dl class="keys reveal" style="--d: 150ms">
+          <div><dt>“Clone yourself”</dt><dd>one copy, then they multiply</dd></div>
+          <div><dt>“Make 3 clones”</dt><dd>exactly three</dd></div>
+          <div><dt>Hold Esc</dt><dd>clones gone, every window back</dd></div>
+          <div><dt>Not while</dt><dd>you game, stream or use the mouse</dd></div>
+          <div><dt>Call her annoying</dt><dd>1 in 3 they come out anyway</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="proof" id="proof" aria-labelledby="proof-h">
+      <div class="proof-main">
+        <h2 class="reveal" id="proof-h"><span data-release-count>24</span> releases since <span data-first-release>24 Oct</span></h2>
+        <p class="hud reveal" style="--d: 60ms">Live from GitHub and her download counter</p>
+        <dl class="stats reveal" style="--d: 120ms">
+          <div class="stat"><dt>Downloads</dt><dd><span class="download-count">47.9K</span></dd></div>
+          <div class="stat"><dt>Latest</dt><dd><span data-version>v0.8.4</span></dd><dd class="when"><span data-released>6 Nov</span></dd></div>
+        </dl>
+      </div>
+
+      <aside class="log reveal" id="changelog" style="--d: 180ms" aria-labelledby="log-h">
+        <h3 id="log-h">Latest changes</h3>
+        <div class="log-window" tabindex="0" aria-label="Latest changes, scrollable">
+          <ol class="log-track">
+            <li><a href="https://github.com/lachydotmcg/capri-desktop/commit/eeee07edb497ce071d1cd56be6a935ddcc6987e5"><time datetime="2026-11-05T21:58:46Z">6 Nov</time><span>released 0.8.4: Mainframe colours from Vocyn; skill mods, starting with a BTD6 plan; she teleports onto the task panel for jobs; clearer errors that say the fix in plain words; a one-file Linux AppImage and package manager support from danielxxomg; pop-up windows that fit their screen from nathanZW; head pats in voice chat; and fixes for the Play menu crash, switching the call app mid-call, uninstalling, and drops near a Mac or Linux screen edge</span></a></li>
+            <li><a href="https://github.com/lachydotmcg/capri-desktop/commit/2829a309e25c3fafa8939d69b1bfe8c2f4b6ccec"><time datetime="2026-11-05T08:50:13Z">5 Nov</time><span>merge #78 from nathanZW: her pop-up windows fit the screen they're on</span></a></li>
+                        <li><a href="https://github.com/lachydotmcg/capri-desktop/commit/3da4c93165404fa81a5ecae0ff3a91fafec06973"><time datetime="2026-11-05T06:54:28Z">5 Nov</time><span>she's 0.8.4, and after the update tells you about Mainframe colours, game skills, the Linux AppImage and her clearer errors</span></a></li>
+            <li><a href="https://github.com/lachydotmcg/capri-desktop/commit/70e61f8a6950661c81ec91ba34f926ed288ed2b9"><time datetime="2026-11-05T06:49:09Z">5 Nov</time><span>merge errors-wording: her error messages say what's wrong and the fix in plain words</span></a></li>
+            <li><a href="https://github.com/lachydotmcg/capri-desktop/commit/d99130078bb7d8511b20a8ac8556feca9cea04c8"><time datetime="2026-11-05T06:46:54Z">5 Nov</time><span>website offers the Linux AppImage next to the tarball once a release has it, and the help page and help chat say how to open it</span></a></li>
+            <li><a href="https://github.com/lachydotmcg/capri-desktop/commit/7b3b5d874808ede365668eebcedacdfb0db9371d"><time datetime="2026-11-05T06:44:53Z">5 Nov</time><span>she says her voice is off one way with one fix, pick a voice under VOICE, in the VOICE note, a voice preview and the style sliders, like on Mac and Linux</span></a></li>
+            <li><a href="https://github.com/lachydotmcg/capri-desktop/commit/95f3994ebff615bb3a9c1facf6ee2142209b65c3"><time datetime="2026-11-05T06:42:51Z">5 Nov</time><span>she says an empty reply one way everywhere, with the fix: try again or pick another model in Capri Mainframe, and the BRAIN note keeps that fix</span></a></li>
+            <li><a href="https://github.com/lachydotmcg/capri-desktop/commit/cb3e8767582d07e7df3f2265ea587ab1dfbe2bb4"><time datetime="2026-11-05T06:41:29Z">5 Nov</time><span>she says your antivirus likely took llama-server.exe or tts-server.exe when her brain's or HD voice's download is missing it, and to allow it, then try again</span></a></li>
+            <li><a href="https://github.com/lachydotmcg/capri-desktop/commit/c90a0594bfeb04f2a6ae5706673f0a6b0e72cb8b"><time datetime="2026-11-05T06:32:02Z">5 Nov</time><span>she lands on what's under her when dropped near a Mac or Linux screen edge without being pulled in first, and a drop with less than half of her drawn on a screen brings her back, where only her hip counted before</span></a></li>
+          </ol>
+        </div>
+      </aside>
+    </section>
+
+    <section class="get" id="get" aria-labelledby="get-h">
+      <p class="seam-tag">Free <span aria-hidden="true">/</span> no admin</p>
+      <h2 class="reveal" id="get-h">Install her chip</h2>
+      <p class="hud reveal" style="--d: 60ms"><span data-version>v0.8.4</span> <span aria-hidden="true">/</span> <span data-released>6 Nov</span></p>
+
+      <div class="get-grid">
+        <article class="os os-win reveal" style="--d: 120ms" data-panel="windows" aria-labelledby="os-win">
+          <div class="win-pitch">
+            <h3 id="os-win">Windows <span class="yours" hidden>Your PC</span></h3>
+            <ul class="facts">
+              <li>Windows 10 and 11, 64-bit</li>
+              <li>One installer, no admin</li>
+              <li>Starts with Windows if you want</li>
+              <li>Updates herself every 3 hours</li>
+            </ul>
+            <a class="btn" data-os="windows" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-Setup.exe"><span>Download Capri-Setup.exe</span> <span class="size" data-size="windows">20.9 MB</span></a>
+          </div>
+          <div class="stage small chip-desk desk" data-ui role="img" aria-label="Capri on her desktop, offering setup help">
+            <div class="her stand"><span class="sprite" data-fit="stand"></span></div>
+            <div class="talkbox">
+              <svg class="frame" aria-hidden="true"></svg>
+              <p class="heard">&gt; you: can we talk?</p>
+              <p class="reply"><span class="name">CAPRI:</span> <span class="words">Yeah choom. Type here if you need a hand.</span><span class="caret"></span></p>
+            </div>
+            <div class="taskbar">
+              <span class="start"><img src="assets/chip.png" alt="" width="34" height="24"></span>
+              <span class="task on"><img src="assets/chip.png" alt="" width="20" height="14">Capri</span>
+            </div>
+          </div>
+        </article>
+
+        <div class="os-side">
+          <article class="os reveal" style="--d: 180ms" data-panel="mac" aria-labelledby="os-mac">
+            <h3 id="os-mac">Mac <span class="tag">Preview</span> <span class="yours" hidden>Your PC</span></h3>
+            <ul class="facts"><li>macOS 15 or newer</li><li>Apple Silicon and Intel</li></ul>
+            <p class="os-links"><a data-os="mac" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-mac-apple-silicon.zip">Apple Silicon</a><a data-os="intel" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-mac-intel.zip">Intel</a></p>
+          </article>
+          <article class="os reveal" style="--d: 240ms" data-panel="linux" aria-labelledby="os-linux">
+            <h3 id="os-linux">Linux <span class="tag">Preview</span> <span class="yours" hidden>Your PC</span></h3>
+            <ul class="facts"><li>x64</li><li>Sits on windows on X11, on the screen bottom on Wayland</li></ul>
+            <p class="os-links"><a data-os="linux" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-linux-x64.tar.gz">.tar.gz</a><a data-os="appimage" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-linux-x64.AppImage">AppImage</a></p>
+          </article>
+          <article class="os reveal" style="--d: 300ms" aria-labelledby="os-quest">
+            <h3 id="os-quest">Quest VR</h3>
+            <ul class="facts"><li>Capri Room, fadievr's mixed-reality version of her</li><li>Meta Quest 3 and 3S, sideloaded</li></ul>
+            <p class="os-links"><a data-os="quest" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.4/Capri-VR-Quest.apk">.apk</a><a href="https://capriai.app/help/#capri-vr">Quest steps</a></p>
+          </article>
+          <article class="os check reveal" style="--d: 360ms" aria-labelledby="os-check">
+            <h3 id="os-check">Check her first</h3>
+            <ul class="facts"><li>Not signed yet, so Windows may warn you</li><li>SHA256SUMS in every release</li><li>All her code is on GitHub</li></ul>
+            <p class="os-links"><a href="https://github.com/lachydotmcg/capri-desktop/releases/latest">Checksums</a><a href="https://github.com/lachydotmcg/capri-desktop">Her code</a></p>
+          </article>
+        </div>
+      </div>
+    </section>
+      </div>
+    </div>
+  </main>
+  <span id="page-spot" aria-hidden="true"></span>
+
+  <footer class="foot">
+    <nav class="foot-links" aria-label="Footer">
+      <a href="https://capriai.app/setup/">Setup</a>
+      <a href="https://capriai.app/help/">Help</a>
+      <a href="https://discord.gg/capridesktop">Discord</a>
+      <a href="https://github.com/lachydotmcg/capri-desktop">GitHub</a>
+      <a href="https://ko-fi.com/lachysdev">Ko-fi</a>
+    </nav>
+    <p class="kofi">Support on Ko-fi: <a href="https://ko-fi.com/lachysdev">Lachy</a>, developer. <a href="https://ko-fi.com/xorulance">Lance and xoru</a>, managers. <a href="https://ko-fi.com/balddcmod">BaldDcMod</a>, Discord moderator.</p>
+    <p class="fan">Capri is an unofficial fan project and is not approved or endorsed by CD PROJEKT RED, the anime's rights holders or its voice actors.</p>
+    <p class="fan">Animations by her artist. Type: Big Shoulders, Public Sans and Share Tech Mono, under the SIL Open Font License.</p>
+    <p class="foot-mark" aria-hidden="true">Capri</p>
+  </footer>
+
+  <dialog id="heads-up" class="heads-up" aria-labelledby="heads-up-h">
+    <div class="heads-up-body">
+      <h2 class="sr-only" id="heads-up-h">Before you install</h2>
+      <p data-os="windows">This is a new app, so it's not 'signed' yet, Windows may warn you, and VirusTotal may freak out 😭. The code’s all open source, so you can check it yourself if you're worried: <a href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer">github.com/lachydotmcg/capri-desktop</a>. If you see “Windows protected your PC”, click More info, then Run anyway. :) Need help after that? See the <a href="https://capriai.app/setup/">setup guide</a> or ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
       <p data-os="mac" hidden>Mac is a preview: she sits on your windows, chats, has her full Mainframe and Mods, and talks through your own speech server or a cloud voice. Apple hasn't approved her yet, so macOS blocks her the first time. Unzip her, drag Capri into Applications, then open Terminal and run <code>xattr -dr com.apple.quarantine /Applications/Capri.app</code> once. That only clears the downloaded-from-the-internet flag on Capri. Her brain runs on <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">Ollama</a>: install it, then run <code>ollama pull gemma4:e4b</code>. Needs macOS 15 or newer. Stuck? Ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
       <p data-os="linux" hidden>Linux is a preview: she sits on your windows, chats, has her full Mainframe and Mods, and talks through your own speech server or a cloud voice. Unpack it and run <code>Capri/Capri</code>. Her brain runs on <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">Ollama</a>: install it, then run <code>ollama pull gemma4:e4b</code>. She sits on windows on X11; on Wayland she sits on the bottom of your screen. Stuck? Ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
       <p data-os="appimage" hidden>Linux is a preview: she sits on your windows, chats, has her full Mainframe and Mods, and talks through your own speech server or a cloud voice. The AppImage is one file with nothing to unpack: tick "Allow executing file as program" in its Properties, or run <code>chmod +x Capri-linux-x64.AppImage</code>, then open it. Her brain runs on <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">Ollama</a>: install it, then run <code>ollama pull gemma4:e4b</code>. She sits on windows on X11; on Wayland she sits on the bottom of your screen. Stuck? Ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
-      <p data-os="quest" hidden>Capri VR is Capri Room, fadievr's mixed-reality version of her for Meta Quest 3 and 3S. She walks around your room and sits on your furniture. It's not on the Meta store, so you sideload it: turn on Developer Mode for your headset in the Meta Horizon phone app (it needs a free Meta developer account), then install the APK from your PC with <a href="https://sidequestvr.com" target="_blank" rel="noopener noreferrer">SideQuest</a> or Meta Quest Developer Hub. In the headset, open Library &gt; Unknown Sources, then Capri Room, and allow spatial data and the microphone. Full steps are in <a href="help/#capri-vr">Help</a>. Stuck? Ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
-      <form method="dialog"><button type="submit" autofocus>OK</button></form>
+      <p data-os="quest" hidden>Capri VR is Capri Room, fadievr's mixed-reality version of her for Meta Quest 3 and 3S. She walks around your room and sits on your furniture. It's not on the Meta store, so you sideload it: turn on Developer Mode for your headset in the Meta Horizon phone app (it needs a free Meta developer account), then install the APK from your PC with <a href="https://sidequestvr.com" target="_blank" rel="noopener noreferrer">SideQuest</a> or Meta Quest Developer Hub. In the headset, open Library &gt; Unknown Sources, then Capri Room, and allow spatial data and the microphone. Full steps are in <a href="https://capriai.app/help/#capri-vr">Help</a>. Stuck? Ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
+      <form method="dialog"><button class="btn" type="submit" autofocus>OK</button></form>
     </div>
   </dialog>
+  <div id="song-box" class="off"><div id="song-video"></div></div>
 </body>
 </html>

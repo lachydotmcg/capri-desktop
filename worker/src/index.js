@@ -218,18 +218,18 @@ let modFolders = { at: 0, names: new Set() };
 
 const folderName = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
-const modListed = async folder => {
+const modIndex = 'https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/index.json';
+
+// A mod with a download on record is listed, so most checks never leave D1. Asking GitHub's API every time failed about half of these on
+// 7 Nov, which lost install counts and ratings. A new mod is checked against the index the app lists mods from, which also covers skills.
+const modListed = async (env, folder) => {
   if (!folderName.test(folder) || folder.includes('..')) return false;
+  if (await env.DB.prepare('SELECT 1 FROM mod_downloads WHERE folder = ?').bind(folder).first()) return true;
   if (Date.now() - modFolders.at > 300000) {
-    const answer = await fetch('https://api.github.com/repos/lachydotmcg/capri-mods/git/trees/HEAD?recursive=1', { headers: { 'User-Agent': 'capri-reactions', Accept: 'application/vnd.github+json' } });
+    const answer = await fetch(modIndex, { headers: { 'User-Agent': 'capri-reactions' } });
     if (answer.ok) {
-      const { tree } = await answer.json();
-      const names = new Set();
-      for (const entry of tree || []) {
-        const match = /^mods\/([^/]+)\/[^/]+\.capri-(?:mod|code|skin)$/.exec(entry.path || '');
-        if (match && entry.type === 'blob') names.add(match[1]);
-      }
-      modFolders = { at: Date.now(), names };
+      const { mods } = await answer.json();
+      modFolders = { at: Date.now(), names: new Set((mods || []).map(mod => mod.folder)) };
     } else if (!modFolders.at) {
       throw new Error('GitHub said ' + answer.status);
     }
@@ -239,17 +239,28 @@ const modListed = async folder => {
 
 const modRows = 'SELECT f.folder AS folder, COALESCE(d.count, 0) AS downloads, COALESCE(r.rating, 0) AS rating, COALESCE(r.votes, 0) AS votes FROM (SELECT folder FROM mod_downloads UNION SELECT folder FROM mod_ratings) f LEFT JOIN mod_downloads d ON d.folder = f.folder LEFT JOIN (SELECT folder, AVG(stars) AS rating, COUNT(*) AS votes FROM mod_ratings GROUP BY folder) r ON r.folder = f.folder';
 
+// Every open of the app's Mods window asks for this list, and modRows reads every download and rating. Running it each time used up D1's
+// free daily reads on 6 Nov and took the whole worker down, so opens read one stored copy and only a stale copy runs modRows.
+const modListAge = 600000;
+
+const modList = async (env, ctx) => {
+  const stored = await env.DB.prepare('SELECT at, body FROM mod_stats WHERE id = 1').first().catch(() => null);
+  if (stored && Date.now() - stored.at < modListAge) return JSON.parse(stored.body);
+  const { results } = await env.DB.prepare(modRows).all();
+  ctx.waitUntil(env.DB.prepare('INSERT INTO mod_stats (id, at, body) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET at = excluded.at, body = excluded.body').bind(Date.now(), JSON.stringify(results)).run().catch(() => {}));
+  return results;
+};
+
 const mods = async (request, env, ctx, path, reply) => {
   if (path === '/mods') {
     if (request.method !== 'GET') return reply({ error: 'Not found' }, 404);
-    const { results } = await env.DB.prepare(modRows).all();
-    return reply({ mods: results });
+    return reply({ mods: await modList(env, ctx) });
   }
   if (request.method !== 'POST' || (path !== '/mods/download' && path !== '/mods/rate')) return reply({ error: 'Not found' }, 404);
   const sent = await request.json().catch(() => null);
   const folder = sent && typeof sent.folder === 'string' ? sent.folder : '';
   let listed;
-  try { listed = await modListed(folder); }
+  try { listed = await modListed(env, folder); }
   catch { return reply({ error: 'Try again soon' }, 503); }
   if (!listed) return reply({ error: 'No such mod' }, 404);
   const visitor = request.headers.get('CF-Connecting-IP') || 'local';
@@ -264,6 +275,7 @@ const mods = async (request, env, ctx, path, reply) => {
     const tap = await env.DB.prepare('INSERT OR IGNORE INTO taps (key, day) VALUES (?, ?)').bind(key, day).run();
     if (tap.meta.changes === 1) await env.DB.prepare('INSERT INTO mod_downloads (folder, count) VALUES (?, 1) ON CONFLICT (folder) DO UPDATE SET count = count + 1').bind(folder).run();
     ctx.waitUntil(env.DB.prepare('DELETE FROM taps WHERE day < ?').bind(day).run());
+    return reply({ ok: true });
   }
   return reply(await env.DB.prepare(modRows + ' WHERE f.folder = ?').bind(folder).first());
 };

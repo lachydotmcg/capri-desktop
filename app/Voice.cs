@@ -318,10 +318,12 @@ namespace CapriDesktop
         internal const string RestrictHint = " Still failing? Make a new key with Restrict key turned off.";
         internal const string Refused = "ElevenLabs turned her voice away (error 403) without saying why. A VPN or proxy can do that." + RestrictHint;
 
-        internal static string Short(string text)
+        internal static string Short(string text) { return Short(text, 72); }
+
+        internal static string Short(string text, int room)
         {
             text = (text ?? "").Trim();
-            return text.Length > 72 ? text.Substring(0, 69) + "..." : text;
+            return text.Length > room ? text.Substring(0, room - 3) + "..." : text;
         }
 
         internal static T Read<T>(byte[] json) { using (MemoryStream stream = new MemoryStream(json)) return (T)new DataContractJsonSerializer(typeof(T)).ReadObject(stream); }
@@ -406,6 +408,10 @@ namespace CapriDesktop
             }
             return quoted.Append('"').ToString();
         }
+
+        // Quote is JSON for her brain. Text people read or hear in quotes, like "Should I send "hi"?", shows as typed: line
+        // breaks and tabs are spaces, with no \u000a or doubled backslashes.
+        internal static string InQuotes(string value) { return "\"" + Regex.Replace(value ?? "", @"\s+", " ").Trim() + "\""; }
 
         internal static short[] Samples(byte[] wav, out int rate)
         {

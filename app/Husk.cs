@@ -936,7 +936,8 @@ namespace CapriDesktop
         }
 #endif
 
-        internal static void Configure(int mode, string exe)
+        // True when it changed either hooks file, so what's already running needs a restart to use them.
+        internal static bool Configure(int mode, string exe)
         {
             lock (gate)
             {
@@ -949,6 +950,7 @@ namespace CapriDesktop
                     catch (Exception undo) { throw new BrainException(error.Message + " I could not restore the other hooks file: " + undo.Message); }
                     throw;
                 }
+                return claude.Applied || codex.Applied;
             }
         }
     }
@@ -1011,17 +1013,21 @@ namespace CapriDesktop
             catch (Exception) { }
         }
 
+        // Whether the last Change rewrote a hooks file, like after an update moved her.
+        internal bool Rewrote;
+
         internal void Change(int mode, string exe)
         {
             if (disposed) return;
             mode = Math.Max(0, Math.Min(3, mode));
+            Rewrote = false;
 #if CROSS
             Unlinked = new string[0];
 #endif
             if (mode == 0)
             {
                 Stop();
-                HuskHooks.Configure(0, exe);
+                Rewrote = HuskHooks.Configure(0, exe);
 #if CROSS
                 Unlinked = Relinks(true);
 #endif
@@ -1036,7 +1042,7 @@ namespace CapriDesktop
                 opened.Received = delegate(Dictionary<string, object> evt) { Dispatch(delegate { if (bridge == own && Mode != 0) Receive(evt); }); };
                 opened.Start();
             }
-            try { HuskHooks.Configure(mode, exe); }
+            try { Rewrote = HuskHooks.Configure(mode, exe); }
             catch { if (fresh) opened.Dispose(); throw; }
 #if CROSS
             finally { Unlinked = Relinks(false); }

@@ -42,12 +42,21 @@ namespace CapriDesktop
         internal static HearingStatus Explained(string lead, string reason, bool alone, bool problem, params HearingAction[] actions)
         {
             string whole = Regex.Replace(reason ?? "", @"\s+", " ").Trim();
+            // Her ears' own download lines fit whole, fix and all, instead of "Her ears didn't download: The download of her ears...".
+            if (lead == EarsUndownloaded)
+            {
+                string line = whole == Engine.Stalled("her ears") ? "Her ears' download keeps stopping. Check your connection"
+                    : whole == Engine.WrongSize("her ears") ? "Her ears' download is the wrong size. Try again"
+                    : whole == Engine.Unmatched("her ears") ? "Her ears' download failed its checksum. Try again" : null;
+                if (line != null) return new HearingStatus(line, whole, problem, actions);
+            }
             if (whole.StartsWith("Windows speech ", StringComparison.Ordinal) && lead.StartsWith("Windows speech", StringComparison.Ordinal)) { lead = ""; alone = true; }
             string shown = Reason(whole, LineRoom - lead.Length);
             string full = shown == whole.TrimEnd('.') ? null : alone ? whole : lead + whole;
             return new HearingStatus(lead + shown, full, problem, actions);
         }
 
+        internal const string EarsUndownloaded = "Her ears didn't download: ";
         internal static readonly string[] Choices = { "Auto", "Her own ears", "Windows speech" };
         // VB-CABLE's input as Windows' default speakers sends every app's sound into the cable, where nobody hears it, and its
         // setup can leave it that way (Neco Arc, 3 Nov: "I stop hear everything else"). Voicemeeter's input is meant to be the
@@ -142,21 +151,80 @@ namespace CapriDesktop
                 hearingDefault = delegate { return "smoke-mic"; };
             }
             RefreshHearingDevices();
-            if (!testing) hearingWatch = new HearingWatch(delegate { Post(RefreshHearingDevices); });
+            if (!testing) hearingWatch = new HearingWatch(delegate { Post(LookHearingDevices); });
         }
 
         internal void RefreshHearingDevices()
         {
             if (mainframe == null || mainframe.IsDisposed) return;
             RefreshSpeakers();
+            TakeMics(ReadMics(hearingDevices, hearingDefault, hearingPrivacy, hearingOutput, hearingOnline));
+        }
+
+        // What a look at her mics found: Windows' list and its default, whether Windows' privacy blocks the mic, whether its default
+        // speakers are a cable, and whether online speech is on. Each look is numbered as it starts, so one that answers after a
+        // newer one is dropped.
+        private sealed class MicsSeen
+        {
+            internal int Asked;
+            internal List<Mic> Found;
+            internal string Usual;
+            internal bool Blocked, CableOut;
+            internal bool? Online;
+        }
+
+        private readonly DeviceLook micLook;
+        private int micsAsked, micsTaken;
+
+        // Coming back to the Mainframe and Windows saying a device changed look in the background too (#100): her speakers and her
+        // mics each on their own, so a device that's slow to answer, like a Bluetooth headset waking up, only holds up its own line.
+        internal void LookHearingDevices()
+        {
+            LookSpeakers();
+            LookMics();
+        }
+
+        // VOICE's mic menus look in the background (#100), so a mic that's slow to answer only holds up its own line.
+        internal void LookMics()
+        {
+            if (mainframe == null || mainframe.IsDisposed) return;
+            Func<List<Mic>> devices = hearingDevices;
+            Func<string> usual = hearingDefault, output = hearingOutput;
+            Func<bool> privacy = hearingPrivacy;
+            Func<bool?> online = hearingOnline;
+            micLook.Ask(delegate { return ReadMics(devices, usual, privacy, output, online); }, TakeMics);
+        }
+
+        private MicsSeen ReadMics(Func<List<Mic>> devices, Func<string> usual, Func<bool> privacy, Func<string> output, Func<bool?> online)
+        {
+            MicsSeen seen = new MicsSeen();
+            seen.Asked = Interlocked.Increment(ref micsAsked);
+            seen.Found = devices();
+            seen.Usual = usual();
+            seen.Blocked = privacy();
+            seen.CableOut = HearingStatus.CableOutput(output());
+            seen.Online = online();
+            return seen;
+        }
+
+        private void TakeMics(MicsSeen seen)
+        {
+            if (mainframe == null || mainframe.IsDisposed) return;
+            if (seen == null || seen.Asked <= micsTaken)
+            {
+                Mic shown = Ears.Find(preferences.Mic, hearingMics);
+                mainframe.ShowMic(shown == null ? null : shown.Name);
+                return;
+            }
+            micsTaken = seen.Asked;
             List<Mic> before = hearingMics;
             string defaultBefore = hearingDefaultId;
             bool blockedBefore = hearingBlocked;
-            hearingMics = hearingDevices();
-            hearingDefaultId = hearingDefault();
-            hearingBlocked = hearingPrivacy();
-            hearingCableOut = HearingStatus.CableOutput(hearingOutput());
-            bool? online = hearingOnline();
+            hearingMics = seen.Found;
+            hearingDefaultId = seen.Usual;
+            hearingBlocked = seen.Blocked;
+            hearingCableOut = seen.CableOut;
+            bool? online = seen.Online;
             bool speechChanged = online == true && hearingSpeechProblem == Dictation.PrivacyOff;
             if (speechChanged) hearingSpeechProblem = null;
             else if (online == false && HearingWindows && !(dictation != null && earsReady)) hearingSpeechProblem = Dictation.PrivacyOff;
@@ -227,7 +295,7 @@ namespace CapriDesktop
             if (!HearingLink && HearingChoice == 1 && !ownFits)
                 return new HearingStatus(IntPtr.Size == 8 ? "Her ears don't know this language yet" : "Her ears need 64-bit Windows", true, HearingAction.Windows);
             if (!HearingLink && HearingChoice != 2 && hearingInstallProblem != null && !OwnEars && !settingUpEars)
-                return HearingStatus.Explained("Her ears didn't download: ", hearingInstallProblem, false, true, HearingAction.Own, HearingAction.Windows);
+                return HearingStatus.Explained(HearingStatus.EarsUndownloaded, hearingInstallProblem, false, true, HearingAction.Own, HearingAction.Windows);
             // VB-CABLE's output as Windows' default mic isn't Windows speech failing: she hears their real mic offline, and VOICE
             // gives the whole reason. The line names the cable, so they know which default to change.
             if (!HearingLink && hearingSpeechProblem == CableDefault) return new HearingStatus("Hearing offline: your default mic is CABLE Output", false, HearingAction.Sound);
@@ -256,6 +324,8 @@ namespace CapriDesktop
                 if (settingUpEars || SettingUpVoice) return windows && earsReady ? new HearingStatus("Her ears are downloading: " + progress + " · Windows speech on", false) : new HearingStatus("Her ears are downloading: " + progress, false, HearingAction.Type);
                 return new HearingStatus("Her ears aren't installed", true, HearingAction.Own, HearingAction.Windows);
             }
+            // Shut on purpose, "ready" read as if she was listening (6 Nov).
+            if (earsClosed && !chatting) return new HearingStatus("Her ears are off: click her wave to open them", false);
             // Only once nothing's wrong, so it never hides a problem.
             Mic device = HearingMic(windows);
             if (device != null && hearingHandsFree(device.Id, device.Name))
@@ -844,7 +914,7 @@ namespace CapriDesktop
     // Windows can tell of a change many times a second: a driver rewriting a headset's properties, any app opening a mic, a
     // Bluetooth headset going on a call. Each one read every mic again on her window's thread, so a burst of them could hold
     // her up (Neco Arc, 3 Nov: she lagged and froze with Mainframe half drawn). A burst now settles and comes as one, at most
-    // once a second.
+    // once a second, and her look at the devices runs in the background (#100).
     internal sealed class HearingWatch : IDisposable
     {
         internal int Settle = 300, Spacing = 1000;
@@ -941,6 +1011,63 @@ namespace CapriDesktop
             foreach (AutoResetEvent change in changes) change.Dispose();
             closed.Dispose();
             poked.Dispose();
+        }
+    }
+
+    // One kind of look at Windows' sound devices for her sound page (#100), like who hears her voice in your mic. Windows can
+    // take a moment to answer, so it reads in the background and hands what it found back on her window's thread, one look at
+    // a time: a device that's slow to answer, like a Bluetooth headset waking up, only holds up its own line, and asking while
+    // it's looking makes one more look once it's done, with what was asked last. Before her window is up, and in the smoke
+    // test, it looks in place, so a check reads what it asked for straight away.
+    internal sealed class DeviceLook
+    {
+        // The smoke test's. Its own section turns it off to check the background.
+        internal static bool InPlace;
+        private static int busy;
+        private readonly Control owner;
+        private Action again;
+        private bool looking;
+
+        internal DeviceLook(Control owner) { this.owner = owner; }
+
+        // Looks still out, so the smoke test can wait for them before it puts her devices back.
+        internal static int Busy { get { return Volatile.Read(ref busy); } }
+
+        internal bool Looking { get { return looking; } }
+
+        // What read finds goes to take on her window's thread, or null when Windows wouldn't answer. A look that comes back later
+        // goes on screen through shown, since nothing else is drawing then.
+        internal void Ask<T>(Func<T> read, Action<T> take, Action shown = null) where T : class
+        {
+            if (looking) { again = delegate { Ask(read, take, shown); }; return; }
+            if (InPlace || !owner.IsHandleCreated) { take(Read(read)); return; }
+            looking = true;
+            Interlocked.Increment(ref busy);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                T found = Read(read);
+                try { owner.BeginInvoke((MethodInvoker)delegate { Back(delegate { take(found); if (shown != null) shown(); }); }); }
+                catch (InvalidOperationException) { Interlocked.Decrement(ref busy); }
+            });
+        }
+
+        private void Back(Action took)
+        {
+            looking = false;
+            Action next = again;
+            again = null;
+            try { took(); }
+            finally
+            {
+                if (next != null) next();
+                Interlocked.Decrement(ref busy);
+            }
+        }
+
+        private static T Read<T>(Func<T> read) where T : class
+        {
+            try { return read(); }
+            catch (Exception error) { Brain.Log("sound devices", -1, error.GetType().Name + ": " + error.Message); return null; }
         }
     }
 }

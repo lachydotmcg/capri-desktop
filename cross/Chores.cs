@@ -20,6 +20,9 @@ namespace CapriDesktop
         internal static Action Tapped = delegate { };
         internal static Action<bool> Hidden = delegate { };
         internal static Action Parked = delegate { };
+        // Her sign round the screen while a job has their mouse (#106) hides for her screenshots too, since Linux can't keep a
+        // window out of them. Pet draws it; true when it hid.
+        internal static Func<bool, bool> SignHidden = delegate { return false; };
         private static double herX = -1, herY = -1;
         internal const int StepMs = 15;
         // The smoke test watches what she'd do instead of moving the real mouse.
@@ -93,7 +96,8 @@ namespace CapriDesktop
             finally { Hands.Streaming = false; }
         }
 
-        // Her pointer parks however the job ends, even one that can't start.
+        // Her pointer parks however the job ends, even one that can't start. Her sign is up from her first look until the job
+        // ends, thinking included, like Windows' (#106).
         private static string Work(Brain brain, string job, string asked)
         {
             try
@@ -101,7 +105,9 @@ namespace CapriDesktop
                 string problem = Fingers.Problem;
                 if (problem != null && Doing == null) return problem;
                 if (brain.Model == null) return "Couldn't do that: your brain is offline.";
-                return Steps(brain, job, asked);
+                InControl.Begin();
+                try { return Steps(brain, job, asked); }
+                finally { InControl.End(); }
             }
             finally { Finish(); }
         }
@@ -168,13 +174,19 @@ namespace CapriDesktop
             return said.Length == 0 ? otherwise : said;
         }
 
-        // Her pointer stays out of her own screenshots, so her brain only ever sees their screen.
+        // Her pointer and her sign stay out of her own screenshots, so her brain only ever sees their screen.
         private static byte[] Shot()
         {
             bool shown = herX >= 0;
-            if (shown) { Hidden(true); Thread.Sleep(90); }
+            if (shown) Hidden(true);
+            bool signed = SignHidden(true);
+            if (shown || signed) Thread.Sleep(90);
             try { return Shoot(); }
-            finally { if (shown) Hidden(false); }
+            finally
+            {
+                if (shown) Hidden(false);
+                if (signed) SignHidden(false);
+            }
         }
 
         // A job ended: hand the mouse back if it's still lent, and park her pointer.

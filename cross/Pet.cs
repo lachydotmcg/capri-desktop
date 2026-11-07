@@ -154,6 +154,10 @@ namespace CapriDesktop
         internal double Breathe;
         internal double Tilt;
         internal Point Centre;
+        // How long she's been asleep sitting up, which sets where her z's are, or -1 awake.
+        internal double Dozing = -1;
+        internal const double ZLife = 3.6;
+        private static Geometry zShape;
 
         internal Rect Place(Clip shown)
         {
@@ -171,6 +175,26 @@ namespace CapriDesktop
                 Rect place = Place(shown);
                 context.DrawImage(shown.Strip, new Rect(Cell * shown.Wide, 0, shown.Wide, shown.Strip.PixelSize.Height), place);
                 if (Talking >= 0 && Mouth != null) context.DrawImage(Mouth.Strip, new Rect(Talking * Mouth.Wide, 0, Mouth.Wide, Mouth.Strip.PixelSize.Height), place);
+            }
+            if (Dozing >= 0) Zs(context);
+        }
+
+        // Her z's asleep sitting up, like on Windows: three at a time drift up from beside her face, growing as they go, and fade out.
+        private void Zs(DrawingContext context)
+        {
+            if (zShape == null) zShape = new FormattedText("z", System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.Bold), 100, Brushes.White).BuildGeometry(new Point(0, 0));
+            if (zShape == null) return;
+            Rect bounds = zShape.Bounds;
+            for (int i = 0; i < 3; i++)
+            {
+                double t = Dozing / ZLife + i / 3.0;
+                t -= Math.Floor(t);
+                double alpha = t < 0.15 ? t / 0.15 : t < 0.7 ? 1 : (1 - t) / 0.3;
+                double high = Size * (0.045 + 0.045 * t), fit = high / Math.Max(1, bounds.Height);
+                double x = Centre.X + (0.17 + 0.1 * t + 0.02 * Math.Sin(t * 6 + i)) * Size, y = Centre.Y + (-0.15 - 0.27 * t) * Size;
+                Matrix place = Matrix.CreateTranslation(-bounds.Center.X, -bounds.Center.Y) * Matrix.CreateScale(fit, fit) * Matrix.CreateRotation(-12 * Math.PI / 180) * Matrix.CreateTranslation(x, y);
+                using (context.PushTransform(place))
+                    context.DrawGeometry(new SolidColorBrush(Look.Pink, alpha), new Pen(new SolidColorBrush(Color.FromRgb(8, 6, 10), alpha * 0.75), bounds.Height * 0.14), zShape);
             }
         }
     }
@@ -195,7 +219,8 @@ namespace CapriDesktop
         private static readonly int[] Recalls = { 8, 16, 32 };
         internal static readonly string[] SoundNames = { "Off", "Quiet", "Normal", "Loud" };
         internal static readonly int[] SoundLevels = { 0, 30, 60, 100 };
-        internal const string Offline = "My brain's offline. Open Capri Mainframe and set up her brain: " + Starter + ".";
+        // What to press, as on Windows: a model's name like gemma4:e4b means nothing to most people.
+        internal const string Offline = "My brain's offline. Right-click me, open Capri Mainframe and press Set up her brain, or press Free key there for a free NVIDIA key.";
         // The brain she downloads for herself through Ollama when it has none yet, so no terminal is needed.
         internal const string Starter = "gemma4:e4b";
         internal const string PullChoice = "Download " + Starter + ", her brain (a few GB)";
@@ -227,6 +252,9 @@ namespace CapriDesktop
         private readonly Clip perchBlink = new Clip("perch_blink", 8, 30, 1, PerchShiftX, PerchShiftY);
         private readonly Clip perchBlinkGlitch = new Clip("perch_blink_glitch", 8, 30, 1, PerchShiftX, PerchShiftY);
         private readonly Clip perchGlitch = new Clip("perch_glitch", 10, 15, 1, PerchShiftX, PerchShiftY);
+        // Asleep sitting up, like on Windows: her perch blink's shut-eye frame held still, with a slow breathing bob and a few small z's.
+        private readonly Clip perchSleep = new Clip("perch_blink", 8, 30, 1, PerchShiftX, PerchShiftY);
+        private const int PerchSleepCell = 4;
         private readonly Clip mouth = new Clip("mouth", 5, 12, 1.11);
         private readonly Clip walk = new Clip("walk", 12, 12, 1.11);
         private readonly Clip dance = new Clip("dance", 16, 16, 1.11);
@@ -312,6 +340,10 @@ namespace CapriDesktop
         private string updatePage;
         private double nextUpdate = 60;
         private bool updateChecking;
+        // A check someone asked for says how it went; the one every 6 hours only speaks up for a new version.
+        private bool updateAsked;
+        private string updateNote;
+        internal Func<string> ReadUpdate = FetchUpdate;
         // What she says about a new version once she's free.
         internal string UpdateNews;
         private bool pulling;
@@ -408,6 +440,8 @@ namespace CapriDesktop
         private readonly Meeting meeting = new Meeting();
         private double meetAt = -1;
         private readonly bool fresh;
+        // Settings that couldn't be read, said once she's up and nothing else is talking.
+        private string unreadableNotice;
         // Ticks the tray's Quiet item when her own menu changes it.
         internal Action ShushChanged;
         // Settings > Start at login. Off until they tick it; the file is the setting.
@@ -492,8 +526,9 @@ namespace CapriDesktop
             StartCare();
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
             // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
+            // Keep personal details out of her memories is here as well, since her notes and what she sees are Windows' own code.
             fingers = Program.Smoke == null && Fingers.Problem == null;
-            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers); };
+            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers) || toggle == Security.Personal; };
             Hands.OwnHands = fingers;
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
@@ -552,10 +587,14 @@ namespace CapriDesktop
                 Chores.Mouse = delegate { return Dispatcher.UIThread.Invoke(MouseShare) ?? KWinMouse.Ask(); };
                 Chores.Says = delegate(string line) { Dispatcher.UIThread.Post(delegate { Reply(asking, "(chat)", line); }); };
                 // Her own pointer, like Windows': it glides while their mouse stays put, and hides for her screenshots.
-                Chores.Track = delegate(double x, double y) { Dispatcher.UIThread.Post(delegate { HerPointer.Point(DesktopPixel(x, y)); }); };
+                Chores.Track = delegate(double x, double y) { Dispatcher.UIThread.Post(delegate { PixelPoint at = DesktopPixel(x, y); HerPointer.Point(at); glowAt = at; SyncGlow(); }); };
                 Chores.Tapped = delegate { Dispatcher.UIThread.Post(delegate { HerPointer.Tap(); }); };
                 Chores.Hidden = delegate(bool hidden) { Dispatcher.UIThread.Invoke(delegate { if (hidden) HerPointer.Hide(); else if (herPointer != null) { HerPointer.Show(); Look.OnTopAgain(herPointer); } }); };
                 Chores.Parked = delegate { Dispatcher.UIThread.Post(delegate { if (herPointer != null) herPointer.Park(); }); };
+                // Her sign round the screen she's working on, like Windows' (#106): up for the whole job, even while she's hidden,
+                // and out of her own screenshots.
+                InControl.Changed = delegate { Dispatcher.UIThread.Post(delegate { Program.Guard(SyncGlow); }); };
+                Chores.SignHidden = delegate(bool hide) { return Dispatcher.UIThread.Invoke(new Func<bool>(delegate { return controlGlow != null && controlGlow.Unseen(hide); })); };
             }
             if (Program.Smoke == null) presence = new Presence(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             // A cloud key they saved thinks for her instead of Ollama, on the model they picked.
@@ -673,13 +712,15 @@ namespace CapriDesktop
         internal double BodySize { get { return body.Size; } }
         internal Clip Showing { get { return clip; } }
         internal Clip PerchGlitch { get { return perchGlitch; } }
+        internal Clip Perched { get { return perch; } }
+        internal Clip SatAsleep { get { return perchSleep; } }
         internal IList<Clip> Clips { get { return new[] { idle, blink, blinkGlitch, glitch, dangle, perch, perchBlink, perchBlinkGlitch, perchGlitch, mouth, walk, dance, perchDance, arrive, leave, perchArrive, perchLeave, grin, sleep, wake }; } }
         internal Clip Arrival { get { return arrive; } }
         internal Clip PerchArrival { get { return perchArrive; } }
         internal Clip SeatDance { get { return perchDance; } }
         internal bool Arriving { get { return clip == arrive || clip == perchArrive; } }
         internal bool Upright { get { return clip == idle && seat == null; } }
-        internal bool Asleep { get { return clip == sleep; } }
+        internal bool Asleep { get { return clip == sleep || clip == perchSleep; } }
         internal bool Waking { get { return clip == wake; } }
         internal bool Walking { get { return walking; } }
         internal bool Leaving { get { return outro != null; } }
@@ -848,6 +889,7 @@ namespace CapriDesktop
             CheckStyle();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
+            ShowUnreadableNotice();
             if (UpdateNews != null && !away && !dragging && Talk.Quiet) { Talk.Answer("(update)", UpdateNews); UpdateNews = null; }
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
             CheckRaised(now);
@@ -896,7 +938,7 @@ namespace CapriDesktop
                 if (away) return "Taking a break";
                 if (!Talk.Quiet) return "Chatting";
                 if (clip == dance || clip == perchDance) return musicOn ? "Dancing to music" : "Dancing";
-                if (clip == sleep) return "Asleep";
+                if (Asleep) return "Asleep";
                 return "Plugged in";
             }
         }
@@ -942,36 +984,67 @@ namespace CapriDesktop
             return head + Environment.NewLine + (lines.Length == 0 ? "No errors logged." : string.Join(Environment.NewLine, lines, from, lines.Length - from));
         }
 
-        private void CheckUpdate()
+        internal void CheckUpdate(bool asked = false)
         {
+            updateAsked |= asked;
             if (updateChecking) return;
             updateChecking = true;
+            NotifySettings();
+            Func<string> read = ReadUpdate;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string latest = null;
-                try
-                {
-                    using (System.Net.Http.HttpClient client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) })
-                    {
-                        client.DefaultRequestHeaders.UserAgent.ParseAdd("Capri-Desktop");
-                        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-                        latest = client.GetStringAsync(LatestRelease).GetAwaiter().GetResult();
-                    }
-                }
+                try { latest = read(); }
                 catch (Exception) { }
-                Dispatcher.UIThread.Post(delegate { updateChecking = false; if (latest != null) ShowUpdate(latest); });
+                Dispatcher.UIThread.Post(delegate
+                {
+                    updateChecking = false;
+                    bool tell = updateAsked;
+                    updateAsked = false;
+                    if (latest != null || tell) ShowUpdate(latest, tell);
+                    NotifySettings();
+                });
             });
         }
 
+        private static string FetchUpdate()
+        {
+            using (System.Net.Http.HttpClient client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) })
+            {
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Capri-Desktop");
+                client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+                return client.GetStringAsync(LatestRelease).GetAwaiter().GetResult();
+            }
+        }
+
         // A newer finished release puts "Get Capri X" in her menu, and she mentions it once per version.
-        internal void ShowUpdate(string latest)
+        internal void ShowUpdate(string latest, bool asked = false)
         {
             Release found = null;
             try { using (MemoryStream body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(latest ?? ""))) found = (Release)new DataContractJsonSerializer(typeof(Release)).ReadObject(body); }
             catch (Exception) { }
-            string version = found == null || found.Draft || found.Prerelease ? null : Newer(found.Tag, System.Reflection.Assembly.GetExecutingAssembly().GetName().Version);
+            Version current = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            Version released = found == null || found.Draft || found.Prerelease ? null : ReleaseVersion(found.Tag);
+            string version = released == null ? null : Newer(found.Tag, current);
             if (ContextMenu == null) return;
-            if (version == null) { if (updateItem != null) ContextMenu.Items.Remove(updateItem); return; }
+            if (asked && released == null)
+            {
+                updateNote = "Couldn't check for updates. Check your connection and try again.";
+                UpdateNews = updateNote;
+                return;
+            }
+            if (released != null) updateNote = null;
+            if (version == null)
+            {
+                if (updateItem != null) ContextMenu.Items.Remove(updateItem);
+                updatePage = null;
+                if (asked)
+                {
+                    updateNote = "You're on the latest version (" + current.ToString(3) + ").";
+                    UpdateNews = updateNote;
+                }
+                return;
+            }
             updatePage = found.Page != null && found.Page.StartsWith("https://github.com/lachydotmcg/capri-desktop/releases/", StringComparison.Ordinal) ? found.Page : ReleasesPage;
             if (updateItem == null)
             {
@@ -985,19 +1058,26 @@ namespace CapriDesktop
                 for (int i = ContextMenu.Items.Count - 1; i >= 0; i--) if (ContextMenu.Items[i] is Separator) { at = i; break; }
                 ContextMenu.Items.Insert(at, updateItem);
             }
+            string line = "Capri " + version + " is out. Right-click me > Get Capri " + version + ".";
+            if (asked) { updateNote = line; UpdateNews = line; }
             if (Saved.UpdateSeen == version) return;
             Saved.UpdateSeen = version;
             Save();
-            UpdateNews = "Capri " + version + " is out. Right-click me > Get Capri " + version + ".";
+            UpdateNews = line;
         }
 
         // The release's version when it's newer than hers, like "0.7.6". Null for older, odd or missing tags.
         internal static string Newer(string tag, Version mine)
         {
+            Version found = ReleaseVersion(tag);
+            return found != null && found > new Version(mine.Major, mine.Minor, Math.Max(0, mine.Build)) ? found.ToString(3) : null;
+        }
+
+        private static Version ReleaseVersion(string tag)
+        {
             Version found;
             if (tag == null || !System.Text.RegularExpressions.Regex.IsMatch(tag, @"^[vV]?\d+\.\d+(\.\d+)?$") || !Version.TryParse(tag.TrimStart('v', 'V'), out found)) return null;
-            found = new Version(found.Major, found.Minor, Math.Max(0, found.Build));
-            return found > new Version(mine.Major, mine.Minor, Math.Max(0, mine.Build)) ? found.ToString(3) : null;
+            return new Version(found.Major, found.Minor, Math.Max(0, found.Build));
         }
 
         internal string UpdateChoice { get { return updateItem != null && ContextMenu != null && ContextMenu.Items.Contains(updateItem) ? updateItem.Header as string : null; } }
@@ -1016,6 +1096,27 @@ namespace CapriDesktop
         private HerCursor herPointer;
 
         private HerCursor HerPointer { get { if (herPointer == null) herPointer = new HerCursor { Topmost = true }; return herPointer; } }
+
+        private ControlGlow controlGlow;
+        private PixelPoint? glowAt;
+
+        // Up while a job has their mouse and keys, round the screen her pointer is on, or the one with their mouse before she
+        // moves, and gone once she lets go. A desktop that can't show her own window see-through gets none, since it would cover
+        // their whole screen.
+        private void SyncGlow()
+        {
+            if (!InControl.On)
+            {
+                glowAt = null;
+                if (controlGlow != null) controlGlow.Off();
+                return;
+            }
+            if (ActualTransparencyLevel != WindowTransparencyLevel.Transparent) return;
+            if (controlGlow == null) controlGlow = new ControlGlow();
+            PixelPoint? at = glowAt ?? Mouse();
+            Screen screen = (at.HasValue ? Screens.ScreenFromPoint(at.Value) : null) ?? Screens.Primary;
+            if (screen != null) controlGlow.Cover(screen.Bounds, screen.WorkingArea, screen.Scaling);
+        }
 
         // A spot 0 to 1 across the bounding box of every screen, in desktop pixels: where her pointer goes for it.
         private PixelPoint DesktopPixel(double x, double y)
@@ -1075,7 +1176,7 @@ namespace CapriDesktop
 
         private void Advance(double now)
         {
-            bool seated = clip == perch || clip == perchGlitch || clip == perchDance || clip == perchArrive || clip == perchLeave;
+            bool seated = clip == perch || clip == perchGlitch || clip == perchDance || clip == perchArrive || clip == perchLeave || clip == perchSleep;
             bool perched = seat != null;
             if (perched && !seated && !walking) Play(perch);
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
@@ -1083,7 +1184,7 @@ namespace CapriDesktop
             if (clip == leave || clip == perchLeave) index = Math.Min(index, clip.Count - 1);
             if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = 0; }
             // Like on Windows, she's awake as soon as she has something to say or they open her typing box.
-            if (clip == sleep && !Talk.Quiet) { sleptAt = null; Play(idle); index = 0; }
+            if (Asleep && !Talk.Quiet) { sleptAt = null; Play(clip == perchSleep ? perch : idle); index = 0; }
             if (clip == arrive && index >= arrive.Count)
             {
                 Play(idle);
@@ -1116,12 +1217,13 @@ namespace CapriDesktop
                     }
                 }
             }
-            int cell = index % clip.Count;
+            int cell = clip == perchSleep ? PerchSleepCell : index % clip.Count;
             Clip shown = clip;
             int blinkFrom = clip == perch ? PerchBlinkFrom : BlinkFrom;
             if ((clip == idle || clip == perch) && blinkWith != null && cell >= blinkFrom && cell < blinkFrom + blinkWith.Count) { shown = blinkWith; cell -= blinkFrom; }
-            bool settled = !dragging && clip != dangle && clip != sleep;
-            body.Breathe = settled ? Math.Sin(now * 1.75) * 2.2 : 0;
+            bool settled = !dragging && clip != dangle && !Asleep;
+            body.Breathe = settled ? Math.Sin(now * 1.75) * 2.2 : clip == perchSleep ? Math.Sin(now * 1.2) * body.Size / 80 : 0;
+            body.Dozing = clip == perchSleep ? now - clipStart : -1;
             body.Tilt = settled ? Math.Sin(now * 0.95) * 0.65 : 0;
             if (settled)
             {
@@ -1254,7 +1356,7 @@ namespace CapriDesktop
             if (spot == null || !spot.Seat)
             {
                 if (seatLost < 0) seatLost = now;
-                if (!Alive(seat.Window) || now - seatLost >= 0.3) StandUp();
+                if (!Alive(seat.Window) || now - seatLost >= 0.3) LoseSeat();
                 return;
             }
             seatLost = -1;
@@ -1275,7 +1377,15 @@ namespace CapriDesktop
             if (seat == null || falling || dragging || seat.Floor) return;
             if (!Perches.Covered(Windows(), seat, Hip.X)) { coveredSince = -1; return; }
             if (coveredSince < 0) coveredSince = now;
-            if (now - coveredSince >= 0.7) StandUp();
+            if (now - coveredSince >= 0.7) LoseSeat();
+        }
+
+        // Asleep sitting up on a window that closes, minimises or gets covered, she sleeps on standing where she is, like on Windows.
+        private void LoseSeat()
+        {
+            bool sat = clip == perchSleep;
+            StandUp();
+            if (sat) Play(sleep);
         }
 
         internal void StandUp()
@@ -1672,7 +1782,7 @@ namespace CapriDesktop
             napAsked = false;
             if (hanging) { LetGo(); return; }
             // A click wakes her the gentle way, from a nap they asked for or her own doze.
-            if (clip == sleep) { napping = false; Wake(); return; }
+            if (Asleep) { napping = false; Wake(); return; }
             Play(seat != null ? perchGlitch : glitch);
         }
 
@@ -1747,7 +1857,7 @@ namespace CapriDesktop
             hangItem = new MenuItem { Header = "Hang here" };
             hangItem.Click += Guarded(delegate { if (hanging) LetGo(); else HangHere(); });
             napItem = new MenuItem { Header = "Go to sleep" };
-            napItem.Click += Guarded(delegate { Nap(!napAsked && clip != sleep); });
+            napItem.Click += Guarded(delegate { Nap(!napAsked && !Asleep); });
             MenuItem move = new MenuItem { Header = "Move" };
             for (int i = 0; i < WanderNames.Length; i++)
             {
@@ -1969,7 +2079,8 @@ namespace CapriDesktop
             settings.Items.Add(discordItem);
             // Security, like Windows' SECURITY window (Lachy, 29 Oct): Lockdown, Guarded, Trusted and Blackwall set the toggles
             // under them, and flipping one makes it Custom. Each toggle has its plain line. Off means she asks first and does it
-            // on your yes. Mac and Linux have the first five, and Linux her mouse and keyboard jobs once uinput is set up; "Hey Capri" is Windows-only so far.
+            // on your yes. Mac and Linux have the first five and Keep personal details out of her memories, and Linux her mouse and
+            // keyboard jobs once uinput is set up; "Hey Capri" is Windows-only so far.
             securityMenu = new MenuItem { Header = "Security: " + Security.PresetName };
             for (int i = 0; i <= Security.Custom; i++)
             {
@@ -2041,7 +2152,7 @@ namespace CapriDesktop
             hideItem = new MenuItem { Header = "Hide Capri" };
             hideItem.Click += Guarded(delegate { if (Away) ComeBack(); else HideAway(); });
             MenuItem update = new MenuItem { Header = "Check for updates" };
-            update.Click += Guarded(delegate { CheckUpdate(); });
+            update.Click += Guarded(delegate { CheckUpdate(true); });
             menu.Items.Add(title);
             menu.Items.Add(new Separator());
             menu.Items.Add(frame);
@@ -2253,7 +2364,7 @@ namespace CapriDesktop
 
         // Sit here, or Stand up while she sits where she was put, like Windows' Move menu.
         internal string SitChoice { get { return seat != null && seat.Free ? "Stand up" : "Sit here"; } }
-        internal string NapChoice { get { return napAsked || clip == sleep ? "Wake up" : "Go to sleep"; } }
+        internal string NapChoice { get { return napAsked || Asleep ? "Wake up" : "Go to sleep"; } }
 
         internal int SleepAfter { get { return Saved.SleepAfter ?? 120; } }
 
@@ -2271,23 +2382,23 @@ namespace CapriDesktop
             Saved.SleepAfter = Math.Max(0, Math.Min(3600, seconds));
             Save();
             Sync();
-            if (seconds <= 0 && clip == sleep) Wake();
+            if (seconds <= 0 && Asleep) Wake();
         }
 
-        // She dozes off like on Windows when nobody's touched the mouse or keyboard for Fall asleep after, and only standing,
-        // as there: sitting on a window she stays awake. Reading the idle time starts a process on Mac and Linux, so it's read
+        // She dozes off like on Windows when nobody's touched the mouse or keyboard for Fall asleep after, standing, or sitting
+        // up wherever she sits. Reading the idle time starts a process on Mac and Linux, so it's read
         // off her thread every 5 s awake and every second asleep, and a moved mouse wakes her at once on Mac and X11.
         internal void CheckSleep(double now)
         {
             if (napping) return;
-            if (clip == sleep && sleptAt != null)
+            if (Asleep && sleptAt != null)
             {
                 PixelPoint? mouse = Mouse();
                 if (mouse != null && mouse.Value != sleptAt.Value) { Wake(); return; }
             }
             if (sleepChecking || now < nextSleepCheck) return;
-            if (clip != sleep && (SleepAfter <= 0 || !Drowsy)) return;
-            nextSleepCheck = now + (clip == sleep ? 1 : 5);
+            if (!Asleep && (SleepAfter <= 0 || !Drowsy)) return;
+            nextSleepCheck = now + (Asleep ? 1 : 5);
             sleepChecking = true;
             Func<double> read = Idle;
             ThreadPool.QueueUserWorkItem(delegate
@@ -2304,7 +2415,7 @@ namespace CapriDesktop
         internal void Doze(double idle)
         {
             if (idle < 0) return;
-            if (clip == sleep)
+            if (Asleep)
             {
                 if (napping) return;
                 if (idle < sleepIdle) Wake();
@@ -2312,7 +2423,7 @@ namespace CapriDesktop
                 return;
             }
             if (SleepAfter <= 0 || idle < SleepAfter || !Drowsy) return;
-            Play(sleep);
+            Play(seat != null ? perchSleep : sleep);
             sleepIdle = idle;
             sleptAt = Mouse();
             nextSleepCheck = Now + 1;
@@ -2321,24 +2432,28 @@ namespace CapriDesktop
         private void Wake()
         {
             sleptAt = null;
-            Play(wake);
+            if (clip != perchSleep) { Play(wake); return; }
+            // Asleep sitting up, she wakes where she sits, blinking her eyes open with a little glitch.
+            Play(perch);
+            clipStart -= (PerchBlinkFrom + 0.5) / perch.Fps;
+            blinkWith = perchBlinkGlitch;
         }
 
-        // "Go to sleep" from her menu, her brain or plain words, like on Windows: she gets down off her window, finishes what
-        // she's saying, then sleeps standing. Unlike the doze she falls into by herself, the mouse and keyboard don't wake her.
+        // "Go to sleep" from her menu, her brain or plain words, like on Windows: she finishes what she's saying, then sleeps
+        // sitting up where she sits, or standing. Unlike the doze she falls into by herself, the mouse and keyboard don't wake her.
         internal string Nap(bool sleeping)
         {
             if (!sleeping)
             {
-                bool resting = napAsked || napping || clip == sleep;
+                bool resting = napAsked || napping || Asleep;
                 napAsked = false;
                 napping = false;
-                if (clip == sleep) Wake();
+                if (Asleep) Wake();
                 Sync();
                 return resting ? "Woke up." : "Already awake.";
             }
             ComeBack();
-            if (seat != null || hanging) StandUp();
+            if (hanging) StandUp();
             EndWalk();
             dancing = false;
             napAsked = true;
@@ -2349,15 +2464,15 @@ namespace CapriDesktop
         // Her nap tool, which her brain calls from its own thread.
         private string NapTool(bool sleeping) { return Dispatcher.UIThread.CheckAccess() ? Nap(sleeping) : Dispatcher.UIThread.Invoke(new Func<string>(delegate { return Nap(sleeping); })); }
 
-        // The nap they asked for starts once her line is done and she stands free, and ends when anything wakes her.
+        // The nap they asked for starts once her line is done and she stands free or sits still, and ends when anything wakes her.
         internal void CheckNap()
         {
-            if (napping && clip != sleep) napping = false;
-            if (!napAsked || clip != idle || seat != null || walking || dragging || pressed || falling || outro != null || away || quitting || !Talk.Quiet) return;
+            if (napping && !Asleep) napping = false;
+            if (!napAsked || clip != (seat != null ? perch : idle) || walking || dragging || pressed || falling || outro != null || away || quitting || !Talk.Quiet) return;
             napAsked = false;
             napping = true;
             sleptAt = null;
-            Play(sleep);
+            Play(seat != null ? perchSleep : sleep);
         }
 
         internal bool Napping { get { return napping; } }
@@ -2552,7 +2667,7 @@ namespace CapriDesktop
 
         internal bool Blinking { get { return blinkWith != null; } }
 
-        private bool Drowsy { get { return clip == idle && seat == null && !walking && !dragging && !pressed && !falling && outro == null && !away && !quitting && Talk.Quiet && (ContextMenu == null || !ContextMenu.IsOpen); } }
+        private bool Drowsy { get { return clip == (seat != null ? perch : idle) && !walking && !dragging && !pressed && !falling && outro == null && !away && !quitting && Talk.Quiet && (ContextMenu == null || !ContextMenu.IsOpen); } }
 
         // How one of her switches is set right now for her settings tool, the way her menus show it, or null for one only Windows has.
         internal bool? SettingOn(string name)
@@ -4057,15 +4172,18 @@ namespace CapriDesktop
             {
                 string said;
                 string after = null;
+                // As on Windows, a provider's own error text goes in the BRAIN note, and she says where to find it.
+                string problem = null;
                 bool stuck = false, failed = false;
                 try { said = think == null ? Brain.Ask(text, follows, out after) : think(text); }
-                catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer: " + error.Message; stuck = Brain.Stalled(error); failed = true; }
-                catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; stuck = Brain.Stalled(error); failed = true; }
-                if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; failed = true; }
+                catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Told || error.Message == Brain.Offline ? said : error.Message; stuck = Brain.Stalled(error); failed = true; }
+                catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; stuck = Brain.Stalled(error); failed = true; }
+                if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; problem = said; failed = true; }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (ticket != asking) return;
                     if (stuck && switches < 2 && Hop(remote)) { Ask(ticket, text, switches + 1); return; }
+                    if (problem != null) { frameProblem = problem; NotifySettings(); }
                     if (input != inputTurn) after = null;
                     if (HoldNews(ticket)) return;
                     if (ticket == newsTicket && failed) { Talk.Answer("(updated)", News.Line); KeepNews(); return; }
@@ -4727,17 +4845,70 @@ namespace CapriDesktop
 
         private Settings Load()
         {
+            return ReadSettings(Path.Combine(folder, "cross.json"), out unreadableNotice);
+        }
+
+        internal const string UnreadableName = "cross.unreadable.json";
+
+        // As on Windows: a new install has no cross.json and starts fresh. Settings that can't be read start fresh too, but
+        // first the file is copied as it is to cross.unreadable.json, so the next save can't write over the only copy of their
+        // choices and keys, and the notice says where it went.
+        internal static Settings ReadSettings(string path, out string notice)
+        {
+            notice = null;
             try
             {
                 Settings saved;
-                using (FileStream stream = File.OpenRead(Path.Combine(folder, "cross.json"))) saved = (Settings)new DataContractJsonSerializer(typeof(Settings)).ReadObject(stream);
+                using (FileStream stream = File.OpenRead(path)) saved = (Settings)new DataContractJsonSerializer(typeof(Settings)).ReadObject(stream);
+                if (saved == null) throw new SerializationException();
                 NewSettings newer = null;
-                try { using (FileStream stream = File.OpenRead(Path.Combine(folder, "cross-new.json"))) newer = (NewSettings)new DataContractJsonSerializer(typeof(NewSettings)).ReadObject(stream); }
+                try { using (FileStream stream = File.OpenRead(Path.Combine(Path.GetDirectoryName(path), "cross-new.json"))) newer = (NewSettings)new DataContractJsonSerializer(typeof(NewSettings)).ReadObject(stream); }
                 catch (Exception) { }
                 return Kept(saved, newer);
             }
-            // A new install starts in the computer's own language when she speaks it.
-            catch (Exception) { return new Settings { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) }; }
+            catch (Exception error)
+            {
+                if (File.Exists(path)) notice = KeepUnreadable(path, error);
+                // A new install starts in the computer's own language when she speaks it.
+                return new Settings { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) };
+            }
+        }
+
+        private static string KeepUnreadable(string path, Exception error)
+        {
+            string home = Path.GetDirectoryName(Path.GetFullPath(path));
+            string kept = Path.Combine(home, UnreadableName);
+            string log = Path.Combine(home, "errors.txt");
+            // Only the kind of error goes in errors.txt: its message can quote the file, keys and all.
+            string why = error.GetType().Name;
+            for (int tries = 1; ; tries++)
+            {
+                try { File.Copy(path, kept, true); break; }
+                catch (Exception copying)
+                {
+                    if (tries < 3) { Thread.Sleep(200); continue; }
+                    Brain.LogAt(log, "startup", -1, "Her cross.json couldn't be read (" + why + ") or copied (" + copying.GetType().Name + "), so she started with fresh settings.");
+                    return "Her settings couldn't be read, so they were reset. Add your keys and choices again in Capri Mainframe.";
+                }
+            }
+            Brain.LogAt(log, "startup", -1, "Her cross.json couldn't be read (" + why + "), so she started with fresh settings. The old file is kept as " + UnreadableName + ".");
+            return "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in " + Tilde(home) + ".";
+        }
+
+        // A folder in their home as ~/..., so a screenshot of the notice doesn't show their user name.
+        internal static string Tilde(string path)
+        {
+            string user = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return user.Length > 1 && path.StartsWith(user + "/", StringComparison.Ordinal) ? "~" + path.Substring(user.Length) : path;
+        }
+
+        // After her hello, while nothing else is showing, so it's read rather than covered.
+        internal void ShowUnreadableNotice()
+        {
+            if (unreadableNotice == null || !opened || !greetTried || !IsVisible || away || quitting || outro != null || dragging || !Talk.Quiet || !Talk.Finished) return;
+            string notice = unreadableNotice;
+            unreadableNotice = null;
+            Talk.Answer("(settings)", notice);
         }
 
         internal void Save()
@@ -4845,7 +5016,8 @@ namespace CapriDesktop
             return which + (one ? " linked into a folder I can't change, like Nix's store, so I made it a file of its own." : " linked into folders I can't change, like Nix's store, so I made them files of their own.");
         }
 
-        // At startup only a problem is said, so her hello isn't swapped for a restart note every time she opens.
+        // At startup only a problem, or hooks she had to rewrite (like after an update moved her), is said, so her hello isn't
+        // swapped for a restart note every time she opens.
         private void SetHusk(int mode, bool starting)
         {
             if (quitting || huskChanging || husk == null) return;
@@ -4861,6 +5033,7 @@ namespace CapriDesktop
                 try { husk.Change(mode, mode == 0 ? null : HuskExe()); }
                 catch (Exception error) { problem = error.Message; }
                 string unlinked = Unlinked(husk.Unlinked, mode == 0);
+                bool rewrote = husk.Rewrote;
                 Action finish = delegate
                 {
                     huskChanging = false;
@@ -4873,7 +5046,7 @@ namespace CapriDesktop
                         : "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.";
                     if (unlinked != null) note += " " + unlinked;
                     // A link she had to replace is said even at startup.
-                    if (problem != null || !starting || unlinked != null) Talk.Answer("(code/husk mode)", problem ?? note);
+                    if (problem != null || !starting || unlinked != null || rewrote) Talk.Answer("(code/husk mode)", problem ?? note);
                 };
                 if (Dispatcher.UIThread.CheckAccess()) finish(); else Dispatcher.UIThread.Post(finish);
             });
@@ -4890,7 +5063,7 @@ namespace CapriDesktop
             if (act.Kind == "prompt" || attention)
             {
                 napAsked = napping = false;
-                if (clip == sleep) Wake();
+                if (Asleep) Wake();
             }
             if (attention) { hideAsked = false; ComeBack(); Raise(Now + 6); }
             huskMood = act.Kind;

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.Serialization;
-using System.Runtime.Serialization.Json;
 using System.Text.RegularExpressions;
 using System.Windows.Automation;
 
@@ -18,25 +17,16 @@ namespace CapriDesktop
             [DataMember] internal string Address;
         }
 
-        private readonly string path;
+        private readonly SavedList<Entry> file;
         private readonly object gate = new object();
         private readonly List<Entry> entries = new List<Entry>();
         internal Func<string> Current = FrontAddress;
 
         internal Websites(string folder)
         {
-            path = Path.Combine(folder, "websites.json");
-            try
-            {
-                if (!File.Exists(path)) return;
-                using (FileStream saved = File.OpenRead(path))
-                    foreach (Entry item in (List<Entry>)new DataContractJsonSerializer(typeof(List<Entry>)).ReadObject(saved))
-                        if (!string.IsNullOrWhiteSpace(item.Name) && Address(item.Address) != null)
-                            entries.Add(new Entry { Name = Key(item.Name), Address = Address(item.Address) });
-            }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
-            catch (SerializationException) { }
+            file = new SavedList<Entry>(Path.Combine(folder, "websites.json"), "website nicknames");
+            foreach (Entry item in file.Read(saved => !string.IsNullOrWhiteSpace(saved.Name) && Address(saved.Address) != null))
+                entries.Add(new Entry { Name = Key(item.Name), Address = Address(item.Address) });
         }
 
         private static string Key(string name) { return Regex.Replace((name ?? "").Trim().Trim('"', '\'', '\u201c', '\u201d').Trim(), @"\s+", " ").ToLowerInvariant(); }
@@ -77,7 +67,9 @@ namespace CapriDesktop
             return Uri.TryCreate(value, UriKind.Absolute, out uri) && (uri.Scheme == "https" || uri.Scheme == "http") && uri.Host.Length > 0 && uri.UserInfo.Length == 0 && (uri.Host.Contains(".") || uri.Host == "localhost") ? uri.AbsoluteUri : null;
         }
 
-        internal string Do(ToolArguments args)
+        internal string Do(ToolArguments args) { return file.Told(Reply(args)); }
+
+        private string Reply(ToolArguments args)
         {
             string name = Key(args.Name);
             if (args.Action == "forget") name = Nickname(name) ?? name;
@@ -98,10 +90,7 @@ namespace CapriDesktop
                 if (args.Action != "forget") next.Add(new Entry { Name = name, Address = address });
                 try
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(path));
-                    string temporary = path + ".tmp";
-                    using (FileStream saved = File.Create(temporary)) new DataContractJsonSerializer(typeof(List<Entry>)).WriteObject(saved, next);
-                    if (File.Exists(path)) File.Replace(temporary, path, null); else File.Move(temporary, path);
+                    file.Write(next, ".tmp");
                     entries.Clear(); entries.AddRange(next);
                 }
                 catch (IOException) { return "Couldn't save your website nicknames just now."; }

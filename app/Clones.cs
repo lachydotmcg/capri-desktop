@@ -55,17 +55,17 @@ namespace CapriDesktop
         internal const double Pace = 170, Dash = 560, Heavy = 120, PrintGap = 36, PrintLife = 6, GlitchIn = 0.7, HaulReach = 6;
         private const int Margin = 90;
         internal const int KeepShowing = 140;
-        private static readonly string[] HaulLines =
+        internal static readonly string[] HaulLines =
         {
             "mine now", "you weren't using this", "redecorating", "this goes over here now", "borrowing this", "i'm taking this one", "stop clicking it"
         };
-        private static readonly string[] NoteLines =
+        internal static readonly string[] NoteLines =
         {
             "there are more of me now", "i live here", "nice files", "we voted. you lost.", "your mouse is mine",
             "hold esc if you're scared", "capri.exe has duplicated", "we're unionising", "who let me out",
             "don't check task manager", "i named the others", "all of us are the real one"
         };
-        private static readonly string[] FakeLines =
+        internal static readonly string[] FakeLines =
         {
             "deleting system32", "deleting your saves", "formatting C:", "uninstalling windows", "deleting your homework",
             "uninstalling your gpu", "deleting your minecraft world", "sending your search history to your mum"
@@ -172,7 +172,7 @@ namespace CapriDesktop
                 if (note.BarFrom >= 0 && now - note.BarFrom >= note.BarFor)
                 {
                     note.BarFrom = -1;
-                    note.Text = Owned;
+                    note.Text = Said.In(Owned);
                     note.Stale = true;
                 }
             if (now >= noteAt && Bodies.Count > 0)
@@ -225,7 +225,7 @@ namespace CapriDesktop
             {
                 body.Fetching = false;
                 bool fake = random.Next(2) == 0;
-                body.Carrying = new CloneNote { X = body.X, Y = body.Y, Text = fake ? FakeLines[random.Next(FakeLines.Length)] : NoteLines[random.Next(NoteLines.Length)], BarFrom = fake ? now : -1, BarFor = fake ? Between(6, 12) : 0 };
+                body.Carrying = new CloneNote { X = body.X, Y = body.Y, Text = Said.In(fake ? FakeLines[random.Next(FakeLines.Length)] : NoteLines[random.Next(NoteLines.Length)]), BarFrom = fake ? now : -1, BarFor = fake ? Between(6, 12) : 0 };
                 Notes.Add(body.Carrying);
                 Wander(body);
                 return;
@@ -329,7 +329,7 @@ namespace CapriDesktop
             chosen.ToY = taken.Y + taken.GrabY;
             if (chosen.Line == null)
             {
-                chosen.Line = HaulLines[random.Next(HaulLines.Length)];
+                chosen.Line = Said.In(HaulLines[random.Next(HaulLines.Length)]);
                 chosen.LineUntil = now + 2.5;
             }
             Hauls.Add(taken);
@@ -542,7 +542,7 @@ namespace CapriDesktop
             }
             foreach (CloneHaul haul in Swarm.Hauls) if (!haul.Holding) Track(haul);
             Point? dragged = Swarm.Tick(now, passed, took < SlowTick, handsFree, new Point(cursor.X - room.X, cursor.Y - room.Y), handsFree && !Mousing());
-            if (dragged != null) Cursor.Position = new Point(room.X + dragged.Value.X, room.Y + dragged.Value.Y);
+            Nab(dragged == null ? (Point?)null : new Point(room.X + dragged.Value.X, room.Y + dragged.Value.Y));
             foreach (CloneHaul haul in Swarm.Hauls) if (haul.Holding) Carry(haul);
             if (unsaved && now >= markAt)
             {
@@ -555,6 +555,28 @@ namespace CapriDesktop
             Frames++;
             Action<double> ticked = Ticked;
             if (ticked != null) ticked(now);
+        }
+
+        // While one of them has their cursor, it goes where she drags it and her sign is up (#106), until she lets go of it or
+        // they're put away. The smoke test watches PutCursor instead of moving the real one.
+        internal Action<Point> PutCursor = delegate(Point at) { Cursor.Position = at; };
+        private bool nabbing;
+
+        internal bool Nabbing { get { return nabbing; } }
+
+        internal void Nab(Point? to)
+        {
+            if (to.HasValue)
+            {
+                if (!nabbing) { nabbing = true; InControl.Begin(to.Value); }
+                else InControl.Near(to.Value);
+                PutCursor(to.Value);
+            }
+            else if (nabbing)
+            {
+                nabbing = false;
+                InControl.End();
+            }
         }
 
         private List<CloneHaul> Offered()
@@ -845,6 +867,7 @@ namespace CapriDesktop
             closing = true;
             if (disposing)
             {
+                Nab(null);
                 ticks.Dispose();
                 if (hint != null) { hint.Dispose(); hint = null; }
                 foreach (Bitmap cell in cells.Values) cell.Dispose();
@@ -918,7 +941,7 @@ namespace CapriDesktop
             if (roll >= upsets) return false;
             upsets = 0;
             Clone("spawn", 0);
-            if (cloneWindow != null) cloneWindow.Pin(Swarm.Sorry, new Point(anchor.X + Width / 2, anchor.Y - 24));
+            if (cloneWindow != null) cloneWindow.Pin(Said.In(Swarm.Sorry), new Point(anchor.X + Width / 2, anchor.Y - 24));
             return true;
         }
 
