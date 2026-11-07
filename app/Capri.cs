@@ -23364,6 +23364,136 @@ namespace CapriDesktop
             }
         }
 
+        // The Store copy, with no package to run in. Outside a package nothing changes. With a stand-in package name, her updater
+        // is off whatever a website install left, her data folder is the real one for a fresh install and the website's for someone
+        // moving over, she starts with Windows through her startup task and never the Run key, and Get VB-CABLE starts no setup.
+        private void SmokePackaged(System.Collections.Generic.List<string> checks, string output)
+        {
+            const string standIn = "Capri.Test_1.8.5.0_x64__abcdefghjkmnp", family = "Capri.Test_abcdefghjkmnp";
+            const string desktopMic = "Windows is blocking the mic. Turn on Microphone access and Let desktop apps access your microphone in Settings > Privacy & security > Microphone.";
+            if (Packaged.Is) throw new Exception("The smoke test runs outside a package, but Windows named one: " + Packaged.FullName);
+            if (updating || installing || updateFile != null) throw new Exception("The package check found an update already under way.");
+            string folder = Path.Combine(output, "packaged-" + Guid.NewGuid().ToString("N")), local = Path.Combine(folder, "Local"), usual = Path.Combine(local, "Capri");
+            string staged = Path.Combine(updater.Folder, "Capri-Setup-99.0.0-store.exe"), exe = Application.ExecutablePath;
+            string runKeyWas = Startup.RunKey, approvedKeyWas = Startup.ApprovedKey, startupRoot = "Software\\Capri smoke " + Guid.NewGuid().ToString("N");
+            Func<Release> latestWas = updater.Latest;
+            Func<string, string> signerWas = updater.Signer;
+            Action<ProcessStartInfo> runWas = updater.Run;
+            Func<bool> startupOnWas = Packaged.StartupOn;
+            Func<bool, string> setStartupWas = Packaged.SetStartup;
+            Action<string> browseWas = Browse;
+            Func<string, Process> setupWas = CableSetup.Start;
+            long checkedWas = preferences.UpdateCheckedAt;
+            bool startedWas = updateStarted, startupSetWas = preferences.StartupSet;
+            string noteWas = mainframe.UpdateStatus, cableLineWas = cableSetupLine;
+            Directory.CreateDirectory(local);
+            try
+            {
+                if (Packaged.Family != null || Packaged.Home(local) != usual || Directory.Exists(usual) || Packaged.Launcher(exe) != exe || !Ears.MicSwitch.EndsWith("\\microphone\\NonPackaged", StringComparison.Ordinal) || Dictation.MicBlocked != desktopMic)
+                    throw new Exception("Outside a package her data folder, her path, her mic switch or her mic line changed.");
+                checks.Add("PASS outside a package her data folder, her own path, the mic switch she reads and her mic line stay as they were");
+
+                Packaged.FullName = standIn;
+                if (!Packaged.Is || Packaged.Family != family) throw new Exception("The package family read wrong: " + Packaged.Family);
+                string alias = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WindowsApps", "Capri.exe");
+                if (Packaged.Launcher(exe) != alias || !Ears.MicSwitch.EndsWith("\\microphone\\" + family, StringComparison.Ordinal) || Dictation.MicBlocked.IndexOf("Let desktop apps", StringComparison.Ordinal) >= 0)
+                    throw new Exception("A Store copy's alias, mic switch or mic line is wrong: " + Packaged.Launcher(exe) + " | " + Ears.MicSwitch + " | " + Dictation.MicBlocked);
+
+                // Moving from the website: her folder is real and stays hers, with everything in it. A fresh install gets the private
+                // folder by its real name, which other programs can open.
+                Directory.CreateDirectory(usual);
+                File.WriteAllText(Path.Combine(usual, "settings.json"), "kept");
+                if (Packaged.Home(local) != usual || File.ReadAllText(Path.Combine(usual, "settings.json")) != "kept") throw new Exception("A Store copy left the website's data folder behind.");
+                Directory.Delete(usual, true);
+                string kept = Path.Combine(local, "Packages", family, "LocalCache", "Local", "Capri");
+                Directory.CreateDirectory(kept);
+                if (Packaged.Home(local) != kept) throw new Exception("A fresh Store copy didn't use the real path of her private folder: " + Packaged.Home(local));
+                checks.Add("PASS a Store copy keeps a website install's data folder and uses a fresh install's private folder by its real path");
+
+                string reading = Path.Combine(folder, "reader");
+                Directory.CreateDirectory(reading);
+                Updater reader = new Updater(reading, exe, true);
+                if (reader.Package() != Packaged.Store) throw new Exception("A Store copy with no marker didn't say the Store updates her.");
+                File.WriteAllText(Path.Combine(reading, SetupFiles.Marker), "manual");
+                if (reader.Package() != Packaged.Store) throw new Exception("A manual marker from a website install freed a Store copy's updater.");
+                int asked = 0, ran = 0;
+                updater.Latest = delegate { asked++; throw new Exception("A Store copy asked GitHub for an update."); };
+                updater.Run = delegate { ran++; };
+                updater.Signer = delegate { return null; };
+                CheckForUpdates(true);
+                string checkedNote = mainframe.UpdateStatus, told = UpdateTool(new ToolArguments { Action = "check" }), status = UpdateTool(new ToolArguments { Action = "status" });
+                updateFile = new UpdateFile { Version = "99.0.0", Path = staged };
+                InstallUpdate();
+                const string storeNote = "Update through the Microsoft Store.";
+                if (asked != 0 || ran != 0 || updating || installing || updateFile != null || !checkItem.Enabled || checkedNote != storeNote || told != storeNote || status != storeNote)
+                    throw new Exception("A Store copy reached her own updater: asked GitHub " + asked + ", ran " + ran + ", note " + checkedNote + ", tool " + told + " / " + status);
+                byte[] bytes = System.Text.Encoding.ASCII.GetBytes("MZ a Store copy's update");
+                Directory.CreateDirectory(updater.Folder);
+                File.WriteAllBytes(staged, bytes);
+                string hash, refused = null;
+                using (SHA256 sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "");
+                try { updater.Install(new UpdateFile { Version = "99.0.0", Path = staged, Hash = hash, Size = bytes.Length }, 1, 1); }
+                catch (BrainException error) { refused = error.Message; }
+                if (refused != storeNote || ran != 0) throw new Exception("A checked update started in a Store copy: " + (refused ?? "it was allowed"));
+                checks.Add("PASS a Store copy never asks GitHub or starts her installer: a check, the update tool, an install and a checked update all say to update through the Microsoft Store, even over a website install's manual marker");
+
+                Startup.RunKey = startupRoot + "\\Run";
+                Startup.ApprovedKey = startupRoot + "\\StartupApproved";
+                bool taskOn = false;
+                string answer = null;
+                int sets = 0;
+                Packaged.StartupOn = delegate { return taskOn; };
+                Packaged.SetStartup = delegate(bool on) { sets++; if (answer == null) taskOn = on; return answer; };
+                preferences.StartupSet = false;
+                DefaultStartup(Installed());
+                if (StartsWithWindows || preferences.StartupSet || sets != 0) throw new Exception("A Store copy turned starting with Windows on by herself.");
+                ToggleStartup();
+                bool turnedOn = StartsWithWindows && sets == 1 && preferences.StartupSet;
+                ToggleStartup();
+                bool turnedOff = !StartsWithWindows && sets == 2;
+                answer = Packaged.StartupRefused;
+                ToggleStartup();
+                bool stayedOff = !StartsWithWindows && sets == 3;
+                using (Microsoft.Win32.RegistryKey wroteRun = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Startup.RunKey))
+                    if (!turnedOn || !turnedOff || !stayedOff || wroteRun != null) throw new Exception("A Store copy's startup switch didn't go through her startup task: on " + turnedOn + ", off " + turnedOff + ", refused " + stayedOff + ", Run key " + (wroteRun != null));
+                checks.Add("PASS a Store copy starts off, and starting with Windows goes through her startup task, never the Run key, and survives Windows refusing it");
+
+                string opened = null;
+                int setups = 0;
+                Browse = delegate(string page) { opened = page; };
+                CableSetup.Start = delegate { setups++; return null; };
+                SetUpCable();
+                if (opened != CableSetup.Page || setups != 0 || CableSetupOpen || cableSetupLine != cableLineWas) throw new Exception("A Store copy's Get VB-CABLE reached a setup: " + opened + ", " + setups + " setups.");
+                opened = null;
+                OpenPage(IssuesPage);
+                if (opened != IssuesPage) throw new Exception("Report a problem didn't open the issues page.");
+                checks.Add("PASS a Store copy's Get VB-CABLE opens VB-Audio's page and starts no driver setup, and Report a problem opens the issues page");
+            }
+            finally
+            {
+                Packaged.FullName = null;
+                Packaged.StartupOn = startupOnWas;
+                Packaged.SetStartup = setStartupWas;
+                Browse = browseWas;
+                CableSetup.Start = setupWas;
+                Startup.RunKey = runKeyWas;
+                Startup.ApprovedKey = approvedKeyWas;
+                Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(startupRoot, false);
+                updater.Latest = latestWas;
+                updater.Signer = signerWas;
+                updater.Run = runWas;
+                updateFile = null;
+                updateInstallAsked = false;
+                preferences.UpdateCheckedAt = checkedWas;
+                preferences.StartupSet = startupSetWas;
+                updateStarted = startedWas;
+                mainframe.UpdateNote(noteWas, false);
+                if (File.Exists(staged)) File.Delete(staged);
+                Directory.Delete(folder, true);
+                mainframe.Sync();
+            }
+        }
+
         // A made-up game: a view into a big patterned world that slides as the mouse moves, to prove her camera finds any game's mouse.
         private static void SmokeCamera(System.Collections.Generic.List<string> checks)
         {
@@ -32490,6 +32620,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
             Section(checks, "SmokeSetupFiles", delegate { SmokeSetupFiles(checks, output); });
             Section(checks, "SmokePackageMarker", delegate { SmokePackageMarker(checks, output); });
+            Section(checks, "SmokePackaged", delegate { SmokePackaged(checks, output); });
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
