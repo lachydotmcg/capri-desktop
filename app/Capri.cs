@@ -4747,11 +4747,20 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        internal bool StartsWithWindows { get { return Startup.On(Application.ExecutablePath); } }
+        internal bool StartsWithWindows { get { return Packaged.Is ? Packaged.StartupOn() : Startup.On(Application.ExecutablePath); } }
 
         internal void ToggleStartup()
         {
-            if (!Startup.Set(Application.ExecutablePath, !StartsWithWindows)) Brain.Log("startup", -1, "Windows wouldn't let Capri change her Run entry.");
+            if (Packaged.Is)
+            {
+                string refused = Packaged.SetStartup(!StartsWithWindows);
+                if (refused != null)
+                {
+                    Brain.Log("startup", -1, refused);
+                    if (!testing) { balloonPage = null; balloonUpdate = false; balloonMainframe = false; tray.ShowBalloonTip(8000, "Capri", refused, ToolTipIcon.Info); }
+                }
+            }
+            else if (!Startup.Set(Application.ExecutablePath, !StartsWithWindows)) Brain.Log("startup", -1, "Windows wouldn't let Capri change her Run entry.");
             preferences.StartupSet = true;
             SavePreferences();
             mainframe.Sync();
