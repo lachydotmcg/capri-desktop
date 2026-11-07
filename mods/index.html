@@ -521,7 +521,7 @@ public class RedFlash : ICapriMod, ICapriIntro
         <ol class="moves">
           <li>Check your mod imports and works</li>
           <li>Fork <a href="https://github.com/lachydotmcg/capri-mods" target="_blank" rel="noopener noreferrer">capri-mods</a>, the directory on GitHub. A free account is enough. On Windows, <b>Publish</b> on your mod's row has the link and <b>Show my mod file</b></li>
-          <li>Add a folder, <code>mods/&lt;id&gt;/</code>, with the three files below</li>
+          <li>Add a folder, <code>mods/&lt;id&gt;/</code>, with the files below</li>
           <li>Open a pull request</li>
         </ol>
         <figure class="code">
@@ -529,7 +529,7 @@ public class RedFlash : ICapriMod, ICapriIntro
 <pre id="ex-tree">mods/my-names/
   my-names.capri-mod
   README.md
-  preview.png</pre>
+  preview.png (optional)</pre>
         </figure>
         <figure class="code">
           <figcaption class="code-head"><span>README.md</span><button class="copy" type="button" data-copy="ex-readme">Copy</button></figcaption>
@@ -537,14 +537,13 @@ public class RedFlash : ICapriMod, ICapriIntro
 
 She answers to Nova and Big Z.
 
-- Kind: settings mod
-- Made by: You</pre>
+- Kind: settings mod</pre>
         </figure>
         <dl class="keys">
           <dt>Mod file</dt><dd>one per folder, named after its id, so <b>Installed</b> and ratings work</dd>
           <dt>Folder</dt><dd>use the id. Letters, numbers, dots, dashes and underscores, up to 64 characters</dd>
-          <dt>README</dt><dd>line 1 is <code># Name</code>. The first plain line is the description on its card. <code>- Made by:</code> is required</dd>
-          <dt>preview.png</dt><dd>around 16:9, up to 2 MB and 4096 px each way. Cards crop it, so keep the subject in the middle</dd>
+          <dt>README</dt><dd>line 1 is <code># Name</code>. The first plain line is the description on its card. Your GitHub username shows as the author. Add <code>- Made by: Your name</code> to use a different one</dd>
+          <dt>preview.png</dt><dd>optional. Mods without one get a default picture. Around 16:9, up to 2 MB and 4096 px each way. Cards crop it, so keep the subject in the middle</dd>
           <dt>index.json</dt><dd>leave it alone. It's rebuilt after your mod is merged</dd>
           <dt>Updates</dt><dd>open a new pull request with a higher <code>version</code>. People get it with <b>Reinstall</b></dd>
           <dt>Credit</dt><dd>built on her art or code? Credit the Capri project. Its <a href="https://github.com/lachydotmcg/capri-desktop/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer">licence</a> is noncommercial</dd>
