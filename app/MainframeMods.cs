@@ -20,6 +20,7 @@ namespace CapriDesktop
         private Head modListHead;
         private readonly Key[] colourKeys = new Key[ArtColors.Slots];
         private Label modStatus, modEmpty, modNoMatch, modPage;
+        private readonly Timer modStatusTimer = new Timer();
         private Entry modSearch;
         private List<Mod> modShown = new List<Mod>();
         private bool modded;
@@ -40,6 +41,8 @@ namespace CapriDesktop
             Explain(modBrowse, "Browse mods", "MainframeMods.cs");
             Explain(folder, "Open mods folder", "MainframeMods.cs");
             modStatus = ModLabel("", 28, 138, 328, 36, Font, Faint);
+            modStatusTimer.Tick += delegate { modStatusTimer.Stop(); modStatus.Text = ""; };
+            FormClosed += delegate { modStatusTimer.Stop(); modStatusTimer.Dispose(); };
             // A long import error, like a compiler's, is cut to two lines here, and hovering it shows the whole thing.
             ((Note)modStatus).Hovers = true;
             modListHead = Section("INSTALLED >", 0, 180);
@@ -190,8 +193,14 @@ namespace CapriDesktop
 
         private void ModSays(string text, bool problem)
         {
+            modStatusTimer.Stop();
             modStatus.Text = text;
             modStatus.ForeColor = problem ? Rose : Cyan;
+            if (!string.IsNullOrEmpty(text))
+            {
+                modStatusTimer.Interval = problem ? 10000 : 5000;
+                modStatusTimer.Start();
+            }
         }
 
         private void ImportMod()
