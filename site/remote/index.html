@@ -17,6 +17,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preload" href="../assets/sprites/perch.webp" as="image" type="image/webp">
+<link rel="stylesheet" href="screen.css">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -55,11 +56,11 @@
   </div>
 
   <nav class="actions" id="actions" aria-label="Capri's features">
-    <button class="feat" id="f-call" type="button" aria-disabled="true" aria-label="Call, coming soon">
+    <button class="feat" id="f-call" type="button" aria-label="Call: talk to Capri with your screen in a mini player">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.2 4.4L8.6 3l2.1 5-2.6 1.9c1.2 2.6 3.2 4.6 5.8 5.8l1.9-2.6 5 2.1-1.4 4.4-1.6 1.1C10.6 20.4 3.6 13.4 3.1 6z"/></svg>
-      <span class="feat-name">Call</span><span class="tag soon" aria-hidden="true">Soon</span>
+      <span class="feat-name">Call</span>
     </button>
-    <button class="feat" id="f-screen" type="button" aria-label="Screen: ask Capri what's on your screen">
+    <button class="feat" id="f-screen" type="button" aria-label="Screen: watch your PC's screen">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v12.5H3zM8.5 20.5h7M12 16.5v4"/><path d="M7 10.25c1.5-2 3.1-3 5-3s3.5 1 5 3c-1.5 2-3.1 3-5 3s-3.5-1-5-3z"/><path d="M11.1 9.35h1.8v1.8h-1.8z"/></svg>
       <span class="feat-name">Screen</span>
     </button>
@@ -234,5 +235,7 @@
 <script src="demo.js"></script>
 <script src="capri.js"></script>
 <script src="app.js"></script>
+<script src="screen.js"></script>
+<script src="call.js"></script>
 </body>
 </html>

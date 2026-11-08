@@ -105,11 +105,13 @@ namespace CapriDesktop
             link.Said += RemoteHeard;
             remoteLink = link;
             remoteSink = new RemoteLinkSink(link);
+            RemoteLiveStart(link);
             link.Start();
         }
 
         private void RemoteDisconnect()
         {
+            RemoteLiveStop();
             RemoteLink link = remoteLink;
             remoteLink = null;
             remoteSink = null;
@@ -532,6 +534,7 @@ namespace CapriDesktop
                     if (problem != null) throw new Exception("The REMOTE sheet (" + names[i] + ", " + (int)(zoom * 100) + "%): " + problem);
                 }
             SmokeRemoteBridge(checks);
+            SmokeRemoteLive(checks, output);
             string key = mainframe.RemoteKeyFor(views[0]);
             if (key != "Remote on, 1 phone") throw new Exception("Mainframe's Remote key showed " + key + ".");
             string band = mainframe.RemoteBand(Path.Combine(output, "remote-key-picked.png"));

@@ -355,6 +355,73 @@ namespace CapriDesktop
             }
         }
 
+        // ---------- Screen and call (app/RemoteScreen.cs, app/RemoteCall.cs) ----------
+
+        // A phone's watch.* or call.* message: its device id and the message. Raised on the read worker, outside gate.
+        internal event Action<string, RemoteJson.Map> LiveHeard;
+
+        private readonly List<string> offered = new List<string>();
+        private readonly List<KeyValuePair<string, RemoteJson.Map>> liveIn = new List<KeyValuePair<string, RemoteJson.Map>>();
+
+        // A feature for hello-ok's list beside chat, such as "watch" or "call". Sessions that start after this offer it.
+        internal void Offer(string feature) { lock (gate) if (!offered.Contains(feature)) offered.Add(feature); }
+
+        // Under gate.
+        private string[] Offered()
+        {
+            List<string> all = new List<string>(Features);
+            all.AddRange(offered);
+            return all.ToArray();
+        }
+
+        private static bool IsLive(string type) { return type != null && (type.StartsWith("watch.", StringComparison.Ordinal) || type.StartsWith("call.", StringComparison.Ordinal)); }
+
+        // Messages that only mean something now, like a screen frame or a moment of her voice, sealed together in order. They
+        // never wait for a phone's next session. left runs once they've gone to the relay, or been dropped: it must not
+        // block or take a lock. False, with left not run, when that phone has no session.
+        internal bool SendLive(string device, IList<string> messages, Action left)
+        {
+            lock (gate)
+            {
+                Phone phone = Live(device);
+                if (phone == null || phone.Session == null || wire == null || wire.Closing || stopped) return false;
+                Outgoing item = Outgoing.Message(phone, null);
+                item.Many = new List<string>(messages);
+                item.Stale = true;
+                item.Left = left;
+                Push(item);
+                return true;
+            }
+        }
+
+        // A paired phone's cleaned name, for the PC's watching badge.
+        internal string PhoneName(string device)
+        {
+            lock (gate)
+            {
+                RemoteDevice found = device == null ? null : state.Find(device);
+                return found == null ? null : found.Name;
+            }
+        }
+
+        private void RaiseLive()
+        {
+            List<KeyValuePair<string, RemoteJson.Map>> heard;
+            lock (gate)
+            {
+                if (liveIn.Count == 0) return;
+                heard = new List<KeyValuePair<string, RemoteJson.Map>>(liveIn);
+                liveIn.Clear();
+            }
+            Action<string, RemoteJson.Map> hook = LiveHeard;
+            if (hook == null || Stopped) return;
+            foreach (KeyValuePair<string, RemoteJson.Map> message in heard)
+            {
+                try { hook(message.Key, message.Value); }
+                catch (Exception) { }
+            }
+        }
+
         // ---------- The connection ----------
 
         private async Task Loop(CancellationToken stop)
@@ -500,7 +567,11 @@ namespace CapriDesktop
                         foreach (KeyValuePair<byte[], WebSocketMessageType> frame in Frames(item))
                             await w.Socket.SendAsync(new ArraySegment<byte>(frame.Key), frame.Value, true, w.Stop.Token).ConfigureAwait(false);
                     }
-                    finally { w.Sending.Release(); }
+                    finally
+                    {
+                        item.Finish();
+                        w.Sending.Release();
+                    }
                 }
             }
             catch (Exception) { w.Fail(new Ending(1006, "send", false)); }
@@ -836,6 +907,7 @@ namespace CapriDesktop
             }
             Save(copy);
             Raise(notes, said);
+            RaiseLive();
             return null;
         }
 
@@ -868,7 +940,7 @@ namespace CapriDesktop
             }
             byte[] pcNonce = RemoteCrypto.Random(16);
             RemoteChannel session = new RemoteChannel(RemoteCrypto.SessionKeys(phone.Device.Key, phoneNonce, pcNonce), RemoteCrypto.KindSession);
-            Push(Outgoing.Hello(phone, hello, RemoteMessages.HelloOk(RemoteCrypto.B64u(pcNonce), echo, pcName, app, Features), session, phone.Hellos));
+            Push(Outgoing.Hello(phone, hello, RemoteMessages.HelloOk(RemoteCrypto.B64u(pcNonce), echo, pcName, app, Offered()), session, phone.Hellos));
             phone.Online = true;
             notes.Add(new Note("session", phone.Device.Id));
         }
@@ -926,6 +998,8 @@ namespace CapriDesktop
                     return;
                 }
                 default:
+                    // Screen and call messages go to their own parts, after this frame (RaiseLive).
+                    if (IsLive(message.Text("type"))) liveIn.Add(new KeyValuePair<string, RemoteJson.Map>(phone.Device.Id, message));
                     // chat.typing from the phone, pong, error, the names saved for later phases, and anything unknown.
                     return;
             }
@@ -995,7 +1069,11 @@ namespace CapriDesktop
         private void Keep(Outgoing item)
         {
             Phone phone = item.Phone;
-            if (phone == null || item.Channel != null || item.Stale || phone.Removed) return;
+            if (phone == null || item.Channel != null || item.Stale || phone.Removed)
+            {
+                item.Finish();
+                return;
+            }
             List<Outgoing> kept = phone.Kept;
             for (int i = kept.Count - 1; i >= 0; i--)
             {
@@ -1304,6 +1382,17 @@ namespace CapriDesktop
             internal bool Done, Stale, Close;
             internal int Round;
             internal readonly int At = Environment.TickCount;
+            // A live item's messages, sealed back to back, and what runs once they've left or been dropped (SendLive).
+            internal List<string> Many;
+            internal Action Left;
+
+            internal void Finish()
+            {
+                Action left = Interlocked.Exchange(ref Left, null);
+                if (left == null) return;
+                try { left(); }
+                catch (Exception) { }
+            }
 
             internal static Outgoing Control(string text) { return new Outgoing { Text = text }; }
 
@@ -1324,6 +1413,11 @@ namespace CapriDesktop
             // the two halves of a surrogate pair.
             internal IEnumerable<string> Messages()
             {
+                if (Many != null)
+                {
+                    foreach (string json in Many) yield return json;
+                    yield break;
+                }
                 if (ReplyId == null)
                 {
                     yield return Json;

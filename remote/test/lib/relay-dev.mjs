@@ -31,8 +31,9 @@ const wranglerBin = () => {
 };
 
 export async function startRelay(vars = {}) {
-  const port = await freePort();
-  const inspector = await freePort();
+  // CAPRI_RELAY_PORT and CAPRI_RELAY_INSPECTOR pin the ports when several agents share a PC.
+  const port = Number(process.env.CAPRI_RELAY_PORT) || await freePort();
+  const inspector = Number(process.env.CAPRI_RELAY_INSPECTOR) || await freePort();
   const state = mkdtempSync(join(tmpdir(), 'capri-relay-'));
   const args = [
     wranglerBin(), 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),

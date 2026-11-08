@@ -335,6 +335,22 @@
     autosize();
     updateSend();
   };
+  // The screen view and the call (screen.js, call.js) use the chat too: a message to her, a notice, and a line he said
+  // on a call as her ears heard it, which her answer lands under like a typed message's.
+  const heardLine = (text, id) => {
+    if (linkState !== 'connected') return;
+    const chat = current() || startChat();
+    const now = Date.now();
+    const said = { role: 'you', text: clip(text, 8000), at: now };
+    chat.msgs.push(said);
+    chat.last = now;
+    dropStarters();
+    add(renderMsg(said));
+    openReply(id, chat);
+    toEnd();
+    saveChats();
+  };
+  window.CapriApp = { deliver, heard: heardLine, say: text => say(text) };
 
   CapriRemote.onMessage(message => {
     const type = message.type;
@@ -615,10 +631,16 @@
     if (!matchMedia('(pointer: coarse)').matches) input.focus();
   };
   // ---------- Her features under the bar ----------
-  // SCREEN is a real chat message asking her to look, so her own look_at_screen tool runs on the PC and her answer lands
-  // here like any other (the demo PC answers it with its scripted look). CLOSE goes back to the menu. CALL, JOBS and
-  // SETTINGS aren't built yet: they stay dimmed, and a tap only shows SOON for a moment.
-  $('#f-screen').addEventListener('click', () => deliver('Look at my screen. What\'s on it?'));
+  // SCREEN shows the PC's screen live when her PC has the screen view (screen.js). Otherwise it's a chat message asking
+  // her to look, so her own look_at_screen tool runs on the PC and her answer lands here like any other (the demo PC
+  // answers it with its scripted look). CALL rings her when her PC takes calls (call.js). CLOSE goes back to the menu.
+  // JOBS isn't built yet: it stays dimmed, and a tap only shows SOON for a moment.
+  $('#f-screen').addEventListener('click', () => { if (!(window.CapriScreen && CapriScreen.open())) deliver('Look at my screen. What\'s on it?'); });
+  $('#f-call').addEventListener('click', () => {
+    if (window.CapriCall && CapriCall.start()) return;
+    if (linkState !== 'connected') say(linkState === 'offline' ? 'PC offline' : 'Not connected yet');
+    else say(CapriRemote.info.demo ? 'Calls aren\'t in the demo' : 'Calls need a newer Capri on the PC');
+  });
   $('#close-chat').addEventListener('click', openMenu);
   for (const button of actions.querySelectorAll('.feat[aria-disabled="true"]')) {
     let soonTimer = 0;

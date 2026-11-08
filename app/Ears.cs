@@ -710,6 +710,9 @@ namespace CapriDesktop
         internal static string DefaultId;
         internal static string WaveDefaultId;
         internal static Action<string> Missing;
+        // Her voice for Capri Remote's call (app/RemoteLive.cs): every line she plays, at her own level, and a cut-off.
+        internal static Action<short[], int> Tap;
+        internal static Action Hushed;
         internal static Func<List<Output>> Devices = ReadDevices;
         private static readonly object gate = new object();
         private static Func<List<Output>> listed;
@@ -977,6 +980,8 @@ namespace CapriDesktop
                 if (answer == null) BeginAnswer();
                 if (answer != null) answer.Give(samples.Length, rate);
                 MicMix.Hear(this, samples, rate, answer);
+                Action<short[], int> tap = Tap;
+                if (tap != null) tap(samples, rate);
                 samples = Voice.Louder(samples);
             }
             Send(samples);
@@ -1049,6 +1054,8 @@ namespace CapriDesktop
             if (device != IntPtr.Zero) waveOutReset(device);
             if (modern != null) modern.Clear();
             if (cut) { MicMix.Hush(this); EndAnswer(); }
+            Action hushed = Hushed;
+            if (cut && !Plain && hushed != null) hushed();
             Sweep();
             shapes.Clear();
             leftover.Clear();

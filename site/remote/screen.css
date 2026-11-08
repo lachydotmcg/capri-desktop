@@ -1,0 +1,53 @@
+/* Capri Remote's screen view and call (screen.js, call.js), in the same Night City look as app.css: cut corners, a hot
+   rim, cyan for what's on, rose titles, teal rules. */
+
+/* ---------- The full view ---------- */
+.watch { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); background: var(--wine), var(--ground); }
+.watch-top { flex: none; display: flex; align-items: center; gap: 8px; width: 100%; max-width: 1100px; margin: 0 auto; height: calc(52px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); border-bottom: 1px solid var(--hot); }
+.watch-title { flex: 1; min-width: 0; margin: 0; overflow: hidden; color: var(--rose); font: 600 19px/1 var(--display); font-stretch: 75%; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; text-overflow: ellipsis; }
+.watch-top .nbtn.icon { width: 40px; min-height: 40px; }
+.watch-stage { position: relative; flex: 1 1 auto; min-height: 0; display: grid; place-items: center; overflow: hidden; margin: 10px 0; }
+.watch-note { margin: 0; padding: 0 16px; color: var(--faint); font: 15px/1.3 var(--mono); letter-spacing: .06em; text-align: center; text-transform: uppercase; }
+.watch-pic { position: relative; flex: none; background: #000; }
+.watch-pic canvas { display: block; width: 100%; height: 100%; }
+.watch-stage .watch-pic { box-shadow: 0 0 0 1px var(--deep-edge); }
+/* Her mouse, drawn on the phone so it moves between frames. */
+.watch-cursor { position: absolute; width: 13px; height: 19px; margin: -1px 0 0 -1px; background: var(--white); clip-path: polygon(0 0, 100% 66%, 57% 69%, 80% 100%, 63% 100%, 41% 73%, 0 100%); filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000); pointer-events: none; }
+.mini .watch-cursor { width: 8px; height: 12px; }
+.watch-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; max-width: 1100px; margin: 0 auto; padding: 8px 0 max(10px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--rule); }
+.watch-bar .ask { margin-left: auto; min-height: 40px; }
+
+.chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.chip { --face: var(--field); --rim: var(--edge); position: relative; isolation: isolate; min-width: 40px; min-height: 36px; margin: 0; padding: 0 11px; border: 0; background: none; color: var(--white); font: 600 13px/1 var(--display); font-stretch: 75%; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.chip::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--rim); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%); }
+.chip::after { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--face); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4.4px), calc(100% - 4.4px) 100%, 0 100%); }
+.chip.on { --face: var(--deep); --rim: var(--cyan); color: var(--cyan); }
+.chip:active { --face: var(--pressed); --rim: var(--hot); }
+@media (hover: hover) { .chip:hover:not(.on) { --face: var(--hover); --rim: var(--hot); } }
+
+/* ---------- The mini player over the chat ---------- */
+.mini { position: absolute; z-index: 25; left: 0; top: 0; display: grid; place-items: center; width: min(46vw, 280px); aspect-ratio: 16 / 9; padding: 2px; isolation: isolate; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; }
+.mini::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--hot); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%); }
+.mini::after { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--panel); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8.6px), calc(100% - 8.6px) 100%, 0 100%); }
+.mini.dragging { cursor: grabbing; opacity: .85; }
+.mini:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.mini .watch-note { font-size: 11px; }
+.app.mini-top .log-in { padding-top: calc(14px + var(--mini-room, 0px)); }
+.app.mini-bottom .log-in { padding-bottom: var(--mini-room, 0px); }
+.mini-x { position: absolute; z-index: 1; top: 3px; right: 3px; display: grid; place-items: center; width: 28px; height: 28px; margin: 0; padding: 0; border: 0; background: rgb(10 10 16 / .72); color: var(--white); cursor: pointer; }
+.mini-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; }
+
+/* ---------- The call bar, above her features ---------- */
+.callbar { position: relative; z-index: 2; flex: none; align-self: center; display: flex; align-items: center; gap: 8px; width: 100%; max-width: 720px; padding: 0 0 8px; }
+.call-status { flex: 1; min-width: 0; overflow: hidden; color: var(--cyan); font: 600 13px/1.2 var(--display); font-stretch: 75%; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; text-overflow: ellipsis; }
+.callbar .nbtn { flex: none; min-height: 44px; }
+.callbar .talk { min-width: 132px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; }
+.callbar .talk.live { --face: var(--cyan); --rim: var(--cyan); --ink: var(--on-ink); }
+/* On a call in the full view, the call bar rides along at the bottom. */
+.app.on-call.watching .callbar { position: absolute; z-index: 31; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(8px, env(safe-area-inset-bottom, 0px)); width: auto; max-width: none; padding: 8px 10px; border-top: 1px solid var(--rule); background: var(--band); }
+.app.on-call .watch-bar { padding-bottom: calc(max(10px, env(safe-area-inset-bottom, 0px)) + 66px); }
+
+@media (max-width: 380px) {
+  .chip { min-width: 34px; padding: 0 8px; }
+  .callbar .talk { min-width: 112px; }
+}
