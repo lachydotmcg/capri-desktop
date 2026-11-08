@@ -1,0 +1,127 @@
+/* The Roadmap page. home.css brings her palette, type, nav, buttons and footer; this adds the pink header and the board. */
+
+.links a[aria-current="page"], .foot-links a[aria-current="page"] { color: var(--pink); }
+
+/* ---------- The header: her pink field and the word, like the home page's first screen ---------- */
+.road-hero { --step: 44px; position: relative; display: flex; flex-direction: column; min-height: max(560px, 78svh); padding: 24px var(--edge) 0; background: var(--pink); color: var(--on-pink); isolation: isolate; overflow: hidden; }
+.road-hero::after { content: ""; position: absolute; left: 0; bottom: 0; width: 330px; height: var(--step); background: var(--ink-0); clip-path: polygon(0 0, calc(100% - var(--step)) 0, 100% 100%, 0 100%); }
+.road-pitch { position: relative; z-index: 1; max-width: 700px; margin-top: clamp(88px, calc(20svh - 40px), 170px); }
+.road-hero .lead { font-size: 30px; line-height: 1.25; font-weight: 600; }
+.road-hero .sys { margin-top: 18px; }
+.road-hero .systems { margin-top: 22px; }
+.road-hero :focus-visible { outline-color: var(--ink-0); }
+/* "Roadmap" is 3.74 em wide in Big Shoulders, so .262 of the width across fills it with room for a scroll bar. */
+.road-mark { position: relative; margin: auto 0 0; padding: 36px 0 calc(var(--step) + 22px); font: 800 calc((100vw - 2 * var(--edge)) * .262)/.76 var(--display); letter-spacing: -.005em; text-transform: uppercase; white-space: nowrap; }
+.road-mark .wm { display: block; }
+
+/* ---------- The board ---------- */
+.road { position: relative; padding: 36px var(--edge) 0; scroll-margin-top: 96px; }
+.road .seam-tag { top: -44px; }
+.road-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; margin: 0 0 18px; }
+.kinds { display: flex; flex-wrap: wrap; gap: 8px; }
+.kinds button { display: inline-flex; align-items: center; gap: 10px; min-height: 46px; padding: 0 18px 0 20px; border: 0; background: var(--ink-2); color: var(--text); font: 800 20px/1 var(--display); letter-spacing: .03em; text-transform: uppercase; cursor: pointer; clip-path: var(--plate); transition: background-color .15s, color .15s; }
+.kinds button:hover { background: var(--ink-3); }
+.kinds button[aria-pressed="true"] { background: var(--green); color: var(--ink-0); }
+.kinds button span { font-size: 16px; opacity: .72; }
+.kinds button:focus-visible { clip-path: none; }
+.find { display: block; width: min(360px, 100%); }
+.find input { width: 100%; height: 46px; padding: 0 14px; border: 1px solid var(--ink-3); border-radius: 0; background: var(--ink-1); color: var(--text); font: 16px/1 var(--body); outline: none; }
+.find input:focus { border-color: var(--green); }
+.find input::placeholder { color: var(--muted); opacity: 1; }
+
+.lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.lane { display: flex; flex-direction: column; min-width: 0; height: clamp(440px, calc(100svh - 140px), 860px); background: var(--ink-2); clip-path: var(--plate); }
+.lane:focus-within { clip-path: none; }
+.lane-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 24px 24px 12px 26px; }
+.lane h3 { margin: 0; font: 800 34px/.95 var(--display); letter-spacing: .01em; text-transform: uppercase; }
+.lane-count { color: var(--green); font: 800 var(--hud)/1 var(--display); letter-spacing: .06em; }
+.cards { flex: 1; min-height: 0; overflow-y: auto; margin: 0; padding: 0 10px 14px 12px; list-style: none; scrollbar-width: thin; scrollbar-color: var(--ink-3) transparent; }
+.cards:focus-visible { outline-offset: -2px; }
+.cards li + li { margin-top: 2px; }
+.card { position: relative; display: grid; gap: 7px; padding: 12px 14px 13px; transition: background-color .15s; }
+.card:hover { background: var(--ink-3); }
+.card-top { display: flex; align-items: center; gap: 10px; font: 800 15px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.kind { padding: 4px 7px 3px; background: var(--green); color: var(--ink-0); }
+.kind.bug { background: var(--pink); }
+.kind.docs, .kind.task { background: var(--ink-3); color: var(--text); }
+.num { color: var(--muted); }
+.talk { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; color: var(--muted); }
+.talk svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.card-title { font-size: 17px; line-height: 1.35; overflow-wrap: anywhere; text-decoration: none; }
+/* The title's link covers the whole card, so anywhere on it opens the issue; the @ links sit above it. */
+.card-title::after { content: ""; position: absolute; inset: 0; }
+@supports selector(:has(*)) {
+  .card-title:focus-visible { outline: none; }
+  .card:has(.card-title:focus-visible) { outline: 2px solid var(--green); outline-offset: -2px; }
+  .lane.hot .card:has(.card-title:focus-visible) { outline-color: var(--ink-0); }
+}
+.card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; color: var(--muted); font-size: 14px; line-height: 1.3; }
+.card-meta:empty { display: none; }
+.badge { padding: 3px 7px 2px; border: 1px solid var(--green); color: var(--green); font: 800 13px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+/* Credit sits on the other side of the row from "Lachy's on it" and the date. */
+.credits { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 12px; min-width: 0; margin-left: auto; text-align: right; overflow-wrap: anywhere; }
+.at { color: var(--green); font-weight: 600; text-decoration: none; }
+a.at { position: relative; z-index: 1; }
+a.at:hover { text-decoration: underline; text-underline-offset: 3px; }
+.lane.done .when { color: var(--green); font: 800 15px/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.empty { padding: 12px 14px; color: var(--muted); }
+.more { display: none; }
+
+/* Fix first is her pink, so it's the first thing you see. */
+.lane.hot { background: var(--pink); color: var(--on-pink); }
+.lane.hot .lane-count, .lane.hot .num, .lane.hot .talk, .lane.hot .card-meta, .lane.hot .empty { color: var(--on-pink); }
+.lane.hot .kind { background: var(--ink-0); color: var(--text); }
+.lane.hot .badge { border-color: var(--ink-0); color: var(--ink-0); }
+.lane.hot .at { color: var(--ink-0); }
+.lane.hot .card:hover { background: #0b09141f; }
+.lane.hot :focus-visible { outline-color: var(--ink-0); }
+.lane.hot .cards { scrollbar-color: #0b091466 transparent; }
+
+.road-off { margin: 18px 0 0; color: var(--muted); }
+.road-off a { color: var(--text); text-decoration-color: var(--pink); text-underline-offset: 4px; }
+.road.off .lanes, .road.off .road-tools, .no-js .lanes, .no-js .road-tools, .no-js #road-sys { display: none; }
+/* The counts stay hidden until GitHub or the built-in copy answers, so they're never a guess. */
+.js #road-sys:not(.ready) { visibility: hidden; }
+
+@media (max-width: 1400px) {
+  .lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lane { height: clamp(420px, calc(100svh - 160px), 720px); }
+}
+
+@media (max-width: 1240px) {
+  .links a[aria-current="page"] { text-decoration-color: currentColor; }
+}
+
+@media (max-width: 900px) {
+  .road-hero { min-height: max(520px, 72svh); padding-top: 64px; }
+  .road-hero::after { width: 250px; }
+  .road-pitch { margin-top: 44px; }
+  .road-hero .lead { font-size: 24px; }
+  .road-hero .systems a { font-size: 24px; }
+  .road { padding-top: 28px; scroll-margin-top: 72px; }
+  .road .seam-tag { height: 44px; }
+  .lanes { grid-template-columns: 1fr; }
+  .lane { height: auto; }
+  .cards { overflow: visible; }
+  /* On a phone a lane shows its first eight, and a button opens the rest. */
+  .lane:not(.open) .cards li:nth-child(n + 9) { display: none; }
+  .more { display: block; margin: 0 24px 22px 26px; padding: 12px 0 0; border: 0; border-top: 1px solid var(--ink-3); background: none; color: inherit; font: 800 20px/1 var(--display); letter-spacing: .03em; text-align: left; text-transform: uppercase; cursor: pointer; }
+  .more[hidden] { display: none; }
+  .lane.hot .more { border-top-color: #0b091440; }
+}
+
+@media (max-width: 600px) {
+  .road-hero { min-height: 0; }
+  .road-tools { align-items: stretch; }
+  .kinds { width: 100%; }
+  .kinds button { flex: 1; justify-content: center; padding: 0 12px; font-size: 18px; }
+  .find { width: 100%; }
+  .lane-head { padding: 20px 18px 10px 20px; }
+  .lane h3 { font-size: 30px; }
+  .cards { padding: 0 6px 10px 8px; }
+  .more { margin: 0 18px 18px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .kinds button { transition: none; }
+}

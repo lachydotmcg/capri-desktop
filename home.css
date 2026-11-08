@@ -422,6 +422,12 @@ button, input { font: inherit; color: inherit; }
 .col .win-pitch { padding: 32px 28px 36px; }
 
 /* ---------- Widths ---------- */
+/* With Roadmap in the header, the links close up a little, then fold into Menu before they reach her stage buttons. */
+@media (max-width: 1520px) {
+  .nav { gap: 16px; padding-left: 26px; }
+  .links { gap: 16px; }
+}
+
 @media (max-width: 1400px) {
   [data-ui] .stage-tries { max-width: min(416px, 100% - 24px); }
 }
@@ -433,7 +439,7 @@ button, input { font: inherit; color: inherit; }
   .os-side { grid-template-columns: 1fr 1fr; }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
   .links { display: none; }
   .menu { position: relative; display: block; }
   .menu summary { display: flex; align-items: center; height: 48px; padding: 0 8px; cursor: pointer; list-style: none; }
