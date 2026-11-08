@@ -2710,6 +2710,7 @@ namespace CapriDesktop
                 if (!testing && background) CheckSulk(signalNow);
                 if (!testing) CheckMusic(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckPlayer(clock.Elapsed.TotalSeconds);
+                if (!testing) CheckModMusic(clock.Elapsed.TotalSeconds);
                 if (!testing && background) CheckHome(clock.Elapsed.TotalSeconds);
                 if (!testing && background) CheckLag(clock.Elapsed.TotalSeconds);
                 CheckGame(clock.Elapsed.TotalSeconds);
@@ -7512,7 +7513,8 @@ namespace CapriDesktop
             ShowPlayer(tune, now);
         }
 
-        private bool PlayerAllowed { get { return !preferences.NoPlayer && !quitting && !docked && (!hidden || fullScreenHidden && !manualHidden && preferences.PlayerFullScreen); } }
+        // A code mod that shows its own player can keep hers away while it runs.
+        private bool PlayerAllowed { get { return !preferences.NoPlayer && !quitting && !docked && !PlayerReplaced && (!hidden || fullScreenHidden && !manualHidden && preferences.PlayerFullScreen); } }
 
         private void ShowPlayer(Tune tune, double now)
         {

@@ -21,6 +21,10 @@ namespace CapriDesktop
     {
         internal string Title = "";
         internal string Artist = "";
+        internal string Album = "";
+        // Null when the app doesn't say. Repeat is "off", "one" or "all".
+        internal bool? Shuffle;
+        internal string Repeat;
         // The app playing it, as Windows names it: Spotify.exe, Chrome, MSEdge, SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify.
         internal string App = "";
         internal bool Playing;
@@ -120,7 +124,7 @@ namespace CapriDesktop
             return file.Success && file.Groups[1].Value.Length > 0 ? file.Groups[1].Value : "your player";
         }
 
-        private static string Program(string app)
+        internal static string Program(string app)
         {
             string id = app ?? "";
             for (int i = 0; i < Apps.GetLength(0); i++) if (Regex.IsMatch(id, Apps[i, 0], RegexOptions.IgnoreCase)) return Apps[i, 2];
@@ -231,6 +235,7 @@ namespace CapriDesktop
                 tune.Title = Clean(song.Title);
                 tune.Artist = Clean(song.Artist);
                 if (tune.Artist.Length == 0) tune.Artist = Clean(song.AlbumArtist);
+                tune.Album = Clean(song.AlbumTitle);
             }
             GlobalSystemMediaTransportControlsSessionPlaybackInfo info = session.GetPlaybackInfo();
             if (info != null)
@@ -250,6 +255,10 @@ namespace CapriDesktop
                     tune.CanPause = controls.IsPauseEnabled;
                     tune.CanToggle = controls.IsPlayPauseToggleEnabled;
                 }
+                bool? shuffle = info.IsShuffleActive;
+                tune.Shuffle = shuffle;
+                Windows.Media.MediaPlaybackAutoRepeatMode? repeat = info.AutoRepeatMode;
+                if (repeat.HasValue) tune.Repeat = repeat.Value == Windows.Media.MediaPlaybackAutoRepeatMode.Track ? "one" : repeat.Value == Windows.Media.MediaPlaybackAutoRepeatMode.List ? "all" : "off";
                 double? rate = info.PlaybackRate;
                 if (rate.HasValue && rate.Value > 0) tune.Rate = rate.Value;
             }
@@ -278,6 +287,48 @@ namespace CapriDesktop
             catch (Exception) { return null; }
         }
 
+        // The cover the app gave Windows for the song, as PNG or JPEG bytes, or null. Read once per song and kept for the last few.
+        private static readonly Dictionary<string, byte[]> covers = new Dictionary<string, byte[]>();
+        private static readonly List<string> coverOrder = new List<string>();
+        internal static Func<Tune, byte[]> Cover = ReadCover;
+
+        private static byte[] ReadCover(Tune tune)
+        {
+            if (tune == null) return null;
+            lock (covers) { byte[] kept; if (covers.TryGetValue(tune.Key, out kept)) return kept; }
+            byte[] read = null;
+            GlobalSystemMediaTransportControlsSession session = tune.Session as GlobalSystemMediaTransportControlsSession;
+            if (session != null)
+                try
+                {
+                    Task<GlobalSystemMediaTransportControlsSessionMediaProperties> asking = session.TryGetMediaPropertiesAsync().AsTask();
+                    GlobalSystemMediaTransportControlsSessionMediaProperties song = asking.Wait(2000) ? asking.Result : null;
+                    // Between songs Windows can still hand over the last one's details, and its cover with them.
+                    if (song != null && song.Thumbnail != null && Clean(song.Title) == tune.Title)
+                    {
+                        Task<Windows.Storage.Streams.IRandomAccessStreamWithContentType> opening = song.Thumbnail.OpenReadAsync().AsTask();
+                        if (opening.Wait(2000))
+                            using (System.IO.Stream stream = System.IO.WindowsRuntimeStreamExtensions.AsStreamForRead(opening.Result))
+                            using (System.IO.MemoryStream copy = new System.IO.MemoryStream())
+                            {
+                                stream.CopyTo(copy);
+                                if (copy.Length > 0 && copy.Length < 8 * 1024 * 1024) read = copy.ToArray();
+                            }
+                    }
+                }
+                catch (Exception) { }
+            // A song whose cover hasn't come through yet is asked again on a later read.
+            if (read == null) return null;
+            lock (covers)
+            {
+                covers[tune.Key] = read;
+                coverOrder.Remove(tune.Key);
+                coverOrder.Add(tune.Key);
+                while (coverOrder.Count > 8) { covers.Remove(coverOrder[0]); coverOrder.RemoveAt(0); }
+            }
+            return read;
+        }
+
         private static bool SendToSession(Tune tune, string what)
         {
             try { return SendNow(tune, what); }
@@ -297,6 +348,13 @@ namespace CapriDesktop
                     else if (what == "next") asked = session.TrySkipNextAsync();
                     else if (what == "play") asked = tune.CanPlay || !tune.CanToggle ? session.TryPlayAsync() : session.TryTogglePlayPauseAsync();
                     else if (what == "pause") asked = tune.CanPause || !tune.CanToggle ? session.TryPauseAsync() : session.TryTogglePlayPauseAsync();
+                    else if (what == "shuffle:on" || what == "shuffle:off") asked = session.TryChangeShuffleActiveAsync(what == "shuffle:on");
+                    else if (what.StartsWith("repeat:", StringComparison.Ordinal))
+                    {
+                        string mode = what.Substring(7);
+                        if (mode != "off" && mode != "one" && mode != "all") return false;
+                        asked = session.TryChangeAutoRepeatModeAsync(mode == "one" ? Windows.Media.MediaPlaybackAutoRepeatMode.Track : mode == "all" ? Windows.Media.MediaPlaybackAutoRepeatMode.List : Windows.Media.MediaPlaybackAutoRepeatMode.None);
+                    }
                     else if (what.StartsWith("seek:", StringComparison.Ordinal))
                     {
                         double seconds;

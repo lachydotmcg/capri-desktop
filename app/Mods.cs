@@ -61,15 +61,6 @@ namespace CapriDesktop
 
     internal sealed partial class Mods
     {
-#if CROSS
-        internal const string CodeExtension = ".capri-code";
-        internal const string WindowsOnly = "Windows only for now";
-
-        private Mod LoadCode(string file, HashSet<string> off) { throw new ModException(WindowsOnly); }
-        private Mod ImportCode(string file, Func<ModFile, string, bool> ask) { throw new ModException(WindowsOnly); }
-        private bool SetCode(Mod mod, bool on, Func<ModFile, string, bool> ask) { throw new ModException(WindowsOnly); }
-        private void RemoveCode(Mod mod) { }
-#endif
         internal const string Extension = ".capri-mod";
         internal const int Format = 1;
         private const int Largest = 64 * 1024;

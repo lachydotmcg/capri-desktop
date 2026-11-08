@@ -123,7 +123,7 @@ Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https:
 - Every mod in the directory is checked for malware before it goes up
 - **Recolour her yourself:** press Hair, Accents, Eyes, Edges or Body on the Mods page. She saves it as a My Colors mod you can share
 - **Share yours:** fork [capri-mods](https://github.com/lachydotmcg/capri-mods), add a folder with the mod, a README and a `preview.png`, then open a pull request
-- **Mac and Linux** get the Mods window, the directory, settings mods, colour sets and skins. Code mods are Windows only for now
+- **Mac and Linux** get the Mods window, the directory, settings mods, colour sets, stacking skins and code mods. A code mod that uses Windows-only parts, like drawing on her or an options page, is refused there with a message naming the part
 
 ## Capri VR
 
@@ -217,7 +217,7 @@ Stuck? The [setup guide](https://capriai.app/setup/) walks through it, or ask in
 
 0.8.3 gives Mac and Linux her full **Capri Mainframe**, laid out like Windows: BRAIN, VOICE and CAPRI up front, plus Simple and Advanced Settings. She sits on your windows and chats, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. She checks in on you, takes head pats, keeps your PC awake for jobs and keeps her notes in Obsidian. She talks through your own speech server or a cloud voice, and Mods and Code/Husk Mode work too.
 
-Voice chat, calls and code mods are Windows only for now.
+Voice chat and calls are Windows only for now.
 
 1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage) or [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz)
 2. For her brain, open **Capri Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude or DeepSeek key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`

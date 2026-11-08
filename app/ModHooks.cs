@@ -8,302 +8,6 @@ using System.Windows.Forms;
 
 namespace CapriDesktop
 {
-    // What a code mod can reach besides Say, Log, Art, Sound and PlayIntro. Everything here is on ICapriHost, so a mod written for
-    // the first API still compiles. Hooks run on her window's thread, and a mod that throws in one is logged, never let take her down.
-
-    public sealed class CapriPermissionException : InvalidOperationException
-    {
-        public CapriPermissionException(string message) : base(message) { }
-    }
-
-    public sealed class CapriMessage
-    {
-        // Sending, Replying and Speaking can change Text. Cancel on Sending means she ignores it; on Speaking she only shows it.
-        public string Text;
-        public bool Cancel;
-        public string Original { get; internal set; }
-        // "you" for what they typed or said, "mod" for a mod's Chat.Send, "reply" for her answers, "remark" for her own lines.
-        public string Source { get; internal set; }
-        public DateTime At { get; internal set; }
-    }
-
-    public sealed class CapriFrame
-    {
-        public Graphics Graphics { get; internal set; }
-        // Her whole window and her body in it, in the window's own pixels.
-        public Rectangle Window { get; internal set; }
-        public Rectangle Body { get; internal set; }
-        public Point Head { get; internal set; }
-        public bool FacingLeft { get; internal set; }
-        // The strip being drawn, like "idle" or "perch", and which frame of it.
-        public string Animation { get; internal set; }
-        public int Frame { get; internal set; }
-        public int Size { get; internal set; }
-    }
-
-    public interface ICapriTimer
-    {
-        bool Running { get; }
-        void Cancel();
-    }
-
-    public sealed class CapriToolCall
-    {
-        // The tool she's about to use, like "open_app", and what it does in plain words, like "open Spotify".
-        public string Tool { get; internal set; }
-        public string Doing { get; internal set; }
-        public string Name { get; internal set; }
-        public string Action { get; internal set; }
-        public string Text { get; internal set; }
-        // Cancel stops it before it runs, and Reason is what her brain is told instead.
-        public bool Cancel;
-        public string Reason;
-    }
-
-    public interface ICapriChat
-    {
-        event Action<CapriMessage> Sending;
-        event Action<CapriMessage> Replying;
-        event Action<CapriMessage> Replied;
-        event Action<string, string> ToolUsed;
-        event Action<CapriToolCall> ToolUsing;
-        void AddContext(Func<string> context);
-        void ClearContext();
-        string LastHeard { get; }
-        string LastReply { get; }
-        bool Busy { get; }
-        void Send(string text);
-        bool Start(string about);
-        string[] Days();
-        string Transcript(DateTime day);
-    }
-
-    public interface ICapriMemory
-    {
-        string[] Notes { get; }
-        string Remember(string fact);
-        string Forget(string about);
-        bool Update(string oldText, string newText);
-        void Set(string label, string value);
-        string Memories { get; }
-        bool WriteMemories(string text);
-    }
-
-    public interface ICapriUi
-    {
-        event Action<CapriFrame> Drawing;
-        void Redraw();
-        void AddMenuItem(string text, Action clicked);
-        void SetOptions(string title, Func<Control> make);
-        void Bubble(string text);
-        Form Window { get; }
-    }
-
-    public interface ICapriMainframe
-    {
-        event Action Opened;
-        event Action Closed;
-        bool Open { get; }
-        void Show();
-        void Hide();
-        void ShowSettings();
-        void ShowMods();
-        void ShowPage(string title, Func<Control> make);
-        void ClosePage();
-        Form Window { get; }
-    }
-
-    public interface ICapriScreen
-    {
-        event Action<Bitmap> Looked;
-        Bitmap Capture();
-        Bitmap Capture(Rectangle area);
-    }
-
-    public interface ICapriVoice
-    {
-        event Action<CapriMessage> Speaking;
-        event Action<string> Started;
-        event Action Finished;
-        event Action<string, bool> Heard;
-        bool Talking { get; }
-        void Speak(string text);
-        void Stop();
-    }
-
-    public interface ICapriTimers
-    {
-        ICapriTimer After(double seconds, Action run);
-        ICapriTimer Every(double seconds, Action run);
-        ICapriTimer At(DateTime when, Action run);
-    }
-
-    public interface ICapriPersonality
-    {
-        string[] Notes { get; }
-        void Add(string note);
-        void Remove(string note);
-        void Clear();
-        string Nickname { get; set; }
-    }
-
-    public interface ICapriSettings
-    {
-        event Action Changed;
-        string[] Switches { get; }
-        string[] Sliders { get; }
-        bool? IsOn(string name);
-        bool Turn(string name, bool on);
-        int Level(string name);
-        string[] Steps(string name);
-        bool SetLevel(string name, int step);
-        int Size { get; set; }
-    }
-
-    public interface ICapriSkins
-    {
-        string[] Installed { get; }
-        string Current { get; }
-        string[] Accessories { get; }
-        bool IsAccessory(string id);
-        bool Use(string id);
-        bool Equip(string id, bool on);
-    }
-
-    public interface ICapriBody
-    {
-        event Action<string> StateChanged;
-        event Action Clicked;
-        event Action Patted;
-        event Action Dragged;
-        event Action<Point> Dropped;
-        Rectangle Bounds { get; }
-        Point Head { get; }
-        int Size { get; }
-        string State { get; }
-        string Animation { get; }
-        string Animate(string name);
-        bool Dragging { get; }
-        Rectangle Screen { get; }
-        void MoveTo(Point hip);
-        string Move(string action);
-        string SitOn(string window);
-    }
-
-    public interface ICapriBrain
-    {
-        bool Ready { get; }
-        void Ask(string instructions, string question, Action<string> answered);
-        bool AddTool(string name, string description, string takes, Func<string, string> run);
-        void RemoveTool(string name);
-        string[] Tools { get; }
-    }
-
-    public interface ICapriStore
-    {
-        string[] Keys { get; }
-        string Get(string key);
-        string Get(string key, string fallback);
-        double Number(string key, double fallback);
-        bool Flag(string key, bool fallback);
-        void Set(string key, string value);
-        void Set(string key, double value);
-        void Set(string key, bool value);
-        bool Remove(string key);
-    }
-
-    public interface ICapriSystem
-    {
-        event Action Away;
-        event Action Back;
-        event Action Locked;
-        event Action Unlocked;
-        event Action Sleeping;
-        event Action Woke;
-        event Action NewDay;
-        event Action<int, bool> BatteryChanged;
-        TimeSpan IdleFor { get; }
-        double AwayMinutes { get; set; }
-        bool IsAway { get; }
-        int Battery { get; }
-        bool Charging { get; }
-    }
-
-    public interface ICapriMods
-    {
-        string Id { get; }
-        string[] Running { get; }
-        bool IsRunning(string id);
-        void Send(string topic, string data);
-        void SendTo(string id, string topic, string data);
-        event Action<string, string, string> Received;
-    }
-
-    public interface ICapriKeys
-    {
-        bool Hotkey(string keys, Action pressed);
-        void Remove(string keys);
-    }
-
-    public interface ICapriSounds
-    {
-        bool Play(string file);
-        bool Play(string file, double volume);
-        void Cue(string name);
-    }
-
-    internal sealed partial class Mods
-    {
-        internal const int Api = 3;
-
-        // What each permission lets a code mod do, as her approve box says it.
-        internal static readonly string[,] PermissionWords =
-        {
-            { "chat", "read and change what you and Capri say to each other, and talk to her for you" },
-            { "transcripts", "read her saved chat transcripts" },
-            { "memory", "read, add, change and delete her notes about you and her memories" },
-            { "screen", "take screenshots and see what she sees on your screen" },
-            { "voice", "hear what your mic picks up and change what she says out loud" },
-            { "personality", "add to her personality and change what she calls you" },
-            { "settings", "read and change her settings, like her size and volume" },
-            { "skins", "change her outfit and equip or take off her accessories" },
-            { "brain", "ask her brain questions, which can use your API credits" },
-            { "tools", "add tools her brain can use by itself, and see or stop the tools she's about to use" },
-            { "system", "know when you're away or back, when your PC locks, sleeps or wakes, and its battery" },
-            { "hotkeys", "add keyboard shortcuts that work in any app" }
-        };
-
-        internal static bool KnownPermission(string name)
-        {
-            for (int i = 0; i < PermissionWords.GetLength(0); i++) if (PermissionWords[i, 0] == name) return true;
-            return false;
-        }
-
-        internal static string PermissionMeaning(string name)
-        {
-            for (int i = 0; i < PermissionWords.GetLength(0); i++) if (PermissionWords[i, 0] == name) return PermissionWords[i, 1];
-            return name;
-        }
-
-        internal static string[] ReadPermissions(string value)
-        {
-            List<string> asked = new List<string>();
-            foreach (string part in Regex.Split(value ?? "", @"[\s,]+"))
-            {
-                string name = part.Trim().ToLowerInvariant();
-                if (name.Length == 0) continue;
-                if (!KnownPermission(name))
-                {
-                    List<string> known = new List<string>();
-                    for (int i = 0; i < PermissionWords.GetLength(0); i++) known.Add(PermissionWords[i, 0]);
-                    throw new ModException("\"" + part.Trim() + "\" isn't a permission. A code mod can ask for " + string.Join(", ", known.ToArray()) + ".");
-                }
-                if (!asked.Contains(name)) asked.Add(name);
-            }
-            return asked.ToArray();
-        }
-    }
-
     internal sealed partial class Companion
     {
         private const int LongestModLine = 500, LongestModNote = 400, MostModNotes = 10;
@@ -689,60 +393,6 @@ namespace CapriDesktop
                 }
         }
 
-        // A WAV file in the mod's folder, 8, 16, 24 or 32 bit or float, made into her own 24 kHz sound, at most 30 seconds.
-        private static short[] ReadWave(string file, double volume)
-        {
-            byte[] bytes;
-            try { bytes = File.ReadAllBytes(file); }
-            catch (IOException) { return null; }
-            catch (UnauthorizedAccessException) { return null; }
-            catch (ArgumentException) { return null; }
-            catch (NotSupportedException) { return null; }
-            if (bytes.Length < 44 || System.Text.Encoding.ASCII.GetString(bytes, 0, 4) != "RIFF" || System.Text.Encoding.ASCII.GetString(bytes, 8, 4) != "WAVE") return null;
-            int format = 0, channels = 0, rate = 0, bits = 0, dataAt = -1, dataLength = 0;
-            for (int at = 12; at + 8 <= bytes.Length;)
-            {
-                string chunk = System.Text.Encoding.ASCII.GetString(bytes, at, 4);
-                int length = BitConverter.ToInt32(bytes, at + 4);
-                if (length < 0) return null;
-                if (chunk == "fmt " && at + 24 <= bytes.Length)
-                {
-                    format = BitConverter.ToUInt16(bytes, at + 8);
-                    channels = BitConverter.ToUInt16(bytes, at + 10);
-                    rate = BitConverter.ToInt32(bytes, at + 12);
-                    bits = BitConverter.ToUInt16(bytes, at + 22);
-                    if (format == 0xFFFE && at + 34 <= bytes.Length) format = BitConverter.ToUInt16(bytes, at + 32);
-                }
-                else if (chunk == "data") { dataAt = at + 8; dataLength = Math.Min(length, bytes.Length - dataAt); break; }
-                at += 8 + length + (length & 1);
-            }
-            bool floats = format == 3 && bits == 32;
-            if (dataAt < 0 || channels < 1 || channels > 8 || rate < 4000 || rate > 192000 || !(format == 1 && (bits == 8 || bits == 16 || bits == 24 || bits == 32) || floats)) return null;
-            int step = bits / 8 * channels, frames = dataLength / step;
-            int outCount = (int)Math.Min((long)frames * Sfx.Rate / rate, Sfx.Rate * 30L);
-            if (outCount <= 0) return null;
-            double gain = Math.Max(0, Math.Min(1, volume)) * Math.Min(100, Sfx.Level) / 100.0;
-            short[] samples = new short[outCount];
-            for (int i = 0; i < outCount; i++)
-            {
-                int frame = (int)Math.Min(frames - 1, (long)i * rate / Sfx.Rate);
-                double sum = 0;
-                for (int c = 0; c < channels; c++)
-                {
-                    int at = dataAt + frame * step + c * bits / 8;
-                    double sample;
-                    if (floats) sample = BitConverter.ToSingle(bytes, at);
-                    else if (bits == 8) sample = (bytes[at] - 128) / 128.0;
-                    else if (bits == 16) sample = BitConverter.ToInt16(bytes, at) / 32768.0;
-                    else if (bits == 24) sample = ((bytes[at] << 8 | bytes[at + 1] << 16 | bytes[at + 2] << 24) >> 8) / 8388608.0;
-                    else sample = BitConverter.ToInt32(bytes, at) / 2147483648.0;
-                    sum += sample;
-                }
-                samples[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, sum / channels * gain * 32767));
-            }
-            return samples;
-        }
-
         private string ModState()
         {
             if (hidden) return "hidden";
@@ -1070,7 +720,7 @@ namespace CapriDesktop
             // A mod's page brings her Mainframe up; the checks put it back how it was.
             FormWindowState frameWas = mainframe.WindowState;
             bool frameShown = mainframe.Visible;
-            try { CheckNewerHooksNow(checks, write, until); }
+            try { CheckNewerHooksNow(checks, write, until); CheckMusicHooks(checks, write, until); }
             finally
             {
                 mainframe.CloseModPage("hooks3");
@@ -1209,8 +859,8 @@ namespace CapriDesktop
             internal Func<string, string> Run;
         }
 
-        private sealed class ModHost : ICapriHost, IDisposable, ICapriChat, ICapriMemory, ICapriUi, ICapriMainframe, ICapriScreen, ICapriVoice, ICapriTimers, ICapriPersonality, ICapriSettings, ICapriSkins, ICapriBody, ICapriBrain,
-            ICapriStore, ICapriSystem, ICapriMods, ICapriKeys, ICapriSounds
+        private sealed partial class ModHost : ICapriHost, IDisposable, ICapriChat, ICapriMemory, ICapriUi, ICapriMainframe, ICapriScreen, ICapriVoice, ICapriTimers, ICapriPersonality, ICapriSettings, ICapriSkins, ICapriBody, ICapriBrain,
+            ICapriSystem, ICapriMods, ICapriKeys, ICapriSounds, ICapriMusic
         {
             private const int MostTools = 8, MostContexts = 5;
             private readonly Companion capri;
@@ -1237,8 +887,7 @@ namespace CapriDesktop
             internal bool wasAway;
             internal string optionsTitle;
             internal Func<Control> optionsMake;
-            private readonly object storeGate = new object();
-            private Dictionary<string, string> store;
+            private readonly ModStore store;
             private volatile bool over;
 
             internal ModHost(Companion owner, string modId)
@@ -1248,6 +897,7 @@ namespace CapriDesktop
                 Mod mod = owner.ModList.All.Find(each => each.File.Id == modId);
                 name = mod == null ? modId : mod.File.Name;
                 allowed = new HashSet<string>(mod == null || mod.File.Permissions == null ? new string[0] : mod.File.Permissions);
+                store = new ModStore(delegate { return Folder; }, modId);
                 owner.AddModHost(this);
             }
 
@@ -1349,7 +999,7 @@ namespace CapriDesktop
             ICapriSkins ICapriHost.Skins { get { return this; } }
             ICapriBody ICapriHost.Her { get { return this; } }
             ICapriBrain ICapriHost.Brain { get { return this; } }
-            ICapriStore ICapriHost.Store { get { return this; } }
+            ICapriStore ICapriHost.Store { get { return store; } }
             ICapriSystem ICapriHost.System { get { return this; } }
             ICapriMods ICapriHost.Mods { get { return this; } }
             ICapriKeys ICapriHost.Keys { get { return this; } }
@@ -1870,102 +1520,6 @@ namespace CapriDesktop
 
             string[] ICapriBrain.Tools { get { lock (tools) return new List<string>(tools.Keys).ToArray(); } }
 
-            // The mod's own saved values, kept in store.json in its folder between runs.
-            private Dictionary<string, string> Stored()
-            {
-                if (store != null) return store;
-                store = new Dictionary<string, string>();
-                string file = Path.Combine(Folder, "store.json");
-                try
-                {
-                    if (File.Exists(file))
-                        using (FileStream reading = File.OpenRead(file))
-                        {
-                            Dictionary<string, string> read = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Dictionary<string, string>), new System.Runtime.Serialization.Json.DataContractJsonSerializerSettings { UseSimpleDictionaryFormat = true }).ReadObject(reading) as Dictionary<string, string>;
-                            if (read != null) store = read;
-                        }
-                }
-                catch (Exception error)
-                {
-                    if (!(error is IOException || error is UnauthorizedAccessException || error is System.Runtime.Serialization.SerializationException || error is System.Xml.XmlException)) throw;
-                    Brain.Log("mod " + id, -1, "Its store.json couldn't be read, so it starts empty: " + error.Message);
-                }
-                return store;
-            }
-
-            private void SaveStore()
-            {
-                string file = Path.Combine(Folder, "store.json"), writing = file + ".new";
-                try
-                {
-                    using (FileStream output = File.Create(writing))
-                        new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Dictionary<string, string>), new System.Runtime.Serialization.Json.DataContractJsonSerializerSettings { UseSimpleDictionaryFormat = true }).WriteObject(output, store);
-                    if (File.Exists(file)) File.Replace(writing, file, null); else File.Move(writing, file);
-                }
-                catch (IOException error) { Brain.Log("mod " + id, -1, "Its store.json couldn't be saved: " + error.Message); }
-                catch (UnauthorizedAccessException error) { Brain.Log("mod " + id, -1, "Its store.json couldn't be saved: " + error.Message); }
-            }
-
-            private static string StoreKey(string key)
-            {
-                string clean = (key ?? "").Trim();
-                if (clean.Length == 0 || clean.Length > 100) throw new ArgumentException("A store key is 1 to 100 characters.");
-                return clean;
-            }
-
-            string[] ICapriStore.Keys { get { lock (storeGate) { List<string> keys = new List<string>(Stored().Keys); keys.Sort(StringComparer.Ordinal); return keys.ToArray(); } } }
-            string ICapriStore.Get(string key) { return ((ICapriStore)this).Get(key, null); }
-
-            string ICapriStore.Get(string key, string fallback)
-            {
-                string found;
-                lock (storeGate) return Stored().TryGetValue(StoreKey(key), out found) ? found : fallback;
-            }
-
-            double ICapriStore.Number(string key, double fallback)
-            {
-                double number;
-                string found = ((ICapriStore)this).Get(key, null);
-                return found != null && double.TryParse(found, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number) ? number : fallback;
-            }
-
-            bool ICapriStore.Flag(string key, bool fallback)
-            {
-                string found = ((ICapriStore)this).Get(key, null);
-                return found == "true" ? true : found == "false" ? false : fallback;
-            }
-
-            void ICapriStore.Set(string key, string value)
-            {
-                string named = StoreKey(key);
-                if (value == null) { ((ICapriStore)this).Remove(named); return; }
-                if (value.Length > 64 * 1024) throw new ArgumentException("A stored value is at most 64 KB.");
-                lock (storeGate)
-                {
-                    Dictionary<string, string> kept = Stored();
-                    string was;
-                    if (kept.TryGetValue(named, out was) && was == value) return;
-                    long total = value.Length;
-                    foreach (KeyValuePair<string, string> entry in kept) if (entry.Key != named) total += entry.Key.Length + entry.Value.Length;
-                    if (total > 1024 * 1024) throw new InvalidOperationException("A mod's store holds at most 1 MB.");
-                    kept[named] = value;
-                    SaveStore();
-                }
-            }
-
-            void ICapriStore.Set(string key, double value) { ((ICapriStore)this).Set(key, value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)); }
-            void ICapriStore.Set(string key, bool value) { ((ICapriStore)this).Set(key, value ? "true" : "false"); }
-
-            bool ICapriStore.Remove(string key)
-            {
-                lock (storeGate)
-                {
-                    if (!Stored().Remove(StoreKey(key))) return false;
-                    SaveStore();
-                    return true;
-                }
-            }
-
             event Action ICapriSystem.Away { add { Need("system"); away += value; } remove { away -= value; } }
             event Action ICapriSystem.Back { add { Need("system"); back += value; } remove { back -= value; } }
             event Action ICapriSystem.Locked { add { Need("system"); locked += value; } remove { locked -= value; } }
@@ -2059,7 +1613,7 @@ namespace CapriDesktop
                 string path;
                 try { path = Path.IsPathRooted(file) ? file : Path.Combine(Folder, file); }
                 catch (ArgumentException) { return false; }
-                short[] samples = ReadWave(path, volume);
+                short[] samples = ModSound.ReadWave(path, volume);
                 if (samples == null) return false;
                 capri.OnWindow(delegate
                 {

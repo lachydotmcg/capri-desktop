@@ -7,7 +7,7 @@ Capri reads four kinds of mod. Import any of them from **Mainframe > CAPRI > Mod
 | `.capri-mod` | Settings only: extra names, spellings, colours, the hearing log |
 | `.capri-skin` | A zip of her sprite strips that changes how she looks. Several **stack**: each one turned on goes on top |
 | `.capri-skill` | Know-how for a game that she follows when she plays it |
-| `.capri-code` | C# that runs inside Capri, Windows only for now |
+| `.capri-code` | C# that runs inside Capri, on Windows, Mac and Linux |
 
 Share finished mods in [capri-mods](https://github.com/lachydotmcg/capri-mods).
 
@@ -57,6 +57,24 @@ She asks before a code mod runs, and asks again whenever the file changes. The a
 
 `Start` gets an `ICapriHost`. Hooks run on her window's thread. If your handler throws, the error goes in `errors.txt` and she carries on. When the mod is turned off or removed, its hooks, timers, menu items, notes, options, drawing, brain tools, context, hotkeys and page are removed with it.
 
+### On Mac and Linux
+
+The same `.capri-code` file runs on Windows, Mac and Linux. Mac and Linux compile it as C# 5 too, so a mod that runs on one runs on the others. A few parts use Windows' own pictures and windows, so they're Windows only:
+
+- `capri.Art`, Startup Intros (`ICapriIntro`), `Ui.Drawing` and `CapriFrame`
+- `Ui.SetOptions`, `Ui.Window`, `Mainframe.ShowPage` and `Mainframe.Window`
+- `Screen.Looked` and `Screen.Capture`
+- `System.Windows.Forms`, and `System.Drawing` pictures like `Bitmap` and `Graphics`. `Point`, `Rectangle`, `Size` and `Color` work everywhere.
+
+A mod that uses one of those is refused on a Mac or Linux PC before she asks to run it, and her message names the part. Everything else works the same, and a few things a Mac or Linux PC can't do answer the way Windows does on a PC without them:
+
+- `Keys.Hotkey` returns `false`, as if another app had the shortcut. A shortcut written wrong still throws.
+- `System.Locked`, `Unlocked` and `Sleeping` never fire. `Woke` fires after the PC sleeps, and `Battery` is `-1` with no battery.
+- `Voice.Heard` never fires, since voice chat isn't on Mac and Linux yet.
+- `Her.SitOn` says it's Windows only.
+
+The Hooks Tour sample draws on her and has an options page, so it's Windows only.
+
 `// requires:` is optional. `api 3` stops the mod importing into an older Capri with a clear message instead of a compile error. A mod id, like `focus-timer`, means that mod must be installed and on before this one starts. Separate them with commas.
 
 ### Permissions
@@ -77,6 +95,7 @@ Using a hook without its permission throws a `CapriPermissionException` that nam
 | `tools` | Add tools her brain can use by itself, and see or stop the tools she's about to use |
 | `system` | Know when you're away or back, when your PC locks, sleeps or wakes, and its battery |
 | `hotkeys` | Add keyboard shortcuts that work in any app |
+| `music` | See what's playing, control your music apps and their volume, and hear how loud your PC's sound is |
 
 ### The host
 
@@ -86,7 +105,7 @@ Using a hook without its permission throws a `CapriPermissionException` that nam
 | `Say(line)` | | She says it, out loud if her voice is on |
 | `Log(line)` | | A line in `errors.txt` |
 | `Art(name)`, `Sound(name)`, `PlayIntro()` | | Her sprite strip, one of her sounds, a startup intro |
-| `Api` | | `3` here. Brain tools, context, the store, system events, hotkeys, sounds, pages, moving her and mod messages came in 3; the other hooks in 2 |
+| `Api` | | `3` here. Brain tools, context, the store, system events, hotkeys, sounds, music, pages, moving her and mod messages came in 3; the other hooks in 2 |
 | `CapriVersion`, `Has(permission)` | | Her version, and whether this mod asked for a permission |
 
 ### `capri.Chat`
@@ -223,6 +242,28 @@ The mod's own saved values, kept in `store.json` in its folder. `Get(key)`, `Get
 ### `capri.Sounds`
 
 `Play(file)` or `Play(file, volume)` plays a WAV file, from the mod's folder unless the path is a whole one, at her own sound volume times `volume` (0 to 1). 8, 16, 24 or 32 bit or float, up to 30 seconds. It returns false if the file can't be read. `Cue(name)` plays one of her own sounds, like `Sound(name)`.
+
+### `capri.Music` (music)
+
+What's playing, from the same Windows media session her mini player reads, and the presses that go back to the app playing it.
+
+| Member | What it does |
+|---|---|
+| `Changed(track)` | A new song, or `null` when nothing has a title any more |
+| `Updated(track)` | Every read, about once a second, and soon after a press |
+| `Now` | The `CapriTrack` it shows, or `null` |
+| `Sessions` | Every app with something in the media session, Windows' own pick first |
+| `Follow(appId)`, `Following` | Sticks to one app's session by its `AppId`; `null` goes back to whatever Windows picks |
+| `Play()`, `Pause()`, `Toggle()`, `Next()`, `Previous()`, `Seek(seconds)` | Presses, sent off her window's thread. False when there's nothing to press or the app says it can't |
+| `SetShuffle(on)`, `SetRepeat("off" / "one" / "all")` | For apps that take them |
+| `Liked`, `Like(on)` | Spotify's own heart for the song, or `null` elsewhere |
+| `Art` | The cover the app gave Windows, as PNG or JPEG bytes, or `null` |
+| `Volume`, `Muted` | The app's own volume in Windows' volume mixer, 0 to 1, or -1 before it has made a sound |
+| `Levels(bands)`, `Loudness` | How loud the PC's sound is in that many bands from deep bass to treble, each 0 to 1, for a visualizer. It listens to the speakers only while a mod keeps asking, and stops a few seconds after the last ask |
+| `BuiltInPlayer` | Set it to false to keep her own mini player away while the mod runs, for a mod that shows its own player |
+| `Open()` | Brings the app playing it to the front |
+
+A `CapriTrack` has `Title`, `Artist`, `Album`, `App` (a name to show, like `Spotify`), `AppId`, `Playing`, `Music`, `Video`, `Position` and `Length` in seconds at the read, `At()` for where it's got to by now, `CanSeek`, `CanSkip`, `CanBack`, `Shuffle` and `Repeat` (`null` when the app doesn't say), and a `Key` that's the same for the same song in the same app. On Mac and Linux nothing reads yet, so `Now` is `null` and presses return false.
 
 ## Examples
 

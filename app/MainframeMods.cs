@@ -356,13 +356,7 @@ namespace CapriDesktop
 
         private bool AskToRun(ModFile mod, string hash)
         {
-            string asks = "";
-            foreach (string permission in mod.Permissions ?? new string[0]) asks += "\n- " + Mods.PermissionMeaning(permission);
-            string message = mod.Name + (string.IsNullOrEmpty(mod.Version) ? "" : " v" + mod.Version) + (string.IsNullOrEmpty(mod.Author) ? "" : ", which says it's by " + mod.Author) + ", is a code mod.\n\n"
-                + (asks.Length == 0 ? "It asks for none of Capri's permissions.\n\n" : "Through Capri, it asks to:" + asks + "\n\n")
-                + "Code mods run as part of Capri with full access to your PC: your files, your accounts and the API keys she has saved. Nothing limits what it can do, and Capri doesn't check whether it's safe.\n\n"
-                + "Only run it if you wrote it, or you've read it and trust who did.\n\nFile fingerprint (SHA-256):\n" + hash + "\n\nRun this code?";
-            return MessageBox.Show(this, message, "Run this code mod?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
+            return MessageBox.Show(this, Mods.Consent(mod, hash), "Run this code mod?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
         }
 
         private void RemoveMod(int row)

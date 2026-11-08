@@ -3494,6 +3494,27 @@ namespace CapriDesktop
             return file;
         }
 
+        // A whole skin that is her own art plus a green hat in the top left, the way a cat ears skin is made.
+        private static string ModHatSkin(string into, string id)
+        {
+            string file = Path.Combine(into, id + Mods.SkinExtension);
+            if (File.Exists(file)) File.Delete(file);
+            using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(file, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                ModEntry(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\"}"));
+                using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream("Capri.Sprite.idle.png"))
+                using (SkiaSharp.SKBitmap art = SkiaSharp.SKBitmap.Decode(stream))
+                {
+                    using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(art))
+                    using (SkiaSharp.SKPaint green = new SkiaSharp.SKPaint { Color = new SkiaSharp.SKColor(0, 255, 0) })
+                        canvas.DrawRect(0, 0, 40, 40, green);
+                    using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(art))
+                    using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) ModEntry(zip, "idle.png", png.ToArray());
+                }
+            }
+            return file;
+        }
+
         private static byte[] ModPreviewBytes()
         {
             using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream("Capri.Sprite.idle.png"))
@@ -3588,6 +3609,16 @@ namespace CapriDesktop
                 mods.Remove(earsMod); mods.Set(mods.All.Find(m => m.File.Id == "smoke-skin"), true, null);
                 if (Pet.SkinAccessories.Length != 0 || ModPixel(idle.Strip, 1, 1).Red != 255) throw new Exception("Removing an accessory left it drawn.");
                 checks.Add("PASS mods accessories: an accessory draws over the outfit under it or her own art, keeps the outfit on, and off and remove take it away");
+                string hat = ModHatSkin(input, "smoke-hat");
+                if (!sheet.ImportMod(hat)) throw new Exception("A whole skin to stack was refused.");
+                Mod hatMod = mods.All.Find(m => m.File.Id == "smoke-hat");
+                SkiaSharp.SKColor hatTop = ModPixel(idle.Strip, 5, 5), hatHair = ModPixel(idle.Strip, 95, 90);
+                if (hatMod == null || !hatMod.On || !mods.All.Find(m => m.File.Id == "smoke-skin").On || mods.SkinStack.Count != 2 || mods.SkinStack[1] != hatMod
+                    || hatTop.Green < 200 || hatTop.Red > 30 || hatHair.Red != 255 || hatHair.Green != 0)
+                    throw new Exception("A whole skin stacked over another didn't add only what it changes: " + hatTop + " " + hatHair);
+                mods.Remove(hatMod);
+                if (Pet.SkinAccessories.Length != 0 || ModPixel(idle.Strip, 5, 5).Red != 255) throw new Exception("Removing a stacked whole skin left it drawn.");
+                checks.Add("PASS mods stacking: a whole skin stacked over another adds only what it changes from her own art, so the outfit under it shows everywhere else, like on Windows");
                 sheet.ImportMod(blue);
                 if (ModPixel(idle.Strip, 0, 0).Blue < 200) throw new Exception("Colors did not apply to a skin.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
@@ -3601,16 +3632,7 @@ namespace CapriDesktop
                 if (Directory.GetDirectories(mods.Folder, "skin-import-*").Length != 0) throw new Exception("A refused skin left its temporary folder.");
                 checks.Add("PASS mods skins: import swaps art, missing strips keep hers, off and removal restore it, reload and colors work, and invalid sizes and paths are refused");
 
-                string code = Path.Combine(input, "smoke-code" + Mods.CodeExtension); File.WriteAllText(code, "This must never be compiled.");
-                bool asked = false;
-                try { mods.Import(code, delegate { asked = true; return true; }); throw new Exception("A code mod was let in."); }
-                catch (ModException error) { if (error.Message != Mods.WindowsOnly) throw new Exception("A code mod gave the wrong line."); }
-                if (asked || sheet.ImportMod(code) || sheet.StatusText != Mods.WindowsOnly || mods.All.Count != 0 || File.Exists(Path.Combine(mods.Folder, Path.GetFileName(code)))) throw new Exception("A code mod asked, saved or gave a different line.");
-                string dropped = Path.Combine(mods.Folder, Path.GetFileName(code)); File.Copy(code, dropped, true);
-                mods.Load();
-                if (mods.All.Count != 0 || !mods.Problems.Exists(p => p.Contains(Mods.WindowsOnly))) throw new Exception("A code mod dropped into the folder was not refused.");
-                File.Delete(dropped); mods.Load();
-                checks.Add("PASS mods code: import and files dropped in the folder are refused with Windows only for now, without asking or compiling");
+                CodeModChecks(sheet, mods, input);
 
                 string skill = Path.Combine(input, "smoke-skill" + Mods.SkillExtension);
                 File.WriteAllText(skill, "---\ncapri-skill: 1\nid: smoke-skill\nname: Smoke skill\ngames: Minecraft\n---\nOnly dig straight down with a ladder.\n");
@@ -3721,9 +3743,7 @@ namespace CapriDesktop
                 sheet.NextPage();
                 if (sheet.TitleOf(0) != "Code: Sample" || sheet.AuthorOf(0) != "by Sample Author") throw new Exception("The directory did not change page.");
                 sheet.PickKind(2);
-                if (sheet.CanDownload(0) || sheet.MetaOf(0) != Mods.WindowsOnly) throw new Exception("A code mod looked installable.");
-                sheet.Install(0);
-                if (sheet.StatusText != Mods.WindowsOnly || fetched != 0) throw new Exception("A code mod was downloaded.");
+                if (!sheet.CanDownload(0) || sheet.MetaOf(0) != "RUNS CODE.") throw new Exception("A code mod in the directory didn't look installable on Mac and Linux: " + sheet.MetaOf(0));
                 sheet.PickKind(1); sheet.Search("names");
                 if (sheet.TitleOf(0) != "D Names" || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.TitleOf(1) != null) throw new Exception("The directory search or settings filter did not work.");
                 sheet.Search(""); sheet.PickKind(0); sheet.Install(0);
@@ -3763,7 +3783,7 @@ namespace CapriDesktop
                 sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the named directory after layout checks");
                 pet.SetMainframeSize(100); sheet.Sync(); sheet.SavePicture(Path.Combine(folder, "mainframe-mods.png"));
                 using (Bitmap picture = new Bitmap(Path.Combine(folder, "mainframe-mods.png"))) if (picture.PixelSize.Width < 380 || picture.PixelSize.Height < 100) throw new Exception("The Mods window picture is empty.");
-                checks.Add("PASS mods directory: fake GitHub tree, previews, filters, pages, verified downloads, worker counts and ratings; code mods stay Windows only");
+                checks.Add("PASS mods directory: fake GitHub tree, previews, filters, pages, verified downloads, worker counts and ratings; code mods install on Mac and Linux too");
                 checks.Add("PASS mods window: long names, authors and descriptions fit with Barlow and cut corners at 100%, 150% and 200% without overlaps; Mainframe pictures include mainframe-mods.png");
             }
             finally
@@ -3817,6 +3837,138 @@ namespace CapriDesktop
             frame.Row("Volume").BringIntoView();
             frame.Top();
             checks.Add("PASS Mainframe layout: main, Simple and Advanced fit at 100%, 150% and 200% with every brain and voice tier; Barlow labels, hints, flags, choices and cues fit; a short page glides to its end");
+        }
+
+        // Code mods on Mac and Linux: the same files, hooks and approve box as Windows, and parts only Windows has refused by name.
+        private void CodeModChecks(ModsWindow sheet, Mods mods, string input)
+        {
+            ModFile asked = null;
+            Func<ModFile, string, bool> askWas = sheet.ModAsk;
+            sheet.ModAsk = delegate(ModFile file, string hash) { asked = file; return true; };
+            Func<string, string, string, string> write = delegate(string id, string permissions, string body)
+            {
+                string file = Path.Combine(input, id + Mods.CodeExtension);
+                File.WriteAllText(file, "// capri-mod: 1\n// id: " + id + "\n// name: " + id + "\n// version: 1\n// author: Smoke\n// description: A test.\n" + (permissions == null ? "" : "// permissions: " + permissions + "\n")
+                    + "using System; using System.IO; using System.Drawing; using CapriDesktop;\n" + body);
+                return file;
+            };
+            const string empty = "public class M : ICapriMod { public void Start(ICapriHost h) { } public bool Heard(string w) { return false; } public void Stop() { } }";
+            double sizeWas = pet.Saved.Size;
+            try
+            {
+                string junk = Path.Combine(input, "smoke-code" + Mods.CodeExtension); File.WriteAllText(junk, "This must never be compiled.");
+                if (sheet.ImportMod(junk) || asked != null || mods.All.Count != 0) throw new Exception("A code file that isn't a mod was asked about or let in.");
+                if (sheet.ImportMod(write("windowsy", "chat", "public class M : ICapriMod { public void Start(ICapriHost h) { h.Ui.SetOptions(\"x\", null); } public bool Heard(string w) { return false; } public void Stop() { } }"))
+                    || asked != null || sheet.StatusText.IndexOf("only Windows has (Ui.SetOptions)", StringComparison.Ordinal) < 0 || mods.All.Count != 0)
+                    throw new Exception("A code mod using a Windows-only part wasn't refused by name before asking: " + sheet.StatusText);
+                if (sheet.ImportMod(write("sneaky", null, "public class M : ICapriMod { public void Start(ICapriHost h) { h.Chat.Sending += delegate(CapriMessage m) { }; } public bool Heard(string w) { return false; } public void Stop() { } }"))
+                    || mods.Running != 0 || sheet.StatusText.IndexOf("didn't ask for the chat permission", StringComparison.Ordinal) < 0)
+                    throw new Exception("A code mod used a hook it didn't ask for: " + sheet.StatusText);
+                foreach (Mod old in mods.All.ToArray()) mods.Remove(old);
+                asked = null;
+                checks.Add("PASS mods code: a file that isn't a mod and a mod using a Windows-only part are refused without asking, and a hook it didn't ask for stops it");
+
+                string body = "public class M : ICapriMod { ICapriHost c;\n"
+                    + "void Mark(string name, string text) { File.WriteAllText(Path.Combine(c.Folder, name), text); }\n"
+                    + "static byte[] Wav() { int n = 800; MemoryStream m = new MemoryStream(); BinaryWriter w = new BinaryWriter(m);\n"
+                    + "w.Write(System.Text.Encoding.ASCII.GetBytes(\"RIFF\")); w.Write(36 + n * 2); w.Write(System.Text.Encoding.ASCII.GetBytes(\"WAVEfmt \")); w.Write(16); w.Write((short)1); w.Write((short)1); w.Write(8000); w.Write(16000); w.Write((short)2); w.Write((short)16);\n"
+                    + "w.Write(System.Text.Encoding.ASCII.GetBytes(\"data\")); w.Write(n * 2); for (int i = 0; i < n; i++) w.Write((short)(Math.Sin(i * 0.3) * 8000)); w.Flush(); return m.ToArray(); }\n"
+                    + "public void Start(ICapriHost h) { c = h; Mark(\"api\", h.Api + \" \" + h.Has(\"chat\") + \" \" + h.Has(\"screen\"));\n"
+                    + "h.Chat.Sending += m => { if (m.Text == \"hook ping\") { m.Cancel = true; c.Say(\"hook pong\"); } else if (m.Text == \"swap me\") m.Text = \"swapped\"; };\n"
+                    + "h.Chat.Replying += m => { if (m.Text == \"replying test\") m.Text = \"replying test!\"; };\n"
+                    + "h.Chat.Replied += m => { if (m.Text == \"hook pong\") Mark(\"replied\", m.Source); };\n"
+                    + "h.Voice.Speaking += m => { if (m.Text == \"speak test\") m.Cancel = true; };\n"
+                    + "h.Personality.Add(\"Hook note: say meow sometimes.\");\n"
+                    + "h.Ui.AddMenuItem(\"Hook item\", () => Mark(\"menu\", \"x\"));\n"
+                    + "h.Timers.After(0.1, () => Mark(\"after\", \"x\"));\n"
+                    + "h.Timers.Every(0.1, () => File.AppendAllText(Path.Combine(c.Folder, \"every\"), \"x\"));\n"
+                    + "h.Settings.Changed += () => Mark(\"changed\", c.Settings.Size.ToString());\n"
+                    + "h.Brain.AddTool(\"hook_echo\", \"Says back what it is given.\", \"words to say back\", t => \"echo: \" + t);\n"
+                    + "h.Chat.ToolUsing += call => { if (call.Tool == \"animate\" && call.Name == \"grin\") { call.Cancel = true; call.Reason = \"No grinning today.\"; } };\n"
+                    + "h.Chat.AddContext(() => \"The hook context says 42.\");\n"
+                    + "h.Store.Set(\"count\", h.Store.Number(\"count\", 0) + 1);\n"
+                    + "h.Mods.Received += (from, topic, data) => Mark(\"got\", from + \" \" + topic + \" \" + data);\n"
+                    + "Mark(\"keys\", h.Keys.Hotkey(\"Ctrl+Alt+Shift+F12\", () => { }).ToString());\n"
+                    + "try { h.Keys.Hotkey(\"a\", () => { }); Mark(\"badkey\", \"taken\"); } catch (ArgumentException) { Mark(\"badkey\", \"refused\"); }\n"
+                    + "Mark(\"system\", (h.System.IdleFor.TotalSeconds >= 0) + \" \" + (h.System.Battery >= -1 && h.System.Battery <= 100));\n"
+                    + "Mark(\"move\", h.Her.Move(\"fly\")); Mark(\"screen\", (h.Her.Screen.Width > 0) + \" \" + (h.Her.Animation.Length > 0));\n"
+                    + "File.WriteAllBytes(Path.Combine(h.Folder, \"beep.wav\"), Wav());\n"
+                    + "Mark(\"sound\", h.Sounds.Play(\"beep.wav\", 0.5) + \" \" + h.Sounds.Play(\"nothing.wav\")); }\n"
+                    + "public bool Heard(string w) { return w == \"hook heard\"; } public void Stop() { } }";
+                if (!sheet.ImportMod(write("hooks3", "chat, voice, personality, settings, tools, system, hotkeys", body))) throw new Exception("A code mod using the hooks it asked for was refused: " + sheet.StatusText);
+                string data = Path.Combine(mods.Folder, "hooks3-data");
+                Func<string, string> mark = delegate(string name) { string file = Path.Combine(data, name); return File.Exists(file) ? File.ReadAllText(file) : null; };
+                if (asked == null || string.Join(",", asked.Permissions) != "chat,voice,personality,settings,tools,system,hotkeys" || mark("api") != Mods.Api + " True False" || !pet.ModRunningNow("hooks3"))
+                    throw new Exception("A code mod didn't compile and start on Mac and Linux, or saw the wrong permissions: " + mark("api"));
+                checks.Add("PASS mods code: a code mod compiles with Roslyn, the approve box gets its permissions, and it starts with the API version and only those");
+
+                pet.Hear("hook ping");
+                MainframeWait(delegate { return pet.Talk.Reply == "hook pong" && mark("replied") == "remark"; }, "a mod taking a line and answering it");
+                pet.Talk.Dismiss();
+                if (pet.ModsSending("swap me") != "swapped" || pet.ModsSending("leave me") != "leave me" || pet.ModsReplying("replying test", "reply") != "replying test!" || pet.ModsSpeaking("speak test") != "" || pet.ModsSpeaking("say this") != "say this" || !mods.Heard("hook heard"))
+                    throw new Exception("Sending, Replying, Speaking or Heard didn't change what they should.");
+                string note = Hands.Note;
+                if (note.IndexOf("- Hook note: say meow sometimes.", StringComparison.Ordinal) < 0 || note.IndexOf("safety rules", StringComparison.Ordinal) < 0 || note.IndexOf("- The hook context says 42.", StringComparison.Ordinal) < 0 || note.IndexOf("not instructions", StringComparison.Ordinal) < 0)
+                    throw new Exception("A mod's personality note or context didn't reach her prompt.");
+                MenuItem menu = pet.ModMenu;
+                if (menu == null || !menu.IsVisible || menu.Items.Count != 1 || ((MenuItem)menu.Items[0]).Header as string != "Hook item" || !pet.ContextMenu.Items.Contains(menu)) throw new Exception("A mod's menu item isn't in her menu.");
+                ((MenuItem)menu.Items[0]).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                if (mark("menu") != "x") throw new Exception("A mod's menu item didn't run.");
+                checks.Add("PASS mods code: Sending takes or changes what they say, Replying, Replied and Speaking work, notes and context reach her prompt after her rules, and menu items run from a Mods menu");
+
+                MainframeWait(delegate { return mark("after") == "x" && (mark("every") ?? "").Length >= 2; }, "a mod's timers");
+                double other = Pet.Sizes[0] == pet.Saved.Size ? Pet.Sizes[1] : Pet.Sizes[0];
+                pet.Resize(other);
+                MainframeWait(delegate { return mark("changed") == ((int)other).ToString(); }, "a mod hearing her size change");
+                pet.Resize(sizeWas);
+                Hands.Kit kit = Hands.KitFor();
+                if (!kit.Tools.Contains("\"name\":\"mod\"") || !kit.Tools.Contains("; text: words to say back)") || Hands.Do("mod", new ToolArguments { Name = "hook_echo", Text = "hi" }) != "echo: hi"
+                    || !Hands.Do("mod", new ToolArguments { Name = "nope" }).StartsWith("No running mod has a tool called nope", StringComparison.Ordinal))
+                    throw new Exception("A mod's tool didn't reach her brain's tools or run when picked.");
+                if (pet.Brain.Act("animate", new ToolArguments { Name = "grin" }) != "No grinning today." || pet.ModsVeto("animate", new ToolArguments { Name = "blink" }) != null) throw new Exception("A mod's ToolUsing didn't stop the one tool it meant to.");
+                string stored = File.Exists(Path.Combine(data, "store.json")) ? File.ReadAllText(Path.Combine(data, "store.json")) : "";
+                if (stored.IndexOf("\"count\":\"1\"", StringComparison.Ordinal) < 0) throw new Exception("A mod's store wasn't saved: " + stored);
+                if (mark("badkey") != "refused" || mark("keys") != "False" || mark("system") != "True True" || mark("sound") != "True False" || mark("screen") != "True True" || (mark("move") ?? "").IndexOf("A mod can move her with", StringComparison.Ordinal) != 0)
+                    throw new Exception("A hotkey, the system hooks, a sound, her screen or a move went wrong: " + mark("keys") + " / " + mark("badkey") + " / " + mark("system") + " / " + mark("sound") + " / " + mark("screen") + " / " + mark("move"));
+                checks.Add("PASS mods code: timers run, Settings.Changed hears her size, brain tools run, ToolUsing stops a tool, the store saves, a WAV plays, and a hotkey answers false here while a bad one is refused");
+
+                if (!sheet.ImportMod(write("hooks-friend", "skins\n// requires: api 3, hooks3", "public class M : ICapriMod { public void Start(ICapriHost h) { h.Mods.Send(\"hello\", \"from friend\"); } public bool Heard(string w) { return false; } public void Stop() { } }")))
+                    throw new Exception("A mod that requires a running mod was refused: " + sheet.StatusText);
+                MainframeWait(delegate { return mark("got") == "hooks-friend hello from friend"; }, "a mod's message to another mod");
+                if (sheet.ImportMod(write("needy", "skins\n// requires: api 99", empty)) || sheet.StatusText.IndexOf("needs a newer Capri", StringComparison.Ordinal) < 0) throw new Exception("A mod for a newer API was let in: " + sheet.StatusText);
+                if (sheet.ImportMod(write("needy-two", "skins\n// requires: not-installed", empty)) || sheet.StatusText.IndexOf("needs not-installed installed and on first", StringComparison.Ordinal) < 0 || pet.ModRunningNow("needy-two"))
+                    throw new Exception("A mod that needs a mod that isn't there started: " + sheet.StatusText);
+                checks.Add("PASS mods code: mods message each other, and // requires: refuses a newer API or a missing mod");
+
+                Mod hooks = mods.All.Find(mod => mod.File.Id == "hooks3");
+                sheet.SwitchMod(mods.All.IndexOf(hooks));
+                if (hooks.On || pet.ModRunningNow("hooks3")) throw new Exception("Turning a code mod off left it running.");
+                asked = null;
+                sheet.SwitchMod(mods.All.IndexOf(hooks));
+                hooks = mods.All.Find(mod => mod.File.Id == "hooks3");
+                if (hooks == null || !hooks.On || !pet.ModRunningNow("hooks3") || asked != null) throw new Exception("Turning an approved code mod back on didn't start it, or asked again.");
+                mods.Remove(hooks);
+                for (int i = 0; i < 20; i++) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(15); }
+                int ticks = (mark("every") ?? "").Length;
+                for (int i = 0; i < 20; i++) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(15); }
+                if (pet.ModRunningNow("hooks3") || (mark("every") ?? "").Length != ticks || pet.ModsSending("swap me") != "swap me" || Hands.Note.IndexOf("Hook note", StringComparison.Ordinal) >= 0 || Hands.Note.IndexOf("hook context", StringComparison.Ordinal) >= 0
+                    || pet.ModMenu.IsVisible || Hands.KitFor().Tools.Contains("\"name\":\"mod\"") || pet.ModsVeto("animate", new ToolArguments { Name = "grin" }) != null)
+                    throw new Exception("Removing a code mod left its hooks, timers, notes, context, menu item, tools or veto behind.");
+                foreach (Mod old in mods.All.ToArray()) mods.Remove(old);
+                string dropped = Path.Combine(mods.Folder, "dropped" + Mods.CodeExtension);
+                File.Copy(write("dropped", null, empty), dropped, true);
+                mods.Load();
+                Mod found = mods.All.Find(mod => mod.File.Id == "dropped");
+                if (found == null || found.On || !found.Changed || pet.ModRunningNow("dropped")) throw new Exception("A code mod dropped into the folder ran without their OK.");
+                mods.Remove(found);
+                checks.Add("PASS mods code: off stops a code mod and on starts it again without asking, removing takes everything it added, and one dropped into the folder waits for their OK");
+            }
+            finally
+            {
+                sheet.ModAsk = askWas;
+                if (pet.Saved.Size != sizeWas) pet.Resize(sizeWas);
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+            }
         }
 
         private static void MainframeWait(Func<bool> ready, string what)

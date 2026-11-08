@@ -1,62 +1,22 @@
 using System;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+#if !CROSS
+using System.CodeDom.Compiler;
+using System.Drawing;
 using System.Windows.Forms;
 using Microsoft.CSharp;
+#endif
 
 namespace CapriDesktop
 {
-    public interface ICapriHost
-    {
-        string Folder { get; }
-        void Say(string line);
-        void Log(string line);
-        Bitmap Art(string name);
-        void PlayIntro();
-        void Sound(string name);
-        int Api { get; }
-        string CapriVersion { get; }
-        bool Has(string permission);
-        ICapriChat Chat { get; }
-        ICapriMemory Memory { get; }
-        ICapriUi Ui { get; }
-        ICapriMainframe Mainframe { get; }
-        ICapriScreen Screen { get; }
-        ICapriVoice Voice { get; }
-        ICapriTimers Timers { get; }
-        ICapriPersonality Personality { get; }
-        ICapriSettings Settings { get; }
-        ICapriSkins Skins { get; }
-        ICapriBody Her { get; }
-        ICapriBrain Brain { get; }
-        ICapriStore Store { get; }
-        ICapriSystem System { get; }
-        ICapriMods Mods { get; }
-        ICapriKeys Keys { get; }
-        ICapriSounds Sounds { get; }
-    }
-
-    public interface ICapriIntro
-    {
-        double Seconds { get; }
-        void Begin(Bitmap desktop, Rectangle screen, Rectangle her);
-        void Draw(Graphics graphics, Rectangle screen, Rectangle her, double at);
-    }
-
-    public interface ICapriMod
-    {
-        void Start(ICapriHost capri);
-        bool Heard(string words);
-        void Stop();
-    }
-
+    // Code mods' files, approvals, starting and stopping, shared by both apps. Each app compiles them its own way: Windows with
+    // its own C# compiler, Mac and Linux with Roslyn (cross/ModCompiler.cs).
     internal sealed partial class Mods
     {
         internal const string CodeExtension = ".capri-code";
@@ -71,6 +31,12 @@ namespace CapriDesktop
         internal bool WantsIntro { get { return All.Exists(mod => mod.Code && mod.On && mod.File.Intro); } }
         internal bool CodeSettled { get; private set; }
 
+        // Mac and Linux refuse a mod that needs Windows-only parts before asking to run it, and let go of a stopped mod's code.
+        // Windows has nothing to do for either, so these calls compile away there.
+        partial void CheckPlatform(string text);
+        partial void Unload(ICapriMod mod);
+
+#if !CROSS
         internal ICapriIntro Intro
         {
             get
@@ -83,6 +49,7 @@ namespace CapriDesktop
                 return null;
             }
         }
+#endif
 
         internal static ModFile ReadCode(string text)
         {
@@ -151,10 +118,13 @@ namespace CapriDesktop
         private Mod LoadCode(string file, HashSet<string> off)
         {
             byte[] bytes = File.ReadAllBytes(file);
-            ModFile read = ReadCode(Words(bytes));
+            string text = Words(bytes);
+            ModFile read = ReadCode(text);
             if (!string.Equals(read.Id, Path.GetFileNameWithoutExtension(file), StringComparison.OrdinalIgnoreCase)) throw new ModException("its file name doesn't match its id, " + read.Id + ".");
             string hash = HashOf(bytes), approved;
             bool same = Approved().TryGetValue(read.Id, out approved) && approved == hash;
+            // One dropped into the folder, not approved yet, is refused here if it can't run on this platform.
+            if (!same) CheckPlatform(text);
             return new Mod { File = read, Path = file, Code = true, Hash = hash, Changed = !same, On = same && !off.Contains(read.Id) };
         }
 
@@ -170,6 +140,7 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException error) { throw new ModException("Couldn't read that file: " + error.Message); }
             string text = Words(bytes), hash = HashOf(bytes);
             ModFile read = ReadCode(text);
+            CheckPlatform(text);
             if (!ask(read, hash)) return null;
             ICapriMod made = Compile(text);
             string home = Path.Combine(folder, read.Id + CodeExtension);
@@ -185,8 +156,8 @@ namespace CapriDesktop
                 HashSet<string> off = Off();
                 if (off.Remove(read.Id)) WriteOff(off);
             }
-            catch (IOException error) { throw new ModException("Couldn't save that mod: " + error.Message); }
-            catch (UnauthorizedAccessException error) { throw new ModException("Couldn't save that mod: " + error.Message); }
+            catch (IOException error) { Unload(made); throw new ModException("Couldn't save that mod: " + error.Message); }
+            catch (UnauthorizedAccessException error) { Unload(made); throw new ModException("Couldn't save that mod: " + error.Message); }
             Load();
             try { StartOne(read.Id, made); }
             catch (ModException error)
@@ -214,6 +185,7 @@ namespace CapriDesktop
             byte[] bytes = File.ReadAllBytes(mod.Path);
             string hash = HashOf(bytes), approved;
             bool same = Approved().TryGetValue(mod.File.Id, out approved) && approved == hash;
+            CheckPlatform(Words(bytes));
             if (!same && !ask(mod.File, hash)) return false;
             ICapriMod made = Compile(Words(bytes));
             StartOne(mod.File.Id, made);
@@ -260,6 +232,7 @@ namespace CapriDesktop
             File.WriteAllLines(Path.Combine(folder, ApprovedFile), lines);
         }
 
+#if !CROSS
         private static ICapriMod Compile(string text)
         {
             CompilerResults built;
@@ -293,6 +266,7 @@ namespace CapriDesktop
             try { return (ICapriMod)Activator.CreateInstance(mods[0]); }
             catch (Exception error) { throw new ModException("That mod failed while loading: " + Inner(error).Message); }
         }
+#endif
 
         private static Exception Inner(Exception error) { return error is TargetInvocationException && error.InnerException != null ? error.InnerException : error; }
 
@@ -300,12 +274,13 @@ namespace CapriDesktop
         {
             StopOne(id);
             string missing = MissingRequired(id);
-            if (missing != null) throw new ModException("That mod needs " + missing + " installed and on first.");
+            if (missing != null) { Unload(made); throw new ModException("That mod needs " + missing + " installed and on first."); }
             ICapriHost host = HostFor(id);
             try { made.Start(host); }
             catch (Exception error)
             {
                 Close(host);
+                Unload(made);
                 Brain.Log("mod " + id, -1, Inner(error).ToString());
                 throw new ModException("That mod failed while starting: " + Inner(error).Message);
             }
@@ -322,6 +297,7 @@ namespace CapriDesktop
             catch (Exception error) { Brain.Log("mod " + id, -1, Inner(error).ToString()); }
             ICapriHost host;
             if (hosts.TryGetValue(id, out host)) { hosts.Remove(id); Close(host); }
+            Unload(mod);
         }
 
         // A stopped mod's hooks, timers, menu items and notes go with its host.
@@ -390,6 +366,7 @@ namespace CapriDesktop
         }
     }
 
+#if !CROSS
     internal sealed partial class Companion
     {
         private const double LongestIntro = 15, IntroWait = 8;
@@ -738,4 +715,5 @@ namespace CapriDesktop
             }
         }
     }
+#endif
 }

@@ -263,6 +263,94 @@ namespace CapriDesktop
         }
     }
 
+    // What a whole skin stacked over another changes from her own art, shared by Windows and the Mac and Linux app: pixels are
+    // ARGB ints, unpremultiplied. Clear, unless the skin really changed it: tiny specks of difference are dropped, soft edges
+    // next to a change are kept, and holes enclosed by a change are filled, so cat ears come out whole and her outline doesn't.
+    internal static class SkinLayers
+    {
+        internal static int[] Changed(int[] top, int[] under, int width, int height)
+        {
+            int count = width * height;
+            byte[] diff = new byte[count];
+            bool[] keep = new bool[count];
+            for (int i = 0; i < count; i++)
+            {
+                int a = top[i], b = under[i];
+                int alphaA = (a >> 24) & 255, alphaB = (b >> 24) & 255, most = Math.Abs(alphaA - alphaB);
+                for (int shift = 0; shift < 24; shift += 8)
+                {
+                    int one = ((a >> shift) & 255) * alphaA / 255, two = ((b >> shift) & 255) * alphaB / 255;
+                    most = Math.Max(most, Math.Abs(one - two));
+                }
+                diff[i] = (byte)most;
+                keep[i] = most > 40;
+            }
+            int[] queue = new int[count];
+            bool[] seen = new bool[count];
+            for (int start = 0; start < count; start++)
+            {
+                if (!keep[start] || seen[start]) continue;
+                int head = 0, tail = 0;
+                queue[tail++] = start;
+                seen[start] = true;
+                while (head < tail)
+                {
+                    int at = queue[head++], x = at % width, y = at / width;
+                    for (int dy = -1; dy <= 1; dy++)
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            int nx = x + dx, ny = y + dy;
+                            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+                            int next = ny * width + nx;
+                            if (keep[next] && !seen[next]) { seen[next] = true; queue[tail++] = next; }
+                        }
+                }
+                if (tail < 24) for (int i = 0; i < tail; i++) keep[queue[i]] = false;
+            }
+            bool[] strong = (bool[])keep.Clone();
+            for (int pass = 0; pass < 2; pass++)
+            {
+                bool[] grown = (bool[])keep.Clone();
+                for (int at = 0; at < count; at++)
+                {
+                    if (keep[at] || diff[at] <= 10 || ((top[at] >> 24) & 255) == 0) continue;
+                    int x = at % width, y = at / width;
+                    for (int dy = -1; dy <= 1 && !grown[at]; dy++)
+                        for (int dx = -1; dx <= 1; dx++)
+                        {
+                            int nx = x + dx, ny = y + dy;
+                            if (nx >= 0 && ny >= 0 && nx < width && ny < height && keep[ny * width + nx]) { grown[at] = true; break; }
+                        }
+                }
+                keep = grown;
+            }
+            Array.Clear(seen, 0, count);
+            for (int start = 0; start < count; start++)
+            {
+                if (strong[start] || seen[start]) continue;
+                int head = 0, tail = 0;
+                bool edge = false;
+                long total = 0;
+                queue[tail++] = start;
+                seen[start] = true;
+                while (head < tail)
+                {
+                    int at = queue[head++], x = at % width, y = at / width;
+                    total += diff[at];
+                    if (x == 0 || y == 0 || x == width - 1 || y == height - 1) edge = true;
+                    if (x > 0 && !strong[at - 1] && !seen[at - 1]) { seen[at - 1] = true; queue[tail++] = at - 1; }
+                    if (x < width - 1 && !strong[at + 1] && !seen[at + 1]) { seen[at + 1] = true; queue[tail++] = at + 1; }
+                    if (y > 0 && !strong[at - width] && !seen[at - width]) { seen[at - width] = true; queue[tail++] = at - width; }
+                    if (y < height - 1 && !strong[at + width] && !seen[at + width]) { seen[at + width] = true; queue[tail++] = at + width; }
+                }
+                if (!edge && total > 16L * tail) for (int i = 0; i < tail; i++) keep[queue[i]] = true;
+            }
+            int[] result = new int[count];
+            for (int i = 0; i < count; i++) if (keep[i] && ((top[i] >> 24) & 255) > 0) result[i] = top[i];
+            return result;
+        }
+    }
+
 #if !CROSS
     internal sealed partial class Companion
     {
@@ -399,83 +487,7 @@ namespace CapriDesktop
         private static Bitmap Changed(Bitmap skin, Bitmap own)
         {
             int width = skin.Width, height = skin.Height, count = width * height;
-            int[] top = Pixels(skin), under = Pixels(own);
-            byte[] diff = new byte[count];
-            bool[] keep = new bool[count];
-            for (int i = 0; i < count; i++)
-            {
-                int a = top[i], b = under[i];
-                int alphaA = (a >> 24) & 255, alphaB = (b >> 24) & 255, most = Math.Abs(alphaA - alphaB);
-                for (int shift = 0; shift < 24; shift += 8)
-                {
-                    int one = ((a >> shift) & 255) * alphaA / 255, two = ((b >> shift) & 255) * alphaB / 255;
-                    most = Math.Max(most, Math.Abs(one - two));
-                }
-                diff[i] = (byte)most;
-                keep[i] = most > 40;
-            }
-            int[] queue = new int[count];
-            bool[] seen = new bool[count];
-            for (int start = 0; start < count; start++)
-            {
-                if (!keep[start] || seen[start]) continue;
-                int head = 0, tail = 0;
-                queue[tail++] = start;
-                seen[start] = true;
-                while (head < tail)
-                {
-                    int at = queue[head++], x = at % width, y = at / width;
-                    for (int dy = -1; dy <= 1; dy++)
-                        for (int dx = -1; dx <= 1; dx++)
-                        {
-                            int nx = x + dx, ny = y + dy;
-                            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
-                            int next = ny * width + nx;
-                            if (keep[next] && !seen[next]) { seen[next] = true; queue[tail++] = next; }
-                        }
-                }
-                if (tail < 24) for (int i = 0; i < tail; i++) keep[queue[i]] = false;
-            }
-            bool[] strong = (bool[])keep.Clone();
-            for (int pass = 0; pass < 2; pass++)
-            {
-                bool[] grown = (bool[])keep.Clone();
-                for (int at = 0; at < count; at++)
-                {
-                    if (keep[at] || diff[at] <= 10 || ((top[at] >> 24) & 255) == 0) continue;
-                    int x = at % width, y = at / width;
-                    for (int dy = -1; dy <= 1 && !grown[at]; dy++)
-                        for (int dx = -1; dx <= 1; dx++)
-                        {
-                            int nx = x + dx, ny = y + dy;
-                            if (nx >= 0 && ny >= 0 && nx < width && ny < height && keep[ny * width + nx]) { grown[at] = true; break; }
-                        }
-                }
-                keep = grown;
-            }
-            Array.Clear(seen, 0, count);
-            for (int start = 0; start < count; start++)
-            {
-                if (strong[start] || seen[start]) continue;
-                int head = 0, tail = 0;
-                bool edge = false;
-                long total = 0;
-                queue[tail++] = start;
-                seen[start] = true;
-                while (head < tail)
-                {
-                    int at = queue[head++], x = at % width, y = at / width;
-                    total += diff[at];
-                    if (x == 0 || y == 0 || x == width - 1 || y == height - 1) edge = true;
-                    if (x > 0 && !strong[at - 1] && !seen[at - 1]) { seen[at - 1] = true; queue[tail++] = at - 1; }
-                    if (x < width - 1 && !strong[at + 1] && !seen[at + 1]) { seen[at + 1] = true; queue[tail++] = at + 1; }
-                    if (y > 0 && !strong[at - width] && !seen[at - width]) { seen[at - width] = true; queue[tail++] = at - width; }
-                    if (y < height - 1 && !strong[at + width] && !seen[at + width]) { seen[at + width] = true; queue[tail++] = at + width; }
-                }
-                if (!edge && total > 16L * tail) for (int i = 0; i < tail; i++) keep[queue[i]] = true;
-            }
-            int[] result = new int[count];
-            for (int i = 0; i < count; i++) if (keep[i] && ((top[i] >> 24) & 255) > 0) result[i] = top[i];
+            int[] result = SkinLayers.Changed(Pixels(skin), Pixels(own), width, height);
             Bitmap made = new Bitmap(width, height, PixelFormat.Format32bppArgb);
             BitmapData data = made.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
             try { System.Runtime.InteropServices.Marshal.Copy(result, 0, data.Scan0, count); }
