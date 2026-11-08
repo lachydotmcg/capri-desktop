@@ -1738,6 +1738,8 @@ namespace CapriDesktop
         private double nextPopIn = -1;
         private Reminders reminders;
         private bool reminderUp;
+        // She came out of Hide in full screen to show a reminder, and hides again once it's gone.
+        private bool reminderOut;
         private Care care;
         private CareLines careLines;
         private double careGameAt = -1;
@@ -4646,7 +4648,13 @@ namespace CapriDesktop
                 UpdateTalk(clock.Elapsed.TotalSeconds);
                 if (!bubbleOnly && job != null) SayAside(line, job);
             }
-            else Remark("reminder", line, bubbleOnly);
+            else
+            {
+                // Hidden over full screen, she comes out to show it (#168). Before, its bubble opened while she stayed hidden
+                // with her frames stopped, so it waited unseen, and held back every reminder after it, until the game closed.
+                if (hidden && !docked && fullScreenHidden && !manualHidden) { reminderOut = true; ApplyHidden(false); }
+                Remark("reminder", line, bubbleOnly);
+            }
             if (IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
         }
 
@@ -8597,6 +8605,14 @@ namespace CapriDesktop
             bool through = full && !docked;
             if (through || fullThrough) { fullThrough = through; PassThrough(); }
             bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked;
+            // Out for a reminder over full screen, she hides again once it's gone and nobody's using her.
+            if (reminderOut && (!shouldHide || hidden || docked)) reminderOut = false;
+            if (reminderOut && fullScreenHidden && !reminderUp && talkState == TalkState.Off && speech == null && !Voicing && !chatting && working == null && !dragging && !pressed && !menu.Visible && !typer.Visible)
+            {
+                reminderOut = false;
+                ApplyHidden(true);
+                return;
+            }
             if (fullScreenHidden == shouldHide) return;
             // Hiding closes her bubble and her voice with it, so she finishes her line first.
             if (shouldHide && Voicing) return;
@@ -18593,6 +18609,45 @@ namespace CapriDesktop
                 chatting = false;
                 local = false;
                 checks.Add("PASS due reminders show in the working text during a job and only in her bubble during local or cloud calls, without waiting for either to finish or firing twice");
+
+                // Hide in full screen (#168): a due reminder brings her out to show it, she hides again once it's gone, and the
+                // next one isn't held back until the game closes.
+                bool hideFullWas = preferences.HideFullScreen, fullHiddenWas = fullScreenHidden, manualWas = manualHidden, hiddenWas = hidden;
+                try
+                {
+                    CloseTalk();
+                    manualHidden = false;
+                    preferences.HideFullScreen = true;
+                    FullScreen = delegate { return true; };
+                    CheckFullScreen(true);
+                    if (!hidden || !fullScreenHidden) throw new Exception("Hide in full screen did not hide her before the reminder check.");
+                    int hiddenVoices = reminderVoices;
+                    foreach (string hiddenText in new[] { "hidden reminder", "next hidden reminder" })
+                    {
+                        reminders.Remind(new ToolArguments { Text = hiddenText, When = "in an hour" });
+                        CheckReminders(reminderNow.AddHours(1));
+                        UpdateTalk(clock.Elapsed.TotalSeconds);
+                        if (hidden || reply != "Reminder: " + hiddenText || !box.Visible || reminderVoices != hiddenVoices) throw new Exception("Hidden in full screen, a due reminder stayed hidden until full screen ended: hidden " + hidden + " / " + reply);
+                        CheckFullScreen(true);
+                        if (hidden) throw new Exception("She hid again in the middle of a reminder.");
+                        CloseTalk();
+                        CheckFullScreen(true);
+                        if (!hidden || !fullScreenHidden) throw new Exception("She stayed out over full screen after a reminder.");
+                    }
+                    checks.Add("PASS hidden in full screen, a due reminder brings her out to show it without her voice, she hides again once it's gone, and the next one isn't held back until the game closes (#168)");
+                }
+                finally
+                {
+                    CloseTalk();
+                    preferences.HideFullScreen = hideFullWas;
+                    FullScreen = delegate { return false; };
+                    CheckFullScreen(false);
+                    fullThrough = false;
+                    PassThrough();
+                    fullScreenHidden = fullHiddenWas;
+                    manualHidden = manualWas;
+                    if (hidden != hiddenWas) ApplyHidden(hiddenWas);
+                }
             }
             catch (IOException reminderIo) { checks.Add("LIMIT reminder persistence could not use the smoke folder: " + reminderIo.Message); }
             catch (UnauthorizedAccessException reminderAccess) { checks.Add("LIMIT reminder persistence could not use the smoke folder: " + reminderAccess.Message); }
