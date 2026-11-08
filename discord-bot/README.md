@@ -16,6 +16,10 @@
 
 9. Try `!capri how do I change her voice?`, mention her user directly, reply to one of her answers, or send her a DM. She can read one PNG, JPEG or WebP attachment under 1 MB. `bot.log` records time, a short user hash and the result. It does not record chat text or tokens.
 
+   In Ticket Tool tickets she answers without a ping. She waits until the person stops for about 8 seconds, or longer while someone is typing, and then answers all their lines at once. She stays quiet while staff are helping, which means someone whose highest role is Helper or above, or who has Administrator or Manage Messages, has posted in the ticket in the last 30 minutes. Pings, `!capri` and replies to her get answers even then. In a ticket, `!capri --off` and `!capri --on` turn her off and on there, for staff or whoever opened the ticket. The switches are kept in `ticket-state.json`.
+
+   When a person has to step in, she pings the server's plain Helper, Moderator or Developer role in its own message. Each role rings at most once per channel every half hour, and once per person every hour. bot.log shows `-ping-helper`, or `-ping-held` when that limit stopped one.
+
 10. For Windows login startup, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\install-startup.ps1`. This registers the current user's `Capri Discord Bot` task. It starts her hidden at the next login. Close the bot window before then so only one copy runs. To stop login startup, disable that task in Task Scheduler.
 
 She is only online while the PC running her is on. For the hidden startup task, that Windows user must also be logged in.
