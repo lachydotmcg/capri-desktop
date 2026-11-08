@@ -927,7 +927,9 @@ namespace CapriDesktop
         [DataMember] public bool CareWritten;
         [DataMember] public long CareNight;
         [DataMember] public string VoiceStyle;
-        [DataMember] public bool StartupSet;
+        // Always true now, and saved that way: before 0.8.7 the installed Capri turned Start with Windows on by herself while this
+        // was false (#199), so an older copy reading these settings leaves it as it is too.
+        [DataMember] public bool StartupSet = true;
         [DataMember] public bool QuickHands;
         [DataMember] public bool Bypass;
         // Her SECURITY window's toggles 1 to 10 as 1s and 0s, like "1111111000" for Trusted; "Hey Capri" is HeyCapri. Missing in
@@ -1085,7 +1087,7 @@ namespace CapriDesktop
         }
 
         [OnDeserialized]
-        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); MainframeColours = Neon.ClampLook(MainframeColours); MicLoudness = MicMix.Level(MicLoudness); }
+        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); MainframeColours = Neon.ClampLook(MainframeColours); MicLoudness = MicMix.Level(MicLoudness); StartupSet = true; }
 
         internal bool CareOn(CareKind kind)
         {
@@ -2832,7 +2834,6 @@ namespace CapriDesktop
             }
             if (!testing) StartHeartbeat();
             if (!testing) FindBrain();
-            if (!testing) DefaultStartup(Installed());
             if (!testing) GreetSoon();
             listenAt = clock.Elapsed.TotalSeconds + (GreetPause + 500) / 1000.0;
             if (!testing) AgentVoice();
@@ -4781,23 +4782,8 @@ namespace CapriDesktop
             }, false);
         }
 
-        private static bool Installed()
-        {
-            try { return string.Equals(Path.GetFullPath(Application.ExecutablePath), Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri", "Capri.exe")), StringComparison.OrdinalIgnoreCase); }
-            catch (ArgumentException) { return false; }
-            catch (NotSupportedException) { return false; }
-            catch (IOException) { return false; }
-        }
-
-        // She starts with Windows by default: the installed copy turns it on once, and turning it off sticks.
-        internal void DefaultStartup(bool installed)
-        {
-            if (preferences.StartupSet || !installed || !Startup.Set(Application.ExecutablePath, true)) return;
-            preferences.StartupSet = true;
-            SavePreferences();
-            mainframe.Sync();
-        }
-
+        // Start with Windows is off until they turn it on (#199): nothing writes her Run entry but this switch, not her first
+        // run, which is the one the setup starts when it finishes, and not an update. An entry an older Capri made stays as it is.
         internal bool StartsWithWindows { get { return Packaged.Is ? Packaged.StartupOn() : Startup.On(Application.ExecutablePath); } }
 
         internal void ToggleStartup()
@@ -4812,8 +4798,6 @@ namespace CapriDesktop
                 }
             }
             else if (!Startup.Set(Application.ExecutablePath, !StartsWithWindows)) Brain.Log("startup", -1, "Windows wouldn't let Capri change her Run entry.");
-            preferences.StartupSet = true;
-            SavePreferences();
             mainframe.Sync();
         }
 
@@ -23641,7 +23625,7 @@ namespace CapriDesktop
             Action<string> browseWas = Browse;
             Func<string, Process> setupWas = CableSetup.Start;
             long checkedWas = preferences.UpdateCheckedAt;
-            bool startedWas = updateStarted, startupSetWas = preferences.StartupSet;
+            bool startedWas = updateStarted;
             string noteWas = mainframe.UpdateStatus, cableLineWas = cableSetupLine;
             Directory.CreateDirectory(local);
             try
@@ -23701,11 +23685,10 @@ namespace CapriDesktop
                 int sets = 0;
                 Packaged.StartupOn = delegate { return taskOn; };
                 Packaged.SetStartup = delegate(bool on) { sets++; if (answer == null) taskOn = on; return answer; };
-                preferences.StartupSet = false;
-                DefaultStartup(Installed());
-                if (StartsWithWindows || preferences.StartupSet || sets != 0) throw new Exception("A Store copy turned starting with Windows on by herself.");
+                mainframe.Sync();
+                if (StartsWithWindows || mainframe.HabitsStatus != "-" || sets != 0) throw new Exception("A Store copy turned starting with Windows on by herself.");
                 ToggleStartup();
-                bool turnedOn = StartsWithWindows && sets == 1 && preferences.StartupSet;
+                bool turnedOn = StartsWithWindows && sets == 1;
                 ToggleStartup();
                 bool turnedOff = !StartsWithWindows && sets == 2;
                 answer = Packaged.StartupRefused;
@@ -23744,7 +23727,6 @@ namespace CapriDesktop
                 updateFile = null;
                 updateInstallAsked = false;
                 preferences.UpdateCheckedAt = checkedWas;
-                preferences.StartupSet = startupSetWas;
                 updateStarted = startedWas;
                 mainframe.UpdateNote(noteWas, false);
                 if (File.Exists(staged)) File.Delete(staged);
@@ -26132,7 +26114,7 @@ namespace CapriDesktop
             string runWas = Startup.RunKey, approvedWas = Startup.ApprovedKey;
             string testKey = "Software\\CapriSmoke\\Settings-" + Guid.NewGuid().ToString("N");
             string folderWas = preferences.ClipFolder;
-            bool startupWas = preferences.StartupSet, simpleWas = simpleTest, pageWas = mainframe.SettingsShown;
+            bool simpleWas = simpleTest, pageWas = mainframe.SettingsShown;
             bool quietWas = preferences.Quiet, hdWas = preferences.HdVoice, serverWas = preferences.ServerVoice;
             bool styleWas = styleCheckDue, listenWas = listenChangeDue, silentWas = preferences.Silent;
             int styleTicketWas = styleAsked;
@@ -26179,17 +26161,21 @@ namespace CapriDesktop
                     }
                     checks.Add("PASS setting " + name + " uses Mainframe's switch, saves and reads back both ways");
                 }
+                // With nothing in the Run key, as on a new install, her tool and her switch both say it's off (#199).
+                mainframe.Sync();
+                string startupFirst = Hands.Do("capri_settings", new ToolArguments { Action = "list", Name = "startup" });
+                if (StartsWithWindows || ((CheckBox)shown("startup")).Checked || !startupFirst.Contains("Start at login off")) throw new Exception("Start at login wasn't off before anyone turned it on: " + startupFirst);
                 foreach (bool on in new[] { true, false })
                 {
                     string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = "startup" });
-                    if (StartsWithWindows != on || ((CheckBox)shown("startup")).Checked != on || !LoadPreferences().StartupSet || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Start at login did not use the shared Run entry: " + line);
+                    if (StartsWithWindows != on || ((CheckBox)shown("startup")).Checked != on || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Start at login did not use the shared Run entry: " + line);
                     Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = "show_advanced" });
                     mainframe.ShowSettings(true);
                     if (preferences.AdvancedSettings != on || LoadPreferences().AdvancedSettings != on || mainframe.AdvancedShown != on) throw new Exception("Advanced settings did not change its view and save.");
                     Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = "voice_layers" });
                     if (VoiceLayers.On != on || LoadPreferences().VoiceLayers != on || mainframe.LayersKeyShown.Contains("(lit)") != on) throw new Exception("Voice layers switch did not reach Mainframe and disk.");
                 }
-                checks.Add("PASS start at login, advanced view and voice layers use the same state as Mainframe and save");
+                checks.Add("PASS start at login reads off until it's turned on, and it, advanced view and voice layers use the same state as Mainframe and save");
                 preferences.CheckIns = true;
                 mainframe.Sync();
                 for (int i = 0; i < Hands.CareSettings.Length; i++)
@@ -26331,7 +26317,6 @@ namespace CapriDesktop
                 Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(testKey, false);
                 preferences = preferencesWas;
                 Brain.Language = languageWas;
-                preferences.StartupSet = startupWas;
                 preferences.ClipFolder = folderWas;
                 clips.Configure(ClipOptions);
                 preferences.Quiet = quietWas;
@@ -38072,26 +38057,35 @@ namespace CapriDesktop
                             DesktopChecks(checks);
                             KeepAwakeChecks(checks);
                             DesktopWindowChecks(checks);
+                            // Start with Windows is off until they turn it on (#199): a new install has nothing in the Run key and her
+                            // switch shows off, an entry an older Capri made keeps her starting with Windows, and every settings file,
+                            // new, fresh after a crash or from before 0.8.7, says it's been set, so an older copy never turns it on.
                             string runKeyWas = Startup.RunKey, approvedKeyWas = Startup.ApprovedKey, startupRoot = "Software\\Capri smoke " + Guid.NewGuid().ToString("N");
-                            string startupExe = Path.GetFullPath(Application.ExecutablePath), elsewhere = Path.Combine(Path.GetTempPath(), "Capri elsewhere", "Capri.exe"), startupShown;
-                            bool startupWas = preferences.StartupSet, devOff, defaultOn, turnedOff, offSticks, taskManagerOff, backOn, otherCopy, keptOther, cleared, startupParsed;
+                            string startupExe = Path.GetFullPath(Application.ExecutablePath), elsewhere = Path.Combine(Path.GetTempPath(), "Capri elsewhere", "Capri.exe"), startupShown, startupOld = "\"" + startupExe + "\"";
+                            bool newOff, settingsSet, oldKept, turnedOff, turnedOn, taskManagerOff, backOn, otherCopy, keptOther, cleared, startupParsed;
                             Startup.RunKey = startupRoot + "\\Run";
                             Startup.ApprovedKey = startupRoot + "\\StartupApproved";
                             try
                             {
-                                preferences.StartupSet = false;
-                                DefaultStartup(false);
-                                devOff = !StartsWithWindows && !preferences.StartupSet;
-                                DefaultStartup(true);
-                                string startupWritten;
-                                using (Microsoft.Win32.RegistryKey startupRun = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Startup.RunKey)) startupWritten = startupRun == null ? null : startupRun.GetValue(Startup.Name) as string;
-                                defaultOn = StartsWithWindows && preferences.StartupSet && startupWritten == "\"" + startupExe + "\"";
+                                Func<string> startupEntry = delegate
+                                {
+                                    using (Microsoft.Win32.RegistryKey startupRun = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Startup.RunKey)) return startupRun == null ? null : startupRun.GetValue(Startup.Name) as string;
+                                };
+                                Func<string, Preferences> startupRead = delegate(string json)
+                                {
+                                    using (MemoryStream startupSaved = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json))) return (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(startupSaved);
+                                };
+                                mainframe.Sync();
+                                newOff = !StartsWithWindows && startupEntry() == null && mainframe.HabitsStatus == "-";
+                                settingsSet = new Preferences().StartupSet && Preferences.Fresh().StartupSet && startupRead("{}").StartupSet && startupRead("{\"StartupSet\":false,\"Size\":300}").StartupSet;
+                                using (Microsoft.Win32.RegistryKey startupRun = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(Startup.RunKey)) startupRun.SetValue(Startup.Name, startupOld);
+                                mainframe.Sync();
                                 startupShown = mainframe.HabitsStatus;
+                                oldKept = StartsWithWindows && startupEntry() == startupOld;
                                 ToggleStartup();
-                                turnedOff = !StartsWithWindows && mainframe.HabitsStatus == "-";
-                                DefaultStartup(true);
-                                offSticks = !StartsWithWindows;
+                                turnedOff = !StartsWithWindows && startupEntry() == null && mainframe.HabitsStatus == "-";
                                 ToggleStartup();
+                                turnedOn = StartsWithWindows && startupEntry() == startupOld && mainframe.HabitsStatus == "startup";
                                 using (Microsoft.Win32.RegistryKey startupApproved = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(Startup.ApprovedKey)) startupApproved.SetValue(Startup.Name, new byte[] { 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, Microsoft.Win32.RegistryValueKind.Binary);
                                 taskManagerOff = !StartsWithWindows;
                                 ToggleStartup();
@@ -38109,11 +38103,10 @@ namespace CapriDesktop
                                 Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(startupRoot, false);
                                 Startup.RunKey = runKeyWas;
                                 Startup.ApprovedKey = approvedKeyWas;
-                                preferences.StartupSet = startupWas;
                                 mainframe.Sync();
                             }
-                            if (!devOff || !defaultOn || startupShown != "startup" || !turnedOff || !offSticks || !taskManagerOff || !backOn || !otherCopy || !keptOther || !cleared || !startupParsed) throw new Exception("Start with Windows went wrong: copy elsewhere stays off " + devOff + ", on by default " + defaultOn + ", shown " + startupShown + ", off " + turnedOff + ", off sticks " + offSticks + ", Task Manager off " + taskManagerOff + ", back on " + backOn + ", other copy " + otherCopy + ", kept other " + keptOther + ", cleared " + cleared + ", startupParsed " + startupParsed);
-                            checks.Add("PASS start with Windows: the installed copy turns it on once by default and copies run from anywhere else don't, turning it off sticks, Task Manager's off shows as off and turning it on again clears that, and uninstalling only removes the entry that starts that copy");
+                            if (!newOff || !settingsSet || !oldKept || startupShown != "startup" || !turnedOff || !turnedOn || !taskManagerOff || !backOn || !otherCopy || !keptOther || !cleared || !startupParsed) throw new Exception("Start with Windows went wrong: new install off " + newOff + ", settings say set " + settingsSet + ", older entry kept " + oldKept + ", shown " + startupShown + ", off " + turnedOff + ", on " + turnedOn + ", Task Manager off " + taskManagerOff + ", back on " + backOn + ", other copy " + otherCopy + ", kept other " + keptOther + ", cleared " + cleared + ", startupParsed " + startupParsed);
+                            checks.Add("PASS start with Windows: off until it's turned on, with nothing in the Run key on a new install and every settings file marked so an older copy leaves it alone; an entry from before 0.8.7 keeps her starting with Windows, the switch turns it off and on, Task Manager's off shows as off and turning it on again clears that, and uninstalling only removes the entry that starts that copy");
                             SavePreferences();
                             if (LoadPreferences().Size != 240) throw new Exception("Settings did not round-trip.");
                             checks.Add("PASS settings round-trip in isolated test directory");

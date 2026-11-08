@@ -11,9 +11,12 @@ $capriDir = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'Ca
 $link = Join-Path ([Environment]::GetFolderPath('Programs')) 'Capri.lnk'
 $desktopLink = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'Capri.lnk'
 $arp = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Capri.Desktop'
+$run = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 foreach ($installed in (Join-Path $capriDir '.capri-install'), (Join-Path $capriDir 'Capri.exe'), (Join-Path $capriDir 'Uninstall.exe'), $link, $desktopLink, $arp) {
     if (Test-Path $installed) { throw "Capri is already installed for this user: $installed" }
 }
+function Starts { return (Get-ItemProperty $run -Name Capri -ErrorAction SilentlyContinue).Capri }
+if ($null -ne (Starts)) { throw 'Something already starts a Capri with Windows for this user.' }
 
 $err = Join-Path $env:TEMP ('capri-install-' + [guid]::NewGuid().ToString('N') + '.txt')
 function Run([string]$flags) {
@@ -32,10 +35,17 @@ try {
     if ($entry.UninstallString -ne ('"' + (Join-Path $capriDir 'Uninstall.exe') + '" --uninstall')) { throw "The uninstall entry runs $($entry.UninstallString)." }
     if (Test-Path (Join-Path $capriDir 'voice')) { throw 'The silent install downloaded the speech model.' }
     if (@(Get-Process Capri -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$capriDir\*" }).Count -ne 0) { throw 'The silent install opened Capri.' }
+    # Start with Windows stays off until they turn it on (#199), and an update keeps the entry an older Capri made.
+    if ($null -ne (Starts)) { throw 'A new install made her start with Windows.' }
+    $older = '"' + (Join-Path $capriDir 'Capri.exe') + '"'
+    if (!(Test-Path $run)) { New-Item $run | Out-Null }
+    Set-ItemProperty $run -Name Capri -Value $older
 
     $again = Run '--silent'
     if ($again[0] -ne 0) { throw "A second silent install exited $($again[0]): $($again[1])" }
     if (!(Test-Path (Join-Path $capriDir 'Capri.exe')) -or !(Test-Path $link)) { throw 'A second silent install lost her app or shortcut.' }
+    if ((Starts) -ne $older) { throw "Installing over her changed her Start with Windows entry: $(Starts)" }
+    Remove-ItemProperty $run -Name Capri
 
     foreach ($flags in '--silent --unknown', '--silent --update', '--silent --remove-files') {
         $wrong = Run $flags
@@ -43,7 +53,7 @@ try {
         if ([string]::IsNullOrWhiteSpace($wrong[1])) { throw "Capri-Setup.exe $flags failed without a reason." }
     }
     if (!(Test-Path (Join-Path $capriDir '.capri-install'))) { throw 'A refused command removed her.' }
-    Write-Output 'PASS silent install: app, uninstaller, marker, Start menu shortcut and uninstall entry, no desktop shortcut, speech model or launch; a second run installs over it, and a wrong flag fails with a reason instead of opening a window'
+    Write-Output 'PASS silent install: app, uninstaller, marker, Start menu shortcut and uninstall entry, no desktop shortcut, Start with Windows entry, speech model or launch; a second run installs over it and keeps the Start with Windows entry she had, and a wrong flag fails with a reason instead of opening a window'
 }
 finally {
     if (Test-Path $err) { Remove-Item $err -Force }

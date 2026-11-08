@@ -431,7 +431,7 @@ All the changes are in the [release notes](https://github.com/lachydotmcg/capri-
 
 - [x] One installer with everything in it, no admin rights needed
 - [x] The Capri Mainframe for her brain, voice and settings
-- [x] A Start with Windows switch, on by default
+- [x] A Start with Windows switch, off until you turn it on
 - [x] Updates that install themselves
 - [x] Changing her keys from a KEYS row in Settings: talk, mute mic, type to her and hide/show
 - [x] A setup guide, a Help page and Copy error details for the Discord
