@@ -49759,6 +49759,11 @@ namespace CapriDesktop
                     many.Append("{\"path\":\"mods/" + Path.GetFileNameWithoutExtension(name) + "/" + name + "\",\"type\":\"blob\",\"size\":2048,\"sha\":\"" + settingsSha + "\"},");
                 string smaller = tree;
                 tree = many.ToString().TrimEnd(',') + "]}";
+                statsJson = "{\"mods\":[{\"folder\":\"far-names\",\"downloads\":1234,\"rating\":4.5,\"votes\":8}"
+                    + ",{\"folder\":\"big-hat\",\"downloads\":500,\"rating\":4,\"votes\":10},{\"folder\":\"blue-hair\",\"downloads\":900,\"rating\":5,\"votes\":3}"
+                    + ",{\"folder\":\"dance-party\",\"downloads\":100,\"votes\":0},{\"folder\":\"red-hair\",\"downloads\":0,\"votes\":0}"
+                    + ",{\"folder\":\"red-hat\",\"downloads\":200,\"rating\":4.9,\"votes\":7},{\"folder\":\"tall-hat\",\"downloads\":100,\"rating\":1,\"votes\":1}"
+                    + ",{\"folder\":\"wide-hat\",\"downloads\":50,\"votes\":0},{\"folder\":\"zoom\",\"downloads\":0,\"rating\":3,\"votes\":5}]}";
                 sheet.LoadMods();
                 if (sheet.PageShown != "Page 1 of 2" || sheet.TitleOf(5) != "Tall Hat") throw new Exception("The mods window's first page was wrong.");
                 sheet.PressNext();
@@ -49774,6 +49779,22 @@ namespace CapriDesktop
                 if (sheet.ShownCount != 0 || sheet.EmptyShown != "No mods match that.") throw new Exception("No matches wasn't said.");
                 sheet.Type2("");
                 sheet.PressFilter(0);
+                sheet.PressSort(1);
+                if (!sheet.Sorted(1) || sheet.Sorted(0) || sheet.ShownCount != 8 || sheet.TitleOf(0) != "Blue Hair" || sheet.TitleOf(1) != "Big Hat" || sheet.TitleOf(2) != "Red Hat" || sheet.TitleOf(3) != "Dance Party" || sheet.TitleOf(4) != "Tall Hat") throw new Exception("Most downloaded didn't sort the mods: " + sheet.TitleOf(0));
+                sheet.PressNext();
+                if (sheet.TitleOf(0) != "Red Hair" || sheet.TitleOf(1) != "Zoom") throw new Exception("The sort didn't stay while paging: " + sheet.TitleOf(0));
+                sheet.PressFilter(3);
+                if (sheet.ShownCount != 4 || sheet.TitleOf(0) != "Big Hat" || sheet.TitleOf(1) != "Red Hat" || sheet.TitleOf(3) != "Wide Hat") throw new Exception("A sort didn't work on top of a filter: " + sheet.ShownCount);
+                sheet.Type2("hat");
+                if (sheet.ShownCount != 4 || sheet.TitleOf(0) != "Big Hat") throw new Exception("A sort didn't work on top of search: " + sheet.ShownCount);
+                sheet.Type2("");
+                sheet.PressSort(2);
+                if (sheet.TitleOf(0) != "Red Hat" || sheet.TitleOf(1) != "Big Hat" || sheet.TitleOf(2) != "Tall Hat" || sheet.TitleOf(3) != "Wide Hat") throw new Exception("Top rated didn't put the mod with no ratings last: " + sheet.TitleOf(3));
+                sheet.PressFilter(0);
+                if (sheet.ShownCount != 8 || sheet.TitleOf(0) != "Blue Hair" || sheet.TitleOf(4) != "Tall Hat" || sheet.TitleOf(5) != "Dance Party") throw new Exception("Mods with no ratings didn't come after rated ones: " + sheet.TitleOf(5));
+                sheet.PressSort(0);
+                if (sheet.TitleOf(0) != "Big Hat" || sheet.TitleOf(5) != "Tall Hat") throw new Exception("Sorting back to A to Z didn't restore the directory order: " + sheet.TitleOf(0));
+                checks.Add("PASS mods window sort: most downloaded and top rated sort on top of search and filters, the pick stays while paging, and mods with no ratings come after rated ones");
                 crowded = sheet.Crowded();
                 if (crowded != null) throw new Exception("A full mods window doesn't fit: " + crowded);
                 sheet.Picture(Path.Combine(output, "mods-window-full.png"));
