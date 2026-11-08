@@ -136,7 +136,7 @@ Linux can hear one English turn at a time through **TALK** once you set up her o
    Apple hasn't approved (notarized) her yet, so macOS blocks her or calls her "damaged" until you do. That line only clears the downloaded-from-the-internet flag on Capri
 4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
 
-**Linux TALK setup**
+### Linux TALK setup
 
 1. Install `parec` from your distribution's PulseAudio tools (`pulseaudio-utils` on Ubuntu). Pick your default mic in your system sound settings. PipeWire works when its PulseAudio service is running.
 2. Extract the [sherpa-onnx Linux CPU build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your machine. Keep its libraries with the extracted build and add its `bin` folder to `PATH` before you launch Capri.

@@ -809,6 +809,7 @@ namespace CapriDesktop
         private double pillUntil;
         private bool thinking;
         private double pace = LettersPerSecond;
+        private readonly Queue<(string Heard, string Line)> notices = new Queue<(string, string)>();
         private Action<string> asked;
         // Where a key typed in the hidden box goes: her voice key unless something else asked for it.
         private Action<string> secretTo;
@@ -890,6 +891,12 @@ namespace CapriDesktop
             Start(heard);
         }
 
+        internal void Notice(string heard, string line)
+        {
+            if (pet.Listening || notices.Count > 0) notices.Enqueue((heard, line));
+            else Answer(heard, line);
+        }
+
         // Like on Windows, where her bubble is drawn in her own window, nothing new shows while she's hidden or glitching out of
         // sight: it would float there with nobody under it, and stop her pop-ins until she's shown.
         internal void Answer(string heard, string answer, double seconds = 0)
@@ -945,6 +952,12 @@ namespace CapriDesktop
 
         internal void Update(double now)
         {
+            if (notices.Count > 0 && !pet.Away && !pet.Listening && Quiet && Finished)
+            {
+                var notice = notices.Dequeue();
+                Answer(notice.Heard, notice.Line);
+                return;
+            }
             UpdatePill(now);
             if (reply == null && !thinking) { if (Bubble.IsVisible) Bubble.Hide(); return; }
             Sheet sheet = Bubble.Sheet;

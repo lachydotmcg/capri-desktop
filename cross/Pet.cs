@@ -1833,6 +1833,8 @@ namespace CapriDesktop
             React();
         }
 
+        internal bool Listening { get { return listening != null; } }
+
         internal bool StopListening()
         {
             CancellationTokenSource turn = listening;
@@ -3503,13 +3505,13 @@ namespace CapriDesktop
                     pulled = -1;
                     if (MainframeTier == 0) frameProblem = problem;
                     NotifySettings();
-                    if (problem != null) { Talk.Answer(BrainHeard, problem); return; }
+                    if (problem != null) { Talk.Notice(BrainHeard, problem); return; }
                     Saved.Model = tag;
                     string currentServer, currentKey;
                     Brain.GetServer(out currentServer, out currentKey);
                     if (MainframeTier == 0 && Brain.Remote == null && currentServer == null) Brain.Model = tag;
                     Save();
-                    Talk.Answer(BrainHeard, "My brain's in. Talk to me, choom.");
+                    Talk.Notice(BrainHeard, "My brain's in. Talk to me, choom.");
                 });
             });
         }
@@ -5124,7 +5126,7 @@ namespace CapriDesktop
                     string note = HuskWatch.Note(mode);
                     if (unlinked != null) note += " " + unlinked;
                     // A link she had to replace is said even at startup.
-                    if (problem != null || !starting || unlinked != null || rewrote) Talk.Answer("(code/husk mode)", problem ?? note);
+                    if (problem != null || !starting || unlinked != null || rewrote) Talk.Notice("(code/husk mode)", problem ?? note);
                 };
                 if (Dispatcher.UIThread.CheckAccess()) finish(); else Dispatcher.UIThread.Post(finish);
             });

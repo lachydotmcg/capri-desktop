@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
@@ -15,6 +16,7 @@ namespace CapriDesktop
     {
         private const int Rate = 16000;
         private const int Frame = Rate / 50;
+        private const uint SpeechWindow = (1u << 15) - 1;
         private const uint CloseOnExec = 1;
         private const string Model = "parakeet-tdt-0.6b-v2-int8";
         private const string Recorder = "parec";
@@ -100,7 +102,8 @@ namespace CapriDesktop
         {
             short[] samples = new short[12 * Rate];
             byte[] frame = new byte[Frame * 2];
-            int used = 0, voiced = 0, quiet = 0;
+            int used = 0, quiet = 0;
+            uint recentSound = 0;
             bool heard = false;
             while (used < samples.Length)
             {
@@ -113,9 +116,12 @@ namespace CapriDesktop
                     energy += sample * sample;
                 }
                 bool sound = energy >= (long)Frame * 250 * 250;
-                voiced = sound ? voiced + 1 : 0;
                 quiet = sound ? 0 : quiet + 1;
-                if (voiced >= 5) heard = true;
+                if (!heard)
+                {
+                    recentSound = ((recentSound << 1) | (sound ? 1u : 0u)) & SpeechWindow;
+                    heard = BitOperations.PopCount(recentSound) >= 5;
+                }
                 if (!heard && used >= 4 * Rate) break;
                 if (heard && quiet >= 40) break;
             }

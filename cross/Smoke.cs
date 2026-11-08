@@ -1573,16 +1573,18 @@ namespace CapriDesktop
         {
             const string words = "Tell me a short joke.";
             const string reply = "That came through TALK.";
+            const string notice = "My brain's in. Talk to me, choom.";
             if (voiceStage == 0)
             {
                 byte[] pcm = new byte[4 * 16000 * 2];
                 using (var silent = new MemoryStream(pcm))
                     if (Ears.Words(silent, CancellationToken.None).GetAwaiter().GetResult().Length != 0) throw new Exception("A silent mic gave her words.");
-                for (int i = 3200; i < 9600; i += 2) { pcm[i] = 0; pcm[i + 1] = 4; }
+                for (int frame = 6; frame < 15; frame += 2)
+                    for (int i = frame * 640; i < (frame + 1) * 640; i += 2) { pcm[i] = 32; pcm[i + 1] = 1; }
                 using (var sound = new MemoryStream(pcm))
                 {
                     short[] said = Ears.Words(sound, CancellationToken.None).GetAwaiter().GetResult();
-                    if (said.Length != 17600 || said[1600] != 1024) throw new Exception("She didn't stop listening after the mic went quiet.");
+                    if (said.Length != 17600 || said[1920] != 288) throw new Exception("She missed quiet speech with gaps or didn't stop at silence.");
                 }
                 thinkBeforeVoice = pet.Think;
                 silentBeforeVoice = pet.Saved.Silent;
@@ -1605,18 +1607,32 @@ namespace CapriDesktop
                 pet.Talk.Pill.Press(2);
                 if (!voiceStarted.Task.Result.IsCancellationRequested || !pet.Talk.Quiet) throw new Exception("TALK didn't cancel the open mic.");
                 voiceWords.SetResult("This cancelled line shouldn't reach her.");
-                pet.Listen = (decoding, _) => { decoding(); return Task.FromResult(words); };
+                voiceWords = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                voiceStarted = new TaskCompletionSource<CancellationToken>();
+                pet.Listen = (decoding, stop) => { decoding(); voiceStarted.SetResult(stop); return voiceWords.Task; };
                 pet.Talk.Pill.Press(2);
+                voiceStage++;
+                return false;
+            }
+            if (voiceStage == 2)
+            {
+                if (!voiceStarted.Task.IsCompleted || !pet.Talk.Bubble.Sheet.Heard.StartsWith("(hearing your words", StringComparison.Ordinal)) return false;
+                pet.Talk.Notice("(brain)", notice);
+                if (voiceStarted.Task.Result.IsCancellationRequested || pet.Talk.Reply != null) throw new Exception("A background notice interrupted her ears.");
+                voiceWords.SetResult(words);
                 voiceStage++;
                 return false;
             }
             if (pet.Talk.Reply != reply) return false;
             if (pet.Talk.Bubble.Sheet.Heard != words || Volatile.Read(ref voiceTurns) != 1) throw new Exception("TALK didn't send just the finished words to her chat.");
+            pet.Talk.Dismiss();
+            pet.Talk.Update(pet.Now);
+            if (pet.Talk.Reply != notice) throw new Exception("She lost the notice that waited for TALK.");
             pet.Think = thinkBeforeVoice;
             pet.Saved.Silent = silentBeforeVoice;
             pet.Listen = null;
             pet.Talk.Dismiss();
-            checks.Add("PASS Linux TALK: she waits for speech, stops at silence, sends the words to chat and drops a cancelled turn");
+            checks.Add("PASS Linux TALK: she hears quiet speech with gaps, stops at silence, drops a cancelled turn and shows a waiting notice after the reply");
             return true;
         }
 
