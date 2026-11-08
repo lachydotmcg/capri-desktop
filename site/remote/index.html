@@ -67,9 +67,9 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5l1.75 1.75L8.5 5M3.5 12.5l1.75 1.75L8.5 11M4 17.5h4v4H4zM11.5 6.75h9M11.5 12.75h9M11.5 19.5h6"/></svg>
       <span class="feat-name">Jobs</span><span class="tag soon" aria-hidden="true">Soon</span>
     </button>
-    <button class="feat" id="f-settings" type="button" aria-disabled="true" aria-label="Settings, coming soon">
+    <button class="feat" id="f-settings" type="button" aria-label="Settings: add Capri to your home screen">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h4M12.5 6.5h8M7.5 4.25h5v4.5h-5zM3.5 12h10M18.5 12h2M13.5 9.75h5v4.5h-5zM3.5 17.5h1M9.5 17.5h11M4.5 15.25h5v4.5h-5z"/></svg>
-      <span class="feat-name">Settings</span><span class="tag soon" aria-hidden="true">Soon</span>
+      <span class="feat-name">Settings</span>
     </button>
     <button class="feat" id="close-chat" type="button" aria-label="Close: open the menu">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.5l13 13M18.5 5.5l-13 13"/></svg>
@@ -105,12 +105,39 @@
         <li><span class="step-n">3</span><span>Scan the code with this phone</span></li>
         <li><span class="step-n">4</span><span>Tap Allow on your PC</span></li>
       </ol>
+      <form class="paste" id="paste" autocomplete="off" hidden>
+        <label class="code-label" for="paste-link">Pairing link</label>
+        <span class="field" id="paste-field">
+          <input id="paste-link" type="url" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" maxlength="600" placeholder="Paste from Safari">
+        </span>
+        <button class="nbtn cyan wide" id="paste-go" type="submit">Paste link</button>
+      </form>
       <ul class="facts">
         <li>End-to-end encrypted</li>
         <li>No account</li>
         <li>Unpair any time</li>
       </ul>
       <button class="nbtn cyan wide" id="try-demo" type="button">Try the demo</button>
+    </div>
+  </section>
+
+  <section class="screen" id="where" aria-labelledby="where-title" hidden>
+    <div class="card nc" id="where-card">
+      <svg class="hot hot-tl" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="1.1,51.1 1.1,17.1 17.1,1.1 81.1,1.1"/></svg>
+      <svg class="hot hot-br" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="81.1,1.1 81.1,35.1 65.1,51.1 1.1,51.1"/></svg>
+      <h2 class="card-title" id="where-title">Pair where?</h2>
+      <p class="card-lead">A home screen app keeps its own pairing</p>
+      <div class="card-actions">
+        <button class="nbtn cyan" id="where-here" type="button">Pair in Safari</button>
+        <button class="nbtn" id="where-home" type="button">Home screen app</button>
+      </div>
+      <ol class="steps" id="where-steps" hidden>
+        <li><span class="step-n">1</span><span>Tap Share, then Add to Home Screen</span></li>
+        <li><span class="step-n">2</span><span>Open Capri from your home screen</span></li>
+        <li><span class="step-n">3</span><span>Tap Paste link within 10 minutes</span></li>
+      </ol>
+      <p class="card-note" id="where-note" role="status" hidden></p>
+      <span class="field" id="where-field" hidden><input id="where-link" type="text" readonly aria-label="Pairing link to copy"></span>
     </div>
   </section>
 
@@ -181,6 +208,23 @@
       </div>
     </div>
   </nav>
+
+  <section class="card nc sheet" id="home" role="dialog" aria-modal="true" aria-labelledby="home-title" hidden>
+    <svg class="hot hot-tl" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="1.1,51.1 1.1,17.1 17.1,1.1 81.1,1.1"/></svg>
+    <svg class="hot hot-br" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="81.1,1.1 81.1,35.1 65.1,51.1 1.1,51.1"/></svg>
+    <h2 class="card-title" id="home-title">Add her to your home screen</h2>
+    <h3 class="nhead">iPhone</h3>
+    <ol class="steps">
+      <li><span class="step-n">1</span><span>Tap Share, then Add to Home Screen</span></li>
+      <li><span class="step-n">2</span><span>It pairs on its own: scan a new code, pick Home screen app</span></li>
+    </ol>
+    <h3 class="nhead">Android</h3>
+    <ol class="steps">
+      <li><span class="step-n">1</span><span>Tap &#8942;, then Install app</span></li>
+      <li><span class="step-n">2</span><span>It stays paired</span></li>
+    </ol>
+    <button class="nbtn cyan wide" id="home-done" type="button">Done</button>
+  </section>
 
   <p class="sr-only" id="announce" aria-live="polite"></p>
 </div>

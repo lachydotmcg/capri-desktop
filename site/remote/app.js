@@ -8,12 +8,19 @@
   const config = window.CAPRI_CONFIG || {};
   // The demo PC runs only in the preview build or when the address asks for it with ?demo. Nothing on the chat screen
   // says demo any more, so on the real page nothing fake can turn up. The demo skips the gate; ?gate shows it anyway.
-  let demoAsked = false, gateAsked = false;
+  let demoAsked = false, gateAsked = false, iosAsked = '';
   try {
     const asked = new URLSearchParams(location.search);
     demoAsked = asked.has('demo');
     gateAsked = asked.has('gate');
+    iosAsked = asked.get('ios') || '';
   } catch (error) {}
+  // An iPhone keeps a home screen app's storage apart from Safari's, so a pairing made in one never reaches the other, and
+  // a QR code always opens in Safari. ?ios=safari and ?ios=app act those two out in any browser, to check their screens.
+  const iphone = iosAsked === 'safari' || iosAsked === 'app' || 'standalone' in navigator;
+  const standalone = iosAsked === 'app' || (iosAsked !== 'safari' && (navigator.standalone === true || (() => {
+    try { return matchMedia('(display-mode: standalone)').matches; } catch (error) { return false; }
+  })()));
   const demoBuild = config.demo !== false && (config.preview === true || demoAsked);
   const $ = selector => document.querySelector(selector);
   const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
@@ -60,6 +67,14 @@
   const actions = $('#actions');
   const unpairButton = $('#d-unpair');
   const announce = $('#announce');
+  const whereScreen = $('#where');
+  const whereNote = $('#where-note');
+  const whereField = $('#where-field');
+  const whereInput = $('#where-link');
+  const pasteForm = $('#paste');
+  const pasteField = $('#paste-field');
+  const pasteLink = $('#paste-link');
+  const homeSheet = $('#home');
 
   let linkState = 'unpaired';
   let linkInfo = {};
@@ -451,12 +466,14 @@
     if (screen === 'gate') banner.hidden = true;
     gateScreen.hidden = screen !== 'gate';
     pairScreen.hidden = screen !== 'pair';
+    whereScreen.hidden = screen !== 'where';
     waitScreen.hidden = screen !== 'wait';
     log.hidden = screen !== 'chat';
     composer.hidden = screen !== 'chat';
     actions.hidden = screen !== 'chat';
     if (screen === 'gate') CapriBar.seat(gateForm, 'right');
     else if (screen === 'pair') CapriBar.seat($('#pair-card'), 'right');
+    else if (screen === 'where') CapriBar.seat($('#where-card'), 'right');
     else if (screen === 'wait') CapriBar.seat($('#wait-card'), 'right');
     else CapriBar.seat(bar, 'left');
   };
@@ -514,6 +531,11 @@
     updateSend();
     CapriBar.rest(state === 'offline');
     if (state !== 'connected') for (const key of [...pending.keys()]) settleReply(key, 'SIGNAL LOST');
+    // Her home screen guide comes up once, the first time a browser that isn't on the home screen yet gets through.
+    if (state === 'connected' && was !== 'connected' && !linkInfo.demo && !standalone && !homeSeen()) {
+      try { localStorage.setItem(HOME_SEEN, '1'); } catch (error) {}
+      openHome();
+    }
     if (state === 'connected' && was !== 'connected' && linkInfo.demo && !current()) {
       startChat('Demo link\'s up. I\'m sitting on your bar now. Grab me and throw, I dare you.');
       renderChat();
@@ -629,6 +651,86 @@
   // The preview can show the early-access gate from here too.
   $('#d-gate').addEventListener('click', () => { closeMenu(); showGate(); });
 
+  // ---------- Her home screen guide: once after pairing in a browser, and from SETTINGS ----------
+  const HOME_SEEN = 'capri-remote-home-guide';
+  const homeSeen = () => { try { return localStorage.getItem(HOME_SEEN) === '1'; } catch (error) { return false; } };
+  const openHome = () => {
+    closeMenu();
+    homeSheet.hidden = false;
+    scrim.hidden = false;
+    $('#home-done').focus({ preventScroll: true });
+  };
+  const closeHome = () => {
+    if (homeSheet.hidden) return;
+    homeSheet.hidden = true;
+    if (!app.classList.contains('menu')) scrim.hidden = true;
+  };
+  $('#f-settings').addEventListener('click', openHome);
+  $('#home-done').addEventListener('click', closeHome);
+  scrim.addEventListener('click', closeHome);
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeHome(); });
+
+  // ---------- iPhone: pairing in Safari or in the home screen app ----------
+  // A code scanned in Safari can pair Safari, or go to the home screen app: Safari copies its link and leaves the code
+  // unused, and the app pastes it within the code's 10 minutes. The link stays in memory here, never in the address bar.
+  let whereLink = '';
+  const offerWhere = () => {
+    whereLink = location.hash;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (error) {}
+    $('#where-steps').hidden = true;
+    whereNote.hidden = true;
+    whereField.hidden = true;
+    setScreen('where');
+  };
+  $('#where-here').addEventListener('click', () => {
+    if (whereLink) {
+      try { history.replaceState(null, '', location.pathname + location.search + whereLink); } catch (error) {}
+      whereLink = '';
+    }
+    begin();
+  });
+  $('#where-home').addEventListener('click', async () => {
+    if (!whereLink) return;
+    const full = location.origin + location.pathname + whereLink;
+    let copied = false;
+    try { await navigator.clipboard.writeText(full); copied = true; } catch (error) {}
+    $('#where-steps').hidden = false;
+    whereNote.textContent = copied ? 'Link copied' : 'Copy this link first';
+    whereNote.hidden = false;
+    whereField.hidden = copied;
+    whereInput.value = copied ? '' : full;
+    if (!copied) { whereInput.focus(); whereInput.select(); }
+  });
+  // The home screen app pairs from that link: from the clipboard, or pasted into the box.
+  if (iphone && standalone) {
+    pasteForm.hidden = false;
+    pairScreen.querySelector('.card-lead').textContent = 'Paste the link Safari copied';
+    const steps = pairScreen.querySelectorAll('.steps li > span:last-child');
+    ['On your PC, press Pair a phone', 'Scan it, then pick Home screen app', 'Come back here, tap Paste link', 'Tap Allow on your PC']
+      .forEach((words, at) => { if (steps[at]) steps[at].textContent = words; });
+  }
+  pasteLink.addEventListener('input', () => pasteField.classList.remove('bad'));
+  pasteForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    let text = pasteLink.value.trim();
+    if (!text && navigator.clipboard && navigator.clipboard.readText) {
+      try { text = (await navigator.clipboard.readText()).trim(); } catch (error) {}
+    }
+    const hash = text.indexOf('#') >= 0 ? text.slice(text.indexOf('#')) : '';
+    if (!/[#&]r=/.test(hash) || !/[#&]c=/.test(hash) || !/[#&]k=/.test(hash)) {
+      pasteField.classList.add('bad');
+      pairNote.textContent = text ? 'That isn\'t a pairing link' : 'Paste the link from Safari';
+      pairNote.hidden = false;
+      return;
+    }
+    pasteField.classList.remove('bad');
+    pasteLink.value = '';
+    try { history.replaceState(null, '', location.pathname + location.search + hash); } catch (error) {}
+    // It did its job, so it leaves the clipboard too.
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText('').catch(() => {});
+    CapriRemote.connect();
+  });
+
   // ---------- Early access ----------
   // Only the password's SHA-256 is here, of the words trimmed and lower-cased (phone keyboards capitalise the first
   // letter). A right answer is kept on this phone, so the gate doesn't ask again; unpairing leaves it. A wrong one only
@@ -716,6 +818,13 @@
       try { history.replaceState(null, '', location.pathname + location.search + heldLink); } catch (error) {}
       heldLink = '';
     }
+    if (iphone && !standalone && !demoBuild && /[#&](r|c|k)=/.test(location.hash)) offerWhere();
+    else begin();
+  };
+  let begun = false;
+  const begin = () => {
+    if (begun) return;
+    begun = true;
     let saved = null;
     try { saved = localStorage.getItem('capri-remote-pairing'); } catch (error) {}
     // A demo this phone tried once never comes back on the real page: that marker holds no keys, only "demo: true".
