@@ -48,7 +48,7 @@ She sits on your windows, talks back, joins your calls, plays your games and get
 Better voice calls, mods and Capri VR, plus a pile of stuff you asked for.
 
 - **[She joins your calls.](#she-joins-your-calls)** She hops in your Discord call for you, covers for you and launches the game your friends pick
-- **[Code/Husk Mode.](#codehusk-mode)** She's Claude Code's and Codex's body while they work
+- **[Code/Husk Mode.](#codehusk-mode)** She's Claude Code's, Codex's and OpenCode's body while they work
 - **[Mods.](#mods)** A Mods window with a directory, previews, downloads and ratings, and nine mods by Vocyn to start
 - **[Capri VR.](#capri-vr)** Capri Room for Meta Quest 3 and 3S, by fadievr
 - **[Mac and Linux.](#mac-and-linux-preview)** Her full Mainframe, Mods, Code/Husk Mode and any OpenAI-compatible provider
@@ -78,13 +78,13 @@ Call mode is Windows only, and still in beta. Asking her to join turns it on, or
 
 ## Code/Husk Mode
 
-She becomes Claude Code's and Codex's body while they work. Leave them coding and go do something else: she acts it all out on your desktop, says when they need your OK, and tells you what they answered.
+She becomes Claude Code's, Codex's and OpenCode's body while they work. Leave them coding and go do something else: she acts it all out on your desktop, says when they need your OK, and tells you what they answered.
 
-**Set it up:** Mainframe > Settings > Advanced Settings > BRAIN > **Code/Husk Mode**, then pick Off, Claude Code, Codex or Both. That installs her hooks, with backups, and keeps your other hooks and settings. Restart Claude Code. For Codex, restart it and trust her hooks when it asks.
+**Set it up:** Mainframe > Settings > Advanced Settings > BRAIN > **Code/Husk Mode**, then pick Off, Claude Code, Codex, OpenCode or All. If you picked Both before, it stays Claude Code + Codex until you pick something else. That installs her hooks, with backups, and keeps your other hooks and settings. Restart Claude Code. For Codex, restart it and trust her hooks when it asks. OpenCode has plugins instead of hooks, so she adds her own `capri.js` to its plugins folder (`~/.config/opencode/plugins`, or `OPENCODE_CONFIG_DIR`). Restart OpenCode to load it. It needs OpenCode 2.
 
 <div align="center">
 
-| When Claude Code or Codex... | She... |
+| When Claude Code, Codex or OpenCode... | She... |
 | --- | --- |
 | gets your prompt | perks up: "Claude's on it." |
 | reads, edits, runs or searches | shows a quiet caption, like "Editing Brain.cs" |
@@ -96,9 +96,9 @@ She becomes Claude Code's and Codex's body while they work. Leave them coding an
 
 </div>
 
-- **Ask her about it:** what Claude or Codex is doing, or today's prompts, finished tasks, edited files, errors and approvals
+- **Ask her about it:** what Claude, Codex or OpenCode is doing, or today's prompts, finished tasks, edited files, errors and approvals
 - **She only watches.** She never approves anything or controls the coding assistant. You answer in the coding app
-- **Off** stops her listener and removes only her hooks
+- **Off** stops her listener and removes only her hooks and her OpenCode plugin
 - With a cloud brain, the answers and actions she reads go to that brain to be shortened or talked about, with keys, tokens and passwords taken out first
 
 Code/Husk Mode works on Windows, Mac and Linux.
@@ -367,6 +367,7 @@ Pick what she calls you, her language, her voice and what she does on your PC fr
 - [x] Reminders on dates, like "remind me on 5 December at 9am" (0.8.3)
 - [x] Teaching her a game's controls before she plays it (0.8.3)
 - [x] Code/Husk Mode: Claude Code's and Codex's body while they work (0.8.3)
+- [x] Code/Husk Mode for OpenCode
 - [ ] Controlling YouTube: skip and fullscreen
 - [ ] Looking things up and telling you the answer
 - [ ] Working with your files: open, read and edit the ones you pick

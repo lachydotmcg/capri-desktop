@@ -5012,8 +5012,7 @@ namespace CapriDesktop
         private readonly Queue<HuskAct> huskLines = new Queue<HuskAct>();
         private string huskMood;
         private double huskMoodAt = -10;
-        internal static readonly string[] HuskNames = { "Off", "Claude Code", "Codex", "Both" };
-        internal const string HuskHelp = "Code/Husk Mode works on Windows, Mac and Linux. Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode picks Off, Claude Code, Codex or Both. It installs only Capri's hooks and backs up settings first. Restart Claude Code or Codex after picking a mode, and trust her hooks in Codex when it asks. She watches prompts, tools, failures, approvals, completion, subagents and compacting. Tool captions are silent and at least four seconds apart. Approvals get her attention and voice when it is on; answer in the coding app. On Mac and Linux she shows a short completion answer and a subagent count in her bubble. With a cloud brain, observed actions go to that brain when you ask about them, with keys and tokens removed first. Off stops the listener and removes only her hooks. She never approves or controls the coding assistant. Use these facts only when asked about Code/Husk Mode.";
+        internal const string HuskHelp = "Code/Husk Mode works on Windows, Mac and Linux. Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode picks Off, Claude Code, Codex, OpenCode or All. Both, picked before OpenCode was added, stays Claude Code + Codex until another choice. It installs only Capri's hooks, or for OpenCode her own plugin file, and backs up settings first. Restart the coding app after picking a mode, and trust her hooks in Codex when it asks. She watches prompts, tools, failures, approvals, completion, subagents and compacting. Tool captions are silent and at least four seconds apart. Approvals get her attention and voice when it is on; answer in the coding app. On Mac and Linux she shows a short completion answer and a subagent count in her bubble. With a cloud brain, observed actions go to that brain when you ask about them, with keys and tokens removed first. Off stops the listener and removes only her hooks. She never approves or controls the coding assistant. Use these facts only when asked about Code/Husk Mode.";
         internal Action<Action> HuskQueue = delegate(Action action) { ThreadPool.QueueUserWorkItem(delegate { action(); }); };
         internal Func<string> HuskExe = HuskHooks.Executable;
         internal Action<string, bool> HuskSaid;
@@ -5028,7 +5027,7 @@ namespace CapriDesktop
             // Her listener file goes with her even when she closes without Quit: at logout, shutdown or a kill signal.
             AppDomain.CurrentDomain.ProcessExit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
             desktop.Exit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
-            Saved.HuskMode = Math.Max(0, Math.Min(3, Saved.HuskMode));
+            Saved.HuskMode = HuskWatch.Allowed(Saved.HuskMode);
             husk = new HuskWatch(Program.Smoke ?? folder);
             HuskHooks.BackupFolder = Program.Smoke ?? folder;
             husk.Clock = delegate { return Now; };
@@ -5064,7 +5063,7 @@ namespace CapriDesktop
         private void SetHusk(int mode, bool starting)
         {
             if (quitting || huskChanging || husk == null) return;
-            mode = Math.Max(0, Math.Min(3, mode));
+            mode = HuskWatch.Allowed(mode);
             if (mode == 0) { husk.Stop(); huskAgents.Clear(); huskLines.Clear(); }
             Saved.HuskMode = mode;
             Save();
@@ -5083,10 +5082,7 @@ namespace CapriDesktop
                     if (quitting) return;
                     Saved.HuskMode = husk.Mode;
                     Save();
-                    string note = mode == 0 ? "Code/Husk Mode off. My hooks are removed."
-                        : mode == 1 ? "Restart Claude Code to use my hooks."
-                        : mode == 2 ? "Restart Codex and trust my hooks when it asks."
-                        : "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.";
+                    string note = HuskWatch.Note(mode);
                     if (unlinked != null) note += " " + unlinked;
                     // A link she had to replace is said even at startup.
                     if (problem != null || !starting || unlinked != null || rewrote) Talk.Answer("(code/husk mode)", problem ?? note);

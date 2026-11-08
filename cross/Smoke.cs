@@ -2615,7 +2615,7 @@ namespace CapriDesktop
         private void HuskChecks(Mainframe frame)
         {
             string own = Path.Combine(folder, "husk", Guid.NewGuid().ToString("N"));
-            string claudeWas = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR"), codexWas = Environment.GetEnvironmentVariable("CODEX_HOME"), imageWas = Environment.GetEnvironmentVariable("APPIMAGE");
+            string claudeWas = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR"), codexWas = Environment.GetEnvironmentVariable("CODEX_HOME"), opencodeWas = Environment.GetEnvironmentVariable("OPENCODE_CONFIG_DIR"), imageWas = Environment.GetEnvironmentVariable("APPIMAGE");
             Action<Action> queueWas = pet.HuskQueue;
             Func<string> exeWas = pet.HuskExe;
             Action<string, bool> saidWas = pet.HuskSaid;
@@ -2632,6 +2632,7 @@ namespace CapriDesktop
             {
                 Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", Path.Combine(own, "Claude config"));
                 Environment.SetEnvironmentVariable("CODEX_HOME", Path.Combine(own, "Codex config"));
+                Environment.SetEnvironmentVariable("OPENCODE_CONFIG_DIR", Path.Combine(own, "OpenCode config"));
                 string mac = "/Applications/Capri Test.app/Contents/MacOS/Capri", linux = "/home/test/Capri folder/Capri", image = "/home/test/My Capri's $build `test`.AppImage";
                 foreach (string exe in new[] { mac, linux, image })
                     foreach (string source in new[] { "claude", "codex" })
@@ -2645,6 +2646,14 @@ namespace CapriDesktop
                 foreach (string command in new[] { "echo Capri --hook claude", "'/other/Watcher' --hook claude", HuskHooks.Command(mac, "claude") + " && echo extra", "CAPRI_HUSK=1 '/other/Watcher' --hook codex" })
                     if (HuskHooks.Ours(command, "claude")) throw new Exception("Husk removal matched another command.");
                 checks.Add("PASS cross husk commands: Mac bundle binary, Linux executable, spaces, shell quotes and APPIMAGE; removal owns only her marked command");
+                string plugin = HuskHooks.PathFor("opencode");
+                if (plugin != Path.Combine(own, "OpenCode config", "plugins", "capri.js")) throw new Exception("The cross OpenCode plugin isn't in OPENCODE_CONFIG_DIR's plugins folder.");
+                HuskHooks.Configure(4, image);
+                string written = File.ReadAllText(plugin);
+                if (!written.StartsWith(HuskHooks.PluginMark, StringComparison.Ordinal) || !written.Contains("const exe = " + HuskJson.Write(image)) || !written.Contains("['--hook', 'opencode']")) throw new Exception("The cross OpenCode plugin didn't run her exact app.");
+                HuskHooks.Configure(0, null);
+                if (File.Exists(plugin)) throw new Exception("Code/Husk Mode Off left her OpenCode plugin.");
+                checks.Add("PASS cross husk OpenCode: her plugin goes in OPENCODE_CONFIG_DIR's plugins folder, runs her exact AppImage path, and Off removes it");
 
                 Dictionary<string, string> originals = new Dictionary<string, string>();
                 string setting = "  \"other\" : { \"a/b\" : \"x\", \"_x0041_\" : \"literal\" },\r\n  \"number\" : 1.00000000000000001 ,\r\n";
@@ -2822,11 +2831,16 @@ namespace CapriDesktop
                 pet.HuskQueue = delegate(Action action) { action(); };
                 pet.HuskExe = delegate { return mac; };
                 pet.SetAdvancedSettings(true); frame.ShowSettings(true);
-                for (int mode = 0; mode < 4; mode++)
+                for (int choice = 0; choice < HuskWatch.Choices(0).Length; choice++)
                 {
-                    frame.Change("Code/Husk Mode", mode);
-                    if (pet.HuskMode != mode || frame.Value("Code/Husk Mode") != Pet.HuskNames[mode] || SettingsCopy().HuskMode != mode || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).HuskMode != mode) throw new Exception("The cross Husk picker did not save, load or show its mode.");
+                    int mode = HuskWatch.Modes[choice];
+                    frame.Change("Code/Husk Mode", choice);
+                    if (pet.HuskMode != mode || frame.Value("Code/Husk Mode") != HuskWatch.Names[choice] || SettingsCopy().HuskMode != mode || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).HuskMode != mode) throw new Exception("The cross Husk picker did not save, load or show its mode.");
                 }
+                pet.SetHusk(3); frame.Sync();
+                if (pet.HuskMode != 3 || frame.Value("Code/Husk Mode") != "Claude Code + Codex") throw new Exception("Both, kept from before OpenCode, wasn't shown as Claude Code + Codex.");
+                frame.Change("Code/Husk Mode", 0);
+                if (pet.HuskMode != 0 || frame.Value("Code/Husk Mode") != "Off") throw new Exception("Off wasn't picked from Both kept from before OpenCode.");
                 Action pending = null;
                 pet.HuskQueue = delegate(Action action) { pending = action; };
                 frame.Change("Code/Husk Mode", 1);
@@ -3017,6 +3031,7 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", claudeWas);
                 Environment.SetEnvironmentVariable("CODEX_HOME", codexWas);
+                Environment.SetEnvironmentVariable("OPENCODE_CONFIG_DIR", opencodeWas);
                 Environment.SetEnvironmentVariable("APPIMAGE", imageWas);
             }
         }

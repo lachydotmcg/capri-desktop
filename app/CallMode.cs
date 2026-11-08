@@ -1489,7 +1489,7 @@ namespace CapriDesktop
         internal void SetHusk(int mode)
         {
             if (huskChanging || husk == null) { mainframe.Sync(); return; }
-            mode = Math.Max(0, Math.Min(3, mode));
+            mode = HuskWatch.Allowed(mode);
             if (mode == 0) { husk.Stop(); HuskClonesOff(); CheckHuskFront(double.MaxValue); }
             preferences.HuskMode = mode;
             SavePreferences();
@@ -1506,27 +1506,33 @@ namespace CapriDesktop
                     preferences.HuskMode = husk.Mode;
                     SavePreferences();
                     mainframe.Sync();
-                    string note = mode == 0 ? "Code/Husk Mode off. My hooks are removed."
-                        : mode == 1 ? "Restart Claude Code to use my hooks."
-                        : mode == 2 ? "Restart Codex and trust my hooks when it asks."
-                        : "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.";
+                    string note = HuskWatch.Note(mode);
                     mainframe.VoiceNote(problem ?? note, problem != null);
                 });
             });
+        }
+
+        private static bool HuskTerminal(string program) { return Regex.IsMatch(program ?? "", @"terminal|powershell|pwsh|cmd|wezterm|alacritty|code|cursor|codex|claude|opencode", RegexOptions.IgnoreCase); }
+
+        // OpenCode's terminal is titled "OC | ...", and a browser tab about OpenCode isn't where it runs.
+        internal static bool HuskAssistant(string source, string program, string title)
+        {
+            if (source == "opencode") return HuskTerminal(program) && Regex.IsMatch(title ?? "", @"\AOC \||\bOpenCode\b", RegexOptions.IgnoreCase);
+            return Regex.IsMatch(title ?? "", @"\b" + HuskWatch.Name(source) + @"\b", RegexOptions.IgnoreCase);
         }
 
         private IntPtr HuskWindow(string source, string cwd, string title)
         {
             List<OpenWindow> windows = Hands.Windows();
             if (windows == null) return IntPtr.Zero;
-            string project = HuskWatch.Leaf(cwd), name = source == "codex" ? "Codex" : "Claude";
+            string project = HuskWatch.Leaf(cwd);
             IntPtr front = Native.GetForegroundWindow(), best = IntPtr.Zero;
             int highest = 0;
             foreach (OpenWindow window in windows)
             {
                 if (window.Handle == Handle || window.Title == null) continue;
-                bool assistant = Regex.IsMatch(window.Title, @"\b" + name + @"\b", RegexOptions.IgnoreCase);
-                bool terminal = Regex.IsMatch(window.Program ?? "", @"terminal|powershell|pwsh|cmd|wezterm|alacritty|code|cursor|codex|claude", RegexOptions.IgnoreCase);
+                bool assistant = HuskAssistant(source, window.Program, window.Title);
+                bool terminal = HuskTerminal(window.Program);
                 bool projectTitle = project.Length > 1 && window.Title.IndexOf(project, StringComparison.OrdinalIgnoreCase) >= 0;
                 bool sessionTitle = !string.IsNullOrWhiteSpace(title) && window.Title.IndexOf(title, StringComparison.OrdinalIgnoreCase) >= 0;
                 int score = (assistant ? 6 : 0) + (terminal && projectTitle ? 4 : 0) + (sessionTitle ? 5 : 0) + (terminal && window.Handle == front ? 2 : 0);
@@ -1573,7 +1579,7 @@ namespace CapriDesktop
                     Post(delegate { HuskSay(act, line); });
                 };
                 fallback = new System.Threading.Timer(delegate { deliver(act.Line); }, null, 1800, Timeout.Infinite);
-                string who = act.Session.StartsWith("codex:", StringComparison.Ordinal) ? "Codex" : "Claude";
+                string who = HuskWatch.Name(HuskWatch.SourceOf(act.Session));
                 ThreadPool.QueueUserWorkItem(delegate
                 {
                     string line = null;
