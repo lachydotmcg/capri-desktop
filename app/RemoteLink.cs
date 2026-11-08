@@ -366,11 +366,12 @@ namespace CapriDesktop
         // A feature for hello-ok's list beside chat, such as "watch" or "call". Sessions that start after this offer it.
         internal void Offer(string feature) { lock (gate) if (!offered.Contains(feature)) offered.Add(feature); }
 
-        // Under gate.
+        // Under gate. hello-ok's features: the link's own, the ones offered (watch, call), then her brains while something answers for them.
         private string[] Offered()
         {
             List<string> all = new List<string>(Features);
             all.AddRange(offered);
+            if (BrainAsked != null && !all.Contains(RemoteBrainKeys.Feature)) all.Add(RemoteBrainKeys.Feature);
             return all.ToArray();
         }
 

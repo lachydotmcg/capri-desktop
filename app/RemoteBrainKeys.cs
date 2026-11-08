@@ -89,16 +89,6 @@ namespace CapriDesktop
 
         private readonly List<KeyValuePair<string, RemoteJson.Map>> brainAsks = new List<KeyValuePair<string, RemoteJson.Map>>();
 
-        // hello-ok's features: the link's own, then her brains while something answers for them.
-        private string[] Offered()
-        {
-            if (BrainAsked == null) return Features;
-            string[] offered = new string[Features.Length + 1];
-            Features.CopyTo(offered, 0);
-            offered[Features.Length] = RemoteBrainKeys.Feature;
-            return offered;
-        }
-
         // Under gate, from OnMessage: a brain ask waits for RaiseBrainAsks. False for every other message.
         private bool BrainAsk(Phone phone, RemoteJson.Map message)
         {
