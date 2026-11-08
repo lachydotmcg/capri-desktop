@@ -20,6 +20,10 @@ namespace CapriDesktop
     [DataContract]
     internal sealed class ToolArguments
     {
+        [DataMember(Name = "command")] public string Command;
+        [DataMember(Name = "cwd")] public string Cwd;
+        [DataMember(Name = "visible")] public bool? Visible;
+        [DataMember(Name = "job_id")] public string JobId;
         [DataMember(Name = "name")] public string Name;
         [DataMember(Name = "site")] public string Site;
         [DataMember(Name = "search")] public string Search;
@@ -283,6 +287,11 @@ namespace CapriDesktop
                 case "app_window": return Windows;
                 case "app_volume": return action == "now" ? -1 : Media;
                 case "power": return action == "cancel" ? -1 : Power;
+#if CROSS
+                case "run_terminal": return Shortcuts;
+                case "terminal_job": return -1;
+                case "linux_system": return action == "service_start" || action == "service_stop" || action == "service_restart" ? Power : -1;
+#endif
                 case "use_computer": return Mouse;
                 case "stream": return action == "stop" ? -1 : Mouse;
                 case "job_control": return action == "change" ? Mouse : -1;
@@ -545,8 +554,9 @@ namespace CapriDesktop
     internal static class InControl
     {
 #if CROSS
-        // Linux has no Esc watch: anything they say or type to her cuts off the step she's thinking about, which ends the job.
-        internal const string Line = "Capri's using your mouse. Say stop to stop her.";
+        // Esc is advertised only by a native session whose target-specific watcher is armed.
+        internal static Func<string> NativeStopHint;
+        internal static string Line { get { return NativeStopHint?.Invoke() ?? "Capri's using your mouse. Say stop to stop her."; } }
 #else
         internal const string Line = "Capri's using your mouse. Esc stops her.";
 #endif
@@ -850,14 +860,10 @@ namespace CapriDesktop
         private const string Arranging = " Or arrange its window: maximize it, restore it from minimized or maximized, snap it to the left, right, top or bottom half of its monitor, send it to another monitor with move_to_screen, move it to a spot or to left and top, resize it, or keep it on top of other windows with pin_on_top until unpin. Sizes and places are in the monitor's own pixels.";
         // Which of their monitors to look at, on Windows, where she can tell them apart.
         private const string LookingAt =
-#if CROSS
-            "";
-#else
-            " It looks at the monitor they're using, or the one they name.";
-#endif
+            " It looks at the monitor they're using, or the one they name. Requested analysis is read-only; put their actual visual question in focus.";
         private const string LookPlace =
 #if CROSS
-            "";
+            ",\"screen\":{\"type\":\"string\",\"description\":\"Only the display they requested: connected native name, a number like 2 (physical left-to-right then top-to-bottom order), left/right edges, left of here/right of here/up/down relative to the pointer display, here, other, or portrait. Ambiguous choices ask for a native name.\"}";
 #else
             ",\"screen\":{\"type\":\"string\",\"description\":\"Another monitor to look at, only if they named one: left, right, main, portrait, other, or a number like 2\"}";
 #endif
@@ -1170,7 +1176,7 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}", "dance and play her animations", "dance and play your animations" },
 #if CROSS
             { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. This only opens it; they change settings there.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
 #if !CROSS
             { "draw", Ink.Description, Ink.Schema, "draw and write on your screen", "draw on their screen" },
@@ -1223,6 +1229,12 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Only this app, if they asked about one, like chrome or a game's program\"}}}", "check why your PC or a game is slow or stuttering", "check how their PC is doing: processor, memory, disks and battery" },
             { "internet_status", "Check their internet right now: whether they're on Ethernet or Wi-Fi, how four pings to a public address went, how long they took and how many were lost, and whether web addresses look up. Use it when they ask if their internet is down, why a site won't load, or what their ping is, and with pc_status when a game lags, to tell their PC from their connection. Give address to ping a site or server they named instead. It only reads.",
               "{\"type\":\"object\",\"properties\":{\"address\":{\"type\":\"string\",\"description\":\"A site or server to ping instead, only if they named one, like google.com\"}}}", "check your internet and ping", "check their internet: connection, ping and lost packets" },
+#endif
+#if CROSS
+            { "run_terminal", "Run the desktop owner's requested command using their native shell and real working directory. A visible job opens its native terminal itself; do not open a second empty terminal first. Use for terminal tasks instead of a screenshot job or project-scope runner. Returns real job identity/status and output when available; never claim completion from the request alone.", "{\"type\":\"object\",\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"The requested shell command or script; preserve its literal quoting and Unicode.\"},\"cwd\":{\"type\":\"string\",\"description\":\"Real requested working directory. If absent, use the owner's actual home directory; no project root is required.\"},\"visible\":{\"type\":\"boolean\",\"description\":\"Open the actual terminal for this job. Defaults to true; use false for a requested background command.\"}},\"required\":[\"command\"],\"additionalProperties\":false}", "run your requested native terminal task", "run their requested native terminal task" },
+            { "terminal_job", "Inspect output/status or stop one native terminal job started for the owner. Use its exact returned job ID. Stop only that owned job; never all terminal processes. An exit code is reported only when actually observed.", "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[\"status\",\"read\",\"stop\"]},\"job_id\":{\"type\":\"string\"},\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Optional output cursor from the previous read.\"}},\"required\":[\"action\",\"job_id\"],\"additionalProperties\":false}", "run your requested native terminal task", "run their requested native terminal task" },
+            { "linux_system", "Read Linux CPU load, memory and disk status or owned process names, or inspect and operate one explicitly named user service. Never a shell or system service. Use a literal .service unit; mutations must be in the owner's request.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[\"overview\",\"status\",\"processes\",\"service_failed\",\"service_status\",\"service_start\",\"service_stop\",\"service_restart\"]},\"name\":{\"type\":\"string\"}},\"required\":[\"action\"]}", "read Linux diagnostics or manage your named user service", "read Linux diagnostics or manage their named user service" },
 #endif
         };
 
@@ -1390,6 +1402,10 @@ namespace CapriDesktop
         internal static Func<IntPtr> Foreground = Native.GetForegroundWindow;
         internal static Action<byte> Press = Tap;
         internal static Func<string, string> Look = delegate { return "You can't see their screen right now."; };
+#if CROSS
+        internal static Func<ToolArguments, string> NativeLook;
+        internal static Func<ToolArguments, string> NativeWork;
+#endif
         // A look at the monitor they named; where she can't tell their monitors apart, the usual look.
         internal static Func<string, string, string> LookOn = delegate(string focus, string screen) { return Look(focus); };
 #if !CROSS
@@ -1607,16 +1623,34 @@ namespace CapriDesktop
                 string unable = Unable(tool, args);
                 if (unable != null) return unable;
                 if (tool == "open_app") return OpenApp(args.Name, args.Current);
+#if CROSS
+                if (tool == "open_website" && NativeWebsite != null)
+                {
+                    string nativeSite = NativeWebsite(args);
+                    if (nativeSite != null) return nativeSite;
+                }
+#endif
                 if (tool == "open_website") return OpenSite(args.Site, args.Search, args.Browser);
                 if (tool == "media") return Media(args);
+#if CROSS
+                if (tool == "look_at_screen" && NativeLook != null) return NativeLook(args);
+#endif
                 if (tool == "look_at_screen") return string.IsNullOrWhiteSpace(args.Screen) ? Look(args.Focus) : LookOn(args.Focus, args.Screen);
                 if (tool == "play_music") return PlayMusic(args.Song, args.App, args.Kind, args.Current, args.SongOnly);
                 if (tool == "app_window") return Window(args);
+#if CROSS
+                if (tool == "run_terminal") return NativeTerminal == null ? "Native terminal jobs are unavailable." : NativeTerminal(args);
+                if (tool == "terminal_job") return NativeTerminalJob == null ? "Native terminal jobs are unavailable." : NativeTerminalJob(args);
+                if (tool == "linux_system") return NativeSystem == null ? "Linux system tools are unavailable." : NativeSystem(args);
+#endif
                 if (tool == "use_computer")
                 {
                     if (string.IsNullOrWhiteSpace(args.Task)) return "Which job, choom?";
                     ToolArguments musicArgs;
                     if (MusicJob(args.Task, out musicArgs)) return Do("play_music", musicArgs);
+#if CROSS
+                    if (NativeWork != null) return NativeWork(args);
+#endif
                     return Work(args.Task.Trim(), args.Asked);
                 }
                 if (tool == "stream") return Stream(args);
@@ -1943,6 +1977,9 @@ namespace CapriDesktop
 #endif
             }
 #if CROSS
+            if (OnMac) missing.Add(new[] { "linux_system", "Linux system tools are unavailable on macOS." });
+            if (OnMac || TerminalAvailable == null || !TerminalAvailable())
+                foreach (string tool in new[] { "run_terminal", "terminal_job" }) missing.Add(new[] { tool, "Native terminal jobs are unavailable on this platform." });
             if (!OwnHands)
             {
                 missing.Add(new[] { "use_computer", OnMac ? MacHands : LinuxHands });
@@ -2267,6 +2304,10 @@ namespace CapriDesktop
 
         private static string Lacked(Kit kit, string said)
         {
+#if CROSS
+            var native = NativeRequest == null ? default(KeyValuePair<string, ToolArguments>) : NativeRequest(said);
+            if (native.Key != null && kit.Unable(native.Key, native.Value) == null) return null;
+#endif
             if (kit.Missing.Count == 0) return null;
             string text = Asked(said);
             if (text.Length == 0) return null;
@@ -2391,7 +2432,7 @@ namespace CapriDesktop
 
         // Her own abilities and her checks, which her mouse can't do for her: a pick of one stays picked whatever else they said
         // (Lachy, 3 Nov: phrase matches never throw away what her brain chose).
-        private static readonly string[] Herself = { "capri_settings", "voice_chat", "speech", "job_control", "quit", "mainframe", "updates", "mini_player", "fake_crash", "clone", "hologram", "desktop_icons", "animate", "nap", "move_yourself", "gaming_mode", "clip", "watch_along", "stream", "mini_game", "game_notes", "app_volume", "pc_status", "internet_status", "power", "list_windows", "check_app" };
+        private static readonly string[] Herself = { "linux_system", "run_terminal", "terminal_job", "capri_settings", "voice_chat", "speech", "job_control", "quit", "mainframe", "updates", "mini_player", "fake_crash", "clone", "hologram", "desktop_icons", "animate", "nap", "move_yourself", "gaming_mode", "clip", "watch_along", "stream", "mini_game", "game_notes", "app_volume", "pc_status", "internet_status", "power", "list_windows", "check_app" };
 
         // Fixes the calls a brain picked for what they said. True when it needs her mouse and keyboard and the kit doesn't have
         // them: the calls are cleared then, so she says she can't instead of doing something else.
@@ -2746,10 +2787,8 @@ namespace CapriDesktop
         // "Check my screen", "can you see this?", "what game is this?": she takes a screenshot and looks, every time.
         private static readonly Regex ScreenAsk = new Regex(@"^(?:(?:can|could|would|will|do|did) (?:you|u) )?(?:(?:take a |have a |quick )?(?:look|peek|peep|glance)(?: at)?|check(?: out)?|see|watch|read|scan|view|look over|screenshot)(?: on)? (?:my|the|our|this|ur|your) (?:screen|monitor|display|desktop|pc|computer|stream|window|tab)s?$|^(?:(?:can|could|would|will|do|did) (?:you|u) )?(?:see|look at|check(?: out)?|peep|watch) (?:this|that|what i'?m (?:doing|playing|watching|looking at|working on|seeing))$|^(?:look at|check out|check|peep|watch) (?:this|that)(?: (?:out|real quick|quick))?$|^(?:take a|have a|quick) (?:look|peek|glance)(?: at (?:this|that|it|my screen|the screen))?$|^what(?:'s| is) on (?:my|the|our) (?:screen|monitor|display|desktop|pc)\b|^what (?:do|can|did) (?:you|u) see\b|^what are (?:you|u) (?:seeing|looking at)$|^what am i (?:doing|playing|watching|looking at|working on|reading)(?: (?:on my (?:screen|pc|computer)|rn|right now|now))?$|^regardes? (?:mon [ée]cran|[çc]a)$|^(?:tu )?(?:peux )?(?:voir|vois) mon [ée]cran$|^tu vois (?:mon [ée]cran|[çc]a)$|^qu'est-ce que (?:je fais|tu vois)$|^qu'est-ce qu'il y a sur mon [ée]cran$|^(?:mira|revisa|checa|chequea|ve|ver|mirar|revisar|checar) (?:mi pantalla|esto|eso)$|^(?:ves|puedes ver) (?:mi pantalla|esto|eso)$|^qu[ée] (?:ves|estoy haciendo)(?: en (?:mi|la) pantalla)?$|^qu[ée] hay en (?:mi|la) pantalla$", RegexOptions.IgnoreCase);
         private static readonly Regex ScreenQuestion = new Regex(@"^what(?:'s| is) this(?: (?:game|app|thing|site|website|show|anime|movie|video|error|bug|code|program|word|map|level|boss|character|item|guy))?$|^what(?:'s| is) that (?:game|app|thing|site|website|show|anime|movie|video|error|bug|code|program|word|map|level|boss|character|item|guy)$|^what (?:game|app|anime|show|movie|video|website|site|error|program|level|map|boss|character|item) is (?:this|that)$|^who is this(?: (?:guy|character|boss))?$|^(?:how does|does) this look(?: (?:good|ok|okay|right|alright))?$|^what do (?:you|u) think (?:of|about) (?:this|my (?:screen|setup|build|base|drawing|art|design|avatar|character|thumbnail|outfit|fit|skin))$|^(?:look at|check out|peep|read) (?:this|that) \w+(?: \w+)?$|^rate (?:this|my (?:setup|desktop|wallpaper|screen|build|base|drawing|art|design|avatar|character|thumbnail|outfit|fit|skin))$", RegexOptions.IgnoreCase);
-#if !CROSS
         // A look at one of their monitors by name: "what's on my second monitor", "look at my left screen", "check the portrait one".
         private static readonly Regex MonitorLook = new Regex(@"^(?:(?:can|could|would|will) (?:you|u) )?(?:(?:take a |have a |quick )?(?:look|peek|peep|glance)(?: at)?|check(?: out)?|see|read|scan) (?:my|the|our|ur|your) (?<which>left|right|main|primary|portrait|vertical|other|second|third|fourth|first|1st|2nd|3rd|4th|[1-4]|top|bottom) (?:screen|monitor|display|one)$|^what(?:'s| is) on (?:my|the|our|ur|your) (?<which>left|right|main|primary|portrait|vertical|other|second|third|fourth|first|1st|2nd|3rd|4th|[1-4]|top|bottom) (?:screen|monitor|display)$", RegexOptions.IgnoreCase);
-#endif
         // A reply that says she can't see their screen means she should look instead.
         private static readonly Regex Unseen = new Regex(@"\b(can'?t|cannot|can not|don'?t|do not|unable to|not able to|no way to|have no way to)\s+(\w+\s+){0,4}(see|look at|view|access|check|read)\s+(your|ur|the|their)\s+(screen|monitor|display|desktop)\b|\b(no|without)\s+(access to|way to see|eyes on)\s+(your|ur|the)\s+screen\b|\b(share|show)\s+(me\s+)?(your|ur)\s+screen\b|\bi('m| am)\s+(blind|not looking at (your|the) screen)\b", RegexOptions.IgnoreCase);
 
@@ -3324,6 +3363,15 @@ namespace CapriDesktop
             return Regex.IsMatch(Asked(said), @"^(?:listen to this(?: (?:video|call|stream|game))?|what did (?:he|she|they) just say|what (?:are they|is (?:he|she)) saying|what's (?:he|she) saying|hear this|(?:translate )?what (?:they're|he's|she's|they are|he is|she is) saying)(?: (?:in|on) (?:this|the) (?:video|call|stream|game))?$", RegexOptions.IgnoreCase);
         }
 
+#if CROSS
+        internal static Func<string, ToolArguments> NativeDirect;
+        internal static Func<string, KeyValuePair<string, ToolArguments>> NativeRequest;
+        internal static Func<ToolArguments, string> NativeWindow;
+        internal static Func<ToolArguments, string> NativeSystem;
+        internal static Func<ToolArguments, string> NativeTerminal, NativeTerminalJob;
+        internal static Func<bool> TerminalAvailable;
+        internal static Func<ToolArguments, string> NativeWebsite;
+#endif
         // With a brain to ask (brainy), "play" only goes straight to music when it's clearly music: a song, artist, album or
         // playlist word, "on Spotify" or some music. Anything else is hers to work out, and a brain knows a song from a game.
         // Lachy, 6 Nov: "play Mic Up and make some new friends" was typed whole into Spotify, again. Lachy, 7 Nov: a short title
@@ -3335,6 +3383,12 @@ namespace CapriDesktop
 
         internal static bool Direct(string said, out string tool, out ToolArguments args, bool brainy = false)
         {
+#if CROSS
+            var request = NativeRequest == null ? default(KeyValuePair<string, ToolArguments>) : NativeRequest(said);
+            if (request.Key != null) { tool = request.Key; args = request.Value; return true; }
+            ToolArguments native = NativeDirect == null ? null : NativeDirect(said);
+            if (native != null) { tool = "app_window"; args = native; return true; }
+#endif
             if (Planned(said, out tool, out args)) return true;
             tool = null;
             args = new ToolArguments();
@@ -3450,10 +3504,12 @@ namespace CapriDesktop
             string pressed = ShortcutFor(text);
             if (pressed != null) { tool = "shortcut"; args.Name = pressed; return true; }
             if (ScreenAsk.IsMatch(text) || ScreenQuestion.IsMatch(text)) { tool = "look_at_screen"; args.Focus = ScreenQuestion.IsMatch(text) ? text : null; return true; }
-#if !CROSS
             Match lookedAt = MonitorLook.Match(text);
-            if (lookedAt.Success) { tool = "look_at_screen"; args.Screen = Regex.Replace(lookedAt.Groups["which"].Value.ToLowerInvariant(), @"^(?:other|another)$", "next"); return true; }
+            if (lookedAt.Success) { tool = "look_at_screen"; args.Screen = lookedAt.Groups["which"].Value.ToLowerInvariant();
+#if !CROSS
+                args.Screen = Regex.Replace(args.Screen, @"^(?:other|another)$", "next");
 #endif
+                return true; }
             bool question = Regex.IsMatch((said ?? "").Trim(), @"\?\s*$");
             // "Can you remember that I main Jett?" asks her to save it; "remember when we played?" is chat.
             bool polite = Regex.IsMatch(Opener.Replace((said ?? "").Trim(), ""), @"^((hey|yo|ok|okay)[\s,]+)?(capri[\s,]+)?(can|could|would|will) (you|u)\b", RegexOptions.IgnoreCase);
@@ -3804,7 +3860,13 @@ namespace CapriDesktop
 
         internal static bool Valid(string tool, ToolArguments args)
         {
-            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories)\z"));
+#if CROSS
+            if (tool == "linux_system") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(overview|status|processes|service_failed|service_status|service_start|service_stop|service_restart)\z")
+                && (args.Action == "overview" || args.Action == "status" || args.Action == "processes" || args.Action == "service_failed" || Named(args.Name));
+            if (tool == "run_terminal") return args != null && !string.IsNullOrWhiteSpace(args.Command) && args.Command.Length <= 16000 && args.Command.IndexOf('\0') < 0;
+            if (tool == "terminal_job") return args != null && !string.IsNullOrEmpty(args.JobId) && (args.Offset == null || args.Offset >= 0) && (args.Action == "status" || args.Action == "read" || args.Action == "stop");
+#endif
+            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|files|notes)\z"));
 #if !CROSS
             if (tool == "call_errand") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(open_app|play_song|cancel)\z");
             if (tool == "call_say") return args != null && Named(args.Text);
@@ -5327,6 +5389,10 @@ namespace CapriDesktop
 
         private static string Window(ToolArguments args)
         {
+#if CROSS
+            string native = NativeWindow == null ? null : NativeWindow(args);
+            if (native != null) return native;
+#endif
             string wanted = args.Name, action = args.Action, asked = args.Asked;
             if (Array.IndexOf(WindowActions, action) < 0) return "There's no window action called " + action + ".";
             wanted = Regex.Replace(wanted ?? "", @"^end (?:the )?task(?: for)?(?:\s+|$)", "", RegexOptions.IgnoreCase);

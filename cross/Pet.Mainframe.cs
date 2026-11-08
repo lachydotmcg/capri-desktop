@@ -26,9 +26,13 @@ namespace CapriDesktop
         {
             foreach (Clip shown in Clips) shown.Reload();
             blinkWith = null;
+            herPointer?.ReloadArt();
             if (body == null) return;
-            // The old stand has 16 cells, and until the next tick she could still be on one of the new stand's 60.
+            // Swaps can invalidate both a60-cell frame and a blink/mouth overlay before the next paint tick.
+            body.Shown = clip;
             if (body.Shown != null) body.Cell %= body.Shown.Count;
+            body.Mouth = idle.Old ? mouth : idleMouth;
+            body.Talking = clip == idle ? Talk.MouthCell(Now) : -1;
             body.InvalidateVisual();
         }
 
@@ -64,6 +68,24 @@ namespace CapriDesktop
                 if (stream == null) throw new FileNotFoundException("Capri's animation is missing: " + name);
                 return Finished(stream);
             }
+        }
+
+        internal static Avalonia.Media.Imaging.Bitmap ReadLeftArt(string primary, PixelSize expected)
+        {
+            const string lead = "Capri.Sprite.";
+            string left = primary.Replace(".png", "_flipped.png"), skin = SkinFolder;
+            // A skin's own strip must never turn into bundled art when she faces the other way.
+            Avalonia.Media.Imaging.Bitmap made;
+            if (skin != null && File.Exists(Path.Combine(skin, primary.Substring(lead.Length))))
+            {
+                string file = Path.Combine(skin, left.Substring(lead.Length));
+                if (!File.Exists(file)) return null;
+                using (MemoryStream bytes = new MemoryStream(File.ReadAllBytes(file))) made = Finished(bytes);
+            }
+            else made = ReadArt(left);
+            if (made.PixelSize == expected) return made;
+            made.Dispose();
+            return null;
         }
 
         private static Avalonia.Media.Imaging.Bitmap Finished(Stream stream)
@@ -106,8 +128,8 @@ namespace CapriDesktop
         internal string MainframeVoiceProblem { get { return voiceProblem; } }
         internal bool MainframePulling { get { return pulling; } }
         internal string MainframeProgress { get { return pulling ? Pulling : null; } }
-        internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !fingers; } }
-        internal int MainframeVoiceMode { get { return Saved.Silent || Speakers.Known(Saved.VoiceProvider) == Speakers.Off ? 0 : Speakers.Known(Saved.VoiceProvider) == Speakers.Local ? 2 : 3; } }
+        internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !ComputerJobs.Supported && !fingers; } }
+        internal int MainframeVoiceMode { get { return Saved.Silent || Speakers.Known(Saved.VoiceProvider) == Speakers.Off ? 0 : Speakers.Known(Saved.VoiceProvider) == Speakers.Local ? 2 : Speakers.Known(Saved.VoiceProvider) == Speakers.Owned ? 1 : 3; } }
         internal string MainframeUpdate { get { return updateChecking ? "Checking for updates..." : updateNote ?? UpdateNews ?? (updatePage == null ? "" : "An update is available."); } }
         internal string MainframeLocalAddress { get { return localVoice.Url ?? ""; } }
         internal string MainframeLocalModel { get { return localVoice.Model ?? ""; } }
@@ -159,6 +181,11 @@ namespace CapriDesktop
         private string MainframeTool(string page)
         {
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.Invoke(() => MainframeTool(page));
+            if (page == "personality" || page == "files" || page == "notes")
+            {
+                OpenFiles(page == "notes" ? 1 : 0);
+                return "Opened Capri file editor.";
+            }
             OpenMainframe();
             mainframe.OpenPage(page);
             return "Opened Capri Mainframe.";
@@ -182,10 +209,15 @@ namespace CapriDesktop
             RefreshBrains();
         }
         internal void MainframeUpdateCheck() { CheckUpdate(true); }
-        internal void MainframeSetupInput() { CopyFingersSetup(); }
+        internal void MainframeSetupInput() { if (HyprlandDesktop.Current != null) { Talk.Answer("(input)", ComputerJobs.Available ? "Native compositor input is ready." : "The native compositor input helper is unavailable. Check the Linux package and compositor protocol support; no global input setup was applied."); return; } CopyFingersSetup(); }
         internal void MainframePickModel(string model)
         {
             if (string.IsNullOrWhiteSpace(model)) return;
+            if (Brain.Provider != null)
+            {
+                if (model == Saved.PlanModel || Array.IndexOf(frameModels, model) < 0) return;
+                Saved.PlanModel = model; SelectPlan(); Save(); NotifySettings(); return;
+            }
             if (MainframeTier > 0 && Brain.Remote == null) return;
             if (Brain.Remote != null) PickCloud(model.Trim());
             else if (Brain.Server != null) PickServerModel(model.Trim());
@@ -194,7 +226,7 @@ namespace CapriDesktop
         internal void MainframeVoiceModePick(int mode)
         {
             if (mode == 0) SetSpeak(false);
-            else { SetVoiceProvider(mode == 2 ? Speakers.Local : Speakers.ElevenLabs); SetSpeak(true); }
+            else { SetVoiceProvider(mode == 1 ? Speakers.Owned : mode == 2 ? Speakers.Local : Speakers.ElevenLabs); SetSpeak(true); }
         }
         internal void MainframeForgetVoice() { ForgetVoice(); Save(); }
         internal void MainframeLoadVoices() { if (voices == null && Program.Smoke == null) ListVoices(); }
@@ -244,7 +276,12 @@ namespace CapriDesktop
         internal void SetBrainTier(int tier)
         {
             tier = Math.Clamp(tier, 0, 2);
-            if (MainframeTier == tier) return;
+            CancelAccountConnection();
+            if (MainframeTier == tier && Brain.Provider == null) return;
+            StopListening();
+            Brain.Provider?.Cancel();
+            Brain.Provider = null;
+            Saved.NativePlan = false;
             brainRequests++;
             cloudRequests++;
             frameProblem = null;

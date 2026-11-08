@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
+    <Compile Include="../../cross/Desk.cs" Link="Desk.cs" />
+    <Compile Include="../../cross/KWin.cs" Link="KWin.cs" />
+    <Compile Include="../../cross/NativeMotionTrace.cs" Link="NativeMotionTrace.cs" />
+    <Compile Include="../../cross/LinuxProcess.cs" Link="LinuxProcess.cs" />
+    <Compile Include="../../cross/Hyprland*.cs" Link="%(Filename)%(Extension)" />
+    <Compile Include="../../cross/DesktopEnvelope.cs" Link="DesktopEnvelope.cs" />
+    <Compile Include="../../cross/Perches.cs" Link="Perches.cs" />
+  </ItemGroup>
+</Project>

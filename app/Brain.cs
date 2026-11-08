@@ -15,11 +15,19 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.8.6";
-        internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
-            + "Her new stand: she stands in her artist's new animation, facing left or right. If it broke your mod, turn on Legacy stand under CAPRI in her Mainframe and her old stand comes back straight away.\n"
-            + "Skins with their own idle keep it, and colour mods work on both stands.";
-        internal const string Line = "I just updated to " + Version + ": I've got a new stand, and Legacy stand brings back my old one if it broke your mod. Ask me what's new for the menu paths.";
+        internal const string Version = "0.8.6.1";
+        private const string StandFacts = "Her new stand: her artist's new animation faces left or right. If it broke your mod, turn on Legacy stand under CAPRI in Mainframe. Skins keep their own idle and colour mods work on both stands.\n";
+        internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " Arch/Linux preview.\n" : " Mac port validation build.\n")
+            + StandFacts
+            + (OperatingSystem.IsLinux()
+                ? "File editor under Settings > YOU or the right-click menu edits personality.md and me.md, with separate drafts, Save/Ctrl+S, conflict checks and recovery. This backend uses transparent fallback; panel-region blur is unavailable.\n"
+                    + "Click artwork plays at my pointer tip. Native game sessions use bounded fresh observations and stop at the requested ending or Stop; supported XWayland targets also allow focused Esc when the indicator says so. Continuous 3D/gamepad controls are unavailable.\n"
+                    + "Listen for Capri is an optional local decoder mode under VOICE, off until enabled. After my name, follow-ups remain open for 20 seconds. Select your microphone and retained local decoder first. Physical echo and microphone qualification remain pending.\n"
+                    + "This is a review candidate, not accepted visual or game competence. Chess remains deferred after the owner's reported failure."
+                : "This build validates the shared source. New Linux game and microphone controllers are not available on Mac; physical Mac behavior requires separate qualification.");
+        internal static readonly string Line = OperatingSystem.IsLinux()
+            ? "This " + Version + " Linux preview adds the new stand, file editor, click artwork, bounded game sessions and optional local Capri-name listening. Ask what's new for paths and limits."
+            : "This " + Version + " port validation build has the new stand and Legacy stand. New Linux controller behavior needs separate Mac qualification.";
 #else
         internal const string Version = "0.8.6.1";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
@@ -418,6 +426,16 @@ namespace CapriDesktop
         internal Moment(string on, string line, string[] words) { On = on; Line = line; Words = words; }
     }
 
+#if CROSS
+    internal interface IBrainProvider
+    {
+        string Identity { get; }
+        int Generation { get; }
+        string Complete(string model, List<ChatMessage> messages, string tools, List<KeyValuePair<string, ToolArguments>> calls, int limit, Action<string> streamed, string purpose, string parts = null);
+        void Cancel();
+    }
+#endif
+
     internal sealed class Brain
     {
         internal static string Ollama = "http://127.0.0.1:11434";
@@ -517,6 +535,10 @@ namespace CapriDesktop
         private volatile string thinker;
         private volatile string ollamaCpu;
         internal volatile Cloud Remote;
+#if CROSS
+        internal volatile IBrainProvider Provider;
+        internal Action<string> Streamed;
+#endif
         internal volatile string Unsighted;
         internal int CloudWait = 45000;
         private Cloud waitingRemote;
@@ -1216,6 +1238,9 @@ namespace CapriDesktop
             {
                 // A brain of its own, so talking to her doesn't cancel the fold.
                 Brain folder = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick, unhurried = true };
+#if CROSS
+                folder.Provider = Provider;
+#endif
                 CopyServer(folder);
                 List<ChatMessage> messages = new List<ChatMessage>
                 {
@@ -2284,7 +2309,12 @@ namespace CapriDesktop
                 {
                     Check(ticket);
                     if ((call.Key == "use_computer" || call.Key == "stream") && call.Value != null && call.Value.Asked == null) call.Value.Asked = request;
-                    if (call.Key == "app_window" && call.Value != null) call.Value.Asked = request;
+                    if ((call.Key == "app_window" || call.Key == "linux_system" || call.Key == "run_terminal" || call.Key == "terminal_job" || call.Key == "open_website") && call.Value != null) call.Value.Asked = request;
+                    if ((call.Key == "run_terminal" || call.Key == "terminal_job") && call.Value != null) call.Value.Current = () => { lock (gate) return ticket == cancelled; };
+#if CROSS
+                    if (call.Key == "look_at_screen" && call.Value != null) { call.Value.Asked = request; call.Value.Current = () => { lock (gate) return ticket == cancelled; }; }
+                    if (call.Key == "use_computer" && call.Value != null) call.Value.Current = () => { lock (gate) return ticket == cancelled; };
+#endif
                     if (call.Key == "media") Hands.Aim(call.Value, request);
                     string result;
 #if !CROSS
@@ -2452,7 +2482,12 @@ namespace CapriDesktop
                     Check(ticket);
                     ToolArguments args = call.Value ?? new ToolArguments();
                     if ((call.Key == "use_computer" || call.Key == "stream") && args.Asked == null) args.Asked = request;
-                    if (call.Key == "app_window") args.Asked = request;
+                    if (call.Key == "app_window" || call.Key == "linux_system" || call.Key == "run_terminal" || call.Key == "terminal_job" || call.Key == "open_website") args.Asked = request;
+                    if (call.Key == "run_terminal" || call.Key == "terminal_job") args.Current = () => { lock (gate) return ticket == cancelled; };
+#if CROSS
+                    if (call.Key == "look_at_screen") { args.Asked = request; args.Current = () => { lock (gate) return ticket == cancelled; }; }
+                    if (call.Key == "use_computer") args.Current = () => { lock (gate) return ticket == cancelled; };
+#endif
                     if (call.Key == "media") Hands.Aim(args, request);
                     // The same job, app, site or song twice runs once: a small brain can call a job again that it thinks is still
                     // going, or write the same call over and over. Media can go twice, like skipping two songs.
@@ -2518,12 +2553,14 @@ namespace CapriDesktop
 
         // A small brain can write the same call over and over until it runs out of room (Bende, 3 Nov: YouTube opened about
         // 20 times). Opening the same job, app, site or song twice in one turn is never wanted, so an exact repeat runs once.
-        internal static bool OpensOnce(string tool) { return tool == "use_computer" || tool == "open_app" || tool == "open_website" || tool == "play_music"; }
+        internal static bool OpensOnce(string tool) { return tool == "run_terminal" || tool == "use_computer" || tool == "open_app" || tool == "open_website" || tool == "play_music"; }
 
         // A call that opens something, as its repeats are told apart: an app, site or song whatever its case ("Spotify" then
         // "spotify"), but a job word for word, since typing "USD" and then "usd" are two jobs.
         private static string OnceKey(string tool, ToolArguments args)
         {
+            args = args ?? new ToolArguments();
+            if (tool == "run_terminal") return Voice.Quote(args.Command ?? "") + Voice.Quote(args.Cwd ?? "") + (args.Visible ?? true);
             string written = Written(tool, args ?? new ToolArguments());
             return tool == "use_computer" ? written : written.ToLowerInvariant();
         }
@@ -2649,7 +2686,7 @@ namespace CapriDesktop
         }
 #endif
 
-        internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false, bool selected = false)
+        internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false, bool selected = false, bool preserveWhitespace = false, bool computerAction = false)
         {
             int ticket;
             lock (gate) ticket = cancelled;
@@ -2666,15 +2703,25 @@ namespace CapriDesktop
             if (parts == null) asked.Images = new[] { data };
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), asked };
             string raw;
-            try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), parts, limit, ticket, false, null, null, job); }
+            try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), parts, limit, ticket, false, null, null, job, computerAction); }
             catch (BrainException error)
             {
                 if (remote == null || !NoVision(error)) throw;
                 Unsighted = remote.Sight;
                 throw new BrainException(Sightless(remote));
             }
-            return Regex.Replace(Visible(raw), @"\s+", " ").Trim();
+            return preserveWhitespace ? Visible(raw).Trim() : Regex.Replace(Visible(raw), @"\s+", " ").Trim();
         }
+
+#if CROSS
+        // Job-owned cancellation must not invalidate the outer Ask's reply ticket.
+        internal Brain ForkVision()
+        {
+            var fork = new Brain { Model = Model, Remote = Remote, Local = Local, LocalPick = LocalPick, Provider = Provider };
+            CopyServer(fork);
+            return fork;
+        }
+#endif
 
         // One small call on a brain of its own, so talking to her doesn't cancel it.
         internal string Aside(string system, string user, int limit, bool job = false)
@@ -2682,6 +2729,9 @@ namespace CapriDesktop
             string model = Model;
             if (model == null) throw new BrainException(Offline);
             Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick };
+#if CROSS
+            aside.Provider = Provider;
+#endif
             CopyServer(aside);
             return Visible(aside.Think(model, new List<ChatMessage> { new ChatMessage("system", system), new ChatMessage("user", user) }, false, new List<KeyValuePair<string, ToolArguments>>(), null, limit, -1, false, null, null, job));
         }
@@ -2689,6 +2739,9 @@ namespace CapriDesktop
         // An Ollama brain that can't see borrows the eyes of a model on this PC that can.
         internal string Looker(string model)
         {
+#if CROSS
+            if (Provider != null) return model;
+#endif
             if (Remote != null || Local != null || Server != null || LocalSees(model)) return model;
             string eyes = LocalEyes();
             if (eyes == null) throw new BrainException(NoEyes, true);
@@ -2882,23 +2935,33 @@ namespace CapriDesktop
             return Regex.IsMatch(problem ?? "", @"does not support (tools|tool use|function calling)|doesn't support tools|(?:tools?|tool use|function calling) (?:are |is )?(?:not supported|unsupported)|unsupported (?:tools?|function calling)|(?:tools?|tool_choice).*(?:not supported|not allowed|not enabled)|no endpoints found that support tool", RegexOptions.IgnoreCase);
         }
 
+#if !CROSS
         // Their Claude or ChatGPT plan, through Claude Code or Codex on this PC: her chat goes as text and her tools come back
         // written out, and a reply they talk over ends its run.
         private string Planned(Cloud remote, List<ChatMessage> messages, int ticket)
         {
-#if CROSS
-            throw new BrainException("Your plan as my brain works on Windows for now. Pick another brain under BRAIN.", true);
-#else
             return PlanBrain.Think(remote.Kind, remote.Model, messages, delegate { lock (gate) return ticket >= 0 && ticket != cancelled; });
-#endif
         }
 
-        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false)
+#endif
+        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool computerAction = false)
         {
             Check(ticket);
+#if CROSS
+            IBrainProvider provider = Provider;
+            if (provider != null)
+            {
+                Action<string> stream = !tools && !routing && !job && parts == null && Streamed != null ? new Action<string>(delegate(string text) { Check(ticket); Streamed(text); }) : null;
+                string result = provider.Complete(model, messages, tools ? openAiTools ?? Hands.Tools : null, calls, limit, stream, computerAction ? "computer" : job || parts != null || messages.Exists(delegate(ChatMessage message) { return message.Images != null && message.Images.Length > 0; }) ? "vision" : routing || tools ? "actions" : "chat", parts);
+                Check(ticket);
+                return result;
+            }
+#endif
             Cloud remote = Remote;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
+#if !CROSS
             if (remote != null && remote.Plan) return Planned(remote, messages, ticket);
+#endif
             if (remote != null && remote.Claude) return AskClaude(remote, messages, tools, calls, parts, ticket, claudeTools, routing, 0, job);
             if (remote != null)
             {
@@ -3436,6 +3499,9 @@ namespace CapriDesktop
 
         internal void Warm()
         {
+#if CROSS
+            if (Provider != null) return;
+#endif
             string model = Model;
             if (model == null) return;
             try
@@ -3480,6 +3546,9 @@ namespace CapriDesktop
             HttpWebRequest[] open;
             lock (gate) { cancelled++; open = active.ToArray(); }
             foreach (HttpWebRequest request in open) request.Abort();
+#if CROSS
+            if (Provider != null) Provider.Cancel();
+#endif
         }
 
         private void Check(int ticket)
@@ -4575,6 +4644,7 @@ namespace CapriDesktop
         private readonly string head;
         private readonly object gate;
         private bool existed;
+        internal bool Existed { get { lock (gate) return existed; } }
 
         internal WrittenNote(string path, string heading, object writing)
         {
@@ -4606,7 +4676,11 @@ namespace CapriDesktop
                     bool found = File.Exists(Path);
                     if (found != existed || found && !string.Equals(File.ReadAllText(Path), Text, StringComparison.Ordinal)) return "This note changed. Reload it before saving.";
                     Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
+#if CROSS
+                    WriteReplacement(temporary, Path, found, text ?? "");
+#else
                     File.WriteAllText(temporary, text ?? "");
+#endif
                     if (found) File.Replace(temporary, Path, null); else File.Move(temporary, Path);
                     Text = text ?? "";
                     existed = true;
@@ -4622,6 +4696,31 @@ namespace CapriDesktop
                 }
             }
         }
+
+#if CROSS
+        // Notes and recovery data are private by default. Replacing an existing note
+        // preserves its Unix permissions and BOM-selected text encoding.
+        private static void WriteReplacement(string temporary, string path, bool found, string text)
+        {
+            Encoding encoding = new UTF8Encoding(false);
+            if (found)
+            {
+                using FileStream read = File.OpenRead(path);
+                byte[] prefix = new byte[4]; int count = 0;
+                while (count < prefix.Length) { int got = read.Read(prefix, count, prefix.Length - count); if (got == 0) break; count += got; }
+                if (count >= 4 && prefix[0] == 0xff && prefix[1] == 0xfe && prefix[2] == 0 && prefix[3] == 0) encoding = new UTF32Encoding(false, true);
+                else if (count >= 4 && prefix[0] == 0 && prefix[1] == 0 && prefix[2] == 0xfe && prefix[3] == 0xff) encoding = new UTF32Encoding(true, true);
+                else if (count >= 3 && prefix[0] == 0xef && prefix[1] == 0xbb && prefix[2] == 0xbf) encoding = new UTF8Encoding(true);
+                else if (count >= 2 && prefix[0] == 0xff && prefix[1] == 0xfe) encoding = new UnicodeEncoding(false, true);
+                else if (count >= 2 && prefix[0] == 0xfe && prefix[1] == 0xff) encoding = new UnicodeEncoding(true, true);
+            }
+            var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None };
+            if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            using (var stream = new FileStream(temporary, options))
+            using (var writer = new StreamWriter(stream, encoding)) writer.Write(text);
+            if (found && !OperatingSystem.IsWindows()) File.SetUnixFileMode(temporary, File.GetUnixFileMode(path));
+        }
+#endif
     }
 
     // Her own fixed lines, like her hellos, pat lines, yelps, check-ins and settings lines, and the labels after "> sys: " in her

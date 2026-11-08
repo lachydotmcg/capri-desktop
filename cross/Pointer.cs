@@ -224,15 +224,21 @@ namespace CapriDesktop
     // Her own pointer for mouse jobs, like Windows' HerPointer: her artist's cursor with electricity around it glides to
     // each target while their mouse stays where they left it. Clicks go straight through it, and she hides it for her
     // own screenshots so her brain never mistakes it for theirs.
-    internal sealed class HerCursor : Window
+    internal sealed class HerCursor : PassiveWindow
     {
-        private const double Size = 36, Reach = 90, Ripple = 0.45;
+        private const double Size = 36, Reach = 90;
+        private const int UsualTick = 33, ClickTick = 15;
         private static Bitmap art;
         private readonly Face face;
         private readonly DispatcherTimer ticks = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private PixelPoint tip;
-        private double tapped = -1;
+        private readonly ClickPlayback click = new ClickPlayback();
+        internal readonly Clip ClickArt = new Clip("click", ClickPlayback.Frames, ClickPlayback.Fps, 1);
+        internal int ClickFrame { get { return click.Frame(watch.Elapsed.TotalSeconds); } }
+        internal int ClickPictures { get; private set; }
+        internal double TickMilliseconds { get { return ticks.Interval.TotalMilliseconds; } }
+        internal void ReloadArt() { ClickArt.Reload(); face.InvalidateVisual(); }
         private bool passThrough;
         internal readonly CursorBolts Bolts = new CursorBolts();
 
@@ -243,8 +249,19 @@ namespace CapriDesktop
             face = new Face(this);
             Content = face;
             IsHitTestVisible = false;
+            PropertyChanged += (_, change) =>
+            {
+                // Capture and cancellation can hide this window through a Window reference.
+                // Revoke the click at visibility loss so showing it cannot replay an old tap.
+                if (change.Property == IsVisibleProperty && !IsVisible)
+                {
+                    click.Clear();
+                    ticks.Interval = TimeSpan.FromMilliseconds(UsualTick);
+                }
+            };
             ticks.Tick += delegate { Program.Guard(Step); };
             Opened += delegate { PassThrough(); };
+            Closed += delegate { ticks.Stop(); click.Clear(); ClickArt.Reload(); };
         }
 
         internal static Bitmap Art
@@ -263,7 +280,7 @@ namespace CapriDesktop
         {
             tip = at;
             double scale = RenderScaling > 0 ? RenderScaling : 1;
-            Position = new PixelPoint(at.X - (int)Math.Round(Reach * scale), at.Y - (int)Math.Round(Reach * scale));
+            Look.Position(this, new PixelPoint(at.X - (int)Math.Round(Reach * scale), at.Y - (int)Math.Round(Reach * scale)));
             if (!IsVisible)
             {
                 Show();
@@ -276,7 +293,10 @@ namespace CapriDesktop
         internal void Tap()
         {
             if (!IsVisible) return;
-            tapped = watch.Elapsed.TotalSeconds;
+            click.Begin(watch.Elapsed.TotalSeconds);
+            ClickPictures = 0;
+            ticks.Interval = TimeSpan.FromMilliseconds(ClickTick);
+            if (!ticks.IsEnabled) ticks.Start();
             Bolts.Tap();
             face.InvalidateVisual();
         }
@@ -284,17 +304,18 @@ namespace CapriDesktop
         internal void Park()
         {
             ticks.Stop();
-            tapped = -1;
+            click.Clear();
+            ticks.Interval = TimeSpan.FromMilliseconds(UsualTick);
             Bolts.Clear();
-            if (IsVisible) Hide();
+            Hide();
         }
 
         internal bool Shown { get { return IsVisible; } }
 
         private void Step()
         {
-            if (tapped >= 0 && watch.Elapsed.TotalSeconds - tapped > Ripple) tapped = -1;
             double now = watch.Elapsed.TotalSeconds;
+            if (click.Frame(now) < 0) { click.Clear(); ticks.Interval = TimeSpan.FromMilliseconds(UsualTick); }
             Bolts.Step(now, new Point(tip.X, tip.Y), 1);
             face.InvalidateVisual();
         }
@@ -309,13 +330,14 @@ namespace CapriDesktop
             {
                 Point middle = new Point(Reach, Reach);
                 double now = her.watch.Elapsed.TotalSeconds;
-                if (her.tapped >= 0)
+                int cell = her.click.Frame(now);
+                if (cell >= 0)
                 {
-                    double eased = Math.Min(1, (now - her.tapped) / Ripple);
-                    eased = 1 - (1 - eased) * (1 - eased);
-                    double radius = 6 + 22 * eased;
-                    byte alpha = (byte)(220 * (1 - eased));
-                    graphics.DrawEllipse(null, new Pen(new SolidColorBrush(Color.FromArgb(alpha, Look.Pink.R, Look.Pink.G, Look.Pink.B)), 2.6 - 1.2 * eased), middle, radius, radius);
+                    her.ClickPictures++;
+                    double wide = ClickPlayback.Width;
+                    // Exact released art, centered on the pointer tip: half-size at100%, one-to-one at200%.
+                    graphics.DrawImage(her.ClickArt.Strip, new Rect(cell * ClickPlayback.Cell, 0, ClickPlayback.Cell, ClickPlayback.Cell),
+                        new Rect(middle.X - wide / 2, middle.Y - wide / 2, wide, wide));
                 }
                 her.Bolts.Draw(graphics, middle, new Point(her.tip.X, her.tip.Y), now, 1);
                 Bitmap picture = Art;
@@ -374,7 +396,7 @@ namespace CapriDesktop
     // screen she's working on, with her line on a badge just above the bottom of it. Clicks go straight through it and it never
     // takes the focus. It shows even while she's hidden, and hides for her own screenshots, since Linux can't keep a window
     // out of them.
-    internal sealed class ControlGlow : Window
+    internal sealed class ControlGlow : PassiveWindow
     {
         private readonly Edge edge = new Edge();
         private PixelRect area, work, shownOn;
@@ -386,7 +408,7 @@ namespace CapriDesktop
             Look.Overlay(this, "Capri in control");
             Content = edge;
             IsHitTestVisible = false;
-            Opened += delegate { if (!passThrough) passThrough = HerCursor.ClicksThrough(this); };
+            Opened += delegate { if (!passThrough) passThrough = HerCursor.ClicksThrough(this); Look.Position(this, area.Position); };
         }
 
         // Round this screen, in desktop pixels, with its work area for the badge.
@@ -396,11 +418,11 @@ namespace CapriDesktop
             work = working;
             scale = scaling > 0 ? scaling : 1;
             if (unseen || (IsVisible && shownOn == screen)) return;
-            Position = screen.Position;
             Width = screen.Width / scale;
             Height = screen.Height / scale;
             edge.Work = new Rect((working.X - screen.X) / scale, (working.Y - screen.Y) / scale, working.Width / scale, working.Height / scale);
             edge.InvalidateVisual();
+            Look.Position(this, screen.Position);
             if (!IsVisible)
             {
                 Show();
@@ -413,7 +435,7 @@ namespace CapriDesktop
         {
             unseen = false;
             shownOn = default(PixelRect);
-            if (IsVisible) Hide();
+            Hide();
         }
 
         // Hides it for the moment she takes a screenshot. True when it hid.
@@ -421,7 +443,7 @@ namespace CapriDesktop
         {
             if (hide)
             {
-                if (!IsVisible) return false;
+                if (!IsVisible && shownOn == default(PixelRect)) return false;
                 unseen = true;
                 Hide();
                 return true;

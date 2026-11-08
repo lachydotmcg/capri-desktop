@@ -2,25 +2,172 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Text.Json;
 using SkiaSharp;
 
 namespace CapriDesktop
 {
+    internal sealed record EyesObservation(byte[] Png, ComputerFrame Frame, long Ticket, bool WindowCrop = false);
     // "Check my screen" on Mac and Linux: a screenshot from the system's own tool, shrunk to a JPEG her brain can look at.
     internal static class Eyes
     {
         // A whole-screen picture's file bytes, or null when no tool here could take one. The smoke test hands in its own.
-        internal static Func<byte[]> Shoot = delegate { return Screenshot(Tools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))); };
-        // The same for Watch my screen, with only the tools that don't flash, play a shutter sound or ask first.
-        internal static Func<byte[]> Peek = delegate { return Recordable() ? Screenshot(QuietTools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))) : null; };
-
         internal static string Session
         {
             get
             {
                 string session = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
                 return !string.IsNullOrWhiteSpace(session) ? session : string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")) ? "x11" : "wayland";
+            }
+        }
+
+        private static readonly Func<byte[]> defaultShoot = delegate { return RequestNative(null, false); };
+        internal static Func<byte[]> Shoot = defaultShoot;
+        // The same for Watch my screen, with only the tools that don't flash, play a shutter sound or ask first.
+        internal static Func<byte[]> Peek = delegate { return Recordable() ? RequestNative(null, true) : null; };
+        private static readonly object captureGate = new object();
+        private static CancellationTokenSource captures = new CancellationTokenSource();
+
+        private static long generation;
+        internal static Action<string, ComputerSnapshot, int> Diagnostic;
+        internal static long Ticket() { lock (captureGate) return generation; }
+        internal static void CheckTicket(long ticket)
+        {
+            lock (captureGate)
+                if (ticket != generation || captures.IsCancellationRequested) throw new OperationCanceledException("The requested screen observation was cancelled.");
+        }
+
+        internal static byte[] Request(string focus, string screen = null) { return Observe(focus, screen).Png; }
+
+        // Metadata validation never retries or recaptures inference. Board-pixel validity is a separate task check.
+        internal static void Validate(EyesObservation observation)
+        {
+            CheckTicket(observation.Ticket);
+            if (observation.Frame == null) return;
+            CancellationToken token;
+            lock (captureGate) token = captures.Token;
+            HyprlandDesktop desktop = HyprlandDesktop.Current;
+            if (desktop == null) throw new InvalidOperationException("The native desktop connection changed during observation.");
+            ComputerSnapshot source = observation.Frame.Source;
+            ComputerSnapshot after = new ArchComputer(desktop, token, true).Observe(source.Output.Name, observation.WindowCrop ? source.Target : null);
+            ArchComputer.SameObservation(source, after, observation.WindowCrop);
+            CheckTicket(observation.Ticket);
+        }
+
+        internal static EyesObservation Observe(string focus, string screen = null)
+        {
+            CancellationToken token;
+            long ticket;
+            lock (captureGate) { token = captures.Token; ticket = generation; }
+            if (Shoot != defaultShoot)
+            {
+                byte[] picture = Shoot();
+                CheckTicket(ticket);
+                return new EyesObservation(picture, null, ticket);
+            }
+            return RequestNative(focus, screen, false, ticket, token);
+        }
+
+        internal static void Stop()
+        {
+            lock (captureGate) { generation++; captures.Cancel(); captures.Dispose(); captures = new CancellationTokenSource(); }
+        }
+
+        private static byte[] RequestNative(string focus, bool quiet)
+        {
+            CancellationToken token;
+            long ticket;
+            lock (captureGate) { token = captures.Token; ticket = generation; }
+            return RequestNative(focus, null, quiet, ticket, token).Png;
+        }
+
+        private static EyesObservation RequestNative(string focus, string screen, bool quiet, long ticket, CancellationToken token)
+        {
+            CheckTicket(ticket);
+            Stopwatch clock = Stopwatch.StartNew();
+            HyprlandDesktop desktop = HyprlandDesktop.Current;
+            if (desktop == null)
+            {
+                if (!string.IsNullOrWhiteSpace(screen) || ScreenSelection.HasHint(focus))
+                    throw new InvalidOperationException("I can't select that display on this desktop. Requested display selection requires the native Hyprland connection.");
+                byte[] picture = Screenshot(quiet ? QuietTools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")) : Tools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")));
+                CheckTicket(ticket);
+                return new EyesObservation(picture, null, ticket);
+            }
+            ArchComputer computer = new ArchComputer(desktop, token, true);
+            string session = null, layout = null, selection = null, boundOutput = null;
+            ComputerTarget boundTarget = null;
+            long observationEpoch = desktop.ObservationEpoch;
+            void Trace(string stage, ComputerSnapshot source, int attempt, Exception error = null)
+            {
+                Diagnostic?.Invoke(stage, source, attempt);
+                VisionDiagnostics.Write("capture-" + ticket, stage, ticket, 0, clock.Elapsed.TotalMilliseconds, new
+                {
+                    attempt, requested_screen_hash = VisionDiagnostics.Hash(screen),
+                    output = source?.Output,
+                    target = source?.Target == null ? null : new { source.Target.Address, source.Target.Pid, source.Target.Birth, source.Target.Area, source.Target.Monitor, source.Target.Workspace },
+                    observation_epoch = source?.ObservationEpoch,
+                    action_epoch = desktop.ActionEpoch,
+                    live_observation_epoch = desktop.ObservationEpoch,
+                    events = desktop.ObservationEvents,
+                    error_type = error?.GetType().Name, raw_error = error?.Message
+                });
+            }
+            ComputerFrame frame = Fresh(attempt =>
+            {
+                HyprlandSnapshot map;
+                try { map = desktop.ObserveSnapshotAsync(token).GetAwaiter().GetResult(); }
+                catch (HyprlandObservationChangedException error) { throw new ComputerObservationChangedException(error.Message); }
+                if (map.Locked) throw new InvalidOperationException("Screen capture is unavailable while the session is locked.");
+                VisionDiagnostics.Write("capture-" + ticket, "map", ticket, 0, clock.Elapsed.TotalMilliseconds, new
+                {
+                    attempt, requested_screen_hash = VisionDiagnostics.Hash(screen),
+                    session = VisionDiagnostics.Hash(map.SessionId), layout = VisionDiagnostics.Hash(map.LayoutId),
+                    observation_epoch = map.ObservationEpoch,
+                    outputs = map.Outputs.Take(16).Select(o => new { o.Name, o.Logical, o.Scale, o.Transform, o.PixelWidth, o.PixelHeight, o.Focused })
+                });
+                string selected = ScreenSelection.Resolve(map, screen, focus);
+                if (session == null) { session = map.SessionId; layout = map.LayoutId; selection = selected; }
+                else if (session != map.SessionId || layout != map.LayoutId || selection != selected)
+                    throw new InvalidOperationException("The requested display or layout changed during observation. Ask me to look again.");
+                bool crop = selected == null;
+                ComputerSnapshot source = computer.Observe(boundOutput ?? selected, crop ? boundTarget : null);
+                if (source.Layout != map.LayoutId) throw new ComputerObservationChangedException("The output layout changed during display selection.");
+                if (observationEpoch != source.ObservationEpoch)
+                    throw new InvalidOperationException("The desktop was locked or its connected outputs changed during observation. Ask me to look again.");
+                boundOutput ??= source.Output.Name;
+                if (crop) boundTarget ??= source.Target;
+                Trace("selected", source, attempt);
+                CheckTicket(ticket);
+                ComputerFrame captured = computer.CaptureObservation(source, crop, token);
+                CheckTicket(ticket);
+                Trace("captured", captured.Source, attempt);
+                return captured;
+            }, () => { token.ThrowIfCancellationRequested(); CheckTicket(ticket); }, (attempt, error) => Trace("revoked", null, attempt, error));
+            return new EyesObservation(frame.Png, frame, ticket, selection == null);
+        }
+
+        // Only revoked observations retry. Selection errors, locks, cancellation and inference never replay.
+        internal static T Fresh<T>(Func<int, T> attempt, Action current, Action<int, Exception> revoked = null)
+        {
+            for (int number = 1; ; number++)
+            {
+                current();
+                try
+                {
+                    T result = attempt(number);
+                    current();
+                    return result;
+                }
+                catch (ComputerObservationChangedException error)
+                {
+                    revoked?.Invoke(number, error);
+                    if (number >= 3) throw;
+                    current();
+                }
             }
         }
 

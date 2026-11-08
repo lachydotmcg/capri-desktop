@@ -1,0 +1,210 @@
+[
+  {
+    "source": "companion/capri/provider.py",
+    "destination": "cross/bridge/plan/provider.py",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "source_sha256": "20d5c90547f4ab2fe0c07567092e44940f6e2aac97d6d7aa72569b809cd945a9",
+    "adaptation": "Extracted overridable browser-open boundary; existing OAuth validation, scope, refresh and Responses semantics retained.",
+    "current_sha256": "363e0190275144a29404f63bd68e3a578c554758cfa60d8c5bea56e770aa3f9e"
+  },
+  {
+    "source": "companion/capri/response_stream.py",
+    "destination": "cross/bridge/plan/response_stream.py",
+    "sha256": "91a107c1901fd662e5e2f69844a27ef21a4ec286830dacdf71ca02869ac1cbc6",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "current_sha256": "91a107c1901fd662e5e2f69844a27ef21a4ec286830dacdf71ca02869ac1cbc6"
+  },
+  {
+    "source": "companion/capri/voice_worker.py",
+    "destination": "cross/bridge/speech/voice_worker.py",
+    "sha256": "837c28fb7bbf5772a07aa2dcd7e8998440983f66c0e18b0e9d7dd46c98f85670",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "current_sha256": "837c28fb7bbf5772a07aa2dcd7e8998440983f66c0e18b0e9d7dd46c98f85670"
+  },
+  {
+    "source": "companion/capri/voice_effects.py",
+    "destination": "cross/bridge/speech/voice_effects.py",
+    "sha256": "1bb3192868b46d92b2b1f453487c4420f8eb3e40ee8bc3d70ca3acb15fc2893b",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "current_sha256": "1bb3192868b46d92b2b1f453487c4420f8eb3e40ee8bc3d70ca3acb15fc2893b"
+  },
+  {
+    "source": "companion/capri/speech_delivery.py",
+    "destination": "cross/bridge/speech/speech_delivery.py",
+    "sha256": "141c990434a3bf7c539ea0be4b491c7ace5a5745fd5787bc5b7a94f5046bc400",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "current_sha256": "141c990434a3bf7c539ea0be4b491c7ace5a5745fd5787bc5b7a94f5046bc400"
+  },
+  {
+    "source": "companion/tools/asr_worker.py",
+    "destination": "cross/bridge/speech/asr_worker.py",
+    "sha256": "3d28e5f4b17a5d255c7f185808da43cff1313b9fe0bc0f40a21811268bdfca9f",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "current_sha256": "b70554e2bff8edfddb7b7b480a1c23f6069e5a271bd2e0ba971341ab350fa688"
+  },
+  {
+    "source": "companion/capri/parent_exec.py",
+    "destination": "cross/bridge/speech/parent_exec.py",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "sha256": "688d53a6b48952b19c3d2a41b3ce9d97d09faa3a437bf89aaae23cdc5b9970da",
+    "current_sha256": "688d53a6b48952b19c3d2a41b3ce9d97d09faa3a437bf89aaae23cdc5b9970da"
+  },
+  {
+    "source": "companion/capri/voice_pack_setup.py",
+    "destination": "cross/bridge/speech/voice_pack_setup.py",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "sha256": "d3c520c549f7f6271a28d58e85d5caab0b3cfb5bd52d567177aebb648b6365b9",
+    "current_sha256": "d3c520c549f7f6271a28d58e85d5caab0b3cfb5bd52d567177aebb648b6365b9"
+  },
+  {
+    "source": "companion/tools/asr_setup.py",
+    "destination": "tools/asr_setup.py",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "sha256": "1d4ea1a683c8c1fd5eb0c3ed10a59a4b565d17e189d37d662276277704c60f6a",
+    "current_sha256": "1d4ea1a683c8c1fd5eb0c3ed10a59a4b565d17e189d37d662276277704c60f6a"
+  },
+  {
+    "source": "companion/voice/lachy-capri-voice-1.lock.json",
+    "destination": "cross/bridge/voice/lachy-capri-voice-1.lock.json",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "sha256": "c3d2ee84f7120251c9869e2c618b3370650f44f6f02d5d4c01806fb4702d5178",
+    "current_sha256": "c3d2ee84f7120251c9869e2c618b3370650f44f6f02d5d4c01806fb4702d5178"
+  },
+  {
+    "source": "companion/capri/voice_bridge.py:physical_sources",
+    "destination": "cross/bridge/speech/sources.py",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "adaptation": "Retained physical-source filter extracted with standard-library imports; ValueError replaces service exception. No broad service imported.",
+    "current_sha256": "bfaf3617f9c76d2defbf370f1af8c9542ba06ce6be6790533a9f4f801ebd4461"
+  },
+  {
+    "source_commit": "c904203af7069e96ca869fba87b5883a61a264fd",
+    "destination": "cross native desktop mechanisms, tests/desktop, tests/computer, ci Linux packaging",
+    "adaptation": "Reuse bounded Hyprland inventory/input/capture and packaging; retain current released UI and add process/account/replay guards. Obsolete custom placement tests excluded explicitly in tests/desktop/RELEASED_UI_EXCLUSIONS.json."
+  },
+  {
+    "source": "companion/capri/portal_open.py",
+    "source_commit": "ce9ec281c178a1178a6a7616034151983256af0a",
+    "destination": "cross/bridge/portal_open.py",
+    "adaptation": "Retain portal-result wait and stdin-only URL transport; restrict this packaged helper to official OpenAI auth origin.",
+    "current_sha256": "ee9418a94fd969c8d2c58745e7f8c24299d78b108950c4f89e74dfbed40be65b"
+  },
+  {
+    "source": "Avalonia 11.3.22 X11Window.cs/Popup.cs and Hyprland 0.56.2 InputManager.cpp/Actions.cpp (inspected API behavior)",
+    "source_urls": [
+      "https://github.com/AvaloniaUI/Avalonia/tree/11.3.22",
+      "https://github.com/hyprwm/Hyprland/tree/efb50993780079460b0cbed1363e2166a2de1d9f"
+    ],
+    "adaptation": "Original scoped passive surface, popup host and drag lifecycle integration; no framework source/art replacement. Upstream 0.8.5 complete source/credits carried with explicit native overlays.",
+    "destination_hashes": {
+      "cross/NativePassive.cs": "dde49dd5046017cb7a4cb1ae9c1b400c8338e5d904db7d590ab4ed6b1f85f8c4",
+      "cross/NativeX11.cs": "7f3d2ae758d1a6827aeb3171ed2155e9496da2e279b69d3c0a08d461bbe58049",
+      "cross/NativeMenu.cs": "9ba5b3a86fbe25b7431b0398d9aa9ab1d3cf8a44ac372ea1a5fb64a9fb249d40",
+      "cross/Pet.NativeDrag.cs": "0cf02e9f9485b976ae2a4ea666fe87262168efc6cc90362e5e35e2157d04b232",
+      "cross/NativeSurface.cs": "79efb68da51c8e1576ed96ed2aeaf1ad0f0795e05724c004e9aacdab21cac243",
+      "cross/Pointer.cs": "fbf79b3de51f6ea41259d85c3a21c87e9c10bb7e9477c3df2cc58b539b57775d",
+      "cross/ComputerJobs.cs": "cfa5800d15b56f2e15a0a101ca08704b0a7341098ce4a95fbc9a995ac647a71a",
+      "cross/Look.cs": "9ba669cad20ac8a62f22cde37297d7140b170a7588c6d6158b1df2a0fc355708"
+    }
+  },
+  {
+    "source": "Existing v0.8.5 native requested-screen pipeline and coherent Hyprland visual snapshot mechanisms",
+    "source_commit": "79c93e85b18f0ea1def04ea1ce5ca0b4e2276d6f",
+    "source_urls": [
+      "https://wiki.hypr.land/ipc/",
+      "https://man.archlinux.org/man/grim.1.en"
+    ],
+    "adaptation": "Original scoped explicit monitor selector and fresh read-only observation policy; preserve strict action guards and existing PlanBrain role. Complete-area bounded scaling, task evidence prompt and optional private metadata diagnostics; no generated media or new runtime dependency.",
+    "destination_hashes": {
+      "app/Hands.cs": "2b911c189040f2c4d8a4f08ab860a6a935123cc0a7405c5d8e2ae80c074cfed3",
+      "app/Brain.cs": "c628c3f5baafdf49c91732c79abb718e0b5c91d8f96e541258df87298687690e",
+      "cross/Pet.cs": "c49c6b8924da8a6fe0f6af1a2c7bb843dcf889def44009320b0705c4a127ce77",
+      "cross/Eyes.cs": "9224db20935b5277a01048a3bd326b4802ef87d58f7480897d0980b8797b5b6f",
+      "cross/ComputerFrame.cs": "c19fd005a57d74479e6d8c1a8e309f79ba6dcb65ccb88b200e0e87eff90c31db",
+      "cross/HyprlandDesktop.cs": "149bf136ba87645a13e6cc7b7bea4d96aa33979d772888d423d9d89487bddddb",
+      "cross/HyprlandGeometry.cs": "8f1138dcb40996b89334a8b39918f34e91dce804d1c7ff9bd8e83c77f3f5f71d",
+      "cross/ScreenSelection.cs": "bd2caf2be3795f10734ce3d89e0cbb680d1bc1a6e0636ec3550de68b9b41a27d",
+      "cross/RequestedVision.cs": "edb18204fd1af0b40556fb8357a637eb3188d204a53aaf9476c78fe407c3c5c9"
+    }
+  },
+  {
+    "integration_release": "v0.8.6.1",
+    "source": "app/FileEditor.cs",
+    "source_commit": "87d5952305a14dea9defb0e9901b61911fe2c554",
+    "source_sha256": "98e26f1bada36e6cd6bcb767a6d48be6bc898bd8fd44827f3e10e7a561432eb9",
+    "destination": "cross/NativeEditorArt.cs",
+    "current_sha256": "78d7ecc7fd61069a5a513447a8a81055bacac87743e2786eca12712eb3a7e87d",
+    "adaptation": "Released PanelArt geometry and timing; original native Avalonia controls."
+  },
+  {
+    "integration_release": "v0.8.6.1",
+    "source": "app/FileEditor.cs",
+    "source_commit": "87d5952305a14dea9defb0e9901b61911fe2c554",
+    "source_sha256": "98e26f1bada36e6cd6bcb767a6d48be6bc898bd8fd44827f3e10e7a561432eb9",
+    "destination": "cross/NativeFileEditor.cs",
+    "current_sha256": "1dadb3422cc168f7ca7c10a853d92a330a8debdd34df796b2da744f0d73f2c45",
+    "adaptation": "Native text controls/persistence; original assets, font, palette and panel authority."
+  },
+  {
+    "integration_release": "v0.8.6.1",
+    "source": "app/Talk.cs",
+    "source_commit": "87d5952305a14dea9defb0e9901b61911fe2c554",
+    "source_sha256": "020da170886cedb376566af14240a4f0450176c7746f2f9637b21fa6c0bd8dda",
+    "destination": "cross/ClickPlayback.cs",
+    "current_sha256": "5c04d8b538499dc861c4d79fb9754332b05f737c1fa03f4dc9c823605446b2e4",
+    "adaptation": "Exact authored click strip and elapsed 60fps cell sampling; art credit mixmix312352."
+  },
+  {
+    "integration_release": "v0.8.6.1",
+    "source": "app/Agent.cs",
+    "source_commit": "87d5952305a14dea9defb0e9901b61911fe2c554",
+    "source_sha256": "be89ea44f98695351cb1ae51394fc86b235ea1e293e3e79f8a63f7c2bb60e73d",
+    "destination": "cross/ComputerGameSession.cs",
+    "current_sha256": "bbdccb6353877c8e5823206a199b890929ae5d46805c8c21b3b2961e6bd4e62b",
+    "adaptation": "Native bounded game-session policy and lifecycle adapted to strict compositor runner."
+  },
+  {
+    "integration_release": "v0.8.6.1",
+    "source": "app/Capri.cs",
+    "source_commit": "87d5952305a14dea9defb0e9901b61911fe2c554",
+    "source_sha256": "bf477989535d286625dc8d5ad2775efa51ff038c36d5f328b51e216b65be92b6",
+    "destination": "cross/OwnedNameEars.cs",
+    "current_sha256": "7a95dca6e4cc90d099c054cc02e75bc4b2c93a8eef195524a4be04df7b048b0c",
+    "adaptation": "Twenty-second follow-up policy adapted to retained local Moonshine ASR, default-off consent."
+  },
+  {
+    "integration_release": "v0.8.6.1",
+    "source": "app/Capri.cs",
+    "source_commit": "87d5952305a14dea9defb0e9901b61911fe2c554",
+    "source_sha256": "bf477989535d286625dc8d5ad2775efa51ff038c36d5f328b51e216b65be92b6",
+    "destination": "cross/Pet.cs",
+    "current_sha256": "ced7838907257232e9baf3364643ae619d5755048c1703b52c9fb77ba08b4978",
+    "adaptation": "Native authored facing and render/hit transforms with old-skin/Legacy compatibility."
+  },
+  {
+    "integration_release": "v0.8.6.1",
+    "source": "mono/SkiaSharp MIT LibraryLoader, PR2247",
+    "source_urls": [
+      "https://github.com/mono/SkiaSharp/pull/2247",
+      "https://github.com/mono/SkiaSharp/issues/3038"
+    ],
+    "source_commit": "482e6ee2913a08a7cad76520ccf5fbce97c7c23b",
+    "source_sha256": "24a03b284bf127c7fffcac7e30a83ba8dd644274f68451286ee7a263cfadda08",
+    "license": "MIT",
+    "license_path": "docs/provenance/SkiaSharp/LICENSE.md",
+    "destination": "cross/NativeFontBootstrap.cs",
+    "current_sha256": "6f356c437b2d647f55a6edb3282cec884c7f0e44f575828be91c2250c0addd3c",
+    "adaptation": "Explicit Linux bundled-library NOW/LOCAL/DEEPBIND load before GUI fonts; process-lifetime handle, strict published/RID paths, no global loader changes or dependency upgrade."
+  },
+  {
+    "source": "Avalonia11.3.22 Fluent MenuItem/ContextMenu/Separator templates",
+    "source_urls": [
+      "https://github.com/AvaloniaUI/Avalonia/blob/11.3.22/src/Avalonia.Themes.Fluent/Controls/MenuItem.xaml",
+      "https://github.com/AvaloniaUI/Avalonia/blob/11.3.22/src/Avalonia.Themes.Fluent/Controls/ContextMenu.xaml",
+      "https://github.com/AvaloniaUI/Avalonia/blob/11.3.22/src/Avalonia.Themes.Fluent/Controls/Separator.xaml"
+    ],
+    "destination": "cross/MainframeTheme.cs",
+    "current_sha256": "d1fac34cef7e0eae0b6a175206ae982e5ed38e25191caf8aae0a3a354007b97b",
+    "adaptation": "Menu-scoped DynamicResources use existing mutable palette brushes for actual normal/selected/pressed/disabled labels, submenu sheets, accelerators, chevrons and separators. Native host, renderer, assets and geometry retained."
+  }
+]

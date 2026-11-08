@@ -15,6 +15,7 @@ namespace CapriDesktop
     internal static class Program
     {
         internal static string Smoke;
+        internal static bool ConnectChatGPT;
         // Smoke checks turn this on to run Guard's catch path, which otherwise rethrows in smoke runs so a bug fails them.
         internal static bool Catching;
         internal static int[] Shelf;
@@ -24,16 +25,24 @@ namespace CapriDesktop
         [STAThread]
         private static int Main(string[] args)
         {
+            ConnectChatGPT = Array.IndexOf(args, "--connect-chatgpt") >= 0;
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
+            NativeFontBootstrap.Initialize();
             if (args.Length >= 5 && args[0] == "--shelf")
             {
                 Shelf = new[] { int.Parse(args[1]), int.Parse(args[2]), int.Parse(args[3]), int.Parse(args[4]) };
                 return AppBuilder.Configure<ShelfApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args, ShutdownMode.OnExplicitShutdown);
             }
             if (args.Length >= 2 && args[0] == "--smoke") Smoke = Path.GetFullPath(args[1]);
+            using LinuxProfile profile = OperatingSystem.IsLinux() && Smoke == null ? new LinuxProfile() : null;
             // Whatever ends her leaves a line in errors.txt. A bad click or timer is caught once her app is up (CapriApp).
             if (Smoke == null) AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs crash) { Crashed(crash.ExceptionObject as Exception); };
-            return AppBuilder.Configure<CapriApp>().UsePlatformDetect().With(new MacOSPlatformOptions { ShowInDock = false }).StartWithClassicDesktopLifetime(args, ShutdownMode.OnExplicitShutdown);
+            try
+            {
+                NativePassive.Initialize().GetAwaiter().GetResult();
+                return AppBuilder.Configure<CapriApp>().UsePlatformDetect().With(new MacOSPlatformOptions { ShowInDock = false }).StartWithClassicDesktopLifetime(args, ShutdownMode.OnExplicitShutdown);
+            }
+            finally { NativePassive.Shutdown().GetAwaiter().GetResult(); }
         }
 
         internal static void Crashed(Exception error)

@@ -20,9 +20,10 @@ namespace CapriDesktop
         internal const string ElevenLabs = "elevenlabs";
         internal const string Local = "local";
         internal const string Off = "off";
+        internal const string Owned = "retained-local";
 
         // Settings from before providers have none saved, and they were ElevenLabs.
-        internal static string Known(string saved) { return saved == Local || saved == Off ? saved : ElevenLabs; }
+        internal static string Known(string saved) { return saved == Local || saved == Off || saved == Owned ? saved : ElevenLabs; }
     }
 
     internal sealed class ElevenLabsSpeaker : ISpeaker
