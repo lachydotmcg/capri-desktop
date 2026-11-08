@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<title>Capri Remote</title>
+<meta name="description" content="Chat with your Capri from your phone.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0a0a10">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:*; manifest-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Capri">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="../assets/sprites/perch.webp" as="image" type="image/webp">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="app" id="app" data-screen="boot" data-link="unpaired">
+
+  <header class="top">
+    <button class="contacts" id="menu-open" type="button" aria-controls="drawer" aria-expanded="false">
+      <svg class="handset" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.2 4.4L8.6 3l2.1 5-2.6 1.9c1.2 2.6 3.2 4.6 5.8 5.8l1.9-2.6 5 2.1-1.4 4.4-1.6 1.1C10.6 20.4 3.6 13.4 3.1 6z"/></svg>
+      <span>Contacts</span>
+    </button>
+    <svg class="crumb-sep" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.5 2.5L8 6l-3.5 3.5"/></svg>
+    <h1 class="crumb-name">Capri</h1>
+  </header>
+
+  <div class="banner" id="banner" role="status" hidden>
+    <p class="banner-words"><strong id="banner-title">PC offline</strong><span id="banner-sub">Capri closed or the PC asleep</span></p>
+    <button class="nbtn cyan" id="banner-retry" type="button">Retry</button>
+  </div>
+
+  <main class="log" id="log" aria-label="Chat with Capri">
+    <div class="log-in" id="log-in"></div>
+  </main>
+
+  <div class="composer" id="composer">
+    <p class="notice" id="notice" role="status" hidden></p>
+    <form class="bar" id="bar" autocomplete="off">
+      <span class="bar-frame" aria-hidden="true"></span>
+      <textarea id="msg" name="msg" rows="1" maxlength="8000" placeholder="Message Capri" enterkeyhint="send" autocapitalize="sentences" aria-label="Message Capri"></textarea>
+      <button class="nbtn cyan icon mic" id="mic" type="button" aria-label="Talk instead of typing" aria-pressed="false" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0v-5a3 3 0 0 0-3-3z"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
+      </button>
+      <button class="nbtn cyan icon send" id="send" type="submit" aria-label="Send" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19.5V5M5.5 11.5L12 5l6.5 6.5"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <nav class="actions" id="actions" aria-label="Capri's features">
+    <button class="feat" id="f-call" type="button" aria-disabled="true" aria-label="Call, coming soon">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.2 4.4L8.6 3l2.1 5-2.6 1.9c1.2 2.6 3.2 4.6 5.8 5.8l1.9-2.6 5 2.1-1.4 4.4-1.6 1.1C10.6 20.4 3.6 13.4 3.1 6z"/></svg>
+      <span class="feat-name">Call</span><span class="tag soon" aria-hidden="true">Soon</span>
+    </button>
+    <button class="feat" id="f-screen" type="button" aria-label="Screen: ask Capri what's on your screen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v12.5H3zM8.5 20.5h7M12 16.5v4"/><path d="M7 10.25c1.5-2 3.1-3 5-3s3.5 1 5 3c-1.5 2-3.1 3-5 3s-3.5-1-5-3z"/><path d="M11.1 9.35h1.8v1.8h-1.8z"/></svg>
+      <span class="feat-name">Screen</span>
+    </button>
+    <button class="feat" id="f-jobs" type="button" aria-disabled="true" aria-label="Jobs, coming soon">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5l1.75 1.75L8.5 5M3.5 12.5l1.75 1.75L8.5 11M4 17.5h4v4H4zM11.5 6.75h9M11.5 12.75h9M11.5 19.5h6"/></svg>
+      <span class="feat-name">Jobs</span><span class="tag soon" aria-hidden="true">Soon</span>
+    </button>
+    <button class="feat" id="f-settings" type="button" aria-disabled="true" aria-label="Settings, coming soon">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h4M12.5 6.5h8M7.5 4.25h5v4.5h-5zM3.5 12h10M18.5 12h2M13.5 9.75h5v4.5h-5zM3.5 17.5h1M9.5 17.5h11M4.5 15.25h5v4.5h-5z"/></svg>
+      <span class="feat-name">Settings</span><span class="tag soon" aria-hidden="true">Soon</span>
+    </button>
+    <button class="feat" id="close-chat" type="button" aria-label="Close: open the menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5.5l13 13M18.5 5.5l-13 13"/></svg>
+      <span class="feat-name">Close</span>
+    </button>
+  </nav>
+
+  <section class="screen" id="gate" aria-labelledby="gate-title" hidden>
+    <form class="card nc gate-card" id="gate-card" autocomplete="on">
+      <svg class="hot hot-tl" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="1.1,51.1 1.1,17.1 17.1,1.1 81.1,1.1"/></svg>
+      <svg class="hot hot-br" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="81.1,1.1 81.1,35.1 65.1,51.1 1.1,51.1"/></svg>
+      <span class="tag gate-tag">Early access</span>
+      <h2 class="card-title" id="gate-title">Capri Remote</h2>
+      <label class="code-label" for="gate-word">Password</label>
+      <span class="field" id="gate-field">
+        <input id="gate-word" name="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" maxlength="200">
+      </span>
+      <p class="gate-wrong" id="gate-wrong" role="alert" hidden>Wrong password</p>
+      <button class="nbtn cyan wide" id="gate-unlock" type="submit">Unlock</button>
+    </form>
+  </section>
+
+  <section class="screen" id="pair" aria-labelledby="pair-title" hidden>
+    <div class="card nc" id="pair-card">
+      <svg class="hot hot-tl" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="1.1,51.1 1.1,17.1 17.1,1.1 81.1,1.1"/></svg>
+      <svg class="hot hot-br" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="81.1,1.1 81.1,35.1 65.1,51.1 1.1,51.1"/></svg>
+      <h2 class="card-title" id="pair-title">Pair this phone</h2>
+      <p class="card-lead">Scan the code in Capri's Mainframe</p>
+      <p class="card-note" id="pair-note" role="status" hidden></p>
+      <ol class="steps">
+        <li><span class="step-n">1</span><span>Open the Mainframe on your PC</span></li>
+        <li><span class="step-n">2</span><span>Choose Pair a phone</span></li>
+        <li><span class="step-n">3</span><span>Scan the code with this phone</span></li>
+        <li><span class="step-n">4</span><span>Tap Allow on your PC</span></li>
+      </ol>
+      <ul class="facts">
+        <li>End-to-end encrypted</li>
+        <li>No account</li>
+        <li>Unpair any time</li>
+      </ul>
+      <button class="nbtn cyan wide" id="try-demo" type="button">Try the demo</button>
+    </div>
+  </section>
+
+  <section class="screen" id="wait" aria-labelledby="wait-title" hidden>
+    <div class="card nc" id="wait-card">
+      <svg class="hot hot-tl" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="1.1,51.1 1.1,17.1 17.1,1.1 81.1,1.1"/></svg>
+      <svg class="hot hot-br" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="81.1,1.1 81.1,35.1 65.1,51.1 1.1,51.1"/></svg>
+      <h2 class="card-title" id="wait-title">Allow on your PC</h2>
+      <p class="card-lead">Capri asks: Allow this phone?</p>
+      <p class="code-label">Check your PC shows the same code</p>
+      <p class="code" id="wait-code">--- ---</p>
+      <p class="waiting">Waiting for Allow<span class="caret blink" aria-hidden="true"></span></p>
+      <div class="card-actions">
+        <button class="nbtn cyan" id="wait-allow" type="button" hidden>Allow on the demo PC</button>
+        <button class="nbtn" id="wait-cancel" type="button">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="her-layer" id="her-layer"></div>
+
+  <div class="scrim" id="scrim" hidden></div>
+  <nav class="drawer" id="drawer" aria-label="Capri Remote menu" inert>
+    <div class="drawer-plate nc">
+      <svg class="hot hot-tl" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="1.1,51.1 1.1,17.1 17.1,1.1 81.1,1.1"/></svg>
+      <svg class="hot hot-br" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="81.1,1.1 81.1,35.1 65.1,51.1 1.1,51.1"/></svg>
+      <div class="drawer-head">
+        <p class="drawer-name">Capri Remote</p>
+        <button class="glyph close" id="menu-close" type="button" aria-label="Close menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>
+        </button>
+      </div>
+      <div class="drawer-scroll">
+        <section class="drawer-part" aria-labelledby="d-link-head">
+          <h3 class="nhead" id="d-link-head">Link</h3>
+          <dl class="rows">
+            <div><dt>Status</dt><dd id="d-status" data-tone="faint">Not paired</dd></div>
+            <div><dt>PC</dt><dd id="d-pc">None</dd></div>
+            <div><dt>Encryption</dt><dd>End to end</dd></div>
+          </dl>
+        </section>
+        <section class="drawer-part" aria-labelledby="d-chats-head">
+          <h3 class="nhead" id="d-chats-head">Chats</h3>
+          <button class="nbtn cyan wide" id="d-new" type="button">New chat</button>
+          <ul class="chats" id="d-chats"></ul>
+        </section>
+        <section class="drawer-part" aria-labelledby="d-phone-head">
+          <h3 class="nhead" id="d-phone-head">This phone</h3>
+          <dl class="rows">
+            <div><dt>Device</dt><dd id="d-device">This browser</dd></div>
+            <div><dt>Paired</dt><dd id="d-paired">Not yet</dd></div>
+          </dl>
+          <button class="nbtn hot wide" id="d-unpair" type="button">Unpair</button>
+        </section>
+        <section class="drawer-part" id="d-demo" aria-labelledby="d-demo-head" hidden>
+          <h3 class="nhead" id="d-demo-head">Demo</h3>
+          <p class="hint">See each link state</p>
+          <div class="demo-states">
+            <button class="nbtn" type="button" data-state="unpaired">Not paired</button>
+            <button class="nbtn" type="button" data-state="pairing">Waiting for Allow</button>
+            <button class="nbtn" type="button" data-state="connecting">Connecting</button>
+            <button class="nbtn" type="button" data-state="offline">PC offline</button>
+            <button class="nbtn cyan" type="button" data-state="connected">Connected</button>
+            <button class="nbtn" id="d-gate" type="button">Early access</button>
+          </div>
+        </section>
+        <p class="drawer-foot">Capri Remote 0.1 <span id="d-build">demo</span></p>
+      </div>
+    </div>
+  </nav>
+
+  <p class="sr-only" id="announce" aria-live="polite"></p>
+</div>
+<script src="crypto.js"></script>
+<script src="relay.js"></script>
+<script src="remote.js"></script>
+<script src="demo.js"></script>
+<script src="capri.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
