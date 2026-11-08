@@ -1862,7 +1862,8 @@ namespace CapriDesktop
         {
             greetTried = true;
             string line = Brain.Greeting(hour);
-            if (line == null || ticket != asking || outro != null || !Talk.Quiet) return;
+            // A user already interacting with the menu should not be covered by an unsolicited greeting.
+            if (line == null || ticket != asking || outro != null || !Talk.Quiet || ContextMenu.IsOpen) return;
             byte[] hello = Hello(Brain.GreetingClip(hour));
             if (hello == null) { Reply(++asking, "startup", line); return; }
             ++asking;

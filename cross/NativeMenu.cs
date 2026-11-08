@@ -63,6 +63,14 @@ namespace CapriDesktop
                         {
                             var popup = args.NameScope.Find<Popup>("PART_Popup");
                             if (popup == null) return;
+                            // Popup.Opened/HostChanged run after Show. Give each child
+                            // the same native identity/rules as the root before it maps.
+                            if (popup.Child is Control child)
+                                child.AttachedToVisualTree += (_, _) =>
+                                {
+                                    if (HyprlandDesktop.Current != null && TopLevel.GetTopLevel(child) is TopLevel childRoot)
+                                        NativeX11.Configure(childRoot, false);
+                                };
                             popup.Topmost = owner.Topmost;
                             popup.Opened += (_, _) => { popup.Topmost = owner.Topmost; Host(popup.Host); if (popup.Host is TopLevel childHost) hosts.Add(childHost); };
                             popup.Closed += (_, _) => hosts.RemoveWhere(host => !host.IsVisible);

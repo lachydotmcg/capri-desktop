@@ -48,3 +48,5 @@ Native qualification exposed system HarfBuzz symbol interposition and a helper-s
 ## Current public-main integration and menu palette
 
 The retained v0.8.6.1 catalog describes617 release files. UPSTREAM_MAIN_SOURCE.json separately catalogs623 public-main files at9ca691b145b2f9396863442d0f91474202600ada; UPSTREAM_MAIN_FILE_MATRIX.csv accounts for28 later paths and the three reviewed native overlaps. The newer README, site/bot/worker/Windows/Husk/mod source is preserved, without deployment. The menu correction maps inspected Fluent11.3.22 resources to existing look brushes; no visual asset, native-window or renderer replacement was made. Source hashes in the JSON ledger refer to this integrated tree.
+
+Native submenu hosts reuse the pinned Avalonia11.3.22 Popup SetChild-before-Show lifecycle and the existing NativeX11/process-specific popup rule boundary; no global compositor rule, renderer or visual asset replacement. See docs/menu-theme.md and REUSE_LINUX_WORKERS.json.

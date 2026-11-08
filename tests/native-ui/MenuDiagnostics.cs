@@ -103,6 +103,11 @@ internal static class MenuDiagnostics
             foreground = menu.Foreground?.ToString(),
             font = menu.FontFamily?.ToString(),
             host = Root(host),
+            submenus = menu.Items.OfType<MenuItem>().Where(i => i.IsSubMenuOpen).Select(i => new
+            {
+                header = Limited(i.Header?.ToString(), 120),
+                hosts = i.GetVisualDescendants().OfType<Popup>().Select(p => Root(p.Host as TopLevel)).ToArray()
+            }).ToArray(),
             rows = menu.Items.OfType<MenuItem>().Where(i => i.IsVisible).Select(i => new
             {
                 header = Limited(i.Header?.ToString(), 120),
@@ -129,6 +134,7 @@ internal static class MenuDiagnostics
             xid, renderChild = child,
             kind = root.GetType().Name,
             visible = root.IsVisible,
+            topmost = (root as WindowBase)?.Topmost,
             client = root.ClientSize.ToString(),
             bounds = root.Bounds.ToString(),
             scale = root.RenderScaling,

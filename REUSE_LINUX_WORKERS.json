@@ -99,7 +99,7 @@
     "destination_hashes": {
       "cross/NativePassive.cs": "dde49dd5046017cb7a4cb1ae9c1b400c8338e5d904db7d590ab4ed6b1f85f8c4",
       "cross/NativeX11.cs": "7f3d2ae758d1a6827aeb3171ed2155e9496da2e279b69d3c0a08d461bbe58049",
-      "cross/NativeMenu.cs": "9ba5b3a86fbe25b7431b0398d9aa9ab1d3cf8a44ac372ea1a5fb64a9fb249d40",
+      "cross/NativeMenu.cs": "55361d6fc8a08bbcd090abd7cef41d1642aaf524d771a7cc43e4f042603a6612",
       "cross/Pet.NativeDrag.cs": "0cf02e9f9485b976ae2a4ea666fe87262168efc6cc90362e5e35e2157d04b232",
       "cross/NativeSurface.cs": "79efb68da51c8e1576ed96ed2aeaf1ad0f0795e05724c004e9aacdab21cac243",
       "cross/Pointer.cs": "fbf79b3de51f6ea41259d85c3a21c87e9c10bb7e9477c3df2cc58b539b57775d",
@@ -118,7 +118,7 @@
     "destination_hashes": {
       "app/Hands.cs": "2b911c189040f2c4d8a4f08ab860a6a935123cc0a7405c5d8e2ae80c074cfed3",
       "app/Brain.cs": "c628c3f5baafdf49c91732c79abb718e0b5c91d8f96e541258df87298687690e",
-      "cross/Pet.cs": "ced7838907257232e9baf3364643ae619d5755048c1703b52c9fb77ba08b4978",
+      "cross/Pet.cs": "a02168d6c4d7dd9e43525b6cfc42e22199faaad060fafb4dcba7626b0f1631a9",
       "cross/Eyes.cs": "9224db20935b5277a01048a3bd326b4802ef87d58f7480897d0980b8797b5b6f",
       "cross/ComputerFrame.cs": "c19fd005a57d74479e6d8c1a8e309f79ba6dcb65ccb88b200e0e87eff90c31db",
       "cross/HyprlandDesktop.cs": "149bf136ba87645a13e6cc7b7bea4d96aa33979d772888d423d9d89487bddddb",
@@ -178,7 +178,7 @@
     "source_commit": "87d5952305a14dea9defb0e9901b61911fe2c554",
     "source_sha256": "bf477989535d286625dc8d5ad2775efa51ff038c36d5f328b51e216b65be92b6",
     "destination": "cross/Pet.cs",
-    "current_sha256": "ced7838907257232e9baf3364643ae619d5755048c1703b52c9fb77ba08b4978",
+    "current_sha256": "a02168d6c4d7dd9e43525b6cfc42e22199faaad060fafb4dcba7626b0f1631a9",
     "adaptation": "Native authored facing and render/hit transforms with old-skin/Legacy compatibility."
   },
   {
@@ -206,5 +206,15 @@
     "destination": "cross/MainframeTheme.cs",
     "current_sha256": "d1fac34cef7e0eae0b6a175206ae982e5ed38e25191caf8aae0a3a354007b97b",
     "adaptation": "Menu-scoped DynamicResources use existing mutable palette brushes for actual normal/selected/pressed/disabled labels, submenu sheets, accelerators, chevrons and separators. Native host, renderer, assets and geometry retained."
+  },
+  {
+    "source": "Avalonia11.3.22 Popup native host lifecycle",
+    "source_urls": [
+      "https://github.com/AvaloniaUI/Avalonia/blob/11.3.22/src/Avalonia.Controls/Primitives/Popup.cs"
+    ],
+    "source_sha256": "fda28253d52fa841bed9bff1284b36ae10528c6117141bb7d24f3682e6b4eccf",
+    "destination": "cross/NativeMenu.cs",
+    "current_sha256": "55361d6fc8a08bbcd090abd7cef41d1642aaf524d771a7cc43e4f042603a6612",
+    "adaptation": "Classify existing submenu hosts at child visual attachment before Show so the same process-specific native popup rules cover root and children. Preserve existing Topmost, geometry, input, renderer and asset behavior."
   }
 ]
