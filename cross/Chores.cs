@@ -91,7 +91,9 @@ namespace CapriDesktop
 
         internal static string Run(Brain brain, string job, string asked)
         {
-            if (Hands.StreamAsked(job) || Hands.StreamAsked(asked)) Hands.Streaming = true;
+            // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
+            // a plain job over its stream tool.
+            if (Hands.StreamAsked(job) || !brain.WorksOut() && Hands.StreamAsked(asked)) Hands.Streaming = true;
             try { return Work(brain, job, asked); }
             finally { Hands.Streaming = false; }
         }

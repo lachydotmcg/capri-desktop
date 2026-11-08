@@ -676,7 +676,7 @@ namespace CapriDesktop
             + "and name if they named a game. Call it with action stop to end it.\n";
 
         private const string Noted =
-            "\nYou have tools for their PC: open (launch, play) their apps and games, switch to, minimize, maximize, snap, move, resize or close apps that are open, on any of their monitors, play songs or videos they name, open websites or search them, control their music and volume, look at their screen, and use their mouse and keyboard for jobs inside apps and sites. " +
+            "\nYou have tools for their PC: open (launch) their apps and games, switch to, minimize, maximize, snap, move, resize or close apps that are open, on any of their monitors, play songs or videos they name, open websites or search them, control their music and volume, look at their screen, and use their mouse and keyboard for jobs inside apps and sites. " +
             "Use a tool whenever they ask you to do something like that, and never say you did or are doing it without one. Look at their screen when they ask what you see or what you think of something on it. Only close an app when they ask you to. " +
             StreamNote +
             "Your own website, where people download you, is " + Home + ". " +
@@ -811,13 +811,10 @@ namespace CapriDesktop
 
         // Voice chat's second look, for a reply with no tool behind it: her own brain reads their words and her reply and picks
         // from every tool, the same as text chat's. Her ears can mishear a name, so it goes by what they meant.
-        internal const string Keeping = "In voice chat just now they said something and you answered, but no tool ran, so nothing has happened on their PC. If they asked, suggested or hinted at anything one of your tools does, in any words, call that tool now. Your ears mishear names, so go by what they meant and by your own reply. If they only wanted to talk, call nothing.";
+        internal const string Keeping = "In voice chat just now they said something and you answered, but no tool ran, so nothing has happened on their PC. If they asked, suggested or hinted at anything one of your tools does, in any words, call that tool now, even if you asked whether to. Your ears mishear names, so go by what they meant and by your own reply. If they only wanted to talk, or you asked them something you need to know first, like which one they mean, call nothing.";
         internal const string KeptNothing = "Nothing ran for what you just said you'd do, so it hasn't happened. If they ask, say so plainly.";
 
         internal static string KeepAsk(string words, string said) { return "They said: " + Voice.Quote(words) + "\nYou said: " + Voice.Quote(said); }
-
-        // A spoken reply that owes them a tool: she said she'd do it, or they asked for something and she didn't just ask them back.
-        internal static bool Owed(string said, string heard) { return Promised(said) || Wants(heard) && !Regex.IsMatch(said ?? "", @"\?\W*$"); }
 
         // Set phrases a strong brain still lets her take straight away, because there's nothing to work out.
         internal static bool Instant(string tool, ToolArguments args = null)
@@ -2389,94 +2386,37 @@ namespace CapriDesktop
             return false;
         }
 
-        // Her own abilities and her checks, which her mouse can't do for her: a pick of one stays picked whatever else they said
-        // (Lachy, 3 Nov: phrase matches never throw away what her brain chose).
-        private static readonly string[] Herself = { "capri_settings", "voice_chat", "speech", "job_control", "quit", "mainframe", "updates", "mini_player", "fake_crash", "clone", "hologram", "desktop_icons", "animate", "nap", "move_yourself", "gaming_mode", "clip", "watch_along", "stream", "mini_game", "game_notes", "app_volume", "pc_status", "internet_status", "power", "list_windows", "check_app" };
-
-        // Fixes the calls a brain picked for what they said. True when it needs her mouse and keyboard and the kit doesn't have
-        // them: the calls are cleared then, so she says she can't instead of doing something else.
+        // Her hands' shortcuts for a brain that picked nothing. A brain's pick is never swapped, whatever they said (Lachy, 8 Nov:
+        // "I want them to use the tools that they have access to freely"), so a pick goes out as the brain made it. True when the
+        // shortcut needs her mouse and keyboard and the kit doesn't have them, so she says she can't instead of doing something else.
         internal static bool Rescue(string said, List<KeyValuePair<string, ToolArguments>> calls, Kit kit = null)
         {
+            if (calls.Count > 0) return false;
             string text = Asked(said);
             bool mouse = kit == null || kit.Has("use_computer");
             string directTool;
             ToolArguments directArgs;
-            // With a brain's pick in hand only clear music overrules it; with none, a bare title still goes to music.
-            if (Direct(said, out directTool, out directArgs, calls.Count > 0) && (directTool == "play_music" || directTool == "mini_game" || directTool == "website_nickname" || directTool == "find_file" || directTool == "open_website"))
+            // A bare title still goes to music.
+            if (Direct(said, out directTool, out directArgs) && (directTool == "play_music" || directTool == "mini_game" || directTool == "website_nickname" || directTool == "find_file" || directTool == "open_website"))
             {
-                calls.Clear();
                 calls.Add(new KeyValuePair<string, ToolArguments>(directTool, directArgs));
                 return false;
             }
-            // A brain can file any "play" under music, and Spotify then gets "this chess match with me" typed into it (a tester, 31 Oct).
-            if (calls.Exists(filed => filed.Key == "play_music" && GameAsk(text, filed.Value == null ? null : filed.Value.Song)))
-            {
-                calls.Clear();
-                if (!mouse) return true;
-                calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = said }));
-                return false;
-            }
-            // A brain can stop at opening a game they told her to play, which leaves the whole job undone (Lachy, 3 and 7 Nov). The
-            // job opens it and plays it, so it's the one call.
-            if (mouse && calls.Count > 0 && calls.TrueForAll(filed => filed.Key == "open_app") && calls.Exists(filed => filed.Value != null && ToldToPlay(said, filed.Value.Name)))
-            {
-                calls.Clear();
-                calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = said }));
-                return false;
-            }
-            // A call line or errand is the whole plan: she joins first by herself, so "join and tell them I'll be on in 15" keeps the message.
-            if (calls.Exists(planned => planned.Key == "remind" || planned.Key == "routine" || planned.Key == "game_notes" || planned.Key == "call_say" || planned.Key == "call_errand")) return false;
 #if !CROSS
-            if (calls.Exists(watched => watched.Key == "watch_for")) return false;
             if (Ink.ScreenRequest(said))
             {
-                calls.Clear();
                 if (!mouse) return true;
                 calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = said }));
                 return false;
             }
-            if (calls.Exists(drawn => drawn.Key == "draw")) return false;
 #endif
-            if (calls.Exists(call => call.Key == "use_computer" || call.Key == "look_at_screen" || call.Key == "listen" || call.Key == "media" || call.Key == "play_music")) return false;
-            if (!calls.Exists(call => Array.IndexOf(Herself, call.Key) >= 0) && Wants(said) && ((Errand(said) && !calls.Exists(call => call.Key == "shortcut" || call.Key == "remember")) || Regex.IsMatch(text, @"\s(and|then|&)\s+(then\s+)?(\w+\s+)?(search|look|type|click|go|make|create|write|find|open|sign|log|send|start|join|watch|check|put|add|draw|set|turn|say|tell|message|text|dm|reply|post|ask|paste|share|ping|install|uninstall|reinstall|download|upload|update|upgrade)\b", RegexOptions.IgnoreCase)))
+            if (Wants(said) && (Errand(said) || Regex.IsMatch(text, @"\s(and|then|&)\s+(then\s+)?(\w+\s+)?(search|look|type|click|go|make|create|write|find|open|sign|log|send|start|join|watch|check|put|add|draw|set|turn|say|tell|message|text|dm|reply|post|ask|paste|share|ping|install|uninstall|reinstall|download|upload|update|upgrade)\b", RegexOptions.IgnoreCase)))
             {
-                calls.Clear();
                 if (!mouse) return true;
                 calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = text }));
                 return false;
             }
-            for (int i = 0; i < calls.Count; i++)
-            {
-                ToolArguments args = calls[i].Value;
-                if (calls[i].Key != "open_website" || args == null || string.IsNullOrEmpty(args.Site) || !string.IsNullOrEmpty(args.Browser) || Regex.IsMatch(text, @"[a-z0-9-]+\.[a-z]{2,}", RegexOptions.IgnoreCase)) continue;
-#if !CROSS
-                if (Websites != null && Websites.Nickname(args.Site) != null) continue;
-#endif
-                // The site's own name, like "spotify" in https://open.spotify.com/search, which used to come out as "open".
-                string[] labels = Regex.Replace(args.Site.Trim(), @"^(https?://)?(www\.)?|[/?#].*$", "", RegexOptions.IgnoreCase).Split('.');
-                string name = labels.Length >= 2 ? labels[labels.Length - 2] : labels[0];
-                if (!Regex.IsMatch(text, @"\b" + Regex.Escape(name) + @"\b", RegexOptions.IgnoreCase) || !Installed(name)) continue;
-                if (string.IsNullOrEmpty(args.Search)) calls[i] = new KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = name });
-                // Music they asked to hear, searched for on Spotify's web player, plays in the app they have (Bende, 3 Nov: the web
-                // player kept opening when they'd asked for the app on their PC). A search of the website they asked for stays one.
-                else if (name == "spotify" && Regex.IsMatch(text, @"\b(play|put on|listen to)\b", RegexOptions.IgnoreCase) && !Regex.IsMatch(text, @"\b(search|website|site|web|browser)\b", RegexOptions.IgnoreCase))
-                    calls[i] = new KeyValuePair<string, ToolArguments>("play_music", new ToolArguments { Song = args.Search.Trim(), App = "spotify" });
-            }
             return false;
-        }
-
-        // Joining a game or naming one, not putting on a song: "play this round with me", "play my minecraft world", "play solitaire".
-        private static bool GameAsk(string text, string song)
-        {
-            Match asked = Regex.Match(Suggestion(text ?? ""), @"^play\s+(.+?)[.!?]*$", RegexOptions.IgnoreCase);
-            if (!asked.Success) return false;
-            string target = asked.Groups[1].Value;
-            if (Regex.IsMatch(target, @"\b(songs?|tracks?|tunes?|albums?|playlists?|music|soundtrack|ost|theme|remix|spotify|youtube|by)\b", RegexOptions.IgnoreCase)) return false;
-            if (ByHand(target)) return true;
-            if (Regex.IsMatch(target, @"^(this|that)$", RegexOptions.IgnoreCase)) return Plain(song ?? "") == Plain(target);
-            bool pointed = Regex.IsMatch(target, @"^(this|that|these|those|my|our)\b", RegexOptions.IgnoreCase);
-            bool joined = Regex.IsMatch(target, @"\b(with|against)\s+(me|us|you)$", RegexOptions.IgnoreCase);
-            return (pointed && joined) || ((pointed || joined) && Playable.IsMatch(target)) || PlainGame.IsMatch(target) || Nickname(target) != null || Regex.IsMatch(target, @"^(?:the\s+)?(?:mic|mike)\s+up\b", RegexOptions.IgnoreCase);
         }
 
         // "Play gmod yourself" is how Gaming Mode hands on what came after it: her hands on a game whatever it's called, not a song to search for (Dante, 1 Nov).

@@ -9689,7 +9689,9 @@ namespace CapriDesktop
                 string result = Work(joining);
                 return FinishCallJoin(task, joining.Outcome, ticket, result);
             }
-            if (Hands.StreamAsked(task) || Hands.StreamAsked(asked)) Computer.Streaming = true;
+            // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
+            // a plain job over its stream tool.
+            if (Hands.StreamAsked(task) || !brain.WorksOut() && Hands.StreamAsked(asked)) Computer.Streaming = true;
             if (!Computer.Streaming)
             {
                 Job plain = new Job(task, asked);
@@ -13381,8 +13383,7 @@ namespace CapriDesktop
         {
             if (CallModeOn) return CallSession.Conversation;
             if (args == null) args = new ToolArguments();
-            // The agent can stop at opening a game they told her to play, which leaves the job undone (Lachy, 7 Nov).
-            if (tool == "open_app" && Hands.KitFor(brain.Blind).Has("use_computer") && Hands.ToldToPlay(args.Asked, args.Name)) { args = new ToolArguments { Task = Hands.Asked(args.Asked) }; tool = "use_computer"; }
+            // What the agent picked runs as it picked it (Lachy, 8 Nov): its tools say a game to play is one use_computer job.
             args.FromAgent = opened != null;
             stirred = Environment.TickCount;
             lock (shortcutGate)
@@ -13518,10 +13519,12 @@ namespace CapriDesktop
             agentComment = false;
             // The agent saying the same line again never gets as far as their ears.
             if (SaidAgain(said)) return;
+            // Every reply with no tool behind it gets her brain's second look, which decides from every tool whether they wanted
+            // anything done, not a phrase list hearing a promise or an ask (Lachy, 8 Nov).
             string owed = null;
             lock (shortcutGate)
             {
-                if (!toolAsked && heardLast != null && Hands.Owed(said, heardLast)) owed = heardLast;
+                if (!toolAsked && heardLast != null) owed = heardLast;
                 heardLast = null;
             }
             if (owed != null) KeepPromise(owed, said, asking, agent);
@@ -13731,8 +13734,9 @@ namespace CapriDesktop
                 // "Play Minecraft" alone only opens it; said with Gaming Mode it means her hands on the game.
                 text = afterGaming.StartsWith("play ", StringComparison.OrdinalIgnoreCase) ? afterGaming.TrimEnd('.', '!', ' ') + " yourself" : afterGaming;
             }
-            // Asked for partway through a job or further into a long message than her brain reads, it still counts.
-            if (Hands.StreamAsked(text)) Computer.Streaming = true;
+            // Asked for partway through a job or further into a long message than her brain reads, it still counts. A brain that
+            // holds her tools starts a stream with its stream tool, so this is only for her hands.
+            if (!brain.WorksOut() && Hands.StreamAsked(text)) Computer.Streaming = true;
             bool fileMessage = brain.Attachments.Waiting || Files.PathIn(text) != null;
             System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
             if (callReply == null && prompt == "> you: " && HearMini(text)) return;
@@ -18697,18 +18701,18 @@ namespace CapriDesktop
                 System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> picked = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
                 picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = "open spotify and play Blinding Lights" }));
                 Hands.Rescue("open spotify and play Blinding Lights", picked);
-                if (picked.Count != 1 || picked[0].Key != "play_music") throw new Exception("The brain's clicking choice was not corrected.");
+                if (picked.Count != 1 || picked[0].Key != "use_computer") throw new Exception("A brain's mouse job was swapped for another tool.");
                 foreach (string[] filed in new[]
                 {
-                    new[] { "play this round with me", "this round with me", "use_computer" },
-                    new[] { "play my minecraft world", "my minecraft world", "use_computer" },
-                    new[] { "play that", "that", "use_computer" },
-                    new[] { "play solitaire", "solitaire", "use_computer" },
-                    new[] { "play this chess match with me", "this chess match with me", "mini_game" },
+                    new[] { "play this round with me", "this round with me", "play_music" },
+                    new[] { "play my minecraft world", "my minecraft world", "play_music" },
+                    new[] { "play that", "that", "play_music" },
+                    new[] { "play solitaire", "solitaire", "play_music" },
+                    new[] { "play this chess match with me", "this chess match with me", "play_music" },
                     new[] { "play that", "Neon Nights", "play_music" },
                     new[] { "play video games by lana del rey", "Video Games", "play_music" },
                     new[] { "play stay with me", "stay with me", "play_music" },
-                    new[] { "play mike up and make some new friends", "Mike Up", "use_computer" }
+                    new[] { "play mike up and make some new friends", "Mike Up", "play_music" }
                 })
                 {
                     picked.Clear();
@@ -18728,12 +18732,12 @@ namespace CapriDesktop
                 ToolArguments asideArgs;
                 if (Asides.Plain("play the floor is lava and make some new friends", out asideTool, out asideArgs, true) == AsideKind.Tool) throw new Exception("Mid-job, a game ask ran as a song beside the job.");
                 if (!Computer.Gaming("hop on mike up for a bit")) throw new Exception("A Mic Up job wasn't a game job.");
-                checks.Add("PASS with a brain to ask, play goes straight to music only when it's clearly music, before her brain, after its pick and mid-job, and Mic Up or Mike Up is a Roblox game (Lachy, 6 Nov)");
-                // A brain that opens Spotify's web player for someone with the app gets the app (Bende, 3 Nov).
+                checks.Add("PASS with a brain to ask, play goes straight to music only when it's clearly music, before her brain and mid-job, a brain's own music pick is never swapped (Lachy, 8 Nov), and Mic Up or Mike Up is a Roblox game (Lachy, 6 Nov)");
+                // A brain that opens Spotify's web player keeps its pick: her hands never swap a brain's tool (Lachy, 8 Nov).
                 foreach (string[] spotifyWeb in new[]
                 {
-                    new[] { "can you open spotify for me", "https://open.spotify.com", "", "open_app" },
-                    new[] { "i wanna listen to lofi beats on my spotify app", "open.spotify.com", "lofi beats", "play_music" },
+                    new[] { "can you open spotify for me", "https://open.spotify.com", "", "open_website" },
+                    new[] { "i wanna listen to lofi beats on my spotify app", "open.spotify.com", "lofi beats", "open_website" },
                     new[] { "search the spotify website for lofi beats", "https://open.spotify.com/", "lofi beats", "open_website" },
                     new[] { "search the spotify website for the song blinding lights", "https://open.spotify.com", "Blinding Lights", "open_website" }
                 })
@@ -18812,8 +18816,8 @@ namespace CapriDesktop
                     picked.Clear();
                     picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = saveSite }));
                     Hands.Rescue(saveSite, picked);
-                    if (picked.Count != 1 || picked[0].Key != "website_nickname") throw new Exception("The brain kept a website in ordinary notes.");
-                    Hands.Do(picked[0].Key, picked[0].Value);
+                    if (picked.Count != 1 || picked[0].Key != "remember") throw new Exception("A brain's note was swapped for a website nickname.");
+                    Hands.Do(heardTool, heardArgs);
                 }
                 Hands.Do("website_nickname", new ToolArguments { Action = "save", Name = "  \"  Quoted   Name  \"  ", Site = "https://example.com/Quoted" });
                 if (Hands.Websites.Find("QUOTED NAME") != "https://example.com/Quoted") throw new Exception("A tool-saved quoted nickname kept spaces around its key.");
@@ -18844,7 +18848,7 @@ namespace CapriDesktop
                     picked.Clear();
                     picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = opening }));
                     Hands.Rescue(opening, picked);
-                    if (picked.Count != 1 || picked[0].Key != "open_website" || picked[0].Value.Site != siteRequests[siteIndex, 1]) throw new Exception("The brain's literal app route escaped nickname lookup.");
+                    if (picked.Count != 1 || picked[0].Key != "open_app") throw new Exception("A brain's open_app was swapped for a website.");
                 }
                 foreach (string literalSite in new[] { "School Portal", "my SCHOOL PORTAL website", "the School Portal site" })
                 {
@@ -18870,7 +18874,7 @@ namespace CapriDesktop
                 Hands.Websites.Do(new ToolArguments { Action = "save", Name = "study site", Site = "https://example.com/OtherStudy" });
                 if (Hands.Websites.Nickname("study") != null || Hands.Websites.Nickname("my study website") != "my study website") throw new Exception("An ambiguous shortened nickname picked an arbitrary saved entry or took over an exact name.");
                 if (!Hands.Heard("google school portal", out heardTool, out heardArgs) || heardArgs.Site != "google" || heardArgs.Search != "school portal") throw new Exception("A saved nickname swallowed an explicit web search.");
-                checks.Add("PASS local and brain website opens resolve my and website around whole nicknames before app routes, keep exact names first and explicit searches separate, and preserve URL scheme and path case");
+                checks.Add("PASS local and brain website opens resolve my and website around whole nicknames before app routes, keep exact names first and explicit searches separate, and preserve URL scheme and path case; a brain's own open_app stays its pick");
                 checks.Add("PASS a brain's non-English website call keeps its nickname even when an installed app has the same name");
 
                 string gameFolder = Path.Combine(fixture, "Cyberpunk"), otherFolder = Path.Combine(fixture, "Cyberpunk 2077"), ignoredFolder = Path.Combine(fixture, @"node_modules\Cyberpunk");
@@ -25620,7 +25624,7 @@ namespace CapriDesktop
                     return name == "open_app" ? "Opened " + args.Name + "." : name == "use_computer" ? "Job: clicked PLAY, then MATCHMAKING. Searching for a match." : "Done.";
                 };
                 Computer.GameOpen = delegate { return null; };
-                if (working.WorksOut() || new Brain { OwnSteps = true }.WorksOut()) throw new Exception("A brain worked jobs out itself with the switch off, or with no cloud brain.");
+                if (working.WorksOut() || new Brain { OwnSteps = true }.WorksOut()) throw new Exception("A brain worked jobs out itself with the switch off, or with no brain at all.");
                 working.OwnSteps = true;
                 if (!working.WorksOut()) throw new Exception("A cloud brain with tools didn't work jobs out itself.");
                 string matched = working.Ask("start matchmaking in cs");
@@ -27878,7 +27882,7 @@ namespace CapriDesktop
                 if (!Hands.Heard("play some music yourself", out gmodTool, out gmodArgs) || gmodTool != "play_music" || string.IsNullOrEmpty(gmodArgs.Song) || gmodArgs.Song.IndexOf("yourself", StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Music asked for with Gaming Mode stopped playing.");
                 System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> gmodCalls = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> { new System.Collections.Generic.KeyValuePair<string, ToolArguments>("play_music", new ToolArguments { Song = "gmod" }) };
                 Hands.Rescue("play gmod yourself", gmodCalls);
-                if (gmodCalls.Count != 1 || gmodCalls[0].Key != "use_computer") throw new Exception("A brain's music call for a game stayed on music.");
+                if (gmodCalls.Count != 1 || gmodCalls[0].Key != "play_music") throw new Exception("A brain's music call was swapped for another tool.");
                 if (Computer.StreamNote.IndexOf("in the same turn as your next moves", StringComparison.Ordinal) < 0 || !Hands.Streams("Hey Capri, play Minecraft with streamer mode and talk to chat") || Hands.Streams("what's the time") || !Hands.ChatPanel().IsEmpty && Hands.ChatPanel().Width < 200) throw new Exception("Her stream note or chat panel was wrong.");
                 if (!Hands.StreamAsked("Hey Capri, play Minecraft with streamer mode and talk to chat") || !Hands.StreamAsked("Capri, use streaming mode and play minecraft while talking to chat") || !Hands.StreamAsked("play minecraft on my stream") || !Hands.StreamAsked("Enter Gaming Mode and use Computer Use to play Bloons TD 6. I'm also live streaming so occasionally talk to chat for me") || !Hands.StreamAsked("play terraria, I'm live") || !Hands.StreamAsked("don't stop playing and talk to chat") || !Hands.StreamAsked("can you read my tiktok chat") || Hands.StreamAsked("I'm streaming tonight") || Hands.StreamAsked("don't talk to chat") || Hands.StreamAsked("stop talking to chat") || Hands.StreamAsked("is streaming mode on") || Hands.StreamAsked("play minecraft") || Hands.StreamAsked("how does streamer mode work") || Hands.StreamAsked("turn off streaming mode")) throw new Exception("A stream asked for in words was read wrong.");
                 Computer.Streaming = true;
@@ -33245,6 +33249,7 @@ namespace CapriDesktop
             Section(checks, "SmokeJobEars", delegate { SmokeJobEars(checks, output); });
             Section(checks, "SmokeNameChat", delegate { SmokeNameChat(checks, output); });
             Section(checks, "SmokeWorkingOut", delegate { SmokeWorkingOut(checks); });
+            Section(checks, "SmokeLocalWorkingOut", delegate { SmokeLocalWorkingOut(checks); });
             Section(checks, "SmokePlannerChecks", delegate { SmokePlannerChecks(checks); });
             Section(checks, "SmokeSettingTurns", delegate { SmokeSettingTurns(checks); });
             Section(checks, "SmokeMoreSettings", delegate { SmokeMoreSettings(checks); });
@@ -39171,8 +39176,9 @@ namespace CapriDesktop
                                         System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> rescued = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
                                         if (typedJob == "send hi in #play-testing") rescued.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = "Discord" }));
                                         if (typedJob.StartsWith("Capri, open up")) rescued.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("open_website", new ToolArguments { Site = Hands.Home }));
+                                        string brainPick = rescued.Count == 0 ? null : rescued[0].Key;
                                         Hands.Rescue(typedJob, rescued);
-                                        if (rescued.Count != 1 || rescued[0].Key != "use_computer" || string.IsNullOrEmpty(rescued[0].Value.Task)) throw new Exception("A typed messaging job didn't become a computer job: " + typedJob);
+                                        if (brainPick != null ? rescued.Count != 1 || rescued[0].Key != brainPick : rescued.Count != 1 || rescued[0].Key != "use_computer" || string.IsNullOrEmpty(rescued[0].Value.Task)) throw new Exception(brainPick != null ? "A brain's pick was swapped: " + typedJob : "A typed messaging job didn't become a computer job: " + typedJob);
                                     }
                                     foreach (string notJob in new[] { "send me a song", "text is too small", "ping is so bad today", "what type of game is this", "type of game is this", "post malone is goated", "send help", "click bait everywhere" })
                                     {

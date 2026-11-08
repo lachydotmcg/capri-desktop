@@ -2327,7 +2327,7 @@ namespace CapriDesktop
                             if (!Hands.Direct(words, out tool, out args) || tool != "mini_game" || !Hands.Valid(tool, args) || Hands.Do(tool, args) != line || Hands.KitFor().Lacking(words) != line) throw new Exception("A mini game became music on Mac or Linux: " + words);
                             List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>> { new KeyValuePair<string, ToolArguments>("play_music", new ToolArguments { Song = "Chess", Kind = "album" }) };
                             Hands.Rescue(words, calls);
-                            if (calls.Count != 1 || calls[0].Key != "mini_game" || Hands.Do(calls[0].Key, calls[0].Value) != line) throw new Exception("A brain's chess album choice wasn't corrected.");
+                            if (calls.Count != 1 || calls[0].Key != "play_music") throw new Exception("A brain's chess album pick was swapped for another tool.");
                         }
                         string musicTool;
                         ToolArguments musicArgs;

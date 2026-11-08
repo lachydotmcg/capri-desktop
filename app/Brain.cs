@@ -2115,23 +2115,49 @@ namespace CapriDesktop
             bool follows = !agreed && recent.Count == 2 && Hands.Follows(text, recent[0].Content, recent[1].Content);
             bool reached = false;
             string playing = act != null ? Hands.GameOpen() : null;
-            // A strong brain works the job out itself (F57), so set phrases only take what needs no thought.
+            // A brain that holds her tools works the job out itself (F57), so set phrases only take what needs no thought. Her own
+            // brain on their PC does too when its model calls tools (Lachy, 8 Nov), but it answers chat first and takes every tool up
+            // once it says a message is a job: the whole tool list on every message would slow each reply by seconds on a graphics
+            // card and by minutes without one.
             bool planning = act != null && !fileChat && WorksOut(), planned = false;
+            bool chatFirst = planning && OnThisPc;
             string planText = null;
             List<string> results = new List<string>();
             List<string> facts = new List<string>();
             // Her line about something that can't work here, when that's what they asked for.
             string unable = null;
-            // A stream is a mouse and keyboard job, so it only starts where she has them.
-            if (act != null && kit.Has("use_computer") && Hands.StreamAsked(request)) Hands.Streaming = true;
-            // Asked for something that can't work here, like "can you draw on my screen?" on a Mac, she says so straight away
-            // instead of a brain promising it or a mouse job trying it (F69, pass 5).
-            string lacking = act != null && !fileChat ? kit.Lacking(request) : null;
-            // Asked for that and something she can do too, like "draw a star and open Spotify" on a Mac: the rest goes ahead with
-            // the missing tools left out, and she says why she can't do that part after it (a Codex review, 2 Nov). A brain that
-            // works jobs out gets all of it to decide on; her hands only get what she can do.
-            string doable = null, rest = lacking == null && act != null && !fileChat ? kit.Rest(request, out doable) : null;
-            if (rest != null && !planning) request = doable;
+            // A stream is a mouse and keyboard job, so it only starts where she has them. A brain that holds her tools starts one
+            // with its stream tool.
+            if (act != null && !planning && kit.Has("use_computer") && Hands.StreamAsked(request)) Hands.Streaming = true;
+            // Asked her hands for something that can't work here, like "can you draw on my screen?" on a Mac, she says so straight
+            // away instead of a mouse job trying it (F69, pass 5). A brain that holds her tools is told what isn't here and says so.
+            string lacking = act != null && !fileChat && !planning ? kit.Lacking(request) : null;
+            // Asked her hands for that and something she can do too, like "draw a star and open Spotify" on a Mac: the rest goes
+            // ahead with the missing tools left out, and she says why she can't do that part after it (a Codex review, 2 Nov).
+            string doable = null, rest = lacking == null && act != null && !fileChat && !planning ? kit.Rest(request, out doable) : null;
+            if (rest != null) request = doable;
+            // Her brain takes every tool and decides, one step at a time. One that turns out not to take tools goes back to her hands'
+            // shortcuts, from this message on.
+            Func<bool> workOut = delegate
+            {
+                if (planned || toolless == SourceOf(Remote, model)) return planned;
+                List<ChatMessage> working = new List<ChatMessage>(messages);
+                // Nothing about their windows or their game goes in up front: the brain asks with list_windows, check_app or a look
+                // when it needs to know (Lachy, 2 Nov: "can this be instead requested by the intelligent model instead of pre
+                // emptive? As part of tool use?").
+                working[0] = new ChatMessage("system", steady + Seen() + Gap() + Hands.NoteFor(kit) + Hands.WorkingOut + Now() + selfGuide + callContext) { Steady = steady.Length };
+                try
+                {
+                    planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket, kit);
+                    planned = true;
+                }
+                catch (BrainException error)
+                {
+                    if (calls.Count > 0 || !Toolless(error.Message)) throw;
+                    toolless = SourceOf(Remote, model);
+                }
+                return planned;
+            };
             if (lacking != null) unable = lacking;
             // On stream, asking her to play starts her stream job however it's worded. A brain that works jobs out picks stream or
             // use_computer itself, so this is only for her hands' pick.
@@ -2147,67 +2173,51 @@ namespace CapriDesktop
                 if (direct == "remember" && directArgs.Action != "forget" && string.IsNullOrEmpty(directArgs.Text) && Hands.Back(request) && before.Length > 0 && !before.StartsWith("(", StringComparison.Ordinal) && !Regex.IsMatch(before, @"\?\s*$")) directArgs.Text = before;
                 calls.Add(new KeyValuePair<string, ToolArguments>(direct, directArgs));
             }
-            else if (planning)
-            {
-                List<ChatMessage> working = new List<ChatMessage>(messages);
-                // Nothing about their windows or their game goes in up front: the brain asks with list_windows, check_app or a look
-                // when it needs to know (Lachy, 2 Nov: "can this be instead requested by the intelligent model instead of pre
-                // emptive? As part of tool use?").
-                working[0] = new ChatMessage("system", steady + Seen() + Gap() + Hands.NoteFor(kit) + Hands.WorkingOut + Now() + selfGuide + callContext) { Steady = steady.Length };
-                try
-                {
-                    planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket, kit);
-                    planned = true;
-                }
-                catch (BrainException error)
-                {
-                    // A brain that turns out not to take tools goes back to her hands' shortcuts, from this message on.
-                    if (calls.Count > 0 || !Toolless(error.Message)) throw;
-                    Cloud fallen = Remote;
-                    if (fallen != null) toolless = fallen.Source;
-                }
-            }
+            // Her brain on their PC goes straight to its tools for a yes to her asking, a follow-up, a game that's open or a plain ask.
+            else if (planning && (!chatFirst || agreed || follows || playing != null || Hands.Wants(request))) workOut();
             // With a game open, her hands see every message first: "kliknij deathmatch" or "keep going" mean something in it.
-            else if (act != null && (agreed || Hands.Wants(request) || follows || playing != null || fileChat))
+            else if (act != null && !planning && (agreed || Hands.Wants(request) || follows || playing != null || fileChat))
             {
                 reached = true;
                 if (!Hands.Several(request, calls))
                 {
                     string handed = Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket, kit, false, callContext);
                     if (Hands.Rescue(request, calls, kit)) unable = kit.Unable("use_computer", null);
-                    bool partly = Hands.Partly(request, calls);
                     // Without her mouse and keyboard she still opens what they named, and says she can't do the rest.
-                    if (partly && !kit.Has("use_computer")) unable = kit.Unable("use_computer", null);
-                    else if (partly) calls.Clear();
-                    if (calls.Count == 0 && unable == null && (agreed || partly || Hands.Hesitant(handed, request) || (playing != null && Hands.Wants(request)))) Force(calls, request, kit, ref unable);
+                    if (Hands.Partly(request, calls) && !kit.Has("use_computer")) unable = kit.Unable("use_computer", null);
+                    if (calls.Count == 0 && unable == null && (agreed || Hands.Hesitant(handed, request) || (playing != null && Hands.Wants(request)))) Force(calls, request, kit, ref unable);
                 }
             }
             if (planned && calls.Count == 0) raw = planText;
             if (calls.Count == 0 && !planned && unable == null)
             {
                 raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
-                // Her brain says "act" when this is a job, in whatever language they said it. Her hands find what to do, with a second
-                // look at every tool when the first finds nothing, and if that finds nothing too she just answers, unless they're in
-                // a game or plainly asked.
+                // Her brain says "act" when this is a job, in whatever language they said it. A brain that holds her tools then works it
+                // out with every one of them. Otherwise her hands find what to do, with a second look at every tool when the first finds
+                // nothing, and if that finds nothing too she just answers, unless they're in a game or plainly asked.
                 if (act != null && !fileChat && Hands.Handed(Clean(raw)))
                 {
-                    if (!reached)
+                    if (chatFirst && workOut()) { if (calls.Count == 0) raw = planText; }
+                    else
                     {
-                        reached = true;
-                        try { Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket, kit, false, callContext); if (Hands.Rescue(request, calls, kit)) unable = kit.Unable("use_computer", null); }
-                        catch (BrainException) { calls.Clear(); }
-                    }
-                    if (calls.Count == 0 && unable == null)
-                    {
-                        try { Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket, kit, true, callContext); if (Hands.Rescue(request, calls, kit)) unable = kit.Unable("use_computer", null); }
-                        catch (BrainException) { calls.Clear(); }
-                    }
-                    if (calls.Count == 0 && unable == null && (playing != null || Hands.Wants(request))) Force(calls, request, kit, ref unable);
-                    if (calls.Count == 0 && unable == null)
-                    {
-            messages[0] = new ChatMessage("system", steady + Seen() + Gap() + kit.ChatOnly + Hands.MiniBoard() + Now() + selfGuide + callContext) { Steady = steady.Length };
-                        raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
-                        if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;
+                        if (!reached)
+                        {
+                            reached = true;
+                            try { Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket, kit, false, callContext); if (Hands.Rescue(request, calls, kit)) unable = kit.Unable("use_computer", null); }
+                            catch (BrainException) { calls.Clear(); }
+                        }
+                        if (calls.Count == 0 && unable == null)
+                        {
+                            try { Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket, kit, true, callContext); if (Hands.Rescue(request, calls, kit)) unable = kit.Unable("use_computer", null); }
+                            catch (BrainException) { calls.Clear(); }
+                        }
+                        if (calls.Count == 0 && unable == null && (playing != null || Hands.Wants(request))) Force(calls, request, kit, ref unable);
+                        if (calls.Count == 0 && unable == null)
+                        {
+                            messages[0] = new ChatMessage("system", steady + Seen() + Gap() + kit.ChatOnly + Hands.MiniBoard() + Now() + selfGuide + callContext) { Steady = steady.Length };
+                            raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
+                            if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;
+                        }
                     }
                 }
             }
@@ -2217,6 +2227,10 @@ namespace CapriDesktop
                 upset = act != null && (Hands.Hurt(Thoughtless(raw)) || Hands.Insulted(request));
                 // A brain that hedges on "what time is it?" gets her clock's answer, before anything below takes the hedge for a search to run.
                 if (Hands.ClockDodged(text, Clean(raw))) raw = Hands.ClockLine(DateTime.Now);
+                // Her brain on their PC said it would, asked whether to, said it can't, or hedged on something to look up, with no tool
+                // behind it: it takes every tool and decides, instead of her hands guessing for it.
+                string chatted = Clean(raw);
+                if (chatFirst && !planned && act != null && (Hands.Lookup(text, chatted) != null || Hands.Hesitant(chatted, request) || Hands.Promised(chatted) || Hands.Claimed(chatted, calls) != null || Hands.Requested(request) && (Hands.Refused(chatted) || Hands.Denied(chatted)) || kit.Has("look_at_screen") && Hands.CantSee(chatted)) && workOut() && calls.Count == 0) raw = planText;
                 // A brain that worked it out itself already had its go with the tools, so none of these second guesses apply.
                 ToolArguments lookup = act != null && !planned ? Hands.Lookup(text, Clean(raw)) : null;
                 bool hesitant = act != null && !planned && Hands.Hesitant(Clean(raw), request);
@@ -2406,12 +2420,24 @@ namespace CapriDesktop
         // being told.
         internal const int Rounds = 12;
 
-        // Cloud brains that take tools natively work jobs out themselves. Small local ones keep her hands' shortcuts.
-        internal bool WorksOut()
+        // Brains that take tools natively work jobs out themselves, her own brain on their PC too when its model calls tools (Lachy,
+        // 8 Nov). Brains made for checks leave it off.
+        internal bool WorksOut() { return OwnSteps && HoldsTools(); }
+
+        // Whether her brain takes her tools natively, so what it picks, or doesn't, is its own call. One that turned a tool list down
+        // writes its calls out instead, and her hands' shortcuts help it.
+        internal bool HoldsTools()
         {
+            string model = Model;
             Cloud remote = Remote;
-            return OwnSteps && remote != null && remote.Kind != "local" && HasTools(remote) && toolless != remote.Source;
+            return model != null && HasTools(remote) && toolless != SourceOf(remote, model);
         }
+
+        // Her brain on their own PC: her built-in one, Ollama or a server they run.
+        internal bool OnThisPc { get { Cloud remote = Remote; return remote == null || remote.Kind == "local"; } }
+
+        // Which brain this is, as her notes about tools remember it.
+        private string SourceOf(Cloud remote, string model) { return remote != null ? remote.Source : Server != null ? Server + "|" + model : Local != null ? "local|" + model : Ollama + "|" + model; }
 
         // The brain holds her tools beside her own prompt: it calls one, sees what it did, calls the next, and answers as herself once
         // the job's done, for up to twelve rounds. Saying it did something with no tool behind it gets one reminder, then her line that
@@ -2552,7 +2578,7 @@ namespace CapriDesktop
         private string Reach(string model, string text, List<ChatMessage> recent, List<KeyValuePair<string, ToolArguments>> calls, int ticket, Hands.Kit kit, bool retry = false, string callContext = null)
         {
             Cloud remote = Remote;
-            string source = remote != null ? remote.Source : Server != null ? Server + "|" + model : Local != null ? "local|" + model : Ollama + "|" + model;
+            string source = SourceOf(remote, model);
             bool native = toolless != source && HasTools(remote);
             List<ChatMessage> asking = new List<ChatMessage>();
             // Only a brain on their own PC is told which game is open up front; a cloud brain here can't ask, so it isn't told.
@@ -2589,16 +2615,18 @@ namespace CapriDesktop
         }
 
         // Her fast head's pick beside a job, with the same tools as her hands: Claude's fastest model when she has a Claude key,
-        // and calls written as text for a brain without tools of its own.
-        internal string QuickTools(string system, string instruction, int limit, List<KeyValuePair<string, ToolArguments>> calls, Hands.Kit kit)
+        // and calls written as text for a brain without tools of its own. A steady system prompt is the same every time, so Claude
+        // keeps it and her tools at a tenth of the price.
+        internal string QuickTools(string system, string instruction, int limit, List<KeyValuePair<string, ToolArguments>> calls, Hands.Kit kit, bool steady = false)
         {
             string model = Model;
             if (model == null) throw new BrainException(Offline);
             Cloud remote = Remote;
             bool native = HasTools(remote);
+            string told = system + Hands.NoteFor(kit) + (native ? "" : kit.Listing);
             List<ChatMessage> messages = new List<ChatMessage>
             {
-                new ChatMessage("system", system + Hands.NoteFor(kit) + (native ? "" : kit.Listing)),
+                new ChatMessage("system", told) { Steady = steady ? told.Length : 0 },
                 new ChatMessage("user", instruction)
             };
             string raw;
@@ -2862,7 +2890,7 @@ namespace CapriDesktop
             string model = Model;
             if (model == null) throw new BrainException(Offline);
             Cloud remote = Remote;
-            string source = remote != null ? remote.Source : Server != null ? Server + "|" + model : Local != null ? "local|" + model : Ollama + "|" + model;
+            string source = SourceOf(remote, model);
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), new ChatMessage("user", user) };
             if (toolless != source && HasTools(remote))
             {
