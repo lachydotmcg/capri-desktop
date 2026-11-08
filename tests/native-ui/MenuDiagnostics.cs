@@ -222,7 +222,7 @@ internal static class MenuDiagnostics
         lock (outputGate)
         {
             if (records >= MaximumRecords) return;
-            File.AppendAllText(destination, JsonSerializer.Serialize(new { sequence = ++records, monotonic = Stopwatch.GetTimestamp(), frequency = Stopwatch.Frequency, stage, data }) + "\n");
+            File.AppendAllText(destination, JsonSerializer.Serialize(new { sequence = ++records, pid = Environment.ProcessId, nativeMenuClass = NativePassive.ClassPrefix + "Menu", monotonic = Stopwatch.GetTimestamp(), frequency = Stopwatch.Frequency, stage, data }) + "\n");
         }
     }
 

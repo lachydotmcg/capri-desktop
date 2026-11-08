@@ -21,3 +21,5 @@ python3 tests/native-ui/verify-submenu-native.py /absolute/disposable/menu-diagn
 The capture JSON must contain the `clients` array from the public native QA session. The checker requires managed mapped submenu/render windows and process-classified, pinned/floating root and child hosts. The previous implementation fails on override-redirect classification. This is native metadata evidence; inspect actual settled submenu pixels above Capri and neighboring windows, input/dismissal, edges and topmost modes separately.
 
 The delayed cold-start greeting also skips an already open context menu, alongside its existing conversation/quiet guards. It is not rescheduled: an unsolicited greeting must not cover the menu the user has just opened. Ordinary startup greeting behavior remains separate from that interaction.
+
+The offline checker binds every trace record and capture to the same positive process ID and exact nonce-bearing menu class. Run its identity/rejection regressions with `python3 tests/native-ui/test_verify_submenu_native.py`. These checks do not turn metadata into pixel or human acceptance evidence.
