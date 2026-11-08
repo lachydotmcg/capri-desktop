@@ -828,8 +828,8 @@ namespace CapriDesktop
                 keyTo(text);
             };
             Pill.Typing += delegate { if (Typer.IsVisible) Typer.Hide(); else Open(); };
-            Pill.Voice += delegate { pet.NoVoice(); };
-            Bubble.Dismissed += delegate { if (leaving < 0) leaving = pet.Now; };
+            Pill.Voice += pet.VoiceTurn;
+            Bubble.Dismissed += delegate { pet.StopListening(); if (leaving < 0) leaving = pet.Now; };
         }
 
         internal string Reply { get { return reply; } }
@@ -846,6 +846,7 @@ namespace CapriDesktop
 
         internal void Open()
         {
+            if (pet.StopListening()) Dismiss(false);
             pet.Typed();
             asked = null;
             secretTo = null;
@@ -893,6 +894,7 @@ namespace CapriDesktop
         // sight: it would float there with nobody under it, and stop her pop-ins until she's shown.
         internal void Answer(string heard, string answer, double seconds = 0)
         {
+            pet.StopListening();
             pet.Answered();
             if (pet.Away) return;
             reply = answer;
@@ -918,6 +920,7 @@ namespace CapriDesktop
 
         internal void Dismiss(bool typing = true)
         {
+            pet.StopListening();
             reply = null;
             thinking = false;
             leaving = -1;
@@ -928,6 +931,7 @@ namespace CapriDesktop
         // While she's hidden her bubble and pill stay down too, even one that was still up when her window went.
         internal void Gone()
         {
+            pet.StopListening();
             reply = null;
             thinking = false;
             leaving = -1;

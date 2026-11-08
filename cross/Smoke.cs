@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -45,6 +46,12 @@ namespace CapriDesktop
         private readonly List<string> voiceAsked = new List<string>();
         private readonly List<byte[]> spoken = new List<byte[]>();
         private readonly List<string> speechAsked = new List<string>();
+        private TaskCompletionSource<CancellationToken> voiceStarted;
+        private TaskCompletionSource<string> voiceWords;
+        private Func<string, string> thinkBeforeVoice;
+        private bool silentBeforeVoice;
+        private int voiceTurns;
+        private int voiceStage;
 
         private bool blinked;
         private bool slept;
@@ -1554,11 +1561,63 @@ namespace CapriDesktop
             }
             if (step == 30)
             {
+                if (OperatingSystem.IsLinux() && !LinuxTalk()) return false;
                 MainframeChecks();
                 Finish(null);
                 return true;
             }
             return false;
+        }
+
+        private bool LinuxTalk()
+        {
+            const string words = "Tell me a short joke.";
+            const string reply = "That came through TALK.";
+            if (voiceStage == 0)
+            {
+                byte[] pcm = new byte[4 * 16000 * 2];
+                using (var silent = new MemoryStream(pcm))
+                    if (Ears.Words(silent, CancellationToken.None).GetAwaiter().GetResult().Length != 0) throw new Exception("A silent mic gave her words.");
+                for (int i = 3200; i < 9600; i += 2) { pcm[i] = 0; pcm[i + 1] = 4; }
+                using (var sound = new MemoryStream(pcm))
+                {
+                    short[] said = Ears.Words(sound, CancellationToken.None).GetAwaiter().GetResult();
+                    if (said.Length != 17600 || said[1600] != 1024) throw new Exception("She didn't stop listening after the mic went quiet.");
+                }
+                thinkBeforeVoice = pet.Think;
+                silentBeforeVoice = pet.Saved.Silent;
+                pet.Saved.Silent = true;
+                pet.Think = text =>
+                {
+                    Interlocked.Increment(ref voiceTurns);
+                    return text == words ? reply : "A cancelled line reached her brain.";
+                };
+                voiceStarted = new TaskCompletionSource<CancellationToken>();
+                voiceWords = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                pet.Listen = (_, stop) => { voiceStarted.SetResult(stop); return voiceWords.Task; };
+                pet.Talk.Pill.Press(2);
+                voiceStage++;
+                return false;
+            }
+            if (voiceStage == 1)
+            {
+                if (!voiceStarted.Task.IsCompleted) return false;
+                pet.Talk.Pill.Press(2);
+                if (!voiceStarted.Task.Result.IsCancellationRequested || !pet.Talk.Quiet) throw new Exception("TALK didn't cancel the open mic.");
+                voiceWords.SetResult("This cancelled line shouldn't reach her.");
+                pet.Listen = (decoding, _) => { decoding(); return Task.FromResult(words); };
+                pet.Talk.Pill.Press(2);
+                voiceStage++;
+                return false;
+            }
+            if (pet.Talk.Reply != reply) return false;
+            if (pet.Talk.Bubble.Sheet.Heard != words || Volatile.Read(ref voiceTurns) != 1) throw new Exception("TALK didn't send just the finished words to her chat.");
+            pet.Think = thinkBeforeVoice;
+            pet.Saved.Silent = silentBeforeVoice;
+            pet.Listen = null;
+            pet.Talk.Dismiss();
+            checks.Add("PASS Linux TALK: she waits for speech, stops at silence, sends the words to chat and drops a cancelled turn");
+            return true;
         }
 
         private void Press(IPointer mouse, Point at)

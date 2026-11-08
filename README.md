@@ -125,7 +125,7 @@ Beware that Capri may try to take over your human CPU. We take no responsibility
 
 0.8.3 gives Mac and Linux her full **Capri Mainframe**, laid out like Windows: BRAIN, VOICE and CAPRI up front, plus Simple and Advanced Settings. She sits on your windows and chats, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. She checks in on you, takes head pats, keeps your PC awake for jobs and keeps her notes in Obsidian. She talks through your own speech server or a cloud voice, and Mods and Code/Husk Mode work too.
 
-Voice chat, calls and code mods are Windows only for now.
+Linux can hear one English turn at a time through **TALK** once you set up her offline ears below. Calls, wake words and code mods are Windows only for now.
 
 1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage) or [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz)
 2. For her brain, open **Capri Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude or DeepSeek key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
@@ -135,6 +135,13 @@ Voice chat, calls and code mods are Windows only for now.
    ```
    Apple hasn't approved (notarized) her yet, so macOS blocks her or calls her "damaged" until you do. That line only clears the downloaded-from-the-internet flag on Capri
 4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
+
+**Linux TALK setup**
+
+1. Install `parec` from your distribution's PulseAudio tools (`pulseaudio-utils` on Ubuntu). Pick your default mic in your system sound settings. PipeWire works when its PulseAudio service is running.
+2. Extract the [sherpa-onnx Linux CPU build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your machine. Keep its libraries with the extracted build and add its `bin` folder to `PATH` before you launch Capri.
+3. Extract her [English Parakeet pack](https://github.com/lachydotmcg/capri-desktop/releases/download/ears-pack-1/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2). Put `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx` and `tokens.txt` directly in `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/parakeet-tdt-0.6b-v2-int8/`.
+4. Hover over her and click **TALK**. Say one line and pause. Click **TALK** again to cancel. She reads the mic audio on your PC and sends only the words through the same chat as **TYPE**. She answers out loud when you've set up a voice under **Mainframe > VOICE**.
 
 </details>
 
