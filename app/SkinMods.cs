@@ -789,9 +789,16 @@ namespace CapriDesktop
 
                 preferences.Motion = true;
                 preferences.PowerSaver = 2;
+                // Earlier sections run on real time, so notes still in the air or a dizzy spell or sulk can outlast them. She starts from standing still.
+                notes.Clear();
+                dizzyFrom = dizzyUntil = -1;
+                sulkSince = -1;
                 Play(idle);
                 double restAt = clock.Elapsed.TotalSeconds;
-                if (FrameInterval(restAt) != 61 || !Resting(restAt)) throw new Exception("Standing still, she didn't rest at Power saver's pace.");
+                if (FrameInterval(restAt) != 61 || !Resting(restAt))
+                    throw new Exception("Standing still, she didn't rest at Power saver's pace: " + FrameInterval(restAt) + " ms, saving " + Saving + ", docked " + docked + ", exploring " + exploring
+                        + ", dizzy " + Dizzy(restAt) + ", speech " + (speech != null) + ", talk " + talkState + ", box " + box.Visible + ", typer " + typer.Visible + ", notes " + notes.Count
+                        + ", idle " + (clip == idle) + " at " + clip.Fps + " fps, seat " + (seat != null) + ", moving " + (riding || dragging || walking || falling) + ", sulking " + Sulking + ", outro " + (outro != null) + ".");
                 clipStart = restAt - 1.01;
                 int heldA = Advance(restAt), heldB = Advance(restAt + 1.0 / 30);
                 if (heldA != heldB) throw new Exception("Resting, her loop didn't hold its frames.");
