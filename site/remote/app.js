@@ -134,6 +134,8 @@
     }, 200);
   };
   const current = () => chats.find(chat => chat.id === currentId) || null;
+  // Phone-only mode (native.js) remembers the chat on screen.
+  if (window.CapriNative) CapriNative.chat(current);
   const titleOf = chat => {
     const first = chat && chat.msgs.find(msg => msg.role === 'you');
     if (!first) return 'New chat';
@@ -221,7 +223,7 @@
   const starterAsks = ['play some lofi', "what's on my screen", 'open discord', 'remind me in 10 min'];
   const starters = () => {
     const box = make('div', 'starters');
-    for (const ask of starterAsks) {
+    for (const ask of (window.CapriNative && CapriNative.starters()) || starterAsks) {
       const button = make('button', 'nbtn cyan', ask);
       button.type = 'button';
       button.addEventListener('click', () => deliver(ask));
@@ -309,6 +311,8 @@
     }
   };
   const errorWords = { busy: 'CAPRI IS BUSY', 'bad-message': 'NOT READ', 'not-allowed': 'TURNED OFF ON THE PC', version: 'UPDATE CAPRI' };
+  // Phone-only mode's own (native.js): what her brain's provider said.
+  Object.assign(errorWords, { key: 'KEY REJECTED', credits: 'NO CREDITS', limit: 'TOO MANY REQUESTS', model: 'MODEL NOT ON KEY', down: 'SERVICE DOWN', net: 'NO INTERNET', empty: 'NO REPLY' });
 
   // One message from him to her, over chat.send, whether he typed it, tapped a starter or tapped SCREEN.
   const deliver = text => {
@@ -510,8 +514,11 @@
   })[reason] || ['PC offline', 'Capri closed or the PC asleep'];
   const onLink = (state, info) => {
     const was = linkState;
+    const wasNative = !!linkInfo.native;
     linkState = state;
     linkInfo = info || {};
+    // Her brain moved between the PC and this phone (native.js): the starters change with it.
+    if (wasNative !== !!linkInfo.native && logIn.querySelector('.starters')) renderChat();
     app.dataset.link = state;
     setScreen(gateUp ? 'gate' : state === 'unpaired' ? 'pair' : state === 'pairing' ? 'wait' : 'chat');
     if (state === 'unpaired') {
@@ -665,7 +672,7 @@
     homeSheet.hidden = true;
     if (!app.classList.contains('menu')) scrim.hidden = true;
   };
-  $('#f-settings').addEventListener('click', openHome);
+  $('#f-settings').addEventListener('click', () => { if (window.CapriNative) CapriNative.settings(openHome); else openHome(); });
   $('#home-done').addEventListener('click', closeHome);
   scrim.addEventListener('click', closeHome);
   document.addEventListener('keydown', event => { if (event.key === 'Escape') closeHome(); });

@@ -8,7 +8,7 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0a10">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:*; manifest-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:* https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.deepseek.com; manifest-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Capri">
@@ -18,6 +18,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preload" href="../assets/sprites/perch.webp" as="image" type="image/webp">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="native.css">
 </head>
 <body>
 <div class="app" id="app" data-screen="boot" data-link="unpaired">
@@ -232,6 +233,7 @@
 <script src="relay.js"></script>
 <script src="remote.js"></script>
 <script src="demo.js"></script>
+<script src="native.js"></script>
 <script src="capri.js"></script>
 <script src="app.js"></script>
 </body>

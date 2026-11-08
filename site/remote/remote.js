@@ -2,6 +2,7 @@
    remote/PROTOCOL.md (section 8):
      CapriRemote.connect(options)   pair from the QR code's #fragment, or the PC this phone was allowed on, or the demo
      CapriRemote.send(type, body)   'chat.send' { id, text }; true if it went out
+     CapriRemote.use(mode)          'phone' runs her on this phone with its own key (native.js), 'pc' goes back to the PC
      CapriRemote.onMessage(fn)      fn(message), where message.type is one of:
                                       'chat.typing'  { on, re }                        Capri is thinking (a receipt for re)
                                       'chat.tool'    { id, name, summary, state, re }  state 'running', 'done' or 'failed'
@@ -14,8 +15,8 @@
                                       'connecting' reaching the relay and the PC
                                       'offline'    paired, but Capri is closed or the PC is asleep (info.reason says more)
                                       'connected'  live
-   The real link is relay.js (PROTOCOL.md sections 3 to 9, crypto in crypto.js); the demo stand-in is demo.js. A revoke
-   from the PC forgets the pairing here. */
+   The real link is relay.js (PROTOCOL.md sections 3 to 9, crypto in crypto.js); the demo stand-in is demo.js; her brain
+   on this phone, with no PC, is native.js. A revoke from the PC forgets the pairing here. */
 (() => {
   'use strict';
   const SAVED = 'capri-remote-pairing';
@@ -42,7 +43,7 @@
 
   const hooks = { message: new Set(), state: new Set() };
   let state = 'unpaired';
-  let info = { demo: false, pc: '', code: '', reason: '', pairedAt: 0 };
+  let info = { demo: false, native: false, pc: '', code: '', reason: '', pairedAt: 0 };
   let link = null;
   let pairing = null;
 
@@ -99,7 +100,7 @@
     pairing = null;
     write(null);
     if (!wasDemo && window.CapriRelay) window.CapriRelay.clear();
-    setState('unpaired', { demo: false, pc: '', code: '', reason: reason || '', pairedAt: 0 });
+    setState('unpaired', { demo: false, native: false, pc: '', code: '', reason: reason || '', pairedAt: 0 });
   };
 
   const connect = (options = {}) => {
@@ -108,14 +109,19 @@
     if (scanned && scanned.bad) { forget('bad-code'); return; }
     // A fresh scan replaces whatever this phone was paired with before.
     if (scanned && window.CapriRelay) window.CapriRelay.clear();
-    pairing = options.demo ? { demo: true, pc: 'Demo PC', pairedAt: Date.now(), allowed: !!options.instant } : scanned || read();
-    if (!pairing) { setState('unpaired', { demo: false, pc: '', code: '', reason: '', pairedAt: 0 }); return; }
+    // Phone-only mode (native.js): her brain on this phone with its own key, until a scan or the demo picks a PC again.
+    const native = window.CapriNative;
+    if (native && (scanned || options.demo)) native.use('pc');
+    const saved = read();
+    const own = native && native.on() && !scanned && !options.demo ? { native: true, pc: saved && saved.allowed ? saved.pc : '', pairedAt: saved && saved.allowed ? saved.pairedAt : 0 } : null;
+    pairing = options.demo ? { demo: true, pc: 'Demo PC', pairedAt: Date.now(), allowed: !!options.instant } : scanned || own || saved;
+    if (!pairing) { setState('unpaired', { demo: false, native: false, pc: '', code: '', reason: '', pairedAt: 0 }); return; }
     // A build without the relay link (the demo preview) can only run the demo.
-    if (!pairing.demo && !window.CapriRelay) { forget(''); return; }
+    if (!pairing.demo && !pairing.native && !window.CapriRelay) { forget(''); return; }
     if (pairing.demo) keep(pairing);
     else if (scanned) write(null);
-    info = Object.assign({}, info, { demo: !!pairing.demo, pc: pairing.pc || '', pairedAt: pairing.pairedAt || Date.now(), code: '', reason: '' });
-    link = pairing.demo && window.CapriDemo ? window.CapriDemo.link() : window.CapriRelay.link({ relay: relayUrl(), name: deviceName });
+    info = Object.assign({}, info, { demo: !!pairing.demo, native: !!pairing.native, pc: pairing.pc || '', pairedAt: pairing.native ? pairing.pairedAt : pairing.pairedAt || Date.now(), code: '', reason: '' });
+    link = pairing.native ? native.link() : pairing.demo && window.CapriDemo ? window.CapriDemo.link() : window.CapriRelay.link({ relay: relayUrl(), name: deviceName });
     const mine = link;
     link.open(pairing, {
       state: (next, extra) => { if (link === mine) setState(next, extra); },
@@ -136,6 +142,16 @@
 
   // Unpairing tells the PC to forget this phone too (a revoke from the phone), then forgets it here.
   const unpair = () => {
+    // On this phone's own brain, Unpair forgets the PC it was paired with and she stays here.
+    if (pairing && pairing.native) {
+      const was = read();
+      write(null);
+      if (window.CapriRelay && !(was && was.demo)) window.CapriRelay.clear();
+      pairing.pc = '';
+      pairing.pairedAt = 0;
+      setState(state, { pc: '', pairedAt: 0 });
+      return;
+    }
     if (link && state === 'connected') { try { link.send({ type: 'revoke' }); } catch (error) {} }
     forget('');
   };
@@ -145,6 +161,8 @@
     unpair,
     send: (type, body) => state === 'connected' && link ? link.send(Object.assign({}, body, { type })) !== false : false,
     retry: () => { if (link && link.retry) link.retry(); else connect(); },
+    // 'phone' runs her on this phone with its own key (native.js), 'pc' goes back to the PC this phone was paired with.
+    use: mode => { if (window.CapriNative) window.CapriNative.use(mode); connect(); },
     onMessage: fn => { hooks.message.add(fn); return () => hooks.message.delete(fn); },
     onState: fn => { hooks.state.add(fn); fn(state, info); return () => hooks.state.delete(fn); },
     // Demo only: step the stand-in through each link state, so every screen can be seen without a PC, and tap its Allow.
