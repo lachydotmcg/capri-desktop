@@ -164,6 +164,7 @@ namespace CapriDesktop
         private readonly NeonPicker models, freeKeys, voicePicker, speechModels;
         private readonly NeonPicker huskMode;
         private readonly NeonCaption huskLabel;
+        private readonly NeonSwitch huskVerbosity;
         private readonly NeonEntry textKey, voiceKey, voiceId, nickname, custom, localAddress;
         private bool paged, syncing, closed, finishing;
         private string layout;
@@ -326,6 +327,7 @@ namespace CapriDesktop
             huskMode.Options(HuskWatch.Choices(pet.HuskMode));
             readers.Add(delegate { huskMode.IsEnabled = !pet.HuskChanging; });
             ToolTip.SetTip(huskMode, "Watch Claude Code, Codex or OpenCode through her hooks or plugin. Restart the coding app after changing this.");
+            huskVerbosity = Toggle("Verbosity", 380, 466, () => !pet.Saved.NoHuskVerbosity, pet.SetHuskVerbosity);
             Toggle("Stay on my model", 380, 466, () => pet.Saved.StayOnModel, pet.SetStay);
             Slider("Replies", Lengths, 380, 494, () => Brain.Wordiness, pet.SetReplies);
             Slider("Memory", Lengths, 380, 522, () => Array.IndexOf(Recalls, Brain.Recall), i => pet.SetRecall(Recalls[i]));
@@ -544,7 +546,7 @@ namespace CapriDesktop
                     int[][] missing = right ? MissingRight : MissingLeft;
                     if (!right && pet.MainframeInputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
                     y = Lift(anchor, missing, right ? FoldedRight : FoldedLeft, simple) - (control is NeonHead ? 5 : 0);
-                    if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel) y += 28;
+                    if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel) y += control == huskVerbosity ? 28 : 56;
                 }
                 if (item.Page == 0)
                 {

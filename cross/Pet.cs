@@ -41,6 +41,7 @@ namespace CapriDesktop
         [DataMember] internal string LastVersion;
         [DataMember] internal bool StayOnModel;
         [DataMember] internal int HuskMode;
+        [DataMember] internal bool NoHuskVerbosity;
         [DataMember] internal bool NoMemories;
         [DataMember] internal bool NoCheckIns;
         [DataMember] internal int? PopPace;
@@ -4818,6 +4819,7 @@ namespace CapriDesktop
         internal sealed class NewSettings
         {
             [DataMember] internal int HuskMode;
+            [DataMember] internal bool NoHuskVerbosity;
             [DataMember] internal string VoiceProvider;
             [DataMember] internal string LocalVoiceUrl;
             [DataMember] internal string LocalVoiceModel;
@@ -4873,6 +4875,7 @@ namespace CapriDesktop
             saved.NoKeepAwake = newer.NoKeepAwake;
             saved.Vault = newer.Vault;
             saved.HuskMode = newer.HuskMode;
+            saved.NoHuskVerbosity = newer.NoHuskVerbosity;
             return saved;
         }
 
@@ -4880,7 +4883,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, HuskMode = saved.HuskMode };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode };
         }
 
         private Settings Load()
@@ -5018,6 +5021,7 @@ namespace CapriDesktop
         internal Action<string, bool> HuskSaid;
         internal int HuskMode { get { return huskChanging ? Saved.HuskMode : husk == null ? 0 : husk.Mode; } }
         internal bool HuskChanging { get { return huskChanging; } }
+        internal void SetHuskVerbosity(bool on) { Saved.NoHuskVerbosity = !on; Save(); }
         internal HuskWatch Husk { get { return husk; } }
         internal string HuskMood { get { return huskMood; } }
         internal int HuskAgents { get { return huskAgents.Count; } }
@@ -5032,6 +5036,7 @@ namespace CapriDesktop
             HuskHooks.BackupFolder = Program.Smoke ?? folder;
             husk.Clock = delegate { return Now; };
             husk.Language = delegate { return Brain.Language; };
+            husk.Verbose = delegate { return !Saved.NoHuskVerbosity; };
             husk.Dispatch = delegate(Action action) { Dispatcher.UIThread.Post(action); };
             husk.Show = delegate(HuskAct act)
             {
@@ -5097,7 +5102,7 @@ namespace CapriDesktop
             if (act.Kind == "agentstop") huskAgents.Remove(act.Key);
             if (husk == null || husk.Mode == 0 || !husk.Current(act)) return;
             if (act.Kind == "agentstart") huskAgents.Add(act.Key);
-            if (act.Kind == "agentstart" || act.Kind == "agentstop") act.Line = "Subagents: " + huskAgents.Count;
+            if (act.Kind == "agentstart" || act.Kind == "agentstop") act.Line = Saved.NoHuskVerbosity ? null : "Subagents: " + huskAgents.Count;
             bool attention = act.Kind == "approval" || act.Kind == "input";
             if (act.Kind == "prompt" || attention)
             {

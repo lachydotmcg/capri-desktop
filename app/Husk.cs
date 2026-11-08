@@ -297,6 +297,7 @@ namespace CapriDesktop
                 if (path.Length > 0 && !input.ContainsKey("file_path")) input["file_path"] = path;
                 outEvent["tool_name"] = known >= 0 && known % 2 == 0 ? OpenCodeTools[known + 1] : tool;
                 outEvent["tool_input"] = input;
+                if (OpenCodeEvents[at] == "session.tool.called" && tool == "question") AsksUser(outEvent, input, "OpenCode needs your input.");
             }
             if (OpenCodeEvents[at] == "permission.asked")
             {
@@ -310,11 +311,28 @@ namespace CapriDesktop
             return outEvent;
         }
 
+        private static void AsksUser(Dictionary<string, object> outEvent, Dictionary<string, object> input, string fallback)
+        {
+            List<string> questions = new List<string>();
+            List<object> rows = HuskJson.List(HuskJson.Get(input, "questions"));
+            if (rows != null) foreach (object row in rows)
+            {
+                Dictionary<string, object> question = row as Dictionary<string, object>;
+                string words = HuskJson.Text(question, "question");
+                if (words.Length == 0) words = HuskJson.Text(question, "title");
+                if (words.Length > 0) questions.Add(words);
+            }
+            outEvent["hook_event_name"] = "Notification";
+            outEvent["notification_type"] = "agent_needs_input";
+            outEvent["message"] = questions.Count > 0 ? string.Join("\n", questions.ToArray()) : fallback;
+        }
+
         internal static Dictionary<string, object> Adapt(Dictionary<string, object> evt, string source)
         {
             if (evt != null && source == "opencode") return OpenCode(evt);
             if (evt == null || !(HuskJson.Get(evt, "hook_event_name") is string)) return null;
             Dictionary<string, object> outEvent = new Dictionary<string, object>(evt);
+            if (source == "claude" && HuskJson.Text(evt, "hook_event_name") == "PreToolUse" && HuskJson.Text(evt, "tool_name") == "AskUserQuestion") AsksUser(outEvent, HuskJson.Get(evt, "tool_input") as Dictionary<string, object>, "Claude needs your input.");
             if (source != "codex") return source == "claude" ? outEvent : null;
             outEvent["session_id"] = "codex:" + (HuskJson.Text(evt, "session_id").Length == 0 ? "default" : HuskJson.Text(evt, "session_id"));
             string name = HuskJson.Text(evt, "hook_event_name"), tool = HuskJson.Text(evt, "tool_name");
@@ -340,21 +358,7 @@ namespace CapriDesktop
                 shell["command"] = HuskJson.Text(input, "cmd").Length > 0 ? HuskJson.Get(input, "cmd") : HuskJson.Get(input, "command");
                 outEvent["tool_input"] = shell;
             }
-            if (name == "PreToolUse" && tool == "request_user_input")
-            {
-                List<string> questions = new List<string>();
-                List<object> rows = HuskJson.List(HuskJson.Get(input, "questions"));
-                if (rows != null) foreach (object row in rows)
-                {
-                    Dictionary<string, object> question = row as Dictionary<string, object>;
-                    string words = HuskJson.Text(question, "question");
-                    if (words.Length == 0) words = HuskJson.Text(question, "title");
-                    if (words.Length > 0) questions.Add(words);
-                }
-                outEvent["hook_event_name"] = "Notification";
-                outEvent["notification_type"] = "agent_needs_input";
-                outEvent["message"] = questions.Count > 0 ? string.Join("\n", questions.ToArray()) : "Codex needs your input.";
-            }
+            if (name == "PreToolUse" && tool == "request_user_input") AsksUser(outEvent, input, "Codex needs your input.");
             return outEvent;
         }
 
@@ -1106,7 +1110,7 @@ export default {
     {
         internal string Id, Source, Cwd, Title;
         internal IntPtr Window;
-        internal bool Working, Waiting, Finished;
+        internal bool Working, Waiting, Asking, Finished;
         internal int Version;
         internal readonly HashSet<string> Files = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         internal readonly Dictionary<string, List<string>> Edits = new Dictionary<string, List<string>>();
@@ -1139,6 +1143,7 @@ export default {
         internal Func<double> Clock = delegate { return Environment.TickCount / 1000.0; };
         internal Func<DateTime> Today = delegate { return DateTime.Now.Date; };
         internal Func<string> Language = delegate { return Brain.Language; };
+        internal Func<bool> Verbose = delegate { return true; };
         internal Action<Action> Dispatch = delegate(Action action) { action(); };
         internal Action<HuskAct> Show = delegate { };
         internal Func<string, string, string, IntPtr> FindWindow;
@@ -1388,6 +1393,7 @@ export default {
 
         private void ToolCaption(HuskSession session, string tool, Dictionary<string, object> input)
         {
+            if (!Verbose()) return;
             double now = Clock();
             HuskAct act = Act(session, "caption", Caption(tool, input, Language()), false);
             if (now - captionAt >= 4 && pending == null) { captionAt = now; Show(act); return; }
@@ -1484,15 +1490,17 @@ export default {
                     session.Waiting = false;
                     session.Edits.Remove(HuskJson.Text(evt, "tool_use_id"));
                     Add(source, "errors", 1);
-                    Emit(session, "failure", Words(7, who));
+                    if (Verbose()) Emit(session, "failure", Words(7, who));
                 }
                 else if (name == "Notification" || name == "PermissionRequest")
                 {
                     string type = HuskJson.Text(evt, "notification_type");
                     bool approval = name == "PermissionRequest" || type == "permission_prompt";
                     if (!approval && type != "agent_needs_input" && type != "elicitation_dialog" && type != "idle_prompt") return;
+                    if (approval && session.Waiting && session.Asking) return;
                     if (session.Finished) { session.Version = ++version; session.Finished = false; }
                     session.Waiting = true;
+                    session.Asking = !approval;
                     if (pending != null && pending.Session == id) { pending = null; burst = 0; reads.Clear(); }
                     if (approval) Add(source, "approvals", 1);
                     string question = HuskJson.Text(evt, "message");
@@ -1532,7 +1540,7 @@ export default {
                     if (start ? !session.Agents.Add(key) : !session.Agents.Remove(key)) return;
                     HuskAct act = Act(session, start ? "agentstart" : "agentstop", null, false); act.Key = key; Show(act);
                 }
-                else if (name == "PreCompact") Emit(session, "compact", Words(14));
+                else if (name == "PreCompact" && Verbose()) Emit(session, "compact", Words(14));
                 else if (name == "Interrupt")
                 {
                     session.Version = ++version; session.Working = session.Waiting = false; session.Finished = true;

@@ -2920,6 +2920,8 @@ namespace CapriDesktop
                 if (pet.HuskMood != "approval" || lines[lines.Count - 1] != "Codex needs your OK. Run tests?") throw new Exception("Codex approval did not use the shared adapter and attention line.");
                 HuskFeed("codex", "PreToolUse", "tool_name", "request_user_input", "tool_input", HuskJson.Map("questions", new List<object> { HuskJson.Map("question", "Which file?") }));
                 if (pet.HuskMood != "input" || lines[lines.Count - 1] != HuskWords.Line("English", 9, "Codex", "Which file?")) throw new Exception("A Codex question did not ask for their input.");
+                HuskFeed("claude", "PreToolUse", "tool_name", "AskUserQuestion", "tool_input", HuskJson.Map("questions", new List<object> { HuskJson.Map("question", "Which colour?") }));
+                if (pet.HuskMood != "input" || lines[lines.Count - 1] != HuskWords.Line("English", 9, "Claude Code", "Which colour?")) throw new Exception("A Claude question did not ask for their input.");
                 pet.Saved.Silent = true;
                 HuskFeed("claude", "PermissionRequest", "message", "Voice off?");
                 if (aloud[aloud.Count - 1]) throw new Exception("A cross approval ignored her voice setting.");
@@ -2931,6 +2933,15 @@ namespace CapriDesktop
                 before = acts.Count;
                 HuskFeed("claude", "Notification", "notification_type", "info", "message", "noise");
                 if (acts.Count != before) throw new Exception("An unrelated notification got a Husk reaction.");
+                pet.SetHuskVerbosity(false);
+                before = lines.Count;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Bash", "tool_input", HuskJson.Map("command", "cd src"));
+                HuskFeed("claude", "PostToolUseFailure", "tool_name", "Bash", "error", "No such folder");
+                HuskFeed("claude", "PreCompact");
+                HuskFeed("claude", "SubagentStart", "agent_id", "quiet");
+                HuskFeed("claude", "SubagentStop", "agent_id", "quiet");
+                if (lines.Count != before) throw new Exception("Verbosity off let tool chatter through.");
+                pet.SetHuskVerbosity(true);
                 pet.StandUp();
                 HuskFeed("claude", "SubagentStart", "agent_id", "one");
                 HuskFeed("codex", "SubagentStart", "agent_id", "two");
@@ -3042,7 +3053,7 @@ namespace CapriDesktop
             string[,] toggles = {
                 { "Typing sound", "typing_sound", "Typing" }, { "Dance to music", "dance_to_music", "NoDance" }, { "Glitch in at startup", "glitch_in", "NoIntro" },
                 { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
-                { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
+                { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Verbosity", "", "NoHuskVerbosity" }, { "Start at login", "startup", "" },
                 { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" },
                 { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" }
             };
