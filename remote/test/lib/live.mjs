@@ -1,4 +1,4 @@
-// The fake phone's side of the screen view and the call (PROTOCOL.md 8.1): watch.frame parts put back together with
+// The fake phone's side of the screen view and the call (PROTOCOL.md 8.2): watch.frame parts put back together with
 // every JPEG checked, and the 16-bit PCM that call.audio and call.voice carry.
 
 import assert from 'node:assert/strict';

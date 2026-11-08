@@ -329,7 +329,7 @@ Each envelope holds one UTF-8 JSON object with a string `type`. Ignore unknown t
 
 `hello-ok.features` will list `settings`, `watch` and `jobs` when the PC has them turned on.
 
-### 8.1 Screen view and call
+### 8.2 Screen view and call
 
 `hello-ok.features` lists `watch` when the PC can show its screen and `call` when it takes calls. A phone sends these only when its session's `hello-ok` listed the feature.
 

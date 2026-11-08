@@ -10,7 +10,7 @@ using System.Threading;
 
 namespace CapriDesktop
 {
-    // Capri Remote's screen view (remote/PROTOCOL.md section 8.1). A paired phone that asks watches one of the PC's monitors
+    // Capri Remote's screen view (remote/PROTOCOL.md section 8.2). A paired phone that asks watches one of the PC's monitors
     // a few frames a second, shrunk to suit the phone and sealed like every other message. Nothing goes while the screen
     // doesn't change, each frame is split into parts under the relay's frame cap, and at most two frames go ahead of the
     // phone's last ack, so a slow phone gets fewer frames instead of a backlog. The monitor is the one the phone picked or,

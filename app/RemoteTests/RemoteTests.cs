@@ -122,6 +122,7 @@ namespace CapriDesktop
             RemoteLink link = null;
             link = new RemoteLink(state, relay, "Test PC", "capri/test", delegate (RemoteState saved) { lock (output) File.WriteAllText(statePath, saved.Seal()); });
             link.BeatMs = beat;
+            LiveRig rig = live ? new LiveRig(link, say) : null;
             link.Happened += delegate (string what, string about)
             {
                 RemoteJson.Writer line = new RemoteJson.Writer().Text("e", what);
@@ -133,7 +134,6 @@ namespace CapriDesktop
                 say(line.Number("online", link.PhonesOnline));
             };
             link.Said += delegate (string device, string id, string text) { say(new RemoteJson.Writer().Text("e", "said").Text("device", device).Text("id", id).Text("text", text)); };
-            LiveRig rig = live ? new LiveRig(link, say) : null;
             link.Start();
             string input;
             while ((input = Console.In.ReadLine()) != null)

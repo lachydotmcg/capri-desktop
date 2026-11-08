@@ -1,4 +1,4 @@
-/* Capri Remote's screen view (PROTOCOL.md 8.1): her PC's screen, live, while this page shows it. Frames come as JPEG in
+/* Capri Remote's screen view (PROTOCOL.md 8.2): her PC's screen, live, while this page shows it. Frames come as JPEG in
    watch.frame parts, a few a second, sealed like every other message. The phone only watches while the view is open
    and the page is in front: closing it or switching away sends watch.stop, and the PC stops by itself when the phone
    leaves. AUTO follows the monitor she's looking at; 1, 2, 3 pick one.

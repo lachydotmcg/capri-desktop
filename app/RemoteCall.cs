@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace CapriDesktop
 {
-    // Capri Remote's call (remote/PROTOCOL.md section 8.1): a paired phone talks to her push-to-talk. Each line it records
+    // Capri Remote's call (remote/PROTOCOL.md section 8.2): a paired phone talks to her push-to-talk. Each line it records
     // comes in as call.audio parts (16 kHz, 16-bit mono), her own ears turn it into words, and the words go to her as if
     // they'd been said to her at the PC, so her answer comes back to that phone like any chat reply. Her voice, as her
     // speakers play it, goes to every phone on a call in quarter-second parts. There's no mic, speaker or brain in here:

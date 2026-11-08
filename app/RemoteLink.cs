@@ -906,8 +906,8 @@ namespace CapriDesktop
                 }
             }
             Save(copy);
-            Raise(notes, said);
             RaiseLive();
+            Raise(notes, said);
             return null;
         }
 

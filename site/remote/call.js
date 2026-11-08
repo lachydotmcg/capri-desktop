@@ -1,4 +1,4 @@
-/* Capri Remote's call (PROTOCOL.md 8.1): talk to her with your screen in the mini player over the chat. Push to talk:
+/* Capri Remote's call (PROTOCOL.md 8.2): talk to her with your screen in the mini player over the chat. Push to talk:
    hold TALK while speaking, or tap it on and tap again to send. The phone records only then, sends the line as 16 kHz
    call.audio parts, and her own ears on the PC hear it as if it was said to her. Her answer comes back in the chat, and
    her real voice plays here as call.voice parts.

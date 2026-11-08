@@ -189,7 +189,6 @@
       session = new C.Channel(keys, C.KIND.session, 'phone');
       pcName = tidy(message.name) || device.pc || pcName;
       backoff = 1000;
-      // What this PC offers in this session: the screen view (watch) and the call need it (screen.js, call.js).
       set('connected', { reason: '', features: Array.isArray(message.features) ? message.features.filter(name => typeof name === 'string').slice(0, 16) : [] });
       on.message({ type: 'presence', pc: true });
     };
@@ -208,7 +207,7 @@
           on.message(message);
           return;
         default:
-          // The screen view's watch.* and the call's call.* (PROTOCOL.md 8.1). pong and unknown names: ignored.
+          // The screen view's watch.* and the call's call.* (PROTOCOL.md 8.2). pong and unknown names: ignored.
           if (/^(watch|call)\./.test(message.type)) on.message(message);
           return;
       }
