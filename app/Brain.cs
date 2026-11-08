@@ -14,14 +14,16 @@ namespace CapriDesktop
     // fixed text she shows without a brain all read it, so the next release only edits these lines.
     internal static class News
     {
-        internal const string Version = "0.8.6";
 #if CROSS
+        internal const string Version = "0.8.6";
         internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
             + "Her new stand: she stands in her artist's new animation, facing left or right. If it broke your mod, turn on Legacy stand under CAPRI in her Mainframe and her old stand comes back straight away.\n"
             + "Skins with their own idle keep it, and colour mods work on both stands.";
         internal const string Line = "I just updated to " + Version + ": I've got a new stand, and Legacy stand brings back my old one if it broke your mod. Ask me what's new for the menu paths.";
 #else
+        internal const string Version = "0.8.6.1";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
+            + "See-through file editor: her words, tabs and buttons sit in red straight on dark glass, with no box behind them, and whatever is behind the panel shows through it blurred, like Cyberpunk 2077's Arasaka ID panel.\n"
             + "Play a game: say play and its name, like play Bloons TD 6, by voice or text. She opens it if it isn't open, picks a mode or map herself and keeps playing until you tell her to stop or press Esc. Give her an end, like one round or 10 minutes, and she stops there.\n"
             + "Her new stand: she stands in her artist's new animation. If it broke your mod, Mainframe > Settings > CAPRI > Legacy stand brings back her old one straight away.\n"
             + "File editor: Mainframe > Settings > YOU > File editor, or File editor in her right-click menu, opens personality.md and me.md in her own panel. Change the text, then press Save or Ctrl + S.\n"
@@ -29,7 +31,7 @@ namespace CapriDesktop
             + "Her clicks: when she uses your mouse, a new click effect plays at her pointer's tip, in her colour mods' colours.\n"
             + "Call panel: its hover tips show on one line again.\n"
             + "From 0.8.5.1: her own ears download again, from Capri's own copy. For a language other than English, pick it under Mainframe > Settings > YOU > Language and she downloads the ears that hear it.";
-        internal const string Line = "I just updated to " + Version + ": tell me to play a game and I'll keep playing till you stop me, and I've got a new stand and a file editor. Ask me what's new for the menu paths.";
+        internal const string Line = "I just updated to " + Version + ": my file editor is see-through dark glass now, and tell me to play a game and I'll keep playing till you stop me. Ask me what's new for the menu paths.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
