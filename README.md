@@ -17,6 +17,8 @@ She sits on your windows, talks back, joins your calls, plays your games and get
 
 [Setup guide](https://capriai.app/setup/) · [Website](https://capriai.app/) · [Help](https://capriai.app/help/) · [Support](#support)
 
+<sub>Get Capri only from [capriai.app](https://capriai.app/) or [GitHub](https://github.com/lachydotmcg/capri-desktop/releases). Copies on other sites aren't ours. Zero telemetry.</sub>
+
 <sub>Inspired by jpartnma_'s TikTok video.</sub>
 
 </div>
@@ -43,25 +45,12 @@ She sits on your windows, talks back, joins your calls, plays your games and get
 > [!NOTE]
 > Capri is an unofficial fan project and is not approved or endorsed by CD PROJEKT RED, the anime's rights holders or its voice actors.
 
-## 0.8.3: the HUGE update
+<p align="center"><sub>Press a title or picture to open that section.</sub></p>
 
-Better voice calls, mods and Capri VR, plus a pile of stuff you asked for.
+<details>
+<summary><h2><a name="she-joins-your-calls"></a>She joins your calls</h2><br><a name="she-joins-your-calls-1"><img src="assets/readme/call.gif" alt="Asked to join a Discord call, Capri clicks Join Voice herself, sits beside her call panel and tells the call her friend is running late because of a bathroom battle with a rogue burrito. A friend says launch Cyberpunk, and she opens Cyberpunk 2077" width="800"></a></summary>
 
-- **[She joins your calls.](#she-joins-your-calls)** She hops in your Discord call for you, covers for you and launches the game your friends pick
-- **[Code/Husk Mode.](#codehusk-mode)** She's Claude Code's, Codex's and OpenCode's body while they work
-- **[Mods.](#mods)** A Mods window with a directory, previews, downloads and ratings, and nine mods by Vocyn to start
-- **[Capri VR.](#capri-vr)** Capri Room for Meta Quest 3 and 3S, by fadievr
-- **[Mac and Linux.](#mac-and-linux-preview)** Her full Mainframe, Mods, Code/Husk Mode and any OpenAI-compatible provider
-- **From your ideas.** Any OpenAI-compatible provider on Windows too, pick her speaker and the screens she watches, edit her notes in the Mainframe, reminders on dates and more
-
-All the changes are in the [release notes](https://github.com/lachydotmcg/capri-desktop/releases/latest).
-
-## She joins your calls
-
-<p align="center">
-  <img src="assets/readme/call.gif" alt="Asked to join a Discord call, Capri clicks Join Voice herself, sits beside her call panel and tells the call her friend is running late because of a bathroom battle with a rogue burrito. A friend says launch Cyberpunk, and she opens Cyberpunk 2077" width="800">
-  <br><sub>Real footage, sped up in places. Other people's names and avatars and the server are cropped out or blurred.</sub>
-</p>
+<br><sub>Real footage, sped up in places. Other people's names and avatars and the server are cropped out or blurred.</sub>
 
 Ask her to join your Discord call and pass something on, like "Hey Capri, join the Discord call, tell them I'll be on in 15, and launch whatever they're playing".
 
@@ -76,40 +65,12 @@ Ask her to join your Discord call and pass something on, like "Hey Capri, join t
 
 Call mode is Windows only, and still in beta. Asking her to join turns it on, or flip **Call mode (beta)** in her type box. If she only says one line on calls, turn off Discord's Echo Cancellation and Noise Suppression.
 
-## Code/Husk Mode
+</details>
 
-She becomes Claude Code's, Codex's and OpenCode's body while they work. Leave them coding and go do something else: she acts it all out on your desktop, says when they need your OK, and tells you what they answered.
-
-**Set it up:** Mainframe > Settings > Advanced Settings > BRAIN > **Code/Husk Mode**, then pick Off, Claude Code, Codex, OpenCode or All. If you picked Both before, it stays Claude Code + Codex until you pick something else. That installs her hooks, with backups, and keeps your other hooks and settings. Restart Claude Code. For Codex, restart it and trust her hooks when it asks. OpenCode has plugins instead of hooks, so she adds her own `capri.js` to its plugins folder (`~/.config/opencode/plugins`, or `OPENCODE_CONFIG_DIR`). Restart OpenCode to load it. It needs OpenCode 2.
-
-<div align="center">
-
-| When Claude Code, Codex or OpenCode... | She... |
-| --- | --- |
-| gets your prompt | perks up: "Claude's on it." |
-| reads, edits, runs or searches | shows a quiet caption, like "Editing Brain.cs" |
-| hits a failure | flinches: "Claude hit a snag." |
-| needs your OK | tells you, out loud when her voice is on: "Claude needs your OK. Allow npm test?" |
-| finishes | does her done reaction and shows a short answer. On Windows she reads it out when you're looking elsewhere |
-| starts a subagent | sends out a clone of herself |
-| compacts its memory | glitches: "There goes that memory." |
-
-</div>
-
-- **Ask her about it:** what Claude, Codex or OpenCode is doing, or today's prompts, finished tasks, edited files, errors and approvals
-- **She only watches.** She never approves anything or controls the coding assistant. You answer in the coding app
-- **Off** stops her listener and removes only her hooks and her OpenCode plugin
-- With a cloud brain, the answers and actions she reads go to that brain to be shortened or talked about, with keys, tokens and passwords taken out first
-
-Code/Husk Mode works on Windows, Mac and Linux.
-
-## Mods
+<details>
+<summary><h2><a name="mods"></a>Mods</h2><br><a name="mods-1"><img src="assets/readme/mods.png" alt="Preview cards for the nine starter mods: the Bubblegum, Cyber Cyan, Royal and Toxic colour sets, Custom Names, Sharper Ears, Hearing Log, Hello Code and Startup Intros" width="800"></a></summary>
 
 Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https://github.com/lachydotmcg/capri-mods) with previews, downloads and ratings, install one with a click, import your own, and publish yours.
-
-<p align="center">
-  <img src="assets/readme/mods.png" alt="Preview cards for the nine starter mods: the Bubblegum, Cyber Cyan, Royal and Toxic colour sets, Custom Names, Sharper Ears, Hearing Log, Hello Code and Startup Intros" width="800">
-</p>
 
 **Nine mods to start, all by Vocyn:** four colour sets (Bubblegum, Cyber Cyan, Royal and Toxic), Custom Names, Sharper Ears, Hearing Log, Hello Code and Startup Intros.
 
@@ -125,18 +86,10 @@ Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https:
 - **Share yours:** fork [capri-mods](https://github.com/lachydotmcg/capri-mods), add a folder with the mod, a README and a `preview.png`, then open a pull request
 - **Mac and Linux** get the Mods window, the directory, settings mods, colour sets and skins. Code mods are Windows only for now
 
-## Capri VR
+</details>
 
-**Capri Room** is her mixed-reality version for Meta Quest 3 and 3S, made by fadievr. She walks around your real room, sits on the edges of your furniture, naps when you ignore her, reacts when you pet, poke, grab or throw her, and talks with you through your headset.
-
-1. Turn on [Developer Mode](https://developers.meta.com/horizon/sign-up) for your Quest
-2. Download **[Capri-VR-Quest.apk](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-VR-Quest.apk)**
-3. Install it with [SideQuest](https://sidequestvr.com) or [Meta Quest Developer Hub](https://developers.meta.com/horizon/documentation/unity/ts-mqdh/)
-4. In the headset, open **Library > Unknown Sources > Capri Room**, and allow spatial data and the microphone
-
-Press **Y** in the headset for her settings. Her brain and voice keys stay on your headset. The full install notes are in [quest/README.md](quest/README.md), and fadievr's own repo is [fadievr/capri-room](https://github.com/fadievr/capri-room).
-
-## What she does
+<details>
+<summary><h2><a name="what-she-does"></a>What she does</h2><br><a name="what-she-does-1"><img src="assets/readme/mini-player.png" alt="Capri perched on her cyberpunk mini player while a song plays" width="300"></a> <a name="what-she-does-2"><img src="assets/readme/bubble.png" alt="Capri's speech box with the pencil and wave buttons" width="220"></a> <a name="what-she-does-3"><img src="assets/readme/mainframe.png" alt="The Capri Mainframe with her BRAIN and VOICE rows" width="170"></a></summary>
 
 - **Talks back.** Type to her or voice chat, and turn on "Hey Capri" to call her by name. She answers in her own words, in 80 languages.
 - **Talks out loud.** In her own free voice, a voice model of yours, or Fish Audio, ElevenLabs or OpenAI. See [Her voice](#her-voice).
@@ -165,17 +118,74 @@ Press **Y** in the headset for her settings. Her brain and voice keys stay on yo
 
 </details>
 
-<table align="center">
-  <tr>
-    <td align="center"><img src="assets/readme/mini-player.png" alt="Capri perched on her cyberpunk mini player while a song plays" width="300"><br><sub>Her mini player</sub></td>
-    <td align="center"><img src="assets/readme/bubble.png" alt="Capri's speech box with the pencil and wave buttons" width="220"><br><sub>Talking to her</sub></td>
-    <td align="center"><img src="assets/readme/mainframe.png" alt="The Capri Mainframe with her BRAIN and VOICE rows" width="170"><br><sub>The Mainframe</sub></td>
-  </tr>
-</table>
-
 Beware that Capri may try to take over your human CPU. We take no responsibility for her actions.
 
-## Getting started
+</details>
+
+<details>
+<summary><h2><a name="mac-and-linux-preview"></a>Mac and Linux (preview)</h2><br><a name="mac-and-linux-preview-1"><img src="assets/readme/mac-desktop.png" alt="Capri on a Mac, answering in her speech bubble beside her TYPE and TALK pill" width="220"></a> <a name="mac-and-linux-preview-2"><img src="assets/readme/mac-mainframe.png" alt="Capri Mainframe on a Mac: the main page with BRAIN, VOICE and CAPRI, and Advanced Settings behind it" width="500"></a></summary>
+
+0.8.3 gives Mac and Linux her full **Capri Mainframe**, laid out like Windows: BRAIN, VOICE and CAPRI up front, plus Simple and Advanced Settings. She sits on your windows and chats, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. She checks in on you, takes head pats, keeps your PC awake for jobs and keeps her notes in Obsidian. She talks through your own speech server or a cloud voice, and Mods and Code/Husk Mode work too.
+
+Voice chat, calls and code mods are Windows only for now.
+
+1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage) or [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz)
+2. For her brain, open **Capri Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude or DeepSeek key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
+3. **Mac:** unzip it, drag Capri into Applications, then open Terminal and run this once. Needs macOS 15 or newer
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Capri.app
+   ```
+   Apple hasn't approved (notarized) her yet, so macOS blocks her or calls her "damaged" until you do. That line only clears the downloaded-from-the-internet flag on Capri
+4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
+
+</details>
+
+<details>
+<summary><a name="codehusk-mode-1"><img src="site/assets/presence/clones.gif" alt="A crowd of Capri clones glitching" width="96" align="left"></a><h2><a name="codehusk-mode"></a>Code/Husk Mode</h2><br>She becomes Claude Code's, Codex's and OpenCode's body while they work<br clear="left"></summary>
+
+She becomes Claude Code's, Codex's and OpenCode's body while they work. Leave them coding and go do something else: she acts it all out on your desktop, says when they need your OK, and tells you what they answered.
+
+**Set it up:** Mainframe > Settings > Advanced Settings > BRAIN > **Code/Husk Mode**, then pick Off, Claude Code, Codex, OpenCode or All. If you picked Both before, it stays Claude Code + Codex until you pick something else. That installs her hooks, with backups, and keeps your other hooks and settings. Restart Claude Code. For Codex, restart it and trust her hooks when it asks. OpenCode has plugins instead of hooks, so she adds her own `capri.js` to its plugins folder (`~/.config/opencode/plugins`, or `OPENCODE_CONFIG_DIR`). Restart OpenCode to load it. It needs OpenCode 2.
+
+<div align="center">
+
+| When Claude Code, Codex or OpenCode... | She... |
+| --- | --- |
+| gets your prompt | perks up: "Claude's on it." |
+| reads, edits, runs or searches | shows a quiet caption, like "Editing Brain.cs" |
+| hits a failure | flinches: "Claude hit a snag." |
+| needs your OK | tells you, out loud when her voice is on: "Claude needs your OK. Allow npm test?" |
+| finishes | does her done reaction and shows a short answer. On Windows she reads it out when you're looking elsewhere |
+| starts a subagent | sends out a clone of herself |
+| compacts its memory | glitches: "There goes that memory." |
+
+</div>
+
+- **Ask her about it:** what Claude, Codex or OpenCode is doing, or today's prompts, finished tasks, edited files, errors and approvals
+- **She only watches.** She never approves anything or controls the coding assistant. You answer in the coding app
+- **Off** stops her listener and removes only her hooks and her OpenCode plugin
+- With a cloud brain, the answers and actions she reads go to that brain to be shortened or talked about, with keys, tokens and passwords taken out first
+
+Code/Husk Mode works on Windows, Mac and Linux.
+
+</details>
+
+<details>
+<summary><a name="capri-vr-1"><img src="site/assets/presence/controller.gif" alt="A glitching game controller" width="96" align="left"></a><h2><a name="capri-vr"></a>Capri VR</h2><br>Capri Room for Meta Quest 3 and 3S, by fadievr<br clear="left"></summary>
+
+**Capri Room** is her mixed-reality version for Meta Quest 3 and 3S, made by fadievr. She walks around your real room, sits on the edges of your furniture, naps when you ignore her, reacts when you pet, poke, grab or throw her, and talks with you through your headset.
+
+1. Turn on [Developer Mode](https://developers.meta.com/horizon/sign-up) for your Quest
+2. Download **[Capri-VR-Quest.apk](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-VR-Quest.apk)**
+3. Install it with [SideQuest](https://sidequestvr.com) or [Meta Quest Developer Hub](https://developers.meta.com/horizon/documentation/unity/ts-mqdh/)
+4. In the headset, open **Library > Unknown Sources > Capri Room**, and allow spatial data and the microphone
+
+Press **Y** in the headset for her settings. Her brain and voice keys stay on your headset. The full install notes are in [quest/README.md](quest/README.md), and fadievr's own repo is [fadievr/capri-room](https://github.com/fadievr/capri-room).
+
+</details>
+
+<details>
+<summary><a name="getting-started-1"><img src="site/assets/presence/plugged.gif" alt="Capri glitching as she powers up" width="96" align="left"></a><h2><a name="getting-started"></a>Getting started</h2><br>Three steps, and what your PC needs<br clear="left"></summary>
 
 1. Download **[Capri-Setup.exe](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe)** and run it
 2. In the Capri Mainframe, press **Set up her brain**, or press **Free key** to use a free NVIDIA key
@@ -206,29 +216,10 @@ Stuck? The [setup guide](https://capriai.app/setup/) walks through it, or ask in
 
 </details>
 
-## Mac and Linux (preview)
+</details>
 
-<table align="center">
-  <tr>
-    <td align="center"><img src="assets/readme/mac-desktop.png" alt="Capri on a Mac, answering in her speech bubble beside her TYPE and TALK pill" width="220"><br><sub>Her on a Mac</sub></td>
-    <td align="center"><img src="assets/readme/mac-mainframe.png" alt="Capri Mainframe on a Mac: the main page with BRAIN, VOICE and CAPRI, and Advanced Settings behind it" width="500"><br><sub>Her Mainframe on a Mac</sub></td>
-  </tr>
-</table>
-
-0.8.3 gives Mac and Linux her full **Capri Mainframe**, laid out like Windows: BRAIN, VOICE and CAPRI up front, plus Simple and Advanced Settings. She sits on your windows and chats, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. She checks in on you, takes head pats, keeps your PC awake for jobs and keeps her notes in Obsidian. She talks through your own speech server or a cloud voice, and Mods and Code/Husk Mode work too.
-
-Voice chat, calls and code mods are Windows only for now.
-
-1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip), [Linux (AppImage)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.AppImage) or [Linux (tar.gz)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz)
-2. For her brain, open **Capri Mainframe > BRAIN**: use a free NVIDIA, Gemini or OpenRouter key, your own OpenAI, Claude or DeepSeek key, or any OpenAI-compatible provider with a key. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
-3. **Mac:** unzip it, drag Capri into Applications, then open Terminal and run this once. Needs macOS 15 or newer
-   ```bash
-   xattr -dr com.apple.quarantine /Applications/Capri.app
-   ```
-   Apple hasn't approved (notarized) her yet, so macOS blocks her or calls her "damaged" until you do. That line only clears the downloaded-from-the-internet flag on Capri
-4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
-
-## How to use her
+<details>
+<summary><a name="how-to-use-her-1"><img src="site/assets/presence/cursor.gif" alt="Her glitching cursor" width="96" align="left"></a><h2><a name="how-to-use-her"></a>How to use her</h2><br>Type, talk, drag her around and ask for things<br clear="left"></summary>
 
 - **Pencil:** type to her
 - **Wave:** voice chat
@@ -264,7 +255,10 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 
 </details>
 
-## Her voice
+</details>
+
+<details>
+<summary><a name="her-voice-1"><img src="site/assets/presence/voice.gif" alt="Capri lying back on a voice call" width="96" align="left"></a><h2><a name="her-voice"></a>Her voice</h2><br>Free on your PC, a voice model of yours, or a cloud voice<br clear="left"></summary>
 
 <div align="center">
 
@@ -283,17 +277,34 @@ For a Capri-style voice in Fish Audio or ElevenLabs, paste the [voice prompt fro
 >
 > Only use voices you have the necessary rights and permissions to use, and follow the provider's terms. We do not endorse unauthorized cloning or impersonation of voice actors or other individuals. **Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization.**
 
-## Make her yours
+</details>
+
+<details>
+<summary><a name="make-her-yours-1"><img src="site/assets/presence/dancing.gif" alt="Capri dancing" width="96" align="left"></a><h2><a name="make-her-yours"></a>Make her yours</h2><br>What she calls you, her language, her voice and who she is<br clear="left"></summary>
 
 Pick what she calls you, her language, her voice and what she does on your PC from the Capri Mainframe. To change who she is and how she talks, rewrite `personality.md`: Settings > YOU > Her personality > Edit personality.md. It starts as her default, and Reset to her default puts her back. For her colours, skins and new tricks, see [Mods](#mods).
 
 - **Her safety rules are part of who she is.** They're fixed in her code, in `Safety` in [app/Brain.cs](app/Brain.cs), right after her personality. If you build on her, please keep them as they are, out of respect for Capri's character
 - Her personality is `DefaultPersonality` in [app/Brain.cs](app/Brain.cs), so a pull request can suggest a change for everyone
 
-## Roadmap
+</details>
 
 <details>
-<summary><b>What's done and what's next</b></summary>
+<summary><a name="083-the-huge-update-1"><img src="site/assets/presence/live.gif" alt="Capri glitching with a LIVE badge" width="96" align="left"></a><h2><a name="083-the-huge-update"></a>0.8.3: the HUGE update</h2><br>Better voice calls, mods and Capri VR, plus a pile of stuff you asked for<br clear="left"></summary>
+
+- **[She joins your calls.](#she-joins-your-calls)** She hops in your Discord call for you, covers for you and launches the game your friends pick
+- **[Code/Husk Mode.](#codehusk-mode)** She's Claude Code's, Codex's and OpenCode's body while they work
+- **[Mods.](#mods)** A Mods window with a directory, previews, downloads and ratings, and nine mods by Vocyn to start
+- **[Capri VR.](#capri-vr)** Capri Room for Meta Quest 3 and 3S, by fadievr
+- **[Mac and Linux.](#mac-and-linux-preview)** Her full Mainframe, Mods, Code/Husk Mode and any OpenAI-compatible provider
+- **From your ideas.** Any OpenAI-compatible provider on Windows too, pick her speaker and the screens she watches, edit her notes in the Mainframe, reminders on dates and more
+
+All the changes are in the [release notes](https://github.com/lachydotmcg/capri-desktop/releases/latest).
+
+</details>
+
+<details>
+<summary><a name="roadmap-1"><img src="site/assets/presence/asleep.gif" alt="Capri asleep" width="96" align="left"></a><h2><a name="roadmap"></a>Roadmap</h2><br>What's done and what's next<br clear="left"></summary>
 
 **Her personality**
 
@@ -459,3 +470,13 @@ Free for anything non-commercial: use her, share her, change her. No selling her
 Have fun and more updates to come!
 
 <sub>Window perch and music perch animations: her artist, who prefers to stay private. Click effect: mixmix312352. Starter mods: Vocyn. Capri VR (Capri Room): fadievr. Mac and Linux Mainframe theme: Denoax. Setup guide based on Dancer's guide in the Discord. Font: Share Tech Mono (OFL). Free voice: Kokoro-82M (Apache-2.0). Her own ears: [NVIDIA Parakeet TDT 0.6B v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) for English and Ultra for 25 European languages (weights by Moondream, trained from [nvidia/parakeet-tdt-0.6b-v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3); both [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)), int8 exports by sherpa-onnx. Both run with [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache-2.0). HD voice: [Qwen3-TTS 1.7B](https://github.com/QwenLM/Qwen3-TTS) (Apache-2.0), run with [qwentts.cpp](https://github.com/ServeurpersoCom/qwentts.cpp) (MIT). Her voice in your mic: [VB-CABLE](https://vb-cable.com) by VB-Audio, donationware, carried unchanged and installed only by its own setup. Other notices: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).</sub>
+
+## Star history
+
+<a href="https://www.star-history.com/#lachydotmcg/capri-desktop&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=lachydotmcg/capri-desktop&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=lachydotmcg/capri-desktop&type=Date" />
+    <img alt="Capri's GitHub stars over time" src="https://api.star-history.com/svg?repos=lachydotmcg/capri-desktop&type=Date" />
+  </picture>
+</a>
