@@ -43,6 +43,8 @@ namespace CapriDesktop
                 "Settings at the top of Mainframe opens her settings page. Back returns to BRAIN, VOICE and CAPRI. Advanced Settings shows every row; Simple Settings keeps the main ones. Changes save as you make them.", "Mainframe.cs", "Settings"),
             new Topic("Mods", "mods page|mods button|mod menu|your mods|capri mods",
                 "Mods in Mainframe's CAPRI band opens her mods page. A .capri-mod file only changes settings. A .capri-code file runs code with full access to the PC, so she asks before running it and again if it's edited. A .capri-skill file is know-how for a game, like what to build and when, and she follows it whenever she plays that game. Back returns to BRAIN, VOICE and CAPRI.", "Mainframe.cs", "Mods"),
+            new Topic("Search installed mods", "search installed mods|search your installed mods|find an installed mod|filter installed mods",
+                "Search the installed list by mod name or author as you type. Every word must match, ignoring case. Typing returns to page 1; clearing the search shows all installed mods.", "MainframeMods.cs", "Search installed mods"),
             new Topic("Import mod", "import a mod|import mod|install a mod|add a mod",
                 "Import mod lets you pick a .capri-mod, .capri-code, .capri-skin or .capri-skill file and turns it on. Code mods ask first, a skin changes how she looks, and a skill teaches her a game. A mod with the same id is replaced, and a broken one is refused with the reason.", "MainframeMods.cs", "Import mod"),
             new Topic("Browse mods", "browse mods|mods directory|find mods|capri-mods",
