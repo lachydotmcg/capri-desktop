@@ -242,7 +242,7 @@ namespace CapriDesktop
             Dictionary<string, object> slim = HuskJson.Map();
             foreach (KeyValuePair<string, object> item in map)
             {
-                if (Array.IndexOf(new[] { "content", "old_string", "new_string", "new_source", "edits" }, item.Key) >= 0)
+                if (Array.IndexOf(new[] { "content", "old_string", "new_string", "new_source", "edits", "oldString", "newString", "patchText" }, item.Key) >= 0)
                 {
                     string content = item.Value as string;
                     List<object> edits = HuskJson.List(item.Value);
@@ -611,8 +611,8 @@ function send(event) {
 function handle(e, cwd) {
   const d = (e && e.data) || {}
   const session = d.sessionID
-  if (!session || state.seen.has(e.id)) return
-  remember(state.seen, e.id, true)
+  if (!session || e.id && state.seen.has(e.id)) return
+  if (e.id) remember(state.seen, e.id, true)
   if (e.type === 'session.created') {
     if (d.parentID) {
       remember(state.parents, session, d.parentID)
@@ -644,7 +644,11 @@ export default {
   id: 'capri-husk',
   setup(ctx) {
     const cwd = ctx.location && ctx.location.directory
-    ;(async () => { for await (const e of ctx.event.subscribe()) handle(e, cwd) })().catch(() => {})
+    ;(async () => {
+      for await (const e of ctx.event.subscribe()) {
+        try { handle(e, cwd) } catch {}
+      }
+    })().catch(() => {})
   },
 }
 ";
