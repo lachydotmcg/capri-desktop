@@ -38,7 +38,8 @@ namespace CapriDesktop
         private const float PageInset = 7;
 
         // Her artist's notes: 24 fps, every line typing at its own frame at one speed. A file is far longer than those lines were,
-        // so the page reveals across BodyFrames instead, and any click or key there ends the animation.
+        // so the page reveals across BodyFrames instead, and any click or key there ends the animation. Its frames are drawn as
+        // often as the screen shows them (Pacer), each one where the art's 24 a second have got to by then.
         private const double Fps = 24;
         private const double TypeRate = 1.5;
         private const double BodyFrames = 14;
@@ -47,31 +48,38 @@ namespace CapriDesktop
         private const int PageAt = 36;
         private const int LabelsDone = 42;
         private const double LastFrame = BodyAt + BodyFrames;
+        // Closing plays the opening backwards from where its words began.
+        private const int RewindFrom = TitleAt;
+        // How long the opening and the closing last in the art's frames, for her smoke test.
+        internal const double ArtFps = Fps, OpeningFrames = LastFrame - 1, ClosingFrames = BodyFrames + RewindFrom;
         private const string Unsaved = ".unsaved";
 
         private enum Stage { Waiting, Opening, Open, Untyping, Closing, Gone }
 
         internal event Action Saved;
         internal bool Motion = true;
-        // The frames it drew, in order, while her smoke test watches, and a stop on its clock for stepping it by hand.
-        internal List<double> Drawn;
+        // The frames it drew, in order, while her smoke test watches: where in the art each one was, when on the animation's clock,
+        // and how long it took to draw. And a stop on its clock for stepping it by hand.
+        internal List<double> Drawn, DrawnAt, DrawnMs;
         internal bool Held;
         private readonly float forcedScale, forcedArt;
         private readonly Page page;
         private readonly Frost frost;
         private readonly Doc[] docs;
-        private readonly Timer ticks = new Timer { Interval = 30 };
+        private readonly Pacer pacer = new Pacer();
         private readonly Stopwatch clock = new Stopwatch();
         private readonly string version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + "V";
         private Stage stage = Stage.Waiting;
-        private double frame, untyped, ticked;
+        private double frame, untyped, ticked, stepped;
+        private int drawnLetters = -1, frostWaited;
+        private bool frostDue;
         private float s = 1, a = 1;
         private int current;
         private Rectangle pageBox;
         private PointF[] frostShape;
         private Native.Surface surface;
-        private Bitmap shade, grain, veil;
-        private TextureBrush grainBrush;
+        private Bitmap shade, grain, grained, veil;
+        private int[] blurred, smeared, stretched;
         private Font nameFont, smallFont, spineFont;
         private bool dragging, guarded, pageUp, pending;
         private Point pressedAt, startedAt;
@@ -95,7 +103,6 @@ namespace CapriDesktop
             };
             frost = new Frost();
             page = new Page(this);
-            ticks.Tick += delegate { Tick(); };
         }
 
         protected override bool ShowWithoutActivation { get { return true; } }
@@ -116,6 +123,12 @@ namespace CapriDesktop
         internal bool Over { get { return stage == Stage.Gone; } }
         internal bool Guarding { get { return guarded; } }
         internal double Frame { get { return frame; } }
+        // The pace its frames were last asked for at, the refresh rate of its screen, whether they were in step with the screen's
+        // refreshes, and whether they're still coming.
+        internal double FrameRate { get { return pacer.Rate; } }
+        internal double ScreenRate { get { return pacer.Hz; } }
+        internal bool InStep { get { return pacer.InStep; } }
+        internal bool Pacing { get { return pacer.Running; } }
         internal bool Dirty { get { foreach (Doc doc in docs) if (doc.Dirty) return true; return false; } }
         internal string FileShown { get { return docs[current].Name; } }
         internal string Status { get { return page.Status; } }
@@ -207,27 +220,45 @@ namespace CapriDesktop
         {
             clock.Restart();
             ticked = 0;
-            ticks.Start();
+            pacer.Start(Handle, Screen.FromHandle(Handle).DeviceName);
         }
 
+        // A frame wherever the clock has got to, in the art's frames: a frame drawn late lands where it should be by then.
         private void Tick()
         {
             double now = clock.Elapsed.TotalSeconds * Fps, step = now - ticked;
             ticked = now;
+            stepped = step;
             if (stage == Stage.Opening) Seek(frame + step);
             else if (stage == Stage.Untyping) Untype(untyped + step);
             else if (stage == Stage.Closing) Rewind(frame - step);
-            else ticks.Stop();
+            else pacer.Stop();
+        }
+
+        internal void Watch()
+        {
+            Drawn = new List<double>();
+            DrawnAt = new List<double>();
+            DrawnMs = new List<double>();
+        }
+
+        private void Record(double value, long began)
+        {
+            if (Drawn == null) return;
+            Drawn.Add(value);
+            if (DrawnAt != null) DrawnAt.Add(clock.Elapsed.TotalSeconds);
+            if (DrawnMs != null) DrawnMs.Add((Stopwatch.GetTimestamp() - began) * 1000.0 / Stopwatch.Frequency);
         }
 
         // The opening at this frame.
         internal void Seek(double to)
         {
+            long began = Stopwatch.GetTimestamp();
             frame = Math.Min(LastFrame, Math.Max(0, to));
             PageUp(frame >= PageAt);
             if (frame <= LabelsDone || surface == null) DrawFrame();
-            if (Drawn != null) Drawn.Add(frame);
             page.Reveal();
+            Record(frame, began);
             if (frame >= LastFrame) Rest();
         }
 
@@ -248,12 +279,12 @@ namespace CapriDesktop
 
         private void Rest()
         {
-            ticks.Stop();
+            pacer.Stop();
             stage = Stage.Open;
             DrawFrame();
             page.Veiled(false);
             DropVeil();
-            if (surface != null) { surface.Dispose(); surface = null; }
+            DropSurface();
             page.Settle();
         }
 
@@ -272,28 +303,31 @@ namespace CapriDesktop
 
         internal void Untype(double to)
         {
+            long began = Stopwatch.GetTimestamp();
             untyped = to;
-            DrawFrame();
-            if (Drawn != null) Drawn.Add(-untyped);
+            // Only the labels change on the panel while they take themselves back, so it's drawn again only when they do.
+            if (surface == null || Letters() != drawnLetters) DrawFrame();
             page.Reveal();
+            Record(-untyped, began);
             if (untyped < BodyFrames) return;
             stage = Stage.Closing;
             PageUp(false);
-            frame = Math.Min(frame, 40);
+            frame = Math.Min(frame, RewindFrom);
             DrawFrame();
         }
 
         internal void Rewind(double to)
         {
+            long began = Stopwatch.GetTimestamp();
             frame = Math.Max(0, to);
             DrawFrame();
-            if (Drawn != null) Drawn.Add(frame);
+            Record(frame, began);
             if (frame <= 0) Finished();
         }
 
         private void Finished()
         {
-            ticks.Stop();
+            pacer.Stop();
             stage = Stage.Gone;
             Action next = after;
             after = null;
@@ -541,12 +575,18 @@ namespace CapriDesktop
             nameFont = Title(20 * a);
             smallFont = Title(11.5f * a);
             spineFont = Title(12.5f * a);
-            if (grainBrush != null) grainBrush.Dispose();
             if (grain != null) grain.Dispose();
             grain = Grain((int)Math.Max(1, Math.Round(a / Zoom)));
-            grainBrush = new TextureBrush(grain) { WrapMode = WrapMode.Tile };
             if (shade != null) { shade.Dispose(); shade = null; }
+            DropSurface();
+        }
+
+        // The panel's own picture, the grain to lay over it and the shadow's workings are only kept while it moves.
+        private void DropSurface()
+        {
             if (surface != null) { surface.Dispose(); surface = null; }
+            if (grained != null) { grained.Dispose(); grained = null; }
+            blurred = smeared = stretched = null;
         }
 
         private void DropFonts()
@@ -578,6 +618,9 @@ namespace CapriDesktop
             return tile;
         }
 
+        // Which of the labels' letters show, as one number.
+        private int Letters() { return Typed(version.Length, VersionAt) + 100 * (Typed(version.Length, NameAt) + 100 * (Typed(PanelName.Length, NameAt) + 100 * Typed(ProjectName.Length, ProjectAt))); }
+
         private int Typed(int length, int at)
         {
             if (stage == Stage.Closing) return 0;
@@ -591,7 +634,26 @@ namespace CapriDesktop
             if (surface == null) surface = new Native.Surface(Width, Height);
             using (Graphics pen = Graphics.FromImage(surface.Image)) PaintFrame(pen);
             surface.Show(Handle, Location);
+            if (pacer.Running) { frostDue = true; return; }
             frost.Shape(frostShape, Location);
+            frostDue = false;
+            frostWaited = 0;
+        }
+
+        // The blur under the sheet, once a frame from the pacer is on screen (8 Nov). Reshaping it takes Windows about as long as
+        // drawing a frame, so while the sheet slides it's reshaped every third frame, after the frame rather than before it, and
+        // always to a shape inside the sheet: the one it has now while it grows, and the one it will have a few frames on while it
+        // shrinks. The sheet slides between the art's frames 14 and 35, and the blur takes its own shape as soon as it stops.
+        private void Follow()
+        {
+            if (!frostDue || !IsHandleCreated) return;
+            bool closing = stage == Stage.Closing;
+            double at = closing ? Math.Max(0, frame - 4 * Math.Max(Math.Abs(stepped), Fps / Math.Max(1, pacer.Rate))) : frame;
+            if (++frostWaited < 3 && (closing ? at > 14 : at < 35)) return;
+            frostDue = false;
+            frostWaited = 0;
+            float sheet = PanelArt.Along(PanelArt.SheetEnds, 14, at), depth = PanelArt.Along(PanelArt.StepDepths, 16, at);
+            frost.Shape(sheet > PanelArt.SheetLeft ? SheetShape(sheet, depth, 1) : null, Location);
         }
 
         private void PaintFrame(Graphics pen)
@@ -600,8 +662,9 @@ namespace CapriDesktop
             pen.SmoothingMode = SmoothingMode.AntiAlias;
             pen.PixelOffsetMode = PixelOffsetMode.Half;
             frostShape = null;
+            drawnLetters = Letters();
             if (frame <= 0) return;
-            float spine = (float)Math.Min(frame, 1) * (PanelArt.Along(PanelArt.SpineEnds, 1, frame) - PanelArt.Crown) + PanelArt.Crown;
+            float spine = PanelArt.Along(PanelArt.SpineEnds, 1, frame, PanelArt.Crown);
             float sheet = PanelArt.Along(PanelArt.SheetEnds, 14, frame), depth = PanelArt.Along(PanelArt.StepDepths, 16, frame);
             float rule = frame < 21 ? 0 : PanelArt.Along(PanelArt.RuleEnds, 21, frame);
             float block = frame < 25 ? 0 : PanelArt.Along(PanelArt.BlockEnds, 25, frame);
@@ -622,12 +685,12 @@ namespace CapriDesktop
                 pen.CompositingMode = CompositingMode.SourceCopy;
                 using (Brush fill = new SolidBrush(PanelArt.SheetFill(sheetAlpha))) pen.FillPolygon(fill, sheetShape);
                 pen.CompositingMode = CompositingMode.SourceOver;
-                pen.FillPolygon(grainBrush, sheetShape);
+                LayGrain(pen, sheetShape);
                 // No page box under the words (Lachy, 8 Nov): the sheet stays her artist's see-through right up to the text.
                 using (Pen edge = new Pen(Color.FromArgb(220, Red), 2.4f * a)) { edge.LineJoin = LineJoin.Miter; pen.DrawPolygon(edge, SheetShape(sheet, depth, 1.2f)); }
             }
             using (Brush body = new SolidBrush(PanelArt.Spine)) pen.FillPolygon(body, spineShape);
-            pen.FillPolygon(grainBrush, spineShape);
+            LayGrain(pen, spineShape);
             if (spine > PanelArt.TickY + 2) using (Brush tick = new SolidBrush(Color.FromArgb((int)(170 * PanelArt.Grown(frame, 6, 14)), Black))) pen.FillRectangle(tick, Sx(141), Sy(PanelArt.TickY), Math.Max(1, Sx(148) - Sx(141)), Math.Max(1, (float)Math.Round(a)));
             using (Brush solid = new SolidBrush(PanelArt.Rule))
             {
@@ -650,6 +713,46 @@ namespace CapriDesktop
                 using (Brush black = new SolidBrush(Black)) Say(pen, versionWords, spineFont, black, PointF.Empty);
                 pen.Restore(flat);
             }
+        }
+
+        // The grain over a shape: a panel-sized layer of it, through the shape's outline (8 Nov). GDI+'s texture brush drew the
+        // same but took 50 ms to fill the sheet; only the slanted edges' half-covered pixels go without their faint specks now.
+        private void LayGrain(Graphics pen, PointF[] shape)
+        {
+            using (GraphicsPath outline = new GraphicsPath())
+            {
+                outline.AddPolygon(shape);
+                pen.SetClip(outline);
+                pen.DrawImageUnscaled(GrainLayer(), 0, 0);
+                pen.ResetClip();
+            }
+        }
+
+        // The grain tile repeated over the whole panel from its top left corner, as the texture brush laid it.
+        private Bitmap GrainLayer()
+        {
+            if (grained != null && grained.Width == Width && grained.Height == Height) return grained;
+            if (grained != null) grained.Dispose();
+            grained = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb);
+            BitmapData from = grain.LockBits(new Rectangle(0, 0, grain.Width, grain.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            try
+            {
+                BitmapData into = grained.LockBits(new Rectangle(0, 0, Width, Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppPArgb);
+                try
+                {
+                    unsafe
+                    {
+                        for (int y = 0; y < Height; y++)
+                        {
+                            uint* row = (uint*)((byte*)into.Scan0 + (long)y * into.Stride), tile = (uint*)((byte*)from.Scan0 + (long)(y % from.Height) * from.Stride);
+                            for (int x = 0; x < Width; x++) row[x] = tile[x % from.Width];
+                        }
+                    }
+                }
+                finally { grained.UnlockBits(into); }
+            }
+            finally { grain.UnlockBits(from); }
+            return grained;
         }
 
         private static void Say(Graphics pen, string words, Font font, Brush ink, PointF at)
@@ -713,7 +816,8 @@ namespace CapriDesktop
         }
 
         // A soft black shadow round everything, her red text included so it holds up on any wallpaper. Drawn small and blurred, then
-        // stretched, so it costs the same at 200%.
+        // stretched, so it costs the same at 200%. The stretch goes straight into the panel's pixels and only where the shadow is:
+        // GDI+ stretching it over the whole panel took most of each frame (8 Nov).
         private void PaintShadow(Graphics pen, PointF[] spine, PointF[] sheet, double sheetAlpha, RectangleF rule, RectangleF block, string topVersion, PointF versionAt, string name, PointF nameAt, string project, PointF projectAt)
         {
             int small = Math.Max(2, (int)Math.Round(a * 2.5f));
@@ -735,34 +839,92 @@ namespace CapriDesktop
                 }
                 if (sheet != null) using (Brush soft = new SolidBrush(Color.FromArgb((int)(Math.Max(sheetAlpha, 0.5) * 255), Black))) ink.FillPolygon(soft, sheet);
             }
-            Blur(shade, Math.Max(1, (int)Math.Round(5 * a / small)));
-            InterpolationMode was = pen.InterpolationMode;
-            pen.InterpolationMode = InterpolationMode.Bilinear;
-            pen.DrawImage(shade, new Rectangle(0, 0, shade.Width * small, shade.Height * small));
-            pen.InterpolationMode = was;
+            Rectangle covered = Blur(shade, Math.Max(1, (int)Math.Round(5 * a / small)));
+            pen.Flush(FlushIntention.Sync);
+            Stretch(covered, small, shade.Width);
         }
 
-        private static void Blur(Bitmap image, int radius)
+        // The shade's alpha, blurred three times over by `radius` and at the shadow's strength, into `blurred`, kept between frames.
+        // Says which of its pixels have any.
+        private Rectangle Blur(Bitmap image, int radius)
         {
             int width = image.Width, height = image.Height;
-            BitmapData data = image.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
+            if (blurred == null || blurred.Length != width * height) { blurred = new int[width * height]; smeared = new int[width * height]; }
+            BitmapData data = image.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
             try
             {
-                byte[] pixels = new byte[data.Stride * height];
-                Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
-                int[] alpha = new int[width * height], next = new int[width * height];
-                for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) alpha[y * width + x] = pixels[y * data.Stride + x * 4 + 3];
-                for (int pass = 0; pass < 3; pass++)
+                unsafe
                 {
-                    Smear(alpha, next, width, height, 1, width, radius);
-                    Smear(next, alpha, height, width, width, 1, radius);
+                    for (int y = 0; y < height; y++)
+                    {
+                        byte* row = (byte*)data.Scan0 + (long)y * data.Stride;
+                        for (int x = 0; x < width; x++) blurred[y * width + x] = row[x * 4 + 3];
+                    }
                 }
-                const double Strength = 0.6;
-                for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) pixels[y * data.Stride + x * 4 + 3] = (byte)Math.Min(255, alpha[y * width + x] * Strength);
-                Marshal.Copy(pixels, 0, data.Scan0, pixels.Length);
             }
             finally { image.UnlockBits(data); }
+            for (int pass = 0; pass < 3; pass++)
+            {
+                Smear(blurred, smeared, width, height, 1, width, radius);
+                Smear(smeared, blurred, height, width, width, 1, radius);
+            }
+            // At 0.6 of its strength.
+            int left = width, top = height, right = -1, bottom = -1;
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    int at = y * width + x, alpha = Math.Min(255, blurred[at] * 3 / 5);
+                    blurred[at] = alpha;
+                    if (alpha == 0) continue;
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                    if (y < top) top = y;
+                    bottom = y;
+                }
+            return right < 0 ? Rectangle.Empty : Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
         }
+
+        // The blurred shade `small` times bigger, as black at its strength, by straight lines between its pixels' centres: what GDI+'s
+        // bilinear stretch drew. A row at a time across, then down, and only over the panel's pixels the shade's `covered` ones reach.
+        // The panel was just cleared, so these are written, not blended.
+        private unsafe void Stretch(Rectangle covered, int small, int width)
+        {
+            if (covered.IsEmpty || surface == null) return;
+            int wide = surface.Image.Width, high = surface.Image.Height, height = blurred.Length / width;
+            int left = Math.Max(0, (covered.Left - 1) * small), right = Math.Min(wide, (covered.Right + 1) * small);
+            int top = Math.Max(0, (covered.Top - 1) * small), bottom = Math.Min(high, (covered.Bottom + 1) * small);
+            if (left >= right || top >= bottom) return;
+            if (stretched == null || stretched.Length < height * wide) stretched = new int[height * wide];
+            // Across: every shade row the panel's rows will sample, at the panel's width, in 256ths.
+            int firstRow = Math.Max(0, Sampled(top, small) - 1), lastRow = Math.Min(height - 1, Sampled(bottom - 1, small) + 1);
+            for (int row = firstRow; row <= lastRow; row++)
+            {
+                int from = row * width, into = row * wide;
+                for (int x = left; x < right; x++)
+                {
+                    int low = Sampled(x, small), weight = Weight(x, small);
+                    int one = blurred[from + Math.Max(0, Math.Min(width - 1, low))], two = blurred[from + Math.Max(0, Math.Min(width - 1, low + 1))];
+                    stretched[into + x] = one * (256 - weight) + two * weight;
+                }
+            }
+            // Down, into the panel.
+            byte* pixels = (byte*)surface.Pixels;
+            for (int y = top; y < bottom; y++)
+            {
+                int low = Sampled(y, small), weight = Weight(y, small);
+                int one = Math.Max(firstRow, Math.Min(lastRow, low)) * wide, two = Math.Max(firstRow, Math.Min(lastRow, low + 1)) * wide;
+                uint* line = (uint*)(pixels + (long)y * wide * 4);
+                for (int x = left; x < right; x++)
+                {
+                    int alpha = (stretched[one + x] * (256 - weight) + stretched[two + x] * weight + 32768) >> 16;
+                    if (alpha > 0) line[x] = (uint)alpha << 24;
+                }
+            }
+        }
+
+        // The shade pixel a panel pixel's centre falls after, and how far on towards the next, in 256ths.
+        private static int Sampled(int at, int small) { int twice = 2 * at + 1 - small; return twice >= 0 ? twice / (2 * small) : -((-twice + 2 * small - 1) / (2 * small)); }
+        private static int Weight(int at, int small) { return (2 * at + 1 - small - Sampled(at, small) * 2 * small) * 256 / (2 * small); }
 
         // One box-blur pass along `length`, over `rows` rows.
         private static void Smear(int[] from, int[] into, int length, int rows, int along, int across, int radius)
@@ -791,14 +953,21 @@ namespace CapriDesktop
             if (veil != null) { veil.Dispose(); veil = null; }
         }
 
-        // How much of the page shows: the title types at the art's speed, and everything else comes in together across BodyFrames.
-        private void PaintVeil(Graphics pen, Size size, Rectangle title, int titleWide, int step, bool clear)
+        // How much of the page shows: the title types at the art's speed, and everything else comes in together across BodyFrames,
+        // its edge moving a pixel at a time so it sweeps evenly at any frame rate.
+        private int Across(int wide)
+        {
+            double shown = stage == Stage.Untyping ? 1 - untyped / BodyFrames : stage == Stage.Closing ? 0 : (frame - BodyAt) / BodyFrames;
+            return (int)(Math.Max(0, Math.Min(1, shown)) * wide);
+        }
+
+        private int TitleTyped() { return Typed(docs[current].Name.Length, TitleAt); }
+
+        private void PaintVeil(Graphics pen, Size size, Rectangle title, int titleWide, bool clear)
         {
             if (clear) pen.Clear(Paper);
             if (veil == null) return;
-            double shown = stage == Stage.Untyping ? 1 - untyped / BodyFrames : stage == Stage.Closing ? 0 : (frame - BodyAt) / BodyFrames;
-            int across = (int)(Math.Max(0, Math.Min(1, shown)) * size.Width);
-            across = across / step * step;
+            int across = Across(size.Width);
             if (across > 0)
             {
                 pen.SetClip(new Rectangle(0, 0, across, size.Height));
@@ -806,7 +975,7 @@ namespace CapriDesktop
                 pen.DrawImageUnscaled(veil, 0, 0);
                 pen.ResetClip();
             }
-            int length = docs[current].Name.Length, typed = Typed(length, TitleAt);
+            int length = docs[current].Name.Length, typed = TitleTyped();
             if (typed <= 0) return;
             pen.SetClip(new Rectangle(title.X, title.Y, typed >= length ? title.Width : titleWide * typed / length, title.Height));
             pen.DrawImageUnscaled(veil, 0, 0);
@@ -827,7 +996,7 @@ namespace CapriDesktop
                 // The page as it is on screen: its words, tabs, buttons and caret, with the sheet showing through between them.
                 if (pageUp) using (Bitmap top = page.Face()) pen.DrawImage(top, pageBox, 0, 0, top.Width, top.Height, GraphicsUnit.Pixel);
             }
-            if (dropped) { surface.Dispose(); surface = null; }
+            if (dropped) DropSurface();
             return whole;
         }
 
@@ -852,6 +1021,13 @@ namespace CapriDesktop
 
         protected override void WndProc(ref Message message)
         {
+            if (message.Msg == Pacer.Message)
+            {
+                try { Tick(); }
+                finally { pacer.Drawn(); }
+                Follow();
+                return;
+            }
             if (message.Msg == 0x0084)
             {
                 long value = message.LParam.ToInt64();
@@ -876,19 +1052,18 @@ namespace CapriDesktop
             if (dragging) { pressedAt = Cursor.Position; startedAt = Location; }
             if (stage != Stage.Open) TakeVeil();
             DrawFrame();
-            if (stage == Stage.Open && surface != null) { surface.Dispose(); surface = null; }
+            if (stage == Stage.Open) DropSurface();
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                ticks.Dispose();
+                pacer.Stop();
                 DropVeil();
                 DropFonts();
-                if (surface != null) surface.Dispose();
+                DropSurface();
                 if (shade != null) shade.Dispose();
-                if (grainBrush != null) grainBrush.Dispose();
                 if (grain != null) grain.Dispose();
                 if (!page.IsDisposed) page.Dispose();
                 if (!frost.IsDisposed) frost.Dispose();
@@ -998,7 +1173,7 @@ namespace CapriDesktop
             private Native.Surface face, look, light, dark;
             private readonly Timer blinker = new Timer();
             private bool queued, blink = true, blinks;
-            private int seenFirst = -1, seenStart = -1, seenLength = -1;
+            private int seenFirst = -1, seenStart = -1, seenLength = -1, revealed = -1, titled = -1;
             private Rectangle seenCaret;
             internal double Strength, SlowestMs, PaintMs;
             internal int Renders;
@@ -1255,10 +1430,13 @@ namespace CapriDesktop
                 Render();
             }
 
-            // A frame of the words typing in or taking themselves back: drawn straight away, in step with the panel.
+            // A frame of the words typing in or taking themselves back: drawn straight away, in step with the panel, but only when it
+            // shows more or less of them than the last did. Until the title starts typing there's nothing to show.
             internal void Reveal()
             {
-                if (cover.Visible) Render();
+                if (!cover.Visible) return;
+                if (look != null && revealed == panel.Across(Width) && titled == panel.TitleTyped()) return;
+                Render();
             }
 
             internal void Settle()
@@ -1402,6 +1580,8 @@ namespace CapriDesktop
                     pen.Clear(Color.FromArgb(1, 0, 0, 0));
                     PaintCover(pen, false);
                 }
+                revealed = panel.Across(Width);
+                titled = panel.TitleTyped();
             }
 
             // The page with nothing behind it, so the sheet shows through everywhere but the words, tabs and buttons. It's painted once
@@ -1467,7 +1647,7 @@ namespace CapriDesktop
             internal void PaintCover(Graphics pen, bool clear)
             {
                 int wide = shown == null ? titleBox.Width : Math.Min(titleBox.Width, TextRenderer.MeasureText(shown.Name, titleFont, Size.Empty, TitleWidth).Width);
-                panel.PaintVeil(pen, Size, titleBox, wide, Math.Max(1, Scaled(8)), clear);
+                panel.PaintVeil(pen, Size, titleBox, wide, clear);
             }
 
             protected override void OnPaint(PaintEventArgs e)
@@ -1668,6 +1848,9 @@ namespace CapriDesktop
             internal bool Blurred;
             // Where its window sits in the panel's.
             internal Point Offset;
+            // The outline it was last given, and where the panel was, so an outline that hasn't changed isn't given again.
+            private Point[] shaped;
+            private Point shapedAt;
 
             internal Frost()
             {
@@ -1707,6 +1890,8 @@ namespace CapriDesktop
                 if (!IsHandleCreated) return;
                 if (sheet == null || sheet.Length < 3)
                 {
+                    if (shaped != null && shaped.Length == 0) return;
+                    shaped = new Point[0];
                     IntPtr none = CreateRectRgn(0, 0, 0, 0);
                     if (none != IntPtr.Zero && SetWindowRgn(Handle, none, true) == 0) DeleteObject(none);
                     return;
@@ -1721,11 +1906,21 @@ namespace CapriDesktop
                     right = Math.Max(right, corners[i].X);
                     bottom = Math.Max(bottom, corners[i].Y);
                 }
-                Offset = new Point(left, top);
                 for (int i = 0; i < corners.Length; i++) corners[i] = new Point(corners[i].X - left, corners[i].Y - top);
+                if (Same(corners, shaped) && shapedAt == panelAt && Offset == new Point(left, top)) return;
+                shaped = corners;
+                shapedAt = panelAt;
+                Offset = new Point(left, top);
                 SetWindowPos(Handle, IntPtr.Zero, panelAt.X + left, panelAt.Y + top, Math.Max(1, right - left), Math.Max(1, bottom - top), 0x0014);
                 IntPtr region = CreatePolygonRgn(corners, corners.Length, 2);
                 if (region != IntPtr.Zero && SetWindowRgn(Handle, region, true) == 0) DeleteObject(region);
+            }
+
+            private static bool Same(Point[] one, Point[] other)
+            {
+                if (one == null || other == null || one.Length != other.Length) return false;
+                for (int i = 0; i < one.Length; i++) if (one[i] != other[i]) return false;
+                return true;
             }
 
             protected override void WndProc(ref Message message)
@@ -1734,6 +1929,160 @@ namespace CapriDesktop
                 if (message.Msg == 0x0021) { message.Result = new IntPtr(3); return; }
                 base.WndProc(ref message);
             }
+        }
+
+        // The animation's beat (8 Nov). A thread of its own wakes in step with the screen and asks the panel for a frame: at every
+        // refresh on a screen up to 99 Hz and at every few on a faster one, so 50 to 99 frames a second on any screen of 50 Hz or
+        // more, and never more often than the screen shows them. While the last frame is still being drawn it asks for nothing, so
+        // a slow PC skips frames instead of falling behind. WinForms' own timer only ticks on Windows' 15.6 ms steps and wanders by
+        // as much again.
+        private sealed class Pacer
+        {
+            internal const int Message = 0x8000 + 0x5C;
+            private object token;
+            private int asked;
+            internal double Rate, Hz;
+            internal bool InStep;
+
+            internal bool Running { get { return System.Threading.Volatile.Read(ref token) != null; } }
+
+            internal void Start(IntPtr window, string device)
+            {
+                Hz = Refresh(device);
+                int every = Math.Max(1, (int)(Hz / 50));
+                Rate = Hz / every;
+                long frequency = Stopwatch.Frequency, period = (long)(frequency / Rate), next = Stopwatch.GetTimestamp() + period;
+                InStep = false;
+                // Windows' compositor says when the screen last refreshed and how often: frames then start just after a refresh,
+                // with the whole of it to be drawn in, so none lands right on the moment a refresh is put together.
+                Timing timing = new Timing { Size = Marshal.SizeOf(typeof(Timing)) };
+                try
+                {
+                    if (Stopwatch.IsHighResolution && DwmGetCompositionTimingInfo(IntPtr.Zero, ref timing) == 0 && timing.RefreshPeriod > 0 && timing.RefreshDen > 0)
+                    {
+                        double composed = (double)timing.RefreshNum / timing.RefreshDen;
+                        long refresh = (long)timing.RefreshPeriod, now = Stopwatch.GetTimestamp();
+                        if (Math.Abs(composed - Hz) <= Hz * 0.02 && refresh > frequency / 1000)
+                        {
+                            period = refresh * every;
+                            Rate = (double)frequency / period;
+                            long since = (now - (long)timing.VBlank) % refresh;
+                            if (since < 0) since += refresh;
+                            next = now - since + refresh + Math.Min(frequency / 1000, refresh / 4);
+                            InStep = true;
+                        }
+                    }
+                }
+                catch (DllNotFoundException) { }
+                catch (EntryPointNotFoundException) { }
+                object mine = new object();
+                System.Threading.Volatile.Write(ref token, mine);
+                System.Threading.Interlocked.Exchange(ref asked, 0);
+                System.Threading.Thread beat = new System.Threading.Thread(delegate() { Beat(mine, window, period, next); });
+                beat.IsBackground = true;
+                beat.Name = "File editor frames";
+                beat.Start();
+            }
+
+            // The thread ends at its next wake.
+            internal void Stop() { System.Threading.Volatile.Write(ref token, null); }
+
+            // The frame it asked for is on screen: it may ask for the next.
+            internal void Drawn() { System.Threading.Interlocked.Exchange(ref asked, 0); }
+
+            private void Beat(object mine, IntPtr window, long period, long next)
+            {
+                // A high-resolution waitable timer wakes on time without changing Windows' timer for everything else. Older
+                // Windows 10 has none, so this falls back to Windows' 1 ms timer while the animation plays.
+                IntPtr timer = IntPtr.Zero;
+                bool coarse = false;
+                try { timer = CreateWaitableTimerExW(IntPtr.Zero, null, 2, 0x1F0003); }
+                catch (EntryPointNotFoundException) { }
+                if (timer == IntPtr.Zero) coarse = timeBeginPeriod(1) == 0;
+                try
+                {
+                    while (System.Threading.Volatile.Read(ref token) == mine)
+                    {
+                        long wait = next - Stopwatch.GetTimestamp();
+                        if (wait > 0)
+                        {
+                            long due = -Math.Max(1, wait * 10000000 / Stopwatch.Frequency);
+                            if (timer != IntPtr.Zero && SetWaitableTimer(timer, ref due, 0, IntPtr.Zero, IntPtr.Zero, false)) WaitForSingleObject(timer, 1000);
+                            else System.Threading.Thread.Sleep((int)Math.Max(1, wait * 1000 / Stopwatch.Frequency));
+                        }
+                        if (System.Threading.Volatile.Read(ref token) != mine) break;
+                        // A window that's gone ends it.
+                        if (System.Threading.Interlocked.CompareExchange(ref asked, 1, 0) == 0 && !PostMessage(window, Message, IntPtr.Zero, IntPtr.Zero)) break;
+                        // A slot slept through is skipped, never made up, so frames stay in step with the screen.
+                        next += period;
+                        long late = Stopwatch.GetTimestamp() - next;
+                        if (late >= 0) next += (late / period + 1) * period;
+                    }
+                }
+                finally
+                {
+                    if (timer != IntPtr.Zero) CloseHandle(timer);
+                    if (coarse) timeEndPeriod(1);
+                }
+            }
+
+            // How often the screen refreshes, from Windows' display settings: 60 if it won't say.
+            internal static double Refresh(string device)
+            {
+                Mode mode = new Mode { Size = (short)Marshal.SizeOf(typeof(Mode)) };
+                return EnumDisplaySettings(device, -1, ref mode) && mode.Frequency > 1 ? mode.Frequency : 60;
+            }
+
+            [DllImport("user32.dll", CharSet = CharSet.Unicode)] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool EnumDisplaySettings(string device, int which, ref Mode mode);
+            [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool PostMessage(IntPtr window, int message, IntPtr wide, IntPtr low);
+            [DllImport("dwmapi.dll")] private static extern int DwmGetCompositionTimingInfo(IntPtr window, ref Timing timing);
+            [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr CreateWaitableTimerExW(IntPtr attributes, string name, uint flags, uint access);
+            [DllImport("kernel32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetWaitableTimer(IntPtr timer, ref long due, int period, IntPtr routine, IntPtr argument, [MarshalAs(UnmanagedType.Bool)] bool resume);
+            [DllImport("kernel32.dll")] private static extern uint WaitForSingleObject(IntPtr handle, uint milliseconds);
+            [DllImport("kernel32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool CloseHandle(IntPtr handle);
+            [DllImport("winmm.dll")] private static extern uint timeBeginPeriod(uint milliseconds);
+            [DllImport("winmm.dll")] private static extern uint timeEndPeriod(uint milliseconds);
+
+#pragma warning disable 649
+            // DEVMODEW, as far as its refresh rate.
+            [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+            private struct Mode
+            {
+                [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] internal string Device;
+                internal short SpecVersion, DriverVersion, Size, DriverExtra;
+                internal int Fields, X, Y, Orientation, FixedOutput;
+                internal short Color, Duplex, YResolution, TrueType, Collate;
+                [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] internal string Form;
+                internal short LogPixels;
+                internal int Bits, Wide, High, Flags, Frequency, IcmMethod, IcmIntent, Media, Dither, Reserved1, Reserved2, PanningWide, PanningHigh;
+            }
+
+            // DWM_TIMING_INFO: packed, and read only as far as the refresh, but the whole of it is asked for.
+            [StructLayout(LayoutKind.Sequential, Pack = 1)]
+            private struct Timing
+            {
+                internal int Size;
+                internal uint RefreshNum, RefreshDen;
+                internal ulong RefreshPeriod;
+                internal uint ComposeNum, ComposeDen;
+                internal ulong VBlank, Refreshes;
+                internal uint DxRefresh;
+                internal ulong Composed, Frame;
+                internal uint DxPresent;
+                internal ulong RefreshFrame, FrameSubmitted;
+                internal uint DxPresentSubmitted;
+                internal ulong FrameConfirmed;
+                internal uint DxPresentConfirmed;
+                internal ulong RefreshConfirmed;
+                internal uint DxRefreshConfirmed;
+                internal ulong FramesLate;
+                internal uint FramesOutstanding;
+                internal ulong FrameDisplayed, QpcFrameDisplayed, RefreshFrameDisplayed, FrameComplete, QpcFrameComplete, FramePending, QpcFramePending;
+                internal ulong FramesDisplayed, FramesComplete, FramesPending, FramesAvailable, FramesDropped, FramesMissed;
+                internal ulong RefreshNextDisplayed, RefreshNextPresented, RefreshesDisplayed, RefreshesPresented, RefreshStarted;
+                internal ulong PixelsReceived, PixelsDrawn, BuffersEmpty;
+            }
+#pragma warning restore 649
         }
 
         // A button in the panel's colours. Filled is her red with dark words; the others are a red line with red words.
@@ -1824,14 +2173,34 @@ namespace CapriDesktop
         internal static readonly Color Spine = Color.FromArgb(243, 222, 70, 62);
         internal static readonly Color Rule = Color.FromArgb(222, FileEditor.Red);
 
-        // A value at any moment, between the art's frames.
-        internal static float Along(float[] curve, int first, double frame)
+        // A value at any moment between the art's frames: a smooth curve through every frame's measurement (8 Nov), so a screen
+        // drawing far more often than 24 times a second sees the art's easing, not a straight line from one frame to the next with
+        // a jolt at each. It never overshoots a measurement (a monotone cubic, after Fritsch and Carlson), and it eases out of
+        // `lead`, where it was the frame before `first`, and into its last measurement, which it holds.
+        internal static float Along(float[] curve, int first, double frame, float lead)
         {
             double at = frame - first;
-            if (at <= 0) return curve[0];
-            int low = (int)at;
-            if (low >= curve.Length - 1) return curve[curve.Length - 1];
-            return (float)(curve[low] + (curve[low + 1] - curve[low]) * (at - low));
+            int last = curve.Length - 1;
+            if (at <= -1) return lead;
+            if (at >= last) return curve[last];
+            int low = (int)Math.Floor(at);
+            double t = at - low;
+            double from = (2 * t - 3) * t * t + 1, leaving = ((t - 2) * t + 1) * t, to = (3 - 2 * t) * t * t, arriving = (t - 1) * t * t;
+            return (float)(from * Sample(curve, lead, low) + leaving * Slope(curve, lead, low) + to * Sample(curve, lead, low + 1) + arriving * Slope(curve, lead, low + 1));
+        }
+
+        // For a curve that holds its first value before it starts.
+        internal static float Along(float[] curve, int first, double frame) { return Along(curve, first, frame, curve[0]); }
+
+        private static double Sample(float[] curve, float lead, int at) { return at < 0 ? lead : curve[Math.Min(at, curve.Length - 1)]; }
+
+        // How fast the curve moves through a frame: not at all where it holds or turns back, and otherwise the harmonic mean of
+        // the steps either side, which keeps it from overshooting.
+        private static double Slope(float[] curve, float lead, int at)
+        {
+            if (at < 0) return 0;
+            double before = Sample(curve, lead, at) - Sample(curve, lead, at - 1), after = Sample(curve, lead, at + 1) - Sample(curve, lead, at);
+            return before * after <= 0 ? 0 : 2 / (1 / before + 1 / after);
         }
 
         // 0 up to one frame, 1 from another, for a detail that comes in between them.

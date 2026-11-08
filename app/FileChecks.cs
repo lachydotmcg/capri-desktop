@@ -11,6 +11,8 @@ namespace CapriDesktop
 {
     internal sealed partial class Companion
     {
+        // Waits on her messages, as her own message loop does: Windows rounds a short sleep up to 15.6 ms, which held back the
+        // frames being timed.
         private static void AwaitPanel(Func<bool> done, int milliseconds, string problem)
         {
             Stopwatch waited = Stopwatch.StartNew();
@@ -18,8 +20,27 @@ namespace CapriDesktop
             {
                 if (waited.ElapsedMilliseconds > milliseconds) throw new Exception(problem);
                 Application.DoEvents();
-                Thread.Sleep(5);
+                Native.MsgWaitForMultipleObjectsEx(0, null, 5, 0x04FF, 0x0004);
             }
+        }
+
+        // The frames the panel drew while it played on its own clock: more than the art's 24 a second (unless `slow` may be slower),
+        // never faster than its pace (no faster than its screen refreshes), and over the art's own time. Says how it went.
+        private static string Played(FileEditor panel, double artFrames, string what, bool slow, out double rate)
+        {
+            int count = panel.Drawn.Count;
+            if (count < 2 || panel.DrawnAt.Count != count || panel.DrawnMs.Count != count) throw new Exception("The " + what + " drew " + count + " frames.");
+            double art = artFrames / FileEditor.ArtFps, took = panel.DrawnAt[count - 1];
+            double longest = 0, slowest = 0, spent = 0;
+            rate = (count - 1) / Math.Max(0.001, took - panel.DrawnAt[0]);
+            for (int i = 1; i < count; i++) longest = Math.Max(longest, panel.DrawnAt[i] - panel.DrawnAt[i - 1]);
+            foreach (double ms in panel.DrawnMs) { slowest = Math.Max(slowest, ms); spent += ms; }
+            string pace = rate.ToString("F0") + " a second, paced to " + panel.FrameRate.ToString("F0") + (panel.InStep ? " in step with" : " for") + " its " + panel.ScreenRate.ToString("F0") + " Hz screen";
+            if (panel.FrameRate > panel.ScreenRate + 0.5 || panel.FrameRate < Math.Min(50, panel.ScreenRate) - 1) throw new Exception("The " + what + " was paced wrongly: " + pace + ".");
+            if (count <= artFrames && !slow) throw new Exception("The " + what + " drew " + count + " frames, no more than the art's " + artFrames + ": " + pace + ".");
+            if (rate > panel.FrameRate * 1.05) throw new Exception("The " + what + " drew frames faster than its pace: " + pace + ".");
+            if (took < art - 0.001 || took > art + 0.15) throw new Exception("The " + what + " took " + took.ToString("F3") + " s, not the art's " + art.ToString("F3") + " s.");
+            return "drawing " + count + " frames where the art has " + artFrames + ", in " + took.ToString("F2") + " s like the art's " + art.ToString("F2") + " s: " + pace + ", longest gap " + (longest * 1000).ToString("F0") + " ms, " + (spent / count).ToString("F1") + " ms a frame (slowest " + slowest.ToString("F0") + " ms)";
         }
 
         // The panel's alpha at a point in the art's pixels.
@@ -72,15 +93,17 @@ namespace CapriDesktop
                 double clicked = timed.Elapsed.TotalSeconds;
                 panel = fileEditor;
                 if (panel == null) throw new Exception("File editor opened nothing.");
-                panel.Drawn = new List<double>();
+                panel.Watch();
                 AwaitPanel(delegate { return panel.Resting; }, 20000, "The file editor never finished opening.");
                 double took = timed.Elapsed.TotalSeconds;
-                if (took < 2 || panel.Drawn.Count < 8) throw new Exception("The opening didn't play: " + took + " s, " + panel.Drawn.Count + " frames.");
-                for (int i = 1; i < panel.Drawn.Count; i++) if (panel.Drawn[i] < panel.Drawn[i - 1]) throw new Exception("The opening went backwards at " + panel.Drawn[i] + ".");
+                double rate;
+                string opening = Played(panel, FileEditor.OpeningFrames, "opening", false, out rate);
+                for (int i = 1; i < panel.Drawn.Count; i++) if (panel.Drawn[i] <= panel.Drawn[i - 1]) throw new Exception("The opening didn't move forwards at " + panel.Drawn[i] + ".");
+                if (panel.Pacing) throw new Exception("The opening's frames kept coming at rest.");
                 if (panel.FileShown != "personality.md" || !panel.Draft.Contains("You are Capri") || !panel.PageWindow.Visible) throw new Exception("The file editor didn't open on personality.md: " + panel.FileShown);
                 if (panel.PageBox.Width < 640 * panel.UiScale || panel.BodyPixelsHigh < 400 * panel.UiScale) throw new Exception("The page is too small to edit in: " + panel.PageBox);
                 if (panel.BodyFontName != "Share Tech Mono" || Look.Face(FileEditor.TitleFace) == null || Look.Face(FileEditor.TitleFace).Name != "Capri Mainframe") throw new Exception("The file editor's fonts didn't load: " + panel.BodyFontName);
-                checks.Add("PASS file editor opens from her right-click menu on personality.md, plays its opening forwards in " + took.ToString("F1") + " s (first frame after " + clicked.ToString("F2") + " s, " + panel.Drawn.Count + " frames drawn), with a page of " + panel.PageBox.Width + " x " + panel.PageBox.Height + " and her own fonts");
+                checks.Add("PASS file editor opens from her right-click menu on personality.md (first frame after " + clicked.ToString("F2") + " s, at rest after " + took.ToString("F1") + " s) and plays its opening forwards smoothly, " + opening + ", with a page of " + panel.PageBox.Width + " x " + panel.PageBox.Height + " and her own fonts");
 
                 // Her safety lines are never in what it shows, and nothing it does changes them.
                 foreach (string line in (Brain.Safety + "\n" + Brain.Machinery).Split('\n'))
@@ -297,12 +320,13 @@ namespace CapriDesktop
                 if (panel.Dirty) throw new Exception("Putting the draft back left it unsaved.");
                 double redraw100 = panel.TimeRedraws(8);
                 checks.Add("PASS file editor's page is see-through: the sheet shows between its words (alpha " + seenAlpha + "), the words are solid, typing redraws it (" + redraw100.ToString("F0") + " ms a redraw at 100%, slowest " + panel.PageRedrawMs.ToString("F0") + " ms), " + caretSeen + ", and " + (panel.Blurred ? "Windows' blur" : "a dark window (Windows refused its blur here)") + " sits under the sheet and moved with it");
-                panel.Drawn = new List<double>();
+                panel.Watch();
                 timed.Restart();
                 panel.Ask();
                 if (!panel.Leaving) throw new Exception("Closing didn't start.");
                 AwaitPanel(delegate { return panel.Over; }, 20000, "The file editor never finished closing.");
                 took = timed.Elapsed.TotalSeconds;
+                string closing = Played(panel, FileEditor.ClosingFrames, "closing", false, out rate);
                 int last = panel.Drawn.Count;
                 bool untypedFirst = last > 4 && panel.Drawn[0] <= 0, backwards = true, seen = false;
                 for (int i = 1; i < last; i++)
@@ -313,8 +337,58 @@ namespace CapriDesktop
                     seen |= rewinding;
                 }
                 if (!untypedFirst || !backwards || !seen || panel.Drawn[last - 1] != 0 || took < 1.5) throw new Exception("Closing wasn't the opening backwards: " + took + " s, " + string.Join(" ", panel.Drawn.ConvertAll(delegate(double value) { return value.ToString("F0"); }).ToArray()));
-                checks.Add("PASS file editor closes by taking its words back, then playing the opening backwards to nothing, in " + took.ToString("F1") + " s");
+                if (panel.Pacing) throw new Exception("The closing's frames kept coming after it closed.");
+                checks.Add("PASS file editor closes by taking its words back, then playing the opening backwards to nothing, " + closing);
                 preferences.Motion = true;
+
+                // A key or a click during the opening ends it there and then, and its frames stop.
+                foreach (bool key in new[] { true, false })
+                {
+                    OpenFiles(0);
+                    panel = fileEditor;
+                    panel.Watch();
+                    AwaitPanel(delegate { return panel.Drawn.Count >= 3; }, 5000, "The opening drew no frames.");
+                    if (panel.Resting || !panel.Pacing) throw new Exception("The opening ended before it was interrupted.");
+                    if (key) Native.SendMessage(panel.Box.Handle, 0x0100, new IntPtr((int)Keys.Right), IntPtr.Zero);
+                    else
+                    {
+                        Native.SendMessage(panel.Box.Handle, 0x0201, new IntPtr(1), new IntPtr(4 | 4 << 16));
+                        Native.SendMessage(panel.Box.Handle, 0x0202, IntPtr.Zero, new IntPtr(4 | 4 << 16));
+                    }
+                    if (!panel.Resting || panel.Pacing) throw new Exception("A " + (key ? "key" : "click") + " during the opening didn't end it.");
+                    int drawnThen = panel.Drawn.Count;
+                    Stopwatch after = Stopwatch.StartNew();
+                    AwaitPanel(delegate { return after.ElapsedMilliseconds > 150; }, 2000, "Waiting after the opening ended went wrong.");
+                    if (panel.Drawn.Count != drawnThen) throw new Exception("Frames kept coming after a " + (key ? "key" : "click") + " ended the opening.");
+                    panel.Motion = false;
+                    panel.Ask();
+                    if (!panel.Over) throw new Exception("The panel didn't close after its opening was cut short.");
+                }
+                checks.Add("PASS file editor's opening ends at once on a key or a click, and its frames stop there");
+
+                // At 200%, with four times the pixels to draw, the opening keeps the art's time on its own clock. Under 30 frames a
+                // second here is a limit to look at, not a failure: a slower PC skips frames rather than falling behind.
+                panel = new FileEditor(2);
+                fileEditor = panel;
+                panel.Open(0);
+                panel.Watch();
+                AwaitPanel(delegate { return panel.Resting; }, 20000, "The file editor never finished opening at 200%.");
+                string opening200 = Played(panel, FileEditor.OpeningFrames, "opening at 200%", true, out rate);
+                FinishPanel(panel);
+                checks.Add((rate >= 30 ? "PASS" : "LIMIT") + " file editor at 200% plays its opening on its own clock too, " + opening200);
+
+                // In between the art's frames, every part follows a smooth curve through the art's measurements, never past them.
+                foreach (float[] curve in new[] { PanelArt.SpineEnds, PanelArt.SheetEnds, PanelArt.StepDepths, PanelArt.SheetAlphas, PanelArt.RuleEnds, PanelArt.BlockEnds })
+                {
+                    double way = Math.Sign(curve[curve.Length - 1] - curve[0]), was = PanelArt.Along(curve, 0, 0);
+                    for (int tenth = 1; tenth <= (curve.Length - 1) * 10; tenth++)
+                    {
+                        double now = PanelArt.Along(curve, 0, tenth / 10.0);
+                        if ((now - was) * way < -0.0001) throw new Exception("An in-between frame went back past the art's at " + tenth / 10.0 + ".");
+                        if (tenth % 10 == 0 && Math.Abs(now - curve[tenth / 10]) > 0.001) throw new Exception("The curve missed the art's frame " + tenth / 10 + ": " + now + " for " + curve[tenth / 10] + ".");
+                        was = now;
+                    }
+                }
 
                 // The frames against her artist's, from the tables measured off them.
                 panel = HeldPanel(1 / FileEditor.Zoom, 0);
@@ -327,16 +401,18 @@ namespace CapriDesktop
                         if (PanelAlpha(panel, picture, 155, foot - 4) < 200 || PanelAlpha(panel, picture, 155, foot + 8) > 130) throw new Exception("The spine isn't where the art's frame " + at + " has it.");
                     }
                 }
-                foreach (int at in new[] { 20, 25, 30, 34 })
+                foreach (double at in new[] { 20, 25, 27.5, 30, 34 })
                 {
                     panel.Seek(at);
                     using (Bitmap picture = panel.Picture())
                     {
-                        float right = PanelArt.SheetEnds[at - 14];
+                        // Halfway between two of the art's frames, the sheet's edge is between where they have it.
+                        float right = at % 1 == 0 ? PanelArt.SheetEnds[(int)at - 14] : PanelArt.Along(PanelArt.SheetEnds, 14, at);
+                        if (at % 1 != 0 && (right <= PanelArt.SheetEnds[(int)at - 14] || right >= PanelArt.SheetEnds[(int)at - 13])) throw new Exception("The sheet's in-between at " + at + " isn't between the art's frames: " + right + ".");
                         if (PanelAlpha(panel, picture, right - 1.5f, 300) < 150 || PanelAlpha(panel, picture, right + 8, 300) > 100) throw new Exception("The sheet isn't where the art's frame " + at + " has it.");
-                        if (at >= 25)
+                        if (at >= 25 && at % 1 == 0)
                         {
-                            float rule = PanelArt.RuleEnds[at - 21];
+                            float rule = PanelArt.RuleEnds[(int)at - 21];
                             if (PanelAlpha(panel, picture, rule - 3, 112) < 150 || PanelAlpha(panel, picture, rule + 8, 112) > 100) throw new Exception("The rule isn't where the art's frame " + at + " has it.");
                         }
                     }
@@ -349,7 +425,7 @@ namespace CapriDesktop
                 panel.Seek(50);
                 panel.Held = false;
                 FinishPanel(panel);
-                checks.Add("PASS file editor's spine, sheet and rule sit where the art's frames have them at every frame sampled");
+                checks.Add("PASS file editor's spine, sheet and rule sit where the art's frames have them at every frame sampled, and in between them on a smooth curve that never overshoots one");
 
                 // Pictures for review: the real panel's frames, at 100% and 200%, saved with their alpha.
                 double redraw200 = 0, paint200 = 0;
