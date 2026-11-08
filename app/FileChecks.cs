@@ -254,6 +254,49 @@ namespace CapriDesktop
                 panel.MoveTo(new Point(start.X - 40, start.Y + 30));
                 Point page = panel.PageWindow.PointToScreen(Point.Empty);
                 if (panel.Location != new Point(start.X - 40, start.Y + 30) || page != new Point(panel.Left + panel.PageBox.X, panel.Top + panel.PageBox.Y)) throw new Exception("The page came away from the panel: " + panel.Location + " " + page);
+
+                // The blur sits straight under the panel, over the sheet's own box in the sheet's shape, and moved with it.
+                Rectangle blurAt = panel.BlurWindow.Bounds, sheetAt = panel.SheetOnScreen, blurBox = panel.BlurBox;
+                float slack = 6 * panel.ArtScale;
+                if (!panel.BlurWindow.Visible || !panel.BlurUnder || Math.Abs(blurAt.Left - sheetAt.Left) > slack || Math.Abs(blurAt.Top - sheetAt.Top) > slack || Math.Abs(blurAt.Width - sheetAt.Width) > slack || Math.Abs(blurAt.Height - sheetAt.Height) > slack || blurBox.Width < blurAt.Width - 2 || blurBox.Height < blurAt.Height - 2)
+                    throw new Exception("The blur isn't over the panel's sheet: " + blurAt + " for the sheet at " + sheetAt + ", shape " + blurBox + ", under " + panel.BlurUnder);
+
+                // Her page is see-through: the sheet shows between its words, the words are solid, typing redraws it, and its own caret
+                // sits where the text box has it.
+                TextBox typing = (TextBox)panel.Box;
+                string draftWas = panel.Draft;
+                int firstLine = typing.GetPositionFromCharIndex(typing.GetFirstCharIndexFromLine(1)).Y - typing.GetPositionFromCharIndex(0).Y;
+                Point blank = new Point(panel.PageBox.X + typing.Left + typing.Width / 2, panel.PageBox.Y + typing.Top + firstLine / 2);
+                int seenAlpha = 0, solidWords = 0;
+                using (Bitmap picture = panel.Picture())
+                {
+                    for (int dy = -3; dy <= 3; dy++) for (int dx = -3; dx <= 3; dx++) seenAlpha += picture.GetPixel(blank.X + dx, blank.Y + dy).A;
+                    seenAlpha /= 49;
+                    for (int y = panel.PageBox.Y + typing.Top; y < panel.PageBox.Y + typing.Top + firstLine; y++)
+                        for (int x = panel.PageBox.X + typing.Left; x < panel.PageBox.X + typing.Left + (int)(40 * panel.UiScale); x++)
+                        {
+                            Color ink = picture.GetPixel(x, y);
+                            if (ink.A == 255 && ink.R >= 200 && ink.G < 170) solidWords++;
+                        }
+                }
+                int glass = (int)Math.Round(PanelArt.GlassAlpha * 255);
+                if (seenAlpha < glass - 14 || seenAlpha > glass + 24 || solidWords == 0) throw new Exception("The page isn't see-through between solid words: alpha " + seenAlpha + " where the sheet's is " + glass + ", with " + solidWords + " solid word pixels.");
+                int rendersBefore = panel.PageRenders;
+                Native.SendMessage(typing.Handle, 0x0102, new IntPtr('Q'), IntPtr.Zero);
+                AwaitPanel(delegate { return panel.PageRenders > rendersBefore; }, 3000, "Typing didn't redraw the see-through page.");
+                if (!panel.Draft.StartsWith("Q", StringComparison.Ordinal)) throw new Exception("Typing on the see-through page didn't reach the text box.");
+                string caretSeen = "no keyboard on the test desktop for its caret";
+                if (typing.Focused)
+                {
+                    Rectangle caret = panel.PageCaret;
+                    Point expected = typing.GetPositionFromCharIndex(typing.SelectionStart);
+                    if (caret.IsEmpty || Math.Abs(caret.X - (typing.Left + expected.X)) > 3 || Math.Abs(caret.Y - (typing.Top + expected.Y)) > 3) throw new Exception("The page's caret isn't where the text box has it: " + caret + " for " + expected);
+                    caretSeen = "its own caret where the text box has it";
+                }
+                panel.Draft = draftWas;
+                if (panel.Dirty) throw new Exception("Putting the draft back left it unsaved.");
+                double redraw100 = panel.TimeRedraws(8);
+                checks.Add("PASS file editor's page is see-through: the sheet shows between its words (alpha " + seenAlpha + "), the words are solid, typing redraws it (" + redraw100.ToString("F0") + " ms a redraw at 100%, slowest " + panel.PageRedrawMs.ToString("F0") + " ms), " + caretSeen + ", and " + (panel.Blurred ? "Windows' blur" : "a dark window (Windows refused its blur here)") + " sits under the sheet and moved with it");
                 panel.Drawn = new List<double>();
                 timed.Restart();
                 panel.Ask();
@@ -309,6 +352,7 @@ namespace CapriDesktop
                 checks.Add("PASS file editor's spine, sheet and rule sit where the art's frames have them at every frame sampled");
 
                 // Pictures for review: the real panel's frames, at 100% and 200%, saved with their alpha.
+                double redraw200 = 0, paint200 = 0;
                 File.Delete(personality);
                 File.WriteAllText(notes, Brain.NotesHead + "- They like cats\n- They stream on Fridays\n- They're learning piano\n- Their dog is called Pickles\n");
                 foreach (float scale in new[] { 1f, 2f })
@@ -317,6 +361,7 @@ namespace CapriDesktop
                         string name = "file-editor-" + (scale == 1 ? "100" : "200") + "-" + (which == 0 ? "personality" : "me");
                         panel = HeldPanel(scale, which);
                         panel.Seek(59);
+                        if (scale == 2 && which == 0) { redraw200 = panel.TimeRedraws(8); paint200 = panel.PagePaintMs; }
                         using (Bitmap picture = panel.Picture()) picture.Save(Path.Combine(output, name + ".png"), ImageFormat.Png);
                         Rectangle box = panel.PageBox;
                         File.WriteAllText(Path.Combine(output, name + ".txt"), box.X + " " + box.Y + " " + box.Width + " " + box.Height);
@@ -350,7 +395,7 @@ namespace CapriDesktop
                 panel.Untype(14);
                 for (double at = 40; at > 0; at -= 2) { panel.Rewind(at); capture(); }
                 panel.Rewind(0);
-                checks.Add("PASS file editor pictures saved for review at 100% and 200%, with " + shot + " frames of it opening and closing");
+                checks.Add("PASS file editor pictures saved for review at 100% and 200%, with " + shot + " frames of it opening and closing, and its page redraws in " + redraw200.ToString("F0") + " ms at 200% (" + paint200.ToString("F0") + " ms of it painting)");
             }
             finally
             {

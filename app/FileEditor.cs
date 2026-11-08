@@ -13,9 +13,11 @@ using System.Windows.Forms;
 namespace CapriDesktop
 {
     // Her artist's second panel, drawn in code from what the art's 60 frames measure (PanelArt), so its text stays sharp at any scale and
-    // it can be big enough to edit in. Two windows make it up: this one is see-through, so it holds the spine, the sheet, the rule,
-    // the labels and the shadow, and it plays the animation. Windows draws no controls on a window like that, so the page above it
-    // is an ordinary window that holds the text box. The two always move together.
+    // it can be big enough to edit in, dressed like the Arasaka ID panel in Cyberpunk 2077 that Lachy sent (8 Nov). Three windows make
+    // it up and always move together. This one is see-through and holds the spine, the sheet, the rule, the labels and the shadow, and
+    // it plays the animation. The page above it holds the text box, tabs and buttons with nothing behind them, so the sheet shows
+    // between the words; Windows draws no controls on a see-through window, so the page draws itself. The frost under the panel blurs
+    // whatever is behind the sheet.
     internal sealed class FileEditor : Form
     {
         // Lachy's open questions, a line each.
@@ -23,10 +25,15 @@ namespace CapriDesktop
         internal const string ProjectName = "HER FILES";            // Her artist's PROJECT NOTES NAME.
         internal const string TitleFace = "Capri.Font.Title.ttf";   // Capri Mainframe Bold: the title, the labels and the buttons.
         internal const float BodySize = 17;                         // Share Tech Mono in px at 100%: Look.Mono in Page.Style.
-        internal const double PageSolid = 0.94;                     // The page behind the text: 1 hides the wallpaper, 0 is all wallpaper.
         internal const float Zoom = 1.6f;                           // The panel's size against the art's frames, at 100%, on a big enough screen.
         internal static readonly Color Red = Color.FromArgb(0xEB, 0x4A, 0x42);
         internal static readonly Color Black = Color.FromArgb(0, 0, 0);
+        // What the page's controls are drawn on: her red on screen, and white or black for a moment while Matted works out how strong
+        // each pixel is.
+        internal static Color Paper = Red;
+        // The page's words, in the salmon of the reference's Arasaka panel, and the words on her red when a button is filled (8 Nov).
+        internal static readonly Color Salmon = Color.FromArgb(245, 128, 120);
+        internal static readonly Color Dark = Color.FromArgb(30, 12, 14);
         // How the page's top and sides sit inside the sheet, in the art's pixels.
         private const float PageInset = 7;
 
@@ -51,6 +58,7 @@ namespace CapriDesktop
         internal bool Held;
         private readonly float forcedScale, forcedArt;
         private readonly Page page;
+        private readonly Frost frost;
         private readonly Doc[] docs;
         private readonly Timer ticks = new Timer { Interval = 30 };
         private readonly Stopwatch clock = new Stopwatch();
@@ -60,6 +68,7 @@ namespace CapriDesktop
         private float s = 1, a = 1;
         private int current;
         private Rectangle pageBox;
+        private PointF[] frostShape;
         private Native.Surface surface;
         private Bitmap shade, grain, veil;
         private TextureBrush grainBrush;
@@ -84,6 +93,7 @@ namespace CapriDesktop
                 new Doc("personality.md", delegate { if (!Brain.MakePersonality()) throw new IOException("No personality.md."); return Brain.OpenPersonality(); }),
                 new Doc("me.md", delegate { return Brain.OpenNote(false); })
             };
+            frost = new Frost();
             page = new Page(this);
             ticks.Tick += delegate { Tick(); };
         }
@@ -120,6 +130,34 @@ namespace CapriDesktop
         internal string Scrolled { get { return page.Scrolled; } }
         internal Control Box { get { return page.TextArea; } }
         internal bool Unsure { get { return page.Unsure; } }
+        internal Form BlurWindow { get { return frost; } }
+        internal bool Blurred { get { return frost.Blurred; } }
+        internal bool BlurUnder { get { return IsHandleCreated && frost.IsHandleCreated && Native.GetWindow(Handle, 2) == frost.Handle; } }
+        // Where the sheet is on screen, at rest.
+        internal Rectangle SheetOnScreen { get { return Rectangle.FromLTRB(Left + (int)Sx(PanelArt.SheetLeft), Top + (int)Sy(PanelArt.Crown), Left + (int)Sx(PanelArt.SheetRight), Top + (int)Sy(PanelArt.SheetFoot)); } }
+        internal int PageRenders { get { return page.Renders; } }
+        internal double PageRedrawMs { get { return page.SlowestMs; } }
+        // How long the page's last redraw spent painting itself on white and on black.
+        internal double PagePaintMs { get { return page.PaintMs; } }
+
+        // How long the page takes to draw itself again, on average over `count` redraws, for her smoke test.
+        internal double TimeRedraws(int count)
+        {
+            Stopwatch timed = Stopwatch.StartNew();
+            for (int i = 0; i < count; i++) page.Render();
+            return timed.Elapsed.TotalMilliseconds / Math.Max(1, count);
+        }
+        internal Rectangle PageCaret { get { return page.Caret; } }
+
+        // The blur's shape, in its own window's pixels.
+        internal Rectangle BlurBox
+        {
+            get
+            {
+                Edges box;
+                return frost.IsHandleCreated && GetWindowRgnBox(frost.Handle, out box) > 1 ? Rectangle.FromLTRB(box.Left, box.Top, box.Right, box.Bottom) : Rectangle.Empty;
+            }
+        }
 
         // Opens the panel on personality.md (0) or me.md (1), or brings it up and turns to that file if it's open already.
         internal void Open(int which)
@@ -143,6 +181,8 @@ namespace CapriDesktop
             current = which;
             stage = Stage.Opening;
             pending = true;
+            frost.Bounds = new Rectangle(Location, Size);
+            frost.Show();
             Show();
             if (!Motion) { Ready(); Seek(LastFrame); return; }
             Seek(1);
@@ -154,7 +194,7 @@ namespace CapriDesktop
         {
             if (!pending) return;
             pending = false;
-            page.Opacity = 0;
+            page.Strength = 0;
             page.Show(this);
             page.Fit();
             page.Take(docs[current]);
@@ -195,7 +235,7 @@ namespace CapriDesktop
         {
             if (up == pageUp) return;
             pageUp = up;
-            page.Opacity = up ? PageSolid : 0;
+            page.Lift(up ? 1 : 0);
         }
 
         // Any click or key ends the opening. Nothing else needs it to play out.
@@ -258,6 +298,7 @@ namespace CapriDesktop
             Action next = after;
             after = null;
             page.Close();
+            frost.Close();
             Close();
             if (next != null) next();
         }
@@ -449,21 +490,23 @@ namespace CapriDesktop
 
         internal void Released() { dragging = false; }
 
-        // Both windows in one step, so they can't come apart. A corner stays on screen to grab.
+        // All three windows in one step, so they can't come apart. A corner stays on screen to grab.
         internal void MoveTo(Point at)
         {
             Rectangle all = SystemInformation.VirtualScreen;
             int keep = Px(120);
             int x = Math.Max(all.Left - Width + keep, Math.Min(all.Right - keep, at.X)), y = Math.Max(all.Top - Px(30), Math.Min(all.Bottom - keep, at.Y));
-            IntPtr moves = BeginDeferWindowPos(2);
+            IntPtr moves = BeginDeferWindowPos(3);
             if (moves != IntPtr.Zero) moves = DeferWindowPos(moves, Handle, IntPtr.Zero, x, y, 0, 0, 0x0015);
             if (moves != IntPtr.Zero) moves = DeferWindowPos(moves, page.Handle, IntPtr.Zero, x + pageBox.X, y + pageBox.Y, 0, 0, 0x0015);
+            if (moves != IntPtr.Zero && frost.IsHandleCreated) moves = DeferWindowPos(moves, frost.Handle, IntPtr.Zero, x + frost.Offset.X, y + frost.Offset.Y, 0, 0, 0x0015);
             if (moves != IntPtr.Zero && EndDeferWindowPos(moves)) return;
             Location = new Point(x, y);
             page.Location = new Point(x + pageBox.X, y + pageBox.Y);
+            frost.Location = new Point(x + frost.Offset.X, y + frost.Offset.Y);
         }
 
-        // The page comes up with the keyboard, and the panel sits straight under it.
+        // The page comes up with the keyboard, the panel sits straight under it, and the blur straight under that.
         private void Raise()
         {
             page.Activate();
@@ -473,6 +516,7 @@ namespace CapriDesktop
         internal void Under()
         {
             if (IsHandleCreated && page.IsHandleCreated) SetWindowPos(Handle, page.Handle, 0, 0, 0, 0, 0x0013);
+            if (IsHandleCreated && frost.IsHandleCreated) SetWindowPos(frost.Handle, Handle, 0, 0, 0, 0, 0x0013);
         }
 
         private int Px(float value) { return (int)Math.Round(value * s); }
@@ -547,6 +591,7 @@ namespace CapriDesktop
             if (surface == null) surface = new Native.Surface(Width, Height);
             using (Graphics pen = Graphics.FromImage(surface.Image)) PaintFrame(pen);
             surface.Show(Handle, Location);
+            frost.Shape(frostShape, Location);
         }
 
         private void PaintFrame(Graphics pen)
@@ -554,14 +599,17 @@ namespace CapriDesktop
             pen.Clear(Color.Transparent);
             pen.SmoothingMode = SmoothingMode.AntiAlias;
             pen.PixelOffsetMode = PixelOffsetMode.Half;
+            frostShape = null;
             if (frame <= 0) return;
             float spine = (float)Math.Min(frame, 1) * (PanelArt.Along(PanelArt.SpineEnds, 1, frame) - PanelArt.Crown) + PanelArt.Crown;
             float sheet = PanelArt.Along(PanelArt.SheetEnds, 14, frame), depth = PanelArt.Along(PanelArt.StepDepths, 16, frame);
             float rule = frame < 21 ? 0 : PanelArt.Along(PanelArt.RuleEnds, 21, frame);
             float block = frame < 25 ? 0 : PanelArt.Along(PanelArt.BlockEnds, 25, frame);
-            double sheetAlpha = PanelArt.Along(PanelArt.SheetAlphas, 17, frame) / 255;
+            double sheetAlpha = PanelArt.Glassy(PanelArt.Along(PanelArt.SheetAlphas, 17, frame) / 255);
             PointF[] spineShape = SpineShape(spine);
             PointF[] sheetShape = sheet > PanelArt.SheetLeft ? SheetShape(sheet, depth, 0) : null;
+            // The blur stops a little inside the sheet's edge, so its stepped outline stays under the rim.
+            frostShape = sheetShape != null ? SheetShape(sheet, depth, 1) : null;
             string versionWords = version.Substring(0, Typed(version.Length, VersionAt)), topVersion = version.Substring(0, Typed(version.Length, NameAt));
             string name = PanelName.Substring(0, Typed(PanelName.Length, NameAt)), project = ProjectName.Substring(0, Typed(ProjectName.Length, ProjectAt));
             RectangleF ruleBox = RectangleF.FromLTRB(Sx(PanelArt.RuleLeft), Sy(PanelArt.RuleTop), Sx(Math.Max(rule, PanelArt.RuleLeft)), Sy(PanelArt.RuleBottom));
@@ -575,13 +623,7 @@ namespace CapriDesktop
                 using (Brush fill = new SolidBrush(PanelArt.SheetFill(sheetAlpha))) pen.FillPolygon(fill, sheetShape);
                 pen.CompositingMode = CompositingMode.SourceOver;
                 pen.FillPolygon(grainBrush, sheetShape);
-                // Where the page will go stays solid from here, so the wallpaper never shows through what's about to be text.
-                if (!pageUp && frame > 17)
-                {
-                    double wanted = PageSolid + (1 - PageSolid) * PanelArt.RestAlpha, over = sheetAlpha >= wanted ? 0 : (wanted - sheetAlpha) / (1 - sheetAlpha);
-                    float limit = Math.Min(pageBox.Right, Sx(sheet - depth - PageInset));
-                    if (over > 0 && limit > pageBox.Left) using (Brush fill = new SolidBrush(Color.FromArgb((int)(over * 255), Red))) pen.FillRectangle(fill, RectangleF.FromLTRB(pageBox.Left, pageBox.Top, limit, pageBox.Bottom));
-                }
+                // No page box under the words (Lachy, 8 Nov): the sheet stays her artist's see-through right up to the text.
                 using (Pen edge = new Pen(Color.FromArgb(220, Red), 2.4f * a)) { edge.LineJoin = LineJoin.Miter; pen.DrawPolygon(edge, SheetShape(sheet, depth, 1.2f)); }
             }
             using (Brush body = new SolidBrush(PanelArt.Spine)) pen.FillPolygon(body, spineShape);
@@ -741,7 +783,7 @@ namespace CapriDesktop
         private void TakeVeil()
         {
             DropVeil();
-            veil = page.Snapshot();
+            veil = page.Matted();
         }
 
         private void DropVeil()
@@ -750,9 +792,9 @@ namespace CapriDesktop
         }
 
         // How much of the page shows: the title types at the art's speed, and everything else comes in together across BodyFrames.
-        private void PaintVeil(Graphics pen, Size size, Rectangle title, int titleWide, int step)
+        private void PaintVeil(Graphics pen, Size size, Rectangle title, int titleWide, int step, bool clear)
         {
-            pen.Clear(Red);
+            if (clear) pen.Clear(Paper);
             if (veil == null) return;
             double shown = stage == Stage.Untyping ? 1 - untyped / BodyFrames : stage == Stage.Closing ? 0 : (frame - BodyAt) / BodyFrames;
             int across = (int)(Math.Max(0, Math.Min(1, shown)) * size.Width);
@@ -782,16 +824,8 @@ namespace CapriDesktop
                 pen.CompositingMode = CompositingMode.SourceCopy;
                 pen.DrawImageUnscaled(surface.Image, 0, 0);
                 pen.CompositingMode = CompositingMode.SourceOver;
-                if (pageUp)
-                    using (Bitmap top = new Bitmap(page.Width, page.Height, PixelFormat.Format32bppArgb))
-                    using (ImageAttributes strength = new ImageAttributes())
-                    {
-                        page.DrawToBitmap(top, new Rectangle(Point.Empty, top.Size));
-                        // DrawToBitmap draws a form's children in reverse order, which would put the cover under everything.
-                        if (page.Covered) using (Graphics cover = Graphics.FromImage(top)) page.PaintCover(cover);
-                        strength.SetColorMatrix(new ColorMatrix { Matrix33 = (float)page.Opacity });
-                        pen.DrawImage(top, pageBox, 0, 0, top.Width, top.Height, GraphicsUnit.Pixel, strength);
-                    }
+                // The page as it is on screen: its words, tabs, buttons and caret, with the sheet showing through between them.
+                if (pageUp) using (Bitmap top = page.Face()) pen.DrawImage(top, pageBox, 0, 0, top.Width, top.Height, GraphicsUnit.Pixel);
             }
             if (dropped) { surface.Dispose(); surface = null; }
             return whole;
@@ -857,6 +891,7 @@ namespace CapriDesktop
                 if (grainBrush != null) grainBrush.Dispose();
                 if (grain != null) grain.Dispose();
                 if (!page.IsDisposed) page.Dispose();
+                if (!frost.IsDisposed) frost.Dispose();
             }
             base.Dispose(disposing);
         }
@@ -865,6 +900,54 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern IntPtr DeferWindowPos(IntPtr moves, IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
         [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool EndDeferWindowPos(IntPtr moves);
         [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
+        [DllImport("user32.dll")] private static extern int SetWindowRgn(IntPtr window, IntPtr region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
+        [DllImport("user32.dll")] private static extern int GetWindowRgnBox(IntPtr window, out Edges box);
+        [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GetCaretPos(out Point point);
+        [DllImport("user32.dll")] private static extern int SetWindowCompositionAttribute(IntPtr window, ref Composition data);
+        [DllImport("gdi32.dll")] private static extern IntPtr CreatePolygonRgn(Point[] points, int count, int mode);
+        [DllImport("gdi32.dll")] private static extern IntPtr CreateRectRgn(int left, int top, int right, int bottom);
+        [DllImport("gdi32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool DeleteObject(IntPtr thing);
+        [DllImport("gdi32.dll")] private static extern IntPtr CreateSolidBrush(int colour);
+        [DllImport("gdi32.dll")] private static extern int SetTextColor(IntPtr dc, int colour);
+        [DllImport("gdi32.dll")] private static extern int SetBkColor(IntPtr dc, int colour);
+        [DllImport("gdi32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool GdiFlush();
+        [StructLayout(LayoutKind.Sequential)] private struct Edges { internal int Left, Top, Right, Bottom; }
+        [StructLayout(LayoutKind.Sequential)] private struct Accent { internal int State, Flags, Tint, Animation; }
+        [StructLayout(LayoutKind.Sequential)] private struct Composition { internal int Attribute; internal IntPtr Data; internal int Size; }
+
+        // Windows 10 and 11 blur what's behind a window asked this way. Anywhere that refuses, the frost stays a plain dark window,
+        // which reads as well under the dark glass.
+        private static bool Frosted(IntPtr window)
+        {
+            Accent accent = new Accent { State = 3 };
+            int size = Marshal.SizeOf(typeof(Accent));
+            IntPtr memory = Marshal.AllocHGlobal(size);
+            try
+            {
+                Marshal.StructureToPtr(accent, memory, false);
+                Composition data = new Composition { Attribute = 19, Data = memory, Size = size };
+                return SetWindowCompositionAttribute(window, ref data) != 0;
+            }
+            catch (EntryPointNotFoundException) { return false; }
+            finally { Marshal.FreeHGlobal(memory); }
+        }
+
+        // Something on the page drew itself differently, so the page is drawn again.
+        private static void Touch(Control control)
+        {
+            Page owner = control.Parent as Page;
+            if (owner != null) owner.Freshen();
+        }
+
+        private static readonly Dictionary<int, IntPtr> paperBrushes = new Dictionary<int, IntPtr>();
+
+        // A brush in the colour the page is being drawn on, for the text box's background. There are only ever three.
+        private static IntPtr PaperBrush()
+        {
+            IntPtr brush;
+            if (!paperBrushes.TryGetValue(Paper.ToArgb(), out brush)) paperBrushes[Paper.ToArgb()] = brush = CreateSolidBrush(ColorTranslator.ToWin32(Paper));
+            return brush;
+        }
 
         // One of her files: what's on disk, through her own note code, and what's in the box, with the box's line ends.
         private sealed class Doc
@@ -901,14 +984,24 @@ namespace CapriDesktop
             private readonly Bar bar;
             private readonly Ink[] tabs;
             private readonly Ink close, save, reload, keep;
-            private readonly Label status;
+            private readonly Note status;
             private const TextFormatFlags TitleWidth = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
             private const TextFormatFlags TitleLine = TitleWidth | TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis;
             private readonly Veil cover;
             private Font titleFont, buttonFont, statusFont;
             private Rectangle titleBox;
+            private int lineTop, lineFoot;
             private Doc shown;
             private bool loading;
+            // What's on screen; the page without its caret, kept for the caret's blink; and the page painted on white and on black.
+            // All four are kept between redraws, so typing allocates nothing.
+            private Native.Surface face, look, light, dark;
+            private readonly Timer blinker = new Timer();
+            private bool queued, blink = true, blinks;
+            private int seenFirst = -1, seenStart = -1, seenLength = -1;
+            private Rectangle seenCaret;
+            internal double Strength, SlowestMs, PaintMs;
+            internal int Renders;
 
             internal Page(FileEditor panel)
             {
@@ -919,15 +1012,17 @@ namespace CapriDesktop
                 AutoScaleMode = AutoScaleMode.None;
                 ShowInTaskbar = true;
                 BackColor = Red;
-                ForeColor = Black;
+                ForeColor = Salmon;
                 using (Stream source = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Chip.ico")) if (source != null) Icon = new Icon(source);
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
-                box = new WordBox { Multiline = true, AcceptsReturn = true, WordWrap = true, ScrollBars = ScrollBars.None, MaxLength = int.MaxValue, BorderStyle = BorderStyle.None, BackColor = Red, ForeColor = Black, HideSelection = false };
+                box = new WordBox { Multiline = true, AcceptsReturn = true, WordWrap = true, ScrollBars = ScrollBars.None, MaxLength = int.MaxValue, BorderStyle = BorderStyle.None, BackColor = Red, ForeColor = Salmon, HideSelection = false };
                 bar = new Bar(box);
-                box.Moved += delegate { bar.Sync(); };
+                box.Moved += delegate { bar.Sync(); Check(); };
+                box.Stirred += Wake;
+                box.Painted += Freshen;
                 box.KeyDown += delegate { panel.Finish(); };
                 box.MouseDown += delegate { panel.Finish(); };
-                box.TextChanged += delegate { if (!loading) Typed(); };
+                box.TextChanged += delegate { if (!loading) Typed(); Freshen(); };
                 tabs = new[] { new Ink { Tag = 0 }, new Ink { Tag = 1 } };
                 foreach (Ink tab in tabs)
                 {
@@ -942,7 +1037,7 @@ namespace CapriDesktop
                 reload.Click += delegate { if (panel.Guarding) panel.GuardDiscard(); else panel.Reload(); };
                 keep = new Ink { Text = "Keep editing", Visible = false };
                 keep.Click += delegate { panel.GuardKeep(); };
-                status = new Label { BackColor = Red, ForeColor = Black, AutoEllipsis = true, UseMnemonic = false, TextAlign = ContentAlignment.MiddleLeft };
+                status = new Note { BackColor = Red, ForeColor = Salmon, AutoEllipsis = true, UseMnemonic = false, TextAlign = ContentAlignment.MiddleLeft };
                 cover = new Veil(panel, this) { Visible = false };
                 Controls.AddRange(new Control[] { cover, close, tabs[0], tabs[1], box, bar, status, keep, reload, save });
                 cover.BringToFront();
@@ -954,7 +1049,12 @@ namespace CapriDesktop
                     grip.MouseMove += delegate { panel.Dragged(); };
                     grip.MouseUp += delegate { panel.Released(); };
                 }
-                Activated += delegate { panel.Under(); panel.Recheck(); };
+                Activated += delegate { panel.Under(); panel.Recheck(); Wake(); };
+                Deactivate += delegate { Freshen(); };
+                int rate = SystemInformation.CaretBlinkTime;
+                blinks = rate > 0;
+                blinker.Interval = blinks ? rate : 500;
+                blinker.Tick += delegate { Blink(); };
             }
 
             internal string Status { get { return status.Text; } }
@@ -997,6 +1097,8 @@ namespace CapriDesktop
                 }
                 titleBox = new Rectangle(pad, Scaled(4), Math.Max(Scaled(40), right - pad), row - Scaled(6));
                 int top = row, bottom = Height - foot, barWide = Scaled(8);
+                lineTop = row - Scaled(6);
+                lineFoot = bottom + Scaled(2);
                 // Whole lines only, so the last one isn't cut through above the buttons.
                 int line = TextRenderer.MeasureText("Ag", box.Font, Size.Empty, TextFormatFlags.NoPadding).Height;
                 box.Bounds = new Rectangle(pad, top, Width - pad * 2 - barWide - gap, (bottom - top) / line * line);
@@ -1012,6 +1114,7 @@ namespace CapriDesktop
                 cover.Bounds = new Rectangle(0, 0, Width, Height);
                 bar.Sync();
                 Invalidate(true);
+                Freshen();
             }
 
             private int PlaceButton(Ink ink, int right, int top, int high, int gap)
@@ -1091,14 +1194,14 @@ namespace CapriDesktop
                 if (panel.Guarding) return;
                 save.Enabled = doc.Note != null;
                 reload.Text = doc.Dirty ? "Discard + reload" : "Reload";
-                status.ForeColor = Black;
+                status.ForeColor = Salmon;
                 status.Text = doc.Dirty ? "Unsaved changes." : "";
                 PlaceFoot();
             }
 
             internal void Say(string words, bool wrong)
             {
-                status.ForeColor = Black;
+                status.ForeColor = Salmon;
                 status.Text = wrong ? "! " + words : words;
             }
 
@@ -1149,41 +1252,235 @@ namespace CapriDesktop
                 bool had = cover.Visible;
                 cover.Visible = on;
                 if (on && !had) cover.BringToFront();
+                Render();
             }
 
+            // A frame of the words typing in or taking themselves back: drawn straight away, in step with the panel.
             internal void Reveal()
             {
-                if (!cover.Visible) return;
-                cover.Invalidate();
-                cover.Update();
+                if (cover.Visible) Render();
             }
 
             internal void Settle()
             {
                 box.Focus();
                 bar.Sync();
+                Wake();
             }
 
-            internal Bitmap Snapshot()
+            // A window Windows sees through pixel by pixel: the page draws itself onto it in Render.
+            protected override CreateParams CreateParams
+            {
+                get
+                {
+                    CreateParams value = base.CreateParams;
+                    value.ExStyle |= 0x00080000;
+                    return value;
+                }
+            }
+
+            protected override void OnPaintBackground(PaintEventArgs e) { e.Graphics.Clear(Paper); }
+
+            protected override void OnInvalidated(InvalidateEventArgs e) { base.OnInvalidated(e); Freshen(); }
+
+            // Something on the page changed: it's drawn again once the messages already waiting are done, however many asked.
+            internal void Freshen()
+            {
+                if (queued || !IsHandleCreated || IsDisposed) return;
+                queued = true;
+                BeginInvoke(new Action(Render));
+            }
+
+            // A key or a click: the caret shows straight away, then blinks.
+            private void Wake()
+            {
+                blink = true;
+                if (blinks) { blinker.Stop(); blinker.Start(); }
+                Check();
+            }
+
+            private void Blink()
+            {
+                blink = !blink;
+                if (look != null) Compose();
+            }
+
+            // A scroll or a selection changes what the text box draws, so the page is drawn again. A caret that only moved is just put
+            // back on top.
+            private void Check()
+            {
+                if (!box.IsHandleCreated) return;
+                int first = Native.SendMessage(box.Handle, 0x00CE, IntPtr.Zero, IntPtr.Zero).ToInt32(), start = box.SelectionStart, length = box.SelectionLength;
+                bool redraw = first != seenFirst || length != seenLength || length > 0 && start != seenStart;
+                seenFirst = first;
+                seenStart = start;
+                seenLength = length;
+                if (redraw) Freshen();
+                else if (look != null && Caret != seenCaret) Compose();
+            }
+
+            // What's on screen: the page's words, tabs and buttons with nothing behind them, then its caret.
+            internal void Render()
+            {
+                queued = false;
+                if (!IsHandleCreated || IsDisposed || Width <= 0 || Height <= 0) return;
+                Stopwatch timed = Stopwatch.StartNew();
+                Fit(ref look);
+                if (cover.Visible) VeilFrame();
+                else Matte(look);
+                Compose();
+                Renders++;
+                SlowestMs = Math.Max(SlowestMs, timed.Elapsed.TotalMilliseconds);
+            }
+
+            private void Compose()
+            {
+                if (!IsHandleCreated || IsDisposed || Width <= 0 || Height <= 0) return;
+                Fit(ref face);
+                seenCaret = Caret;
+                bool ready = Fits(look), caret = blink && !seenCaret.IsEmpty;
+                if (ready) Copy(look, face);
+                if (!ready || caret)
+                    using (Graphics pen = Graphics.FromImage(face.Image))
+                    {
+                        if (!ready) pen.Clear(Color.FromArgb(1, 0, 0, 0));
+                        if (caret) using (Brush ink = new SolidBrush(Salmon)) pen.FillRectangle(ink, seenCaret);
+                    }
+                face.Show(Handle, Location, (byte)Math.Round(Math.Max(0, Math.Min(1, Strength)) * 255));
+            }
+
+            private bool Fits(Native.Surface surface) { return surface != null && surface.Image.Width == Width && surface.Image.Height == Height; }
+
+            // A surface the page's size, made again only when that changes.
+            private void Fit(ref Native.Surface surface)
+            {
+                if (Fits(surface)) return;
+                if (surface != null) surface.Dispose();
+                surface = new Native.Surface(Width, Height);
+            }
+
+            private static unsafe void Copy(Native.Surface from, Native.Surface into)
+            {
+                long bytes = (long)from.Image.Width * from.Image.Height * 4;
+                Buffer.MemoryCopy((void*)from.Pixels, (void*)into.Pixels, bytes, bytes);
+            }
+
+            // Up at full strength, or gone.
+            internal void Lift(double strength)
+            {
+                Strength = strength;
+                if (look == null) Render();
+                else Compose();
+            }
+
+            // Where the text box has its caret, in the page's pixels: only while it has the keyboard, nothing is selected and the words
+            // aren't still typing in.
+            internal Rectangle Caret
+            {
+                get
+                {
+                    Point at;
+                    if (cover.Visible || !box.IsHandleCreated || !box.Focused || box.SelectionLength > 0 || !GetCaretPos(out at)) return Rectangle.Empty;
+                    return new Rectangle(box.Left + at.X, box.Top + at.Y, Math.Max(1, Scaled(2)), bar.Line);
+                }
+            }
+
+            // The page as it is on screen, for her smoke test's pictures.
+            internal Bitmap Face()
+            {
+                if (queued || look == null || face == null) Render();
+                Bitmap copy = new Bitmap(Width, Height, PixelFormat.Format32bppArgb);
+                if (face != null) using (Graphics pen = Graphics.FromImage(copy)) pen.DrawImageUnscaled(face.Image, 0, 0);
+                return copy;
+            }
+
+            // A frame of the words typing in or taking themselves back, with nothing behind them.
+            private void VeilFrame()
+            {
+                using (Graphics pen = Graphics.FromImage(look.Image))
+                {
+                    pen.Clear(Color.FromArgb(1, 0, 0, 0));
+                    PaintCover(pen, false);
+                }
+            }
+
+            // The page with nothing behind it, so the sheet shows through everywhere but the words, tabs and buttons. It's painted once
+            // on white and once on black: how far each pixel moves between the two says how see-through it is, and the one on black is
+            // already its colour times that, which is how the window takes it. Nothing is ever quite clear (an alpha of 1, too faint to
+            // see), so a click between the words still lands on the page.
+            private void Matte(Native.Surface into)
+            {
+                Stopwatch timed = Stopwatch.StartNew();
+                Fit(ref light);
+                Fit(ref dark);
+                Print(light, Color.White);
+                Print(dark, Color.Black);
+                GdiFlush();
+                PaintMs = timed.Elapsed.TotalMilliseconds;
+                if (!Fits(into)) return;
+                long count = (long)Width * Height * 4;
+                unsafe
+                {
+                    byte* white = (byte*)light.Pixels, black = (byte*)dark.Pixels, matted = (byte*)into.Pixels;
+                    for (long i = 0; i < count; i += 4)
+                    {
+                        int alpha = 255 - (white[i] - black[i] + white[i + 1] - black[i + 1] + white[i + 2] - black[i + 2] + 1) / 3;
+                        if (alpha < 1) alpha = 1;
+                        else if (alpha > 255) alpha = 255;
+                        int blue = black[i], green = black[i + 1], red = black[i + 2];
+                        matted[i] = (byte)(blue < alpha ? blue : alpha);
+                        matted[i + 1] = (byte)(green < alpha ? green : alpha);
+                        matted[i + 2] = (byte)(red < alpha ? red : alpha);
+                        matted[i + 3] = (byte)alpha;
+                    }
+                }
+            }
+
+            // The page with nothing behind it as a picture of its own, without its cover: the words that type in under the cover.
+            internal Bitmap Matted()
             {
                 bool covered = cover.Visible;
-                cover.Visible = false;
-                Bitmap whole = new Bitmap(Width, Height, PixelFormat.Format32bppArgb);
-                DrawToBitmap(whole, new Rectangle(Point.Empty, whole.Size));
-                cover.Visible = covered;
-                return whole;
+                using (Native.Surface matted = new Native.Surface(Width, Height))
+                {
+                    if (covered) cover.Visible = false;
+                    try { Matte(matted); }
+                    finally { if (covered) cover.Visible = true; }
+                    Bitmap picture = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb);
+                    using (Graphics pen = Graphics.FromImage(picture))
+                    {
+                        pen.CompositingMode = CompositingMode.SourceCopy;
+                        pen.DrawImageUnscaled(matted.Image, 0, 0);
+                    }
+                    return picture;
+                }
             }
 
-            internal void PaintCover(Graphics pen)
+            // The page painted on one colour, straight onto a surface: what DrawToBitmap does, with nothing in between. Everything on
+            // the page draws its background in Paper, so that one colour is all that changes, and nothing is left needing a repaint.
+            private void Print(Native.Surface onto, Color paper)
+            {
+                Paper = paper;
+                try { Native.SendMessage(Handle, 0x0317, onto.Dc, (IntPtr)0x1E); }
+                finally { Paper = Red; }
+            }
+
+            internal void PaintCover(Graphics pen, bool clear)
             {
                 int wide = shown == null ? titleBox.Width : Math.Min(titleBox.Width, TextRenderer.MeasureText(shown.Name, titleFont, Size.Empty, TitleWidth).Width);
-                panel.PaintVeil(pen, Size, titleBox, wide, Math.Max(1, Scaled(8)));
+                panel.PaintVeil(pen, Size, titleBox, wide, Math.Max(1, Scaled(8)), clear);
             }
 
             protected override void OnPaint(PaintEventArgs e)
             {
                 base.OnPaint(e);
-                if (shown != null) TextRenderer.DrawText(e.Graphics, shown.Name, titleFont, titleBox, Black, TitleLine);
+                if (shown != null) TextRenderer.DrawText(e.Graphics, shown.Name, titleFont, titleBox, Salmon, TitleLine);
+                // Thin red rules under the title and over the buttons, like the lines between the reference panel's fields.
+                using (Brush rule = new SolidBrush(Color.FromArgb(200, Red)))
+                {
+                    int thick = Math.Max(1, Scaled(1.5f));
+                    e.Graphics.FillRectangle(rule, Scaled(6), lineTop, Width - Scaled(6), thick);
+                    e.Graphics.FillRectangle(rule, Scaled(6), lineFoot, Width - Scaled(6), thick);
+                }
             }
 
             protected override bool ProcessCmdKey(ref Message message, Keys keys)
@@ -1197,7 +1494,17 @@ namespace CapriDesktop
 
             protected override void WndProc(ref Message message)
             {
-                if (message.Msg != 0x02E0) base.WndProc(ref message);
+                // The text box's colours come from here: her words, on whatever the page is being drawn on.
+                if ((message.Msg == 0x0133 || message.Msg == 0x0138) && box != null && box.IsHandleCreated && message.LParam == box.Handle)
+                {
+                    SetTextColor(message.WParam, ColorTranslator.ToWin32(box.ForeColor));
+                    SetBkColor(message.WParam, ColorTranslator.ToWin32(Paper));
+                    message.Result = PaperBrush();
+                    return;
+                }
+                if (message.Msg == 0x02E0) return;
+                base.WndProc(ref message);
+                if (message.Msg == 0x000F) Freshen();
             }
 
             protected override void OnFormClosing(FormClosingEventArgs e)
@@ -1208,15 +1515,21 @@ namespace CapriDesktop
 
             protected override void Dispose(bool disposing)
             {
-                if (disposing) foreach (Font font in new[] { titleFont, buttonFont, statusFont }) if (font != null) font.Dispose();
+                if (disposing)
+                {
+                    foreach (Font font in new[] { titleFont, buttonFont, statusFont }) if (font != null) font.Dispose();
+                    blinker.Dispose();
+                    if (face != null) face.Dispose();
+                    foreach (Native.Surface surface in new[] { look, light, dark }) if (surface != null) surface.Dispose();
+                }
                 base.Dispose(disposing);
             }
         }
 
-        // The text box, which says when it may have scrolled.
+        // The text box, which says when it may have scrolled, when a key or a click may have moved its caret, and when it has drawn.
         private sealed class WordBox : TextBox
         {
-            internal event Action Moved;
+            internal event Action Moved, Stirred, Painted;
 
             protected override void WndProc(ref Message message)
             {
@@ -1232,6 +1545,15 @@ namespace CapriDesktop
                 {
                     case 0x0005: case 0x000C: case 0x0101: case 0x0102: case 0x0200: case 0x0202:
                         if (Moved != null) Moved();
+                        break;
+                }
+                switch (message.Msg)
+                {
+                    case 0x0007: case 0x0008: case 0x0100: case 0x0102: case 0x0201: case 0x0202:
+                        if (Stirred != null) Stirred();
+                        break;
+                    case 0x000F:
+                        if (Painted != null) Painted();
                         break;
                 }
             }
@@ -1253,6 +1575,8 @@ namespace CapriDesktop
                 BackColor = Red;
                 TabStop = false;
             }
+
+            protected override void OnInvalidated(InvalidateEventArgs e) { base.OnInvalidated(e); Touch(this); }
 
             internal void Sync()
             {
@@ -1305,10 +1629,10 @@ namespace CapriDesktop
 
             protected override void OnPaint(PaintEventArgs e)
             {
-                e.Graphics.Clear(Red);
+                e.Graphics.Clear(Paper);
                 if (lines <= seen) return;
-                using (Brush track = new SolidBrush(Color.FromArgb(60, Black))) e.Graphics.FillRectangle(track, (Width - Math.Max(1, Width / 4)) / 2, 0, Math.Max(1, Width / 4), Height);
-                using (Brush ink = new SolidBrush(Black)) e.Graphics.FillRectangle(ink, Thumb);
+                using (Brush track = new SolidBrush(Color.FromArgb(90, Red))) e.Graphics.FillRectangle(track, (Width - Math.Max(1, Width / 4)) / 2, 0, Math.Max(1, Width / 4), Height);
+                using (Brush ink = new SolidBrush(Red)) e.Graphics.FillRectangle(ink, Thumb);
             }
         }
 
@@ -1326,11 +1650,93 @@ namespace CapriDesktop
                 TabStop = false;
             }
 
-            protected override void OnPaint(PaintEventArgs e) { page.PaintCover(e.Graphics); }
+            protected override void OnPaint(PaintEventArgs e) { page.PaintCover(e.Graphics, true); }
             protected override void OnMouseDown(MouseEventArgs e) { panel.Finish(); base.OnMouseDown(e); }
         }
 
-        // A button in the panel's two colours. Filled is black with red words; the others are a black line with black words.
+        // The status line, drawn on whatever the page is being drawn on.
+        private sealed class Note : Label
+        {
+            protected override void OnPaintBackground(PaintEventArgs e) { e.Graphics.Clear(Paper); }
+            protected override void OnInvalidated(InvalidateEventArgs e) { base.OnInvalidated(e); Touch(this); }
+        }
+
+        // Windows' own blur under the sheet, so what's behind the panel goes soft, like the room behind the Arasaka panel in Lachy's
+        // reference. It's a window of its own, the shape of the sheet, straight under the panel, and clicks go through it.
+        private sealed class Frost : Form
+        {
+            internal bool Blurred;
+            // Where its window sits in the panel's.
+            internal Point Offset;
+
+            internal Frost()
+            {
+                Text = "Capri file editor blur";
+                FormBorderStyle = FormBorderStyle.None;
+                ShowInTaskbar = false;
+                StartPosition = FormStartPosition.Manual;
+                AutoScaleMode = AutoScaleMode.None;
+                BackColor = Black;
+            }
+
+            protected override bool ShowWithoutActivation { get { return true; } }
+
+            // Off Alt+Tab and never active.
+            protected override CreateParams CreateParams
+            {
+                get
+                {
+                    CreateParams value = base.CreateParams;
+                    value.ExStyle |= 0x00000080 | 0x08000000;
+                    return value;
+                }
+            }
+
+            // No shape until the panel draws its first frame, so it never shows as a box.
+            protected override void OnHandleCreated(EventArgs e)
+            {
+                base.OnHandleCreated(e);
+                SetWindowRgn(Handle, CreateRectRgn(0, 0, 0, 0), false);
+                Blurred = Frosted(Handle);
+            }
+
+            // The sheet's outline, given in the panel's pixels, or nothing. The window covers only the sheet's own box, so a Windows
+            // that ignored the outline would still blur nothing beyond the sheet's cut corners.
+            internal void Shape(PointF[] sheet, Point panelAt)
+            {
+                if (!IsHandleCreated) return;
+                if (sheet == null || sheet.Length < 3)
+                {
+                    IntPtr none = CreateRectRgn(0, 0, 0, 0);
+                    if (none != IntPtr.Zero && SetWindowRgn(Handle, none, true) == 0) DeleteObject(none);
+                    return;
+                }
+                Point[] corners = new Point[sheet.Length];
+                int left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
+                for (int i = 0; i < sheet.Length; i++)
+                {
+                    corners[i] = Point.Round(sheet[i]);
+                    left = Math.Min(left, corners[i].X);
+                    top = Math.Min(top, corners[i].Y);
+                    right = Math.Max(right, corners[i].X);
+                    bottom = Math.Max(bottom, corners[i].Y);
+                }
+                Offset = new Point(left, top);
+                for (int i = 0; i < corners.Length; i++) corners[i] = new Point(corners[i].X - left, corners[i].Y - top);
+                SetWindowPos(Handle, IntPtr.Zero, panelAt.X + left, panelAt.Y + top, Math.Max(1, right - left), Math.Max(1, bottom - top), 0x0014);
+                IntPtr region = CreatePolygonRgn(corners, corners.Length, 2);
+                if (region != IntPtr.Zero && SetWindowRgn(Handle, region, true) == 0) DeleteObject(region);
+            }
+
+            protected override void WndProc(ref Message message)
+            {
+                if (message.Msg == 0x0084) { message.Result = new IntPtr(-1); return; }
+                if (message.Msg == 0x0021) { message.Result = new IntPtr(3); return; }
+                base.WndProc(ref message);
+            }
+        }
+
+        // A button in the panel's colours. Filled is her red with dark words; the others are a red line with red words.
         private sealed class Ink : Button
         {
             internal bool Filled, Mark;
@@ -1344,6 +1750,7 @@ namespace CapriDesktop
                 Cursor = Cursors.Hand;
             }
 
+            protected override void OnInvalidated(InvalidateEventArgs e) { base.OnInvalidated(e); Touch(this); }
             protected override void OnMouseEnter(EventArgs e) { hot = true; Invalidate(); base.OnMouseEnter(e); }
             protected override void OnMouseLeave(EventArgs e) { hot = false; down = false; Invalidate(); base.OnMouseLeave(e); }
             protected override void OnMouseDown(MouseEventArgs e) { if (e.Button == MouseButtons.Left) { down = true; Invalidate(); } base.OnMouseDown(e); }
@@ -1352,7 +1759,7 @@ namespace CapriDesktop
             protected override void OnPaint(PaintEventArgs e)
             {
                 Graphics pen = e.Graphics;
-                pen.Clear(Red);
+                pen.Clear(Paper);
                 pen.SmoothingMode = SmoothingMode.AntiAlias;
                 pen.PixelOffsetMode = PixelOffsetMode.Half;
                 float line = Math.Max(1f, (float)Math.Round(Height / 26f));
@@ -1361,8 +1768,8 @@ namespace CapriDesktop
                 bool lit = Filled ? !(hot || down) : hot || down;
                 if (Mark)
                 {
-                    if (hot || down) using (Brush fill = new SolidBrush(Black)) pen.FillRectangle(fill, 0, 0, Width, Height);
-                    using (Pen cross = new Pen(hot || down ? Red : Black, 2 * line))
+                    if (hot || down) using (Brush fill = new SolidBrush(Red)) pen.FillRectangle(fill, 0, 0, Width, Height);
+                    using (Pen cross = new Pen(hot || down ? Dark : Red, 2 * line))
                     {
                         float x = Width / 2f, y = Height / 2f, arm = Height / 5f;
                         pen.DrawLine(cross, x - arm, y - arm, x + arm, y + arm);
@@ -1373,17 +1780,17 @@ namespace CapriDesktop
                 {
                     using (GraphicsPath plate = Neon.Cut(area, 0, 0, cut, 0))
                     {
-                        if (lit) using (Brush fill = new SolidBrush(Black)) pen.FillPath(fill, plate);
-                        using (Pen edge = new Pen(Enabled ? Black : Color.FromArgb(110, Black), line)) pen.DrawPath(edge, plate);
+                        if (lit) using (Brush fill = new SolidBrush(Red)) pen.FillPath(fill, plate);
+                        using (Pen edge = new Pen(Enabled ? Red : Color.FromArgb(110, Red), line)) pen.DrawPath(edge, plate);
                     }
-                    TextRenderer.DrawText(pen, Text, Font, ClientRectangle, !Enabled ? Color.FromArgb(120, 40, 34) : lit ? Red : Black, BackColorFor(lit), TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+                    TextRenderer.DrawText(pen, Text, Font, ClientRectangle, !Enabled ? Color.FromArgb(130, 50, 46) : lit ? Dark : Red, BackColorFor(lit), TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
                 }
                 if (Focused && ShowFocusCues)
-                    using (Pen dots = new Pen(lit ? Red : Black, line) { DashStyle = DashStyle.Dot })
+                    using (Pen dots = new Pen(lit ? Dark : Red, line) { DashStyle = DashStyle.Dot })
                         pen.DrawRectangle(dots, 3 * line, 3 * line, Width - 6 * line - 1, Height - 6 * line - 1);
             }
 
-            private static Color BackColorFor(bool lit) { return lit ? Black : Red; }
+            private static Color BackColorFor(bool lit) { return lit ? Red : Paper; }
         }
     }
 
@@ -1398,6 +1805,10 @@ namespace CapriDesktop
         internal const float SheetWaist = SheetRight - StepIn;
         internal const float RuleLeft = 137, RuleRight = 434, RuleTop = 110, RuleBottom = 114, BlockTop = 123, BlockBottom = 135, BlockEnd = 172;
         internal const double RestAlpha = 81.7 / 255;
+        // Where the sheet settles instead: dark glass like the Arasaka panel in Lachy's reference (8 Nov), still on her artist's
+        // curve. Its colour is what that panel's sheet measures over a dark room.
+        internal const double GlassAlpha = 0.78;
+        internal static readonly Color Glass = Color.FromArgb(52, 30, 36);
         // The spine's foot, from frame 1.
         internal static readonly float[] SpineEnds = { 168, 182, 204, 231, 264, 300, 338, 377, 416, 452, 484, 512, 534, 548, 553 };
         // The sheet's right edge, from frame 14.
@@ -1426,11 +1837,18 @@ namespace CapriDesktop
         // 0 up to one frame, 1 from another, for a detail that comes in between them.
         internal static float Grown(double frame, int from, int to) { return (float)Math.Max(0, Math.Min(1, (frame - from) / (to - from))); }
 
-        // The sheet's colour at its alpha: her red when solid, and the same red over a little of the shadow by the end.
+        // The sheet's alpha partway down her artist's curve, landing on the glass's alpha instead of the art's.
+        internal static double Glassy(double art)
+        {
+            double top = SheetAlphas[0] / 255;
+            return GlassAlpha + (art - RestAlpha) * (top - GlassAlpha) / (top - RestAlpha);
+        }
+
+        // The sheet's colour at its alpha: her red when solid, turning to the dark glass as it settles.
         internal static Color SheetFill(double alpha)
         {
-            double t = Math.Max(0, Math.Min(1, (1 - alpha) / (1 - RestAlpha)));
-            return Color.FromArgb((int)(alpha * 255), (int)(235 - t * 52), (int)(74 - t * 18), (int)(66 - t * 16));
+            double t = Math.Max(0, Math.Min(1, (1 - alpha) / (1 - GlassAlpha)));
+            return Color.FromArgb((int)(alpha * 255), (int)(235 + t * (Glass.R - 235)), (int)(74 + t * (Glass.G - 74)), (int)(66 + t * (Glass.B - 66)));
         }
     }
 }
