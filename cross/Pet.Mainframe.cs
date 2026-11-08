@@ -139,6 +139,17 @@ namespace CapriDesktop
         internal void SetAdvancedSettings(bool on) { Saved.AdvancedSettings = on; Save(); }
         internal void SetMemorySize(int size) { Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, size) >= 0 ? size : 0; Saved.MemorySize = Brain.MemorySize; Save(); }
         internal void SetReplyLength(int index) { Brain.ReplyLength = Math.Clamp(index, 0, Brain.ReplySizes.Length - 1); Saved.ReplyLength = Brain.ReplyLength; Save(); }
+        internal void SetThinking(int level) { if (Brain.SetThinking(level)) { Saved.ThinkingPicks = Brain.Picks; Save(); } }
+        // What's wrong with it, or null once it's saved for the brain she's on.
+        internal string SetThinkingExtra(string typed)
+        {
+            string problem = Brain.SetThinkingExtra(typed);
+            if (problem != null) return problem;
+            Saved.ThinkingPicks = Brain.Picks;
+            Save();
+            NotifySettings();
+            return null;
+        }
         internal void NotifySettings()
         {
             if (Dispatcher.UIThread.CheckAccess()) SettingsChanged?.Invoke();

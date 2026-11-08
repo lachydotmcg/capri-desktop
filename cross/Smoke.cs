@@ -2858,6 +2858,34 @@ namespace CapriDesktop
                 pet.SetAdvancedSettings(true); frame.Sync();
                 if (!frame.Row("Code/Husk Mode").IsVisible || frame.Overlap() != null) throw new Exception("The cross Husk row did not fit under BRAIN.");
                 checks.Add("PASS cross Husk Mainframe row: Off, Claude Code, Codex and Both; settings round trip and older-copy recovery; busy picker disabled; Advanced BRAIN layout");
+                Cloud thinkingRemoteWas = pet.Brain.Remote;
+                string thinkingModelWas = pet.Brain.Model;
+                ThinkingPick[] thinkingPicksWas = pet.Brain.Picks;
+                try
+                {
+                    pet.Brain.Remote = new Cloud("sk-proj-test", "gpt-6-astra"); pet.Brain.Model = "gpt-6-astra"; pet.Brain.Picks = null;
+                    frame.Sync();
+                    var thinkingRow = (NeonPicker)frame.Row("Thinking");
+                    if (frame.Value("Thinking") != "Default" || thinkingRow.Choices[ThinkingLevels.Off] != "Off · always thinks" || !thinkingRow.Greyed[ThinkingLevels.Off] || thinkingRow.Greyed[ThinkingLevels.High] || !frame.Row("Extra request JSON").IsEnabled) throw new Exception("Cross Thinking lost a reason or a level.");
+                    frame.Change("Thinking", ThinkingLevels.Off);
+                    if (pet.Brain.ThinkingLevel != ThinkingLevels.Default || frame.Value("Thinking") != "Default") throw new Exception("Cross Thinking picked a greyed level.");
+                    frame.Change("Thinking", ThinkingLevels.High);
+                    if (pet.Brain.ThinkingLevel != ThinkingLevels.High || frame.Value("Thinking") != "High" || SettingsCopy().ThinkingPicks == null || SettingsCopy().ThinkingPicks[0].Source != "openai|gpt-6-astra" || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).ThinkingPicks == null) throw new Exception("Cross Thinking didn't save or survive an older copy.");
+                    pet.Brain.Remote = new Cloud("sk-proj-test", "gpt-5.6"); pet.Brain.Model = "gpt-5.6";
+                    frame.Sync();
+                    if (frame.Value("Thinking") != "Default" || ((NeonPicker)frame.Row("Thinking")).Greyed[ThinkingLevels.Off]) throw new Exception("Another cross model kept this model's Thinking.");
+                    if (pet.SetThinkingExtra("{\"model\":\"x\"}") == null || pet.SetThinkingExtra("[1]") == null || pet.SetThinkingExtra("{\"temperature\":1}") != null || pet.Brain.ThinkingExtra != "{\"temperature\":1}" || ThinkingLevels.Merge("{\"a\":1}", "{\"a\":2,\"b\":3}") != "{\"a\":2,\"b\":3}") throw new Exception("Cross Extra JSON didn't check or save.");
+                    frame.Sync();
+                    if (frame.Value("Extra request JSON") != "Edit" || frame.Overlap() != null) throw new Exception("Cross Extra JSON's row didn't show or fit.");
+                    pet.SetAdvancedSettings(false); frame.Sync();
+                    if (frame.Row("Thinking").IsVisible || frame.Row("Extra request JSON").IsVisible) throw new Exception("Cross Thinking did not fold with Advanced Settings.");
+                    pet.SetAdvancedSettings(true);
+                    pet.Brain.Remote = null; pet.Brain.Model = "gemma4:e4b";
+                    frame.Sync();
+                    if (frame.Row("Extra request JSON").IsEnabled || !((NeonPicker)frame.Row("Thinking")).Greyed[ThinkingLevels.High]) throw new Exception("A local cross brain offered Thinking.");
+                    checks.Add("PASS cross thinking: BRAIN greys what a model can't take with a reason, each model keeps its own pick and Extra JSON, older copies keep them, local brains have none, and the rows fold with Advanced Settings");
+                }
+                finally { pet.Brain.Remote = thinkingRemoteWas; pet.Brain.Model = thinkingModelWas; pet.Brain.Picks = thinkingPicksWas; pet.Saved.ThinkingPicks = thinkingPicksWas; frame.Sync(); }
 
                 List<HuskAct> acts = new List<HuskAct>();
                 List<string> lines = new List<string>();

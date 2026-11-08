@@ -164,6 +164,9 @@ namespace CapriDesktop
         private readonly NeonPicker models, freeKeys, voicePicker, speechModels;
         private readonly NeonPicker huskMode;
         private readonly NeonCaption huskLabel;
+        private readonly NeonPicker thinkingLevel;
+        private readonly NeonCaption thinkingLabel, extraLabel;
+        private readonly NeonButton thinkingExtra;
         private readonly NeonEntry textKey, voiceKey, voiceId, nickname, custom, localAddress;
         private bool paged, syncing, closed, finishing;
         private string layout;
@@ -326,6 +329,33 @@ namespace CapriDesktop
             huskMode.Options(HuskWatch.Choices(pet.HuskMode));
             readers.Add(delegate { huskMode.IsEnabled = !pet.HuskChanging; });
             ToolTip.SetTip(huskMode, "Watch Claude Code, Codex or OpenCode through her hooks or plugin. Restart the coding app after changing this.");
+            thinkingLabel = Caption("Thinking", 408, 500, 146, 16);
+            readers.Add(delegate
+            {
+                if (thinkingLevel == null) return;
+                string[] choices = new string[ThinkingLevels.Names.Length];
+                bool[] greyed = new bool[choices.Length];
+                for (int i = 0; i < choices.Length; i++)
+                {
+                    string why = pet.Brain.ThinkingWhy(i);
+                    choices[i] = why == null ? ThinkingLevels.Names[i] : ThinkingLevels.Names[i] + " · " + why;
+                    greyed[i] = why != null;
+                }
+                thinkingLevel.Options(choices);
+                thinkingLevel.Greyed = greyed;
+            });
+            thinkingLevel = Picker("Thinking", 564, 497, 172, () => pet.Brain.ThinkingLevel, pet.SetThinking);
+            thinkingLevel.Height = 22;
+            thinkingLevel.Ellipsis = true;
+            extraLabel = Caption("Extra request JSON", 408, 528, 146, 16);
+            thinkingExtra = Add(new NeonButton { Text = "Add" }, 564, 525, 172, 22, "Extra request JSON");
+            thinkingExtra.Click += (_, _) => { OpenThinkingExtra(); Sync(); };
+            readers.Add(delegate
+            {
+                thinkingExtra.Text = pet.Brain.ThinkingExtra == null ? "Add" : "Edit";
+                thinkingExtra.IsEnabled = pet.Brain.ThinkingOpen;
+                thinkingExtra.InvalidateVisual();
+            });
             Toggle("Stay on my model", 380, 466, () => pet.Saved.StayOnModel, pet.SetStay);
             Slider("Replies", Lengths, 380, 494, () => Brain.Wordiness, pet.SetReplies);
             Slider("Memory", Lengths, 380, 522, () => Array.IndexOf(Recalls, Brain.Recall), i => pet.SetRecall(Recalls[i]));
@@ -544,7 +574,7 @@ namespace CapriDesktop
                     int[][] missing = right ? MissingRight : MissingLeft;
                     if (!right && pet.MainframeInputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
                     y = Lift(anchor, missing, right ? FoldedRight : FoldedLeft, simple) - (control is NeonHead ? 5 : 0);
-                    if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel) y += 28;
+                    if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel && control != thinkingLevel && control != thinkingLabel && control != thinkingExtra && control != extraLabel) y += 84;
                 }
                 if (item.Page == 0)
                 {
@@ -649,6 +679,7 @@ namespace CapriDesktop
             sheets.Add(sheet); sheet.Closed += (_, _) => sheets.Remove(sheet); sheet.Show(this);
         }
         internal void OpenServer() { ShowSheet(new MainframeSheet(pet, "CUSTOM LOCAL", "server")); }
+        internal void OpenThinkingExtra() { ShowSheet(new MainframeSheet(pet, "EXTRA REQUEST JSON", "thinking")); }
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }

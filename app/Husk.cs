@@ -44,6 +44,16 @@ namespace CapriDesktop
             return value;
         }
 
+        // A JSON object's top-level names, each with its whole "name":value text.
+        internal static List<KeyValuePair<string, string>> Members(string text)
+        {
+            Reader reader = new Reader(text);
+            List<KeyValuePair<string, string>> found = reader.Members();
+            reader.Space();
+            if (!reader.End) throw new FormatException("Invalid JSON.");
+            return found;
+        }
+
         private sealed class Reader
         {
             private readonly string text;
@@ -94,6 +104,24 @@ namespace CapriDesktop
                     else throw new FormatException("Invalid JSON escape.");
                 }
                 throw new FormatException("Unclosed JSON string.");
+            }
+
+            internal List<KeyValuePair<string, string>> Members()
+            {
+                List<KeyValuePair<string, string>> found = new List<KeyValuePair<string, string>>();
+                if (!Take('{')) throw new FormatException("Invalid JSON object.");
+                if (Take('}')) return found;
+                while (true)
+                {
+                    Space();
+                    int start = at;
+                    string key = String();
+                    if (!Take(':') || found.Exists(member => member.Key == key)) throw new FormatException("Invalid JSON field.");
+                    Value(0);
+                    found.Add(new KeyValuePair<string, string>(key, text.Substring(start, at - start)));
+                    if (Take('}')) return found;
+                    if (!Take(',')) throw new FormatException("Invalid JSON object.");
+                }
             }
 
             internal object Value(int depth)

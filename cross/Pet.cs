@@ -83,6 +83,7 @@ namespace CapriDesktop
         [DataMember] internal string FreeModel;
         [DataMember] internal string PaidModel;
         [DataMember] internal string SpeechModel;
+        [DataMember] internal ThinkingPick[] ThinkingPicks;
     }
 
     // The bits of GitHub's latest release she reads to tell them about an update.
@@ -586,6 +587,8 @@ namespace CapriDesktop
             Brain.Recall = Saved.Recall == 16 || Saved.Recall == 32 ? Saved.Recall : 8;
             Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, Saved.MemorySize) >= 0 ? Saved.MemorySize : 0;
             Brain.ReplyLength = Math.Clamp(Saved.ReplyLength, 0, Brain.ReplySizes.Length - 1);
+            Brain.Picks = Saved.ThinkingPicks;
+            Brain.ThinkingChanged = NotifySettings;
             Saved.Wander = Math.Max(0, Math.Min(4, Saved.Wander));
             Sfx.Level = Math.Max(0, Math.Min(100, Saved.Sounds ?? 60));
             Voice.Loudness = Math.Max(0, Math.Min(150, Saved.Volume ?? 100));
@@ -4842,6 +4845,7 @@ namespace CapriDesktop
             [DataMember] internal bool NoFollowUps;
             [DataMember] internal bool NoKeepAwake;
             [DataMember] internal string Vault;
+            [DataMember] internal ThinkingPick[] ThinkingPicks;
         }
 
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
@@ -4873,6 +4877,7 @@ namespace CapriDesktop
             saved.NoKeepAwake = newer.NoKeepAwake;
             saved.Vault = newer.Vault;
             saved.HuskMode = newer.HuskMode;
+            saved.ThinkingPicks = newer.ThinkingPicks;
             return saved;
         }
 
@@ -4880,7 +4885,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, HuskMode = saved.HuskMode };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks };
         }
 
         private Settings Load()

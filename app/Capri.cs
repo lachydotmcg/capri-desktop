@@ -816,6 +816,7 @@ namespace CapriDesktop
         [DataMember] public string PaidModel;
         [DataMember] public int Tier;
         [DataMember] public bool Tiered;
+        [DataMember] public ThinkingPick[] ThinkingPicks;
         [DataMember] public bool Watch;
         [DataMember] public string WatchScreen;
         [DataMember] public int GlanceGap;
@@ -2435,6 +2436,8 @@ namespace CapriDesktop
             Brain.Recall = preferences.Recall == 16 || preferences.Recall == 32 ? preferences.Recall : 8;
             Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, preferences.MemorySize) >= 0 ? preferences.MemorySize : 0;
             Brain.ReplyLength = Math.Max(0, Math.Min(Brain.ReplySizes.Length - 1, preferences.ReplyLength));
+            brain.Picks = preferences.ThinkingPicks;
+            brain.ThinkingChanged = delegate { OnUi(delegate { mainframe.Sync(); }); };
             Brain.Keeping = preferences.Remembers;
             ownNotes = Brain.MemoryPath;
             string chosen = NotesIn(preferences.Vault);
@@ -10510,6 +10513,31 @@ namespace CapriDesktop
                 preferences.Model = name;
                 SavePreferences();
             }
+        }
+
+        internal int ThinkingLevel { get { return brain.ThinkingLevel; } }
+        internal string ThinkingSource { get { return brain.ThinkingSource; } }
+        internal string ThinkingExtra { get { return brain.ThinkingExtra; } }
+        internal bool ThinkingOpen { get { return brain.ThinkingOpen; } }
+        internal string ThinkingWhy(int level) { return brain.ThinkingWhy(level); }
+
+        internal void SetThinking(int level)
+        {
+            if (!brain.SetThinking(level)) return;
+            preferences.ThinkingPicks = brain.Picks;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        // What's wrong with it, or null once it's saved for the brain she's on.
+        internal string SetThinkingExtra(string typed)
+        {
+            string problem = brain.SetThinkingExtra(typed);
+            if (problem != null) return problem;
+            preferences.ThinkingPicks = brain.Picks;
+            SavePreferences();
+            mainframe.Sync();
+            return null;
         }
 
         internal void ChooseCloudModel(Cloud remote, string name)
@@ -33336,6 +33364,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallHearing", delegate { SmokeCallHearing(checks); });
             Section(checks, "SmokeRateLimits", delegate { SmokeRateLimits(checks); });
             Section(checks, "SmokeVoiceCredit", delegate { SmokeVoiceCredit(checks, output); });
+            Section(checks, "SmokeThinking", delegate { SmokeThinking(checks); });
             Section(checks, "SmokeSpecialLetters", delegate { SmokeSpecialLetters(checks); });
             Section(checks, "SmokeWordingFixes", delegate { SmokeWordingFixes(checks, output); });
             Section(checks, "SmokeHelpQuotes", delegate { SmokeHelpQuotes(checks); });
