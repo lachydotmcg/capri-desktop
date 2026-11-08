@@ -169,6 +169,8 @@ namespace CapriDesktop
             fresh.QuietMods = old.QuietMods; fresh.QuietVk = old.QuietVk;
             fresh.PushMods = old.PushMods; fresh.PushVk = old.PushVk;
             fresh.GameMods = old.GameMods; fresh.GameVk = old.GameVk; fresh.GameSpots = old.GameSpots;
+            // Her Remote phones stay paired, with Remote itself off.
+            fresh.Remote = old.Remote == null ? null : new RemoteSettings { Host = old.Remote.Host, Sealed = old.Remote.Sealed };
             try { using (FileStream stream = File.Create(settings)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, fresh); }
             catch (Exception) { try { File.Delete(settings); } catch (Exception) { } }
         }
@@ -798,6 +800,8 @@ namespace CapriDesktop
         [DataMember] public string CallAppBefore;
         [DataMember] public string CallAppNameBefore;
         [DataMember] public int HuskMode;
+        // Capri Remote (app/RemoteChat.cs): off until turned on, with its room and paired phones sealed by DPAPI.
+        [DataMember] public RemoteSettings Remote;
         // Switched off on the call panel: in call mode she hears only your mic, not Discord.
         [DataMember] public bool CallDiscordOff;
         [DataMember] public bool CallCaptionsOff;
@@ -2585,6 +2589,7 @@ namespace CapriDesktop
             ArtAtStart();
             Shown += delegate { ModList.StartCode(Post); };
             mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
+            Shown += delegate { StartRemote(); };
             PrepareHusk(data);
             mainframe.VisibleChanged += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
             mainframe.Resize += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
@@ -5582,6 +5587,7 @@ namespace CapriDesktop
             // With Use your mouse and keyboard for jobs off, her quick tools stay quick instead of taking the mouse.
             string task = beside || preferences.QuickHands || args == null || args.Current != null || brain.Model == null || !Security.On(Security.Mouse) ? null : CursorJob(tool, args);
             bool mouse = task != null || tool == "use_computer";
+            object remoteTool = RemoteToolStart(tool, args, ticket);
             string done;
             bool lost = false, held = false;
             try
@@ -5607,6 +5613,7 @@ namespace CapriDesktop
             // A look is already in her transcript; anything else she did goes in as a job. A check of what's open, what's installed
             // or how her settings are isn't something she did, and window titles stay out of her memories.
             if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
+            RemoteToolEnd(remoteTool, done);
             return done;
         }
 
@@ -14012,6 +14019,7 @@ namespace CapriDesktop
             if (ticket == followTicket && !followLogged) { brain.Followed(said); followLogged = true; }
             // A line with a recording of its own stays the way it was recorded.
             if (wav == null && ticket != thoughtTicket) said = Own(said);
+            RemoteSaid(ticket, said);
             if (slowWarned && brain.Remote != null && state != TalkState.Dormant) mainframe.ShowCloud(brain.Remote, cloudModels);
             reply = said;
             replyStart = clock.Elapsed.TotalSeconds;
@@ -14659,6 +14667,7 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            StopRemote();
             if (husk != null) husk.Dispose();
             HuskClonesOff();
             ClearMarks();
@@ -33198,6 +33207,7 @@ namespace CapriDesktop
             Section(checks, "SmokeAnswerVoice", delegate { SmokeAnswerVoice(checks, output); });
             Section(checks, "SmokeVoiceLanguages", delegate { SmokeVoiceLanguages(checks, output); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
+            Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
             Section(checks, "SmokeDeviceChoices", delegate { SmokeDeviceChoices(checks); });
             Section(checks, "SmokeSlowDevices", delegate { SmokeSlowDevices(checks); });

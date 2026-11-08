@@ -457,6 +457,7 @@ namespace CapriDesktop
         private void AsideSay(string line, Job running, string asked, int toolReply = -1)
         {
             line = CallLine(asking, line);
+            RemoteAside(asked, line);
             if (CallHands(asking)) callSession.Keep(callUserVersion, asked, line, Brain.Recall);
             brain.Remember(asked, line);
             Action<string> test = asideTest;

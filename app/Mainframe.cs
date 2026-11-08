@@ -602,6 +602,7 @@ namespace CapriDesktop
             support = Lower(Make("Support", 268, 183 + v, 88, 18, delegate { capri.OpenSupport(); }));
             support.Heart = true;
             support.AccessibleName = "Support Capri: opens Lachy's Ko-fi in your browser";
+            MakeRemoteKey(183 + v);
             // Her version sits where Mods was, beside Support, now Mods is up by Settings.
             build = Lower(Caption("v" + version, 196, 183 + v, small, Faint));
             build.AutoSize = false;
