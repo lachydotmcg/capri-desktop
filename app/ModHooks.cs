@@ -740,6 +740,7 @@ namespace CapriDesktop
                 + "public void Start(ICapriHost h) { c = h;\n"
                 + "h.Brain.AddTool(\"hook_echo\", \"Says back what it's given.\", \"words to say back\", t => \"echo: \" + t);\n"
                 + "h.Chat.ToolUsing += call => { if (call.Tool == \"animate\" && call.Name == \"grin\") { call.Cancel = true; call.Reason = \"No grinning today.\"; } };\n"
+                + "h.Chat.Sending += m => { if (m.Text == \"send yes\") { m.Cancel = true; c.Chat.Send(\"yes\"); } else if (m.Text == \"yes\" && m.Source == \"mod\") Mark(\"modyes\", \"x\"); };\n"
                 + "h.Chat.AddContext(() => \"The hook context says 42.\");\n"
                 + "h.Store.Set(\"count\", h.Store.Number(\"count\", 0) + 1);\n"
                 + "h.Mods.Received += (from, topic, data) => Mark(\"got\", from + \" \" + topic + \" \" + data);\n"
@@ -771,6 +772,34 @@ namespace CapriDesktop
             string stored = File.Exists(Path.Combine(data, "store.json")) ? File.ReadAllText(Path.Combine(data, "store.json")) : "";
             if (stored.IndexOf("\"count\":\"1\"", StringComparison.Ordinal) < 0) throw new Exception("A mod's store wasn't saved: " + stored);
             checks.Add("PASS mod hooks: ToolUsing stops a tool and says why, AddContext reaches her prompt as facts, and the store saves to store.json");
+            string securityWas = Security.Saved;
+            try
+            {
+                Security.Pick(Security.Trusted);
+                bool trusted = Security.On(Security.ModTools) && Security.Preset == Security.Trusted;
+                Security.Pick(Security.Guarded);
+                bool guarded = !Security.On(Security.ModTools) && Security.Preset == Security.Guarded;
+                Security.Set(Security.ModTools, true);
+                string custom = Security.Saved;
+                Security.Load(custom);
+                if (!trusted || !guarded || custom.Length != 13 || !Security.On(Security.ModTools) || Security.Preset != Security.Custom) throw new Exception("Mod tools' SECURITY toggle didn't follow the presets or save: " + custom);
+                Security.Pick(Security.Lockdown);
+                string held = DoTool("mod", new ToolArguments { Name = "hook_echo", Text = "held" }, asking, true);
+                if (!Security.IsHold(held) || Security.Holding != "mod") throw new Exception("On Lockdown a mod's tool ran without asking: " + held);
+                // The mod says yes through Chat.Send: what she held is still held. Her brain may already have checked that line on
+                // its own thread, so the refusal itself is checked straight after with a line marked as a mod's.
+                Hear("send yes");
+                if (!until(() => mark("modyes") == "x")) throw new Exception("A mod's Chat.Send didn't reach her.");
+                for (int i = 0; i < 10; i++) { Application.DoEvents(); Thread.Sleep(20); }
+                if (Security.Holding != "mod") throw new Exception("A mod's yes answered her asking first.");
+                Security.ModSaid("yes");
+                if (Security.Resume("yes", ResumeTool) != null || Security.Holding != "mod") throw new Exception("A mod's yes answered her asking first.");
+                Security.TheySaid();
+                string ran = Security.Resume("yes", ResumeTool);
+                if ((ran ?? "").IndexOf("echo: held", StringComparison.Ordinal) < 0 || Security.Holding != null) throw new Exception("Their own yes didn't run the held mod tool: " + ran);
+            }
+            finally { Security.Drop(); Security.TheySaid(); Security.Load(securityWas); Action securityChanged = Security.Changed; if (securityChanged != null) securityChanged(); }
+            checks.Add("PASS mod hooks: mod tools have their own SECURITY toggle, off on Lockdown and Guarded, a held one waits for their own yes, and a mod's Chat.Send never answers it");
             ModHost host = Array.Find(LiveHosts(), each => each.Id == "hooks3");
             if (mark("badkey") != "refused" || mark("system") != "True True" || mark("sound") != "True False" || mark("screen") != "True" || (mark("move") ?? "").IndexOf("A mod can move her with", StringComparison.Ordinal) != 0)
                 throw new Exception("A hotkey that types, the system hooks, a sound, her screen or a move a mod can't do went wrong: " + mark("badkey") + " / " + mark("system") + " / " + mark("sound") + " / " + mark("move"));
@@ -1008,7 +1037,7 @@ namespace CapriDesktop
             event Action<CapriMessage> ICapriChat.Sending { add { Need("chat"); sending += value; } remove { sending -= value; } }
             event Action<CapriMessage> ICapriChat.Replying { add { Need("chat"); replying += value; } remove { replying -= value; } }
             event Action<CapriMessage> ICapriChat.Replied { add { Need("chat"); replied += value; } remove { replied -= value; } }
-            event Action<string, string> ICapriChat.ToolUsed { add { Need("chat"); toolUsed += value; } remove { toolUsed -= value; } }
+            event Action<string, string> ICapriChat.ToolUsed { add { Need("tools"); toolUsed += value; } remove { toolUsed -= value; } }
             event Action<CapriToolCall> ICapriChat.ToolUsing { add { Need("tools"); toolUsing += value; } remove { toolUsing -= value; } }
 
             void ICapriChat.AddContext(Func<string> context)

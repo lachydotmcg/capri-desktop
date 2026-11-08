@@ -559,7 +559,7 @@ namespace CapriDesktop
             // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
             // Keep personal details out of her memories is here as well, since her notes and what she sees are Windows' own code.
             fingers = Program.Smoke == null && Fingers.Problem == null;
-            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers) || toggle == Security.Personal; };
+            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers) || toggle == Security.Personal || toggle == Security.ModTools; };
             Hands.OwnHands = fingers;
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
@@ -4167,6 +4167,7 @@ namespace CapriDesktop
                 string sent = ModsSending(text);
                 if (sent == null) return;
                 text = sent;
+                if (modSendDepth > 0) Security.ModSaid(text); else Security.TheySaid();
             }
             ModList.LogHearing(text, true);
             Typed();

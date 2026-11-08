@@ -744,7 +744,7 @@ namespace CapriDesktop
             event Action<CapriMessage> ICapriChat.Sending { add { Need("chat"); sending += value; } remove { sending -= value; } }
             event Action<CapriMessage> ICapriChat.Replying { add { Need("chat"); replying += value; } remove { replying -= value; } }
             event Action<CapriMessage> ICapriChat.Replied { add { Need("chat"); replied += value; } remove { replied -= value; } }
-            event Action<string, string> ICapriChat.ToolUsed { add { Need("chat"); toolUsed += value; } remove { toolUsed -= value; } }
+            event Action<string, string> ICapriChat.ToolUsed { add { Need("tools"); toolUsed += value; } remove { toolUsed -= value; } }
             event Action<CapriToolCall> ICapriChat.ToolUsing { add { Need("tools"); toolUsing += value; } remove { toolUsing -= value; } }
 
             void ICapriChat.AddContext(Func<string> context)

@@ -115,12 +115,12 @@ Using a hook without its permission throws a `CapriPermissionException` that nam
 | `Sending` | chat | What they typed or said, before her brain sees it. Change `Text`, or set `Cancel` and she ignores it |
 | `Replying` | chat | Her reply before it shows and is spoken. Change `Text` |
 | `Replied` | chat | Her line once it shows. `Source` is `reply` or `remark` |
-| `ToolUsed(tool, result)` | chat | She used one of her tools |
+| `ToolUsed(tool, result)` | tools | She used one of her tools |
 | `ToolUsing` | tools | She's about to use a tool. `CapriToolCall` has `Tool`, `Doing` (like "open Spotify"), `Name`, `Action` and `Text`. Set `Cancel`, and `Reason` for what her brain is told instead |
 | `AddContext(func)`, `ClearContext()` | chat | `func` returns a fact for her prompt, read fresh for each message, like "Focus timer: 12 minutes left". Up to 5 per mod, 300 characters each. Her brain is told they're facts, not instructions |
 | `LastHeard`, `LastReply` | chat | The last thing she heard and said |
 | `Busy` | | She's thinking, talking or on a job |
-| `Send(text)` | chat | As if they typed it. `Sending` sees `Source == "mod"` |
+| `Send(text)` | chat | As if they typed it. `Sending` sees `Source == "mod"`. It never answers her asking first: when SECURITY holds a tool, only their own yes runs it |
 | `Start(about)` | chat | She starts a chat herself: her brain writes a line about it. False if she's busy |
 | `Days()`, `Transcript(day)` | transcripts | Days with a transcript, and one day's transcript |
 
@@ -212,7 +212,7 @@ These are the same switches and sliders her own settings tool uses. API keys and
 |---|---|---|
 | `Ready` | brain | She has a brain set up |
 | `Ask(instructions, question, answered)` | brain | Ask her brain outside her chat. `answered` gets the reply on her thread, or `null` if it failed |
-| `AddTool(name, description, takes, run)` | tools | A tool her brain can pick by itself, like her own. `name` is letters, numbers and `_`. `description` tells her brain when to use it, and `takes` what its text is, or `""`. `run` gets the text and returns what her brain hears back. Up to 8 per mod. False if another running mod has that name |
+| `AddTool(name, description, takes, run)` | tools | A tool her brain can pick by itself, like her own. `name` is letters, numbers and `_`. `description` tells her brain when to use it, and `takes` what its text is, or `""`. `run` gets the text and returns what her brain hears back. Up to 8 per mod. False if another running mod has that name. SECURITY > HER MODS > Use tools your code mods added decides whether she asks first: off on Lockdown and Guarded, on on Trusted and Blackwall |
 | `RemoveTool(name)`, `Tools` | tools | Take one away, or list this mod's |
 
 Her brain sees every mod's tools as one tool, `mod`, with a `name` to pick. Chat brains (Claude, OpenAI-style and local) get them. ElevenLabs voice chat doesn't yet. A friend on a call can't use them.

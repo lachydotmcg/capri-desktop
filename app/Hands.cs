@@ -114,9 +114,9 @@ namespace CapriDesktop
     // notes, Get to know me and what she sees leave addresses, numbers and emails out (Brain.Discreet). Off is how she was before.
     internal static class Security
     {
-        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, Count = 13;
+        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, ModTools = 13, Count = 14;
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories" };
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories", "Use tools your code mods added" };
         internal static readonly string[] Lines =
         {
             "On: she opens them when you ask. Off: she asks first.",
@@ -135,7 +135,8 @@ namespace CapriDesktop
             "On: she types the ones your job gives her. Off: you type them.",
             "On: she listens on this PC for her name. Off: she doesn't.",
             "Call mode only. Your mic or typing must confirm each ask.",
-            "On: addresses, emails and numbers stay out. Off: they don't."
+            "On: addresses, emails and numbers stay out. Off: they don't.",
+            "On: she uses a mod's tool when it fits. Off: she asks first."
         };
         internal static readonly string[] Presets = { "Lockdown", "Guarded", "Trusted", "Blackwall", "Custom" };
         private static readonly string[] Told =
@@ -149,9 +150,10 @@ namespace CapriDesktop
         // The Settings line under her SECURITY button, short enough for its row.
         private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
         // Lockdown has the first twelve off, Guarded the first three on, Trusted the first seven and Blackwall the first eleven.
-        // Keeping personal details out of her memories is on in all of them but Blackwall.
-        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal), 0x7FF };
-        private static int mask = 0x7F | (1 << Personal);
+        // Keeping personal details out of her memories is on in all of them but Blackwall. Tools from code mods ask first on
+        // Lockdown and Guarded, and run on Trusted and Blackwall.
+        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal) | (1 << ModTools), 0x7FF | (1 << ModTools) };
+        private static int mask = 0x7F | (1 << Personal) | (1 << ModTools);
         private static readonly object gate = new object();
         // Toggle 11 is her wake word's own setting on Windows, read and set through these. Elsewhere it's kept here with the rest.
         internal static Func<bool> HeyOn;
@@ -204,14 +206,14 @@ namespace CapriDesktop
 
         // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" and the toggles after it alone.
         // Nothing is saved.
-        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
+        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal) | (1 << ModTools))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
 
         // The preset their toggles match, or Custom. "Hey Capri" only counts where there's a wake word.
         internal static int Preset
         {
             get
             {
-                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0);
+                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0) | (Has(ModTools) ? 1 << ModTools : 0);
                 for (int i = 0; i < Masks.Length; i++) if ((bits & counted) == (Masks[i] & counted)) return i;
                 return Custom;
             }
@@ -241,13 +243,16 @@ namespace CapriDesktop
         // Friend requests take an 11th mark only when they're on, so a build from before them still reads the save instead of
         // falling back to Trusted. Keeping personal details out of her memories takes a 12th, after the 11th, only when it isn't
         // what the first ten give it (Kept), so a save that never changed it reads there too.
+        // Mod tools take a 13th, after those, only when they aren't what the first ten give them (ModsRun).
         private static string Marks(int bits)
         {
-            bool friends = (bits & (1 << Friends)) != 0, personal = (bits & (1 << Personal)) != 0, odd = personal != Kept(bits);
-            char[] marks = new char[odd ? Wake + 2 : friends ? Wake + 1 : Wake];
+            bool friends = (bits & (1 << Friends)) != 0, personal = (bits & (1 << Personal)) != 0, mods = (bits & (1 << ModTools)) != 0;
+            bool modsOdd = mods != ModsRun(bits), odd = personal != Kept(bits) || modsOdd;
+            char[] marks = new char[modsOdd ? Wake + 3 : odd ? Wake + 2 : friends ? Wake + 1 : Wake];
             for (int i = 0; i < Wake; i++) marks[i] = (bits & (1 << i)) != 0 ? '1' : '0';
             if (friends || odd) marks[Wake] = friends ? '1' : '0';
             if (odd) marks[Wake + 1] = personal ? '1' : '0';
+            if (modsOdd) marks[Wake + 2] = mods ? '1' : '0';
             return new string(marks);
         }
 
@@ -255,16 +260,22 @@ namespace CapriDesktop
         // are on, like Blackwall's. A save from before the toggle gets its preset's default this way, and a Custom mix gets it on.
         private static bool Kept(int bits) { return (bits & 0x3FF) != 0x3FF; }
 
+        // Whether tools from code mods run without asking when their save doesn't say: no when the first ten are Lockdown's or
+        // Guarded's, and yes for Trusted, Blackwall and any mix, so a save from before the toggle keeps its preset and turning
+        // one of the first ten off doesn't change how the rest save.
+        private static bool ModsRun(int bits) { int ten = bits & 0x3FF; return ten != (Masks[Lockdown] & 0x3FF) && ten != (Masks[Guarded] & 0x3FF); }
+
         // Their saved toggles, or Trusted for anything unreadable. "Hey Capri" stays where it lives.
         internal static void Load(string saved, bool wake = false)
         {
             int bits = 0;
-            if (saved == null || saved.Length < Wake || saved.Length > Wake + 2 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
+            if (saved == null || saved.Length < Wake || saved.Length > Wake + 3 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
             else
             {
                 for (int i = 0; i < Wake; i++) if (saved[i] == '1') bits |= 1 << i;
                 if (saved.Length > Wake && saved[Wake] == '1') bits |= 1 << Friends;
                 if (saved.Length > Wake + 1 ? saved[Wake + 1] == '1' : Kept(bits)) bits |= 1 << Personal;
+                if (saved.Length > Wake + 2 ? saved[Wake + 2] == '1' : ModsRun(bits)) bits |= 1 << ModTools;
             }
             lock (gate) mask = bits | (wake ? 1 << Wake : 0);
         }
@@ -288,6 +299,8 @@ namespace CapriDesktop
                 case "job_control": return action == "change" ? Mouse : -1;
                 case "clip": return action == "open_folder" || action == "open_last" ? Open : -1;
                 case "updates": return action == "install" ? Open : -1;
+                // A code mod's tool can do anything its code does, so it has its own toggle, off on Lockdown and Guarded.
+                case "mod": return ModTools;
                 case "voice_chat": case "speech": case "quit": case "mainframe": case "mini_player": case "fake_crash": case "listen": return -1;
                 default: return -1;
             }
@@ -371,7 +384,8 @@ namespace CapriDesktop
             List<Held> waiting;
             lock (gate)
             {
-                if (held.Count == 0) return null;
+                // A code mod's Chat.Send never answers her asking first, so what she holds waits for their own yes or no.
+                if (held.Count == 0 || TakeFromMod(text)) return null;
                 waiting = new List<Held>(held);
                 held.Clear();
             }
@@ -391,6 +405,28 @@ namespace CapriDesktop
 
         // Drops whatever she was holding, when they've moved on to something else.
         internal static void Drop() { lock (gate) held.Clear(); }
+
+        // What code mods sent her as chat since they last said something themselves. Kept as plain text, since her brain reads
+        // it on another thread, and cleared by their own next message.
+        private static readonly List<string> modSaid = new List<string>();
+
+        private static string Plainly(string text) { return Regex.Replace((text ?? "").Trim(), @"\s+", " ").ToLowerInvariant(); }
+
+        internal static void ModSaid(string text)
+        {
+            lock (gate)
+            {
+                modSaid.Add(Plainly(text));
+                if (modSaid.Count > 20) modSaid.RemoveAt(0);
+            }
+        }
+
+        internal static void TheySaid() { lock (gate) modSaid.Clear(); }
+
+        internal static bool FromMod(string text) { lock (gate) return modSaid.Contains(Plainly(text)); }
+
+        // The same, used up: her brain checks a mod's line once, so their own same words right after it still count.
+        private static bool TakeFromMod(string text) { return modSaid.Remove(Plainly(text)); }
 
         private static string Up(string text) { return string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text.Substring(1); }
 

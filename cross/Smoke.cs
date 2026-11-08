@@ -3689,14 +3689,14 @@ namespace CapriDesktop
                 mods.Set(earsMod, false, null);
                 if (ModPixel(idle.Strip, 1, 1).Red != 255 || !skinMod.On) throw new Exception("Taking an accessory off did not bring the outfit back.");
                 mods.Set(skinMod, false, null); mods.Set(earsMod, true, null);
-                if (ModPixel(idle.Strip, 1, 1).Green < 200 || ModPixel(idle.Strip, 95, 90) != original) throw new Exception("An accessory did not draw over her own art.");
+                if (ModPixel(idle.Strip, 1, 1).Green < 200 || ModPixel(idle.Strip, 36, 74) != original) throw new Exception("An accessory did not draw over her own art.");
                 mods.Remove(earsMod); mods.Set(mods.All.Find(m => m.File.Id == "smoke-skin"), true, null);
                 if (Pet.SkinAccessories.Length != 0 || ModPixel(idle.Strip, 1, 1).Red != 255) throw new Exception("Removing an accessory left it drawn.");
                 checks.Add("PASS mods accessories: an accessory draws over the outfit under it or her own art, keeps the outfit on, and off and remove take it away");
                 string hat = ModHatSkin(input, "smoke-hat");
                 if (!sheet.ImportMod(hat)) throw new Exception("A whole skin to stack was refused.");
                 Mod hatMod = mods.All.Find(m => m.File.Id == "smoke-hat");
-                SkiaSharp.SKColor hatTop = ModPixel(idle.Strip, 5, 5), hatHair = ModPixel(idle.Strip, 95, 90);
+                SkiaSharp.SKColor hatTop = ModPixel(idle.Strip, 5, 5), hatHair = ModPixel(idle.Strip, 36, 74);
                 if (hatMod == null || !hatMod.On || !mods.All.Find(m => m.File.Id == "smoke-skin").On || mods.SkinStack.Count != 2 || mods.SkinStack[1] != hatMod
                     || hatTop.Green < 200 || hatTop.Red > 30 || hatHair.Red != 255 || hatHair.Green != 0)
                     throw new Exception("A whole skin stacked over another didn't add only what it changes: " + hatTop + " " + hatHair);
@@ -3978,6 +3978,7 @@ namespace CapriDesktop
                     + "h.Settings.Changed += () => Mark(\"changed\", c.Settings.Size.ToString());\n"
                     + "h.Brain.AddTool(\"hook_echo\", \"Says back what it is given.\", \"words to say back\", t => \"echo: \" + t);\n"
                     + "h.Chat.ToolUsing += call => { if (call.Tool == \"animate\" && call.Name == \"grin\") { call.Cancel = true; call.Reason = \"No grinning today.\"; } };\n"
+                    + "h.Chat.Sending += m => { if (m.Text == \"send yes\") { m.Cancel = true; c.Chat.Send(\"yes\"); } else if (m.Text == \"yes\" && m.Source == \"mod\") Mark(\"modyes\", \"x\"); };\n"
                     + "h.Chat.AddContext(() => \"The hook context says 42.\");\n"
                     + "h.Store.Set(\"count\", h.Store.Number(\"count\", 0) + 1);\n"
                     + "h.Mods.Received += (from, topic, data) => Mark(\"got\", from + \" \" + topic + \" \" + data);\n"
@@ -4024,6 +4025,28 @@ namespace CapriDesktop
                 if (mark("badkey") != "refused" || mark("keys") != "False" || mark("system") != "True True" || mark("sound") != "True False" || mark("screen") != "True True" || (mark("move") ?? "").IndexOf("A mod can move her with", StringComparison.Ordinal) != 0)
                     throw new Exception("A hotkey, the system hooks, a sound, her screen or a move went wrong: " + mark("keys") + " / " + mark("badkey") + " / " + mark("system") + " / " + mark("sound") + " / " + mark("screen") + " / " + mark("move"));
                 checks.Add("PASS mods code: timers run, Settings.Changed hears her size, brain tools run, ToolUsing stops a tool, the store saves, a WAV plays, and a hotkey answers false here while a bad one is refused");
+                string securityWas = Security.Saved;
+                try
+                {
+                    Security.Pick(Security.Trusted);
+                    bool trusted = Security.On(Security.ModTools) && Security.Preset == Security.Trusted;
+                    Security.Pick(Security.Guarded);
+                    if (!trusted || Security.On(Security.ModTools) || Security.Preset != Security.Guarded || !Security.Has(Security.ModTools)) throw new Exception("Mod tools' SECURITY toggle didn't follow the presets on Mac and Linux.");
+                    Security.Pick(Security.Lockdown);
+                    string held = pet.Brain.Act("mod", new ToolArguments { Name = "hook_echo", Text = "held" });
+                    if (!Security.IsHold(held) || Security.Holding != "mod") throw new Exception("On Lockdown a mod's tool ran without asking: " + held);
+                    pet.Hear("send yes");
+                    MainframeWait(delegate { return mark("modyes") == "x"; }, "a mod's Chat.Send reaching her");
+                    for (int i = 0; i < 10; i++) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+                    if (Security.Holding != "mod") throw new Exception("A mod's yes answered her asking first.");
+                    Security.ModSaid("yes");
+                    if (Hands.Resume("yes") != null || Security.Holding != "mod") throw new Exception("A mod's yes answered her asking first.");
+                    Security.TheySaid();
+                    string ran = Hands.Resume("yes");
+                    if ((ran ?? "").IndexOf("echo: held", StringComparison.Ordinal) < 0 || Security.Holding != null) throw new Exception("Their own yes didn't run the held mod tool: " + ran);
+                }
+                finally { Security.Drop(); Security.TheySaid(); Security.Load(securityWas); Security.Changed?.Invoke(); pet.Talk.Dismiss(); }
+                checks.Add("PASS mods code: mod tools have their own SECURITY toggle, off on Lockdown and Guarded, a held one waits for their own yes, and a mod's Chat.Send never answers it");
 
                 if (!sheet.ImportMod(write("hooks-friend", "skins\n// requires: api 3, hooks3", "public class M : ICapriMod { public void Start(ICapriHost h) { h.Mods.Send(\"hello\", \"from friend\"); } public bool Heard(string w) { return false; } public void Stop() { } }")))
                     throw new Exception("A mod that requires a running mod was refused: " + sheet.StatusText);
@@ -4367,10 +4390,10 @@ namespace CapriDesktop
                 List<string> want = new List<string> { "Security: " + Security.Presets[preset] };
                 for (int i = 0; i <= Security.Custom; i++) want.Add((i == preset ? "*" : "") + Security.Presets[i] + (i == Security.Custom ? " (off)" : ""));
                 want.Add("-");
-                foreach (int i in new[] { Security.Open, Security.Media, Security.Shortcuts, Security.Windows, Security.Power, Security.Personal }) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
+                foreach (int i in new[] { Security.Open, Security.Media, Security.Shortcuts, Security.Windows, Security.Power, Security.Personal, Security.ModTools }) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
                 return string.Join(" | ", want);
             };
-            string[] presetBits = { "0000000000001", "1110000000001", "1111111000001", "1111111111100" };
+            string[] presetBits = { "00000000000010", "11100000000010", "11111110000011", "11111111111001" };
             List<string> wrong = new List<string>();
             string first = pet.SecurityShown;
             bool startedTrusted = Security.Preset == Security.Trusted && first == menu(Security.Trusted, Security.MaskOf(Security.Trusted));

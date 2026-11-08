@@ -562,10 +562,6 @@ namespace CapriDesktop
                 }
                 return file;
             };
-            {
-                    {
-                    }
-            }
             Func<Color> shown = delegate { return idle.Strip.GetPixel(0, 0); };
             Color original = shown();
             string red = pack("skin-red", Color.Red, null), blue = pack("skin-blue", Color.Blue, null);
