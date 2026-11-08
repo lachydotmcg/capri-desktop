@@ -45,7 +45,8 @@ namespace CapriDesktop
             if (remoteKey == null) return;
             remoteKey.Accent = view.On ? Cyan : Rose;
             remoteKey.Pick(view.On && view.Online.Count > 0);
-            remoteKey.AccessibleDescription = RemoteKeyWords(view);
+            // Its state is its accessible value: its description is its tip, from SelfKnow.
+            remoteKey.Status = RemoteKeyWords(view);
         }
 
         private static string RemoteKeyWords(RemoteView view)
@@ -121,7 +122,9 @@ namespace CapriDesktop
         {
             ShowRemote(view);
             bool picked = remoteKey.Picked;
-            string words = remoteKey.AccessibleDescription;
+            string words = remoteKey.AccessibilityObject.Value;
+            SettingHint tip;
+            if (!hints.TryGetValue(remoteKey, out tip) || remoteKey.AccessibleDescription != tip.Text) return "a key that lost its tip for " + words;
             return picked == (view.On && view.Online.Count > 0) ? words : "a key " + (picked ? "picked" : "not picked") + " for " + words;
         }
 

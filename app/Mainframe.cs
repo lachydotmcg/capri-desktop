@@ -4884,6 +4884,18 @@ namespace CapriDesktop
             internal bool Loud;
             internal bool Picked;
             internal bool StateValue;
+            // What a screen reader hears as its value, like Remote on, 1 phone, so its description can stay its tip.
+            private string status;
+            internal string Status
+            {
+                get { return status; }
+                set
+                {
+                    if (value == status) return;
+                    status = value;
+                    AccessibilityNotifyClients(AccessibleEvents.ValueChange, -1);
+                }
+            }
             internal bool Chevron;
             internal int Glyph;
             internal double Meter = -1;
@@ -4910,7 +4922,7 @@ namespace CapriDesktop
 
                 internal KeyAccess(Key owner) : base(owner) { key = owner; }
 
-                public override string Value { get { return key.StateValue ? key.Picked ? "On" : "Off" : base.Value; } set { base.Value = value; } }
+                public override string Value { get { return key.Status ?? (key.StateValue ? key.Picked ? "On" : "Off" : base.Value); } set { base.Value = value; } }
 
                 public override AccessibleStates State { get { return base.State | (key.StateValue && key.Picked ? AccessibleStates.Checked : AccessibleStates.None); } }
             }
