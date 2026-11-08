@@ -2761,6 +2761,7 @@ namespace CapriDesktop
                     presence.Show(preferences.NoDiscord ? null : Doing);
                 }
                 if (!testing && background) CheckHd(clock.Elapsed.TotalSeconds);
+                if (!testing && background) CheckBrainGone(signalNow);
                 StayOnTop();
                 if (background) CheckSeat(clock.Elapsed.TotalSeconds);
                 CheckChat(clock.Elapsed.TotalSeconds);
@@ -9404,7 +9405,22 @@ namespace CapriDesktop
             Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
         }
 
-        internal void FindBrain()
+        // While she can't see a brain, she looks again by herself every 15 seconds, so one that starts after her, like Ollama
+        // after a PC restart, turns up without pressing Refresh a few times (#160). The look is quiet: her Mainframe only
+        // changes once a brain answers.
+        internal const double BrainLookGap = 15;
+        private double brainLookAt = -1;
+
+        private void CheckBrainGone(double now)
+        {
+            if (brain.Model != null || brain.Remote != null || brain.Server != null || SettingUp || finding) { brainLookAt = -1; return; }
+            if (brainLookAt < 0) brainLookAt = now + BrainLookGap;
+            if (now < brainLookAt) return;
+            brainLookAt = now + BrainLookGap;
+            FindBrain(true);
+        }
+
+        internal void FindBrain(bool quiet = false)
         {
             Cloud remote = brain.Remote;
             if (remote != null && remote.Kind != "local")
@@ -9417,7 +9433,7 @@ namespace CapriDesktop
             }
             if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) { RefreshProvider(); return; }
             if (SettingUp) return;
-            mainframe.Searching();
+            if (!quiet) mainframe.Searching();
             if (finding) return;
             finding = true;
             string address = preferences.LocalAddress;
@@ -9435,7 +9451,9 @@ namespace CapriDesktop
                 {
                     finding = false;
                     if (listing != providerListing) { if (brain.Server == null && brain.Remote == null) FindBrain(); return; }
-                    if (address != preferences.LocalAddress) { FindBrain(); return; }
+                    if (address != preferences.LocalAddress) { FindBrain(quiet); return; }
+                    // A quiet look that finds nothing leaves her Mainframe as it was, a setup problem it shows included.
+                    if (quiet && (installed == null || installed.Length == 0) && local == null && servers.Count == 0) return;
                     mainframe.ShowServers(servers, installed, local);
                     if (brain.Remote == null && preferences.Tier == 0 && (installed == null || installed.Length == 0) && local == null && servers.Count > 0)
                     {
@@ -28451,6 +28469,76 @@ namespace CapriDesktop
             }
         }
 
+        // #160: with no brain in sight, she looks again by herself every 15 seconds, so Ollama starting after her is found.
+        private void SmokeBrainLooks(System.Collections.Generic.List<string> checks)
+        {
+            Preferences preferencesWas = preferences;
+            Cloud remoteWas = brain.Remote;
+            Engine localWas = brain.Local;
+            Pick pickWas = brain.LocalPick, fitWas = fit;
+            Machine machineWas = machine;
+            string modelWas = brain.Model, ollamaWas = Brain.Ollama, addressWas, keyWas;
+            brain.GetServer(out addressWas, out keyWas);
+            bool findingWas = finding, settingUpWas = SettingUp, runningWas = ollamaRunning;
+            System.Net.Sockets.TcpListener fake = null;
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            Func<int> count = delegate { lock (asked) return asked.Count; };
+            Action<string> settle = delegate(string problem)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (finding && waited.ElapsedMilliseconds < 15000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (finding) throw new Exception(problem);
+                Application.DoEvents();
+            };
+            try
+            {
+                preferences = new Preferences { Silent = true, Tiered = true };
+                brain.Remote = null;
+                brain.Local = null;
+                brain.SetServer(null, null);
+                brain.Model = null;
+                finding = false;
+                SettingUp = false;
+                brainLookAt = -1;
+                // Her Ollama, not up yet the first time she looks, then up with a model.
+                Brain.Ollama = FakeServer(new[] { "!503 {\"error\":\"starting\"}", "{\"models\":[{\"name\":\"fake-brain:latest\"}]}" }, asked, out fake);
+                double now = clock.Elapsed.TotalSeconds;
+                CheckBrainGone(now);
+                CheckBrainGone(now + 5);
+                if (count() != 0 || finding) throw new Exception("She looked for her brain again sooner than every 15 seconds.");
+                CheckBrainGone(now + BrainLookGap + 0.1);
+                settle("Her first look for a brain never finished.");
+                if (count() != 1) throw new Exception("With no brain in sight, she didn't look again by herself after 15 seconds.");
+                if (brain.Remote != null) { checks.Add("LIMIT her second look for a missing brain: a local server on this PC answered first"); return; }
+                if (brain.Model != null) throw new Exception("An Ollama that wasn't up yet gave her a brain.");
+                CheckBrainGone(now + BrainLookGap + 5);
+                if (count() != 1 || finding) throw new Exception("She looked again sooner than 15 seconds after her last look.");
+                CheckBrainGone(now + 2 * BrainLookGap + 0.3);
+                settle("Her second look for a brain never finished.");
+                if (count() != 2 || brain.Model != "fake-brain:latest") throw new Exception("Ollama starting after her wasn't found by her own second look: " + (brain.Model ?? "no brain") + " after " + count() + " looks.");
+                CheckBrainGone(now + 4 * BrainLookGap);
+                if (count() != 2 || finding) throw new Exception("She kept looking for a brain after finding one.");
+                checks.Add("PASS with no brain in sight she looks again by herself every 15 seconds, quietly, finds an Ollama that started after her, and stops looking once she has a brain (#160)");
+            }
+            finally
+            {
+                if (fake != null) fake.Stop();
+                Brain.Ollama = ollamaWas;
+                preferences = preferencesWas;
+                brain.Remote = remoteWas;
+                brain.Local = localWas;
+                brain.LocalPick = pickWas;
+                brain.SetServer(addressWas, keyWas);
+                brain.Model = modelWas;
+                fit = fitWas;
+                machine = machineWas;
+                ollamaRunning = runningWas;
+                finding = findingWas;
+                SettingUp = settingUpWas;
+                brainLookAt = -1;
+            }
+        }
+
         private static void SmokeLocalBrains(System.Collections.Generic.List<string> checks)
         {
             for (int port = 1; port <= 65535; port++)
@@ -33255,6 +33343,7 @@ namespace CapriDesktop
             Section(checks, "SmokeSoundWarnings", delegate { SmokeSoundWarnings(checks); });
             Section(checks, "SmokeFreeze", delegate { SmokeFreeze(checks, output); });
             Section(checks, "SmokeLocalBrains", delegate { SmokeLocalBrains(checks); });
+            Section(checks, "SmokeBrainLooks", delegate { SmokeBrainLooks(checks); });
             Section(checks, "SmokeCloudBrains", delegate { SmokeCloudBrains(checks); });
             Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
             Section(checks, "SmokeProviders", delegate { SmokeProviders(checks, output); });
