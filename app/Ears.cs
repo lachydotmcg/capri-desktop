@@ -1907,7 +1907,7 @@ namespace CapriDesktop
             File.Delete(tarball);
         }
 
-        internal static bool SystemBzip = true;
+        internal static bool SystemBzip = Environment.OSVersion.Version.Build >= 22000;
         internal static int TarTimeout = 600000;
         internal static Func<ProcessStartInfo, Process> StartTar = Process.Start;
         internal static string TarPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe");

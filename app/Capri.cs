@@ -45380,7 +45380,7 @@ namespace CapriDesktop
                             bool cleaned = false, emptyKept = false;
                             try
                             {
-                                if (!systemBzip || tarTimeout != 600000) throw new Exception("Her ears stopped trying Windows tar first, or changed its timeout.");
+                                if (systemBzip != (Environment.OSVersion.Version.Build >= 22000) || tarTimeout != 600000) throw new Exception("Her ears picked the wrong Windows tar bzip2 default, or changed its timeout.");
                                 LocalEars.SystemBzip = false;
                                 LocalEars.Untar(bunzipTar, bunzipInto);
                                 using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
