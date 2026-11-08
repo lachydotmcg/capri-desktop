@@ -40,8 +40,6 @@ She sits on your windows, talks back, joins your calls, plays your games and get
   </tr>
 </table>
 
-<p align="center"><sub>Her window perch and music perch are by her artist, who prefers to stay private.</sub></p>
-
 > [!NOTE]
 > Capri is an unofficial fan project and is not approved or endorsed by CD PROJEKT RED, the anime's rights holders or its voice actors.
 
