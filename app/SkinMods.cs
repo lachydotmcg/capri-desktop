@@ -789,10 +789,12 @@ namespace CapriDesktop
 
                 preferences.Motion = true;
                 preferences.PowerSaver = 2;
-                // Earlier sections run on real time, so notes still in the air or a dizzy spell or sulk can outlast them. She starts from standing still.
+                // Earlier sections run on real time, so notes still in the air, a dizzy spell, a sulk or a chat still open (her TYPE box
+                // up, talk Online on GitHub's runner, 8 Nov) can outlast them. She starts from standing still, with nothing to say.
                 notes.Clear();
                 dizzyFrom = dizzyUntil = -1;
                 sulkSince = -1;
+                CloseTalk();
                 Play(idle);
                 double restAt = clock.Elapsed.TotalSeconds;
                 if (FrameInterval(restAt) != 61 || !Resting(restAt))
