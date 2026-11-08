@@ -285,6 +285,16 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 .waiting .caret { color: var(--cyan); }
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 .card-actions .nbtn { flex: 1 1 auto; }
+/* An iPhone home screen app pastes the pairing link Safari copied for it. */
+.paste { margin-top: 18px; }
+.paste .code-label { display: block; margin-bottom: 8px; }
+.paste .field input, #where-field input { font-size: 15px; letter-spacing: 0; }
+.paste .nbtn.wide { margin-top: 12px; }
+#where-field { margin-top: 12px; }
+/* The home screen guide: a card over the chat, above the scrim. */
+.sheet { position: absolute; z-index: 42; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(430px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow-y: auto; }
+.sheet .nhead { margin: 18px 0 0; }
+.sheet .steps { margin-top: 10px; }
 
 /* ---------- Menu drawer ---------- */
 .scrim { position: absolute; inset: 0; z-index: 40; background: rgb(5 3 8 / .64); }
