@@ -856,9 +856,12 @@ namespace CapriDesktop
         private void KeepPromise(string words, string said, int ticket, Agent told)
         {
             bool promised = Hands.Promised(said);
-            ThreadPool.QueueUserWorkItem(delegate
+            // The wait is a timer's, so no pool thread sleeps through it. Every reply waits here now, and on GitHub's 4-core runner
+            // three of them asleep at once took every free pool thread, so talking couldn't reopen her resting call in time (8 Nov).
+            System.Threading.Timer wait = null;
+            wait = new System.Threading.Timer(delegate
             {
-                Thread.Sleep(KeepWait);
+                wait.Dispose();
                 lock (shortcutGate) if (toolAsked) return;
                 if (ticket != asking) return;
                 if (promised) Brain.Log("https://api.elevenlabs.io/v1/convai/conversation", -1, "Voice chat said she'd do it but no tool ran. Heard: " + words + " | Said: " + said);
@@ -899,7 +902,8 @@ namespace CapriDesktop
                     else if (Security.IsHold(done)) { if (told != null && told.Ready) told.Say(done); return; }
                     else Finished(told, call.Key, done, ticket);
                 }
-            });
+            }, null, Timeout.Infinite, Timeout.Infinite);
+            wait.Change(KeepWait, Timeout.Infinite);
         }
 
         // ElevenLabs' agent sometimes says a line twice, which reached them word for word (their transcript, 30 Oct). The same
