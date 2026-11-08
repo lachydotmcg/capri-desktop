@@ -30,8 +30,12 @@ for name, source in (("app/MainframeMods.cs", mods), ("app/MainframeModsWindow.c
         raise AssertionError(name + " still picks a mod by its position in ModList.All, not the filtered list.")
 
 guard = re.search(r"private Mod ShownMod\(int row\)\s*\{(.*?)\n        \}", mods, re.S)
-if not guard or "modShown[at]" not in guard.group(1) or "ModList.All.Contains(modShown[at])" not in guard.group(1):
-    raise AssertionError("ShownMod does not check the row's mod is still installed.")
+if not guard or "modShown[at].Path" not in guard.group(1) or "ModList.All.Find" not in guard.group(1) or "current != null" not in guard.group(1):
+    raise AssertionError("ShownMod does not find the currently loaded mod by the shown file path.")
+if "Explain(modSearch, \"Search installed mods\", \"MainframeMods.cs\"" not in mods:
+    raise AssertionError("The installed search box has no Explain tip.")
+if not re.search(r'new Topic\("Search installed mods".*?"MainframeMods.cs", "Search installed mods"\)', read("app", "SelfKnow.cs"), re.S):
+    raise AssertionError("The installed search has no SelfKnow topic.")
 
 for method in ("SwitchMod", "RemoveMod"):
     body = re.search(method + r"\(int row\)\s*\{(.{0,200})", mods, re.S)

@@ -46,6 +46,7 @@ namespace CapriDesktop
             modSearch = Input(28, 204, 328, 26);
             modSearch.Cue = "Search your mods by name or author";
             modSearch.Box.AccessibleName = "Search your installed mods";
+            Explain(modSearch, "Search installed mods", "MainframeMods.cs", null, "Search installed mods");
             modSearch.Box.TextChanged += delegate { modFirst = 0; FillMods(); };
             modEmpty = ModLabel("No mods yet. Import a " + Mods.Extension + " file.", 28, ModRowTop, 328, 20, Font, Faint);
             modNoMatch = ModLabel("No mods match.", 28, ModRowTop, 328, 20, Font, Faint);
@@ -267,7 +268,13 @@ namespace CapriDesktop
         private Mod ShownMod(int row)
         {
             int at = modFirst + row;
-            if (at < modShown.Count && capri.ModList.All.Contains(modShown[at])) return modShown[at];
+            if (at < modShown.Count)
+            {
+                string path = modShown[at].Path;
+                string id = modShown[at].File.Id;
+                Mod current = capri.ModList.All.Find(delegate(Mod mod) { return string.Equals(mod.Path, path, StringComparison.OrdinalIgnoreCase) && string.Equals(mod.File.Id, id, StringComparison.OrdinalIgnoreCase); });
+                if (current != null) return current;
+            }
             FillMods();
             ModSays("That mod is no longer installed. The list is updated.", true);
             return null;
