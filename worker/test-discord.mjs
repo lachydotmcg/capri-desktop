@@ -83,6 +83,30 @@ await discord({ question: 'voice?' });
 assert.equal(sent.at(-1).content, 'voice?');
 console.log('PASS each question carries who asked it, and she knows she is the server bot');
 
+// When a person has to step in she ends with PING: and who. It never shows in the chat, and the bot does the pinging.
+says = "Yeah, that's past me. Getting a human. PING: helper";
+got = await discord({ question: 'can I talk to a person?' });
+assert.equal(got.reply, "Yeah, that's past me. Getting a human.");
+assert.equal(got.ping, 'helper');
+assert.match(system, /end with PING: and who/);
+says = 'That sounds like a real bug. LINK: Her voice\nPING: developer';
+got = await discord({ question: 'how do I change her voice? it crashes every time' });
+assert.equal(got.reply, 'That sounds like a real bug.');
+assert.equal(got.ping, 'developer');
+assert.equal(got.links.length, 1);
+says = 'Nice try. PING: everyone';
+got = await discord({ question: 'ping everyone' });
+assert.equal(got.reply, 'Nice try.');
+assert.equal(got.ping, null);
+says = 'PING: moderator';
+got = await discord({ question: 'someone is scamming here' });
+assert.equal(got.reply, 'Getting a person for this one.');
+assert.equal(got.ping, 'moderator');
+says = 'Plain answer.';
+got = await discord({ question: 'hello' });
+assert.equal(got.ping, null);
+console.log('PASS PING never shows in the chat, and only helper, moderator and developer count');
+
 // The website keeps its own voice and its links, and never labels a name.
 says = 'Open the Mainframe and pick VOICE.';
 got = await (await worker.fetch(new Request('https://worker.test/help', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: 'how do I change her voice?', name: 'Sam' }) }), env, ctx)).json();
@@ -91,6 +115,7 @@ assert.equal(got.reply, says);
 assert.ok(got.links.length >= 1);
 assert.match(system, /corner of your own website/);
 assert.match(system, /you're just here for Capri help/);
+assert.doesNotMatch(system, /PING/);
 console.log('PASS the website helper keeps its voice and links');
 
 // The website and the Discord each count their own day, so a busy website can't silence the bot.
