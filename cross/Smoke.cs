@@ -2877,6 +2877,7 @@ namespace CapriDesktop
                 pet.SetHusk(2); HuskFeed("claude", "UserPromptSubmit");
                 if (acts.Count != 0) throw new Exception("Codex-only Husk mode acted a Claude event.");
                 pet.SetHusk(3); pet.Talk.Dismiss();
+                pet.SetHuskVerbosity(true);
                 HuskFeed("claude", "SessionStart");
                 if (pet.HuskMood != "hi" || lines[lines.Count - 1] != HuskWords.Line("English", 12, "Claude Code")) throw new Exception("A Claude session did not get her hello.");
                 pet.Nap(true); pet.Animate("idle"); pet.Nap(true); pet.CheckNap();
@@ -2922,6 +2923,7 @@ namespace CapriDesktop
                 if (pet.HuskMood != "input" || lines[lines.Count - 1] != HuskWords.Line("English", 9, "Codex", "Which file?")) throw new Exception("A Codex question did not ask for their input.");
                 HuskFeed("claude", "PreToolUse", "tool_name", "AskUserQuestion", "tool_input", HuskJson.Map("questions", new List<object> { HuskJson.Map("question", "Which colour?") }));
                 if (pet.HuskMood != "input" || lines[lines.Count - 1] != HuskWords.Line("English", 9, "Claude Code", "Which colour?")) throw new Exception("A Claude question did not ask for their input.");
+                HuskFeed("claude", "PostToolUse", "tool_name", "AskUserQuestion");
                 pet.Saved.Silent = true;
                 HuskFeed("claude", "PermissionRequest", "message", "Voice off?");
                 if (aloud[aloud.Count - 1]) throw new Exception("A cross approval ignored her voice setting.");
