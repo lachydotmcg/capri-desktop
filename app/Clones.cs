@@ -831,6 +831,8 @@ namespace CapriDesktop
                     Clip clip = age < Swarm.GlitchIn ? glitch : grinning ? grin : Swarm.Walking(body, now) ? walk : idle;
                     int which = clip == glitch ? 0 : clip == grin ? 1 : clip == walk ? 2 : 3;
                     int cell = clip == glitch ? Math.Min(clip.Count - 1, (int)(age * clip.Fps)) : (int)((now + body.Phase) * clip.Fps) % clip.Count;
+                    // Every drawn frame stays in memory here, so a long loop keeps about 16 of them.
+                    cell -= cell % Math.Max(1, clip.Count / 16);
                     graphics.DrawImage(Cell(clip, which, cell, body.Left), (int)body.X - canvas / 2, (int)body.Y - canvas / 2, canvas, canvas);
                 }
                 foreach (CloneBody body in Swarm.Bodies)

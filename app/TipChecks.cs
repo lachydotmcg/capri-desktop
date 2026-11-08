@@ -164,6 +164,7 @@ namespace CapriDesktop
                 }
 
                 Directory.CreateDirectory(output);
+                LegacyTipChecks(checks, output);
                 foreach (int percent in new[] { 100, 150, 200 })
                 {
                     LayoutScale(96, 100);
@@ -222,13 +223,59 @@ namespace CapriDesktop
             }
         }
 
+        // Legacy stand's tip is Lachy's line and nothing else, however big the Mainframe is, with no heading and none of her help.
+        private void LegacyTipChecks(List<string> checks, string output)
+        {
+            const string Words = "Incase it broke your mod, soz!";
+            bool standWas = capri.LegacyStand;
+            try
+            {
+                SettingHint row = hints[legacyStand];
+                if (Mods.LegacyTip != Words || row.Exact != Words || row.Title.Length != 0 || row.Text != Words || legacyStand.AccessibleDescription != Words)
+                    throw new Exception("Legacy stand's row isn't set to his line: " + row.Text);
+                if (SelfKnow.Setting("Mainframe.cs", "Legacy stand") != row.Topic || row.Topic.Facts.Contains(Words)) throw new Exception("Legacy stand's help and its tip got mixed up.");
+                if (!standWas) capri.ToggleLegacyStand();
+                capri.InSimpleSettings(delegate
+                {
+                    foreach (int percent in new[] { 100, 150, 200 })
+                    {
+                        LayoutScale(96, 100);
+                        SizeMainframe(percent);
+                        ShowSettings(true);
+                        if (!simple) throw new Exception("Legacy stand's tip check didn't open Simple Settings.");
+                        ScrollPage(0);
+                        Reveal(legacyStand);
+                        DismissHint();
+                        dismissedHint = null;
+                        overHint = null;
+                        MoveOverHint(legacyStand);
+                        AwaitHint(legacyStand);
+                        CheckHintPlace(legacyStand);
+                        if (hintCard.Body != Words || hintCard.Heading.Length != 0 || hintCard.AccessibleName != Words || hintCard.AccessibleDescription != Words || row.Text != Words)
+                            throw new Exception("Legacy stand's tip showed something else at " + percent + "%: \"" + hintCard.Heading + "\" / \"" + hintCard.Body + "\"");
+                        if (hintCard.Width > Px(360)) throw new Exception("Legacy stand's tip is wider than 360 scaled pixels.");
+                        if (percent == 100) SaveTipPreview(output, "legacy-stand.png");
+                        TipMessage(legacyStand, 0x02A3, 0);
+                        if (HintVisible) throw new Exception("Legacy stand's tip stayed after mouse leave.");
+                    }
+                });
+                checks.Add("PASS Legacy stand's tip: in Simple Settings, hovering shows exactly \"" + Words + "\" with no heading at 100%, 150% and 200%, and screen readers get the same words");
+            }
+            finally
+            {
+                DismissHint();
+                if (capri.LegacyStand != standWas) capri.ToggleLegacyStand();
+                ShowSettings(paged);
+            }
+        }
+
         private bool HintVisible { get { return hintCard != null && hintCard.Visible; } }
 
         private void CheckHintText(SettingHint hint)
         {
             string prefix = hint.Text;
             if (prefix.EndsWith(" Ask Capri for more", StringComparison.Ordinal)) prefix = prefix.Substring(0, prefix.Length - " Ask Capri for more".Length).TrimEnd('.');
-            if (prefix.Length == 0 || !HintCard.Unpathed(hint.Topic.Facts).StartsWith(prefix, StringComparison.Ordinal) || hint.Control.AccessibleDescription != hint.Text)
+            if (prefix.Length == 0 || !(hint.Exact ?? HintCard.Unpathed(hint.Topic.Facts)).StartsWith(prefix, StringComparison.Ordinal) || hint.Control.AccessibleDescription != hint.Text || hint.Exact != null && hint.Text != hint.Exact)
                 throw new Exception("A tip differs from SelfKnow or AccessibleDescription: " + hint.Title);
             using (Font ink = HintCard.Ink(Unit()))
                 if (TextRenderer.MeasureText(hint.Text, ink, new Size(Math.Max(1, Px(332)), int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.TextBoxControl).Height > ink.Height * 6)

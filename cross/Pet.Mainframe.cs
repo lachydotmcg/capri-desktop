@@ -12,9 +12,11 @@ namespace CapriDesktop
         internal Mods ModList { get; private set; }
         internal static volatile string SkinFolder;
         internal static volatile string[] SkinAccessories = Array.Empty<string>();
+        internal static volatile bool LegacyArt;
 
         private void StartMods()
         {
+            LegacyArt = Saved.LegacyStand;
             ModList = new Mods(Program.Smoke ?? folder);
             Chores.Skills = ModList.SkillsFor;
             ModList.SkinChanged = Reskinned;
@@ -25,7 +27,11 @@ namespace CapriDesktop
         private void Reskinned()
         {
             foreach (Clip shown in Clips) shown.Reload();
-            if (body != null) body.InvalidateVisual();
+            blinkWith = null;
+            if (body == null) return;
+            // The old stand has 16 cells, and until the next tick she could still be on one of the new stand's 60.
+            if (body.Shown != null) body.Cell %= body.Shown.Count;
+            body.InvalidateVisual();
         }
 
         internal static bool HasArt(string name)
@@ -55,7 +61,7 @@ namespace CapriDesktop
                     Brain.Log("mods", -1, "Skin picture " + name + ": " + error.Message);
                 }
             }
-            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(name))
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(Mods.StandArt(name, LegacyArt)))
             {
                 if (stream == null) throw new FileNotFoundException("Capri's animation is missing: " + name);
                 return Finished(Dressed(stream, name));
@@ -114,7 +120,7 @@ namespace CapriDesktop
             int[] top = Pixels(File.ReadAllBytes(file), out width, out height);
             int[] under;
             int ownWidth, ownHeight;
-            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(name))
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(Mods.BaseArt(name, width, height)))
             {
                 if (stream == null) return null;
                 using (MemoryStream bytes = new MemoryStream())

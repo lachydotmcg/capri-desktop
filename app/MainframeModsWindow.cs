@@ -35,7 +35,8 @@ namespace CapriDesktop
 
         private void PublishMod(int row)
         {
-            Mod mod = Listed[modFirst + row];
+            Mod mod = ShownMod(row);
+            if (mod == null) return;
             PublishSheet sheet = new PublishSheet(this, SheetZoom(PublishSheet.Wide, PublishSheet.Tall), mod);
             sheet.ShowDialog(this);
             sheet.Dispose();
@@ -301,26 +302,27 @@ namespace CapriDesktop
 
         private sealed class ModsSheet : ModSheet
         {
-            internal const int Wide = 744, Tall = 752, Across = 3, Down = 2, Cards = Across * Down, CardWide = 222, CardStep = 233, CardTop = 110, CardTall = 284;
+            internal const int Wide = 744, Tall = 782, Across = 3, Down = 2, Cards = Across * Down, CardWide = 222, CardStep = 233, CardTop = 140, CardTall = 284;
             private readonly ModPreview[] previews = new ModPreview[Cards];
             private readonly Label[] titles = new Label[Cards], authors = new Label[Cards], abouts = new Label[Cards], metas = new Label[Cards], counts = new Label[Cards], stats = new Label[Cards];
             private readonly ToolTip details = new ToolTip();
             private readonly ModStars[] stars = new ModStars[Cards];
             private readonly Key[] installs = new Key[Cards], views = new Key[Cards];
             private readonly Key[] filters = new Key[ModDirectory.Kinds.Length];
+            private readonly Key[] sorts = new Key[ModDirectory.Sorts.Length];
             private readonly Entry search;
             private readonly Label status, empty, page;
             private readonly Key back, next;
             private readonly Dictionary<string, Image> pictures = new Dictionary<string, Image>();
             private readonly HashSet<string> asked = new HashSet<string>();
             private List<ModListing> listings = new List<ModListing>(), shown = new List<ModListing>();
-            private int filter, first, ticket;
+            private int filter, first, ticket, order;
             private bool installing, statsLive;
             internal bool Inline;
 
             internal ModsSheet(Mainframe owner, float zoom) : base(owner, zoom, "Mods directory", "MODS DIRECTORY >", Wide, Tall)
             {
-                Words("The directory checks mods for malware first. Code mods still ask before they run.", 28, 52, 688, 16, Small(), Faint);
+                Words("Every mod is checked for malware before it goes up. Code mods still ask before they run.", 28, 52, 688, 16, Small(), Faint);
                 search = new Entry();
                 search.Bounds = Box(28, 74, 270, 26);
                 search.Cue = "Search name, author or description";
@@ -334,6 +336,14 @@ namespace CapriDesktop
                     filters[i] = Make(ModDirectory.Kinds[i], 306 + i * 82, 76, 76, 22, delegate { first = 0; filter = kind; Fill(); });
                     filters[i].AccessibleName = "Show " + ModDirectory.Kinds[i].ToLowerInvariant() + " in the mods directory";
                     filters[i].AccessibleDescription = "Mod filter";
+                }
+                Words("SORT BY", 28, 109, 70, 16, Small(), Faint);
+                for (int i = 0; i < sorts.Length; i++)
+                {
+                    int pick = i;
+                    sorts[i] = Make(ModDirectory.Sorts[i], 476 + i * 82, 106, 76, 22, delegate { first = 0; order = pick; Fill(); });
+                    sorts[i].AccessibleName = "Sort the mods directory by " + ModDirectory.Sorts[i].ToLowerInvariant();
+                    sorts[i].AccessibleDescription = "Mod sort";
                 }
                 for (int i = 0; i < Cards; i++)
                 {
@@ -358,13 +368,13 @@ namespace CapriDesktop
                     views[i] = Make("View", x + 114, y + 248, 108, 24, delegate { View(card); });
                     views[i].AccessibleDescription = "View mod";
                 }
-                back = Make("Back", 28, 680, 60, 22, delegate { first -= Cards; Fill(); });
-                page = Words("", 272, 682, 200, 18, Font, Faint);
+                back = Make("Back", 28, 710, 60, 22, delegate { first -= Cards; Fill(); });
+                page = Words("", 272, 712, 200, 18, Font, Faint);
                 page.TextAlign = ContentAlignment.MiddleCenter;
-                next = Make("Next", 656, 680, 60, 22, delegate { first += Cards; Fill(); });
-                empty = Words("", 28, 250, 688, 24, Font, Faint);
+                next = Make("Next", 656, 710, 60, 22, delegate { first += Cards; Fill(); });
+                empty = Words("", 28, 280, 688, 24, Font, Faint);
                 empty.TextAlign = ContentAlignment.MiddleCenter;
-                status = Words("", 28, 708, 688, 36, Font, Faint);
+                status = Words("", 28, 738, 688, 36, Font, Faint);
                 Frame.Fit(this);
                 Fill();
             }
@@ -451,7 +461,7 @@ namespace CapriDesktop
 
             private void Fill()
             {
-                shown = ModDirectory.Filter(listings, search.Box.Text, filter);
+                shown = ModDirectory.Sort(ModDirectory.Filter(listings, search.Box.Text, filter), order);
                 first = Math.Max(0, Math.Min(first, (Math.Max(0, shown.Count - 1) / Cards) * Cards));
                 empty.Visible = shown.Count == 0;
                 empty.Text = listings.Count == 0 ? "Nothing to show from the mods directory." : "No mods match that.";
@@ -459,6 +469,11 @@ namespace CapriDesktop
                 {
                     filters[i].Accent = i == filter ? Cyan : Faint;
                     filters[i].Invalidate();
+                }
+                for (int i = 0; i < sorts.Length; i++)
+                {
+                    sorts[i].Accent = i == order ? Cyan : Faint;
+                    sorts[i].Invalidate();
                 }
                 for (int i = 0; i < Cards; i++)
                 {
@@ -599,8 +614,10 @@ namespace CapriDesktop
             internal bool CanRateCard(int card) { return stars[card].Visible && stars[card].CanRate; }
             internal bool Across3 { get { return titles[0].Top == titles[2].Top && titles[0].Left < titles[1].Left && titles[1].Left < titles[2].Left && titles[3].Top > titles[0].Top; } }
             internal bool Filtered(int kind) { return filters[kind].Accent == Cyan; }
+            internal bool Sorted(int order) { return sorts[order].Accent == Cyan; }
             internal void PressNext() { next.PerformClick(); }
             internal void PressFilter(int kind) { filters[kind].PerformClick(); }
+            internal void PressSort(int order) { sorts[order].PerformClick(); }
             internal void Type2(string text) { search.Box.Text = text; }
             internal void PressInstall(int card) { Install(card); }
             internal void PressStars(int card, int picked) { stars[card].Pick(picked); }

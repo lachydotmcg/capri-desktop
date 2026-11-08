@@ -1190,9 +1190,19 @@ namespace CapriDesktop
             foreach (float scale in new[] { 1f, 1.5f, 2f })
             {
                 using (Mainframe.HintCard tip = new Mainframe.HintCard())
+                {
+                    // Each tip is one line: a squashed one stacks its words, or its letters, and comes out tall.
                     foreach (string text in new[] { "Mute", "Unmute", "Start listening", "Turn Discord off", "Turn Discord on", "Turn captions off", "Turn captions on", "End call" })
                         foreach (int y in new[] { 0, 940 })
-                            if (!tip.Place(text, scale, new Rectangle(120, y, 92, 46), new Rectangle(0, 0, 1920, 1080)) || tip.AccessibleName != text) throw new Exception("A call hover tip did not fit by its button.");
+                            if (!tip.Place(text, scale, new Rectangle(120, y, 92, 46), new Rectangle(0, 0, 1920, 1080)) || tip.AccessibleName != text || tip.Height > (int)Math.Ceiling(52 * scale))
+                                throw new Exception("A call hover tip did not fit by its button, or came out squashed: " + text + " at " + scale + "x is " + tip.Size);
+                    tip.Place("Turn Discord off", scale, new Rectangle(120, 0, 92, 46), new Rectangle(0, 0, 1920, 1080));
+                    using (Bitmap shot = new Bitmap(tip.Width, tip.Height))
+                    {
+                        tip.DrawToBitmap(shot, new Rectangle(Point.Empty, tip.Size));
+                        shot.Save(Path.Combine(folder, "call-tip-" + (int)(scale * 100) + ".png"), ImageFormat.Png);
+                    }
+                }
                 for (int i = 0; i < states.Length; i++)
                     using (CallPanel panel = new CallPanel(face, null, scale))
                     using (Bitmap whole = new Bitmap(panel.Px(Wide), panel.Px(392)))

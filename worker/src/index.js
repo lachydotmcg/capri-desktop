@@ -174,6 +174,7 @@ const claudeModel = 'claude-haiku-5-5';
 const perVisitor = 40;
 const perVisitorPictures = 10;
 const perDay = 2000;
+const perDayDiscord = 500;
 const look = 'Write down the exact words you can read in this screenshot, like titles, messages and buttons, then name the app or window in a few words. Plain text, under 60 words.';
 const anchors = { 2: 'install', 3: 'mac', 4: 'linux', 5: 'first-run', 6: 'first-run', 7: 'mainframe', 8: 'menu', 9: 'brain', 10: 'brain', 11: 'voice', 12: 'voice-chat', 13: 'notes', 14: 'moving', 15: 'do', 16: 'screen', 17: 'updates', 18: 'uninstall', 19: 'privacy', 20: 'get-help', 21: 'mac-linux', 22: 'older', 23: 'fixes' };
 const skip = new Set('a an and any also are as at be but by can could do does doing done for from get got has have her hers here how i if in into is it its just know like make me my not of on one or please say said says she so some stuff that the their them then there they thing this to too up want was way we what when where which who why will with would you your capri choom help'.split(' '));
@@ -194,7 +195,8 @@ const rules = inDiscord => [
     'Night City slang goes in rarely: most replies have none, and it is never a greeting on its own.',
     'Keep it fresh: never reuse an opener, joke, line or question you already said. Lines starting You said are your own recent messages in this channel.',
     'Never write @everyone or @here.',
-    "Never put links in your reply. When your answer comes from the help notes, end it with LINK: and the chapter name from that note's [ ] label, like LINK: Her voice. Leave LINK out for chit-chat, jokes and greetings."
+    "Never put links in your reply. When your answer comes from the help notes, end it with LINK: and the chapter name from that note's [ ] label, like LINK: Her voice. Leave LINK out for chit-chat, jokes and greetings.",
+    "When a person needs to step in, say so in one short line of your own, then end with PING: and who. PING: helper if they ask for a human, a helper or staff, or it's still broken after your fixes. PING: moderator if they ask for a mod, or for rule-breaking, scams, harassment or anything about the server itself. PING: developer only for a genuine bug in Capri, when they've said what happens, it isn't a setup mistake and the help notes' fixes didn't work. Leave PING out for everything else, and never use it for a joke or a dare."
   ] : [
     "You are Capri, the glitchy cyberpunk desktop companion from the Capri app. You're in the corner of your own website, helping people set you up and fix problems.",
     'Answer only from the help notes below. If they do not cover the question, say you are not sure, and point them to the Discord (' + discord + ') or the Help page.',
@@ -391,6 +393,12 @@ const cited = (answer, shown) => {
   return { text, section: named.find(section => section.title.toLowerCase() === title) || named[0] || null };
 };
 
+// When a person has to step in she ends with PING: and who. The bot does the pinging, so nothing she types can mention anyone (Lachy, 7 Nov).
+const called = answer => {
+  const who = [...answer.matchAll(/\bPING:\s*@?(\w+)/gi)].map(found => found[1].toLowerCase()).find(role => ['helper', 'moderator', 'developer'].includes(role)) || null;
+  return { text: answer.replace(/\s*\bPING:\s*@?\w*[.!?]?/gi, '').trim(), who };
+};
+
 // Claude answers when the worker has an ANTHROPIC_API_KEY secret, and Workers AI is the fallback. null means Claude refused.
 const ask = async (env, messages, max_tokens, system) => {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 20000 });
@@ -450,8 +458,9 @@ const respond = async (request, env, ctx, reply, body, user) => {
   ctx.waitUntil(env.DB.prepare('DELETE FROM helps WHERE day < ?').bind(day).run());
   if (mine.count > perVisitor) return reply({ reply: "That's a lot of questions for one day, choom. The Help page has everything, or ask in the Discord.", links: [{ title: 'Help page', href: site + 'help/' }, { title: 'Discord', href: discord }] }, 429);
   if (image && mine.pictures > perVisitorPictures) return reply({ reply: "That's a lot of pictures for one day. Type out what yours says and I'll help.", links: [{ title: 'Help page', href: site + 'help/' }] }, 429);
-  const all = await env.DB.prepare('INSERT INTO help_days (day, count) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET count = count + 1 RETURNING count').bind(day).first();
-  if (all.count > perDay) return reply({ reply: "I'm swamped today. The Help page has everything, or ask in the Discord.", links: [{ title: 'Help page', href: site + 'help/' }, { title: 'Discord', href: discord }] }, 429);
+  // The Discord counts on its own negative day, so a busy website can't silence the bot (Lachy, 7 Nov).
+  const all = await env.DB.prepare('INSERT INTO help_days (day, count) VALUES (?, 1) ON CONFLICT(day) DO UPDATE SET count = count + 1 RETURNING count').bind(user ? -day : day).first();
+  if (all.count > (user ? perDayDiscord : perDay)) return reply({ reply: "I'm swamped today. The Help page has everything, or ask in the Discord.", links: [{ title: 'Help page', href: site + 'help/' }, { title: 'Discord', href: discord }] }, 429);
 
   let sections = [];
   try { sections = await knowledge(env); } catch (error) { }
@@ -483,8 +492,9 @@ const respond = async (request, env, ctx, reply, body, user) => {
   if (why === 'allowance') return reply({ reply: "I've answered all I can for today, choom. I'm back after midnight UTC. The Help page has everything, or ask in the Discord.", links: [{ title: 'Help page', href: site + 'help/' }, { title: 'Discord', href: discord }], why });
   if (!answer) return reply({ why,  reply: chosen.length ? 'My help line is glitching, but this part of the Help page should cover it:' : "My help line is glitching right now. The Help page has everything, or ask in the Discord.", links: chosen.length ? links : [{ title: 'Help page', href: site + 'help/' }, { title: 'Discord', href: discord }] });
   if (user) {
-    const { text: line, section } = cited(answer, shown);
-    return reply({ reply: line, links: section ? [link(section)] : [], answered: true });
+    const { text: words, who } = called(answer);
+    const { text: line, section } = cited(words || 'Getting a person for this one.', shown);
+    return reply({ reply: line, links: section ? [link(section)] : [], answered: true, ping: who });
   }
   return reply({ reply: answer, links: links.length ? links : [{ title: 'Help page', href: site + 'help/' }], answered: true });
 };

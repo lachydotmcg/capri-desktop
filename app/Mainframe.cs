@@ -114,6 +114,7 @@ namespace CapriDesktop
         private readonly Toggle headPats;
         private readonly Toggle upsetChaos;
         private readonly Toggle hologram;
+        private readonly Toggle legacyStand;
         private readonly Toggle startup;
         private readonly Toggle discord;
         private readonly Toggle cursor;
@@ -140,7 +141,6 @@ namespace CapriDesktop
         private readonly Toggle followUps;
         private readonly Key huskMode;
         private readonly ContextMenuStrip huskMenu;
-        private static readonly string[] HuskNames = { "Off", "Claude Code", "Codex", "Both" };
         private readonly Slider watchMemory;
         private readonly Readout watchMemoryName;
         private static readonly int[] WatchLines = { 8, 16, 24, 48, 96 };
@@ -279,7 +279,7 @@ namespace CapriDesktop
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1316, 1368 }, new[] { 1368, 1396 } };
         // Power saver's row stays in Simple Settings, so the right column's last band starts a row lower, at Perch.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 680, 1090 }, new[] { 1314, 2140 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 708, 1118 }, new[] { 1342, 2168 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -352,7 +352,8 @@ namespace CapriDesktop
         private readonly Readout popsName;
         private readonly Key popTimes, gameNotes, miniGames;
         private ContextMenuStrip miniMenu;   // kept like the other menus; disposing it in its own Closed crashed WinForms
-        private readonly Key notesKey, memoriesKey;
+        private readonly Key notesKey, memoriesKey, filesKey;
+        internal void PressFiles() { InvokeOnClick(filesKey, EventArgs.Empty); }
         private readonly Toggle dance;
         private readonly Slider replies;
         private readonly Readout repliesName;
@@ -625,12 +626,16 @@ namespace CapriDesktop
             advancedKey.Accent = Cyan;
             advancedKey.Loud = true;
             Section("YOU >", 0, 58);
-            notesKey = Make("Open her notes", 236, 55, 120, 20, delegate { EditNotes(false); });
+            notesKey = Make("Open her notes", 184, 55, 96, 20, delegate { EditNotes(false); });
             notesKey.AccessibleName = "Open her notes: edit me.md here, or her note in your Obsidian vault";
+            filesKey = Make("File editor", 286, 55, 70, 20, delegate { capri.OpenFiles(0); });
+            filesKey.AccessibleName = "File editor: edit personality.md and me.md in one panel";
             // Their personality.md (back in 0.8.0): the key says whose personality she's using, and its menu edits or resets it.
             personalityMenu = Dropdown();
-            personalityKey = Make("Her personality", 92, 55, 136, 20, delegate { ShowPersonalityMenu(); });
+            personalityKey = Make("Her personality", 72, 55, 106, 20, delegate { ShowPersonalityMenu(); });
             personalityKey.AccessibleName = "Her personality: edit personality.md, or put her default back";
+            // Her own font fits all three on this row. Windows' fallback font is wider, so there they end in dots rather than spill.
+            personalityKey.Ellipsis = notesKey.Ellipsis = filesKey.Ellipsis = true;
             Named("Language", 0, 82);
             languageMenu = Dropdown();
             languageMenu.AccessibleName = "Her language";
@@ -685,7 +690,7 @@ namespace CapriDesktop
             typing.AccessibleName = "Typing sound. A soft typing sound while her text replies type out";
             listenCapri = Switch("Listen for Capri", 0, 400, delegate { if (!syncing) capri.ToggleListenCapri(); });
             Caption("Say her name anywhere to chat", 28, 428, small, Faint);
-            listenCapri.AccessibleName = "Listen for Capri. Keep the mic open; say her name anywhere in your sentence. Stop and push to talk still work";
+            listenCapri.AccessibleName = "Listen for Capri. Keep the mic open; say her name anywhere in your sentence, then just talk until you go quiet. Stop and push to talk still work";
             Caption("Hearing", 28, 454, Type(9.5f), Rose).AccessibleName = "Hearing";
             hearingMenu = Dropdown();
             hearingMenu.AccessibleName = "Hearing engine choices";
@@ -825,6 +830,8 @@ namespace CapriDesktop
             // Hologram stays reversible here even while clicks pass through her body (Lachy, 2 Nov).
             hologram = Switch("Hologram", c, 278, delegate { if (!syncing) capri.ToggleHologram(); });
             hologram.AccessibleName = "Hologram. Clicks pass through her body, talk pill and bubble. Turn this off to give her clicks back";
+            legacyStand = Switch("Legacy stand", c, 306, delegate { if (!syncing) capri.ToggleLegacyStand(); });
+            legacyStand.AccessibleName = "Legacy stand. She goes back to her old stand";
             int afterPats = Controls.Count;
             Section("WATCH >", c, 208);
             watch = Switch("Watch my screen", c, 232, delegate { if (!syncing) capri.ToggleWatch(); });
@@ -851,10 +858,10 @@ namespace CapriDesktop
             huskMode = Make("Off", ValueAt + c, 357, ValueWide, 22, delegate { huskMenu.Show(huskMode, new Point(0, huskMode.Height)); }, "Code/Husk Mode");
             huskMode.Chevron = true;
             huskMode.AccessibleName = "Code/Husk Mode";
-            for (int i = 0; i < HuskNames.Length; i++)
+            for (int i = 0; i < HuskWatch.Names.Length; i++)
             {
-                int choice = i;
-                huskMenu.Items.Add(Choice(HuskNames[i], false, delegate { capri.SetHusk(choice); }));
+                int choice = HuskWatch.Modes[i];
+                huskMenu.Items.Add(Choice(HuskWatch.Names[i], false, delegate { capri.SetHusk(choice); }));
             }
             int afterHusk = Controls.Count;
             stayOnModel = Switch("Stay on my model", c, 354, delegate { if (!syncing) capri.ToggleStayOnModel(); });
@@ -987,9 +994,9 @@ namespace CapriDesktop
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
                 if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row;
-            // Mainframe colours, Head pats, Chaos when upset and Hologram each take a row under Mainframe size.
+            // Mainframe colours, Head pats, Chaos when upset, Hologram and Legacy stand each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
-                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 4;
+                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 5;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
                 if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
             // The hearing row and Her voice in your mic's rows push GAMES down under KEYS too.
@@ -1715,6 +1722,26 @@ namespace CapriDesktop
 
         internal bool HeadPatsShown { get { return headPats.Checked; } }
         internal bool UpsetChaosShown { get { return upsetChaos.Checked; } }
+        internal bool LegacyStandShown { get { return legacyStand.Checked; } }
+        internal string LegacyStandTip { get { return legacyStand.AccessibleDescription; } }
+        internal void FlipLegacyStand() { legacyStand.Checked = !legacyStand.Checked; }
+        // How far down each column of the Settings page reaches in the view that's open, against the page's height.
+        internal string PageReach
+        {
+            get
+            {
+                int left = 0, right = 0;
+                foreach (KeyValuePair<Control, int> entry in pageLeft)
+                {
+                    if (Folded(entry.Key) || Hidden(entry.Key)) continue;
+                    if (entry.Value >= Column) right = Math.Max(right, entry.Key.Bottom);
+                    else left = Math.Max(left, entry.Key.Bottom);
+                }
+                int down = Scaled(pageScroll);
+                return (left + down) + " | " + (right + down) + " | " + Scaled(PageNow);
+            }
+        }
+        internal bool LegacyStandInPage { get { return !Folded(legacyStand) && !Hidden(legacyStand) && PageArea.Contains(legacyStand.Bounds); } }
 
         internal string WanderShown { get { return wanderName.Text; } }
 
@@ -2762,9 +2789,13 @@ namespace CapriDesktop
         internal void Sync()
         {
             syncing = true;
-            huskMode.Text = HuskNames[capri.HuskMode];
+            huskMode.Text = HuskWatch.Names[HuskWatch.Choice(capri.HuskMode)];
             huskMode.Enabled = !capri.HuskChanging;
-            for (int i = 0; i < huskMenu.Items.Count; i++) ((ToolStripMenuItem)huskMenu.Items[i]).Checked = i == capri.HuskMode;
+            for (int i = 0; i < huskMenu.Items.Count; i++)
+            {
+                ((ToolStripMenuItem)huskMenu.Items[i]).Checked = i == HuskWatch.Choice(capri.HuskMode);
+                huskMenu.Items[i].Visible = i < HuskWatch.Choices(capri.HuskMode).Length;
+            }
             huskMode.Invalidate();
             hearingChoice.Text = HearingStatus.Choices[capri.HearingChoice];
             hearingChoice.AccessibleName = "Hearing: " + hearingChoice.Text;
@@ -2853,6 +2884,7 @@ namespace CapriDesktop
             dance.Checked = capri.Dancing;
             headPats.Checked = capri.HeadPats;
             upsetChaos.Checked = capri.UpsetChaos;
+            legacyStand.Checked = capri.LegacyStand;
             hologram.Checked = capri.HologramOn;
             bubble.Value = capri.BubbleTime;
             bubbleName.Text = BubbleNames[bubble.Value];
@@ -2919,7 +2951,7 @@ namespace CapriDesktop
         internal bool CaughtUpShown { get { return caughtUp.Checked; } }
         internal bool FollowUpsShown { get { return followUps.Checked; } }
         internal string HuskShown { get { return huskMode.Text; } }
-        internal bool HuskPicker { get { return huskMode.Chevron && huskMenu.Items.Count == 4 && huskMenu.Items[0].Text == "Off" && huskMenu.Items[1].Text == "Claude Code" && huskMenu.Items[2].Text == "Codex" && huskMenu.Items[3].Text == "Both"; } }
+        internal bool HuskPicker { get { return huskMode.Chevron && huskMenu.Items.Count == 6 && huskMenu.Items[0].Text == "Off" && huskMenu.Items[1].Text == "Claude Code" && huskMenu.Items[2].Text == "Codex" && huskMenu.Items[3].Text == "OpenCode" && huskMenu.Items[4].Text == "All" && huskMenu.Items[5].Text == "Claude Code + Codex"; } }
         internal int WatchMemoryShown { get { return WatchLines[watchMemory.Value]; } }
         internal void FlipFollowUps() { followUps.Checked = !followUps.Checked; }
 
@@ -6456,7 +6488,7 @@ namespace CapriDesktop
                 Extra(0, "Watch my screen", "She glances at your screen and comments. Costs a little on a paid brain.", small, delegate { owner.capri.ToggleWatch(); });
                 Extra(1, "Comment on my games", "She talks about your game as you play. Costs a little on a paid brain.", small, delegate { owner.capri.SetCommentPace(toggles[1].Checked ? 2 : 0); owner.Sync(); });
                 Extra(2, "Clip my games", "Keeps the last two minutes of your game in memory. Say clip that to save it.", small, delegate { owner.capri.ToggleClips(); });
-                Extra(3, "Listen for Capri", "She keeps listening and answers when you say her name.", small, delegate { owner.capri.ToggleListenCapri(); });
+                Extra(3, "Listen for Capri", "She keeps listening. Say her name, then just talk until you go quiet.", small, delegate { owner.capri.ToggleListenCapri(); });
                 Key done = new Key();
                 done.Text = "Done";
                 done.Font = Type(9f * zoom, true);

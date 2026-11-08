@@ -574,7 +574,7 @@ namespace CapriDesktop
             {
                 Brain.LogPath = log;
                 List<string> asked = new List<string>();
-                string url = FakeServer(new[] { "too long a reply", "right" }, asked, out fake, 200, 0, false, 0, "application/octet-stream");
+                string url = FakeServer(new[] { "too long a reply", "right", "right" }, asked, out fake, 200, 0, false, 0, "application/octet-stream");
                 string[] downloads = new string[2];
                 for (int i = 0; i < 2; i++)
                 {
@@ -584,6 +584,11 @@ namespace CapriDesktop
                 if (downloads[0] != "The download of her test pack came out the wrong size. Try again." || downloads[1] != "The download of her test pack didn't match its checksum. Try again."
                     || Retrying(downloads[0]) != "The download of her test pack came out the wrong size." || Retrying("The download of her wake word keeps stopping. Check your connection and try again.") != "The download of her wake word keeps stopping. Check your connection." || Retrying("Cancelled.") != "Cancelled.")
                     throw new Exception("A download line started in lowercase or told her to try again while she retries: " + string.Join(" | ", downloads));
+                string stale = Path.Combine(folder, "stale.bin"), wanted = Path.Combine(folder, "wanted.bin");
+                File.WriteAllText(wanted, "right");
+                File.WriteAllText(stale + ".part", "wrong");
+                Engine.Fetch(url, stale, 5, Engine.Hash(wanted), "her test pack", delegate { }, delegate { return false; });
+                if (File.ReadAllText(stale) != "right" || File.Exists(stale + ".part")) throw new Exception("A part left from a different file failed the download instead of starting it over.");
                 Exception[] raw =
                 {
                     new UnauthorizedAccessException("Access to the path 'C:\\Clips\\a.mp4' is denied."), new IOException("There is not enough space on the disk.", unchecked((int)0x80070070)),

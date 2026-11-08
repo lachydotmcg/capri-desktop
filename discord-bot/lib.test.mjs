@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { trigger, question, context, history, attachment, links, result, chunks, fallback, empty, quiet, name } from './lib.mjs'
+import { pingRole, pingGate, called } from './lib.mjs'
+import { trigger, question, context, history, attachment, links, result, chunks, fallback, empty, quiet, name, greeting, ticket, ticketContext, welcomed, staff, staffLine, toggle, switchedOff, switchedOn, notYours, ticketsOnly, pauses, handling, together, switches } from './lib.mjs'
 
 const me = '999'
 const now = 1800000000000
@@ -87,6 +88,211 @@ test('context adds her own last two lines without their links, and skips the one
   const recent = [said('71', 'Took you long enough.', 400000), said('72', 'There you are.\n\nHelp page: <https://capriai.app/help/>', 300000), said('73', 'Cute try.', 200000), replied, said('74', 'too old', 600001)]
   assert.equal(context(message('and then?'), replied, recent, me), 'Replied to Capri Bot: Pick it under VOICE.\nYou said: There you are.\nYou said: Cute try.')
   assert.equal(context(message('and then?'), null, recent), '')
+})
+
+test('a new ticket gets Lachys greeting with her own mention', () => {
+  assert.equal(greeting(me), 'Hey, how can I help? Just do !capri, <@999>, or reply to my messages for assistance!')
+})
+
+test('tickets are text channels named ticket-N or sitting in the tickets category', () => {
+  const channel = (fields = {}) => ({ guildId: '20', type: 0, name: 'ticket-0224', parent: { name: 'tickets' }, ...fields })
+  assert.equal(ticket(channel()), true)
+  assert.equal(ticket(channel({ parent: null })), true)
+  assert.equal(ticket(channel({ name: 'closed-0224' })), true)
+  for (const other of [channel({ name: 'general', parent: { name: '💬 COMMUNITY' } }), channel({ type: 2 }), channel({ guildId: null }), null]) assert.equal(ticket(other), false)
+})
+
+const tool = { id: '777', username: 'Ticket Tool', bot: true }, capri = { id: me, username: 'Capri Bot', bot: true }, mod = { id: '456', username: 'Mod', bot: false }
+const at = (id, ago, content, author = { id: '123', username: 'Sam', bot: false }, fields = {}) => message(content, { id, author, createdTimestamp: now - ago, ...fields })
+const welcome = at('60', 9000000, 'Welcome! Support will be with you shortly.', tool, { mentions: { users: { size: 1, first: () => ({ id: '123', username: 'Sam' }) }, members: { first: () => ({ displayName: 'Sam K' }) } } })
+const asked = message('!capri what now?', { channel: { name: 'ticket-0224' } })
+
+test('ticket context names the opener, starts with their first message and follows the ticket in order', () => {
+  const rows = [
+    at('66', 60000, 'still nothing'),
+    at('65', 120000, 'Try Forget, then paste the key again.\n\nHelp page: <https://capriai.app/help/>', capri),
+    welcome,
+    at('61', 8990000, greeting(me), capri),
+    at('62', 8000000, 'my voice stopped working after the update'),
+    at('63', 7000000, 'which voice do you use?', mod),
+    at('64', 6000000, 'fish audio'),
+    at('67', 1000, 'other channel', undefined, { channelId: '11' }),
+    at('68', -1000, 'future'),
+    at('64', 6000000, 'fish audio')
+  ]
+  assert.equal(ticketContext(asked, null, rows, me), [
+    'This is support ticket #ticket-0224, opened by Sam K.',
+    'Sam opened with: my voice stopped working after the update',
+    'Mod: which voice do you use?',
+    'Sam: fish audio',
+    'You said: Try Forget, then paste the key again.',
+    'Sam: still nothing'
+  ].join('\n'))
+})
+
+test('ticket context keeps the opening and the newest lines inside 1200 characters', () => {
+  const rows = [welcome, at('62', 8000000, 'o'.repeat(1000))]
+  for (let i = 0; i < 20; i++) rows.push(at(String(70 + i), 5000000 - i * 1000, 'line ' + i + ' ' + 'x'.repeat(200), mod))
+  const text = ticketContext(asked, null, rows, me)
+  const lines = text.split('\n')
+  assert.ok(text.length <= 1200)
+  assert.equal(lines[1].length, 400)
+  assert.ok(lines[1].startsWith('Sam opened with: ooo'))
+  assert.ok(lines.at(-1).startsWith('Mod: line 19 '))
+  assert.ok(!text.includes('line 0 '))
+})
+
+test('ticket context adds a replied message from outside the ticket rows, but never her greeting', () => {
+  const old = at('50', 9500000, 'Pick your mic under VOICE.', capri)
+  assert.equal(ticketContext(asked, old, [welcome], me), 'This is support ticket #ticket-0224, opened by Sam K.\nReplied to Capri Bot: Pick your mic under VOICE.')
+  assert.equal(ticketContext(asked, at('61', 8990000, greeting(me), capri), [welcome], me), 'This is support ticket #ticket-0224, opened by Sam K.')
+  assert.equal(ticketContext(message('hi', { channel: { name: 'ticket-0001' } }), null, [], me), 'This is support ticket #ticket-0001.')
+})
+
+test('the welcome is the oldest bot message with a mention that is not hers', () => {
+  const hers = at('61', 8990000, greeting(me), capri, { mentions: { users: { size: 1 } } })
+  assert.equal(welcomed([hers, at('59', 9100000, 'no mention', tool), welcome], me), welcome)
+  assert.equal(welcomed([hers, at('62', 8000000, '<@999> hi', undefined, { mentions: { users: { size: 1 } } })], me), null)
+})
+
+const role = (name, position) => ({ id: String(500 + position), name, position })
+const ranks = [role('Admin', 89), role('🛡️ Head Moderator', 79), role('Moderator', 72), role('Ticket Tool', 71), role('Helpers ✨', 67), role('Helper Pings', 5), role('Supporter', 4), role('@everyone', 0)]
+const member = (position, granted = [], fields = {}) => ({ user: { bot: false }, roles: { highest: { position } }, permissions: { has: bit => granted.includes(bit) }, ...fields })
+const administrator = 8n, manage = 8192n
+
+test('staff have a highest role at or above Helper, or Administrator or Manage Messages', () => {
+  assert.equal(staffLine(ranks).position, 67)
+  for (const position of [67, 72, 89]) assert.equal(staff(member(position), ranks), true, String(position))
+  for (const position of [66, 5, 0]) assert.equal(staff(member(position), ranks), false, String(position))
+  assert.equal(staff(member(0, [administrator]), ranks), true)
+  assert.equal(staff(member(0, [manage]), ranks), true)
+  assert.equal(staff(member(0, [1024n]), ranks), false)
+  assert.equal(staff(member(89, [], { user: { bot: true } }), ranks), false)
+  assert.equal(staff(null, ranks), false)
+  // The bot passes the server's role cache as an iterator.
+  assert.equal(staff(member(70), new Map(ranks.map(entry => [entry.id, entry])).values()), true)
+  assert.equal(staff(member(50), new Map(ranks.map(entry => [entry.id, entry])).values()), false)
+})
+
+test('staff roles are found by name whatever the case or decoration, and without Helper the lowest staff role is the line', () => {
+  assert.equal(staffLine([role('𝐇𝐄𝐋𝐏𝐄𝐑', 9), role('Trial-Mod', 12)]).position, 9)
+  assert.equal(staffLine([role('Admin', 30), role('MODERATOR 🔨', 20), role('Helper Ping', 2), role('Capri AI Helper', 1)]).position, 20)
+  assert.equal(staffLine([role('━━ Staff ━━', 40), role('Hélper', 8)]).position, 8)
+  assert.equal(staffLine([role('Supporter', 3), role('Ex Mod', 2), role('Modder', 1)]), null)
+  assert.equal(staff(member(50), [role('Members', 1)]), false)
+  assert.equal(staff(member(0, [manage]), []), true)
+})
+
+test('--off and --on switch her after !capri, after an @mention of her, or on their own', () => {
+  for (const [text, which] of [['!capri --off', 'off'], ['!CAPRI   --ON', 'on'], ['<@999> --off', 'off'], ['<@!999> --on', 'on'], ['--off <@999>', 'off'], ['--off', 'off'], [' --On ', 'on']]) assert.equal(toggle(text, me), which, text)
+  for (const text of ['!capri --offline', '!capri off', '!capri --off please', '!capri -off', '!capri', '', 'turn --off', '!capricorn --off', '<@998> --off', '!capri --on --off']) assert.equal(toggle(text, me), null, text)
+})
+
+test('she confirms a switch in one short line, and turns down anyone but staff and the opener', () => {
+  for (const line of [switchedOff, switchedOn, notYours, ticketsOnly]) assert.ok(line.length <= 60 && !line.includes('\n'), line)
+  assert.ok(switchedOff.includes('!capri --on'))
+  assert.equal(notYours, 'Only staff or whoever opened this ticket can do that.')
+})
+
+// A clock and timers that only move when the test says so.
+const clockwork = () => {
+  let now = 0, count = 0
+  const timers = new Map()
+  return {
+    clock: () => now,
+    later: (run, ms) => { timers.set(++count, { run, at: now + ms }); return count },
+    stop: id => { timers.delete(id) },
+    pass: ms => {
+      const end = now + ms
+      for (let next; (next = [...timers].filter(([, timer]) => timer.at <= end).sort((a, b) => a[1].at - b[1].at)[0]);) {
+        timers.delete(next[0])
+        now = next[1].at
+        next[1].run()
+      }
+      now = end
+    }
+  }
+}
+const line = (id, author = '123') => ({ id, author: { id: author } })
+
+test('lines sent in a row wait for an 8 second pause and get one answer', () => {
+  const time = clockwork(), got = []
+  const waiting = pauses(lines => got.push([time.clock(), lines.map(entry => entry.id)]), time)
+  waiting.add('t1', line('a')); time.pass(5000)
+  waiting.add('t1', line('b')); time.pass(7000)
+  waiting.add('t1', line('c')); time.pass(7999)
+  assert.deepEqual(got, [])
+  assert.equal(waiting.count('t1'), 3)
+  time.pass(1)
+  assert.deepEqual(got, [[20000, ['a', 'b', 'c']]])
+  assert.equal(waiting.count('t1'), 0)
+  waiting.add('t1', line('d')); time.pass(9000)
+  assert.deepEqual(got.at(-1), [28000, ['d']])
+})
+
+test('typing holds the answer 10 seconds at a time, never past a minute after the last line', () => {
+  const time = clockwork(), got = []
+  const waiting = pauses(() => got.push(time.clock()), time)
+  waiting.typing('t1')
+  waiting.add('t1', line('a'))
+  time.pass(6000); waiting.typing('t1')
+  time.pass(9000)
+  assert.deepEqual(got, [])
+  time.pass(1000)
+  assert.deepEqual(got, [16000])
+  waiting.add('t1', line('b'))
+  for (let i = 0; i < 9; i++) { time.pass(7000); waiting.typing('t1') }
+  assert.deepEqual(got, [16000, 76000])
+  waiting.typing('t2')
+  time.pass(60000)
+  assert.equal(got.length, 2)
+})
+
+test('a staff line drops everything waiting in that ticket, and a direct ask drops only the askers lines', () => {
+  const time = clockwork(), got = []
+  const waiting = pauses(lines => got.push(lines.map(entry => entry.id)), time)
+  waiting.add('t1', line('a')); waiting.add('t1', line('b', '124')); waiting.add('t2', line('c'))
+  waiting.drop('t1', entry => entry.author.id !== '123')
+  time.pass(8000)
+  assert.deepEqual(got, [['b'], ['c']])
+  waiting.add('t1', line('d')); waiting.add('t1', line('e', '124'))
+  waiting.drop('t1')
+  waiting.drop('t3')
+  time.pass(60000)
+  assert.equal(got.length, 2)
+})
+
+test('lines from one pause make one question, oldest first, without her mention or the prefix', () => {
+  const lines = ['her voice cut out', '', 'it started after the update', '<@999> it happens every time', '!capri version 0.8.4'].map((content, i) => message(content, { id: String(i) }))
+  assert.equal(together(lines, me), 'her voice cut out / it started after the update / it happens every time / version 0.8.4')
+  assert.equal(together([message('x'.repeat(500)), message('y'.repeat(500))], me).length, 600)
+  assert.equal(together([message(''), message('<@999>')], me), '')
+})
+
+test('she keeps quiet while staff have posted in the last half hour, and bots, her greeting and switch lines never count', async () => {
+  const isStaff = id => id === mod.id
+  const rows = [welcome, at('61', 8990000, greeting(me), capri), at('62', 500, 'my voice broke'), at('63', 1000, 'ticket tool says hi', tool)]
+  assert.equal(await handling(rows, isStaff, now, 0, me), false)
+  assert.equal(await handling([...rows, at('64', 1799000, 'let me look', mod)], isStaff, now, 0, me), true)
+  assert.equal(await handling([...rows, at('64', 1800000, 'let me look', mod)], isStaff, now, 0, me), false)
+  assert.equal(await handling([...rows, at('64', 1000, '!capri --on', mod), at('65', 900, '--off', mod)], isStaff, now, 0, me), false)
+  assert.equal(await handling(rows, () => true, now, 0, me), true)
+  assert.equal(await handling([at('66', 1000, 'welcome back', tool), at('67', 900, 'hey', capri)], () => true, now, 0, me), false)
+})
+
+test('an --on lets her talk again even if staff posted before it, and each person is checked once', async () => {
+  const later = [at('64', 60000, 'all yours, Capri', mod), at('65', 50000, '!capri --on', mod), at('66', 1000, 'still broken')]
+  assert.equal(await handling(later, async id => id === mod.id, now, now - 50000, me), false)
+  assert.equal(await handling([...later, at('67', 500, 'one more thing', mod)], async id => id === mod.id, now, now - 50000, me), true)
+  let checked = 0
+  await handling([at('70', 3000, 'a'), at('71', 2000, 'b'), at('72', 1000, 'c')], () => { checked++; return false }, now, 0, me)
+  assert.equal(checked, 1)
+})
+
+test('ticket switches come back from JSON after a restart, without malformed entries or a stale --on', () => {
+  const saved = { 111: { off: true, at: now - 9000000 }, 222: { off: false, at: now - 60000 }, 333: { off: false, at: now - 1800001 }, abc: { off: true, at: now }, 444: { off: 'yes', at: now }, 555: { off: true }, 666: null }
+  assert.deepEqual([...switches(JSON.stringify(saved), now)], [['111', { off: true, at: now - 9000000 }], ['222', { off: false, at: now - 60000 }]])
+  for (const text of ['', 'not json', '[]', 'null', '42', '"text"']) assert.equal(switches(text, now).size, 0, text)
 })
 
 test('history follows three complete pairs in conversation order', () => {
@@ -210,4 +416,37 @@ test('chunks do not split a Unicode surrogate pair', () => {
   assert.equal(parts.join(''), text)
   assert.ok(parts.every(part => !/[\uD800-\uDBFF]$/.test(part) && !/^[\uDC00-\uDFFF]/.test(part)))
   assert.throws(() => chunks('abc', 1), RangeError)
+})
+
+test('she only rings a plain Helper, Moderator or Developer role', () => {
+  const roles = [role('Helper Ping', 2), role('Modder', 3), role('Helper', 5), role('𝐌𝐎𝐃𝐄𝐑𝐀𝐓𝐎𝐑', 72), role('🛡️ Head Moderator', 79), role('👑 Developer', 90)]
+  assert.equal(pingRole('helper', roles).position, 5)
+  assert.equal(pingRole('moderator', roles.values()).position, 72)
+  assert.equal(pingRole('developer', roles).position, 90)
+  assert.equal(pingRole('everyone', roles), null)
+  assert.equal(pingRole('helper', [role('Members', 1)]), null)
+  assert.equal(called('developer', role('Developer', 90)), '<@&590> this looks like a real bug.')
+})
+
+test('one ping per role per channel each half hour, and per person per role each hour', () => {
+  let at = 0
+  const gate = pingGate({ clock: () => at })
+  assert.equal(gate('helper', 'c1', 'u1'), true)
+  assert.equal(gate('helper', 'c1', 'u2'), false)
+  assert.equal(gate('moderator', 'c1', 'u1'), true)
+  assert.equal(gate('helper', 'c2', 'u1'), false)
+  assert.equal(gate('helper', 'c2', 'u2'), true)
+  at = 1800000
+  assert.equal(gate('helper', 'c1', 'u3'), true)
+  assert.equal(gate('helper', 'c3', 'u1'), false)
+  at = 3600000
+  assert.equal(gate('helper', 'c3', 'u1'), true)
+})
+
+test('a ping only comes from an answered reply, and only for a known role', () => {
+  assert.equal(result(200, { reply: 'Getting a human.', answered: true, ping: 'helper' }).ping, 'helper')
+  assert.equal(result(200, { reply: 'Hm.', answered: true, ping: 'everyone' }).ping, undefined)
+  assert.equal(result(200, { reply: 'Hm.', answered: true, ping: 'constructor' }).ping, undefined)
+  assert.equal(result(200, { reply: 'Hm.', answered: true }).ping, undefined)
+  assert.equal(result(429, { reply: 'Slow down.', why: 'limit', ping: 'helper' }).ping, undefined)
 })

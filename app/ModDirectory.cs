@@ -64,6 +64,7 @@ namespace CapriDesktop
     {
         internal const string Page = "https://github.com/lachydotmcg/capri-mods";
         internal static readonly string[] Kinds = { "All", "Settings", "Code", "Skins", "Skills" };
+        internal static readonly string[] Sorts = { "A to Z", "Downloads", "Top rated" };
         private const string Api = "https://api.github.com/repos/lachydotmcg/capri-mods/git/";
         private const long Largest = 96L * 1024 * 1024;
         private const long LargestList = 16L * 1024 * 1024;
@@ -190,8 +191,13 @@ namespace CapriDesktop
                 previews.TryGetValue(match.Groups[1].Value, out previewSha);
                 found.Add(new ModListing { Folder = match.Groups[1].Value, FileName = match.Groups[2].Value, Sha = entry.Sha, Size = entry.Size, PreviewSha = previewSha });
             }
-            found.Sort(delegate(ModListing a, ModListing b) { return StringComparer.OrdinalIgnoreCase.Compare(a.Folder + "/" + a.FileName, b.Folder + "/" + b.FileName); });
+            found.Sort(delegate(ModListing a, ModListing b) { return Named(a, b); });
             return found;
+        }
+
+        private static int Named(ModListing a, ModListing b)
+        {
+            return StringComparer.OrdinalIgnoreCase.Compare(a.Folder + "/" + a.FileName, b.Folder + "/" + b.FileName);
         }
 
         internal static List<ModListing> Filter(List<ModListing> listings, string search, int kind)
@@ -204,6 +210,25 @@ namespace CapriDesktop
                 foreach (string word in words) if (named.IndexOf(word, StringComparison.OrdinalIgnoreCase) < 0) return false;
                 return true;
             });
+        }
+
+        internal static List<ModListing> Sort(List<ModListing> listings, int order)
+        {
+            if (order <= 0 || order >= Sorts.Length) return listings;
+            List<ModListing> sorted = new List<ModListing>(listings);
+            if (order == 1) sorted.Sort(delegate(ModListing a, ModListing b)
+            {
+                int by = b.Downloads.CompareTo(a.Downloads);
+                return by != 0 ? by : Named(a, b);
+            });
+            else sorted.Sort(delegate(ModListing a, ModListing b)
+            {
+                int by = (a.Votes > 0 ? 0 : 1).CompareTo(b.Votes > 0 ? 0 : 1);
+                if (by == 0) by = b.Rating.CompareTo(a.Rating);
+                if (by == 0) by = b.Votes.CompareTo(a.Votes);
+                return by != 0 ? by : Named(a, b);
+            });
+            return sorted;
         }
 
         internal static string Download(ModListing listing, string under)

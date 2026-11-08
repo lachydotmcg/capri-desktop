@@ -1820,13 +1820,16 @@ namespace CapriDesktop
     // They hear whichever mic is picked, offline, without Windows' online speech setting.
     internal sealed class LocalEars : IDisposable
     {
+        // Capri's own copies of the exact packs she was tested on. sherpa-onnx re-uploaded theirs on 7 Nov 2026, and a changed
+        // file can't pass the size and hash pinned here, so every copy of Capri lost her ears at once.
+        internal const string Hosted = "https://github.com/lachydotmcg/capri-desktop/releases/download/ears-pack-1/";
         internal const string Pack = "parakeet-tdt-0.6b-v2-int8";
-        internal static string PackUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2";
+        internal static string PackUrl = Hosted + "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2";
         internal static string PackSha = "157c157bc51155e03e37d2466522a3a737dd9c72bb25f36eb18912964161e1ad";
         internal static long PackSize = 482468385;
         private const string Inside = "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8";
         internal const string EuropeanPack = "parakeet-tdt-0.6b-ultra-int8";
-        internal static string EuropeanUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8.tar.bz2";
+        internal static string EuropeanUrl = Hosted + "sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8.tar.bz2";
         internal static string EuropeanSha = "9f84fa1a60bc6c55455bf24241bacd1ec76171321e0086c4bef829472f128dc7";
         internal static long EuropeanSize = 487131623;
         private const string EuropeanInside = "sherpa-onnx-nemo-parakeet-tdt-0.6b-ultra-int8";
@@ -1904,7 +1907,7 @@ namespace CapriDesktop
             File.Delete(tarball);
         }
 
-        internal static bool SystemBzip = true;
+        internal static bool SystemBzip = Environment.OSVersion.Version.Build >= 22000;
         internal static int TarTimeout = 600000;
         internal static Func<ProcessStartInfo, Process> StartTar = Process.Start;
         internal static string TarPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe");
@@ -2869,7 +2872,7 @@ namespace CapriDesktop
     internal sealed class WakeWord : IDisposable
     {
         internal const string Pack = "kws-zipformer-gigaspeech-3.3M-2024-01-01";
-        internal static string PackUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01.tar.bz2";
+        internal static string PackUrl = LocalEars.Hosted + "sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01.tar.bz2";
         internal static string PackSha = "f170013b4716e41b62b9bfd809687c207cef798ef9bc6534d524e17af9b6561a";
         internal static long PackSize = 17626723;
         private const string Inside = "sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01";

@@ -124,7 +124,20 @@ namespace CapriDesktop
         [DllImport("gdi32.dll")] private static extern IntPtr AddFontMemResourceEx(IntPtr font, uint length, IntPtr reserved, ref uint count);
         [DllImport("gdi32.dll")] private static extern bool RemoveFontMemResourceEx(IntPtr font);
 
-        private static FontFamily Embedded(string name)
+        // Her other embedded fonts, each in a collection of its own, because a collection hands back its families by name, not
+        // in the order they went in.
+        private static readonly Dictionary<string, FontFamily> others = new Dictionary<string, FontFamily>();
+
+        internal static FontFamily Face(string name)
+        {
+            FontFamily family;
+            if (!others.TryGetValue(name, out family)) others[name] = family = Embedded(name, new PrivateFontCollection());
+            return family;
+        }
+
+        private static FontFamily Embedded(string name) { return Embedded(name, fonts); }
+
+        private static FontFamily Embedded(string name, PrivateFontCollection fonts)
         {
             IntPtr memory = IntPtr.Zero, resource = IntPtr.Zero;
             try
@@ -2351,11 +2364,19 @@ namespace CapriDesktop
         }
     }
 
-    // Her own pink pointer for mouse jobs: it glides to each target and ripples where she clicks, while their mouse
-    // stays where they left it. Clicks go straight through it, recordings show it, and her own screenshots paint it out.
+    // Her own pink pointer for mouse jobs: it glides to each target and plays her click effect where she clicks, while
+    // their mouse stays where they left it. Clicks go straight through it, recordings show it, and her own screenshots
+    // paint it out.
     internal sealed class HerPointer : Overlay
     {
-        internal const double Ripple = 0.38;
+        // A cell of her click effect is 144 pixels square with her pointer's tip at its middle, and covers 72 pixels at 100%
+        // scale, which keeps it as big against her pointer as in the clip. That's one for one at 200% and exactly
+        // halved at 100%, so it's crisp at both. Windows' quickest timer shows the clip's 60 frames a second while it plays.
+        internal const int ClickCell = 144, ClickWide = 72;
+        internal const int UsualTick = 33;
+        private const int ClickTick = 15;
+        // Lazy, so it's only in memory around her clicks, and a Clip, so colour mods and skins change it like the rest of her.
+        internal readonly Clip ClickArt = new Clip("click", 20, 60, 1, 0, 0, true);
         private readonly Timer ticks = new Timer();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly object gate = new object();
@@ -2369,7 +2390,7 @@ namespace CapriDesktop
 
         internal HerPointer() : base("Capri pointer")
         {
-            ticks.Interval = 33;
+            ticks.Interval = UsualTick;
             ticks.Tick += delegate { Step(); };
         }
 
@@ -2393,7 +2414,25 @@ namespace CapriDesktop
 
         internal Point Tip { get { lock (gate) return tip; } }
 
-        internal bool Rippling { get { return tapped >= 0; } }
+        internal bool Clicking { get { return tapped >= 0; } }
+
+        // How many pictures of her click effect her last click has shown, for her smoke test.
+        internal int ClickPictures;
+
+        internal float DisplayScale { get { return scale; } }
+
+        internal int Tick { get { return ticks.Interval; } }
+
+        // The frame of her click effect showing now, or -1 when none is.
+        internal int ClickFrame
+        {
+            get
+            {
+                if (tapped < 0) return -1;
+                int cell = (int)((watch.Elapsed.TotalSeconds - tapped) * ClickArt.Fps);
+                return cell < ClickArt.Count ? cell : -1;
+            }
+        }
 
         // Her job thread calls this on every step of a glide, so it only posts the move to the window's own thread.
         internal void MoveTo(Point at)
@@ -2406,11 +2445,20 @@ namespace CapriDesktop
 
         internal void Begin(Point at)
         {
-            using (Graphics screen = Graphics.FromHwnd(IntPtr.Zero)) scale = Math.Max(1f, screen.DpiX / 96f);
+            float screenScale;
+            using (Graphics screen = Graphics.FromHwnd(IntPtr.Zero)) screenScale = Math.Max(1f, screen.DpiX / 96f);
+            Begin(at, screenScale);
+        }
+
+        // At a display scale of her smoke test's choosing, on whatever screen it has.
+        internal void Begin(Point at, float displayScale)
+        {
+            scale = displayScale;
             int size = (int)Math.Round(36 * scale);
             if (arrow == null || arrow.Width != size) { if (arrow != null) arrow.Dispose(); arrow = Look.PointerArt(size); }
             lock (gate) { tip = at; reach = (int)Math.Round(90 * scale); }
-            tapped = -1;
+            Settle();
+            ClickArt.Warm(false);
             Render();
             if (Bolts.Look.On) ticks.Start();
         }
@@ -2419,7 +2467,9 @@ namespace CapriDesktop
         {
             if (!Visible) return;
             tapped = watch.Elapsed.TotalSeconds;
+            ClickPictures = 0;
             Bolts.Tap();
+            ticks.Interval = ClickTick;
             ticks.Start();
             Render();
         }
@@ -2427,14 +2477,20 @@ namespace CapriDesktop
         internal void End()
         {
             ticks.Stop();
-            tapped = -1;
+            Settle();
             Bolts.Clear();
             if (Visible) Hide();
         }
 
+        private void Settle()
+        {
+            tapped = -1;
+            ticks.Interval = UsualTick;
+        }
+
         private void Step()
         {
-            if (tapped >= 0 && watch.Elapsed.TotalSeconds - tapped > Ripple) { tapped = -1; if (!Bolts.Look.On) ticks.Stop(); }
+            if (tapped >= 0 && ClickFrame < 0) { Settle(); if (!Bolts.Look.On) ticks.Stop(); }
             if (Visible) Render();
         }
 
@@ -2442,34 +2498,213 @@ namespace CapriDesktop
         {
             if (arrow == null) return;
             Point at = Tip;
+            int cell = ClickFrame;
+            if (cell >= 0) ClickPictures++;
+            Present(Picture(cell), new Point(at.X - reach, at.Y - reach));
+            // A window she clicks may be always on top too; her pointer stays above it, like a real cursor.
+            SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+        }
+
+        // Her pointer and its bolts over that frame of her click effect, or over nothing at -1. The effect goes under them, as
+        // the clip has it under the arrow.
+        internal Bitmap Picture(int cell)
+        {
+            Point at = Tip;
             Bitmap frame = new Bitmap(reach * 2, reach * 2, PixelFormat.Format32bppArgb);
             using (Graphics graphics = Graphics.FromImage(frame))
             {
                 graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                if (tapped >= 0)
-                {
-                    double t = Math.Min(1, (watch.Elapsed.TotalSeconds - tapped) / Ripple);
-                    float eased = (float)(1 - Math.Pow(1 - t, 3));
-                    float radius = (5 + 17 * eased) * scale;
-                    int alpha = (int)Math.Round(230 * (1 - t));
-                    using (Pen cyan = new Pen(Color.FromArgb(alpha / 2, Look.Cyan), 2f * scale)) graphics.DrawEllipse(cyan, reach - radius + 1.5f * scale, reach - radius + 0.5f * scale, radius * 2, radius * 2);
-                    using (Pen pink = new Pen(Color.FromArgb(alpha, Look.Pink), (2.6f - 1.2f * eased) * scale)) graphics.DrawEllipse(pink, reach - radius, reach - radius, radius * 2, radius * 2);
-                }
+                if (cell >= 0) DrawClick(graphics, cell);
                 float s = arrow.Width / 32f;
                 double now = watch.Elapsed.TotalSeconds;
                 Bolts.Step(now, at, scale);
                 Bolts.Draw(graphics, new PointF(reach, reach), at, now, scale);
                 graphics.DrawImage(arrow, reach - 2 * s, reach - 2 * s, arrow.Width, arrow.Height);
             }
-            Present(frame, new Point(at.X - reach, at.Y - reach));
-            // A window she clicks may be always on top too; her pointer stays above it, like a real cursor.
-            SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            return frame;
+        }
+
+        private void DrawClick(Graphics graphics, int cell)
+        {
+            float wide = ClickWide * scale;
+            GraphicsState was = graphics.Save();
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            graphics.DrawImage(ClickArt.Strip, new RectangleF(reach - wide / 2, reach - wide / 2, wide, wide), new RectangleF(cell * ClickCell, 0, ClickCell, ClickCell), GraphicsUnit.Pixel);
+            graphics.Restore(was);
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing) { ticks.Dispose(); if (arrow != null) { arrow.Dispose(); arrow = null; } }
             base.Dispose(disposing);
+        }
+    }
+
+    internal sealed partial class Companion
+    {
+        // How much of a frame of her click effect shows in a picture of her pointer, from 0 to 1: each strong pixel of the frame
+        // has to land on its own spot around the tip, in its own colour. Her pointer and bolts sit on top and hide a little.
+        private static double ClickShown(HerPointer pointer, Bitmap picture, int cell)
+        {
+            Bitmap strip = pointer.ClickArt.Strip;
+            int side = HerPointer.ClickCell, peak = 0, strong = 0, shown = 0;
+            float each = HerPointer.ClickWide * pointer.DisplayScale / side;
+            for (int y = 0; y < side; y++)
+                for (int x = 0; x < side; x++) peak = Math.Max(peak, strip.GetPixel(cell * side + x, y).A);
+            for (int y = 0; y < side; y++)
+                for (int x = 0; x < side; x++)
+                {
+                    Color art = strip.GetPixel(cell * side + x, y);
+                    if (art.A * 2 < peak) continue;
+                    strong++;
+                    Color seen = picture.GetPixel((int)Math.Floor(picture.Width / 2f + (x + 0.5f - side / 2f) * each), (int)Math.Floor(picture.Height / 2f + (y + 0.5f - side / 2f) * each));
+                    if (seen.A * 5 >= art.A && Math.Abs(seen.R - art.R) + Math.Abs(seen.G - art.G) + Math.Abs(seen.B - art.B) < 150) shown++;
+                }
+            return strong == 0 ? 0 : (double)shown / strong;
+        }
+
+        // Her click effect: every frame loads and lands on her pointer's tip at 100% and 200%, one of her clicks plays
+        // them at the clip's speed and stops, and a colour mod changes them with the rest of her. click-preview.png shows it.
+        private void SmokeClickEffect(List<string> checks, string output)
+        {
+            Clip art = herPointer.ClickArt;
+            Bitmap strip = art.Strip;
+            if (art.Count != 20 || art.Fps != 60 || strip.Height != HerPointer.ClickCell || strip.Width != art.Count * HerPointer.ClickCell) throw new Exception("Her click effect isn't 20 cells of " + HerPointer.ClickCell + " at 60 fps: " + strip.Width + " x " + strip.Height + ", " + art.Count + " at " + art.Fps);
+            Rectangle area = Screen.FromControl(this).WorkingArea;
+            Point spot = new Point(area.Left + area.Width / 2, area.Top + area.Height / 2);
+            BoltLook bolts = herPointer.Bolts.Look;
+            Mod colours = null;
+            double least = 1;
+            long took;
+            int drawn;
+            Func<int[]> census = delegate
+            {
+                int[] seen = new int[4];
+                Bitmap now = art.Strip;
+                for (int y = 0; y < now.Height; y++)
+                    for (int x = 0; x < now.Width; x++)
+                    {
+                        Color c = now.GetPixel(x, y);
+                        if (c.A < 100) continue;
+                        if (c.R > 200 && c.G < 60 && c.B < 120) seen[0]++;
+                        else if (c.G > 200 && c.R < 60) seen[1]++;
+                        else if (c.B > 200 && c.R < 60 && c.G < 60) seen[2]++;
+                        else if (c.R > 200 && c.B > 200 && c.G < 60) seen[3]++;
+                    }
+                return seen;
+            };
+            try
+            {
+                herPointer.End();
+                herPointer.Tap();
+                if (herPointer.Clicking) throw new Exception("Her click effect played with her pointer put away.");
+                // Her bolts land somewhere new each time, so the frames are looked at without them.
+                bolts.On = false;
+                foreach (float checkScale in new[] { 1f, 2f })
+                {
+                    herPointer.Begin(spot, checkScale);
+                    for (int cell = 0; cell < art.Count; cell++)
+                        using (Bitmap picture = herPointer.Picture(cell))
+                        {
+                            double shown = ClickShown(herPointer, picture, cell);
+                            if (shown < 0.8) throw new Exception("Frame " + cell + " of her click effect isn't on her pointer's tip at " + checkScale * 100 + "%: " + shown.ToString("P0"));
+                            least = Math.Min(least, shown);
+                        }
+                    using (Bitmap plain = herPointer.Picture(-1))
+                        if (ClickShown(herPointer, plain, 8) > 0.2) throw new Exception("Her pointer showed her click effect with no click.");
+                }
+                bolts.On = true;
+                herPointer.Begin(spot);
+                int boltsBefore = herPointer.Bolts.Alive;
+                herPointer.Tap();
+                if (herPointer.Bolts.Alive < boltsBefore + bolts.Burst) throw new Exception("Her click lost her bolts: " + boltsBefore + " became " + herPointer.Bolts.Alive + ".");
+                herPointer.End();
+                herPointer.Begin(spot);
+                Computer.Tapped(spot);
+                System.Diagnostics.Stopwatch played = System.Diagnostics.Stopwatch.StartNew();
+                bool began = false, quick = false;
+                while (played.ElapsedMilliseconds < 3000)
+                {
+                    Application.DoEvents();
+                    if (began && !herPointer.Clicking) break;
+                    began |= herPointer.Clicking;
+                    quick |= herPointer.Tick < HerPointer.UsualTick;
+                    System.Threading.Thread.Sleep(1);
+                }
+                took = played.ElapsedMilliseconds;
+                drawn = herPointer.ClickPictures;
+                if (!began || herPointer.Clicking || !quick || herPointer.Tick != HerPointer.UsualTick) throw new Exception("Her click didn't play her effect and stop: began " + began + ", still going " + herPointer.Clicking + ", quick " + quick + ", tick " + herPointer.Tick + " ms after " + took + " ms.");
+                if (took < 1000 * art.Count / art.Fps) throw new Exception("Her click effect ran faster than the clip: " + took + " ms.");
+                herPointer.End();
+
+                int[] usual = census();
+                if (usual[0] < 500 || usual[1] < 100 || usual[2] != 0 || usual[3] != 0) throw new Exception("Her click effect isn't her red and green: " + string.Join(", ", Array.ConvertAll(usual, delegate(int seen) { return seen.ToString(); })));
+                using (Bitmap preview = new Bitmap(1200, 1700, PixelFormat.Format32bppArgb))
+                using (Graphics paper = Graphics.FromImage(preview))
+                using (Font title = Look.Mono(14, FontStyle.Bold))
+                using (Font small = Look.Mono(11, FontStyle.Regular))
+                {
+                    paper.Clear(Color.FromArgb(128, 128, 128));
+                    paper.InterpolationMode = InterpolationMode.NearestNeighbor;
+                    paper.PixelOffsetMode = PixelOffsetMode.Half;
+                    int down = 0;
+                    // Real pictures of her pointer at their true size, drawn at the clip's speed with her bolts on, as on screen.
+                    Action<string, float, int> row = delegate(string heading, float rowScale, int frames)
+                    {
+                        paper.DrawString(heading, title, Brushes.White, 6, down + 4);
+                        down += 26;
+                        int side = (int)(120 * rowScale), across = preview.Width / side;
+                        herPointer.Begin(spot, rowScale);
+                        herPointer.MoveTo(new Point(spot.X + 4, spot.Y));
+                        herPointer.Bolts.Tap();
+                        System.Diagnostics.Stopwatch pace = System.Diagnostics.Stopwatch.StartNew();
+                        for (int cell = 0; cell < frames; cell++)
+                        {
+                            while (pace.Elapsed.TotalSeconds < cell / art.Fps) System.Threading.Thread.Sleep(1);
+                            int left = cell % across * side, top = down + cell / across * side;
+                            using (Bitmap picture = herPointer.Picture(cell))
+                                paper.DrawImage(picture, new Rectangle(left, top, side, side), new Rectangle((picture.Width - side) / 2, (picture.Height - side) / 2, side, side), GraphicsUnit.Pixel);
+                            paper.DrawString((cell + 1).ToString(), small, Brushes.White, left + 3, top + 2);
+                        }
+                        herPointer.End();
+                        down += ((frames - 1) / across + 1) * side + 8;
+                    };
+                    row("100%", 1, art.Count);
+                    row("200%", 2, art.Count);
+                    string file = Path.Combine(output, "click-colours" + Mods.Extension);
+                    File.WriteAllText(file, "{\"format\":1,\"id\":\"click-colours\",\"name\":\"click-colours\",\"colors\":{\"hair\":\"#0000FF\",\"accent\":\"#FF00FF\"}}");
+                    colours = ModList.Import(file, null);
+                    int[] changed = census();
+                    if (changed[0] != 0 || changed[1] != 0 || changed[2] != usual[0] || changed[3] != usual[1]) throw new Exception("A colour mod didn't change her click effect: " + string.Join(", ", Array.ConvertAll(changed, delegate(int seen) { return seen.ToString(); })));
+                    bolts.On = false;
+                    herPointer.Begin(spot, 2);
+                    using (Bitmap picture = herPointer.Picture(1))
+                    {
+                        double shown = ClickShown(herPointer, picture, 1);
+                        if (shown < 0.8) throw new Exception("Her click effect isn't drawn in a colour mod's colours: " + shown.ToString("P0"));
+                    }
+                    bolts.On = true;
+                    herPointer.End();
+                    row("hair #0000FF and accents #FF00FF, 100%", 1, 10);
+                    row("hair #0000FF and accents #FF00FF, 200%", 2, 5);
+                    ModList.Remove(colours);
+                    colours = null;
+                    preview.Save(Path.Combine(output, "click-preview.png"), ImageFormat.Png);
+                }
+                int[] back = census();
+                if (back[0] != usual[0] || back[1] != usual[1] || back[2] != 0 || back[3] != 0) throw new Exception("Taking the colour mod off left her click effect recoloured.");
+            }
+            finally
+            {
+                bolts.On = true;
+                herPointer.End();
+                if (colours != null) ModList.Remove(colours);
+            }
+            checks.Add("PASS her click effect: its " + art.Count + " frames load, each lands on her pointer's tip at 100% and 200% (at least " + least.ToString("P0") + " of every frame), none shows without a click, and her bolts still burst on one");
+            // A busy moment can take her thread for most of a click. She still keeps time, by showing fewer frames.
+            checks.Add((drawn < 5 ? "LIMIT" : "PASS") + " her click effect: one of her clicks plays it in " + took + " ms for the clip's " + (int)(1000 * art.Count / art.Fps) + " ms (" + drawn + " pictures of its " + art.Count + " frames), then it stops");
+            checks.Add("PASS her click effect: a colour mod turns its red and green into her new colours, and taking the mod off brings them back");
         }
     }
 

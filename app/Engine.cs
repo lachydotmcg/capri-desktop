@@ -237,6 +237,7 @@ namespace CapriDesktop
             string part = target + ".part";
             long have = File.Exists(part) ? new FileInfo(part).Length : 0;
             if (have > size) { File.Delete(part); have = 0; }
+            bool resumed = have > 0;
             int stalls = 0;
             while (have < size)
             {
@@ -278,7 +279,13 @@ namespace CapriDesktop
             }
             if (have != size) { File.Delete(part); throw new IOException(WrongSize(label)); }
             progress("Checking " + label, size, size);
-            if (!string.Equals(Hash(part), sha256, StringComparison.OrdinalIgnoreCase)) { File.Delete(part); throw new IOException(Unmatched(label)); }
+            if (!string.Equals(Hash(part), sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Delete(part);
+                // The part it carried on from may have come from a different file, so it starts clean, once.
+                if (resumed) { Fetch(url, target, size, sha256, label, progress, stopped); return; }
+                throw new IOException(Unmatched(label));
+            }
             if (File.Exists(target)) File.Delete(target);
             File.Move(part, target);
         }
