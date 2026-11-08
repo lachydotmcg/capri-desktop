@@ -628,17 +628,18 @@ namespace CapriDesktop
             internal const int Wide = 520, Tall = 366;
             private readonly Mod mod;
             private readonly Label status;
-            internal readonly string Steps;
+            internal readonly string Steps, FormLink;
 
             internal PublishSheet(Mainframe owner, float zoom, Mod mod) : base(owner, zoom, "Publish mod", "PUBLISH MOD >", Wide, Tall)
             {
                 this.mod = mod;
                 Steps = ModDirectory.PublishSteps(mod);
-                Words("Share " + mod.File.Name + " in the mods directory with a pull request.", 28, 52, 464, 18, Font, White);
+                FormLink = ModDirectory.SubmitLink(mod);
+                Words("Share " + mod.File.Name + " in the mods directory. No git needed.", 28, 52, 464, 18, Font, White);
                 Words(Steps, 28, 78, 464, 216, Font, Faint);
-                Key fork = Make("Fork capri-mods", 28, 298, 150, 26, delegate { Open(ModDirectory.Page + "/fork", null); });
-                fork.Accent = Cyan;
-                fork.Loud = true;
+                Key form = Make("Open the form", 28, 298, 150, 26, delegate { Open(FormLink, null); });
+                form.Accent = Cyan;
+                form.Loud = true;
                 Make("Show my mod file", 186, 298, 150, 26, delegate { Open("explorer.exe", "/select,\"" + mod.Path + "\""); });
                 status = Words("", 28, 330, 464, 26, Small(), Rose);
                 Frame.Fit(this);

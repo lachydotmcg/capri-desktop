@@ -557,7 +557,7 @@ Already have a mod file? Press Import mod on the Mods page and pick it. The file
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
 
 ### How do I publish a mod? (0.8.3)
-In Mainframe > Mods, press Publish beside an imported mod. It shows the steps for submitting your mod on GitHub: fork capri-mods, add a folder under mods with your mod file, README.md and preview.png, then open a pull request.
+In Mainframe > Mods, press Publish beside an imported mod, then Open the form. The Submit a mod form opens on GitHub with your mod's name, id, description and kind filled in. Zip your mod file, drag it in with a preview.png if you have one, tick the box and submit, and a pull request gets opened for you. No git needed.
 
 ### What are skills? (0.8.4)
 A skill is a mod with know-how for a game, like which towers to buy and when. Whenever she plays that game, every skill that's on for it goes into her plan, and she follows it over her general advice. Her first skill is Lachy's BTD6 plan: Mainframe > Mods > Browse mods, then Skills.

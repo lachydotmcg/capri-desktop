@@ -378,13 +378,43 @@ namespace CapriDesktop
 
         internal static string PublishSteps(Mod mod)
         {
-            string id = mod.File.Id, file = Path.GetFileName(mod.Path);
-            return "1. Press Fork capri-mods and make your own copy on GitHub. You'll need a free account.\n\n"
-                + "2. In your copy, add a folder called mods/" + id + "/.\n\n"
-                + "3. Put in " + file + " and a short README.md that says what it does and who made it.\n\n"
-                + "4. Add a picture called preview.png, around 16:9. It's what people see in the mods window.\n\n"
-                + "5. Open a pull request to capri-mods. Every mod is checked for malware before it goes up."
+            string file = Path.GetFileName(mod.Path);
+            return "1. Press Open the form. Submit a mod opens on GitHub with this mod's name, id, description and kind filled in. You'll need a free account.\n\n"
+                + "2. Press Show my mod file, then right-click " + file + " and compress it to a ZIP file. GitHub won't take it unzipped.\n\n"
+                + "3. Drag the zip into the Mod file box. Add a preview.png too, around 16:9, if you have one.\n\n"
+                + "4. Tick the box and submit. A pull request gets opened for you, and every mod is checked for malware before it goes up."
                 + (mod.Code ? "\n\nThis is a code mod, so Capri will ask people before running it." : "");
+        }
+
+        internal const string SubmitForm = Page + "/issues/new?template=submit-mod.yml";
+
+        // GitHub fills an issue form's boxes from query parameters named after their ids, so only the file is left to drag in.
+        internal static string SubmitLink(Mod mod)
+        {
+            string name = OneLine(mod.File.Name, 60);
+            string kind = mod.Code ? "Code mod (.capri-code)" : mod.Skin ? "Skin (.capri-skin)" : mod.Skill ? "Skill (.capri-skill)" : "Settings mod (.capri-mod)";
+            return SubmitForm + "&title=" + FormEscape("Mod: " + name) + "&name=" + FormEscape(name)
+                + "&mod-id=" + FormEscape(SubmitId(mod.File.Id)) + "&description=" + FormEscape(OneLine(mod.File.Description, 300))
+                + "&kind=" + FormEscape(kind);
+        }
+
+        // .NET Framework leaves ( ) ! ' * as they are, so they're escaped here and the link is the same everywhere.
+        internal static string FormEscape(string text)
+        {
+            return Uri.EscapeDataString(text).Replace("(", "%28").Replace(")", "%29").Replace("!", "%21").Replace("'", "%27").Replace("*", "%2A");
+        }
+
+        // The form's ids are lower-case letters, numbers and dashes, up to 50.
+        internal static string SubmitId(string id)
+        {
+            string slug = Regex.Replace((id ?? "").ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+            return slug.Length > 50 ? slug.Substring(0, 50).TrimEnd('-') : slug;
+        }
+
+        private static string OneLine(string text, int most)
+        {
+            string line = Regex.Replace(text ?? "", @"\s+", " ").Trim();
+            return line.Length > most ? line.Substring(0, most).TrimEnd() : line;
         }
 
         internal static string BlobSha(byte[] bytes)

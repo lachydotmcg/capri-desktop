@@ -49925,7 +49925,14 @@ namespace CapriDesktop
                     publish.Show(this);
                     string publishCrowded = publish.Crowded();
                     if (publishCrowded != null) throw new Exception("Publish mod doesn't fit: " + publishCrowded);
-                    if (!publish.Steps.Contains("mods/far-names/") || !publish.Steps.Contains("far-names" + Mods.Extension) || !publish.Steps.Contains("preview.png") || !publish.Steps.Contains("README.md") || !publish.Steps.Contains("pull request")) throw new Exception("Publish mod's steps were wrong: " + publish.Steps);
+                    if (!publish.Steps.Contains("Open the form") || !publish.Steps.Contains("far-names" + Mods.Extension) || !publish.Steps.Contains("ZIP") || !publish.Steps.Contains("preview.png") || !publish.Steps.Contains("pull request")) throw new Exception("Publish mod's steps were wrong: " + publish.Steps);
+                    string formLink = publish.FormLink, named = "&name=" + ModDirectory.FormEscape(mods.All[0].File.Name) + "&";
+                    if (formLink != ModDirectory.SubmitLink(mods.All[0]) || !formLink.StartsWith("https://github.com/lachydotmcg/capri-mods/issues/new?template=submit-mod.yml&title=Mod%3A%20", StringComparison.Ordinal)
+                        || !formLink.Contains(named) || !formLink.Contains("&mod-id=far-names&description=") || !formLink.EndsWith("&kind=Settings%20mod%20%28.capri-mod%29", StringComparison.Ordinal))
+                        throw new Exception("Open the form didn't fill in the Submit a mod form: " + formLink);
+                    string madeUp = ModDirectory.SubmitLink(new Mod { File = new ModFile { Id = "MK001_Dice--Roller_", Name = "Dice & Co", Description = "Rolls dice\r\nand flips coins." }, Code = true, Path = "x" + Mods.CodeExtension });
+                    if (!madeUp.Contains("&name=Dice%20%26%20Co&mod-id=mk001-dice-roller&description=Rolls%20dice%20and%20flips%20coins.&kind=Code%20mod%20%28.capri-code%29") || ModDirectory.SubmitId(new string('a', 49) + "-b-c") != new string('a', 49))
+                        throw new Exception("The Submit a mod link didn't make a form-shaped id, one-line description and kind: " + madeUp);
                     publish.Picture(Path.Combine(output, "publish-mod.png"));
                     publish.Close();
                 }
@@ -49934,7 +49941,7 @@ namespace CapriDesktop
                     DrawToBitmap(shot, new Rectangle(Point.Empty, Size));
                     shot.Save(Path.Combine(output, "mods-page-publish.png"), ImageFormat.Png);
                 }
-                checks.Add("PASS Publish mod: it's on imported mods and explains the fork, folder, README, preview and pull request");
+                checks.Add("PASS Publish mod: it's on imported mods, Open the form fills in Submit a mod with its name, id, description and kind, and the steps explain the zip, preview and pull request");
                 capri.ModList.Remove(mods.All[0]);
                 int asked = 0;
                 ModAsk = delegate { asked++; return false; };

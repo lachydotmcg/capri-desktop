@@ -64,7 +64,7 @@ namespace CapriDesktop
             new Topic("Rate mod", "rate a mod|mod rating|mod stars",
                 "Once a mod from the mods window is installed, click its stars to rate it from 1 to 5. Rating again replaces your old one.", "MainframeModsWindow.cs", "Rate mod"),
             new Topic("Publish mod", "publish a mod|share my mod|share a mod|upload a mod",
-                "Publish on an imported mod explains how to share it: fork capri-mods on GitHub, add a folder with the mod, a README and a preview.png, then open a pull request.", "MainframeMods.cs", "Publish mod"),
+                "Publish on an imported mod shares it with no git: Open the form opens Submit a mod on GitHub with its name, id, description and kind filled in. Zip the mod file, drag it in with a preview.png if there is one, and a pull request gets opened for you.", "MainframeMods.cs", "Publish mod"),
             new Topic("Open mods folder", "mods folder|where are mods",
                 "Mods folder shows where her imported mods are kept, in the mods folder beside her settings.", "MainframeMods.cs", "Open mods folder"),
             new Topic("Mod switch", "turn off a mod|turn on a mod|disable a mod|enable a mod",
