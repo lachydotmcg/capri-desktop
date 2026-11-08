@@ -189,12 +189,14 @@
       session = new C.Channel(keys, C.KIND.session, 'phone');
       pcName = tidy(message.name) || device.pc || pcName;
       backoff = 1000;
-      set('connected', { reason: '' });
+      set('connected', { reason: '', features: Array.isArray(message.features) ? message.features.filter(name => typeof name === 'string').slice(0, 16) : [] });
       on.message({ type: 'presence', pc: true });
     };
     const sessionFrame = async bytes => {
       let message;
       try { message = await session.open(bytes); } catch (error) { broken(); return; }
+      // Her brains (PROTOCOL.md section 8.1): SETTINGS shows them.
+      if (message.type === 'brain.state' || message.type === 'brain.note') { on.message(message); return; }
       switch (message.type) {
         case 'ping':
           if (Number.isInteger(message.n)) send({ type: 'pong', n: message.n });

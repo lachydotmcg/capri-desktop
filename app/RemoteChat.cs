@@ -101,6 +101,7 @@ namespace CapriDesktop
                 SavePreferences();
             }
             RemoteLink link = new RemoteLink(state, relay, Environment.MachineName, "capri/" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3), RemoteSaved);
+            RemoteBrainsOn(link);
             link.Happened += RemoteHappened;
             link.Said += RemoteHeard;
             remoteLink = link;
@@ -120,6 +121,7 @@ namespace CapriDesktop
                 remoteHearing = null;
             }
             if (link == null) return;
+            RemoteBrainsOff(link);
             link.Happened -= RemoteHappened;
             link.Said -= RemoteHeard;
             link.Stop();

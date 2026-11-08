@@ -17,7 +17,8 @@
 
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
 import { createServer, connect, isIP } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -334,7 +335,7 @@ try {
   await step('session: hello, hello-ok with echo and features, badge count', async () => {
     const ok = await session(pc, a.phone, a.device);
     assert.equal(ok.v, 1);
-    assert.deepEqual(ok.features, ['chat']);
+    assert.deepEqual(ok.features, ['chat', 'brains']);
     assert.equal(ok.name, 'Test PC');
     const state = await pc.state();
     assert.equal(state.online, 1);
@@ -380,6 +381,32 @@ try {
     await a.phone.send({ type: 'settings.set', key: 'x' });
     await a.phone.send({ type: 'something-new' });
     await pingPong(a.phone, 43);
+  });
+
+  await step('her brains: brain.get and brain.use answer, and a key goes in sealed and never comes back', async () => {
+    await a.phone.send({ type: 'brain.get' });
+    assert.deepEqual(await a.phone.receive(), { type: 'brain.state', use: 'normal', name: 'Test brain', note: 'Running on the test PC', brains: [{ id: 'normal', key: false }, { id: 'medium', key: false }, { id: 'max', key: false }] });
+    await a.phone.send({ type: 'brain.use', brain: 'medium' });
+    assert.equal((await a.phone.receive()).use, 'medium');
+    const key = 'sk-ant-e2e-' + randomBytes(16).toString('hex');
+    await a.phone.send({ type: 'brain.key', id: 'k1', brain: 'max', key: '  ' + key + '  ' });
+    assert.deepEqual(await a.phone.receive(), { type: 'brain.note', re: 'k1', state: 'checking', text: 'Checking key...' });
+    assert.deepEqual(await a.phone.receive(), { type: 'brain.note', re: 'k1', state: 'saved', text: 'Key saved. She uses it now.' });
+    const state = await a.phone.receive();
+    assert.equal(state.use, 'max');
+    assert.deepEqual(state.brains.map((brain) => brain.key), [false, false, true]);
+    const notice = await pc.wait((e) => e.e === 'brain-key', 5000, 'the PC hearing the key');
+    assert.deepEqual([notice.device, notice.brain, notice.unsealed, notice.sha256], [a.device, 'max', 'same', createHash('sha256').update(key).digest('hex')]);
+    const sealed = readFileSync(statePath + '.keys', 'utf8');
+    assert.ok(!sealed.includes(key) && !sealed.includes(Buffer.from(key).toString('base64')), 'the key sits in the clear');
+    const rejected = 'sk-ant-rejected-' + randomBytes(16).toString('hex');
+    await a.phone.send({ type: 'brain.key', id: 'k2', brain: 'max', key: rejected });
+    assert.equal((await a.phone.receive()).state, 'checking');
+    const failed = await a.phone.receive();
+    assert.equal(failed.state, 'failed');
+    assert.ok(failed.text.includes('[key]') && !JSON.stringify(failed).includes(rejected), 'a note carried the key back');
+    await a.phone.send({ type: 'brain.key', id: 'k3', brain: 'normal', key });
+    assert.deepEqual(await a.phone.receive(), { type: 'error', code: 'bad-message', re: 'k3' });
   });
 
   await step('a tampered frame gets the phone kicked (4000), and it comes back with a fresh session', async () => {

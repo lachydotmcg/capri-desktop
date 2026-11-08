@@ -208,8 +208,8 @@ export class FakePc {
     return ok;
   }
 
-  // Answers the next hello with hello-ok and starts that device's session.
-  async acceptHello() {
+  // Answers the next hello with hello-ok, offering features, and starts that device's session.
+  async acceptHello(features = ['chat']) {
     const { device: id, envelope } = R.splitPcFrame(await this.conn.bytes());
     const device = this.devices.get(id);
     assert.ok(device, 'hello from an unknown device');
@@ -218,7 +218,7 @@ export class FakePc {
     assert.equal(hello.type, 'hello');
     assert.equal(hello.v, 1);
     const pcNonce = R.randomBytes(16);
-    const reply = await channel.seal({ type: 'hello-ok', v: 1, nonce: R.b64u(pcNonce), echo: hello.nonce, name: 'Test PC', app: 'capri/test', features: ['chat'] });
+    const reply = await channel.seal({ type: 'hello-ok', v: 1, nonce: R.b64u(pcNonce), echo: hello.nonce, name: 'Test PC', app: 'capri/test', features });
     this.conn.sendBytes(R.pcFrame(device.idBytes, reply));
     device.session = new R.Channel(await R.sessionKeys(device.key, R.fromB64u(hello.nonce, 16), pcNonce), R.KIND.session, 'pc');
     return { device, hello };

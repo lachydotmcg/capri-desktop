@@ -25,7 +25,7 @@ namespace CapriDesktop
     // next sequence number and sends in the same step under one lock, so frames leave in sequence order and only one
     // SendAsync ever runs. Everything shared sits behind gate. Events are raised outside it, on the thread that made the
     // change, and must return quickly.
-    internal sealed class RemoteLink
+    internal sealed partial class RemoteLink
     {
         internal const string DefaultHost = "capri-remote.lachydotmcg.workers.dev";
         internal const int CodeSeconds = 600;
@@ -831,11 +831,12 @@ namespace CapriDesktop
                 {
                     RemoteJson.Map message = phone.Session == null ? null : phone.Session.Open(data, offset, count);
                     if (message == null) Kick(phone, notes);
-                    else OnMessage(phone, message, notes, said, ref copy);
+                    else if (!BrainAsk(phone, message)) OnMessage(phone, message, notes, said, ref copy);
                 }
             }
             Save(copy);
             Raise(notes, said);
+            RaiseBrainAsks();
             return null;
         }
 
@@ -868,7 +869,7 @@ namespace CapriDesktop
             }
             byte[] pcNonce = RemoteCrypto.Random(16);
             RemoteChannel session = new RemoteChannel(RemoteCrypto.SessionKeys(phone.Device.Key, phoneNonce, pcNonce), RemoteCrypto.KindSession);
-            Push(Outgoing.Hello(phone, hello, RemoteMessages.HelloOk(RemoteCrypto.B64u(pcNonce), echo, pcName, app, Features), session, phone.Hellos));
+            Push(Outgoing.Hello(phone, hello, RemoteMessages.HelloOk(RemoteCrypto.B64u(pcNonce), echo, pcName, app, Offered()), session, phone.Hellos));
             phone.Online = true;
             notes.Add(new Note("session", phone.Device.Id));
         }

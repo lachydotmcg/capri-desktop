@@ -120,7 +120,7 @@
     if (!pairing.demo && !pairing.native && !window.CapriRelay) { forget(''); return; }
     if (pairing.demo) keep(pairing);
     else if (scanned) write(null);
-    info = Object.assign({}, info, { demo: !!pairing.demo, native: !!pairing.native, pc: pairing.pc || '', pairedAt: pairing.native ? pairing.pairedAt : pairing.pairedAt || Date.now(), code: '', reason: '' });
+    info = Object.assign({}, info, { features: [], demo: !!pairing.demo, native: !!pairing.native, pc: pairing.pc || '', pairedAt: pairing.native ? pairing.pairedAt : pairing.pairedAt || Date.now(), code: '', reason: '' });
     link = pairing.native ? native.link() : pairing.demo && window.CapriDemo ? window.CapriDemo.link() : window.CapriRelay.link({ relay: relayUrl(), name: deviceName });
     const mine = link;
     link.open(pairing, {

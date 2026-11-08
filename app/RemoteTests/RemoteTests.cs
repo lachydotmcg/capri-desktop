@@ -88,8 +88,22 @@ namespace CapriDesktop
             raw[raw.Length / 2] ^= 1;
             check(RemoteState.Unseal(Convert.ToBase64String(raw)) == null, "a damaged sealed state opened");
             check(RemoteState.Unseal("not base64!") == null && RemoteState.Unseal(null) == null, "junk opened as a state");
+            // Her brains (PROTOCOL.md 8.1): what a phone may ask, and nothing going back can carry a key.
+            string re;
+            check(RemoteBrainKeys.Read("d", RemoteJson.ParseMap("{\"type\":\"brain.get\"}"), out re) != null && re == null, "brain.get didn't read");
+            RemoteBrainKeys.Ask asked = RemoteBrainKeys.Read("d", RemoteJson.ParseMap("{\"type\":\"brain.key\",\"id\":\"k1\",\"brain\":\"max\",\"key\":\"  sk-ant-test-1234567890  \"}"), out re);
+            check(asked != null && asked.Tier == 2 && asked.Key == "sk-ant-test-1234567890" && re == "k1", "brain.key didn't read and trim its key");
+            asked = RemoteBrainKeys.Read("d", RemoteJson.ParseMap("{\"type\":\"brain.use\",\"brain\":\"medium\"}"), out re);
+            check(asked != null && asked.Tier == 1, "brain.use didn't read");
+            foreach (string bad in new[] { "{\"type\":\"brain.key\",\"id\":\"k2\",\"brain\":\"normal\",\"key\":\"sk-x\"}", "{\"type\":\"brain.key\",\"id\":\"k3\",\"brain\":\"max\",\"key\":\" \"}", "{\"type\":\"brain.key\",\"id\":\"k4\",\"brain\":\"max\",\"key\":\"a\\nb\"}", "{\"type\":\"brain.key\",\"id\":\"k5\",\"brain\":\"max\",\"key\":\"" + new string('x', 401) + "\"}", "{\"type\":\"brain.use\",\"brain\":\"turbo\"}", "{\"type\":\"brain.key\",\"id\":\"k6\",\"brain\":\"max\"}" })
+                check(RemoteBrainKeys.Read("d", RemoteJson.ParseMap(bad), out re) == null, "a bad brain ask read: " + bad.Substring(0, Math.Min(70, bad.Length)));
+            check(RemoteBrainKeys.Read("d", RemoteJson.ParseMap("{\"type\":\"brain.key\",\"brain\":\"max\",\"key\":\"sk-x\"}"), out re) == null && re == null, "a brain.key with no id gave an re");
+            string brains = RemoteBrainKeys.State(2, "Claude - claude-haiku-5-5", "Using your Anthropic key", false, true);
+            check(brains == "{\"type\":\"brain.state\",\"use\":\"max\",\"name\":\"Claude - claude-haiku-5-5\",\"note\":\"Using your Anthropic key\",\"brains\":[{\"id\":\"normal\",\"key\":false},{\"id\":\"medium\",\"key\":false},{\"id\":\"max\",\"key\":true}]}", "brain.state came out as " + brains);
+            string note = RemoteBrainKeys.Note("k1", "failed", "Anthropic turned down sk-ant-test-1234567890.", "sk-ant-test-1234567890");
+            check(note == "{\"type\":\"brain.note\",\"re\":\"k1\",\"state\":\"failed\",\"text\":\"Anthropic turned down [key].\"}", "a note came out as " + note);
             foreach (string line in failed) Console.WriteLine("FAIL " + line);
-            Console.WriteLine((failed.Count == 0 ? "PASS" : "FAIL") + " units: " + (checks - failed.Count) + " of " + checks + " checks (relay hosts, phone names, DPAPI round trip)");
+            Console.WriteLine((failed.Count == 0 ? "PASS" : "FAIL") + " units: " + (checks - failed.Count) + " of " + checks + " checks (relay hosts, phone names, DPAPI round trip, brain asks)");
             return failed.Count == 0 ? 0 : 1;
         }
 
@@ -131,6 +145,7 @@ namespace CapriDesktop
                 say(line.Number("online", link.PhonesOnline));
             };
             link.Said += delegate (string device, string id, string text) { say(new RemoteJson.Writer().Text("e", "said").Text("device", device).Text("id", id).Text("text", text)); };
+            BrainDesk(link, statePath + ".keys", say);
             link.Start();
             string input;
             while ((input = Console.In.ReadLine()) != null)
@@ -197,6 +212,47 @@ namespace CapriDesktop
             File.WriteAllText(statePath, state.Seal());
             Console.WriteLine("forgot " + device);
             return 0;
+        }
+
+        // A stand-in for her BRAIN, answering a phone's brain asks as her side does (app/RemoteBrains.cs): the key is checked
+        // (a key with "rejected" in it fails), sealed with DPAPI into its own file, never sent back, and the PC hears a
+        // notice. Only a hash of each key ever reaches the test.
+        private static void BrainDesk(RemoteLink link, string keysPath, Action<RemoteJson.Writer> say)
+        {
+            object gate = new object();
+            int use = 0;
+            string[] sealedKeys = new string[3];
+            link.BrainAsked += delegate (string device, RemoteJson.Map message)
+            {
+                lock (gate)
+                {
+                    string re;
+                    RemoteBrainKeys.Ask ask = RemoteBrainKeys.Read(device, message, out re);
+                    if (ask == null)
+                    {
+                        link.SendBrain(device, RemoteMessages.Error("bad-message", re));
+                        return;
+                    }
+                    if (ask.Type == "brain.use") use = ask.Tier;
+                    if (ask.Type == "brain.key")
+                    {
+                        link.SendBrain(device, RemoteBrainKeys.Note(ask.Id, "checking", "Checking key...", ask.Key));
+                        if (ask.Key.Contains("rejected"))
+                        {
+                            link.SendBrain(device, RemoteBrainKeys.Note(ask.Id, "failed", "Still using your key. Anthropic rejected " + ask.Key + ".", ask.Key));
+                            return;
+                        }
+                        sealedKeys[ask.Tier] = Convert.ToBase64String(System.Security.Cryptography.ProtectedData.Protect(Encoding.UTF8.GetBytes(ask.Key), null, System.Security.Cryptography.DataProtectionScope.CurrentUser));
+                        File.WriteAllText(keysPath, string.Join("\n", sealedKeys));
+                        use = ask.Tier;
+                        link.SendBrain(device, RemoteBrainKeys.Note(ask.Id, "saved", "Key saved. She uses it now.", ask.Key));
+                        string hash;
+                        using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(ask.Key))).Replace("-", "").ToLowerInvariant();
+                        say(new RemoteJson.Writer().Text("e", "brain-key").Text("device", device).Text("brain", RemoteBrainKeys.Brains[ask.Tier]).Text("sha256", hash).Text("unsealed", Encoding.UTF8.GetString(System.Security.Cryptography.ProtectedData.Unprotect(Convert.FromBase64String(sealedKeys[ask.Tier]), null, System.Security.Cryptography.DataProtectionScope.CurrentUser)) == ask.Key ? "same" : "different"));
+                    }
+                    link.SendBrain(device, RemoteBrainKeys.State(use, "Test brain", "Running on the test PC", sealedKeys[1] != null, sealedKeys[2] != null));
+                }
+            };
         }
 
         private static int Vectors(string path)

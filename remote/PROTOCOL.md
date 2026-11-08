@@ -319,6 +319,34 @@ Each envelope holds one UTF-8 JSON object with a string `type`. Ignore unknown t
 - **`ping`/`pong`:** checks that Capri itself is answering, not just the relay. Each one wakes the relay, so send one only when it matters, such as when the page comes back from the background. Relay heartbeats are free.
 - **`error` codes:** `version`, `busy`, `bad-message` and `not-allowed` (a feature is turned off). Show unknown codes as a general error.
 
+### 8.1 Her brains and keys (feature `brains`)
+
+A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of her brains she uses, pick another and send a brain's API key. A phone must not send these to a PC that doesn't list it. Her brains are the three rungs under BRAIN in her Mainframe:
+
+| `id` | Her Mainframe | Takes a key |
+|---|---|---|
+| `normal` | NORMAL: free, a model on the PC | no |
+| `medium` | MEDIUM INTELLIGENCE: free keys (NVIDIA, Google AI Studio, OpenRouter) | yes |
+| `max` | MAX INTELLIGENCE: any key she knows, or their own plan | yes |
+
+| `type` | Sender | Context | Fields |
+|---|---|---|---|
+| `brain.get` | phone | session | none |
+| `brain.state` | PC | session | `use` (the brain she uses), `name` and `note` (her brain and the note under it, as her Mainframe shows them, at most 64 and 200 characters), `brains` (one `{id, key}` for each brain; `key` is true when one is saved) |
+| `brain.use` | phone | session | `brain` (an `id`) |
+| `brain.key` | phone | session | `id`, `brain` (`medium` or `max`), `key` (as pasted, 1 to 400 characters, no control characters) |
+| `brain.note` | PC | session | `re` (the `brain.key` id), `state` (`checking`, `saved` or `failed`), `text` (her Mainframe's note, at most 200 characters) |
+
+- **Keys are write-only.** The PC never sends a key back, whole or in part (not even its last four characters): `brain.state` says only which brains have one. Notes are her Mainframe's own words, scrubbed like her chat replies.
+- **A phone's key is a key typed in her Mainframe.** The PC runs it through the same checks, saves it the same way (DPAPI) and answers with the notes her Mainframe shows: `checking` at once, then `saved` or `failed`. A paid key sent for `medium` fails with "That's a paid key: it goes under MAX INTELLIGENCE." and nothing is saved, so the phone can send it again for `max`.
+- **One key at a time.** A `brain.key` while another is still being checked fails with "Still checking the last key."
+- **Dropped keys.** A key the PC drops because her brain changed there first (a key typed on the PC, a rung clicked) fails with "Her brain changed on your PC before the key was checked."; one with no answer in 90 seconds fails with "Couldn't check the key in time. Try again." Plans (their own Claude or ChatGPT plan) are picked on the PC and fail with "Plans are picked on your PC."
+- **The PC tells its user.** When a phone's key is saved, the PC shows a short notice naming the phone and the brain.
+- **`brain.use`** picks a rung, as clicking it in her Mainframe does, and the phone hears the new `brain.state`.
+- **State.** The PC answers `brain.get` with `brain.state`, and sends it again to that phone whenever her brains change while its session lasts.
+- **Malformed asks** (an unknown `brain`, a missing, empty or too long `key`, a bad `id`) get `error` `bad-message`, with `re` when the id was good.
+- **Phone-only mode** (`site/remote/native.js`, Capri on the phone with no PC) is not part of this protocol: its key stays on the phone and goes only to the provider the user picked, never through the relay.
+
 **Reserved for later phases.** Do not send these in phase 1, and ignore them if received:
 
 | Phase | Names |

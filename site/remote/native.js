@@ -390,6 +390,27 @@
     parts.pcLine.textContent = !phone && paired ? 'She runs on ' + (pc || 'your PC') + '.' : paired ? 'Paired with ' + (pc || 'your PC') + '.' : 'Not paired yet: scan the code in her Mainframe.';
     parts.usePc.textContent = !phone ? 'In use' : paired ? 'Use your PC' : 'Pair your PC';
     parts.usePc.disabled = !phone;
+    // Her brains on the PC, while it's connected and offers them.
+    const live = !!remote() && remote().state === 'connected' && !info.native && !info.demo;
+    const offered = live && Array.isArray(info.features) && info.features.includes('brains');
+    parts.pcOld.hidden = !live || offered;
+    parts.pcBrainsPart.hidden = !offered || !pcBrains;
+    if (offered && pcBrains) {
+      for (const rung of parts.rungs) {
+        const row = pcBrains.brains.find(item => item.id === rung.dataset.brain);
+        rung.setAttribute('aria-pressed', String(pcBrains.use === rung.dataset.brain));
+        rung.querySelector('.native-saved').hidden = !(row && row.key);
+      }
+      parts.pcNow.textContent = pcBrains.name ? 'Now: ' + pcBrains.name + (pcBrains.note ? '. ' + pcBrains.note : '') : '';
+      parts.pcNow.hidden = !pcBrains.name;
+      const keyed = pcBrains.use !== 'normal';
+      parts.pcKeyPart.hidden = !keyed;
+      if (keyed) {
+        const row = pcBrains.brains.find(item => item.id === pcBrains.use);
+        parts.pcKeyLabel.textContent = 'Key for ' + BRAIN_ROWS.find(item => item[0] === pcBrains.use)[1];
+        parts.pcKey.placeholder = row && row.key ? 'Key saved' : 'Paste a key';
+      }
+    }
     const kind = parts.provider.value;
     const company = PROVIDERS[kind].company;
     const saved = brain && brain.provider === kind ? brain : null;
@@ -425,8 +446,51 @@
     modes.append(pcTab, phoneTab);
     const pcPart = make('div', 'native-part');
     const pcLine = make('p', 'native-line');
-    const usePc = button('Use your PC', 'nbtn solid wide');
-    pcPart.append(pcLine, make('p', 'native-note', 'Her tools, her screen and her voice need Capri on your PC.'), usePc);
+    const usePc = button('Use your PC', 'nbtn solid wide native-use-pc');
+    const pcBrainsPart = make('div', 'native-brains');
+    pcBrainsPart.hidden = true;
+    const rungs = BRAIN_ROWS.map(([id, name, note]) => {
+      const rung = button('', 'nbtn wide native-rung');
+      rung.dataset.brain = id;
+      const saved = make('span', 'tag native-saved', 'Key saved');
+      rung.append(make('span', 'native-rung-name', name), make('span', 'native-rung-note', note), saved);
+      rung.addEventListener('click', () => {
+        if (!pcBrains || pcBrains.use === id) return;
+        if (remote().send('brain.use', { brain: id })) { pcBrains.use = id; pcStatus(''); render(); }
+      });
+      return rung;
+    });
+    const pcNow = make('p', 'native-line native-now');
+    const pcKeyPart = make('div');
+    const pcKeyLabel = make('label', 'code-label');
+    pcKeyLabel.htmlFor = 'pc-key';
+    const pcKeyField = make('span', 'field');
+    const pcKey = make('input', 'native-key');
+    Object.assign(pcKey, { id: 'pc-key', type: 'password', autocomplete: 'off', spellcheck: false, maxLength: 400 });
+    pcKey.setAttribute('autocapitalize', 'none');
+    pcKey.setAttribute('autocorrect', 'off');
+    pcKey.setAttribute('enterkeyhint', 'send');
+    pcKeyField.append(pcKey);
+    const pcSend = button('Send to your PC', 'nbtn solid wide native-send');
+    pcKeyPart.append(pcKeyLabel, pcKeyField, pcSend);
+    const pcState = make('p', 'card-note');
+    pcState.setAttribute('role', 'status');
+    pcState.hidden = true;
+    pcBrainsPart.append(make('p', 'native-note', 'Her brain on your PC. Tap one to switch, like BRAIN in her Mainframe.'), ...rungs, pcNow, pcKeyPart, pcState,
+      make('p', 'native-note', 'Keys go to your PC end-to-end encrypted. It saves them like her Mainframe does and never sends them back.'));
+    const pcOld = make('p', 'native-note', 'Update Capri on your PC to pick her brain from here.');
+    pcOld.hidden = true;
+    pcPart.append(pcLine, pcBrainsPart, pcOld, make('p', 'native-note', 'Her tools, her screen and her voice need Capri on your PC.'), usePc);
+    pcSend.addEventListener('click', () => {
+      const typed = pcKey.value.trim();
+      if (!pcBrains || pcBrains.use === 'normal') return;
+      if (!typed) { pcStatus('Paste a key first.', true); pcKey.focus(); return; }
+      const id = 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      if (!remote().send('brain.key', { id, brain: pcBrains.use, key: typed })) { pcStatus('Not connected to your PC.', true); return; }
+      pcKeyAsk = id;
+      pcStatus('Sending to your PC...');
+    });
+    pcKey.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); pcSend.click(); } });
     const phonePart = make('div', 'native-part');
     const providerLabel = make('label', 'code-label', 'Provider');
     providerLabel.htmlFor = 'brain-provider';
@@ -460,7 +524,7 @@
     modelField.append(model);
     modelPart.append(modelLabel, modelField);
     const note = make('p', 'native-note');
-    const state = make('p', 'card-note');
+    const state = make('p', 'card-note native-status');
     state.setAttribute('role', 'status');
     state.hidden = true;
     const row = make('div', 'native-row');
@@ -473,7 +537,7 @@
     const done = button('Done', 'nbtn cyan wide native-done');
     sheet.append(title, make('h3', 'nhead', 'Her brain'), modes, pcPart, phonePart, homeHead, home, done);
     ($('#app') || document.body).append(sheet);
-    parts = { pcTab, phoneTab, pcPart, pcLine, usePc, phonePart, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, view: '' };
+    parts = { pcTab, phoneTab, pcPart, pcLine, usePc, pcBrainsPart, rungs, pcNow, pcKeyPart, pcKeyLabel, pcKey, pcState, pcOld, phonePart, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, view: '' };
 
     pcTab.addEventListener('click', () => { status(''); render('pc'); });
     phoneTab.addEventListener('click', () => { status(''); render('phone'); });
@@ -538,6 +602,35 @@
     document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
     if (scrim()) scrim().addEventListener('click', close);
   };
+  // Her brains on the paired PC (PROTOCOL.md section 8.1): the rung she uses, and keys that only ever go to the PC.
+  const BRAIN_ROWS = [['normal', 'NORMAL', 'Free, local model'], ['medium', 'MEDIUM INTELLIGENCE', 'Free'], ['max', 'MAX INTELLIGENCE', 'Key or plan']];
+  let pcBrains = null, pcKeyAsk = '', pcAsked = false;
+  const pcStatus = (text, bad) => {
+    if (!parts) return;
+    parts.pcState.textContent = text || '';
+    parts.pcState.hidden = !text;
+    parts.pcKey.parentNode.classList.toggle('bad', !!bad);
+  };
+  const askBrains = () => {
+    const info = remote() ? remote().info : {};
+    if (remote() && remote().state === 'connected' && !info.native && !info.demo && Array.isArray(info.features) && info.features.includes('brains')) pcAsked = remote().send('brain.get', {});
+  };
+  const heardBrains = message => {
+    if (message.type === 'brain.state' && Array.isArray(message.brains) && BRAIN_ROWS.some(row => row[0] === message.use)) {
+      pcBrains = {
+        use: message.use,
+        name: typeof message.name === 'string' ? message.name.slice(0, 64) : '',
+        note: typeof message.note === 'string' ? message.note.slice(0, 200) : '',
+        brains: message.brains.filter(row => row && typeof row.id === 'string').map(row => ({ id: row.id, key: row.key === true }))
+      };
+    } else if (message.type === 'brain.note' && message.re && message.re === pcKeyAsk && typeof message.text === 'string') {
+      if (message.state !== 'checking') pcKeyAsk = '';
+      if (message.state === 'saved' && parts) parts.pcKey.value = '';
+      pcStatus(message.text.slice(0, 200), message.state === 'failed');
+    } else return;
+    if (sheet && !sheet.hidden) render();
+  };
+
   const settings = (home, view) => {
     homeGuide = home || homeGuide;
     if (!sheet) build();
@@ -546,6 +639,8 @@
     parts.provider.value = brain ? brain.provider : parts.provider.value || ORDER[0];
     parts.key.value = '';
     status('');
+    pcStatus('');
+    askBrains();
     render(view || (on() ? 'phone' : 'pc'));
     sheet.hidden = false;
     if (scrim()) scrim().hidden = false;
@@ -580,10 +675,13 @@
       event.preventDefault();
       toast('Seeing your screen needs Capri on your PC. Switch in SETTINGS.');
     }, true);
+    if (remote()) remote().onMessage(heardBrains);
     if (remote()) remote().onState((state, info) => {
       tag.hidden = state === 'unpaired' || state === 'pairing';
       tag.textContent = info.native ? 'This phone' : info.demo ? 'Demo PC' : 'Your PC';
       tag.classList.toggle('phone', !!info.native);
+      if (state !== 'connected' || info.native || info.demo) { pcBrains = null; pcAsked = false; }
+      else if (sheet && !sheet.hidden && !pcAsked) askBrains();
       if (sheet && !sheet.hidden) render();
     });
   };

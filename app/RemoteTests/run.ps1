@@ -17,7 +17,7 @@ $OutputDirectory = (Resolve-Path $OutputDirectory).Path
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (-not (Test-Path -LiteralPath $compiler)) { throw 'csc.exe not found: the tests need the .NET Framework 4.8 that comes with Windows 10 and 11.' }
 $exe = Join-Path $OutputDirectory 'RemoteTests.exe'
-$sources = @('RemoteCrypto', 'Remote', 'RemoteLink', 'RemoteQr', 'RemoteVectors') | ForEach-Object { Join-Path $root "app\$_.cs" }
+$sources = @('RemoteCrypto', 'Remote', 'RemoteLink', 'RemoteQr', 'RemoteVectors', 'RemoteBrainKeys') | ForEach-Object { Join-Path $root "app\$_.cs" }
 $sources += Join-Path $PSScriptRoot 'RemoteTests.cs'
 $references = @('System.dll', 'System.Core.dll', 'System.Drawing.dll', 'System.Security.dll', 'System.Runtime.Serialization.dll') | ForEach-Object { "/reference:$_" }
 & $compiler /nologo /target:exe /platform:anycpu /optimize+ /warn:4 /utf8output /nowarn:649 $references "/out:$exe" $sources

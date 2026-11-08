@@ -5,15 +5,12 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
 import { mkdirSync, readFileSync } from 'node:fs';
-import { dirname, extname, join, normalize } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { chromePath, launch } from './lib/cdp.mjs';
 import { BAD, GOOD, startProvider } from './lib/fake-provider.mjs';
+import { ROOT, SITE, earlyAccess, startSite } from './lib/site.mjs';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const SITE = join(ROOT, 'site', 'remote');
 const SITE_PORT = 8792, PROVIDER_PORT = 8793, CHROME_PORT = 8794;
 const SHOTS = process.env.CAPRI_PHONE_SHOTS || '';
 
@@ -27,32 +24,9 @@ const brainConst = name => {
   return literals.map(literal => JSON.parse(literal)).join('');
 };
 
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
-const startSite = () => new Promise((resolve, reject) => {
-  const asked = [];
-  const server = createServer((request, response) => {
-    asked.push(request.url);
-    const path = new URL(request.url, 'http://127.0.0.1').pathname;
-    const file = normalize(join(SITE, path === '/' ? 'index.html' : decodeURIComponent(path)));
-    if (!file.startsWith(SITE)) { response.writeHead(403); response.end(); return; }
-    try {
-      const body = readFileSync(file);
-      response.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
-      response.end(body);
-    } catch {
-      response.writeHead(404);
-      response.end();
-    }
-  });
-  server.on('error', reject);
-  server.listen(SITE_PORT, '127.0.0.1', () => resolve({ asked, close: () => new Promise(done => server.close(done)) }));
-});
-
 test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromePath() && 'Chrome is not installed', timeout: 120000 }, async () => {
-  const early = /const EARLY_HASH = '([0-9a-f]{64})'/.exec(readFileSync(join(SITE, 'app.js'), 'utf8'));
-  assert.ok(early, 'the early access hash is in app.js');
   const provider = await startProvider(PROVIDER_PORT);
-  const site = await startSite();
+  const site = await startSite(SITE_PORT);
   const page = await launch({ port: CHROME_PORT });
   const seen = [];
   page.on((method, params) => {
@@ -70,7 +44,7 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
   const lastReply = `(() => { const all = [...document.querySelectorAll('.msg.capri.done')]; const last = all[all.length - 1]; return last ? last.textContent : ''; })()`;
   try {
     // The gate is passed the way the page keeps it, with its own hash: the password never goes in a test.
-    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `try { localStorage.setItem('capri-remote-early-access', '${early[1]}'); localStorage.setItem('capri-remote-home-guide', '1'); } catch (error) {}` });
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() });
     await page.go(`http://127.0.0.1:${SITE_PORT}/?provider=http://127.0.0.1:${PROVIDER_PORT}`);
     await page.until(`document.querySelector('#app').dataset.screen === 'pair'`, 'the pair screen');
     assert.equal(await text('#native-start'), 'Use her without a PC');
@@ -82,8 +56,8 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
     assert.equal(await page.run(`document.querySelector('.native-modes .nbtn[aria-pressed="true"]').textContent`), 'This phone');
     await type('#brain-key', BAD);
     await click('.native-row .nbtn.solid');
-    await page.until(`/rejected the key/.test(document.querySelector('#brain .card-note').textContent)`, 'the bad key note');
-    assert.equal(await text('#brain .card-note'), 'Anthropic rejected the key. Paste it again in SETTINGS.');
+    await page.until(`/rejected the key/.test(document.querySelector('#brain .native-status').textContent)`, 'the bad key note');
+    assert.equal(await text('#brain .native-status'), 'Anthropic rejected the key. Paste it again in SETTINGS.');
     assert.equal(await page.run(`localStorage.getItem('capri-remote-brain')`), null);
 
     // A good key: she runs here, on Claude Haiku 5.5, the desktop's pick for Anthropic.
@@ -163,8 +137,8 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
     await click('#f-settings');
     await page.until(`!document.querySelector('#brain').hidden`, 'SETTINGS for the PC');
     await click('.native-modes .nbtn:first-child');
-    assert.equal(await text('#brain .native-part .nbtn.solid'), 'Pair your PC');
-    await click('#brain .native-part .nbtn.solid');
+    assert.equal(await text('#brain .native-use-pc'), 'Pair your PC');
+    await click('#brain .native-use-pc');
     await page.until(`document.querySelector('#app').dataset.screen === 'pair'`, 'the pair screen again');
     assert.ok(await page.run(`!!localStorage.getItem('capri-remote-brain')`));
     await click('#try-demo');
