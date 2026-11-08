@@ -497,7 +497,19 @@ namespace CapriDesktop
                 if (RemoteToolWords(tool, secret).Contains("hunter2")) throw new Exception("A tool summary carried its arguments.");
             if (RemoteToolWords("media", new ToolArguments { Action = "resume" }) != "Media: resume") throw new Exception("Media's summary lost its action.");
             if (RemoteOut("my key is sk-abcdefghijklmnopqrstuvwxyz123456").Contains("abcdefghijklmnop")) throw new Exception("A key in her reply went to the phone.");
-            string sample = RemoteCrypto.QrUrl(RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[32]));
+            // Phone keyboards' text reaches her brain whole: curly quotes and emoji stay, and half an emoji, cut off by a trim
+            // like her 57-character screen names, never goes out as a lone \ud83d, which NVIDIA's server turned away (8 Nov).
+            string phoneText = "Open Discord\u2019s \u201Ccall\u201D \uD83D\uDE00\uD83C\uDFAE and play \uD834\uDD1E " + new string('x', 400) + " \u2014 thanks!";
+            string cut = (new string('a', 56) + "\uD83C\uDFAE more").Substring(0, 57);
+            byte[] wire = Brain.Json(new ChatRequest { Model = "phone-test", Messages = new[] { new ChatMessage("user", phoneText), new ChatMessage("tool", cut), new ChatMessage("user", "\uDE00 and \uD83D") } });
+            string sent = Encoding.UTF8.GetString(wire);
+            ChatRequest read;
+            using (MemoryStream back = new MemoryStream(wire)) read = (ChatRequest)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(ChatRequest)).ReadObject(back);
+            if (read.Messages[0].Content != phoneText || sent.IndexOf("\\ud83d\\ude00", StringComparison.Ordinal) < 0) throw new Exception("Phone text lost its emoji or curly quotes on the way to her brain.");
+            if (read.Messages[1].Content != cut.Substring(0, 56) + "\uFFFD" || read.Messages[2].Content != "\uFFFD and \uFFFD" || Encoding.UTF8.GetString(Brain.Whole(wire)) != sent)
+                throw new Exception("Half an emoji went to her brain on its own: " + sent.Substring(Math.Max(0, sent.Length - 160)));
+            checks.Add("PASS phone text reaches her brain whole: curly quotes, emoji and other non-BMP characters stay, and half an emoji cut off by a trim goes as U+FFFD instead of a lone escape strict servers refuse");
+            string sample =RemoteCrypto.QrUrl(RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[32]));
             RemoteView[] views = new RemoteView[4];
             for (int i = 0; i < views.Length; i++)
             {
@@ -659,10 +671,18 @@ namespace CapriDesktop
 
         internal RemoteLinkSink(RemoteLink link) { this.link = link; }
 
-        public void Reply(string device, string id, string re, string text, bool done) { link.Reply(device, id, re, text, done); }
+        // These run on her chat's thread or a tool's, where something thrown would end her mid-job: a send to the phone that
+        // fails goes in her log and her work carries on.
+        public void Reply(string device, string id, string re, string text, bool done) { Guard(delegate { link.Reply(device, id, re, text, done); }); }
 
-        public void Tool(string device, string id, string name, string summary, string state, string re) { link.Tool(device, id, name, summary, state, re); }
+        public void Tool(string device, string id, string name, string summary, string state, string re) { Guard(delegate { link.Tool(device, id, name, summary, state, re); }); }
 
-        public void Error(string device, string code, string re) { link.Error(device, code, re); }
+        public void Error(string device, string code, string re) { Guard(delegate { link.Error(device, code, re); }); }
+
+        private static void Guard(Action send)
+        {
+            try { send(); }
+            catch (Exception error) { Brain.Log("remote", -1, "A message to the phone failed: " + error.GetType().Name + ": " + error.Message); }
+        }
     }
 }

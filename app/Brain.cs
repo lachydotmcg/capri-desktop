@@ -3827,13 +3827,49 @@ namespace CapriDesktop
             return text.Substring(0, cut > 60 ? cut : most - 2) + "...";
         }
 
-        private static byte[] Json(object body)
+        internal static byte[] Json(object body)
         {
             using (MemoryStream buffer = new MemoryStream())
             {
                 new DataContractJsonSerializer(body.GetType()).WriteObject(buffer, body);
-                return buffer.ToArray();
+                return Whole(buffer.ToArray());
             }
+        }
+
+        // The serializer writes each half of an emoji as its own \uXXXX, so half of one, cut off by a trim somewhere, goes out
+        // alone (\ud83d), and strict servers like NVIDIA's turn the whole request away ("unexpected end of hex escape"). A
+        // lone half becomes U+FFFD, the mark for a character that can't be shown, and whole pairs stay as they are.
+        internal static byte[] Whole(byte[] json)
+        {
+            string text = Encoding.UTF8.GetString(json);
+            if (text.IndexOf("\\ud", StringComparison.OrdinalIgnoreCase) < 0) return json;
+            StringBuilder kept = new StringBuilder(text.Length);
+            for (int i = 0; i < text.Length; i++)
+            {
+                // Outside a string JSON has no backslashes, so every one starts an escape: \\ and \" are passed over whole.
+                if (text[i] != '\\' || i + 1 >= text.Length) { kept.Append(text[i]); continue; }
+                int unit = text[i + 1] == 'u' && i + 5 < text.Length ? Hex(text, i + 2) : -1;
+                if (unit < 0) { kept.Append(text, i, 2); i++; continue; }
+                bool high = unit >= 0xD800 && unit <= 0xDBFF;
+                int low = high && i + 11 < text.Length && text[i + 6] == '\\' && text[i + 7] == 'u' ? Hex(text, i + 8) : -1;
+                if (high && low >= 0xDC00 && low <= 0xDFFF) { kept.Append(text, i, 12); i += 11; continue; }
+                kept.Append(unit >= 0xD800 && unit <= 0xDFFF ? "\\ufffd" : text.Substring(i, 6));
+                i += 5;
+            }
+            return Encoding.UTF8.GetBytes(kept.ToString());
+        }
+
+        private static int Hex(string text, int at)
+        {
+            int value = 0;
+            for (int i = at; i < at + 4; i++)
+            {
+                char c = text[i];
+                int digit = c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
+                if (digit < 0) return -1;
+                value = value * 16 + digit;
+            }
+            return value;
         }
 
         private T Send<T>(string url, object body, int timeout, string tools = null, Action<HttpWebRequest> sign = null, string parts = null, int ticket = -1, string secret = null) where T : class

@@ -1043,7 +1043,15 @@ namespace CapriDesktop
 
         // Every 100 ms while reply parts are gathering, and every second while a chat.send waits: parts go out, and a
         // phone still waiting gets chat.typing again every 10 seconds (its dots stop 20 seconds after the last one).
+        // A timer runs this on a pool thread, where anything thrown would end her: a tick that fails is dropped, and the
+        // next reply part or send arms another.
         private void Tick(object unused)
+        {
+            try { Ticked(); }
+            catch (Exception) { }
+        }
+
+        private void Ticked()
         {
             lock (gate)
             {
