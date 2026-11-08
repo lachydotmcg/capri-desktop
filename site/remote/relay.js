@@ -209,7 +209,8 @@
           on.message(message);
           return;
         default:
-          // pong, and names reserved for later phases or unknown: ignored.
+          // The screen view's watch.* and the call's call.* (PROTOCOL.md 8.2). pong and unknown names: ignored.
+          if (/^(watch|call)\./.test(message.type)) on.message(message);
           return;
       }
     };

@@ -16,7 +16,8 @@ namespace CapriDesktop
     //   RemoteTests qr <folder>                     QR codes for every version and level, for check-qr.py to read back
     //   RemoteTests pc <relay> <state> [beat ms]    the real RemoteLink, driven by JSON lines (remote-e2e.mjs)
     //   RemoteTests forget <state> <device>         drops a phone from a saved state without telling the relay
-    internal static class RemoteTests
+    //   RemoteTests live <relay> <state> [beat ms]  pc, with the screen view and call on a drawn desktop (RemoteLiveTests.cs)
+    internal static partial class RemoteTests
     {
         private static int Main(string[] args)
         {
@@ -25,8 +26,9 @@ namespace CapriDesktop
             if (args.Length == 1 && args[0] == "units") return Units();
             if (args.Length == 2 && args[0] == "qr") return Qr(args[1]);
             if ((args.Length == 3 || args.Length == 4) && args[0] == "pc") return Pc(args[1], args[2], args.Length == 4 ? int.Parse(args[3], CultureInfo.InvariantCulture) : 30000);
+            if ((args.Length == 3 || args.Length == 4) && args[0] == "live") return Pc(args[1], args[2], args.Length == 4 ? int.Parse(args[3], CultureInfo.InvariantCulture) : 30000, true);
             if (args.Length == 3 && args[0] == "forget") return Forget(args[1], args[2]);
-            Console.Error.WriteLine("usage: RemoteTests vectors <vectors.json> | units | qr <folder> | pc <relay> <state> [beat ms] | forget <state> <device>");
+            Console.Error.WriteLine("usage: RemoteTests vectors <vectors.json> | units | qr <folder> | pc|live <relay> <state> [beat ms] | forget <state> <device>");
             return 2;
         }
 
@@ -108,7 +110,7 @@ namespace CapriDesktop
         }
 
         // The real RemoteLink on a relay. Each line in is one JSON command; each line out is one JSON event.
-        private static int Pc(string host, string statePath, int beat)
+        private static int Pc(string host, string statePath, int beat, bool live = false)
         {
             string relay = RemoteLink.RelayBase(host);
             if (relay == null)
@@ -134,6 +136,7 @@ namespace CapriDesktop
             RemoteLink link = null;
             link = new RemoteLink(state, relay, "Test PC", "capri/test", delegate (RemoteState saved) { lock (output) File.WriteAllText(statePath, saved.Seal()); });
             link.BeatMs = beat;
+            LiveRig rig = live ? new LiveRig(link, say) : null;
             link.Happened += delegate (string what, string about)
             {
                 RemoteJson.Writer line = new RemoteJson.Writer().Text("e", what);
@@ -188,7 +191,11 @@ namespace CapriDesktop
                         say(new RemoteJson.Writer().Text("e", "state").Text("status", link.Status).Flag("ready", link.Ready).Number("online", link.PhonesOnline).Texts("devices", ids).Texts("sessions", sessions));
                         break;
                     }
+                    default:
+                        if (rig == null || !rig.Command(command)) say(new RemoteJson.Writer().Text("e", "unknown").Text("c", command.Text("c") ?? ""));
+                        break;
                     case "quit":
+                        if (rig != null) rig.Dispose();
                         link.Stop();
                         Thread.Sleep(1000);
                         say(new RemoteJson.Writer().Text("e", "bye"));

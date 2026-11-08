@@ -357,6 +357,55 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 
 `hello-ok.features` will list `settings`, `watch` and `jobs` when the PC has them turned on.
 
+### 8.2 Screen view and call
+
+`hello-ok.features` lists `watch` when the PC can show its screen and `call` when it takes calls. A phone sends these only when its session's `hello-ok` listed the feature.
+
+| `type` | Sender | Fields |
+|---|---|---|
+| `watch.start` | phone | `monitor` (`auto`, or an id from `watch.monitors`), `quality` (`saver`, `balanced` or `sharp`), `width` and `height` (the view in device pixels, 64 to 8192) |
+| `watch.stop` | phone | none |
+| `watch.ack` | phone | `n` (the frame just drawn) |
+| `watch.state` | PC | `on`, and `reason` with `on: false` (`not-allowed` or `no-screen`) |
+| `watch.monitors` | PC | `list` (each `id`, `name`, `w`, `h`, `primary`), `monitor` (the id shown), `auto`, `missing` (true when the picked monitor is gone) |
+| `watch.frame` | PC | `n`, `part`, `parts`, `data` (base64url JPEG bytes); part 0 also has `w`, `h`, `monitor`, `bytes`, `cx`, `cy` |
+| `watch.cursor` | PC | `cx`, `cy` |
+| `call.start` | phone | none |
+| `call.stop` | phone | none |
+| `call.state` | PC | `on`; `voice` and `ears` (her voice and her ears are on) with `on: true`; `reason` with `on: false` (`not-allowed` or `ended`) |
+| `call.audio` | phone | `id` (the line), `n`, `rate` (16000), `pcm`, `end` (on the last part) |
+| `call.cancel` | phone | `id` |
+| `call.heard` | PC | `id`, `text` (what her ears heard: empty when nothing) |
+| `call.voice` | PC | `n`, `rate` (24000 or less), `pcm` |
+| `call.hush` | PC | none |
+
+- **Watching:**
+  - The PC captures only while a phone watches. A second `watch.start` changes the monitor, quality or size.
+  - The phone sends `watch.stop` when the view closes or the page goes to the background, and asks again in each new session. The PC also ends a phone's watch when it leaves, is removed, or says hello again.
+  - While any phone watches or calls, the PC shows a badge on the monitor shown. The badge is left out of the frames.
+- **Frames:**
+  - JPEG, as wide as the phone's view but at most 640, 960 or 1280 pixels (saver, balanced, sharp) and never wider than the monitor, at most 2, 3 or 4 a second.
+  - A screen that doesn't change sends nothing. The mouse moving over it sends `watch.cursor`.
+  - `cx` and `cy` are the mouse in ten-thousandths of the frame's width and height, or -1 when it's on another monitor.
+- **Parts:** each frame is cut into parts of 44,000 JPEG bytes (58,667 base64url characters). Each sealed part stays under the 60,000-byte message limit, and each PC frame under the relay's 65,536 (section 4.1). Parts come in order, and part 0 starts a frame. A phone drops a frame with a part missing.
+- **Flow control:** the phone acks each frame once it's drawn. The PC stays at most two frames ahead of the acks. With no ack for 4 seconds it sends one more, and after 15 seconds it waits for an ack or a new `watch.start`.
+- **Auto:** shows the monitor her pointer is on, else the one she's been asked to watch, else the one with the focused window. It moves once the new one has held for a second.
+- **Calls:** push to talk.
+  - The phone sends a line as `call.audio` parts from `n: 0`: mono 16-bit little-endian PCM at 16 kHz, 320 ms a part, with `end: true` on the last. A line is at most 30 seconds.
+  - Errors carry the line id as `re`: `too-long`, `bad-message` (a part out of order or at another rate), `not-allowed` (no call), `busy` (her ears couldn't run).
+  - The PC's own ears hear the line, the PC answers `call.heard`, and the words go to her as if said at the PC. Her answer comes back as `chat.reply` with `re` set to the line id.
+  - `call.cancel` drops a line that's still coming in.
+- **Her voice:** while she speaks, `call.voice` parts of a quarter second: mono 16-bit little-endian PCM at her speaker's rate, halved until it's 24 kHz or less. They're numbered from 0 in each call. `call.hush` means she stopped mid-line: drop whatever hasn't played.
+- **What it carries**, measured through the relay on a drawn 1920x1080 desktop with a 1280x720 view (sealed messages, so base64url and envelopes included; real screens vary):
+
+  | Picture | Typing | Scrolling | Video |
+  |---|---|---|---|
+  | saver, 2 a second | 40 KB/s | 40 KB/s | 43 KB/s |
+  | balanced, 3 a second | 148 KB/s | 148 KB/s | 162 KB/s |
+  | sharp, 4 a second | 340 KB/s | 342 KB/s | 379 KB/s |
+
+  A screen that doesn't change costs nothing. Talking sends about 42 KB/s and her voice about 63 KB/s, only while each is going. The phone sends at most about 4 acks and 3 audio parts a second, under the relay's 10 a second.
+
 ## 9. Rules for each side
 
 ### PC (`app/`)
