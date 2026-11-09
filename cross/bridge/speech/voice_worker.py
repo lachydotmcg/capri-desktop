@@ -1,4 +1,4 @@
-"""Private offline CPU preset/reference-conditioned worker. Stdio carries bounded JSON, never PCM.
+"""Private offline CPU preset worker. Stdio carries bounded JSON, never PCM.
 
 This process has no playback, microphone, provider or desktop capabilities.
 Cancel terminates the entire worker; model inference cannot outlive its owner.
@@ -25,7 +25,6 @@ import time
 import wave
 
 
-CODE_REVISION = "5de7a54aa4e5e2baadb0182dde554908b48b85c2"
 MAX_MESSAGE = 16_384
 
 
@@ -85,77 +84,7 @@ def load_profile(path):
         return load_voice_pack_profile(profile)
     if profile.get("schema") == 2 and profile.get("backend") == "kokoro-onnx":
         return load_kokoro_profile(profile)
-    if profile.get("schema") != 1 or profile.get("backend") not in {"chatterbox-nano", "chatterbox-turbo"}:
-        raise WorkerError("profile-backend")
-    if profile.get("code_revision") != CODE_REVISION:
-        raise WorkerError("code-pin")
-    if not re.fullmatch(r"[0-9a-f]{40}", profile.get("model_revision", "")):
-        raise WorkerError("model-revision")
-    if type(profile.get("threads")) is not int or not 1 <= profile["threads"] <= 8:
-        raise WorkerError("thread-limit")
-    if not isinstance(profile.get("label"), str) or not 1 <= len(profile["label"]) <= 120:
-        raise WorkerError("profile-label")
-    for key in ("reference_path", "model_dir", "cache_dir"):
-        if not Path(profile[key]).is_absolute():
-            raise WorkerError("absolute-path-required")
-    if not re.fullmatch(r"[0-9a-f]{64}", profile.get("reference_sha256", "")):
-        raise WorkerError("reference-pin")
-    if file_hash(profile["reference_path"]) != profile["reference_sha256"]:
-        raise WorkerError("reference-hash")
-    with wave.open(profile["reference_path"], "rb") as source:
-        if source.getnchannels() != 1 or not 8 <= source.getnframes() / source.getframerate() <= 12:
-            raise WorkerError("reference-needs-clean-8-to-12-seconds-mono")
-    files = profile.get("model_files")
-    required = {"ve.safetensors", "s3gen_meanflow.safetensors", "tokenizer_config.json",
-                "vocab.json", "merges.txt", "special_tokens_map.json", "added_tokens.json",
-                "t3_nano_v1.safetensors" if profile["backend"] == "chatterbox-nano" else "t3_turbo_v1.safetensors"}
-    if not isinstance(files, dict) or not required.issubset(files):
-        raise WorkerError("missing-weight-pins")
-    if (Path(profile["model_dir"]) / "conds.pt").exists():
-        raise WorkerError("unselected-builtin-reference")
-    for name, digest in files.items():
-        if Path(name).name != name or not re.fullmatch(r"[0-9a-f]{64}", digest):
-            raise WorkerError("weight-pin")
-        if file_hash(Path(profile["model_dir"]) / name) != digest:
-            raise WorkerError("weight-hash")
-    options = profile.get("generation", {})
-    allowed = {"temperature": (0.1, 2), "top_p": (0.1, 1), "top_k": (1, 2000), "repetition_penalty": (1, 2)}
-    if not isinstance(options, dict) or not set(options).issubset(allowed):
-        raise WorkerError("generation-options")
-    for key, value in options.items():
-        low, high = allowed[key]
-        if type(value) not in (int, float) or not math.isfinite(value) or not low <= value <= high:
-            raise WorkerError("generation-option-range")
-    return profile
-
-
-def verify_runtime(profile):
-    """Check copied package source and actual dependency versions before import."""
-    if profile.get("backend") == "kokoro-onnx":
-        return verify_kokoro_runtime(profile)
-    dependencies = profile.get("dependencies")
-    if not isinstance(dependencies, dict) or not {"torch", "chatterbox-tts", "resemble-perth"}.issubset(dependencies):
-        raise WorkerError("dependency-pins")
-    for name, version in dependencies.items():
-        if importlib.metadata.version(name) != version:
-            raise WorkerError("dependency-version")
-    for package, field in (("chatterbox", "code_files"), ("perth", "perth_files")):
-        files = profile.get(field)
-        if not isinstance(files, dict) or not files:
-            raise WorkerError("code-files")
-        spec = importlib.util.find_spec(package)
-        if spec is None or spec.origin is None:
-            raise WorkerError("missing-code")
-        root = Path(spec.origin).parent
-        actual = {str(path.relative_to(root)) for path in root.rglob("*.py")}
-        if actual != {name for name in files if name.endswith(".py")}:
-            raise WorkerError("code-file-set")
-        for name, digest in files.items():
-            path = Path(name)
-            if path.is_absolute() or ".." in path.parts or not re.fullmatch(r"[0-9a-f]{64}", digest):
-                raise WorkerError("code-file-pin")
-            if file_hash(root / path) != digest:
-                raise WorkerError("code-file-hash")
+    raise WorkerError("profile-backend")
 
 
 # These names/IDs belong to the pinned official v1.0 voice table, not a performer.
@@ -186,7 +115,7 @@ def load_voice_pack_profile(profile):
         "alignment_kind": "approximate-duration", "streaming_kind": "whole-clause",
         "runtime_version": "1.13.8", "lock_sha256": VOICE_PACK_LOCK_SHA256,
         "voice_row_sha256": VOICE_PACK_ROW_SHA256}
-    if (any(profile.get(k) != v for k, v in required.items()) or "reference_path" in profile
+    if (any(profile.get(k) != v for k, v in required.items())
             or type(profile.get("schema")) is not int or profile["schema"] != 3
             or type(profile.get("speaker_id")) is not int
             or type(profile.get("sample_rate")) is not int):
@@ -271,7 +200,7 @@ def _pinned_files(root, files):
 
 
 def load_kokoro_profile(profile):
-    if profile.get("kind") != "preset" or "reference_path" in profile:
+    if profile.get("kind") != "preset":
         raise WorkerError("preset-kind")
     if (type(profile.get("threads")) is not int or not 1 <= profile["threads"] <= 4
             or profile.get("sample_rate") != 24000
@@ -329,15 +258,6 @@ def runtime_tree(name):
     return {"sha256": digest, "file_count": len(records)}
 
 
-def conditioning_key(profile):
-    # Paths/labels do not affect the voice. Runtime/dependency pins do.
-    identity = {key: profile.get(key) for key in (
-        "backend", "code_revision", "dependency_lock_sha256", "model_revision",
-        "model_files", "reference_sha256", "generation", "code_files", "perth_files", "dependencies")}
-    identity["preprocessing"] = "chatterbox-native-loudness-normalization-v1"
-    return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
-
-
 class VoiceWorker:
     def __init__(self, profile_path):
         self.profile_path = profile_path
@@ -350,52 +270,8 @@ class VoiceWorker:
             return {**self.load_metrics, "already_warm": True}
         started = time.monotonic_ns()
         profile = load_profile(self.profile_path)
-        verify_runtime(profile)
-        if profile["backend"] == "kokoro-onnx":
-            return self._warm_kokoro(profile, started)
-        key = conditioning_key(profile)
-        cache_dir = Path(profile["cache_dir"])
-        cache_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-        self._profile_lock = (cache_dir / (key + ".lock")).open("a")
-        fcntl.flock(self._profile_lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        os.environ.update(CUDA_VISIBLE_DEVICES="", HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1",
-                          TOKENIZERS_PARALLELISM="false", OMP_NUM_THREADS=str(profile["threads"]),
-                          MKL_NUM_THREADS=str(profile["threads"]), OPENBLAS_NUM_THREADS=str(profile["threads"]),
-                          NUMEXPR_NUM_THREADS=str(profile["threads"]))
-        import torch
-        from chatterbox.tts_turbo import ChatterboxTurboTTS, Conditionals
-        torch.set_num_threads(profile["threads"])
-        torch.set_num_interop_threads(1)
-        imported = time.monotonic_ns()
-        model = ChatterboxTurboTTS.from_local(profile["model_dir"], device="cpu",
-                                             nano=profile["backend"] == "chatterbox-nano")
-        loaded = time.monotonic_ns()
-        cache = cache_dir / (key + ".pt")
-        digest_path = cache.with_suffix(".sha256")
-        hit = cache.is_file() and digest_path.is_file() and file_hash(cache) == digest_path.read_text().strip()
-        with torch.inference_mode():
-            if hit:
-                model.conds = Conditionals.load(cache, map_location="cpu").to("cpu")
-            else:
-                model.prepare_conditionals(profile["reference_path"])
-                temporary = cache.with_suffix(".tmp")
-                model.conds.save(temporary)
-                temporary.chmod(0o600)
-                temporary.replace(cache)
-                digest_path.write_text(file_hash(cache) + "\n")
-                digest_path.chmod(0o600)
-        conditioned = time.monotonic_ns()
-        self.model, self.profile = model, profile
-        self.load_metrics = {"validation_import_ms": (imported-started)/1e6,
-                             "model_load_ms": (loaded-imported)/1e6,
-                             "conditioning_ms": (conditioned-loaded)/1e6,
-                             "warm_total_ms": (conditioned-started)/1e6,
-                             "conditioning_cache_hit": hit, "conditioning_key": key,
-                             "alignment_kind": "approximate-duration", "device": "cpu",
-                             "sample_rate": model.sr, "streaming_kind": "whole-clause",
-                             "worker_pid": os.getpid(), "torch_cuda_build": torch.version.cuda,
-                             "cuda_initialized": torch.cuda.is_initialized()}
-        return self.load_metrics
+        verify_kokoro_runtime(profile)
+        return self._warm_kokoro(profile, started)
 
     def _warm_kokoro(self, profile, started):
         # One lock shared by all candidate presets; no concurrent model copies.
@@ -425,8 +301,8 @@ class VoiceWorker:
         loaded = time.monotonic_ns()
         self.profile = profile
         self.load_metrics = {"validation_import_ms": (imported-started)/1e6,
-            "model_load_ms": (loaded-imported)/1e6, "conditioning_ms": 0,
-            "warm_total_ms": (loaded-started)/1e6, "conditioning_cache_hit": False,
+            "model_load_ms": (loaded-imported)/1e6,
+            "warm_total_ms": (loaded-started)/1e6,
             "alignment_kind": "approximate-duration", "device": "cpu", "sample_rate": 24000,
             "streaming_kind": "whole-clause", "worker_pid": os.getpid(),
             "voice_kind": "preset", "voice": profile["voice"], "speed": profile["speed"],
@@ -476,27 +352,7 @@ class VoiceWorker:
             raise WorkerError("new-output-required")
         cold = self.model is None
         warm_metrics = self.warm()
-        if self.profile["backend"] == "kokoro-onnx":
-            return self._synthesize_kokoro(text, output, cold, warm_metrics, delivery)
-        import torch
-        import soundfile
-        started = time.monotonic_ns()
-        with torch.inference_mode():
-            waveform = self.model.generate(text, **self.profile.get("generation", {}))
-        generated = time.monotonic_ns()
-        samples = waveform.detach().cpu().float().numpy().reshape(-1)
-        duration = len(samples) / self.model.sr
-        if not 0 < duration <= 45 or not bool(torch.isfinite(waveform).all()):
-            raise WorkerError("invalid-generated-audio")
-        # The native generate() path applies PerTh. Preserve it; no effects/pass.
-        with output.open("xb") as destination:
-            os.chmod(output, 0o600)
-            soundfile.write(destination, samples, self.model.sr, format="WAV", subtype="PCM_16")
-        ready = time.monotonic_ns()
-        return {**warm_metrics, "cold_request": cold, "tts_start_ns": started,
-                "pcm_first_ready_ns": ready, "synthesis_ms": (generated-started)/1e6,
-                "write_ms": (ready-generated)/1e6, "duration_ms": duration*1000,
-                "rtf": (ready-started)/1e9/duration, "watermark": "native-perth-preserved"}
+        return self._synthesize_kokoro(text, output, cold, warm_metrics, delivery)
 
 
 def serve(profile_path, input_stream, output_stream):

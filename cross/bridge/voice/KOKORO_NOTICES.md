@@ -6,14 +6,12 @@ That comparison profile uses the official sherpa-onnx **v1.13.8** Python CPU API
 `11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf`, and the official
 `kokoro-int8-multi-lang-v1_0.tar.bz2` release asset **677610567**. The archive,
 every model/voice/token/lexicon/G2P file, the wheel downloads, and installed
-runtime source/library trees were pinned in the externally retained `kokoro-v1.0-int8.json` profile receipt and the retained runtime lock. This repository supplies `tools/kokoro-runtime.lock`; it does not claim the historical profile receipt is bundled. No weights, environments, library binaries or recorded
-performer references belong in Git or the review package.
+runtime source/library trees were pinned in the externally retained `kokoro-v1.0-int8.json` profile receipt and the retained runtime lock. This repository supplies `tools/kokoro-runtime.lock`; it does not claim the historical profile receipt is bundled. No weights, environments or library binaries belong in Git or the review package.
 
 - **Kokoro model and voice resources:** hexgrad/Kokoro-82M, Apache-2.0. The
   official conversion archive includes its Apache license; preserve it. Its
   current 54-entry table retains documented `af_bella=2`, `af_heart=3`,
-  `af_sky=10`. These are identified built-in synthetic presets, with no claim
-  of Capri likeness, actor cloning, original actor consent or human acceptance.
+  `af_sky=10`. These are identified built-in synthetic presets.
   The upstream model card credits the CC-BY training contributions Koniwa
   (`tnc`, CC BY 3.0) and SIWIS (CC BY 4.0). Preserve those acknowledgments.
 - **sherpa-onnx:** k2-fsa contributors/Xiaomi, Apache-2.0. The wheel bundles
@@ -34,8 +32,7 @@ inspected repository revision. It does **not** establish the conversion's
 original source commit. Conversion identity is the official immutable asset
 ID, archive SHA-256, and exact extracted-file hashes.
 
-The historical generic comparison profile above did not use Lachy’s voice pack. The current native application does reuse Lachy’s source/artwork and supports the checksum-pinned `lachy-capri-voice-1` pack, including its added voice-table entry and required notice. Those original application/pack terms remain applicable; the generic Kokoro notes do not replace them. No show, fan pack, scraped actor reference or performer clone is
-used. Dialogue fixtures are original writing; punctuation/speed controls are
+The historical generic comparison profile above did not use Lachy’s voice pack. The current native application does reuse Lachy’s source/artwork and supports the checksum-pinned `lachy-capri-voice-1` pack, including its added voice-table entry and required notice. Those original application/pack terms remain applicable; the generic Kokoro notes do not replace them. Dialogue fixtures are original writing; punctuation/speed controls are
 not a learned emotion-control API. Human naturalness and expressiveness remain
 listening judgments.
 

@@ -615,6 +615,7 @@ namespace CapriDesktop
                 MinecraftChecks();
                 SettingsChecks();
                 SecurityChecks();
+                TerminalSecurityChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");
@@ -4207,10 +4208,11 @@ namespace CapriDesktop
                 List<string> want = new List<string> { "Security: " + Security.Presets[preset] };
                 for (int i = 0; i <= Security.Custom; i++) want.Add((i == preset ? "*" : "") + Security.Presets[i] + (i == Security.Custom ? " (off)" : ""));
                 want.Add("-");
-                foreach (int i in new[] { Security.Open, Security.Media, Security.Shortcuts, Security.Windows, Security.Power, Security.Personal }) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
+                foreach (int i in new[] { Security.Open, Security.Media, Security.Shortcuts, Security.Windows, Security.Power, Security.Personal, Security.Terminal })
+                    if (Security.Has(i)) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
                 return string.Join(" | ", want);
             };
-            string[] presetBits = { "0000000000001", "1110000000001", "1111111000001", "1111111111100" };
+            string[] presetBits = { "00000000000010", "11100000000010", "11111110000010", "11111111111001" };
             List<string> wrong = new List<string>();
             string first = pet.SecurityShown;
             bool startedTrusted = Security.Preset == Security.Trusted && first == menu(Security.Trusted, Security.MaskOf(Security.Trusted));
@@ -4234,7 +4236,7 @@ namespace CapriDesktop
             pet.ClickSecurity(-1, Security.Open);
             bool back = Security.Preset == Security.Trusted && pet.Saved.Permissions == "1111111000" && pet.SecurityShown == menu(Security.Trusted, Security.MaskOf(Security.Trusted));
             bool windowsOnly = customShown.IndexOf("mouse and keyboard", StringComparison.Ordinal) < 0 && customShown.IndexOf("Hey Capri", StringComparison.Ordinal) < 0 && customShown.IndexOf("passwords", StringComparison.Ordinal) < 0 && customShown.IndexOf("Pay, buy", StringComparison.Ordinal) < 0;
-            bool lines = Security.PresetLine(Security.Trusted) == "She does what you ask without asking first." && Security.PresetLine(Security.Blackwall) == "She never asks before doing what you ask." && Security.PresetLine(Security.Guarded) == "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.";
+            bool lines = Security.PresetLine(Security.Trusted) == (Security.Has(Security.Terminal) ? "She does what you ask, and asks first before paying, terminal commands or anything you didn't mention." : "She does what you ask without asking first.") && Security.PresetLine(Security.Blackwall) == "She never asks before doing what you ask." && Security.PresetLine(Security.Guarded) == "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.";
             Settings older = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(new MemoryStream(Encoding.UTF8.GetBytes("{\"Model\":\"qwen3:8b\",\"Watch\":true}")));
             Security.Load(older.Permissions);
             bool olderTrusted = older.Permissions == null && Security.Preset == Security.Trusted;
@@ -4356,6 +4358,65 @@ namespace CapriDesktop
                 || trustedPrompt.IndexOf("SECURITY", StringComparison.Ordinal) >= 0 || openPrompt.IndexOf("Call the tool.\nThey've set her SECURITY settings to ask first before you open apps, games or sites. Still call the tool as soon as they ask", StringComparison.Ordinal) < 0)
                 throw new Exception("Security asked about something Mac and Linux don't have, or her prompt didn't follow it: " + mouseFree + " / " + lockdownNote);
             checks.Add("PASS Security gates: with each of the five toggles off she holds the call and asks (\"Open spotify? Say yes and I will.\", \"Lock your PC? Say yes and I will.\"), nothing runs until a yes, a yes runs it once through her own hands, a no leaves it alone and a new message drops it; two held calls are one question and one yes; in text chat her question goes out word for word and the next message's yes does it; mouse and keyboard jobs, which Mac and Linux don't have yet, never ask; and her brain is told to still call a tool that's off and let her ask");
+        }
+
+        private void TerminalSecurityChecks()
+        {
+            if (!OperatingSystem.IsLinux()) return;
+            string saved = Security.Saved;
+            Func<ToolArguments, string> terminalWas = Hands.NativeTerminal;
+            Func<bool> availableWas = Hands.TerminalAvailable;
+            int runs = 0;
+            ToolArguments command = new ToolArguments { Command = "printf capri", Cwd = "/tmp", Asked = "run printf capri", Visible = false };
+            try
+            {
+                Hands.TerminalAvailable = () => true;
+                Hands.NativeTerminal = args => { runs++; return "Terminal smoke command ran."; };
+                for (int preset = Security.Lockdown; preset <= Security.Trusted; preset++)
+                {
+                    Security.Pick(preset);
+                    int before = runs;
+                    if (Security.On(Security.Terminal) || !Security.Asks("run_terminal", command)
+                        || !Security.IsHold(pet.Brain.Act("run_terminal", command)) || runs != before
+                        || Security.Question.IndexOf(command.Command, StringComparison.Ordinal) < 0)
+                        throw new Exception("A terminal command ran without asking in " + Security.Presets[preset]);
+                    string yes = Hands.Resume("yes");
+                    if (yes == null || Security.IsHold(yes) || runs != before + 1 || !Security.Asks("run_terminal", command))
+                        throw new Exception("Terminal confirmation did not run exactly once.");
+                    if (!Security.IsHold(pet.Brain.Act("run_terminal", command)) || runs != before + 1)
+                        throw new Exception("A second terminal command reused a confirmation.");
+                    Hands.Resume("no");
+                }
+                Security.Pick(Security.Trusted);
+                Security.Set(Security.Terminal, true);
+                Security.Load(Security.Saved);
+                int enabled = runs;
+                if (Security.Preset != Security.Custom || Security.Asks("run_terminal", command)
+                    || Security.IsHold(pet.Brain.Act("run_terminal", command)) || runs != enabled + 1)
+                    throw new Exception("The saved terminal permission did not allow a command.");
+                Security.Pick(Security.Blackwall);
+                if (!Security.On(Security.Terminal) || Security.Asks("run_terminal", command)
+                    || Security.IsHold(pet.Brain.Act("run_terminal", command)) || runs != enabled + 2)
+                    throw new Exception("Blackwall asked before a terminal command.");
+                foreach (string legacy in new[] { "0000000000", "1110000000", "1111111000" })
+                {
+                    Security.Load(legacy);
+                    if (Security.On(Security.Terminal) || !Security.Asks("run_terminal", command))
+                        throw new Exception("Old settings allowed terminal commands without asking.");
+                }
+                Security.Load("1111111111");
+                if (!Security.On(Security.Terminal) || Security.Preset != Security.Blackwall)
+                    throw new Exception("Old Blackwall settings started asking before terminal commands.");
+            }
+            finally
+            {
+                Hands.NativeTerminal = terminalWas;
+                Hands.TerminalAvailable = availableWas;
+                Security.Drop();
+                Security.Load(saved);
+                Security.Changed?.Invoke();
+            }
+            checks.Add("PASS terminal Security: Lockdown, Guarded and Trusted ask before each command, a yes runs it once, only enabling its own saved permission or Blackwall skips confirmation, and old settings inherit their preset's default");
         }
 
         // A local voice server, like Kokoro-FastAPI: picked apart from ElevenLabs, asked with no key, its WAV in any coding read

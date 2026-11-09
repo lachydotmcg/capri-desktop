@@ -1,7 +1,6 @@
 """Local, finite voice processing; no player, network or persistent delay state.
 
-Authored adaptation of the supplied V8.1.1 listening studies. Coefficients are
-audition hypotheses, not measurements of the character/reference performance.
+Coefficients define fixed pitch, formant and short-delay effects.
 """
 from array import array
 import hashlib

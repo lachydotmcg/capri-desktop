@@ -118,9 +118,18 @@ namespace CapriDesktop
     // notes, Get to know me and what she sees leave addresses, numbers and emails out (Brain.Discreet). Off is how she was before.
     internal static class Security
     {
-        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, Count = 13;
+        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12;
+#if CROSS
+        internal const int Terminal = 13, Count = 14;
+#else
+        internal const int Count = 13;
+#endif
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories" };
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories",
+#if CROSS
+            "Run terminal commands"
+#endif
+        };
         internal static readonly string[] Lines =
         {
             "On: she opens them when you ask. Off: she asks first.",
@@ -139,7 +148,10 @@ namespace CapriDesktop
             "On: she types the ones your job gives her. Off: you type them.",
             "On: she listens on this PC for her name. Off: she doesn't.",
             "Call mode only. Your mic or typing must confirm each ask.",
-            "On: addresses, emails and numbers stay out. Off: they don't."
+            "On: addresses, emails and numbers stay out. Off: they don't.",
+#if CROSS
+            "On: she runs shell commands when you ask. Off: she asks before each command."
+#endif
         };
         internal static readonly string[] Presets = { "Lockdown", "Guarded", "Trusted", "Blackwall", "Custom" };
         private static readonly string[] Told =
@@ -154,7 +166,11 @@ namespace CapriDesktop
         private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
         // Lockdown has the first twelve off, Guarded the first three on, Trusted the first seven and Blackwall the first eleven.
         // Keeping personal details out of her memories is on in all of them but Blackwall.
-        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal), 0x7FF };
+        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal), 0x7FF
+#if CROSS
+            | (1 << Terminal)
+#endif
+        };
         private static int mask = 0x7F | (1 << Personal);
         private static readonly object gate = new object();
         // Toggle 11 is her wake word's own setting on Windows, read and set through these. Elsewhere it's kept here with the rest.
@@ -208,7 +224,11 @@ namespace CapriDesktop
 
         // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" and the toggles after it alone.
         // Nothing is saved.
-        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
+        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal)
+#if CROSS
+            | (1 << Terminal)
+#endif
+        )) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
 
         // The preset their toggles match, or Custom. "Hey Capri" only counts where there's a wake word.
         internal static int Preset
@@ -216,6 +236,9 @@ namespace CapriDesktop
             get
             {
                 int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0);
+#if CROSS
+                if (Has(Terminal)) counted |= 1 << Terminal;
+#endif
                 for (int i = 0; i < Masks.Length; i++) if ((bits & counted) == (Masks[i] & counted)) return i;
                 return Custom;
             }
@@ -227,6 +250,9 @@ namespace CapriDesktop
         // wake word Blackwall's line doesn't promise one.
         internal static string PresetLine(int preset)
         {
+#if CROSS
+            if (preset == Trusted && Has(Terminal)) return "She does what you ask, and asks first before paying, terminal commands or anything you didn't mention.";
+#endif
             if (preset == Trusted && !Has(Mouse)) return "She does what you ask without asking first.";
             if (preset == Blackwall && !Has(Wake)) return "She never asks before doing what you ask.";
             return Told[Math.Max(0, Math.Min(Custom, preset))];
@@ -248,6 +274,18 @@ namespace CapriDesktop
         private static string Marks(int bits)
         {
             bool friends = (bits & (1 << Friends)) != 0, personal = (bits & (1 << Personal)) != 0, odd = personal != Kept(bits);
+#if CROSS
+            bool terminal = (bits & (1 << Terminal)) != 0, terminalOdd = terminal != !Kept(bits);
+            if (terminalOdd)
+            {
+                char[] extended = new char[Wake + 3];
+                for (int i = 0; i < Wake; i++) extended[i] = (bits & (1 << i)) != 0 ? '1' : '0';
+                extended[Wake] = friends ? '1' : '0';
+                extended[Wake + 1] = personal ? '1' : '0';
+                extended[Wake + 2] = terminal ? '1' : '0';
+                return new string(extended);
+            }
+#endif
             char[] marks = new char[odd ? Wake + 2 : friends ? Wake + 1 : Wake];
             for (int i = 0; i < Wake; i++) marks[i] = (bits & (1 << i)) != 0 ? '1' : '0';
             if (friends || odd) marks[Wake] = friends ? '1' : '0';
@@ -263,12 +301,19 @@ namespace CapriDesktop
         internal static void Load(string saved, bool wake = false)
         {
             int bits = 0;
-            if (saved == null || saved.Length < Wake || saved.Length > Wake + 2 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
+            int longest = Wake + 2;
+#if CROSS
+            longest++;
+#endif
+            if (saved == null || saved.Length < Wake || saved.Length > longest || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
             else
             {
                 for (int i = 0; i < Wake; i++) if (saved[i] == '1') bits |= 1 << i;
                 if (saved.Length > Wake && saved[Wake] == '1') bits |= 1 << Friends;
                 if (saved.Length > Wake + 1 ? saved[Wake + 1] == '1' : Kept(bits)) bits |= 1 << Personal;
+#if CROSS
+                if (saved.Length > Wake + 2 ? saved[Wake + 2] == '1' : !Kept(bits)) bits |= 1 << Terminal;
+#endif
             }
             lock (gate) mask = bits | (wake ? 1 << Wake : 0);
         }
@@ -288,7 +333,7 @@ namespace CapriDesktop
                 case "app_volume": return action == "now" ? -1 : Media;
                 case "power": return action == "cancel" ? -1 : Power;
 #if CROSS
-                case "run_terminal": return Shortcuts;
+                case "run_terminal": return Terminal;
                 case "terminal_job": return -1;
                 case "linux_system": return action == "service_start" || action == "service_stop" || action == "service_restart" ? Power : -1;
 #endif
@@ -416,6 +461,9 @@ namespace CapriDesktop
             ToolArguments a = args ?? new ToolArguments();
             switch (tool)
             {
+#if CROSS
+                case "run_terminal": return "run terminal command " + (a.Command ?? "") + (string.IsNullOrWhiteSpace(a.Cwd) ? "" : " in " + a.Cwd);
+#endif
                 case "open_app": return "open " + Plain(a.Name, "that app");
                 case "open_website":
                     string site = Plain(a.Site, "that site");

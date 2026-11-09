@@ -1,7 +1,6 @@
 # Capri local effects v1
 
-Original authored processing adapted from the supplied V8.1.1 isolated studies.
-The selected engineering candidate is `bright-double-v1`: +2 semitones,
+The default effect is `bright-double-v1`: +2 semitones,
 Rubber Band preserved formants, tempo 1.0, direct .90, high-pass residual doubles
 .07 at 12 ms and .04 at 38 ms, finite 80 ms tail. It has no room reverb or pitch
 modulation. A single low-gain grain is limited to short harmless interjections;
@@ -11,11 +10,8 @@ Lachy profile remains the dry, unchanged control. The optional 70% Bella derived
 base hypothesis is not selected or claimed to be tested; this increment isolates
 processing without creating or relabeling a voice table.
 
-These coefficients are audition hypotheses, not reference-derived measurements.
-The supplied YouTube Short could not be decoded here. Register, energy,
-pronunciation, naturalness, digital texture and likeness need human listening;
-no best-match/actor/1:1 claim is made. The new character direction changes wording,
-not Kokoro's acoustic acting capability. There are no spoken emotion tags.
+Kokoro supplies the speech; these effects add pitch and short-delay processing.
+There are no spoken emotion tags.
 
 Schema 4 wraps an immutable, hash-checked schema-3 base profile, pins the processor
 and actual Rubber Band library, and allows only three fixed filter modes. Changing

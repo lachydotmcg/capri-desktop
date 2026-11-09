@@ -1,10 +1,10 @@
 # Linux native candidate
 
-This port integrates [Lachy’s Capri v0.8.6.1](https://github.com/lachydotmcg/capri-desktop/tree/87d5952305a14dea9defb0e9901b61911fe2c554), retaining its Avalonia Mainframe, artwork, fonts, shared behavior and credits. The original [mochiiwuff source](https://github.com/mochiiwuff/capri-desktop) remains credited. See LICENSE.md, THIRD-PARTY-NOTICES.md and REUSE_LINUX_WORKERS.json. Existing licenses and artwork credits remain unchanged.
+This port integrates [Lachy’s Capri v0.8.6.1](https://github.com/lachydotmcg/capri-desktop/tree/87d5952305a14dea9defb0e9901b61911fe2c554), retaining its Avalonia Mainframe, artwork, fonts, shared behavior and credits. The original [mochiiwuff source](https://github.com/mochiiwuff/capri-desktop) remains credited. See LICENSE.md and THIRD-PARTY-NOTICES.md. Existing licenses and artwork credits remain unchanged.
 
-UPSTREAM_SOURCE.json records the immutable 617-file release snapshot and its 53-path integration from v0.8.5. UPSTREAM_MAIN_SOURCE.json separately records public main at9ca691b145b2f9396863442d0f91474202600ada and preserves its newer upstream work; the release catalog remains a historical source pin rather than a claim that later upstream files were replaced. Native package/assembly identity is v0.8.6.1. Windows Parakeet/KWS packs are separate from the retained Linux Moonshine and owned local voice runtimes.
+Native package/assembly identity is v0.8.6.1. Windows Parakeet/KWS packs are separate from the retained Linux Moonshine and owned local voice runtimes.
 
-The native White-look menu correction supplies the pinned Fluent menu-item, state and submenu resources from the existing palette. It preserves typography, geometry, native host/input handling and renderer. See [menu-theme.md](docs/menu-theme.md) for the reproducible regression and inspected framework source.
+The native White-look menu correction supplies the pinned Fluent menu-item, state and submenu resources from the existing palette. It preserves typography, geometry, native host/input handling and renderer.
 
 ## Build and run
 
@@ -16,15 +16,13 @@ Use .NET 10 and the pinned Avalonia 11.3.22 dependencies. On Arch install `dotne
 
 ## Existing local voice and ChatGPT account
 
-`tools/migrate-linux-profile.py --help` documents the explicit private export inputs. It reads a consistent backup of the old companion SQLite store, exports completed conversation context, preserves all original records and touched flags in a private versioned archive, and writes native settings without modifying the source. Runtime references are absolute and explicit; the account is referenced, never copied. Keep exported profiles out of Git and review archives, including public-fixture profiles: their recovery archive still contains private source data.
-
 For a new isolated ChatGPT runtime, create a Python venv and install `tools/plan-requirements.lock` with `pip install --require-hashes --only-binary=:all: -r tools/plan-requirements.lock`; retain the wheels and environment. Set the explicit `PlanPython` reference in a stopped/private native profile.
 
 The ChatGPT-plan adapter is a separate native brain provider. It uses the retained OAuth Responses client and the account's selected chat/vision roles. It is not an API-key field or Code/Husk. Imported shared accounts remain read-only: the existing account owner alone refreshes or changes them. The ChatGPT plan button (or explicit `--connect-chatgpt` launch option) opens official browser sign-in for a separate private native-profile account store. Its credential component alone signs in and refreshes under an exclusive writer lock. No other account credentials are copied or changed. Stop or switching providers revokes a pending connection. The UI reports progress and errors; there is no silent provider fallback.
 
 The retained voice adapter reads the existing immutable local profile and its downloaded model/effects. Volume preserves the old cubic curve. Tone and layers remain owned by that profile; native tone controls are disabled for this provider to prevent applying the effects twice. Other voice providers retain upstream controls. TYPE and TALK share the same final transcript route. TALK selects an enumerated physical microphone explicitly and captures one utterance. The separate opt-in Listen for Capri setting uses the retained local ASR name gate and a20-second follow-up window; it defaults off. See docs/NAME_LISTENING.md. Lock/session/account changes and Stop revoke capture. ASR and speech run in separate, network-isolated bubblewrap children with only their exact model/runtime paths; the decoder does not open an audio device.
 
-For an explicit new download or recovery, `tools/voice_pack_setup.py` retains the original checksum-bound download/stage/profile commands and `tools/kokoro-runtime.lock` pins the Python 3.14 Linux wheels. `tools/asr_setup.py --directory NEW --lock tools/asr-models.lock.json` uses the retained Python 3.11 `tools/asr-requirements.lock` environment and verifies artifact hashes. The voice profile command requires an existing verified runtime profile; it does not invent new effects, reference audio or a voice. Speech never downloads during normal operation. Retain model files, runtime environments, manifests and applicable licenses for offline recovery. The native app requires no old Qt frontend or broad companion service for speech.
+For an explicit new download or recovery, `tools/voice_pack_setup.py` retains the original checksum-bound download/stage/profile commands and `tools/kokoro-runtime.lock` pins the Python 3.14 Linux wheels. `tools/asr_setup.py --directory NEW --lock tools/asr-models.lock.json` uses the retained Python 3.11 `tools/asr-requirements.lock` environment and verifies artifact hashes. The voice profile command requires an existing verified runtime profile. Speech never downloads during normal operation. Retain model files, runtime environments, manifests and applicable licenses for offline recovery. The native app requires no old Qt frontend or broad companion service for speech.
 
 ## Native actions and limitations
 
@@ -44,7 +42,7 @@ Implementation references: [Avalonia 11.3.22 X11 window/input ownership](https:/
 
 ## Recovery
 
-Exit only the isolated native candidate, keep its profile and new drafts/history, and launch the unchanged normal installation. Do not copy an old SQLite backup over current user data. Migration never overwrites an existing destination. Re-export into a new private destination if needed. Uninstalling the candidate package removes application files, not profile records or retained model/runtime directories.
+Exit only the isolated native candidate, keep its profile and new drafts/history, and launch the unchanged normal installation. Uninstalling the candidate package removes application files, not profile records or retained model/runtime directories.
 
 Computer actions use the documented Responses `text.format` JSON schema, then independent native validation; refusals, incomplete or malformed results never authorize input. API reference: https://developers.openai.com/api/reference/resources/responses/methods/create .
 
@@ -58,6 +56,10 @@ A visible command opens its terminal directly. `SHELL` selects the shell, with
 `/bin/sh` as fallback. Launcher arguments are separate argv values; only the
 explicit command is interpreted by that shell. The screenshot worker still
 cannot type shell commands.
+
+Run terminal commands under Security asks before each command by default.
+Blackwall, or enabling that permission, lets requested commands run without
+confirmation. The intent checks still apply.
 
 Jobs return an ID, observed state, cwd, output cursor and exit code when known.
 `terminal_job` reads or stops that exact ID. Reads return a bounded current tail

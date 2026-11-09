@@ -89,7 +89,7 @@ namespace CapriDesktop
         {
             if (!OperatingSystem.IsLinux()) { frameProblem = "ChatGPT plan linking is available in this Linux candidate."; NotifySettings(); return; }
             if (accountConnecting) { frameProblem = "Sign-in is already open in your browser."; NotifySettings(); return; }
-            if (!File.Exists(Saved.PlanPython)) { frameProblem = "Configure the pinned ChatGPT Python runtime first."; NotifySettings(); return; }
+            if (!File.Exists(Saved.PlanPython)) { frameProblem = "ChatGPT plan needs its Python environment from tools/plan-requirements.lock; set PlanPython to that environment's Python executable."; NotifySettings(); Talk.Answer("(ChatGPT plan)", frameProblem); return; }
             string directory;
             try { directory = NativeAccount.Initialize(folder); }
             catch (Exception error) { frameProblem = error.Message; NotifySettings(); return; }

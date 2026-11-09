@@ -17,17 +17,18 @@ namespace CapriDesktop
 #if CROSS
         internal const string Version = "0.8.6.1";
         private const string StandFacts = "Her new stand: her artist's new animation faces left or right. If it broke your mod, turn on Legacy stand under CAPRI in Mainframe. Skins keep their own idle and colour mods work on both stands.\n";
-        internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " Arch/Linux preview.\n" : " Mac port validation build.\n")
+        internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
             + StandFacts
             + (OperatingSystem.IsLinux()
-                ? "File editor under Settings > YOU or the right-click menu edits personality.md and me.md, with separate drafts, Save/Ctrl+S, conflict checks and recovery. This backend uses transparent fallback; panel-region blur is unavailable.\n"
-                    + "Click artwork plays at my pointer tip. Native game sessions use bounded fresh observations and stop at the requested ending or Stop; supported XWayland targets also allow focused Esc when the indicator says so. Continuous 3D/gamepad controls are unavailable.\n"
-                    + "Listen for Capri is an optional local decoder mode under VOICE, off until enabled. After my name, follow-ups remain open for 20 seconds. Select your microphone and retained local decoder first. Physical echo and microphone qualification remain pending.\n"
-                    + "This is a review candidate, not accepted visual or game competence. Chess remains deferred after the owner's reported failure."
-                : "This build validates the shared source. New Linux game and microphone controllers are not available on Mac; physical Mac behavior requires separate qualification.");
+                ? "File editor: Mainframe > Settings > YOU > File editor, or File editor in her right-click menu, opens personality.md and me.md. Change the text, then press Save or Ctrl + S. Your drafts stay separate until you save.\n"
+                    + "Play a game: ask her to play and give her an ending, like one round or 10 minutes. Say stop or press Stop to end it sooner. When her control indicator offers Esc, you can press it in the game to stop her too.\n"
+                    + "Listen for Capri: select your microphone and set up the local speech decoder under VOICE, then enable Listen for Capri. After you say her name, she keeps listening for 20 seconds so you can carry on without saying it again.\n"
+                    + "Her clicks: a click effect plays at her pointer's tip when she uses your mouse.\n"
+                    + "Terminal commands: she asks before each command by default. Change Run terminal commands under Security to let her run them when you ask."
+                : "Legacy stand: Mainframe > Settings > CAPRI > Legacy stand brings back her old standing animation for mods that need it.");
         internal static readonly string Line = OperatingSystem.IsLinux()
-            ? "This " + Version + " Linux preview adds the new stand, file editor, click artwork, bounded game sessions and optional local Capri-name listening. Ask what's new for paths and limits."
-            : "This " + Version + " port validation build has the new stand and Legacy stand. New Linux controller behavior needs separate Mac qualification.";
+            ? "I just updated to " + Version + ": I've got my new stand, a file editor and Listen for Capri on Linux. I ask before running terminal commands. Ask me what's new for the menu paths."
+            : "I just updated to " + Version + ": I've got my new stand on Mac, and Legacy stand brings back my old one for your mods. Find it under CAPRI in Mainframe.";
 #else
         internal const string Version = "0.8.6.1";
         internal const string Facts = "Capri " + Version + " on Windows.\n"

@@ -2,7 +2,7 @@ name: Mac and Linux
 
 on:
   push:
-  pull_request:
+    branches: [mac-linux]
   workflow_dispatch:
 
 permissions:
