@@ -638,3 +638,4 @@ button, input { font: inherit; color: inherit; }
 }
 @media (prefers-reduced-motion: reduce) { .helper-arrive, .helper-typing span { animation: none; } .helper-panel::before, .helper-tab::before { transition: none; } }
 @media print { .helper { display: none; } }
+#stage .stage-tries { display: none; }
