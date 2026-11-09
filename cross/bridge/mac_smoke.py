@@ -113,7 +113,26 @@ def parent_lifetime():
         process.stdout.close(); process.stderr.close()
 
 
+def sandbox_denials():
+    try:
+        result = subprocess.run(['/usr/bin/log', 'show', '--last', '2m', '--style', 'compact', '--predicate',
+            'sender == "Sandbox" OR eventMessage CONTAINS "deny"'],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=2)
+        lines = result.stdout.decode('utf-8', errors='replace').splitlines()
+        return '\n'.join(line[-1000:] for line in lines[-8:]) or 'No sandbox denials were available.'
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return 'Sandbox denials unavailable: ' + type(error).__name__
+
+
+def sandbox_failure(kind, resolved, returncode, stdout=b'', stderr=b''):
+    return (f'Confined {kind} launch failed: returncode={returncode}; interpreter={resolved["executable"]}; '
+            f'sys.executable={resolved["launcher"]}; base_prefix={resolved["base_prefix"]}; '
+            f'stdout={stdout!r}; stderr={stderr!r}\nLast sandbox denials:\n{sandbox_denials()}')
+
+
 def sandbox(root):
+    from mac_sandbox import runtime
+    resolved = runtime()
     directory, account = root / 'sandbox-worker', root / 'sandbox-account'
     directory.mkdir(mode=0o700); account.mkdir(mode=0o700)
     (account / 'native-owner-v1').write_text('Mac fixture account; no credentials')
@@ -122,8 +141,10 @@ def sandbox(root):
     forbidden.write_text('private fixture')
     (directory / 'parent_watch.py').write_bytes(Path(__file__).with_name('parent_watch.py').read_bytes())
     worker = directory / 'worker.py'
-    for kind in ('plan', 'account'):
-        worker.write_text("from pathlib import Path\nfrom parent_watch import bind_parent\nbind_parent()\n"
+
+    def check(kind, python, extra=''):
+        worker.write_text("import asyncio, ctypes, select, ssl\nfrom pathlib import Path\nfrom parent_watch import bind_parent\nbind_parent()\n"
+            + extra
             + 'account=Path(' + repr(str(account)) + ')\n'
             + "assert (account/'fixture.txt').read_text() == 'allowed'\n"
             + "try:\n    Path(" + repr(str(forbidden)) + ").read_text()\n    raise AssertionError('ungranted read allowed')\nexcept PermissionError: pass\n"
@@ -131,10 +152,33 @@ def sandbox(root):
             + 'assert written == ' + repr(kind == 'account') + '\n'
             + "import os\nassert 'CAPRI_MAC_SMOKE_SENTINEL' not in os.environ\nprint('confined',flush=True)\n")
         environment = dict(os.environ, CAPRI_MAC_SMOKE_SENTINEL='fixture')
-        result = subprocess.run([sys.executable, str(Path(__file__).with_name('sandbox.py')),
-            '--kind', kind, '--python', sys.executable, '--worker', str(worker), '--resource', str(account)],
-            input=b'', stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=3, env=environment)
-        assert result.returncode == 0 and result.stdout.strip() == b'confined', (kind, result.stdout, result.stderr)
+        interpreter = dict(resolved, launcher=str(python))
+        try:
+            result = subprocess.run([str(python), '-B', '-E', '-S', str(Path(__file__).with_name('sandbox.py')),
+                '--kind', kind, '--python', str(python), '--worker', str(worker), '--resource', str(account)],
+                input=b'', stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=3, env=environment)
+        except subprocess.TimeoutExpired as error:
+            raise AssertionError(sandbox_failure(kind, interpreter, 'timeout', error.stdout, error.stderr)) from error
+        except OSError as error:
+            raise AssertionError(sandbox_failure(kind, interpreter, 'not started', stderr=str(error))) from error
+        if result.returncode != 0 or result.stdout.strip() != b'confined':
+            raise AssertionError(sandbox_failure(kind, interpreter, result.returncode, result.stdout, result.stderr))
+
+    for kind in ('plan', 'account'):
+        check(kind, sys.executable)
+
+    import sysconfig
+    import venv
+    virtual = root / 'sandbox-venv'
+    venv.EnvBuilder(with_pip=False, symlinks=True).create(virtual)
+    packages = Path(sysconfig.get_path('purelib', scheme='posix_prefix', vars={'base': str(virtual)}))
+    packages.mkdir(parents=True, exist_ok=True)
+    early_site = root / 'unconfined-site-hook.txt'
+    (packages / 'capri_sandbox_fixture.py').write_text('from pathlib import Path\ntry:\n    Path(' + repr(str(forbidden)) + ').read_text()\n'
+        + 'except PermissionError:\n    confined=True\nelse:\n    confined=False\n    Path(' + repr(str(early_site)) + ").write_text('unconfined site hook')\n")
+    (packages / 'capri_sandbox_fixture.pth').write_text('import capri_sandbox_fixture\n')
+    check('plan', virtual / 'bin/python3', 'import capri_sandbox_fixture\nassert capri_sandbox_fixture.confined\n'
+          + 'assert not Path(' + repr(str(early_site)) + ').exists()\n')
 
 
 def main():
