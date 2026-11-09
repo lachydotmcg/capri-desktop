@@ -38,7 +38,7 @@ namespace CapriDesktop
             RemoteScreen screen = new RemoteScreen(link, new RemoteDesktop(this));
             RemoteCall call = new RemoteCall(link, RemoteEars, RemoteHeard);
             call.VoiceOn = delegate { return !preferences.Silent; };
-            call.EarsOn = delegate { LocalEars own = Hearing.Own; return own != null && own.Ready || Hearing.Available; };
+            call.EarsOn = delegate { return OwnCallEars() != null || Hearing.Available; };
             call.Interrupted = RemoteInterrupted;
             call.Timed = RemoteTimed;
             screen.Changed += RemoteLiveChanged;
@@ -62,8 +62,34 @@ namespace CapriDesktop
             RemoteBadgeShow();
         }
 
-        // Her own ears on a phone's line: Parakeet when it's in, Windows' recognizer otherwise.
-        private static string RemoteEars(short[] samples) { return Hearing.Text(samples); }
+        // Her own ears on a phone's line: Parakeet whenever it's in and Windows speech isn't the pick, with Talk on at the PC
+        // or not, and Windows' recognizer otherwise. Hearing.Text alone only has Parakeet while Talk is on, so with Talk off
+        // every call line went to Windows' recognizer, which turned them into word soup (9 Nov).
+        private string RemoteEars(short[] samples)
+        {
+            LocalEars own = OwnCallEars();
+            return own != null ? Hearing.Clean(own.Hear(samples)) : Hearing.Text(samples);
+        }
+
+        private LocalEars OwnCallEars()
+        {
+            LocalEars own = parakeet;
+            return own != null && HearingStatus.Own(HearingChoice, own.Ready) ? own : null;
+        }
+
+        // Her Parakeet ears load as a call starts, so its first line isn't held up loading them, and unload after the last
+        // call ends unless Talk is on and still has them.
+        private bool remoteEarsWarm;
+
+        private void RemoteEarsFor(bool calling)
+        {
+            if (calling == remoteEarsWarm) return;
+            remoteEarsWarm = calling;
+            LocalEars own = OwnCallEars();
+            if (testing) return;
+            if (calling) { if (own != null) ThreadPool.QueueUserWorkItem(delegate { try { own.Warm(); } catch (Exception) { } }); }
+            else if (!chatting) EarsModel(false);
+        }
 
         private void RemoteVoiceTap(short[] samples, int rate)
         {
@@ -658,6 +684,7 @@ namespace CapriDesktop
             RemoteCall call = remoteCall;
             List<RemoteWatcher> watching = screen == null ? new List<RemoteWatcher>() : screen.Watchers();
             List<RemoteWatcher> calling = call == null ? new List<RemoteWatcher>() : call.Callers();
+            if (!IsDisposed) RemoteEarsFor(calling.Count > 0);
             if (watching.Count > 0)
             {
                 if (remoteLookTimer == null)
