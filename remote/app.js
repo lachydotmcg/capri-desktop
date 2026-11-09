@@ -134,6 +134,8 @@
     }, 200);
   };
   const current = () => chats.find(chat => chat.id === currentId) || null;
+  // Phone-only mode (native.js) remembers the chat on screen.
+  if (window.CapriNative) CapriNative.chat(current);
   const titleOf = chat => {
     const first = chat && chat.msgs.find(msg => msg.role === 'you');
     if (!first) return 'New chat';
@@ -221,7 +223,7 @@
   const starterAsks = ['play some lofi', "what's on my screen", 'open discord', 'remind me in 10 min'];
   const starters = () => {
     const box = make('div', 'starters');
-    for (const ask of starterAsks) {
+    for (const ask of (window.CapriNative && CapriNative.starters()) || starterAsks) {
       const button = make('button', 'nbtn cyan', ask);
       button.type = 'button';
       button.addEventListener('click', () => deliver(ask));
@@ -309,6 +311,8 @@
     }
   };
   const errorWords = { busy: 'CAPRI IS BUSY', 'bad-message': 'NOT READ', 'not-allowed': 'TURNED OFF ON THE PC', version: 'UPDATE CAPRI' };
+  // Phone-only mode's own (native.js): what her brain's provider said.
+  Object.assign(errorWords, { key: 'KEY REJECTED', credits: 'NO CREDITS', limit: 'TOO MANY REQUESTS', model: 'MODEL NOT ON KEY', down: 'SERVICE DOWN', net: 'NO INTERNET', empty: 'NO REPLY' });
 
   // One message from him to her, over chat.send, whether he typed it, tapped a starter or tapped SCREEN.
   const deliver = text => {
@@ -335,6 +339,22 @@
     autosize();
     updateSend();
   };
+  // The screen view and the call (screen.js, call.js) use the chat too: a message to her, a notice, and a line he said
+  // on a call as her ears heard it, which her answer lands under like a typed message's.
+  const heardLine = (text, id) => {
+    if (linkState !== 'connected') return;
+    const chat = current() || startChat();
+    const now = Date.now();
+    const said = { role: 'you', text: clip(text, 8000), at: now };
+    chat.msgs.push(said);
+    chat.last = now;
+    dropStarters();
+    add(renderMsg(said));
+    openReply(id, chat);
+    toEnd();
+    saveChats();
+  };
+  window.CapriApp = { deliver, heard: heardLine, say: text => say(text) };
 
   CapriRemote.onMessage(message => {
     const type = message.type;
@@ -510,8 +530,11 @@
   })[reason] || ['PC offline', 'Capri closed or the PC asleep'];
   const onLink = (state, info) => {
     const was = linkState;
+    const wasNative = !!linkInfo.native;
     linkState = state;
     linkInfo = info || {};
+    // Her brain moved between the PC and this phone (native.js): the starters change with it.
+    if (wasNative !== !!linkInfo.native && logIn.querySelector('.starters')) renderChat();
     app.dataset.link = state;
     setScreen(gateUp ? 'gate' : state === 'unpaired' ? 'pair' : state === 'pairing' ? 'wait' : 'chat');
     if (state === 'unpaired') {
@@ -615,10 +638,16 @@
     if (!matchMedia('(pointer: coarse)').matches) input.focus();
   };
   // ---------- Her features under the bar ----------
-  // SCREEN is a real chat message asking her to look, so her own look_at_screen tool runs on the PC and her answer lands
-  // here like any other (the demo PC answers it with its scripted look). CLOSE goes back to the menu. CALL, JOBS and
-  // SETTINGS aren't built yet: they stay dimmed, and a tap only shows SOON for a moment.
-  $('#f-screen').addEventListener('click', () => deliver('Look at my screen. What\'s on it?'));
+  // SCREEN shows the PC's screen live when her PC has the screen view (screen.js). Otherwise it's a chat message asking
+  // her to look, so her own look_at_screen tool runs on the PC and her answer lands here like any other (the demo PC
+  // answers it with its scripted look). CALL rings her when her PC takes calls (call.js). CLOSE goes back to the menu.
+  // JOBS isn't built yet: it stays dimmed, and a tap only shows SOON for a moment.
+  $('#f-screen').addEventListener('click', () => { if (!(window.CapriScreen && CapriScreen.open())) deliver('Look at my screen. What\'s on it?'); });
+  $('#f-call').addEventListener('click', () => {
+    if (window.CapriCall && CapriCall.start()) return;
+    if (linkState !== 'connected') say(linkState === 'offline' ? 'PC offline' : 'Not connected yet');
+    else say(CapriRemote.info.demo ? 'Calls aren\'t in the demo' : 'Calls need a newer Capri on the PC');
+  });
   $('#close-chat').addEventListener('click', openMenu);
   for (const button of actions.querySelectorAll('.feat[aria-disabled="true"]')) {
     let soonTimer = 0;
@@ -665,7 +694,9 @@
     homeSheet.hidden = true;
     if (!app.classList.contains('menu')) scrim.hidden = true;
   };
-  $('#f-settings').addEventListener('click', openHome);
+  $('#f-settings').addEventListener('click', () => { if (window.CapriNative) CapriNative.settings(openHome); else openHome(); });
+  // Use her without a PC opens the same SETTINGS before SETTINGS has been pressed, so its home screen button needs the guide too.
+  if (window.CapriNative && CapriNative.guide) CapriNative.guide(openHome);
   $('#home-done').addEventListener('click', closeHome);
   scrim.addEventListener('click', closeHome);
   document.addEventListener('keydown', event => { if (event.key === 'Escape') closeHome(); });
