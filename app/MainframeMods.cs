@@ -20,6 +20,7 @@ namespace CapriDesktop
         private Head modListHead;
         private readonly Key[] colourKeys = new Key[ArtColors.Slots];
         private Label modStatus, modEmpty, modNoMatch, modPage;
+        private readonly Timer modStatusTimer = new Timer();
         private Entry modSearch;
         private List<Mod> modShown = new List<Mod>();
         private bool modded;
@@ -40,14 +41,22 @@ namespace CapriDesktop
             Explain(modBrowse, "Browse mods", "MainframeMods.cs");
             Explain(folder, "Open mods folder", "MainframeMods.cs");
             modStatus = ModLabel("", 28, 138, 328, 36, Font, Faint);
+            modStatusTimer.Tick += delegate { modStatusTimer.Stop(); modStatus.Text = ""; };
+            FormClosed += delegate { modStatusTimer.Stop(); modStatusTimer.Dispose(); };
             // A long import error, like a compiler's, is cut to two lines here, and hovering it shows the whole thing.
             ((Note)modStatus).Hovers = true;
+            // Mod names can hold an &, like Dice & Decider, so it isn't read as a shortcut key.
+            modStatus.UseMnemonic = false;
             modListHead = Section("INSTALLED >", 0, 180);
-            modSearch = Input(28, 204, 328, 26);
-            modSearch.Cue = "Search your mods by name or author";
+            modSearch = Input(28, 204, 222, 26);
+            modSearch.Cue = "Search by name or author";
             modSearch.Box.AccessibleName = "Search your installed mods";
             Explain(modSearch, "Search installed mods", "MainframeMods.cs", null, "Search installed mods");
             modSearch.Box.TextChanged += delegate { modFirst = 0; FillMods(); };
+            modUpdate = Make("Update mods", 256, 204, 100, 26, delegate { UpdateMods(); });
+            modUpdate.AccessibleName = "Update your installed mods from the mods directory";
+            modUpdateUsual = modUpdate.Accent;
+            Explain(modUpdate, "Update mods", "MainframeMods.cs", null, "Update mods");
             modEmpty = ModLabel("No mods yet. Import a " + Mods.Extension + " file.", 28, ModRowTop, 328, 20, Font, Faint);
             modNoMatch = ModLabel("No mods match.", 28, ModRowTop, 328, 20, Font, Faint);
             for (int i = 0; i < ModRows; i++)
@@ -207,8 +216,14 @@ namespace CapriDesktop
 
         private void ModSays(string text, bool problem)
         {
+            modStatusTimer.Stop();
             modStatus.Text = text;
             modStatus.ForeColor = problem ? Rose : Cyan;
+            if (!string.IsNullOrEmpty(text))
+            {
+                modStatusTimer.Interval = problem ? 10000 : 5000;
+                modStatusTimer.Start();
+            }
         }
 
         private void ImportMod()
@@ -238,6 +253,31 @@ namespace CapriDesktop
             catch (ModException error)
             {
                 // Its whole reason goes to errors.txt too, and the list shows a code mod that saved but didn't start as off.
+                Brain.Log("mods", -1, Path.GetFileName(file) + ": " + error.Message);
+                FillMods();
+                ModSays(error.Message, true);
+                return false;
+            }
+        }
+
+        // An update from a directory card: like an import, but every mod stays on or off as it was.
+        internal bool UpdateMod(string file, string id)
+        {
+            try
+            {
+                Mod mod = capri.ModList.Update(file, ModAsk);
+                if (mod == null)
+                {
+                    ModSays("Not updated. The old one is still in.", false);
+                    return false;
+                }
+                UpdateDone(id, file);
+                FillMods();
+                ModSays(mod.File.Name + " is updated" + (mod.File.Version != null ? " to " + mod.File.Version : "") + (mod.On ? "." : ". It's still off."), false);
+                return true;
+            }
+            catch (ModException error)
+            {
                 Brain.Log("mods", -1, Path.GetFileName(file) + ": " + error.Message);
                 FillMods();
                 ModSays(error.Message, true);

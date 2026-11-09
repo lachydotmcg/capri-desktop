@@ -14,6 +14,183 @@ namespace CapriDesktop
     internal sealed partial class Mainframe
     {
         private ModsSheet browser;
+        private Key modUpdate;
+        private Color modUpdateUsual;
+        // Newer copies of installed mods found by the last look, waiting for the second press of Update mods.
+        private List<ModListing> modUpdates;
+        private bool modUpdating;
+        // Checks run Update mods on the calling thread.
+        internal bool ModInline;
+
+        private void ModRun(Action work)
+        {
+            if (ModInline) work();
+            else ThreadPool.QueueUserWorkItem(delegate { work(); });
+        }
+
+        private void ModBack(Action work)
+        {
+            if (ModInline) { work(); return; }
+            try { if (!IsDisposed) BeginInvoke(new MethodInvoker(delegate { if (!IsDisposed) work(); })); }
+            catch (InvalidOperationException) { }
+        }
+
+        private bool modLooking;
+        private static readonly string ModDownloads = Path.Combine(Path.GetTempPath(), "capri-mod-downloads");
+
+        private void ShowUpdateKey()
+        {
+            int waiting = modUpdates == null ? 0 : modUpdates.Count;
+            modUpdate.Text = modUpdating ? "Updating..." : modLooking ? "Looking..." : waiting > 0 ? "Update " + waiting : "Update mods";
+            modUpdate.Accent = waiting > 0 && !modUpdating && !modLooking ? Cyan : modUpdateUsual;
+            modUpdate.Enabled = !modUpdating && !modLooking;
+            modUpdate.AccessibleName = waiting > 0 ? "Get updates for " + ModDirectory.Names(modUpdates) : "Update your installed mods from the mods directory";
+            modUpdate.Invalidate();
+        }
+
+        // Update mods: the first press looks in the mods directory for newer copies of installed mods and says which, and the
+        // second gets them. Each goes in like an import, so a code mod still asks, and every mod stays on or off as it was.
+        private void UpdateMods()
+        {
+            if (modUpdating || modLooking) return;
+            if (modUpdates != null && modUpdates.Count > 0)
+            {
+                GetUpdates(new List<ModListing>(modUpdates));
+                return;
+            }
+            LookForUpdates(false);
+        }
+
+        // Looks in the mods directory for newer copies of installed mods. From the mods window it's quiet: it only marks them.
+        internal void LookForUpdates(bool quiet)
+        {
+            if (modUpdating || modLooking) return;
+            modLooking = true;
+            ShowUpdateKey();
+            if (!quiet) ModSays("Looking in the mods directory for updates...", false);
+            List<Mod> installed = new List<Mod>(capri.ModList.All);
+            ModRun(delegate
+            {
+                List<ModListing> found = null;
+                string problem = null;
+                try { found = ModDirectory.Newer(ModDirectory.Updates(ModDirectory.Browse(), installed), installed, ModDownloads); }
+                catch (Exception error) { problem = DirectoryProblem(error, "Couldn't reach the mods directory: "); }
+                try
+                {
+                    ModBack(delegate
+                    {
+                        modLooking = false;
+                        if (problem == null)
+                        {
+                            ModDirectory.Forget(modUpdates);
+                            modUpdates = found;
+                        }
+                        ShowUpdateKey();
+                        if (browser != null && !browser.IsDisposed) browser.Refill();
+                        if (quiet) return;
+                        if (problem != null) ModSays(problem, true);
+                        else if (found.Count == 0) ModSays("Your mods are up to date.", false);
+                        else ModSays((found.Count == 1 ? "There's an update for " : "There are updates for ") + ModDirectory.Names(found) + ". Press " + modUpdate.Text + " to get " + (found.Count == 1 ? "it." : "them."), false);
+                    });
+                }
+                finally { if (IsDisposed) ModDirectory.Forget(found); }
+            });
+        }
+
+        internal bool HasUpdate(string id) { return UpdateFor(id) != null; }
+
+        internal ModListing UpdateFor(string id)
+        {
+            return modUpdates == null ? null : modUpdates.Find(listing => string.Equals(listing.Id, id, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // A mod got its update some other way, so it's no longer waiting. Its kept download goes unless it was the one used.
+        private void UpdateDone(string id, string used)
+        {
+            if (modUpdates == null) return;
+            List<ModListing> gone = modUpdates.FindAll(listing => string.Equals(listing.Id, id, StringComparison.OrdinalIgnoreCase));
+            foreach (ModListing listing in gone) if (listing.Fetched == used) listing.Fetched = null;
+            ModDirectory.Forget(gone);
+            modUpdates.RemoveAll(listing => gone.Contains(listing));
+            if (!modUpdating && !modLooking) ShowUpdateKey();
+        }
+
+        private void GetUpdates(List<ModListing> pending)
+        {
+            modUpdating = true;
+            ShowUpdateKey();
+            List<ModListing> done = new List<ModListing>(), kept = new List<ModListing>();
+            string reason = null;
+            Action next = null;
+            next = delegate
+            {
+                // A mod removed since the look isn't put back.
+                while (pending.Count > 0 && !capri.ModList.All.Exists(mod => string.Equals(mod.File.Id, pending[0].Id, StringComparison.OrdinalIgnoreCase)))
+                {
+                    ModDirectory.Forget(new List<ModListing> { pending[0] });
+                    pending.RemoveAt(0);
+                }
+                if (pending.Count == 0)
+                {
+                    modUpdating = false;
+                    modUpdates = null;
+                    FillMods();
+                    ShowUpdateKey();
+                    if (browser != null && !browser.IsDisposed) browser.Refill();
+                    string said = done.Count == 0 ? "" : "Updated " + ModDirectory.Names(done) + ".";
+                    if (kept.Count > 0) said += (said.Length > 0 ? " " : "") + "Kept the old " + ModDirectory.Names(kept) + (reason != null ? ": " + reason : ".");
+                    ModSays(said.Length > 0 ? said : "Nothing needed updating.", kept.Count > 0);
+                    return;
+                }
+                ModListing listing = pending[0];
+                pending.RemoveAt(0);
+                ModSays("Updating " + listing.Title + "...", false);
+                string ready = listing.Fetched != null && File.Exists(listing.Fetched) ? listing.Fetched : null;
+                listing.Fetched = null;
+                ModRun(delegate
+                {
+                    string file = ready, problem = null;
+                    if (file == null)
+                    {
+                        try { file = ModDirectory.Download(listing, ModDownloads); }
+                        catch (Exception error) { problem = DirectoryProblem(error, "couldn't download it: "); }
+                    }
+                    try
+                    {
+                        ModBack(delegate
+                        {
+                            if (file == null)
+                            {
+                                kept.Add(listing);
+                                reason = reason ?? problem;
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    if (capri.ModList.Update(file, ModAsk) != null) done.Add(listing);
+                                    else kept.Add(listing);
+                                }
+                                catch (Exception error)
+                                {
+                                    if (!(error is ModException || error is IOException || error is UnauthorizedAccessException)) throw;
+                                    Brain.Log("mods", -1, listing.FileName + ": " + error.Message);
+                                    kept.Add(listing);
+                                    reason = reason ?? error.Message;
+                                }
+                                finally { ModDirectory.Clean(file); }
+                            }
+                            next();
+                        });
+                    }
+                    finally { if (IsDisposed && file != null) ModDirectory.Clean(file); }
+                });
+            };
+            next();
+        }
+
+        internal string UpdateKeyShown { get { return modUpdate.Text; } }
+        internal void PressUpdateMods() { UpdateMods(); }
 
         private float SheetZoom(int wide, int tall)
         {
@@ -312,6 +489,7 @@ namespace CapriDesktop
             private readonly Key[] sorts = new Key[ModDirectory.Sorts.Length];
             private readonly Entry search;
             private readonly Label status, empty, page;
+            private readonly System.Windows.Forms.Timer statusTimer = new System.Windows.Forms.Timer();
             private readonly Key back, next;
             private readonly Dictionary<string, Image> pictures = new Dictionary<string, Image>();
             private readonly HashSet<string> asked = new HashSet<string>();
@@ -375,6 +553,7 @@ namespace CapriDesktop
                 empty = Words("", 28, 280, 688, 24, Font, Faint);
                 empty.TextAlign = ContentAlignment.MiddleCenter;
                 status = Words("", 28, 738, 688, 36, Font, Faint);
+                statusTimer.Tick += delegate { statusTimer.Stop(); status.Text = ""; };
                 Frame.Fit(this);
                 Fill();
             }
@@ -394,8 +573,14 @@ namespace CapriDesktop
 
             private void Says(string text, bool problem)
             {
+                statusTimer.Stop();
                 status.Text = text;
                 status.ForeColor = problem ? Rose : Cyan;
+                if (!string.IsNullOrEmpty(text))
+                {
+                    statusTimer.Interval = problem ? 10000 : 5000;
+                    statusTimer.Start();
+                }
             }
 
             private ModListing At(int card) { int at = first + card; return at < shown.Count ? shown[at] : null; }
@@ -429,7 +614,10 @@ namespace CapriDesktop
                 Fill();
                 if (problem != null) { Says(problem, true); return; }
                 if (listings.Count == 0) { Says("No mods in the directory yet.", false); return; }
+                statusTimer.Stop();
                 status.Text = "";
+                // Marks the cards of installed mods with a newer copy, without saying anything on her mods page.
+                Frame.LookForUpdates(true);
                 Run(delegate
                 {
                     Dictionary<string, ModStats> read = null;
@@ -484,7 +672,7 @@ namespace CapriDesktop
                     abouts[i].Visible = on && listing.About.Length > 0;
                     stars[i].Visible = stats[i].Visible = counts[i].Visible = on && statsLive;
                     if (!on) continue;
-                    bool have = Have(listing);
+                    bool have = Have(listing), update = have && Frame.HasUpdate(listing.Id);
                     AskForPicture(listing);
                     Image picture;
                     previews[i].Image = listing.PreviewSha != null && pictures.TryGetValue(listing.PreviewSha, out picture) ? picture : null;
@@ -494,15 +682,16 @@ namespace CapriDesktop
                     abouts[i].Text = listing.About;
                     titles[i].AccessibleDescription = listing.About;
                     details.SetToolTip(previews[i], listing.Title + (listing.Author.Length > 0 ? "\nby " + listing.Author : "") + (listing.About.Length > 0 ? "\n" + listing.About : ""));
-                    metas[i].Text = listing.Kind + " " + Math.Max(1, listing.Size / 1024) + " KB." + (have ? " Installed." : "");
+                    metas[i].Text = listing.Kind + " " + Math.Max(1, listing.Size / 1024) + " KB." + (update ? " Update available." : have ? " Installed." : "");
+                    metas[i].ForeColor = update ? Cyan : Faint;
                     stars[i].Value = listing.Rating;
                     stars[i].CanRate = statsLive && have;
                     stars[i].AccessibleName = "Rate " + listing.Title + ", " + (listing.Votes == 0 ? "no ratings yet" : listing.Rating.ToString("0.0") + " stars") + (have ? ". Press 1 to 5." : "");
                     stats[i].Text = ModDirectory.RatingLine(listing);
                     counts[i].Text = ModDirectory.DownloadLine(listing);
-                    installs[i].Text = have ? "Reinstall" : "Install";
+                    installs[i].Text = update ? "Update" : have ? "Reinstall" : "Install";
                     installs[i].Enabled = !installing;
-                    installs[i].AccessibleName = (have ? "Reinstall " : "Install ") + listing.Title;
+                    installs[i].AccessibleName = (update ? "Update " : have ? "Reinstall " : "Install ") + listing.Title;
                     installs[i].Invalidate();
                     views[i].AccessibleName = "View " + listing.Title + " on GitHub";
                 }
@@ -518,20 +707,27 @@ namespace CapriDesktop
                 ModListing listing = At(card);
                 if (installing || listing == null) return;
                 installing = true;
-                Says("Downloading " + listing.Title + "...", false);
+                ModListing waiting = Have(listing) ? Frame.UpdateFor(listing.Id) : null;
+                bool update = waiting != null;
+                string ready = update && waiting.Fetched != null && File.Exists(waiting.Fetched) ? waiting.Fetched : null;
+                if (ready != null) waiting.Fetched = null;
+                Says((update ? "Updating " : "Downloading ") + listing.Title + "...", false);
                 Fill();
                 string under = Path.Combine(Path.GetTempPath(), "capri-mod-downloads");
                 Run(delegate
                 {
-                    string file = null, problem = null;
-                    try { file = ModDirectory.Download(listing, under); }
-                    catch (Exception error) { problem = DirectoryProblem(error, "Couldn't download that mod: "); }
-                    try { Back(delegate { Finish(listing, file, problem); }); }
+                    string file = ready, problem = null;
+                    if (file == null)
+                    {
+                        try { file = ModDirectory.Download(listing, under); }
+                        catch (Exception error) { problem = DirectoryProblem(error, "Couldn't download that mod: "); }
+                    }
+                    try { Back(delegate { Finish(listing, file, problem, update); }); }
                     finally { if (IsDisposed && file != null) ModDirectory.Clean(file); }
                 });
             }
 
-            private void Finish(ModListing listing, string file, string problem)
+            private void Finish(ModListing listing, string file, string problem, bool update)
             {
                 installing = false;
                 if (file == null)
@@ -541,11 +737,12 @@ namespace CapriDesktop
                     return;
                 }
                 bool done;
-                try { done = Frame.ImportMod(file); }
+                try { done = update ? Frame.UpdateMod(file, listing.Id) : Frame.ImportMod(file); }
                 finally { ModDirectory.Clean(file); }
                 Fill();
                 Says(Frame.modStatus.Text, !done && Frame.modStatus.ForeColor == Rose);
-                if (!done) return;
+                // An update isn't a new download, so only installs and reinstalls are counted.
+                if (!done || update) return;
                 Run(delegate
                 {
                     try { ModDirectory.CountDownload(listing.Folder); }
@@ -593,12 +790,17 @@ namespace CapriDesktop
                 if (disposing)
                 {
                     ticket++;
+                    statusTimer.Stop();
+                    statusTimer.Dispose();
                     foreach (Image picture in pictures.Values) picture.Dispose();
                     pictures.Clear();
                     details.Dispose();
                 }
                 base.Dispose(disposing);
             }
+
+            // Her mods page found or got updates, so the cards' Update and Reinstall change.
+            internal void Refill() { Fill(); }
 
             internal string StatusShown { get { return status.Text; } }
             internal string EmptyShown { get { return empty.Visible ? empty.Text : null; } }

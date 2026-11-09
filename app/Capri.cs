@@ -798,6 +798,7 @@ namespace CapriDesktop
         [DataMember] public string CallAppBefore;
         [DataMember] public string CallAppNameBefore;
         [DataMember] public int HuskMode;
+        [DataMember] public bool NoHuskVerbosity;
         // Switched off on the call panel: in call mode she hears only your mic, not Discord.
         [DataMember] public bool CallDiscordOff;
         [DataMember] public bool CallCaptionsOff;
@@ -3029,7 +3030,8 @@ namespace CapriDesktop
 
         internal static Bitmap LoadArt(string name)
         {
-            Bitmap skinned = SkinArt(name);
+            string stand = Mods.StandArt(name, LegacyArt);
+            Bitmap skinned = (stand != name ? SkinArt(stand) : null) ?? SkinArt(name);
             if (skinned != null) using (Bitmap layered = Dressed(skinned, name)) return Finished(layered);
             using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream(Mods.StandArt(name, LegacyArt)))
             {
@@ -6469,6 +6471,15 @@ namespace CapriDesktop
         internal void ToggleHeadPats()
         {
             preferences.NoHeadPats = !preferences.NoHeadPats;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal bool HuskVerbosity { get { return !preferences.NoHuskVerbosity; } }
+
+        internal void ToggleHuskVerbosity()
+        {
+            preferences.NoHuskVerbosity = !preferences.NoHuskVerbosity;
             SavePreferences();
             mainframe.Sync();
         }
@@ -34270,6 +34281,29 @@ namespace CapriDesktop
             long finished = HuskCount(watch, "claude", "tasks");
             watch.Receive(HuskEvent("Stop"));
             if (HuskCount(watch, "claude", "tasks") != finished) throw new Exception("An interrupted husk turn counted as finished.");
+            List<object> colourQuestion = new List<object> { HuskJson.Map("header", "Colour", "question", "Which colour?", "options", new List<object>()) };
+            Dictionary<string, object>[] askedEvents =
+            {
+                HuskHook.Adapt(HuskEvent("PreToolUse", "tool_name", "AskUserQuestion", "tool_input", HuskJson.Map("questions", colourQuestion)), "claude"),
+                HuskHook.Adapt(HuskJson.Map("type", "session.tool.called", "session", "husk-smoke", "tool", "question", "input", HuskJson.Map("questions", colourQuestion)), "opencode")
+            };
+            foreach (Dictionary<string, object> asked in askedEvents)
+                if (HuskJson.Text(asked, "hook_event_name") != "Notification" || HuskJson.Text(asked, "notification_type") != "agent_needs_input" || HuskJson.Text(asked, "message") != "Which colour?") throw new Exception("A question from a coding assistant did not reach her as a question.");
+            watch.Verbose = delegate { return false; };
+            int beforeQuiet = acts.Count;
+            now += 5;
+            watch.Receive(HuskEvent("PreToolUse", "tool_name", "Bash", "tool_input", HuskJson.Map("command", "cd src")));
+            now += 5;
+            watch.Tick();
+            watch.Receive(HuskEvent("PostToolUseFailure", "tool_name", "Bash", "error", "No such folder"));
+            watch.Receive(HuskEvent("PreCompact"));
+            if (acts.Count != beforeQuiet) throw new Exception("Verbosity off let tool chatter through.");
+            watch.Receive(HuskEvent("Notification", "notification_type", "agent_needs_input", "message", "Which colour?"));
+            if (acts.Count != beforeQuiet + 1 || acts[acts.Count - 1].Kind != "input") throw new Exception("Verbosity off hid a question.");
+            watch.Receive(HuskEvent("Notification", "notification_type", "permission_prompt", "message", "Claude needs your permission"));
+            if (acts.Count != beforeQuiet + 1) throw new Exception("A waiting question got a second alert over it.");
+            watch.Verbose = delegate { return true; };
+            checks.Add("PASS husk verbosity off: tool captions, failed tools and compacting stay quiet, and Claude Code and OpenCode questions arrive as questions");
             checks.Add("PASS husk events: UI dispatch, prompts and window, silent merged captions four seconds apart, tool flinch, spoken approvals and questions, foreground done silence with delivery recheck, voice off, stale reply and resolved approval rejection, task errors, compacting, subagents and interrupt");
 
             now = 20;
@@ -34326,6 +34360,11 @@ namespace CapriDesktop
             HuskClone("husk-ui", false);
             if (!huskClones.Swarm.Bodies[0].Returning) throw new Exception("Husk clone overlay missed its return event.");
             HuskClonesOff();
+            if (new Preferences().NoHuskVerbosity) throw new Exception("Verbosity was not on by default.");
+            ToggleHuskVerbosity();
+            if (HuskVerbosity || mainframe.HuskVerbosityShown) throw new Exception("The Verbosity switch did not turn off.");
+            ToggleHuskVerbosity();
+            if (!HuskVerbosity || !mainframe.HuskVerbosityShown) throw new Exception("The Verbosity switch did not turn on.");
             checks.Add("PASS husk settings and clones: saved off/Claude/Codex/OpenCode/All choice and Both kept as Claude Code + Codex, help and hover tip, templates for every spoken language, ten-minute greetings, assistant filtering, duplicate subagent start ignored and passive clones split and return without cursor, notes or window tricks");
 
             watch.Change(3, exe);
@@ -49680,7 +49719,7 @@ namespace CapriDesktop
                 checks.Add("PASS mods knowledge: Browse mods explains names, authors, descriptions and search");
                 if (ModDirectory.BlobSha(Encoding.ASCII.GetBytes("test content\n")) != "d670460b4b4aece5915caf5c68d12f560a9fe3e4") throw new Exception("A file's git fingerprint came out wrong.");
                 byte[] settings = Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"far-names\",\"name\":\"Far Names\",\"wake_names\":[\"Nova\"]}");
-                byte[] code = Encoding.UTF8.GetBytes("// capri-mod: 1\n// id: directory-code\n// name: Directory Code\n\npublic class M : ICapriMod { public void Start(ICapriHost h) { } public bool Heard(string w) { return false; } public void Stop() { } }");
+                byte[] code = Encoding.UTF8.GetBytes("// capri-mod: 1\n// id: directory-code\n// name: Directory Code\nusing CapriDesktop;\n\npublic class M : ICapriMod { public void Start(ICapriHost h) { } public bool Heard(string w) { return false; } public void Stop() { } }");
                 byte[] picture;
                 using (Bitmap made = new Bitmap(320, 180))
                 using (Graphics paint = Graphics.FromImage(made))
@@ -49774,6 +49813,8 @@ namespace CapriDesktop
                 ShowMods(true);
                 sheet = new ModsSheet(this, 1f);
                 sheet.Inline = true;
+                // The window's quiet look for updates runs on this thread too, so it can't reach the stand-ins mid-check.
+                ModInline = true;
                 sheet.Show(this);
                 sheet.LoadMods();
                 if (sheet.ShownCount != 2 || sheet.TitleOf(1) != "Names: Far & Wide" || sheet.AuthorOf(1) != "by Vocyn" || sheet.AboutOf(1) != about || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.TitleOf(2) != null || !sheet.PictureOn(1) || sheet.PictureOn(0) || !sheet.Across3) throw new Exception("The mods window didn't show its names, authors and descriptions 3 across.");
@@ -49832,6 +49873,7 @@ namespace CapriDesktop
                 if (asked != 1 || mods.All.Count != 0 || posts.Count != 0) throw new Exception("A code mod from the directory did not ask, stayed after a no, or was counted: " + sheet.StatusShown);
                 ModAsk = wasAsk;
                 checks.Add("PASS mods directory: a code mod still asks, and a no leaves nothing and isn't counted");
+                CheckModUpdates(checks, output, sheet, found, settings, code, posts);
                 statsDown = true;
                 sheet.LoadMods();
                 if (sheet.ShownCount != 2 || sheet.StatsOf(1) != null || sheet.StatusShown != "") throw new Exception("Losing the worker wasn't quiet: " + sheet.StatusShown);
@@ -49926,6 +49968,155 @@ namespace CapriDesktop
                 ModDirectory.PreviewFolder = wasFolder;
                 ModAsk = wasAsk;
                 WindowState = wasState;
+                ModInline = false;
+                ModDirectory.Forget(modUpdates);
+                modUpdates = null;
+            }
+        }
+
+        // Update mods: it finds installed mods the directory has a different file for, gets them on a second press, leaves every
+        // mod on or off as it was, still asks before code runs, and marks the mods window's cards. Uses the directory's stand-ins.
+        private void CheckModUpdates(List<string> checks, string output, ModsSheet sheet, List<ModListing> found, byte[] settings, byte[] code, List<string> posts)
+        {
+            Mods mods = capri.ModList;
+            Func<ModFile, string, bool> wasAsk = ModAsk;
+            bool wasInline = ModInline;
+            string old = Path.Combine(output, "update-old");
+            Directory.CreateDirectory(old);
+            try
+            {
+                ModInline = true;
+                string settingsSha = ModDirectory.BlobSha(settings), codeSha = ModDirectory.BlobSha(code);
+                string plainFile = Path.Combine(old, "plain.capri-mod");
+                File.WriteAllBytes(plainFile, settings);
+                byte[] marked = new byte[settings.Length + 3];
+                marked[0] = 0xEF; marked[1] = 0xBB; marked[2] = 0xBF;
+                Array.Copy(settings, 0, marked, 3, settings.Length);
+                Mod plain = new Mod { File = new ModFile { Id = "far-names" }, Path = plainFile };
+                ModListing markedListing = new ModListing { Folder = "far-names", FileName = "far-names.capri-mod", Sha = ModDirectory.BlobSha(marked), Size = marked.Length };
+                ModListing otherKind = new ModListing { Folder = "far-names", FileName = "far-names" + Mods.SkinExtension, Sha = codeSha, Size = code.Length };
+                if (ModDirectory.Updates(new List<ModListing> { markedListing }, new List<Mod> { plain }).Count != 0) throw new Exception("A byte order mark alone counted as an update.");
+                if (ModDirectory.Updates(new List<ModListing> { otherKind }, new List<Mod> { plain }).Count != 0) throw new Exception("A different kind of mod with the same id counted as an update.");
+                List<Mod> none = new List<Mod> { plain, new Mod { File = new ModFile { Id = "not-listed" }, Path = plainFile }, new Mod { File = new ModFile { Id = "directory-code" }, Path = Path.Combine(old, "missing" + Mods.CodeExtension) } };
+                if (ModDirectory.Updates(found, none).Count != 0) throw new Exception("An up-to-date, unlisted or missing mod counted as an update.");
+                checks.Add("PASS mod updates: only an installed mod whose file differs from its listing of the same id and kind counts, and a settings file that only lost its byte order mark doesn't");
+
+                // Someone's own mod can share a directory mod's id with a higher version, like a Custom Names 3.0.0 against the
+                // directory's 1.0.0. That's not an update.
+                if (ModDirectory.Compare("1.10.0", "1.9.9") != 1 || ModDirectory.Compare("2", "2.0.0") != 0 || ModDirectory.Compare("0.9", "1.0") != -1 || ModDirectory.Compare("v1.2", null) != null || ModDirectory.Compare("beta", "1.0") != null)
+                    throw new Exception("Versions compared wrong.");
+                byte[] versioned = Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"far-names\",\"name\":\"Far Names\",\"version\":\"1.0.0\",\"wake_names\":[\"Nova\"]}");
+                ModListing listed = new ModListing { Folder = "far-names", FileName = "far-names" + Mods.Extension, Sha = ModDirectory.BlobSha(versioned), Size = versioned.Length };
+                string checkedUnder = Path.Combine(output, "update-downloads");
+                Func<string, long, byte[]> getWas = ModDirectory.Get;
+                ModDirectory.Get = delegate { return versioned; };
+                try
+                {
+                    Func<string, List<ModListing>> newerThan = delegate(string mine)
+                    {
+                        listed.Fetched = null;
+                        return ModDirectory.Newer(new List<ModListing> { listed }, new List<Mod> { new Mod { File = new ModFile { Id = "far-names", Version = mine }, Path = plainFile } }, checkedUnder);
+                    };
+                    if (newerThan("3.0.0").Count != 0 || newerThan("1.0").Count != 0) throw new Exception("A directory copy that wasn't newer was offered as an update.");
+                    foreach (string mine in new[] { "0.9.12", null })
+                    {
+                        List<ModListing> offered = newerThan(mine);
+                        if (offered.Count != 1 || offered[0].Fetched == null || ModDirectory.BlobSha(File.ReadAllBytes(offered[0].Fetched)) != listed.Sha) throw new Exception("A newer directory copy wasn't offered with its download kept, against " + (mine ?? "no version"));
+                        ModDirectory.Forget(offered);
+                    }
+                }
+                finally { ModDirectory.Get = getWas; }
+                if (Directory.Exists(checkedUnder) && Directory.GetDirectories(checkedUnder).Length != 0) throw new Exception("A checked download was left behind.");
+                checks.Add("PASS mod updates: a directory copy is only offered when its version is above the installed one's, or either has none, so someone's own newer mod with the same id isn't replaced, and checked downloads don't pile up");
+
+                string oldSettings = Path.Combine(old, "far-names" + Mods.Extension), oldCode = Path.Combine(old, "directory-code" + Mods.CodeExtension);
+                File.WriteAllText(oldSettings, "{\"format\":1,\"id\":\"far-names\",\"name\":\"Far Names\",\"version\":\"0.9\",\"wake_names\":[\"Nora\"]}");
+                File.WriteAllBytes(oldCode, Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(code).Replace("public class M", "// the old one\npublic class M")));
+                int asked = 0;
+                ModAsk = delegate { asked++; return true; };
+                if (!ImportMod(oldSettings) || !ImportMod(oldCode) || mods.All.Count != 2) throw new Exception("The old copies didn't import: " + modStatus.Text);
+                mods.Set(mods.All.Find(mod => mod.File.Id == "far-names"), false, ModAsk);
+                asked = 0;
+                ShowMods(true);
+                if (UpdateKeyShown != "Update mods") throw new Exception("Update mods started as " + UpdateKeyShown);
+                PressUpdateMods();
+                if (UpdateKeyShown != "Update 2" || modStatus.Text != "There are updates for Directory Code and Names: Far & Wide. Press Update 2 to get them." || asked != 0) throw new Exception("Update mods didn't say both updates first: " + UpdateKeyShown + " / " + modStatus.Text);
+                string crowded = TextFits() ?? Overlap();
+                if (crowded != null) throw new Exception("The mods page doesn't fit with Update mods: " + crowded);
+                using (Bitmap shot = new Bitmap(Width, Height))
+                {
+                    DrawToBitmap(shot, new Rectangle(Point.Empty, Size));
+                    shot.Save(Path.Combine(output, "mods-page-updates.png"), ImageFormat.Png);
+                }
+                posts.Clear();
+                PressUpdateMods();
+                Mod named = mods.All.Find(mod => mod.File.Id == "far-names"), coded = mods.All.Find(mod => mod.File.Id == "directory-code");
+                if (asked != 1 || named == null || coded == null || named.On || !coded.On || ModDirectory.BlobSha(File.ReadAllBytes(named.Path)) != settingsSha || ModDirectory.BlobSha(File.ReadAllBytes(coded.Path)) != codeSha)
+                    throw new Exception("Update mods didn't get both, keep each on or off, or ask before code: asked " + asked + ", " + modStatus.Text);
+                if (UpdateKeyShown != "Update mods" || modStatus.Text != "Updated Directory Code and Names: Far & Wide." || posts.Count != 0) throw new Exception("Update mods didn't say what it got, or counted it as a download: " + modStatus.Text);
+                if (Hands.HeardName("hey nova") || Hands.HeardName("hey nora")) throw new Exception("A mod that was off answered after its update.");
+                PressUpdateMods();
+                if (modStatus.Text != "Your mods are up to date." || UpdateKeyShown != "Update mods") throw new Exception("Up to date wasn't said: " + modStatus.Text);
+                checks.Add("PASS Update mods: the first press says which mods have updates, the second gets them, a mod that was off stays off, a code mod asks, updates aren't counted as downloads, and then it says they're up to date");
+
+                ModAsk = delegate { asked++; return true; };
+                if (!ImportMod(oldCode)) throw new Exception("The old code mod didn't import again: " + modStatus.Text);
+                mods.Set(mods.All.Find(mod => mod.File.Id == "directory-code"), false, ModAsk);
+                ModAsk = delegate { asked++; return false; };
+                asked = 0;
+                PressUpdateMods();
+                PressUpdateMods();
+                coded = mods.All.Find(mod => mod.File.Id == "directory-code");
+                if (asked != 1 || coded == null || coded.On || ModDirectory.BlobSha(File.ReadAllBytes(coded.Path)) == codeSha || modStatus.Text != "Kept the old Directory Code.") throw new Exception("Saying no to a code mod's update didn't keep the old one: " + modStatus.Text);
+                ModAsk = delegate { asked++; return true; };
+                PressUpdateMods();
+                PressUpdateMods();
+                coded = mods.All.Find(mod => mod.File.Id == "directory-code");
+                if (asked != 2 || coded == null || coded.On || ModDirectory.BlobSha(File.ReadAllBytes(coded.Path)) != codeSha) throw new Exception("A code mod that was off came back on after its update: " + modStatus.Text);
+                checks.Add("PASS Update mods: no to a code mod's update keeps the old one, and a yes updates it and leaves it off if it was off");
+
+                if (!ImportMod(oldSettings)) throw new Exception("The old settings mod didn't import again: " + modStatus.Text);
+                sheet.LoadMods();
+                if (sheet.TitleOf(1) != "Names: Far & Wide" || sheet.InstallTextOf(1) != "Update" || !sheet.MetaOf(1).EndsWith("Update available.", StringComparison.Ordinal) || sheet.InstallTextOf(0) != "Reinstall") throw new Exception("The mods window didn't mark the update: " + sheet.InstallTextOf(1) + " / " + sheet.MetaOf(1));
+                sheet.Picture(Path.Combine(output, "mods-window-update.png"));
+                posts.Clear();
+                sheet.PressInstall(1);
+                named = mods.All.Find(mod => mod.File.Id == "far-names");
+                if (named == null || !named.On || ModDirectory.BlobSha(File.ReadAllBytes(named.Path)) != settingsSha || sheet.InstallTextOf(1) != "Reinstall" || posts.Count != 0 || sheet.StatusShown != "Far Names is updated.") throw new Exception("A card's Update didn't update it in place: " + sheet.StatusShown);
+                checks.Add("PASS mods window: a card with a newer copy says Update available and Update, which updates it in place without counting a download, then goes back to Reinstall");
+
+                // Skins: importing one turns the others off, so an update to a skin that's off must leave the one she's wearing on.
+                Func<string, string, string> skin = delegate(string id, string version)
+                {
+                    string file = Path.Combine(old, id + "-" + version + Mods.SkinExtension);
+                    if (File.Exists(file)) File.Delete(file);
+                    using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(file, System.IO.Compression.ZipArchiveMode.Create))
+                    using (Bitmap strip = new Bitmap(Mods.OldIdleWide, Mods.OldIdleHigh, PixelFormat.Format32bppArgb))
+                    using (MemoryStream picture = new MemoryStream())
+                    {
+                        using (Graphics paint = Graphics.FromImage(strip))
+                        using (Brush brush = new SolidBrush(version == "1" ? Color.FromArgb(200, 40, 90) : Color.FromArgb(40, 90, 200)))
+                            for (int i = 0; i < 16; i++) paint.FillRectangle(brush, i * 240 + 40, 20, 160, 340);
+                        strip.Save(picture, ImageFormat.Png);
+                        using (StreamWriter details = new StreamWriter(zip.CreateEntry("skin.json").Open())) details.Write("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\",\"version\":\"" + version + "\"}");
+                        using (Stream into = zip.CreateEntry("idle.png").Open()) picture.WriteTo(into);
+                    }
+                    return file;
+                };
+                if (!ImportMod(skin("update-worn", "1")) || !ImportMod(skin("update-spare", "1")) || !ImportMod(skin("update-worn", "1"))) throw new Exception("The test skins didn't import: " + modStatus.Text);
+                Mod spare = mods.Update(skin("update-spare", "2"), ModAsk);
+                Mod worn = mods.All.Find(mod => mod.File.Id == "update-worn");
+                if (spare == null || spare.On || spare.File.Version != "2" || worn == null || !worn.On || Companion.SkinFolder == null || !Companion.SkinFolder.TrimEnd(Path.DirectorySeparatorChar).EndsWith("update-worn-skin", StringComparison.OrdinalIgnoreCase)) throw new Exception("Updating a skin that was off changed which skin she wears: " + Companion.SkinFolder);
+                Mod again = mods.Update(skin("update-worn", "2"), ModAsk);
+                if (again == null || !again.On || again.File.Version != "2" || mods.All.Find(mod => mod.File.Id == "update-spare").On) throw new Exception("Updating the skin she wears took it off or put another on.");
+                checks.Add("PASS mod updates: updating a skin that's off leaves the one she's wearing on, and updating the one she wears keeps it on");
+            }
+            finally
+            {
+                ModAsk = wasAsk;
+                ModInline = wasInline;
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+                FillMods();
             }
         }
     }
