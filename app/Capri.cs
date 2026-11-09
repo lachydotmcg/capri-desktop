@@ -10441,8 +10441,9 @@ namespace CapriDesktop
                 try
                 {
                     IAsyncResult done = BeginInvoke(new Action(delegate { Lend(lent); }));
-                    // A busy UI thread gets a second to catch up before the press goes ahead anyway.
-                    done.AsyncWaitHandle.WaitOne(1000);
+                    // A busy UI thread gets a second to catch up before the press goes ahead anyway. A click into a game to
+                    // give it the keys checks what's under it first, so that one never lands on her.
+                    if (!done.AsyncWaitHandle.WaitOne(1000) && lent) Brain.Log("hands", -1, "My windows took over a second to let a press through.");
                 }
                 catch (InvalidOperationException) { }
                 return;
@@ -27202,6 +27203,207 @@ namespace CapriDesktop
             finally { Hands.Windows = windowsWere; }
         }
 
+        private static void SmokeGameFocus(List<string> checks)
+        {
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<OpenWindow, string, bool> steerWas = Hands.Steer;
+            Func<IntPtr> foregroundWas = Hands.Foreground, frontWas = Computer.Front;
+            Func<IntPtr, bool> activeWas = Hands.Active, aliveWas = Computer.Alive, aboveWas = Computer.AboveHer;
+            Func<IntPtr, IntPtr, bool> sameWas = Computer.SameWindow;
+            Func<IntPtr, Rectangle> clientWas = Computer.ClientArea;
+            Func<IntPtr, string> titleWas = Computer.TitleOf;
+            Func<Point, IntPtr> atWas = Computer.WindowAt;
+            Func<Rectangle, byte[]> grayWas = Computer.GrayFrame;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<Sight> glimpseWas = Computer.Glimpse;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Func<string> gameOpenWas = Computer.GameOpen;
+            Picture shownWas = Computer.Shown;
+            Action<short, bool, bool> keyWas = Computer.SendKey;
+            Action<int, int> mouseWas = Computer.SendMouse, nudgeWas = Computer.Nudge;
+            Action<Point> trackWas = Computer.Track, tapWas = Computer.Tapped, putWas = Computer.PutCursor;
+            Func<Point> cursorWas = Computer.CursorAt;
+            Action<bool> lendWas = Computer.Lending, signWas = InControl.Changed;
+            Func<bool> hiddenWas = Computer.CursorHidden, underEscapeWas = Computer.Escape;
+            Func<Point, bool> underWas = Computer.GameUnder;
+            Action haltWas = Computer.Halted;
+            Action<string> runWas = Hands.Run;
+            bool flinchedWas = Computer.Flinched, streamWas = Computer.Streaming;
+            int soundWas = Sfx.Level;
+            IntPtr game = new IntPtr(7101), other = new IntPtr(7102), document = new IntPtr(7103), sibling = new IntPtr(7104);
+            IntPtr front = other, expected = game, hit = game;
+            Sight sight = new Sight { Window = game, Title = "Fortnite", Program = "FortniteClient-Win64-Shipping", Bounds = new Rectangle(100, 50, 1400, 900) };
+            Sight notes = new Sight { Window = document, Title = "notes.txt - Notepad", Program = "notepad" };
+            Picture shown = new Picture { Sight = sight, Area = sight.Bounds, Size = sight.Bounds.Size };
+            Rectangle client = new Rectangle(118, 88, 1364, 842);
+            Point middle = new Point(client.Left + client.Width / 2, client.Top + client.Height / 2);
+            Point cursor = new Point(12, 19), pointer = Point.Empty;
+            List<string> sent = new List<string>();
+            List<Point> taps = new List<Point>();
+            HashSet<short> down = new HashSet<short>();
+            bool active = false, minimized = false, blocked = false, frozen = false, denies = false;
+            int frames = 0, attempts = 0, buttons = 0, brings = 0;
+            int wakesAt = int.MaxValue;
+            try
+            {
+                Hands.Run = delegate { throw new Exception("The focus smoke tried to open something."); };
+                Hands.Windows = delegate { return new List<OpenWindow> { new OpenWindow(game, sight.Title, sight.Program), new OpenWindow(document, notes.Title, notes.Program) }; };
+                Hands.Foreground = Computer.Front = delegate { return front; };
+                Hands.Active = delegate(IntPtr window) { return front == window && active && !minimized; };
+                Hands.Steer = delegate(OpenWindow window, string action)
+                {
+                    brings++;
+                    if (down.Count != 0 || buttons != 0) throw new Exception("Focus changed with input still held.");
+                    if (blocked) return false;
+                    front = window.Handle; active = !denies; minimized = false; sent.Add("front"); return true;
+                };
+                Computer.Alive = delegate(IntPtr window) { return window == game || window == document || window == sibling; };
+                Computer.AboveHer = delegate { return false; };
+                Computer.SameWindow = delegate(IntPtr one, IntPtr two) { return one == two || one == document && two == sibling; };
+                Computer.ClientArea = delegate(IntPtr window) { return window == game ? client : Rectangle.Empty; };
+                Computer.TitleOf = delegate(IntPtr window) { return window == game ? sight.Title : null; };
+                Computer.WindowAt = delegate(Point at) { return client.Contains(at) ? hit : other; };
+                Computer.GrayFrame = delegate
+                {
+                    byte[] frame = new byte[Computer.GrayWidth * Computer.GrayHeight];
+                    if (!frozen || taps.Count >= wakesAt) { byte tone = (byte)(++frames % 2 == 0 ? 120 : 60); for (int i = 0; i < 2000; i++) frame[i] = tone; }
+                    return frame;
+                };
+                Computer.SendKey = delegate(short code, bool up, bool extended)
+                {
+                    if (up) { down.Remove(code); sent.Add("up"); return; }
+                    if (front != expected && !(expected == document && front == sibling)) throw new Exception("Keys went to the wrong window.");
+                    down.Add(code); sent.Add("key"); if (code == 0x57) attempts++;
+                };
+                Computer.SendMouse = delegate(int flags, int data)
+                {
+                    if ((flags & 0x002A) != 0 && down.Count != 0) throw new Exception("A focus click went out before releasing keys.");
+                    buttons |= flags & 0x002A; buttons &= ~((flags & 0x0054) >> 1);
+                    if ((flags & 0x0002) != 0) sent.Add("click");
+                };
+                Computer.Nudge = delegate { };
+                Computer.Track = delegate(Point at) { pointer = at; };
+                Computer.Tapped = delegate(Point at) { if (pointer != at || cursor != at) throw new Exception("A focus click skipped her visible cursor."); taps.Add(at); };
+                Computer.PutCursor = delegate(Point at) { cursor = at; };
+                Computer.CursorAt = delegate { return cursor; };
+                Computer.Lending = InControl.Changed = delegate { };
+                Computer.CursorHidden = delegate { return false; };
+                Computer.GameUnder = delegate { return false; };
+                Computer.Escape = delegate { return false; };
+                Computer.Halted = delegate { };
+                Computer.Flinched = Computer.Streaming = false;
+                Sfx.Level = 0;
+                Computer.Finish(); Computer.Arm();
+                string key = Computer.Member("key", new ToolArguments { Text = "f24" }, shown);
+                if (Computer.Failed(key) || brings != 1 || sent.IndexOf("front") >= sent.IndexOf("key") || taps.Count != 0) throw new Exception("A game's key did not bring it to the front first.");
+                sent.Clear();
+                string walked = Computer.Do("walk", new ToolArguments { Keys = "w", Seconds = "0.12", Jump = "no" }, sight);
+                if (!walked.StartsWith("Moved") || taps.Count != 1 || taps[0] != middle || sent.IndexOf("click") >= sent.IndexOf("key") || cursor != new Point(12, 19)) throw new Exception("The first movement did not click the client centre before keys and return the mouse.");
+                Computer.Do("walk", new ToolArguments { Keys = "w", Seconds = "0.12", Jump = "no" }, sight);
+                Computer.Member("hold_key", new ToolArguments { Text = "w", Duration = 0.1 }, shown);
+                if (taps.Count != 1) throw new Exception("A second move clicked again within the skip window.");
+                checks.Add("PASS game keys restore focus first and the first movement clicks the client centre once through her visible cursor");
+
+                front = other; Computer.NoteGame(null); front = game; Computer.NoteGame(sight);
+                Computer.Click(new Point(client.Left + 24, client.Top + 24), "left");
+                int clicked = taps.Count;
+                Computer.Member("key", new ToolArguments { Text = "w" }, shown);
+                if (taps.Count != clicked) throw new Exception("A recent ordinary click did not skip the focus click.");
+                sight.Title = "Fortnite - Match";
+                Computer.Do("walk", new ToolArguments { Seconds = "0.12", Jump = "no" }, sight);
+                if (taps.Count != clicked + 1) throw new Exception("A title change kept the old focus click.");
+                sight.Words.Add("Loading..."); Computer.NoteGame(sight);
+                sight.Words.Clear(); Computer.NoteGame(sight);
+                Computer.Do("walk", new ToolArguments { Seconds = "0.12", Jump = "no" }, sight);
+                if (taps.Count != clicked + 2) throw new Exception("A loading screen kept the old focus click.");
+                Computer.GameReset(game); frozen = true;
+                Computer.Do("walk", new ToolArguments { Seconds = "0.12", Jump = "no" }, sight);
+                if (taps.Count != clicked + 3) throw new Exception("A changed game scene kept the old focus click.");
+                checks.Add("PASS recent ordinary game clicks skip refocusing and title, loading and scene changes require a fresh focus click");
+
+                foreach (string tool in new[] { "walk", "hold_and_press" })
+                {
+                    clicked = taps.Count; int tried = attempts;
+                    string missed = Computer.Do(tool, new ToolArguments { Keys = "w", Hold = "w", Press = "space", Times = "4", Seconds = "1", Jump = "no" }, sight);
+                    if (missed != Computer.TakingKeys(sight) || !Computer.Failed(missed) || !Hands.Failed(missed) || attempts != tried + 2 || taps.Count != clicked + 1 || down.Count != 0 || buttons != 0) throw new Exception(tool + " did not release, click once, retry once and return the plain failure.");
+                }
+                checks.Add("PASS unchanged game frames release all input, click once and retry once before returning her plain focus line");
+                clicked = taps.Count; int recoveredAttempts = attempts; wakesAt = clicked + 1;
+                string recovered = Computer.Do("walk", new ToolArguments { Keys = "w", Seconds = "0.65", Jump = "no" }, sight);
+                if (!recovered.StartsWith("Moved") || attempts != recoveredAttempts + 2 || taps.Count != clicked + 1 || down.Count != 0 || buttons != 0) throw new Exception("A working retry did not resume movement exactly once.");
+                checks.Add("PASS a focus click that restores movement completes the one allowed retry");
+                wakesAt = int.MaxValue; clicked = taps.Count;
+                string stuck = Computer.Do("walk", new ToolArguments { Keys = "w", Seconds = "1", Jump = "no" }, sight);
+                if (!stuck.Contains("something's in the way") || taps.Count != clicked || down.Count != 0) throw new Exception("A still screen after her keys had moved the game was taken for keys going nowhere: " + stuck);
+                checks.Add("PASS once her keys have moved the game, a still screen means she's stuck, not that her keys went nowhere");
+
+                front = other; expected = document; shown.Sight = notes;
+                int brought = brings;
+                if (Computer.Failed(Computer.Member("key", new ToolArguments { Text = "f24" }, shown)) || brings != brought + 1 || front != document) throw new Exception("A non-game key did not restore the screenshot's window.");
+                front = sibling; brought = brings;
+                Computer.Member("key", new ToolArguments { Text = "f24" }, shown);
+                if (brings != brought) throw new Exception("A key needlessly switched away from the same process.");
+                checks.Add("PASS non-game keys go to the window in the last screenshot or another window in the same process");
+                front = document; int turns = 0; brought = brings;
+                Computer.Glimpse = delegate { return front == document ? notes : new Sight { Window = other, Title = "Elsewhere", Program = "notepad" }; };
+                Computer.Shoot = delegate { return new Picture { Jpeg = new byte[] { 1, 2, 3 }, Size = shown.Size, Area = shown.Area }; };
+                Computer.Use = Computer.Member;
+                Computer.GameOpen = delegate { return null; };
+                Job pinned = new Job("press f24 in notes");
+                pinned.Drive = delegate
+                {
+                    if (++turns > 2) throw new Exception("The faked keyboard job did not finish.");
+                    if (turns == 1)
+                    {
+                        front = other;
+                        return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"focus\",\"name\":\"key\",\"toolset_name\":\"computer\",\"input\":{\"text\":\"f24\"}}],\"stop_reason\":\"tool_use\"}");
+                    }
+                    return Brain.Parsed("{\"content\":[{\"type\":\"text\",\"text\":\"Pressed f24.\"}],\"stop_reason\":\"end_turn\"}");
+                };
+                if (pinned.Run() != "Pressed f24." || turns != 2 || brings != brought + 1 || front != document) throw new Exception("A job lost its screenshot's window while its brain was thinking.");
+                checks.Add("PASS a job retains its screenshot's window and restores it when focus changes during thinking");
+
+                shown.Sight = sight; expected = game; front = other; blocked = true;
+                clicked = taps.Count; int sentKeys = attempts;
+                foreach (string tool in new[] { "key", "hold_key", "type", "walk", "look", "mouse_hold", "hold_and_press" })
+                {
+                    ToolArguments args = new ToolArguments { Text = "w", Hold = "w", Keys = "w", Seconds = "0.1" };
+                    string refused = tool == "key" || tool == "hold_key" || tool == "type" ? Computer.Member(tool, args, shown) : Computer.Do(tool, args, sight);
+                    if (refused != Computer.TakingKeys(sight)) throw new Exception(tool + " ignored a failed game focus check.");
+                }
+                if (taps.Count != clicked || attempts != sentKeys || down.Count != 0 || buttons != 0) throw new Exception("A failed focus check still sent input.");
+                blocked = false; front = game; active = false; denies = true; sent.Clear();
+                string inactive = Computer.Member("key", new ToolArguments { Text = "f24" }, shown);
+                if (inactive != Computer.TakingKeys(sight) || sent.Contains("key")) throw new Exception("A foreground game without GUI activation still received keys.");
+                denies = false; minimized = true;
+                Computer.Member("key", new ToolArguments { Text = "f24" }, shown);
+                if (!active || minimized) throw new Exception("A foreground game without GUI activation or a restored window skipped the focus check.");
+                front = other; Computer.NoteGame(null); front = game; hit = other;
+                string covered = Computer.Do("walk", new ToolArguments { Seconds = "0.1" }, sight);
+                if (covered != Computer.TakingKeys(sight) || taps.Count != clicked || attempts != sentKeys) throw new Exception("A focus click landed on a covering window.");
+                hit = game;
+                Computer.Lending = delegate(bool on) { if (on) Computer.Interrupt("You pressed Esc, so I stopped."); };
+                string stopped = Computer.Member("left_click", new ToolArguments { Coordinate = new double[] { 700, 450 } }, shown);
+                if (stopped != Computer.Why || taps.Count != clicked || down.Count != 0 || buttons != 0) throw new Exception("Esc while she took the mouse still let her click go out.");
+                Computer.Finish(); Computer.Arm();
+                Computer.Alive = delegate(IntPtr window) { return window == document || window == sibling; };
+                string gone = Computer.Member("key", new ToolArguments { Text = "w" }, shown);
+                if (gone != Computer.WindowClosed || !Computer.Failed(gone) || !Hands.Failed(gone) || attempts != sentKeys) throw new Exception("Keys for a game that closed didn't fail plainly: " + gone);
+                checks.Add("PASS every game input tool fails plainly when focus cannot be restored or the game closed, a covering window gets no focus click and Esc stops her click");
+            }
+            finally
+            {
+                Computer.Finish(); Computer.Arm();
+                Hands.Windows = windowsWas; Hands.Steer = steerWas; Hands.Foreground = foregroundWas; Hands.Active = activeWas; Hands.Run = runWas;
+                Computer.Front = frontWas; Computer.Alive = aliveWas; Computer.AboveHer = aboveWas; Computer.SameWindow = sameWas; Computer.ClientArea = clientWas; Computer.TitleOf = titleWas; Computer.WindowAt = atWas;
+                Computer.GrayFrame = grayWas; Computer.SendKey = keyWas; Computer.SendMouse = mouseWas; Computer.Nudge = nudgeWas;
+                Computer.Shoot = shootWas; Computer.Glimpse = glimpseWas; Computer.Use = useWas; Computer.GameOpen = gameOpenWas; Computer.Shown = shownWas;
+                Computer.Track = trackWas; Computer.Tapped = tapWas; Computer.PutCursor = putWas; Computer.CursorAt = cursorWas;
+                Computer.Lending = lendWas; InControl.Changed = signWas; Computer.CursorHidden = hiddenWas; Computer.GameUnder = underWas;
+                Computer.Halted = haltWas; Computer.Escape = underEscapeWas; Computer.Flinched = flinchedWas; Computer.Streaming = streamWas; Sfx.Level = soundWas;
+            }
+        }
+
         private static void SmokeGameHolds(System.Collections.Generic.List<string> checks)
         {
             Action<short, bool, bool> keyWas = Computer.SendKey;
@@ -33547,6 +33749,7 @@ namespace CapriDesktop
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
             Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });
             Section(checks, "SmokeGameHolds", delegate { SmokeGameHolds(checks); });
+            Section(checks, "SmokeGameFocus", delegate { SmokeGameFocus(checks); });
             Section(checks, "SmokeGameAsks", delegate { SmokeGameAsks(checks); });
             Section(checks, "SmokeGameEnter", delegate { SmokeGameEnter(checks); });
             Section(checks, "SmokeJobEars", delegate { SmokeJobEars(checks, output); });

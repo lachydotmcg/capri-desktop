@@ -64,6 +64,7 @@ namespace CapriDesktop
             sense.Noticed += delegate(string kind, double strength)
             {
                 if (watchedWindow == IntPtr.Zero || Native.GetForegroundWindow() != watchedWindow) return;
+                if (kind == "cut" || kind == "dark") Computer.GameReset(watchedWindow);
                 string moment = WatchKind(kind);
                 if (moment == "hit")
                 {
@@ -85,6 +86,7 @@ namespace CapriDesktop
                             checkedFront = watch.Elapsed.TotalSeconds;
                             Commentary.Pace = GamePace;
                             Sight front = Commentary.Pace != Commentary.Off || job != null ? (GameAhead() != null ? Computer.Glimpse() : null) : null;
+                            Computer.NoteGame(front);
                             int owner = 0;
                             if (front != null && front.Window != IntPtr.Zero) Native.GetWindowThreadProcessId(front.Window, out owner);
                             live = owner > 0;
