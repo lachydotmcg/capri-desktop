@@ -2317,6 +2317,8 @@ namespace CapriDesktop
         internal Action<Sight> Seen;
         internal Action<string> Busy;
         internal Action<JobStep> Stepped;
+        // True once Stop on a phone's JOBS ended this job, read once her hands are armed so a stopped job never starts.
+        internal Func<bool> Cancelled;
         // Her bench's record of each turn, only set when she runs with --bench.
         internal static Action<string> Trace;
         internal static string TraceFolder;
@@ -2644,6 +2646,8 @@ namespace CapriDesktop
             if (misses >= 2) return End("stopped", Computer.NoClick);
             if (Ink.ScreenRequest(Task) && Ink.Desktop().IsEmpty) return End("failed", Ink.NoSpace);
             Computer.Arm();
+            Func<bool> cancelled = Cancelled;
+            if (cancelled != null && cancelled()) return End("stopped", Computer.Escaped);
             if (talk.Count > 0 || (Drive != null && !Asking))
                 return Drive == null ? End("failed", "My brain changed partway through that job, so I stopped. Ask me again.") : Drove();
             if (sighted) return Sighted();

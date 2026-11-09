@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "capri-remote",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-19",
+  "workers_dev": true,
+  // Keeps console.error from the relay, but no log line per WebSocket message.
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } },
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  // Every limit lives here so it can change without a code change. Tests override them with --var.
+  "vars": {
+    // Phones may connect only from these origins (comma-separated). With ALLOW_LOCAL_ORIGINS, also
+    // http(s)://localhost, 127.0.0.1 and [::1] on any port, for local development.
+    "PHONE_ORIGINS": "https://capriai.app",
+    "ALLOW_LOCAL_ORIGINS": "true",
+    // Biggest binary frame in bytes. Phase 3 watch frames will want MAX_PC_FRAME_BYTES near 262144.
+    "MAX_FRAME_BYTES": "65536",
+    "MAX_PC_FRAME_BYTES": "65536",
+    // Longest life a pairing code may have (the PC can ask for less).
+    "CODE_TTL_SECONDS": "600",
+    // A socket must sign in this fast; a pairing phone waits this long for Allow; a signed-in socket
+    // with no frames (heartbeats count) for this long is closed.
+    "AUTH_TIMEOUT_MS": "10000",
+    "PENDING_TIMEOUT_MS": "180000",
+    "IDLE_TIMEOUT_MS": "90000",
+    // A room whose PC has not been seen for this long is deleted. 30 days.
+    "ROOM_TTL_SECONDS": "2592000",
+    // Token buckets per connection: frames per second, and the burst allowed.
+    "PHONE_RATE": "10",
+    "PHONE_BURST": "60",
+    "PC_RATE": "100",
+    "PC_BURST": "300",
+    // Paired phones per room, and how many may be connected at once.
+    "MAX_DEVICES": "16",
+    "MAX_PHONES_ONLINE": "8"
+  }
+}

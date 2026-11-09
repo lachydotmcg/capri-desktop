@@ -1,0 +1,272 @@
+{
+  "protocol": 1,
+  "note": "Test values only. Byte strings are lowercase hex unless the field ends in B64u. Plaintexts are the exact UTF-8 bytes in plaintextHex.",
+  "labels": {
+    "pair": "capri-remote/1 pair",
+    "confirm": "capri-remote/1 confirm",
+    "hello": "capri-remote/1 hello",
+    "session": "capri-remote/1 session"
+  },
+  "inputs": {
+    "room": {
+      "hex": "101112131415161718191a1b1c1d1e1f",
+      "b64u": "EBESExQVFhcYGRobHB0eHw"
+    },
+    "pcToken": {
+      "hex": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "b64u": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8"
+    },
+    "code": {
+      "hex": "404142434445464748494a4b4c4d4e4f",
+      "b64u": "QEFCQ0RFRkdISUpLTE1OTw"
+    },
+    "pairingKey": {
+      "hex": "505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f",
+      "b64u": "UFFSU1RVVldYWVpbXF1eX2BhYmNkZWZnaGlqa2xtbm8"
+    },
+    "pairNonce": {
+      "hex": "707172737475767778797a7b7c7d7e7f",
+      "b64u": "cHFyc3R1dnd4eXp7fH1-fw"
+    },
+    "deviceId": {
+      "hex": "808182838485868788898a8b8c8d8e8f",
+      "b64u": "gIGCg4SFhoeIiYqLjI2Ojw"
+    },
+    "deviceToken": {
+      "hex": "909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeaf",
+      "b64u": "kJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq8"
+    },
+    "deviceKey": {
+      "hex": "b0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecf",
+      "b64u": "sLGys7S1tre4ubq7vL2-v8DBwsPExcbHyMnKy8zNzs8"
+    },
+    "phoneNonce": {
+      "hex": "d0d1d2d3d4d5d6d7d8d9dadbdcdddedf",
+      "b64u": "0NHS09TV1tfY2drb3N3e3w"
+    },
+    "pcNonce": {
+      "hex": "e0e1e2e3e4e5e6e7e8e9eaebecedeeef",
+      "b64u": "4OHi4-Tl5ufo6err7O3u7w"
+    }
+  },
+  "qrUrl": "https://capriai.app/remote/#r=EBESExQVFhcYGRobHB0eHw&c=QEFCQ0RFRkdISUpLTE1OTw&k=UFFSU1RVVldYWVpbXF1eX2BhYmNkZWZnaGlqa2xtbm8",
+  "hashes": {
+    "codeHashB64u": "uiK33JX2zIdldXvkvM83zZLs5tSYfcJqMeJ0yb4jaSE",
+    "pcTokenHashB64u": "ctu3M2x2eAAj-D2kw1Xy7uqFczsT00d2l5F3kMEikIQ",
+    "deviceTokenHashB64u": "L7vad1drJ2C1hWYh_s-9_0WCj-19rNIG7ZYV5OnejYI"
+  },
+  "hkdfRfc5869Case1": {
+    "ikm": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+    "salt": "000102030405060708090a0b0c",
+    "info": "f0f1f2f3f4f5f6f7f8f9",
+    "length": 42,
+    "okm": "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"
+  },
+  "confirm": {
+    "okm": "05fabc82",
+    "code": "318 338"
+  },
+  "pairKeys": {
+    "salt": "707172737475767778797a7b7c7d7e7f",
+    "okm": "d08f44aec72259be81780d94af04ad01436b5277834dcd2bf5d312076e0d0820ab52d6f9af3b8ea3b62f3026a32546f94c627fe6e13b6a418feb7060c6cb46d65724521444fcfd998b60c692533db7caf00acc550d25c9a305d67e3b8ba981c3198fdaad41d3d2423415c540b06aa52d6a797dc496353b9517123636ea538a01",
+    "phoneToPc": {
+      "enc": "d08f44aec72259be81780d94af04ad01436b5277834dcd2bf5d312076e0d0820",
+      "mac": "ab52d6f9af3b8ea3b62f3026a32546f94c627fe6e13b6a418feb7060c6cb46d6"
+    },
+    "pcToPhone": {
+      "enc": "5724521444fcfd998b60c692533db7caf00acc550d25c9a305d67e3b8ba981c3",
+      "mac": "198fdaad41d3d2423415c540b06aa52d6a797dc496353b9517123636ea538a01"
+    }
+  },
+  "helloKeys": {
+    "salt": "808182838485868788898a8b8c8d8e8f",
+    "okm": "c66f7abb793e1fa8c70d788b451e5f8db2800152164ccc4500cbbf5e80d19a48283fcb87996cad868593b4a0ad021b648af6e3c77f7b57e6173b522de4c6332b40c6d2533b82e30dbc38a28af12334b9046c4a7968739396bc74915bf58df5efdffae5a82ab97df49375c1f1fa7292f32577a9275fa17d5394f19b58527a9270",
+    "phoneToPc": {
+      "enc": "c66f7abb793e1fa8c70d788b451e5f8db2800152164ccc4500cbbf5e80d19a48",
+      "mac": "283fcb87996cad868593b4a0ad021b648af6e3c77f7b57e6173b522de4c6332b"
+    },
+    "pcToPhone": {
+      "enc": "40c6d2533b82e30dbc38a28af12334b9046c4a7968739396bc74915bf58df5ef",
+      "mac": "dffae5a82ab97df49375c1f1fa7292f32577a9275fa17d5394f19b58527a9270"
+    }
+  },
+  "sessionKeys": {
+    "salt": "d0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeef",
+    "okm": "381d37b1307559b8f335391faf5077782a506626cf784d150193090f3d4975b187797eab7af3ed015ed073c8262b4152a66c4f1380af7f795f0be6ba49fa4e250e736a5b9eb4d0f6add54ac823e1c9539e6443c86775461f2e01b22f8d0685c6b0cf32a01158959d9f30bd24f98fbbccfcfc83f4d4830ad1f38196bf7d86d703",
+    "phoneToPc": {
+      "enc": "381d37b1307559b8f335391faf5077782a506626cf784d150193090f3d4975b1",
+      "mac": "87797eab7af3ed015ed073c8262b4152a66c4f1380af7f795f0be6ba49fa4e25"
+    },
+    "pcToPhone": {
+      "enc": "0e736a5b9eb4d0f6add54ac823e1c9539e6443c86775461f2e01b22f8d0685c6",
+      "mac": "b0cf32a01158959d9f30bd24f98fbbccfcfc83f4d4830ad1f38196bf7d86d703"
+    }
+  },
+  "envelopes": [
+    {
+      "name": "pair-request",
+      "keys": "pair.phoneToPc",
+      "kind": 1,
+      "dir": 1,
+      "seq": 0,
+      "iv": "000102030405060708090a0b0c0d0e0f",
+      "plaintext": "{\"type\":\"pair-request\",\"v\":1,\"name\":\"Test Phone\",\"app\":\"remote-web/test\"}",
+      "plaintextHex": "7b2274797065223a22706169722d72657175657374222c2276223a312c226e616d65223a22546573742050686f6e65222c22617070223a2272656d6f74652d7765622f74657374227d",
+      "envelope": "0101010000000000000102030405060708090a0b0c0d0e0f9faaa0ef7df8a0d76130e285fd1891c140daa0df971879cad7d8e5bc62a7656e818be89008ca5ba05e2740515d6c7cde58ed816fd9933a2f2d023c516bfe4957f7ca5aec435ca74fc70efe09dd6b87db87af72768ccf1f0e61b3a8674c89d920f87644c7172fe07630004f015d443d55"
+    },
+    {
+      "name": "pair-allow",
+      "keys": "pair.pcToPhone",
+      "kind": 1,
+      "dir": 2,
+      "seq": 0,
+      "iv": "101112131415161718191a1b1c1d1e1f",
+      "plaintext": "{\"type\":\"pair-allow\",\"v\":1,\"device\":\"gIGCg4SFhoeIiYqLjI2Ojw\",\"token\":\"kJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq8\",\"key\":\"sLGys7S1tre4ubq7vL2-v8DBwsPExcbHyMnKy8zNzs8\",\"name\":\"Test PC\",\"app\":\"capri/test\"}",
+      "plaintextHex": "7b2274797065223a22706169722d616c6c6f77222c2276223a312c22646576696365223a226749474367345346686f65496959714c6a49324f6a77222c22746f6b656e223a226b4a47536b3553566c7065596d5a71626e4a32656e3643686f714f6b7061616e714b6d7171367974727138222c226b6579223a22734c4779733753317472653475627137764c322d763844427773504578636248794d6e4b79387a4e7a7338222c226e616d65223a2254657374205043222c22617070223a2263617072692f74657374227d",
+      "envelope": "0101020000000000101112131415161718191a1b1c1d1e1f334f777a62117d0cbe965c9fa0b3200341b1d5e1e53d6f9e6b151123ed11240a399b4b9f08f3da612bb49a8e3cda94faf1010e7c40d3a0e7b8fd85a2bec752985ade5f925802f84167c62191fde6edaa0a6d8ad84d4567930e40a29373f0d35cfbd0c9803879953b8403137755a02817a2b4e004d09e7c0c52ad84090662d8d1dc0d66bd3e7ab27cb9a9134338a7083313e60998b9672c91e7a8e024089417f6baefa8253afc91eb06a4c146ad5866377aba26d9c6aaf886a9fee768048d433493f1655805cccc445cc6a84df15f07260b38b66605efec0345c2c08777efc0972ad6ad80b7167a4676f9d09feea026d3"
+    },
+    {
+      "name": "pair-deny",
+      "keys": "pair.pcToPhone",
+      "kind": 1,
+      "dir": 2,
+      "seq": 0,
+      "iv": "202122232425262728292a2b2c2d2e2f",
+      "plaintext": "{\"type\":\"pair-deny\",\"v\":1,\"reason\":\"denied\"}",
+      "plaintextHex": "7b2274797065223a22706169722d64656e79222c2276223a312c22726561736f6e223a2264656e696564227d",
+      "envelope": "0101020000000000202122232425262728292a2b2c2d2e2fbd45c4f419784d2bdc0ce210d9c7ad062c7152cd21ef28c9098989e5d64f7ba977465dab3de206cdbe6155a983273aded6123f4e081c59428d39afe8735bfc90cca74a48e5571da162ed2edc377b5860"
+    },
+    {
+      "name": "hello",
+      "keys": "hello.phoneToPc",
+      "kind": 2,
+      "dir": 1,
+      "seq": 0,
+      "iv": "303132333435363738393a3b3c3d3e3f",
+      "plaintext": "{\"type\":\"hello\",\"v\":1,\"nonce\":\"0NHS09TV1tfY2drb3N3e3w\",\"name\":\"Test Phone\",\"app\":\"remote-web/test\"}",
+      "plaintextHex": "7b2274797065223a2268656c6c6f222c2276223a312c226e6f6e6365223a22304e4853303954563174665932647262334e33653377222c226e616d65223a22546573742050686f6e65222c22617070223a2272656d6f74652d7765622f74657374227d",
+      "envelope": "0102010000000000303132333435363738393a3b3c3d3e3f467a3b7fb454c07e98c1edebdd537ddd38ae228afbea6886b8f573f701cb64954911bed760c756a168bc32b3ad70f061b66c3e1a42a403fca31e51ab689461737620cafb3a724585029cb68186d333e015670b1381ecfd2dc6330b73d88c0dfa1efcd482b951f6c295babecffdfee2b5d06f6cae62f2d36d7caa544413bd23bd2333fbe39bf2d019212bc0c533e88c74"
+    },
+    {
+      "name": "hello-ok",
+      "keys": "hello.pcToPhone",
+      "kind": 2,
+      "dir": 2,
+      "seq": 0,
+      "iv": "404142434445464748494a4b4c4d4e4f",
+      "plaintext": "{\"type\":\"hello-ok\",\"v\":1,\"nonce\":\"4OHi4-Tl5ufo6err7O3u7w\",\"echo\":\"0NHS09TV1tfY2drb3N3e3w\",\"name\":\"Test PC\",\"app\":\"capri/test\",\"features\":[\"chat\"]}",
+      "plaintextHex": "7b2274797065223a2268656c6c6f2d6f6b222c2276223a312c226e6f6e6365223a22344f4869342d546c3575666f36657272374f33753777222c226563686f223a22304e4853303954563174665932647262334e33653377222c226e616d65223a2254657374205043222c22617070223a2263617072692f74657374222c226665617475726573223a5b2263686174225d7d",
+      "envelope": "0102020000000000404142434445464748494a4b4c4d4e4fee0f194f6f2fe704a3344ce166cbd678a61925a2d7f7cf25f5101332bc3d1058931e99621463b4b8414e64dc1908d933e62f8e56e03171729e1f84315958b1dfb61c6fc4d57b00c2a2298f92b9d87040112e80159effe31306b430cfd10539e2260b2c353d6a109325dab569415dfc33a8d3d66db556cd74c348a0eb825e44d4e33b8721e8983e0025d681437915e03056eaf66c4fc7eb62e20724394ddde022e2185b3879ff52ea18c42e32a2764bcbcc918015db8f9c61e42be34ad5fbfff3"
+    },
+    {
+      "name": "chat.send",
+      "keys": "session.phoneToPc",
+      "kind": 3,
+      "dir": 1,
+      "seq": 0,
+      "iv": "505152535455565758595a5b5c5d5e5f",
+      "plaintext": "{\"type\":\"chat.send\",\"id\":\"m1\",\"text\":\"Hello, Capri!\"}",
+      "plaintextHex": "7b2274797065223a22636861742e73656e64222c226964223a226d31222c2274657874223a2248656c6c6f2c20436170726921227d",
+      "envelope": "0103010000000000505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732eba"
+    },
+    {
+      "name": "chat.typing (32-byte plaintext, so a whole block of padding)",
+      "keys": "session.pcToPhone",
+      "kind": 3,
+      "dir": 2,
+      "seq": 0,
+      "iv": "606162636465666768696a6b6c6d6e6f",
+      "plaintext": "{\"type\":\"chat.typing\",\"on\":true}",
+      "plaintextHex": "7b2274797065223a22636861742e747970696e67222c226f6e223a747275657d",
+      "envelope": "0103020000000000606162636465666768696a6b6c6d6e6f273e060578097fcc81546ab07ab3c9728b216d7994b638e4661b342e870678cd5b17a5ebe5a756bd13e01c918d7cce17baa7b787bd6acc9353f9546ad00c2eea5b2346878c731ff346c866bf1d3c6f7c"
+    },
+    {
+      "name": "chat.reply (seq 0x01020304, non-ASCII text)",
+      "keys": "session.pcToPhone",
+      "kind": 3,
+      "dir": 2,
+      "seq": 16909060,
+      "iv": "707172737475767778797a7b7c7d7e7f",
+      "plaintext": "{\"type\":\"chat.reply\",\"id\":\"r1\",\"re\":\"m1\",\"text\":\"Hi Lachy, café ☕ 🐱\",\"done\":true}",
+      "plaintextHex": "7b2274797065223a22636861742e7265706c79222c226964223a227231222c227265223a226d31222c2274657874223a224869204c616368792c20636166c3a920e2989520f09f90b1222c22646f6e65223a747275657d",
+      "envelope": "0103020001020304707172737475767778797a7b7c7d7e7f7e00cf399b1c51e876c562f8a328e1473bdf9fd6bc45eac5a4145fc58a96f9e3559f9f8b689df4ef781ac5deea50c8918a9572dc67cf1849d9464839932f2550c706ec64764b317dbe6d05352f9f42118a3f3d76b01b5e8c26e6d39a01df7e189ecac530f6677f3b9dfdeea7e34b0cc933a64706af025404c92127c414101960"
+    }
+  ],
+  "rejects": [
+    {
+      "name": "one bit flipped in the ciphertext",
+      "envelope": "0103010000000000505152535455565758595a5b5c5d5e5f31ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732eba",
+      "keys": "session.phoneToPc",
+      "kind": 3,
+      "dir": 1,
+      "seq": 0,
+      "reason": "mac"
+    },
+    {
+      "name": "one bit flipped in the sequence number",
+      "envelope": "0103010000000001505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732eba",
+      "keys": "session.phoneToPc",
+      "kind": 3,
+      "dir": 1,
+      "seq": 0,
+      "reason": "mac"
+    },
+    {
+      "name": "one bit flipped in the tag",
+      "envelope": "0103010000000000505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732ebb",
+      "keys": "session.phoneToPc",
+      "kind": 3,
+      "dir": 1,
+      "seq": 0,
+      "reason": "mac"
+    },
+    {
+      "name": "last byte cut off",
+      "envelope": "0103010000000000505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732e",
+      "keys": "session.phoneToPc",
+      "kind": 3,
+      "dir": 1,
+      "seq": 0,
+      "reason": "length"
+    },
+    {
+      "name": "replayed: the valid chat.send when seq 1 is expected",
+      "envelope": "0103010000000000505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732eba",
+      "keys": "session.phoneToPc",
+      "kind": 3,
+      "dir": 1,
+      "seq": 1,
+      "reason": "seq"
+    },
+    {
+      "name": "valid chat.send opened as a hello",
+      "envelope": "0103010000000000505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732eba",
+      "keys": "session.phoneToPc",
+      "kind": 2,
+      "dir": 1,
+      "seq": 0,
+      "reason": "context"
+    },
+    {
+      "name": "valid chat.send opened with the PC->phone keys",
+      "envelope": "0103010000000000505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732eba",
+      "keys": "session.pcToPhone",
+      "kind": 3,
+      "dir": 1,
+      "seq": 0,
+      "reason": "mac"
+    }
+  ],
+  "frames": {
+    "relayToPcChatSend": "808182838485868788898a8b8c8d8e8f0103010000000000505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732eba",
+    "pcToRelayChatTyping": "808182838485868788898a8b8c8d8e8f0103020000000000606162636465666768696a6b6c6d6e6f273e060578097fcc81546ab07ab3c9728b216d7994b638e4661b342e870678cd5b17a5ebe5a756bd13e01c918d7cce17baa7b787bd6acc9353f9546ad00c2eea5b2346878c731ff346c866bf1d3c6f7c"
+  },
+  "controls": {
+    "pcAuth": "{\"t\":\"auth\",\"token\":\"ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8\"}",
+    "pcCode": "{\"t\":\"code\",\"hash\":\"uiK33JX2zIdldXvkvM83zZLs5tSYfcJqMeJ0yb4jaSE\",\"ttl\":600}",
+    "phonePair": "{\"t\":\"pair\",\"code\":\"QEFCQ0RFRkdISUpLTE1OTw\",\"nonce\":\"cHFyc3R1dnd4eXp7fH1-fw\",\"env\":\"AQEBAAAAAAAAAQIDBAUGBwgJCgsMDQ4Pn6qg7334oNdhMOKF_RiRwUDaoN-XGHnK19jlvGKnZW6Bi-iQCMpboF4nQFFdbHzeWO2Bb9mTOi8tAjxRa_5JV_fKWuxDXKdPxw7-Cd1rh9uHr3J2jM8fDmGzqGdMidkg-HZExxcv4HYwAE8BXUQ9VQ\"}",
+    "relayPending": "{\"t\":\"pending\",\"id\":\"oKGio6SlpqeoqaqrrK2urw\",\"nonce\":\"cHFyc3R1dnd4eXp7fH1-fw\",\"env\":\"AQEBAAAAAAAAAQIDBAUGBwgJCgsMDQ4Pn6qg7334oNdhMOKF_RiRwUDaoN-XGHnK19jlvGKnZW6Bi-iQCMpboF4nQFFdbHzeWO2Bb9mTOi8tAjxRa_5JV_fKWuxDXKdPxw7-Cd1rh9uHr3J2jM8fDmGzqGdMidkg-HZExxcv4HYwAE8BXUQ9VQ\"}",
+    "pcAdmit": "{\"t\":\"admit\",\"pending\":\"oKGio6SlpqeoqaqrrK2urw\",\"device\":\"gIGCg4SFhoeIiYqLjI2Ojw\",\"tokenHash\":\"L7vad1drJ2C1hWYh_s-9_0WCj-19rNIG7ZYV5OnejYI\",\"env\":\"AQECAAAAAAAQERITFBUWFxgZGhscHR4fM093emIRfQy-llyfoLMgA0Gx1eHlPW-eaxURI-0RJAo5m0ufCPPaYSu0mo482pT68QEOfEDToOe4_YWivsdSmFreX5JYAvhBZ8Yhkf3m7aoKbYrYTUVnkw5AopNz8NNc-9DJgDh5lTuEAxN3VaAoF6K04ATQnnwMUq2ECQZi2NHcDWa9PnqyfLmpE0M4pwgzE-YJmLlnLJHnqOAkCJQX9rrvqCU6_JHrBqTBRq1YZjd6uibZxqr4hqn-52gEjUM0k_FlWAXMzERcxqhN8V8HJgs4tmYF7-wDRcLAh3fvwJcq1q2AtxZ6Rnb50J_uoCbT\"}",
+    "phoneAuth": "{\"t\":\"auth\",\"device\":\"gIGCg4SFhoeIiYqLjI2Ojw\",\"token\":\"kJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq8\"}"
+  }
+}

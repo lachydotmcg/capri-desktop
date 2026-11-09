@@ -1,0 +1,141 @@
+/* Capri Remote's classic call (call.js): her round face, a quiet status and timer, one caption and three round keys.
+   Her PC screen comes in below her when she uses it, or stays pinned. Shrunk to the chat, the call keeps its bar. */
+
+/* ---------- The call screen ---------- */
+.call-room {
+  --face: 152px;
+  --key: clamp(64px, 9.6vh, 78px);
+  --her: 0;
+  --you: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + clamp(14px, 3vh, 26px)) max(16px, env(safe-area-inset-left, 0px));
+  overflow: hidden;
+  background: radial-gradient(130% 60% at 50% -8%, var(--brim), var(--glow) 30%, transparent 72%), radial-gradient(90% 44% at 0% 104%, rgb(94 240 246 / .07), transparent 70%), var(--wine), var(--ground);
+  outline: none;
+}
+.call-top { flex: none; display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 720px; height: 56px; }
+.call-top .glyph { display: grid; place-items: center; width: 44px; height: 44px; margin: 0; border-radius: 50%; background: rgb(236 236 241 / .1); color: var(--white); }
+.call-top .glyph svg { width: 21px; height: 21px; }
+.call-top .call-shrink { margin-left: auto; }
+.call-top .glyph[aria-pressed="true"] { background: var(--white); color: var(--ground); }
+.call-top .glyph:active { background: var(--pressed); }
+
+/* Her real sprite crop, round, getting smaller when the screen card comes in under it. Her glow and the ring round her
+   swell with her voice (--her, which call.js holds at 0 with reduced motion). They're a shadow and an outline, so
+   neither ever pushes past her face's box. */
+.call-who { position: relative; flex: none; display: grid; justify-items: center; margin-top: clamp(4px, 3.2vh, 34px); text-align: center; }
+.call-face { position: relative; isolation: isolate; width: var(--face); height: var(--face); border-radius: 50%; transition: width .3s ease, height .3s ease; }
+.call-face::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%; box-shadow: 0 0 calc(20px + var(--her, 0) * 44px) calc(var(--her, 0) * 16px) rgb(255 93 102 / .5); opacity: calc(var(--her, 0) * .9); pointer-events: none; }
+.call-face::after { content: ""; position: absolute; inset: 0; border-radius: 50%; outline: 1.5px solid var(--faint); outline-offset: calc(8px + var(--her, 0) * 7px); opacity: .4; pointer-events: none; }
+.call-art { position: absolute; inset: 0; display: block; overflow: hidden; border-radius: 50%; background: radial-gradient(circle at 50% 32%, var(--edge), var(--glow) 58%, var(--ground)); background-color: var(--glow); background-repeat: no-repeat; box-shadow: 0 10px 30px rgb(0 0 0 / .45); }
+.call-room[data-status="talking"] .call-face::after, .call-pip[data-status="talking"] .call-face::after { outline-color: var(--rose); opacity: calc(.3 + var(--her) * .7); }
+.call-room[data-status="hearing"] .call-face::after { outline-color: var(--cyan); opacity: .8; }
+.call-name { margin: clamp(12px, 2.2vh, 20px) 0 0; color: var(--white); font: 600 clamp(30px, 4.4vh, 36px)/1 var(--ui); letter-spacing: .01em; }
+.call-room.has-screen { --face: 114px; }
+
+/* The status line keeps the timer beside it, with help in the same spot beneath. */
+.call-mid { flex: none; display: grid; justify-items: center; width: 100%; max-width: 420px; margin-top: 6px; text-align: center; }
+.call-status { display: flex; align-items: baseline; justify-content: center; gap: 8px; max-width: 100%; min-height: 30px; padding-top: 4px; color: var(--faint); font: 19px/1.2 var(--ui); font-variant-numeric: tabular-nums; }
+.call-word { min-width: 0; }
+.call-clock { flex: none; }
+.call-sep { opacity: .5; }
+.call-room[data-status="listening"] .call-word, .call-room[data-status="hearing"] .call-word { color: var(--cyan); }
+.call-room[data-status="talking"] .call-word { color: var(--rose); }
+.call-room[data-status="muted"] .call-word { color: var(--yellow); }
+.call-room[data-status="trouble"] .call-word { color: var(--hot); }
+.call-room[data-status="ended"] .call-word { color: var(--white); }
+.call-note { max-width: 320px; margin: 2px 0 0; color: var(--faint); font: 15px/1.3 var(--ui); text-wrap: balance; }
+.call-pill { min-height: 38px; margin-top: 12px; padding: 0 18px; border: 0; border-radius: 19px; background: rgb(236 236 241 / .12); color: var(--white); font: 600 15px/1 var(--ui); cursor: pointer; }
+.call-room[data-status="talking"] .call-pill { min-height: 32px; margin-top: 8px; padding: 0 14px; background: rgb(236 236 241 / .08); color: var(--faint); font-size: 13px; }
+.call-pill:active { background: var(--pressed); }
+
+/* The screen card stays inside the space between her face and the caption. */
+.call-stage { flex: 1 1 auto; width: 100%; max-width: 720px; min-height: 0; }
+.app.call-open .mini { width: var(--call-mini, 280px); overflow: hidden; border-radius: 16px; background: #000; box-shadow: 0 14px 40px rgb(0 0 0 / .5), 0 0 0 1px var(--edge); animation: call-screen-in .3s ease; }
+.app.call-open .mini::before, .app.call-open .mini::after { display: none; }
+.app.call-open .mini-x { border-radius: 50%; }
+@keyframes call-screen-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* One line: centred while it fits, then held to the newest words with its start faded out (call.js sets long). It runs
+   off to the left, where nothing can scroll to it. */
+.call-caps { flex: none; display: flex; justify-content: center; width: 100%; max-width: 440px; height: 26px; margin: 0 0 clamp(14px, 3vh, 28px); overflow: hidden; color: var(--faint); font: 17px/26px var(--ui); white-space: nowrap; }
+.call-caps.long { justify-content: flex-end; -webkit-mask-image: linear-gradient(90deg, transparent, #000 26%); mask-image: linear-gradient(90deg, transparent, #000 26%); }
+.cap-words { flex: none; }
+.call-caps.you { color: var(--cyan); opacity: .8; }
+.call-caps.faint { color: var(--faint); opacity: 1; }
+.call-caps.live .cap-words::after { content: ""; display: inline-block; width: .5em; height: .82em; vertical-align: -.04em; background: var(--cyan); animation: caret .8s steps(1) infinite; }
+
+/* Three keys: the speaker and mute light white, with the end key in her hot red. */
+.call-keys { flex: none; display: flex; justify-content: space-between; align-items: flex-start; width: 100%; max-width: 318px; }
+.call-key { display: grid; justify-items: center; gap: 9px; width: 86px; margin: 0; padding: 0; border: 0; background: none; color: var(--white); cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.call-pad { display: grid; place-items: center; width: var(--key); height: var(--key); border-radius: 50%; background: rgb(236 236 241 / .13); color: var(--white); transition: background-color .16s, color .16s, transform .12s; }
+.call-pad svg { width: 30px; height: 30px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: square; stroke-linejoin: miter; }
+.call-pad svg + svg { display: none; }
+.call-label { color: var(--faint); font: 600 13px/1 var(--ui); letter-spacing: .03em; }
+.call-key:active .call-pad { transform: scale(.93); }
+.call-key.speaker[aria-pressed="true"] .call-pad, .call-key.mute[aria-pressed="true"] .call-pad { background: var(--white); color: var(--ground); }
+.call-key.speaker[aria-pressed="false"] .call-pad svg:first-child, .call-key.mute[aria-pressed="true"] .call-pad svg:first-child { display: none; }
+.call-key.speaker[aria-pressed="false"] .call-pad svg + svg, .call-key.mute[aria-pressed="true"] .call-pad svg + svg { display: block; }
+.call-key.end .call-pad { background: var(--hot); color: #fff; }
+.call-key.end .call-pad svg:first-child { fill: currentColor; stroke: none; transform: rotate(135deg); }
+.call-room.over .call-key.speaker, .call-room.over .call-key.mute { visibility: hidden; }
+.call-room.over .call-key.end .call-pad { background: rgb(236 236 241 / .14); }
+.call-room.over .call-key.end .call-pad svg:first-child { display: none; }
+.call-room.over .call-key.end .call-pad svg + svg { display: block; }
+
+/* ---------- The call bar: the call shrunk to a strip above her features ---------- */
+.callbar { position: relative; z-index: 2; flex: none; align-self: center; display: flex; align-items: center; gap: 8px; width: 100%; max-width: 720px; padding: 0 0 8px; }
+.call-back { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; padding: 0 12px 0 14px; border: 0; border-top: 1px solid var(--rule); background: var(--band); color: var(--cyan); text-align: left; cursor: pointer; font: 600 15px/1 var(--display); font-stretch: 75%; letter-spacing: .12em; text-transform: uppercase; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.call-dot { flex: none; width: 8px; height: 8px; background: currentColor; transform: rotate(45deg); }
+.call-back-word { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.call-back-clock { flex: none; color: var(--faint); font: 14px/1 var(--mono); letter-spacing: .1em; font-variant-numeric: tabular-nums; }
+.callbar[data-status="talking"] .call-back { color: var(--rose); }
+.callbar[data-status="muted"] .call-back { color: var(--yellow); }
+.callbar[data-status="trouble"] .call-back { color: var(--hot); }
+.callbar[data-status="thinking"] .call-back, .callbar[data-status="connecting"] .call-back { color: var(--white); }
+.call-back:active { background: var(--pressed); }
+.callbar .nbtn { flex: none; min-height: 44px; }
+.call-bar-mute svg + svg { display: none; }
+.call-bar-mute[aria-pressed="true"] { --face: #16130b; --rim: var(--yellow); --ink: var(--yellow); }
+.call-bar-mute[aria-pressed="true"] svg:first-child { display: none; }
+.call-bar-mute[aria-pressed="true"] svg + svg { display: block; }
+.call-bar-end { min-width: 64px; }
+/* Full screen keeps her live face in a corner and mute and end above the home bar. */
+.call-pip { --face: 76px; position: absolute; z-index: 31; right: max(24px, env(safe-area-inset-right, 0px)); top: calc(env(safe-area-inset-top, 0px) + 86px); }
+.call-pip .call-face { transition: none; }
+.call-pip .call-face::after { outline-offset: calc(4px + var(--her, 0) * 4px); }
+.app.on-call.watching .callbar { position: absolute; z-index: 31; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(12px, env(safe-area-inset-bottom, 0px)); width: auto; max-width: 720px; margin: 0 auto; padding: 8px; border-radius: 28px; background: var(--band); box-shadow: 0 0 0 1px var(--edge); }
+.app.on-call.watching .call-back { border: 0; background: transparent; font: 600 16px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+.app.on-call.watching .callbar .nbtn { border-radius: 50%; }
+.app.on-call.watching .callbar .nbtn::before, .app.on-call.watching .callbar .nbtn::after { border-radius: inherit; clip-path: none; }
+
+/* ---------- Smaller phones, landscape and motion ---------- */
+@media (max-height: 760px) {
+  .call-room { --face: 114px; }
+  .call-room.has-screen { --face: 76px; }
+  .call-room.has-screen .call-who { margin-top: 8px; }
+}
+@media (max-height: 620px) {
+  .call-room { --face: 76px; --key: 56px; }
+  .call-who { margin-top: 4px; }
+  .call-name { margin-top: 12px; font-size: 28px; }
+  .call-label { display: none; }
+  .call-keys { max-width: 280px; }
+}
+@media (max-height: 480px) {
+  .call-room { --face: 56px; --key: 48px; }
+  .call-room.has-screen { --face: 56px; }
+  .call-top { height: 44px; }
+  .call-name { display: none; }
+  .call-caps { margin-bottom: 8px; }
+  .call-note { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .call-face, .call-pad { transition: none; }
+  .app.call-open .mini, .call-caps.live .cap-words::after { animation: none; }
+}

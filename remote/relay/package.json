@@ -1,0 +1,16 @@
+{
+  "name": "capri-remote-relay",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "vectors": "node ../test/make-vectors.mjs --write",
+    "test": "node --test --test-concurrency=1 ../test/crypto.test.mjs ../test/relay.test.mjs ../test/native.test.mjs ../test/pc-brains.test.mjs ../test/pair-link.test.mjs ../test/call.test.mjs ../test/jobs.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.152.0"
+  }
+}
