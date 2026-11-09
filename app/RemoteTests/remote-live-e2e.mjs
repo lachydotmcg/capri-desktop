@@ -308,10 +308,10 @@ try {
   pc = await Pc.start(relay.ws, statePath);
   const a = new Viewer('Live Phone');
 
-  await step('hello-ok offers the screen view and the call', async () => {
+  await step('hello-ok offers the screen view and the call, then her brains', async () => {
     await a.pair(pc);
     const ok = await a.session(pc);
-    assert.deepEqual(ok.features, ['chat', 'watch', 'call']);
+    assert.deepEqual(ok.features, ['chat', 'watch', 'call', 'brains']);
   });
 
   await step('nothing is captured or sent until a phone asks', async () => {
