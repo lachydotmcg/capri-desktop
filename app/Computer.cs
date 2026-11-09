@@ -3055,9 +3055,10 @@ namespace CapriDesktop
                 }
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 results = "";
-                // The window in front changed while it was thinking, so its moves are for something that's gone.
+                // The window in front changed while it was thinking, so its moves are for something that's gone. Keys that need no
+                // spot on the screen still go ahead, as they bring back the window it looked at first.
                 List<KeyValuePair<string, ToolArguments>> moves = Computer.Moves(reply);
-                if (looked != IntPtr.Zero && Computer.Front() != looked && !moves.TrueForAll(move => Computer.KeyAction(move.Key)))
+                if (looked != IntPtr.Zero && Computer.Front() != looked && !moves.TrueForAll(move => Computer.KeysOnly(move.Key, move.Value)))
                 {
                     results = "\nNot done: the window in front changed before those moves ran. Look at the new screen.";
                     continue;
@@ -3131,11 +3132,11 @@ namespace CapriDesktop
         {
             bool broken = false, hit = false;
             bool acts = Array.Exists(batch, call => call.Toolset != "computer" || (call.Name != "screenshot" && call.Name != "zoom"));
-            // The window in front changed while it was thinking, so its coordinates are stale. Keys alone still go ahead, as they
-            // bring back the window in its screenshot first; next to anything else they don't, since a click that's skipped
-            // might be what the keys after it were for.
+            // The window in front changed while it was thinking, so its coordinates are stale. Keys that need no spot on the screen
+            // still go ahead, as they bring back the window in its screenshot first; next to anything else they don't, since a click
+            // that's skipped might be what the keys after it were for.
             bool moved = !resumed && next == 0 && acts && looked != IntPtr.Zero && Computer.Front() != looked
-                && !Array.TrueForAll(batch, call => Computer.KeyAction(call.Name) || call.Toolset == "computer" && (call.Name == "screenshot" || call.Name == "zoom"));
+                && !Array.TrueForAll(batch, call => Computer.KeysOnly(call.Name, call.Input) || call.Toolset == "computer" && (call.Name == "screenshot" || call.Name == "zoom"));
             for (; next < batch.Length; next++, resumed = false)
             {
                 ClaudeBlock call = batch[next];
@@ -3460,8 +3461,9 @@ namespace CapriDesktop
             }
             Computer.KeysOk = approved.Contains("keys");
             if (tool == "type") args.Text = Filled(Computer.Unechoed(args.Text, Task.IndexOf(Computer.Exact, StringComparison.Ordinal) >= 0 ? Words : null));
-            // The window in front changed after she looked, so she looks again instead of acting on old buttons. Only Esc stops her.
-            if (!Computer.KeyAction(tool) && tool != "find_file" && tool != "open_app" && tool != "open_website" && tool != "wait" && tool != "wait_for" && tool != "note" && sight != null && sight.Window != IntPtr.Zero && Computer.Front() != sight.Window)
+            // The window in front changed after she looked, so she looks again instead of acting on old buttons. Keys that need no
+            // spot on the screen still go, as they bring back the window she looked at first. Only Esc stops her.
+            if (!Computer.KeysOnly(tool, args) && tool != "find_file" && tool != "open_app" && tool != "open_website" && tool != "wait" && tool != "wait_for" && tool != "note" && sight != null && sight.Window != IntPtr.Zero && Computer.Front() != sight.Window)
                 return "Couldn't do that: the window in front changed.";
             bool secret = tool == "type" && Computer.Secret(args, sight);
             if (secret) Computer.Keep(args.Text);

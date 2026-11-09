@@ -78,6 +78,14 @@ namespace CapriDesktop
             return name == "key" || name == "hold_key" || name == "type" || name == "press" || name == "walk" || name == "look" || name == "mouse_hold" || name == "hold_and_press";
         }
 
+        // Keys that need no spot on the screen can still go after the window in front changes, as her keys bring back the window
+        // in her screenshot first. A type that clicks its box first, or a look at a spot in the picture, needs a fresh look, since
+        // that spot was on the old screen.
+        internal static bool KeysOnly(string name, ToolArguments args)
+        {
+            return KeyAction(name) && (args == null || string.IsNullOrEmpty(args.Target) && args.X == null && args.Y == null && args.Coordinate == null);
+        }
+
         private static bool Movement(string keys) { return Regex.IsMatch(keys ?? "", @"(^|[+\s])(w|a|s|d|up|down|left|right|space)([+\s]|$)", RegexOptions.IgnoreCase); }
 
         internal static string TakingKeys(Sight sight)
