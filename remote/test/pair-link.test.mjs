@@ -130,8 +130,8 @@ test('the home screen app pairs with a link a paired Safari asks its PC for', { 
     assert.equal(await s.text('#home-link'), 'Asking your PC...');
     assert.equal(await safari.run(`document.querySelector('#home-link').disabled`), true);
     await pc.send(device.id, { type: 'error', code: 'busy', re: first.id });
-    await safari.until(`document.querySelector('#home-link-note').textContent.startsWith('Your PC is showing')`, 'the busy words');
-    assert.equal(await note(), 'Your PC is showing a pairing code. Close it, then try again');
+    await safari.until(`document.querySelector('#home-link-note').textContent.startsWith('Your PC is busy pairing')`, 'the busy words');
+    assert.equal(await note(), 'Your PC is busy pairing. Close any code on it, then try again in a minute');
     assert.equal(await s.text('#home-link'), 'Set up the home screen app');
     assert.equal(await safari.run(`document.querySelector('#home-link').disabled`), false);
     assert.equal(await safari.run(`window.__clip.text`), '', 'nothing copied for a busy PC');

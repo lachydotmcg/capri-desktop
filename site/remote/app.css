@@ -285,6 +285,7 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 .waiting .caret { color: var(--cyan); }
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 .card-actions .nbtn { flex: 1 1 auto; }
+#replace-pc { overflow-wrap: anywhere; }
 /* An iPhone home screen app pastes the pairing link Safari copied for it, and says the two ways Safari gets one. */
 .routes { display: grid; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
 .routes li { position: relative; display: grid; gap: 6px; padding: 9px 12px 10px 16px; border-top: 1px solid var(--rule); background: var(--band); }

@@ -59,6 +59,7 @@
   const gateWrong = $('#gate-wrong');
   const pairScreen = $('#pair');
   const pairNote = $('#pair-note');
+  const replaceScreen = $('#replace');
   const waitScreen = $('#wait');
   const herLayer = $('#her-layer');
   const drawer = $('#drawer');
@@ -80,9 +81,7 @@
   let linkInfo = {};
   // The early-access gate is up (it covers every screen until the password is right).
   let gateUp = false;
-  // The home screen app pasted a link a paired phone asked its PC for: it pairs with no Allow, so the wait says Pairing
-  // (PROTOCOL.md 5.1).
-  let pastedFromPhone = false;
+  let confirmHistory = false;
 
   // ---------- Time labels ----------
   const dayStart = at => { const day = new Date(at); day.setHours(0, 0, 0, 0); return day.getTime(); };
@@ -489,6 +488,7 @@
     if (screen === 'gate') banner.hidden = true;
     gateScreen.hidden = screen !== 'gate';
     pairScreen.hidden = screen !== 'pair';
+    replaceScreen.hidden = screen !== 'replace';
     whereScreen.hidden = screen !== 'where';
     waitScreen.hidden = screen !== 'wait';
     log.hidden = screen !== 'chat';
@@ -496,6 +496,7 @@
     actions.hidden = screen !== 'chat';
     if (screen === 'gate') CapriBar.seat(gateForm, 'right');
     else if (screen === 'pair') CapriBar.seat($('#pair-card'), 'right');
+    else if (screen === 'replace') CapriBar.seat($('#replace-card'), 'right');
     else if (screen === 'where') CapriBar.seat($('#where-card'), 'right');
     else if (screen === 'wait') CapriBar.seat($('#wait-card'), 'right');
     else CapriBar.seat(bar, 'left');
@@ -516,6 +517,7 @@
     revoked: 'Removed on your PC',
     denied: 'Your PC said no',
     'bad-code': 'That code didn\'t read right',
+    'bad-link': 'That link didn\'t read right',
     code: 'Code used up. Show a new one',
     ended: 'Pairing ended. Scan again',
     'pc-offline': 'Your PC is offline',
@@ -533,29 +535,37 @@
   })[reason] || ['PC offline', 'Capri closed or the PC asleep'];
   const onLink = (state, info) => {
     const was = linkState;
+    const priorPairReason = linkInfo.pairReason;
     const wasNative = !!linkInfo.native;
     linkState = state;
     linkInfo = info || {};
     // Her brain moved between the PC and this phone (native.js): the starters change with it.
     if (wasNative !== !!linkInfo.native && logIn.querySelector('.starters')) renderChat();
     app.dataset.link = state;
-    setScreen(gateUp ? 'gate' : state === 'unpaired' ? 'pair' : state === 'pairing' ? 'wait' : 'chat');
+    if (was === 'confirming' && state !== 'confirming') leaveConfirmation();
+    setScreen(gateUp ? 'gate' : state === 'confirming' ? 'replace' : state === 'unpaired' ? 'pair' : state === 'pairing' ? 'wait' : 'chat');
+    if (state === 'confirming') {
+      $('#replace-pc').textContent = 'This phone is paired with ' + (clip(linkInfo.pc, 64) || 'your PC') + '. A new PC replaces it.';
+      if (was !== 'confirming') {
+        try { history.pushState({ capriPairConfirm: true }, '', location.pathname + location.search); confirmHistory = true; } catch (error) {}
+        $('#replace-keep').focus({ preventScroll: true });
+      }
+    }
     if (state === 'unpaired') {
-      const note = pairNotes[linkInfo.reason] || '';
+      const note = pairNotes[linkInfo.pairReason || linkInfo.reason] || '';
       pairNote.textContent = note;
       pairNote.hidden = !note;
-    }
+    } else if (linkInfo.pairReason && linkInfo.pairReason !== priorPairReason) say(pairNotes[linkInfo.pairReason] || '');
     if (state === 'pairing') {
       $('#wait-code').textContent = linkInfo.code || '--- ---';
       $('#wait-allow').hidden = !linkInfo.demo;
-      // A paired phone's link needs no Allow and no code to check.
-      const linked = pastedFromPhone && !linkInfo.demo;
+      const linked = linkInfo.viaPhone && !linkInfo.demo;
       $('#wait-title').textContent = linked ? 'Pairing' : 'Allow on your PC';
       $('#wait-lead').textContent = linked ? 'Safari asked your PC for this link' : 'Capri asks: Allow this phone?';
       $('#wait-check').hidden = linked;
       $('#wait-code').hidden = linked;
       $('#wait-words').textContent = linked ? 'Pairing with your PC' : 'Waiting for Allow';
-    } else if (state === 'unpaired' || state === 'connected') pastedFromPhone = false;
+    }
     if (!homeSheet.hidden) renderHome();
     if (state === 'connecting') showBanner('Connecting', linkInfo.pc ? 'Reaching ' + linkInfo.pc : 'Reaching your PC', 'wait', false);
     else if (state === 'offline') showBanner(...offlineWords(linkInfo.reason), 'bad', true);
@@ -579,7 +589,7 @@
 
   // ---------- The menu ----------
   const device = CapriRemote.device || 'This browser';
-  const tones = { unpaired: ['Not paired', 'faint'], pairing: ['Waiting for Allow', 'wait'], connecting: ['Connecting', 'wait'], offline: ['PC offline', 'bad'], connected: ['Connected', 'good'] };
+  const tones = { unpaired: ['Not paired', 'faint'], confirming: ['Paired', 'good'], pairing: ['Waiting for Allow', 'wait'], connecting: ['Connecting', 'wait'], offline: ['PC offline', 'bad'], connected: ['Connected', 'good'] };
   const renderChats = () => {
     const list = $('#d-chats');
     list.replaceChildren();
@@ -618,7 +628,7 @@
     renderChats();
   };
   // While the menu is open, everything behind it is out of reach.
-  const behind = [top, banner, log, composer, actions, gateScreen, pairScreen, waitScreen, herLayer];
+  const behind = [top, banner, log, composer, actions, gateScreen, pairScreen, replaceScreen, whereScreen, waitScreen, herLayer];
   const openMenu = () => {
     renderDrawer();
     app.classList.add('menu');
@@ -703,7 +713,8 @@
   const homeLinkField = $('#home-link-field');
   const homeLinkText = $('#home-link-text');
   const LINK_WORDS = {
-    busy: 'Your PC is showing a pairing code. Close it, then try again',
+    busy: 'Your PC is busy pairing. Close any code on it, then try again in a minute',
+    'not-allowed': "A phone added by a link can't make links. Scan a QR from your PC instead",
     timeout: 'No answer from your PC. Try again',
     offline: 'Your PC is offline',
     bad: 'Your PC sent a link that didn\'t read right'
@@ -748,7 +759,7 @@
       stop();
       const link = message.type === 'pair.link' ? linkFrom(message.url) : '';
       if (link) resolve(link);
-      else reject(new Error(message.type === 'pair.link' ? 'bad' : message.code === 'busy' ? 'busy' : 'offline'));
+      else reject(new Error(message.type === 'pair.link' ? 'bad' : message.code === 'busy' || message.code === 'not-allowed' ? message.code : 'offline'));
     });
     if (!CapriRemote.send('pair.ask', { id })) { stop(); reject(new Error('offline')); return; }
     timer = setTimeout(() => { stop(); reject(new Error('timeout')); }, 10000);
@@ -829,8 +840,8 @@
   // A code scanned in Safari can pair Safari, or go to the home screen app: Safari copies its link and leaves the code
   // unused, and the app pastes it within the code's 10 minutes. The link stays in memory here, never in the address bar.
   let whereLink = '';
-  const offerWhere = () => {
-    whereLink = location.hash;
+  const offerWhere = hash => {
+    whereLink = hash;
     try { history.replaceState(null, '', location.pathname + location.search); } catch (error) {}
     $('#where-steps').hidden = true;
     whereNote.hidden = true;
@@ -880,12 +891,31 @@
       return;
     }
     pasteField.classList.remove('bad');
+    const started = await CapriRemote.connect({ fragment: hash });
+    if (!started) return;
     pasteLink.value = '';
-    pastedFromPhone = /[#&]via=phone(&|$)/.test(hash);
-    try { history.replaceState(null, '', location.pathname + location.search + hash); } catch (error) {}
-    // It did its job, so it leaves the clipboard too.
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText('').catch(() => {});
-    CapriRemote.connect();
+  });
+
+  const leaveConfirmation = () => {
+    if (!confirmHistory) return;
+    confirmHistory = false;
+    try { history.back(); } catch (error) {}
+  };
+  const confirmPairing = yes => {
+    leaveConfirmation();
+    CapriRemote.confirmPairing(yes);
+  };
+  $('#replace-keep').addEventListener('click', () => confirmPairing(false));
+  $('#replace-close').addEventListener('click', () => confirmPairing(false));
+  $('#replace-go').addEventListener('click', () => confirmPairing(true));
+  addEventListener('popstate', () => {
+    if (!confirmHistory) return;
+    confirmHistory = false;
+    if (linkState === 'confirming') CapriRemote.confirmPairing(false);
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && linkState === 'confirming') confirmPairing(false);
   });
 
   // ---------- Early access ----------
@@ -932,7 +962,7 @@
   });
   $('#try-demo').addEventListener('click', () => CapriRemote.connect({ demo: true }));
   $('#wait-allow').addEventListener('click', () => CapriRemote.allow());
-  $('#wait-cancel').addEventListener('click', () => CapriRemote.unpair());
+  $('#wait-cancel').addEventListener('click', () => CapriRemote.cancelPairing());
   bannerRetry.addEventListener('click', () => CapriRemote.retry());
 
   // ---------- The screen: sized to what's visible, so the bar (and Capri) ride up on the phone's keyboard ----------
@@ -969,14 +999,20 @@
   renderChat();
   autosize();
   // The link starts once the gate is passed (or straight away when there's no gate).
-  const start = () => {
+  const start = async () => {
     started = true;
     if (heldLink) {
       try { history.replaceState(null, '', location.pathname + location.search + heldLink); } catch (error) {}
       heldLink = '';
     }
-    if (iphone && !standalone && !demoBuild && /[#&](r|c|k)=/.test(location.hash)) offerWhere();
-    else begin();
+    const hash = location.hash;
+    if (iphone && !standalone && !demoBuild && /[#&](r|c|k)=/.test(hash)) {
+      let scan = null;
+      try { scan = CapriCrypto.parseFragment(hash); } catch (error) {}
+      const saved = scan ? await CapriRemote.storedPairing() : null;
+      if (scan && (!saved || saved.room === scan.room)) { offerWhere(hash); return; }
+    }
+    begin();
   };
   let begun = false;
   const begin = () => {

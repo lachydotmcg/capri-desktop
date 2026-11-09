@@ -497,6 +497,7 @@ A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, st
 
 - **Secure context:** WebCrypto needs a secure context, so the app must run on `https://capriai.app` or `localhost`.
 - **The QR fragment:** read it, then strip it with `history.replaceState`. Keep the pairing key in memory only, and drop it after `pair-reply`.
+- **Links that would change the pairing:** a fragment that doesn't parse leaves the stored pairing alone. A fragment for a different room asks first, and the old pairing stays until the new `pair-allow` is stored; a deny, timeout or failure goes back to it. `via=phone` only counts when this browser has nothing paired.
 - **While waiting:** show the confirmation code and "Check your PC shows the same code".
 - **After `pair-allow`:** store the room id, device id, device token and device key in IndexedDB. The device key can be stored as a non-extractable HKDF `CryptoKey`.
 - **Starting sessions:** wait for `ready`. Send hello when `pc` is true, and again after every `presence {pc: true}`.
