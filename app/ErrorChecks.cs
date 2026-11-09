@@ -503,6 +503,162 @@ namespace CapriDesktop
             }
         }
 
+        // Thinking: which levels each model takes, what each pick sends, Extra request JSON, a level a model turns down, and her rows.
+        private void SmokeThinking(List<string> checks)
+        {
+            const int off = ThinkingLevels.Off, low = ThinkingLevels.Low, medium = ThinkingLevels.Medium, high = ThinkingLevels.High;
+            object[][] table =
+            {
+                new object[] { "openai", "gpt-6-astra", off, true }, new object[] { "openai", "gpt-6.1-sol", off, true }, new object[] { "openai", "gpt-6.1-terra", off, false }, new object[] { "openai", "gpt-5.6", off, false },
+                new object[] { "openai", "gpt-5", off, true }, new object[] { "openai", "gpt-5.5", off, false }, new object[] { "openai", "o3", off, true }, new object[] { "openai", "gpt-5.5-pro", low, true }, new object[] { "openai", "gpt-5.5-pro", high, false }, new object[] { "openai", "gpt-4.1", high, true },
+                new object[] { "anthropic", "claude-opus-5-5", off, true }, new object[] { "anthropic", "claude-fable-5-1", off, true }, new object[] { "anthropic", "claude-sonnet-5-5", off, true }, new object[] { "anthropic", "claude-haiku-5-5", off, false }, new object[] { "anthropic", "claude-opus-5", off, false }, new object[] { "anthropic", "claude-opus-5-5", high, false }, new object[] { "anthropic", "claude-haiku-4-5", high, true }, new object[] { "anthropic", "claude-haiku-4-5", off, true },
+                new object[] { "google", "gemini-2.5-flash-lite", off, false }, new object[] { "google", "gemini-2.5-pro", off, true }, new object[] { "google", "gemini-3.1-flash-lite", off, true }, new object[] { "google", "gemini-3.1-flash-lite", high, false },
+                new object[] { "deepseek", "deepseek-flash", off, false }, new object[] { "deepseek", "deepseek-flash", medium, true }, new object[] { "deepseek", "deepseek-flash", high, false },
+                new object[] { "kimi", "kimi-k3.1-pro", off, true }, new object[] { "kimi", "kimi-k3", medium, true }, new object[] { "kimi", "kimi-k3", low, false }, new object[] { "kimi", "kimi-k2.6", off, false }, new object[] { "kimi", "kimi-k2.6", low, true }, new object[] { "kimi", "kimi-k2.7-code", high, true }, new object[] { "kimi", "kimi-k9", high, true },
+                new object[] { "nvidia", "nvidia/nemotron-3.5-super-vl-120b-a12b", medium, true }, new object[] { "nvidia", "nvidia/nemotron-3.5-super-vl-120b-a12b", off, false }, new object[] { "nvidia", "nvidia/nemotron-3.5-bolt-e4b", low, true }, new object[] { "nvidia", "nvidia/nemotron-3.5-bolt-e4b", high, false }, new object[] { "nvidia", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", medium, false }, new object[] { "nvidia", "openai/gpt-oss-20b", off, true }, new object[] { "nvidia", "openai/gpt-oss-20b", medium, false }, new object[] { "nvidia", "qwen/qwen3-235b-a22b", high, true },
+                new object[] { "local", "gemma4:e4b", high, true }, new object[] { "claudecode", "opus", high, true }
+            };
+            foreach (object[] row in table)
+                if ((ThinkingLevels.Why((string)row[0], (string)row[1], (int)row[2], false) != null) != (bool)row[3]) throw new Exception("Thinking read " + row[0] + " " + row[1] + " " + ThinkingLevels.Names[(int)row[2]] + " wrong.");
+            if (ThinkingLevels.Why("anthropic", "claude-haiku-5-5", high, true) == null || ThinkingLevels.Why("openai", "gpt-5.6", ThinkingLevels.Default, false) != null) throw new Exception("Thinking opened a Capri code or greyed Default.");
+            CloudModel router = new CloudModel { ReasoningRead = true, Reasoning = new CloudModelReasoning { Mandatory = true, Efforts = new[] { "max", "high", "low", "none" } } };
+            if (ThinkingLevels.Why("openrouter", "a/b", off, false, router) == null || ThinkingLevels.Why("openrouter", "a/b", medium, false, router) != "Low or High only" || ThinkingLevels.Why("openrouter", "a/b", high, false, router) != null
+                || ThinkingLevels.Why("openrouter", "a/b", high, false, new CloudModel { ReasoningRead = true }) == null || ThinkingLevels.Why("openrouter", "a/b", high, false, new CloudModel()) != null || ThinkingLevels.Why("openrouter", "a/b", high, false, null) != null)
+                throw new Exception("Thinking misread OpenRouter's model list.");
+            if (Brain.ReadCloudModels("nvidia", "{\"data\":[{\"id\":\"meta/llama-3.3-70b-instruct\",\"reasoning\":true}]}").Count != 1) throw new Exception("A reasoning field in another shape lost the model list.");
+            if (Brain.ReadCloudModels("openrouter", "{\"data\":[{\"id\":\"example/think\",\"architecture\":{\"input_modalities\":[\"text\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"reasoning\"],\"reasoning\":true}]}").Count != 1) throw new Exception("OpenRouter's reasoning in another shape lost its model list.");
+            string merged = ThinkingLevels.Merge("{\"a\":1,\"model\":\"m\",\"reasoning_effort\":\"low\"}", "{\"reasoning_effort\":\"high\",\"model\":\"no\",\"b\":{\"c\":[1,\"}\"]}}");
+            if (merged != "{\"a\":1,\"model\":\"m\",\"reasoning_effort\":\"high\",\"b\":{\"c\":[1,\"}\"]}}") throw new Exception("Extra JSON merged wrong: " + merged);
+            foreach (string bad in new[] { "[1]", "{\"a\":1,}", "{\"a\":tru}", "{\"a\":1} x", "{a:1}", "{\"model\":\"x\"}", "{\"mod\\u0065l\":\"x\"}", "{\"tools\":[]}", "{\"stream\":true}", "{\"system\":\"x\"}", "{\"messages\":[]}" })
+                if (ThinkingLevels.ExtraProblem(bad) == null) throw new Exception("Extra JSON let through: " + bad);
+            if (ThinkingLevels.ExtraProblem("") != null || ThinkingLevels.ExtraProblem(" {\"temperature\":1.5e0,\"x\":[true,null,{\"y\":\"\\n\"}]}\n") != null) throw new Exception("Extra JSON turned down a good object.");
+            CompletionRequest kimi = new CompletionRequest();
+            ThinkingLevels.Apply(kimi, "kimi-k2.6", off);
+            CompletionRequest kimiNext = new CompletionRequest();
+            ThinkingLevels.Apply(kimiNext, "kimi-k3.1-pro", low);
+            if (kimi.Thinking == null || kimi.Thinking.Type != "disabled" || kimi.Effort != null || kimiNext.Effort != "low" || kimiNext.Thinking != null || !ThinkingLevels.IsKimi("https://api.moonshot.ai/v1") || ThinkingLevels.IsKimi("https://example.com/api.moonshot.ai")) throw new Exception("Kimi's Thinking setting went wrong.");
+            string[] addresses = { Brain.OpenAi, Brain.Anthropic, Brain.DeepSeek, Brain.Nvidia, Brain.Google, Brain.OpenRouter };
+            int repliesWas = Brain.ReplyLength;
+            Cloud remoteWas = brain.Remote;
+            string modelWas = brain.Model;
+            ThinkingPick[] picksWas = brain.Picks, savedWas = preferences.ThinkingPicks;
+            System.Net.Sockets.TcpListener fake = null;
+            Func<string, string, int, string, string[], string> ask = delegate(string key, string model, int level, string extra, string[] replies)
+            {
+                List<string> asked = new List<string>();
+                string address = FakeServer(replies, asked, out fake);
+                Brain.OpenAi = Brain.Anthropic = Brain.DeepSeek = Brain.Nvidia = Brain.Google = Brain.OpenRouter = address;
+                Cloud remote = new Cloud(key, model);
+                Brain asking = new Brain { Model = model, Remote = remote };
+                if (level != ThinkingLevels.Default || extra != null) asking.Picks = new[] { new ThinkingPick { Source = remote.Kind + "|" + model, Level = level, Extra = extra } };
+                try { asking.Step("Be brief.", "Hi", "[]", "[]", "", new List<KeyValuePair<string, ToolArguments>>()); }
+                catch (BrainException error) { asked.Add("failed: " + error.Message); }
+                fake.Stop();
+                return string.Join("\n---\n", asked.ToArray());
+            };
+            string fine = LocalReply("ok"), claudeFine = "{\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]}";
+            Action<string, string, int, string> sends = delegate(string key, string model, int level, string wanted)
+            {
+                string said = ask(key, model, level, null, new[] { key.StartsWith("sk-ant", StringComparison.Ordinal) ? claudeFine : fine });
+                if (said.IndexOf(wanted, StringComparison.Ordinal) < 0) throw new Exception(model + " at " + ThinkingLevels.Names[level] + " didn't send " + wanted + ": " + said);
+            };
+            try
+            {
+                Brain.ReplyLength = 0;
+                string deepSeek = "sk-" + new string('0', 32);
+                sends(deepSeek, "deepseek-flash", ThinkingLevels.Default, "\"thinking\":{\"type\":\"disabled\"}");
+                sends(deepSeek, "deepseek-flash", off, "\"thinking\":{\"type\":\"disabled\"}");
+                sends(deepSeek, "deepseek-flash", high, "\"reasoning_effort\":\"high\"");
+                if (ask(deepSeek, "deepseek-flash", high, null, new[] { fine }).Contains("\"thinking\"")) throw new Exception("DeepSeek's High still sent thinking disabled.");
+                sends(deepSeek, "deepseek-flash", medium, "\"thinking\":{\"type\":\"disabled\"}");
+                sends("sk-proj-test", "gpt-5.6", high, "\"reasoning_effort\":\"high\"");
+                sends("sk-proj-test", "gpt-5.6", high, "\"max_completion_tokens\":8000");
+                sends("sk-proj-test", "gpt-6-luna", high, "\"reasoning_effort\":\"none\"");
+                sends("sk-ant-test", "claude-opus-5-5", ThinkingLevels.Default, "\"output_config\":{\"effort\":\"low\"}");
+                sends("sk-ant-test", "claude-opus-5-5", high, "\"output_config\":{\"effort\":\"high\"}");
+                sends("sk-ant-test", "claude-haiku-5-5", off, "\"thinking\":{\"type\":\"disabled\"}");
+                sends("AIza-test", "gemini-3.1-flash-lite", ThinkingLevels.Default, "\"reasoning_effort\":\"low\"");
+                sends("AIza-test", "gemini-2.5-flash", off, "\"reasoning_effort\":\"none\"");
+                sends("sk-or-test", "a/b", low, "\"reasoning\":{\"effort\":\"low\"}");
+                sends("nvapi-test", "nvidia/nemotron-3.5-bolt-e4b", high, "\"chat_template_kwargs\":{\"enable_thinking\":true}");
+                sends("nvapi-test", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", low, "\"chat_template_kwargs\":{\"enable_thinking\":true,\"reasoning_budget\":1024}");
+                sends("nvapi-test", "nvidia/nemotron-3.5-super-vl-120b-a12b", off, "\"reasoning_effort\":\"none\"");
+                string extended = ask("sk-proj-test", "gpt-5.6", ThinkingLevels.Default, "{\"reasoning_effort\":\"xhigh\",\"service_tier\":\"flex\"}", new[] { fine });
+                if (!extended.Contains("\"reasoning_effort\":\"xhigh\"") || !extended.Contains("\"service_tier\":\"flex\"") || !extended.Contains("\"tools\":[]") || extended.IndexOf("\"reasoning_effort\"", StringComparison.Ordinal) != extended.LastIndexOf("\"reasoning_effort\"", StringComparison.Ordinal)) throw new Exception("Extra JSON didn't reach the request once: " + extended);
+                const string refused = "!400 {\"error\":{\"message\":\"That setting isn't available.\"}}";
+                string retried = ask("sk-proj-test", "gpt-90", high, null, new[] { refused, fine });
+                string[] tries = retried.Split(new[] { "\n---\n" }, StringSplitOptions.None);
+                if (tries.Length != 2 || !tries[0].Contains("\"reasoning_effort\":\"high\"") || tries[1].Contains("\"reasoning_effort\"") || retried.Contains("failed:") || ThinkingLevels.Why("openai", "gpt-90", high, false) == null || ThinkingLevels.Why("openai", "gpt-90", low, false) != null) throw new Exception("A level a model turned down failed the chat or stayed open: " + retried);
+                string unforgiven = ask("sk-proj-test", "gpt-91", high, "{\"x\":1}", new[] { refused, fine });
+                if (!unforgiven.Contains("failed:") || unforgiven.Contains("\n---\nPOST")) throw new Exception("Extra JSON asked again without itself: " + unforgiven);
+                List<ChatMessage> kimiChat = new List<ChatMessage> { new ChatMessage("system", "Be brief."), new ChatMessage("user", "Hi") };
+                List<string> kimiAsked = new List<string>();
+                string kimiAddress = FakeServer(new[] { refused, fine }, kimiAsked, out fake);
+                string kimiSaid = new Brain().Complete(kimiAddress, "kimi-k3", kimiChat, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false, null, false, "kimi-k3", null, new ThinkingPick { Source = "kimi|kimi-k3", Level = low });
+                fake.Stop();
+                if (kimiSaid != "ok" || kimiAsked.Count != 2 || !kimiAsked[0].Contains("\"reasoning_effort\":\"low\"") || kimiAsked[1].Contains("reasoning_effort") || ThinkingLevels.Why("kimi", "kimi-k3", low, false) == null) throw new Exception("Kimi didn't turn a level down without failing the chat.");
+                kimiAsked.Clear();
+                Brain.ReplyLength = 1;
+                kimiAddress = FakeServer(new[] { fine }, kimiAsked, out fake);
+                new Brain().Complete(kimiAddress, "kimi-k3.1-pro", kimiChat, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false, null, false, "kimi-k3.1-pro", null, new ThinkingPick { Source = "kimi|kimi-k3.1-pro", Level = high, Extra = "{\"x\":1}" });
+                fake.Stop();
+                Brain.ReplyLength = 0;
+                if (kimiAsked.Count != 1 || !kimiAsked[0].Contains("\"reasoning_effort\":\"high\"") || !kimiAsked[0].Contains("\"x\":1") || !kimiAsked[0].Contains("\"max_tokens\":8000")) throw new Exception("Kimi's High lost its setting, its extra JSON or its room under Max reply: " + kimiAsked[0]);
+                string learnsNothing = ask("sk-proj-test", "gpt-92", ThinkingLevels.Default, "{\"reasoning_effort\":\"minimal\"}", new[] { "!400 {\"error\":{\"message\":\"Unsupported reasoning_effort. Supported values are: 'medium'.\"}}", fine });
+                if (!learnsNothing.Contains("failed:") || Brain.Effort("gpt-92", true) != null) throw new Exception("Extra JSON's error changed what Default sends: " + learnsNothing);
+                string aside = null;
+                List<string> asideAsked = new List<string>();
+                Brain.DeepSeek = FakeServer(new[] { fine }, asideAsked, out fake);
+                Brain folded = new Brain { Model = "deepseek-flash", Remote = new Cloud(deepSeek, "deepseek-flash"), Picks = new[] { new ThinkingPick { Source = "deepseek|deepseek-flash", Level = high } } };
+                aside = folded.Aside("Be brief.", "Hi", 50);
+                fake.Stop();
+                if (aside != "ok" || !asideAsked[0].Contains("\"thinking\":{\"type\":\"disabled\"}") || asideAsked[0].Contains("reasoning_effort")) throw new Exception("An aside used the Thinking pick.");
+
+                brain.Remote = new Cloud("sk-proj-test", "gpt-6-astra");
+                brain.Model = "gpt-6-astra";
+                brain.Picks = null;
+                mainframe.Sync();
+                if (mainframe.ThinkingShown != "Default" || mainframe.ThinkingRow(off) != "Off · always thinks" || mainframe.ThinkingRowOpen(off) || !mainframe.ThinkingRowOpen(high) || !mainframe.ThinkingTip || SelfKnow.Setting("Mainframe.cs", "Thinking") == null || SelfKnow.Setting("Mainframe.cs", "Extra request JSON") == null) throw new Exception("Thinking's row lost a reason, a level, its tip or its help.");
+                mainframe.PickThinking(off);
+                if (mainframe.ThinkingShown != "Default" || preferences.ThinkingPicks != savedWas) throw new Exception("A greyed level was picked.");
+                mainframe.PickThinking(high);
+                if (mainframe.ThinkingShown != "High" || preferences.ThinkingPicks == null || preferences.ThinkingPicks.Length != 1 || preferences.ThinkingPicks[0].Source != "openai|gpt-6-astra" || preferences.ThinkingPicks[0].Level != high) throw new Exception("Thinking's pick didn't save for its model.");
+                brain.Remote = new Cloud("sk-proj-test", "gpt-5.6");
+                brain.Model = "gpt-5.6";
+                mainframe.Sync();
+                if (mainframe.ThinkingShown != "Default" || !mainframe.ThinkingRowOpen(off) || mainframe.ThinkingExtraKey != "Add" || !mainframe.ThinkingExtraOpen) throw new Exception("Another model kept this model's Thinking.");
+                mainframe.OpenThinkingExtra();
+                string crowded = mainframe.ThinkingExtraCrowded;
+                if (crowded != null) throw new Exception("Extra request JSON: " + crowded);
+                mainframe.TypeThinkingExtra("{\"model\":\"x\"}");
+                mainframe.SaveThinkingExtra();
+                if (!mainframe.ThinkingExtraNote.Contains("model") || brain.ThinkingExtra != null) throw new Exception("Extra JSON saved a name Capri sets.");
+                mainframe.TypeThinkingExtra("{\"temperature\":1}");
+                mainframe.SaveThinkingExtra();
+                if (mainframe.ThinkingExtraNote != "Saved." || brain.ThinkingExtra != "{\"temperature\":1}" || mainframe.ThinkingExtraKey != "Edit") throw new Exception("Extra JSON didn't save.");
+                mainframe.CloseThinkingExtra();
+                brain.Remote = null;
+                brain.Model = "gemma4:e4b";
+                mainframe.Sync();
+                if (mainframe.ThinkingShown != "Default" || mainframe.ThinkingExtraOpen || mainframe.ThinkingRowOpen(high) || mainframe.ThinkingRow(high) != "High · not for local brains") throw new Exception("A local brain offered Thinking.");
+                checks.Add("PASS thinking: each provider and model greys the levels it can't take with a reason, each pick sends that provider's own setting, Default sends what she always did, Extra JSON merges once and can't touch her prompt or tools, a level a model turns down greys out instead of failing the chat, asides stay as they were, and each model keeps its own pick in Settings");
+            }
+            catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT thinking: loopback sockets unavailable"); }
+            finally
+            {
+                if (fake != null) fake.Stop();
+                Brain.OpenAi = addresses[0]; Brain.Anthropic = addresses[1]; Brain.DeepSeek = addresses[2]; Brain.Nvidia = addresses[3]; Brain.Google = addresses[4]; Brain.OpenRouter = addresses[5];
+                Brain.ReplyLength = repliesWas;
+                ThinkingLevels.Forget();
+                brain.Remote = remoteWas;
+                brain.Model = modelWas;
+                brain.Picks = picksWas;
+                preferences.ThinkingPicks = savedWas;
+                mainframe.CloseThinkingExtra();
+                mainframe.Sync();
+            }
+        }
+
         // A cloud voice out of credit says so with its fix, the way her brain reads OpenAI's 429, instead of "busy (HTTP 429)",
         // and the service's own words go to errors.txt. A plain 429 is still busy.
         private static void SmokeVoiceCredit(List<string> checks, string output)

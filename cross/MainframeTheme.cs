@@ -397,7 +397,7 @@ namespace CapriDesktop
         public override void Render(DrawingContext context)
         {
             double w = Bounds.Width, h = Bounds.Height;
-            bool hot = IsPointerOver || IsKeyboardFocusWithin;
+            bool hot = IsEnabled && (IsPointerOver || IsKeyboardFocusWithin);
             context.DrawRectangle(Brushes.Transparent, null, new Rect(Bounds.Size));
             if (hot)
             {
@@ -412,7 +412,7 @@ namespace CapriDesktop
                 context.DrawLine(tick, new Point(11, h / 2), new Point(12.8, h / 2 + 2));
                 context.DrawLine(tick, new Point(12.8, h / 2 + 2), new Point(16, h / 2 - 2));
             }
-            MainframeTheme.Write(context, Text, new Rect(28, 0, w - 38, h), hot ? MainframeTheme.Cyan : MainframeTheme.White);
+            MainframeTheme.Write(context, Text, new Rect(28, 0, w - 38, h), !IsEnabled ? MainframeTheme.Faint : hot ? MainframeTheme.Cyan : MainframeTheme.White);
         }
     }
 
@@ -557,8 +557,10 @@ namespace CapriDesktop
         private string[] choices = Array.Empty<string>();
         private int selected;
         internal bool Check = true;
+        internal bool[] Greyed = Array.Empty<bool>();
         internal event Action<int> Changed;
         internal string[] Choices { get { return choices; } }
+        private bool IsGreyed(int at) { return at < Greyed.Length && Greyed[at]; }
         internal int Selected { get { return selected; } set { selected = Math.Clamp(value, 0, Math.Max(0, choices.Length - 1)); Text = choices.Length == 0 ? "None" : choices[selected]; } }
         internal NeonPicker() { Chevron = true; Click += (_, _) => Open(); }
         internal void Options(string[] options)
@@ -569,7 +571,7 @@ namespace CapriDesktop
         // A bug behind a choice is written down by Program.Guard, and its menu still closes.
         internal void Pick(int at)
         {
-            if (at < 0 || at >= choices.Length) return;
+            if (at < 0 || at >= choices.Length || IsGreyed(at)) return;
             Selected = at;
             Action<int> changed = Changed;
             try { if (changed != null) Program.Guard(() => changed(at)); }
@@ -591,12 +593,18 @@ namespace CapriDesktop
             for (int i = 0; i < choices.Length; i++)
             {
                 int at = i;
-                var row = new NeonChoice { Text = choices[i], Checked = Check && i == selected, Width = wide, Height = 26 };
+                var row = new NeonChoice { Text = choices[i], Checked = Check && i == selected, Width = wide, Height = 26, IsEnabled = !IsGreyed(i) };
                 AutomationProperties.SetName(row, choices[i]);
                 row.Click += (_, _) => Pick(at);
                 row.KeyDown += (_, e) =>
                 {
-                    if (e.Key == Key.Down || e.Key == Key.Up) { buttons[(at + (e.Key == Key.Down ? 1 : buttons.Count - 1)) % buttons.Count].Focus(); e.Handled = true; }
+                    if (e.Key == Key.Down || e.Key == Key.Up)
+                    {
+                        int next = at, step = e.Key == Key.Down ? 1 : buttons.Count - 1;
+                        do next = (next + step) % buttons.Count; while (IsGreyed(next) && next != at);
+                        buttons[next].Focus();
+                        e.Handled = true;
+                    }
                     if (e.Key == Key.Escape) { CloseMenu(); Focus(); e.Handled = true; }
                 };
                 buttons.Add(row); rows.Children.Add(row);
