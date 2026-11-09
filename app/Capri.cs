@@ -50085,7 +50085,7 @@ namespace CapriDesktop
                 if (named == null || !named.On || ModDirectory.BlobSha(File.ReadAllBytes(named.Path)) != settingsSha || sheet.InstallTextOf(1) != "Reinstall" || posts.Count != 0 || sheet.StatusShown != "Far Names is updated.") throw new Exception("A card's Update didn't update it in place: " + sheet.StatusShown);
                 checks.Add("PASS mods window: a card with a newer copy says Update available and Update, which updates it in place without counting a download, then goes back to Reinstall");
 
-                // Skins: importing one turns the others off, so an update to a skin that's off must leave the one she's wearing on.
+                // Updating a skin that's off must leave the one she's wearing on.
                 Func<string, string, string> skin = delegate(string id, string version)
                 {
                     string file = Path.Combine(old, id + "-" + version + Mods.SkinExtension);
@@ -50104,12 +50104,20 @@ namespace CapriDesktop
                     return file;
                 };
                 if (!ImportMod(skin("update-worn", "1")) || !ImportMod(skin("update-spare", "1")) || !ImportMod(skin("update-worn", "1"))) throw new Exception("The test skins didn't import: " + modStatus.Text);
+                mods.Set(mods.All.Find(mod => mod.File.Id == "update-spare"), false, ModAsk);
                 Mod spare = mods.Update(skin("update-spare", "2"), ModAsk);
                 Mod worn = mods.All.Find(mod => mod.File.Id == "update-worn");
                 if (spare == null || spare.On || spare.File.Version != "2" || worn == null || !worn.On || Companion.SkinFolder == null || !Companion.SkinFolder.TrimEnd(Path.DirectorySeparatorChar).EndsWith("update-worn-skin", StringComparison.OrdinalIgnoreCase)) throw new Exception("Updating a skin that was off changed which skin she wears: " + Companion.SkinFolder);
                 Mod again = mods.Update(skin("update-worn", "2"), ModAsk);
                 if (again == null || !again.On || again.File.Version != "2" || mods.All.Find(mod => mod.File.Id == "update-spare").On) throw new Exception("Updating the skin she wears took it off or put another on.");
                 checks.Add("PASS mod updates: updating a skin that's off leaves the one she's wearing on, and updating the one she wears keeps it on");
+
+                mods.Set(mods.All.Find(mod => mod.File.Id == "update-spare"), true, ModAsk);
+                string outfit = Companion.SkinFolder, layers = string.Join("|", Companion.SkinAccessories);
+                Mod stacked = mods.Update(skin("update-worn", "3"), ModAsk);
+                List<Mod> stack = mods.SkinStack;
+                if (stacked == null || !stacked.On || stacked.File.Version != "3" || stack.Count != 2 || stack[0].File.Id != "update-worn" || stack[1].File.Id != "update-spare" || Companion.SkinFolder != outfit || string.Join("|", Companion.SkinAccessories) != layers) throw new Exception("Updating a stacked skin changed the outfit or layer order.");
+                checks.Add("PASS mod updates: updating the bottom of a skin stack preserves both skins, their order, and the outfit");
             }
             finally
             {

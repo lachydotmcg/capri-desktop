@@ -81,7 +81,7 @@ namespace CapriDesktop
             return read;
         }
 
-        private Mod ImportSkin(string file)
+        private Mod ImportSkin(string file, bool turnOn)
         {
             string unpacking = Path.Combine(folder, "skin-import-" + Guid.NewGuid().ToString("N"));
             try
@@ -93,10 +93,13 @@ namespace CapriDesktop
                 if (Directory.Exists(home)) Directory.Delete(home, true);
                 Directory.Move(unpacking, home);
                 if (!string.Equals(Path.GetFullPath(file), Path.GetFullPath(kept), StringComparison.OrdinalIgnoreCase)) File.Copy(file, kept, true);
-                HashSet<string> off = Off();
-                off.Remove(read.Id);
-                WriteOff(off);
-                OnTop(read.Id);
+                if (turnOn)
+                {
+                    HashSet<string> off = Off();
+                    off.Remove(read.Id);
+                    WriteOff(off);
+                    OnTop(read.Id);
+                }
                 Load();
                 Reskin();
                 return All.Find(mod => mod.File.Id == read.Id);

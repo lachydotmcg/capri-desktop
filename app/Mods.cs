@@ -173,7 +173,7 @@ namespace CapriDesktop
         internal Mod Import(string file, Func<ModFile, string, bool> ask, HashSet<string> keepOff = null)
         {
             if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) return ImportCode(file, ask, keepOff);
-            if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkin(file);
+            if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkin(file, keepOff == null);
             if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkill(file);
             string text;
             try
