@@ -48,7 +48,12 @@ namespace CapriDesktop
             AddHandler(PointerWheelChangedEvent, (_, e) =>
             {
                 e.Handled = true;
-                Program.Guard(() => GlideTo((glide.IsEnabled ? to : Scroll.Offset) - Wheel(e.Delta, e.KeyModifiers) * 36 * Zoom));
+                Program.Guard(() =>
+                {
+                    Vector step = Wheel(e.Delta, e.KeyModifiers) * 36 * Zoom;
+                    if (Precise(e.Delta)) { glide.Stop(); to = Clamped(Scroll.Offset - step); Scroll.Offset = to; }
+                    else GlideTo((glide.IsEnabled ? to : Scroll.Offset) - step);
+                });
             }, RoutingStrategies.Tunnel);
             glide.Tick += (_, _) => Program.Guard(() =>
             {
@@ -108,10 +113,20 @@ namespace CapriDesktop
             if ((keys & KeyModifiers.Shift) != 0 && delta.X == 0) return new Vector(delta.Y, 0);
             return delta;
         }
+        // A trackpad sends many small fractional steps and already eases them itself, momentum included, so they move the page
+        // as they come; gliding each one again made every swipe start and end slowly. A mouse wheel's whole notches still glide.
+        internal static bool Precise(Vector delta)
+        {
+            return delta.X != Math.Round(delta.X) || delta.Y != Math.Round(delta.Y);
+        }
+        private Vector Clamped(Vector offset)
+        {
+            return new Vector(Math.Clamp(offset.X, 0, Math.Max(0, Scroll.Extent.Width - Scroll.Viewport.Width)), Math.Clamp(offset.Y, 0, Math.Max(0, Scroll.Extent.Height - Scroll.Viewport.Height)));
+        }
         internal void GlideTo(Vector offset)
         {
             from = Scroll.Offset;
-            to = new Vector(Math.Clamp(offset.X, 0, Math.Max(0, Scroll.Extent.Width - Scroll.Viewport.Width)), Math.Clamp(offset.Y, 0, Math.Max(0, Scroll.Extent.Height - Scroll.Viewport.Height)));
+            to = Clamped(offset);
             clock.Restart(); glide.Start();
         }
         internal void Settle() { glide.Stop(); Scroll.Offset = to; }
