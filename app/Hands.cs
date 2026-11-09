@@ -20,10 +20,12 @@ namespace CapriDesktop
     [DataContract]
     internal sealed class ToolArguments
     {
+#if CROSS
         [DataMember(Name = "command")] public string Command;
         [DataMember(Name = "cwd")] public string Cwd;
         [DataMember(Name = "visible")] public bool? Visible;
         [DataMember(Name = "job_id")] public string JobId;
+#endif
         [DataMember(Name = "name")] public string Name;
         [DataMember(Name = "site")] public string Site;
         [DataMember(Name = "search")] public string Search;
@@ -118,16 +120,15 @@ namespace CapriDesktop
     // notes, Get to know me and what she sees leave addresses, numbers and emails out (Brain.Discreet). Off is how she was before.
     internal static class Security
     {
-        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12;
 #if CROSS
-        internal const int Terminal = 13, Count = 14;
+        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, Terminal = 13, Count = 14;
 #else
-        internal const int Count = 13;
+        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, Count = 13;
 #endif
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories",
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories"
 #if CROSS
-            "Run terminal commands"
+            , "Run terminal commands"
 #endif
         };
         internal static readonly string[] Lines =
@@ -148,9 +149,9 @@ namespace CapriDesktop
             "On: she types the ones your job gives her. Off: you type them.",
             "On: she listens on this PC for her name. Off: she doesn't.",
             "Call mode only. Your mic or typing must confirm each ask.",
-            "On: addresses, emails and numbers stay out. Off: they don't.",
+            "On: addresses, emails and numbers stay out. Off: they don't."
 #if CROSS
-            "On: she runs shell commands when you ask. Off: she asks before each command."
+            , "On: she runs shell commands when you ask. Off: she asks before each command."
 #endif
         };
         internal static readonly string[] Presets = { "Lockdown", "Guarded", "Trusted", "Blackwall", "Custom" };
@@ -301,11 +302,12 @@ namespace CapriDesktop
         internal static void Load(string saved, bool wake = false)
         {
             int bits = 0;
-            int longest = Wake + 2;
 #if CROSS
-            longest++;
-#endif
+            int longest = Wake + 3;
             if (saved == null || saved.Length < Wake || saved.Length > longest || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
+#else
+            if (saved == null || saved.Length < Wake || saved.Length > Wake + 2 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
+#endif
             else
             {
                 for (int i = 0; i < Wake; i++) if (saved[i] == '1') bits |= 1 << i;
@@ -908,7 +910,11 @@ namespace CapriDesktop
         private const string Arranging = " Or arrange its window: maximize it, restore it from minimized or maximized, snap it to the left, right, top or bottom half of its monitor, send it to another monitor with move_to_screen, move it to a spot or to left and top, resize it, or keep it on top of other windows with pin_on_top until unpin. Sizes and places are in the monitor's own pixels.";
         // Which of their monitors to look at, on Windows, where she can tell them apart.
         private const string LookingAt =
+#if CROSS
             " It looks at the monitor they're using, or the one they name. Requested analysis is read-only; put their actual visual question in focus.";
+#else
+            " It looks at the monitor they're using, or the one they name.";
+#endif
         private const string LookPlace =
 #if CROSS
             ",\"screen\":{\"type\":\"string\",\"description\":\"Only the display they requested: connected native name, a number like 2 (physical left-to-right then top-to-bottom order), left/right edges, left of here/right of here/up/down relative to the pointer display, here, other, or portrait. Ambiguous choices ask for a native name.\"}";
@@ -2480,7 +2486,11 @@ namespace CapriDesktop
 
         // Her own abilities and her checks, which her mouse can't do for her: a pick of one stays picked whatever else they said
         // (Lachy, 3 Nov: phrase matches never throw away what her brain chose).
-        private static readonly string[] Herself = { "linux_system", "run_terminal", "terminal_job", "capri_settings", "voice_chat", "speech", "job_control", "quit", "mainframe", "updates", "mini_player", "fake_crash", "clone", "hologram", "desktop_icons", "animate", "nap", "move_yourself", "gaming_mode", "clip", "watch_along", "stream", "mini_game", "game_notes", "app_volume", "pc_status", "internet_status", "power", "list_windows", "check_app" };
+        private static readonly string[] Herself = {
+#if CROSS
+            "linux_system", "run_terminal", "terminal_job",
+#endif
+            "capri_settings", "voice_chat", "speech", "job_control", "quit", "mainframe", "updates", "mini_player", "fake_crash", "clone", "hologram", "desktop_icons", "animate", "nap", "move_yourself", "gaming_mode", "clip", "watch_along", "stream", "mini_game", "game_notes", "app_volume", "pc_status", "internet_status", "power", "list_windows", "check_app" };
 
         // Fixes the calls a brain picked for what they said. True when it needs her mouse and keyboard and the kit doesn't have
         // them: the calls are cleared then, so she says she can't instead of doing something else.
@@ -3553,11 +3563,11 @@ namespace CapriDesktop
             if (pressed != null) { tool = "shortcut"; args.Name = pressed; return true; }
             if (ScreenAsk.IsMatch(text) || ScreenQuestion.IsMatch(text)) { tool = "look_at_screen"; args.Focus = ScreenQuestion.IsMatch(text) ? text : null; return true; }
             Match lookedAt = MonitorLook.Match(text);
-            if (lookedAt.Success) { tool = "look_at_screen"; args.Screen = lookedAt.Groups["which"].Value.ToLowerInvariant();
-#if !CROSS
-                args.Screen = Regex.Replace(args.Screen, @"^(?:other|another)$", "next");
+#if CROSS
+            if (lookedAt.Success) { tool = "look_at_screen"; args.Screen = lookedAt.Groups["which"].Value.ToLowerInvariant(); return true; }
+#else
+            if (lookedAt.Success) { tool = "look_at_screen"; args.Screen = Regex.Replace(lookedAt.Groups["which"].Value.ToLowerInvariant(), @"^(?:other|another)$", "next"); return true; }
 #endif
-                return true; }
             bool question = Regex.IsMatch((said ?? "").Trim(), @"\?\s*$");
             // "Can you remember that I main Jett?" asks her to save it; "remember when we played?" is chat.
             bool polite = Regex.IsMatch(Opener.Replace((said ?? "").Trim(), ""), @"^((hey|yo|ok|okay)[\s,]+)?(capri[\s,]+)?(can|could|would|will) (you|u)\b", RegexOptions.IgnoreCase);
@@ -3914,7 +3924,11 @@ namespace CapriDesktop
             if (tool == "run_terminal") return args != null && !string.IsNullOrWhiteSpace(args.Command) && args.Command.Length <= 16000 && args.Command.IndexOf('\0') < 0;
             if (tool == "terminal_job") return args != null && !string.IsNullOrEmpty(args.JobId) && (args.Offset == null || args.Offset >= 0) && (args.Action == "status" || args.Action == "read" || args.Action == "stop");
 #endif
+#if CROSS
             if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|files|notes)\z"));
+#else
+            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories)\z"));
+#endif
 #if !CROSS
             if (tool == "call_errand") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(open_app|play_song|cancel)\z");
             if (tool == "call_say") return args != null && Named(args.Text);

@@ -3,8 +3,9 @@
 This opt-in feature uses the retained, pinned Moonshine tiny-streaming English
 recognizer as a local name detector. It recognizes the word **Capri** in a final
 utterance; it does not invoke or relabel the dormant Hey Jarvis keyword model.
-The same selected physical microphone, local ASR runtime and local voice remain
-in use. No new weights are downloaded when the switch is enabled.
+The selected physical microphone, local ASR runtime and local voice remain in use.
+If no microphone is selected, enabling Listen for Capri offers a physical microphone
+chooser. No new weights are downloaded when the switch is enabled.
 
 Before the name, decoded partials and unrelated final text stay inside the
 network-isolated microphone worker and are discarded. Hearing Capri accepts that
@@ -30,6 +31,12 @@ session. Disconnection or decoder failure stops the worker; there is no fallback
 to a monitor/loopback or another default microphone. The host must apply its Stop
 latch rather than automatically reopening a stopped microphone every UI tick.
 
+TALK stops name listening and waits for its worker to exit before opening the
+default microphone, so pending name transcripts cannot submit the same words.
+Re-enable Listen for Capri afterward. Lines Capri says during TALK wait until
+the turn finishes. TALK setup is in [README: Linux TALK setup](../README.md#linux-talk-setup)
+and [help: TALK on Linux](../site/help/knowledge.md#talk-on-linux).
+
 ## Retained setup and recovery
 
 The native profile's `OwnedAsrPython`, `OwnedAsrManifest`, `MicrophoneNode` and
@@ -51,7 +58,5 @@ unchanged. Continuous ASR has a greater CPU cost than a small dedicated hotword
 model, remains bounded to the existing two-CPU decoder policy, and stays disabled
 until the user enables it.
 
-The upstream `ears-pack-1` Parakeet and Zipformer bundles are Windows' Sherpa
-path. They are not consumed by this Moonshine native path. Importing their fixed
-URLs is source compatibility, not a reason to replace the working native models
-or claim those download paths ran on Linux.
+Linux TALK uses the upstream English Parakeet pack and sherpa-onnx. Listen for
+Capri uses its separate pinned Moonshine setup; the TALK pack does not replace it.

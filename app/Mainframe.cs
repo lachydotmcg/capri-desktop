@@ -141,11 +141,16 @@ namespace CapriDesktop
         private readonly Toggle followUps;
         private readonly Key huskMode;
         private readonly ContextMenuStrip huskMenu;
+        private readonly Key thinkingLevel;
+        private readonly ContextMenuStrip thinkingMenu;
+        private readonly Key thinkingExtra;
+        private ThinkingSheet thinkingSheet;
         private readonly Slider watchMemory;
         private readonly Readout watchMemoryName;
         private static readonly int[] WatchLines = { 8, 16, 24, 48, 96 };
         private static readonly string[] WatchLineNames = { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" };
         private readonly Toggle stayOnModel;
+        private readonly Toggle huskVerbosity;
         private readonly Toggle remembering;
         private readonly Toggle keepAwake, hideFullScreen, playerFullScreen, exploreAway;
         private Key clipsFolder;
@@ -279,7 +284,7 @@ namespace CapriDesktop
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1316, 1368 }, new[] { 1368, 1396 } };
         // Power saver's row stays in Simple Settings, so the right column's last band starts a row lower, at Perch.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 708, 1118 }, new[] { 1342, 2168 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 708, 1202 }, new[] { 1426, 2252 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -863,7 +868,25 @@ namespace CapriDesktop
                 int choice = HuskWatch.Modes[i];
                 huskMenu.Items.Add(Choice(HuskWatch.Names[i], false, delegate { capri.SetHusk(choice); }));
             }
+            Named("Thinking", c, 382);
+            thinkingMenu = Dropdown();
+            thinkingMenu.AccessibleName = "Thinking choices";
+            thinkingMenu.Opening += delegate { FillThinking(); };
+            thinkingLevel = Make(ThinkingLevels.Names[0], ValueAt + c, 385, ValueWide, 22, delegate { thinkingMenu.Show(thinkingLevel, new Point(0, thinkingLevel.Height)); }, "Thinking");
+            thinkingLevel.Chevron = true;
+            thinkingLevel.AccessibleName = "Thinking";
+            for (int i = 0; i < ThinkingLevels.Names.Length; i++)
+            {
+                int level = i;
+                thinkingMenu.Items.Add(Choice(ThinkingLevels.Names[i], false, delegate { capri.SetThinking(level); }));
+            }
+            Named("Extra request JSON", c, 410);
+            thinkingExtra = Make("Add", ValueAt + c, 413, ValueWide, 22, delegate { OpenThinkingExtra(); }, "Extra request JSON");
+            thinkingExtra.AccessibleName = "Extra request JSON";
             int afterHusk = Controls.Count;
+            huskVerbosity = Switch("Verbosity", c, 354, delegate { if (!syncing) capri.ToggleHuskVerbosity(); });
+            huskVerbosity.AccessibleName = "Verbosity. On shows each tool the coding assistant runs. Off keeps only starts, finishes, questions and crashes";
+            int afterVerbosity = Controls.Count;
             stayOnModel = Switch("Stay on my model", c, 354, delegate { if (!syncing) capri.ToggleStayOnModel(); });
             stayOnModel.AccessibleName = "Stay on my model. When an NVIDIA model gets stuck she says so instead of switching to another one";
             replies = Setting("Replies", Lengths, c, 382, "Reply length");
@@ -993,7 +1016,9 @@ namespace CapriDesktop
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
-                if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row;
+                if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row * 3;
+            for (int belowVerbosity = afterVerbosity; belowVerbosity < Controls.Count; belowVerbosity++)
+                if (Controls[belowVerbosity].Left >= c) Controls[belowVerbosity].Top += Row;
             // Mainframe colours, Head pats, Chaos when upset, Hologram and Legacy stand each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 5;
@@ -2797,6 +2822,7 @@ namespace CapriDesktop
                 huskMenu.Items[i].Visible = i < HuskWatch.Choices(capri.HuskMode).Length;
             }
             huskMode.Invalidate();
+            FillThinking();
             hearingChoice.Text = HearingStatus.Choices[capri.HearingChoice];
             hearingChoice.AccessibleName = "Hearing: " + hearingChoice.Text;
             for (int i = 0; i < hearingMenu.Items.Count; i++) ((ToolStripMenuItem)hearingMenu.Items[i]).Checked = i == capri.HearingChoice;
@@ -2823,6 +2849,7 @@ namespace CapriDesktop
             watchMemory.Value = Math.Max(0, Array.IndexOf(WatchLines, capri.WatchMemoryLines));
             watchMemoryName.Text = WatchLineNames[watchMemory.Value];
             stayOnModel.Checked = capri.StayOnModel;
+            huskVerbosity.Checked = capri.HuskVerbosity;
             remembering.Checked = capri.Remembers;
             keepAwake.Checked = capri.KeepAwake;
             hideFullScreen.Checked = capri.HideFullScreen;
@@ -2958,6 +2985,7 @@ namespace CapriDesktop
         internal void FlipCaughtUp() { caughtUp.Checked = !caughtUp.Checked; }
 
         internal bool StayShown { get { return stayOnModel.Checked; } }
+        internal bool HuskVerbosityShown { get { return huskVerbosity.Checked; } }
 
         internal void FlipStay() { stayOnModel.Checked = !stayOnModel.Checked; }
 
@@ -2990,6 +3018,20 @@ namespace CapriDesktop
         internal void FlipCare(CareKind kind) { careToggles[(int)kind].Checked = !careToggles[(int)kind].Checked; }
 
         internal void FlipCheckIns() { checkIns.Checked = !checkIns.Checked; }
+
+        internal string BrainFits()
+        {
+            if (!paged) return null;
+            Control above = null;
+            foreach (Control row in new Control[] { huskMode, thinkingLevel, thinkingExtra, huskVerbosity, stayOnModel, replies, recall, memorySize, replyLength, bubble, followUps })
+            {
+                if (Hidden(row) != simple || row.TabStop == simple) return "a BRAIN row has the wrong Settings view";
+                if (!simple && above != null && Math.Abs(row.Top - above.Top - Scaled(Row)) > 1) return "a BRAIN row is out of place";
+                above = row;
+            }
+            if (Hidden(watchMemory) != simple || Hidden(frameColours) || Hidden(headPats)) return "Settings folds the wrong rows above BRAIN";
+            return null;
+        }
 
         internal string CareFits()
         {
@@ -3511,6 +3553,49 @@ namespace CapriDesktop
         }
 
         internal void PickBrain(int index) { ((ToolStripMenuItem)modelMenu.Items[index]).PerformClick(); }
+
+        // Thinking is always about the brain she's on, so a new brain or model refills its row and greys what that model can't take.
+        private void FillThinking()
+        {
+            int level = capri.ThinkingLevel;
+            thinkingLevel.Text = ThinkingLevels.Names[level];
+            for (int i = 0; i < thinkingMenu.Items.Count; i++)
+            {
+                ToolStripMenuItem row = (ToolStripMenuItem)thinkingMenu.Items[i];
+                string why = capri.ThinkingWhy(i);
+                string text = why == null ? ThinkingLevels.Names[i] : ThinkingLevels.Names[i] + " · " + why;
+                if (row.Text != text) row.Text = text;
+                row.Enabled = why == null;
+                row.Checked = i == level;
+            }
+            thinkingLevel.Invalidate();
+            thinkingExtra.Text = capri.ThinkingExtra == null ? "Add" : "Edit";
+            thinkingExtra.Enabled = capri.ThinkingOpen;
+            thinkingExtra.Invalidate();
+            if (thinkingSheet != null && !thinkingSheet.IsDisposed && thinkingSheet.Source != capri.ThinkingSource) thinkingSheet.Fill();
+        }
+
+        internal void OpenThinkingExtra()
+        {
+            if (thinkingSheet != null && !thinkingSheet.IsDisposed && thinkingSheet.Zoom != zoom) thinkingSheet.Close();
+            if (thinkingSheet == null || thinkingSheet.IsDisposed) thinkingSheet = new ThinkingSheet(this, zoom);
+            thinkingSheet.Fill();
+            if (!thinkingSheet.Visible) thinkingSheet.Show(this);
+            else thinkingSheet.Activate();
+        }
+
+        internal string ThinkingShown { get { return thinkingLevel.Text; } }
+        internal string ThinkingRow(int level) { return thinkingMenu.Items[level].Text; }
+        internal bool ThinkingRowOpen(int level) { return thinkingMenu.Items[level].Enabled; }
+        internal void PickThinking(int level) { ((ToolStripMenuItem)thinkingMenu.Items[level]).PerformClick(); }
+        internal string ThinkingExtraKey { get { return thinkingExtra.Text; } }
+        internal bool ThinkingExtraOpen { get { return thinkingExtra.Enabled; } }
+        internal bool ThinkingTip { get { return hints.ContainsKey(thinkingLevel) && hints.ContainsKey(thinkingExtra); } }
+        internal void TypeThinkingExtra(string text) { thinkingSheet.Type(text); }
+        internal void SaveThinkingExtra() { thinkingSheet.Save(); }
+        internal string ThinkingExtraNote { get { return thinkingSheet == null || thinkingSheet.IsDisposed ? "" : thinkingSheet.Status; } }
+        internal string ThinkingExtraCrowded { get { return thinkingSheet.Crowded(); } }
+        internal void CloseThinkingExtra() { if (thinkingSheet != null && !thinkingSheet.IsDisposed) thinkingSheet.Close(); }
 
         // The cloud brain and list her model menu was last built from.
         private Cloud menuRemote;
@@ -5049,7 +5134,7 @@ namespace CapriDesktop
                 float s = Unit();
                 int left = (int)(10 * s);
                 int right = (int)((Chevron ? 28 : 10) * s);
-                int height = Box.PreferredHeight;
+                int height = Box.Multiline ? Height - left * 2 : Box.PreferredHeight;
                 Box.SetBounds(left, (Height - height) / 2, Math.Max(1, Width - left - right), height);
             }
 
@@ -5685,6 +5770,125 @@ namespace CapriDesktop
             {
                 Entry made = new Entry { Bounds = new Rectangle(28, y, 328, 28), Cue = cue };
                 made.Box.AccessibleName = made.AccessibleName = name;
+                Controls.Add(made);
+                return made;
+            }
+
+            private Key Make(string text, int x, int y, int width, EventHandler click)
+            {
+                Key made = new Key { Text = text, Font = Mainframe.Type(9f, true), Bounds = new Rectangle(x, y, width, 28) };
+                made.Click += click;
+                Controls.Add(made);
+                return made;
+            }
+
+            protected override void OnLoad(EventArgs e)
+            {
+                base.OnLoad(e);
+                float s = ScaleOf(this);
+                Rectangle area = Screen.FromControl(owner).WorkingArea;
+                int x = owner.Left + (owner.Width - Width) / 2, y = owner.Top + (int)(48 * s);
+                Location = new Point(Math.Max(area.Left, Math.Min(area.Right - Width, x)), Math.Max(area.Top, Math.Min(area.Bottom - Height, y)));
+            }
+
+            protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Clip(this, ScaleOf(this)); Invalidate(true); }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                base.OnPaint(e);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Backdrop(e.Graphics, this, ScaleOf(this));
+                Edging(e.Graphics, this, ScaleOf(this));
+            }
+
+            protected override void WndProc(ref Message message)
+            {
+                base.WndProc(ref message);
+                if (message.Msg == 0x0084 && message.Result == new IntPtr(1)) message.Result = new IntPtr(2);
+            }
+        }
+
+        // Extra request JSON for the brain she's on, merged into each request it sends.
+        private sealed class ThinkingSheet : Form, LookWindow
+        {
+            private readonly Mainframe owner;
+            private readonly Entry extra;
+            private readonly Label note;
+            internal readonly float Zoom;
+            internal string Source;
+
+            internal ThinkingSheet(Mainframe owner, float zoom)
+            {
+                SuspendLayout();
+                this.owner = owner;
+                Zoom = zoom;
+                Text = "Extra request JSON";
+                Icon = owner.Icon;
+                ShowInTaskbar = false;
+                FormBorderStyle = FormBorderStyle.None;
+                StartPosition = FormStartPosition.Manual;
+                AutoScaleMode = AutoScaleMode.None;
+                Font = Mainframe.Type(9.5f);
+                BackColor = Ground;
+                ForeColor = White;
+                DoubleBuffered = true;
+                ClientSize = new Size(Wide, 356);
+                Heading(this, "EXTRA REQUEST JSON >", new Point(24, 15), Display(14f), Rose, 0);
+                Key close = Make("", 330, 20, 26, delegate { Close(); });
+                close.Height = 22;
+                close.Glyph = 2;
+                close.AccessibleName = "Close";
+                CancelButton = close;
+                Caption("One JSON object, added to every request this brain sends. It replaces Capri's value for any name it shares, and isn't checked against the model.", 52, 54, Faint);
+                extra = new Entry { Bounds = new Rectangle(28, 112, 328, 160) };
+                extra.Box.Multiline = true;
+                extra.Box.AcceptsReturn = true;
+                extra.Box.ScrollBars = ScrollBars.Vertical;
+                extra.Box.AccessibleName = extra.AccessibleName = "Extra request JSON";
+                Controls.Add(extra);
+                Key save = Make("Save", 28, 282, 160, delegate { Save(); });
+                save.Accent = Cyan;
+                save.Loud = true;
+                Key clear = Make("Clear", 196, 282, 160, delegate { extra.Box.Clear(); Save(); });
+                clear.Accent = Hot;
+                note = Caption("", 316, 34, Faint);
+                FormClosed += delegate { extra.Box.Clear(); };
+                if (zoom != 1f) { Grow(this, zoom); Scale(new SizeF(zoom, zoom)); }
+                owner.Fit(this);
+            }
+
+            internal void Fill()
+            {
+                Source = owner.capri.ThinkingSource;
+                extra.Box.Text = owner.capri.ThinkingExtra ?? "";
+                note.Text = "For " + Source.Substring(Source.IndexOf('|') + 1) + ".";
+            }
+
+            internal void Type(string text) { extra.Box.Text = text; }
+
+            internal void Save()
+            {
+                string problem = owner.capri.SetThinkingExtra(extra.Box.Text);
+                note.Text = problem ?? (extra.Box.Text.Trim().Length == 0 ? "Cleared." : "Saved.");
+            }
+
+            internal string Status { get { return note.Text; } }
+
+            internal string Crowded()
+            {
+                for (int first = 0; first < Controls.Count; first++)
+                {
+                    Control a = Controls[first];
+                    if (!ClientRectangle.Contains(a.Bounds)) return "an extra JSON row leaves the panel";
+                    for (int second = first + 1; second < Controls.Count; second++)
+                        if (a.Bounds.IntersectsWith(Controls[second].Bounds)) return "extra JSON rows overlap";
+                }
+                return null;
+            }
+
+            private Label Caption(string text, int y, int height, Color colour)
+            {
+                Label made = new Note { Text = text, ForeColor = colour, BackColor = Ground, Bounds = new Rectangle(28, y, 328, height) };
                 Controls.Add(made);
                 return made;
             }

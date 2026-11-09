@@ -107,7 +107,7 @@ namespace CapriDesktop
             return new Mod { File = read, Path = file, Code = true, Hash = hash, Changed = !same, On = same && !off.Contains(read.Id) };
         }
 
-        private Mod ImportCode(string file, Func<ModFile, string, bool> ask)
+        private Mod ImportCode(string file, Func<ModFile, string, bool> ask, HashSet<string> keepOff = null)
         {
             byte[] bytes;
             try
@@ -119,6 +119,7 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException error) { throw new ModException("Couldn't read that file: " + error.Message); }
             string text = Words(bytes), hash = HashOf(bytes);
             ModFile read = ReadCode(text);
+            bool stay = keepOff != null && keepOff.Contains(read.Id);
             if (!ask(read, hash)) return null;
             ICapriMod made = Compile(text);
             string home = Path.Combine(folder, read.Id + CodeExtension);
@@ -132,11 +133,12 @@ namespace CapriDesktop
                 File.Move(writing, home);
                 Approve(read.Id, hash);
                 HashSet<string> off = Off();
-                if (off.Remove(read.Id)) WriteOff(off);
+                if (!stay && off.Remove(read.Id)) WriteOff(off);
             }
             catch (IOException error) { throw new ModException("Couldn't save that mod: " + error.Message); }
             catch (UnauthorizedAccessException error) { throw new ModException("Couldn't save that mod: " + error.Message); }
             Load();
+            if (stay) return All.Find(mod => mod.File.Id == read.Id);
             try { StartOne(read.Id, made); }
             catch (ModException error)
             {

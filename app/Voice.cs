@@ -96,12 +96,16 @@ namespace CapriDesktop
         {
             int percent = Loudness;
             if (percent == 100) return samples;
-            double gain = percent / 100.0;
 #if CROSS
+            double gain = percent / 100.0;
             if (CubicLoudness) gain = gain * gain * gain;
 #endif
             short[] scaled = new short[samples.Length];
+#if CROSS
             for (int i = 0; i < samples.Length; i++) scaled[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, samples[i] * gain));
+#else
+            for (int i = 0; i < samples.Length; i++) scaled[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, samples[i] * percent / 100));
+#endif
             return scaled;
         }
 

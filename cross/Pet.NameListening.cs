@@ -37,11 +37,10 @@ namespace CapriDesktop
         private bool nameStopped = true, nameStartup, nameClosed, nameChecking, nameStarting;
         private string nameIdentity, nameStatus = "Local name listening is off.";
         private double nextNameIdentityCheck;
-        private bool nameTalkHandoff;
 
         internal bool NameListeningEnabled => Saved.ListenCapri && !nameStopped;
         internal string NameListeningStatus => nameStatus;
-        private bool NameBarred => nameClosed || quitting || away || Hushed || Asleep || ownedEars.Active ||
+        private bool NameBarred => nameClosed || quitting || away || Hushed || Asleep || Listening ||
             Talk?.Typer.Secret == true || HyprlandDesktop.Current?.VisualSnapshot?.Locked != false;
 
         private NameContext CaptureNameContext() => new NameContext(Brain.Provider, Brain.Model, Brain.Remote,
@@ -117,10 +116,10 @@ namespace CapriDesktop
         private async void StartNameListening()
         {
             StopNameListening();
-            if (NameBarred) { SetNameStatus("Name listening paused. Unmute and wake Capri, then turn it on."); return; }
+            if (NameBarred) { SetNameStatus(Listening ? "Finish TALK, then turn Listen for Capri on." : "Name listening paused. Unmute and wake Capri, then turn it on."); return; }
             NameContext captured = CaptureNameContext();
             if (string.IsNullOrWhiteSpace(captured.Source) || string.IsNullOrWhiteSpace(captured.Fingerprint))
-            { SetNameStatus("Choose a physical microphone with TALK first, then enable Listen for Capri."); return; }
+            { ChooseNameMicrophone(); return; }
             long ticket = nameEpoch;
             nameContext = captured;
             nameStopped = false;
@@ -152,6 +151,46 @@ namespace CapriDesktop
                     "Local name listening could not start. Check the retained decoder and account setup.");
             }
             finally { if (ticket == nameEpoch) nameStarting = false; }
+        }
+
+        private void ChooseNameMicrophone()
+        {
+            long ticket = nameEpoch;
+            Talk.Answer("(microphone)", "Checking available physical microphones…");
+            System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    byte[] inventory = ComputerProcess.Bytes("/usr/bin/pw-dump", Array.Empty<string>(), System.Threading.CancellationToken.None, 5000, 4 * 1024 * 1024);
+                    System.Diagnostics.ProcessStartInfo info = ComputerProcess.Start("/usr/bin/python3", new[] { System.IO.Path.Combine(AppContext.BaseDirectory, "bridge/speech/sources.py") });
+                    using System.Diagnostics.Process filter = System.Diagnostics.Process.Start(info);
+                    using System.Threading.CancellationTokenSource timeout = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    using System.Threading.CancellationTokenRegistration abort = timeout.Token.Register(() => Bridge.Kill(filter));
+                    var read = filter.StandardOutput.ReadToEndAsync();
+                    var errors = filter.StandardError.ReadToEndAsync();
+                    filter.StandardInput.BaseStream.Write(inventory); filter.StandardInput.Close();
+                    filter.WaitForExit();
+                    if (filter.ExitCode != 0) throw new InvalidOperationException("Microphone inventory could not be verified.");
+                    using System.Text.Json.JsonDocument rows = System.Text.Json.JsonDocument.Parse(read.GetAwaiter().GetResult());
+                    var choices = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Take(System.Linq.Enumerable.Select(rows.RootElement.EnumerateArray(), row => row.Clone()), 8));
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (ticket != nameEpoch || !Saved.ListenCapri) return;
+                        if (choices.Length == 0) { Talk.Answer("(microphone)", "No physical microphone is available."); return; }
+                        string prompt = "Choose a microphone near you for Listen for Capri by number.\n";
+                        for (int i = 0; i < choices.Length; i++) prompt += (i + 1) + ": " + choices[i].GetProperty("description").GetString() + "\n";
+                        Talk.AskFor("(microphone)", prompt, selected =>
+                        {
+                            if (ticket != nameEpoch || !Saved.ListenCapri) return;
+                            if (!int.TryParse(selected, out int index) || index < 1 || index > choices.Length) { Talk.Answer("(microphone)", "No microphone selected. Turn Listen for Capri on to choose again."); return; }
+                            Saved.MicrophoneNode = choices[index - 1].GetProperty("node").GetString();
+                            Saved.MicrophoneFingerprint = choices[index - 1].GetProperty("fingerprint").GetString();
+                            Save(); StartNameListening();
+                        });
+                    });
+                }
+                catch (Exception error) { Dispatcher.UIThread.Post(() => { if (ticket == nameEpoch && Saved.ListenCapri) Talk.Answer("(microphone)", error.Message); }); }
+            });
         }
 
         private void ValidateNameFinal(long ticket, NameContext captured, string identity, NameTranscript transcript)

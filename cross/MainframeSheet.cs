@@ -475,7 +475,7 @@ namespace CapriDesktop
             ShowInTaskbar = false;
             Put(Page, new NeonCaption { Text = title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
             var close = Button("", (int)wide - 50, 20, 26, 22, Close); close.Glyph = 2;
-            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : SecurityRows();
+            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : kind == "thinking" ? ThinkingExtra() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
             pet.SettingsChanged += Sync;
             status.Tick += (_, _) => Program.Guard(Sync);
@@ -527,6 +527,31 @@ namespace CapriDesktop
             Button("Cancel", 278, 224, 78, 28, Close);
             foreach (var entry in new[] { address, model, voice }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => save()); } };
             return 300;
+        }
+        // Extra request JSON for the brain she's on, merged into each request it sends.
+        private double ThinkingExtra()
+        {
+            Caption("One JSON object, added to every request this brain sends.", 28, 52, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            Caption("It replaces Capri's value for any name it shares.", 28, 72, 328, 18, MainframeTheme.Faint, 34.0 / 3);
+            var entry = Put(Page, new NeonEntry(""), 28, 100, 328, 160, "Extra request JSON"); Rows["Extra request JSON"] = entry;
+            entry.Box.AcceptsReturn = true; entry.Box.TextWrapping = TextWrapping.Wrap;
+            var note = Put(Page, new NeonCaption { Ink = MainframeTheme.Faint, Ellipsis = true }, 28, 304, 328, 20); Rows["Note"] = note;
+            string source = null;
+            readers.Add(() =>
+            {
+                if (source == pet.Brain.ThinkingSource) return;
+                source = pet.Brain.ThinkingSource;
+                entry.Box.Text = pet.Brain.ThinkingExtra ?? "";
+                note.Text = "For " + source.Substring(source.IndexOf('|') + 1) + "."; note.InvalidateVisual();
+            });
+            Action<string> save = typed =>
+            {
+                note.Text = pet.SetThinkingExtra(typed) ?? (string.IsNullOrWhiteSpace(typed) ? "Cleared." : "Saved.");
+                note.InvalidateVisual();
+            };
+            Button("Save", 28, 268, 160, 28, () => save(entry.Box.Text ?? "")).Accent = MainframeTheme.Cyan;
+            Button("Clear", 196, 268, 160, 28, () => { entry.Box.Text = ""; save(""); });
+            return 340;
         }
         private NeonSwitch Toggle(string name, int y, Func<bool> read, Action<bool> change)
         {
