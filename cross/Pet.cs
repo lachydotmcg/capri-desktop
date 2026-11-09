@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -84,6 +85,7 @@ namespace CapriDesktop
         [DataMember] internal string FreeModel;
         [DataMember] internal string PaidModel;
         [DataMember] internal string SpeechModel;
+        [DataMember] internal ThinkingPick[] ThinkingPicks;
     }
 
     // The bits of GitHub's latest release she reads to tell them about an update.
@@ -545,11 +547,14 @@ namespace CapriDesktop
         private double nextCheck;
         private int asking;
         private Smoke smoke;
+        private CancellationTokenSource listening;
+        internal Func<Action, CancellationToken, Task<string>> Listen;
 
         internal Pet(IClassicDesktopStyleApplicationLifetime desktop)
         {
             this.desktop = desktop;
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
+            if (OperatingSystem.IsLinux() && Program.Smoke == null) Listen = new Ears(folder).Listen;
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             StartCare();
@@ -587,6 +592,8 @@ namespace CapriDesktop
             Brain.Recall = Saved.Recall == 16 || Saved.Recall == 32 ? Saved.Recall : 8;
             Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, Saved.MemorySize) >= 0 ? Saved.MemorySize : 0;
             Brain.ReplyLength = Math.Clamp(Saved.ReplyLength, 0, Brain.ReplySizes.Length - 1);
+            Brain.Picks = Saved.ThinkingPicks;
+            Brain.ThinkingChanged = NotifySettings;
             Saved.Wander = Math.Max(0, Math.Min(4, Saved.Wander));
             Sfx.Level = Math.Max(0, Math.Min(100, Saved.Sounds ?? 60));
             Voice.Loudness = Math.Max(0, Math.Min(150, Saved.Volume ?? 100));
@@ -696,7 +703,7 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { pressed = dragging = dragPending = false; frames.Stop(); };
+            Closed += delegate { StopListening(); pressed = dragging = dragPending = false; frames.Stop(); };
             Deactivated += delegate { Program.Guard(Unhold); };
             Opened += delegate
             {
@@ -1830,9 +1837,45 @@ namespace CapriDesktop
             React();
         }
 
-        internal void NoVoice()
+        internal bool Listening { get { return listening != null; } }
+
+        internal bool StopListening()
         {
-            Talk.Answer("(voice)", "Voice chat isn't on Mac and Linux yet. Type to me for now, choom.");
+            CancellationTokenSource turn = listening;
+            if (turn == null) return false;
+            listening = null;
+            turn.Cancel();
+            return true;
+        }
+
+        internal async void VoiceTurn()
+        {
+            if (away || quitting) return;
+            if (StopListening()) { Talk.Dismiss(); return; }
+            if (Listen == null) { Talk.Answer("(voice)", "Voice chat isn't on this build yet. Type to me for now, choom."); return; }
+            Func<Action, CancellationToken, Task<string>> listen = Listen;
+            Typed();
+            ++asking;
+            Brain.Cancel();
+            voice.Stop();
+            Talk.Dismiss();
+            using var turn = new CancellationTokenSource();
+            listening = turn;
+            Talk.Thinking("(listening · TALK to cancel)");
+            string text = null, problem = null;
+            try
+            {
+                text = await Task.Run(() => listen(() => Dispatcher.UIThread.Post(delegate
+                {
+                    if (listening == turn) Talk.Thinking("(hearing your words · TALK to cancel)");
+                }), turn.Token));
+            }
+            catch (IOException error) { problem = error.Message; }
+            catch (Exception) { problem = "My offline ears stopped. Try TALK again."; }
+            if (listening != turn) return;
+            listening = null;
+            if (!string.IsNullOrWhiteSpace(text)) Hear(text);
+            else Talk.Answer("(voice)", problem ?? "I didn't catch that, choom. Try TALK again.");
         }
 
         internal void Grab()
@@ -3466,13 +3509,13 @@ namespace CapriDesktop
                     pulled = -1;
                     if (MainframeTier == 0) frameProblem = problem;
                     NotifySettings();
-                    if (problem != null) { Talk.Answer(BrainHeard, problem); return; }
+                    if (problem != null) { Talk.Notice(BrainHeard, problem); return; }
                     Saved.Model = tag;
                     string currentServer, currentKey;
                     Brain.GetServer(out currentServer, out currentKey);
                     if (MainframeTier == 0 && Brain.Remote == null && currentServer == null) Brain.Model = tag;
                     Save();
-                    Talk.Answer(BrainHeard, "My brain's in. Talk to me, choom.");
+                    Talk.Notice(BrainHeard, "My brain's in. Talk to me, choom.");
                 });
             });
         }
@@ -4157,6 +4200,7 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            StopListening();
             ModList.LogHearing(text, true);
             Typed();
             if (meeting.Asking) { Met(text); return; }
@@ -4844,6 +4888,7 @@ namespace CapriDesktop
             [DataMember] internal bool NoFollowUps;
             [DataMember] internal bool NoKeepAwake;
             [DataMember] internal string Vault;
+            [DataMember] internal ThinkingPick[] ThinkingPicks;
         }
 
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
@@ -4875,6 +4920,7 @@ namespace CapriDesktop
             saved.NoKeepAwake = newer.NoKeepAwake;
             saved.Vault = newer.Vault;
             saved.HuskMode = newer.HuskMode;
+            saved.ThinkingPicks = newer.ThinkingPicks;
             saved.NoHuskVerbosity = newer.NoHuskVerbosity;
             return saved;
         }
@@ -4883,7 +4929,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks };
         }
 
         private Settings Load()
@@ -5090,7 +5136,7 @@ namespace CapriDesktop
                     string note = HuskWatch.Note(mode);
                     if (unlinked != null) note += " " + unlinked;
                     // A link she had to replace is said even at startup.
-                    if (problem != null || !starting || unlinked != null || rewrote) Talk.Answer("(code/husk mode)", problem ?? note);
+                    if (problem != null || !starting || unlinked != null || rewrote) Talk.Notice("(code/husk mode)", problem ?? note);
                 };
                 if (Dispatcher.UIThread.CheckAccess()) finish(); else Dispatcher.UIThread.Post(finish);
             });

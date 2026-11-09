@@ -46,19 +46,22 @@ namespace CapriDesktop
         internal static Avalonia.Media.Imaging.Bitmap ReadArt(string name)
         {
             string skin = SkinFolder;
+            // A skin's idle_legacy.png for Legacy stand comes first, then its own strip of that name.
+            string stand = Mods.StandArt(name, LegacyArt);
             if (skin != null && name.StartsWith("Capri.Sprite.", StringComparison.Ordinal))
-            {
-                string file = Path.Combine(skin, name.Substring("Capri.Sprite.".Length));
-                try
+                foreach (string wanted in stand != name ? new[] { stand, name } : new[] { name })
                 {
-                    if (File.Exists(file)) using (MemoryStream stream = new MemoryStream(File.ReadAllBytes(file))) return Finished(stream);
+                    string file = Path.Combine(skin, wanted.Substring("Capri.Sprite.".Length));
+                    try
+                    {
+                        if (File.Exists(file)) using (MemoryStream stream = new MemoryStream(File.ReadAllBytes(file))) return Finished(stream);
+                    }
+                    catch (Exception error)
+                    {
+                        if (!(error is IOException || error is UnauthorizedAccessException || error is ArgumentException || error is InvalidOperationException || error is NotSupportedException)) throw;
+                        Brain.Log("mods", -1, "Skin picture " + wanted + ": " + error.Message);
+                    }
                 }
-                catch (Exception error)
-                {
-                    if (!(error is IOException || error is UnauthorizedAccessException || error is ArgumentException || error is InvalidOperationException || error is NotSupportedException)) throw;
-                    Brain.Log("mods", -1, "Skin picture " + name + ": " + error.Message);
-                }
-            }
             using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(Mods.StandArt(name, LegacyArt)))
             {
                 if (stream == null) throw new FileNotFoundException("Capri's animation is missing: " + name);
@@ -139,6 +142,17 @@ namespace CapriDesktop
         internal void SetAdvancedSettings(bool on) { Saved.AdvancedSettings = on; Save(); }
         internal void SetMemorySize(int size) { Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, size) >= 0 ? size : 0; Saved.MemorySize = Brain.MemorySize; Save(); }
         internal void SetReplyLength(int index) { Brain.ReplyLength = Math.Clamp(index, 0, Brain.ReplySizes.Length - 1); Saved.ReplyLength = Brain.ReplyLength; Save(); }
+        internal void SetThinking(int level) { if (Brain.SetThinking(level)) { Saved.ThinkingPicks = Brain.Picks; Save(); } }
+        // What's wrong with it, or null once it's saved for the brain she's on.
+        internal string SetThinkingExtra(string typed)
+        {
+            string problem = Brain.SetThinkingExtra(typed);
+            if (problem != null) return problem;
+            Saved.ThinkingPicks = Brain.Picks;
+            Save();
+            NotifySettings();
+            return null;
+        }
         internal void NotifySettings()
         {
             if (Dispatcher.UIThread.CheckAccess()) SettingsChanged?.Invoke();
