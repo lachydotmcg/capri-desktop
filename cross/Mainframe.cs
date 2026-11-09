@@ -510,6 +510,20 @@ namespace CapriDesktop
             Toggle("Typing sound", 0, 372, () => pet.TypingSound, pet.SetTyping).Hint = "When she types";
             Named("Typing mode", 0, 400);
             var typingMode = Picker("Typing mode", 184, 403, 172, () => pet.Saved.Typing, pet.SetTypingMode); typingMode.Height = 22; typingMode.Options(new[] { "Auto", "On", "Off" });
+            if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+            {
+                // Her ears are the speech models you put in her ears folder, so the list is read again each time Mainframe syncs.
+                Named("Her ears", 0, 428);
+                NeonPicker ears = null;
+                ears = Picker("Her ears", 184, 431, 172, () =>
+                {
+                    string[] names = pet.EarsChoices();
+                    ears.Options(names);
+                    return Math.Max(0, Array.IndexOf(names, pet.Saved.Ears ?? "Auto"));
+                }, i => pet.SetEars(pet.EarsChoices()[Math.Min(i, pet.EarsChoices().Length - 1)]));
+                ears.Height = 22; ears.Ellipsis = true; ears.Options(pet.EarsChoices());
+                Key("Open ears folder", 28, 459, 328, 22, pet.OpenEars);
+            }
             Section("MOVES", 0, 648);
             Slider("Wander", Pet.WanderNames, 0, 700, () => pet.Saved.Wander, pet.SetWander);
             Slider("Sleep", Pet.SleepNames, 0, 728, () => Array.IndexOf(Pet.Sleeps, pet.SleepAfter), i => pet.SetSleepAfter(Pet.Sleeps[i]));
