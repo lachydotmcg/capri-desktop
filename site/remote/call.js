@@ -41,6 +41,14 @@
   const SILENT_MIC = 2000; // a live mic that gives no samples this long gets fixed
   const C = window.CapriCrypto;
   const SAVED = 'capri-remote-call';
+  const SCREEN_TOOLS = new Set([
+    'use_computer', 'look_at_screen', 'play_music', 'open_app', 'open_website', 'app_window', 'shortcut', 'media',
+    'draw', 'desktop_icons', 'clip', 'mini_game', 'fake_crash', 'power', 'look', 'screenshot', 'zoom',
+    'left_click', 'right_click', 'middle_click', 'double_click', 'triple_click', 'left_click_drag', 'mouse_move',
+    'left_mouse_down', 'left_mouse_up', 'mouse_hold', 'cursor_position', 'scroll', 'type', 'key', 'hold_key', 'hold_and_press',
+    'click', 'press', 'walk', 'wait_for'
+  ]);
+  const SCREEN_LINGER = 4000;
   const SPRITES = (window.CAPRI_CONFIG && window.CAPRI_CONFIG.sprites) || '../assets/sprites/';
   const apple = /iP(hone|od|ad)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -63,32 +71,19 @@
     }
     return svg;
   };
-  const corner = (className, points) => {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'hot ' + className);
-    svg.setAttribute('width', '42.2');
-    svg.setAttribute('height', '42.2');
-    svg.setAttribute('viewBox', '0 0 42.2 42.2');
-    svg.setAttribute('aria-hidden', 'true');
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    line.setAttribute('points', points);
-    svg.appendChild(line);
-    return svg;
-  };
   const HANDSET = 'M4.2 4.4L8.6 3l2.1 5-2.6 1.9c1.2 2.6 3.2 4.6 5.8 5.8l1.9-2.6 5 2.1-1.4 4.4-1.6 1.1C10.6 20.4 3.6 13.4 3.1 6z';
   const MIC = ['M12 3.5a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0v-5a3 3 0 0 0-3-3z', 'M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21'];
   const CONE = 'M3.5 9.25h3.75L12 5v14l-4.75-4.25H3.5z';
 
-  // Whether the PC screen opens in the mini player with a call, and whether talking over her stops her (on unless he
-  // turned it off in SETTINGS). Storage can be blocked, so it's all guarded.
+  // The screen pin and talking over her. The old screen setting opened every call, so only version 2 keeps a pin.
   const pick = (() => {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(SAVED)) || {}; } catch (error) {}
-    return { screen: saved.screen !== false, overHer: saved.overHer !== false };
+    return { version: 2, screen: saved.version === 2 && saved.screen === true, overHer: saved.overHer !== false };
   })();
   const keep = () => { try { localStorage.setItem(SAVED, JSON.stringify(pick)); } catch (error) {} };
 
-  // ---------- The call screen: her face and name, how the call is going, what each of them said, and three keys ----------
+  // ---------- The call screen: her face and name, how the call is going, one caption and three keys ----------
   const room = make('section', 'call-room');
   room.hidden = true;
   room.tabIndex = -1;
@@ -97,7 +92,7 @@
   const roomTop = make('div', 'call-top');
   const screenKey = make('button', 'glyph call-screen');
   screenKey.type = 'button';
-  screenKey.setAttribute('aria-label', 'Your PC screen in a mini player');
+  screenKey.setAttribute('aria-label', 'Pin your PC screen');
   screenKey.setAttribute('aria-pressed', 'false');
   screenKey.append(icon('M3 4.5h18v12H3zM8.5 20h7M12 16.5V20'));
   const shrink = make('button', 'glyph call-shrink');
@@ -108,32 +103,31 @@
   const who = make('div', 'call-who');
   const face = make('div', 'call-face');
   const art = make('span', 'call-art');
-  face.append(art, corner('call-tl', '1.1,41.1 1.1,19.1 19.1,1.1 41.1,1.1'), corner('call-br', '41.1,1.1 41.1,23.1 23.1,41.1 1.1,41.1'));
+  face.append(art);
   const name = make('p', 'call-name', 'Capri');
   who.append(face, name);
   const middle = make('div', 'call-mid');
-  const word = make('p', 'call-word', 'Connecting');
-  word.setAttribute('role', 'status');
-  const clock = make('p', 'call-clock', '00:00');
+  const statusLine = make('div', 'call-status');
+  statusLine.setAttribute('role', 'status');
+  const word = make('span', 'call-word', 'Calling');
+  const clock = make('span', 'call-clock', '00:00');
+  const separator = make('span', 'call-sep', '\u00b7');
+  separator.setAttribute('aria-hidden', 'true');
+  statusLine.append(word, separator, clock);
   const note = make('p', 'call-note');
   note.hidden = true;
-  const pill = make('button', 'nbtn call-pill');
+  const pill = make('button', 'call-pill');
   pill.type = 'button';
   pill.hidden = true;
-  middle.append(word, clock, note, pill);
+  middle.append(statusLine, note, pill);
   // The middle of the screen, where the PC screen's mini player sits during a call.
   const stage = make('div', 'call-stage');
-  const captions = make('div', 'call-caps');
-  const caption = (className, label) => {
-    const el = make('p', 'cap ' + className);
-    el.hidden = true;
-    const words = make('span', 'cap-words');
-    el.append(make('span', 'cap-who', label), words);
-    captions.append(el);
-    return { el, words };
-  };
-  const yours = caption('cap-you', 'You');
-  const hers = caption('cap-her', 'Capri');
+  const captions = make('p', 'call-caps');
+  const captionWords = make('span', 'cap-words');
+  captions.append(captionWords);
+  const pip = make('div', 'call-pip');
+  pip.hidden = true;
+  pip.setAttribute('aria-hidden', 'true');
   const keys = make('div', 'call-keys');
   const key = (className, label, svg) => {
     const el = make('button', 'call-key ' + className);
@@ -192,6 +186,8 @@
   let you = { text: '', faint: false };
   let her = { key: '', text: '' };
   let first = true;
+  const screenTools = new Set(), closedTools = new Set();
+  let screenTimer = 0, screenUntil = 0;
   // overHer: times talking over her stopped her, overMs how long the last one took from his first sound over the bar,
   // echoes starts over the bar that came to nothing, overPeak the most a frame got over the bar while she played (dB),
   // interrupts the call.hush messages sent.
@@ -213,6 +209,7 @@
     return !!(r && r.state === 'connected' && Array.isArray(r.info.features) && r.info.features.includes('call') && C && (window.AudioContext || window.webkitAudioContext) && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   };
   const live = () => state === 'ringing' || state === 'on';
+  const fullScreen = () => live() && window.CapriScreen && window.CapriScreen.mode === 'full';
   const tell = text => {
     if (shown && state !== 'off') { flashText = text; flashUntil = performance.now() + 4000; draw(); }
     else if (window.CapriApp) window.CapriApp.say(text);
@@ -772,10 +769,12 @@
   };
   const paintFace = time => {
     const level = herLevel();
-    room.style.setProperty('--her', Math.min(1, level * 5).toFixed(3));
+    const glow = reduced.matches ? '0' : Math.min(1, level * 5).toFixed(3);
+    room.style.setProperty('--her', glow);
+    pip.style.setProperty('--her', glow);
     room.style.setProperty('--you', gate.mode === 'idle' ? '0' : Math.max(0, Math.min(1, (gate.level - gate.floor) / 30)).toFixed(3));
     if (!loaded.has('idle')) return;
-    if (!faceSize) faceSize = art.clientWidth;
+    faceSize = art.clientWidth;
     if (!faceSize) return;
     const still = reduced.matches;
     const index = still ? 0 : Math.floor(time / 125);
@@ -799,7 +798,7 @@
   const animate = () => {
     if (raf) return;
     const frame = time => {
-      if (!shown || state === 'off') { raf = 0; return; }
+      if ((!shown && !fullScreen()) || state === 'off') { raf = 0; return; }
       raf = requestAnimationFrame(frame);
       if (time - lastPaint < 60) return;
       lastPaint = time;
@@ -807,7 +806,7 @@
     };
     raf = requestAnimationFrame(frame);
   };
-  addEventListener('resize', () => { faceSize = 0; painted = ''; });
+  addEventListener('resize', () => { faceSize = 0; painted = ''; capText = ''; });
 
   // ---------- Drawing ----------
   const twoDigits = n => (n < 10 ? '0' : '') + n;
@@ -821,11 +820,11 @@
   const status = () => {
     if (state === 'ended') {
       const failed = !ended.byHim && !ended.length;
-      return { key: 'ended', word: failed ? 'Call failed' : 'Call ended', note: ended.why, pill: ended.byHim ? '' : 'Call again' };
+      return { key: 'ended', word: 'Call ended', note: ended.why || (failed ? 'Call failed' : ''), pill: ended.byHim ? '' : 'Call again' };
     }
     if (state === 'ringing' || !mic || !mic.wired) {
       const asking = !mic && performance.now() - micAsked > 1500;
-      return { key: 'connecting', word: 'Connecting', note: asking ? 'Allow the microphone to talk to her' : state === 'ringing' ? 'Ringing your PC' : 'Opening your mic' };
+      return { key: 'connecting', word: 'Calling', note: asking ? 'Allow the microphone to talk to her' : state === 'ringing' ? 'Ringing your PC' : 'Opening your mic' };
     }
     if (trouble === 'gone') return { key: 'trouble', word: 'Mic stopped', note: 'Your phone stopped the mic', pill: 'Turn it back on' };
     if (trouble === 'sound') return { key: 'trouble', word: 'Sound paused', note: 'Your phone paused the call\'s sound', pill: 'Turn it back on' };
@@ -834,22 +833,57 @@
     if (muted) return { key: 'muted', word: 'Muted', note: flashOr('She can\'t hear you') };
     if (!them.ears) return { key: 'muted', word: 'Can\'t hear you', note: 'Her ears are off on your PC' };
     if (gate.mode === 'talking') return { key: 'hearing', word: 'Listening', note: flashOr('') };
-    if (speaking()) return { key: 'talking', word: 'Talking', note: flashOr(speakerOn ? '' : 'Your speaker is off: her words are below'), pill: speakerOn ? 'Interrupt' : '' };
+    if (speaking()) return { key: 'talking', word: 'Speaking', note: flashOr(speakerOn ? '' : 'Your speaker is off: her words are below'), pill: speakerOn ? 'Interrupt' : '' };
     if (waiting) return { key: 'thinking', word: 'Thinking', note: flashOr('') };
     return { key: 'listening', word: 'Listening', note: flashOr(!them.voice ? 'Her voice is off on your PC: she answers in words' : first ? 'Just talk. She answers when you pause' : '') };
   };
   const put = (el, text) => { if (el.textContent !== text) el.textContent = text; };
+  // The caption's one line: the whole text while it fits, else only its newest words, from the first word that lets them
+  // fit, with the start faded out (call.css). The same text growing as her reply comes in only ever moves on from the
+  // word it had got to, so it measures once or twice a part rather than searching again.
+  let capText = '', capFrom = 0;
+  const caption = text => {
+    if (text === capText) return;
+    if (!capText || !text.startsWith(capText)) capFrom = 0;
+    capText = text;
+    const words = text.split(' '), room = captions.clientWidth;
+    const fits = from => {
+      captionWords.textContent = words.slice(from).join(' ');
+      return captionWords.scrollWidth <= room + 1;
+    };
+    if (!room || fits(capFrom)) {
+      captions.classList.toggle('long', capFrom > 0);
+      return;
+    }
+    let low = capFrom + 1, high = words.length - 1;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (fits(middle)) high = middle;
+      else low = middle + 1;
+    }
+    capFrom = low;
+    fits(capFrom);
+    captions.classList.add('long');
+  };
   const draw = () => {
     const app = document.getElementById('app');
-    const up = shown && state !== 'off';
+    const full = fullScreen();
+    const up = shown && state !== 'off' && !full;
     if (app) {
       app.classList.toggle('on-call', live());
       app.classList.toggle('call-open', up);
     }
     room.hidden = !up;
-    bar.hidden = !(live() && !shown);
+    bar.hidden = !(live() && (!shown || full));
+    pip.hidden = !full;
+    if (face.parentElement !== (full ? pip : who)) {
+      if (full) pip.append(face);
+      else who.prepend(face);
+      faceSize = 0;
+      painted = '';
+    }
     const now = status();
-    room.dataset.status = bar.dataset.status = now.key;
+    room.dataset.status = bar.dataset.status = pip.dataset.status = now.key;
     put(word, now.word);
     put(barWord, now.word);
     const time = timeText();
@@ -859,15 +893,14 @@
     note.hidden = !now.note;
     put(pill, now.pill || '');
     pill.hidden = !now.pill;
-    pill.classList.toggle('cyan', now.key !== 'talking');
-    // What each of them said last: his words as her ears heard them (live dots while he talks), her reply as it comes.
+    // Her latest words, or his while she listens and thinks; a caret while her ears are still hearing him.
     const talking = gate.mode === 'talking';
-    yours.el.hidden = !(talking || you.text) || state === 'ended';
-    yours.el.classList.toggle('live', talking);
-    yours.el.classList.toggle('faint', !talking && you.faint);
-    put(yours.words, talking ? '' : you.text);
-    hers.el.hidden = !her.text || state === 'ended';
-    put(hers.words, her.text);
+    const yourTurn = talking || (!speaking() && ((!!waiting && her.key !== waiting) || !her.text));
+    const text = state === 'ended' || state === 'ringing' || talking ? '' : yourTurn ? you.text : her.text;
+    captions.classList.toggle('live', talking);
+    captions.classList.toggle('you', yourTurn);
+    captions.classList.toggle('faint', yourTurn && !talking && you.faint);
+    caption(text);
     speakerKey.el.setAttribute('aria-pressed', String(speakerOn));
     speakerKey.el.setAttribute('aria-label', speakerOn ? 'Speaker on: tap to turn her voice off' : 'Speaker off: tap to hear her');
     muteKey.el.setAttribute('aria-pressed', String(muted));
@@ -880,7 +913,9 @@
     endKey.el.setAttribute('aria-label', done ? 'Close the call screen' : 'End the call');
     const S = window.CapriScreen;
     screenKey.hidden = !(S && live() && S.supported());
-    screenKey.setAttribute('aria-pressed', String(!!S && S.mode !== 'off'));
+    screenKey.setAttribute('aria-pressed', String(pick.screen));
+    screenKey.setAttribute('aria-label', pick.screen ? 'Unpin and hide your PC screen' : 'Pin your PC screen');
+    room.classList.toggle('has-screen', !!(live() && S && S.mode !== 'off'));
   };
 
   // ---------- Opening, shrinking and ending ----------
@@ -890,11 +925,72 @@
     const S = window.CapriScreen, app = document.getElementById('app');
     if (!shown || state === 'off' || !S || !S.within || !app) return;
     const box = stage.getBoundingClientRect();
-    if (box.width && box.height) app.style.setProperty('--call-mini', Math.floor(Math.max(112, Math.min(300, box.width * 0.64, (box.height - 16) * 16 / 9))) + 'px');
+    if (box.width && box.height) app.style.setProperty('--call-mini', Math.floor(Math.max(0, Math.min(360, box.width - 16, (box.height - 16) * 16 / 9))) + 'px');
     S.within(stage);
   };
   if (window.ResizeObserver) new ResizeObserver(fitMini).observe(stage);
+  const screenRunning = () => Array.from(screenTools).some(id => !closedTools.has(id));
+  const clearScreenTimer = () => {
+    clearTimeout(screenTimer);
+    screenTimer = screenUntil = 0;
+  };
+  const syncScreen = () => {
+    const S = window.CapriScreen;
+    if (!live() || !S || !S.supported()) return;
+    const wanted = pick.screen || screenRunning() || performance.now() < screenUntil;
+    if (wanted && S.mode === 'off') {
+      calling = true;
+      if (!S.mini(true)) calling = false;
+    } else if (!wanted && calling && S.mode === 'mini') {
+      calling = false;
+      S.close();
+    }
+    draw();
+    fitMini();
+  };
+  const lingerScreen = () => {
+    clearScreenTimer();
+    screenUntil = performance.now() + SCREEN_LINGER;
+    screenTimer = setTimeout(() => { screenTimer = screenUntil = 0; syncScreen(); }, SCREEN_LINGER);
+  };
+  const closeScreen = () => {
+    pick.screen = false;
+    for (const id of screenTools) closedTools.add(id);
+    clearScreenTimer();
+    calling = false;
+    keep();
+    if (window.CapriScreen) window.CapriScreen.close();
+    draw();
+  };
+  const toolSaid = message => {
+    const S = window.CapriScreen;
+    if (!live() || !S || !S.supported() || typeof message.id !== 'string' || !message.id || message.id.length > 64) return;
+    if (message.state === 'running' && SCREEN_TOOLS.has(message.name)) {
+      screenTools.add(message.id);
+      if (!closedTools.has(message.id)) clearScreenTimer();
+    } else if ((message.state === 'done' || message.state === 'failed') && screenTools.delete(message.id)) {
+      closedTools.delete(message.id);
+      if (!screenRunning() && calling && !pick.screen) lingerScreen();
+    } else return;
+    syncScreen();
+  };
+  const screenChanged = (mode, was) => {
+    if (!live()) return;
+    if (mode === 'off' && calling) {
+      if (window.CapriScreen.supported()) { closeScreen(); return; }
+      calling = false;
+    }
+    if (mode === 'full') calling = true;
+    if (mode === 'mini' && was === 'full') {
+      if (!pick.screen && !screenRunning()) lingerScreen();
+      show();
+      return;
+    }
+    draw();
+    if (mode === 'full') animate();
+  };
   const show = () => {
+    if (fullScreen()) { window.CapriScreen.minimise(); return; }
     shown = true;
     faceSize = 0;
     painted = '';
@@ -920,7 +1016,11 @@
     closeMic(true);
     closeSound();
     ended = { why: why || '', byHim: !!byHim, length: since ? Date.now() - since : 0 };
+    if (fullScreen()) shown = true;
     state = 'ended';
+    clearScreenTimer();
+    screenTools.clear();
+    closedTools.clear();
     if (calling && window.CapriScreen && window.CapriScreen.mode !== 'off') window.CapriScreen.close();
     calling = false;
     clearInterval(tick);
@@ -954,6 +1054,12 @@
     Object.assign(gate, { mode: 'idle', floor: -70, frames: 0, ring: [], keep: PRE, pending: [], voiced: 0, quiet: 0, tail: [], line: null, over: false, overAt: 0, stopped: false });
     herLoud.length = 0;
     herStart = -10;
+    clearScreenTimer();
+    screenTools.clear();
+    closedTools.clear();
+    calling = false;
+    const S = window.CapriScreen;
+    if (S && S.mode !== 'off') S.close();
     loadFace();
     show();
     // hush: this phone stops her with call.hush, so a PC can send her answers a sentence at a time.
@@ -961,9 +1067,7 @@
     ring = setTimeout(() => { if (state === 'ringing') { remote().send('call.stop', {}); over('No answer from your PC', false); } }, 8000);
     // The mic opens in this same tap, once for the whole call.
     openMic();
-    // The screen in the mini player, when the PC shows it and he hasn't turned that off.
-    const S = window.CapriScreen;
-    if (pick.screen && S && S.mode === 'off' && S.mini(true)) { calling = true; fitMini(); }
+    syncScreen();
     clearInterval(tick);
     tick = setInterval(onTick, 250);
     draw();
@@ -1014,17 +1118,11 @@
   });
   screenKey.addEventListener('click', () => {
     const S = window.CapriScreen;
-    if (!S) return;
-    if (S.mode === 'off') {
-      if (S.mini(true)) { calling = true; fitMini(); }
-      pick.screen = true;
-    } else {
-      S.close();
-      calling = false;
-      pick.screen = false;
-    }
+    if (!live() || !S || !S.supported()) return;
+    if (pick.screen) { closeScreen(); return; }
+    pick.screen = true;
     keep();
-    draw();
+    syncScreen();
   });
   room.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); hide(); } });
 
@@ -1039,7 +1137,8 @@
         them = { voice: message.voice !== false, ears: message.ears !== false };
         draw();
       } else if (live()) over(reasons[message.reason] || 'Call ended', false);
-    } else if (type === 'call.heard') {
+    } else if (type === 'chat.tool') toolSaid(message);
+    else if (type === 'call.heard') {
       if (typeof message.id !== 'string' || state !== 'on') return;
       stats.heard++;
       const text = typeof message.text === 'string' ? message.text.trim() : '';
@@ -1090,7 +1189,8 @@
     const actions = document.getElementById('actions');
     if (!app || !actions) return;
     actions.before(bar);
-    app.append(room);
+    app.append(room, pip);
+    if (window.CapriScreen && window.CapriScreen.onMode) window.CapriScreen.onMode(screenChanged);
     const r = remote();
     if (!r) return;
     r.onMessage(said);

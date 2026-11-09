@@ -23,6 +23,7 @@ import * as R from './lib/capri-remote.mjs';
 import * as L from './lib/live.mjs';
 import { startRelay } from './lib/relay-dev.mjs';
 import { SITE, earlyAccess, startSite } from './lib/site.mjs';
+import { IPHONES, SAFARI, HOME_SCREEN, setPhone, misfitsOf } from './lib/fit.mjs';
 
 const SITE_PORT = 8796, CHROME_PORT = 8797;
 const SHOTS = process.env.CAPRI_PHONE_SHOTS || '';
@@ -262,7 +263,7 @@ const ECHO = `(() => {
 // One phone page paired with a stand-in PC that offers features, its fake mic playing wav (and the talking-over-her mic
 // above with echo), and everything the phone sends the PC once its session is up: lines put together part by part and
 // checked as they go, the call.start and call.hush messages, and every message type in order.
-const rig = async ({ features, wav, echo = false }) => {
+const rig = async ({ features, wav, echo = false, savedCall = null }) => {
   const relay = await startRelay();
   const site = await startSite(SITE_PORT);
   const pc = new FakePc(relay);
@@ -354,7 +355,8 @@ const rig = async ({ features, wav, echo = false }) => {
       await pc.send(r.device.id, { type: 'call.heard', id: line.id, text: heard });
       await pc.send(r.device.id, { type: 'chat.reply', id: 'reply-' + line.id, re: line.id, text: reply, done: true });
     };
-    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() + '; ' + MIC_SPY + (echo ? '; ' + ECHO : '') });
+    const saved = savedCall ? `localStorage.setItem('capri-remote-call', ${JSON.stringify(JSON.stringify(savedCall))});` : '';
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() + '; ' + saved + MIC_SPY + (echo ? '; ' + ECHO : '') });
     await page.go(`http://127.0.0.1:${SITE_PORT}/?relay=${relay.ws}${qr.slice(qr.indexOf('#'))}`);
     r.device = await pc.allow(await pc.pairRequest());
     await pc.conn.json('joined', 10000);
@@ -377,6 +379,162 @@ const db = (samples, from, to) => {
 };
 const SKIP = (!chromePath() && 'Chrome is not installed') || (process.platform !== 'win32' && 'the fake mic is made with Windows speech');
 
+test('CALL classic screen: tools bring it in, the pin keeps it, and full view keeps the call controls', { skip: !chromePath(), timeout: 120000 }, async t => {
+  const folder = mkdtempSync(join(tmpdir(), 'capri-call-screen-'));
+  let r = null;
+  try {
+    r = await rig({ features: ['chat', 'call', 'watch'], wav: quietWav(folder), savedCall: { screen: true, overHer: false } });
+    const { page, pc, asked } = r;
+    const tool = (id, name, state) => pc.send(r.device.id, { type: 'chat.tool', id, name, state, summary: name });
+    const card = () => page.until(`window.CapriScreen.mode === 'mini' && !document.querySelector('.mini').hidden && !document.querySelector('.watch-pic').hidden`, 'the live screen card');
+    await r.tap('#f-call');
+    await page.until(`window.CapriCall.stats().status === 'listening'`, 'the call listening');
+    assert.equal(await page.run('window.CapriScreen.mode'), 'off', 'the old screen setting does not pin the screen');
+    assert.equal(await page.run('window.CapriCall.overHer'), false, 'the other saved setting stays as it was');
+    assert.equal(await page.run(`document.querySelector('.call-status').getAttribute('role')`), 'status');
+
+    await t.test('a tool that does not use the screen never opens the card', async () => {
+      await tool('files', 'find_file', 'running');
+      await wait(300);
+      assert.equal(await page.run('window.CapriScreen.mode'), 'off');
+      await tool('files', 'find_file', 'done');
+      assert.equal(asked.includes('watch.start'), false);
+    });
+
+    await t.test('screen tools show the card until about four seconds after the last one is done', async () => {
+      const before = await page.run(`document.querySelector('.call-face').clientWidth`);
+      await tool('job', 'use_computer', 'running');
+      await card();
+      await wait(350);
+      assert.ok(await page.run(`document.querySelector('.call-face').clientWidth`) < before, 'her face makes room for the card');
+      await tool('key', 'key', 'running');
+      await tool('job', 'use_computer', 'failed');
+      await wait(300);
+      assert.equal(await page.run('window.CapriScreen.mode'), 'mini', 'another tool is still running');
+      const endedAt = Date.now();
+      await tool('key', 'key', 'done');
+      await wait(1000);
+      assert.equal(await page.run('window.CapriScreen.mode'), 'mini', 'the card lingers');
+      await page.until(`window.CapriScreen.mode === 'off'`, 'the card to leave', 6500);
+      assert.ok(Date.now() - endedAt >= 3600 && Date.now() - endedAt < 6500, 'it leaves about four seconds after done');
+    });
+
+    await t.test('the pinned key keeps the card after a screen tool ends', async () => {
+      await tool('look', 'look_at_screen', 'running');
+      await card();
+      assert.equal(await page.run(`document.querySelector('.call-screen').getAttribute('aria-pressed')`), 'false', 'automatic screen use is not a pin');
+      await r.tap('.call-screen');
+      await tool('look', 'look_at_screen', 'done');
+      await wait(4400);
+      assert.equal(await page.run('window.CapriScreen.mode'), 'mini');
+      assert.deepEqual(await page.run(`JSON.parse(localStorage.getItem('capri-remote-call'))`), { version: 2, screen: true, overHer: false });
+    });
+
+    await t.test('turning the key off mid-tool keeps that tool closed until it ends', async () => {
+      await tool('closed', 'use_computer', 'running');
+      await r.tap('.call-screen');
+      await page.until(`window.CapriScreen.mode === 'off'`, 'the screen closed by hand');
+      await tool('closed', 'use_computer', 'running');
+      await wait(300);
+      assert.equal(await page.run('window.CapriScreen.mode'), 'off', 'an update from the same tool cannot reopen it');
+      await tool('closed', 'use_computer', 'done');
+      await wait(300);
+      assert.equal(await page.run('window.CapriScreen.mode'), 'off');
+      await tool('next', 'mouse_move', 'running');
+      await card();
+    });
+
+    await t.test('the classic call fits iPhones in Safari and on the home screen, in both themes', async () => {
+      await pc.send(r.device.id, { type: 'chat.reply', id: 'long-caption', text: 'Here are the latest words from a long reply while I work on your screen. '.repeat(8), done: true });
+      // Reduced motion goes back off however this ends, as the tests after it need her face moving.
+      try {
+        for (const theme of ['light', 'dark']) {
+          await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: theme }, { name: 'prefers-reduced-motion', value: 'reduce' }] });
+          for (const mode of [SAFARI, HOME_SCREEN]) for (const size of IPHONES) {
+            await setPhone(page, size, mode);
+            assert.deepEqual(await page.run(SPILLS), [], `${size.join(' x ')} ${mode.name} ${theme}`);
+            assert.deepEqual(await misfitsOf(page), [], `the page fits at ${size.join(' x ')} ${mode.name} ${theme}`);
+          }
+        }
+        assert.equal(await page.run(`document.querySelector('.call-caps').classList.contains('long')`), true, 'a long caption keeps to its newest words');
+        assert.equal(await page.run(`document.querySelector('.call-room').style.getPropertyValue('--her')`), '0', 'her glow and ring stay still with reduced motion');
+        assert.equal(await page.run(`getComputedStyle(document.querySelector('.mini')).animationName`), 'none', 'the card does not slide with reduced motion');
+        await r.shot('call-classic-card');
+      } finally {
+        await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }, { name: 'prefers-reduced-motion', value: 'no-preference' }] });
+      }
+    });
+
+    await t.test('tapping the card opens Fit and Fill, pans, and returns to the call with its live face and controls', async () => {
+      await r.tap('.call-screen');
+      await r.tap('.mini');
+      await page.until(`window.CapriScreen.mode === 'full' && !document.querySelector('.call-pip').hidden && !document.querySelector('.callbar').hidden`, 'the call in full view');
+      assert.equal(await page.run(`document.querySelector('.call-pip .call-art') !== null`), true, 'her existing face rides in the corner');
+      assert.equal(await page.run(`document.querySelector('.watch-sizing').hidden`), false);
+      for (const mode of [SAFARI, HOME_SCREEN]) for (const size of IPHONES) {
+        await setPhone(page, size, mode);
+        assert.deepEqual(await misfitsOf(page), [], `the fitted full view fits ${size.join(' x ')} ${mode.name}`);
+      }
+      await pc.voice(r.device.id, L.tone(24000, 2, 280));
+      await page.until(`document.querySelector('.call-pip .call-art').style.backgroundImage.includes('mouth.webp')`, 'her mouth moving in full view');
+      await r.tap('.watch-size.fill');
+      assert.equal(await page.run(`document.querySelector('.watch-size.fill').getAttribute('aria-pressed')`), 'true');
+      const before = await page.run(`document.querySelector('.watch-pic').style.transform`);
+      await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 180, y: 350, button: 'left', clickCount: 1 });
+      await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 260, y: 350, button: 'left', buttons: 1 });
+      await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 260, y: 350, button: 'left', clickCount: 1 });
+      assert.notEqual(await page.run(`document.querySelector('.watch-pic').style.transform`), before, 'dragging pans the filled screen');
+      assert.equal(await page.run(`(() => { const pic = document.querySelector('.watch-pic').getBoundingClientRect(), stage = document.querySelector('.watch-stage').getBoundingClientRect(); return pic.left <= stage.left + 1 && pic.right >= stage.right - 1 && pic.top <= stage.top + 1 && pic.bottom >= stage.bottom - 1; })()`), true, 'panning leaves no gaps around the picture');
+      await r.tap('.call-bar-mute');
+      assert.equal((await r.stats()).muted, true);
+      await r.tap('.call-bar-mute');
+      await r.shot('call-screen-fill');
+      await r.tap('.watch-top [aria-label="Back to the call"]');
+      await card();
+      assert.equal(await page.run(`document.querySelector('.call-room').hidden`), false);
+      assert.equal(await page.run(`document.querySelector('.call-who .call-face') !== null`), true);
+      await r.tap('.mini');
+      await page.until(`window.CapriScreen.mode === 'full'`, 'the full view again');
+      await r.tap('.call-bar-end');
+      await page.until(`window.CapriCall.state === 'ended' && window.CapriScreen.mode === 'off'`, 'the call ended from full view');
+      assert.equal(await r.text('.call-word'), 'Call ended');
+    });
+
+    await page.until(`window.CapriCall.state === 'off'`, 'the ended call to close');
+    await r.tap('#f-call');
+    await card();
+    assert.equal(await page.run(`document.querySelector('.call-screen').getAttribute('aria-pressed')`), 'true', 'a new call keeps the pin');
+    await r.tap('.call-key.end');
+    await page.until(`window.CapriCall.state === 'off'`, 'the second call to close');
+    await page.run('window.CapriScreen.open()');
+    assert.equal(await page.run(`document.querySelector('.watch-sizing').hidden`), true, 'outside a call, full view keeps its original controls');
+    assert.equal(await page.run(`document.querySelector('.watch-top [aria-label="Stop watching"]') !== null`), true);
+    assert.deepEqual(r.problems, []);
+  } finally {
+    if (r) await r.close();
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+
+test('CALL never opens a screen card when the PC does not offer watch', { skip: !chromePath(), timeout: 30000 }, async () => {
+  const folder = mkdtempSync(join(tmpdir(), 'capri-call-no-screen-'));
+  let r = null;
+  try {
+    r = await rig({ features: ['chat', 'call'], wav: quietWav(folder), savedCall: { version: 2, screen: true } });
+    await r.tap('#f-call');
+    await r.page.until(`window.CapriCall.stats().status === 'listening'`, 'the call listening');
+    await r.pc.send(r.device.id, { type: 'chat.tool', id: 'no-watch', name: 'use_computer', state: 'running' });
+    await wait(300);
+    assert.equal(await r.page.run('window.CapriScreen.mode'), 'off');
+    assert.equal(await r.page.run(`document.querySelector('.call-screen').hidden`), true);
+    assert.equal(r.asked.includes('watch.start'), false);
+    await r.tap('.call-key.end');
+  } finally {
+    if (r) await r.close();
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+
 test('CALL hands-free with a PC that has no hush: one line per thing he says, nothing while muted or (talking over her off) while she talks, Interrupt only on the phone, and the mic let go at the end', { skip: SKIP, timeout: 240000 }, async () => {
   const folder = mkdtempSync(join(tmpdir(), 'capri-call-'));
   const { wav, said, seconds } = makeWav(folder);
@@ -387,7 +545,7 @@ test('CALL hands-free with a PC that has no hush: one line per thing he says, no
     const device = r.device;
     assert.ok(!readFileSync(join(SITE, 'call.js'), 'utf8').includes('Too short'), 'nothing in the call can say Too short');
 
-    // One tap rings her: the call screen comes up, the mic opens once, and the PC screen shows in the mini player.
+    // One tap rings her: the call screen comes up and the mic opens once. Her face has the middle until asked for a screen.
     const startedAt = Date.now();
     await r.tap('#f-call');
     await page.until(`!document.querySelector('.call-room').hidden`, 'the call screen');
@@ -395,8 +553,8 @@ test('CALL hands-free with a PC that has no hush: one line per thing he says, no
     assert.equal(await page.run('window.__micStreams.length'), 1, 'one mic for the call');
     assert.equal(await page.run(`window.CapriCall.stats().sound`), 'running');
     assert.deepEqual(r.starts.map(start => start.hush), [true], 'call.start says the phone stops her with call.hush');
-    await page.until(`!document.querySelector('.mini').hidden && !document.querySelector('.watch-pic').hidden`, 'the PC screen in the mini player', 8000);
-    assert.equal(await page.run(`document.querySelector('.call-screen').getAttribute('aria-pressed')`), 'true');
+    assert.equal(await page.run('window.CapriScreen.mode'), 'off');
+    assert.equal(await page.run(`document.querySelector('.call-screen').getAttribute('aria-pressed')`), 'false');
 
     // He says two things with quiet between them: two lines, each one whole sentence with a little from before it.
     const first = await r.nextLine(1, 'his first line');
@@ -411,8 +569,8 @@ test('CALL hands-free with a PC that has no hush: one line per thing he says, no
     }
     assert.equal(lines.length, 2, 'a line for each sentence, and none for the click or the blip');
     assert.equal(cancels.length, 0);
-    await page.until(`document.querySelector('.cap-her .cap-words').textContent === 'Opening your music now.'`, 'her caption');
-    assert.equal(await r.text('.cap-you .cap-words'), 'And can you open my music, please?');
+    await page.until(`document.querySelector('.call-caps .cap-words').textContent === 'Opening your music now.'`, 'her caption');
+    assert.equal(await page.run(`document.querySelectorAll('.call-caps .cap-words').length`), 1, 'one caption line');
     const listened = await r.stats();
     assert.equal(listened.lines, 2);
     assert.ok(listened.blips >= 1, 'the click and the blip were heard and dropped: ' + listened.blips);
@@ -443,7 +601,7 @@ test('CALL hands-free with a PC that has no hush: one line per thing he says, no
     const VOICE_SECONDS = 9;
     for (let n = 0; n < VOICE_SECONDS * 4; n++) await pc.send(device.id, { type: 'call.voice', n, rate: 24000, pcm: R.b64u(L.pcmBytes(L.tone(24000, 0.25, 220 + (n % 4) * 40))) });
     await page.until(`window.CapriCall.stats().status === 'talking'`, 'her talking', 4000);
-    assert.equal(await r.text('.call-word'), 'Talking');
+    assert.equal(await r.text('.call-word'), 'Speaking');
     await r.size(375, 667);
     await r.shot('call-talking-375');
     assert.deepEqual(await page.run(SPILLS), [], 'nothing spills at 375 x 667');
@@ -471,6 +629,8 @@ test('CALL hands-free with a PC that has no hush: one line per thing he says, no
     assert.equal((await r.stats()).interrupts, 0);
 
     // The screen key hides and shows the mini player; shrinking keeps the call on in a bar over the chat.
+    await r.tap('.call-screen');
+    await page.until(`!document.querySelector('.mini').hidden`, 'the pinned mini player');
     await r.tap('.call-screen');
     await page.until(`document.querySelector('.mini').hidden`, 'the mini player gone');
     await r.tap('.call-screen');
@@ -539,7 +699,7 @@ test('CALL talking over her with a PC that has hush: her own voice back through 
     await page.run('window.__mic.say(0)');
     const first = await r.nextLine(1, 'his first line');
     await r.answer(first, 'Hey Capri, what is the weather like today?', 'Clear skies all day. Perfect for a walk.');
-    await page.until(`document.querySelector('.cap-her .cap-words').textContent === 'Clear skies all day. Perfect for a walk.'`, 'her caption');
+    await page.until(`document.querySelector('.call-caps .cap-words').textContent === 'Clear skies all day. Perfect for a walk.'`, 'her caption');
 
     // Her voice alone, coming back through the mic 24 dB down, as a phone's echo cancelling leaves it: two sentences
     // with a break between (so her voice starts twice), played to the end with nothing sent.
@@ -576,7 +736,7 @@ test('CALL talking over her with a PC that has hush: her own voice back through 
     assert.ok(length > 1.2 && length < said[1].end - said[1].start + 1.6, `his line over her is as long as his sentence: ${length.toFixed(2)} s`);
     assert.ok(stopMs > 250 && stopMs < 1000, `she stopped ${stopMs} ms after he started talking over her`);
     await r.answer(second, 'And can you open my music, please?', 'Opening your music now.');
-    await page.until(`document.querySelector('.cap-her .cap-words').textContent === 'Opening your music now.'`, 'her next caption');
+    await page.until(`document.querySelector('.call-caps .cap-words').textContent === 'Opening your music now.'`, 'her next caption');
 
     // Interrupt: her answer stops on the phone and the PC, and the PC's own call.hush lets her next answer play at once.
     await page.run('window.__mic.echo(0)');

@@ -17,6 +17,21 @@
 .watch-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; max-width: 1100px; margin: 0 auto; padding: 8px 0 max(10px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--rule); }
 .watch-bar .ask { margin-left: auto; min-height: 40px; }
 
+/* A call's full view puts the screen behind its controls; other screen views keep their usual layout. */
+.watch.call-watch { padding: 0; background: var(--ground); }
+.call-watch .watch-top { position: relative; z-index: 1; height: calc(68px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); border: 0; }
+.call-watch .watch-title { color: var(--white); font: 600 20px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+.call-watch .watch-stage { position: absolute; inset: 0; margin: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.call-watch .watch-pic { justify-self: center; align-self: center; }
+.call-watch.fill .watch-stage { touch-action: none; cursor: grab; }
+.call-watch.fill .watch-stage:active { cursor: grabbing; }
+.call-watch .watch-bar { display: none; }
+.call-watch .watch-top .nbtn { --face: var(--band); border-radius: 50%; }
+.call-watch .watch-top .nbtn::before, .call-watch .watch-top .nbtn::after { border-radius: inherit; clip-path: none; }
+.watch-sizing { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: 24px; background: var(--band); }
+.watch-size { min-width: 46px; min-height: 38px; padding: 0 10px; border: 0; border-radius: 20px; background: transparent; color: var(--white); font: 600 15px/1 var(--ui); cursor: pointer; }
+.watch-size[aria-pressed="true"] { background: var(--white); color: var(--ground); }
+
 .chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .chip { --face: var(--field); --rim: var(--edge); position: relative; isolation: isolate; min-width: 40px; min-height: 36px; margin: 0; padding: 0 11px; border: 0; background: none; color: var(--white); font: 600 13px/1 var(--display); font-stretch: 75%; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .chip::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--rim); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%); }
