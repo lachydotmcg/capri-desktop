@@ -250,10 +250,10 @@ namespace CapriDesktop
                 authors[i].Text = mod.Author.Length > 0 ? "by " + mod.Author : "";
                 details[i].Text = mod.About;
                 ToolTip.SetTip(previews[i], new TextBlock { Text = mod.Title + (mod.Author.Length > 0 ? "\nby " + mod.Author : "") + (mod.About.Length > 0 ? "\n" + mod.About : ""), MaxWidth = 328, TextWrapping = TextWrapping.Wrap, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size, Foreground = MainframeTheme.White });
-                metas[i].Text = mod.KindIndex == 2 ? Mods.WindowsOnly : mod.Kind + (installed ? " Installed." : "");
+                metas[i].Text = mod.Kind + (installed ? " Installed." : "");
                 numbers[i].Text = statsLive ? ModDirectory.DownloadLine(mod) + "  |  " + ModDirectory.RatingLine(mod) : loading ? "Loading counts and ratings..." : "Counts and ratings unavailable.";
                 downloads[i].Text = installed ? "Reinstall" : "Download";
-                downloads[i].IsEnabled = !working && mod.KindIndex != 2;
+                downloads[i].IsEnabled = !working;
                 ratings[i].IsEnabled = !working && statsLive && installed;
                 ratings[i].Text = "Rate this mod";
                 Bitmap picture = null;
@@ -308,7 +308,7 @@ namespace CapriDesktop
                 names[i].IsVisible = abouts[i].IsVisible = switches[i].IsVisible = removes[i].IsVisible = mod != null;
                 if (mod == null) continue;
                 names[i].Text = mod.File.Name;
-                abouts[i].Text = (mod.File.Author == null ? "" : "by " + mod.File.Author + "  ") + (mod.File.Description ?? (mod.Skin ? "Skin" : mod.Skill ? "Skill" : "Settings"));
+                abouts[i].Text = (mod.File.Author == null ? "" : "by " + mod.File.Author + "  ") + (mod.File.Description ?? (mod.Skin ? (mod.File.Accessory ? "Accessory" : "Skin") : mod.Skill ? "Skill" : "Settings"));
                 switches[i].Text = mod.On ? "On" : "Off"; switches[i].Picked = mod.On;
                 switches[i].IsEnabled = !working; removes[i].IsEnabled = !working;
                 names[i].InvalidateVisual(); abouts[i].InvalidateVisual(); switches[i].InvalidateVisual();
@@ -318,11 +318,51 @@ namespace CapriDesktop
             installedBack.IsEnabled = installedFirst > 0; installedNext.IsEnabled = installedFirst + Rows < all.Count;
         }
 
+        // Before a code mod runs for the first time, or after it changed, they read what it is and say yes. The smoke test answers
+        // through ModAsk instead.
+        internal Func<ModFile, string, bool> ModAsk;
+
+        private bool Ask(ModFile mod, string hash)
+        {
+            Func<ModFile, string, bool> ask = ModAsk;
+            return ask != null ? ask(mod, hash) : AskToRun(mod, hash);
+        }
+
+        // Her approve box, the same words as on Windows, waited on here so the mod list stays as it was until they answer.
+        private bool AskToRun(ModFile mod, string hash)
+        {
+            bool yes = false;
+            Window box = new Window
+            {
+                Title = "Run this code mod?", Width = 520, SizeToContent = SizeToContent.Height, CanResize = false, ShowInTaskbar = false,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = MainframeTheme.Ground
+            };
+            NeonButton run = new NeonButton { Text = "Run it", Width = 120, Height = 28, Accent = MainframeTheme.Rose };
+            NeonButton no = new NeonButton { Text = "Don't run", Width = 120, Height = 28, Accent = MainframeTheme.Cyan, IsDefault = true, IsCancel = true };
+            run.Click += delegate { yes = true; box.Close(); };
+            no.Click += delegate { box.Close(); };
+            StackPanel buttons = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 12, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, Margin = new Thickness(16, 0, 16, 16) };
+            buttons.Children.Add(no);
+            buttons.Children.Add(run);
+            StackPanel all = new StackPanel();
+            all.Children.Add(new TextBlock { Text = Mods.Consent(mod, hash), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(16), Foreground = MainframeTheme.White, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size });
+            all.Children.Add(buttons);
+            box.Content = all;
+            using (CancellationTokenSource done = new CancellationTokenSource())
+            {
+                box.Closed += delegate { done.Cancel(); };
+                box.ShowDialog(this);
+                no.Focus();
+                Dispatcher.UIThread.MainLoop(done.Token);
+            }
+            return yes;
+        }
+
         internal bool ImportMod(string file)
         {
             try
             {
-                Mod mod = pet.ModList.Import(file, null);
+                Mod mod = pet.ModList.Import(file, Ask);
                 // A file removed during import can be missing from the reloaded mod list.
                 if (mod == null) throw new ModException("Couldn't load that mod. Check the mods folder.");
                 Say(mod.File.Name + " is on."); Sync(); return true;
@@ -339,7 +379,7 @@ namespace CapriDesktop
             try
             {
                 Mod mod = pet.ModList.All[installedFirst + row];
-                pet.ModList.Set(mod, !mod.On, null);
+                pet.ModList.Set(mod, !mod.On, Ask);
                 Say(mod.File.Name + (mod.On ? " is on." : " is off."));
             }
             catch (Exception error) { Say(error.Message); }
@@ -376,7 +416,6 @@ namespace CapriDesktop
         {
             if (closed || working || first + card >= shown.Count) return;
             ModListing mod = shown[first + card];
-            if (mod.KindIndex == 2) { Say(Mods.WindowsOnly); return; }
             working = true; Say("Downloading " + mod.Title + "..."); Sync();
             ThreadPool.QueueUserWorkItem(delegate
             {

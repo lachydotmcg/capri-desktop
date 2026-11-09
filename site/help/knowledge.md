@@ -550,9 +550,9 @@ Press Install on the mod you want. View opens its folder on GitHub so you can re
 
 Already have a mod file? Press Import mod on the Mods page and pick it. The file types are:
 - .capri-mod: settings mods, including colour sets.
-- .capri-skin: skins that change how she looks.
+- .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
-- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes. Code mods are Windows only for now.
+- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your code mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
 
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
 
@@ -1758,7 +1758,7 @@ On Mac, her error log is errors.txt in ~/Library/Application Support/Capri. On L
 ### Mainframe and Mods on Mac and Linux (0.8.3)
 The Mac and Linux preview now has Capri Mainframe, laid out with BRAIN, VOICE and CAPRI like Windows. Simple Settings and Advanced Settings are included. You can use any OpenAI-compatible provider with a key.
 
-Mods opens the Mods window and directory. Settings mods, colour sets and skins work here too. Code mods are Windows only for now.
+Mods opens the Mods window and directory. Settings mods, colour sets, stacking skins and code mods work here too. A code mod that uses a Windows-only part is refused with a message naming it.
 
 Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her hooks run the Capri app from where it is, so keep it in the same place after you set it up: Applications on Mac, or the folder you unpacked on Linux. If you move it, set Code/Husk Mode to Off and back on.
 
@@ -1791,7 +1791,7 @@ Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her h
 - Remember our chats: a daily transcript and memories.md, like on Windows (right-click her > Settings). She digs through them on her own here too.
 
 ### Not yet
-- No code mods. Settings mods, colour sets and skins work in the Mods window.
+- Code mods that use Windows-only parts, like drawing on her, an options page, screenshots or global hotkeys. Other code mods, settings mods, colour sets and skins work in the Mods window.
 - No voice input on Mac. Call mode and wake words are Windows only.
 - No built-in brain. Use Ollama or an API key.
 - No keyboard shortcuts.
@@ -1868,7 +1868,7 @@ She controls music players that support MPRIS, like Spotify, Rhythmbox or Elisa.
 Install Ollama and open it, then right-click her > Brain > Download gemma4:e4b. Older versions said to run ollama pull gemma4:e4b in a terminal, which still works; then pick the model in right-click her > Brain.
 
 ### A button or menu from this help is missing on my Mac or Linux
-The preview doesn't have everything Windows has yet (see "Not yet" above). Capri Mainframe and Mods are included in 0.8.3. If those are missing, check your version and update. Linux TALK needs [offline ears setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup). Voice input on Mac, call mode, wake words and code mods are still unavailable in the previews.
+The preview doesn't have everything Windows has yet (see "Not yet" above). Capri Mainframe and Mods are included in 0.8.3. If those are missing, check your version and update. Linux TALK needs [offline ears setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup). Voice input on Mac, call mode and wake words are still unavailable in the previews.
 
 ### Where's the Mainframe on Mac or Linux?
 Capri Mainframe is included in the 0.8.3 preview, with BRAIN, VOICE and CAPRI, plus Simple Settings and Advanced Settings. Update if you're on an older preview.

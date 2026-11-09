@@ -121,6 +121,9 @@ namespace CapriDesktop
         internal double ShiftX { get { return Old ? 0 : shiftX; } }
         internal double ShiftY { get { return Old ? 0 : shiftY; } }
 
+        // The strip's own name, like "idle" or "perch", the way mods and Windows name it.
+        internal string Title { get { return name.Substring("Capri.Sprite.".Length, name.Length - "Capri.Sprite.".Length - ".png".Length); } }
+
         internal Clip(string name, int count, double fps, double height, double shiftX = 0, double shiftY = 0)
         {
             this.name = "Capri.Sprite." + name + ".png";
@@ -640,7 +643,7 @@ namespace CapriDesktop
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
             // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
             fingers = Program.Smoke == null && (ComputerJobs.Supported || Fingers.Problem == null);
-            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers) || toggle == Security.Personal || (toggle == Security.Terminal && OperatingSystem.IsLinux()); };
+            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers) || toggle == Security.Personal || toggle == Security.ModTools || (toggle == Security.Terminal && OperatingSystem.IsLinux()); };
             Hands.OwnHands = fingers;
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
@@ -1862,6 +1865,7 @@ namespace CapriDesktop
             else Play(grin);
             int ticket = ++petTicket;
             petWaits = 0;
+            ModsPatted();
             DispatcherTimer.RunOnce(() => PetLine(ticket), TimeSpan.FromMilliseconds(1300));
         }
 
@@ -1966,6 +1970,7 @@ namespace CapriDesktop
 
         internal void React()
         {
+            ModsClicked();
             napAsked = false;
             if (hanging) { LetGo(); return; }
             // A click wakes her the gentle way, from a nap they asked for or her own doze.
@@ -4365,10 +4370,21 @@ namespace CapriDesktop
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
             StopListening();
-            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); return; }
+            if (modSendDepth == 0 && System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); return; }
+            if (!meeting.Asking)
+            {
+                // A code mod can change or take what they said first, like on Windows.
+                string sent = ModsSending(text);
+                if (sent == null) return;
+                bool fromMod = modSendDepth > 0 || sent != text;
+                text = sent;
+                if (fromMod) Security.ModSaid(text); else Security.TheySaid();
+            }
             ModList.LogHearing(text, true);
             Typed();
             if (meeting.Asking) { Met(text); return; }
+            lastHeard = text;
+            if (ModList.Heard(text)) return;
             int ticket = ++asking;
             ComputerJobs.Stop();
             ownedVoice?.Cancel();
@@ -4508,7 +4524,13 @@ namespace CapriDesktop
         {
             int input = inputTurn, answer = answerTurn;
             followUp.Drop();
-            if (!Speaks || Voice.Spoken(said).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
+            // Her answers to them are a reply to mods; her own lines, like a check-in or a mod's, are a remark.
+            string source = string.IsNullOrEmpty(heard) || heard.StartsWith("(", StringComparison.Ordinal) || heard == "startup" || heard == "pets you" ? "remark" : "reply";
+            said = ModsReplying(said, source);
+            lastReply = said;
+            ModsReplied(said, source);
+            string spoken = Speaks ? ModsSpeaking(said) : said;
+            if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
             ISpeaker speaker = Speaker;
             int speechTicket = speechGeneration;
             if (!following) Talk.Thinking(heard);
@@ -4525,7 +4547,7 @@ namespace CapriDesktop
                 byte[] wav = null;
                 string problem = null;
                 // Every provider hands back a finished WAV, so her pitch, speed, robot and glitch go on here, like on Windows.
-                try { wav = StyledSpeech(speaker, said); }
+                try { wav = StyledSpeech(speaker, spoken); }
                 catch (VoiceException error) { problem = Mac(error.Message); }
                 catch (Exception error) { problem = Voice.Short("Voice glitched: " + error.Message); }
                 Dispatcher.UIThread.Post(delegate
@@ -4537,7 +4559,7 @@ namespace CapriDesktop
                     double seconds = wav == null ? 0 : Voice.Seconds(wav);
                     PresentReply(ticket, heard, said, seconds, after, following, input, answer, delegate
                     {
-                        if (seconds >= 0.2 && SpeechCurrent(speaker, speechTicket)) voice.Play(wav);
+                        if (seconds >= 0.2 && SpeechCurrent(speaker, speechTicket)) { voice.Play(wav); ModsSpoke(spoken); }
                         else TypeAlong(said, ticket);
                     });
                 });
@@ -5241,6 +5263,7 @@ namespace CapriDesktop
             {
                 if (husk != null) husk.Dispose();
                 StopAwake();
+                ModList.StopCode();
                 CloseMainframe();
                 ComputerJobs.Stop();
             ownedVoice?.Cancel();

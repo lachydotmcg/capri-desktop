@@ -867,6 +867,9 @@ namespace CapriDesktop
         internal double Pace { get { return pace; } }
         internal string Shown { get { return ReplyLayout.Revealed(reply, Bubble.Sheet.Revealed); } }
         internal bool Typing { get { return Typer.IsVisible; } }
+        internal bool Thinks { get { return thinking; } }
+        // Her voice is still saying her last line.
+        internal bool Aloud { get { return pet.Now < audioEnd; } }
         // When her voice for this reply ends, and whether she's done with it: not thinking, the reply shown in full and her voice
         // over, with her typing box open or not.
         private double audioEnd;

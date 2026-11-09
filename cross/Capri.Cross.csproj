@@ -12,6 +12,10 @@
     <Product>Capri</Product>
     <ApplicationIcon>../assets/chip.ico</ApplicationIcon>
     <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+    <!-- Code mods compile against her own loaded assemblies when she's one file on Linux (cross/ModCompiler.cs). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Roslyn's error lines stay in English, like the rest of her, instead of shipping a folder per language. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>
     <None Include="../docs/provenance/SkiaSharp/LICENSE.md" Link="licenses/native-font-bootstrap-SkiaSharp-MIT.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
@@ -23,6 +27,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.21.3" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../app/Brain.cs" Link="Shared/Brain.cs" />
@@ -33,6 +38,8 @@
     <Compile Include="../app/Presence.cs" Link="Shared/Presence.cs" />
     <Compile Include="../app/Mods.cs" Link="Shared/Mods.cs" />
     <Compile Include="../app/ModDirectory.cs" Link="Shared/ModDirectory.cs" />
+    <Compile Include="../app/ModApi.cs" Link="Shared/ModApi.cs" />
+    <Compile Include="../app/CodeMods.cs" Link="Shared/CodeMods.cs" />
     <Compile Include="../app/ArtColors.cs" Link="Shared/ArtColors.cs" />
     <Compile Include="../app/SkinMods.cs" Link="Shared/SkinMods.cs" />
     <Compile Include="../app/SkillMods.cs" Link="Shared/SkillMods.cs" />
