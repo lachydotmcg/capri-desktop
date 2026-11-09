@@ -9,6 +9,7 @@
                                       'chat.reply'   { id, text, done, re }            one reply, streamed in parts
                                       'error'        { code, message, re }             'busy', 'bad-message', 'not-allowed'
                                       'presence'     { pc }                            the PC came online or went away
+                                      'pair.link'    { re, url, ttl }                  a pairing link for the home screen app
      CapriRemote.onState(fn)        fn(state, info), state is one of:
                                       'unpaired'   no PC: show how to scan the code (info.reason says why a pairing ended)
                                       'pairing'    waiting for "Allow this phone?" on the PC; info.code is the code to match
@@ -30,15 +31,21 @@
     if (asked && /^wss?:\/\/[A-Za-z0-9.:[\]-]+$/.test(asked)) return asked;
     return typeof config.relay === 'string' && /^wss:\/\//.test(config.relay) ? config.relay : RELAY;
   };
-  // What the PC's "Allow this phone?" shows, and this phone's own label in the menu.
+  // What the PC's "Allow this phone?" and its PHONES list show, and this phone's own label in the menu. A home screen app
+  // says so, so the PC can tell it from the same phone's Safari (app.js's ?ios=app acts one out).
   const deviceName = (() => {
     const agent = navigator.userAgent;
-    if (/iPhone/.test(agent)) return 'iPhone';
-    if (/iPad/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1)) return 'iPad';
-    if (/Android/.test(agent)) return /Mobile/.test(agent) ? 'Android phone' : 'Android tablet';
-    const browser = /Edg\//.test(agent) ? 'Edge' : /Firefox\//.test(agent) ? 'Firefox' : /Chrome\//.test(agent) ? 'Chrome' : /Safari\//.test(agent) ? 'Safari' : 'Browser';
-    const system = /Windows/.test(agent) ? 'Windows' : /Mac OS X/.test(agent) ? 'Mac' : /Linux/.test(agent) ? 'Linux' : '';
-    return system ? browser + ' on ' + system : browser;
+    const kind = (() => {
+      if (/iPhone/.test(agent)) return 'iPhone';
+      if (/iPad/.test(agent) || (/Macintosh/.test(agent) && navigator.maxTouchPoints > 1)) return 'iPad';
+      if (/Android/.test(agent)) return /Mobile/.test(agent) ? 'Android phone' : 'Android tablet';
+      const browser = /Edg\//.test(agent) ? 'Edge' : /Firefox\//.test(agent) ? 'Firefox' : /Chrome\//.test(agent) ? 'Chrome' : /Safari\//.test(agent) ? 'Safari' : 'Browser';
+      const system = /Windows/.test(agent) ? 'Windows' : /Mac OS X/.test(agent) ? 'Mac' : /Linux/.test(agent) ? 'Linux' : '';
+      return system ? browser + ' on ' + system : browser;
+    })();
+    let app = false;
+    try { app = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches || new URLSearchParams(location.search).get('ios') === 'app'; } catch (error) {}
+    return app ? kind + ' home screen' : kind;
   })();
 
   const hooks = { message: new Set(), state: new Set() };

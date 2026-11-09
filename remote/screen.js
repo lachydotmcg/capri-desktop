@@ -4,7 +4,10 @@
    leaves. AUTO follows the monitor she's looking at; 1, 2, 3 pick one.
      CapriScreen.supported()  this session's PC offers watch
      CapriScreen.open()       the full view, or false when the PC doesn't offer it
-     CapriScreen.mini(on)     the small player over the chat (a call opens it)
+     CapriScreen.mini(on)     the small player over the chat (call.js also uses it for PC tools)
+     CapriScreen.within(el)   keep the small player to el (the call screen's middle), or to the chat with null
+     CapriScreen.minimise()   return from the full view to the mini player
+     CapriScreen.onMode(fn)   hear a change of mode, with the previous mode
      CapriScreen.close()      stop watching */
 (() => {
   'use strict';
@@ -55,7 +58,14 @@
   const title = make('h2', 'watch-title', 'Screen');
   const toMini = button('nbtn cyan icon', 'Shrink to the mini player', null, 'M4 4h16v16H4zM12.5 12.5h6v5h-6z');
   const shut = button('nbtn icon', 'Stop watching', null, 'M5.5 5.5l13 13M18.5 5.5l-13 13');
-  top.append(title, toMini, shut);
+  const sizing = make('div', 'watch-sizing');
+  sizing.hidden = true;
+  sizing.setAttribute('role', 'group');
+  sizing.setAttribute('aria-label', 'Screen size');
+  const fitKey = button('watch-size fit', 'Fit your whole screen', 'Fit');
+  const fillKey = button('watch-size fill', 'Fill the phone with your screen', 'Fill');
+  sizing.append(fitKey, fillKey);
+  top.append(title, sizing, toMini, shut);
   const stage = make('div', 'watch-stage');
   const note = make('p', 'watch-note', 'Connecting to your screen');
   note.setAttribute('role', 'status');
@@ -98,6 +108,8 @@
   let waiting = null;
   let asked = '';
   let resizeTimer = 0;
+  const modeHooks = new Set();
+  let fill = false, pan = { x: 0, y: 0 }, panning = null;
 
   const supported = () => {
     const r = remote();
@@ -105,14 +117,27 @@
   };
   const say = text => { if (window.CapriApp) window.CapriApp.say(text); };
   const holder = () => (mode === 'mini' ? mini : stage);
+  const inCall = () => !!(window.CapriCall && (window.CapriCall.state === 'on' || window.CapriCall.state === 'ringing'));
+  const callView = () => mode === 'full' && inCall();
+  const drawSize = () => {
+    fitKey.setAttribute('aria-pressed', String(!fill));
+    fillKey.setAttribute('aria-pressed', String(fill));
+    view.classList.toggle('fill', callView() && fill);
+  };
   // The picture as big as its holder lets it be, at the frame's own shape.
   const fit = () => {
     const box = holder();
     const room = { w: box.clientWidth - (mode === 'mini' ? 4 : 0), h: box.clientHeight - (mode === 'mini' ? 4 : 0) };
     if (room.w < 8 || room.h < 8 || canvas.width < 2) return;
-    const scale = Math.min(room.w / canvas.width, room.h / canvas.height);
-    pic.style.width = Math.floor(canvas.width * scale) + 'px';
-    pic.style.height = Math.floor(canvas.height * scale) + 'px';
+    const filled = callView() && fill;
+    const scale = (filled ? Math.max : Math.min)(room.w / canvas.width, room.h / canvas.height);
+    const width = Math.floor(canvas.width * scale), height = Math.floor(canvas.height * scale);
+    pic.style.width = width + 'px';
+    pic.style.height = height + 'px';
+    const x = Math.max(0, (width - room.w) / 2), y = Math.max(0, (height - room.h) / 2);
+    pan.x = Math.max(-x, Math.min(x, pan.x));
+    pan.y = Math.max(-y, Math.min(y, pan.y));
+    pic.style.transform = filled ? 'translate(' + pan.x + 'px, ' + pan.y + 'px)' : '';
   };
 
   // The size the picture shows at, in device pixels: the PC sends nothing bigger.
@@ -144,6 +169,16 @@
     if (next === mode) return;
     const was = mode;
     mode = next;
+    fill = false;
+    pan = { x: 0, y: 0 };
+    panning = null;
+    const call = callView();
+    view.classList.toggle('call-watch', call);
+    sizing.hidden = !call;
+    toMini.hidden = call;
+    shut.setAttribute('aria-label', call ? 'Back to the call' : 'Stop watching');
+    shut.replaceChildren(icon(call ? 'M14.5 5l-7 7 7 7' : 'M5.5 5.5l13 13M18.5 5.5l-13 13'));
+    drawSize();
     view.hidden = mode !== 'full';
     mini.hidden = mode !== 'mini';
     document.getElementById('app').classList.toggle('watching', mode === 'full');
@@ -151,6 +186,7 @@
     if (mode === 'off') {
       stop();
       pic.hidden = true;
+      for (const hook of modeHooks) hook(mode, was);
       return;
     }
     holder().prepend(pic);
@@ -166,6 +202,7 @@
       fit();
       start();
     });
+    for (const hook of modeHooks) hook(mode, was);
   };
 
   // ---------- Frames ----------
@@ -304,7 +341,7 @@
 
   // ---------- Buttons, dragging and the page going away ----------
   toMini.addEventListener('click', () => setMode('mini'));
-  shut.addEventListener('click', () => setMode('off'));
+  shut.addEventListener('click', () => setMode(callView() ? 'mini' : 'off'));
   ask.addEventListener('click', () => {
     if (window.CapriApp && window.CapriApp.deliver('Look at my screen. What\'s on it?')) setMode('mini');
   });
@@ -312,24 +349,52 @@
   miniShut.addEventListener('pointerdown', event => event.stopPropagation());
   view.addEventListener('keydown', event => { if (event.key === 'Escape') setMode('mini'); });
   mini.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setMode('full'); } });
+  const size = filled => {
+    if (!callView()) return;
+    fill = filled;
+    pan = { x: 0, y: 0 };
+    drawSize();
+    fit();
+  };
+  fitKey.addEventListener('click', () => size(false));
+  fillKey.addEventListener('click', () => size(true));
+  stage.addEventListener('pointerdown', event => {
+    if (!callView() || !fill || event.button !== 0) return;
+    panning = { id: event.pointerId, x: event.clientX, y: event.clientY, pan: { ...pan } };
+    try { stage.setPointerCapture(event.pointerId); } catch (error) {}
+  });
+  stage.addEventListener('pointermove', event => {
+    if (!panning || event.pointerId !== panning.id) return;
+    pan = { x: panning.pan.x + event.clientX - panning.x, y: panning.pan.y + event.clientY - panning.y };
+    fit();
+  });
+  const stopPan = event => { if (panning && event.pointerId === panning.id) panning = null; };
+  stage.addEventListener('pointerup', stopPan);
+  stage.addEventListener('pointercancel', stopPan);
 
-  // The mini player goes where it's dragged, then settles into the nearest corner of the chat. A tap opens the full view.
+  // The mini player goes where it's dragged, then settles into the nearest corner of the chat, or of the call screen's
+  // middle while that's up (call.js). A tap opens the full view.
   let drag = null;
   let corner = { right: pick.corner.endsWith('right'), bottom: pick.corner.startsWith('bottom') };
+  let fence = null;
+  const fenced = () => !!(fence && fence.isConnected && fence.getClientRects().length);
   const bounds = () => {
-    const log = document.getElementById('log');
+    const log = fenced() ? fence : document.getElementById('log');
     const box = log ? log.getBoundingClientRect() : { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
     return { left: box.left + 8, top: box.top + 8, right: box.right - 8, bottom: box.bottom - 8 };
   };
   const settle = () => {
     const area = bounds();
     const size = mini.getBoundingClientRect();
-    const left = corner.right ? area.right - size.width : area.left;
+    let left = corner.right ? area.right - size.width : area.left;
     let top = corner.bottom ? area.bottom - size.height : area.top;
-    // A bottom corner stays above her where she sits on the reply bar.
+    // A bottom corner stays above her where she sits on the reply bar. On the call screen it sits in the middle.
     const her = document.querySelector('.her:not(.gone)');
     const seat = her && her.getBoundingClientRect();
-    if (corner.bottom && seat && seat.width && seat.left < left + size.width && seat.right > left && seat.top < top + size.height) top = Math.max(area.top, seat.top - size.height - 4);
+    if (fenced()) {
+      left = (area.left + area.right - size.width) / 2;
+      top = Math.max(area.top, (area.top + area.bottom - size.height) / 2);
+    } else if (corner.bottom && seat && seat.width && seat.left < left + size.width && seat.right > left && seat.top < top + size.height) top = Math.max(area.top, seat.top - size.height - 4);
     mini.style.left = left + 'px';
     mini.style.top = top + 'px';
     room();
@@ -337,7 +402,7 @@
   // The chat keeps clear of the mini player at its end of the log, so a short chat isn't hidden under it.
   const room = () => {
     const app = document.getElementById('app');
-    const on = mode === 'mini' && !mini.classList.contains('dragging');
+    const on = mode === 'mini' && !fenced() && !mini.classList.contains('dragging');
     app.classList.toggle('mini-top', on && !corner.bottom);
     app.classList.toggle('mini-bottom', on && corner.bottom);
     if (!on) return;
@@ -369,6 +434,8 @@
     drag = null;
     mini.classList.remove('dragging');
     if (!moved) { if (event.type === 'pointerup') setMode('full'); return; }
+    // On the call screen it goes back to the middle; the chat's corner stays as it was.
+    if (fenced()) { settle(); return; }
     const area = bounds();
     const size = mini.getBoundingClientRect();
     corner = { right: size.left + size.width / 2 > (area.left + area.right) / 2, bottom: size.top + size.height / 2 > (area.top + area.bottom) / 2 };
@@ -448,6 +515,14 @@
       return true;
     },
     close: () => setMode('off'),
+    minimise: () => { if (mode === 'full') setMode('mini'); },
+    onMode: fn => { modeHooks.add(fn); return () => modeHooks.delete(fn); },
+    // The call screen's middle, where the mini player keeps to while the call screen is up; null for the chat again.
+    within: el => {
+      fence = el || null;
+      if (mode === 'mini') settle();
+      else room();
+    },
     get mode() { return mode; }
   };
 })();

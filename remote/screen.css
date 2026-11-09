@@ -1,5 +1,5 @@
-/* Capri Remote's screen view and call (screen.js, call.js), in the same Night City look as app.css: cut corners, a hot
-   rim, cyan for what's on, rose titles, teal rules. */
+/* Capri Remote's screen view (screen.js), in the same Night City look as app.css: cut corners, a hot rim, cyan for
+   what's on, rose titles, teal rules. The call's own look is call.css. */
 
 /* ---------- The full view ---------- */
 .watch { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); background: var(--wine), var(--ground); }
@@ -16,6 +16,21 @@
 .mini .watch-cursor { width: 8px; height: 12px; }
 .watch-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; width: 100%; max-width: 1100px; margin: 0 auto; padding: 8px 0 max(10px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--rule); }
 .watch-bar .ask { margin-left: auto; min-height: 40px; }
+
+/* A call's full view puts the screen behind its controls; other screen views keep their usual layout. */
+.watch.call-watch { padding: 0; background: var(--ground); }
+.call-watch .watch-top { position: relative; z-index: 1; height: calc(68px + env(safe-area-inset-top, 0px)); padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); border: 0; }
+.call-watch .watch-title { color: var(--white); font: 600 20px/1 var(--ui); letter-spacing: 0; text-transform: none; }
+.call-watch .watch-stage { position: absolute; inset: 0; margin: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.call-watch .watch-pic { justify-self: center; align-self: center; }
+.call-watch.fill .watch-stage { touch-action: none; cursor: grab; }
+.call-watch.fill .watch-stage:active { cursor: grabbing; }
+.call-watch .watch-bar { display: none; }
+.call-watch .watch-top .nbtn { --face: var(--band); border-radius: 50%; }
+.call-watch .watch-top .nbtn::before, .call-watch .watch-top .nbtn::after { border-radius: inherit; clip-path: none; }
+.watch-sizing { flex: none; display: flex; gap: 2px; padding: 3px; border-radius: 24px; background: var(--band); }
+.watch-size { min-width: 46px; min-height: 38px; padding: 0 10px; border: 0; border-radius: 20px; background: transparent; color: var(--white); font: 600 15px/1 var(--ui); cursor: pointer; }
+.watch-size[aria-pressed="true"] { background: var(--white); color: var(--ground); }
 
 .chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .chip { --face: var(--field); --rim: var(--edge); position: relative; isolation: isolate; min-width: 40px; min-height: 36px; margin: 0; padding: 0 11px; border: 0; background: none; color: var(--white); font: 600 13px/1 var(--display); font-stretch: 75%; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -37,17 +52,6 @@
 .mini-x { position: absolute; z-index: 1; top: 3px; right: 3px; display: grid; place-items: center; width: 28px; height: 28px; margin: 0; padding: 0; border: 0; background: rgb(10 10 16 / .72); color: var(--white); cursor: pointer; }
 .mini-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; }
 
-/* ---------- The call bar, above her features ---------- */
-.callbar { position: relative; z-index: 2; flex: none; align-self: center; display: flex; align-items: center; gap: 8px; width: 100%; max-width: 720px; padding: 0 0 8px; }
-.call-status { flex: 1; min-width: 0; overflow: hidden; color: var(--cyan); font: 600 13px/1.2 var(--display); font-stretch: 75%; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; text-overflow: ellipsis; }
-.callbar .nbtn { flex: none; min-height: 44px; }
-.callbar .talk { min-width: 132px; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; }
-.callbar .talk.live { --face: var(--cyan); --rim: var(--cyan); --ink: var(--on-ink); }
-/* On a call in the full view, the call bar rides along at the bottom. */
-.app.on-call.watching .callbar { position: absolute; z-index: 31; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(8px, env(safe-area-inset-bottom, 0px)); width: auto; max-width: none; padding: 8px 10px; border-top: 1px solid var(--rule); background: var(--band); }
-.app.on-call .watch-bar { padding-bottom: calc(max(10px, env(safe-area-inset-bottom, 0px)) + 66px); }
-
 @media (max-width: 380px) {
   .chip { min-width: 34px; padding: 0 8px; }
-  .callbar .talk { min-width: 112px; }
 }

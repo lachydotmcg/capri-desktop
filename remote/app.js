@@ -80,6 +80,9 @@
   let linkInfo = {};
   // The early-access gate is up (it covers every screen until the password is right).
   let gateUp = false;
+  // The home screen app pasted a link a paired phone asked its PC for: it pairs with no Allow, so the wait says Pairing
+  // (PROTOCOL.md 5.1).
+  let pastedFromPhone = false;
 
   // ---------- Time labels ----------
   const dayStart = at => { const day = new Date(at); day.setHours(0, 0, 0, 0); return day.getTime(); };
@@ -545,7 +548,15 @@
     if (state === 'pairing') {
       $('#wait-code').textContent = linkInfo.code || '--- ---';
       $('#wait-allow').hidden = !linkInfo.demo;
-    }
+      // A paired phone's link needs no Allow and no code to check.
+      const linked = pastedFromPhone && !linkInfo.demo;
+      $('#wait-title').textContent = linked ? 'Pairing' : 'Allow on your PC';
+      $('#wait-lead').textContent = linked ? 'Safari asked your PC for this link' : 'Capri asks: Allow this phone?';
+      $('#wait-check').hidden = linked;
+      $('#wait-code').hidden = linked;
+      $('#wait-words').textContent = linked ? 'Pairing with your PC' : 'Waiting for Allow';
+    } else if (state === 'unpaired' || state === 'connected') pastedFromPhone = false;
+    if (!homeSheet.hidden) renderHome();
     if (state === 'connecting') showBanner('Connecting', linkInfo.pc ? 'Reaching ' + linkInfo.pc : 'Reaching your PC', 'wait', false);
     else if (state === 'offline') showBanner(...offlineWords(linkInfo.reason), 'bad', true);
     else banner.hidden = true;
@@ -683,11 +694,124 @@
   // ---------- Her home screen guide: once after pairing in a browser, and from SETTINGS ----------
   const HOME_SEEN = 'capri-remote-home-guide';
   const homeSeen = () => { try { return localStorage.getItem(HOME_SEEN) === '1'; } catch (error) { return false; } };
-  const openHome = () => {
+  // An iPhone's home screen app keeps its own storage, so it needs its own pairing. A paired Safari gets it one with no trip
+  // to the PC: Set up the home screen app asks the PC for a one-time pairing link (PROTOCOL.md 8.3), copies it, and the app
+  // pastes it. Only a PC that offers it does it (build 3 PCs don't), while it's connected. The link stays in memory here.
+  const homeLinkPart = $('#home-link-part');
+  const homeLinkButton = $('#home-link');
+  const homeLinkNote = $('#home-link-note');
+  const homeLinkField = $('#home-link-field');
+  const homeLinkText = $('#home-link-text');
+  const LINK_WORDS = {
+    busy: 'Your PC is showing a pairing code. Close it, then try again',
+    timeout: 'No answer from your PC. Try again',
+    offline: 'Your PC is offline',
+    bad: 'Your PC sent a link that didn\'t read right'
+  };
+  let homeLink = null, homeAsking = false;
+  // From CapriRemote itself, which is up to date before any link state hook runs (SETTINGS' runs before this file's).
+  const linkable = () => {
+    const info = CapriRemote.info || {};
+    return iphone && !standalone && CapriRemote.state === 'connected' && !info.demo && !info.native && Array.isArray(info.features) && info.features.includes('pair');
+  };
+  // A link still good (each lasts 10 minutes on the PC, so this gives up a little sooner).
+  const liveLink = () => homeLink && Date.now() < homeLink.until ? homeLink : null;
+  const sayLink = (words, good) => {
+    homeLinkNote.textContent = words;
+    homeLinkNote.hidden = !words;
+    homeLinkNote.classList.toggle('good', !!good);
+  };
+  const renderHome = () => {
+    const ready = linkable() || !!liveLink();
+    homeLinkPart.hidden = !ready;
+    if (!homeAsking) homeLinkButton.textContent = liveLink() ? 'Copy the link again' : 'Set up the home screen app';
+    const words = ready
+      ? ['Tap Share, then Add to Home Screen', 'Open Capri from your home screen', 'Tap Paste link within 10 minutes']
+      : ['Tap Share, then Add to Home Screen', 'On your PC: Pair a phone, scan, pick Home screen app', 'Open Capri from your home screen, tap Paste link'];
+    $('#home-steps').querySelectorAll('li > span:last-child').forEach((node, at) => { node.textContent = words[at]; });
+  };
+  // The PC's link, on this page's own address: only its #fragment is taken, with via=phone, so the app says Pairing, not
+  // Allow on your PC, while it waits.
+  const linkFrom = url => {
+    const text = typeof url === 'string' ? url : '';
+    const params = new URLSearchParams(text.indexOf('#') >= 0 ? text.slice(text.indexOf('#') + 1) : '');
+    const fragment = '#r=' + params.get('r') + '&c=' + params.get('c') + '&k=' + params.get('k');
+    try { CapriCrypto.parseFragment(fragment); } catch (error) { return ''; }
+    return location.origin + location.pathname + fragment + '&via=phone';
+  };
+  const askLink = () => new Promise((resolve, reject) => {
+    const id = 'p' + newId();
+    let timer = 0;
+    const stop = CapriRemote.onMessage(message => {
+      if (message.re !== id || (message.type !== 'pair.link' && message.type !== 'error')) return;
+      clearTimeout(timer);
+      stop();
+      const link = message.type === 'pair.link' ? linkFrom(message.url) : '';
+      if (link) resolve(link);
+      else reject(new Error(message.type === 'pair.link' ? 'bad' : message.code === 'busy' ? 'busy' : 'offline'));
+    });
+    if (!CapriRemote.send('pair.ask', { id })) { stop(); reject(new Error('offline')); return; }
+    timer = setTimeout(() => { stop(); reject(new Error('timeout')); }, 10000);
+  });
+  // Safari lets a page write the clipboard only during a tap, so the write starts in the tap and waits for the link.
+  const copyWhenReady = link => {
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      try {
+        return navigator.clipboard.write([new ClipboardItem({ 'text/plain': link.then(text => new Blob([text], { type: 'text/plain' })) })]).then(() => true, () => false);
+      } catch (error) {}
+    }
+    return link.then(text => navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text).then(() => true, () => false) : false, () => false);
+  };
+  // A link already here: copied in this tap, or shown to copy by hand.
+  const copyNow = link => {
+    const byHand = () => {
+      homeLinkField.hidden = false;
+      homeLinkText.value = link;
+      homeLinkText.focus({ preventScroll: true });
+      homeLinkText.select();
+      sayLink('Copy this link', false);
+    };
+    homeLinkField.hidden = true;
+    if (!navigator.clipboard || !navigator.clipboard.writeText) { byHand(); return; }
+    navigator.clipboard.writeText(link).then(() => sayLink('Link copied. It works once, for 10 minutes', true), byHand);
+  };
+  const setUpHome = () => {
+    if (homeAsking) return;
+    const kept = liveLink();
+    if (kept) { copyNow(kept.url); return; }
+    if (!linkable()) return;
+    homeAsking = true;
+    homeLinkButton.disabled = true;
+    homeLinkButton.textContent = 'Asking your PC...';
+    homeLinkField.hidden = true;
+    sayLink('', false);
+    const link = askLink();
+    const copied = copyWhenReady(link);
+    link.then(url => {
+      homeLink = { url, until: Date.now() + 570000 };
+      return copied.then(done => {
+        if (done) sayLink('Link copied. It works once, for 10 minutes', true);
+        else copyNow(url);
+      });
+    }, error => sayLink(LINK_WORDS[error.message] || LINK_WORDS.offline, false)).then(() => {
+      homeAsking = false;
+      homeLinkButton.disabled = false;
+      renderHome();
+    });
+  };
+  homeLinkButton.addEventListener('click', setUpHome);
+  window.CapriApp.linkable = linkable;
+  // setUp: SETTINGS' Set up the home screen app, which asks and copies in the same tap.
+  const openHome = setUp => {
     closeMenu();
+    homeLinkField.hidden = true;
+    if (!homeAsking) sayLink('', false);
+    renderHome();
     homeSheet.hidden = false;
     scrim.hidden = false;
+    homeSheet.querySelector('.sheet-scroll').scrollTop = 0;
     $('#home-done').focus({ preventScroll: true });
+    if (setUp === true) setUpHome();
   };
   const closeHome = () => {
     if (homeSheet.hidden) return;
@@ -732,13 +856,14 @@
     whereInput.value = copied ? '' : full;
     if (!copied) { whereInput.focus(); whereInput.select(); }
   });
-  // The home screen app pairs from that link: from the clipboard, or pasted into the box.
+  // The home screen app pairs from a link Safari copied: from the clipboard, or pasted into the box. Its pair screen says
+  // the two ways Safari gets one: SETTINGS when Safari is paired already, or a code scanned from the PC.
   if (iphone && standalone) {
     pasteForm.hidden = false;
-    pairScreen.querySelector('.card-lead').textContent = 'Paste the link Safari copied';
-    const steps = pairScreen.querySelectorAll('.steps li > span:last-child');
-    ['On your PC, press Pair a phone', 'Scan it, then pick Home screen app', 'Come back here, tap Paste link', 'Tap Allow on your PC']
-      .forEach((words, at) => { if (steps[at]) steps[at].textContent = words; });
+    $('#pair-title').textContent = 'Pair this app';
+    pairScreen.querySelector('.card-lead').textContent = 'It pairs with a link Safari copies';
+    $('#pair-steps').hidden = true;
+    $('#pair-routes').hidden = false;
   }
   pasteLink.addEventListener('input', () => pasteField.classList.remove('bad'));
   pasteForm.addEventListener('submit', async event => {
@@ -750,12 +875,13 @@
     const hash = text.indexOf('#') >= 0 ? text.slice(text.indexOf('#')) : '';
     if (!/[#&]r=/.test(hash) || !/[#&]c=/.test(hash) || !/[#&]k=/.test(hash)) {
       pasteField.classList.add('bad');
-      pairNote.textContent = text ? 'That isn\'t a pairing link' : 'Paste the link from Safari';
+      pairNote.textContent = text ? 'That isn\'t a pairing link' : 'No link to paste yet';
       pairNote.hidden = false;
       return;
     }
     pasteField.classList.remove('bad');
     pasteLink.value = '';
+    pastedFromPhone = /[#&]via=phone(&|$)/.test(hash);
     try { history.replaceState(null, '', location.pathname + location.search + hash); } catch (error) {}
     // It did its job, so it leaves the clipboard too.
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText('').catch(() => {});

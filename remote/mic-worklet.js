@@ -1,4 +1,4 @@
-/* Capri Remote's call: the microphone's samples for call.js, about 20 ms at a time. Loaded only while he's talking. */
+/* Capri Remote's call: the microphone's samples for call.js, about 20 ms at a time, for the whole of a call. */
 class CapriMic extends AudioWorkletProcessor {
   constructor() {
     super();

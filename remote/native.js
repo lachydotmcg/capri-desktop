@@ -427,7 +427,17 @@
     const fresh = !!parts.key.value.trim();
     parts.useHere.textContent = phone && saved && !fresh ? 'In use' : 'Use this phone';
     parts.useHere.disabled = phone && !!saved && !fresh;
+    // A paired iPhone Safari sets up the home screen app from here in one tap: its PC makes it a pairing link (app.js).
+    parts.home.textContent = homeLinkable() ? 'Set up the home screen app' : 'Add her to your home screen';
+    // Talking over her on a call (call.js), kept on this phone.
+    const call = window.CapriCall;
+    parts.callHead.hidden = parts.overHer.hidden = !call;
+    if (call) {
+      parts.overHer.setAttribute('aria-pressed', String(call.overHer));
+      parts.overState.textContent = call.overHer ? 'On' : 'Off';
+    }
   };
+  const homeLinkable = () => !!(window.CapriApp && window.CapriApp.linkable && window.CapriApp.linkable());
   const build = () => {
     sheet = make('section', 'card nc sheet native-sheet');
     sheet.id = 'brain';
@@ -532,12 +542,20 @@
     const forget = button('Forget key', 'nbtn hot');
     row.append(useHere, forget);
     phonePart.append(providerLabel, providerField, keyLabel, keyField, get, modelPart, note, state, row);
+    // Calls: talking over her stops her. A phone whose own speaker sets it off turns it off here.
+    const callHead = make('h3', 'nhead', 'Calls');
+    const overHer = button('Talk over her to stop her', 'nbtn wide native-over');
+    const overState = make('span', 'tag', 'On');
+    overHer.append(overState);
     const homeHead = make('h3', 'nhead', 'Home screen');
     const home = button('Add her to your home screen', 'nbtn cyan wide native-home');
     const done = button('Done', 'nbtn cyan wide native-done');
-    sheet.append(title, make('h3', 'nhead', 'Her brain'), modes, pcPart, phonePart, homeHead, home, done);
+    // Her words scroll inside the frame (app.css .sheet-scroll), so a long SETTINGS never runs out of it.
+    const words = make('div', 'sheet-scroll');
+    words.append(title, make('h3', 'nhead', 'Her brain'), modes, pcPart, phonePart, callHead, overHer, homeHead, home, done);
+    sheet.append(words);
     ($('#app') || document.body).append(sheet);
-    parts = { pcTab, phoneTab, pcPart, pcLine, usePc, pcBrainsPart, rungs, pcNow, pcKeyPart, pcKeyLabel, pcKey, pcState, pcOld, phonePart, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, view: '' };
+    parts = { words, pcTab, phoneTab, pcPart, pcLine, usePc, pcBrainsPart, rungs, pcNow, pcKeyPart, pcKeyLabel, pcKey, pcState, pcOld, phonePart, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, home, callHead, overHer, overState, view: '' };
 
     pcTab.addEventListener('click', () => { status(''); render('pc'); });
     phoneTab.addEventListener('click', () => { status(''); render('phone'); });
@@ -597,7 +615,14 @@
         if (mine === checking) { checking = null; render(); }
       }
     });
-    home.addEventListener('click', () => { close(); if (homeGuide) homeGuide(); });
+    // Set up the home screen app asks for the link in this same tap: Safari only lets the clipboard be written during one.
+    home.addEventListener('click', () => { const setUp = homeLinkable(); close(); if (homeGuide) homeGuide(setUp); });
+    overHer.addEventListener('click', () => {
+      const call = window.CapriCall;
+      if (!call) return;
+      call.overHer = !call.overHer;
+      render();
+    });
     done.addEventListener('click', close);
     document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
     if (scrim()) scrim().addEventListener('click', close);
@@ -642,6 +667,7 @@
     pcStatus('');
     askBrains();
     render(view || (on() ? 'phone' : 'pc'));
+    parts.words.scrollTop = 0;
     sheet.hidden = false;
     if (scrim()) scrim().hidden = false;
     if (view === 'phone') parts.key.focus({ preventScroll: true });
