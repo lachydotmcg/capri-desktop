@@ -13909,6 +13909,10 @@ namespace CapriDesktop
                 Thread.Sleep(wait);
                 Post(delegate { if (turn == answerTurn && ticket == asking && reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, null); });
             });
+            // An answer for a phone on a call goes a sentence at a time, so her first words reach it while the rest is still
+            // being voiced (RemoteLive.cs).
+            List<string> pieces = RemotePieces(ticket, words);
+            if (pieces != null) { VoicePieces(ticket, turn, audio, said, state, speak, free, pieces); return; }
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem;
@@ -14014,7 +14018,9 @@ namespace CapriDesktop
 
         private static bool Broke(string problem) { return System.Text.RegularExpressions.Regex.IsMatch(problem ?? "", "quota_exceeded|run out of credits|out of ElevenLabs credits", System.Text.RegularExpressions.RegexOptions.IgnoreCase); }
 
-        private void Begin(int ticket, string said, TalkState state, byte[] wav)
+        // whole: for the first piece of an answer voiced a piece at a time (RemoteLive.cs), how long the whole answer will
+        // take to say, which paces her bubble.
+        private void Begin(int ticket, string said, TalkState state, byte[] wav, double whole = 0)
         {
             if (ticket != asking || IsDisposed || !FollowDelivery(ticket)) return;
             if (ticket == newsTicket && NewsBusy(newsQuiet)) { newsTicket = -1; asking++; CloseTalk(); return; }
@@ -14032,7 +14038,7 @@ namespace CapriDesktop
             slowWarned = false;
             box.Leaving = -1;
             double seconds = wav == null ? 0 : Voice.Seconds(wav);
-            pace = seconds < 0.2 ? LettersPerSecond : Math.Max(8, said.Length / seconds);
+            pace = seconds < 0.2 ? LettersPerSecond : Math.Max(8, said.Length / Math.Max(seconds, whole));
             Say(said);
             CallSpoke(ticket, said, state);
             PlayReply(said, wav);
@@ -14055,7 +14061,7 @@ namespace CapriDesktop
 
         private void PlayVoice(byte[] wav)
         {
-            if (testing) return;
+            if (testing && !voiceInTest) return;
             try { voice.Play(wav); }
             catch (Exception error)
             {
@@ -33211,6 +33217,7 @@ namespace CapriDesktop
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
+            Section(checks, "SmokeRemoteCall", delegate { SmokeRemoteCall(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
             Section(checks, "SmokeDeviceChoices", delegate { SmokeDeviceChoices(checks); });
             Section(checks, "SmokeSlowDevices", delegate { SmokeSlowDevices(checks); });

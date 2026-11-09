@@ -404,6 +404,9 @@ namespace CapriDesktop
             return all.ToArray();
         }
 
+        // What the next hello-ok will list, for her smoke test.
+        internal string[] FeaturesNow { get { lock (gate) return Offered(); } }
+
         private static bool IsLive(string type) { return type != null && (type.StartsWith("watch.", StringComparison.Ordinal) || type.StartsWith("call.", StringComparison.Ordinal)); }
 
         // Messages that only mean something now, like a screen frame or a moment of her voice, sealed together in order. They

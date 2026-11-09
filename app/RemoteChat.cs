@@ -331,6 +331,9 @@ namespace CapriDesktop
             RemoteDrop(ticket, asker);
             if (asker == null) return;
             asker.Answered = true;
+            // What she's saying now answers this phone, so its Interrupt can stop it (RemoteLive.cs).
+            remoteSaying = asker;
+            remoteSayingTicket = ticket;
             sink.Reply(asker.Device, RemoteMessages.NewId(), asker.Id, RemoteOut(said), true);
         }
 
