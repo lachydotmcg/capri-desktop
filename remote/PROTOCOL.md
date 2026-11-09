@@ -37,8 +37,8 @@ Binary values in URLs and JSON are base64url without padding (RFC 4648 section 5
 |---|---|---|---|---|
 | room id | 16 | PC, once, when Remote is first turned on | PC | yes, it is the address |
 | PC token | 32 | PC, with the room id | PC | at sign-in; stores SHA-256 |
-| one-time code | 16 | PC, for each QR | PC, until used or closed | at pairing; stores SHA-256 |
-| pairing key | 32 | PC, for each QR | PC and phone, until pairing ends | never (URL fragment only) |
+| one-time code | 16 | PC, for each QR or pairing link | PC, until used or closed | at pairing; stores SHA-256 |
+| pairing key | 32 | PC, for each QR or pairing link | PC and phone, until pairing ends | never (URL fragment only) |
 | pair nonce | 16 | phone, for each scan | nobody | yes (it is only a salt) |
 | pending id | 16 | relay, for a phone waiting for Allow | nobody | yes |
 | device id | 16 | PC, on Allow | PC and phone | yes |
@@ -189,6 +189,31 @@ Rules:
 - **On Allow** the PC makes a device id (16 bytes), a device token (32) and a device key (32), all random. It sends `admit` with `tokenHash = H(device token)` and the sealed `pair-allow`. It stores the device id, device key, name and date, using DPAPI (`ProtectedData`, current user). It does not keep the device token. Then it forgets the pairing key.
 - **On Deny** the PC sends `deny` with a sealed `pair-deny`. If the `pair-request` did not open, it sends `deny` without `env` and quietly shows a new QR.
 - If the PC goes offline while a phone waits, the relay closes the phone with 4503. When the pairing dialog closes, the PC sends `code-cancel`.
+
+### 5.1 A pairing link from a paired phone
+
+An iPhone keeps a home screen app's storage apart from Safari's, so the app needs a pairing of its own. A PC that lists `pair` in `hello-ok.features` makes it a pairing link when a phone that's already paired asks ([section 8.3](#83-pairing-links-feature-pair)), so nobody has to go back to the PC:
+
+```text
+paired phone                              relay                              PC
+ |== pair.ask {id} (session) ================================================>|
+ |                                          |<--- code {hash: H(c), ttl: 600} |
+ |<=================================== pair.link {re: id, url, ttl} (session) =|  url: the QR URL, #r=room&c=c&k=k
+ copies url; the home screen app pastes it and pairs as from a QR (section 5),
+ except that the PC sends admit as soon as pending arrives
+```
+
+- **A QR's code.** It's a fresh one-time code and pairing key, one try, at most 10 minutes. The relay sees what it sees for a QR: `code`, then `pending` and `admit`.
+- **No Allow.** Only a phone with a live session can ask, so the PC admits whoever presents that code at once, with no prompt and no confirmation code to check. Anyone holding the link in those 10 minutes could pair, so the PC:
+  - never shows a phone's link as a QR, which anyone near the screen could scan;
+  - lists the new phone under PHONES marked as added by link, and tells its user which phone's link it used, so it can be revoked;
+  - cancels the link (`code-cancel`) if the phone that asked is removed first.
+- **One code at a time.** The relay holds one open code per room:
+  - an ask while a QR is up or a phone waits for Allow gets `error` `busy`;
+  - a new ask replaces that phone's earlier link nobody used;
+  - Pair a phone on the PC replaces a phone's link;
+  - closing the pairing dialog leaves a phone's link alone.
+- **The link** is `url` with `&via=phone` added by the phone. It only tells the new phone to say "Pairing" rather than "Allow on your PC" while it waits. Phones ignore parameters they don't know.
 
 ## 6. Crypto
 
@@ -405,6 +430,18 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
   | sharp, 4 a second | 340 KB/s | 342 KB/s | 379 KB/s |
 
   A screen that doesn't change costs nothing. Talking sends about 42 KB/s and her voice about 63 KB/s, only while each is going. The phone sends at most about 4 acks and 3 audio parts a second, under the relay's 10 a second.
+
+### 8.3 Pairing links (feature `pair`)
+
+A PC that lists `pair` in `hello-ok.features` makes a pairing link for a paired phone that asks, for another browser on that phone such as its home screen app ([section 5.1](#51-a-pairing-link-from-a-paired-phone)). A phone must not ask a PC that doesn't list it.
+
+| `type` | Sender | Context | Fields |
+|---|---|---|---|
+| `pair.ask` | phone | session | `id` |
+| `pair.link` | PC | session | `re` (the `pair.ask` id), `url` (the QR URL of a fresh one-time code, section 3), `ttl` (seconds it lasts, 600) |
+
+- **Answers.** `pair.link`, or `error` with `re`: `busy` when a QR is up or a phone waits for Allow on the PC. An ask with a bad `id` gets `error` `bad-message`.
+- **The phone** takes only the `#` fragment from `url` (`r`, `c` and `k`) and puts it on its own address, so a link always opens the page that made it. It keeps the link in memory and hands it on through the clipboard; the page that pastes it clears the clipboard.
 
 ## 9. Rules for each side
 

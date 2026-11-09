@@ -311,7 +311,7 @@ try {
   await step('hello-ok offers the screen view and the call, then her brains', async () => {
     await a.pair(pc);
     const ok = await a.session(pc);
-    assert.deepEqual(ok.features, ['chat', 'watch', 'call', 'brains']);
+    assert.deepEqual(ok.features, ['chat', 'watch', 'call', 'brains', 'pair']);
   });
 
   await step('nothing is captured or sent until a phone asks', async () => {

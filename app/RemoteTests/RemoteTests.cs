@@ -82,9 +82,17 @@ namespace CapriDesktop
             RemoteState state = RemoteState.Fresh();
             state.Used = true;
             state.Devices.Add(new RemoteDevice { Id = RemoteCrypto.B64u(RemoteCrypto.Random(16)), Key = RemoteCrypto.Random(32), Name = "Test Phone", Added = new DateTime(2026, 11, 8, 9, 30, 0, DateTimeKind.Utc) });
+            // A phone a pairing link let in remembers whose link it was (PROTOCOL.md 5.1).
+            state.Devices.Add(new RemoteDevice { Id = RemoteCrypto.B64u(RemoteCrypto.Random(16)), Key = RemoteCrypto.Random(32), Name = "Test Phone home screen", Added = new DateTime(2026, 11, 9, 9, 30, 0, DateTimeKind.Utc), From = "Test Phone" });
             string sealedState = state.Seal();
             RemoteState back = RemoteState.Unseal(sealedState);
             check(back != null && back.ToJson() == state.ToJson(), "DPAPI round trip changed the state");
+            check(back != null && back.Devices.Count == 2 && back.Devices[0].From == null && back.Devices[1].From == "Test Phone", "a phone added by link lost whose link it was");
+            RemoteState odd = RemoteState.FromJson(state.ToJson().Replace("\"from\":\"Test Phone\"", "\"from\":\"" + (char)0x202E + "  \""));
+            check(odd != null && odd.Devices.Count == 2 && odd.Devices[1].From == "Unnamed phone", "whose link it was wasn't cleaned like a phone name");
+            // A pairing link for a phone that asked: its fields in order, and only the QR URL in it.
+            string pairUrl = RemoteCrypto.QrUrl(RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[32]));
+            check(RemoteMessages.PairLink("p1", pairUrl, RemoteLink.CodeSeconds) == "{\"type\":\"pair.link\",\"re\":\"p1\",\"url\":\"" + pairUrl + "\",\"ttl\":600}", "pair.link came out as " + RemoteMessages.PairLink("p1", pairUrl, RemoteLink.CodeSeconds));
             check(sealedState.IndexOf(state.Token, StringComparison.Ordinal) < 0 && sealedState.IndexOf(state.Room, StringComparison.Ordinal) < 0, "the sealed state shows the room or token");
             byte[] raw = Convert.FromBase64String(sealedState);
             raw[raw.Length / 2] ^= 1;
@@ -105,7 +113,7 @@ namespace CapriDesktop
             string note = RemoteBrainKeys.Note("k1", "failed", "Anthropic turned down sk-ant-test-1234567890.", "sk-ant-test-1234567890");
             check(note == "{\"type\":\"brain.note\",\"re\":\"k1\",\"state\":\"failed\",\"text\":\"Anthropic turned down [key].\"}", "a note came out as " + note);
             foreach (string line in failed) Console.WriteLine("FAIL " + line);
-            Console.WriteLine((failed.Count == 0 ? "PASS" : "FAIL") + " units: " + (checks - failed.Count) + " of " + checks + " checks (relay hosts, phone names, DPAPI round trip, brain asks)");
+            Console.WriteLine((failed.Count == 0 ? "PASS" : "FAIL") + " units: " + (checks - failed.Count) + " of " + checks + " checks (relay hosts, phone names, DPAPI round trip, pairing links, brain asks)");
             return failed.Count == 0 ? 0 : 1;
         }
 
@@ -145,6 +153,9 @@ namespace CapriDesktop
                 if (what == "qr" && link.Qr != null) line.Text("url", link.Qr);
                 RemoteAsk ask = what == "ask" ? link.Asking : null;
                 if (ask != null) line.Text("name", ask.Name).Text("code", ask.Code).Text("app", ask.App);
+                // A phone a pairing link let in, and whose link it was (PROTOCOL.md 5.1).
+                if (what == "paired") foreach (RemoteDevice paired in link.Devices()) if (paired.Id == about && paired.From != null) line.Text("from", paired.From);
+                if (what == "link") line.Flag("shown", link.Qr != null).Text("linkFor", link.LinkFor ?? "");
                 say(line.Number("online", link.PhonesOnline));
             };
             link.Said += delegate (string device, string id, string text) { say(new RemoteJson.Writer().Text("e", "said").Text("device", device).Text("id", id).Text("text", text)); };

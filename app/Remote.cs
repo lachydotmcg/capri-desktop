@@ -348,6 +348,9 @@ namespace CapriDesktop
 
         internal static string PongFor(long n) { return Typed("pong").Number("n", n).ToString(); }
 
+        // A pairing link for a paired phone that asked (PROTOCOL.md 5.1 and 8.3): a fresh one-time code's QR URL.
+        internal static string PairLink(string re, string url, int ttl) { return Typed("pair.link").Text("re", re).Text("url", url).Number("ttl", ttl).ToString(); }
+
         internal static string Revoked() { return Typed("revoke").ToString(); }
 
         // Ids are 1 to 64 of A-Z a-z 0-9 _ - (PROTOCOL.md section 8).
@@ -418,6 +421,8 @@ namespace CapriDesktop
         internal byte[] Key;
         internal string Name;
         internal DateTime Added;
+        // The paired phone whose pairing link added this one with no Allow (PROTOCOL.md 5.1), by name, or null.
+        internal string From;
 
         internal byte[] IdBytes { get { return RemoteCrypto.FromB64u(Id, 16); } }
     }
@@ -445,7 +450,7 @@ namespace CapriDesktop
             copy.Room = Room;
             copy.Token = Token;
             copy.Used = Used;
-            foreach (RemoteDevice device in Devices) copy.Devices.Add(new RemoteDevice { Id = device.Id, Key = (byte[])device.Key.Clone(), Name = device.Name, Added = device.Added });
+            foreach (RemoteDevice device in Devices) copy.Devices.Add(new RemoteDevice { Id = device.Id, Key = (byte[])device.Key.Clone(), Name = device.Name, Added = device.Added, From = device.From });
             return copy;
         }
 
@@ -459,7 +464,11 @@ namespace CapriDesktop
         {
             List<RemoteJson.Writer> devices = new List<RemoteJson.Writer>();
             foreach (RemoteDevice device in Devices)
-                devices.Add(new RemoteJson.Writer().Text("id", device.Id).Text("key", RemoteCrypto.B64u(device.Key)).Text("name", device.Name).Text("added", device.Added.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)));
+            {
+                RemoteJson.Writer saved = new RemoteJson.Writer().Text("id", device.Id).Text("key", RemoteCrypto.B64u(device.Key)).Text("name", device.Name).Text("added", device.Added.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
+                if (device.From != null) saved.Text("from", device.From);
+                devices.Add(saved);
+            }
             return new RemoteJson.Writer().Number("v", 1).Text("room", Room).Text("token", Token).Flag("used", Used).Objects("devices", devices).ToString();
         }
 
@@ -480,7 +489,8 @@ namespace CapriDesktop
                     if (key == null || RemoteCrypto.FromB64u(device.Text("id"), 16) == null || state.Find(device.Text("id")) != null) continue;
                     DateTime added;
                     if (!DateTime.TryParse(device.Text("added"), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out added)) added = DateTime.UtcNow;
-                    state.Devices.Add(new RemoteDevice { Id = device.Text("id"), Key = key, Name = RemoteMessages.CleanName(device.Text("name")), Added = added.ToUniversalTime() });
+                    string linkedBy = device.Text("from") == null ? null : RemoteMessages.CleanName(device.Text("from"));
+                    state.Devices.Add(new RemoteDevice { Id = device.Text("id"), Key = key, Name = RemoteMessages.CleanName(device.Text("name")), Added = added.ToUniversalTime(), From = linkedBy });
                 }
             return state;
         }

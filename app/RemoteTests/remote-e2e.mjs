@@ -335,7 +335,7 @@ try {
   await step('session: hello, hello-ok with echo and features, badge count', async () => {
     const ok = await session(pc, a.phone, a.device);
     assert.equal(ok.v, 1);
-    assert.deepEqual(ok.features, ['chat', 'brains']);
+    assert.deepEqual(ok.features, ['chat', 'brains', 'pair']);
     assert.equal(ok.name, 'Test PC');
     const state = await pc.state();
     assert.equal(state.online, 1);
@@ -407,6 +407,57 @@ try {
     assert.ok(failed.text.includes('[key]') && !JSON.stringify(failed).includes(rejected), 'a note carried the key back');
     await a.phone.send({ type: 'brain.key', id: 'k3', brain: 'normal', key });
     assert.deepEqual(await a.phone.receive(), { type: 'error', code: 'bad-message', re: 'k3' });
+  });
+
+  // PROTOCOL.md 5.1 and 8.3: what a home screen app pairs with, asked for from a phone that's already paired.
+  await localStep('a paired phone\'s pairing link: never a QR on the PC, then one phone gets in with no Allow, marked as by link', async () => {
+    await a.phone.send({ type: 'pair.ask', id: 'p1' });
+    const link = await a.phone.receive();
+    assert.deepEqual(Object.keys(link), ['type', 're', 'url', 'ttl']);
+    assert.deepEqual([link.type, link.re, link.ttl], ['pair.link', 'p1', 600]);
+    assert.match(link.url, /^https:\/\/capriai\.app\/remote\/#r=[\w-]{22}&c=[\w-]{22}&k=[\w-]{43}$/);
+    secrets.push(new URL(link.url).hash.split('k=')[1]);
+    const made = await pc.wait((e) => e.e === 'link' && e.about === a.device, 5000, 'the PC making the link');
+    assert.deepEqual([made.shown, made.linkFor], [false, 'Lachy Phone'], 'a phone\'s link showed as a QR');
+    // Closing the pairing dialog leaves a phone's link alone.
+    pc.send({ c: 'close-code' });
+    await sleep(300);
+    const home = phoneFor('Lachy Phone home screen');
+    await home.scan(link.url);
+    await home.conn.json('waiting');
+    const { message, closed } = await home.pairReply();
+    assert.equal(message.type, 'pair-allow');
+    assert.equal(closed.code, 4001);
+    secrets.push(message.token, message.key);
+    const paired = await pc.wait((e) => e.e === 'paired' && e.about === message.device, 8000, 'the admit ok');
+    assert.equal(paired.from, 'Lachy Phone');
+    await pc.none((e) => e.e === 'ask', 200, 'an Allow prompt for a phone\'s link');
+    await session(pc, home, message.device);
+    await pingPong(home, 1);
+    // One try only.
+    const late = phoneFor('Late');
+    await late.scan(link.url);
+    await late.conn.refused('code-used', 4410);
+    // A QR up on the PC comes first.
+    await pc.qr();
+    await a.phone.send({ type: 'pair.ask', id: 'p2' });
+    assert.deepEqual(await a.phone.receive(), { type: 'error', code: 'busy', re: 'p2' });
+    pc.send({ c: 'close-code' });
+    await a.phone.send({ type: 'pair.ask', id: '' });
+    assert.deepEqual(await a.phone.receive(), { type: 'error', code: 'bad-message' });
+    // A link nobody used goes with the phone that asked for it.
+    await home.send({ type: 'pair.ask', id: 'p3' });
+    const orphan = await home.receive();
+    assert.equal(orphan.type, 'pair.link');
+    secrets.push(new URL(orphan.url).hash.split('k=')[1]);
+    pc.send({ c: 'revoke', device: message.device });
+    assert.deepEqual(await home.receive(), { type: 'revoke' });
+    await home.conn.refused('revoked', 4403);
+    await pc.wait((e) => e.e === 'removed' && e.about === message.device);
+    const stray = phoneFor('Stray');
+    await stray.scan(orphan.url);
+    await stray.conn.refused('code-unknown', 4410);
+    assert.deepEqual((await pc.state()).devices, [a.device]);
   });
 
   await step('a tampered frame gets the phone kicked (4000), and it comes back with a fresh session', async () => {

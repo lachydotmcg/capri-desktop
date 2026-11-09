@@ -11,7 +11,8 @@ namespace CapriDesktop
     internal sealed class RemoteView
     {
         internal bool On, Ready, Expired;
-        internal string Status = "off", Host = RemoteLink.DefaultHost, Qr, Note = "";
+        // LinkFor: the paired phone whose pairing link is open (PROTOCOL.md 5.1), which the sheet names but never shows as a QR.
+        internal string Status = "off", Host = RemoteLink.DefaultHost, Qr, Note = "", LinkFor;
         internal int QrSeconds;
         internal RemoteAsk Ask;
         internal List<RemoteDevice> Phones = new List<RemoteDevice>();
@@ -218,14 +219,14 @@ namespace CapriDesktop
                 Color tone;
                 status.Text = StatusLine(view, out tone);
                 status.ForeColor = tone;
-                bool asking = view.Ask != null, showing = !asking && view.Qr != null;
+                bool asking = view.Ask != null, showing = !asking && view.Qr != null, linking = !asking && !showing && view.LinkFor != null;
                 qr.Url = showing ? view.Qr : null;
                 qr.Visible = showing;
-                expires = showing ? DateTime.Now.AddSeconds(view.QrSeconds) : DateTime.MaxValue;
+                expires = showing || linking ? DateTime.Now.AddSeconds(view.QrSeconds) : DateTime.MaxValue;
                 qrNote.Visible = showing;
                 qrNote.Text = showing ? "SCAN WITH YOUR PHONE · EXPIRES " + expires.ToString("HH:mm", CultureInfo.CurrentCulture) : "";
                 idle.Visible = !asking && !showing;
-                idle.Text = !view.On ? "Turn Remote on first" : !view.Ready ? "Waiting for the relay" : view.Expired ? "That code expired" : "No code open";
+                idle.Text = !view.On ? "Turn Remote on first" : !view.Ready ? "Waiting for the relay" : view.Expired ? "That code expired" : linking ? "Pairing link sent to " + view.LinkFor : "No code open";
                 askTitle.Visible = askName.Visible = codeLabel.Visible = askCode.Visible = askCheck.Visible = allow.Visible = deny.Visible = asking;
                 askName.Text = asking ? view.Ask.Name : "";
                 askCode.Text = asking ? view.Ask.Code : "";
@@ -239,7 +240,8 @@ namespace CapriDesktop
                     RemoteDevice phone = view.Phones[i];
                     bool online = view.Online.Contains(phone.Id);
                     names[i].Text = phone.Name;
-                    states[i].Text = online ? "CONNECTED" : "ADDED " + phone.Added.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture).ToUpperInvariant();
+                    // A phone a pairing link let in with no Allow says so, so it's easy to spot and revoke.
+                    states[i].Text = online ? "CONNECTED" : "ADDED " + phone.Added.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture).ToUpperInvariant() + (phone.From != null ? " BY LINK" : "");
                     states[i].ForeColor = online ? Cyan : Faint;
                     revokes[i].Text = armed == i ? "Sure?" : "Revoke";
                     revokes[i].Loud = armed == i;
@@ -308,7 +310,7 @@ namespace CapriDesktop
                     armed = -1;
                     Fill(view);
                 }
-                if (view.Qr != null && DateTime.Now >= expires) Fill(Frame.capri.RemoteView());
+                if ((view.Qr != null || view.LinkFor != null) && DateTime.Now >= expires) Fill(Frame.capri.RemoteView());
             }
 
             // The smoke test's check that each state shows what it should.
@@ -317,6 +319,9 @@ namespace CapriDesktop
                 if (expected.Ask != null && (!allow.Visible || askCode.Text != expected.Ask.Code || qr.Visible)) return "the Allow prompt didn't show its code";
                 if (expected.Ask == null && expected.Qr != null && (!qr.Visible || allow.Visible)) return "the QR didn't show";
                 if (expected.Phones.Count > 0 && (!revokes[0].Visible || names[0].Text != expected.Phones[0].Name)) return "the paired phones didn't show";
+                if (expected.Ask == null && expected.Qr == null && expected.LinkFor != null && (qr.Visible || !idle.Visible || idle.Text != "Pairing link sent to " + expected.LinkFor)) return "a phone's pairing link didn't show as words, with no QR";
+                for (int i = 0; i < Rows && i < expected.Phones.Count; i++)
+                    if (expected.Phones[i].From != null && !expected.Online.Contains(expected.Phones[i].Id) && !states[i].Text.EndsWith(" BY LINK", StringComparison.Ordinal)) return "a phone added by link didn't say so";
                 if (expected.Phones.Count == 0 && !empty.Visible) return "an empty list didn't say so";
                 if (power.Checked != expected.On) return "the switch didn't match";
                 return null;

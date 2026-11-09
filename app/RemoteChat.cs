@@ -158,8 +158,23 @@ namespace CapriDesktop
                 case "paired":
                 {
                     RemoteLink link = remoteLink;
-                    if (link != null) foreach (RemoteDevice device in link.Devices()) if (device.Id == about) return "Paired " + device.Name;
+                    if (link != null)
+                        foreach (RemoteDevice device in link.Devices())
+                            if (device.Id == about)
+                            {
+                                if (device.From == null) return "Paired " + device.Name;
+                                // No Allow was asked for this one (PROTOCOL.md 5.1), so the PC says so out loud.
+                                string words = "Paired " + device.Name + " with " + device.From + "'s link";
+                                RemoteLinkNotice(words);
+                                return words;
+                            }
                     return "Paired";
+                }
+                case "link":
+                {
+                    RemoteLink link = remoteLink;
+                    if (link != null) foreach (RemoteDevice device in link.Devices()) if (device.Id == about) return "Pairing link sent to " + device.Name;
+                    return "Pairing link sent";
                 }
                 case "pair-failed": return about == "full" ? "16 phones is the most: revoke one first" : about == "version" ? "That phone needs a newer page" : "The phone left";
                 case "ask-ended": return about == "timeout" ? "The phone waited too long" : about == "offline" ? "Lost the relay: show a new code" : "The phone left";
@@ -170,6 +185,17 @@ namespace CapriDesktop
                 case "room-reset": return "The relay forgot this PC: pair again";
                 default: return null;
             }
+        }
+
+        // A phone that got in with another phone's pairing link and no Allow: a tray balloon, so it's seen even with the REMOTE
+        // sheet shut, and it can be revoked there.
+        private void RemoteLinkNotice(string words)
+        {
+            if (testing) return;
+            balloonPage = null;
+            balloonUpdate = false;
+            balloonMainframe = true;
+            tray.ShowBalloonTip(8000, "Capri Remote", words + ". Not you? Revoke it under REMOTE in her Mainframe.", System.Windows.Forms.ToolTipIcon.Info);
         }
 
         // ---------- What the REMOTE sheet asks for ----------
@@ -190,6 +216,7 @@ namespace CapriDesktop
                 view.Qr = view.QrSeconds > 0 ? link.Qr : null;
                 view.Expired = view.QrSeconds == 0 && link.Qr != null;
                 view.Ask = link.Asking;
+                view.LinkFor = link.LinkFor;
                 view.Phones = link.Devices();
                 foreach (RemoteDevice phone in view.Phones) if (link.IsOnline(phone.Id)) view.Online.Add(phone.Id);
                 return view;
@@ -198,7 +225,7 @@ namespace CapriDesktop
             RemoteState state = settings == null ? null : RemoteState.Unseal(settings.Sealed);
             if (state != null)
             {
-                foreach (RemoteDevice device in state.Devices) view.Phones.Add(new RemoteDevice { Id = device.Id, Name = device.Name, Added = device.Added });
+                foreach (RemoteDevice device in state.Devices) view.Phones.Add(new RemoteDevice { Id = device.Id, Name = device.Name, Added = device.Added, From = device.From });
                 view.Phones.Sort(delegate (RemoteDevice a, RemoteDevice b) { return b.Added.CompareTo(a.Added); });
             }
             return view;
@@ -526,6 +553,9 @@ namespace CapriDesktop
             views[0].QrSeconds = 600;
             views[1].Ask = new RemoteAsk { Pending = "p", Name = "Samsung Galaxy S26 Ultra with a long name", Code = "318 338", App = "remote-web/0.1.0" };
             views[2].Note = "Paired Lachy's Pixel 9 Pro XL";
+            // A phone's pairing link open (named, never a QR) and a phone it let in.
+            views[2].LinkFor = "Lachy's Pixel 9 Pro XL";
+            views[2].Phones[1].From = "Lachy's Pixel 9 Pro XL";
             views[3] = new RemoteView { Status = "off", Host = "relay.example:8443" };
             string[] names = { "qr", "ask", "phones", "off" };
             foreach (float zoom in new[] { 1f, 1.5f, 2f })
@@ -544,7 +574,7 @@ namespace CapriDesktop
             mainframe.RemoteKeyFor(views[3]);
             mainframe.RemoteBand(Path.Combine(output, "remote-key-off.png"));
             mainframe.RemoteChanged();
-            checks.Add("PASS Remote is off by default and in tests; a pairing URL makes a version 8 QR; tool summaries carry no arguments and keys stay out of replies; the REMOTE sheet fits at 100%, 150% and 200% with a QR, an Allow prompt, paired phones and Remote off (remote-*.png)");
+            checks.Add("PASS Remote is off by default and in tests; a pairing URL makes a version 8 QR; tool summaries carry no arguments and keys stay out of replies; the REMOTE sheet fits at 100%, 150% and 200% with a QR, an Allow prompt, paired phones (one added by a phone's pairing link, whose open link shows as words, never a QR) and Remote off (remote-*.png)");
         }
 
         // What the bridge would send a phone, for the smoke test.

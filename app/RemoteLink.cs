@@ -30,6 +30,7 @@ namespace CapriDesktop
         internal const string DefaultHost = "capri-remote.lachydotmcg.workers.dev";
         internal const int CodeSeconds = 600;
         private static readonly string[] Features = { "chat" };
+        internal const string PairFeature = "pair";
         private const int PongMs = 10000, ReadyMs = 10000, ConnectMs = 15000, FirstWaitMs = 1000, LastWaitMs = 60000, BusyWaitMs = 10000;
         private const int BatchMs = 100, TypingMs = 10000, AskMs = 180000, SeenMs = 600000, KeepMs = 600000, KeepCount = 64;
         private const int PartChars = 4000, MaxFrame = 262144;
@@ -38,7 +39,8 @@ namespace CapriDesktop
         internal int BeatMs = 30000;
 
         // Raised after something changed: what ("status", "qr", "ask", "ask-ended", "allowed", "paired", "pair-failed",
-        // "joined", "left", "session", "version", "kicked", "removed", "new-room", "room-reset"), and the device or detail.
+        // "joined", "left", "session", "version", "kicked", "removed", "new-room", "room-reset", "link"), and the device or
+        // detail. "link" is a paired phone that got a pairing link (PROTOCOL.md 5.1).
         internal event Action<string, string> Happened;
 
         // A phone said something to Capri: its device id, the chat.send id (every answer's re) and the text.
@@ -104,7 +106,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 List<RemoteDevice> list = new List<RemoteDevice>();
-                foreach (RemoteDevice device in state.Devices) list.Add(new RemoteDevice { Id = device.Id, Name = device.Name, Added = device.Added });
+                foreach (RemoteDevice device in state.Devices) list.Add(new RemoteDevice { Id = device.Id, Name = device.Name, Added = device.Added, From = device.From });
                 list.Sort(delegate (RemoteDevice a, RemoteDevice b) { return b.Added.CompareTo(a.Added); });
                 return list;
             }
@@ -128,8 +130,23 @@ namespace CapriDesktop
             }
         }
 
-        // The QR to show, while one is open and nobody has used it yet.
-        internal string Qr { get { lock (gate) return pairing != null && pairing.Ask == null && !pairing.Used ? pairing.Url : null; } }
+        // The QR to show, while one is open and nobody has used it yet. A phone's pairing link is never shown: it pairs
+        // without Allow, so a QR of it would let anyone near the screen in.
+        internal string Qr { get { lock (gate) return pairing != null && pairing.For == null && pairing.Ask == null && !pairing.Used ? pairing.Url : null; } }
+
+        // The paired phone whose pairing link is open, by name, while nobody has used it and it hasn't run out.
+        internal string LinkFor
+        {
+            get
+            {
+                lock (gate)
+                {
+                    if (pairing == null || pairing.For == null || pairing.Used || Now() >= pairing.Expires) return null;
+                    RemoteDevice asker = state.Find(pairing.For);
+                    return asker == null ? null : asker.Name;
+                }
+            }
+        }
 
         // Seconds left on the open QR code, by this PC's clock (the relay keeps its own).
         internal int QrSeconds { get { lock (gate) return pairing == null ? 0 : (int)Math.Max(0, (pairing.Expires - Now() + 999) / 1000); } }
@@ -229,16 +246,16 @@ namespace CapriDesktop
             return url;
         }
 
-        // The pairing dialog closed: forget the code on the relay (code-cancel), or say no to a phone still waiting.
+        // The pairing dialog closed: forget the code on the relay (code-cancel), or say no to a phone still waiting. A paired
+        // phone's pairing link isn't the dialog's, so it stays open.
         internal void CloseCode()
         {
             List<Note> notes = new List<Note>();
-            lock (gate) EndPairing(notes, true);
+            lock (gate) if (pairing == null || pairing.For == null) EndPairing(notes, true);
             Raise(notes, null);
         }
 
-        // Allow the waiting phone: a new device id, token and key go to it sealed in pair-allow, and the relay keeps only
-        // the token's hash. The PC keeps the id, key, name and date, and forgets the token and the pairing key.
+        // Allow the waiting phone.
         internal bool Allow()
         {
             List<Note> notes = new List<Note>();
@@ -246,25 +263,35 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (stopped || wire == null || pairing == null || pairing.Ask == null) return false;
-                RemoteAsk ask = pairing.Ask;
-                byte[] token = RemoteCrypto.Random(32);
-                RemoteDevice device = new RemoteDevice { Id = RemoteCrypto.B64u(RemoteCrypto.Random(16)), Key = RemoteCrypto.Random(32), Name = ask.Name, Added = DateTime.UtcNow };
-                string tokenHash = RemoteCrypto.Hash(token);
-                byte[] env = ask.Channel.Seal(RemoteMessages.PairAllow(device.Id, RemoteCrypto.B64u(token), RemoteCrypto.B64u(device.Key), pcName, app));
-                Array.Clear(token, 0, token.Length);
-                Push(Outgoing.Control(RemoteMessages.Admit(ask.Pending, device.Id, tokenHash, RemoteCrypto.B64u(env))));
-                state.Devices.Add(device);
-                phones[device.Id] = new Phone(device);
-                admitting[ask.Pending] = device.Id;
-                pairing.Forget();
-                pairing = null;
-                copy = state.Copy();
-                notes.Add(new Note("qr", null));
-                notes.Add(new Note("allowed", device.Id));
+                copy = Admit(notes);
             }
             Save(copy);
             Raise(notes, null);
             return true;
+        }
+
+        // Under gate, with a phone asking: a new device id, token and key go to it sealed in pair-allow, and the relay keeps
+        // only the token's hash. The PC keeps the id, key, name and date, and which phone's link it used if any, and forgets
+        // the token and the pairing key. Returns the state to save.
+        private RemoteState Admit(List<Note> notes)
+        {
+            RemoteAsk ask = pairing.Ask;
+            RemoteDevice asker = pairing.For == null ? null : state.Find(pairing.For);
+            byte[] token = RemoteCrypto.Random(32);
+            RemoteDevice device = new RemoteDevice { Id = RemoteCrypto.B64u(RemoteCrypto.Random(16)), Key = RemoteCrypto.Random(32), Name = ask.Name, Added = DateTime.UtcNow };
+            if (pairing.For != null) device.From = asker == null ? "Unnamed phone" : asker.Name;
+            string tokenHash = RemoteCrypto.Hash(token);
+            byte[] env = ask.Channel.Seal(RemoteMessages.PairAllow(device.Id, RemoteCrypto.B64u(token), RemoteCrypto.B64u(device.Key), pcName, app));
+            Array.Clear(token, 0, token.Length);
+            Push(Outgoing.Control(RemoteMessages.Admit(ask.Pending, device.Id, tokenHash, RemoteCrypto.B64u(env))));
+            state.Devices.Add(device);
+            phones[device.Id] = new Phone(device);
+            admitting[ask.Pending] = device.Id;
+            pairing.Forget();
+            pairing = null;
+            notes.Add(new Note("qr", null));
+            notes.Add(new Note("allowed", device.Id));
+            return state.Copy();
         }
 
         internal bool Deny()
@@ -366,12 +393,14 @@ namespace CapriDesktop
         // A feature for hello-ok's list beside chat, such as "watch" or "call". Sessions that start after this offer it.
         internal void Offer(string feature) { lock (gate) if (!offered.Contains(feature)) offered.Add(feature); }
 
-        // Under gate. hello-ok's features: the link's own, the ones offered (watch, call), then her brains while something answers for them.
+        // Under gate. hello-ok's features: the link's own, the ones offered (watch, call), her brains while something answers
+        // for them, then pairing links (PROTOCOL.md 8.3), which the link answers itself.
         private string[] Offered()
         {
             List<string> all = new List<string>(Features);
             all.AddRange(offered);
             if (BrainAsked != null && !all.Contains(RemoteBrainKeys.Feature)) all.Add(RemoteBrainKeys.Feature);
+            if (!all.Contains(PairFeature)) all.Add(PairFeature);
             return all.ToArray();
         }
 
@@ -715,7 +744,7 @@ namespace CapriDesktop
                 switch (t)
                 {
                     case "ready": OnReady(w, frame, notes, ref copy); break;
-                    case "pending": OnPending(frame, notes); break;
+                    case "pending": OnPending(frame, notes, ref copy); break;
                     case "pending-left":
                         if (pairing != null && pairing.Ask != null && pairing.Ask.Pending == frame.Text("id"))
                         {
@@ -830,8 +859,9 @@ namespace CapriDesktop
         }
 
         // A phone presented the open code. Only one try per QR; a request that doesn't open gets a plain no and a new QR
-        // goes up quietly; otherwise Capri asks, showing the phone's name and the confirmation code.
-        private void OnPending(RemoteJson.Map frame, List<Note> notes)
+        // goes up quietly; otherwise Capri asks, showing the phone's name and the confirmation code. A paired phone's pairing
+        // link was asked for over a live session, so its phone gets in with no Allow (PROTOCOL.md 5.1).
+        private void OnPending(RemoteJson.Map frame, List<Note> notes, ref RemoteState copy)
         {
             string id = frame.Text("id");
             if (RemoteCrypto.FromB64u(id, 16) == null) return;
@@ -848,9 +878,11 @@ namespace CapriDesktop
             if (request == null || request.Text("type") != "pair-request")
             {
                 Push(Outgoing.Control(RemoteMessages.Deny(id, null)));
+                // A new QR goes up for the dialog; nobody here is waiting on a phone's link.
+                bool shown = pairing.For == null;
                 pairing.Forget();
                 pairing = null;
-                OpenCode();
+                if (shown) OpenCode();
                 notes.Add(new Note("qr", null));
                 return;
             }
@@ -872,7 +904,37 @@ namespace CapriDesktop
                 Code = RemoteCrypto.Confirm(pairing.Key, nonce),
                 Channel = channel,
             };
-            notes.Add(new Note("ask", id));
+            if (pairing.For != null) copy = Admit(notes);
+            else notes.Add(new Note("ask", id));
+        }
+
+        // PROTOCOL.md 5.1 and 8.3: a paired phone asks for a pairing link for another browser on it, like its home screen
+        // app. It gets a fresh one-time code that pairs with no Allow and is never shown on this PC. A QR up here or a phone
+        // waiting for Allow comes first; that phone's earlier link nobody used, or a QR that ran out, is replaced.
+        private void PairAsk(Phone phone, string id, List<Note> notes)
+        {
+            if (!RemoteMessages.IdOk(id))
+            {
+                Push(Outgoing.Message(phone, RemoteMessages.Error("bad-message", null)));
+                return;
+            }
+            bool busy = pairing != null && (pairing.Ask != null || (pairing.For == null && !pairing.Used && Now() < pairing.Expires));
+            if (!busy)
+            {
+                EndPairing(notes, false);
+                busy = OpenCode() == null;
+            }
+            if (busy)
+            {
+                Push(Outgoing.Message(phone, RemoteMessages.Error("busy", id)));
+                return;
+            }
+            pairing.For = phone.Device.Id;
+            // Only now matters: a phone whose session ended before this went asks again.
+            Outgoing link = Outgoing.Message(phone, RemoteMessages.PairLink(id, pairing.Url, CodeSeconds));
+            link.Stale = true;
+            Push(link);
+            notes.Add(new Note("link", phone.Device.Id));
         }
 
         // A phone's envelope, behind its 16-byte device id. A frame that fails any check ends that phone's session and
@@ -999,6 +1061,9 @@ namespace CapriDesktop
                     copy = state.Copy();
                     return;
                 }
+                case "pair.ask":
+                    PairAsk(phone, message.Text("id"), notes);
+                    return;
                 default:
                     // Screen and call messages go to their own parts, after this frame (RaiseLive).
                     if (IsLive(message.Text("type"))) liveIn.Add(new KeyValuePair<string, RemoteJson.Map>(phone.Device.Id, message));
@@ -1193,9 +1258,10 @@ namespace CapriDesktop
             if (notes != null) notes.Add(new Note("qr", null));
         }
 
-        // Under gate.
+        // Under gate. A pairing link the removed phone asked for goes with it.
         private void Remove(RemoteDevice device, List<Note> notes)
         {
+            if (pairing != null && pairing.For == device.Id) EndPairing(notes, true);
             state.Devices.Remove(device);
             Phone phone;
             if (phones.TryGetValue(device.Id, out phone))
@@ -1350,6 +1416,7 @@ namespace CapriDesktop
         }
 
         // One open QR: its one-time code and pairing key, which are wiped once pairing ends, and the phone it's asking for.
+        // For is the paired phone that asked for it as a pairing link, or null for the dialog's QR.
         private sealed class Pairing
         {
             internal readonly byte[] Code, Key;
@@ -1357,6 +1424,7 @@ namespace CapriDesktop
             internal readonly string Url;
             internal RemoteAsk Ask;
             internal bool Used;
+            internal string For;
 
             internal Pairing(byte[] code, byte[] key, long expires, string room)
             {

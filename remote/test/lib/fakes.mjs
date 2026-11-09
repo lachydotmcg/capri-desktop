@@ -199,6 +199,26 @@ export class FakePc {
     return device;
   }
 
+  // A paired phone's pair.ask (PROTOCOL.md 5.1 and 8.3): a fresh one-time code, as for a QR, whose URL goes back to that
+  // phone in pair.link. Returns the URL. The phone that presents it gets in with no Allow: answer it with admitLinked().
+  async makeLink(deviceId, re) {
+    const url = await this.showCode();
+    this.pairing.forPhone = deviceId;
+    await this.send(deviceId, { type: 'pair.link', re, url, ttl: 600 });
+    return url;
+  }
+
+  // The PC's side when a phone presents a pairing link's code: no Allow prompt, it's admitted at once. Returns the new
+  // device, with linkedBy set to the phone that asked, and the pairing request (its name).
+  async admitLinked() {
+    assert.ok(this.pairing && this.pairing.forPhone, 'no pairing link is open');
+    const linkedBy = this.pairing.forPhone;
+    const ask = await this.pairRequest();
+    const device = await this.allow(ask);
+    device.linkedBy = linkedBy;
+    return { device, request: ask.request };
+  }
+
   async deny(ask) {
     const env = await ask.channel.seal({ type: 'pair-deny', v: 1, reason: 'denied' });
     this.conn.send({ t: 'deny', pending: ask.pending.id, env: R.b64u(env) });
