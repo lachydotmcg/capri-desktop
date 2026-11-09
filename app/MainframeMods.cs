@@ -12,14 +12,17 @@ namespace CapriDesktop
 {
     internal sealed partial class Mainframe
     {
-        private const int ModRows = 4, ModRowTop = 204, ModRowHeight = 62;
+        private const int ModRows = 4, ModRowTop = 238, ModRowHeight = 62;
         private readonly List<KeyValuePair<Control, int>> modLeft = new List<KeyValuePair<Control, int>>();
         private readonly Label[] modNames = new Label[ModRows], modAbouts = new Label[ModRows];
         private readonly Key[] modSwitches = new Key[ModRows], modRemoves = new Key[ModRows], modPublishes = new Key[ModRows];
         private Key modsKey, modBack, modNext, modBrowse;
         private Head modListHead;
         private readonly Key[] colourKeys = new Key[ArtColors.Slots];
-        private Label modStatus, modEmpty, modPage;
+        private Label modStatus, modEmpty, modNoMatch, modPage;
+        private readonly Timer modStatusTimer = new Timer();
+        private Entry modSearch;
+        private List<Mod> modShown = new List<Mod>();
         private bool modded;
         private int modFirst;
 
@@ -38,10 +41,18 @@ namespace CapriDesktop
             Explain(modBrowse, "Browse mods", "MainframeMods.cs");
             Explain(folder, "Open mods folder", "MainframeMods.cs");
             modStatus = ModLabel("", 28, 138, 328, 36, Font, Faint);
+            modStatusTimer.Tick += delegate { modStatusTimer.Stop(); modStatus.Text = ""; };
+            FormClosed += delegate { modStatusTimer.Stop(); modStatusTimer.Dispose(); };
             // A long import error, like a compiler's, is cut to two lines here, and hovering it shows the whole thing.
             ((Note)modStatus).Hovers = true;
             modListHead = Section("INSTALLED >", 0, 180);
+            modSearch = Input(28, 204, 328, 26);
+            modSearch.Cue = "Search your mods by name or author";
+            modSearch.Box.AccessibleName = "Search your installed mods";
+            Explain(modSearch, "Search installed mods", "MainframeMods.cs", null, "Search installed mods");
+            modSearch.Box.TextChanged += delegate { modFirst = 0; FillMods(); };
             modEmpty = ModLabel("No mods yet. Import a " + Mods.Extension + " file.", 28, ModRowTop, 328, 20, Font, Faint);
+            modNoMatch = ModLabel("No mods match.", 28, ModRowTop, 328, 20, Font, Faint);
             for (int i = 0; i < ModRows; i++)
             {
                 int row = i, top = ModRowTop + ModRowHeight * i;
@@ -131,10 +142,12 @@ namespace CapriDesktop
 
         private void FillMods()
         {
-            List<Mod> mods = capri.ModList.All;
+            List<Mod> mods = ShownMods(capri.ModList.All, modSearch.Box.Text);
+            modShown = mods;
             int total = mods.Count, pageSize = ModRows;
             modFirst = Math.Max(0, Math.Min(modFirst, (Math.Max(0, total - 1) / pageSize) * pageSize));
-            modEmpty.Visible = total == 0;
+            modEmpty.Visible = capri.ModList.All.Count == 0;
+            modNoMatch.Visible = total == 0 && !modEmpty.Visible;
             for (int i = 0; i < ModRows; i++)
             {
                 Mod mod = modFirst + i < mods.Count ? mods[modFirst + i] : null;
@@ -167,10 +180,27 @@ namespace CapriDesktop
             if (capri.ModList.Problems.Count > 0) ModSays("Skipped " + capri.ModList.Problems[0], true);
         }
 
+        private static List<Mod> ShownMods(List<Mod> mods, string search)
+        {
+            string[] words = (search ?? "").Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            return mods.FindAll(delegate(Mod mod)
+            {
+                string named = (mod.File.Name ?? "") + " " + (mod.File.Author ?? "");
+                foreach (string word in words) if (named.IndexOf(word, StringComparison.OrdinalIgnoreCase) < 0) return false;
+                return true;
+            });
+        }
+
         private void ModSays(string text, bool problem)
         {
+            modStatusTimer.Stop();
             modStatus.Text = text;
             modStatus.ForeColor = problem ? Rose : Cyan;
+            if (!string.IsNullOrEmpty(text))
+            {
+                modStatusTimer.Interval = problem ? 10000 : 5000;
+                modStatusTimer.Start();
+            }
         }
 
         private void ImportMod()
@@ -244,9 +274,25 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException error) { ModSays("Couldn't reset her colors: " + error.Message, true); }
         }
 
+        private Mod ShownMod(int row)
+        {
+            int at = modFirst + row;
+            if (at < modShown.Count)
+            {
+                string path = modShown[at].Path;
+                string id = modShown[at].File.Id;
+                Mod current = capri.ModList.All.Find(delegate(Mod mod) { return string.Equals(mod.Path, path, StringComparison.OrdinalIgnoreCase) && string.Equals(mod.File.Id, id, StringComparison.OrdinalIgnoreCase); });
+                if (current != null) return current;
+            }
+            FillMods();
+            ModSays("That mod is no longer installed. The list is updated.", true);
+            return null;
+        }
+
         private bool SwitchMod(int row)
         {
-            Mod mod = capri.ModList.All[modFirst + row];
+            Mod mod = ShownMod(row);
+            if (mod == null) return false;
             try
             {
                 bool done = capri.ModList.Set(mod, !mod.On, ModAsk);
@@ -275,7 +321,8 @@ namespace CapriDesktop
 
         private void RemoveMod(int row)
         {
-            Mod mod = capri.ModList.All[modFirst + row];
+            Mod mod = ShownMod(row);
+            if (mod == null) return;
             try
             {
                 capri.ModList.Remove(mod);

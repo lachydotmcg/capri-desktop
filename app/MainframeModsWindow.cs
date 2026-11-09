@@ -35,7 +35,8 @@ namespace CapriDesktop
 
         private void PublishMod(int row)
         {
-            Mod mod = capri.ModList.All[modFirst + row];
+            Mod mod = ShownMod(row);
+            if (mod == null) return;
             PublishSheet sheet = new PublishSheet(this, SheetZoom(PublishSheet.Wide, PublishSheet.Tall), mod);
             sheet.ShowDialog(this);
             sheet.Dispose();
@@ -311,6 +312,7 @@ namespace CapriDesktop
             private readonly Key[] sorts = new Key[ModDirectory.Sorts.Length];
             private readonly Entry search;
             private readonly Label status, empty, page;
+            private readonly System.Windows.Forms.Timer statusTimer = new System.Windows.Forms.Timer();
             private readonly Key back, next;
             private readonly Dictionary<string, Image> pictures = new Dictionary<string, Image>();
             private readonly HashSet<string> asked = new HashSet<string>();
@@ -374,6 +376,7 @@ namespace CapriDesktop
                 empty = Words("", 28, 280, 688, 24, Font, Faint);
                 empty.TextAlign = ContentAlignment.MiddleCenter;
                 status = Words("", 28, 738, 688, 36, Font, Faint);
+                statusTimer.Tick += delegate { statusTimer.Stop(); status.Text = ""; };
                 Frame.Fit(this);
                 Fill();
             }
@@ -393,8 +396,14 @@ namespace CapriDesktop
 
             private void Says(string text, bool problem)
             {
+                statusTimer.Stop();
                 status.Text = text;
                 status.ForeColor = problem ? Rose : Cyan;
+                if (!string.IsNullOrEmpty(text))
+                {
+                    statusTimer.Interval = problem ? 10000 : 5000;
+                    statusTimer.Start();
+                }
             }
 
             private ModListing At(int card) { int at = first + card; return at < shown.Count ? shown[at] : null; }
@@ -428,6 +437,7 @@ namespace CapriDesktop
                 Fill();
                 if (problem != null) { Says(problem, true); return; }
                 if (listings.Count == 0) { Says("No mods in the directory yet.", false); return; }
+                statusTimer.Stop();
                 status.Text = "";
                 Run(delegate
                 {
@@ -592,6 +602,8 @@ namespace CapriDesktop
                 if (disposing)
                 {
                     ticket++;
+                    statusTimer.Stop();
+                    statusTimer.Dispose();
                     foreach (Image picture in pictures.Values) picture.Dispose();
                     pictures.Clear();
                     details.Dispose();

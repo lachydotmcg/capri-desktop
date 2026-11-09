@@ -2854,9 +2854,9 @@ namespace CapriDesktop
                 if (pet.HuskChanging || pet.HuskMode != 1 || SettingsCopy().HuskMode != 1 || frame.Value("Code/Husk Mode") != "Claude Code" || pet.Husk.Bridge == null) throw new Exception("A failed hook setup lost the previous mode or listener.");
                 File.WriteAllText(HuskHooks.PathFor("codex"), codexGood);
                 pet.SetAdvancedSettings(false); frame.Sync();
-                if (frame.Row("Code/Husk Mode").IsVisible) throw new Exception("Husk mode did not fold with Advanced Settings.");
+                if (frame.Row("Code/Husk Mode").IsVisible || frame.Row("Verbosity").IsVisible) throw new Exception("Husk mode or Verbosity did not fold with Advanced Settings.");
                 pet.SetAdvancedSettings(true); frame.Sync();
-                if (!frame.Row("Code/Husk Mode").IsVisible || frame.Overlap() != null) throw new Exception("The cross Husk row did not fit under BRAIN.");
+                if (!frame.Row("Code/Husk Mode").IsVisible || !frame.Row("Verbosity").IsVisible || frame.Overlap() != null) throw new Exception("The cross Husk rows did not fit under BRAIN.");
                 checks.Add("PASS cross Husk Mainframe row: Off, Claude Code, Codex and Both; settings round trip and older-copy recovery; busy picker disabled; Advanced BRAIN layout");
                 Cloud thinkingRemoteWas = pet.Brain.Remote;
                 string thinkingModelWas = pet.Brain.Model;
@@ -2905,6 +2905,7 @@ namespace CapriDesktop
                 pet.SetHusk(2); HuskFeed("claude", "UserPromptSubmit");
                 if (acts.Count != 0) throw new Exception("Codex-only Husk mode acted a Claude event.");
                 pet.SetHusk(3); pet.Talk.Dismiss();
+                pet.SetHuskVerbosity(true);
                 HuskFeed("claude", "SessionStart");
                 if (pet.HuskMood != "hi" || lines[lines.Count - 1] != HuskWords.Line("English", 12, "Claude Code")) throw new Exception("A Claude session did not get her hello.");
                 pet.Nap(true); pet.Animate("idle"); pet.Nap(true); pet.CheckNap();
@@ -2948,6 +2949,9 @@ namespace CapriDesktop
                 if (pet.HuskMood != "approval" || lines[lines.Count - 1] != "Codex needs your OK. Run tests?") throw new Exception("Codex approval did not use the shared adapter and attention line.");
                 HuskFeed("codex", "PreToolUse", "tool_name", "request_user_input", "tool_input", HuskJson.Map("questions", new List<object> { HuskJson.Map("question", "Which file?") }));
                 if (pet.HuskMood != "input" || lines[lines.Count - 1] != HuskWords.Line("English", 9, "Codex", "Which file?")) throw new Exception("A Codex question did not ask for their input.");
+                HuskFeed("claude", "PreToolUse", "tool_name", "AskUserQuestion", "tool_input", HuskJson.Map("questions", new List<object> { HuskJson.Map("question", "Which colour?") }));
+                if (pet.HuskMood != "input" || lines[lines.Count - 1] != HuskWords.Line("English", 9, "Claude Code", "Which colour?")) throw new Exception("A Claude question did not ask for their input.");
+                HuskFeed("claude", "PostToolUse", "tool_name", "AskUserQuestion");
                 pet.Saved.Silent = true;
                 HuskFeed("claude", "PermissionRequest", "message", "Voice off?");
                 if (aloud[aloud.Count - 1]) throw new Exception("A cross approval ignored her voice setting.");
@@ -2959,6 +2963,15 @@ namespace CapriDesktop
                 before = acts.Count;
                 HuskFeed("claude", "Notification", "notification_type", "info", "message", "noise");
                 if (acts.Count != before) throw new Exception("An unrelated notification got a Husk reaction.");
+                pet.SetHuskVerbosity(false);
+                before = lines.Count;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Bash", "tool_input", HuskJson.Map("command", "cd src"));
+                HuskFeed("claude", "PostToolUseFailure", "tool_name", "Bash", "error", "No such folder");
+                HuskFeed("claude", "PreCompact");
+                HuskFeed("claude", "SubagentStart", "agent_id", "quiet");
+                HuskFeed("claude", "SubagentStop", "agent_id", "quiet");
+                if (lines.Count != before) throw new Exception("Verbosity off let tool chatter through.");
+                pet.SetHuskVerbosity(true);
                 pet.StandUp();
                 HuskFeed("claude", "SubagentStart", "agent_id", "one");
                 HuskFeed("codex", "SubagentStart", "agent_id", "two");
@@ -3070,7 +3083,7 @@ namespace CapriDesktop
             string[,] toggles = {
                 { "Typing sound", "typing_sound", "Typing" }, { "Dance to music", "dance_to_music", "NoDance" }, { "Glitch in at startup", "glitch_in", "NoIntro" },
                 { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
-                { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
+                { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Verbosity", "", "NoHuskVerbosity" }, { "Start at login", "startup", "" },
                 { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" },
                 { "Head pats", "head_pats", "NoHeadPats" }, { "Legacy stand", "legacy_stand", "LegacyStand" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" }
             };
@@ -3135,9 +3148,10 @@ namespace CapriDesktop
             checks.Add("PASS Mainframe colours: Night City, Black, White and Grey change her Mainframe straight away and are saved");
             if (Pet.FrameSize(-1) != 0 || Pet.FrameSize(110) != 0 || Pet.FrameSize(200) != 200) throw new Exception("Unsupported Mainframe sizes did not become Auto.");
             pet.SetMainframeSize(0); if (frame.Zoom != 1) throw new Exception("Auto scaled the Mainframe twice.");
-            var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local }));
+            var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local, NoHuskVerbosity = true, ThinkingPicks = new[] { new ThinkingPick { Source = "openai|gpt-6-astra", Level = ThinkingLevels.High, Extra = "{}" } } }));
             if (recovered.MainframeSize != 150 || !recovered.AdvancedSettings || recovered.MemorySize != 16384 || recovered.ReplyLength != 3 || recovered.BrainTier != 2 || recovered.PaidModel != "paid-test") throw new Exception("The Mainframe settings did not survive the older settings copy.");
-            checks.Add("PASS Mainframe rows: every switch, slider and picker calls the saved setter; Memory size, Max reply, Auto typing and scale persist; Pet and tool changes show without losing drafts");
+            if (!recovered.NoHuskVerbosity || recovered.ThinkingPicks == null || recovered.ThinkingPicks.Length != 1 || recovered.ThinkingPicks[0].Source != "openai|gpt-6-astra" || recovered.ThinkingPicks[0].Level != ThinkingLevels.High || recovered.ThinkingPicks[0].Extra != "{}") throw new Exception("Thinking and Verbosity did not survive together in the older settings copy.");
+            checks.Add("PASS Mainframe rows: every switch, slider and picker calls the saved setter; Memory size, Max reply, Auto typing, scale, Thinking and Verbosity persist; Pet and tool changes show without losing drafts");
         }
 
         private static string CareSaid(Care care, Settings saved, long quiet = 0, bool free = true, string game = "Game A", double noticed = 0)
@@ -3877,6 +3891,7 @@ namespace CapriDesktop
         private void MainframeLayout(Mainframe frame, Voice voice)
         {
             pet.SetLanguage("English"); pet.SetMainframeSize(100);
+            string[] brainRows = { "Code/Husk Mode", "Thinking", "Extra request JSON", "Verbosity", "Stay on my model", "Replies", "Memory", "Memory size", "Max reply", "Bubble", "Follow-up messages" };
             foreach (int tier in new[] { 0, 1, 2 })
                 foreach (int mode in new[] { 0, 2, 3 })
                     foreach (bool savedKey in new[] { false, true })
@@ -3892,6 +3907,12 @@ namespace CapriDesktop
                                 string wrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
                                 if (wrong != null) throw new Exception("Mainframe layout at " + scale + "%, page " + page + ", tier " + tier + ", voice " + mode + ": " + wrong);
                                 if (Math.Abs(frame.Zoom - scale / 100.0) > 0.001 || frame.Page.Width != (page == 0 ? 380 : 760)) throw new Exception("The Mainframe changed its design coordinates while scaling.");
+                                for (int row = 0; row < brainRows.Length; row++)
+                                {
+                                    Control control = frame.Row(brainRows[row]);
+                                    if (control.IsVisible != (page == 2)) throw new Exception("A BRAIN row has the wrong Settings view: " + brainRows[row]);
+                                    if (page == 2 && row > 0 && Math.Abs(Canvas.GetTop(control) - Canvas.GetTop(frame.Row(brainRows[row - 1])) - 28) > 0.001) throw new Exception("A BRAIN row is out of place: " + brainRows[row]);
+                                }
                             }
                     }
             frame.PickBrainTier(0); pet.Brain.Model = null; frame.Sync(); frame.ShowSettings(false);

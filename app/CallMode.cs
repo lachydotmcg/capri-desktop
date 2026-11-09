@@ -1473,6 +1473,7 @@ namespace CapriDesktop
             husk = new HuskWatch(data);
             husk.Clock = delegate { return clock.Elapsed.TotalSeconds; };
             husk.Language = delegate { return preferences.Language; };
+            husk.Verbose = delegate { return !preferences.NoHuskVerbosity; };
             husk.Dispatch = Post;
             husk.FindWindow = HuskWindow;
             husk.Show = delegate(HuskAct act)

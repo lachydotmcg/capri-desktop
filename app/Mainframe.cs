@@ -150,6 +150,7 @@ namespace CapriDesktop
         private static readonly int[] WatchLines = { 8, 16, 24, 48, 96 };
         private static readonly string[] WatchLineNames = { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" };
         private readonly Toggle stayOnModel;
+        private readonly Toggle huskVerbosity;
         private readonly Toggle remembering;
         private readonly Toggle keepAwake, hideFullScreen, playerFullScreen, exploreAway;
         private Key clipsFolder;
@@ -283,7 +284,7 @@ namespace CapriDesktop
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1316, 1368 }, new[] { 1368, 1396 } };
         // Power saver's row stays in Simple Settings, so the right column's last band starts a row lower, at Perch.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 474 }, new[] { 764, 1174 }, new[] { 1398, 2224 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 708, 1202 }, new[] { 1426, 2252 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -883,6 +884,9 @@ namespace CapriDesktop
             thinkingExtra = Make("Add", ValueAt + c, 413, ValueWide, 22, delegate { OpenThinkingExtra(); }, "Extra request JSON");
             thinkingExtra.AccessibleName = "Extra request JSON";
             int afterHusk = Controls.Count;
+            huskVerbosity = Switch("Verbosity", c, 354, delegate { if (!syncing) capri.ToggleHuskVerbosity(); });
+            huskVerbosity.AccessibleName = "Verbosity. On shows each tool the coding assistant runs. Off keeps only starts, finishes, questions and crashes";
+            int afterVerbosity = Controls.Count;
             stayOnModel = Switch("Stay on my model", c, 354, delegate { if (!syncing) capri.ToggleStayOnModel(); });
             stayOnModel.AccessibleName = "Stay on my model. When an NVIDIA model gets stuck she says so instead of switching to another one";
             replies = Setting("Replies", Lengths, c, 382, "Reply length");
@@ -1013,6 +1017,8 @@ namespace CapriDesktop
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
                 if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row * 3;
+            for (int belowVerbosity = afterVerbosity; belowVerbosity < Controls.Count; belowVerbosity++)
+                if (Controls[belowVerbosity].Left >= c) Controls[belowVerbosity].Top += Row;
             // Mainframe colours, Head pats, Chaos when upset, Hologram and Legacy stand each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 5;
@@ -2843,6 +2849,7 @@ namespace CapriDesktop
             watchMemory.Value = Math.Max(0, Array.IndexOf(WatchLines, capri.WatchMemoryLines));
             watchMemoryName.Text = WatchLineNames[watchMemory.Value];
             stayOnModel.Checked = capri.StayOnModel;
+            huskVerbosity.Checked = capri.HuskVerbosity;
             remembering.Checked = capri.Remembers;
             keepAwake.Checked = capri.KeepAwake;
             hideFullScreen.Checked = capri.HideFullScreen;
@@ -2978,6 +2985,7 @@ namespace CapriDesktop
         internal void FlipCaughtUp() { caughtUp.Checked = !caughtUp.Checked; }
 
         internal bool StayShown { get { return stayOnModel.Checked; } }
+        internal bool HuskVerbosityShown { get { return huskVerbosity.Checked; } }
 
         internal void FlipStay() { stayOnModel.Checked = !stayOnModel.Checked; }
 
@@ -3010,6 +3018,20 @@ namespace CapriDesktop
         internal void FlipCare(CareKind kind) { careToggles[(int)kind].Checked = !careToggles[(int)kind].Checked; }
 
         internal void FlipCheckIns() { checkIns.Checked = !checkIns.Checked; }
+
+        internal string BrainFits()
+        {
+            if (!paged) return null;
+            Control above = null;
+            foreach (Control row in new Control[] { huskMode, thinkingLevel, thinkingExtra, huskVerbosity, stayOnModel, replies, recall, memorySize, replyLength, bubble, followUps })
+            {
+                if (Hidden(row) != simple || row.TabStop == simple) return "a BRAIN row has the wrong Settings view";
+                if (!simple && above != null && Math.Abs(row.Top - above.Top - Scaled(Row)) > 1) return "a BRAIN row is out of place";
+                above = row;
+            }
+            if (Hidden(watchMemory) != simple || Hidden(frameColours) || Hidden(headPats)) return "Settings folds the wrong rows above BRAIN";
+            return null;
+        }
 
         internal string CareFits()
         {
