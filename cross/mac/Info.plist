@@ -25,6 +25,6 @@
   <key>NSHighResolutionCapable</key>
   <true/>
   <key>NSAppleEventsUsageDescription</key>
-  <string>Capri plays, pauses and skips songs in Spotify or Music when you ask her to.</string>
+  <string>Capri controls Spotify or Music and opens your requested commands in Terminal after checking her Security settings.</string>
 </dict>
 </plist>

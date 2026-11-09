@@ -626,6 +626,7 @@ namespace CapriDesktop
                 SettingsChecks();
                 SecurityChecks();
                 TerminalSecurityChecks();
+                MacNativeChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");
@@ -2647,6 +2648,8 @@ namespace CapriDesktop
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 pet.OpenMainframe();
                 Mainframe frame = pet.Frame;
+                if (OperatingSystem.IsMacOS() && (frame.Row("ChatGPT plan") == null || frame.Row("Stop") == null))
+                    throw new Exception("The Mac Mainframe lost its plan or Stop button.");
                 foreach (string font in new[] { "BarlowSemiCondensed-Regular.ttf", "BarlowSemiCondensed-SemiBold.ttf", "BarlowCondensed-SemiBold.ttf" })
                     if (!Avalonia.Platform.AssetLoader.Exists(new Uri("avares://Capri/Assets/" + font))) throw new Exception("The Mainframe font is missing: " + font);
                 var tray = pet.TrayMenu();
@@ -4714,9 +4717,109 @@ namespace CapriDesktop
             checks.Add("PASS Security gates: with each of the five toggles off she holds the call and asks (\"Open spotify? Say yes and I will.\", \"Lock your PC? Say yes and I will.\"), nothing runs until a yes, a yes runs it once through her own hands, a no leaves it alone and a new message drops it; two held calls are one question and one yes; in text chat her question goes out word for word and the next message's yes does it; mouse and keyboard jobs, which Mac and Linux don't have yet, never ask; and her brain is told to still call a tool that's off and let her ask");
         }
 
+        private void MacNativeChecks()
+        {
+            if (!OperatingSystem.IsMacOS()) return;
+            if (!Security.Has(Security.Terminal)) throw new Exception("The Mac terminal Security row is unavailable.");
+            foreach (ToolArguments denied in new[] {
+                new ToolArguments { Asked = "run pwd", Command = "pwd", FromFriend = true },
+                new ToolArguments { Asked = "run pwd", Command = "pwd", FromAgent = true },
+                new ToolArguments { Asked = "Do not run pwd", Command = "pwd" },
+                new ToolArguments { Asked = "run a diagnostic", Command = "rm scratch.txt" } })
+                if (TerminalJobs.Intent(denied) == null) throw new Exception("A Mac terminal request bypassed the owner-intent checks.");
+            string bridge = Path.Combine(AppContext.BaseDirectory, "bridge");
+            foreach (string name in new[] { "terminal_job.py", "mac_process.py", "sandbox.py", "mac_sandbox.py", "parent_watch.py", "plan_bridge.py", "account_bridge.py", "mac_smoke.py" })
+                if (!File.Exists(Path.Combine(bridge, name))) throw new Exception("A Mac bridge was not packaged: " + name);
+            string[] paths = { "/a python's/bin/python3", "/quoted \"bridge\"/\u03a9;$(false).py", "/a job's folder/\u96ea" };
+            ProcessStartInfo terminal = MacNative.Terminal(paths[0], paths[1], paths[2]);
+            if (terminal.FileName != "/usr/bin/osascript" || terminal.UseShellExecute || terminal.ArgumentList.Count != 3
+                || !terminal.ArgumentList[1].Contains("do script (item 1 of argv)"))
+                throw new Exception("Mac terminal launch did not keep code separate from arguments.");
+            using (Process parser = Process.Start(ComputerProcess.Start("/bin/sh", new[] { "-c", "printf '%s\\n' " + terminal.ArgumentList[2] })))
+            {
+                string words = parser.StandardOutput.ReadToEnd();
+                parser.WaitForExit();
+                if (parser.ExitCode != 0 || words != string.Join("\n", new[] { paths[0], "-B", "-E", "-S", paths[1], paths[2] }) + "\n") throw new Exception("Mac terminal paths were interpreted as shell code.");
+            }
+            ProcessStartInfo browser = MacNative.Browser();
+            if (browser.ArgumentList.Count != 1 || browser.ArgumentList[0] != "-" || !browser.RedirectStandardInput)
+                throw new Exception("Mac browser sign-in did not use private script input.");
+            using (Process parser = Process.Start(ComputerProcess.Start("/usr/bin/osascript", new[] { "-e", "return " + MacNative.AppleString("a \"quote\" and \\ slash \u03a9") })))
+            {
+                string words = parser.StandardOutput.ReadToEnd(); parser.WaitForExit();
+                if (parser.ExitCode != 0 || words.TrimEnd('\r', '\n') != "a \"quote\" and \\ slash \u03a9") throw new Exception("Mac browser script escaping failed.");
+            }
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            string pythonWas = pet.Saved.PlanPython, problemWas = pet.MainframeProblem;
+            try
+            {
+                pet.Saved.PlanPython = null;
+                pet.UsePlan();
+                if (pet.MainframeProblem != "ChatGPT plan needs its Python environment from tools/plan-requirements.lock; set PlanPython to that environment's Python executable."
+                    || pet.Talk.Reply != pet.MainframeProblem) throw new Exception("The Mac plan button lost the missing-setup answer.");
+            }
+            finally
+            {
+                pet.Saved.PlanPython = pythonWas;
+                typeof(Pet).GetField("frameProblem", fields).SetValue(pet, problemWas);
+                pet.Talk.Dismiss(); pet.NotifySettings();
+            }
+            string account = Path.Combine(folder, "fake-plan-account"), requestPath = Path.Combine(folder, "fake-plan-request.json");
+            Directory.CreateDirectory(account, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            string active = Path.Combine(account, "active.json");
+            File.WriteAllText(active, "{\"account\":\"" + new string('a', 64) + "\"}");
+            File.SetUnixFileMode(active, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            Func<ProcessStartInfo, Process> launchWas = Bridge.Launch;
+            Func<bool> availableWas = Hands.TerminalAvailable;
+            try
+            {
+                Hands.TerminalAvailable = () => true;
+                string tools = Hands.KitFor().Tools;
+                if (!tools.Contains("\"name\":\"run_terminal\"") || !tools.Contains("\"name\":\"terminal_job\"") || tools.Contains("\"name\":\"linux_system\""))
+                    throw new Exception("The Mac catalog filtered a wired terminal tool or exposed Linux diagnostics.");
+                string command = "printf 'quoted \u03a9'";
+                string answer = System.Text.Json.JsonSerializer.Serialize(new { text = "Fixture answer.", calls = new[] { new { name = "run_terminal", arguments = new { command, visible = false } } } });
+                string delta = System.Text.Json.JsonSerializer.Serialize(new { @event = "delta", text = answer });
+                string done = System.Text.Json.JsonSerializer.Serialize(new { @event = "done", text = answer });
+                bool launched = false, mismatch = false;
+                Bridge.Launch = start =>
+                {
+                    launched = start.FileName == "/bin/sh" && start.ArgumentList.Contains("plan") && start.ArgumentList.Contains("--python")
+                        && start.ArgumentList.Contains("-B") && start.ArgumentList.Contains("-E") && start.ArgumentList.Contains("-S")
+                        && start.ArgumentList.Contains(Path.Combine(bridge, "sandbox.py")) && !start.Environment.ContainsKey("PYTHONPATH") && !start.Environment.ContainsKey("OPENAI_API_KEY");
+                    string response = delta + "\n" + (mismatch ? "{\"event\":\"done\",\"text\":\"wrong\"}" : done);
+                    return Process.Start(ComputerProcess.Start("/bin/sh", new[] { "-c", "cat > " + MacNative.ShellWord(requestPath) + "; printf '%s\\n' " + MacNative.ShellWord(response) }));
+                };
+                var plan = new PlanBrain("/bin/sh", account, "fake-model", null, null, null, null, null);
+                var calls = new List<KeyValuePair<string, ToolArguments>>();
+                string text = plan.Complete(null, new List<ChatMessage> { new ChatMessage("user", "Fixture question.") }, tools, calls, 512, null, "chat");
+                using var sent = System.Text.Json.JsonDocument.Parse(File.ReadAllText(requestPath));
+                if (!launched || text != "Fixture answer." || calls.Count != 1 || calls[0].Key != "run_terminal" || calls[0].Value.Command != command || calls[0].Value.Visible != false
+                    || sent.RootElement.GetProperty("model").GetString() != "fake-model") throw new Exception("The Mac plan bridge lost its request or typed tool proposal.");
+                mismatch = true;
+                bool refused = false;
+                try { plan.Complete(null, new List<ChatMessage>(), tools, new List<KeyValuePair<string, ToolArguments>>(), 512, null, "chat"); }
+                catch (BrainException) { refused = true; }
+                if (!refused) throw new Exception("The Mac plan bridge accepted an unfinished response.");
+            }
+            finally { Bridge.Launch = launchWas; Hands.TerminalAvailable = availableWas; }
+            checks.Add("PASS Mac native adapters: quoted Terminal argv, browser script input, terminal catalog, missing plan setup and fake streamed plan proposals work without a terminal or Python environment; inconsistent completion is rejected");
+            string python = MacNative.Python();
+            if (python != null)
+            {
+                using Process process = Process.Start(ComputerProcess.Start(python, new[] { "-B", "-E", "-S", Path.Combine(bridge, "mac_smoke.py"), Path.Combine(folder, "mac-processes"), MacNative.ProcessIdentity(Environment.ProcessId) }));
+                process.StandardInput.Close();
+                var output = process.StandardOutput.ReadToEndAsync(); var error = process.StandardError.ReadToEndAsync();
+                if (!process.WaitForExit(12000)) { Bridge.Kill(process); throw new Exception("Mac process smoke checks timed out."); }
+                if (process.ExitCode != 0) throw new Exception("Mac process smoke checks: " + output.GetAwaiter().GetResult() + error.GetAwaiter().GetResult());
+                checks.Add("PASS Mac process backends: libproc identity, real PTY exit/output/stop, parent lifetime and Seatbelt read/write boundaries work with offline fixtures");
+            }
+            else checks.Add("INFO no local python3: Mac process fixtures skipped; fake adapter and Security checks passed");
+        }
+
         private void TerminalSecurityChecks()
         {
-            if (!OperatingSystem.IsLinux()) return;
+            if (!TerminalJobs.Supported) return;
             string saved = Security.Saved;
             Func<ToolArguments, string> terminalWas = Hands.NativeTerminal;
             Func<bool> availableWas = Hands.TerminalAvailable;

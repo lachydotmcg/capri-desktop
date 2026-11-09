@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import sys
 from pathlib import Path
 
 
@@ -13,6 +14,10 @@ def main():
     parser.add_argument('--resource', required=True)
     parser.add_argument('--cache')
     args = parser.parse_args()
+    if sys.platform == 'darwin':
+        from mac_sandbox import launch
+        launch(args)
+        return
     python = Path(args.python).absolute()
     worker = Path(args.worker).absolute()
     if not python.is_file() or not worker.is_file():

@@ -73,13 +73,14 @@ namespace CapriDesktop
 
         private static void OpenBrowser(string url, Func<bool> current)
         {
-            ProcessStartInfo start = ComputerProcess.Start("/usr/bin/python3", new[] { Path.Combine(AppContext.BaseDirectory, "bridge/portal_open.py") });
+            bool mac = OperatingSystem.IsMacOS();
+            ProcessStartInfo start = mac ? MacNative.Browser() : ComputerProcess.Start("/usr/bin/python3", new[] { Path.Combine(AppContext.BaseDirectory, "bridge/portal_open.py") });
             using Process browser = Process.Start(start);
             using CancellationTokenSource timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
             using CancellationTokenRegistration abort = timeout.Token.Register(() => Bridge.Kill(browser));
             var output = browser.StandardOutput.ReadToEndAsync();
             var error = browser.StandardError.ReadToEndAsync();
-            browser.StandardInput.Write(url); browser.StandardInput.Close();
+            browser.StandardInput.Write(mac ? "open location " + MacNative.AppleString(url) : url); browser.StandardInput.Close();
             while (!browser.WaitForExit(100))
                 if (!current()) { Bridge.Kill(browser); throw new OperationCanceledException(); }
             if (!current()) throw new OperationCanceledException();

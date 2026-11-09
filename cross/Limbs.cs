@@ -100,11 +100,11 @@ namespace CapriDesktop
                 Hands.NativeRequest = LinuxRoutes.Request;
                 Hands.NativeWindow = LinuxRoutes.Window;
                 Hands.NativeSystem = LinuxRoutes.System;
-                Hands.NativeTerminal = TerminalJobs.Run;
-                Hands.NativeTerminalJob = TerminalJobs.Control;
-                Hands.TerminalAvailable = () => TerminalJobs.Available;
                 Hands.NativeWebsite = LinuxRoutes.Website;
             }
+            Hands.NativeTerminal = TerminalJobs.Run;
+            Hands.NativeTerminalJob = TerminalJobs.Control;
+            Hands.TerminalAvailable = () => TerminalJobs.Available;
             Hands.Run = delegate(string id) { Open(id, OnMac); };
             Hands.Press = delegate(byte key) { Key(key, OnMac); };
             Hands.Catalog = delegate

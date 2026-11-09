@@ -66,7 +66,11 @@ def emit(value):
 
 async def main():
     parent = os.getppid()
-    ctypes.CDLL(None).prctl(1, 15, 0, 0, 0)
+    if sys.platform == 'darwin':
+        from parent_watch import bind_parent
+        bind_parent()
+    else:
+        ctypes.CDLL(None).prctl(1, 15, 0, 0, 0)
     if os.getppid() != parent:
         return 1
     raw = sys.stdin.buffer.readline(MAX_REQUEST + 1)

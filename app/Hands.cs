@@ -2113,7 +2113,7 @@ namespace CapriDesktop
             }
 #if CROSS
             if (OnMac) missing.Add(new[] { "linux_system", "Linux system tools are unavailable on macOS." });
-            if (OnMac || TerminalAvailable == null || !TerminalAvailable())
+            if (TerminalAvailable == null || !TerminalAvailable())
                 foreach (string tool in new[] { "run_terminal", "terminal_job" }) missing.Add(new[] { tool, "Native terminal jobs are unavailable on this platform." });
             if (!OwnHands)
             {

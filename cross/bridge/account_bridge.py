@@ -24,7 +24,11 @@ class NativeAccount(PlanProvider):
 
 
 async def main():
-    ctypes.CDLL(None).prctl(1, 15, 0, 0, 0)
+    if sys.platform == 'darwin':
+        from parent_watch import bind_parent
+        bind_parent()
+    else:
+        ctypes.CDLL(None).prctl(1, 15, 0, 0, 0)
     os.umask(0o077)
     raw = sys.stdin.buffer.readline(16385)
     if len(raw) > 16384: raise Denied('Account request too large')

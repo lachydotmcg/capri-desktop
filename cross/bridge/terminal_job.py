@@ -12,11 +12,16 @@ import termios
 import time
 import tty
 
+if sys.platform == 'darwin':
+    import mac_process
+
 CAP = 262144
 ANSI = re.compile(r'\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]|\x1b[@-_]')
 
 
 def identity(pid):
+    if sys.platform == 'darwin':
+        return mac_process.identity(pid)
     try:
         return Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[19]
     except (OSError, IndexError):
@@ -25,6 +30,8 @@ def identity(pid):
 
 def session_members(session):
     """Bind processes in this still-owned terminal session; unrelated terminals are excluded."""
+    if sys.platform == 'darwin':
+        return mac_process.session_members(session)
     members = []
     for entry in Path('/proc').iterdir():
         if not entry.name.isdigit():
@@ -39,6 +46,8 @@ def session_members(session):
 
 
 def terminate_session(session):
+    if sys.platform == 'darwin':
+        return mac_process.terminate_session(session)
     # Interactive shells create several process groups in one session. PID descriptors and
     # start-time revalidation prevent a reused PID from receiving an old job's cancellation.
     for pid, start in session_members(session):
@@ -101,6 +110,11 @@ def supervise(directory):
         signal.signal(signal.SIGTERM, stop)
         signal.signal(signal.SIGHUP, stop)
         signal.signal(signal.SIGINT, stop)
+        if sys.platform == 'darwin' and ((directory / 'stop').exists() or time.time() > request['launch_deadline'] or identity(request['owner_pid']) != request['owner_start']):
+            stopped = True
+            reason = 'requested' if (directory / 'stop').exists() else 'launch expired' if time.time() > request['launch_deadline'] else 'owner exited'
+            save('stopped')
+            return 0
         child, master = pty.fork()
         if child == 0:
             os.chdir(request['cwd'])
@@ -108,7 +122,11 @@ def supervise(directory):
         if original:
             # The child PTY owns /dev/tty and its foreground process group. Relay native keys,
             # including Ctrl-C and authentication input, without recording stdin.
-            termios.tcsetwinsize(master, termios.tcgetwinsize(0))
+            if sys.platform == 'darwin':
+                import fcntl
+                fcntl.ioctl(master, termios.TIOCSWINSZ, fcntl.ioctl(0, termios.TIOCGWINSZ, b'\0' * 8))
+            else:
+                termios.tcsetwinsize(master, termios.tcgetwinsize(0))
             tty.setraw(0)
         os.set_blocking(master, False)
         save('running')
@@ -120,9 +138,9 @@ def supervise(directory):
             if not owner_alive or (directory / 'stop').exists() or now - started > request.get('timeout', 3600):
                 reason = 'owner exited' if not owner_alive else 'timeout' if now - started > request.get('timeout', 3600) else 'requested'
                 stop()
-            done = os.waitid(os.P_PID, child, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+            done = mac_process.wait_child(child) if sys.platform == 'darwin' else os.waitid(os.P_PID, child, os.WEXITED | os.WNOHANG | os.WNOWAIT)
             if done is not None:
-                exit_code = done.si_status if done.si_code == os.CLD_EXITED else 128 + done.si_status
+                exit_code = done.si_status if done.si_code == (1 if sys.platform == 'darwin' else os.CLD_EXITED) else 128 + done.si_status
                 # EOF may precede shell exit when it redirects its own descriptors.
                 # Session cleanup must still include detached-from-PTY job-control groups.
                 terminate_session(child)
@@ -161,8 +179,13 @@ def supervise(directory):
                 save('stopping' if stopped else 'running')
                 last_write = now
             if done is not None and eof and not session_members(child):
-                os.waitpid(child, 0)
-                save('stopped' if stopped else 'exited')
+                if sys.platform == 'darwin':
+                    save('stopped' if stopped else 'exited')
+                    finished_child, child = child, None
+                    os.waitpid(finished_child, 0)
+                else:
+                    os.waitpid(child, 0)
+                    save('stopped' if stopped else 'exited')
                 break
     except BaseException as error:
         stop()

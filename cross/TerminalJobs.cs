@@ -17,6 +17,7 @@ namespace CapriDesktop
         {
             internal string Id, Directory, Cwd, Context;
             internal Process Launcher;
+            internal bool MacTerminal;
             internal DateTime Started = DateTime.UtcNow;
         }
         private static readonly object gate = new object();
@@ -27,7 +28,10 @@ namespace CapriDesktop
         static TerminalJobs() { AppDomain.CurrentDomain.ProcessExit += (_, _) => Shutdown(); }
         private static readonly Timer monitor = new Timer(_ => CheckContext(), null, Timeout.Infinite, Timeout.Infinite);
         private static readonly UnixFileMode Private = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
-        internal static bool Available => OperatingSystem.IsLinux() && File.Exists("/usr/bin/python3") && File.Exists(Worker);
+        internal static bool Supported => OperatingSystem.IsLinux() || OperatingSystem.IsMacOS();
+        internal static bool Available => Supported && File.Exists(Python) && File.Exists(Worker)
+            && (!OperatingSystem.IsMacOS() || File.Exists(Path.Combine(AppContext.BaseDirectory, "bridge", "mac_process.py")));
+        private static string Python => OperatingSystem.IsMacOS() ? MacNative.Python() : "/usr/bin/python3";
         private static string Worker => Path.Combine(AppContext.BaseDirectory, "bridge", "terminal_job.py");
         private static bool Current(ToolArguments args) => args.Current == null || args.Current();
 
@@ -64,10 +68,12 @@ namespace CapriDesktop
             if (string.IsNullOrEmpty(shell)) shell = "/bin/sh";
             if (!Path.IsPathFullyQualified(shell) || !File.Exists(shell)) return "The configured user shell is missing.";
             bool visible = args.Visible ?? true;
-            string terminal = visible ? ArchApps.Executable(Environment.GetEnvironmentVariable("TERMINAL") ?? "kitty") : null;
-            if (visible && terminal == null) return "The configured terminal is missing. Set TERMINAL to an executable (kitty, foot, alacritty or xterm).";
+            bool mac = OperatingSystem.IsMacOS();
+            string python = Python;
+            string terminal = visible && !mac ? ArchApps.Executable(Environment.GetEnvironmentVariable("TERMINAL") ?? "kitty") : null;
+            if (visible && !mac && terminal == null) return "The configured terminal is missing. Set TERMINAL to an executable (kitty, foot, alacritty or xterm).";
             string kind = terminal == null ? null : Path.GetFileName(terminal);
-            if (visible && kind != "kitty" && kind != "foot" && kind != "alacritty" && kind != "xterm") return "This terminal has no qualified argv adapter. Supported: kitty, foot, alacritty, xterm.";
+            if (visible && !mac && kind != "kitty" && kind != "foot" && kind != "alacritty" && kind != "xterm") return "This terminal has no qualified argv adapter. Supported: kitty, foot, alacritty, xterm.";
             Job job;
             lock (gate)
             {
@@ -82,11 +88,19 @@ namespace CapriDesktop
                 }
                 string id = Guid.NewGuid().ToString("N"), directory = Path.Combine(root, id);
                 System.IO.Directory.CreateDirectory(directory, Private);
-                job = new Job { Id = id, Directory = directory, Cwd = cwd, Context = Context() };
-                string start = File.ReadAllText("/proc/self/stat").Split(')').Last().Split(' ', StringSplitOptions.RemoveEmptyEntries)[19];
-                WritePrivate(Path.Combine(directory, "request.json"), JsonSerializer.Serialize(new { job_id = id, command = args.Command, cwd, shell, visible, owner_pid = Environment.ProcessId, owner_start = start, timeout = 3600 }));
-                ProcessStartInfo info = new ProcessStartInfo(visible ? terminal : "/usr/bin/python3") { UseShellExecute = false, WorkingDirectory = cwd, CreateNoWindow = !visible };
-                if (visible)
+                job = new Job { Id = id, Directory = directory, Cwd = cwd, Context = Context(), MacTerminal = mac && visible };
+                string start = mac ? MacNative.ProcessIdentity(Environment.ProcessId) : File.ReadAllText("/proc/self/stat").Split(')').Last().Split(' ', StringSplitOptions.RemoveEmptyEntries)[19];
+                string request = JsonSerializer.Serialize(new { job_id = id, command = args.Command, cwd, shell, visible, owner_pid = Environment.ProcessId, owner_start = start, timeout = 3600 });
+                if (mac)
+                {
+                    var value = System.Text.Json.Nodes.JsonNode.Parse(request).AsObject();
+                    value["launch_deadline"] = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + 15;
+                    request = value.ToJsonString();
+                }
+                WritePrivate(Path.Combine(directory, "request.json"), request);
+                ProcessStartInfo info = mac && visible ? MacNative.Terminal(python, Worker, directory)
+                    : new ProcessStartInfo(visible ? terminal : python) { UseShellExecute = false, WorkingDirectory = cwd, CreateNoWindow = !visible };
+                if (visible && !mac)
                 {
                     if (kind == "kitty") foreach (string s in new[] { "--hold", "--title", "Capri terminal " + id.Substring(0, 8), "--directory", cwd }) info.ArgumentList.Add(s);
                     else if (kind == "alacritty") foreach (string s in new[] { "--hold", "--working-directory", cwd, "-e" }) info.ArgumentList.Add(s);
@@ -94,7 +108,8 @@ namespace CapriDesktop
                     else foreach (string s in new[] { "-hold", "-e" }) info.ArgumentList.Add(s);
                     info.ArgumentList.Add("/usr/bin/python3");
                 }
-                info.ArgumentList.Add(Worker); info.ArgumentList.Add(directory);
+                if (mac && !visible) foreach (string flag in new[] { "-B", "-E", "-S" }) info.ArgumentList.Add(flag);
+                if (!mac || !visible) { info.ArgumentList.Add(Worker); info.ArgumentList.Add(directory); }
                 try { job.Launcher = Process.Start(info); jobs.Add(id, job); monitor.Change(500, 500); }
                 catch { System.IO.Directory.Delete(directory, true); throw; }
             }
@@ -173,7 +188,17 @@ namespace CapriDesktop
         private static bool Active(Job job)
         {
             try { using var d = JsonDocument.Parse(File.ReadAllText(Path.Combine(job.Directory, "status.json"))); string state = d.RootElement.GetProperty("state").GetString(); return state == "running" || state == "starting" || state == "stopping"; }
-            catch (IOException) { return DateTime.UtcNow - job.Started < TimeSpan.FromSeconds(15); }
+            catch (IOException)
+            {
+                bool waiting = DateTime.UtcNow - job.Started < TimeSpan.FromSeconds(15);
+                if (!waiting && OperatingSystem.IsMacOS())
+                {
+                    try { Stop(job); }
+                    catch (DirectoryNotFoundException) { }
+                    catch (IOException) { return true; }
+                }
+                return waiting;
+            }
         }
         private static void Sweep()
         {
@@ -187,16 +212,30 @@ namespace CapriDesktop
             int start = StringInfo.ParseCombiningCharacters(output).Where(index => index >= cut).DefaultIfEmpty(output.Length).First();
             return output.Substring(start);
         }
+        private static string WithStopScope(string response)
+        {
+            if (!OperatingSystem.IsMacOS()) return response;
+            var value = System.Text.Json.Nodes.JsonNode.Parse(response).AsObject();
+            value["stop_scope"] = "The command's original process group. Separate job-control groups must be stopped in Terminal; the job stays pending until they exit.";
+            return value.ToJsonString();
+        }
+
         private static string Read(Job job, long offset)
         {
             string path = Path.Combine(job.Directory, "status.json");
-            if (!File.Exists(path)) return JsonSerializer.Serialize(new { job_id = job.Id, state = DateTime.UtcNow - job.Started > TimeSpan.FromSeconds(15) ? "failed" : "starting", cwd = job.Cwd, error = "No command-start receipt yet; launcher exit is not command completion." });
+            if (!File.Exists(path))
+            {
+                bool rejected = job.MacTerminal && job.Launcher != null && job.Launcher.HasExited && job.Launcher.ExitCode != 0;
+                if (rejected || OperatingSystem.IsMacOS() && DateTime.UtcNow - job.Started >= TimeSpan.FromSeconds(15)) Stop(job);
+                return WithStopScope(JsonSerializer.Serialize(new { job_id = job.Id, state = rejected || DateTime.UtcNow - job.Started > TimeSpan.FromSeconds(15) ? "failed" : "starting", cwd = job.Cwd,
+                    error = rejected ? "Terminal.app did not accept the job. Check Terminal and Capri's Automation permission in System Settings > Privacy & Security." : "No command-start receipt yet; launcher exit is not command completion." }));
+            }
             using var d = JsonDocument.Parse(File.ReadAllText(path)); var state = d.RootElement;
             string output = state.GetProperty("output").GetString();
             long total = state.GetProperty("total_bytes").GetInt64();
             // Cursor is a byte observation watermark. Each changed read returns the bounded current tail,
             // explicitly allowing overlap; raw bytes remain in the private capped transcript.
-            return JsonSerializer.Serialize(new { job_id = job.Id, state = state.GetProperty("state").GetString(), cwd = job.Cwd, exit_code = state.GetProperty("exit_code"), output = total > offset ? Tail(output) : "", next_offset = total, tail_may_overlap = true, truncated = state.GetProperty("truncated").GetBoolean() || output.Length > 8000, interactive = state.GetProperty("interactive"), error = state.GetProperty("error"), stop_reason = state.GetProperty("stop_reason") });
+            return WithStopScope(JsonSerializer.Serialize(new { job_id = job.Id, state = state.GetProperty("state").GetString(), cwd = job.Cwd, exit_code = state.GetProperty("exit_code"), output = total > offset ? Tail(output) : "", next_offset = total, tail_may_overlap = true, truncated = state.GetProperty("truncated").GetBoolean() || output.Length > 8000, interactive = state.GetProperty("interactive"), error = state.GetProperty("error"), stop_reason = state.GetProperty("stop_reason") }));
         }
     }
 }

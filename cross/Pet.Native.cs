@@ -46,17 +46,28 @@ namespace CapriDesktop
 
         private void InitializeNativeAdapters()
         {
-            if (!OperatingSystem.IsLinux() || Program.Smoke != null) return;
+            if (!TerminalJobs.Supported || Program.Smoke != null) return;
             TerminalJobs.Context = () => (Brain.Provider?.Identity ?? Brain.Model ?? "") + "|" + HyprlandDesktop.Current?.SessionId + "|" + HyprlandDesktop.Current?.Snapshot?.Locked + "|" + Security.Saved;
-            Voice.CubicLoudness = Saved.CubicVoiceVolume;
-            ownedVoice.Python = Saved.OwnedVoicePython;
-            ownedVoice.Profile = Saved.OwnedVoiceProfile;
-            ownedVoice.Cache = Path.Combine(folder, "speech-cache");
-            Voice.Playback = SpeechAudio.Play;
-            Voice.Silence = SpeechAudio.Stop;
-            SpeechAudio.Failed += problem => Dispatcher.UIThread.Post(() => { voiceProblem = problem; NotifySettings(); });
-            if (Saved.NativePlan) SelectPlan();
-            InitializeNameListening();
+            if (OperatingSystem.IsLinux())
+            {
+                Voice.CubicLoudness = Saved.CubicVoiceVolume;
+                ownedVoice.Python = Saved.OwnedVoicePython;
+                ownedVoice.Profile = Saved.OwnedVoiceProfile;
+                ownedVoice.Cache = Path.Combine(folder, "speech-cache");
+                Voice.Playback = SpeechAudio.Play;
+                Voice.Silence = SpeechAudio.Stop;
+                SpeechAudio.Failed += problem => Dispatcher.UIThread.Post(() => { voiceProblem = problem; NotifySettings(); });
+            }
+            if (Saved.NativePlan)
+            {
+                if (OperatingSystem.IsLinux()) SelectPlan();
+                else
+                {
+                    try { SelectPlan(); }
+                    catch (Exception error) { Saved.NativePlan = false; frameProblem = error.Message; }
+                }
+            }
+            if (OperatingSystem.IsLinux()) InitializeNameListening();
             Closed += (_, _) => { TerminalJobs.Shutdown(); CancelAccountConnection(); ComputerJobs.Stop(); ownedVoice.Dispose(); StopNativeListening(); SpeechAudio.Stop(); };
         }
 
@@ -76,7 +87,7 @@ namespace CapriDesktop
 
         internal void UsePlan()
         {
-            if (!OperatingSystem.IsLinux()) { frameProblem = "ChatGPT plan linking is available in this Linux candidate."; NotifySettings(); return; }
+            if (!TerminalJobs.Supported) return;
             if (accountConnecting) { frameProblem = "Sign-in is already open in your browser."; NotifySettings(); return; }
             if (!File.Exists(Saved.PlanPython)) { frameProblem = "ChatGPT plan needs its Python environment from tools/plan-requirements.lock; set PlanPython to that environment's Python executable."; NotifySettings(); Talk.Answer("(ChatGPT plan)", frameProblem); return; }
             string directory;
