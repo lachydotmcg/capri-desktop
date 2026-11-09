@@ -2396,7 +2396,7 @@ namespace CapriDesktop
                     foreach (bool own in new[] { false, true })
                     {
                         Hands.OwnHands = own;
-                        foreach (string words in new[] { "play chess", "let's play chess", "open chess", "play a game of chess with me", "play chess on hard as black", "play tic-tac-toe", "play connect four", "play rock paper scissors" })
+                        foreach (string words in new[] { "play chess", "let's play chess", "open chess", "play a game of chess with me", "play chess on hard as black", "play tic-tac-toe", "play connect four", "play rock paper scissors", "play connect four on easy" })
                         {
                             string tool;
                             ToolArguments args;
