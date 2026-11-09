@@ -40,6 +40,7 @@ def profile(reads, writes, runtime=None):
              '(allow process-fork)',
              '(allow signal (target same-sandbox))',
              '(allow process-info* (target same-sandbox))',
+             '(allow process-info-pidinfo process-info-setcontrol (target self))',
              '(allow sysctl-read)', '(allow file-read-metadata)',
              '(allow network*)',
              '(allow system-socket (require-all (socket-domain AF_SYSTEM) (socket-protocol 2)))',
@@ -51,10 +52,21 @@ def profile(reads, writes, runtime=None):
              '(global-name "com.apple.system.opendirectoryd.membership") '
              '(global-name "com.apple.logd") '
              '(global-name "com.apple.system.logger") '
+             '(global-name "com.apple.system.notification_center") '
+             '(global-name "com.apple.cfprefsd.daemon") '
+             '(global-name "com.apple.cfprefsd.agent") '
+             '(global-name "com.apple.diagnosticd") '
              '(global-name "com.apple.SecurityServer") '
              '(global-name "com.apple.ocspd") '
              '(global-name "com.apple.trustd.agent"))',
-             '(allow file-write-data (literal "/dev/null"))']
+             '(allow ipc-posix-shm-read* (ipc-posix-name "apple.shm.notification_center") '
+             '(ipc-posix-name-regex #"^apple[.]cfprefs[.]"))',
+             '(allow file-read* file-write-data '
+             '(require-all (require-any (literal "/dev/null") (literal "/dev/zero")) (vnode-type CHARACTER-DEVICE)))',
+             '(allow file-read* file-write-data file-ioctl '
+             '(require-all (literal "/dev/dtracehelper") (vnode-type CHARACTER-DEVICE)))',
+             '(allow file-read-data (literal "/Library/Preferences/.GlobalPreferences.plist") '
+             '(literal "/Library/Managed Preferences/.GlobalPreferences.plist"))']
     for path in sorted(reads | writes):
         rules.append('(allow file-read* (subpath ' + quoted(path) + '))')
     for path in sorted(writes):

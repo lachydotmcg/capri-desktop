@@ -1,5 +1,6 @@
 """Offline Mac process fixtures, invoked only by Capri --smoke."""
 import json
+import itertools
 import os
 from pathlib import Path
 import signal
@@ -11,6 +12,35 @@ sys.dont_write_bytecode = True
 os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 
 import mac_process
+
+
+STARTED = b'capri-sandbox-started'
+STARTUP_GROUPS = (
+    ('mach-lookups', '(allow mach-lookup)'),
+    ('posix-shm', '(allow ipc-posix-shm-read*)'),
+    ('sysctl', '(allow sysctl-read)'),
+    ('file-read-metadata', '(allow file-read-metadata)'),
+    ('file-read*', '(allow file-read*)'),
+    ('process-info', '(allow process-info*)'),
+    ('ioctl/dev', '(allow file-ioctl)\n(allow file-read* (subpath "/dev"))'),
+)
+CAPTURE_LAUNCH = '''import json, os, runpy, sys
+record, script = sys.argv[1:3]
+sys.path.insert(0, os.path.dirname(script))
+sys.argv = sys.argv[2:]
+execute = os.execve
+def capture(path, arguments, environment):
+    with open(record, 'w', encoding='utf-8') as stream:
+        json.dump(dict(path=path, arguments=arguments, environment=environment, cwd=os.getcwd()), stream)
+    execute(path, arguments, environment)
+os.execve = capture
+runpy.run_path(script, run_name='__main__')
+'''
+
+
+def clipped(value, limit):
+    value = str(value)
+    return value if len(value) <= limit else value[:limit - 3] + '...'
 
 
 def until(predicate, seconds=3):
@@ -113,21 +143,109 @@ def parent_lifetime():
         process.stdout.close(); process.stderr.close()
 
 
-def sandbox_denials():
+def sandbox_denials(executable):
+    name = Path(executable).name
+    predicate = ('(process == ' + json.dumps(name) + ' OR eventMessage CONTAINS ' + json.dumps(name + '(')
+        + ' OR eventMessage CONTAINS ' + json.dumps(name + '[') + ') AND eventMessage CONTAINS[c] "deny"')
     try:
-        result = subprocess.run(['/usr/bin/log', 'show', '--last', '2m', '--style', 'compact', '--predicate',
-            'sender == "Sandbox" OR eventMessage CONTAINS "deny"'],
-            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=2)
+        result = subprocess.run(['/usr/bin/log', 'show', '--last', '30s', '--style', 'compact', '--info', '--debug',
+            '--predicate', predicate], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
         lines = result.stdout.decode('utf-8', errors='replace').splitlines()
-        return '\n'.join(line[-1000:] for line in lines[-8:]) or 'No sandbox denials were available.'
+        tail = '\n'.join(line[-300:] for line in lines[-3:])
+        if result.returncode:
+            tail = f'Log query exited {result.returncode}: ' + clipped(result.stderr.decode('utf-8', errors='replace'), 180) + '\n' + tail
+        return clipped(tail, 900) or 'No matching sandbox denials in the last 30 s.'
     except (OSError, subprocess.TimeoutExpired) as error:
-        return 'Sandbox denials unavailable: ' + type(error).__name__
+        partial = getattr(error, 'stdout', None) or b''
+        return clipped('Sandbox denials unavailable: ' + type(error).__name__ + '\n' + partial.decode('utf-8', errors='replace')[-700:], 900)
 
 
-def sandbox_failure(kind, resolved, returncode, stdout=b'', stderr=b''):
-    return (f'Confined {kind} launch failed: returncode={returncode}; interpreter={resolved["executable"]}; '
-            f'sys.executable={resolved["launcher"]}; base_prefix={resolved["base_prefix"]}; '
-            f'stdout={stdout!r}; stderr={stderr!r}\nLast sandbox denials:\n{sandbox_denials()}')
+def sandbox_bisect(record, stdout=b''):
+    if STARTED in (stdout or b'').splitlines():
+        return 'Bisection: Python reached the startup marker; the fixture failed after startup.'
+    try:
+        launch = json.loads(record.read_text(encoding='utf-8'))
+        arguments = launch['arguments']
+        if launch['path'] != '/usr/bin/sandbox-exec' or arguments[:2] != ['sandbox-exec', '-p']:
+            raise ValueError('Not a captured Seatbelt launch')
+        base = arguments[2]
+        environment, cwd = launch['environment'], launch['cwd']
+    except (OSError, ValueError, KeyError, TypeError, IndexError) as error:
+        return 'Bisection unavailable: ' + type(error).__name__ + ' (no confined launch captured).'
+
+    deadline = time.monotonic() + 30
+    outcomes, singles = {}, []
+
+    def attempt(indices):
+        if indices in outcomes:
+            return outcomes[indices]
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        command = [launch['path'], *arguments[1:]]
+        command[2] = base + '\n' + '\n'.join(STARTUP_GROUPS[index][1] for index in indices)
+        try:
+            result = subprocess.run(command, input=b'', stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                timeout=min(2, remaining), env=environment, cwd=cwd)
+            output, state = result.stdout, 'exit=' + str(result.returncode)
+        except subprocess.TimeoutExpired as error:
+            output, state = error.stdout or b'', 'timeout'
+        except OSError as error:
+            output, state = b'', type(error).__name__
+        started = STARTED in output.splitlines()
+        outcomes[indices] = (started, ('started/' if started else '') + state)
+        return outcomes[indices]
+
+    original = attempt(())
+    if original and original[0]:
+        return 'Bisection: unmodified replay started; no missing allowance isolated.'
+
+    def report(winner=None, proven=False, reason=''):
+        summary = 'Bisection: baseline=' + (original[1] if original else 'not retried') + '; ' + ', '.join(singles)
+        summary += f'; tries={len(outcomes)}. '
+        if winner is None:
+            return summary + reason
+        label = 'Smallest startup allowance' if proven else 'Working startup allowances (smallest unresolved: 30 s budget)'
+        names = ' + '.join(STARTUP_GROUPS[index][0] for index in winner)
+        rules = '\n'.join(STARTUP_GROUPS[index][1] for index in winner)
+        return summary + label + ': ' + names + '\n' + rules
+
+    for index, (name, _) in enumerate(STARTUP_GROUPS):
+        outcome = attempt((index,))
+        if outcome is None:
+            return report(reason='30 s budget exhausted; no working allowance isolated.')
+        singles.append(name + '=' + outcome[1])
+        if outcome[0]:
+            return report((index,), proven=True)
+
+    winner = tuple(range(len(STARTUP_GROUPS)))
+    together = attempt(winner)
+    if together is None or not together[0]:
+        return report(reason='All groups: ' + (together[1] if together else '30 s budget exhausted') + '; no working allowance isolated.')
+    for index in range(len(STARTUP_GROUPS)):
+        candidate = tuple(value for value in winner if value != index)
+        outcome = attempt(candidate)
+        if outcome is None:
+            return report(winner)
+        if outcome[0]:
+            winner = candidate
+    for size in range(2, len(winner)):
+        for candidate in itertools.combinations(range(len(STARTUP_GROUPS)), size):
+            outcome = attempt(candidate)
+            if outcome is None:
+                return report(winner)
+            if outcome[0]:
+                return report(candidate, proven=True)
+    return report(winner, proven=True)
+
+
+def sandbox_failure(kind, resolved, returncode, stdout=b'', stderr=b'', record=None):
+    denials = sandbox_denials(resolved['executable'])
+    bisection = sandbox_bisect(record, stdout) if record is not None else 'Bisection unavailable: no launch captured.'
+    return clipped((f'Confined {kind} launch failed: returncode={returncode}; interpreter={clipped(resolved["executable"], 240)}; '
+        f'sys.executable={clipped(resolved["launcher"], 160)}; base_prefix={clipped(resolved["base_prefix"], 120)}; '
+        f'stdout={clipped(repr(stdout), 160)}; stderr={clipped(repr(stderr), 240)}\n'
+        + clipped(bisection, 1100) + '\nLast sandbox denials:\n' + denials), 3000)
 
 
 def sandbox(root):
@@ -143,26 +261,30 @@ def sandbox(root):
     worker = directory / 'worker.py'
 
     def check(kind, python, extra=''):
-        worker.write_text("import asyncio, ctypes, select, ssl\nfrom pathlib import Path\nfrom parent_watch import bind_parent\nbind_parent()\n"
+        worker.write_text("print('capri-sandbox-started',flush=True)\nimport asyncio, ctypes, select, ssl\nfrom pathlib import Path\nfrom parent_watch import bind_parent\nbind_parent()\n"
             + extra
             + 'account=Path(' + repr(str(account)) + ')\n'
             + "assert (account/'fixture.txt').read_text() == 'allowed'\n"
             + "try:\n    Path(" + repr(str(forbidden)) + ").read_text()\n    raise AssertionError('ungranted read allowed')\nexcept PermissionError: pass\n"
+            + "try:\n    Path(" + repr(str(forbidden)) + ").write_text('changed')\n    raise AssertionError('ungranted write allowed')\nexcept PermissionError: pass\n"
             + "try:\n    (account/'written.txt').write_text('fixture')\n    written=True\nexcept PermissionError: written=False\n"
             + 'assert written == ' + repr(kind == 'account') + '\n'
             + "import os\nassert 'CAPRI_MAC_SMOKE_SENTINEL' not in os.environ\nprint('confined',flush=True)\n")
         environment = dict(os.environ, CAPRI_MAC_SMOKE_SENTINEL='fixture')
         interpreter = dict(resolved, launcher=str(python))
+        record = root / 'sandbox-launch.json'
+        record.unlink(missing_ok=True)
         try:
-            result = subprocess.run([str(python), '-B', '-E', '-S', str(Path(__file__).with_name('sandbox.py')),
+            result = subprocess.run([str(python), '-B', '-E', '-S', '-c', CAPTURE_LAUNCH,
+                str(record), str(Path(__file__).with_name('sandbox.py')),
                 '--kind', kind, '--python', str(python), '--worker', str(worker), '--resource', str(account)],
                 input=b'', stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=3, env=environment)
         except subprocess.TimeoutExpired as error:
-            raise AssertionError(sandbox_failure(kind, interpreter, 'timeout', error.stdout, error.stderr)) from error
+            raise AssertionError(sandbox_failure(kind, interpreter, 'timeout', error.stdout, error.stderr, record)) from error
         except OSError as error:
-            raise AssertionError(sandbox_failure(kind, interpreter, 'not started', stderr=str(error))) from error
-        if result.returncode != 0 or result.stdout.strip() != b'confined':
-            raise AssertionError(sandbox_failure(kind, interpreter, result.returncode, result.stdout, result.stderr))
+            raise AssertionError(sandbox_failure(kind, interpreter, 'not started', stderr=str(error), record=record)) from error
+        if result.returncode != 0 or result.stdout.splitlines() != [STARTED, b'confined']:
+            raise AssertionError(sandbox_failure(kind, interpreter, result.returncode, result.stdout, result.stderr, record))
 
     for kind in ('plan', 'account'):
         check(kind, sys.executable)
