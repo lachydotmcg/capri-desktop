@@ -130,6 +130,16 @@ These are generic, machine-learning or behaviour detections. They often flag new
 
 On VirusTotal, a few of about 70 engines flagging Capri.exe or Capri-Setup.exe is the same kind of detection. People have seen Bkav Pro (W32.Malware), SecureAge (Malicious) and Trapmine (Suspicious.low.ml.score). The SHA256 check below tells you whether your file is the one on the release page.
 
+### What do VirusTotal behaviour reports mean? (memory, mscoree.dll, process injection, obfuscated)
+VirusTotal's behaviour tab lists what a sandbox saw Capri-Setup.exe or Capri.exe do. Each flag is most likely from one of these things, not from a virus:
+- "Memory from unbacked memory", mscoree.dll loads, a vectored exception handler, CFG or DEP policy, or "unhooking": most likely the .NET runtime. Capri is a .NET app, so the runtime compiles her code into memory as she runs, and compiles any code mods you add, and sets up its own handlers. Sandboxes read that as these behaviours. Capri has no code that changes CFG or DEP or unhooks anything.
+- Starts at logon: most likely her Start with Windows entry. You can turn it off in Capri Mainframe > Settings > HABITS > Start with Windows.
+- Process injection: most likely her desktop icon prank. To read and move your desktop icons she uses a small piece of memory inside Explorer, the program that draws your desktop.
+- Obfuscated: most likely the setup carrying Capri.exe inside it and writing it out when it installs.
+- Names ending in !ml, or FileRep and Generic: machine-learning and reputation guesses for a new, unsigned file. Signing is the real fix, tracked in https://github.com/lachydotmcg/capri-desktop/issues/101
+
+If you're not sure about your file, check the download's SHA256 (below) and ask in the Discord. Don't turn your antivirus off.
+
 ### My browser won't download it
 - Opera "Failed - Insufficient permissions" (French: "Échec - Autorisations insuffisantes"): try another browser like Chrome or Edge, or download it from https://github.com/lachydotmcg/capri-desktop/releases/latest.
 - On a phone you may see a "dangerous download" warning. Capri doesn't run on phones. Download it on your PC.
@@ -1907,7 +1917,7 @@ Then check the exact message, your Capri version (top of the Mainframe), and the
 ### Install and antivirus
 - "Windows protected your PC": More info > Run anyway.
 - "Item Not Found", or the installer vanished: Ctrl + J > Keep in Chrome or Edge, or restore it from your antivirus quarantine. Open it from your Downloads folder.
-- Antivirus says Trojan, Wacatac, Zusy, Gen:Suspicious or MachineLearning/Anomalous: if you downloaded it from the Capri website or GitHub, it's a false alarm on a new unsigned app. Restore and allow it.
+- Antivirus says Trojan, Wacatac, Zusy, Gen:Suspicious or MachineLearning/Anomalous: if you downloaded it from the Capri website or GitHub, it's a false alarm on a new unsigned app. Restore and allow it. For what VirusTotal behaviour flags mean, see "What do VirusTotal behaviour reports mean?" above.
 - Opera "Insufficient permissions": use Chrome or Edge, or download from GitHub releases.
 - Phone says "dangerous download": Capri is a PC app. Download it on your PC.
 - "Quit Capri from her tray menu, then install again.": quit Capri first.
