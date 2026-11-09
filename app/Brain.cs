@@ -15,23 +15,34 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.8.6";
+        internal const string Version = "0.8.7";
         internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
-            + "Her new stand: she stands in her artist's new animation, facing left or right. If it broke your mod, turn on Legacy stand under CAPRI in her Mainframe and her old stand comes back straight away.\n"
-            + "Skins with their own idle keep it, and colour mods work on both stands.";
-        internal const string Line = "I just updated to " + Version + ": I've got a new stand, and Legacy stand brings back my old one if it broke your mod. Ask me what's new for the menu paths.";
+            + "Her tools: she runs the tools her brain picks without swapping them for something else. Phrase checks help when her brain can't use tools. With an Ollama model that can use tools, she works jobs out with all of them and keeps plain chat quick.\n"
+            + "Thinking: Mainframe > Settings > Advanced Settings > BRAIN > Thinking has Default, Off, Low, Medium or High for a cloud brain where the model supports them, saved per model; Extra request JSON is beside it.\n"
+            + "Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode adds OpenCode. Turn Verbosity off there to keep her to the big moments.\n"
+            + "Linux TALK: hover over her and press TALK to talk to her once her offline ears are set up.";
+        internal const string Line = "I just updated to " + Version + ": my tools follow my brain's choices now, and I can act out OpenCode's work too. Ask me what's new for the menu paths.";
 #else
-        internal const string Version = "0.8.6.1";
+        internal const string Version = "0.8.7";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "See-through file editor: her words, tabs and buttons sit in red straight on dark glass, with no box behind them, and whatever is behind the panel shows through it blurred, like Cyberpunk 2077's Arasaka ID panel.\n"
-            + "Play a game: say play and its name, like play Bloons TD 6, by voice or text. She opens it if it isn't open, picks a mode or map herself and keeps playing until you tell her to stop or press Esc. Give her an end, like one round or 10 minutes, and she stops there.\n"
-            + "Her new stand: she stands in her artist's new animation. If it broke your mod, Mainframe > Settings > CAPRI > Legacy stand brings back her old one straight away.\n"
-            + "File editor: Mainframe > Settings > YOU > File editor, or File editor in her right-click menu, opens personality.md and me.md in her own panel. Change the text, then press Save or Ctrl + S.\n"
-            + "Listen for Capri: once you've said her name she keeps listening for 20 seconds, so you can carry on without saying it again.\n"
-            + "Her clicks: when she uses your mouse, a new click effect plays at her pointer's tip, in her colour mods' colours.\n"
-            + "Call panel: its hover tips show on one line again.\n"
-            + "From 0.8.5.1: her own ears download again, from Capri's own copy. For a language other than English, pick it under Mainframe > Settings > YOU > Language and she downloads the ears that hear it.";
-        internal const string Line = "I just updated to " + Version + ": my file editor is see-through dark glass now, and tell me to play a game and I'll keep playing till you stop me. Ask me what's new for the menu paths.";
+            + "Capri Remote: Mainframe > CAPRI > Remote, turn it on, press Pair a phone and scan the QR code with your phone. Check the codes match, then press Allow on your PC. Text her, call her, watch your PC's screen and follow JOBS at capriai.app/remote. With no PC, use her on your phone with your own key. Windows only; off until you turn it on.\n"
+            + "Her tools: she runs the tools her brain picks without swapping them for something else. Phrase checks help when her brain can't use tools.\n"
+            + "Local jobs: an Ollama model that can use tools now works jobs out with all her tools; plain chat still gets a quick answer.\n"
+            + "Voice chat: every reply with no tool behind it gets a second look from her brain, so she can act when she said she would.\n"
+            + "Thinking: Mainframe > Settings > Advanced Settings > BRAIN > Thinking has Default, Off, Low, Medium or High for a cloud brain where the model supports them, saved per model; Extra request JSON is beside it.\n"
+            + "Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode adds OpenCode. Turn Verbosity off there to keep her to the big moments.\n"
+            + "Mods directory: Mainframe > Mods > Browse mods sorts by Downloads or Top rated and now says every mod is checked for malware before it goes up.\n"
+            + "Installed mods: Mainframe > Mods lets you search by name or author. Press Update mods to find newer copies, then press it again to get them.\n"
+            + "Mod messages: on Mainframe > Mods, messages fade after five seconds and problems after ten.\n"
+            + "Skin mods: skins can carry both stands, so Mainframe > Settings > CAPRI > Legacy stand can use the skin's old stand too.\n"
+            + "Start with Windows: Mainframe > Settings > HABITS > Start with Windows stays off on a new install until you turn it on. If you already have it on, it stays on.\n"
+            + "File editor: Mainframe > Settings > YOU > File editor opens and closes more smoothly.\n"
+            + "Game keys: when she plays a game, she clicks inside it once after it loads or comes back to the front, so her movement keys reach it.\n"
+            + "Game reminders: with Mainframe > Settings > HABITS > Hide in full screen on, she comes out to show a due reminder, then hides again.\n"
+            + "Windows 10 ears: she starts unpacking her offline ears herself, without waiting for Windows' tar to try first.\n"
+            + "Finding her brain: while she can't see a brain, she looks again every 15 seconds, so she finds Ollama after it starts without you pressing Refresh in Mainframe > BRAIN.\n"
+            + "From 0.8.6.1: her file editor is see-through dark glass.";
+        internal const string Line = "I just updated to " + Version + ": you can text me from your phone with Capri Remote now. Ask me what's new for the menu paths.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
