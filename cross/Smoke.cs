@@ -12,6 +12,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -3202,6 +3203,18 @@ namespace CapriDesktop
                 frame.Change("Language", i);
                 if ((Brain.Language ?? "English") != Brain.Languages[i, 1] || SettingsCopy().Language != pet.Saved.Language) throw new Exception("The Mainframe language picker did not save its choice.");
             }
+            var languagePicker = (NeonPicker)frame.Row("Language");
+            languagePicker.OpenAt(languagePicker);
+            var languageMenu = (Avalonia.Controls.Primitives.Popup)typeof(NeonPicker).GetField("popup", fields).GetValue(languagePicker);
+            if (languageMenu == null || !languageMenu.IsOpen) throw new Exception("The Mainframe language picker didn't open its menu.");
+            var languageList = (ScrollViewer)((Border)((NeonPlate)((Grid)languageMenu.Child).Children[0]).Child).Child;
+            ((Layoutable)languageMenu.Host).UpdateLayout();
+            bool listScrolls = languageList.Presenter is Avalonia.Controls.Presenters.ScrollContentPresenter && languageList.Extent.Height > languageList.Viewport.Height && languageList.Viewport.Height > 0;
+            languageList.Offset = new Vector(0, languageList.Extent.Height);
+            bool listMoved = languageList.Offset.Y > 0;
+            languagePicker.CloseMenu();
+            if (!listScrolls || !listMoved) throw new Exception("The Mainframe language menu doesn't scroll: " + (languageList.Presenter == null ? "no presenter" : languageList.Presenter.GetType().Name) + ", " + languageList.Extent.Height + " of " + languageList.Viewport.Height);
+            checks.Add("PASS Mainframe menus scroll: the long Language list scrolls inside its menu");
             for (int i = 0; i < 3; i++) { frame.Change("Typing mode", i); if (pet.Saved.Typing != i || SettingsCopy().Typing != i) throw new Exception("The Mainframe lost Auto typing."); }
             pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" }); frame.Change("Brain model", 1);
             if (pet.Brain.Model != "qwen3:8b" || SettingsCopy().Model != "qwen3:8b") throw new Exception("The Mainframe model picker did not use PickBrain.");
