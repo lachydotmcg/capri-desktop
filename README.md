@@ -139,7 +139,7 @@ Linux can hear one English turn at a time through **TALK** once you set up her o
 ### Linux TALK setup
 
 1. Install `parec` from your distribution's PulseAudio tools (`pulseaudio-utils` on Ubuntu). Pick your default mic in your system sound settings. PipeWire works when its PulseAudio service is running.
-2. Extract the [sherpa-onnx Linux CPU build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your machine. Keep its libraries with the extracted build and add its `bin` folder to `PATH` before you launch Capri.
+2. Extract the [sherpa-onnx Linux CPU build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your machine into `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/`, keeping its libraries with the extracted build. She also finds `sherpa-onnx-offline` on your `PATH` or in `~/.local/bin`, `/usr/local/bin` or `/usr/bin`.
 3. Extract her [English Parakeet pack](https://github.com/lachydotmcg/capri-desktop/releases/download/ears-pack-1/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2). Put `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx` and `tokens.txt` directly in `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/parakeet-tdt-0.6b-v2-int8/`.
 4. Hover over her and click **TALK**. Say one line and pause. Click **TALK** again to cancel. She reads the mic audio on your PC and sends only the words through the same chat as **TYPE**. She answers out loud when you've set up a voice under **Mainframe > VOICE**.
 

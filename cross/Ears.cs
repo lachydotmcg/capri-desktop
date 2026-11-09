@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -28,9 +29,9 @@ namespace CapriDesktop
         internal async Task<string> Listen(Action decoding, CancellationToken stop)
         {
             stop.ThrowIfCancellationRequested();
-            string mic = Find(Recorder), engine = Find(Recognizer);
+            string mic = Find(Recorder), engine = Find(Recognizer, Path.GetDirectoryName(folder));
             if (mic == null) throw new IOException("Install parec (PulseAudio tools) so I can hear your mic.");
-            if (engine == null) throw new IOException("Put sherpa-onnx-offline on PATH so I can hear your words.");
+            if (engine == null) throw new IOException("Extract sherpa-onnx into Capri/ears under your config folder, or put sherpa-onnx-offline on PATH, so I can hear your words.");
             string encoder = Path.Combine(folder, "encoder.int8.onnx"), decoder = Path.Combine(folder, "decoder.int8.onnx");
             string joiner = Path.Combine(folder, "joiner.int8.onnx"), tokens = Path.Combine(folder, "tokens.txt");
             if (!File.Exists(encoder) || !File.Exists(decoder) || !File.Exists(joiner) || !File.Exists(tokens))
@@ -128,9 +129,17 @@ namespace CapriDesktop
             return heard ? samples.AsSpan(0, used).ToArray() : Array.Empty<short>();
         }
 
-        private static string Find(string name)
+        // Opened from the app menu she doesn't get the PATH a shell's .bashrc sets, so she also looks in the bin folder of a build
+        // extracted into her ears folder, then ~/.local/bin, /usr/local/bin and /usr/bin.
+        private static string Find(string name, string ears = null)
         {
-            foreach (string path in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
+            var places = new List<string>((Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator));
+            try { if (ears != null && Directory.Exists(ears)) foreach (string build in Directory.GetDirectories(ears)) places.Add(Path.Combine(build, "bin")); }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException) { }
+            places.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "bin"));
+            places.Add("/usr/local/bin");
+            places.Add("/usr/bin");
+            foreach (string path in places)
             {
                 if (!Path.IsPathFullyQualified(path)) continue;
                 string file = Path.Combine(path, name);

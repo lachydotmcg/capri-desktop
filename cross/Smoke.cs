@@ -1617,8 +1617,9 @@ namespace CapriDesktop
             if (voiceStage == 2)
             {
                 if (!voiceStarted.Task.IsCompleted || !pet.Talk.Bubble.Sheet.Heard.StartsWith("(hearing your words", StringComparison.Ordinal)) return false;
-                pet.Talk.Notice("(brain)", notice);
-                if (voiceStarted.Task.Result.IsCancellationRequested || pet.Talk.Reply != null) throw new Exception("A background notice interrupted her ears.");
+                // Any line she says, not only a notice, waits for their words instead of closing the mic.
+                pet.Talk.Answer("(brain)", notice);
+                if (voiceStarted.Task.Result.IsCancellationRequested || pet.Talk.Reply != null) throw new Exception("A line she said interrupted her ears.");
                 voiceWords.SetResult(words);
                 voiceStage++;
                 return false;
@@ -1632,7 +1633,7 @@ namespace CapriDesktop
             pet.Saved.Silent = silentBeforeVoice;
             pet.Listen = null;
             pet.Talk.Dismiss();
-            checks.Add("PASS Linux TALK: she hears quiet speech with gaps, stops at silence, drops a cancelled turn and shows a waiting notice after the reply");
+            checks.Add("PASS Linux TALK: she hears quiet speech with gaps, stops at silence, drops a cancelled turn and shows a line she said while listening after the reply");
             return true;
         }
 
