@@ -160,6 +160,135 @@ def sandbox_denials(executable):
         return clipped('Sandbox denials unavailable: ' + type(error).__name__ + '\n' + partial.decode('utf-8', errors='replace')[-700:], 900)
 
 
+def startup_paths():
+    home = Path.home()
+    paths = [('literal', str(home / '.CFUserTextEncoding')), ('subpath', str(home))]
+    temporary = os.environ.get('TMPDIR', '')
+    if temporary.startswith('/'):
+        paths.append(('subpath', temporary.rstrip('/')))
+    paths.extend(('subpath', path) for path in ('/private/var/folders', '/private/tmp', '/private/var', '/private/etc',
+        '/Library', '/System', '/usr', '/opt/homebrew', '/usr/local', '/Applications', '/dev', '/Volumes'))
+    return tuple(dict.fromkeys(paths))
+
+
+def path_rule(path):
+    kind, value = path
+    if kind not in ('literal', 'subpath') or any(ord(c) < 32 or ord(c) == 127 for c in value):
+        raise ValueError('Invalid diagnostic read path')
+    return '(allow file-read* (' + kind + ' ' + json.dumps(value, ensure_ascii=False) + '))'
+
+
+def path_children(path):
+    children = [('literal', path)]
+    with os.scandir(path) as entries:
+        for entry in entries:
+            if len(children) >= 2048:
+                raise ValueError('Directory has too many children')
+            children.append(('subpath' if entry.is_dir() else 'literal', entry.path))
+    children = tuple(sorted(children))
+    if sum(len(path_rule(child)) for child in children) > 128000:
+        raise ValueError('Directory paths exceed the probe limit')
+    return children
+
+
+def sandbox_path_bisect(attempt, deadline):
+    winner = (('subpath', '/'),)
+    history, singles, limits = [], [], set()
+
+    def probe(paths):
+        return attempt(tuple(path_rule(path) for path in paths))
+
+    def remember(paths):
+        nonlocal winner
+        winner = tuple(paths)
+        history.append(winner)
+
+    def report():
+        if not history:
+            return 'Path bisection: no working path set isolated within the 30 s budget.'
+        shown = next((paths for paths in reversed(history) if sum(len(path_rule(path)) + 1 for path in paths) <= 1200), history[0])
+        if shown != winner:
+            limits.add('report size')
+        label = 'Working startup path set (unresolved: ' + ', '.join(sorted(limits)) + ')' if limits else 'Smallest tested startup path set'
+        summary = 'Path bisection: ' + clipped(', '.join(singles), 300) + '\n'
+        return summary + label + ':\n' + '\n'.join(path_rule(path) for path in shown)
+
+    original = probe(winner)
+    if original is None or not original[0]:
+        return 'Path bisection: root replay ' + (original[1] if original else 'exceeded the 30 s budget') + '; no stable path result.'
+    remember(winner)
+    for path in startup_paths():
+        outcome = probe((path,))
+        if outcome is None:
+            limits.add('30 s budget')
+            return report()
+        singles.append(path[1] + '=' + outcome[1])
+        if outcome[0]:
+            remember((path,))
+            break
+    else:
+        candidates = startup_paths()
+        outcome = probe(candidates)
+        if outcome is None or not outcome[0]:
+            limits.add('30 s budget' if outcome is None else 'listed roots did not reproduce startup')
+            return report()
+        remember(candidates)
+
+    def reduce(paths, fixed=()):
+        paths, count = tuple(paths), 2
+        while len(paths) > 1:
+            chunks = [paths[index * len(paths) // count:(index + 1) * len(paths) // count] for index in range(count)]
+            candidates = chunks + [tuple(path for path in paths if path not in chunk) for chunk in chunks]
+            for candidate in dict.fromkeys(candidates):
+                outcome = probe(fixed + candidate)
+                if outcome is None:
+                    limits.add('30 s budget')
+                    return paths
+                if outcome[0]:
+                    paths, count = candidate, 2
+                    remember(fixed + paths)
+                    break
+            else:
+                if count == len(paths):
+                    break
+                count = min(len(paths), count * 2)
+        return paths
+
+    reduce(winner)
+    visited = set()
+    while True:
+        if time.monotonic() >= deadline:
+            limits.add('30 s budget')
+            return report()
+        pending = next((path for path in winner if path[0] == 'subpath' and path not in visited), None)
+        if pending is None:
+            return report()
+        visited.add(pending)
+        fixed = tuple(path for path in winner if path != pending)
+        literal = ('literal', pending[1])
+        outcome = probe(fixed + (literal,))
+        if outcome is None:
+            limits.add('30 s budget')
+            return report()
+        if outcome[0]:
+            remember(fixed + (literal,))
+            continue
+        try:
+            children = path_children(pending[1])
+        except (OSError, ValueError):
+            limits.add('unreadable or oversized directory')
+            continue
+        outcome = probe(fixed + children)
+        if outcome is None:
+            limits.add('30 s budget')
+            return report()
+        if not outcome[0]:
+            limits.add('directory split did not reproduce startup')
+            continue
+        remember(fixed + children)
+        reduce(children, fixed)
+
+
 def sandbox_bisect(record, stdout=b''):
     if STARTED in (stdout or b'').splitlines():
         return 'Bisection: Python reached the startup marker; the fixture failed after startup.'
@@ -176,14 +305,14 @@ def sandbox_bisect(record, stdout=b''):
     deadline = time.monotonic() + 30
     outcomes, singles = {}, []
 
-    def attempt(indices):
-        if indices in outcomes:
-            return outcomes[indices]
+    def replay(rules):
+        if rules in outcomes:
+            return outcomes[rules]
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             return None
         command = [launch['path'], *arguments[1:]]
-        command[2] = base + '\n' + '\n'.join(STARTUP_GROUPS[index][1] for index in indices)
+        command[2] = base + '\n' + '\n'.join(rules)
         try:
             result = subprocess.run(command, input=b'', stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 timeout=min(2, remaining), env=environment, cwd=cwd)
@@ -193,8 +322,11 @@ def sandbox_bisect(record, stdout=b''):
         except OSError as error:
             output, state = b'', type(error).__name__
         started = STARTED in output.splitlines()
-        outcomes[indices] = (started, ('started/' if started else '') + state)
-        return outcomes[indices]
+        outcomes[rules] = (started, ('started/' if started else '') + state)
+        return outcomes[rules]
+
+    def attempt(indices):
+        return replay(tuple(STARTUP_GROUPS[index][1] for index in indices))
 
     original = attempt(())
     if original and original[0]:
@@ -216,6 +348,9 @@ def sandbox_bisect(record, stdout=b''):
             return report(reason='30 s budget exhausted; no working allowance isolated.')
         singles.append(name + '=' + outcome[1])
         if outcome[0]:
+            if name == 'file-read*':
+                paths = sandbox_path_bisect(replay, deadline)
+                return 'Bisection: baseline=' + original[1] + '; file-read*=' + outcome[1] + f'; tries={len(outcomes)}.\n' + paths
             return report((index,), proven=True)
 
     winner = tuple(range(len(STARTUP_GROUPS)))
@@ -241,11 +376,14 @@ def sandbox_bisect(record, stdout=b''):
 
 def sandbox_failure(kind, resolved, returncode, stdout=b'', stderr=b'', record=None):
     denials = sandbox_denials(resolved['executable'])
-    bisection = sandbox_bisect(record, stdout) if record is not None else 'Bisection unavailable: no launch captured.'
-    return clipped((f'Confined {kind} launch failed: returncode={returncode}; interpreter={clipped(resolved["executable"], 240)}; '
-        f'sys.executable={clipped(resolved["launcher"], 160)}; base_prefix={clipped(resolved["base_prefix"], 120)}; '
-        f'stdout={clipped(repr(stdout), 160)}; stderr={clipped(repr(stderr), 240)}\n'
-        + clipped(bisection, 1100) + '\nLast sandbox denials:\n' + denials), 3000)
+    try:
+        bisection = sandbox_bisect(record, stdout) if record is not None else 'Bisection unavailable: no launch captured.'
+    except (OSError, ValueError, TypeError) as error:
+        bisection = 'Bisection unavailable: ' + type(error).__name__ + '; original confined launch failure retained.'
+    header = (f'Confined {kind} launch failed: returncode={returncode}; interpreter={clipped(resolved["executable"], 200)}; '
+        f'sys.executable={clipped(resolved["launcher"], 100)}; base_prefix={clipped(resolved["base_prefix"], 100)}; '
+        f'stdout={clipped(repr(stdout), 100)}; stderr={clipped(repr(stderr), 140)}\n')
+    return header + bisection + '\nLast sandbox denials:\n' + clipped(denials, min(900, 2975 - len(header) - len(bisection)))
 
 
 def sandbox(root):
