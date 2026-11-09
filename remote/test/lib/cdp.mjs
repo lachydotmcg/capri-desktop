@@ -17,9 +17,10 @@ export const chromePath = () => [
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-export const launch = async ({ port, width = 390, height = 844 }) => {
+// args: more switches, like the call test's fake mic.
+export const launch = async ({ port, width = 390, height = 844, args = [] }) => {
   const profile = mkdtempSync(join(tmpdir(), 'capri-phone-chrome-'));
-  const chrome = spawn(chromePath(), ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--window-size=' + width + ',' + height, 'about:blank'], { stdio: 'ignore' });
+  const chrome = spawn(chromePath(), ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--window-size=' + width + ',' + height, ...args, 'about:blank'], { stdio: 'ignore' });
   let target = null;
   for (let tries = 0; tries < 100 && !target; tries++) {
     await wait(100);

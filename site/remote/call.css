@@ -1,0 +1,155 @@
+/* Capri Remote's call (call.js), laid out like a phone's call screen in her Night City look (app.css): her face up top
+   in a panel with her hot corners and her name under it, how the call is going big in the middle with a short note and
+   one button that helps, what each of them said last, and three keys at the bottom: speaker, a hot end key and mute.
+   Shrunk to the chat, the call is a strip over her features. */
+
+/* ---------- The call screen ---------- */
+.call-room {
+  --face: 120px;
+  --key: 68px;
+  --her: 0;
+  --you: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  overflow: hidden;
+  background: radial-gradient(140% 52% at 50% 0%, #4c1424 0, #2b0d19 36%, rgb(16 11 17 / 0) 74%), var(--wine), var(--ground);
+  outline: none;
+}
+/* A glow behind her face that swells with her voice */
+.call-room::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(circle calc(var(--face) * 1.25) at 50% calc(env(safe-area-inset-top, 0px) + 62px + var(--face) / 2), rgb(232 66 70 / .34), rgb(232 66 70 / 0)); opacity: calc(.42 + var(--her) * .58); pointer-events: none; }
+/* The top bar reaches 8px into the side gutters so its icons line up with the edge of everything under it. */
+.call-top { flex: none; display: flex; align-items: center; width: calc(100% + 16px); max-width: 736px; height: calc(52px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+.call-top .call-shrink { margin-left: auto; }
+.call-top .glyph[aria-pressed="true"] { color: var(--cyan); }
+/* The PC screen's mini player sits in the call screen's middle, as big as it allows (call.js sets --call-mini). */
+.app.call-open .mini { width: var(--call-mini, min(46vw, 280px)); }
+
+/* Her face: her idle strip cropped to her head and shoulders, in a panel cut like her cards */
+.call-who { position: relative; flex: none; display: grid; justify-items: center; gap: 12px; margin-top: clamp(0px, 1.6vh, 16px); }
+.call-face { --cut: 18px; position: relative; isolation: isolate; width: var(--face); height: var(--face); }
+.call-face::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--brim); clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)); }
+.call-face::after { content: ""; position: absolute; inset: 1.5px; z-index: -1; background: radial-gradient(circle at 50% 32%, #451426 0, #1d0b16 58%, #0d0a11 100%); clip-path: polygon(calc(var(--cut) - .9px) 0, 100% 0, 100% calc(100% - var(--cut) + .9px), calc(100% - var(--cut) + .9px) 100%, 0 100%, 0 calc(var(--cut) - .9px)); }
+.call-art { position: absolute; inset: 1.5px; display: block; background-repeat: no-repeat; clip-path: polygon(calc(var(--cut) - .9px) 0, 100% 0, 100% calc(100% - var(--cut) + .9px), calc(100% - var(--cut) + .9px) 100%, 0 100%, 0 calc(var(--cut) - .9px)); }
+.call-face svg.hot { z-index: 1; }
+.call-face .call-tl { left: 0; top: 0; }
+.call-face .call-br { right: 0; bottom: 0; }
+.call-room[data-status="talking"] .call-face::before { background: var(--hot); }
+.call-room[data-status="hearing"] .call-face::before { background: var(--cyan); }
+.call-room[data-status="talking"] .call-face { filter: drop-shadow(0 0 calc(3px + var(--her) * 16px) rgb(232 66 70 / .7)); }
+.call-room[data-status="hearing"] .call-face { filter: drop-shadow(0 0 calc(3px + var(--you) * 14px) rgb(94 240 246 / .55)); }
+.call-name { margin: 0; color: var(--rose); font: 600 22px/1 var(--display); font-stretch: 75%; letter-spacing: .16em; text-transform: uppercase; }
+
+/* How it's going: the status, the time, a note and the one button that helps right now */
+.call-mid { flex: none; display: grid; justify-items: center; gap: 8px; width: 100%; max-width: 420px; margin-top: clamp(12px, 3.4vh, 32px); text-align: center; }
+.call-word { margin: 0; color: var(--white); font: 600 36px/1 var(--display); font-stretch: 75%; letter-spacing: .05em; text-transform: uppercase; text-wrap: balance; }
+.call-room[data-status="listening"] .call-word, .call-room[data-status="hearing"] .call-word { color: var(--cyan); }
+.call-room[data-status="talking"] .call-word { color: var(--rose); }
+.call-room[data-status="muted"] .call-word { color: var(--yellow); }
+.call-room[data-status="trouble"] .call-word { color: var(--hot); }
+.call-room[data-status="ended"] .call-word { color: var(--white); }
+.call-room[data-status="thinking"] .call-word::after, .call-room[data-status="connecting"] .call-word::after { content: ""; display: inline-block; width: .42em; height: .78em; margin-left: .18em; vertical-align: -.03em; background: currentColor; animation: caret .8s steps(1) infinite; }
+.call-clock { margin: 0; color: var(--faint); font: 16px/1 var(--mono); letter-spacing: .14em; font-variant-numeric: tabular-nums; }
+.call-note { max-width: 320px; margin: 4px 0 0; color: var(--white); font: 16px/1.3 var(--ui); font-stretch: 87.5%; opacity: .86; text-wrap: balance; }
+.call-pill { min-height: 40px; margin-top: 6px; padding: 0 20px; font-size: 15px; letter-spacing: .04em; }
+
+/* The middle, where the PC screen's mini player sits during a call */
+.call-stage { flex: 1 1 auto; width: 100%; max-width: 720px; min-height: 16px; }
+
+/* What each of them said last: small captions over the keys */
+.call-caps { flex: none; display: grid; gap: 6px; width: 100%; max-width: 440px; margin-bottom: 18px; }
+.cap { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: baseline; gap: 8px; margin: 0; padding: 7px 12px 8px 14px; border-top: 1px solid var(--rule); background: rgb(16 12 20 / .84); }
+.cap::before { content: ""; position: absolute; left: 0; top: 9px; width: 2.5px; height: 12px; background: var(--hot); }
+.cap-you::before { background: var(--cyan); }
+.cap-who { font: 600 11px/1.6 var(--ui); font-stretch: 87.5%; letter-spacing: .14em; text-transform: uppercase; }
+.cap-you .cap-who { color: var(--cyan); }
+.cap-her .cap-who { color: var(--rose); }
+.cap-words { display: -webkit-box; overflow: hidden; color: var(--white); font: 15px/1.32 var(--ui); font-stretch: 87.5%; overflow-wrap: anywhere; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cap.faint .cap-words { color: var(--faint); }
+.cap.live .cap-words::after { content: ""; display: inline-block; width: .85ch; height: 1.05em; vertical-align: -.2em; background: var(--cyan); animation: caret .8s steps(1) infinite; }
+
+/* Three keys: her voice on the speaker, the end key in her hot red, and mute. Cut like her panels, at a phone's size */
+.call-keys { flex: none; display: flex; justify-content: center; align-items: flex-start; gap: clamp(20px, 9vw, 48px); width: 100%; max-width: 440px; }
+.call-key { --pad-face: var(--field); --pad-rim: var(--edge); --pad-ink: var(--white); display: grid; justify-items: center; gap: 9px; min-width: 72px; margin: 0; padding: 0; border: 0; background: none; color: var(--white); cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+.call-pad { --cut: 14px; position: relative; isolation: isolate; display: grid; place-items: center; width: var(--key); height: var(--key); color: var(--pad-ink); }
+.call-pad::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--pad-rim); clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut)); }
+.call-pad::after { content: ""; position: absolute; inset: 1.5px; z-index: -1; background: var(--pad-face); clip-path: polygon(calc(var(--cut) - .9px) 0, 100% 0, 100% calc(100% - var(--cut) + .9px), calc(100% - var(--cut) + .9px) 100%, 0 100%, 0 calc(var(--cut) - .9px)); }
+.call-pad svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: square; stroke-linejoin: miter; }
+.call-pad svg + svg { display: none; }
+.call-label { color: var(--faint); font: 600 12px/1 var(--display); font-stretch: 75%; letter-spacing: .16em; text-transform: uppercase; }
+.call-key:active .call-pad { --pad-face: var(--pressed); --pad-rim: var(--hot); --pad-ink: var(--white); }
+.call-key.speaker[aria-pressed="true"] { --pad-face: var(--cyan); --pad-rim: var(--cyan); --pad-ink: var(--on-ink); }
+.call-key.speaker[aria-pressed="true"] .call-label { color: var(--cyan); }
+.call-key.speaker[aria-pressed="false"] .call-pad svg:first-child { display: none; }
+.call-key.speaker[aria-pressed="false"] .call-pad svg + svg { display: block; }
+.call-key.end { --pad-face: var(--hot); --pad-rim: #ff7c7a; --pad-ink: #fff; }
+.call-key.end .call-label { color: #ffa6a2; }
+.call-key.end .call-pad svg:first-child { fill: currentColor; stroke: none; transform: rotate(135deg); }
+.call-key.end:active .call-pad { --pad-face: #ff6b6b; --pad-rim: #ffa6a2; }
+.call-key.mute[aria-pressed="true"] { --pad-face: var(--yellow); --pad-rim: var(--yellow); --pad-ink: #16130b; }
+.call-key.mute[aria-pressed="true"] .call-label { color: var(--yellow); }
+.call-key.mute[aria-pressed="true"] .call-pad svg:first-child { display: none; }
+.call-key.mute[aria-pressed="true"] .call-pad svg + svg { display: block; }
+@media (hover: hover) {
+  .call-key:hover .call-pad { --pad-rim: var(--hot); }
+  .call-key.speaker[aria-pressed="true"]:hover .call-pad { --pad-rim: #a0f8fb; }
+  .call-key.end:hover .call-pad { --pad-rim: #ffd0ce; }
+}
+/* The call is over: Close stays, and the screen says why */
+.call-room.over .call-key.speaker, .call-room.over .call-key.mute { visibility: hidden; }
+.call-room.over .call-key.end { --pad-face: var(--field); --pad-rim: var(--edge); --pad-ink: var(--white); }
+.call-room.over .call-key.end .call-label { color: var(--faint); }
+.call-room.over .call-key.end .call-pad svg:first-child { display: none; }
+.call-room.over .call-key.end .call-pad svg + svg { display: block; }
+
+/* ---------- The call bar: the call shrunk to a strip above her features ---------- */
+.callbar { position: relative; z-index: 2; flex: none; align-self: center; display: flex; align-items: center; gap: 8px; width: 100%; max-width: 720px; padding: 0 0 8px; }
+.call-back { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; margin: 0; padding: 0 12px 0 14px; border: 0; border-top: 1px solid var(--rule); background: var(--band); color: var(--cyan); text-align: left; cursor: pointer; font: 600 15px/1 var(--display); font-stretch: 75%; letter-spacing: .12em; text-transform: uppercase; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.call-dot { flex: none; width: 8px; height: 8px; background: currentColor; transform: rotate(45deg); }
+.call-back-word { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.call-back-clock { flex: none; color: var(--faint); font: 14px/1 var(--mono); letter-spacing: .1em; font-variant-numeric: tabular-nums; }
+.callbar[data-status="talking"] .call-back { color: var(--rose); }
+.callbar[data-status="muted"] .call-back { color: var(--yellow); }
+.callbar[data-status="trouble"] .call-back { color: var(--hot); }
+.callbar[data-status="thinking"] .call-back, .callbar[data-status="connecting"] .call-back { color: var(--white); }
+.call-back:active { background: var(--pressed); }
+.callbar .nbtn { flex: none; min-height: 44px; }
+.call-bar-mute svg + svg { display: none; }
+.call-bar-mute[aria-pressed="true"] { --face: #16130b; --rim: var(--yellow); --ink: var(--yellow); }
+.call-bar-mute[aria-pressed="true"] svg:first-child { display: none; }
+.call-bar-mute[aria-pressed="true"] svg + svg { display: block; }
+.call-bar-end { min-width: 64px; }
+/* On a call in the PC screen's full view, the call bar rides along at the bottom. */
+.app.on-call.watching .callbar { position: absolute; z-index: 31; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(8px, env(safe-area-inset-bottom, 0px)); width: auto; max-width: none; padding: 8px 10px; border-top: 1px solid var(--rule); background: var(--band); }
+.app.on-call .watch-bar { padding-bottom: calc(max(10px, env(safe-area-inset-bottom, 0px)) + 66px); }
+
+/* ---------- Smaller phones, landscape and motion ---------- */
+@media (max-height: 740px) {
+  .call-room { --face: 100px; --key: 62px; }
+  .call-word { font-size: 32px; }
+  .call-caps { margin-bottom: 14px; }
+}
+@media (max-height: 620px) {
+  .call-room { --face: 76px; --key: 56px; }
+  .call-who { gap: 8px; }
+  .call-name { font-size: 19px; }
+  .call-word { font-size: 28px; }
+  .call-mid { gap: 6px; margin-top: 10px; }
+  .call-note { font-size: 15px; }
+  .cap-words { -webkit-line-clamp: 1; }
+}
+@media (max-height: 480px) {
+  .call-room { --face: 56px; --key: 48px; }
+  .call-top { height: calc(44px + env(safe-area-inset-top, 0px)); }
+  .call-name { display: none; }
+  .call-word { font-size: 24px; }
+  .call-caps { margin-bottom: 8px; }
+  .call-key { gap: 5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .call-room .call-word::after, .cap.live .cap-words::after { animation: none; }
+}

@@ -415,7 +415,9 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 - **Parts:** each frame is cut into parts of 44,000 JPEG bytes (58,667 base64url characters). Each sealed part stays under the 60,000-byte message limit, and each PC frame under the relay's 65,536 (section 4.1). Parts come in order, and part 0 starts a frame. A phone drops a frame with a part missing.
 - **Flow control:** the phone acks each frame once it's drawn. The PC stays at most two frames ahead of the acks. With no ack for 4 seconds it sends one more, and after 15 seconds it waits for an ack or a new `watch.start`.
 - **Auto:** shows the monitor her pointer is on, else the one she's been asked to watch, else the one with the focused window. It moves once the new one has held for a second.
-- **Calls:** push to talk.
+- **Calls:** hands-free. The phone keeps its mic open for the whole call and sends each thing said as one line.
+  - A line starts when talking starts, with about 300 ms from just before, and ends after about 0.8 seconds of quiet. Clicks and blips too short to be words send nothing.
+  - No line starts while the phone is muted or her voice plays on it, and for about a second after she stops it takes louder talking, so her voice never starts a line. Muting or hanging up mid-line sends `call.cancel`.
   - The phone sends a line as `call.audio` parts from `n: 0`: mono 16-bit little-endian PCM at 16 kHz, 320 ms a part, with `end: true` on the last. A line is at most 30 seconds.
   - Errors carry the line id as `re`: `too-long`, `bad-message` (a part out of order or at another rate), `not-allowed` (no call), `busy` (her ears couldn't run).
   - The PC's own ears hear the line, the PC answers `call.heard`, and the words go to her as if said at the PC. Her answer comes back as `chat.reply` with `re` set to the line id.
