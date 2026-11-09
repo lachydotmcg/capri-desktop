@@ -20,7 +20,7 @@ namespace CapriDesktop
             + "Her tools: she runs the tools her brain picks without swapping them for something else. Phrase checks help when her brain can't use tools. With an Ollama model that can use tools, she works jobs out with all of them and keeps plain chat quick.\n"
             + "Thinking: Mainframe > Settings > Advanced Settings > BRAIN > Thinking has Default, Off, Low, Medium or High for a cloud brain where the model supports them, saved per model; Extra request JSON is beside it.\n"
             + "Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode adds OpenCode. Turn Verbosity off there to keep her to the big moments.\n"
-            + "Code mods: they run on Mac and Linux too. A code mod lists the permissions it asks for, and one that uses a Windows-only part is refused with a message naming it.\n"
+            + "Code mods: they run on Mac and Linux too. A code mod lists the permissions it asks for, and one that needs a part Mac and Linux don't have yet is refused with a message naming it.\n"
             + "Stacking skins: turn several skins on in Mainframe > Mods and each one goes on top, so a skin with just cat ears or a hat sits over the outfit under it.\n"
             + "Linux TALK: hover over her and press TALK to talk to her once her offline ears are set up.";
         internal const string Line = "I just updated to " + Version + ": my tools follow my brain's choices now, and code mods run here too. Ask me what's new for the menu paths.";
