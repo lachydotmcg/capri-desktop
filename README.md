@@ -90,6 +90,7 @@ Press **Mods** in the Mainframe's CAPRI band. Browse the [mods directory](https:
 <summary><h2><a name="what-she-does"></a>What she does</h2><br><a name="what-she-does-1"><img src="assets/readme/mini-player.png" alt="Capri perched on her cyberpunk mini player while a song plays" width="300"></a> <a name="what-she-does-2"><img src="assets/readme/bubble.png" alt="Capri's speech box with the pencil and wave buttons" width="220"></a> <a name="what-she-does-3"><img src="assets/readme/mainframe.png" alt="The Capri Mainframe with her BRAIN and VOICE rows" width="170"></a></summary>
 
 - **Talks back.** Type to her or voice chat, and turn on "Hey Capri" to call her by name. She answers in her own words, in 80 languages.
+- **[Capri Remote](https://capriai.app/remote).** Text her, call her and view your PC's screen from your phone's browser (Windows).
 - **Talks out loud.** In her own free voice, a voice model of yours, or Fish Audio, ElevenLabs or OpenAI. See [Her voice](#her-voice).
 - **Joins your calls.** She covers for you on Discord and other call apps, and launches what your friends pick (Windows, beta). See [She joins your calls](#she-joins-your-calls).
 - **Plays your games.** She comments while you play, and she can play too. She's still learning.
@@ -198,7 +199,7 @@ Press **Y** in the headset for her settings. Her brain and voice keys stay on yo
 
 Get Capri only from [capriai.app](https://capriai.app/) or [GitHub](https://github.com/lachydotmcg/capri-desktop/releases). Copies on other sites aren't ours.
 
-**Zero telemetry.** The app sends us nothing. [SECURITY.md](SECURITY.md) lists what she connects to, what the website counts, and what to do if Windows or your antivirus warns you.
+**Zero telemetry.** No analytics, crash reports or usage pings. [SECURITY.md](SECURITY.md) lists what she connects to, what the website counts, and what to do if Windows or your antivirus warns you.
 
 Stuck? The [setup guide](https://capriai.app/setup/) walks through it, or ask in the [Discord](https://discord.gg/capridesktop). [Windows or your antivirus may warn you](SECURITY.md#windows-or-your-antivirus-warned-me) because she's a new app. All the code is here.
 

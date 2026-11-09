@@ -24,7 +24,7 @@
     </header>
     <main class="guide">
       <h1><em>Capri</em> privacy</h1>
-      <nav class="guide-jump" aria-label="Sections"><a href="#short">In short</a><a href="#pc">Your PC</a><a href="#services">Services</a><a href="#connections">Connections</a><a href="#site">Website</a><a href="#mods">Mod rules</a><a href="#contact">Contact</a></nav>
+      <nav class="guide-jump" aria-label="Sections"><a href="#short">In short</a><a href="#pc">Your PC</a><a href="#remote">Capri Remote</a><a href="#services">Services</a><a href="#connections">Connections</a><a href="#site">Website</a><a href="#mods">Mod rules</a><a href="#contact">Contact</a></nav>
 
       <section id="short" class="step">
         <h2>In short</h2>
@@ -32,7 +32,7 @@
           <dt>Account</dt><dd>None</dd>
           <dt>Ads</dt><dd>None</dd>
           <dt>Analytics</dt><dd>None in the app</dd>
-          <dt>Your words</dt><dd>Stay on your PC unless you pick a cloud service</dd>
+          <dt>Your words</dt><dd>Stay on your PC, and your phone if you use Capri Remote, unless you pick a cloud service</dd>
         </dl>
       </section>
 
@@ -47,11 +47,32 @@
         </dl>
       </section>
 
+      <section id="remote" class="step">
+        <h2>Capri Remote</h2>
+        <dl class="keys">
+          <dt>Default</dt><dd>Off. Windows only for now</dd>
+          <dt>Your traffic</dt><dd>Messages, her replies, screen frames, call audio, her voice and keys you send to your PC are end-to-end encrypted. The relay can't read them</dd>
+          <dt>Pairing keys</dt><dd>The pairing key follows <code>#</code> in the link, so GitHub Pages and the relay never get it. Device and session keys stay on your devices</dd>
+          <dt>Relay sees</dt><dd>Room and device ids, sign-in tokens, the one-time code, timestamps, online phones, and encrypted frame sizes and timing. Cloudflare sees connection details such as your IP</dd>
+          <dt>Relay keeps</dt><dd>Token and code hashes, device ids and timestamps. Removed phones lose their hashes when the PC reaches the relay. Rooms expire after 30 days without the PC</dd>
+          <dt>Relay logs</dt><dd>Only errors. Frames are never logged, and Cloudflare's per-request logs are off</dd>
+          <dt>Abuse limits</dt><dd>The relay counts connections and pairing changes per IP address for a minute, with Cloudflare's rate limiter. It doesn't save addresses</dd>
+          <dt>On your PC</dt><dd>Room id, PC token and each phone's id, key, name and date, encrypted with DPAPI for your Windows user</dd>
+          <dt>In your browser</dt><dd>Pairing credentials in IndexedDB; the PC's name and pairing date in localStorage</dd>
+          <dt>Phone chats</dt><dd>Saved in localStorage with no timed expiry. Unpairing or removal keeps them. Clear capriai.app site data to erase them</dd>
+          <dt>Keys to your PC</dt><dd>Sent end-to-end encrypted, saved with Windows DPAPI like a Mainframe key, and never sent back to your phone</dd>
+          <dt>Screen view</dt><dd>Encrypted frames only while a phone watches. A badge shows on your PC while a phone watches or calls</dd>
+          <dt>Phone only</dt><dd>Your key is saved in this browser's localStorage on capriai.app and sent straight to your chosen provider with your chat. Saved chats stay here; no relay is used</dd>
+          <dt>Phone providers</dt><dd>Anthropic, OpenAI, Google AI, OpenRouter or DeepSeek</dd>
+          <dt>Shared storage</dt><dd>Capri Remote shares browser storage with capriai.app's other pages. They run only the site's own scripts, plus YouTube's player on the home page after you press Play</dd>
+        </dl>
+      </section>
+
       <section id="services" class="step">
         <h2>Services you pick</h2>
         <dl class="keys">
           <dt>Cloud brain</dt><dd>NVIDIA, Google, OpenRouter, OpenAI, Anthropic, DeepSeek or a server you add gets your messages, her notes and memories, and any screenshot she looks at</dd>
-          <dt>Your screen</dt><dd>She looks when you ask, or when you turn on Watch my screen or her game commentary. Pictures only go to the brain you picked</dd>
+          <dt>Your screen</dt><dd>She looks when you ask, or when you turn on Watch my screen or her game commentary. Pictures go to the brain you picked</dd>
           <dt>Cloud voice</dt><dd>ElevenLabs, Fish Audio, OpenAI or a server you add gets the words she says. ElevenLabs voice chat also gets your mic audio</dd>
           <dt>Capri code</dt><dd>Your messages pass through our server to Anthropic. We keep the code's hash, budget, spend, expiry, request count and last use, not your messages</dd>
           <dt>Their rules</dt><dd>Each service handles your data under its own privacy policy</dd>
@@ -76,7 +97,7 @@
         <dl class="keys">
           <dt>Help chat</dt><dd>Your question, the last 6 turns and any screenshot go to Claude or Cloudflare Workers AI. We keep hashed daily counters, not your words. Her Discord help bot works the same way</dd>
           <dt>Counts</dt><dd>Download and star buttons count once a day per IP, using a salted hash deleted the next day</dd>
-          <dt>Hosts</dt><dd>GitHub Pages serves the site. Cloudflare runs the help chat and counters</dd>
+          <dt>Hosts</dt><dd>GitHub Pages serves the site. Cloudflare runs the help chat, counters and Remote relay</dd>
         </dl>
       </section>
 
@@ -95,7 +116,7 @@
         <dl class="keys">
           <dt>Questions</dt><dd><a href="https://github.com/lachydotmcg/capri-desktop/issues" target="_blank" rel="noopener noreferrer">GitHub issues</a></dd>
           <dt>Made by</dt><dd>Lachy's Web Dev</dd>
-          <dt>Updated</dt><dd>7 November 2026</dd>
+          <dt>Updated</dt><dd>10 November 2026</dd>
         </dl>
       </section>
     </main>
