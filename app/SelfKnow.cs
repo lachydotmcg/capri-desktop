@@ -247,6 +247,8 @@ namespace CapriDesktop
                 "Mainframe > Settings > WATCH > Remember what she sees works with Watch my screen. When she glances at your screen and says nothing, she still remembers what she saw for three hours, so you can ask about it. It has nothing to do with updating the app, and it uses a little more of your brain API.", "Mainframe.cs", "Remember what she sees"),
             new Topic("Every", "glance interval|time between glances|how often you look|how often you watch",
                 "Mainframe > Settings > WATCH > Every sets the gap between screen glances, from 10 seconds to 10 minutes. Watch my screen must be on; she can still skip a glance when the screen has not changed or she is busy.", "Mainframe.cs", "Every"),
+            new Topic("Verbosity", "verbosity|husk verbosity|husk captions|fewer husk bubbles|hide tool bubbles",
+                "Mainframe > Settings > Advanced Settings > BRAIN > Verbosity is on by default and shows each tool the coding assistant runs. Turn it off and Code/Husk Mode stops showing tools, failed tools and compacting. She still tells you when a job starts, when it finishes, when it needs your OK or asks a question, and when it crashes.", "Mainframe.cs", "Verbosity"),
             new Topic("Stay on my model", "stay on my model|switching models|changing brains by yourself|model fallback",
                 "Mainframe > Settings > BRAIN > Stay on my model keeps the selected NVIDIA model when it gets stuck. With it on she reports the problem instead of trying another model.", "Mainframe.cs", "Stay on my model"),
             new Topic("Replies", "your replies|her replies|reply length|longer replies|shorter replies|long answers|short answers",
