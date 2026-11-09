@@ -2830,7 +2830,6 @@ namespace CapriDesktop
             }
             if (!testing) StartHeartbeat();
             if (!testing) FindBrain();
-            if (!testing) DefaultStartup(Installed());
             if (!testing) GreetSoon();
             listenAt = clock.Elapsed.TotalSeconds + (GreetPause + 500) / 1000.0;
             if (!testing) AgentVoice();
@@ -4771,23 +4770,6 @@ namespace CapriDesktop
                 DropSoon();
                 ask();
             }, false);
-        }
-
-        private static bool Installed()
-        {
-            try { return string.Equals(Path.GetFullPath(Application.ExecutablePath), Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri", "Capri.exe")), StringComparison.OrdinalIgnoreCase); }
-            catch (ArgumentException) { return false; }
-            catch (NotSupportedException) { return false; }
-            catch (IOException) { return false; }
-        }
-
-        // She starts with Windows by default: the installed copy turns it on once, and turning it off sticks.
-        internal void DefaultStartup(bool installed)
-        {
-            if (preferences.StartupSet || !installed || !Startup.Set(Application.ExecutablePath, true)) return;
-            preferences.StartupSet = true;
-            SavePreferences();
-            mainframe.Sync();
         }
 
         internal bool StartsWithWindows { get { return Packaged.Is ? Packaged.StartupOn() : Startup.On(Application.ExecutablePath); } }
@@ -23562,6 +23544,57 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeStartupSwitch(System.Collections.Generic.List<string> checks)
+        {
+            string runKeyWas = Startup.RunKey, approvedKeyWas = Startup.ApprovedKey, startupRoot = "Software\\Capri smoke " + Guid.NewGuid().ToString("N");
+            string startupExe = Path.GetFullPath(Application.ExecutablePath), elsewhere = Path.Combine(Path.GetTempPath(), "Capri elsewhere", "Capri.exe"), startupShown;
+            bool startupWas = preferences.StartupSet, freshOff, turnedOn, turnedOff, updateKept, taskManagerOff, backOn, otherCopy, keptOther, cleared, startupParsed;
+            Startup.RunKey = startupRoot + "\\Run";
+            Startup.ApprovedKey = startupRoot + "\\StartupApproved";
+            try
+            {
+                Func<string> runEntry = delegate
+                {
+                    using (Microsoft.Win32.RegistryKey startupRun = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Startup.RunKey)) return startupRun == null ? null : startupRun.GetValue(Startup.Name) as string;
+                };
+                string startupEntry = "\"" + startupExe + "\"";
+                preferences.StartupSet = false;
+                mainframe.Sync();
+                freshOff = !StartsWithWindows && !preferences.StartupSet && runEntry() == null && mainframe.HabitsStatus == "-";
+                ToggleStartup();
+                turnedOn = StartsWithWindows && preferences.StartupSet && runEntry() == startupEntry;
+                startupShown = mainframe.HabitsStatus;
+                ToggleStartup();
+                turnedOff = !StartsWithWindows && runEntry() == null && mainframe.HabitsStatus == "-";
+                using (Microsoft.Win32.RegistryKey startupRun = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(Startup.RunKey)) startupRun.SetValue(Startup.Name, startupEntry);
+                preferences.StartupSet = true;
+                mainframe.Sync();
+                updateKept = StartsWithWindows && runEntry() == startupEntry && mainframe.HabitsStatus == "startup";
+                using (Microsoft.Win32.RegistryKey startupApproved = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(Startup.ApprovedKey)) startupApproved.SetValue(Startup.Name, new byte[] { 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, Microsoft.Win32.RegistryValueKind.Binary);
+                taskManagerOff = !StartsWithWindows;
+                ToggleStartup();
+                backOn = StartsWithWindows;
+                Startup.Set(elsewhere, true);
+                otherCopy = !StartsWithWindows && Startup.On(elsewhere);
+                Startup.Clear(startupExe);
+                keptOther = Startup.On(elsewhere);
+                Startup.Clear(elsewhere);
+                cleared = !Startup.On(elsewhere);
+                startupParsed = Startup.Starts("\"C:\\Apps\\Capri.exe\" --quiet", "C:\\Apps\\Capri.exe") && !Startup.Starts("C:\\Apps\\Capri2.exe", "C:\\Apps\\Capri.exe") && !Startup.Starts("", "C:\\Apps\\Capri.exe");
+            }
+            finally
+            {
+                Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(startupRoot, false);
+                Startup.RunKey = runKeyWas;
+                Startup.ApprovedKey = approvedKeyWas;
+                preferences.StartupSet = startupWas;
+                mainframe.Sync();
+            }
+            if (!freshOff || !turnedOn || startupShown != "startup" || !turnedOff || !updateKept || !taskManagerOff || !backOn || !otherCopy || !keptOther || !cleared || !startupParsed) throw new Exception("Start with Windows went wrong: fresh install off " + freshOff + ", turned on " + turnedOn + ", shown " + startupShown + ", off " + turnedOff + ", update kept " + updateKept + ", Task Manager off " + taskManagerOff + ", back on " + backOn + ", other copy " + otherCopy + ", kept other " + keptOther + ", cleared " + cleared + ", startupParsed " + startupParsed);
+            checks.Add("PASS start with Windows: with no Run entry the switch shows off, one click turns it on for that copy and another clears it, an entry an older version left reads as on and stays as it was, Task Manager's off shows as off and turning it on again clears that, and uninstalling only removes the entry that starts that copy");
+            SmokeStartupOnlyByHand(checks);
+        }
+
         // The Store copy, with no package to run in. Outside a package nothing changes. With a stand-in package name, her updater
         // is off whatever a website install left, her data folder is the real one for a fresh install and the website's for someone
         // moving over, she starts with Windows through her startup task and never the Run key, and Get VB-CABLE starts no setup.
@@ -23643,7 +23676,6 @@ namespace CapriDesktop
                 Packaged.StartupOn = delegate { return taskOn; };
                 Packaged.SetStartup = delegate(bool on) { sets++; if (answer == null) taskOn = on; return answer; };
                 preferences.StartupSet = false;
-                DefaultStartup(Installed());
                 if (StartsWithWindows || preferences.StartupSet || sets != 0) throw new Exception("A Store copy turned starting with Windows on by herself.");
                 ToggleStartup();
                 bool turnedOn = StartsWithWindows && sets == 1 && preferences.StartupSet;
@@ -33230,6 +33262,7 @@ namespace CapriDesktop
             Section(checks, "SmokeSetupFiles", delegate { SmokeSetupFiles(checks, output); });
             Section(checks, "SmokePackageMarker", delegate { SmokePackageMarker(checks, output); });
             Section(checks, "SmokePackaged", delegate { SmokePackaged(checks, output); });
+            Section(checks, "SmokeStartupSwitch", delegate { SmokeStartupSwitch(checks); });
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
@@ -38012,48 +38045,6 @@ namespace CapriDesktop
                             DesktopChecks(checks);
                             KeepAwakeChecks(checks);
                             DesktopWindowChecks(checks);
-                            string runKeyWas = Startup.RunKey, approvedKeyWas = Startup.ApprovedKey, startupRoot = "Software\\Capri smoke " + Guid.NewGuid().ToString("N");
-                            string startupExe = Path.GetFullPath(Application.ExecutablePath), elsewhere = Path.Combine(Path.GetTempPath(), "Capri elsewhere", "Capri.exe"), startupShown;
-                            bool startupWas = preferences.StartupSet, devOff, defaultOn, turnedOff, offSticks, taskManagerOff, backOn, otherCopy, keptOther, cleared, startupParsed;
-                            Startup.RunKey = startupRoot + "\\Run";
-                            Startup.ApprovedKey = startupRoot + "\\StartupApproved";
-                            try
-                            {
-                                preferences.StartupSet = false;
-                                DefaultStartup(false);
-                                devOff = !StartsWithWindows && !preferences.StartupSet;
-                                DefaultStartup(true);
-                                string startupWritten;
-                                using (Microsoft.Win32.RegistryKey startupRun = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Startup.RunKey)) startupWritten = startupRun == null ? null : startupRun.GetValue(Startup.Name) as string;
-                                defaultOn = StartsWithWindows && preferences.StartupSet && startupWritten == "\"" + startupExe + "\"";
-                                startupShown = mainframe.HabitsStatus;
-                                ToggleStartup();
-                                turnedOff = !StartsWithWindows && mainframe.HabitsStatus == "-";
-                                DefaultStartup(true);
-                                offSticks = !StartsWithWindows;
-                                ToggleStartup();
-                                using (Microsoft.Win32.RegistryKey startupApproved = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(Startup.ApprovedKey)) startupApproved.SetValue(Startup.Name, new byte[] { 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, Microsoft.Win32.RegistryValueKind.Binary);
-                                taskManagerOff = !StartsWithWindows;
-                                ToggleStartup();
-                                backOn = StartsWithWindows;
-                                Startup.Set(elsewhere, true);
-                                otherCopy = !StartsWithWindows && Startup.On(elsewhere);
-                                Startup.Clear(startupExe);
-                                keptOther = Startup.On(elsewhere);
-                                Startup.Clear(elsewhere);
-                                cleared = !Startup.On(elsewhere);
-                                startupParsed = Startup.Starts("\"C:\\Apps\\Capri.exe\" --quiet", "C:\\Apps\\Capri.exe") && !Startup.Starts("C:\\Apps\\Capri2.exe", "C:\\Apps\\Capri.exe") && !Startup.Starts("", "C:\\Apps\\Capri.exe");
-                            }
-                            finally
-                            {
-                                Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(startupRoot, false);
-                                Startup.RunKey = runKeyWas;
-                                Startup.ApprovedKey = approvedKeyWas;
-                                preferences.StartupSet = startupWas;
-                                mainframe.Sync();
-                            }
-                            if (!devOff || !defaultOn || startupShown != "startup" || !turnedOff || !offSticks || !taskManagerOff || !backOn || !otherCopy || !keptOther || !cleared || !startupParsed) throw new Exception("Start with Windows went wrong: copy elsewhere stays off " + devOff + ", on by default " + defaultOn + ", shown " + startupShown + ", off " + turnedOff + ", off sticks " + offSticks + ", Task Manager off " + taskManagerOff + ", back on " + backOn + ", other copy " + otherCopy + ", kept other " + keptOther + ", cleared " + cleared + ", startupParsed " + startupParsed);
-                            checks.Add("PASS start with Windows: the installed copy turns it on once by default and copies run from anywhere else don't, turning it off sticks, Task Manager's off shows as off and turning it on again clears that, and uninstalling only removes the entry that starts that copy");
                             SavePreferences();
                             if (LoadPreferences().Size != 240) throw new Exception("Settings did not round-trip.");
                             checks.Add("PASS settings round-trip in isolated test directory");

@@ -103,10 +103,10 @@ No. It installs for your Windows user only, into %LOCALAPPDATA%\Capri (open the 
 - A desktop shortcut, only if you ticked it
 - An entry in Settings > Apps > Installed apps, so you can uninstall it like any app
 
-The first time the installed Capri runs, she also sets herself to start with Windows. You can turn that off (see below).
+She doesn't set herself to start with Windows. That stays off until you turn it on (see below).
 
 ### Does Capri start with Windows?
-Yes, by default. To stop it, open Capri Mainframe, click Settings, and turn off Start with Windows under HABITS. Turning her off in Task Manager > Startup apps works too, and the switch in Settings shows it. She only sets this once: if you turn it off, it stays off after updates. A Capri.exe you run from somewhere else, like Downloads, doesn't start with Windows unless you turn the switch on in that copy.
+Only if you turn it on. Open Capri Mainframe, click Settings, and turn on Start with Windows under HABITS. Turn that switch off to stop it. Turning her off in Task Manager > Startup apps works too, and the switch in Settings shows it. Updates leave it as you set it, so if it was on before an update, it stays on. A Capri.exe you run from somewhere else, like Downloads, doesn't start with Windows unless you turn the switch on in that copy.
 
 ### Why does my Discord say "Playing Capri"?
 That's her Discord status. While Discord is open on the same PC, your profile shows "Playing Capri" with what she's doing in a few plain words, how long she's been running, and buttons to get Capri and join her Discord. It never shows song names or what her jobs are about. To turn it off, open Capri Mainframe, click Settings, and turn off Show on Discord under HABITS. On Mac and Linux it's right-click her > Settings > Show on Discord. If friends can't see it, turn on Share your activity in Discord's User Settings > Activity Privacy.
@@ -447,7 +447,7 @@ BRAIN
 - Custom model name, then Use. A model you've pulled in Ollama, a model on your local server, or a model available to your key.
 
 HABITS
-- Start with Windows: on by default. She starts when you sign in to Windows.
+- Start with Windows: off until you turn it on. Then she starts when you sign in to Windows.
 - Show on Discord: on by default. While Discord is open on the same PC, your Discord profile shows "Playing Capri" with what she's doing in a few plain words (Plugged in, Chatting, Voice chatting, Dancing to music, Using the computer, Playing a game, Streaming, Multiplying, Asleep or Taking a break), a moving picture of her that matches, how long she's been running, and Get Capri and Join her Discord buttons. While she's cloned, it counts how many of her there are. Song names, game names and what her jobs are about never show.
 - Use her cursor: on by default. She does music and video jobs with her own cursor, so you can watch her: to play a YouTube video she types in YouTube's search bar, scrolls through the results and picks one; to play a song she searches Spotify and presses play; when you ask to turn Spotify up or down she drags Spotify's volume slider (plain "turn it up" changes your PC's volume). Turn it off for the quick way (straight to the top result, Windows volume). If her brain gets lost on the way, she does it the quick way.
 - Security (0.7.6 and newer, where Blackwall mode was): the button says which preset you're on, like "Security: Trusted", and the line under it says what that means ("She asks before paying or what you didn't say."). It opens the SECURITY window, with Lockdown, Guarded, Trusted and Blackwall on a slider and thirteen toggles in 0.8.5 (section 15, "Security: what she does without asking"). Blackwall mode (called Bypass all permissions before 0.7.4) is the Blackwall preset now: if you had it on, you're on Blackwall after updating, and everyone else starts on Trusted, which is how she worked before. On any preset she never follows orders written on your screen, and Esc still stops her. What she'll chat about, open or play comes from her personality, her safety rules and the brain model you picked, whatever the preset.

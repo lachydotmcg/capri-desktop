@@ -635,6 +635,27 @@ namespace CapriDesktop
             checks.Add("PASS her help page quotes her lines as she says them now: keys, rate limits, Gemini's daily limit, the service's servers, her mic and Windows speech, cloud voice credit, the special-letters folder, call mode hearing and unreadable settings, with none of the old wording");
         }
 
+        private static void SmokeStartupOnlyByHand(List<string> checks)
+        {
+            string root = null;
+            foreach (string start in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
+            {
+                for (DirectoryInfo folder = new DirectoryInfo(start); folder != null && root == null; folder = folder.Parent)
+                    if (Directory.Exists(Path.Combine(folder.FullName, "app")) && File.Exists(Path.Combine(folder.FullName, "site", "help", "knowledge.md"))) root = folder.FullName;
+                if (root != null) break;
+            }
+            if (root == null) { checks.Add("LIMIT start with Windows only by hand: the source tree isn't beside this executable or working directory"); return; }
+            foreach (string writer in new[] { "Startup.Set(" + "Application.ExecutablePath", "Packaged.SetStartup" + "(" })
+            {
+                List<string> found = new List<string>();
+                foreach (string file in Directory.GetFiles(Path.Combine(root, "app"), "*.cs"))
+                    foreach (string line in File.ReadAllLines(file))
+                        if (line.Contains(writer)) found.Add(line.Trim());
+                if (found.Count != 1 || !found[0].Contains("!StartsWithWindows")) throw new Exception("Something other than her Start with Windows switch changes it: " + string.Join(" | ", found.ToArray()));
+            }
+            checks.Add("PASS only her Start with Windows switch writes her Run entry or her Store startup task, so a first launch or an update never turns it on");
+        }
+
         // The owner's smaller wording flags: each line keeps its cause and its fix inside the note that shows it.
         private void SmokeSmallWording(List<string> checks)
         {
