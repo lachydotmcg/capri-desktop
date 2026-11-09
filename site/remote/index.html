@@ -101,12 +101,17 @@
       <h2 class="card-title" id="pair-title">Pair this phone</h2>
       <p class="card-lead">Scan the code in Capri's Mainframe</p>
       <p class="card-note" id="pair-note" role="status" hidden></p>
-      <ol class="steps">
+      <ol class="steps" id="pair-steps">
         <li><span class="step-n">1</span><span>Open the Mainframe on your PC</span></li>
         <li><span class="step-n">2</span><span>Choose Pair a phone</span></li>
         <li><span class="step-n">3</span><span>Scan the code with this phone</span></li>
         <li><span class="step-n">4</span><span>Tap Allow on your PC</span></li>
       </ol>
+      <!-- An iPhone home screen app pairs with a link Safari copies. These are the two ways Safari gets one. -->
+      <ul class="routes" id="pair-routes" hidden>
+        <li><span class="route-from">Safari, paired</span><span class="route-path">SETTINGS &gt; Set up the home screen app</span></li>
+        <li><span class="route-from">Your PC</span><span class="route-path">Pair a phone &gt; scan &gt; Home screen app</span></li>
+      </ul>
       <form class="paste" id="paste" autocomplete="off" hidden>
         <label class="code-label" for="paste-link">Pairing link</label>
         <span class="field" id="paste-field">
@@ -148,10 +153,10 @@
       <svg class="hot hot-tl" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="1.1,51.1 1.1,17.1 17.1,1.1 81.1,1.1"/></svg>
       <svg class="hot hot-br" width="82.2" height="52.2" viewBox="0 0 82.2 52.2" aria-hidden="true"><polyline points="81.1,1.1 81.1,35.1 65.1,51.1 1.1,51.1"/></svg>
       <h2 class="card-title" id="wait-title">Allow on your PC</h2>
-      <p class="card-lead">Capri asks: Allow this phone?</p>
-      <p class="code-label">Check your PC shows the same code</p>
+      <p class="card-lead" id="wait-lead">Capri asks: Allow this phone?</p>
+      <p class="code-label" id="wait-check">Check your PC shows the same code</p>
       <p class="code" id="wait-code">--- ---</p>
-      <p class="waiting">Waiting for Allow<span class="caret blink" aria-hidden="true"></span></p>
+      <p class="waiting"><span id="wait-words">Waiting for Allow</span><span class="caret blink" aria-hidden="true"></span></p>
       <div class="card-actions">
         <button class="nbtn cyan" id="wait-allow" type="button" hidden>Allow on the demo PC</button>
         <button class="nbtn" id="wait-cancel" type="button">Cancel</button>
@@ -217,9 +222,15 @@
     <div class="sheet-scroll">
       <h2 class="card-title" id="home-title">Add her to your home screen</h2>
       <h3 class="nhead">iPhone</h3>
-      <ol class="steps">
+      <div class="home-link" id="home-link-part" hidden>
+        <button class="nbtn solid wide" id="home-link" type="button">Set up the home screen app</button>
+        <p class="card-note" id="home-link-note" role="status" hidden></p>
+        <span class="field" id="home-link-field" hidden><input id="home-link-text" type="text" readonly aria-label="Pairing link to copy"></span>
+      </div>
+      <ol class="steps" id="home-steps">
         <li><span class="step-n">1</span><span>Tap Share, then Add to Home Screen</span></li>
-        <li><span class="step-n">2</span><span>It pairs on its own: scan a new code, pick Home screen app</span></li>
+        <li><span class="step-n">2</span><span>On your PC: Pair a phone, scan, pick Home screen app</span></li>
+        <li><span class="step-n">3</span><span>Open Capri from your home screen, tap Paste link</span></li>
       </ol>
       <h3 class="nhead">Android</h3>
       <ol class="steps">

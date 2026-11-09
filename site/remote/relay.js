@@ -195,8 +195,8 @@
     const sessionFrame = async bytes => {
       let message;
       try { message = await session.open(bytes); } catch (error) { broken(); return; }
-      // Her brains (PROTOCOL.md section 8.1): SETTINGS shows them.
-      if (message.type === 'brain.state' || message.type === 'brain.note') { on.message(message); return; }
+      // Her brains (PROTOCOL.md section 8.1): SETTINGS shows them. A pairing link for the home screen app (8.3).
+      if (message.type === 'brain.state' || message.type === 'brain.note' || message.type === 'pair.link') { on.message(message); return; }
       switch (message.type) {
         case 'ping':
           if (Number.isInteger(message.n)) send({ type: 'pong', n: message.n });

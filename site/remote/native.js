@@ -427,7 +427,10 @@
     const fresh = !!parts.key.value.trim();
     parts.useHere.textContent = phone && saved && !fresh ? 'In use' : 'Use this phone';
     parts.useHere.disabled = phone && !!saved && !fresh;
+    // A paired iPhone Safari sets up the home screen app from here in one tap: its PC makes it a pairing link (app.js).
+    parts.home.textContent = homeLinkable() ? 'Set up the home screen app' : 'Add her to your home screen';
   };
+  const homeLinkable = () => !!(window.CapriApp && window.CapriApp.linkable && window.CapriApp.linkable());
   const build = () => {
     sheet = make('section', 'card nc sheet native-sheet');
     sheet.id = 'brain';
@@ -600,7 +603,8 @@
         if (mine === checking) { checking = null; render(); }
       }
     });
-    home.addEventListener('click', () => { close(); if (homeGuide) homeGuide(); });
+    // Set up the home screen app asks for the link in this same tap: Safari only lets the clipboard be written during one.
+    home.addEventListener('click', () => { const setUp = homeLinkable(); close(); if (homeGuide) homeGuide(setUp); });
     done.addEventListener('click', close);
     document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
     if (scrim()) scrim().addEventListener('click', close);

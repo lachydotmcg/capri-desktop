@@ -285,7 +285,19 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 .waiting .caret { color: var(--cyan); }
 .card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 .card-actions .nbtn { flex: 1 1 auto; }
-/* An iPhone home screen app pastes the pairing link Safari copied for it. */
+/* An iPhone home screen app pastes the pairing link Safari copied for it, and says the two ways Safari gets one. */
+.routes { display: grid; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.routes li { position: relative; display: grid; gap: 6px; padding: 9px 12px 10px 16px; border-top: 1px solid var(--rule); background: var(--band); }
+.routes li::before { content: ""; position: absolute; left: 0; top: 10px; width: 2.5px; height: 12px; background: var(--hot); }
+.route-from { color: var(--faint); font: 600 12px/1 var(--ui); font-stretch: 87.5%; letter-spacing: .12em; text-transform: uppercase; }
+.route-path { color: var(--white); font: 600 16px/1.25 var(--ui); font-stretch: 87.5%; overflow-wrap: anywhere; }
+/* Safari's way: a link from her PC, copied for the home screen app (the home screen guide). */
+.home-link { margin-top: 12px; }
+.home-link .card-note { margin-top: 10px; }
+.home-link .card-note.good { color: var(--cyan); }
+.home-link .card-note.good::before { background: var(--cyan); }
+#home-link-field { margin-top: 10px; }
+#home-link-field input { font-size: 15px; letter-spacing: 0; }
 .paste { margin-top: 18px; }
 .paste .code-label { display: block; margin-bottom: 8px; }
 .paste .field input, #where-field input { font-size: 15px; letter-spacing: 0; }
