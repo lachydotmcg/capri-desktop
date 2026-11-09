@@ -817,6 +817,7 @@ namespace CapriDesktop
         [DataMember] public string PaidModel;
         [DataMember] public int Tier;
         [DataMember] public bool Tiered;
+        [DataMember] public ThinkingPick[] ThinkingPicks;
         [DataMember] public bool Watch;
         [DataMember] public string WatchScreen;
         [DataMember] public int GlanceGap;
@@ -2437,6 +2438,8 @@ namespace CapriDesktop
             Brain.Recall = preferences.Recall == 16 || preferences.Recall == 32 ? preferences.Recall : 8;
             Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, preferences.MemorySize) >= 0 ? preferences.MemorySize : 0;
             Brain.ReplyLength = Math.Max(0, Math.Min(Brain.ReplySizes.Length - 1, preferences.ReplyLength));
+            brain.Picks = preferences.ThinkingPicks;
+            brain.ThinkingChanged = delegate { OnUi(delegate { mainframe.Sync(); }); };
             Brain.Keeping = preferences.Remembers;
             ownNotes = Brain.MemoryPath;
             string chosen = NotesIn(preferences.Vault);
@@ -10538,6 +10541,31 @@ namespace CapriDesktop
                 preferences.Model = name;
                 SavePreferences();
             }
+        }
+
+        internal int ThinkingLevel { get { return brain.ThinkingLevel; } }
+        internal string ThinkingSource { get { return brain.ThinkingSource; } }
+        internal string ThinkingExtra { get { return brain.ThinkingExtra; } }
+        internal bool ThinkingOpen { get { return brain.ThinkingOpen; } }
+        internal string ThinkingWhy(int level) { return brain.ThinkingWhy(level); }
+
+        internal void SetThinking(int level)
+        {
+            if (!brain.SetThinking(level)) return;
+            preferences.ThinkingPicks = brain.Picks;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        // What's wrong with it, or null once it's saved for the brain she's on.
+        internal string SetThinkingExtra(string typed)
+        {
+            string problem = brain.SetThinkingExtra(typed);
+            if (problem != null) return problem;
+            preferences.ThinkingPicks = brain.Picks;
+            SavePreferences();
+            mainframe.Sync();
+            return null;
         }
 
         internal void ChooseCloudModel(Cloud remote, string name)
@@ -29446,18 +29474,22 @@ namespace CapriDesktop
                                         int frameWidth = (int)Math.Round((framePage ? 760 : 380) * frameDpi / 96f * frameText / 100f * mainframe.Zoom);
                                         string frameProblem = mainframe.TextFits() ?? mainframe.Overlap() ?? (framePage && mainframe.ClientSize.Width == frameWidth ? mainframe.Outside() : null);
                                         if (framePage)
+                                        {
+                                            frameProblem = frameProblem ?? mainframe.BrainFits();
                                             foreach (bool frameCheckIns in new[] { false, true })
                                             {
                                                 preferences.CheckIns = frameCheckIns;
                                                 mainframe.Sync();
                                                 frameProblem = frameProblem ?? mainframe.CareFits();
                                             }
+                                        }
                                         bool frameWidthFits = frameWidth > SystemInformation.MaxWindowTrackSize.Width || mainframe.ClientSize.Width == frameWidth;
                                         if (frameProblem != null || !frameWidthFits) frameProblems.Add(frameDpi + " DPI, text " + frameText + "%, size " + framePercent + "%, " + (framePage ? frameSimple ? "Simple Settings" : "Advanced Settings" : "Brain and Voice") + (frameFallback ? ", fallback font" : "") + ": " + (frameProblem ?? "width scaled twice"));
                                     }
                             }
                 if (frameProblems.Count > 0) throw new Exception("Mainframe layout, " + frameProblems.Count + " problems:\r\n" + string.Join("\r\n", frameProblems.ToArray()));
                 checks.Add("PASS Mainframe text: every control on both pages, including tier hints and flags, switch names, slider choices and input cues, fits without overlaps at Auto, 100%, 175% and 200% size on simulated 100%, 150% and 200% DPI with 100% and 225% text and fallback fonts; returning to 100% keeps the original scale");
+                checks.Add("PASS BRAIN Settings layout: Husk, Thinking, Extra request JSON, Verbosity and the following rows fit in order and fold in Simple Settings, while Mainframe colours and Head pats stay available at every simulated DPI, text and Mainframe size");
                 checks.Add("PASS care Settings layout: seven toggle/time rows and Edit check-in lines sit directly under Check in on me in Advanced Settings and fold out of Simple Settings with no gap; both master states, accessible parent names, dimming and editable controls pass with her own and fallback fonts at every simulated DPI, text and Mainframe size");
                 checks.Add("LIMIT Mainframe display scaling: simulated pixel layouts do not confirm Windows text-setting notifications, real monitor moves, or high-DPI rendering; Windows may constrain simulated windows wider than this desktop, so those check text and overlaps without the viewport-edge check");
             }
@@ -33379,6 +33411,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallHearing", delegate { SmokeCallHearing(checks); });
             Section(checks, "SmokeRateLimits", delegate { SmokeRateLimits(checks); });
             Section(checks, "SmokeVoiceCredit", delegate { SmokeVoiceCredit(checks, output); });
+            Section(checks, "SmokeThinking", delegate { SmokeThinking(checks); });
             Section(checks, "SmokeSpecialLetters", delegate { SmokeSpecialLetters(checks); });
             Section(checks, "SmokeWordingFixes", delegate { SmokeWordingFixes(checks, output); });
             Section(checks, "SmokeHelpQuotes", delegate { SmokeHelpQuotes(checks); });

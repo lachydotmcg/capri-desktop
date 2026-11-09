@@ -1792,12 +1792,15 @@ Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her h
 
 ### Not yet
 - Code mods that use Windows-only parts, like drawing on her, an options page, screenshots or global hotkeys. Other code mods, settings mods, colour sets and skins work in the Mods window.
-- No voice chat: "Voice chat isn't on Mac and Linux yet. Type to me for now, choom."
+- No voice input on Mac. Call mode and wake words are Windows only.
 - No built-in brain. Use Ollama or an API key.
 - No keyboard shortcuts.
 - No mouse and keyboard jobs on Mac.
 - No automatic updates. She says when a new version is out, and right-click her > Get Capri X opens its download page.
 - No mini player.
+
+### TALK on Linux
+Follow the [Linux TALK setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup) to install `parec`, extract sherpa-onnx into her ears folder (or put `sherpa-onnx-offline` on PATH) and add her English Parakeet pack. Pick your default mic in your sound settings. Hover over her, click TALK, say one English line and pause. Click TALK again to cancel. She transcribes the audio on your PC and uses the same brain and reply voice as TYPE.
 
 ### Right-click menu
 - Talk to her
@@ -1865,7 +1868,7 @@ She controls music players that support MPRIS, like Spotify, Rhythmbox or Elisa.
 Install Ollama and open it, then right-click her > Brain > Download gemma4:e4b. Older versions said to run ollama pull gemma4:e4b in a terminal, which still works; then pick the model in right-click her > Brain.
 
 ### A button or menu from this help is missing on my Mac or Linux
-The preview doesn't have everything Windows has yet (see "Not yet" above). Capri Mainframe and Mods are included in 0.8.3. If those are missing, check your version and update. Voice chat is still Windows only for now.
+The preview doesn't have everything Windows has yet (see "Not yet" above). Capri Mainframe and Mods are included in 0.8.3. If those are missing, check your version and update. Linux TALK needs [offline ears setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup). Voice input on Mac, call mode and wake words are still unavailable in the previews.
 
 ### Where's the Mainframe on Mac or Linux?
 Capri Mainframe is included in the 0.8.3 preview, with BRAIN, VOICE and CAPRI, plus Simple Settings and Advanced Settings. Update if you're on an older preview.

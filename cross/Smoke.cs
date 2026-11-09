@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -45,6 +46,12 @@ namespace CapriDesktop
         private readonly List<string> voiceAsked = new List<string>();
         private readonly List<byte[]> spoken = new List<byte[]>();
         private readonly List<string> speechAsked = new List<string>();
+        private TaskCompletionSource<CancellationToken> voiceStarted;
+        private TaskCompletionSource<string> voiceWords;
+        private Func<string, string> thinkBeforeVoice;
+        private bool silentBeforeVoice;
+        private int voiceTurns;
+        private int voiceStage;
 
         private bool blinked;
         private bool slept;
@@ -1554,11 +1561,80 @@ namespace CapriDesktop
             }
             if (step == 30)
             {
+                if (OperatingSystem.IsLinux() && !LinuxTalk()) return false;
                 MainframeChecks();
                 Finish(null);
                 return true;
             }
             return false;
+        }
+
+        private bool LinuxTalk()
+        {
+            const string words = "Tell me a short joke.";
+            const string reply = "That came through TALK.";
+            const string notice = "My brain's in. Talk to me, choom.";
+            if (voiceStage == 0)
+            {
+                byte[] pcm = new byte[4 * 16000 * 2];
+                using (var silent = new MemoryStream(pcm))
+                    if (Ears.Words(silent, CancellationToken.None).GetAwaiter().GetResult().Length != 0) throw new Exception("A silent mic gave her words.");
+                for (int frame = 6; frame < 15; frame += 2)
+                    for (int i = frame * 640; i < (frame + 1) * 640; i += 2) { pcm[i] = 32; pcm[i + 1] = 1; }
+                using (var sound = new MemoryStream(pcm))
+                {
+                    short[] said = Ears.Words(sound, CancellationToken.None).GetAwaiter().GetResult();
+                    if (said.Length != 17600 || said[1920] != 288) throw new Exception("She missed quiet speech with gaps or didn't stop at silence.");
+                }
+                thinkBeforeVoice = pet.Think;
+                silentBeforeVoice = pet.Saved.Silent;
+                pet.Saved.Silent = true;
+                pet.Think = text =>
+                {
+                    Interlocked.Increment(ref voiceTurns);
+                    return text == words ? reply : "A cancelled line reached her brain.";
+                };
+                voiceStarted = new TaskCompletionSource<CancellationToken>();
+                voiceWords = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                pet.Listen = (_, stop) => { voiceStarted.SetResult(stop); return voiceWords.Task; };
+                pet.Talk.Pill.Press(2);
+                voiceStage++;
+                return false;
+            }
+            if (voiceStage == 1)
+            {
+                if (!voiceStarted.Task.IsCompleted) return false;
+                pet.Talk.Pill.Press(2);
+                if (!voiceStarted.Task.Result.IsCancellationRequested || !pet.Talk.Quiet) throw new Exception("TALK didn't cancel the open mic.");
+                voiceWords.SetResult("This cancelled line shouldn't reach her.");
+                voiceWords = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+                voiceStarted = new TaskCompletionSource<CancellationToken>();
+                pet.Listen = (decoding, stop) => { decoding(); voiceStarted.SetResult(stop); return voiceWords.Task; };
+                pet.Talk.Pill.Press(2);
+                voiceStage++;
+                return false;
+            }
+            if (voiceStage == 2)
+            {
+                if (!voiceStarted.Task.IsCompleted || !pet.Talk.Bubble.Sheet.Heard.StartsWith("(hearing your words", StringComparison.Ordinal)) return false;
+                // Any line she says, not only a notice, waits for their words instead of closing the mic.
+                pet.Talk.Answer("(brain)", notice);
+                if (voiceStarted.Task.Result.IsCancellationRequested || pet.Talk.Reply != null) throw new Exception("A line she said interrupted her ears.");
+                voiceWords.SetResult(words);
+                voiceStage++;
+                return false;
+            }
+            if (pet.Talk.Reply != reply) return false;
+            if (pet.Talk.Bubble.Sheet.Heard != words || Volatile.Read(ref voiceTurns) != 1) throw new Exception("TALK didn't send just the finished words to her chat.");
+            pet.Talk.Dismiss();
+            pet.Talk.Update(pet.Now);
+            if (pet.Talk.Reply != notice) throw new Exception("She lost the notice that waited for TALK.");
+            pet.Think = thinkBeforeVoice;
+            pet.Saved.Silent = silentBeforeVoice;
+            pet.Listen = null;
+            pet.Talk.Dismiss();
+            checks.Add("PASS Linux TALK: she hears quiet speech with gaps, stops at silence, drops a cancelled turn and shows a line she said while listening after the reply");
+            return true;
         }
 
         private void Press(IPointer mouse, Point at)
@@ -2854,10 +2930,38 @@ namespace CapriDesktop
                 if (pet.HuskChanging || pet.HuskMode != 1 || SettingsCopy().HuskMode != 1 || frame.Value("Code/Husk Mode") != "Claude Code" || pet.Husk.Bridge == null) throw new Exception("A failed hook setup lost the previous mode or listener.");
                 File.WriteAllText(HuskHooks.PathFor("codex"), codexGood);
                 pet.SetAdvancedSettings(false); frame.Sync();
-                if (frame.Row("Code/Husk Mode").IsVisible) throw new Exception("Husk mode did not fold with Advanced Settings.");
+                if (frame.Row("Code/Husk Mode").IsVisible || frame.Row("Verbosity").IsVisible) throw new Exception("Husk mode or Verbosity did not fold with Advanced Settings.");
                 pet.SetAdvancedSettings(true); frame.Sync();
-                if (!frame.Row("Code/Husk Mode").IsVisible || frame.Overlap() != null) throw new Exception("The cross Husk row did not fit under BRAIN.");
+                if (!frame.Row("Code/Husk Mode").IsVisible || !frame.Row("Verbosity").IsVisible || frame.Overlap() != null) throw new Exception("The cross Husk rows did not fit under BRAIN.");
                 checks.Add("PASS cross Husk Mainframe row: Off, Claude Code, Codex and Both; settings round trip and older-copy recovery; busy picker disabled; Advanced BRAIN layout");
+                Cloud thinkingRemoteWas = pet.Brain.Remote;
+                string thinkingModelWas = pet.Brain.Model;
+                ThinkingPick[] thinkingPicksWas = pet.Brain.Picks;
+                try
+                {
+                    pet.Brain.Remote = new Cloud("sk-proj-test", "gpt-6-astra"); pet.Brain.Model = "gpt-6-astra"; pet.Brain.Picks = null;
+                    frame.Sync();
+                    var thinkingRow = (NeonPicker)frame.Row("Thinking");
+                    if (frame.Value("Thinking") != "Default" || thinkingRow.Choices[ThinkingLevels.Off] != "Off · always thinks" || !thinkingRow.Greyed[ThinkingLevels.Off] || thinkingRow.Greyed[ThinkingLevels.High] || !frame.Row("Extra request JSON").IsEnabled) throw new Exception("Cross Thinking lost a reason or a level.");
+                    frame.Change("Thinking", ThinkingLevels.Off);
+                    if (pet.Brain.ThinkingLevel != ThinkingLevels.Default || frame.Value("Thinking") != "Default") throw new Exception("Cross Thinking picked a greyed level.");
+                    frame.Change("Thinking", ThinkingLevels.High);
+                    if (pet.Brain.ThinkingLevel != ThinkingLevels.High || frame.Value("Thinking") != "High" || SettingsCopy().ThinkingPicks == null || SettingsCopy().ThinkingPicks[0].Source != "openai|gpt-6-astra" || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).ThinkingPicks == null) throw new Exception("Cross Thinking didn't save or survive an older copy.");
+                    pet.Brain.Remote = new Cloud("sk-proj-test", "gpt-5.6"); pet.Brain.Model = "gpt-5.6";
+                    frame.Sync();
+                    if (frame.Value("Thinking") != "Default" || ((NeonPicker)frame.Row("Thinking")).Greyed[ThinkingLevels.Off]) throw new Exception("Another cross model kept this model's Thinking.");
+                    if (pet.SetThinkingExtra("{\"model\":\"x\"}") == null || pet.SetThinkingExtra("[1]") == null || pet.SetThinkingExtra("{\"temperature\":1}") != null || pet.Brain.ThinkingExtra != "{\"temperature\":1}" || ThinkingLevels.Merge("{\"a\":1}", "{\"a\":2,\"b\":3}") != "{\"a\":2,\"b\":3}") throw new Exception("Cross Extra JSON didn't check or save.");
+                    frame.Sync();
+                    if (frame.Value("Extra request JSON") != "Edit" || frame.Overlap() != null) throw new Exception("Cross Extra JSON's row didn't show or fit.");
+                    pet.SetAdvancedSettings(false); frame.Sync();
+                    if (frame.Row("Thinking").IsVisible || frame.Row("Extra request JSON").IsVisible) throw new Exception("Cross Thinking did not fold with Advanced Settings.");
+                    pet.SetAdvancedSettings(true);
+                    pet.Brain.Remote = null; pet.Brain.Model = "gemma4:e4b";
+                    frame.Sync();
+                    if (frame.Row("Extra request JSON").IsEnabled || !((NeonPicker)frame.Row("Thinking")).Greyed[ThinkingLevels.High]) throw new Exception("A local cross brain offered Thinking.");
+                    checks.Add("PASS cross thinking: BRAIN greys what a model can't take with a reason, each model keeps its own pick and Extra JSON, older copies keep them, local brains have none, and the rows fold with Advanced Settings");
+                }
+                finally { pet.Brain.Remote = thinkingRemoteWas; pet.Brain.Model = thinkingModelWas; pet.Brain.Picks = thinkingPicksWas; pet.Saved.ThinkingPicks = thinkingPicksWas; frame.Sync(); }
 
                 List<HuskAct> acts = new List<HuskAct>();
                 List<string> lines = new List<string>();
@@ -3120,9 +3224,10 @@ namespace CapriDesktop
             checks.Add("PASS Mainframe colours: Night City, Black, White and Grey change her Mainframe straight away and are saved");
             if (Pet.FrameSize(-1) != 0 || Pet.FrameSize(110) != 0 || Pet.FrameSize(200) != 200) throw new Exception("Unsupported Mainframe sizes did not become Auto.");
             pet.SetMainframeSize(0); if (frame.Zoom != 1) throw new Exception("Auto scaled the Mainframe twice.");
-            var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local }));
+            var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local, NoHuskVerbosity = true, ThinkingPicks = new[] { new ThinkingPick { Source = "openai|gpt-6-astra", Level = ThinkingLevels.High, Extra = "{}" } } }));
             if (recovered.MainframeSize != 150 || !recovered.AdvancedSettings || recovered.MemorySize != 16384 || recovered.ReplyLength != 3 || recovered.BrainTier != 2 || recovered.PaidModel != "paid-test") throw new Exception("The Mainframe settings did not survive the older settings copy.");
-            checks.Add("PASS Mainframe rows: every switch, slider and picker calls the saved setter; Memory size, Max reply, Auto typing and scale persist; Pet and tool changes show without losing drafts");
+            if (!recovered.NoHuskVerbosity || recovered.ThinkingPicks == null || recovered.ThinkingPicks.Length != 1 || recovered.ThinkingPicks[0].Source != "openai|gpt-6-astra" || recovered.ThinkingPicks[0].Level != ThinkingLevels.High || recovered.ThinkingPicks[0].Extra != "{}") throw new Exception("Thinking and Verbosity did not survive together in the older settings copy.");
+            checks.Add("PASS Mainframe rows: every switch, slider and picker calls the saved setter; Memory size, Max reply, Auto typing, scale, Thinking and Verbosity persist; Pet and tool changes show without losing drafts");
         }
 
         private static string CareSaid(Care care, Settings saved, long quiet = 0, bool free = true, string game = "Game A", double noticed = 0)
@@ -3915,6 +4020,7 @@ namespace CapriDesktop
         private void MainframeLayout(Mainframe frame, Voice voice)
         {
             pet.SetLanguage("English"); pet.SetMainframeSize(100);
+            string[] brainRows = { "Code/Husk Mode", "Thinking", "Extra request JSON", "Verbosity", "Stay on my model", "Replies", "Memory", "Memory size", "Max reply", "Bubble", "Follow-up messages" };
             foreach (int tier in new[] { 0, 1, 2 })
                 foreach (int mode in new[] { 0, 2, 3 })
                     foreach (bool savedKey in new[] { false, true })
@@ -3930,6 +4036,12 @@ namespace CapriDesktop
                                 string wrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
                                 if (wrong != null) throw new Exception("Mainframe layout at " + scale + "%, page " + page + ", tier " + tier + ", voice " + mode + ": " + wrong);
                                 if (Math.Abs(frame.Zoom - scale / 100.0) > 0.001 || frame.Page.Width != (page == 0 ? 380 : 760)) throw new Exception("The Mainframe changed its design coordinates while scaling.");
+                                for (int row = 0; row < brainRows.Length; row++)
+                                {
+                                    Control control = frame.Row(brainRows[row]);
+                                    if (control.IsVisible != (page == 2)) throw new Exception("A BRAIN row has the wrong Settings view: " + brainRows[row]);
+                                    if (page == 2 && row > 0 && Math.Abs(Canvas.GetTop(control) - Canvas.GetTop(frame.Row(brainRows[row - 1])) - 28) > 0.001) throw new Exception("A BRAIN row is out of place: " + brainRows[row]);
+                                }
                             }
                     }
             frame.PickBrainTier(0); pet.Brain.Model = null; frame.Sync(); frame.ShowSettings(false);
