@@ -1,7 +1,8 @@
 // SETTINGS on a paired PC (site/remote/native.js, PROTOCOL.md section 8.1) in a real browser: headless Chrome pairs the
 // phone page with a stand-in PC (lib/fakes.mjs) through the relay under wrangler dev, then picks her brain and sends a
-// key. The stand-in checks what arrives; the page must show the PC's words and keep nothing of the key. Ports 8792 and
-// 8794, and a free one for the relay. Skipped where Chrome isn't installed.
+// key. The stand-in checks what arrives; the page must show the PC's words and keep nothing of the key. Then SETTINGS must
+// fit every iPhone, in Safari and from the home screen (lib/fit.mjs). Ports 8792 and 8794, and a free one for the relay.
+// Skipped where Chrome isn't installed. CAPRI_PHONE_SHOTS=<folder> saves screenshots.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -9,6 +10,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromePath, launch } from './lib/cdp.mjs';
 import { FakePc } from './lib/fakes.mjs';
+import { HOME_SCREEN, IPHONES, SAFARI, misfitsOf, scrollSheet, setPhone } from './lib/fit.mjs';
 import * as R from './lib/capri-remote.mjs';
 import { startRelay } from './lib/relay-dev.mjs';
 import { earlyAccess, startSite } from './lib/site.mjs';
@@ -92,6 +94,22 @@ test('SETTINGS on a paired PC: her brain picked from the phone, and a key that g
     await page.until(`document.querySelector('.native-brains .card-note').textContent.startsWith('Still using your Anthropic key.')`, 'the failed note');
     assert.equal(await page.run(`document.querySelector('#pc-key').closest('.field').classList.contains('bad')`), true);
     assert.equal(await page.run(`document.querySelector('#pc-key').value`), WRONG);
+
+    // SETTINGS at its longest (MAX's key box, a note, In use, the home screen part) fits every iPhone from the SE to the Pro
+    // Max, in Safari and as a home screen app under the notch and the home bar: nothing past the right edge, and the frame
+    // holds all of it, scrolling inside. A long model name wraps instead of pushing the page wide.
+    await pc.send(device.id, { type: 'brain.state', use: 'max', name: 'OpenRouter · nvidia/llama-3.1-nemotron-ultra-253b-v1:free', note: 'Using your OpenRouter key', brains: [{ id: 'normal', key: false }, { id: 'medium', key: true }, { id: 'max', key: true }] });
+    await page.until(`document.querySelector('.native-now').textContent.includes('nemotron')`, 'the long brain name');
+    for (const mode of [SAFARI, HOME_SCREEN]) {
+      for (const size of IPHONES) {
+        await setPhone(page, size, mode);
+        assert.deepEqual(await misfitsOf(page, '#brain'), [], `SETTINGS at ${size.join('x')} (${mode.name})`);
+        await scrollSheet(page, '#brain', false);
+        await shot(`settings-${mode.name}-${size.join('x')}`);
+        await scrollSheet(page, '#brain', true);
+        await shot(`settings-${mode.name}-${size.join('x')}-end`);
+      }
+    }
   } finally {
     if (page) await page.close();
     pc.close();

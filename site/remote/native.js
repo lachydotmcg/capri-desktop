@@ -535,9 +535,12 @@
     const homeHead = make('h3', 'nhead', 'Home screen');
     const home = button('Add her to your home screen', 'nbtn cyan wide native-home');
     const done = button('Done', 'nbtn cyan wide native-done');
-    sheet.append(title, make('h3', 'nhead', 'Her brain'), modes, pcPart, phonePart, homeHead, home, done);
+    // Her words scroll inside the frame (app.css .sheet-scroll), so a long SETTINGS never runs out of it.
+    const words = make('div', 'sheet-scroll');
+    words.append(title, make('h3', 'nhead', 'Her brain'), modes, pcPart, phonePart, homeHead, home, done);
+    sheet.append(words);
     ($('#app') || document.body).append(sheet);
-    parts = { pcTab, phoneTab, pcPart, pcLine, usePc, pcBrainsPart, rungs, pcNow, pcKeyPart, pcKeyLabel, pcKey, pcState, pcOld, phonePart, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, view: '' };
+    parts = { words, pcTab, phoneTab, pcPart, pcLine, usePc, pcBrainsPart, rungs, pcNow, pcKeyPart, pcKeyLabel, pcKey, pcState, pcOld, phonePart, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, home, view: '' };
 
     pcTab.addEventListener('click', () => { status(''); render('pc'); });
     phoneTab.addEventListener('click', () => { status(''); render('phone'); });
@@ -642,6 +645,7 @@
     pcStatus('');
     askBrains();
     render(view || (on() ? 'phone' : 'pc'));
+    parts.words.scrollTop = 0;
     sheet.hidden = false;
     if (scrim()) scrim().hidden = false;
     if (view === 'phone') parts.key.focus({ preventScroll: true });

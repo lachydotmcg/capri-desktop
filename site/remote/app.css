@@ -260,7 +260,7 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 .facts { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 20px 0 0; padding: 12px 0 0; border-top: 1px solid rgb(44 122 134 / .55); list-style: none; color: var(--faint); font: 14px/1.2 var(--ui); font-stretch: 87.5%; }
 .facts li { display: flex; align-items: center; gap: 8px; }
 .facts li::before { content: ""; flex: none; width: 6px; height: 6px; border: 1.2px solid var(--cyan); transform: rotate(45deg); }
-.card > .nbtn.wide { margin-top: 20px; }
+.card > .nbtn.wide, .sheet-scroll > .nbtn.wide { margin-top: 20px; }
 .code-label { margin: 20px 0 8px; color: var(--faint); font: 600 12px/1 var(--ui); font-stretch: 87.5%; letter-spacing: .12em; text-transform: uppercase; }
 .code { position: relative; isolation: isolate; margin: 0; padding: 16px 8px 14px; color: var(--cyan); font: 38px/1 var(--mono); letter-spacing: .16em; text-align: center; font-variant-numeric: tabular-nums; }
 .code::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--deep-edge); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
@@ -291,8 +291,25 @@ svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: non
 .paste .field input, #where-field input { font-size: 15px; letter-spacing: 0; }
 .paste .nbtn.wide { margin-top: 12px; }
 #where-field { margin-top: 12px; }
-/* The home screen guide: a card over the chat, above the scrim. */
-.sheet { position: absolute; z-index: 42; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(430px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow-y: auto; }
+/* Sheets (the home screen guide, SETTINGS): a card over the chat, above the scrim. The frame stays inside the phone's safe
+   area (the notch and the home bar of a home screen app) and its words scroll inside .sheet-scroll, so the frame drawn by
+   .nc's ::before and ::after always holds everything: a sheet that scrolled itself left the end of a long one outside it. */
+.sheet {
+  position: absolute;
+  z-index: 42;
+  left: calc(50% + (env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) / 2);
+  top: calc(50% + (env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2);
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  width: min(430px, calc(100% - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-height: calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  padding: 14px 12px 12px 14px;
+  overflow-y: auto;
+}
+/* The keyboard covers the home bar, and the app already ends at the keyboard. */
+.app.kb .sheet { top: calc(50% + env(safe-area-inset-top, 0px) / 2); max-height: calc(100% - 32px - env(safe-area-inset-top, 0px)); }
+.sheet-scroll { flex: 0 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 10px; overflow-wrap: anywhere; scrollbar-width: thin; scrollbar-color: var(--dash) transparent; -webkit-mask-image: linear-gradient(transparent, #000 10px, #000 calc(100% - 10px), transparent); mask-image: linear-gradient(transparent, #000 10px, #000 calc(100% - 10px), transparent); }
 .sheet .nhead { margin: 18px 0 0; }
 .sheet .steps { margin-top: 10px; }
 
