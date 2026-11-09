@@ -48,12 +48,7 @@ namespace CapriDesktop
             AddHandler(PointerWheelChangedEvent, (_, e) =>
             {
                 e.Handled = true;
-                Program.Guard(() =>
-                {
-                    double x = Math.Abs(e.Delta.X) > 0 ? e.Delta.X : (e.KeyModifiers & KeyModifiers.Shift) != 0 ? e.Delta.Y : 0;
-                    double y = x == 0 ? e.Delta.Y : 0;
-                    GlideTo((glide.IsEnabled ? to : Scroll.Offset) - new Vector(x * 36 * Zoom, y * 36 * Zoom));
-                });
+                Program.Guard(() => GlideTo((glide.IsEnabled ? to : Scroll.Offset) - Wheel(e.Delta, e.KeyModifiers) * 36 * Zoom));
             }, RoutingStrategies.Tunnel);
             glide.Tick += (_, _) => Program.Guard(() =>
             {
@@ -106,6 +101,13 @@ namespace CapriDesktop
             plate.View = Scroll.Viewport.Height / Zoom; rim.InvalidateVisual();
         }
 
+        // A trackpad swipe up carries a little sideways drift too, so both directions move the page; dropping the up and down
+        // whenever there was any sideways left her stuck at the bottom on a Mac. Shift turns a plain wheel sideways.
+        internal static Vector Wheel(Vector delta, KeyModifiers keys)
+        {
+            if ((keys & KeyModifiers.Shift) != 0 && delta.X == 0) return new Vector(delta.Y, 0);
+            return delta;
+        }
         internal void GlideTo(Vector offset)
         {
             from = Scroll.Offset;

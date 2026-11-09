@@ -149,6 +149,10 @@ namespace CapriDesktop
                 UpdateCheckChecks();
                 OfflineChecks();
                 ProviderErrorChecks();
+                Vector swipe = Mainframe.Wheel(new Vector(0.04, 1), KeyModifiers.None), plain = Mainframe.Wheel(new Vector(0, -1), KeyModifiers.None), shifted = Mainframe.Wheel(new Vector(0, 1), KeyModifiers.Shift);
+                if (swipe != new Vector(0.04, 1) || plain != new Vector(0, -1) || shifted != new Vector(1, 0))
+                    throw new Exception("Her Mainframe wheel dropped a direction: " + swipe + " / " + plain + " / " + shifted);
+                checks.Add("PASS Mainframe wheel: a trackpad swipe with a little sideways drift still scrolls up and down, and Shift turns the wheel sideways");
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
