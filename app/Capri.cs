@@ -798,6 +798,7 @@ namespace CapriDesktop
         [DataMember] public string CallAppBefore;
         [DataMember] public string CallAppNameBefore;
         [DataMember] public int HuskMode;
+        [DataMember] public bool NoHuskVerbosity;
         // Switched off on the call panel: in call mode she hears only your mic, not Discord.
         [DataMember] public bool CallDiscordOff;
         [DataMember] public bool CallCaptionsOff;
@@ -6456,6 +6457,15 @@ namespace CapriDesktop
         internal void ToggleHeadPats()
         {
             preferences.NoHeadPats = !preferences.NoHeadPats;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal bool HuskVerbosity { get { return !preferences.NoHuskVerbosity; } }
+
+        internal void ToggleHuskVerbosity()
+        {
+            preferences.NoHuskVerbosity = !preferences.NoHuskVerbosity;
             SavePreferences();
             mainframe.Sync();
         }
@@ -34238,6 +34248,29 @@ namespace CapriDesktop
             long finished = HuskCount(watch, "claude", "tasks");
             watch.Receive(HuskEvent("Stop"));
             if (HuskCount(watch, "claude", "tasks") != finished) throw new Exception("An interrupted husk turn counted as finished.");
+            List<object> colourQuestion = new List<object> { HuskJson.Map("header", "Colour", "question", "Which colour?", "options", new List<object>()) };
+            Dictionary<string, object>[] askedEvents =
+            {
+                HuskHook.Adapt(HuskEvent("PreToolUse", "tool_name", "AskUserQuestion", "tool_input", HuskJson.Map("questions", colourQuestion)), "claude"),
+                HuskHook.Adapt(HuskJson.Map("type", "session.tool.called", "session", "husk-smoke", "tool", "question", "input", HuskJson.Map("questions", colourQuestion)), "opencode")
+            };
+            foreach (Dictionary<string, object> asked in askedEvents)
+                if (HuskJson.Text(asked, "hook_event_name") != "Notification" || HuskJson.Text(asked, "notification_type") != "agent_needs_input" || HuskJson.Text(asked, "message") != "Which colour?") throw new Exception("A question from a coding assistant did not reach her as a question.");
+            watch.Verbose = delegate { return false; };
+            int beforeQuiet = acts.Count;
+            now += 5;
+            watch.Receive(HuskEvent("PreToolUse", "tool_name", "Bash", "tool_input", HuskJson.Map("command", "cd src")));
+            now += 5;
+            watch.Tick();
+            watch.Receive(HuskEvent("PostToolUseFailure", "tool_name", "Bash", "error", "No such folder"));
+            watch.Receive(HuskEvent("PreCompact"));
+            if (acts.Count != beforeQuiet) throw new Exception("Verbosity off let tool chatter through.");
+            watch.Receive(HuskEvent("Notification", "notification_type", "agent_needs_input", "message", "Which colour?"));
+            if (acts.Count != beforeQuiet + 1 || acts[acts.Count - 1].Kind != "input") throw new Exception("Verbosity off hid a question.");
+            watch.Receive(HuskEvent("Notification", "notification_type", "permission_prompt", "message", "Claude needs your permission"));
+            if (acts.Count != beforeQuiet + 1) throw new Exception("A waiting question got a second alert over it.");
+            watch.Verbose = delegate { return true; };
+            checks.Add("PASS husk verbosity off: tool captions, failed tools and compacting stay quiet, and Claude Code and OpenCode questions arrive as questions");
             checks.Add("PASS husk events: UI dispatch, prompts and window, silent merged captions four seconds apart, tool flinch, spoken approvals and questions, foreground done silence with delivery recheck, voice off, stale reply and resolved approval rejection, task errors, compacting, subagents and interrupt");
 
             now = 20;
@@ -34294,6 +34327,11 @@ namespace CapriDesktop
             HuskClone("husk-ui", false);
             if (!huskClones.Swarm.Bodies[0].Returning) throw new Exception("Husk clone overlay missed its return event.");
             HuskClonesOff();
+            if (new Preferences().NoHuskVerbosity) throw new Exception("Verbosity was not on by default.");
+            ToggleHuskVerbosity();
+            if (HuskVerbosity || mainframe.HuskVerbosityShown) throw new Exception("The Verbosity switch did not turn off.");
+            ToggleHuskVerbosity();
+            if (!HuskVerbosity || !mainframe.HuskVerbosityShown) throw new Exception("The Verbosity switch did not turn on.");
             checks.Add("PASS husk settings and clones: saved off/Claude/Codex/OpenCode/All choice and Both kept as Claude Code + Codex, help and hover tip, templates for every spoken language, ten-minute greetings, assistant filtering, duplicate subagent start ignored and passive clones split and return without cursor, notes or window tricks");
 
             watch.Change(3, exe);
