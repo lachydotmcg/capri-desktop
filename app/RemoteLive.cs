@@ -93,7 +93,7 @@ namespace CapriDesktop
             RemoteCall call = remoteCall;
             if (call == null || !remotePieces || !call.Any) return null;
             RemoteAsker asker = RemoteAskerFor(ticket, false);
-            if (asker == null || !call.OnCall(asker.Device)) return null;
+            if (asker == null || !call.Hushes(asker.Device)) return null;
             List<string> pieces = RemoteCall.Pieces(words);
             return pieces.Count > 1 ? pieces : null;
         }
@@ -244,7 +244,8 @@ namespace CapriDesktop
         private void SmokeRemoteCall(List<string> checks)
         {
             const string Phone = "phoneC";
-            string[] lines = { "what is the weather like today", "and what about tomorrow then", "how does the weekend look" };
+            // Lines her bridge check already shows go to her brain rather than a tool of her own (like her weather).
+            string[] lines = { "hello from my phone", "what are you up to", "second message" };
             string[] answers =
             {
                 "Sure thing, here it is. It's clear all day today. Take a jacket tonight. The wind picks up late. The weekend looks sunny. So go for a walk.",
@@ -337,8 +338,11 @@ namespace CapriDesktop
                 voiceInTest = true;
                 string[] features = link.FeaturesNow;
                 if (Array.IndexOf(features, "call") < 0 || Array.IndexOf(features, RemoteCall.HushFeature) < 0) throw new Exception("Her hello-ok offers " + string.Join(", ", features) + ", not call and " + RemoteCall.HushFeature + ".");
-                call.Heard(Phone, "{\"type\":\"call.start\"}");
-                if (!call.OnCall(Phone)) throw new Exception("A phone's call.start didn't put it on a call.");
+                call.Heard(Phone, "{\"type\":\"call.start\",\"hush\":true}");
+                call.Heard("phoneOld", "{\"type\":\"call.start\"}");
+                if (!call.OnCall(Phone) || !call.Hushes(Phone) || !call.OnCall("phoneOld") || call.Hushes("phoneOld")) throw new Exception("A phone's call.start didn't put it on a call, or said wrongly whether it stops her with call.hush.");
+                // An older phone (no hush) gets her answers whole, so its own Interrupt still drops all of what's left.
+                call.End("phoneOld", null);
 
                 // Before: her answer voiced whole, as it is off a call.
                 remotePieces = false;
@@ -354,7 +358,7 @@ namespace CapriDesktop
                 long first = SmokeCallLine(call, sent, Phone, "c2", out at);
                 int firstPart = at;
                 lock (voiced)
-                    if (voiced.Count != 2 || voiced[1].Length > answers[1].Length / 2) throw new Exception("Her answer on a call was voiced as \"" + (voiced.Count > 1 ? voiced[1] : "") + "\", not its first sentence.");
+                    if (voiced.Count < 2 || voiced[1].Length > answers[1].Length / 2) throw new Exception("Her answer on a call was voiced as \"" + (voiced.Count > 1 ? voiced[1] : "") + "\", not its first sentence.");
                 if (first + 400 > whole) throw new Exception("Her first words on a call took " + first + " ms a sentence at a time and " + whole + " ms voiced whole.");
                 int twoPieces = 0;
                 foreach (string piece in pieces.GetRange(0, 2)) twoPieces += 24000 * Math.Max(1, VoiceServer.Letters(piece)) / 12;

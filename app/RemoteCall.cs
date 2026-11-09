@@ -75,6 +75,8 @@ namespace CapriDesktop
             internal long EndedAt;
             internal long EarsMs;
             internal bool Asked, Timing;
+            // Its call.start said hush: it stops her with call.hush, so her answers to it can go a sentence at a time.
+            internal bool Hushes;
         }
 
         private sealed class Line
@@ -92,6 +94,17 @@ namespace CapriDesktop
         }
 
         internal bool OnCall(string device) { lock (gate) return device != null && calls.ContainsKey(device); }
+
+        // On a call from a phone that stops her with call.hush (older phones only drop what's still to play by themselves,
+        // so they get her answers whole).
+        internal bool Hushes(string device)
+        {
+            lock (gate)
+            {
+                Caller caller;
+                return device != null && calls.TryGetValue(device, out caller) && caller.Hushes;
+            }
+        }
 
         internal bool Any { get { lock (gate) return calls.Count > 0; } }
 
@@ -125,7 +138,7 @@ namespace CapriDesktop
         {
             switch (message.Text("type"))
             {
-                case "call.start": Start(device); break;
+                case "call.start": Start(device, message.Is("hush", true)); break;
                 case "call.stop": End(device, null); break;
                 case "call.audio": Audio(device, message); break;
                 case "call.cancel":
@@ -161,7 +174,7 @@ namespace CapriDesktop
             catch (Exception) { }
         }
 
-        private void Start(string device)
+        private void Start(string device, bool hushes)
         {
             if (!Allowed(device))
             {
@@ -174,6 +187,7 @@ namespace CapriDesktop
                 if (disposed) return;
                 fresh = !calls.ContainsKey(device);
                 if (fresh) calls[device] = new Caller { Device = device };
+                calls[device].Hushes = hushes;
             }
             bool voice = true, hearing = true;
             try { voice = VoiceOn(); }
