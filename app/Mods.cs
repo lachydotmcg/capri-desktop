@@ -59,7 +59,7 @@ namespace CapriDesktop
         internal const string WindowsOnly = "Windows only for now";
 
         private Mod LoadCode(string file, HashSet<string> off) { throw new ModException(WindowsOnly); }
-        private Mod ImportCode(string file, Func<ModFile, string, bool> ask) { throw new ModException(WindowsOnly); }
+        private Mod ImportCode(string file, Func<ModFile, string, bool> ask, HashSet<string> keepOff = null) { throw new ModException(WindowsOnly); }
         private bool SetCode(Mod mod, bool on, Func<ModFile, string, bool> ask) { throw new ModException(WindowsOnly); }
         private void RemoveCode(Mod mod) { }
 #endif
@@ -164,9 +164,9 @@ namespace CapriDesktop
             Apply();
         }
 
-        internal Mod Import(string file, Func<ModFile, string, bool> ask)
+        internal Mod Import(string file, Func<ModFile, string, bool> ask, HashSet<string> keepOff = null)
         {
-            if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) return ImportCode(file, ask);
+            if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) return ImportCode(file, ask, keepOff);
             if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkin(file);
             if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkill(file);
             string text;
@@ -196,6 +196,22 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException error) { throw new ModException("Couldn't save that mod: " + error.Message); }
             Load();
             return All.Find(mod => mod.File.Id == read.Id);
+        }
+
+        // A newer copy of a mod that's already in, from the mods directory. It goes in through the normal import, so a code mod
+        // still asks, and then every mod is left on or off the way it was: importing turns a mod on and other skins and colour
+        // sets off, which an update shouldn't.
+        internal Mod Update(string file, Func<ModFile, string, bool> ask)
+        {
+            HashSet<string> before = Off();
+            Mod made = Import(file, ask, before);
+            if (made == null) return null;
+            string id = made.File.Id;
+            if (Off().SetEquals(before)) return made;
+            WriteOff(before);
+            Load();
+            Reskin();
+            return All.Find(mod => mod.File.Id == id);
         }
 
         internal bool Set(Mod mod, bool on, Func<ModFile, string, bool> ask)
