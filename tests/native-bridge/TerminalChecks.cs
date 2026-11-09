@@ -10,6 +10,7 @@ internal static class TerminalChecks
 {
     internal static void Run()
     {
+        MacCatalogChecks();
         if (!OperatingSystem.IsLinux()) return;
         int checks = 0;
         void Check(bool ok, string name) { if (!ok) throw new Exception("Terminal: " + name); checks++; }
@@ -25,10 +26,6 @@ internal static class TerminalChecks
         Check(Hands.KitFor().Lacking(stopRequest)==null && Hands.Heard(stopRequest,out string stopTool,out ToolArguments stopArgs) && stopTool=="terminal_job", "terminal stop bypasses unrelated Windows mouse-job gap");
         foreach (string name in new[] { "linux_system", "run_terminal", "terminal_job" })
             Check(JsonDocument.Parse(kit).RootElement.EnumerateArray().Any(x => x.GetProperty("function").GetProperty("name").GetString() == name), "compiled catalog exposes " + name);
-        Hands.OnMac = true;
-        foreach (string name in new[] { "linux_system", "run_terminal", "terminal_job" })
-            Check(!JsonDocument.Parse(Hands.KitFor().Tools).RootElement.EnumerateArray().Any(x => x.GetProperty("function").GetProperty("name").GetString() == name), "Mac filters " + name);
-        Hands.OnMac = false;
         Check(!Hands.CallTool("run_terminal") && !Hands.CallTool("terminal_job"), "friend calls cannot run shell jobs");
         var calls = new List<KeyValuePair<string, ToolArguments>>();
         PlanBrain.Proposals("{\"text\":\"\",\"calls\":[{\"name\":\"run_terminal\",\"arguments\":{\"command\":\"printf 'héllo world'\",\"cwd\":\"/tmp\",\"visible\":false}}]}",kit,calls);
@@ -96,5 +93,51 @@ internal static class TerminalChecks
             if (!Directory.EnumerateFileSystemEntries(cwd).Any()) Directory.Delete(cwd);
         }
         Console.WriteLine("PASS "+checks+" compiled terminal capability, intent, proposal and lifecycle checks");
+    }
+
+    private static void MacCatalogChecks()
+    {
+        int checks = 0;
+        void Check(bool ok, string name) { if (!ok) throw new Exception("Terminal: " + name); checks++; }
+        string savedSecurity = Security.Saved;
+        bool wasWake = Security.On(Security.Wake);
+        bool wasMac = Hands.OnMac;
+        Func<bool> wasAvailable = Hands.TerminalAvailable;
+        try
+        {
+            Hands.OnMac = true;
+            Hands.TerminalAvailable = () => true;
+            using var macKit = JsonDocument.Parse(Hands.KitFor().Tools);
+            bool Offers(string name) => macKit.RootElement.EnumerateArray().Any(x => x.GetProperty("function").GetProperty("name").GetString() == name);
+            Check(!Offers("linux_system"), "Mac filters Linux diagnostics");
+            foreach (string name in new[] { "run_terminal", "terminal_job" })
+                Check(Offers(name), "Mac exposes " + name);
+            Check(Security.Has(Security.Terminal) && Security.Needs("run_terminal", new()) == Security.Terminal, "Mac has its own Terminal permission");
+            var command = new ToolArguments { Asked = "run pwd", Command = "pwd" };
+            for (int preset = Security.Lockdown; preset <= Security.Trusted; preset++)
+            {
+                Security.Pick(preset);
+                Check(Security.Asks("run_terminal", command) && Security.IsHold(Security.Gate("run_terminal", command)), "Mac asks before terminal commands in " + Security.Presets[preset]);
+                int runs = 0;
+                Security.Resume("yes", (tool, args) => { Check(Security.Gate(tool, args) == null, "Mac confirmation admits the held command"); runs++; return "fixture"; });
+                Check(runs == 1 && Security.Asks("run_terminal", command), "Mac confirmation runs once and the next command asks again");
+            }
+            Security.Set(Security.Terminal, true);
+            Check(!Security.Asks("run_terminal", command), "Mac Terminal permission can explicitly skip confirmation");
+            Security.Pick(Security.Blackwall);
+            Check(!Security.Asks("run_terminal", command), "Mac Blackwall permits requested terminal commands");
+            Check(!Security.Asks("terminal_job", new() { Action = "stop", JobId = "fixture" }), "Mac owned-job stop needs no extra command confirmation");
+            Hands.TerminalAvailable = () => false;
+            using var unavailable = JsonDocument.Parse(Hands.KitFor().Tools);
+            Check(!unavailable.RootElement.EnumerateArray().Any(x => x.GetProperty("function").GetProperty("name").GetString() is "run_terminal" or "terminal_job"), "Mac filters terminal tools when their adapter is unavailable");
+        }
+        finally
+        {
+            Security.Drop();
+            Security.Load(savedSecurity, wasWake);
+            Hands.TerminalAvailable = wasAvailable;
+            Hands.OnMac = wasMac;
+        }
+        Console.WriteLine("PASS " + checks + " Mac terminal catalog and permission checks");
     }
 }

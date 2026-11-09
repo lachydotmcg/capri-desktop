@@ -31,24 +31,28 @@ def identity(pid):
     return value[0] if value is not None and value[1] != 5 else None
 
 
-def session_members(session):
-    size = lib.proc_listpids(1, 0, None, 0)
+def _pids(group=None):
+    kind, value = (1, 0) if group is None else (2, group)
+    size = lib.proc_listpids(kind, value, None, 0)
     if size <= 0:
         raise OSError(ctypes.get_errno(), 'Cannot enumerate terminal processes')
     for _ in range(4):
         buffer = ctypes.create_string_buffer(size + 4096)
-        used = lib.proc_listpids(1, 0, buffer, len(buffer))
-        if used <= 0:
+        ctypes.set_errno(0)
+        used = lib.proc_listpids(kind, value, buffer, len(buffer))
+        if used < 0 or used == 0 and ctypes.get_errno():
             raise OSError(ctypes.get_errno(), 'Cannot enumerate terminal processes')
         if used < len(buffer):
             break
         size = len(buffer) * 2
     else:
         raise OSError('Terminal process inventory kept growing')
+    return [pid for (pid,) in struct.iter_unpack('=i', buffer.raw[:used]) if pid > 0]
+
+
+def session_members(session):
     members = []
-    for (pid,) in struct.iter_unpack('=i', buffer.raw[:used]):
-        if pid <= 0:
-            continue
+    for pid in _pids():
         start = identity(pid)
         try:
             if start is not None and os.getsid(pid) == session:
@@ -58,12 +62,48 @@ def session_members(session):
     return members
 
 
-def terminate_session(session):
-    # The unreaped session leader reserves this group ID; descendant PIDs can be reused.
+def _exited(pid, start=None):
+    value = info(pid)
+    if value is not None:
+        return value[1] == 5 or start is not None and value[0] != start
     try:
-        os.killpg(session, signal.SIGTERM)
+        os.getpgid(pid)
+    except ProcessLookupError:
+        return True
+    return False
+
+
+def _group_exited(group):
+    return all(_exited(pid) for pid in _pids(group))
+
+
+def signal_group(group, signum):
+    # The caller keeps the session leader unreaped so this group ID cannot be reused.
+    try:
+        os.killpg(group, signum)
     except ProcessLookupError:
         pass
+    except PermissionError as error:
+        # Darwin may report EPERM for a group containing only unreaped zombies.
+        if error.errno != errno.EPERM or not _group_exited(group):
+            raise
+
+
+def terminate_session(session):
+    signal_group(session, signal.SIGTERM)
+
+
+def signal_process(pid, start, signum):
+    value = info(pid)
+    if start is None or value is None or value[0] != start or value[1] == 5:
+        return
+    try:
+        os.kill(pid, signum)
+    except ProcessLookupError:
+        pass
+    except PermissionError as error:
+        if error.errno != errno.EPERM or not _exited(pid, start):
+            raise
 
 
 def wait_child(pid):

@@ -30,6 +30,18 @@ def status(folder):
         return {}
 
 
+def kill_child(process):
+    if process.poll() is not None:
+        return
+    value = mac_process.info(process.pid)
+    if value is None:
+        if process.poll() is not None:
+            return
+        raise AssertionError('Cannot inspect the owned fixture child')
+    mac_process.signal_process(process.pid, value[0], signal.SIGKILL)
+    process.wait(timeout=2)
+
+
 def terminal(root, command, stop=False, cancelled=False, expired=False):
     folder = root / ('expired' if expired else 'cancelled' if cancelled else 'stop' if stop else 'output')
     folder.mkdir(mode=0o700)
@@ -40,15 +52,17 @@ def terminal(root, command, stop=False, cancelled=False, expired=False):
         (folder / 'stop').write_text('stop')
     process = subprocess.Popen([sys.executable, str(Path(__file__).with_name('terminal_job.py')), str(folder)],
                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-    child = None
+    child = child_start = None
     try:
         if stop:
             value = until(lambda: status(folder) if status(folder).get('output', '').startswith('ready') else None)
             child = value['pid']
-            os.kill(child, signal.SIGSTOP)
+            child_start = mac_process.identity(child)
+            assert child_start is not None, 'The fixture child exited before it could be stopped'
+            mac_process.signal_process(child, child_start, signal.SIGSTOP)
             time.sleep(.2)
             assert status(folder)['state'] == 'running' and status(folder)['exit_code'] is None, 'A stopped child was treated as an exit'
-            os.kill(child, signal.SIGCONT)
+            mac_process.signal_process(child, child_start, signal.SIGCONT)
             (folder / 'stop').write_text('stop')
         process.wait(timeout=4)
         assert process.returncode == 0, process.stderr.read().decode()
@@ -65,11 +79,11 @@ def terminal(root, command, stop=False, cancelled=False, expired=False):
             assert value['total_bytes'] >= len(value['output'].encode('utf-8')), value
     finally:
         if process.poll() is None:
-            if child:
-                os.killpg(child, signal.SIGCONT)
+            value = mac_process.info(child) if child else None
+            if child_start and value is not None and value[0] == child_start:
+                mac_process.signal_group(child, signal.SIGCONT)
                 mac_process.terminate_session(child)
-            process.kill()
-            process.wait()
+            kill_child(process)
         process.stderr.close()
 
 
@@ -92,10 +106,10 @@ def parent_lifetime():
         process.wait(timeout=2)
         until(lambda: mac_process.identity(pid) != start)
     finally:
-        if pid and start and mac_process.identity(pid) == start:
-            os.kill(pid, signal.SIGTERM)
+        if pid and start:
+            mac_process.signal_process(pid, start, signal.SIGTERM)
         if process.poll() is None:
-            process.kill(); process.wait()
+            kill_child(process)
         process.stdout.close(); process.stderr.close()
 
 

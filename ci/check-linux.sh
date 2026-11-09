@@ -8,6 +8,7 @@ done
 make -C "$root/cross/native"
 python3 "$root/tests/computer/native_input_checks.py" "$root/cross/native/capri-input"
 python3 "$root/tests/native-bridge/terminal_supervisor_checks.py"
+python3 "$root/tests/native-bridge/mac_process_checks.py"
 python3 "$root/tests/upstream-release/run.py"
 
 python3 "$root/tests/native-bridge/name_listening_checks.py"
