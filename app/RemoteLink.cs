@@ -407,7 +407,160 @@ namespace CapriDesktop
         // What the next hello-ok will list, for her smoke test.
         internal string[] FeaturesNow { get { lock (gate) return Offered(); } }
 
-        private static bool IsLive(string type) { return type != null && (type.StartsWith("watch.", StringComparison.Ordinal) || type.StartsWith("call.", StringComparison.Ordinal)); }
+        private static bool IsLive(string type) { return type != null && (type.StartsWith("watch.", StringComparison.Ordinal) || type.StartsWith("call.", StringComparison.Ordinal) || type == "job.list" || type == "job.stop" || type == "job.answer"); }
+
+        // Job messages (PROTOCOL.md section 8.4) wait in each phone's own queue instead of going straight out: to one phone,
+        // or to every phone that's online, one partway through hello too, so a job that ends then still reaches it.
+        internal void JobSend(string device, string json)
+        {
+            lock (gate)
+            {
+                Phone phone = Live(device);
+                if (phone == null || !phone.Online || phone.Kicked) return;
+                QueueJob(phone, json);
+            }
+        }
+
+        internal void JobBroadcast(string json)
+        {
+            lock (gate)
+                foreach (Phone phone in phones.Values)
+                    if (phone.Online && (phone.Session != null || phone.JobHello) && !phone.Kicked) QueueJob(phone, json);
+        }
+
+        // A step's newer update replaces its older one still waiting, and a job's state its same state, so a phone that's
+        // behind gets where things are now. A different state never jumps an older one, so running, asking and running again
+        // arrive in order. A phone that can't keep up, like during a game's quick keys, keeps her newest 30 steps, the most
+        // JOBS lists, instead of falling minutes behind.
+        private void QueueJob(Phone phone, string json)
+        {
+            RemoteJson.Map message = RemoteJson.ParseMap(json);
+            if (message == null) return;
+            string type = message.Text("type");
+            double n;
+            string key = type + " " + (message.Text("id") ?? message.Text("re")) + " " + (message.Number("n", out n) ? n.ToString(System.Globalization.CultureInfo.InvariantCulture) : message.Text("state"));
+            for (int i = phone.Jobs.Count - 1; i >= 0; i--)
+            {
+                if (phone.Jobs[i].Key == key) { phone.Jobs[i] = new KeyValuePair<string, string>(key, json); Arm(200); return; }
+                if (type == "job.state" && phone.Jobs[i].Key.StartsWith("job.state " + message.Text("id") + " ", StringComparison.Ordinal)) break;
+            }
+            phone.Jobs.Add(new KeyValuePair<string, string>(key, json));
+            if (type == "job.step" && phone.Jobs.FindAll(frame => frame.Key.StartsWith("job.step ", StringComparison.Ordinal)).Count > JobSteps)
+                phone.Jobs.RemoveAt(phone.Jobs.FindIndex(frame => frame.Key.StartsWith("job.step ", StringComparison.Ordinal)));
+            Arm(200);
+        }
+
+        private const int JobSteps = 30;
+
+        // At most one job frame a phone every 200 ms, five a second, with one in flight at a time, taking turns between states
+        // and steps so neither holds up the other. Frames made before a phone's newer hello never go out (Frames).
+        private bool FlushJobs(long now)
+        {
+            bool more = false;
+            foreach (Phone phone in phones.Values)
+            {
+                if (!phone.Online || phone.Kicked) { phone.Jobs.Clear(); continue; }
+                if (phone.Jobs.Count == 0) continue;
+                more = true;
+                if (phone.Session == null || now < phone.JobAt || System.Threading.Volatile.Read(ref phone.JobBusy) != 0) continue;
+                int step = phone.Jobs.FindIndex(delegate(KeyValuePair<string, string> frame) { return frame.Key.StartsWith("job.step ", StringComparison.Ordinal); });
+                int state = phone.Jobs.FindIndex(delegate(KeyValuePair<string, string> frame) { return !frame.Key.StartsWith("job.step ", StringComparison.Ordinal); });
+                int next = state >= 0 && (step < 0 || !phone.JobStepNext) ? state : step;
+                Outgoing item = Outgoing.Message(phone, phone.Jobs[next].Value);
+                phone.Jobs.RemoveAt(next);
+                phone.JobStepNext = next == state;
+                phone.JobAt = now + 200;
+                phone.JobBusy = 1;
+                item.Stale = true;
+                item.Job = true;
+                item.Round = phone.Hellos;
+                Phone target = phone;
+                item.Left = delegate { System.Threading.Interlocked.Exchange(ref target.JobBusy, 0); };
+                Push(item);
+            }
+            return more;
+        }
+
+        // True while a phone still has job frames to go, which keeps the ticker running.
+        private bool JobsWaiting()
+        {
+            foreach (Phone phone in phones.Values) if (phone.Jobs.Count > 0) return true;
+            return false;
+        }
+
+        // Job frames on a stand-in wire: both live phones get each one sealed with their own keys, a step's updates batch to
+        // its newest, frames keep to five a second, a frame from before a phone's newer hello is dropped, a phone that falls
+        // behind keeps only the newest 30 steps, and a job that ends during hello waits for the phone.
+        internal static void SmokeJobs(List<string> checks)
+        {
+            RemoteState state = RemoteState.Fresh();
+            Dictionary<string, RemoteKeys> keys = new Dictionary<string, RemoteKeys>();
+            for (int i = 0; i < 2; i++)
+            {
+                RemoteDevice device = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone " + i };
+                state.Devices.Add(device);
+                keys[device.Id] = RemoteCrypto.SessionKeys(device.Key, new byte[16], RemoteCrypto.Random(16));
+            }
+            RemoteLink link = new RemoteLink(state, "ws://127.0.0.1:1", "Test PC", "test", null);
+            link.Offer("jobs");
+            if (Array.IndexOf(link.FeaturesNow, "jobs") < 0) throw new Exception("Jobs weren't offered at hello.");
+            using (CancellationTokenSource stop = new CancellationTokenSource())
+            {
+                link.wire = new Wire(stop);
+                try
+                {
+                    foreach (Phone phone in link.phones.Values)
+                    {
+                        phone.Online = true;
+                        phone.Session = new RemoteChannel(keys[phone.Device.Id], RemoteCrypto.KindSession);
+                    }
+                    string started = RemoteMessages.JobState("j1", "Opening an app", "running", 0, 1, 0, null, "m1");
+                    link.JobBroadcast(started);
+                    link.JobBroadcast(RemoteMessages.JobStep("j1", 1, "type", "Typing some text", false, false));
+                    link.JobBroadcast(RemoteMessages.JobStep("j1", 1, "type", "Typed some text", true, false));
+                    link.FlushJobs(0);
+                    HashSet<string> got = new HashSet<string>();
+                    Outgoing item;
+                    while ((item = link.wire.Take()) != null)
+                    {
+                        got.Add(item.Phone.Device.Id);
+                        List<KeyValuePair<byte[], WebSocketMessageType>> frames = link.Frames(item);
+                        if (frames.Count != 1) throw new Exception("A jobs tick sent more than one frame to a phone.");
+                        byte[] frame = frames[0].Key;
+                        string reason;
+                        byte[] plain = RemoteCrypto.Open(keys[item.Phone.Device.Id].PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, 0, frame, 16, frame.Length - 16, out reason);
+                        if (plain == null || Encoding.UTF8.GetString(plain) != started) throw new Exception("A phone couldn't open its job state.");
+                        item.Finish();
+                    }
+                    if (got.Count != 2) throw new Exception("A live phone missed the job.");
+                    link.FlushJobs(199);
+                    if (link.wire.Take() != null) throw new Exception("Jobs sent faster than five frames a second.");
+                    link.FlushJobs(200);
+                    int steps = 0;
+                    while ((item = link.wire.Take()) != null)
+                    {
+                        if (RemoteJson.ParseMap(item.Json).Text("label") != "Typed some text") throw new Exception("A step wasn't batched to its newest state.");
+                        item.Phone.Hellos++;
+                        if (link.Frames(item).Count != 0) throw new Exception("A job frame went to a replacement session.");
+                        item.Finish();
+                        steps++;
+                    }
+                    if (steps != 2) throw new Exception("A phone missed the job's step.");
+                    for (int n = 2; n <= 41; n++) link.JobBroadcast(RemoteMessages.JobStep("j1", n, "click", "Clicked Play", true, false));
+                    foreach (Phone phone in link.phones.Values)
+                    {
+                        if (phone.Jobs.Count != JobSteps || phone.Jobs[0].Key != "job.step j1 12") throw new Exception("A phone that fell behind kept " + phone.Jobs.Count + " steps instead of her newest " + JobSteps + ".");
+                        phone.Jobs.Clear();
+                    }
+                    foreach (Phone phone in link.phones.Values) { phone.Session = null; phone.JobHello = true; }
+                    link.JobBroadcast(RemoteMessages.JobState("j1", "Opening an app", "done", 1, 1, 2, null, null));
+                    foreach (Phone phone in link.phones.Values)
+                        if (phone.Jobs.Count != 1) throw new Exception("A job ending during hello was lost.");
+                }
+                finally { link.wire.Socket.Dispose(); }
+            }
+            checks.Add("PASS job messages reach both live phones, open with each phone's keys, batch steps, stay at five frames a second, drop frames from a replaced session and keep a phone that fell behind to the newest 30 steps");
+        }
 
         // Messages that only mean something now, like a screen frame or a moment of her voice, sealed together in order. They
         // never wait for a phone's next session. left runs once they've gone to the relay, or been dropped: it must not
@@ -682,6 +835,8 @@ namespace CapriDesktop
                 foreach (Phone phone in phones.Values)
                 {
                     phone.Session = null;
+                    phone.Jobs.Clear();
+                    phone.JobHello = false;
                     phone.Online = false;
                     phone.Kicked = false;
                 }
@@ -777,6 +932,8 @@ namespace CapriDesktop
                         if (phone == null) break;
                         phone.Online = false;
                         phone.Session = null;
+                        phone.Jobs.Clear();
+                        phone.JobHello = false;
                         phone.Kicked = false;
                         notes.Add(new Note("left", phone.Device.Id));
                         break;
@@ -803,6 +960,8 @@ namespace CapriDesktop
                             if (phone != null)
                             {
                                 phone.Session = null;
+                                phone.JobHello = false;
+                                phone.Jobs.Clear();
                                 phone.Online = false;
                                 notes.Add(new Note("left", phone.Device.Id));
                             }
@@ -985,6 +1144,9 @@ namespace CapriDesktop
             RemoteChannel hello = new RemoteChannel(RemoteCrypto.HelloKeys(phone.Device.Key, phone.IdBytes), RemoteCrypto.KindHello);
             RemoteJson.Map message = hello.Open(data, offset, count);
             phone.Session = null;
+            phone.Jobs.Clear();
+            phone.JobHello = false;
+            phone.JobStepNext = false;
             phone.Hellos++;
             if (message == null || message.Text("type") != "hello")
             {
@@ -1007,6 +1169,7 @@ namespace CapriDesktop
             }
             byte[] pcNonce = RemoteCrypto.Random(16);
             RemoteChannel session = new RemoteChannel(RemoteCrypto.SessionKeys(phone.Device.Key, phoneNonce, pcNonce), RemoteCrypto.KindSession);
+            phone.JobHello = true;
             Push(Outgoing.Hello(phone, hello, RemoteMessages.HelloOk(RemoteCrypto.B64u(pcNonce), echo, pcName, app, Offered()), session, phone.Hellos));
             phone.Online = true;
             notes.Add(new Note("session", phone.Device.Id));
@@ -1078,6 +1241,8 @@ namespace CapriDesktop
         private void Kick(Phone phone, List<Note> notes)
         {
             phone.Session = null;
+            phone.JobHello = false;
+            phone.Jobs.Clear();
             phone.Hellos++;
             if (phone.Kicked) return;
             phone.Kicked = true;
@@ -1107,7 +1272,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 Phone phone = item.Phone;
-                if (item.Channel != null && item.Round != phone.Hellos) return frames;
+                if ((item.Channel != null || item.Job) && item.Round != phone.Hellos || item.Job && !phone.Online) return frames;
                 RemoteChannel channel = item.Channel ?? phone.Session;
                 if (channel == null)
                 {
@@ -1118,6 +1283,7 @@ namespace CapriDesktop
                 if (item.Then != null)
                 {
                     phone.Session = item.Then;
+                    phone.JobHello = false;
                     int now = Environment.TickCount;
                     foreach (Outgoing kept in phone.Kept)
                         if (unchecked(now - kept.At) < KeepMs) Seal(phone, item.Then, kept, frames);
@@ -1207,6 +1373,7 @@ namespace CapriDesktop
                 if (stopped) return;
                 FlushParts(null);
                 long now = Now();
+                bool jobs = FlushJobs(now);
                 List<string> done = new List<string>();
                 foreach (KeyValuePair<string, Ask> pair in asks)
                 {
@@ -1221,14 +1388,14 @@ namespace CapriDesktop
                     }
                 }
                 foreach (string key in done) asks.Remove(key);
-                Arm(parts.Count > 0 ? BatchMs : 1000);
+                Arm(parts.Count > 0 ? BatchMs : jobs ? 200 : 1000);
             }
         }
 
         // Under gate.
         private void Arm(int due)
         {
-            if (stopped || ticker == null || (parts.Count == 0 && asks.Count == 0)) return;
+            if (stopped || ticker == null || (parts.Count == 0 && asks.Count == 0 && !JobsWaiting())) return;
             long at = Now() + due;
             if (ticking && tickDue <= at) return;
             ticking = true;
@@ -1390,6 +1557,11 @@ namespace CapriDesktop
             internal readonly RemoteDevice Device;
             internal readonly byte[] IdBytes;
             internal readonly List<Outgoing> Kept = new List<Outgoing>();
+            internal readonly List<KeyValuePair<string, string>> Jobs = new List<KeyValuePair<string, string>>();
+            internal long JobAt;
+            internal int JobBusy;
+            internal bool JobHello;
+            internal bool JobStepNext;
             internal RemoteChannel Session;
             internal bool Online, Kicked, Removed;
             internal int Hellos;
@@ -1452,7 +1624,7 @@ namespace CapriDesktop
             internal Phone Phone;
             internal RemoteChannel Channel, Then;
             internal StringBuilder Words;
-            internal bool Done, Stale, Close;
+            internal bool Done, Stale, Close, Job;
             internal int Round;
             internal readonly int At = Environment.TickCount;
             // A live item's messages, sealed back to back, and what runs once they've left or been dropped (SendLive).

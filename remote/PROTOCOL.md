@@ -378,9 +378,9 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 |---|---|
 | 2, settings | `settings.schema` (PC), `settings.set` (phone) |
 | 3, watch | `watch.start` (phone), `watch.stop` (phone), `watch.frame` (PC) |
-| 4, jobs | `job.start` (phone), `job.status` (PC), `job.stop` (phone) |
+| 4, jobs | `job.state` (PC), `job.step` (PC), `job.recent` (PC), `job.list` (phone), `job.stop` (phone), `job.answer` (phone) |
 
-`hello-ok.features` will list `settings`, `watch` and `jobs` when the PC has them turned on.
+`hello-ok.features` lists the features the PC supports. Screen view and jobs are defined below.
 
 ### 8.2 Screen view and call
 
@@ -447,6 +447,27 @@ A PC that lists `pair` in `hello-ok.features` makes a pairing link for a paired 
 
 - **Answers.** `pair.link`, or `error` with `re`: `busy` when a QR is up or a phone waits for Allow on the PC. An ask with a bad `id` gets `error` `bad-message`.
 - **The phone** takes only the `#` fragment from `url` (`r`, `c` and `k`) and puts it on its own address, so a link always opens the page that made it. It keeps the link in memory and hands it on through the clipboard; the page that pastes it clears the clipboard.
+
+### 8.4 Jobs (feature `jobs`)
+
+A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, stop and answer its PC jobs, whoever started them. A phone sends these messages only in a session that offers `jobs`. There is no new PC switch and no notification support in this phase. A phone starts a job by talking to Capri in chat or a call.
+
+| `type` | Sender | Fields |
+|---|---|---|
+| `job.state` | PC | `id`, `task` (her plain words, at most 200 characters), `state` (`running`, `asking`, `done`, `failed` or `stopped`), `steps` (count so far), `started` (Unix ms), `ended` (Unix ms, only once over), `ask` (her question with `asking`, at most 200 characters), `re` (the phone message that started it, when one did) |
+| `job.step` | PC | `id` (the job), `n` (from 1), `tool`, `label` (at most 120 characters), `done`, `failed` |
+| `job.list` | phone | none; the PC answers with `job.recent` |
+| `job.recent` | PC | `list`: up to 10 most recent jobs, newest first, each `id`, `task`, `state`, `started`, `ended` (once over), `steps`, `last` (its last step's label, or empty) |
+| `job.stop` | phone | `id`; stops that job as Esc does, and the PC answers with `job.state` |
+| `job.answer` | phone | `id`, `yes` (true or false); answers her held question, only while that job is `asking` |
+
+- **Updates.** Every paired phone with a live session gets each job's state and steps. Start, status changes, held questions and the end send `job.state`. Jobs are kept only in PC memory. Recent includes the current job.
+- **Steps.** A step's running and finished updates share its `n` and replace each other. `steps` counts steps, not updates. A phone that says hello while a job runs or asks gets its state followed by its last 30 steps, with their original numbers.
+- **Batching.** Job messages are queued at about five frames a second per phone. Pending updates for the same step can become its newest update. State and command answers share turns with steps, so a question or stop answer is not held behind a long step list. A new hello clears that phone's old queue and replays the current job. Session messages never carry over to another session.
+- **Privacy.** Labels never carry what she typed, including the keys of a typed secret. A type step says "Typing some text" or "Typed some text" and may name where if the label safely says where. Clicked and opened labels may name the button or app. Job titles, questions and Recent follow the same rule. Use short summaries when the original words include typed content. Never send raw tool arguments, typed text, key sequences or failure results as job labels.
+- **Answers.** Allow runs the held action once through the same approval path as the PC. Deny leaves it alone. Stop ends it through the PC's stop path, including a held action. A held question stays current until answered or dropped on the PC.
+- **Bad commands.** `job.stop` or `job.answer` for anything other than the current job, or an answer when it is not `asking`, gets `error` with `code: "bad-message"` and `re` set to the command's job `id` when valid. A missing or malformed id, or a non-boolean `yes`, also gets `bad-message`.
+- **Unknown values.** Ignore unknown types and fields, as in section 8.
 
 ## 9. Rules for each side
 

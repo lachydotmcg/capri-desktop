@@ -353,6 +353,30 @@ namespace CapriDesktop
 
         internal static string Revoked() { return Typed("revoke").ToString(); }
 
+        // Her jobs for JOBS on the phone (PROTOCOL.md 8.4): a job, its state with her question while she asks, one step, and
+        // Recent. Titles and questions are cut to 200 letters and step labels to 120.
+        internal static RemoteJson.Writer JobInfo(string id, string task, string state, int steps, long started, long ended)
+        {
+            RemoteJson.Writer info = new RemoteJson.Writer().Text("id", id).Text("task", Clip(task, 200)).Text("state", state).Number("steps", steps).Number("started", started);
+            if (ended > 0) info.Number("ended", ended);
+            return info;
+        }
+
+        internal static string JobState(string id, string task, string state, int steps, long started, long ended, string ask, string re)
+        {
+            RemoteJson.Writer info = JobInfo(id, task, state, steps, started, ended).Text("type", "job.state");
+            if (state == "asking") info.Text("ask", Clip(ask, 200));
+            if (re != null) info.Text("re", re);
+            return info.ToString();
+        }
+
+        internal static string JobStep(string id, int n, string tool, string label, bool done, bool failed)
+        {
+            return Typed("job.step").Text("id", id).Number("n", n).Text("tool", Clip(tool, 64)).Text("label", Clip(label, 120)).Flag("done", done).Flag("failed", failed).ToString();
+        }
+
+        internal static string JobRecent(IEnumerable<RemoteJson.Writer> list) { return Typed("job.recent").Objects("list", list).ToString(); }
+
         // Ids are 1 to 64 of A-Z a-z 0-9 _ - (PROTOCOL.md section 8).
         internal static bool IdOk(string id)
         {

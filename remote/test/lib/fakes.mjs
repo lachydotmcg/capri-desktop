@@ -152,6 +152,8 @@ export class FakePc {
     this.heartbeat = heartbeat;
     this.devices = new Map();
     this.pairing = null;
+    this.jobs = [];
+    this.jobTrail = new Map();
   }
 
   async open() {
@@ -242,7 +244,55 @@ export class FakePc {
     const reply = await channel.seal({ type: 'hello-ok', v: 1, nonce: R.b64u(pcNonce), echo: hello.nonce, name: 'Test PC', app: 'capri/test', features });
     this.conn.sendBytes(R.pcFrame(device.idBytes, reply));
     device.session = new R.Channel(await R.sessionKeys(device.key, R.fromB64u(hello.nonce, 16), pcNonce), R.KIND.session, 'pc');
+    if (features.includes('jobs')) await this.replayJobs(device.id);
     return { device, hello };
+  }
+
+  async jobState(job) {
+    const before = this.jobs.find(row => row.id === job.id);
+    const row = Object.assign({ id: R.b64u(R.randomBytes(16)), task: 'Open Steam and launch Helldivers 2', state: 'running', steps: 0, started: Date.now() }, before, job);
+    this.jobs = [row, ...this.jobs.filter(old => old.id !== row.id)].sort((a, b) => b.started - a.started).slice(0, 10);
+    for (const device of this.devices.values()) if (device.session) await this.send(device.id, { type: 'job.state', ...row });
+    return row;
+  }
+
+  async jobStep(id, step) {
+    const row = this.jobs.find(job => job.id === id);
+    assert.ok(row, 'no such fake job');
+    const trail = this.jobTrail.get(id) || [];
+    const before = trail.find(old => old.n === step.n);
+    const item = Object.assign({ n: row.steps + 1, tool: 'click', label: 'Clicked Play', done: true, failed: false }, before, step);
+    const kept = [...trail.filter(old => old.n !== item.n), item].sort((a, b) => a.n - b.n).slice(-30);
+    this.jobTrail.set(id, kept);
+    row.steps = Math.max(row.steps, item.n);
+    row.last = kept[kept.length - 1].label;
+    for (const device of this.devices.values()) if (device.session) await this.send(device.id, { type: 'job.step', id, ...item });
+    return item;
+  }
+
+  async replayJobs(deviceId) {
+    const job = this.jobs.find(row => ['running', 'asking'].includes(row.state));
+    if (!job) return;
+    await this.send(deviceId, { type: 'job.state', ...job });
+    for (const step of this.jobTrail.get(job.id) || []) await this.send(deviceId, { type: 'job.step', id: job.id, ...step });
+  }
+
+  async jobsMessage(deviceId, message) {
+    if (message.type === 'job.list') {
+      const list = this.jobs.map(row => {
+        const { id, task, state, started, ended, steps, last = '' } = row;
+        return { id, task, state, started, ...(ended ? { ended } : {}), steps, last };
+      });
+      await this.send(deviceId, { type: 'job.recent', list });
+      return;
+    }
+    const job = this.jobs.find(row => ['running', 'asking'].includes(row.state));
+    if (!job || job.id !== message.id || message.type === 'job.answer' && (job.state !== 'asking' || typeof message.yes !== 'boolean')) {
+      await this.send(deviceId, { type: 'error', code: 'bad-message', re: message.id });
+      return;
+    }
+    if (message.type === 'job.stop' || message.type === 'job.answer' && !message.yes) await this.jobState({ ...job, state: 'stopped', ended: Date.now() });
+    else if (message.type === 'job.answer') await this.jobState({ ...job, state: 'running', ask: undefined });
   }
 
   async send(deviceId, message) {

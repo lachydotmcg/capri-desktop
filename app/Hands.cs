@@ -301,6 +301,18 @@ namespace CapriDesktop
         }
 
         private static readonly List<Held> held = new List<Held>();
+        // Her asking first as a phone's JOBS shows it (RemoteJobSecurity): which hold, as asking, running, done, failed or
+        // stopped, with her question while she asks. HoldingId is the hold a phone's answer has to match.
+        internal static Action<object, string, string> HeldChanged;
+        internal static object HoldingId { get { lock (gate) return held.Count == 0 ? null : held[0]; } }
+
+        private static void HeldState(object id, string state, string words)
+        {
+            Action<object, string, string> changed = HeldChanged;
+            if (changed == null || id == null) return;
+            try { changed(id, state, words); }
+            catch (Exception) { }
+        }
         // Calls their yes let through, each once.
         private static readonly List<string> cleared = new List<string>();
 
@@ -323,6 +335,7 @@ namespace CapriDesktop
                 if (cleared.Remove(asked)) return null;
                 if (!held.Exists(call => call.Asked == asked)) held.Add(new Held { Tool = tool, Args = args == null ? new ToolArguments() : args.Copy(), Asked = asked });
             }
+            HeldState(HoldingId, "asking", Question);
             return Hold + "\"" + Up(asked) + "?" + Yes + "\" and wait for their answer. Their yes runs it, so don't call the tool again.";
         }
 
@@ -365,32 +378,54 @@ namespace CapriDesktop
         internal static bool Declines(string said) { return Regex.IsMatch((said ?? "").Trim(), @"^(no|nah|nope|don't|do not|stop|cancel|never mind|nevermind|leave it|non)\b", RegexOptions.IgnoreCase); }
 
         // Their answer to her asking first: yes runs what she held, each call once; no leaves it alone; anything else drops it
-        // and goes on as a new message. Null when nothing was held or it wasn't a yes or no.
-        internal static string Resume(string text, Func<string, ToolArguments, string> run)
+        // and goes on as a new message. Null when nothing was held or it wasn't a yes or no. A phone's answer from JOBS names
+        // the hold it saw, and is null once that hold has gone.
+        internal static string Resume(string text, Func<string, ToolArguments, string> run, object expected = null)
         {
             List<Held> waiting;
             lock (gate)
             {
-                if (held.Count == 0) return null;
+                if (held.Count == 0 || expected != null && held[0] != expected) return null;
                 waiting = new List<Held>(held);
                 held.Clear();
             }
-            if (Declines(text)) return Left;
-            if (!Agrees(text)) return null;
+            if (Declines(text)) { HeldState(waiting[0], "stopped", null); return Left; }
+            if (!Agrees(text)) { HeldState(waiting[0], "stopped", null); return null; }
+            HeldState(waiting[0], "running", null);
             List<string> done = new List<string>();
-            foreach (Held call in waiting)
+            try
             {
-                lock (gate) cleared.Add(call.Asked);
-                string result;
-                try { result = run(call.Tool, call.Args); }
-                finally { lock (gate) cleared.Remove(call.Asked); }
-                if (!string.IsNullOrEmpty(result)) done.Add(Said(result));
+                foreach (Held call in waiting)
+                {
+                    lock (gate) cleared.Add(call.Asked);
+                    string result;
+                    try { result = run(call.Tool, call.Args); }
+                    finally { lock (gate) cleared.Remove(call.Asked); }
+                    if (!string.IsNullOrEmpty(result)) done.Add(Said(result));
+                }
+                string finished = done.Count == 0 ? "Done." : string.Join(" ", done.ToArray());
+                HeldState(waiting[0], Hands.Failed(finished) ? "failed" : "done", null);
+                return finished;
             }
-            return done.Count == 0 ? "Done." : string.Join(" ", done.ToArray());
+            catch { HeldState(waiting[0], "failed", null); throw; }
         }
 
         // Drops whatever she was holding, when they've moved on to something else.
-        internal static void Drop() { lock (gate) held.Clear(); }
+        internal static void Drop() { Drop(null); }
+
+        // A phone's Stop drops only the hold it saw, so a newer question stays. False when that hold had already gone.
+        internal static bool Drop(object expected)
+        {
+            object id;
+            lock (gate)
+            {
+                if (held.Count == 0 || expected != null && held[0] != expected) return false;
+                id = held[0];
+                held.Clear();
+            }
+            HeldState(id, "stopped", null);
+            return true;
+        }
 
         private static string Up(string text) { return string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text.Substring(1); }
 

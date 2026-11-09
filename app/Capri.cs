@@ -2428,6 +2428,7 @@ namespace CapriDesktop
             Security.HeyOn = delegate { return preferences.HeyCapri; };
             Security.SetHey = SetHeyCapri;
             Security.Changed = SecurityChanged;
+            Security.HeldChanged = RemoteJobSecurity;
             ears.Chosen = preferences.Mic;
             if (!smoke) MixVoice();
             kokoro.Style = LocalVoice.Find(preferences.VoiceStyle);
@@ -5546,7 +5547,17 @@ namespace CapriDesktop
             return Security.Reply(results) ?? string.Join(" ", results.ToArray());
         }
 
+        // The phone whose message called a tool rides with it on this thread, so a job the tool starts answers that message
+        // in the phone's JOBS.
         private string DoTool(string tool, ToolArguments args, int ticket, bool beside = false)
+        {
+            RemoteAsker was = remoteJobPhone;
+            remoteJobPhone = RemoteAskerFor(ticket, false);
+            try { return RunTool(tool, args, ticket, beside); }
+            finally { remoteJobPhone = was; }
+        }
+
+        private string RunTool(string tool, ToolArguments args, int ticket, bool beside)
         {
             if (args != null && args.FromFriend && (!Hands.CallAllowed(tool, args) || args.Current == null || !args.Current())) return "That call request has ended.";
             if (CallModeOn && !CallHands(ticket)) return CallSession.Conversation;
@@ -9731,10 +9742,18 @@ namespace CapriDesktop
 
         private string ResumeJob(string text)
         {
+            return ResumeJob(text, null);
+        }
+
+        // From a phone's JOBS, expected is the job whose question that phone saw: their answer only counts while it's still
+        // that job's, and SECURITY's own question is answered by its hold instead (RemoteJobCommand).
+        private string ResumeJob(string text, Job expected)
+        {
             // Her asking first for SECURITY: their yes runs what she held, and their no leaves it.
-            string answered = Security.Resume(text, ResumeTool);
+            string answered = expected == null ? Security.Resume(text, ResumeTool) : null;
             if (answered != null) return answered;
             Job waiting = job;
+            if (expected != null && waiting != expected) return null;
             if (waiting == null || !waiting.Asking) return null;
             string said = text.Trim();
             if (Regex.IsMatch(Hands.Asked(said), @"^(yes|yeah|yep|yup|ya|yea|sure|ok|okay|do it|go ahead|go for it|send it|press it|oui)\b[\s.!,]*(please|pls|plz|choom)?[\s.!]*$", RegexOptions.IgnoreCase))
@@ -9744,6 +9763,7 @@ namespace CapriDesktop
                 return FinishCallJoin(waiting.Task, waiting.Outcome, ticket, result);
             }
             job = null;
+            RemoteJobEnd(waiting, "stopped", null);
             if (Regex.IsMatch(said, @"^(no|nah|nope|don't|do not|stop|cancel|never mind|nevermind|leave it|non)\b", RegexOptions.IgnoreCase)) return "Okay, I left it alone.";
             return null;
         }
@@ -9772,7 +9792,7 @@ namespace CapriDesktop
             running.Reader = testing ? null : new Action<Sight>(delegate(Sight read) { if (Ink.ScreenRequest(running.Task)) Computer.ReadWords(read, Computer.Shoot(null)); else Computer.ReadWords(read); });
             running.Says = delegate(string line) { Post(delegate { if (Computer.Streaming) ChatLine(line, running); else PlayLine(line, running); }); };
             running.Blind = delegate { if (!running.Playing || preferences.SlowHands) blindModel = driver.Model; };
-            running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
+            running.Progress = delegate(string status) { RemoteJobStatus(running, status); Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
             bool social = Computer.Social(running.Task + " " + running.Words);
             string[] called = { null };
             running.Seen = delegate(Sight sight)
@@ -9786,8 +9806,8 @@ namespace CapriDesktop
                 string program = sight.Program;
                 if (social && !string.IsNullOrEmpty(program) && program != called[0] && Computer.GameWindow(sight)) { called[0] = program; Post(delegate { CallForGame(running, program, name); }); }
             };
-            running.Busy = delegate(string what) { Post(delegate { taskPanel.Busy(running, what); }); };
-            running.Stepped = delegate(JobStep step) { Post(delegate { taskPanel.Add(running, step); }); if (step.Finished) AgentStep(running); };
+            running.Busy = delegate(string what) { RemoteJobStatus(running, what); Post(delegate { taskPanel.Busy(running, what); }); };
+            running.Stepped = delegate(JobStep step) { RemoteJobStep(running, step); Post(delegate { taskPanel.Add(running, step); }); if (step.Finished) AgentStep(running); };
             Computer.PlacePointer(PointerHome());
             Post(delegate { JobOn(running); });
             string result = null;
@@ -9798,6 +9818,9 @@ namespace CapriDesktop
             string brainTrouble = null;
             try
             {
+                // Phones see the job start, and one a phone stopped while it waited for her hands never starts.
+                RemoteJobOn(running);
+                if (RemoteJobStopped(running)) { running.Outcome = "stopped"; return Computer.Escaped; }
                 result = running.Run();
                 if (media && !running.Playing) KeepPlaying(running.Outcome, before, 800);
                 return result;
@@ -9811,6 +9834,7 @@ namespace CapriDesktop
                 if (job == running && !running.Asking) job = null;
                 string outcome = running.Outcome ?? "failed";
                 string ending = result ?? brainTrouble;
+                RemoteJobEnd(running, outcome, ending);
                 Post(delegate { JobOff(running, outcome, ending); });
             }
         }
@@ -14676,6 +14700,7 @@ namespace CapriDesktop
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             StopRemote();
+            Security.HeldChanged = null;
             if (husk != null) husk.Dispose();
             HuskClonesOff();
             ClearMarks();
@@ -33203,6 +33228,124 @@ namespace CapriDesktop
             checks.Add("PASS her provider and voice sheets grow with the Mainframe's size at 150% and 200%, the voice sheet's menus hold their own font, and a move to a denser screen grows the sheet and both menus");
         }
 
+        // JOBS through her real PC paths, with a stand-in for the link: titles and steps never carry what she typed, hello
+        // replays the job and its steps, a phone's no and yes answer only the question it saw, once, and her reply goes back
+        // to that phone, Stop goes the way Esc does, a stale job gets bad-message, and Recent keeps ten jobs.
+        private void SmokeRemoteJobs(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<string> sent = new System.Collections.Generic.List<string>();
+            System.Collections.Generic.List<RemoteJob> saved = new System.Collections.Generic.List<RemoteJob>(remoteJobs);
+            RemoteJob current = remoteJob;
+            Job before = job;
+            RemoteAsker phone = remoteJobPhone;
+            Action<string, string> tap = remoteJobTap;
+            Action<string> stopped = stopTest;
+            Func<string, string, string> work = Hands.Work;
+            string permissions = Security.Saved;
+            bool wake = Security.On(Security.Wake);
+            int ran = 0, stops = 0;
+            const string secret = "private-typed-7654321";
+            try
+            {
+                remoteJobs.Clear();
+                remoteJob = null;
+                if (RemoteJobTask("Open Steam and launch Helldivers 2") != "Open Steam and launch Helldivers 2") throw new Exception("A safe job title lost its app names.");
+                remoteJobTap = delegate(string device, string json) { lock (sent) sent.Add((device ?? "all") + " " + json); };
+                remoteJobPhone = new RemoteAsker { Device = "phoneA", Id = "m-jobs" };
+                Job fake = new Job("type " + secret + " in Discord", null);
+                job = fake;
+                RemoteJobOn(fake);
+                fake.Stepped = delegate(JobStep step) { RemoteJobStep(fake, step); };
+                fake.Mark(new JobStep { Tool = "click", Label = "Clicked Discord", Finished = true });
+                fake.Mark(new JobStep { Tool = "type", Label = "Typing \"" + secret + "\"" });
+                fake.Mark(new JobStep { Tool = "type", Label = "Typed \"" + secret + "\"", Finished = true });
+                fake.Mark(new JobStep { Tool = "press", Label = "Pressed " + secret, Finished = true });
+                if (remoteJob.Steps != 3 || remoteJob.Re != "m-jobs" || remoteJob.Last != "Pressed some keys") throw new Exception("A remote job lost its steps or phone message.");
+                fake.Waiting = new System.Collections.Generic.KeyValuePair<string, ToolArguments>("type", new ToolArguments { Text = secret });
+                RemoteJobEnd(fake, "waiting", "Send \"" + secret + "\"?");
+                if (remoteJob.State != "asking" || remoteJob.Ended != 0 || remoteJob.Ask != "Allow sending this message?") throw new Exception("A held job didn't ask safely.");
+                int replay;
+                lock (sent) replay = sent.Count;
+                RemoteJobReplay("phoneB");
+                lock (sent) if (sent.Count - replay != 4 || !sent[replay].StartsWith("phoneB ", StringComparison.Ordinal)) throw new Exception("Hello missed the current job or its steps.");
+                string first = remoteJob.Id;
+                RemoteJobCommand("phoneB", RemoteJson.ParseMap("{\"type\":\"job.answer\",\"id\":\"" + first + "\",\"yes\":\"yes\"}"));
+                if (remoteJob.State != "asking") throw new Exception("A non-boolean answer ran a job.");
+                RemoteJobCommand("phoneB", RemoteJson.ParseMap("{\"type\":\"job.answer\",\"id\":\"" + first + "\",\"yes\":false}"));
+                WaitVoice(delegate { lock (remoteGate) return remoteJob.State == "stopped"; }, "A phone's no left its job asking.");
+                if (job != null || remoteJob.Ended == 0) throw new Exception("A denied job kept control.");
+                WaitVoice(delegate { lock (sent) return sent.Contains("phoneB reply Okay, I left it alone."); }, "Her reply to a phone's no never reached that phone.");
+
+                Security.Load("1111101000", wake);
+                Job allowed = new Job("type " + secret, null);
+                Hands.Work = delegate
+                {
+                    Interlocked.Increment(ref ran);
+                    job = allowed;
+                    RemoteJobOn(allowed);
+                    RemoteJobStep(allowed, new JobStep { Tool = "type", Label = "Typed " + secret, Finished = true });
+                    return "Did it.";
+                };
+                string held = Security.Gate("use_computer", new ToolArguments { Task = "type " + secret });
+                if (!Security.IsHold(held) || remoteJob.State != "asking" || ran != 0) throw new Exception("A SECURITY action wasn't held for the phone.");
+                string id = remoteJob.Id;
+                RemoteJobCommand("phoneA", RemoteJson.ParseMap("{\"type\":\"job.answer\",\"id\":\"" + id + "\",\"yes\":true}"));
+                RemoteJobCommand("phoneB", RemoteJson.ParseMap("{\"type\":\"job.answer\",\"id\":\"" + id + "\",\"yes\":true}"));
+                WaitVoice(delegate { lock (remoteGate) return remoteJob.Job == allowed && remoteJob.Steps == 1; }, "A phone's yes didn't run the held job.");
+                if (ran != 1 || Security.Holding != null || remoteJob.State != "running") throw new Exception("A phone's yes ran more than once or lost its job.");
+                WaitVoice(delegate { lock (sent) return sent.Exists(line => line.StartsWith("phoneA reply ", StringComparison.Ordinal)); }, "Her reply to a phone's yes never reached that phone.");
+                lock (sent) if (sent.FindAll(line => line.StartsWith("phoneA reply ", StringComparison.Ordinal) || line.StartsWith("phoneB reply ", StringComparison.Ordinal)).Count != 2) throw new Exception("Her reply to a phone's answer went to the wrong phone or went twice.");
+                stopTest = delegate { stops++; };
+                RemoteJobCommand("phoneB", RemoteJson.ParseMap("{\"type\":\"job.stop\",\"id\":\"" + id + "\"}"));
+                if (stops != 1 || remoteJob.State != "stopped" || remoteJob.Ended == 0) throw new Exception("A phone's stop missed the Esc path.");
+                if (!RemoteJobStopped(allowed)) throw new Exception("A stopped job could restart while its hands were arming.");
+                RemoteJobCommand("phoneA", RemoteJson.ParseMap("{\"type\":\"job.stop\",\"id\":\"" + first + "\"}"));
+                RemoteJobCommand("phoneA", RemoteJson.ParseMap("{\"type\":\"job.list\"}"));
+                string all;
+                lock (sent) all = string.Join("\n", sent.ToArray());
+                if (all.Contains(secret) || !all.Contains("Typed some text") || !all.Contains("Clicked Discord")) throw new Exception("Typed text left in a remote job, or safe labels were lost.");
+                if (!all.Contains("\"code\":\"bad-message\",\"re\":\"" + first + "\"") || !all.Contains("\"type\":\"job.recent\"")) throw new Exception("A stale job didn't get its error or Recent was missing.");
+                RemoteJson.Map recent = RemoteJson.ParseMap(RemoteJobRecent());
+                if (recent.Items("list").Count != 2 || ((RemoteJson.Map)recent.Items("list")[0]).Text("id") != id) throw new Exception("Recent lost its order.");
+
+                remoteJobPhone = null;
+                for (int i = 0; i < 11; i++)
+                {
+                    Job extra = new Job("open an app", null);
+                    job = extra;
+                    RemoteJobOn(extra);
+                    for (int n = 0; n < 36; n++) RemoteJobStep(extra, new JobStep { Tool = "click", Label = "Clicked Play", Finished = true });
+                    if (i == 10)
+                    {
+                        lock (sent) replay = sent.Count;
+                        RemoteJobReplay("phoneB");
+                        lock (sent) if (sent.Count - replay != 31) throw new Exception("Hello didn't replay exactly the last 30 steps.");
+                        if (remoteJob.Trail[0].N != 7 || remoteJob.Steps != 36) throw new Exception("Replay lost its step numbers.");
+                    }
+                    RemoteJobEnd(extra, i % 2 == 0 ? "done" : "failed", null);
+                }
+                if (RemoteJson.ParseMap(RemoteJobRecent()).Items("list").Count != 10) throw new Exception("Recent kept more than ten jobs.");
+                RemoteLink.SmokeJobs(checks);
+            }
+            finally
+            {
+                Hands.Work = work;
+                stopTest = stopped;
+                Security.Drop();
+                Security.Load(permissions, wake);
+                remoteJobTap = tap;
+                remoteJobPhone = phone;
+                job = before;
+                lock (remoteGate)
+                {
+                    remoteJobs.Clear();
+                    remoteJobs.AddRange(saved);
+                    remoteJob = current;
+                }
+            }
+            checks.Add("PASS remote jobs show steps, ask safely, accept one phone yes, deny and stop through the PC paths, answer the phone that tapped, reject stale jobs, replay 30 steps and keep ten recent jobs without typed text");
+        }
+
         private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)
         {
             Section(checks, "HologramChecks", delegate { HologramChecks(checks, output); });
@@ -33217,6 +33360,7 @@ namespace CapriDesktop
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
+            Section(checks, "SmokeRemoteJobs", delegate { SmokeRemoteJobs(checks); });
             Section(checks, "SmokeRemoteCall", delegate { SmokeRemoteCall(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
             Section(checks, "SmokeDeviceChoices", delegate { SmokeDeviceChoices(checks); });

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace CapriDesktop
 {
@@ -102,6 +104,8 @@ namespace CapriDesktop
             }
             RemoteLink link = new RemoteLink(state, relay, Environment.MachineName, "capri/" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3), RemoteSaved);
             RemoteBrainsOn(link);
+            link.Offer("jobs");
+            link.LiveHeard += RemoteJobHeard;
             link.Happened += RemoteHappened;
             link.Said += RemoteHeard;
             remoteLink = link;
@@ -124,6 +128,7 @@ namespace CapriDesktop
             }
             if (link == null) return;
             RemoteBrainsOff(link);
+            link.LiveHeard -= RemoteJobHeard;
             link.Happened -= RemoteHappened;
             link.Said -= RemoteHeard;
             link.Stop();
@@ -142,6 +147,7 @@ namespace CapriDesktop
 
         private void RemoteHappened(string what, string about)
         {
+            if (what == "session") RemoteJobReplay(about);
             Post(delegate
             {
                 string note = RemoteNoteFor(what, about);
@@ -503,6 +509,354 @@ namespace CapriDesktop
                 case "desktop_icons": return "Desktop icons";
                 default: return "Using " + RemoteMessages.CleanText((tool ?? "a tool").Replace('_', ' '), 64);
             }
+        }
+
+        // ---------- JOBS: her PC jobs on the phone (PROTOCOL.md section 8.4) ----------
+
+        // The phone whose message called the tool running on this thread (DoTool), so the job it starts answers that message.
+        // Her last ten jobs for Recent, newest first, kept only in memory; the one phones follow now; and her smoke test's
+        // stand-in for the link.
+        [ThreadStatic] private static RemoteAsker remoteJobPhone;
+        private readonly List<RemoteJob> remoteJobs = new List<RemoteJob>();
+        private RemoteJob remoteJob;
+        private Action<string, string> remoteJobTap;
+
+        // One job as phones see it: a safe title, never her task's own words unless it only opens apps, its state and steps,
+        // her question while she asks, and the PC side it follows: her hands' Job, or SECURITY's hold when she asked first.
+        private sealed class RemoteJob
+        {
+            internal string Id, Task, State, Ask, Re, Last = "", Status;
+            internal Job Job;
+            internal object Hold;
+            internal int Thread, Steps;
+            internal long Started, Ended;
+            internal readonly List<RemoteStep> Trail = new List<RemoteStep>();
+        }
+
+        private sealed class RemoteStep
+        {
+            internal int N;
+            internal string Tool, Label;
+            internal bool Done, Failed;
+        }
+
+        private static long RemoteJobNow() { return (DateTime.UtcNow.Ticks - new DateTime(1970, 1, 1).Ticks) / TimeSpan.TicksPerMillisecond; }
+
+        // A job's title on the phone. Anything that could carry what they typed, like a message, a search or a password, says
+        // only what kind of job it is. Her task's own words show only when it just opens apps by name, like "Open Steam and
+        // launch Helldivers 2", masked and redacted like her replies.
+        private static string RemoteJobTask(string text)
+        {
+            string task = (text ?? "").ToLowerInvariant();
+            if (Regex.IsMatch(task, @"\b(send|message|post|reply|say|publish)\b")) return "Sending a message";
+            if (Regex.IsMatch(task, @"\b(type|write|paste|fill|enter|input|insert|password|passphrase|secret|token)\b")) return "Typing some text";
+            if (Regex.IsMatch(task, @"\b(search|find)\b")) return "Finding something on your PC";
+            string plain = text ?? "";
+            int exact = plain.IndexOf(Computer.Exact, StringComparison.Ordinal);
+            if (exact >= 0) plain = plain.Substring(0, exact);
+            plain = RemoteMessages.CleanText(RemoteOut(plain), 200);
+            const string app = @"[\p{L}\p{N}][\p{L}\p{N}._-]*(?:\s+(?!(?:and|then|with|in|on|for|to|using)\b)[\p{L}\p{N}][\p{L}\p{N}._-]*){0,7}";
+            if (Regex.IsMatch(plain, @"^(?:open|launch|start)\s+" + app + @"(?:\s+and\s+(?:open|launch|start)\s+" + app + @"){0,2}$", RegexOptions.IgnoreCase)) return plain;
+            if (Regex.IsMatch(task, @"\b(play|game)\b")) return "Playing on your PC";
+            if (Regex.IsMatch(task, @"\b(open|launch|start)\b")) return "Opening an app or site";
+            return "Using your computer";
+        }
+
+        // Her question on the phone says what kind of action she'd take, never its words or what it would type.
+        private static string RemoteJobQuestion(string text)
+        {
+            string question = (text ?? "").ToLowerInvariant();
+            if (question.StartsWith("use your mouse and keyboard", StringComparison.Ordinal)) return "Allow using your mouse and keyboard for this job?";
+            if (Regex.IsMatch(question, @"^(should i )?(send|post|publish)\b")) return "Allow sending this message?";
+            if (Regex.IsMatch(question, @"\b(pay|buy|purchase|book)\b")) return "Allow this purchase?";
+            if (Regex.IsMatch(question, @"\b(send|sending|message|post|publish)\b")) return "Allow sending this message?";
+            if (Regex.IsMatch(question, @"\b(delete|remove)\b")) return "Allow deleting this?";
+            if (question.Contains("install")) return "Allow this install?";
+            if (Regex.IsMatch(question, @"\b(type|typing|paste)\b")) return "Allow typing some text?";
+            if (Regex.IsMatch(question, @"\b(press|key|keys)\b")) return "Allow these keys?";
+            if (question.Contains("open")) return "Allow opening this app or site?";
+            return "Allow this action?";
+        }
+
+        // A step on the phone. Typing and keys only say they happened. A click or an opened app keeps her label, which names
+        // where, masked and redacted like her replies, and anything else says what kind of step it was.
+        private static string RemoteJobLabel(JobStep step)
+        {
+            string tool = step.Tool ?? "tool";
+            if (tool == "type" || tool == "paste" || tool == "insert_text") return step.Finished ? "Typed some text" : "Typing some text";
+            if (tool == "press" || tool == "key" || tool == "hold_key" || tool == "hold_and_press") return step.Finished ? "Pressed some keys" : "Pressing some keys";
+            if (step.Failed) return "That step failed";
+            if (tool == "click" || tool.EndsWith("_click", StringComparison.Ordinal) || tool == "open_app")
+                return RemoteMessages.CleanText(RemoteOut(Computer.Mask(step.Label)), 120);
+            switch (tool)
+            {
+                case "open_website": return step.Finished ? "Opened a website" : "Opening a website";
+                case "scroll": return step.Finished ? "Scrolled" : "Scrolling";
+                case "wait": case "wait_for": return step.Finished ? "Finished waiting" : "Waiting";
+                case "look": case "screenshot": return step.Finished ? "Looked at the screen" : "Looking at the screen";
+                case "note": case "learn": return step.Finished ? "Made a note" : "Making a note";
+                case "say": return step.Finished ? "Spoke" : "Speaking";
+                case "draw": return step.Finished ? "Drew on your screen" : "Drawing on your screen";
+                default: return step.Finished ? "Finished a step" : "Working on a step";
+            }
+        }
+
+        // To one phone, or to all of them with no device, through the link's job queue (RemoteLink.JobSend).
+        private void RemoteJobSend(string device, string json)
+        {
+            Action<string, string> tap = remoteJobTap;
+            if (tap != null) { tap(device, json); return; }
+            RemoteLink link = remoteLink;
+            if (link == null) return;
+            if (device == null) link.JobBroadcast(json);
+            else link.JobSend(device, json);
+        }
+
+        private static string RemoteJobState(RemoteJob run)
+        {
+            return RemoteMessages.JobState(run.Id, run.Task, run.State, run.Steps, run.Started, run.Ended, run.Ask, run.Re);
+        }
+
+        // A new card for a new job. One still open before it ends as stopped, since her hands only do one job at a time.
+        private RemoteJob RemoteJobNew(string task)
+        {
+            if (remoteJob != null && remoteJob.Ended == 0) RemoteJobSet(remoteJob, "stopped", null);
+            if (remoteJob != null) { remoteJob.Job = null; remoteJob.Hold = null; }
+            RemoteAsker phone = remoteJobPhone;
+            RemoteJob run = new RemoteJob { Id = RemoteMessages.NewId(), Task = RemoteJobTask(task), State = "running", Started = RemoteJobNow(), Re = phone == null ? null : phone.Id };
+            remoteJobs.Insert(0, run);
+            if (remoteJobs.Count > 10) remoteJobs.RemoveAt(remoteJobs.Count - 1);
+            remoteJob = run;
+            return run;
+        }
+
+        // Every change goes to every phone. An ended job keeps its end and never changes again.
+        private void RemoteJobSet(RemoteJob run, string state, string ask)
+        {
+            if (run.Ended != 0) return;
+            run.State = state;
+            run.Ask = state == "asking" ? RemoteJobQuestion(ask) : null;
+            if (state != "running" && state != "asking") run.Ended = RemoteJobNow();
+            RemoteJobSend(null, RemoteJobState(run));
+        }
+
+        // Her hands taking a job (Worked). A job that SECURITY's yes runs on this thread keeps the card she asked on; any
+        // other gets its own. Stop on a phone marks the card, which Cancelled reads, so a job stopped while her hands were
+        // arming never starts.
+        private void RemoteJobOn(Job running)
+        {
+            lock (remoteGate)
+            {
+                if (running.Cancelled != null && running.Cancelled()) return;
+                RemoteJob run = remoteJob;
+                if (run == null || run.Job != running && !(run.Job == null && run.Hold != null && run.Thread == Thread.CurrentThread.ManagedThreadId))
+                    run = RemoteJobNew(running.Task);
+                run.Job = running;
+                RemoteJob tracked = run;
+                running.Cancelled = delegate { lock (remoteGate) return tracked.State == "stopped"; };
+                RemoteJobSet(run, "running", null);
+            }
+        }
+
+        private bool RemoteJobStopped(Job running)
+        {
+            Func<bool> cancelled = running.Cancelled;
+            return cancelled != null && cancelled();
+        }
+
+        // Her status line stays on the PC, since it can carry what she's typing. A new one only sends the job's state again.
+        private void RemoteJobStatus(Job running, string status)
+        {
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJob;
+                if (run == null || run.Job != running || run.Ended != 0 || run.Status == status) return;
+                run.Status = status;
+                RemoteJobSend(null, RemoteJobState(run));
+            }
+        }
+
+        // A step's running and finished updates share one number, so the phone swaps one for the other. Only the last 30
+        // steps are kept, for a phone that says hello partway through.
+        private void RemoteJobStep(Job running, JobStep step)
+        {
+            if (step == null) return;
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJob;
+                if (run == null || run.Job != running || run.Ended != 0) return;
+                RemoteStep last = run.Trail.Count == 0 ? null : run.Trail[run.Trail.Count - 1];
+                if (last == null || last.Done || last.Tool != step.Tool)
+                {
+                    last = new RemoteStep { N = ++run.Steps, Tool = RemoteMessages.CleanText(step.Tool, 64) };
+                    run.Trail.Add(last);
+                    if (run.Trail.Count > 30) run.Trail.RemoveAt(0);
+                }
+                last.Label = RemoteJobLabel(step);
+                last.Done = step.Finished;
+                last.Failed = step.Failed;
+                run.Last = last.Label;
+                RemoteJobSend(null, RemoteMessages.JobStep(run.Id, last.N, last.Tool, last.Label, last.Done, last.Failed));
+                RemoteJobSend(null, RemoteJobState(run));
+            }
+        }
+
+        // A job that ended on her question, like "Send it?", stays open and asking until they answer it.
+        private void RemoteJobEnd(Job running, string outcome, string result)
+        {
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJob;
+                if (run == null || run.Job != running) return;
+                RemoteJobSet(run, running.Asking && outcome != "stopped" ? "asking" : outcome == "done" ? "done" : outcome == "stopped" ? "stopped" : "failed", result);
+                if (run.Ended != 0) { run.Job = null; run.Hold = null; }
+            }
+        }
+
+        // SECURITY's hook (Security.HeldChanged). Her asking first shows on the job she's doing, or on a card of its own when
+        // she isn't doing one. Their yes running it, their no and a drop then carry that card on or end it.
+        private void RemoteJobSecurity(object hold, string state, string words)
+        {
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJob;
+                if (state == "asking")
+                {
+                    if (hold != Security.HoldingId) return;
+                    if (run == null || run.Ended != 0 || run.Hold != hold && (run.Job == null || job != run.Job)) run = RemoteJobNew(words);
+                    run.Hold = hold;
+                    RemoteJobSet(run, state, words);
+                }
+                else if (run != null && run.Hold == hold && run.Ended == 0)
+                {
+                    if (state == "running") { run.Thread = Thread.CurrentThread.ManagedThreadId; RemoteJobSet(run, state, null); }
+                    else if (run.Job == null) RemoteJobSet(run, state, null);
+                    else if (state == "stopped") RemoteJobSet(run, run.Job.Asking ? "asking" : "running", null);
+                }
+                if (state != "asking" && state != "running" && run != null && run.Hold == hold) { run.Thread = 0; run.Hold = null; }
+            }
+        }
+
+        // A phone that says hello while a job runs or asks gets where it is and its last 30 steps.
+        private void RemoteJobReplay(string device)
+        {
+            lock (remoteGate)
+            {
+                RemoteJob run = remoteJob;
+                if (run == null || run.Ended != 0) return;
+                RemoteJobSend(device, RemoteJobState(run));
+                foreach (RemoteStep step in run.Trail) RemoteJobSend(device, RemoteMessages.JobStep(run.Id, step.N, step.Tool, step.Label, step.Done, step.Failed));
+            }
+        }
+
+        private string RemoteJobRecent()
+        {
+            List<RemoteJson.Writer> list = new List<RemoteJson.Writer>();
+            foreach (RemoteJob run in remoteJobs) list.Add(RemoteMessages.JobInfo(run.Id, run.Task, run.State, run.Steps, run.Started, run.Ended).Text("last", run.Last));
+            return RemoteMessages.JobRecent(list);
+        }
+
+        // A phone's job.list, job.stop or job.answer, handled on her window's thread while that phone is still paired and online.
+        private void RemoteJobHeard(string device, RemoteJson.Map message)
+        {
+            string type = message.Text("type");
+            if (type != "job.list" && type != "job.stop" && type != "job.answer") return;
+            RemoteLink link = remoteLink;
+            Post(delegate
+            {
+                if (remoteJobTap == null && (link == null || remoteLink != link || !link.HasSession(device))) return;
+                RemoteJobCommand(device, message);
+            });
+        }
+
+        private void RemoteJobBad(string device, string id)
+        {
+            RemoteJobSend(device, RemoteMessages.Error("bad-message", RemoteMessages.IdOk(id) ? id : null));
+        }
+
+        // True while the card is the job her hands are on, or the SECURITY question she's still asking or running.
+        private bool RemoteJobCurrent(RemoteJob run)
+        {
+            return run != null && run.Ended == 0 && (run.Job != null ? job == run.Job : run.Hold != null && (Security.HoldingId == run.Hold || run.Thread != 0 && run.State == "running"));
+        }
+
+        // Stop goes the way Esc does and drops a held question. Allow and Deny only answer the question that phone saw, bound
+        // to its hold or its job, and only once; the first answer wins and any other gets bad-message. The answer runs on a
+        // pool thread, so a long job never holds up her window.
+        private void RemoteJobCommand(string device, RemoteJson.Map message)
+        {
+            lock (remoteGate)
+            {
+                string type = message.Text("type"), id = message.Text("id");
+                if (type == "job.list") { RemoteJobSend(device, RemoteJobRecent()); return; }
+                if (type != "job.stop" && type != "job.answer") return;
+                RemoteJob run = remoteJob;
+                bool yes = message.Is("yes", true);
+                if (!RemoteMessages.IdOk(id) || !RemoteJobCurrent(run) || run.Id != id || type == "job.answer" && (run.State != "asking" || !yes && !message.Is("yes", false)))
+                {
+                    RemoteJobBad(device, id);
+                    return;
+                }
+                if (type == "job.stop")
+                {
+                    StopJob("You asked me to stop.");
+                    if (run.Hold != null) Security.Drop(run.Hold);
+                    if (run.Job != null && run.Job.Asking)
+                    {
+                        run.Job.Waiting = default(KeyValuePair<string, ToolArguments>);
+                        job = null;
+                        run.Job = null;
+                    }
+                    RemoteJobSet(run, "stopped", null);
+                    return;
+                }
+                RemoteJobSet(run, "running", null);
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    string result = null;
+                    try
+                    {
+                        lock (mouseGate)
+                        {
+                            lock (remoteGate)
+                                if (remoteJob != run || !RemoteJobCurrent(run)) { RemoteJobBad(device, id); return; }
+                            object hold = run.Hold;
+                            if (hold != null && Security.HoldingId == hold) result = Security.Resume(yes ? "yes" : "no", ResumeTool, hold);
+                            else if (run.Job != null) result = ResumeJob(yes ? "yes" : "no", run.Job);
+                        }
+                        if (result == null) { lock (remoteGate) RemoteJobBad(device, id); }
+                        else RemoteJobAnswered(device, yes, result);
+                    }
+                    catch (Exception error)
+                    {
+                        Brain.Log("remote", -1, "A phone's answer to her job failed: " + error.GetType().Name + ": " + error.Message);
+                        lock (remoteGate) RemoteJobSet(run, "failed", null);
+                    }
+                });
+            }
+        }
+
+        // Her reply to a yes or no tapped in JOBS goes where her reply to one they typed would: into her brain's history as
+        // their answer, into her bubble (beside the job she's on, like a reminder) and to CHAT on the phone that tapped it.
+        private void RemoteJobAnswered(string device, bool yes, string result)
+        {
+            string said = Brain.Clean(result);
+            if (said.Length == 0) said = result.Trim();
+            if (said.Length == 0) return;
+            string shown = Computer.Mask(said), words = Said.In(shown);
+            Action<string, string> tap = remoteJobTap;
+            if (tap != null) { tap(device, "reply " + RemoteOut(words)); return; }
+            brain.Remember(yes ? "yes" : "no", said);
+            RemoteSink sink = remoteSink;
+            if (sink != null) sink.Reply(device, RemoteMessages.NewId(), null, RemoteOut(words), true);
+            Post(delegate
+            {
+                if (working == null) { Remark("", shown); return; }
+                asideShown = words;
+                asideUntil = clock.Elapsed.TotalSeconds + BubbleHold(words.Length);
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                if (job != null) SayAside(words, job);
+            });
         }
 
         // ---------- Smoke ----------

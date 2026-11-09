@@ -652,7 +652,6 @@
   // SCREEN shows the PC's screen live when her PC has the screen view (screen.js). Otherwise it's a chat message asking
   // her to look, so her own look_at_screen tool runs on the PC and her answer lands here like any other (the demo PC
   // answers it with its scripted look). CALL rings her when her PC takes calls (call.js). CLOSE goes back to the menu.
-  // JOBS isn't built yet: it stays dimmed, and a tap only shows SOON for a moment.
   $('#f-screen').addEventListener('click', () => { if (!(window.CapriScreen && CapriScreen.open())) deliver('Look at my screen. What\'s on it?'); });
   $('#f-call').addEventListener('click', () => {
     if (window.CapriCall && CapriCall.start()) return;
@@ -663,6 +662,7 @@
   for (const button of actions.querySelectorAll('.feat[aria-disabled="true"]')) {
     let soonTimer = 0;
     button.addEventListener('click', () => {
+      if (button.getAttribute('aria-disabled') !== 'true') return;
       button.classList.add('saying');
       clearTimeout(soonTimer);
       soonTimer = setTimeout(() => button.classList.remove('saying'), 1400);

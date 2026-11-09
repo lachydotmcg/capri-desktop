@@ -205,6 +205,9 @@
         case 'chat.reply':
         case 'chat.tool':
         case 'chat.typing':
+        case 'job.state':
+        case 'job.step':
+        case 'job.recent':
         case 'error':
           on.message(message);
           return;
