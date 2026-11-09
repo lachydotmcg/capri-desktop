@@ -1428,6 +1428,7 @@ namespace CapriDesktop
         internal static Action<byte, byte, int> KeyEvent = delegate(byte key, byte scan, int flags) { Native.keybd_event(key, scan, flags, UIntPtr.Zero); };
         // Discord drops keys pressed before its page has the keyboard, a moment after it comes to the front (deafen took two tries, 2 Nov).
         internal static Func<IntPtr, bool> Typable = PageFocused;
+        internal static Func<IntPtr, bool> Active = delegate(IntPtr window) { return WindowFocused(window, false); };
         internal const int FocusWait = 400;
         private const int KeyGap = 20;
         internal static Func<string, int, bool> Power = Switch;
@@ -3515,7 +3516,7 @@ namespace CapriDesktop
             return true;
         }
 
-        internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^([^.]* can't see (?:your screen|screens)\b|My eyes are still downloading|I looked, but|Which app|What should I play|No app called|More than one|That didn't work|Couldn't|There's no|That isn't a website|Which job|Should I |Got lost|Ran out of steps|You pressed Esc|You grabbed the mouse|Using the mouse and keyboard isn't)|isn't open\.$|but (couldn't|it's still open)"); }
+        internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^([^.]* can't see (?:your screen|screens)\b|My eyes are still downloading|I looked, but|Which app|What should I play|No app called|More than one|That didn't work|Couldn't|There's no|That isn't a website|Which job|Should I |Got lost|Ran out of steps|You pressed Esc|You grabbed the mouse|Using the mouse and keyboard isn't)|isn't open\.$|but (couldn't|it's still open)|isn't taking my keys\. Click inside it first\.$"); }
 
         private static bool Planned(string said, out string tool, out ToolArguments args)
         {
@@ -5012,12 +5013,19 @@ namespace CapriDesktop
         // Discord's page has the keyboard: it's in front, not minimised, and its focus is on one of its own child windows.
         private static bool PageFocused(IntPtr window)
         {
+            return WindowFocused(window, true);
+        }
+
+        private static bool WindowFocused(IntPtr window, bool typing)
+        {
             int ignored;
-            if (Native.GetForegroundWindow() != window || IsIconic(window)) return false;
+            if (window == IntPtr.Zero || Foreground() != window || IsIconic(window)) return false;
             ThreadFocus focus = new ThreadFocus();
             focus.Size = Marshal.SizeOf(typeof(ThreadFocus));
             int thread = GetWindowThreadProcessId(window, out ignored);
-            return thread != 0 && GetGUIThreadInfo(thread, ref focus) && focus.Focus != IntPtr.Zero && IsChild(window, focus.Focus);
+            if (thread == 0 || !GetGUIThreadInfo(thread, ref focus)) return false;
+            IntPtr at = typing ? focus.Focus : focus.Active;
+            return at != IntPtr.Zero && (at == window || IsChild(window, at));
         }
 
         private static void Tap(byte key)

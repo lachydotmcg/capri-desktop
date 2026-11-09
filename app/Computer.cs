@@ -35,6 +35,7 @@ namespace CapriDesktop
         internal byte[] Sharp;
         internal Size Size;
         internal Rectangle Area;
+        internal Sight Sight;
 
         internal Point ToScreen(double x, double y)
         {
@@ -376,6 +377,7 @@ namespace CapriDesktop
         private static readonly int ownProcess = CurrentProcess();
         internal static Func<int> Own = delegate { return ownProcess; };
         internal static Func<IntPtr> Front = Topmost;
+        internal static Func<IntPtr, bool> Alive = IsWindow;
         // Claude's screenshot hands. Capri swaps Grab for a capture with her painted out of it.
         internal static Func<Rectangle, Bitmap> Grab = Copy;
         internal static Func<Rectangle?, Picture> Shoot = Snap;
@@ -757,7 +759,7 @@ namespace CapriDesktop
             return "Working.";
         }
 
-        internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^(There's no|That didn't work|Couldn't|No app called|More than one|Which app|That isn't|Not opening|Won't)|^(Opened|Searched) .+, but (it's behind|I couldn't bring)"); }
+        internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^(There's no|That didn't work|Couldn't|No app called|More than one|Which app|That isn't|Not opening|Won't)|^(Opened|Searched) .+, but (it's behind|I couldn't bring)|isn't taking my keys\. Click inside it first\.$"); }
 
         internal static string Did(string tool, ToolArguments args, Sight sight)
         {
@@ -1024,6 +1026,7 @@ namespace CapriDesktop
             if (!reader.Join(6000)) sight.Problem = "This window took too long to read. Try press, wait, or open something else.";
             else if (failed != null || found == null) sight.Problem = "Couldn't read this window's buttons. Try press, or open something else.";
             else { sight.Targets.AddRange(found); sight.Words.AddRange(words); }
+            if (GameWindow(sight)) NoteGame(sight);
             return sight;
         }
 
@@ -1430,7 +1433,7 @@ namespace CapriDesktop
             finally { CloseHandle(process); }
         }
 
-        private static IntPtr WindowAt(Point at) { return Native.GetAncestor(Native.WindowFromPoint(new Native.Point(at.X, at.Y)), 2); }
+        internal static Func<Point, IntPtr> WindowAt = delegate(Point at) { return Native.GetAncestor(Native.WindowFromPoint(new Native.Point(at.X, at.Y)), 2); };
 
         internal static string Member(string name, ToolArguments args, Picture shown)
         {
@@ -1438,7 +1441,9 @@ namespace CapriDesktop
             Point at;
             bool placed = Spot(args.Coordinate, shown, out at);
             if (args.Coordinate != null && !placed) return OffScreen + (shown == null ? "." : ", which is " + shown.Size.Width + "x" + shown.Size.Height + ".");
-            if (name != "cursor_position" && name != "wait" && AboveHer(name == "type" || name == "key" || name == "hold_key" ? Native.GetForegroundWindow() : WindowAt(placed ? at : HerAt))) return AdminWindow;
+            Sight sight = shown == null ? null : shown.Sight;
+            if (name != "cursor_position" && name != "wait" && AboveHer(name == "type" || name == "key" || name == "hold_key" ? sight == null ? Hands.Foreground() : sight.Window : WindowAt(placed ? at : HerAt))) return AdminWindow;
+            string ready;
             short[] held;
             switch (name)
             {
@@ -1522,6 +1527,8 @@ namespace CapriDesktop
                     return interrupted ? Why : "Scrolled " + way + ".";
                 case "type":
                     if (string.IsNullOrEmpty(args.Text)) return "There's nothing to type.";
+                    ready = KeysReady(sight, GameWindow(sight), false);
+                    if (ready != null) return ready;
                     if (!Typist && FocusedSecret()) return "Won't type in a password box. They type passwords themselves.";
                     Write(args.Text);
                     Pause(300);
@@ -1537,6 +1544,8 @@ namespace CapriDesktop
                         combos.Add(mapped);
                     }
                     if (combos.Count == 0) return "There's no key to press.";
+                    ready = KeysReady(sight, GameWindow(sight), Movement(string.Join(" ", combos.ToArray())));
+                    if (ready != null) return ready;
                     int times = Math.Max(1, (int)Math.Min(int.MaxValue, Math.Round(args.Repeat ?? 1)));
                     for (int i = 0; i < times && !interrupted; i++)
                         foreach (string combo in combos) { if (interrupted) break; Keys(combo); }
@@ -1547,6 +1556,8 @@ namespace CapriDesktop
                     if (chord == null) return "There's no key called " + args.Text + ".";
                     if (Barred(chord)) return "Won't press " + chord + ".";
                     Modifiers(chord, out held);
+                    ready = KeysReady(sight, GameWindow(sight), Movement(chord));
+                    if (ready != null) return ready;
                     bool esc = Array.IndexOf(held, (short)0x1B) >= 0;
                     if (esc) escaping = true;
                     try { Hold(held, true); Pause((int)Math.Min(int.MaxValue, Math.Max(0.1, args.Duration ?? 1) * 1000)); }
@@ -1787,20 +1798,22 @@ namespace CapriDesktop
                 return "Waited.";
             }
             if (tool == "wait_for") return WaitFor(args.Text, args.Seconds);
-            if (sight == null || sight.Window == IntPtr.Zero || !IsWindow(sight.Window)) return "There's no app window to use. Open one first.";
+            if (sight == null || sight.Window == IntPtr.Zero || !Alive(sight.Window)) return "There's no app window to use. Open one first.";
             if (AboveHer(sight.Window)) return AdminWindow;
             Target target = sight.Find(args.Target);
             if (!string.IsNullOrEmpty(args.Target) && target == null) return "There's no number " + args.Target + " on screen.";
             if (tool == "hold_and_press")
             {
-                if (!Hands.Front(sight.Window)) return "Couldn't bring " + sight.Program + " to the front.";
-                return HoldAndPress(args.Hold, args.Press, args.Times, args.Seconds);
+                string ready = KeysReady(sight, true, true);
+                if (ready != null) return ready;
+                return HoldAndPress(args.Hold, args.Press, args.Times, args.Seconds, sight);
             }
             if (tool == "look" || tool == "walk" || tool == "mouse_hold")
             {
-                if (!Hands.Front(sight.Window)) return "Couldn't bring " + sight.Program + " to the front.";
+                string ready = KeysReady(sight, true, true);
+                if (ready != null) return ready;
                 if (tool == "look") return TurnView(args, sight);
-                if (tool == "walk") return Walk(args.Keys, args.Seconds, args.Jump, sight);
+                if (tool == "walk") return Walk(args.Keys, args.Seconds, args.Jump, sight, true, true);
                 return MouseHold(args.Button, args.Seconds, args.Keys, args.Stop, sight);
             }
             if (tool == "click")
@@ -1813,6 +1826,8 @@ namespace CapriDesktop
             if (tool == "type")
             {
                 if (string.IsNullOrEmpty(args.Text)) return "There's nothing to type.";
+                string ready = KeysReady(sight, GameWindow(sight), false);
+                if (ready != null) return ready;
                 if (!Typist && ((target != null && target.Secret) || (target == null && sight.Targets.Exists(found => found.Focused && found.Secret)) || FocusedSecret())) return "Won't type in a password box. They type passwords themselves.";
                 if (target != null)
                 {
@@ -1820,7 +1835,6 @@ namespace CapriDesktop
                     Pause(250);
                     if (target.Line && !string.IsNullOrEmpty(target.Value) && !interrupted) { Keys("ctrl+a"); Pause(100); }
                 }
-                else if (!Hands.Front(sight.Window)) return "Couldn't bring " + sight.Program + " to the front.";
                 if (interrupted) return Why;
                 if (!Typist && FocusedSecret()) return "Won't type in a password box. They type passwords themselves.";
                 Write(args.Text);
@@ -1833,7 +1847,8 @@ namespace CapriDesktop
                 string keys = Regex.Replace((args.Keys ?? "").ToLowerInvariant(), @"\s+", "");
                 if (keys.Length == 0) return "There's no key to press.";
                 if (Barred(keys)) return "Won't press " + keys + ".";
-                if (!Hands.Front(sight.Window)) return "Couldn't bring " + sight.Program + " to the front.";
+                string ready = KeysReady(sight, GameWindow(sight), Movement(keys));
+                if (ready != null) return ready;
                 if (!Keys(keys)) return "There's no key called " + args.Keys + ".";
                 Pause(600);
                 return interrupted ? Why : "Pressed " + keys + ".";
@@ -1876,7 +1891,7 @@ namespace CapriDesktop
 
         // Holds keys down while pressing another, like w and space to walk forward and jump out from under a block, then lets
         // go. The presses are spread over the hold, each down for a few frames like a tap of a finger, and Esc stops it.
-        internal static string HoldAndPress(string hold, string press, string times, string seconds)
+        internal static string HoldAndPress(string hold, string press, string times, string seconds, Sight sight = null, bool retry = true)
         {
             string chord = Combo(hold);
             if (chord == null) return "There's no key called " + (hold ?? "").Trim() + ".";
@@ -1894,22 +1909,28 @@ namespace CapriDesktop
             Modifiers(chord, out codes);
             Modifiers(tap, out taps);
             bool esc = Array.IndexOf(codes, (short)0x1B) >= 0 || Array.IndexOf(taps, (short)0x1B) >= 0;
-            bool tapped = false;
+            bool tapped = false, missed = false, away = false;
+            Rectangle area = sight == null ? Rectangle.Empty : GameArea(sight);
+            bool probing = sight != null && heldMs >= 500 && !KeysLanded(sight);
+            byte[] first = probing ? GrayFrame(area) : null;
+            if (!StillFront(sight)) return "Stopped because the window I started on is no longer in front.";
+            Stopwatch clock = new Stopwatch();
             if (esc) escaping = true;
             try
             {
                 Hold(codes, true);
-                if (presses == 0) Pause(heldMs);
+                clock.Start();
+                if (presses == 0) away = !MovePause(heldMs, sight, area, ref first, clock, ref missed);
                 int each = presses == 0 ? 0 : Math.Max(100, heldMs / presses);
                 int down = Math.Min(350, each * 7 / 10);
-                for (int i = 0; i < presses && !interrupted; i++)
+                for (int i = 0; i < presses && !interrupted && (sight == null || !Flinched) && !missed && !away; i++)
                 {
                     Hold(taps, true);
                     tapped = true;
-                    Pause(down);
+                    away = !MovePause(down, sight, area, ref first, clock, ref missed);
                     Hold(taps, false);
                     tapped = false;
-                    Pause(each - down);
+                    if (!away) away = !MovePause(each - down, sight, area, ref first, clock, ref missed);
                 }
             }
             finally
@@ -1918,6 +1939,16 @@ namespace CapriDesktop
                 Hold(codes, false);
                 Thread.Sleep(60);
                 if (esc) escaping = false;
+            }
+            if (probing && first == null) KeysLand(sight);
+            if (interrupted) return Why;
+            if (away) return "Stopped because the window I started on is no longer in front.";
+            if (sight != null && Flinched) return "Stopped: it looked like something hit you.";
+            if (missed)
+            {
+                string ready = MissedKeys(sight, retry);
+                if (ready != null) return ready;
+                return HoldAndPress(hold, press, times, seconds, sight, false);
             }
             return interrupted ? Why : "Held " + chord + (presses == 0 ? "" : " and pressed " + tap + (presses == 1 ? " once" : " " + presses + " times")) + ".";
         }
@@ -2107,11 +2138,22 @@ namespace CapriDesktop
 
         internal static void Click(Point at, string button)
         {
+            Click(at, button, IntPtr.Zero);
+        }
+
+        private static bool Click(Point at, string button, IntPtr window)
+        {
             Glide(at);
-            if (interrupted) return;
+            if (interrupted) return false;
             Thread.Sleep(60);
             Borrow(at);
-            try { if (interrupted) return; Tapped(at); Press(button == "right" ? "right" : "left", button == "double" ? 2 : 1); }
+            try
+            {
+                if (interrupted || window != IntPtr.Zero && WindowAt(at) != window) return false;
+                Tapped(at);
+                Press(button == "right" ? "right" : "left", button == "double" ? 2 : 1);
+                return !interrupted;
+            }
             finally { GiveBack(); }
         }
 
@@ -2140,9 +2182,10 @@ namespace CapriDesktop
             using (InControl.Hold())
             lock (inputGate)
             {
-                if (closing && (flags & 0x002A) != 0) return;
+                if ((closing || interrupted) && (flags & 0x002A) != 0) return;
                 int was = heldButtons;
                 SendMouse(flags, data);
+                if ((flags & 0x0054) != 0 && lent) GameClicked(leftAt);
                 heldButtons |= flags & 0x002A;
                 heldButtons &= ~((flags & 0x0054) >> 1);
                 if (was == 0 && heldButtons != 0) InControl.Begin();
@@ -3013,12 +3056,12 @@ namespace CapriDesktop
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 results = "";
                 // The window in front changed while it was thinking, so its moves are for something that's gone.
-                if (looked != IntPtr.Zero && Computer.Front() != looked)
+                List<KeyValuePair<string, ToolArguments>> moves = Computer.Moves(reply);
+                if (looked != IntPtr.Zero && Computer.Front() != looked && !moves.TrueForAll(move => Computer.KeyAction(move.Key)))
                 {
                     results = "\nNot done: the window in front changed before those moves ran. Look at the new screen.";
                     continue;
                 }
-                List<KeyValuePair<string, ToolArguments>> moves = Computer.Moves(reply);
                 if (moves.Count > 0 && reply == lastMoves) results = "\nYou just made exactly those moves and you're making them again. If they aren't getting you anywhere, try something else.";
                 lastMoves = reply;
                 if (moves.Count == 0)
@@ -3088,17 +3131,20 @@ namespace CapriDesktop
         {
             bool broken = false, hit = false;
             bool acts = Array.Exists(batch, call => call.Toolset != "computer" || (call.Name != "screenshot" && call.Name != "zoom"));
-            bool moved = !resumed && next == 0 && acts && looked != IntPtr.Zero && Computer.Front() != looked;
-            if (moved)
-            {
-                // The window in front changed while it was thinking, so its coordinates are stale. Looks still run.
-                foreach (ClaudeBlock call in batch) answers.Add(new Answered { Call = call, Text = "Not executed: the window in front changed before this ran. A fresh screenshot follows.", Error = true });
-                next = batch.Length;
-            }
+            // The window in front changed while it was thinking, so its coordinates are stale. Keys alone still go ahead, as they
+            // bring back the window in its screenshot first; next to anything else they don't, since a click that's skipped
+            // might be what the keys after it were for.
+            bool moved = !resumed && next == 0 && acts && looked != IntPtr.Zero && Computer.Front() != looked
+                && !Array.TrueForAll(batch, call => Computer.KeyAction(call.Name) || call.Toolset == "computer" && (call.Name == "screenshot" || call.Name == "zoom"));
             for (; next < batch.Length; next++, resumed = false)
             {
                 ClaudeBlock call = batch[next];
                 ToolArguments args = call.Input;
+                if (moved)
+                {
+                    answers.Add(new Answered { Call = call, Text = "Not executed: the window in front changed before this ran. A fresh screenshot follows.", Error = true });
+                    continue;
+                }
                 if (Computer.Flinched && !broken)
                 {
                     Computer.Flinched = false;
@@ -3199,15 +3245,27 @@ namespace CapriDesktop
         private bool Look()
         {
             Show("Looking at the screen");
-            // Read first, so a window that takes over during the shot counts as a change.
-            looked = Computer.Front();
-            Picture fresh = Computer.Shoot(null);
+            Sight target;
+            Picture fresh;
+            for (int tries = 1; ; tries++)
+            {
+                // Read first, so a window that takes over during the shot counts as a change.
+                looked = Computer.Front();
+                target = Computer.Glimpse();
+                fresh = Computer.Shoot(null);
+                if (fresh == null || looked == IntPtr.Zero || Computer.Front() == looked && (target == null || target.Window == IntPtr.Zero || target.Window == looked)) break;
+                // Another window came to the front during the shot, so the picture might not be of the window her keys would
+                // go to. She shoots again; if it keeps changing, the picture goes without a window for her keys.
+                if (tries == 3) { target = null; break; }
+            }
             // This picture shows whatever hit her, so there's nothing left to stop for.
             Computer.Flinched = false;
             Show(null);
             Action<Sight> seen = Seen;
-            if (seen != null) seen(Computer.Glimpse());
+            if (seen != null) seen(target ?? Computer.Glimpse());
             if (fresh == null) return false;
+            fresh.Sight = target;
+            Computer.NoteGame(Computer.GameWindow(target) ? target : null);
             shown = fresh;
             Computer.Shown = fresh;
             newest = fresh.Jpeg;
@@ -3321,7 +3379,7 @@ namespace CapriDesktop
             if (progress != null && doing != null) progress(doing + ".");
             if (doing != null) Mark(new JobStep { Tool = name, Label = doing });
             string result;
-            try { result = name == "learn" ? GameNotes.Learn(Game(), args.Text) : member ? Computer.Use(name, args, shown) : Computer.Act(name, args, Computer.Glimpse()); }
+            try { result = name == "learn" ? GameNotes.Learn(Game(), args.Text) : member ? Computer.Use(name, args, shown) : Computer.Act(name, args, shown != null && shown.Sight != null ? shown.Sight : Computer.Glimpse()); }
             catch (Exception error) { result = Hands.Problem(error); }
             if (result != null && result.StartsWith(Computer.OffScreen, StringComparison.Ordinal))
             {
@@ -3403,7 +3461,7 @@ namespace CapriDesktop
             Computer.KeysOk = approved.Contains("keys");
             if (tool == "type") args.Text = Filled(Computer.Unechoed(args.Text, Task.IndexOf(Computer.Exact, StringComparison.Ordinal) >= 0 ? Words : null));
             // The window in front changed after she looked, so she looks again instead of acting on old buttons. Only Esc stops her.
-            if (tool != "find_file" && tool != "open_app" && tool != "open_website" && tool != "wait" && tool != "wait_for" && tool != "note" && sight != null && sight.Window != IntPtr.Zero && Computer.Front() != sight.Window)
+            if (!Computer.KeyAction(tool) && tool != "find_file" && tool != "open_app" && tool != "open_website" && tool != "wait" && tool != "wait_for" && tool != "note" && sight != null && sight.Window != IntPtr.Zero && Computer.Front() != sight.Window)
                 return "Couldn't do that: the window in front changed.";
             bool secret = tool == "type" && Computer.Secret(args, sight);
             if (secret) Computer.Keep(args.Text);
