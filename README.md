@@ -127,7 +127,7 @@ Beware that Capri may try to take over your human CPU. We take no responsibility
 
 0.8.3 gives Mac and Linux her full **Capri Mainframe**, laid out like Windows: BRAIN, VOICE and CAPRI up front, plus Simple and Advanced Settings. She sits on your windows and chats, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. She checks in on you, takes head pats, keeps your PC awake for jobs and keeps her notes in Obsidian. She talks through your own speech server or a cloud voice, and Mods and Code/Husk Mode work too.
 
-Linux can hear one English turn at a time through **TALK** once you set up her offline ears below. Calls and wake words are Windows only for now.
+Mac and Linux can hear one line at a time through **TALK** once you set up her offline ears below, in English or any language you put a model in for. Calls and wake words are Windows only for now.
 
 On Linux, streaming computer-use jobs are unavailable when Capri has to use her fallback desktop controls. Other computer-use jobs are unchanged.
 
@@ -146,6 +146,23 @@ On Linux, streaming computer-use jobs are unavailable when Capri has to use her 
 2. Extract the [sherpa-onnx Linux CPU build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your machine into `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/`, keeping its libraries with the extracted build. She also finds `sherpa-onnx-offline` on your `PATH` or in `~/.local/bin`, `/usr/local/bin` or `/usr/bin`.
 3. Extract her [English Parakeet pack](https://github.com/lachydotmcg/capri-desktop/releases/download/ears-pack-1/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2). Put `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx` and `tokens.txt` directly in `${XDG_CONFIG_HOME:-$HOME/.config}/Capri/ears/parakeet-tdt-0.6b-v2-int8/`.
 4. Hover over her and click **TALK**. Say one line and pause. Click **TALK** again to cancel. She reads the mic audio on your PC and sends only the words through the same chat as **TYPE**. She answers out loud when you've set up a voice under **Mainframe > VOICE**.
+
+### Mac TALK setup
+
+Her ears folder on a Mac is `~/Library/Application Support/Capri/ears/`. **Mainframe > Settings > VOICE > Open ears folder** opens it.
+
+1. Extract the [sherpa-onnx macOS build](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8) for your Mac (`osx-arm64` for Apple Silicon, `osx-x64` for Intel, `static-no-tts` is enough) into her ears folder. She also finds `sherpa-onnx-offline` on your `PATH`, in `/opt/homebrew/bin` or in `/usr/local/bin`.
+2. Extract her [English Parakeet pack](https://github.com/lachydotmcg/capri-desktop/releases/download/ears-pack-1/sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8.tar.bz2) and put `encoder.int8.onnx`, `decoder.int8.onnx`, `joiner.int8.onnx` and `tokens.txt` in `ears/parakeet-tdt-0.6b-v2-int8/`.
+3. Hover over her and click **TALK**. The first time, macOS asks to let Capri use the microphone. Say one line and pause.
+
+### Her ears in other languages (Mac and Linux)
+
+Capri doesn't download or ship these models. You pick one, check its licence and extract it into her ears folder, one folder per model, keeping the folder name it comes with.
+
+- She tells models apart by their files: a transducer like Parakeet has an encoder, a decoder and a joiner, and SenseVoice has one `model.onnx` next to `tokens.txt`.
+- She hears each language with the model that knows it best: Parakeet v2 for English, Parakeet Ultra or v3 for the other European languages and SenseVoice for Chinese, Japanese, Korean and Cantonese. A model she can't place by its name is a last resort.
+- **Mainframe > Settings > VOICE > Her ears** shows what she found. Leave it on **Auto**, or pick one model to hear every language with.
+- For Japanese, Chinese or Korean, use the [SenseVoice int8 model from 2024-07-17](https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2), then pick your language under **YOU > Language**. The 2025-09-09 SenseVoice is tuned for Cantonese and hears Japanese as Cantonese.
 
 </details>
 
