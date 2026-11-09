@@ -3,6 +3,7 @@
 
 import assert from 'node:assert/strict';
 import * as R from './capri-remote.mjs';
+import { pcmBytes } from './live.mjs';
 
 export const PHONE_ORIGIN = 'https://capriai.app';
 export const PING = '{"t":"ping"}';
@@ -247,6 +248,37 @@ export class FakePc {
   async send(deviceId, message) {
     const device = this.devices.get(deviceId);
     this.conn.sendBytes(R.pcFrame(device.idBytes, await device.session.seal(message)));
+  }
+
+  // Her voice on a call (PROTOCOL.md 8.2): 16-bit samples as quarter-second call.voice parts, numbered on for that phone.
+  async voice(deviceId, samples, rate = 24000) {
+    const device = this.devices.get(deviceId);
+    const step = rate / 4;
+    device.voiceN = device.voiceN || 0;
+    for (let at = 0; at < samples.length; at += step) {
+      await this.send(deviceId, { type: 'call.voice', n: device.voiceN++, rate, pcm: R.b64u(pcmBytes(samples.subarray(at, at + step))) });
+    }
+  }
+
+  // Her answer a sentence at a time, as a PC that lists hush voices it: each sentence's parts at once, then a pause while
+  // the next is voiced. hush() for that phone stops it before the next sentence. Resolves with how many sentences went.
+  async voicePieces(deviceId, pieces, { rate = 24000, pauseMs = 600 } = {}) {
+    const device = this.devices.get(deviceId);
+    const run = (device.voicing = {});
+    let went = 0;
+    for (const samples of pieces) {
+      if (device.voicing !== run) break;
+      await this.voice(deviceId, samples, rate);
+      went++;
+      await new Promise((resolve) => setTimeout(resolve, pauseMs));
+    }
+    return went;
+  }
+
+  // The PC's side of a phone's call.hush: what's still to be voiced is dropped, and its own call.hush tells the phone.
+  async hush(deviceId) {
+    this.devices.get(deviceId).voicing = null;
+    await this.send(deviceId, { type: 'call.hush' });
   }
 
   // Returns the next session message. Throws R.EnvelopeError when the frame does not open.

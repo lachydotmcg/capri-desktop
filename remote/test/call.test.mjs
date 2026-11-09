@@ -1,9 +1,14 @@
 // CALL in a real browser, hands-free (site/remote/call.js, PROTOCOL.md section 8.2). Headless Chrome pairs the phone page
-// with a stand-in PC (lib/fakes.mjs) through the relay under wrangler dev and calls her, with a fake mic playing a WAV of
-// two spoken sentences with quiet, a click and a blip between them, over and over (made with Windows' own voice). Each
-// sentence must reach the PC as one line, and nothing may go while he's muted or while her voice plays; after she stops
-// he's heard again, and hanging up lets go of the mic. It also shoots the call screen at two phone sizes and checks
-// nothing spills out. Ports 8796 and 8797, and a free one for the relay. Skipped where Chrome or Windows' voice isn't.
+// with a stand-in PC (lib/fakes.mjs) through the relay under wrangler dev and calls her.
+//   - With a PC that has no hush, a fake mic plays a WAV of two spoken sentences with quiet, a click and a blip between
+//     them, over and over (made with Windows' own voice). Each sentence must reach the PC as one line, nothing may go
+//     while he's muted or (talking over her turned off) while her voice plays, after she stops he's heard again,
+//     Interrupt stops her on the phone only, and hanging up lets go of the mic. It also shoots the call screen at two
+//     phone sizes and checks nothing spills out.
+//   - With a PC that has hush, the page says his sentences into a quiet mic itself and plays her voice back into it as
+//     an echo: her voice alone must never stop her, his voice over hers must (on the phone at once, and call.hush to the
+//     PC for her answer, with his words as his next line), and Interrupt sends call.hush too.
+// Ports 8796 and 8797, and a free one for the relay. Skipped where Chrome or Windows' voice isn't.
 // CAPRI_PHONE_SHOTS=<folder> keeps the screenshots.
 
 import { test } from 'node:test';
@@ -149,37 +154,154 @@ const SPILLS = `(() => {
   return bad;
 })()`;
 
-test('CALL hands-free: one line per thing he says, nothing while muted or while she talks, and the mic let go at the end', { skip: (!chromePath() && 'Chrome is not installed') || (process.platform !== 'win32' && 'the fake mic is made with Windows speech'), timeout: 240000 }, async () => {
-  const folder = mkdtempSync(join(tmpdir(), 'capri-call-'));
-  const { wav, said, seconds } = makeWav(folder);
+// A WAV of quiet for the fake mic, when the page says his lines into the mic itself.
+const quietWav = folder => {
+  const path = join(folder, 'quiet.wav'), count = 16000;
+  const header = Buffer.alloc(44);
+  header.write('RIFF', 0, 'ascii');
+  header.writeUInt32LE(36 + count * 2, 4);
+  header.write('WAVEfmt ', 8, 'ascii');
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(16000, 24);
+  header.writeUInt32LE(32000, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write('data', 36, 'ascii');
+  header.writeUInt32LE(count * 2, 40);
+  writeFileSync(path, Buffer.concat([header, Buffer.alloc(count * 2)]));
+  return path;
+};
+
+// Her voice in the talking-over-her test: a buzz in four syllables a second, peaking about as loud as her real voice.
+const speechy = (rate, seconds) => {
+  const samples = new Int16Array(Math.floor(rate * seconds));
+  for (let i = 0; i < samples.length; i++) {
+    const t = i / rate;
+    const syllable = Math.max(0, Math.sin(2 * Math.PI * 4 * t)) ** 0.6;
+    const wave = Math.sin(2 * Math.PI * 180 * t) + 0.5 * Math.sin(2 * Math.PI * 360 * t) + 0.25 * Math.sin(2 * Math.PI * 540 * t);
+    samples[i] = Math.round((wave / 1.75) * syllable * 16000);
+  }
+  return samples;
+};
+
+// Every mic stream the page opens, so a test can see it let go.
+const MIC_SPY = `(() => { const devices = navigator.mediaDevices; if (!devices || !devices.getUserMedia) return; const real = devices.getUserMedia.bind(devices); window.__micStreams = []; devices.getUserMedia = constraints => real(constraints).then(stream => { window.__micStreams.push(stream); return stream; }); })();`;
+
+// The talking-over-her test's mic, set up before the page's own scripts. The call's mic is the fake one (quiet) with his
+// lines said into it from the page (window.__mic.say), and her voice from the speaker coming back into it 50 ms late at
+// window.__mic.echo(level), as a phone's speaker does with what its echo cancelling leaves of her.
+const ECHO = `(() => {
+  const Context = window.AudioContext || window.webkitAudioContext;
+  if (!Context) return;
+  const connect = AudioNode.prototype.connect;
+  const buses = new WeakMap();
+  const clips = [];
+  let level = 0, mic = null;
+  const bus = context => {
+    let one = buses.get(context);
+    if (!one) {
+      const back = context.createGain(), late = context.createDelay(1), echo = context.createGain(), his = context.createGain();
+      late.delayTime.value = 0.05;
+      echo.gain.value = level;
+      connect.call(back, late);
+      connect.call(late, echo);
+      one = { context, back, echo, his };
+      buses.set(context, one);
+    }
+    return one;
+  };
+  // Her speaker going out also comes back in.
+  AudioNode.prototype.connect = function (target, ...rest) {
+    const result = connect.call(this, target, ...rest);
+    if (target instanceof AudioDestinationNode && this instanceof GainNode && this.gain.value > 0) connect.call(this, bus(this.context).back);
+    return result;
+  };
+  const make = Context.prototype.createMediaStreamSource;
+  Context.prototype.createMediaStreamSource = function (stream) {
+    const source = make.call(this, stream);
+    const one = bus(this);
+    const heard = this.createGain();
+    connect.call(source, heard);
+    connect.call(one.echo, heard);
+    connect.call(one.his, heard);
+    const disconnect = heard.disconnect;
+    heard.disconnect = function (...args) {
+      try { source.disconnect(); } catch (error) {}
+      return disconnect.apply(this, args);
+    };
+    mic = one;
+    return heard;
+  };
+  window.__mic = {
+    clip: (n, base64) => {
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const view = new DataView(bytes.buffer);
+      const samples = new Float32Array(bytes.length >> 1);
+      for (let i = 0; i < samples.length; i++) samples[i] = view.getInt16(i * 2, true) / 32768;
+      clips[n] = samples;
+    },
+    say: n => {
+      if (!mic || !clips[n]) throw new Error('no mic yet, or no line ' + n);
+      const buffer = mic.context.createBuffer(1, clips[n].length, 16000);
+      buffer.getChannelData(0).set(clips[n]);
+      const node = mic.context.createBufferSource();
+      node.buffer = buffer;
+      connect.call(node, mic.his);
+      node.start();
+      return clips[n].length / 16000;
+    },
+    echo: value => {
+      level = value;
+      if (mic) mic.echo.gain.value = value;
+    }
+  };
+})();`;
+
+// One phone page paired with a stand-in PC that offers features, its fake mic playing wav (and the talking-over-her mic
+// above with echo), and everything the phone sends the PC once its session is up: lines put together part by part and
+// checked as they go, the call.start and call.hush messages, and every message type in order.
+const rig = async ({ features, wav, echo = false }) => {
   const relay = await startRelay();
   const site = await startSite(SITE_PORT);
   const pc = new FakePc(relay);
-  let page = null, reading = true, reader = null;
+  const r = { pc, page: null, device: null, lines: [], parts: [], cancels: [], problems: [], asked: [], starts: [], hushes: [] };
+  let reading = true, reader = null;
+  r.close = async () => {
+    reading = false;
+    if (reader) await Promise.race([reader, wait(1500)]);
+    if (r.page) await r.page.close();
+    pc.close();
+    await site.close();
+    await relay.stop();
+  };
   try {
     await pc.connect();
     const qr = await pc.showCode();
-    page = await launch({ port: CHROME_PORT, args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--use-file-for-fake-audio-capture=' + wav, '--mute-audio', '--disable-audio-output'] });
-    const shot = async name => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.shot(join(SHOTS, name + '.png')); } };
-    const stats = () => page.run('window.CapriCall.stats()');
-    const text = selector => page.run(`(document.querySelector(${JSON.stringify(selector)}) || {}).textContent || ''`);
+    const page = (r.page = await launch({ port: CHROME_PORT, args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--use-file-for-fake-audio-capture=' + wav, '--mute-audio', '--disable-audio-output'] }));
+    r.shot = async name => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.shot(join(SHOTS, name + '.png')); } };
+    r.stats = () => page.run('window.CapriCall.stats()');
+    r.text = selector => page.run(`(document.querySelector(${JSON.stringify(selector)}) || {}).textContent || ''`);
     // A real tap, as a finger would: it counts as a user gesture for the sound and the mic.
-    const tap = async selector => {
+    r.tap = async selector => {
       const at = await page.run(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el || !el.getClientRects().length) throw new Error('no ${selector} on screen'); const box = el.getBoundingClientRect(); return { x: box.left + box.width / 2, y: box.top + box.height / 2 }; })()`);
       await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: at.x, y: at.y });
       await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: at.x, y: at.y, button: 'left', clickCount: 1 });
       await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: at.x, y: at.y, button: 'left', clickCount: 1 });
     };
-    const size = async (width, height) => {
+    r.size = async (width, height) => {
       await page.send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 2, mobile: false });
       await wait(250);
     };
-
-    // Everything the phone sends the PC once its session is up, as it comes. Lines are put together part by part and
-    // checked as they go.
-    const lines = [], parts = [], cancels = [], problems = [], asked = [];
+    r.until = async (done, what, ms = 5000) => {
+      const end = Date.now() + ms;
+      while (!done()) {
+        if (Date.now() > end) throw new Error('timed out waiting for ' + what);
+        await wait(20);
+      }
+    };
     const open = new Map();
-    let device = null;
     const read = async () => {
       while (reading) {
         let item;
@@ -188,80 +310,99 @@ test('CALL hands-free: one line per thing he says, nothing while muted or while 
         const { device: id, envelope } = R.splitPcFrame(item.data);
         const message = await pc.devices.get(id).session.open(envelope);
         const at = Date.now();
-        asked.push(message.type);
+        r.asked.push(message.type);
         if (message.type === 'call.audio') {
-          parts.push({ at, n: message.n, id: message.id });
+          r.parts.push({ at, n: message.n, id: message.id });
           let line = open.get(message.id);
           if (!line) {
-            if (message.n !== 0) problems.push('line ' + message.id + ' started at part ' + message.n);
+            if (message.n !== 0) r.problems.push('line ' + message.id + ' started at part ' + message.n);
             line = { id: message.id, startAt: at, pieces: [] };
             open.set(message.id, line);
           }
-          if (message.n !== line.pieces.length) problems.push('line ' + message.id + ' part ' + message.n + ' out of order');
-          if (message.rate !== L.CALL_RATE) problems.push('line ' + message.id + ' at ' + message.rate + ' Hz');
+          if (message.n !== line.pieces.length) r.problems.push('line ' + message.id + ' part ' + message.n + ' out of order');
+          if (message.rate !== L.CALL_RATE) r.problems.push('line ' + message.id + ' at ' + message.rate + ' Hz');
           line.pieces.push(R.fromB64u(message.pcm));
           if (message.end) {
             open.delete(message.id);
             line.endAt = at;
             line.samples = L.pcmSamples(R.concat(...line.pieces));
-            lines.push(line);
+            r.lines.push(line);
           }
-        } else if (message.type === 'call.cancel') cancels.push(message.id);
-        else if (message.type === 'call.start') await pc.send(device.id, { type: 'call.state', on: true, voice: true, ears: true });
-        else if (message.type === 'watch.start') {
+        } else if (message.type === 'call.cancel') r.cancels.push(message.id);
+        else if (message.type === 'call.hush') r.hushes.push({ at, re: message.re });
+        else if (message.type === 'call.start') {
+          r.starts.push(message);
+          await pc.send(r.device.id, { type: 'call.state', on: true, voice: true, ears: true });
+        } else if (message.type === 'watch.start') {
           const jpeg = new Uint8Array(Buffer.from(await page.run(DESKTOP), 'base64'));
-          await pc.send(device.id, { type: 'watch.state', on: true });
-          await pc.send(device.id, { type: 'watch.monitors', list: [{ id: '1', name: 'Monitor 1', w: 1920, h: 1080, primary: true }], monitor: '1', auto: true, missing: false });
-          await pc.send(device.id, { type: 'watch.frame', n: 1, part: 0, parts: 1, w: 640, h: 360, monitor: '1', bytes: jpeg.length, cx: 6200, cy: 4100, data: R.b64u(jpeg) });
+          await pc.send(r.device.id, { type: 'watch.state', on: true });
+          await pc.send(r.device.id, { type: 'watch.monitors', list: [{ id: '1', name: 'Monitor 1', w: 1920, h: 1080, primary: true }], monitor: '1', auto: true, missing: false });
+          await pc.send(r.device.id, { type: 'watch.frame', n: 1, part: 0, parts: 1, w: 640, h: 360, monitor: '1', bytes: jpeg.length, cx: 6200, cy: 4100, data: R.b64u(jpeg) });
         }
       }
     };
-    const nextLine = async (count, what, ms = 16000) => {
+    r.nextLine = async (count, what, ms = 16000) => {
       const end = Date.now() + ms;
-      while (lines.length < count) {
-        if (Date.now() > end) throw new Error('timed out waiting for ' + what + ' (lines so far: ' + lines.length + ', parts: ' + parts.length + ')');
+      while (r.lines.length < count) {
+        if (Date.now() > end) throw new Error('timed out waiting for ' + what + ' (lines so far: ' + r.lines.length + ', parts: ' + r.parts.length + ')');
         await wait(50);
       }
-      return lines[count - 1];
-    };
-    const seconds_ = line => line.samples.length / L.CALL_RATE;
-    const db = (samples, from, to) => {
-      let sum = 0;
-      for (let i = from; i < to; i++) sum += samples[i] * samples[i];
-      return 10 * Math.log10(sum / Math.max(1, to - from) / 32768 / 32768 + 1e-12);
+      return r.lines[count - 1];
     };
     // The PC's side of each line: her ears' words, then her answer in the chat (and her voice when asked for).
-    const answer = async (line, heard, reply) => {
-      await pc.send(device.id, { type: 'call.heard', id: line.id, text: heard });
-      await pc.send(device.id, { type: 'chat.reply', id: 'reply-' + line.id, re: line.id, text: reply, done: true });
+    r.answer = async (line, heard, reply) => {
+      await pc.send(r.device.id, { type: 'call.heard', id: line.id, text: heard });
+      await pc.send(r.device.id, { type: 'chat.reply', id: 'reply-' + line.id, re: line.id, text: reply, done: true });
     };
-
-    // Every mic stream the page opens, so the test can see it let go.
-    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() + ` (() => { const devices = navigator.mediaDevices; if (!devices || !devices.getUserMedia) return; const real = devices.getUserMedia.bind(devices); window.__micStreams = []; devices.getUserMedia = constraints => real(constraints).then(stream => { window.__micStreams.push(stream); return stream; }); })();` });
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() + '; ' + MIC_SPY + (echo ? '; ' + ECHO : '') });
     await page.go(`http://127.0.0.1:${SITE_PORT}/?relay=${relay.ws}${qr.slice(qr.indexOf('#'))}`);
-    device = await pc.allow(await pc.pairRequest());
+    r.device = await pc.allow(await pc.pairRequest());
     await pc.conn.json('joined', 10000);
-    await pc.acceptHello(['chat', 'call', 'watch']);
+    await pc.acceptHello(features);
     reader = read();
     await page.until(`document.querySelector('#app').dataset.link === 'connected'`, 'the paired PC');
     assert.equal(await page.run('Array.isArray(window.__micStreams)'), true, 'the mic spy is in the page');
+    return r;
+  } catch (error) {
+    await r.close();
+    throw error;
+  }
+};
+
+const seconds_ = line => line.samples.length / L.CALL_RATE;
+const db = (samples, from, to) => {
+  let sum = 0;
+  for (let i = from; i < to; i++) sum += samples[i] * samples[i];
+  return 10 * Math.log10(sum / Math.max(1, to - from) / 32768 / 32768 + 1e-12);
+};
+const SKIP = (!chromePath() && 'Chrome is not installed') || (process.platform !== 'win32' && 'the fake mic is made with Windows speech');
+
+test('CALL hands-free with a PC that has no hush: one line per thing he says, nothing while muted or (talking over her off) while she talks, Interrupt only on the phone, and the mic let go at the end', { skip: SKIP, timeout: 240000 }, async () => {
+  const folder = mkdtempSync(join(tmpdir(), 'capri-call-'));
+  const { wav, said, seconds } = makeWav(folder);
+  let r = null;
+  try {
+    r = await rig({ features: ['chat', 'call', 'watch'], wav });
+    const { page, pc, lines, parts, cancels, problems, asked } = r;
+    const device = r.device;
     assert.ok(!readFileSync(join(SITE, 'call.js'), 'utf8').includes('Too short'), 'nothing in the call can say Too short');
 
     // One tap rings her: the call screen comes up, the mic opens once, and the PC screen shows in the mini player.
     const startedAt = Date.now();
-    await tap('#f-call');
+    await r.tap('#f-call');
     await page.until(`!document.querySelector('.call-room').hidden`, 'the call screen');
     await page.until(`window.CapriCall.stats().status === 'listening'`, 'listening', 10000);
     assert.equal(await page.run('window.__micStreams.length'), 1, 'one mic for the call');
     assert.equal(await page.run(`window.CapriCall.stats().sound`), 'running');
+    assert.deepEqual(r.starts.map(start => start.hush), [true], 'call.start says the phone stops her with call.hush');
     await page.until(`!document.querySelector('.mini').hidden && !document.querySelector('.watch-pic').hidden`, 'the PC screen in the mini player', 8000);
     assert.equal(await page.run(`document.querySelector('.call-screen').getAttribute('aria-pressed')`), 'true');
 
     // He says two things with quiet between them: two lines, each one whole sentence with a little from before it.
-    const first = await nextLine(1, 'his first line');
-    await answer(first, 'Hey Capri, what is the weather like today?', 'Clear skies all day. Perfect for a walk.');
-    const second = await nextLine(2, 'his second line');
-    await answer(second, 'And can you open my music, please?', 'Opening your music now.');
+    const first = await r.nextLine(1, 'his first line');
+    await r.answer(first, 'Hey Capri, what is the weather like today?', 'Clear skies all day. Perfect for a walk.');
+    const second = await r.nextLine(2, 'his second line');
+    await r.answer(second, 'And can you open my music, please?', 'Opening your music now.');
     const longest = Math.max(said[0].end - said[0].start, said[1].end - said[1].start);
     for (const line of [first, second]) {
       const length = seconds_(line);
@@ -271,85 +412,195 @@ test('CALL hands-free: one line per thing he says, nothing while muted or while 
     assert.equal(lines.length, 2, 'a line for each sentence, and none for the click or the blip');
     assert.equal(cancels.length, 0);
     await page.until(`document.querySelector('.cap-her .cap-words').textContent === 'Opening your music now.'`, 'her caption');
-    assert.equal(await text('.cap-you .cap-words'), 'And can you open my music, please?');
-    const listened = await stats();
+    assert.equal(await r.text('.cap-you .cap-words'), 'And can you open my music, please?');
+    const listened = await r.stats();
     assert.equal(listened.lines, 2);
     assert.ok(listened.blips >= 1, 'the click and the blip were heard and dropped: ' + listened.blips);
-    await size(390, 844);
-    await shot('call-listening-390');
+    await r.size(390, 844);
+    await r.shot('call-listening-390');
     assert.deepEqual(await page.run(SPILLS), [], 'nothing spills at 390 x 844');
 
     // Muted, a whole round of the WAV goes by and nothing is sent.
-    await tap('.call-key.mute');
+    await r.tap('.call-key.mute');
     await page.until(`window.CapriCall.stats().status === 'muted'`, 'muted');
     assert.equal(await page.run(`window.__micStreams[0].getAudioTracks()[0].enabled`), false, 'the mic track is off while muted');
-    assert.equal(await text('.call-word'), 'Muted');
-    await shot('call-muted-390');
+    assert.equal(await r.text('.call-word'), 'Muted');
+    await r.shot('call-muted-390');
     const mutedAt = Date.now();
     await wait((seconds + 0.5) * 1000);
     assert.equal(parts.filter(part => part.at >= mutedAt).length, 0, 'nothing sent while muted');
 
     // Unmuted, the next sentence is a line again.
-    await tap('.call-key.mute');
+    await r.tap('.call-key.mute');
     await page.until(`window.CapriCall.stats().status === 'listening'`, 'listening again');
-    const third = await nextLine(3, 'a line after unmuting', (seconds + 4) * 1000);
+    const third = await r.nextLine(3, 'a line after unmuting', (seconds + 4) * 1000);
 
-    // Her voice right away, longer than his next sentence: nothing goes while it plays from the speaker.
-    await answer(third, 'Hey Capri, what is the weather like today?', 'Still clear skies, and a light breeze this afternoon if you head out.');
+    // Talking over her turned off, her voice right away, longer than his next sentence: nothing goes while it plays from
+    // the speaker.
+    await page.run('window.CapriCall.overHer = false');
+    await r.answer(third, 'Hey Capri, what is the weather like today?', 'Still clear skies, and a light breeze this afternoon if you head out.');
     const voiceAt = Date.now();
     const VOICE_SECONDS = 9;
     for (let n = 0; n < VOICE_SECONDS * 4; n++) await pc.send(device.id, { type: 'call.voice', n, rate: 24000, pcm: R.b64u(L.pcmBytes(L.tone(24000, 0.25, 220 + (n % 4) * 40))) });
     await page.until(`window.CapriCall.stats().status === 'talking'`, 'her talking', 4000);
-    assert.equal(await text('.call-word'), 'Talking');
-    await size(375, 667);
-    await shot('call-talking-375');
+    assert.equal(await r.text('.call-word'), 'Talking');
+    await r.size(375, 667);
+    await r.shot('call-talking-375');
     assert.deepEqual(await page.run(SPILLS), [], 'nothing spills at 375 x 667');
-    await size(390, 844);
-    await shot('call-talking-390');
+    await r.size(390, 844);
+    await r.shot('call-talking-390');
     await page.until(`window.CapriCall.stats().playing === 0`, 'her voice to finish', (VOICE_SECONDS + 4) * 1000);
     const quietAt = Date.now();
     const during = parts.filter(part => part.at > voiceAt + 300 && part.at < quietAt);
     assert.equal(during.length, 0, `nothing sent while her voice played (${during.length} parts)`);
     const playedFor = (quietAt - voiceAt) / 1000;
     assert.ok(playedFor > VOICE_SECONDS - 1, `her voice played out: ${playedFor.toFixed(1)} s`);
-    assert.equal((await stats()).voiceParts, VOICE_SECONDS * 4);
+    assert.equal((await r.stats()).voiceParts, VOICE_SECONDS * 4);
     // Once she's done he's heard again.
-    const fourth = await nextLine(4, 'a line after she finished', (seconds + 6) * 1000);
+    const fourth = await r.nextLine(4, 'a line after she finished', (seconds + 6) * 1000);
     assert.ok(fourth.startAt > quietAt, 'that line started after her voice');
-    await answer(fourth, 'And can you open my music, please?', 'Done.');
+    await r.answer(fourth, 'And can you open my music, please?', 'Done.');
+
+    // Interrupt with a PC that has no hush: her voice stops on the phone, and the PC hears nothing of it.
+    await pc.voice(device.id, L.tone(24000, 4, 260));
+    await page.until(`window.CapriCall.stats().status === 'talking'`, 'her talking again', 4000);
+    await r.tap('.call-pill');
+    await page.until(`window.CapriCall.stats().playing === 0`, 'Interrupt to stop her', 1000);
+    await wait(400);
+    assert.equal(r.hushes.length, 0, 'no call.hush to a PC that has no hush');
+    assert.equal((await r.stats()).interrupts, 0);
 
     // The screen key hides and shows the mini player; shrinking keeps the call on in a bar over the chat.
-    await tap('.call-screen');
+    await r.tap('.call-screen');
     await page.until(`document.querySelector('.mini').hidden`, 'the mini player gone');
-    await tap('.call-screen');
+    await r.tap('.call-screen');
     await page.until(`!document.querySelector('.mini').hidden`, 'the mini player back');
-    await tap('.call-shrink');
+    await r.tap('.call-shrink');
     await page.until(`document.querySelector('.call-room').hidden && !document.querySelector('.callbar').hidden`, 'the call bar');
-    await shot('call-bar-390');
+    await r.shot('call-bar-390');
     assert.deepEqual(await page.run(SPILLS), [], 'nothing spills in the call bar');
-    await tap('.call-back');
+    await r.tap('.call-back');
     await page.until(`!document.querySelector('.call-room').hidden`, 'the call screen again');
 
     // Hanging up: the PC hears call.stop, the mic is let go, and the screen says the call ended, then closes.
-    await tap('.call-key.end');
+    await r.tap('.call-key.end');
     await page.until(`window.CapriCall.stats().state === 'ended'`, 'the call ended');
-    assert.equal(await text('.call-word'), 'Call ended');
-    await shot('call-ended-390');
+    assert.equal(await r.text('.call-word'), 'Call ended');
+    await r.shot('call-ended-390');
     await page.until(`window.__micStreams.every(stream => stream.getTracks().every(track => track.readyState === 'ended'))`, 'the mic let go');
-    assert.equal((await stats()).micLive, false);
+    assert.equal((await r.stats()).micLive, false);
     await page.until(`window.CapriCall.state === 'off' && document.querySelector('.call-room').hidden`, 'the call screen closing', 4000);
     await wait(400);
     assert.ok(asked.includes('call.stop'), 'the PC heard the hang up');
     assert.deepEqual(problems, []);
-    const after = await stats();
+    const after = await r.stats();
     console.log(`call: ${lines.length} lines (${lines.map(line => seconds_(line).toFixed(2) + ' s').join(', ')}), ${after.blips} dropped blips, ${after.voiceParts} voice parts, floor ${after.floor} dB, ${((Date.now() - startedAt) / 1000).toFixed(0)} s`);
   } finally {
-    reading = false;
-    if (reader) await Promise.race([reader, wait(1500)]);
-    if (page) await page.close();
-    pc.close();
-    await site.close();
-    await relay.stop();
+    if (r) await r.close();
+    rmSync(folder, { recursive: true, force: true });
+  }
+});
+
+test('CALL talking over her with a PC that has hush: her own voice back through the mic never stops her, his voice over hers does, here and on the PC, and Interrupt stops her there too', { skip: SKIP, timeout: 240000 }, async () => {
+  const folder = mkdtempSync(join(tmpdir(), 'capri-over-'));
+  const { wav: spoken, said } = makeWav(folder);
+  let r = null;
+  try {
+    r = await rig({ features: ['chat', 'call', 'watch', 'hush'], wav: quietWav(folder), echo: true });
+    const { page, pc, parts, problems } = r;
+    const device = r.device;
+    // His two sentences, each with 300 ms from before it, for the page to say into the mic.
+    const { bytes, data } = readWav(spoken);
+    const samples = new Int16Array(bytes.buffer.slice(bytes.byteOffset + data.at, bytes.byteOffset + data.at + (data.size & ~1)));
+    for (const [n, stretch] of said.entries()) {
+      const clip = samples.subarray(Math.max(0, Math.floor((stretch.start - 0.3) * L.CALL_RATE)), Math.min(samples.length, Math.ceil((stretch.end + 0.3) * L.CALL_RATE)));
+      await page.run(`window.__mic.clip(${n}, ${JSON.stringify(Buffer.from(L.pcmBytes(clip)).toString('base64'))})`);
+    }
+
+    // SETTINGS has talking over her, on to start with; it turns off and on again.
+    await r.tap('#f-settings');
+    await page.until(`!!document.querySelector('.native-over') && !document.querySelector('#brain').hidden`, 'SETTINGS', 4000);
+    await page.run(`document.querySelector('.native-over').scrollIntoView({ block: 'center' })`);
+    assert.equal(await r.text('.native-over .tag'), 'On');
+    await r.tap('.native-over');
+    assert.equal(await page.run('window.CapriCall.overHer'), false);
+    assert.equal(await r.text('.native-over .tag'), 'Off');
+    await r.tap('.native-over');
+    assert.equal(await page.run('window.CapriCall.overHer'), true);
+    await page.run(`document.querySelector('.native-done').scrollIntoView({ block: 'center' })`);
+    await r.tap('.native-done');
+    await page.until(`document.querySelector('#brain').hidden`, 'SETTINGS closed');
+
+    await r.tap('#f-call');
+    await page.until(`window.CapriCall.stats().status === 'listening'`, 'listening', 10000);
+    assert.equal((await r.stats()).echo, true, 'the mic cancels echo');
+
+    // He says something: one line, and her answer in the chat.
+    await page.run('window.__mic.say(0)');
+    const first = await r.nextLine(1, 'his first line');
+    await r.answer(first, 'Hey Capri, what is the weather like today?', 'Clear skies all day. Perfect for a walk.');
+    await page.until(`document.querySelector('.cap-her .cap-words').textContent === 'Clear skies all day. Perfect for a walk.'`, 'her caption');
+
+    // Her voice alone, coming back through the mic 24 dB down, as a phone's echo cancelling leaves it: two sentences
+    // with a break between (so her voice starts twice), played to the end with nothing sent.
+    await page.run('window.__mic.echo(0.06)');
+    const aloneAt = Date.now();
+    await pc.voicePieces(device.id, [speechy(24000, 2.5), speechy(24000, 2.5)], { pauseMs: 3000 });
+    await page.until(`window.CapriCall.stats().playing === 0 && window.CapriCall.stats().status !== 'talking'`, 'her voice alone to play out', 10000);
+    const aloneFor = Date.now() - aloneAt;
+    const alone = await r.stats();
+    assert.equal(alone.overHer, 0, `her own voice through the mic never stopped her (closest ${alone.overPeak} dB to the bar, ${alone.echoes} starts that came to nothing)`);
+    assert.ok(alone.overPeak < 0, `her echo stayed under the bar: ${alone.overPeak} dB`);
+    assert.equal(parts.filter(part => part.at > aloneAt).length, 0, 'nothing went while her voice played alone');
+    assert.equal(r.hushes.length, 0);
+    assert.ok(aloneFor > 5000, `she played to the end: ${aloneFor} ms`);
+
+    // His voice over hers: she stops on the phone at once, the PC hears call.hush for her answer, and what he says is his
+    // next line.
+    const voicing = pc.voicePieces(device.id, [speechy(24000, 3), speechy(24000, 3), speechy(24000, 3)], { pauseMs: 2500 });
+    await page.until(`window.CapriCall.stats().status === 'talking'`, 'her talking', 4000);
+    await wait(1200);
+    const saidAt = Date.now();
+    await page.run('window.__mic.say(1)');
+    await r.until(() => r.hushes.length > 0, 'the phone telling the PC to stop her', 4000);
+    const stopMs = r.hushes[0].at - saidAt - 300;
+    assert.equal(r.hushes[0].re, first.id, 'call.hush names the line her answer is for');
+    const over = await r.stats();
+    assert.equal(over.overHer, 1, 'talking over her stopped her once');
+    assert.equal(over.playing, 0, 'her voice stopped on the phone');
+    assert.equal(over.interrupts, 1);
+    await pc.hush(device.id);
+    assert.ok((await voicing) < 3, 'the PC voiced no more of her answer after call.hush');
+    const second = await r.nextLine(2, 'his line over her voice');
+    const length = seconds_(second);
+    assert.ok(length > 1.2 && length < said[1].end - said[1].start + 1.6, `his line over her is as long as his sentence: ${length.toFixed(2)} s`);
+    assert.ok(stopMs > 250 && stopMs < 1000, `she stopped ${stopMs} ms after he started talking over her`);
+    await r.answer(second, 'And can you open my music, please?', 'Opening your music now.');
+    await page.until(`document.querySelector('.cap-her .cap-words').textContent === 'Opening your music now.'`, 'her next caption');
+
+    // Interrupt: her answer stops on the phone and the PC, and the PC's own call.hush lets her next answer play at once.
+    await page.run('window.__mic.echo(0)');
+    const answering = pc.voicePieces(device.id, [speechy(24000, 3), speechy(24000, 3)], { pauseMs: 2000 });
+    await page.until(`window.CapriCall.stats().status === 'talking'`, 'her answer playing', 4000);
+    await r.tap('.call-pill');
+    await r.until(() => r.hushes.length > 1, 'Interrupt telling the PC to stop her', 3000);
+    assert.equal(r.hushes[1].re, second.id, 'Interrupt names the line her answer is for');
+    assert.equal((await r.stats()).playing, 0, 'Interrupt stopped her on the phone');
+    await pc.hush(device.id);
+    assert.ok((await answering) < 2, 'the PC voiced no more of that answer');
+    const before = await r.stats();
+    await pc.voice(device.id, L.tone(24000, 1, 300));
+    await page.until(`window.CapriCall.stats().playing > 0`, 'her next answer playing after the PC hushed', 3000);
+    assert.equal((await r.stats()).skipped, before.skipped, 'none of her next answer was dropped');
+
+    await r.tap('.call-key.end');
+    await page.until(`window.CapriCall.stats().state === 'ended'`, 'the call ended');
+    await wait(300);
+    assert.deepEqual(problems, []);
+    const after = await r.stats();
+    console.log(`talking over her: she stopped ${stopMs} ms after he started (${over.overMs} ms over the bar), her echo alone came within ${-alone.overPeak} dB of the bar (${alone.echoes} false starts), ${after.interrupts} call.hush sent, his line ${length.toFixed(2)} s`);
+  } finally {
+    if (r) await r.close();
     rmSync(folder, { recursive: true, force: true });
   }
 });
