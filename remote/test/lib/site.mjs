@@ -7,16 +7,20 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 export const SITE = join(ROOT, 'site', 'remote');
+// The site's shared art and fonts, which the page asks for as ../assets/: /assets/ here, as on capriai.app.
+const ASSETS = join(ROOT, 'site', 'assets');
 
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.ico': 'image/x-icon' };
 
 export const startSite = port => new Promise((resolve, reject) => {
   const asked = [];
   const server = createServer((request, response) => {
     asked.push(request.url);
     const path = new URL(request.url, 'http://127.0.0.1').pathname;
-    const file = normalize(join(SITE, path === '/' ? 'index.html' : decodeURIComponent(path)));
-    if (!file.startsWith(SITE)) { response.writeHead(403); response.end(); return; }
+    const shared = path.startsWith('/assets/');
+    const base = shared ? ASSETS : SITE;
+    const file = normalize(join(base, path === '/' ? 'index.html' : decodeURIComponent(shared ? path.slice('/assets'.length) : path)));
+    if (!file.startsWith(base)) { response.writeHead(403); response.end(); return; }
     try {
       const body = readFileSync(file);
       response.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
