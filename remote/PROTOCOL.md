@@ -501,12 +501,17 @@ A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, st
 
 ## 10. Relay limits and costs
 
-Every limit is a variable in `remote/relay/wrangler.jsonc`:
+Limits and upgrade bindings live in `remote/relay/wrangler.jsonc`:
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `PHONE_ORIGINS` | `https://capriai.app` | Allowed phone origins, comma-separated |
-| `ALLOW_LOCAL_ORIGINS` | `true` | Also allow localhost, 127.0.0.1 and [::1] origins |
+| `ALLOW_LOCAL_ORIGINS` | `false` | Also allow localhost, 127.0.0.1 and [::1] origins |
+| `CLAIMS_OPEN` | `true` | Set to `false` to refuse new rooms with 4429 `busy`; claimed rooms keep working |
+| `PC_UPGRADES` | 120 per 60 s | PC upgrades per IP, checked before the room wakes |
+| `PHONE_UPGRADES` | 1200 per 60 s | Phone upgrades per IP, separate from PCs |
+| `WRITE_BURST`, `WRITE_REFILL_MS` | 32, 3000 | PC control writes per room in a burst; one token refills every 3 seconds |
+| `WRITES` | 120 per 60 s | Writes a client can cause, per address across every room |
 | `MAX_FRAME_BYTES` | 65536 | Biggest binary frame from a phone |
 | `MAX_PC_FRAME_BYTES` | 65536 | Biggest binary frame from the PC (about 262144 for phase 3) |
 | `CODE_TTL_SECONDS` | 600 | Longest life of a one-time code |
@@ -524,6 +529,7 @@ Fixed in code:
 - Text frames are at most 16 KiB.
 - At most 8 connections may be signing in at once per room. A ninth pushes out the oldest, so sockets held open without signing in cannot lock out a real client, which signs in within one round trip.
 - At most 2 phones may wait for Allow at once.
+- Address limits count an IPv6 address by its /64, and an IPv4 address written as IPv6 as that IPv4 address. A missing limit binding skips its check.
 
 Why it costs next to nothing at rest:
 
@@ -532,12 +538,17 @@ Why it costs next to nothing at rest:
   - claiming a room;
   - opening, using or cancelling a code;
   - adding or removing a device;
-  - the PC's last-seen time, written when it disconnects and at most once a day while it stays connected;
-  - moving the one alarm, about twice per connection.
-- **No writes per message.** Frames are forwarded straight from memory.
-- **Alarms only when needed:** sign-in deadlines, phones waiting for Allow, idle checks while a phone is connected, and one clean-up alarm 30 days out.
+  - the PC's last-seen time, at most daily on sign-in or disconnect, or when a connected room reaches its clean-up deadline;
+  - moving the one alarm when an earlier deadline is needed.
+- **No writes for forwarded frames.** They go straight from memory.
+- **Alarms only when needed:** sign-in deadlines in claimed rooms, phones waiting for Allow, idle checks while a phone is connected, and one clean-up alarm 30 days out. An unclaimed room checks sign-in time on its next frame and writes no alarm.
 
-**Known gap:** anyone can claim new room ids. Each costs one tiny storage row and is deleted after 30 days. If that is ever abused, add a Cloudflare rate-limiting rule on `/v1/rooms/*`.
+Abuse limits:
+
+- Excess upgrades get HTTP 429 before the room wakes.
+- `code`, `code-cancel` with an open code, `admit` and `revoke` of an existing device spend the room's write budget. An empty budget closes the PC with 4429 `rate-limited`. Reconnecting does not refill it; hibernation or eviction resets it.
+- Each of those writes, and each new claim, also counts against `WRITES` for the client's address, so one address can't spend a full budget in many rooms. Connections with no `CF-Connecting-IP`, or from loopback in local development, skip that count.
+- With claims open, anyone can still claim a new room id. A claim stores the room and arms its clean-up alarm. These limits do not cap total use across IPs. `CLAIMS_OPEN=false` pauses new claims.
 
 ## 11. Test vectors
 

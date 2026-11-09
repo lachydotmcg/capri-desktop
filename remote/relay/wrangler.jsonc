@@ -10,12 +10,21 @@
     "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "ratelimits": [
+    { "name": "PC_UPGRADES", "namespace_id": "870701", "simple": { "limit": 120, "period": 60 } },
+    { "name": "PHONE_UPGRADES", "namespace_id": "870702", "simple": { "limit": 1200, "period": 60 } },
+    // Storage writes a client can cause, per address across every room. A household pairing a few phones uses about 30.
+    { "name": "WRITES", "namespace_id": "870703", "simple": { "limit": 120, "period": 60 } }
+  ],
   // Every limit lives here so it can change without a code change. Tests override them with --var.
   "vars": {
     // Phones may connect only from these origins (comma-separated). With ALLOW_LOCAL_ORIGINS, also
     // http(s)://localhost, 127.0.0.1 and [::1] on any port, for local development.
     "PHONE_ORIGINS": "https://capriai.app",
-    "ALLOW_LOCAL_ORIGINS": "true",
+    "ALLOW_LOCAL_ORIGINS": "false",
+    "CLAIMS_OPEN": "true",
+    "WRITE_BURST": "32",
+    "WRITE_REFILL_MS": "3000",
     // Biggest binary frame in bytes. Phase 3 watch frames will want MAX_PC_FRAME_BYTES near 262144.
     "MAX_FRAME_BYTES": "65536",
     "MAX_PC_FRAME_BYTES": "65536",

@@ -30,22 +30,27 @@ const wranglerBin = () => {
   }
 };
 
-export async function startRelay(vars = {}) {
+export async function startRelay(vars = {}, { state: savedState, keepState = false } = {}) {
   // CAPRI_RELAY_PORT and CAPRI_RELAY_INSPECTOR pin the ports when several agents share a PC.
   const port = Number(process.env.CAPRI_RELAY_PORT) || await freePort();
   const inspector = Number(process.env.CAPRI_RELAY_INSPECTOR) || await freePort();
-  const state = mkdtempSync(join(tmpdir(), 'capri-relay-'));
+  const state = savedState || mkdtempSync(join(tmpdir(), 'capri-relay-'));
   const args = [
     wranglerBin(), 'dev', '--local', '--ip', '127.0.0.1', '--port', String(port), '--inspector-port', String(inspector),
     '--persist-to', state, '--show-interactive-dev-session=false', '--log-level', 'warn',
   ];
-  for (const [key, value] of Object.entries(vars)) args.push('--var', `${key}:${value}`);
+  for (const [key, value] of Object.entries({ ALLOW_LOCAL_ORIGINS: 'true', ...vars })) args.push('--var', `${key}:${value}`);
   const child = spawn(process.execPath, args, {
     cwd: RELAY_DIR,
     env: {
       ...process.env,
       WRANGLER_SEND_METRICS: 'false',
+      WRANGLER_LOG_PATH: join(state, 'wrangler.log'),
+      WRANGLER_REGISTRY_PATH: join(state, 'registry'),
+      XDG_CONFIG_HOME: join(state, 'config'),
+      XDG_CACHE_HOME: join(state, 'cache'),
       CLOUDFLARE_CF_FETCH_ENABLED: 'false',
+      CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: 'false',
       DO_NOT_TRACK: '1',
       WRANGLER_NO_SKILLS_UPDATE_PROMPTS: 'true',
       NO_COLOR: '1',
@@ -60,6 +65,7 @@ export async function startRelay(vars = {}) {
 
   // On Windows workerd can hold the state files for a moment after it is killed, so keep trying.
   const removeState = async () => {
+    if (keepState) return;
     for (let attempt = 0; attempt < 25; attempt++) {
       try {
         rmSync(state, { recursive: true, force: true });
@@ -89,7 +95,10 @@ export async function startRelay(vars = {}) {
   const base = `http://127.0.0.1:${port}`;
   const deadline = Date.now() + 90000;
   for (;;) {
-    if (child.exitCode !== null) throw new Error('wrangler dev exited early:\n' + log);
+    if (child.exitCode !== null) {
+      await stop();
+      throw new Error('wrangler dev exited early:\n' + log);
+    }
     try {
       const response = await fetch(base + '/');
       if (response.ok && (await response.text()).startsWith('Capri Remote relay')) break;
@@ -100,5 +109,5 @@ export async function startRelay(vars = {}) {
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
-  return { base, ws: base.replace(/^http/, 'ws'), port, log: () => log, stop };
+  return { base, ws: base.replace(/^http/, 'ws'), port, state, log: () => log, stop };
 }

@@ -2,8 +2,10 @@
 // Timeouts are shortened with --var so the slow paths run in seconds. Run: npm --prefix remote/relay test
 
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import http from 'node:http';
 import { after, before, describe, test } from 'node:test';
+import { runInNewContext } from 'node:vm';
 import * as R from './lib/capri-remote.mjs';
 import { Conn, FakePc, FakePhone, PHONE_ORIGIN, pairAndConnect, roomUrl } from './lib/fakes.mjs';
 import { startRelay } from './lib/relay-dev.mjs';
@@ -15,10 +17,25 @@ const VARS = {
   ROOM_TTL_SECONDS: 4,
   PHONE_RATE: 5,
   PHONE_BURST: 20,
+  WRITE_REFILL_MS: 60000,
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const newRoom = () => R.b64u(R.randomBytes(16));
+
+const { worker, Room } = runInNewContext(
+  readFileSync(new URL('../relay/src/index.js', import.meta.url), 'utf8')
+    .replace(/^import .* from 'cloudflare:workers';$/m, '')
+    .replace('export default', 'const worker =')
+    .replace(/^export /gm, '') + '\n({ worker, Room });',
+  {
+    URL, Response, crypto, btoa, atob, Date,
+    DurableObject: class { constructor(ctx) { this.ctx = ctx; } },
+    WebSocketRequestResponsePair: class {},
+  },
+);
+
+const storedRoom = (storage, env = {}) => new Room({ storage, getWebSockets: () => [], setWebSocketAutoResponse() {} }, env);
 
 // Sends a raw upgrade request so the HTTP status of a refused upgrade is visible.
 const upgradeStatus = (relay, path, origin) =>
@@ -61,6 +78,120 @@ describe('routes and origins', () => {
     assert.equal(await upgradeStatus(relay, `/v1/rooms/${room}/phone`, PHONE_ORIGIN), 101);
     assert.equal(await upgradeStatus(relay, `/v1/rooms/${room}/phone`, 'http://localhost:5173'), 101);
     assert.equal(await upgradeStatus(relay, `/v1/rooms/${room}/phone`, 'http://127.0.0.1:8080'), 101);
+  });
+});
+
+describe('upgrade limits and storage failures', () => {
+  test('upgrade limits use separate bindings and IPv6 /64 keys before looking up a room', async () => {
+    const calls = [];
+    const env = {
+      PHONE_ORIGINS: PHONE_ORIGIN,
+      ROOMS: { idFromName() { assert.fail('a refused upgrade must not look up a room'); }, get() { assert.fail('a refused upgrade must not wake a room'); } },
+      PC_UPGRADES: { async limit({ key }) { calls.push(['pc', key]); return { success: false }; } },
+      PHONE_UPGRADES: { async limit({ key }) { calls.push(['phone', key]); return { success: false }; } },
+    };
+    for (const [role, ip, key] of [
+      ['pc', '192.0.2.1', '192.0.2.1'],
+      ['pc', '2001:db8:1234:5678::1', '2001:0db8:1234:5678::/64'],
+      ['phone', '2001:0DB8:1234:5678:abcd:0:1234:ffff', '2001:0db8:1234:5678::/64'],
+      ['pc', '2001:db8::1', '2001:0db8:0000:0000::/64'],
+      ['phone', '2001:db8:0:0:ffff::2', '2001:0db8:0000:0000::/64'],
+      ['phone', '2001:db8:1234:5679::1', '2001:0db8:1234:5679::/64'],
+      ['pc', '::ffff:192.0.2.1', '192.0.2.1'],
+    ]) {
+      const headers = { Upgrade: 'websocket', 'CF-Connecting-IP': ip, ...(role === 'phone' ? { Origin: PHONE_ORIGIN } : {}) };
+      const response = await worker.fetch(new Request(`https://relay.invalid/v1/rooms/${newRoom()}/${role}`, { headers }), env);
+      assert.equal(response.status, 429);
+      assert.equal(response.headers.get('cache-control'), 'no-store');
+      assert.deepEqual(await response.json(), { error: 'rate-limited' });
+      assert.deepEqual(calls.at(-1), [role, key]);
+    }
+  });
+
+  test('allowed upgrades and missing bindings still reach the room, and local origins default off', async () => {
+    let forwarded = 0;
+    const env = {
+      PHONE_ORIGINS: PHONE_ORIGIN,
+      ROOMS: { idFromName: (room) => room, get: () => ({ fetch: () => { forwarded++; return new Response(null, { status: 204 }); } }) },
+    };
+    for (const bound of [false, true]) {
+      if (bound) env.PC_UPGRADES = env.PHONE_UPGRADES = { limit: async () => ({ success: true }) };
+      for (const role of ['pc', 'phone']) {
+        const headers = { Upgrade: 'websocket', ...(role === 'phone' ? { Origin: PHONE_ORIGIN } : {}) };
+        assert.equal((await worker.fetch(new Request(`https://relay.invalid/v1/rooms/${newRoom()}/${role}`, { headers }), env)).status, 204);
+      }
+    }
+    const headers = { Upgrade: 'websocket', Origin: 'http://localhost:5173' };
+    assert.equal((await worker.fetch(new Request(`https://relay.invalid/v1/rooms/${newRoom()}/phone`, { headers }), env)).status, 403);
+    assert.equal(forwarded, 4);
+  });
+
+  test('a write spends the room budget, then the address limit, and a local connection skips the address limit', async () => {
+    const keys = [];
+    let allow = true;
+    const room = storedRoom({}, { WRITES: { async limit({ key }) { keys.push(key); return { success: allow }; } } });
+    const at = room.writes.at;
+    assert.equal(await room.allowWrite({ att: { client: 'abc' } }, at), true);
+    assert.equal(await room.allowWrite({ att: { client: null } }, at), true);
+    allow = false;
+    assert.equal(await room.allowWrite({ att: { client: 'abc' } }, at), false);
+    assert.deepEqual(keys, ['abc', 'abc']);
+    assert.equal(room.writes.tokens, 29);
+    const failing = storedRoom({}, { WRITES: { async limit() { throw new Error('limiter down'); } } });
+    assert.equal(await failing.allowWrite({ att: { client: 'abc' } }, failing.writes.at), true);
+    const empty = storedRoom({}, { WRITES: { async limit() { return { success: true }; } } });
+    for (let i = 0; i < 32; i++) empty.spend(empty.writes.at);
+    assert.equal(await empty.allowWrite({ att: { client: 'abc' } }, empty.writes.at), false);
+  });
+
+  test('the room write budget refills one token every three seconds', () => {
+    const room = storedRoom({});
+    const at = room.writes.at;
+    for (let i = 0; i < 32; i++) assert.equal(room.spend(at), true);
+    assert.equal(room.spend(at), false);
+    assert.equal(room.spend(at + 2999), false);
+    assert.equal(room.spend(at + 3000), true);
+    assert.equal(room.spend(at + 3000), false);
+    assert.equal(room.spend(at + 6000), true);
+  });
+
+  test('pcSeen waits a day and keeps the disconnect time when saving fails', async () => {
+    const failure = new Error('save failed');
+    let fail = true;
+    let puts = 0;
+    const room = storedRoom({ put: async () => { puts++; if (fail) throw failure; } });
+    const seen = Date.now();
+    const day = 86400000;
+    const saved = { pcSeen: seen };
+    room.room = saved;
+    room.pcGoneAt = seen + day - 1;
+    await room.flushPcSeen();
+    assert.equal(puts, 0);
+    room.pcGoneAt = seen + day;
+    await assert.rejects(room.flushPcSeen(), (error) => error === failure);
+    assert.equal(room.pcGoneAt, seen + day);
+    assert.equal(room.room, saved);
+    fail = false;
+    await room.flushPcSeen();
+    assert.equal(room.pcGoneAt, 0);
+    assert.equal(room.room.pcSeen, seen + day);
+    assert.equal(puts, 2);
+  });
+
+  test('forget keeps the cached room until deleting storage succeeds', async () => {
+    const failure = new Error('delete failed');
+    let fail = true;
+    const room = storedRoom({ deleteAlarm: async () => {}, deleteAll: async () => { if (fail) throw failure; } });
+    const saved = { pcSeen: Date.now() };
+    room.room = saved;
+    room.pcGoneAt = saved.pcSeen;
+    await assert.rejects(room.forget(), (error) => error === failure);
+    assert.equal(room.room, saved);
+    assert.equal(room.pcGoneAt, saved.pcSeen);
+    fail = false;
+    await room.forget();
+    assert.equal(room.room, null);
+    assert.equal(room.pcGoneAt, 0);
   });
 });
 
@@ -211,6 +342,18 @@ describe('pairing', () => {
     await late.scan(qr2);
     await late.conn.refused('pc-offline', 4503);
   });
+
+  test('a wrong code gets code-unknown while the PC is offline', async () => {
+    const pc = new FakePc(relay);
+    await pc.connect();
+    const qr = await pc.showCode();
+    pc.close();
+    await pc.conn.closedWithin();
+    const { room, key } = R.parseQr(qr);
+    const phone = new FakePhone(relay);
+    await phone.scan(R.qrUrl(room, R.b64u(R.randomBytes(16)), key));
+    await phone.conn.refused('code-unknown', 4410);
+  });
 });
 
 describe('access', () => {
@@ -323,6 +466,50 @@ describe('presence', () => {
 });
 
 describe('limits', () => {
+  test('the room write budget closes a PC that keeps opening and cancelling codes', async () => {
+    const pc = new FakePc(relay);
+    await pc.connect();
+    for (let i = 0; i < 32; i++) {
+      pc.conn.send({ t: 'code-cancel' });
+      assert.equal((await pc.conn.json('ok')).op, 'code-cancel');
+      const device = newRoom();
+      pc.conn.send({ t: 'revoke', device });
+      assert.deepEqual(await pc.conn.json('ok'), { t: 'ok', op: 'revoke', device });
+    }
+    for (let i = 0; i < 16; i++) {
+      await pc.showCode();
+      pc.conn.send({ t: 'code-cancel' });
+      assert.equal((await pc.conn.json('ok')).op, 'code-cancel');
+    }
+    pc.conn.send({ t: 'code', hash: R.b64u(R.randomBytes(32)) });
+    await pc.conn.refused('rate-limited', 4429);
+  });
+
+  test('reconnecting the PC does not refill the room write budget', async () => {
+    const pc = new FakePc(relay);
+    await pc.connect();
+    for (let i = 0; i < 31; i++) await pc.showCode();
+    const back = new FakePc(relay, { room: pc.room, token: pc.token });
+    assert.equal((await back.connect()).claimed, false);
+    await pc.conn.refused('replaced', 4409);
+    await back.showCode();
+    back.conn.send({ t: 'code-cancel' });
+    await back.conn.refused('rate-limited', 4429);
+  });
+
+  test('admitting a waiting phone also needs a write token', async () => {
+    const pc = new FakePc(relay);
+    await pc.connect();
+    for (let i = 0; i < 31; i++) await pc.showCode();
+    const phone = new FakePhone(relay);
+    await phone.scan(await pc.showCode());
+    await phone.conn.json('waiting');
+    const ask = await pc.pairRequest();
+    pc.conn.send({ t: 'admit', pending: ask.pending.id, device: newRoom(), tokenHash: R.b64u(R.randomBytes(32)), env: R.b64u(new Uint8Array(80)) });
+    await pc.conn.refused('rate-limited', 4429);
+    await phone.conn.refused('pc-offline', 4503);
+  });
+
   test('oversized frames are refused', async () => {
     const pc = new FakePc(relay);
     await pc.connect();
@@ -447,8 +634,22 @@ describe('end-to-end integrity', () => {
 
 describe('timeouts and clean-up', () => {
   test('a socket that never signs in is closed', async () => {
-    const quiet = await Conn.open(roomUrl(relay, newRoom(), 'phone'), { origin: PHONE_ORIGIN, heartbeat: 300 });
+    const pc = new FakePc(relay);
+    await pc.connect();
+    const quiet = await Conn.open(roomUrl(relay, pc.room, 'phone'), { origin: PHONE_ORIGIN, heartbeat: 300 });
     await quiet.refused('timeout', 4408, 6000);
+    pc.close();
+  });
+
+  test('an unclaimed room times out a silent socket when it finally sends', async () => {
+    for (const role of ['pc', 'phone']) {
+      const quiet = await Conn.open(roomUrl(relay, newRoom(), role), { origin: role === 'phone' ? PHONE_ORIGIN : undefined });
+      await sleep(VARS.AUTH_TIMEOUT_MS + 300);
+      assert.equal(quiet.closeInfo, null);
+      assert.equal(quiet.inbox.length, 0, 'an unclaimed room does not arm a sign-in alarm');
+      quiet.send({ t: 'auth', token: R.b64u(R.randomBytes(32)), ...(role === 'phone' ? { device: newRoom() } : {}) });
+      await quiet.refused('timeout', 4408);
+    }
   });
 
   test('a pairing the PC never answers times out on both sides', async () => {
@@ -491,5 +692,103 @@ describe('timeouts and clean-up', () => {
     const newcomer = new FakePc(relay, { room: pc.room });
     assert.equal((await newcomer.connect()).claimed, true, 'the room id is free to claim again');
     newcomer.close();
+  });
+});
+
+describe('closed claims and normal changes', () => {
+  let state;
+  let closedRelay;
+  let savedPc;
+  const savedPhones = [];
+
+  before(async () => {
+    const seed = await startRelay({ ...VARS, ROOM_TTL_SECONDS: 600 }, { keepState: true });
+    state = seed.state;
+    try {
+      savedPc = new FakePc(seed);
+      await savedPc.connect();
+      for (let i = 0; i < 16; i++) {
+        const phone = new FakePhone(seed);
+        await phone.scan(await savedPc.showCode());
+        await phone.conn.json('waiting');
+        await savedPc.allow(await savedPc.pairRequest());
+        await phone.pairReply();
+        savedPhones.push(phone.creds);
+      }
+      savedPc.close();
+      await savedPc.conn.closedWithin();
+    } finally {
+      await seed.stop();
+    }
+    closedRelay = await startRelay({ ...VARS, ROOM_TTL_SECONDS: 600, WRITE_REFILL_MS: 3000, CLAIMS_OPEN: 'false' }, { state });
+  });
+
+  after(async () => {
+    await closedRelay?.stop();
+  });
+
+  test('CLAIMS_OPEN false refuses a new claim and lets a claimed PC and phone sign in', async () => {
+    const newcomer = new FakePc(closedRelay);
+    await newcomer.open();
+    await newcomer.conn.refused('busy', 4429);
+
+    const phone = new FakePhone(closedRelay);
+    phone.creds = savedPhones[0];
+    assert.deepEqual(await phone.connect(), { t: 'ready', pc: false });
+    const pc = new FakePc(closedRelay, { room: savedPc.room, token: savedPc.token });
+    const ready = await pc.connect();
+    assert.equal(ready.claimed, false);
+    assert.deepEqual(new Set(ready.devices), new Set(savedPhones.map((creds) => creds.device)));
+    assert.deepEqual(ready.online, [phone.creds.device]);
+    assert.deepEqual(await phone.conn.json(), { t: 'presence', pc: true });
+    phone.close();
+    await pc.conn.json('left');
+    pc.close();
+    await pc.conn.closedWithin();
+  });
+
+  test('a ready sync revoking 16 phones, QR changes, pairing and a home screen link fit the budget', async () => {
+    const pc = new FakePc(closedRelay, { room: savedPc.room, token: savedPc.token });
+    const ready = await pc.connect();
+    assert.equal(ready.devices.length, 16);
+    for (const device of ready.devices) {
+      pc.conn.send({ t: 'revoke', device });
+      assert.deepEqual(await pc.conn.json('ok'), { t: 'ok', op: 'revoke', device });
+    }
+    let qr = await pc.showCode();
+    for (let i = 0; i < 3; i++) {
+      pc.conn.send({ t: 'code-cancel' });
+      assert.equal((await pc.conn.json('ok')).op, 'code-cancel');
+      qr = await pc.showCode();
+    }
+    const phone = new FakePhone(closedRelay);
+    await phone.scan(qr);
+    await phone.conn.json('waiting');
+    const device = await pc.allow(await pc.pairRequest());
+    assert.equal((await phone.pairReply()).closed.code, 4001);
+    pc.conn.send({ t: 'code-cancel' });
+    assert.equal((await pc.conn.json('ok')).op, 'code-cancel');
+    assert.deepEqual(await phone.connect(), { t: 'ready', pc: true });
+    await pc.conn.json('joined');
+    await Promise.all([phone.hello(), pc.acceptHello(['chat', 'pair'])]);
+
+    const re = newRoom();
+    await phone.send({ type: 'pair.ask', id: re });
+    assert.deepEqual((await pc.receive()).message, { type: 'pair.ask', id: re });
+    const link = await pc.makeLink(device.id, re);
+    assert.equal((await phone.receive()).url, link);
+    const home = new FakePhone(closedRelay);
+    await home.scan(link);
+    await home.conn.json('waiting');
+    await pc.admitLinked();
+    assert.equal((await home.pairReply()).closed.code, 4001);
+    pc.conn.send({ t: 'code-cancel' });
+    assert.equal((await pc.conn.json('ok')).op, 'code-cancel');
+    await phone.conn.heartbeat();
+    await pc.conn.heartbeat();
+    phone.close();
+    await pc.conn.json('left');
+    pc.close();
+    await pc.conn.closedWithin();
   });
 });

@@ -17,6 +17,7 @@ const ID_BYTES = 16;
 const MIN_ENVELOPE = 72;
 const DAY = 24 * 60 * 60 * 1000;
 const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d{1,5})?$/;
+const LOOPBACK = /^127\.|^0000:0000:0000:0000::\/64$/;
 const ROUTE = /^\/v1\/rooms\/([^/]+)\/(pc|phone)$/;
 
 const b64u = (bytes) => {
@@ -71,6 +72,7 @@ const number = (value, fallback, min, max) => {
 };
 
 const settings = (env) => ({
+  claimsOpen: String(env.CLAIMS_OPEN).toLowerCase() !== 'false',
   maxFrame: number(env.MAX_FRAME_BYTES, 65536, 1024, 1048576),
   maxPcFrame: number(env.MAX_PC_FRAME_BYTES, 65536, 1024, 1048576),
   codeTtl: Math.round(number(env.CODE_TTL_SECONDS, 600, 1, 3600)),
@@ -82,6 +84,8 @@ const settings = (env) => ({
   phoneBurst: number(env.PHONE_BURST, 60, 1, 100000),
   pcRate: number(env.PC_RATE, 100, 0.1, 10000),
   pcBurst: number(env.PC_BURST, 300, 1, 100000),
+  writeBurst: number(env.WRITE_BURST, 32, 1, 100000),
+  writeRefill: number(env.WRITE_REFILL_MS, 3000, 1, 3600000),
   maxDevices: Math.round(number(env.MAX_DEVICES, 16, 1, 256)),
   maxPhones: Math.round(number(env.MAX_PHONES_ONLINE, 8, 1, 64)),
 });
@@ -94,6 +98,18 @@ export const phoneOriginAllowed = (origin, env) => {
 };
 
 const problem = (status, error) => Response.json({ error }, { status, headers: { 'cache-control': 'no-store' } });
+
+const clientKey = (request) => {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  if (!ip.includes(':')) return ip;
+  // An IPv4 address written as IPv6 (::ffff:192.0.2.1) counts as that IPv4 address.
+  if (ip.includes('.')) return ip.slice(ip.lastIndexOf(':') + 1);
+  const halves = ip.toLowerCase().split('::');
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves[1] ? halves[1].split(':') : [];
+  const groups = halves.length === 2 ? [...head, ...Array(8 - head.length - tail.length).fill('0'), ...tail] : head;
+  return groups.slice(0, 4).map((group) => group.padStart(4, '0')).join(':') + '::/64';
+};
 
 export default {
   async fetch(request, env) {
@@ -109,11 +125,14 @@ export default {
     // Browsers always send Origin. The PC is not a browser, so a PC connection with an Origin is a web page trying to act as one.
     const origin = request.headers.get('Origin');
     if (role === 'pc' ? origin !== null : !phoneOriginAllowed(origin, env)) return problem(403, 'origin');
+    const limiter = role === 'pc' ? env.PC_UPGRADES : env.PHONE_UPGRADES;
+    if (limiter && !(await limiter.limit({ key: clientKey(request) })).success) return problem(429, 'rate-limited');
     return env.ROOMS.get(env.ROOMS.idFromName(room)).fetch(request);
   },
 };
 
-// Socket attachment: { id, role: 'pc'|'phone', state: 'auth'|'pc'|'phone'|'pending'|'closed', since, last, device?, pending? }
+// Socket attachment: { id, role: 'pc'|'phone', state: 'auth'|'pc'|'phone'|'pending'|'closed', since, last, client, device?, pending? }
+// client is a short hash of the address the write limit counts, or null for a local connection.
 // Stored room record: { v: 1, pc: hash, created, pcSeen, code: { hash, exp, used } | null, devices: { [id]: { hash, added } } }
 export class Room extends DurableObject {
   constructor(ctx, env) {
@@ -122,6 +141,8 @@ export class Room extends DurableObject {
     this.room = undefined; // undefined until loaded, then null (unclaimed) or the record
     this.alarmAt = undefined;
     this.pcGoneAt = 0;
+    this.writes = { tokens: this.cfg.writeBurst, at: Date.now() };
+    this.writeLimit = env.WRITES || null;
     this.buckets = new Map(); // rate limits, memory only: a wake after hibernation starts them full
     this.queue = Promise.resolve();
     // Heartbeats are answered by the runtime without waking the object.
@@ -136,12 +157,14 @@ export class Room extends DurableObject {
 
   async fetch(request) {
     const role = new URL(request.url).pathname.endsWith('/pc') ? 'pc' : 'phone';
+    const address = request.headers.get('CF-Connecting-IP') ? clientKey(request) : null;
+    const counted = address && !LOOPBACK.test(address) ? b64u((await sha256(new TextEncoder().encode(address))).subarray(0, 12)) : null;
     const pair = new WebSocketPair();
     const client = pair[0];
     const server = pair[1];
     this.ctx.acceptWebSocket(server);
     const now = Date.now();
-    server.serializeAttachment({ id: b64u(crypto.getRandomValues(new Uint8Array(9))), role, state: 'auth', since: now, last: now });
+    server.serializeAttachment({ id: b64u(crypto.getRandomValues(new Uint8Array(9))), role, state: 'auth', since: now, last: now, client: counted });
     await this.serial(async () => {
       // Too many sockets that have not signed in: drop the oldest, not the newest. A real client signs in
       // within one round trip, so someone holding sockets open cannot lock it out.
@@ -231,11 +254,12 @@ export class Room extends DurableObject {
   async onMessage(ws, message) {
     const s = this.socket(ws);
     if (!s.att || s.att.state === 'closed') return;
+    const now = Date.now();
+    if (s.att.state === 'auth' && now >= s.att.since + this.cfg.authTimeout) return this.end(s, 4408, 'timeout', 'Signing in took too long.');
     const text = typeof message === 'string';
     const size = text ? message.length : message.byteLength;
     const cap = text ? TEXT_MAX : s.att.state === 'pc' ? this.cfg.maxPcFrame : this.cfg.maxFrame;
     if (size > cap) return this.end(s, 1009, 'too-big', `Frames may be at most ${cap} bytes.`);
-    const now = Date.now();
     if (!this.take(s, now)) return this.end(s, 4429, 'rate-limited', 'Too many frames. Slow down.');
     if ((s.att.state === 'pc' || s.att.state === 'phone') && now - s.att.last >= 5000) {
       s.att.last = now;
@@ -268,6 +292,31 @@ export class Room extends DurableObject {
     return true;
   }
 
+  spend(now) {
+    const bucket = this.writes;
+    bucket.tokens = Math.min(this.cfg.writeBurst, bucket.tokens + (now - bucket.at) / this.cfg.writeRefill);
+    bucket.at = now;
+    if (bucket.tokens < 1) return false;
+    bucket.tokens -= 1;
+    return true;
+  }
+
+  // Every write a client can cause also counts against its address across every room, so many rooms from one
+  // address can't each spend a full budget. A local connection isn't counted, and a limiter that fails lets it through.
+  async addressAllows(s) {
+    if (!this.writeLimit || !s.att.client) return true;
+    try {
+      return (await this.writeLimit.limit({ key: s.att.client })).success;
+    } catch {
+      return true;
+    }
+  }
+
+  // A change a PC asks for on demand spends the room's budget first.
+  async allowWrite(s, now) {
+    return this.spend(now) && (await this.addressAllows(s));
+  }
+
   onBinary(s, bytes) {
     if (s.att.state === 'phone') {
       if (bytes.length < MIN_ENVELOPE) return this.end(s, 4400, 'bad-request', 'Binary frames are envelopes of at least 72 bytes.');
@@ -293,8 +342,11 @@ export class Room extends DurableObject {
     let room = await this.load();
     const now = Date.now();
     const claimed = !room;
-    if (claimed) await this.save((room = { v: 1, pc: hash, created: now, pcSeen: now, code: null, devices: {} }));
-    else if (!sameText(room.pc, hash)) return this.end(s, 4401, 'bad-token', 'This room belongs to a different PC token.');
+    if (claimed) {
+      if (!this.cfg.claimsOpen) return this.end(s, 4429, 'busy', 'New rooms are paused. Try again later.');
+      if (!(await this.addressAllows(s))) return this.end(s, 4429, 'rate-limited', 'Too many changes. Slow down.');
+      await this.save((room = { v: 1, pc: hash, created: now, pcSeen: now, code: null, devices: {} }));
+    } else if (!sameText(room.pc, hash)) return this.end(s, 4401, 'bad-token', 'This room belongs to a different PC token.');
     for (const old of this.sockets()) {
       if (old.att.state === 'pc' && old.ws !== s.ws) this.end(old, 4409, 'replaced', 'Capri connected to this room again from somewhere else.', { replaced: true });
     }
@@ -345,12 +397,12 @@ export class Room extends DurableObject {
     if (!code || !nonce || !env || env.length < MIN_ENVELOPE) return this.end(s, 4400, 'bad-request', 'pair needs a 16-byte code, a 16-byte nonce and an envelope.');
     const hash = b64u(await sha256(code));
     const now = Date.now();
-    const pc = this.livePc(now);
-    if (!pc) return this.end(s, 4503, 'pc-offline', 'Your PC is offline. Open Capri on it and try again.');
     const open = room.code;
     if (!open || !sameText(open.hash, hash)) return this.end(s, 4410, 'code-unknown', 'This QR code is not valid. Show a new one on your PC.');
     if (open.used) return this.end(s, 4410, 'code-used', 'This QR code was already used. Show a new one on your PC.');
     if (now >= open.exp) return this.end(s, 4410, 'code-expired', 'This QR code has expired. Show a new one on your PC.');
+    const pc = this.livePc(now);
+    if (!pc) return this.end(s, 4503, 'pc-offline', 'Your PC is offline. Open Capri on it and try again.');
     if (this.sockets().filter((x) => x.att.state === 'pending').length >= MAX_PENDING) {
       return this.end(s, 4429, 'busy', 'Another phone is already waiting for an answer. Try again in a minute.');
     }
@@ -377,11 +429,15 @@ export class Room extends DurableObject {
         const ttl = msg.ttl === undefined ? this.cfg.codeTtl : msg.ttl;
         if (!hash || !Number.isInteger(ttl) || ttl < 1 || ttl > this.cfg.codeTtl) return bad(`code needs a 32-byte hash and a ttl from 1 to ${this.cfg.codeTtl} seconds.`);
         const exp = now + ttl * 1000;
+        if (!(await this.allowWrite(s, now))) return this.end(s, 4429, 'rate-limited', 'Too many changes. Slow down.');
         await this.save({ ...room, code: { hash, exp, used: false } });
         return void send(s.ws, { t: 'ok', op: 'code', expires: exp });
       }
       case 'code-cancel': {
-        if (room.code) await this.save({ ...room, code: null });
+        if (room.code) {
+          if (!(await this.allowWrite(s, now))) return this.end(s, 4429, 'rate-limited', 'Too many changes. Slow down.');
+          await this.save({ ...room, code: null });
+        }
         return void send(s.ws, { t: 'ok', op: 'code-cancel' });
       }
       case 'admit': {
@@ -394,6 +450,7 @@ export class Room extends DurableObject {
         if (!waiting || waiting.ws.readyState !== WebSocket.OPEN) return fail('admit', 'no-pending', 'That phone is no longer waiting.', { pending });
         if (Object.hasOwn(room.devices, device)) return fail('admit', 'device-exists', 'That device id is already paired.', { pending, device });
         if (Object.keys(room.devices).length >= this.cfg.maxDevices) return fail('admit', 'too-many-devices', `A room holds at most ${this.cfg.maxDevices} phones.`, { pending });
+        if (!(await this.allowWrite(s, now))) return this.end(s, 4429, 'rate-limited', 'Too many changes. Slow down.');
         await this.save({ ...room, devices: { ...room.devices, [device]: { hash: tokenHash, added: now } } });
         send(waiting.ws, { t: 'pair-reply', env: msg.env });
         this.end(waiting, 4001, 'paired', null, { quiet: true });
@@ -415,6 +472,7 @@ export class Room extends DurableObject {
         const device = id16(msg.device);
         if (!device) return bad('revoke needs a device id.');
         if (Object.hasOwn(room.devices, device)) {
+          if (!(await this.allowWrite(s, now))) return this.end(s, 4429, 'rate-limited', 'Too many changes. Slow down.');
           const devices = { ...room.devices };
           delete devices[device];
           await this.save({ ...room, devices });
@@ -519,9 +577,9 @@ export class Room extends DurableObject {
   async flushPcSeen() {
     if (!this.pcGoneAt) return;
     const at = this.pcGoneAt;
-    this.pcGoneAt = 0;
     const room = await this.load();
-    if (room && !this.pc() && at > room.pcSeen) await this.save({ ...room, pcSeen: at });
+    if (room && !this.pc() && at - room.pcSeen >= DAY) await this.save({ ...room, pcSeen: at });
+    this.pcGoneAt = 0;
   }
 
   // Schedules the one alarm for the earliest deadline: a socket that must sign in, a phone waiting for
@@ -534,7 +592,7 @@ export class Room extends DurableObject {
     let phoneOnline = false;
     for (const s of this.sockets()) {
       const a = s.att;
-      if (a.state === 'auth') next = Math.min(next, a.since + this.cfg.authTimeout);
+      if (a.state === 'auth' && room) next = Math.min(next, a.since + this.cfg.authTimeout);
       else if (a.state === 'pending') next = Math.min(next, a.since + this.cfg.pendingTimeout);
       else if (a.state === 'phone') {
         phoneOnline = true;
@@ -555,10 +613,10 @@ export class Room extends DurableObject {
 
   async forget() {
     for (const s of this.sockets()) this.end(s, 4404, 'no-room', 'This Capri room was removed because its PC stayed away too long.', { quiet: true });
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
     this.room = null;
     this.pcGoneAt = 0;
     this.alarmAt = null;
-    await this.ctx.storage.deleteAlarm();
-    await this.ctx.storage.deleteAll();
   }
 }
