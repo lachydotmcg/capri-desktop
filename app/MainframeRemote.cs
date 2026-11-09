@@ -76,6 +76,8 @@ namespace CapriDesktop
                 string crowded = sheet.Crowded();
                 if (crowded == null) crowded = sheet.Matches(view);
                 if (picture != null) sheet.Picture(picture);
+                if (crowded == null && view.Phones.Count > RemoteSheet.Rows) crowded = sheet.CheckPhones(picture);
+                if (crowded == null && Computer.Streaming && view.Qr != null) crowded = sheet.CheckQr();
                 sheet.Close();
                 return crowded;
             }
@@ -131,20 +133,21 @@ namespace CapriDesktop
 
         private sealed class RemoteSheet : ModSheet
         {
-            internal const int Wide = 600, Tall = 548, Rows = 5;
+            internal const int Wide = 600, Tall = 596, Rows = 5;
             private readonly bool live;
             private readonly Toggle power;
-            private readonly Label status, idle, qrNote, askTitle, askName, codeLabel, askCode, askCheck, empty, more, note;
+            private readonly Label status, idle, qrNote, askTitle, askName, codeLabel, askCode, askCheck, empty, page, note, revokeNote;
             private readonly Label[] names = new Label[Rows], states = new Label[Rows];
             private readonly Key[] revokes = new Key[Rows];
             private readonly RemoteQrBox qr;
-            private readonly Key pair, allow, deny, saveHost;
+            private readonly Key pair, allow, deny, saveHost, back, next, removeAll, showQr;
             private readonly Entry host;
             private readonly Timer clock = new Timer { Interval = 1000 };
             private RemoteView view = new RemoteView();
             private DateTime expires;
-            private int armed = -1, armedAt;
-            private bool syncing;
+            private int first, armedAt;
+            private string armedId, revealedQr, lastQr;
+            private bool syncing, armedAll, streaming;
 
             // live: the real sheet, which talks to her link. The smoke test's copies only draw.
             internal RemoteSheet(Mainframe owner, float zoom, bool live) : base(owner, zoom, "Capri Remote", "REMOTE >", Wide, Tall)
@@ -165,7 +168,7 @@ namespace CapriDesktop
                 Font band = Type(10f * zoom, true);
                 Heading(this, "QR CODE >", new Point(Z(28), Z(146)), band, White, 286);
                 Heading(this, "PHONES >", new Point(Z(316), Z(146)), band, White, 270);
-                Heading(this, "RELAY >", new Point(Z(28), Z(440)), band, White, 558);
+                Heading(this, "RELAY >", new Point(Z(28), Z(488)), band, White, 558);
                 pair = Make("Pair a phone", 186, 145, 106, 18, delegate { if (this.live) Frame.capri.RemoteNewCode(); });
                 pair.Accent = Cyan;
                 pair.Loud = true;
@@ -176,6 +179,8 @@ namespace CapriDesktop
                 qrNote = Words("", 28, 416, 264, 16, Small(), Faint);
                 qrNote.TextAlign = ContentAlignment.MiddleCenter;
                 idle = Words("", 28, 180, 264, 18, Font, Faint);
+                showQr = Make("Show QR", 106, 218, 108, 26, delegate { revealedQr = view.Qr; Fill(view); });
+                showQr.Accent = Cyan;
                 askTitle = Words("ALLOW THIS PHONE?", 28, 180, 264, 20, Type(10.5f * zoom, true), Rose);
                 askName = Words("", 28, 204, 264, 22, Type(11f * zoom, true), White);
                 codeLabel = Words("CODE", 28, 240, 264, 14, Small(), Faint);
@@ -195,16 +200,23 @@ namespace CapriDesktop
                     revokes[i].Accent = Hot;
                 }
                 empty = Words("No phones yet", 316, 180, 256, 18, Font, Faint);
-                more = Words("", 316, 400, 256, 16, Small(), Faint);
+                back = Make("Back", 316, 400, 58, 22, delegate { first -= Rows; Fill(view); });
+                page = Words("", 378, 400, 132, 22, Small(), Faint);
+                page.TextAlign = ContentAlignment.MiddleCenter;
+                next = Make("Next", 514, 400, 58, 22, delegate { first += Rows; Fill(view); });
+                removeAll = Make("Remove all phones", 316, 430, 256, 26, delegate { RemoveAll(); });
+                removeAll.Accent = Hot;
+                removeAll.AccessibleName = "Remove all phones and pair again";
+                revokeNote = Words("", 316, 462, 256, 16, Small(), Faint);
                 host = new Entry();
-                host.Bounds = Box(28, 470, 460, 26);
+                host.Bounds = Box(28, 518, 460, 26);
                 host.Cue = RemoteLink.DefaultHost;
                 host.Box.AccessibleName = "Relay host";
                 host.Box.KeyDown += delegate (object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; SaveHost(); } };
                 Controls.Add(host);
-                saveHost = Make("Save", 496, 470, 76, 26, delegate { SaveHost(); });
+                saveHost = Make("Save", 496, 518, 76, 26, delegate { SaveHost(); });
                 saveHost.AccessibleName = "Save relay host";
-                note = Words("", 28, 504, 544, 18, Font, Cyan);
+                note = Words("", 28, 552, 544, 18, Font, Cyan);
                 clock.Tick += delegate { Tick(); };
                 if (live) clock.Start();
                 Frame.Fit(this);
@@ -213,6 +225,11 @@ namespace CapriDesktop
             internal void Fill(RemoteView shown)
             {
                 view = shown ?? new RemoteView();
+                if (streaming != Computer.Streaming || lastQr != view.Qr) revealedQr = null;
+                streaming = Computer.Streaming;
+                lastQr = view.Qr;
+                first = Math.Max(0, Math.Min(first, (Math.Max(0, view.Phones.Count - 1) / Rows) * Rows));
+                if (armedId != null && !view.Phones.Exists(delegate(RemoteDevice phone) { return phone.Id == armedId; })) armedId = null;
                 syncing = true;
                 power.Checked = view.On;
                 syncing = false;
@@ -220,13 +237,15 @@ namespace CapriDesktop
                 status.Text = StatusLine(view, out tone);
                 status.ForeColor = tone;
                 bool asking = view.Ask != null, showing = !asking && view.Qr != null, linking = !asking && !showing && view.LinkFor != null;
-                qr.Url = showing ? view.Qr : null;
-                qr.Visible = showing;
+                bool hidden = showing && streaming && revealedQr != view.Qr;
+                qr.Url = showing && !hidden ? view.Qr : null;
+                qr.Visible = showing && !hidden;
+                showQr.Visible = hidden;
                 expires = showing || linking ? DateTime.Now.AddSeconds(view.QrSeconds) : DateTime.MaxValue;
-                qrNote.Visible = showing;
+                qrNote.Visible = showing && !hidden;
                 qrNote.Text = showing ? "SCAN WITH YOUR PHONE · EXPIRES " + expires.ToString("HH:mm", CultureInfo.CurrentCulture) : "";
-                idle.Visible = !asking && !showing;
-                idle.Text = !view.On ? "Turn Remote on first" : !view.Ready ? "Waiting for the relay" : view.Expired ? "That code expired" : linking ? "Pairing link sent to " + view.LinkFor : "No code open";
+                idle.Visible = !asking && (!showing || hidden);
+                idle.Text = hidden ? "QR hidden while streaming" : !view.On ? "Turn Remote on first" : !view.Ready ? "Waiting for the relay" : view.Expired ? "That code expired" : linking ? "Pairing link sent to " + view.LinkFor : "No code open";
                 askTitle.Visible = askName.Visible = codeLabel.Visible = askCode.Visible = askCheck.Visible = allow.Visible = deny.Visible = asking;
                 askName.Text = asking ? view.Ask.Name : "";
                 askCode.Text = asking ? view.Ask.Code : "";
@@ -234,23 +253,28 @@ namespace CapriDesktop
                 pair.Enabled = view.On && view.Ready && !asking;
                 for (int i = 0; i < Rows; i++)
                 {
-                    bool on = i < view.Phones.Count;
+                    bool on = first + i < view.Phones.Count;
                     names[i].Visible = states[i].Visible = revokes[i].Visible = on;
                     if (!on) continue;
-                    RemoteDevice phone = view.Phones[i];
+                    RemoteDevice phone = view.Phones[first + i];
                     bool online = view.Online.Contains(phone.Id);
                     names[i].Text = phone.Name;
                     // A phone a pairing link let in with no Allow says so, so it's easy to spot and revoke.
-                    states[i].Text = online ? "CONNECTED" : "ADDED " + phone.Added.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture).ToUpperInvariant() + (phone.From != null ? " BY LINK" : "");
+                    states[i].Text = (online ? "CONNECTED" : "ADDED " + phone.Added.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture).ToUpperInvariant()) + (phone.From != null || phone.Parent != null ? " \u00b7 BY LINK" : "");
                     states[i].ForeColor = online ? Cyan : Faint;
-                    revokes[i].Text = armed == i ? "Sure?" : "Revoke";
-                    revokes[i].Loud = armed == i;
+                    revokes[i].Text = armedId == phone.Id ? "Sure?" : "Revoke";
+                    revokes[i].Loud = armedId == phone.Id;
                     revokes[i].AccessibleName = "Revoke " + phone.Name;
                     revokes[i].Invalidate();
                 }
                 empty.Visible = view.Phones.Count == 0;
-                more.Visible = view.Phones.Count > Rows;
-                more.Text = view.Phones.Count > Rows ? "+" + (view.Phones.Count - Rows) + " MORE" : "";
+                back.Visible = next.Visible = page.Visible = view.Phones.Count > Rows;
+                back.Enabled = first > 0;
+                next.Enabled = first + Rows < view.Phones.Count;
+                page.Text = "Page " + (first / Rows + 1) + " of " + ((Math.Max(1, view.Phones.Count) - 1) / Rows + 1);
+                removeAll.Text = armedAll ? "Sure?" : "Remove all phones";
+                removeAll.Loud = armedAll;
+                revokeNote.Text = view.Phones.Exists(delegate(RemoteDevice phone) { return phone.Parent != null; }) ? "Revoke also removes the phones its links added" : "";
                 if (!host.Box.Focused) host.Box.Text = view.Host == RemoteLink.DefaultHost ? "" : view.Host;
                 note.Text = view.Note ?? "";
                 note.ForeColor = Cyan;
@@ -281,18 +305,38 @@ namespace CapriDesktop
             }
 
             // A second press within 4 seconds revokes, so one stray click never unpairs a phone.
-            private void Revoke(int row)
+            private string Revoke(int row)
             {
-                if (row >= view.Phones.Count) return;
-                if (armed != row || unchecked(Environment.TickCount - armedAt) > 4000)
+                if (row < 0 || row >= Rows || first + row >= view.Phones.Count) return null;
+                string id = view.Phones[first + row].Id;
+                armedAll = false;
+                if (armedId != id || unchecked(Environment.TickCount - armedAt) > 4000)
                 {
-                    armed = row;
+                    armedId = id;
                     armedAt = Environment.TickCount;
                     Fill(view);
-                    return;
+                    return null;
                 }
-                armed = -1;
-                if (live) Frame.capri.RemoteRevoke(view.Phones[row].Id);
+                armedId = null;
+                if (live) Frame.capri.RemoteRevoke(id);
+                else Fill(view);
+                return id;
+            }
+
+            private bool RemoveAll()
+            {
+                armedId = null;
+                if (!armedAll || unchecked(Environment.TickCount - armedAt) > 4000)
+                {
+                    armedAll = true;
+                    armedAt = Environment.TickCount;
+                    Fill(view);
+                    return false;
+                }
+                armedAll = false;
+                if (live) Frame.capri.RemoteRemoveAll();
+                else Fill(view);
+                return true;
             }
 
             private void SaveHost()
@@ -305,11 +349,13 @@ namespace CapriDesktop
 
             private void Tick()
             {
-                if (armed >= 0 && unchecked(Environment.TickCount - armedAt) > 4000)
+                if ((armedId != null || armedAll) && unchecked(Environment.TickCount - armedAt) > 4000)
                 {
-                    armed = -1;
+                    armedId = null;
+                    armedAll = false;
                     Fill(view);
                 }
+                if (streaming != Computer.Streaming) Fill(view);
                 if ((view.Qr != null || view.LinkFor != null) && DateTime.Now >= expires) Fill(Frame.capri.RemoteView());
             }
 
@@ -317,13 +363,78 @@ namespace CapriDesktop
             internal string Matches(RemoteView expected)
             {
                 if (expected.Ask != null && (!allow.Visible || askCode.Text != expected.Ask.Code || qr.Visible)) return "the Allow prompt didn't show its code";
-                if (expected.Ask == null && expected.Qr != null && (!qr.Visible || allow.Visible)) return "the QR didn't show";
-                if (expected.Phones.Count > 0 && (!revokes[0].Visible || names[0].Text != expected.Phones[0].Name)) return "the paired phones didn't show";
+                bool hidden = Computer.Streaming && revealedQr != expected.Qr;
+                if (expected.Ask == null && expected.Qr != null && (qr.Visible == hidden || showQr.Visible != hidden || allow.Visible || hidden && (!idle.Visible || idle.Text != "QR hidden while streaming"))) return "the QR didn't follow the streaming setting";
+                if (expected.Phones.Count > 0 && (!revokes[0].Visible || names[0].Text != expected.Phones[first].Name)) return "the paired phones didn't show";
                 if (expected.Ask == null && expected.Qr == null && expected.LinkFor != null && (qr.Visible || !idle.Visible || idle.Text != "Pairing link sent to " + expected.LinkFor)) return "a phone's pairing link didn't show as words, with no QR";
-                for (int i = 0; i < Rows && i < expected.Phones.Count; i++)
-                    if (expected.Phones[i].From != null && !expected.Online.Contains(expected.Phones[i].Id) && !states[i].Text.EndsWith(" BY LINK", StringComparison.Ordinal)) return "a phone added by link didn't say so";
+                for (int i = 0; i < Rows && first + i < expected.Phones.Count; i++)
+                    if ((expected.Phones[first + i].From != null || expected.Phones[first + i].Parent != null) && !states[i].Text.EndsWith(" BY LINK", StringComparison.Ordinal)) return "a phone added by link didn't say so";
                 if (expected.Phones.Count == 0 && !empty.Visible) return "an empty list didn't say so";
                 if (power.Checked != expected.On) return "the switch didn't match";
+                return null;
+            }
+
+            internal string CheckPhones(string picture)
+            {
+                RemoteView original = view;
+                HashSet<string> reached = new HashSet<string>(StringComparer.Ordinal);
+                first = 0;
+                Fill(original);
+                do
+                {
+                    string problem = Crowded() ?? Matches(original);
+                    if (problem != null) return problem;
+                    for (int i = 0; i < Rows && first + i < original.Phones.Count; i++)
+                    {
+                        RemoteDevice phone = original.Phones[first + i];
+                        if (!revokes[i].Visible || !revokes[i].Enabled || revokes[i].AccessibleName != "Revoke " + phone.Name || revokes[i].Text != "Revoke") return "a phone has no Revoke key";
+                        reached.Add(phone.Id);
+                        if (Revoke(i) != null || revokes[i].Text != "Sure?" || Revoke(i) != phone.Id) return "a phone's Revoke key didn't confirm its own id";
+                    }
+                    if (picture != null && first > 0) Picture(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(picture), System.IO.Path.GetFileNameWithoutExtension(picture) + "-page-" + (first / Rows + 1) + ".png"));
+                    if (!next.Enabled) break;
+                    next.PerformClick();
+                } while (true);
+                if (reached.Count != original.Phones.Count) return "paging missed a paired phone";
+                first = 0;
+                Fill(original);
+                string target = original.Phones[0].Id;
+                revokes[0].PerformClick();
+                RemoteView reordered = new RemoteView { Phones = new List<RemoteDevice>(original.Phones) };
+                reordered.Phones.Reverse();
+                Fill(reordered);
+                for (first = 0; first < reordered.Phones.Count; first += Rows)
+                {
+                    Fill(reordered);
+                    for (int i = 0; i < Rows && first + i < reordered.Phones.Count; i++)
+                        if ((revokes[i].Text == "Sure?") != (reordered.Phones[first + i].Id == target)) return "Sure? moved to a different phone";
+                }
+                first = (reordered.Phones.Count - 1) / Rows * Rows;
+                Fill(reordered);
+                if (Revoke((reordered.Phones.Count - 1) % Rows) != target) return "the moved phone couldn't be confirmed";
+                first = 0;
+                Fill(original);
+                Revoke(0);
+                Fill(reordered);
+                if (Revoke(0) != null || armedId != reordered.Phones[0].Id) return "a different phone's second press revoked it";
+                if (RemoveAll() || armedId != null || !armedAll || !RemoveAll()) return "Remove all phones didn't require its own second press";
+                Fill(original);
+                return null;
+            }
+
+            internal string CheckQr()
+            {
+                if (qr.Visible || !showQr.Visible || !idle.Visible) return "the QR wasn't hidden while streaming";
+                showQr.PerformClick();
+                if (!qr.Visible || showQr.Visible || !qrNote.Visible) return "Show QR didn't reveal the pairing code";
+                string original = view.Qr;
+                try
+                {
+                    view.Qr += "&new=1";
+                    Fill(view);
+                    if (qr.Visible || !showQr.Visible) return "a new pairing code stayed revealed on stream";
+                }
+                finally { view.Qr = original; Fill(view); }
                 return null;
             }
 

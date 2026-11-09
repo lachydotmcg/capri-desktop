@@ -106,7 +106,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 List<RemoteDevice> list = new List<RemoteDevice>();
-                foreach (RemoteDevice device in state.Devices) list.Add(new RemoteDevice { Id = device.Id, Name = device.Name, Added = device.Added, From = device.From });
+                foreach (RemoteDevice device in state.Devices) list.Add(new RemoteDevice { Id = device.Id, Name = device.Name, Added = device.Added, From = device.From, Parent = device.Parent });
                 list.Sort(delegate (RemoteDevice a, RemoteDevice b) { return b.Added.CompareTo(a.Added); });
                 return list;
             }
@@ -280,6 +280,7 @@ namespace CapriDesktop
             byte[] token = RemoteCrypto.Random(32);
             RemoteDevice device = new RemoteDevice { Id = RemoteCrypto.B64u(RemoteCrypto.Random(16)), Key = RemoteCrypto.Random(32), Name = ask.Name, Added = DateTime.UtcNow };
             if (pairing.For != null) device.From = asker == null ? "Unnamed phone" : asker.Name;
+            device.Parent = pairing.For;
             string tokenHash = RemoteCrypto.Hash(token);
             byte[] env = ask.Channel.Seal(RemoteMessages.PairAllow(device.Id, RemoteCrypto.B64u(token), RemoteCrypto.B64u(device.Key), pcName, app));
             Array.Clear(token, 0, token.Length);
@@ -316,14 +317,53 @@ namespace CapriDesktop
             {
                 RemoteDevice device = state.Find(id);
                 if (stopped || device == null) return;
-                Phone phone;
-                if (phones.TryGetValue(id, out phone) && phone.Session != null) Push(Outgoing.Message(phone, RemoteMessages.Revoked()));
-                if (wire != null && revoking.Add(id)) Push(Outgoing.Control(RemoteMessages.Revoke(id)));
-                Remove(device, notes);
+                foreach (string remove in RevokeIds(state.Devices, id)) RevokeOne(state.Find(remove), notes);
                 copy = state.Copy();
             }
             Save(copy);
             Raise(notes, null);
+        }
+
+        internal static List<string> RevokeIds(List<RemoteDevice> devices, string id)
+        {
+            List<string> ids = new List<string> { id };
+            for (int i = 0; i < ids.Count; i++)
+                foreach (RemoteDevice device in devices)
+                    if (device.Parent == ids[i] && !ids.Contains(device.Id)) ids.Add(device.Id);
+            return ids;
+        }
+
+        private void RevokeOne(RemoteDevice device, List<Note> notes)
+        {
+            if (device == null) return;
+            Phone phone;
+            if (phones.TryGetValue(device.Id, out phone) && phone.Session != null) Push(Outgoing.Message(phone, RemoteMessages.Revoked()));
+            if (wire != null && revoking.Add(device.Id)) Push(Outgoing.Control(RemoteMessages.Revoke(device.Id)));
+            Remove(device, notes);
+        }
+
+        internal RemoteState RemoveAll()
+        {
+            lock (gate)
+            {
+                List<Note> notes = new List<Note>();
+                if (!stopped)
+                    foreach (RemoteDevice device in new List<RemoteDevice>(state.Devices))
+                        try { RevokeOne(device, notes); }
+                        catch (Exception) { }
+                Stop();
+                stopped = true;
+                if (pairing != null) pairing.Forget();
+                pairing = null;
+                state = RemoteState.Fresh();
+                phones.Clear();
+                parts.Clear();
+                asks.Clear();
+                seen.Clear();
+                admitting.Clear();
+                ready = false;
+                return state.Copy();
+            }
         }
 
         // ---------- Chat out (PROTOCOL.md section 8) ----------
@@ -560,6 +600,99 @@ namespace CapriDesktop
                 finally { link.wire.Socket.Dispose(); }
             }
             checks.Add("PASS job messages reach both live phones, open with each phone's keys, batch steps, stay at five frames a second, drop frames from a replaced session and keep a phone that fell behind to the newest 30 steps");
+        }
+
+        internal static RemoteLink SmokeSession(RemoteState state)
+        {
+            RemoteLink link = new RemoteLink(state, "ws://127.0.0.1:1", "Test PC", "test", null);
+            foreach (Phone phone in link.phones.Values)
+            {
+                phone.Online = true;
+                phone.Session = new RemoteChannel(RemoteCrypto.SessionKeys(phone.Device.Key, new byte[16], new byte[16]), RemoteCrypto.KindSession);
+            }
+            return link;
+        }
+
+        internal static void SmokePairing(List<string> checks)
+        {
+            RemoteState state = RemoteState.Fresh();
+            RemoteDevice parent = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone" };
+            RemoteDevice other = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone" };
+            state.Devices.Add(parent);
+            state.Devices.Add(other);
+            RemoteLink link = SmokeSession(state);
+            using (CancellationTokenSource stop = new CancellationTokenSource())
+            {
+                link.wire = new Wire(stop);
+                link.ready = true;
+                try
+                {
+                    List<Note> notes = new List<Note>();
+                    Phone phone = link.phones[parent.Id];
+                    Func<List<RemoteJson.Map>> take = delegate
+                    {
+                        List<RemoteJson.Map> messages = new List<RemoteJson.Map>();
+                        Outgoing item;
+                        while ((item = link.wire.Take()) != null)
+                        {
+                            RemoteJson.Map message = item.Close ? null : RemoteJson.ParseMap(item.Json ?? item.Text);
+                            if (message != null) messages.Add(message);
+                            item.Finish();
+                        }
+                        return messages;
+                    };
+                    link.PairAsk(phone, "pair-first", notes);
+                    if (link.pairing == null || link.pairing.For != parent.Id || link.Qr != null || !take().Exists(delegate(RemoteJson.Map message) { return message.Text("type") == "pair.link" && message.Text("re") == "pair-first"; })) throw new Exception("A paired phone didn't get its private link.");
+                    Pairing first = link.pairing;
+                    phone.Session = new RemoteChannel(RemoteCrypto.SessionKeys(parent.Key, new byte[16], new byte[16]), RemoteCrypto.KindSession);
+                    link.PairAsk(phone, "pair-again", notes);
+                    List<RemoteJson.Map> again = take();
+                    if (link.pairing != first || again.Count != 1 || again[0].Text("code") != "busy" || again[0].Text("re") != "pair-again") throw new Exception("A second pair.ask within a minute wasn't busy after a new session.");
+                    phone.PairAt -= 60000;
+                    link.PairAsk(phone, "pair-later", notes);
+                    if (link.pairing == first || !take().Exists(delegate(RemoteJson.Map message) { return message.Text("type") == "pair.link"; })) throw new Exception("A phone couldn't ask again after a minute.");
+                    link.pairing.Ask = new RemoteAsk { Pending = RemoteMessages.NewId(), Name = "Home screen", Channel = new RemoteChannel(RemoteCrypto.PairKeys(link.pairing.Key, new byte[16]), RemoteCrypto.KindPair) };
+                    link.Admit(notes);
+                    RemoteDevice child = state.Devices[state.Devices.Count - 1];
+                    if (child.Parent != parent.Id || child.From != parent.Name) throw new Exception("A link-added phone lost its parent's id or name.");
+                    RemoteState saved = RemoteState.Unseal(state.Copy().Seal());
+                    if (saved == null || saved.Find(child.Id).Parent != parent.Id || saved.Find(child.Id).From != parent.Name) throw new Exception("A saved phone lost its link parent.");
+                    take();
+                    link.PairAsk(link.phones[child.Id], "pair-child", notes);
+                    again = take();
+                    if (again.Count != 1 || again[0].Text("code") != "not-allowed" || again[0].Text("re") != "pair-child" || link.pairing != null) throw new Exception("A link-added phone could make another pairing link.");
+                    RemoteDevice legacy = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Old home screen", From = parent.Name };
+                    state.Devices.Add(legacy);
+                    link.phones[legacy.Id] = new Phone(legacy);
+                    link.PairAsk(link.phones[legacy.Id], "pair-legacy", notes);
+                    again = take();
+                    if (again.Count != 1 || again[0].Text("code") != "not-allowed") throw new Exception("An older link-added phone could make a pairing link.");
+                    RemoteDevice descendant = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Descendant", From = child.Name, Parent = child.Id };
+                    state.Devices.Add(descendant);
+                    link.phones[descendant.Id] = new Phone(descendant);
+                    link.Revoke(parent.Id);
+                    again = take();
+                    foreach (string id in new[] { parent.Id, child.Id, descendant.Id })
+                        if (state.Find(id) != null || link.HasSession(id) || !again.Exists(delegate(RemoteJson.Map message) { return message.Text("t") == "revoke" && message.Text("device") == id; })) throw new Exception("Revoking a phone missed a link child or its relay revoke.");
+                    if (state.Find(other.Id) == null || state.Find(legacy.Id) == null) throw new Exception("Revoking a phone matched a name instead of a parent id.");
+                    while (state.Devices.Count < 16)
+                    {
+                        RemoteDevice device = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone" };
+                        state.Devices.Add(device);
+                        link.phones[device.Id] = new Phone(device);
+                    }
+                    HashSet<string> all = new HashSet<string>();
+                    foreach (RemoteDevice device in state.Devices) all.Add(device.Id);
+                    link.started = true;
+                    link.run = stop;
+                    RemoteState fresh = link.RemoveAll();
+                    HashSet<string> revoked = new HashSet<string>();
+                    foreach (RemoteJson.Map message in take()) if (message.Text("t") == "revoke") revoked.Add(message.Text("device"));
+                    if (!all.SetEquals(revoked) || fresh.Devices.Count != 0 || link.Devices().Count != 0 || fresh.Room == state.Room || fresh.Token == state.Token || link.Ready || !link.Stopped) throw new Exception("Remove all phones missed a revoke, kept a phone or reused the room.");
+                }
+                finally { link.wire.Socket.Dispose(); }
+            }
+            checks.Add("PASS pairing links refuse link-added phones, limit each phone to one ask a minute across sessions, save the parent's id and revoke its known link children; Remove all phones queues all 16 relay revokes and starts a fresh room with no phones");
         }
 
         // Messages that only mean something now, like a screen frame or a moment of her voice, sealed together in order. They
@@ -1080,6 +1213,19 @@ namespace CapriDesktop
                 Push(Outgoing.Message(phone, RemoteMessages.Error("bad-message", null)));
                 return;
             }
+            if (phone.Device.From != null || phone.Device.Parent != null)
+            {
+                Push(Outgoing.Message(phone, RemoteMessages.Error("not-allowed", id)));
+                return;
+            }
+            long now = Now();
+            if (phone.PairAsked && now - phone.PairAt < 60000)
+            {
+                Push(Outgoing.Message(phone, RemoteMessages.Error("busy", id)));
+                return;
+            }
+            phone.PairAsked = true;
+            phone.PairAt = now;
             bool busy = pairing != null && (pairing.Ask != null || (pairing.For == null && !pairing.Used && Now() < pairing.Expires));
             if (!busy)
             {
@@ -1564,6 +1710,8 @@ namespace CapriDesktop
             internal bool JobStepNext;
             internal RemoteChannel Session;
             internal bool Online, Kicked, Removed;
+            internal bool PairAsked;
+            internal long PairAt;
             internal int Hellos;
 
             internal Phone(RemoteDevice device)

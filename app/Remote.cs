@@ -447,6 +447,7 @@ namespace CapriDesktop
         internal DateTime Added;
         // The paired phone whose pairing link added this one with no Allow (PROTOCOL.md 5.1), by name, or null.
         internal string From;
+        internal string Parent;
 
         internal byte[] IdBytes { get { return RemoteCrypto.FromB64u(Id, 16); } }
     }
@@ -474,7 +475,7 @@ namespace CapriDesktop
             copy.Room = Room;
             copy.Token = Token;
             copy.Used = Used;
-            foreach (RemoteDevice device in Devices) copy.Devices.Add(new RemoteDevice { Id = device.Id, Key = (byte[])device.Key.Clone(), Name = device.Name, Added = device.Added, From = device.From });
+            foreach (RemoteDevice device in Devices) copy.Devices.Add(new RemoteDevice { Id = device.Id, Key = (byte[])device.Key.Clone(), Name = device.Name, Added = device.Added, From = device.From, Parent = device.Parent });
             return copy;
         }
 
@@ -491,6 +492,7 @@ namespace CapriDesktop
             {
                 RemoteJson.Writer saved = new RemoteJson.Writer().Text("id", device.Id).Text("key", RemoteCrypto.B64u(device.Key)).Text("name", device.Name).Text("added", device.Added.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
                 if (device.From != null) saved.Text("from", device.From);
+                if (device.Parent != null) saved.Text("parent", device.Parent);
                 devices.Add(saved);
             }
             return new RemoteJson.Writer().Number("v", 1).Text("room", Room).Text("token", Token).Flag("used", Used).Objects("devices", devices).ToString();
@@ -514,7 +516,8 @@ namespace CapriDesktop
                     DateTime added;
                     if (!DateTime.TryParse(device.Text("added"), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out added)) added = DateTime.UtcNow;
                     string linkedBy = device.Text("from") == null ? null : RemoteMessages.CleanName(device.Text("from"));
-                    state.Devices.Add(new RemoteDevice { Id = device.Text("id"), Key = key, Name = RemoteMessages.CleanName(device.Text("name")), Added = added.ToUniversalTime(), From = linkedBy });
+                    string parent = RemoteCrypto.FromB64u(device.Text("parent"), 16) == null ? null : device.Text("parent");
+                    state.Devices.Add(new RemoteDevice { Id = device.Text("id"), Key = key, Name = RemoteMessages.CleanName(device.Text("name")), Added = added.ToUniversalTime(), From = linkedBy, Parent = parent });
                 }
             return state;
         }

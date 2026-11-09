@@ -2486,6 +2486,8 @@ namespace CapriDesktop
         private readonly HashSet<string> told = new HashSet<string>();
         private readonly bool buys;
         private string risk;
+        // The kind of step she's asking about while she waits, like send, buy or delete, for a phone's JOBS question.
+        internal string Risk { get { return risk; } set { risk = value; } }
         private readonly List<string> talk = new List<string>();
         private readonly List<byte[]> pictures = new List<byte[]>();
         private int pictureFloor;

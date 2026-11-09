@@ -305,6 +305,17 @@ namespace CapriDesktop
         // stopped, with her question while she asks. HoldingId is the hold a phone's answer has to match.
         internal static Action<object, string, string> HeldChanged;
         internal static object HoldingId { get { lock (gate) return held.Count == 0 ? null : held[0]; } }
+        // Every call she's holding while id is still the first, as tool and arguments, so a phone's JOBS question names them.
+        internal static List<KeyValuePair<string, ToolArguments>> HeldCalls(object id)
+        {
+            List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>>();
+            lock (gate)
+            {
+                if (held.Count == 0 || held[0] != id) return calls;
+                foreach (Held call in held) calls.Add(new KeyValuePair<string, ToolArguments>(call.Tool, call.Args == null ? null : call.Args.Copy()));
+            }
+            return calls;
+        }
 
         private static void HeldState(object id, string state, string words)
         {

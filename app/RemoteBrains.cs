@@ -50,7 +50,15 @@ namespace CapriDesktop
         }
 
         // On the link's read thread: the ask moves to her thread, where her brain lives.
-        private void RemoteBrainAsked(string device, RemoteJson.Map message) { Post(delegate { RemoteBrainAsk(device, message); }); }
+        private void RemoteBrainAsked(string device, RemoteJson.Map message)
+        {
+            RemoteLink link = remoteLink;
+            Post(delegate
+            {
+                if (link == null || remoteLink != link || !link.HasSession(device)) return;
+                RemoteBrainAsk(device, message);
+            });
+        }
 
         private void RemoteBrainsHappened(string what, string device)
         {
@@ -208,6 +216,7 @@ namespace CapriDesktop
         // MEDIUM, a rejected key, one key at a time, a rung picked, malformed asks, and no key ever going back.
         private void SmokeRemoteBrains(List<string> checks)
         {
+            SmokeRemoteLateBrain(checks);
             Preferences wasPreferences = preferences;
             Cloud wasRemote = brain.Remote;
             Engine wasLocal = brain.Local;
@@ -366,6 +375,34 @@ namespace CapriDesktop
                 else mainframe.Searching();
                 SavePreferences();
             }
+        }
+
+        private void SmokeRemoteLateBrain(List<string> checks)
+        {
+            RemoteLink current = remoteLink;
+            Action<string, string> output = brainOut;
+            int tier = preferences.Tier, watchers = brainWatchers.Count, sent = 0;
+            string medium = preferences.NvidiaKey, max = preferences.PaidKey;
+            RemoteState state = RemoteState.Fresh();
+            RemoteDevice phone = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone" };
+            state.Devices.Add(phone);
+            RemoteLink link = RemoteLink.SmokeSession(state);
+            try
+            {
+                remoteLink = link;
+                brainOut = delegate { sent++; };
+                if (!link.HasSession(phone.Id)) throw new Exception("The late brain ask test had no session.");
+                RemoteBrainAsked(phone.Id, RemoteJson.ParseMap("{\"type\":\"brain.get\"}"));
+                RemoteBrainAsked(phone.Id, RemoteJson.ParseMap("{\"type\":\"brain.use\",\"brain\":\"" + RemoteBrainKeys.Brains[tier] + "\"}"));
+                RemoteBrainAsked(phone.Id, RemoteJson.ParseMap("{\"type\":\"brain.key\",\"id\":\"late-key\",\"brain\":\"max\",\"key\":\"not-a-key\"}"));
+                link.Revoke(phone.Id);
+                bool drained = false;
+                Post(delegate { drained = true; });
+                WaitVoice(delegate { return drained; }, "The revoked phone's brain asks didn't settle.");
+                if (link.HasSession(phone.Id) || preferences.Tier != tier || preferences.NvidiaKey != medium || preferences.PaidKey != max || phoneKey != null || brainWatchers.Count != watchers || sent != 0) throw new Exception("A revoked phone's queued brain ask changed her brain or got a reply.");
+            }
+            finally { remoteLink = current; brainOut = output; }
+            checks.Add("PASS a revoked phone's queued brain.get, brain.use and brain.key do nothing after its session is removed");
         }
     }
 

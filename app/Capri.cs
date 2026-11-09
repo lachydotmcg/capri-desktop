@@ -33638,7 +33638,7 @@ namespace CapriDesktop
                 fake.Mark(new JobStep { Tool = "type", Label = "Typed \"" + secret + "\"", Finished = true });
                 fake.Mark(new JobStep { Tool = "press", Label = "Pressed " + secret, Finished = true });
                 if (remoteJob.Steps != 3 || remoteJob.Re != "m-jobs" || remoteJob.Last != "Pressed some keys") throw new Exception("A remote job lost its steps or phone message.");
-                fake.Waiting = new System.Collections.Generic.KeyValuePair<string, ToolArguments>("type", new ToolArguments { Text = secret });
+                fake.Waiting = new System.Collections.Generic.KeyValuePair<string, ToolArguments>("type", new ToolArguments { Text = secret, Enter = "yes" });
                 RemoteJobEnd(fake, "waiting", "Send \"" + secret + "\"?");
                 if (remoteJob.State != "asking" || remoteJob.Ended != 0 || remoteJob.Ask != "Allow sending this message?") throw new Exception("A held job didn't ask safely.");
                 int replay;
@@ -33702,6 +33702,59 @@ namespace CapriDesktop
                     RemoteJobEnd(extra, i % 2 == 0 ? "done" : "failed", null);
                 }
                 if (RemoteJson.ParseMap(RemoteJobRecent()).Items("list").Count != 10) throw new Exception("Recent kept more than ten jobs.");
+                job = null;
+                Security.Drop();
+                Security.Load("0000000000", wake);
+                Action<string, ToolArguments, string, string> heldAction = delegate(string tool, ToolArguments args, string action, string title)
+                {
+                    Security.Drop();
+                    string gateResult = Security.Gate(tool, args);
+                    if (!Security.IsHold(gateResult) || remoteJob.State != "asking" || remoteJob.Ask != "Allow " + action + "?" || remoteJob.Task != title) throw new Exception("A held " + tool + " action was mislabelled: " + remoteJob.Task + " / " + remoteJob.Ask);
+                };
+                heldAction("power", new ToolArguments { Action = "shut_down", Task = "send " + secret }, "shutting down your PC", "Shutting down your PC");
+                heldAction("app_window", new ToolArguments { Action = "close", Name = "Discord", Text = secret }, "closing this app or tab", "Closing this app or tab");
+                heldAction("app_window", new ToolArguments { Action = "switch", Name = "Discord" }, "switching apps or tabs", "Switching apps or tabs");
+                heldAction("open_app", new ToolArguments { Name = "Discord" }, "opening this app", "Opening this app");
+                heldAction("open_website", new ToolArguments { Site = "example.invalid", Search = secret }, "opening this site", "Opening this site");
+                heldAction("media", new ToolArguments { Action = "pause" }, "changing music or volume", "Changing music or volume");
+                heldAction("shortcut", new ToolArguments { Name = "screenshot", Keys = secret }, "pressing this shortcut", "Pressing this shortcut");
+                heldAction("use_computer", new ToolArguments { Task = "send " + secret }, "using your mouse and keyboard for this job", "Using your mouse and keyboard for this job");
+                foreach (string action in new[] { "restart", "sleep", "lock", "sign_out" })
+                {
+                    string words = action == "restart" ? "restarting your PC" : action == "sleep" ? "putting your PC to sleep" : action == "lock" ? "locking your PC" : "signing you out";
+                    heldAction("power", new ToolArguments { Action = action }, words, char.ToUpperInvariant(words[0]) + words.Substring(1));
+                }
+                Security.Drop();
+                Security.Gate("open_app", new ToolArguments { Name = "Discord" });
+                Security.Gate("power", new ToolArguments { Action = "shut_down" });
+                if (!remoteJob.Ask.Contains("opening this app") || !remoteJob.Ask.Contains("shutting down your PC") || !remoteJob.Task.Contains("shutting down your PC")) throw new Exception("A combined SECURITY hold hid a shutdown behind opening an app.");
+                Security.Gate("power", new ToolArguments { Action = "restart" });
+                Security.Gate("power", new ToolArguments { Action = "sleep" });
+                Security.Gate("power", new ToolArguments { Action = "lock" });
+                Security.Gate("power", new ToolArguments { Action = "sign_out" });
+                Security.Gate("app_window", new ToolArguments { Action = "close", Name = "Discord" });
+                Security.Gate("app_window", new ToolArguments { Action = "minimize", Name = "Discord" });
+                Security.Gate("app_window", new ToolArguments { Action = "maximize", Name = "Discord" });
+                Security.Gate("media", new ToolArguments { Action = "pause" });
+                Security.Gate("shortcut", new ToolArguments { Name = "screenshot" });
+                Security.Gate("use_computer", new ToolArguments { Task = secret });
+                Security.Gate("updates", new ToolArguments { Action = "install" });
+                if (remoteJob.Ask.Length > 200 || !remoteJob.Ask.Contains("shutdown") || !remoteJob.Ask.Contains("closing") || !remoteJob.Ask.Contains("install updates") || RemoteJson.ParseMap(RemoteJobState(remoteJob)).Text("ask") != remoteJob.Ask) throw new Exception("A large combined hold would hide actions at the question's length limit.");
+                Security.Drop();
+                foreach (string risk in new[] { "send", "buy", "delete", "install", "keys", "confirm" })
+                {
+                    Job waiting = new Job("say " + secret, null);
+                    job = waiting;
+                    RemoteJobOn(waiting);
+                    waiting.Waiting = new System.Collections.Generic.KeyValuePair<string, ToolArguments>("click", new ToolArguments { Target = "1", Text = secret });
+                    waiting.Risk = risk;
+                    RemoteJobEnd(waiting, "waiting", "Should I send " + secret + "?");
+                    string action = risk == "send" ? "sending this message" : risk == "buy" ? "paying for this purchase" : risk == "delete" ? "deleting this" : risk == "install" ? "installing software" : risk == "keys" ? "pressing these keys" : "confirming this action";
+                    if (remoteJob.Ask != "Allow " + action + "?" || remoteJob.Task != "Sending a message") throw new Exception("A held job's " + risk + " was mislabelled: " + remoteJob.Task + " / " + remoteJob.Ask);
+                }
+                if (RemoteJobTask("a task with no action") != "Using your computer") throw new Exception("An unknown task didn't use the safe title.");
+                lock (sent) if (string.Join("\n", sent.ToArray()).Contains(secret)) throw new Exception("A held action sent typed text to a phone.");
+                checks.Add("PASS held shutdown, close, switch, open, media, shortcut and mouse actions use the held tool and SECURITY toggle; held send, payment, delete, install, keys and confirmation use the job's risk; combined holds name each action and typed text stays out");
                 RemoteLink.SmokeJobs(checks);
             }
             finally

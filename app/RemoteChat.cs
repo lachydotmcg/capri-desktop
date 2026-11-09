@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -67,17 +68,18 @@ namespace CapriDesktop
             mainframe.RemoteChanged();
         }
 
-        // A relay host as typed, or "" for the default; false when it isn't a host. The room goes with her to the new relay,
-        // which hasn't seen it, so phones paired on the old one pair again.
         internal bool SetRemoteHost(string host)
         {
-            if (RemoteLink.RelayBase(host) == null) return false;
+            string relay = RemoteLink.RelayBase(host);
+            if (relay == null) return false;
             string typed = (host ?? "").Trim();
-            string was = RemotePrefs.Host;
+            string was = RemoteLink.RelayBase(RemotePrefs.Host);
             RemotePrefs.Host = typed.Length == 0 || RemoteLink.RelayBase(typed) == RemoteLink.RelayBase(null) ? null : typed;
-            if (RemotePrefs.Host == was) return true;
+            if (relay == was) { SavePreferences(); return true; }
+            RemoteDisconnect();
+            RemotePrefs.Sealed = RemoteState.Fresh().Seal();
             SavePreferences();
-            remoteNote = "Relay changed";
+            remoteNote = "Relay changed: pair your phones again";
             if (RemotePrefs.On && !testing) RemoteConnect();
             mainframe.RemoteChanged();
             return true;
@@ -102,7 +104,8 @@ namespace CapriDesktop
                 settings.Sealed = state.Seal();
                 SavePreferences();
             }
-            RemoteLink link = new RemoteLink(state, relay, Environment.MachineName, "capri/" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3), RemoteSaved);
+            RemoteLink link = null;
+            link = new RemoteLink(state, relay, Environment.MachineName, "capri/" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3), delegate(RemoteState saved) { RemoteSaved(link, saved); });
             RemoteBrainsOn(link);
             link.Offer("jobs");
             link.LiveHeard += RemoteJobHeard;
@@ -135,11 +138,12 @@ namespace CapriDesktop
         }
 
         // The room and phones changed: sealed with DPAPI for this Windows user here, stored with her settings on her thread.
-        private void RemoteSaved(RemoteState state)
+        private void RemoteSaved(RemoteLink source, RemoteState state)
         {
             string sealedState = state.Seal();
             Post(delegate
             {
+                if (remoteLink != source) return;
                 RemotePrefs.Sealed = sealedState;
                 SavePreferences();
             });
@@ -231,7 +235,7 @@ namespace CapriDesktop
             RemoteState state = settings == null ? null : RemoteState.Unseal(settings.Sealed);
             if (state != null)
             {
-                foreach (RemoteDevice device in state.Devices) view.Phones.Add(new RemoteDevice { Id = device.Id, Name = device.Name, Added = device.Added, From = device.From });
+                foreach (RemoteDevice device in state.Devices) view.Phones.Add(new RemoteDevice { Id = device.Id, Name = device.Name, Added = device.Added, From = device.From, Parent = device.Parent });
                 view.Phones.Sort(delegate (RemoteDevice a, RemoteDevice b) { return b.Added.CompareTo(a.Added); });
             }
             return view;
@@ -275,11 +279,23 @@ namespace CapriDesktop
                 RemoteState state = preferences.Remote == null ? null : RemoteState.Unseal(preferences.Remote.Sealed);
                 RemoteDevice found = state == null ? null : state.Find(device);
                 if (found == null) return;
-                state.Devices.Remove(found);
+                foreach (string id in RemoteLink.RevokeIds(state.Devices, device)) state.Devices.Remove(state.Find(id));
                 preferences.Remote.Sealed = state.Seal();
                 SavePreferences();
             }
             remoteNote = "Phone removed";
+            mainframe.RemoteChanged();
+        }
+
+        internal void RemoteRemoveAll()
+        {
+            RemoteLink link = remoteLink;
+            RemoteState fresh = link == null ? RemoteState.Fresh() : link.RemoveAll();
+            RemoteDisconnect();
+            RemotePrefs.Sealed = fresh.Seal();
+            SavePreferences();
+            remoteNote = "All phones removed: pair your phones again";
+            if (RemotePrefs.On && !testing) RemoteConnect();
             mainframe.RemoteChanged();
         }
 
@@ -454,11 +470,16 @@ namespace CapriDesktop
         // spaces.
         private static string RemoteInput(string text)
         {
-            StringBuilder kept = new StringBuilder((text ?? "").Length);
-            foreach (char c in text ?? "")
+            string input = text ?? "";
+            StringBuilder kept = new StringBuilder(input.Length);
+            for (int i = 0; i < input.Length; )
             {
+                char c = input[i];
+                int take = char.IsHighSurrogate(c) && i + 1 < input.Length && char.IsLowSurrogate(input[i + 1]) ? 2 : 1;
+                UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(input, i);
                 if (c == '\t') kept.Append(' ');
-                else if (c == '\n' || !char.IsControl(c)) kept.Append(c);
+                else if (c == '\n' || category != UnicodeCategory.Control && category != UnicodeCategory.Format) kept.Append(input, i, take);
+                i += take;
             }
             return kept.ToString();
         }
@@ -562,20 +583,107 @@ namespace CapriDesktop
             return "Using your computer";
         }
 
-        // Her question on the phone says what kind of action she'd take, never its words or what it would type.
-        private static string RemoteJobQuestion(string text)
+        private static string RemoteJobAction(string tool, ToolArguments args, int toggle, string risk)
         {
-            string question = (text ?? "").ToLowerInvariant();
-            if (question.StartsWith("use your mouse and keyboard", StringComparison.Ordinal)) return "Allow using your mouse and keyboard for this job?";
-            if (Regex.IsMatch(question, @"^(should i )?(send|post|publish)\b")) return "Allow sending this message?";
-            if (Regex.IsMatch(question, @"\b(pay|buy|purchase|book)\b")) return "Allow this purchase?";
-            if (Regex.IsMatch(question, @"\b(send|sending|message|post|publish)\b")) return "Allow sending this message?";
-            if (Regex.IsMatch(question, @"\b(delete|remove)\b")) return "Allow deleting this?";
-            if (question.Contains("install")) return "Allow this install?";
-            if (Regex.IsMatch(question, @"\b(type|typing|paste)\b")) return "Allow typing some text?";
-            if (Regex.IsMatch(question, @"\b(press|key|keys)\b")) return "Allow these keys?";
-            if (question.Contains("open")) return "Allow opening this app or site?";
-            return "Allow this action?";
+            switch (risk)
+            {
+                case "buy": return "paying for this purchase";
+                case "send": return "sending this message";
+                case "delete": return "deleting this";
+                case "install": return "installing software";
+                case "uninstall": return "uninstalling software";
+                case "format": return "formatting this drive";
+                case "sign out": case "log out": return "signing you out";
+                case "unfriend": return "removing this friend";
+                case "block": return "blocking this person";
+                case "report": return "reporting this";
+                case "confirm": return "confirming this action";
+                case "keys": return "pressing these keys";
+            }
+            string action = args == null ? null : args.Action;
+            switch (toggle)
+            {
+                case Security.Open:
+                    if (tool == "updates") return "installing the Capri update";
+                    if (tool == "open_website") return "opening this site";
+                    if (tool == "clip") return "opening your clips";
+                    return "opening this app";
+                case Security.Media: return "changing music or volume";
+                case Security.Shortcuts: return "pressing this shortcut";
+                case Security.Windows:
+                    if (tool == "media") return "opening your media player";
+                    switch (action)
+                    {
+                        case "close": return "closing this app or tab";
+                        case "minimize": return "minimizing this app";
+                        case "maximize": return "maximizing this app";
+                        case "restore": return "restoring this app";
+                        case "snap_left": case "snap_right": case "snap_top": case "snap_bottom": return "snapping this app window";
+                        case "move_to_screen": case "move": return "moving this app window";
+                        case "resize": return "resizing this app window";
+                        case "pin_on_top": return "keeping this app on top";
+                        case "unpin": return "unpinning this app";
+                        default: return "switching apps or tabs";
+                    }
+                case Security.Power:
+                    switch (action)
+                    {
+                        case "shut_down": return "shutting down your PC";
+                        case "restart": return "restarting your PC";
+                        case "sleep": return "putting your PC to sleep";
+                        case "lock": return "locking your PC";
+                        case "sign_out": return "signing you out";
+                        default: return "changing your PC's power state";
+                    }
+                case Security.Mouse:
+                    if (tool == "stream") return "starting a live stream";
+                    if (tool == "job_control") return "changing this job";
+                    return "using your mouse and keyboard for this job";
+                case Security.Sends: return "sending, posting or deleting";
+                case Security.Pays: return "paying for this purchase";
+                case Security.Unasked: return "doing an extra step for this job";
+                case Security.Secrets: return "typing a password or card number";
+                default:
+                    switch (tool)
+                    {
+                        case "type": case "paste": case "insert_text": return "typing some text";
+                        case "press": case "key": case "hold_key": case "hold_and_press": return "pressing these keys";
+                        default: return null;
+                    }
+            }
+        }
+
+        private static List<string> RemoteJobActions(RemoteJob run)
+        {
+            List<string> actions = new List<string>();
+            List<string> groups = new List<string>();
+            if (run.Hold != null)
+            {
+                foreach (KeyValuePair<string, ToolArguments> call in Security.HeldCalls(run.Hold))
+                {
+                    string tool = call.Key;
+                    ToolArguments args = call.Value;
+                    int toggle = Security.Needs(tool, args);
+                    string action = RemoteJobAction(tool, args, toggle, null);
+                    if (action != null && !actions.Contains(action)) actions.Add(action);
+                    string group = toggle == Security.Open ? "open apps/sites/clips; install updates" : toggle == Security.Media ? "media/volume" : toggle == Security.Shortcuts ? "shortcuts" : toggle == Security.Windows ? "app/tab changes (incl. closing)" : toggle == Security.Power ? "PC power (shutdown/restart/sleep/lock/sign out)" : toggle == Security.Mouse ? "mouse/keys/stream/job changes" : null;
+                    if (group != null && !groups.Contains(group)) groups.Add(group);
+                }
+            }
+            else if (run.Job != null && run.Job.Asking)
+            {
+                KeyValuePair<string, ToolArguments> waiting = run.Job.Waiting;
+                string risk = run.Job.Risk;
+                if (risk == null && waiting.Value != null) risk = Computer.Risk(waiting.Key, waiting.Value, run.Job.WaitingSight, true);
+                string action = RemoteJobAction(waiting.Key, waiting.Value, Security.Needs(waiting.Key, waiting.Value), risk);
+                if (action != null) actions.Add(action);
+            }
+            return RemoteJobQuestion(actions).Length > 200 && groups.Count > 0 ? groups : actions;
+        }
+
+        private static string RemoteJobQuestion(List<string> actions)
+        {
+            return actions.Count == 0 ? "Allow this action?" : "Allow " + string.Join(" and ", actions.ToArray()) + "?";
         }
 
         // A step on the phone. Typing and keys only say they happened. A click or an opened app keeps her label, which names
@@ -620,7 +728,7 @@ namespace CapriDesktop
         // A new card for a new job. One still open before it ends as stopped, since her hands only do one job at a time.
         private RemoteJob RemoteJobNew(string task)
         {
-            if (remoteJob != null && remoteJob.Ended == 0) RemoteJobSet(remoteJob, "stopped", null);
+            if (remoteJob != null && remoteJob.Ended == 0) RemoteJobSet(remoteJob, "stopped");
             if (remoteJob != null) { remoteJob.Job = null; remoteJob.Hold = null; }
             RemoteAsker phone = remoteJobPhone;
             RemoteJob run = new RemoteJob { Id = RemoteMessages.NewId(), Task = RemoteJobTask(task), State = "running", Started = RemoteJobNow(), Re = phone == null ? null : phone.Id };
@@ -631,11 +739,22 @@ namespace CapriDesktop
         }
 
         // Every change goes to every phone. An ended job keeps its end and never changes again.
-        private void RemoteJobSet(RemoteJob run, string state, string ask)
+        private void RemoteJobSet(RemoteJob run, string state)
         {
             if (run.Ended != 0) return;
             run.State = state;
-            run.Ask = state == "asking" ? RemoteJobQuestion(ask) : null;
+            run.Ask = null;
+            if (state == "asking")
+            {
+                List<string> actions = RemoteJobActions(run);
+                run.Ask = RemoteJobQuestion(actions);
+                // A card with no job behind it, like a shutdown asked for in chat, is named for what she's holding.
+                if (run.Job == null)
+                {
+                    string title = actions.Count == 0 ? "using your computer" : string.Join(" and ", actions.ToArray());
+                    run.Task = char.ToUpperInvariant(title[0]) + title.Substring(1);
+                }
+            }
             if (state != "running" && state != "asking") run.Ended = RemoteJobNow();
             RemoteJobSend(null, RemoteJobState(run));
         }
@@ -654,7 +773,7 @@ namespace CapriDesktop
                 run.Job = running;
                 RemoteJob tracked = run;
                 running.Cancelled = delegate { lock (remoteGate) return tracked.State == "stopped"; };
-                RemoteJobSet(run, "running", null);
+                RemoteJobSet(run, "running");
             }
         }
 
@@ -708,7 +827,7 @@ namespace CapriDesktop
             {
                 RemoteJob run = remoteJob;
                 if (run == null || run.Job != running) return;
-                RemoteJobSet(run, running.Asking && outcome != "stopped" ? "asking" : outcome == "done" ? "done" : outcome == "stopped" ? "stopped" : "failed", result);
+                RemoteJobSet(run, running.Asking && outcome != "stopped" ? "asking" : outcome == "done" ? "done" : outcome == "stopped" ? "stopped" : "failed");
                 if (run.Ended != 0) { run.Job = null; run.Hold = null; }
             }
         }
@@ -723,15 +842,15 @@ namespace CapriDesktop
                 if (state == "asking")
                 {
                     if (hold != Security.HoldingId) return;
-                    if (run == null || run.Ended != 0 || run.Hold != hold && (run.Job == null || job != run.Job)) run = RemoteJobNew(words);
+                    if (run == null || run.Ended != 0 || run.Hold != hold && (run.Job == null || job != run.Job)) run = RemoteJobNew(null);
                     run.Hold = hold;
-                    RemoteJobSet(run, state, words);
+                    RemoteJobSet(run, state);
                 }
                 else if (run != null && run.Hold == hold && run.Ended == 0)
                 {
-                    if (state == "running") { run.Thread = Thread.CurrentThread.ManagedThreadId; RemoteJobSet(run, state, null); }
-                    else if (run.Job == null) RemoteJobSet(run, state, null);
-                    else if (state == "stopped") RemoteJobSet(run, run.Job.Asking ? "asking" : "running", null);
+                    if (state == "running") { run.Thread = Thread.CurrentThread.ManagedThreadId; RemoteJobSet(run, state); }
+                    else if (run.Job == null) RemoteJobSet(run, state);
+                    else if (state == "stopped") RemoteJobSet(run, run.Job.Asking ? "asking" : "running");
                 }
                 if (state != "asking" && state != "running" && run != null && run.Hold == hold) { run.Thread = 0; run.Hold = null; }
             }
@@ -807,10 +926,10 @@ namespace CapriDesktop
                         job = null;
                         run.Job = null;
                     }
-                    RemoteJobSet(run, "stopped", null);
+                    RemoteJobSet(run, "stopped");
                     return;
                 }
-                RemoteJobSet(run, "running", null);
+                RemoteJobSet(run, "running");
                 ThreadPool.QueueUserWorkItem(delegate
                 {
                     string result = null;
@@ -830,7 +949,7 @@ namespace CapriDesktop
                     catch (Exception error)
                     {
                         Brain.Log("remote", -1, "A phone's answer to her job failed: " + error.GetType().Name + ": " + error.Message);
-                        lock (remoteGate) RemoteJobSet(run, "failed", null);
+                        lock (remoteGate) RemoteJobSet(run, "failed");
                     }
                 });
             }
@@ -898,7 +1017,7 @@ namespace CapriDesktop
                 throw new Exception("Half an emoji went to her brain on its own: " + sent.Substring(Math.Max(0, sent.Length - 160)));
             checks.Add("PASS phone text reaches her brain whole: curly quotes, emoji and other non-BMP characters stay, and half an emoji cut off by a trim goes as U+FFFD instead of a lone escape strict servers refuse");
             string sample =RemoteCrypto.QrUrl(RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[32]));
-            RemoteView[] views = new RemoteView[4];
+            RemoteView[] views = new RemoteView[5];
             for (int i = 0; i < views.Length; i++)
             {
                 RemoteView view = views[i] = new RemoteView { On = true, Ready = true, Status = "online" };
@@ -913,15 +1032,34 @@ namespace CapriDesktop
             // A phone's pairing link open (named, never a QR) and a phone it let in.
             views[2].LinkFor = "Lachy's Pixel 9 Pro XL";
             views[2].Phones[1].From = "Lachy's Pixel 9 Pro XL";
+            views[2].Online.Add(views[2].Phones[1].Id);
             views[3] = new RemoteView { Status = "off", Host = "relay.example:8443" };
-            string[] names = { "qr", "ask", "phones", "off" };
-            foreach (float zoom in new[] { 1f, 1.5f, 2f })
-                for (int i = 0; i < views.Length; i++)
+            views[4].Phones.Clear();
+            views[4].Online.Clear();
+            for (int i = 0; i < 16; i++) views[4].Phones.Add(new RemoteDevice { Id = RemoteMessages.NewId(), Name = "Phone " + (i + 1), Added = DateTime.UtcNow.AddDays(-i) });
+            string[] names = { "qr", "ask", "phones", "off", "16-phones" };
+            bool streaming = Computer.Streaming;
+            try
+            {
+                Computer.Streaming = true;
+                foreach (float zoom in new[] { 1f, 1.5f, 2f })
                 {
-                    string picture = Path.Combine(output, "remote-" + names[i] + "-" + (int)(zoom * 100) + ".png");
-                    string problem = mainframe.RemoteSheetAt(zoom, views[i], picture);
-                    if (problem != null) throw new Exception("The REMOTE sheet (" + names[i] + ", " + (int)(zoom * 100) + "%): " + problem);
+                    string problem = mainframe.RemoteSheetAt(zoom, views[0], Path.Combine(output, "remote-qr-streaming-" + (int)(zoom * 100) + ".png"));
+                    if (problem != null) throw new Exception("The streaming REMOTE sheet: " + problem);
                 }
+                Computer.Streaming = false;
+                foreach (float zoom in new[] { 1f, 1.5f, 2f })
+                    for (int i = 0; i < views.Length; i++)
+                    {
+                        string picture = Path.Combine(output, "remote-" + names[i] + "-" + (int)(zoom * 100) + ".png");
+                        string problem = mainframe.RemoteSheetAt(zoom, views[i], picture);
+                        if (problem != null) throw new Exception("The REMOTE sheet (" + names[i] + ", " + (int)(zoom * 100) + "%): " + problem);
+                    }
+            }
+            finally { Computer.Streaming = streaming; }
+            if (RemoteInput("a\u202eb\u2066c\u2069\u200bd\uDB40\uDC41\u0007\te\nf\uD83D\uDE00") != "abcd e\nf\uD83D\uDE00") throw new Exception("Phone input kept a control or format character, or lost an emoji.");
+            RemoteLink.SmokePairing(checks);
+            SmokeRemoteRooms(checks);
             SmokeRemoteBridge(checks);
             SmokeRemoteLive(checks, output);
             string key = mainframe.RemoteKeyFor(views[0]);
@@ -931,7 +1069,57 @@ namespace CapriDesktop
             mainframe.RemoteKeyFor(views[3]);
             mainframe.RemoteBand(Path.Combine(output, "remote-key-off.png"));
             mainframe.RemoteChanged();
+            checks.Add("PASS all 16 phones have a reachable Revoke key across pages; Sure? follows the device after reordering; Remove all phones needs a second press; connected link phones keep BY LINK; the QR starts hidden on stream and a fresh code hides again; phone input strips control and format characters (remote-16-phones-*.png and remote-qr-streaming-*.png)");
             checks.Add("PASS Remote is off by default and in tests; a pairing URL makes a version 8 QR; tool summaries carry no arguments and keys stay out of replies; the REMOTE sheet fits at 100%, 150% and 200% with a QR, an Allow prompt, paired phones (one added by a phone's pairing link, whose open link shows as words, never a QR) and Remote off (remote-*.png)");
+        }
+
+        private void SmokeRemoteRooms(List<string> checks)
+        {
+            RemoteSettings saved = preferences.Remote;
+            RemoteLink current = remoteLink;
+            string note = remoteNote;
+            try
+            {
+                RemoteState state = RemoteState.Fresh();
+                RemoteDevice parent = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Parent" };
+                RemoteDevice child = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Child", From = parent.Name, Parent = parent.Id };
+                state.Devices.Add(parent);
+                state.Devices.Add(child);
+                preferences.Remote = new RemoteSettings { Sealed = state.Seal() };
+                RemoteRevoke(parent.Id);
+                if (RemoteState.Unseal(RemotePrefs.Sealed).Devices.Count != 0) throw new Exception("Revoking with Remote off kept a link child.");
+                RemotePrefs.Sealed = state.Seal();
+                RemoteRemoveAll();
+                RemoteState fresh = RemoteState.Unseal(RemotePrefs.Sealed);
+                if (fresh == null || fresh.Devices.Count != 0 || fresh.Room == state.Room || fresh.Token == state.Token) throw new Exception("Remove all phones with Remote off reused the room or kept a phone.");
+                RemotePrefs.On = true;
+                RemotePrefs.Sealed = state.Seal();
+                if (!SetRemoteHost(" https://" + RemoteLink.DefaultHost.ToUpperInvariant() + "/ ") || RemoteState.Unseal(RemotePrefs.Sealed).Room != state.Room) throw new Exception("An equivalent relay host changed the room.");
+                if (!SetRemoteHost("relay.example:8443")) throw new Exception("A valid relay host was refused.");
+                fresh = RemoteState.Unseal(RemotePrefs.Sealed);
+                if (fresh == null || fresh.Room == state.Room || fresh.Token == state.Token || fresh.Devices.Count != 0) throw new Exception("A changed relay host reused the room, token or phones.");
+                if (!SetRemoteHost("wss://RELAY.EXAMPLE:8443/") || RemoteState.Unseal(RemotePrefs.Sealed).Room != fresh.Room) throw new Exception("A spelling change rotated the room.");
+                if (SetRemoteHost("ws://relay.example") || RemoteState.Unseal(RemotePrefs.Sealed).Room != fresh.Room) throw new Exception("An invalid relay host changed the room.");
+                RemoteLink old = RemoteLink.SmokeSession(state.Copy());
+                remoteLink = old;
+                RemoteSaved(old, state.Copy());
+                RemoteRemoveAll();
+                fresh = RemoteState.Unseal(RemotePrefs.Sealed);
+                bool drained = false;
+                Post(delegate { drained = true; });
+                WaitVoice(delegate { return drained; }, "An old room's queued save didn't settle.");
+                RemoteState after = RemoteState.Unseal(RemotePrefs.Sealed);
+                if (after.Room != fresh.Room || after.Token != fresh.Token || after.Devices.Count != 0) throw new Exception("An old link's queued save restored removed phones.");
+            }
+            finally
+            {
+                remoteLink = current;
+                preferences.Remote = saved;
+                remoteNote = note;
+                SavePreferences();
+                mainframe.RemoteChanged();
+            }
+            checks.Add("PASS Remove all phones clears live and saved pairings and rotates the room and token; offline Revoke removes link children; real host changes rotate the room while equivalent or invalid hosts keep it; old queued saves cannot restore a room");
         }
 
         // What the bridge would send a phone, for the smoke test.

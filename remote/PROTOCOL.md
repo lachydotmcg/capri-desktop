@@ -213,6 +213,7 @@ paired phone                              relay                              PC
   - a new ask replaces that phone's earlier link nobody used;
   - Pair a phone on the PC replaces a phone's link;
   - closing the pairing dialog leaves a phone's link alone.
+- **Only phones paired by a QR ask.** A phone a link added gets `error` `not-allowed`, so links can't chain. Each phone may ask once a minute; a sooner ask gets `busy`. The PC saves the asking phone's device id with the phone its link adds, and revoking a phone also revokes the phones its links added.
 - **The link** is `url` with `&via=phone` added by the phone. It only tells the new phone to say "Pairing" rather than "Allow on your PC" while it waits. Phones ignore parameters they don't know.
 
 ## 6. Crypto
@@ -445,7 +446,7 @@ A PC that lists `pair` in `hello-ok.features` makes a pairing link for a paired 
 | `pair.ask` | phone | session | `id` |
 | `pair.link` | PC | session | `re` (the `pair.ask` id), `url` (the QR URL of a fresh one-time code, section 3), `ttl` (seconds it lasts, 600) |
 
-- **Answers.** `pair.link`, or `error` with `re`: `busy` when a QR is up or a phone waits for Allow on the PC. An ask with a bad `id` gets `error` `bad-message`.
+- **Answers.** `pair.link`, or `error` with `re`: `busy` when a QR is up, a phone waits for Allow on the PC, or that phone asked less than a minute ago; `not-allowed` when a link added that phone. An ask with a bad `id` gets `error` `bad-message`.
 - **The phone** takes only the `#` fragment from `url` (`r`, `c` and `k`) and puts it on its own address, so a link always opens the page that made it. It keeps the link in memory and hands it on through the clipboard; the page that pastes it clears the clipboard.
 
 ### 8.4 Jobs (feature `jobs`)
@@ -465,6 +466,7 @@ A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, st
 - **Steps.** A step's running and finished updates share its `n` and replace each other. `steps` counts steps, not updates. A phone that says hello while a job runs or asks gets its state followed by its last 30 steps, with their original numbers.
 - **Batching.** Job messages are queued at about five frames a second per phone. Pending updates for the same step can become its newest update, and a phone that falls behind keeps only its newest 30 pending steps. State and command answers share turns with steps, so a question or stop answer is not held behind a long step list. A new hello clears that phone's old queue and replays the current job. Session messages never carry over to another session.
 - **Privacy.** Labels never carry what she typed, including the keys of a typed secret. A type step says "Typing some text" or "Typed some text" and may name where if the label safely says where. Clicked and opened labels may name the button or app. Job titles, questions and Recent follow the same rule. Use short summaries when the original words include typed content. Never send raw tool arguments, typed text, key sequences or failure results as job labels.
+- **Questions.** `ask` names the action being held, worked out from the tool and the SECURITY toggle it needs, or from the job's risk (sending, paying, deleting, shutting down, closing an app and so on), never from the task's words. A card for a job keeps the job's title; a card with no job behind it is named for the held action. With nothing to name, the title is "Using your computer" and the question "Allow this action?".
 - **Answers.** Allow runs the held action once through the same approval path as the PC. Deny leaves it alone. Only the first answer counts. Her reply then goes to the phone that answered as a `chat.reply` with no `re`, as after a typed yes or no. Stop ends it through the PC's stop path, including a held action. A held question stays current until answered or dropped on the PC.
 - **Bad commands.** `job.stop` or `job.answer` for anything other than the current job, or an answer when it is not `asking`, gets `error` with `code: "bad-message"` and `re` set to the command's job `id` when valid. A missing or malformed id, or a non-boolean `yes`, also gets `bad-message`.
 - **Unknown values.** Ignore unknown types and fields, as in section 8.
@@ -482,6 +484,8 @@ A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, st
   - send `revoke` for any device id in `devices` you don't know;
   - mark your own devices that are missing from `devices` as removed.
   - `claimed: true` on a room you have used before means the relay deleted it after 30 days away. Every phone must pair again.
+- **Removing phones.** Revoke removes a phone and the phones its links added. Remove all phones revokes every phone it can reach, then starts a fresh room and PC token, so a phone it missed is cut off too. Changing the relay host also starts a fresh room. Phones a link added before 0.8.7 have no saved parent, so they're revoked one by one or with Remove all phones.
+- **The QR on a stream.** While she's streaming, the pairing QR stays hidden until Show QR is pressed.
 - **Treat phone names as untrusted.** `name` comes from whoever holds the QR. Strip control and bidi characters, trim to 64 characters, and fall back to "Unnamed phone".
 - **Keep secrets on the PC.** Never put API keys, tokens or anything from the SECURITY page in any message. Store the room id, PC token and device keys with DPAPI.
 - **Connecting:**
