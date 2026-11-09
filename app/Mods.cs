@@ -198,6 +198,25 @@ namespace CapriDesktop
             return All.Find(mod => mod.File.Id == read.Id);
         }
 
+        // A newer copy of a mod that's already in, from the mods directory. It goes in through the normal import, so a code mod
+        // still asks, and then every mod is left on or off the way it was: importing turns a mod on and other skins and colour
+        // sets off, which an update shouldn't.
+        internal Mod Update(string file, Func<ModFile, string, bool> ask)
+        {
+            HashSet<string> before = Off();
+            Mod made = Import(file, ask);
+            if (made == null) return null;
+            string id = made.File.Id;
+            if (Off().SetEquals(before)) return made;
+#if !CROSS
+            if (made.Code && before.Contains(id)) StopOne(id);
+#endif
+            WriteOff(before);
+            Load();
+            Reskin();
+            return All.Find(mod => mod.File.Id == id);
+        }
+
         internal bool Set(Mod mod, bool on, Func<ModFile, string, bool> ask)
         {
             if (mod.Code) return SetCode(mod, on, ask);

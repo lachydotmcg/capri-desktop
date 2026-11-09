@@ -41,6 +41,34 @@ namespace CapriDesktop
             return new Mod { File = read, Path = file, Skin = true, On = !off.Contains(read.Id) };
         }
 
+        // The version a mod file says it is, without importing it, or null when it has none or can't be read.
+        internal static string VersionIn(string file)
+        {
+            try
+            {
+                string extension = Path.GetExtension(file);
+                if (string.Equals(extension, SkinExtension, StringComparison.OrdinalIgnoreCase))
+                    using (ZipArchive zip = ZipFile.OpenRead(file))
+                    {
+                        ZipArchiveEntry details = zip.GetEntry(SkinDetails);
+                        if (details == null || details.Length > Largest) return null;
+                        using (StreamReader reading = new StreamReader(details.Open(), Encoding.UTF8)) return ReadJson(reading.ReadToEnd()).Version;
+                    }
+                if (new FileInfo(file).Length > 4 * 1024 * 1024) return null;
+                string text = File.ReadAllText(file, Encoding.UTF8);
+#if !CROSS
+                if (string.Equals(extension, CodeExtension, StringComparison.OrdinalIgnoreCase)) return ReadCode(text).Version;
+#endif
+                if (string.Equals(extension, SkillExtension, StringComparison.OrdinalIgnoreCase)) return ReadSkill(text).Version;
+                if (string.Equals(extension, Extension, StringComparison.OrdinalIgnoreCase)) return ReadJson(text).Version;
+            }
+            catch (Exception error)
+            {
+                if (!(error is ModException || error is IOException || error is UnauthorizedAccessException || error is InvalidDataException || error is System.Runtime.Serialization.SerializationException)) throw;
+            }
+            return null;
+        }
+
         private static ModFile ReadSkin(string text)
         {
             ModFile read = ReadJson(text);
