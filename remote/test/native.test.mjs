@@ -50,6 +50,14 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
     assert.equal(await text('#native-start'), 'Use her without a PC');
     await shot('phone-pair');
 
+    // Its home screen button shows the guide here too, before SETTINGS has ever been pressed.
+    await click('#native-start');
+    await page.until(`!document.querySelector('#brain').hidden`, 'SETTINGS from the pair screen');
+    await click('#brain .native-home');
+    await page.until(`!document.querySelector('#home').hidden && document.querySelector('#brain').hidden`, 'the home screen guide');
+    await click('#home-done');
+    await page.until(`document.querySelector('#home').hidden`, 'the guide closed');
+
     // A wrong key: her Mainframe's words, and nothing saved.
     await click('#native-start');
     await page.until(`!document.querySelector('#brain').hidden`, 'SETTINGS');

@@ -695,6 +695,8 @@
     if (!app.classList.contains('menu')) scrim.hidden = true;
   };
   $('#f-settings').addEventListener('click', () => { if (window.CapriNative) CapriNative.settings(openHome); else openHome(); });
+  // Use her without a PC opens the same SETTINGS before SETTINGS has been pressed, so its home screen button needs the guide too.
+  if (window.CapriNative && CapriNative.guide) CapriNative.guide(openHome);
   $('#home-done').addEventListener('click', closeHome);
   scrim.addEventListener('click', closeHome);
   document.addEventListener('keydown', event => { if (event.key === 'Escape') closeHome(); });

@@ -694,6 +694,8 @@
     chat: fn => { if (typeof fn === 'function') chatOf = fn; },
     starters: () => remote() && remote().info.native ? ['rate my day so far', 'pick a game for tonight', 'tell me a Night City story', 'help me write a text'] : null,
     settings: home => settings(home),
+    // The home screen guide, for SETTINGS opened from the pair screen's Use her without a PC.
+    guide: fn => { if (typeof fn === 'function') homeGuide = fn; },
     // For remote/test/native.test.mjs.
     persona,
     kindOf,
