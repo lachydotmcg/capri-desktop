@@ -5,6 +5,7 @@
      CapriScreen.supported()  this session's PC offers watch
      CapriScreen.open()       the full view, or false when the PC doesn't offer it
      CapriScreen.mini(on)     the small player over the chat (a call opens it)
+     CapriScreen.within(el)   keep the small player to el (the call screen's middle), or to the chat with null
      CapriScreen.close()      stop watching */
 (() => {
   'use strict';
@@ -313,23 +314,29 @@
   view.addEventListener('keydown', event => { if (event.key === 'Escape') setMode('mini'); });
   mini.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setMode('full'); } });
 
-  // The mini player goes where it's dragged, then settles into the nearest corner of the chat. A tap opens the full view.
+  // The mini player goes where it's dragged, then settles into the nearest corner of the chat, or of the call screen's
+  // middle while that's up (call.js). A tap opens the full view.
   let drag = null;
   let corner = { right: pick.corner.endsWith('right'), bottom: pick.corner.startsWith('bottom') };
+  let fence = null;
+  const fenced = () => !!(fence && fence.isConnected && fence.getClientRects().length);
   const bounds = () => {
-    const log = document.getElementById('log');
+    const log = fenced() ? fence : document.getElementById('log');
     const box = log ? log.getBoundingClientRect() : { left: 0, top: 0, right: innerWidth, bottom: innerHeight };
     return { left: box.left + 8, top: box.top + 8, right: box.right - 8, bottom: box.bottom - 8 };
   };
   const settle = () => {
     const area = bounds();
     const size = mini.getBoundingClientRect();
-    const left = corner.right ? area.right - size.width : area.left;
+    let left = corner.right ? area.right - size.width : area.left;
     let top = corner.bottom ? area.bottom - size.height : area.top;
-    // A bottom corner stays above her where she sits on the reply bar.
+    // A bottom corner stays above her where she sits on the reply bar. On the call screen it sits in the middle.
     const her = document.querySelector('.her:not(.gone)');
     const seat = her && her.getBoundingClientRect();
-    if (corner.bottom && seat && seat.width && seat.left < left + size.width && seat.right > left && seat.top < top + size.height) top = Math.max(area.top, seat.top - size.height - 4);
+    if (fenced()) {
+      left = (area.left + area.right - size.width) / 2;
+      top = Math.max(area.top, (area.top + area.bottom - size.height) / 2);
+    } else if (corner.bottom && seat && seat.width && seat.left < left + size.width && seat.right > left && seat.top < top + size.height) top = Math.max(area.top, seat.top - size.height - 4);
     mini.style.left = left + 'px';
     mini.style.top = top + 'px';
     room();
@@ -337,7 +344,7 @@
   // The chat keeps clear of the mini player at its end of the log, so a short chat isn't hidden under it.
   const room = () => {
     const app = document.getElementById('app');
-    const on = mode === 'mini' && !mini.classList.contains('dragging');
+    const on = mode === 'mini' && !fenced() && !mini.classList.contains('dragging');
     app.classList.toggle('mini-top', on && !corner.bottom);
     app.classList.toggle('mini-bottom', on && corner.bottom);
     if (!on) return;
@@ -369,6 +376,8 @@
     drag = null;
     mini.classList.remove('dragging');
     if (!moved) { if (event.type === 'pointerup') setMode('full'); return; }
+    // On the call screen it goes back to the middle; the chat's corner stays as it was.
+    if (fenced()) { settle(); return; }
     const area = bounds();
     const size = mini.getBoundingClientRect();
     corner = { right: size.left + size.width / 2 > (area.left + area.right) / 2, bottom: size.top + size.height / 2 > (area.top + area.bottom) / 2 };
@@ -448,6 +457,12 @@
       return true;
     },
     close: () => setMode('off'),
+    // The call screen's middle, where the mini player keeps to while the call screen is up; null for the chat again.
+    within: el => {
+      fence = el || null;
+      if (mode === 'mini') settle();
+      else room();
+    },
     get mode() { return mode; }
   };
 })();
