@@ -55,9 +55,10 @@
           <dt>Can't change</dt><dd>anything outside game jobs. It's text, so it runs no code</dd>
         </dl>
 
-        <h3>Code mod <small>.capri-code, Windows only</small></h3>
+        <h3>Code mod <small>.capri-code</small></h3>
         <dl class="keys">
           <dt>Changes</dt><dd>anything C# can do. It runs inside Capri with full access to your PC</dd>
+          <dt>Mac and Linux</dt><dd>from 0.8.7 code mods run there too. One that uses a Windows-only part, like drawing on her or its own options page, is refused with a message naming it</dd>
           <dt>Can't change</dt><dd>nothing's off limits. She asks before it runs. <a href="#safety">Read Safety first</a></dd>
         </dl>
 
@@ -317,8 +318,9 @@ Carry torches into caves.</pre>
       </section>
 
       <section id="code" class="step">
-        <h2>Code mods <small>Windows only</small></h2>
+        <h2>Code mods</h2>
         <p class="note">C# that Capri compiles and runs inside herself. Import this one, press <b>Yes</b>, then type <code>mod check</code> to her.</p>
+        <p class="note">Mod API 3 (0.8.7) adds hooks for chat, her tools, memory, skins, timers, music and more, each behind a permission the mod declares. The full reference is <a href="https://github.com/lachydotmcg/capri-desktop/blob/main/mods/MODDING.md">MODDING.md</a>, with a sample in <a href="https://github.com/lachydotmcg/capri-desktop/blob/main/mods/hooks-tour.capri-code">hooks-tour.capri-code</a>.</p>
         <figure class="code">
           <figcaption class="code-head"><span>hello-capri.capri-code</span><button class="copy" type="button" data-copy="ex-code">Copy</button></figcaption>
 <pre id="ex-code">// capri-mod: 1

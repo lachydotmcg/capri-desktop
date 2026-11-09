@@ -31362,6 +31362,8 @@ namespace CapriDesktop
                     "Update mods",
                     "Mod messages:",
                     "skins can carry both stands",
+                    "Stacking skins:",
+                    "HER MODS > Use tools your code mods added",
                     "HABITS > Start with Windows",
                     "YOU > File editor",
                     "Game keys:",

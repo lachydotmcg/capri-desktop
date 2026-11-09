@@ -20,8 +20,10 @@ namespace CapriDesktop
             + "Her tools: she runs the tools her brain picks without swapping them for something else. Phrase checks help when her brain can't use tools. With an Ollama model that can use tools, she works jobs out with all of them and keeps plain chat quick.\n"
             + "Thinking: Mainframe > Settings > Advanced Settings > BRAIN > Thinking has Default, Off, Low, Medium or High for a cloud brain where the model supports them, saved per model; Extra request JSON is beside it.\n"
             + "Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode adds OpenCode. Turn Verbosity off there to keep her to the big moments.\n"
+            + "Code mods: they run on Mac and Linux too. A code mod lists the permissions it asks for, and one that uses a Windows-only part is refused with a message naming it.\n"
+            + "Stacking skins: turn several skins on in Mainframe > Mods and each one goes on top, so a skin with just cat ears or a hat sits over the outfit under it.\n"
             + "Linux TALK: hover over her and press TALK to talk to her once her offline ears are set up.";
-        internal const string Line = "I just updated to " + Version + ": my tools follow my brain's choices now, and I can act out OpenCode's work too. Ask me what's new for the menu paths.";
+        internal const string Line = "I just updated to " + Version + ": my tools follow my brain's choices now, and code mods run here too. Ask me what's new for the menu paths.";
 #else
         internal const string Version = "0.8.7";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
@@ -35,6 +37,8 @@ namespace CapriDesktop
             + "Installed mods: Mainframe > Mods lets you search by name or author. Press Update mods to find newer copies, then press it again to get them.\n"
             + "Mod messages: on Mainframe > Mods, messages fade after five seconds and problems after ten.\n"
             + "Skin mods: skins can carry both stands, so Mainframe > Settings > CAPRI > Legacy stand can use the skin's old stand too.\n"
+            + "Stacking skins: turn several skins on in Mainframe > Mods and each one goes on top, so a skin with just cat ears or a hat sits over the outfit under it.\n"
+            + "Code mods: a code mod can give her tools she uses by herself, see and change chat, add its own options and more, listing each permission it asks for. Mainframe > Settings > HABITS > Security > HER MODS > Use tools your code mods added says whether she asks first.\n"
             + "Start with Windows: Mainframe > Settings > HABITS > Start with Windows stays off on a new install until you turn it on. If you already have it on, it stays on.\n"
             + "File editor: Mainframe > Settings > YOU > File editor opens and closes more smoothly.\n"
             + "Game keys: when she plays a game, she clicks inside it once after it loads or comes back to the front, so her movement keys reach it.\n"
