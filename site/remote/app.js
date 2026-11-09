@@ -4,7 +4,7 @@
   'use strict';
   // Early access: while this is true, the real page asks for the early-access password before anything else, pairing
   // included. Set it to false to open Capri Remote to everyone.
-  const EARLY_ACCESS = true;
+  const EARLY_ACCESS = false;
   const config = window.CAPRI_CONFIG || {};
   // The demo PC runs only in the preview build or when the address asks for it with ?demo. Nothing on the chat screen
   // says demo any more, so on the real page nothing fake can turn up. The demo skips the gate; ?gate shows it anyway.
