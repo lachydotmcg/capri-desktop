@@ -541,7 +541,8 @@
     const useHere = button('Use this phone', 'nbtn solid');
     const forget = button('Forget key', 'nbtn hot');
     row.append(useHere, forget);
-    phonePart.append(providerLabel, providerField, keyLabel, keyField, get, modelPart, note, state, row);
+    phonePart.append(providerLabel, providerField, keyLabel, keyField, get, modelPart, note,
+      make('p', 'native-note', 'Your key stays in this browser on capriai.app. Forget key or clearing the site\'s data removes it.'), state, row);
     // Calls: talking over her stops her. A phone whose own speaker sets it off turns it off here.
     const callHead = make('h3', 'nhead', 'Calls');
     const overHer = button('Talk over her to stop her', 'nbtn wide native-over');

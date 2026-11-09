@@ -76,6 +76,20 @@ button, input { font: inherit; color: inherit; }
 .pitch { position: relative; z-index: 1; max-width: 470px; margin-top: clamp(64px, calc(34svh - 96px), 240px); }
 .lead { margin: 0; font-size: var(--lead); line-height: 1.32; }
 .hero .lead { font-size: 30px; line-height: 1.25; font-weight: 600; }
+.pitch:has(> .launch) { margin-top: clamp(80px, calc(34svh - 240px), 120px); }
+.launch { display: grid; gap: 6px; width: fit-content; max-width: 100%; margin: 0 0 30px; padding: 16px 26px 18px 24px; background: var(--ink-0); color: var(--text); --cut: 14px; clip-path: var(--plate); }
+.launch p { margin: 0; }
+.launch-tag { color: var(--green); font: 800 var(--hud)/1.1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.launch-big { font: 800 clamp(36px, 3.6vw, 54px)/1 var(--display); letter-spacing: .02em; text-transform: uppercase; }
+.launch-note { max-width: 36ch; color: var(--muted); font-size: var(--small); line-height: 1.4; }
+.launch-go { justify-self: start; margin-top: 6px; font: 800 20px/1.2 var(--display); letter-spacing: .03em; text-transform: uppercase; text-decoration: underline 2px var(--pink); text-underline-offset: 6px; transition: color .15s; }
+.launch-go:hover { color: var(--pink); }
+@media (max-height: 820px) and (min-width: 901px) {
+  .launch { gap: 3px; margin-bottom: 16px; padding: 11px 20px 13px 18px; }
+  .launch-big { font-size: 34px; }
+  .launch-note { font-size: 14px; }
+  .launch-go { font-size: 17px; }
+}
 .systems { display: flex; flex-wrap: wrap; gap: 6px 26px; margin: 26px 0 0; }
 .systems a { font: 800 30px/1.1 var(--display); letter-spacing: .02em; text-transform: uppercase; text-decoration: underline 3px; text-underline-offset: 7px; transition: text-decoration-color .15s, transform .12s; display: inline-block; }
 .systems a:hover { text-decoration-color: var(--ink-0); text-decoration-thickness: 6px; }
@@ -437,6 +451,10 @@ button, input { font: inherit; color: inherit; }
   .links { gap: 16px; }
   .links a { font-size: 18px; }
   .os-side { grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 901px) and (max-width: 1400px) {
+  [data-ui] .ride-hint { top: 84px; }
 }
 
 @media (max-width: 1180px) {

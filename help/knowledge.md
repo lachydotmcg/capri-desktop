@@ -2,7 +2,7 @@
 
 Plain answers for setting up and using Capri. The Help page (site/help/index.html) is made from this file, and the support chat on the website answers from it.
 
-Written for Capri 0.8.5 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
+Written for Capri 0.8.7 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
 
 Menu paths are written like this: right-click her > Open Capri Mainframe. Button and menu names are in the same words the app uses.
 
@@ -103,10 +103,10 @@ No. It installs for your Windows user only, into %LOCALAPPDATA%\Capri (open the 
 - A desktop shortcut, only if you ticked it
 - An entry in Settings > Apps > Installed apps, so you can uninstall it like any app
 
-The first time the installed Capri runs, she also sets herself to start with Windows. You can turn that off (see below).
+The installer doesn't make her start with Windows, and from 0.8.7 neither does Capri. That's your choice (see below).
 
 ### Does Capri start with Windows?
-Yes, by default. To stop it, open Capri Mainframe, click Settings, and turn off Start with Windows under HABITS. Turning her off in Task Manager > Startup apps works too, and the switch in Settings shows it. She only sets this once: if you turn it off, it stays off after updates. A Capri.exe you run from somewhere else, like Downloads, doesn't start with Windows unless you turn the switch on in that copy.
+Only if you turn it on. Open Capri Mainframe, click Settings, and turn on Start with Windows under HABITS. Turn the same switch off to stop it. Turning her off in Task Manager > Startup apps works too, and the switch in Settings shows it. Before 0.8.7 the installed Capri turned it on by herself the first time she ran. Updating to 0.8.7 or newer keeps it the way you had it, on or off. A Capri.exe you run from somewhere else, like Downloads, only starts with Windows if you turn the switch on in that copy.
 
 ### Why does my Discord say "Playing Capri"?
 That's her Discord status. While Discord is open on the same PC, your profile shows "Playing Capri" with what she's doing in a few plain words, how long she's been running, and buttons to get Capri and join her Discord. It never shows song names or what her jobs are about. To turn it off, open Capri Mainframe, click Settings, and turn off Show on Discord under HABITS. On Mac and Linux it's right-click her > Settings > Show on Discord. If friends can't see it, turn on Share your activity in Discord's User Settings > Activity Privacy.
@@ -132,7 +132,7 @@ On VirusTotal, a few of about 70 engines flagging Capri.exe or Capri-Setup.exe i
 
 ### My browser won't download it
 - Opera "Failed - Insufficient permissions" (French: "Échec - Autorisations insuffisantes"): try another browser like Chrome or Edge, or download it from https://github.com/lachydotmcg/capri-desktop/releases/latest.
-- On a phone you may see a "dangerous download" warning. Capri doesn't run on phones. Download it on your PC.
+- On a phone you may see a "dangerous download" warning. Download Capri-Setup.exe on your Windows PC. To use her from a phone, see "Capri Remote".
 
 ### How do I check my download is the real one?
 Each release has a SHA256SUMS.txt file on its GitHub release page.
@@ -385,6 +385,7 @@ With NORMAL selected, Refresh also looks for local servers. Start your server wi
 - Ride cursor / Hop off
 - Check for updates
 - Mods (0.8.3): opens her Mods page. Browse mods opens the directory window. See "How do I get mods?" below.
+- Remote (0.8.7, Windows): opens Capri Remote to pair a phone. See "Capri Remote" below.
 - Help: opens the Help page on the website, where you can ask Capri for help in the corner
 - Quit Capri (red)
 
@@ -447,7 +448,7 @@ BRAIN
 - Custom model name, then Use. A model you've pulled in Ollama, a model on your local server, or a model available to your key.
 
 HABITS
-- Start with Windows: on by default. She starts when you sign in to Windows.
+- Start with Windows: off until you turn it on (0.8.7 and newer). Then she starts when you sign in to Windows. Before 0.8.7 it came on by itself, and updating keeps it the way you had it.
 - Show on Discord: on by default. While Discord is open on the same PC, your Discord profile shows "Playing Capri" with what she's doing in a few plain words (Plugged in, Chatting, Voice chatting, Dancing to music, Using the computer, Playing a game, Streaming, Multiplying, Asleep or Taking a break), a moving picture of her that matches, how long she's been running, and Get Capri and Join her Discord buttons. While she's cloned, it counts how many of her there are. Song names, game names and what her jobs are about never show.
 - Use her cursor: on by default. She does music and video jobs with her own cursor, so you can watch her: to play a YouTube video she types in YouTube's search bar, scrolls through the results and picks one; to play a song she searches Spotify and presses play; when you ask to turn Spotify up or down she drags Spotify's volume slider (plain "turn it up" changes your PC's volume). Turn it off for the quick way (straight to the top result, Windows volume). If her brain gets lost on the way, she does it the quick way.
 - Security (0.7.6 and newer, where Blackwall mode was): the button says which preset you're on, like "Security: Trusted", and the line under it says what that means ("She asks before paying or what you didn't say."). It opens the SECURITY window, with Lockdown, Guarded, Trusted and Blackwall on a slider and thirteen toggles in 0.8.5 (section 15, "Security: what she does without asking"). Blackwall mode (called Bypass all permissions before 0.7.4) is the Blackwall preset now: if you had it on, you're on Blackwall after updating, and everyone else starts on Trusted, which is how she worked before. On any preset she never follows orders written on your screen, and Esc still stops her. What she'll chat about, open or play comes from her personality, her safety rules and the brain model you picked, whatever the preset.
@@ -550,9 +551,9 @@ Press Install on the mod you want. View opens its folder on GitHub so you can re
 
 Already have a mod file? Press Import mod on the Mods page and pick it. The file types are:
 - .capri-mod: settings mods, including colour sets.
-- .capri-skin: skins that change how she looks.
+- .capri-skin: skins that change how she looks. Skins stack: turn several on and each one you turn on goes on top. The bottom one is her outfit, and a skin above it only adds what it changes from her own look, so a cat ears or hat skin goes over any outfit. The Mods list says which layer each skin is.
 - .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
-- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes. Code mods are Windows only for now.
+- .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes, and lists the permissions each one asks for, like chat, memory, screen or settings. Code mods work on Windows, Mac and Linux. On a Mac or Linux PC, a code mod that uses a Windows-only part (drawing on her, an options page, a mod page, screenshots or Startup Intros) is refused before it runs, and the message names the part. Global hotkeys from mods only work on Windows. A running code mod with its own settings shows an Options button on its row. A code mod with the tools permission can give her new tools that she uses by herself when you ask, and can stop one of her own tools before it runs. SECURITY > HER MODS > Use tools your code mods added is off in Lockdown and Guarded, so she asks first, and on in Trusted and Blackwall. A mod sending her chat never answers her asking first; only your own yes does. Mod tools aren't in voice chat yet.
 
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
 
@@ -740,6 +741,11 @@ Auto uses 4K with Short Memory and 8K with Medium or Long Memory. A bigger windo
 Mainframe > Settings > BRAIN > Replies chooses Short, Medium or Long. Max reply gives her answer more room: Auto, 256, 2K or 8K tokens. 2K is 2048 tokens and 8K is 8192.
 
 Auto follows Replies. Picking a bigger Max reply doesn't make every answer long; ask for the detail you want too. Jobs keep extra room when they need it. Bubble changes how long the words stay up, not how much she says.
+
+### How do I make her brain think harder? (0.8.7)
+Mainframe > Settings > BRAIN > Thinking, under Advanced Settings, sets how hard the cloud brain she's on thinks: Default, Off, Low, Medium or High. Default keeps her usual setting. Each model remembers its own pick, and a level that model can't take is greyed out with the reason. It's for cloud keys and Kimi through Provider, not her local brains, your plans or Capri codes.
+
+Extra request JSON, beside it, adds one JSON object to every request that brain sends, for anything Thinking doesn't cover. It isn't checked against the model, so a wrong one shows the provider's error.
 
 ### Gemini and OpenRouter keys
 - Free use: pick MEDIUM INTELLIGENCE. Free keys can be rate limited and slow.
@@ -1379,6 +1385,7 @@ How she asks:
 - Ask for a few things and she does the ones that are on, then asks once about the rest: "Opened Spotify. Turn the volume up and lock your PC? Say yes and I will." One yes does them all.
 - In voice chat she asks out loud, and your spoken yes does it. It works before she has a brain too.
 - Inside a job, toggles 7 to 10 decide which steps she stops at to ask "Should I ...?". Yes carries on, no stops the job.
+- During a job started from your phone, an ask-first question also shows on that phone in JOBS with Allow and Deny. Her SECURITY settings still decide what she asks first.
 - Looking at your screen, her notes, her own naps, moves and animations, checking what's playing and cancelling a shutdown never ask, even on Lockdown.
 
 On Mac and Linux it's right-click her > Settings > Security: the four presets and the five toggles Mac and Linux have (1 to 5), each with its line. Her mouse and keyboard jobs and "Hey Capri" are Windows-only so far, so there Trusted and Blackwall both do what you ask without asking first.
@@ -1613,6 +1620,118 @@ The words can have mistakes, especially with music or other sounds over the spee
 
 ---
 
+## Capri Remote
+
+### What is Capri Remote? (0.8.7)
+Text her, call her and watch your PC's screen from your phone's browser at https://capriai.app/remote.
+
+- Remote connects to Capri on Windows. The Mac and Linux preview has no Remote yet.
+- Off by default. She keeps your Remote on or off setting after a restart.
+- Keep Capri open, Remote on and your PC awake and online to use her on the PC. For chat without a PC, see "Use her without a PC" below.
+
+### How do I pair a phone?
+1. Right-click her > Open Capri Mainframe > CAPRI > Remote.
+2. Turn Remote on.
+3. Press Pair a phone.
+4. Scan the QR code with your phone's camera. It opens capriai.app/remote. On iPhone, pick Pair in Safari for this browser, or Home screen app (steps below).
+5. The phone says "Allow on your PC" and "Check your PC shows the same code". Check the code matches the one in the PC's "ALLOW THIS PHONE?" prompt.
+6. Press Allow on your PC. If the codes don't match, press Deny and start with a new code.
+
+One QR, one try, for at most 10 minutes. A try uses it even if you deny it or the phone leaves. New code makes another. A phone waiting for Allow times out after 3 minutes.
+
+While she's streaming, the QR stays hidden behind Show QR, so viewers can't scan it.
+
+If the phone is already paired with another PC, it asks "Pair a new PC?" first: Keep current PC leaves it as it is, and Pair new PC goes ahead. The old pairing stays until the new PC allows it.
+
+### What can I do on the phone?
+- CHAT: type to her, up to 8,000 characters per message. Her tools run on your PC and her answer comes back to the phone.
+- CALL: allow the phone's microphone, then just talk. It's hands-free: she answers when you pause. Her own ears on the PC hear you whether or not TALK is on there. Mute mutes your phone's mic; End hangs up. Her replies also come back as text.
+- Talking over her stops her answer. SETTINGS > Talk over her to stop her turns that off if her voice from your phone's speaker keeps interrupting her. Interrupt also stops her answer.
+- SCREEN: numbered monitor buttons pick a monitor; AUTO follows the one she's looking at. Pick Saver, Balanced or Sharp for quality. Your PC shows PHONE IS WATCHING while a phone watches, or PHONE WATCHING AND ON A CALL while both are active. Closing the view or putting the page in the background stops its screen feed.
+- JOBS: start a job by asking in CHAT or CALL, then follow her steps here. Stop ends the current job like Esc on the PC. When she asks first, use Allow or Deny. Any paired phone can follow, stop or answer the current PC job, whoever started it; only the first answer counts. Recent shows up to ten jobs, kept in PC memory, so they don't survive a Capri restart.
+- SETTINGS > Your PC: switch her brain between NORMAL, MEDIUM INTELLIGENCE and MAX INTELLIGENCE, like BRAIN in her Mainframe. Pick MEDIUM or MAX, paste a key and press Send to your PC. The key goes to the PC end-to-end encrypted; she checks and saves it there and never sends it back. Plans are picked on your PC. SETTINGS also has the home screen app guide.
+
+### How do I add her to my home screen?
+On iPhone, the home screen app keeps its own pairing, separate from Safari.
+
+If Safari is already paired and connected:
+1. In Safari, open SETTINGS > Set up the home screen app. It asks your PC for a pairing link and copies it. If it shows Copy this link, copy it yourself.
+2. Tap Share, then Add to Home Screen.
+3. Open Capri from your home screen.
+4. Tap Paste link within 10 minutes. If the clipboard isn't available, paste the copied link into Pairing link first.
+
+A link from paired Safari pairs the app without another Allow prompt or a matching code. It works once, for at most 10 minutes. Anyone holding it can pair while it works. Each phone can ask for one link a minute, and a phone added by a link can't make links itself.
+
+Or start with your PC:
+1. Open Mainframe > CAPRI > Remote > Pair a phone (or New code) and scan it in Safari.
+2. Pick Home screen app. Safari copies the link, or shows Copy this link first so you can copy it yourself.
+3. Tap Share, then Add to Home Screen. Open Capri from your home screen and tap Paste link within 10 minutes.
+4. Check the matching code, then press Allow on your PC.
+
+On Android:
+1. In your browser, tap the three-dot menu, then Install app.
+2. It stays paired.
+
+### Use her without a PC
+1. Open capriai.app/remote and choose Use her without a PC, or open SETTINGS > This phone.
+2. Use your own Claude (Anthropic), ChatGPT (OpenAI), Gemini (Google AI), OpenRouter or DeepSeek API key.
+3. Paste the key and press Use this phone. Once it's checked, Model lets you pick a chat model the key can use.
+
+- This is text chat with no PC. Her tools, opening apps, playing music, reminders, SCREEN, JOBS, CALL and her voice need Capri on your PC.
+- The key stays in this browser on this phone and goes only to the provider. It doesn't go through the relay, capriai.app or your PC. Forget key removes it from this browser.
+- NVIDIA keys, Capri codes and Claude or ChatGPT plans stay PC-only.
+- To go back to the paired PC, open SETTINGS > Your PC > Use your PC.
+
+### How do I manage or remove phones?
+- Mainframe > CAPRI > Remote > PHONES shows every paired phone, five to a page with Back and Next. You can pair at most 16; at most eight can be connected at once.
+- A phone added with a paired phone's link shows BY LINK. It has the same access as a phone you allowed on the PC, but it can't make pairing links.
+- Press Revoke beside a phone, then Sure? within 4 seconds. That also removes any phones its links added. A connected phone is removed at once. If the PC's relay connection is down, the relay is told when the PC reconnects.
+- Remove all phones, then Sure? within 4 seconds, removes every phone and starts a fresh room, so each phone has to pair again. Changing the relay host also starts a fresh room.
+- Unpair in the phone's menu forgets its pairing. While connected to the PC, it also tells the PC to remove it. If the phone is offline or using This phone, use Revoke on the PC to remove its PC access too.
+- A connected phone removed on the PC shows "Removed on your PC" and forgets its pairing. A phone coming back after removal may show "Pairing ended. Scan again". Pair it again with a new QR if you want it back.
+- If your PC stays away from the relay for 30 days, the room is deleted and every phone must pair again.
+
+### Is Capri Remote private?
+- Messages, call audio, screen pictures and keys sent to the PC are end-to-end encrypted between your phone and PC: AES-256-CBC with HMAC-SHA256 and keys made with HKDF-SHA256.
+- The pairing key is after # in the QR or pairing link. That key never reaches the site or relay; the page removes the fragment from the address bar after reading it.
+- The Cloudflare relay can see room and device IDs, which devices are online, connection timing and encrypted frame sizes. It checks sign-in tokens and the one-time code, and stores their SHA-256 hashes. It can't read your messages, audio, screen pictures or API keys, and never gets the encryption keys. It doesn't log frames.
+- Brain keys sent from the phone are write-only: she never sends them back, even in part. Your PC checks and saves them like keys entered in Mainframe, protected with Windows DPAPI for your Windows account.
+- Her SECURITY settings still decide what she asks first. An ask-first question shows in JOBS with Allow and Deny; pairing a phone doesn't turn those settings off.
+- Your chosen brain and voice services still receive what they need to answer, as described in section 19. Phone-only chat sends your words and key straight to the provider you picked.
+
+### Pairing and connection problems
+- "Code used up. Show a new one": the QR is expired, used or no longer valid. Press New code (or Pair a phone) on the PC and scan again. Retrying the old QR won't work.
+- "That code didn't read right" or "That link didn't read right": scan a fresh QR. A link that doesn't read right leaves the phone's pairing alone. "Your PC said no": the PC denied it; start again with a new QR if you want to allow it.
+- "Your PC is busy pairing. Close any code on it, then try again in a minute": when setting up the home screen app, a QR is open on the PC or this phone asked in the last minute.
+- "A phone added by a link can't make links. Scan a QR from your PC instead": that phone was itself paired with a link.
+- "Your PC is offline", or "PC offline" with "Capri closed or the PC asleep": open Capri, turn Remote on, wake your PC and check its internet. A paired phone reconnects when the PC returns.
+- "No answer from your PC": check the Allow prompt on your PC. If pairing ended, make a new QR and scan again.
+- "Removed on your PC": this phone was revoked. It needs a new pairing and Allow on the PC, or a new link from a still-paired phone.
+- "Relay busy. Try again soon": while pairing, the relay has too many connections or messages. Wait at least 10 seconds, then try again. A paired phone retries by itself after a relay busy or rate-limit error and can show "No connection" with "Can't reach the relay" while it waits.
+- "No connection" with "Can't reach the relay", or "Can't reach the relay" while pairing: check your phone's internet. A paired phone retries by itself; if pairing ended, scan a new QR.
+- "Pairing ended. Scan again": pair again with a fresh QR. This is also what the phone shows when the relay room is gone after the PC stayed away for 30 days; it doesn't show a separate 30-day message.
+- "Open elsewhere" with "Capri Remote took over in another tab": use the other tab, or close it and reconnect here.
+- "Update needed" with "Update Capri on your PC": update the Windows app, then reconnect.
+- "Your PC is showing a pairing code. Close it, then try again": close the PC's pairing sheet, then use SETTINGS > Set up the home screen app again in paired Safari.
+- "Pair this app" with "It pairs with a link Safari copies": your iPhone home screen app needs its own pairing. Use the home screen steps above. "No link to paste yet" means copy a pairing link in Safari first; "That isn't a pairing link" means copy the full pairing link again.
+
+### No sound on CALL
+- "Her voice is off on your PC: she answers in words": choose a voice under VOICE on your PC to hear her.
+- "Your speaker is off: her words are below": turn Speaker on in CALL.
+- "Sound paused" with "Your phone paused the call's sound": tap Turn it back on.
+- "Microphone blocked: allow it for this site, then call again": allow the microphone for this site, then call again.
+- "No sound from your mic": tap Fix, or hang up and call again. "Mic stopped" with "Your phone stopped the mic": tap Turn it back on.
+- "Muted": tap Mute to unmute. "Can't hear you" with "Her ears are off on your PC": set up her ears on the PC (section 12). You don't need to turn on TALK there for a phone call.
+
+### SCREEN isn't updating
+- A screen that hasn't changed sends no new picture. When it changes, Saver sends up to two pictures a second, Balanced three and Sharp four.
+- Keep the page in front with the screen view open. Switching away pauses the feed; return to it or close and reopen SCREEN.
+- "Signal lost": check that Capri is open, Remote is on and your PC is awake and online, then reconnect.
+- "No screen to show" or "Screen view is off on the PC": check the PC, reconnect and reopen SCREEN. Pick a connected monitor, or AUTO. "Monitor <number> is gone: showing <number>" means the picked monitor was disconnected and she's showing another.
+- Try Saver quality on a slow connection.
+
+---
+
 ## 17. Updates
 
 ### Windows
@@ -1684,11 +1803,11 @@ Quit Capri, then delete the Capri folder you unpacked. Her settings are in ~/.co
 ## 19. Privacy
 
 ### What stays on my PC
-- Her built-in brain and Ollama: your chats never leave your PC.
+- Her built-in brain and Ollama run on your PC. With Capri Remote, messages travel encrypted between your phone and PC.
 - Her free voice, and her own ears in free voice chat (English and 24 other European languages).
 - Her notes (me.md), chat history and what she saw on your screen lately (chat.json, kept a week), settings and error log.
 - Her transcripts (transcripts folder, one file per day) and memories.md. They're never uploaded.
-- Your keys. On Windows they're locked to your Windows account. On Mac and Linux the ElevenLabs key is a file only your user can read.
+- Your PC's keys. On Windows they're locked to your Windows account. On Mac and Linux the ElevenLabs key is a file only your user can read. Phone-only chat keeps its key in that phone's browser (see "Capri Remote").
 - Dancing: she listens to what your PC is playing to find the beat, in memory only. Nothing is recorded or sent.
 - "Hey Capri" (Windows, off by default): it listens for those two words on your PC with its own small model. Nothing is recorded or sent until it hears them and voice chat starts. Windows shows its mic icon while it's on.
 - Capri has no ads and no analytics.
@@ -1758,7 +1877,7 @@ On Mac, her error log is errors.txt in ~/Library/Application Support/Capri. On L
 ### Mainframe and Mods on Mac and Linux (0.8.3)
 The Mac and Linux preview now has Capri Mainframe, laid out with BRAIN, VOICE and CAPRI like Windows. Simple Settings and Advanced Settings are included. You can use any OpenAI-compatible provider with a key.
 
-Mods opens the Mods window and directory. Settings mods, colour sets and skins work here too. Code mods are Windows only for now.
+Mods opens the Mods window and directory. Settings mods, colour sets, stacking skins and code mods work here too. A code mod that uses a Windows-only part is refused with a message naming it.
 
 Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her hooks run the Capri app from where it is, so keep it in the same place after you set it up: Applications on Mac, or the folder you unpacked on Linux. If you move it, set Code/Husk Mode to Off and back on.
 
@@ -1791,13 +1910,16 @@ Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her h
 - Remember our chats: a daily transcript and memories.md, like on Windows (right-click her > Settings). She digs through them on her own here too.
 
 ### Not yet
-- No code mods. Settings mods, colour sets and skins work in the Mods window.
-- No voice chat: "Voice chat isn't on Mac and Linux yet. Type to me for now, choom."
+- Code mods that use Windows-only parts, like drawing on her, an options page, screenshots or global hotkeys. Other code mods, settings mods, colour sets and skins work in the Mods window.
+- No voice input on Mac. Call mode and wake words are Windows only.
 - No built-in brain. Use Ollama or an API key.
 - No keyboard shortcuts.
 - No mouse and keyboard jobs on Mac.
 - No automatic updates. She says when a new version is out, and right-click her > Get Capri X opens its download page.
 - No mini player.
+
+### TALK on Linux
+Follow the [Linux TALK setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup) to install `parec`, extract sherpa-onnx into her ears folder (or put `sherpa-onnx-offline` on PATH) and add her English Parakeet pack. Pick your default mic in your sound settings. Hover over her, click TALK, say one English line and pause. Click TALK again to cancel. She transcribes the audio on your PC and uses the same brain and reply voice as TYPE.
 
 ### Right-click menu
 - Talk to her
@@ -1865,7 +1987,7 @@ She controls music players that support MPRIS, like Spotify, Rhythmbox or Elisa.
 Install Ollama and open it, then right-click her > Brain > Download gemma4:e4b. Older versions said to run ollama pull gemma4:e4b in a terminal, which still works; then pick the model in right-click her > Brain.
 
 ### A button or menu from this help is missing on my Mac or Linux
-The preview doesn't have everything Windows has yet (see "Not yet" above). Capri Mainframe and Mods are included in 0.8.3. If those are missing, check your version and update. Voice chat and code mods are still Windows only for now.
+The preview doesn't have everything Windows has yet (see "Not yet" above). Capri Mainframe and Mods are included in 0.8.3. If those are missing, check your version and update. Linux TALK needs [offline ears setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup). Voice input on Mac, call mode and wake words are still unavailable in the previews.
 
 ### Where's the Mainframe on Mac or Linux?
 Capri Mainframe is included in the 0.8.3 preview, with BRAIN, VOICE and CAPRI, plus Simple Settings and Advanced Settings. Update if you're on an older preview.
@@ -1909,7 +2031,7 @@ Then check the exact message, your Capri version (top of the Mainframe), and the
 - "Item Not Found", or the installer vanished: Ctrl + J > Keep in Chrome or Edge, or restore it from your antivirus quarantine. Open it from your Downloads folder.
 - Antivirus says Trojan, Wacatac, Zusy, Gen:Suspicious or MachineLearning/Anomalous: if you downloaded it from the Capri website or GitHub, it's a false alarm on a new unsigned app. Restore and allow it.
 - Opera "Insufficient permissions": use Chrome or Edge, or download from GitHub releases.
-- Phone says "dangerous download": Capri is a PC app. Download it on your PC.
+- Phone says "dangerous download": download Capri-Setup.exe on your Windows PC. To use her from a phone, see "Capri Remote".
 - "Quit Capri from her tray menu, then install again.": quit Capri first.
 - Windows 7, 8 or 32-bit Windows: not supported. Capri needs Windows 10 or 11, 64-bit.
 - Capri vanished after installing, or the shortcut doesn't work: your antivirus probably removed Capri.exe. Restore it from quarantine, allow it, then run Capri-Setup.exe again.

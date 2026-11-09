@@ -1319,7 +1319,7 @@
     [/\b(offline|internet|connection)\b/i, 'My built-in brain and free voice run on your PC, choom. A brain from a key needs internet.'],
     [/\b(brain|model|ollama|nvidia)\b/i, 'Open Capri Mainframe, then BRAIN > Set up her brain, choom. On Mac and Linux my brain uses Ollama.'],
     [/\b(voice|microphone|mic|speak|talk out loud)\b/i, 'My free voice runs on your PC, choom. Get it in Mainframe under VOICE > Get free voice. The wave button starts voice chat.'],
-    [/\b(startup|start with windows|auto.?start)\b/i, 'Mainframe > Settings > HABITS > Start with Windows, choom. Turn that off if you want me to wait.'],
+    [/\b(startup|start with windows|auto.?start)\b/i, 'Mainframe > Settings > HABITS > Start with Windows, choom. It stays off until you turn it on.'],
     [/\b(stuck|cursor|hop off|gone|missing|bring.*back)\b/i, 'Stuck on your cursor? Ctrl + Alt + C, choom. If I went missing, double-click my tray icon or open Capri again.'],
     [/\b(type|typing|keyboard|chat)\b/i, 'On your PC, the pencil opens typing, choom. Ctrl + Alt + T does it too.'],
     [/\b(notes|me\.md|remember|name)\b/i, 'Mainframe > Settings > YOU > Open her notes edits me.md, choom. That keeps what you want me to know about you.'],

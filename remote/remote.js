@@ -53,6 +53,9 @@
   let info = { demo: false, native: false, pc: '', code: '', reason: '', pairedAt: 0 };
   let link = null;
   let pairing = null;
+  let pendingPair = null;
+  let cancelScan = null;
+  let generation = 0;
 
   const tell = (set, ...values) => {
     for (const fn of set) {
@@ -83,15 +86,30 @@
     } catch (error) {}
   };
   const keep = value => write({ demo: !!value.demo, device: !value.demo, pc: String(value.pc || '').slice(0, 64), pairedAt: value.pairedAt || Date.now(), allowed: !!value.allowed });
+  const storedDevice = () => new Promise(resolve => {
+    let request;
+    try { request = indexedDB.open('capri-remote', 1); } catch (error) { resolve(null); return; }
+    request.onupgradeneeded = () => request.transaction.abort();
+    request.onerror = () => resolve(null);
+    request.onsuccess = () => {
+      const db = request.result;
+      try {
+        const tx = db.transaction('device', 'readonly');
+        const item = tx.objectStore('device').get('current');
+        tx.oncomplete = () => { db.close(); resolve(item.result || null); };
+        tx.onerror = tx.onabort = () => { db.close(); resolve(null); };
+      } catch (error) { db.close(); resolve(null); }
+    };
+  });
+  const savedPairing = record => read() || (record ? { device: true, pc: record.pc || '', pairedAt: record.pairedAt, allowed: true } : null);
 
   // The QR code opens capriai.app/remote/#r=<room>&c=<one-time code>&k=<pairing key>. A #fragment never reaches a server.
   // It's read once and wiped from the address bar and history straight away.
-  const fromFragment = () => {
-    const hash = location.hash;
+  const fromFragment = (hash = location.hash) => {
     if (!/[#&](r|c|k)=/.test(hash)) return null;
     try { history.replaceState(null, '', location.pathname + location.search); } catch (error) {}
     try {
-      return { scan: window.CapriCrypto.parseFragment(hash), pc: '', pairedAt: Date.now(), allowed: false };
+      return { scan: window.CapriCrypto.parseFragment(hash), viaPhone: /[#&]via=phone(&|$)/.test(hash), pc: '', pairedAt: Date.now(), allowed: false };
     } catch (error) { return { bad: true }; }
   };
 
@@ -102,49 +120,100 @@
     tell(hooks.message, message);
   };
   const forget = reason => {
+    generation++;
+    if (pendingPair) { pendingPair.resolve(false); pendingPair = null; }
+    cancelScan = null;
     if (link) { try { link.close(); } catch (error) {} link = null; }
     const wasDemo = pairing && pairing.demo;
     pairing = null;
     write(null);
     if (!wasDemo && window.CapriRelay) window.CapriRelay.clear();
-    setState('unpaired', { demo: false, native: false, pc: '', code: '', reason: reason || '', pairedAt: 0 });
+    setState('unpaired', { demo: false, native: false, pc: '', code: '', reason: reason || '', pairReason: '', viaPhone: false, pairedAt: 0 });
   };
 
-  const connect = (options = {}) => {
+  const openPairing = (value, options = {}) => {
     if (link) { try { link.close(); } catch (error) {} link = null; }
-    const scanned = options.demo ? null : fromFragment();
-    if (scanned && scanned.bad) { forget('bad-code'); return; }
-    // A fresh scan replaces whatever this phone was paired with before.
-    if (scanned && window.CapriRelay) window.CapriRelay.clear();
-    // Phone-only mode (native.js): her brain on this phone with its own key, until a scan or the demo picks a PC again.
+    cancelScan = null;
+    pairing = value;
+    const pairReason = options.pairReason || '';
+    if (!pairing) { setState('unpaired', { demo: false, native: false, pc: '', code: '', reason: '', pairReason, viaPhone: false, pairedAt: 0 }); return false; }
     const native = window.CapriNative;
-    if (native && (scanned || options.demo)) native.use('pc');
-    const saved = read();
-    const own = native && native.on() && !scanned && !options.demo ? { native: true, pc: saved && saved.allowed ? saved.pc : '', pairedAt: saved && saved.allowed ? saved.pairedAt : 0 } : null;
-    pairing = options.demo ? { demo: true, pc: 'Demo PC', pairedAt: Date.now(), allowed: !!options.instant } : scanned || own || saved;
-    if (!pairing) { setState('unpaired', { demo: false, native: false, pc: '', code: '', reason: '', pairedAt: 0 }); return; }
     // A build without the relay link (the demo preview) can only run the demo.
-    if (!pairing.demo && !pairing.native && !window.CapriRelay) { forget(''); return; }
+    if (!pairing.demo && !pairing.native && !window.CapriRelay) { setState('offline', { pc: options.previous ? options.previous.pc : pairing.pc, reason: 'network', pairReason }); return false; }
     if (pairing.demo) keep(pairing);
-    else if (scanned) write(null);
-    info = Object.assign({}, info, { features: [], demo: !!pairing.demo, native: !!pairing.native, pc: pairing.pc || '', pairedAt: pairing.native ? pairing.pairedAt : pairing.pairedAt || Date.now(), code: '', reason: '' });
+    info = Object.assign({}, info, { features: [], demo: !!pairing.demo, native: !!pairing.native, pc: pairing.pc || '', pairedAt: pairing.native ? pairing.pairedAt : pairing.pairedAt || Date.now(), code: '', reason: '', pairReason, viaPhone: !!options.viaPhone });
     link = pairing.native ? native.link() : pairing.demo && window.CapriDemo ? window.CapriDemo.link() : window.CapriRelay.link({ relay: relayUrl(), name: deviceName });
     const mine = link;
-    link.open(pairing, {
-      state: (next, extra) => { if (link === mine) setState(next, extra); },
+    const room = pairing.scan && pairing.scan.room;
+    let waiting = !!room;
+    let committing = null;
+    const failed = reason => {
+      if (link !== mine) return;
+      cancelScan = null;
+      if (waiting && options.previous) openPairing(options.previous, { pairReason: reason });
+      else forget(reason);
+    };
+    if (waiting) cancelScan = () => failed('');
+    try { link.open(pairing, {
+      state: (next, extra) => {
+        const show = () => { if (link === mine) setState(next, extra); };
+        if (committing) committing.then(show);
+        else show();
+      },
       message: message => { if (link === mine) deliver(message); },
-      forget: reason => { if (link === mine) forget(reason); },
+      forget: failed,
       // The PC said Allow: remember which PC (its keys are the relay link's to keep). The pairing key is already gone.
       paired: pc => {
         if (link !== mine || !pairing) return;
-        pairing.pc = pc || pairing.pc;
-        pairing.allowed = true;
-        pairing.pairedAt = Date.now();
-        delete pairing.scan;
-        keep(pairing);
-        info = Object.assign({}, info, { pc: pairing.pc, pairedAt: pairing.pairedAt });
+        committing = storedDevice().then(record => {
+          if (link !== mine || !pairing) return;
+          if (!record || record.room !== room || options.oldDevice && record.device === options.oldDevice.device) { failed('ended'); return; }
+          waiting = false;
+          cancelScan = null;
+          pairing.pc = pc || pairing.pc;
+          pairing.allowed = true;
+          pairing.pairedAt = record.pairedAt || Date.now();
+          delete pairing.scan;
+          delete pairing.viaPhone;
+          keep(pairing);
+          info = Object.assign({}, info, { pc: pairing.pc, pairedAt: pairing.pairedAt });
+        });
       }
-    });
+    }); } catch (error) { failed('network'); return false; }
+    return waiting;
+  };
+
+  const connect = async (options = {}) => {
+    const run = ++generation;
+    if (pendingPair) { pendingPair.resolve(false); pendingPair = null; }
+    let scanned = options.demo ? null : fromFragment(options.fragment);
+    const bad = scanned && scanned.bad;
+    if (bad) {
+      scanned = null;
+      if (link) { setState(state, { pairReason: 'bad-link' }); return false; }
+    }
+    let saved = read(), record = null;
+    if (scanned || bad) {
+      record = await storedDevice();
+      if (run !== generation) return false;
+      saved = savedPairing(record);
+      // A link for another PC asks first. The demo isn't a PC worth keeping.
+      if (scanned && saved && !saved.demo && (!record || record.room !== scanned.scan.room)) {
+        if (link) { try { link.close(); } catch (error) {} link = null; }
+        cancelScan = null;
+        pairing = saved;
+        const decision = new Promise(resolve => { pendingPair = { resolve }; });
+        setState('confirming', { features: [], demo: !!saved.demo, native: false, pc: saved.pc || record && record.pc || '', pairedAt: saved.pairedAt || 0, code: '', reason: '', pairReason: '', viaPhone: false });
+        const proceed = await decision;
+        if (run !== generation) return false;
+        if (!proceed) { openPairing(saved); return false; }
+      }
+    }
+    const native = window.CapriNative;
+    if (native && (scanned || options.demo)) native.use('pc');
+    const own = native && native.on() && !scanned && !options.demo ? { native: true, pc: saved && saved.allowed ? saved.pc : '', pairedAt: saved && saved.allowed ? saved.pairedAt : 0 } : null;
+    const value = options.demo ? { demo: true, pc: 'Demo PC', pairedAt: Date.now(), allowed: !!options.instant } : scanned || own || saved;
+    return openPairing(value, { previous: scanned ? saved : null, oldDevice: record, pairReason: bad ? 'bad-link' : '', viaPhone: !!(scanned && scanned.viaPhone && !(saved && !saved.demo)) });
   };
 
   // Unpairing tells the PC to forget this phone too (a revoke from the phone), then forgets it here.
@@ -165,6 +234,9 @@
 
   window.CapriRemote = {
     connect,
+    storedPairing: async () => { const record = await storedDevice(); const saved = read(); return record ? { room: record.room, pc: record.pc } : saved && !saved.demo ? saved : null; },
+    confirmPairing: yes => { if (pendingPair) { const next = pendingPair; pendingPair = null; next.resolve(yes === true); } },
+    cancelPairing: () => { if (cancelScan) cancelScan(); else unpair(); },
     unpair,
     send: (type, body) => state === 'connected' && link ? link.send(Object.assign({}, body, { type })) !== false : false,
     retry: () => { if (link && link.retry) link.retry(); else connect(); },
