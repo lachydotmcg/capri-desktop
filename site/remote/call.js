@@ -4,13 +4,18 @@
    the chat, and her real voice plays here as call.voice parts. Mute is the only talk control.
      - His lines: a noise floor that follows the room, about 300 ms from before he started so the first sound isn't cut,
        and the end of his turn after 800 ms of quiet. Clicks and blips never go on their own.
-     - Her voice never starts a line: while it plays from the speaker the mic starts nothing (half duplex), then waits a
-       moment and listens over a raised floor. Her voice waits while he's talking. Interrupt stops her here.
+     - Her voice never starts a line, but talking over her does: while it plays, the mic listens over a bar set by how
+       loud she's just been, so the echo cancelling's leftovers of her stay under it, and nothing counts in the first
+       moment after her voice starts. His voice over the bar for 300 ms stops her here and goes as his next line. With
+       it off (SETTINGS), the mic starts nothing while she plays, then listens over a raised floor for a moment.
+     - Interrupt, and talking over her, stop her answer on a PC that lists hush too (call.hush with the message it
+       answers); on an older PC only here. Her voice waits while he's talking.
      - iPhones: the sound starts in the CALL tap and again once the mic is open, a suspended or interrupted sound is
        resumed, and a mic that gives nothing is fixed (a fresh sound, or the mic again) or says so plainly.
      CapriCall.supported()  this session's PC takes calls and this browser can record
      CapriCall.start()      ring her, from a tap; false when it can't
-     CapriCall.end()        hang up */
+     CapriCall.end()        hang up
+     CapriCall.overHer      talking over her stops her: true or false, kept on this phone */
 (() => {
   'use strict';
   const RATE = 16000;
@@ -27,6 +32,12 @@
   const OVER = 10, STAY = 6; // dB over the noise floor to start a line, and to keep it going
   const LEAST_DB = -50, LEAST_STAY_DB = -55; // and never quieter than these
   const AFTER_HER = 0.35, RAISED = 1.2, RAISE = 10; // seconds after her voice that start nothing, then RAISE dB more
+  // Talking over her: frames over the bar that stop her (300 ms), and frames under it that start the count again (120 ms).
+  const OVER_HER = 15, OVER_GAP = 6;
+  // The bar: OVER_START dB over the usual start, and never under her own loudness of the last OVER_HOLD frames (400 ms,
+  // as her voice takes a moment to come back through the mic) less OVER_UNDER dB.
+  const OVER_START = 8, OVER_UNDER = 15, OVER_HOLD = 20;
+  const OVER_SETTLE = 0.3; // seconds after her voice starts (or starts again after a break) that count for nothing
   const SILENT_MIC = 2000; // a live mic that gives no samples this long gets fixed
   const C = window.CapriCrypto;
   const SAVED = 'capri-remote-call';
@@ -68,11 +79,12 @@
   const MIC = ['M12 3.5a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0v-5a3 3 0 0 0-3-3z', 'M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21'];
   const CONE = 'M3.5 9.25h3.75L12 5v14l-4.75-4.25H3.5z';
 
-  // Whether the PC screen opens in the mini player with a call. Storage can be blocked, so it's all guarded.
+  // Whether the PC screen opens in the mini player with a call, and whether talking over her stops her (on unless he
+  // turned it off in SETTINGS). Storage can be blocked, so it's all guarded.
   const pick = (() => {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(SAVED)) || {}; } catch (error) {}
-    return { screen: saved.screen !== false };
+    return { screen: saved.screen !== false, overHer: saved.overHer !== false };
   })();
   const keep = () => { try { localStorage.setItem(SAVED, JSON.stringify(pick)); } catch (error) {} };
 
@@ -180,14 +192,21 @@
   let you = { text: '', faint: false };
   let her = { key: '', text: '' };
   let first = true;
-  const stats = { lines: 0, parts: 0, audioBytes: 0, blips: 0, heard: 0, voiceParts: 0, voiceSamples: 0, held: 0, skipped: 0, hushes: 0, frames: 0, fixes: 0 };
+  // overHer: times talking over her stopped her, overMs how long the last one took from his first sound over the bar,
+  // echoes starts over the bar that came to nothing, overPeak the most a frame got over the bar while she played (dB),
+  // interrupts the call.hush messages sent.
+  const stats = { lines: 0, parts: 0, audioBytes: 0, blips: 0, heard: 0, voiceParts: 0, voiceSamples: 0, held: 0, skipped: 0, hushes: 0, frames: 0, fixes: 0, overHer: 0, overMs: 0, echoes: 0, overPeak: -100, interrupts: 0, herDb: -100, barDb: -100 };
 
-  // Finding his lines: 'idle' between them, 'maybe' when something started, 'talking' once a line goes.
-  const gate = { mode: 'idle', floor: -70, frames: 0, level: -100, ring: [], keep: PRE, pending: [], voiced: 0, quiet: 0, tail: [], line: null };
+  // Finding his lines: 'idle' between them, 'maybe' when something started, 'talking' once a line goes. over: the start
+  // came while her voice played, so it's held to the bar for talking over her; overAt: when.
+  const gate = { mode: 'idle', floor: -70, frames: 0, level: -100, ring: [], keep: PRE, pending: [], voiced: 0, quiet: 0, tail: [], line: null, over: false, overAt: 0, stopped: false };
 
-  // Her voice: what's playing, where the next part starts, and parts held while he talks or until his last line is heard.
+  // Her voice: what's playing, where the next part starts, parts held while he talks or until his last line is heard, and
+  // when her voice last started after a break (in the sound's time).
   const playing = new Set();
-  let playAt = 0, held = [], holdFor = '', holdUntil = 0, skipping = false, lastVoiceAt = 0;
+  let playAt = 0, held = [], holdFor = '', holdUntil = 0, skipping = false, lastVoiceAt = 0, herStart = -10;
+  // Her loudness at the speaker for each of the last OVER_HOLD mic frames.
+  const herLoud = [];
 
   const supported = () => {
     const r = remote();
@@ -222,11 +241,15 @@
     level.release.value = 0.25;
     const speaker = context.createGain();
     speaker.gain.value = speakerOn ? 1 : 0;
+    // How loud she is as she goes to the speaker, for the bar he talks over her by.
+    const out = context.createAnalyser();
+    out.fftSize = 1024;
     voiceIn.connect(meter);
     voiceIn.connect(level);
+    level.connect(out);
     level.connect(speaker);
     speaker.connect(context.destination);
-    sound = { context, voiceIn, meter, speaker };
+    sound = { context, voiceIn, meter, out, speaker };
     playAt = -10;
     context.onstatechange = () => soundState(context);
   };
@@ -291,7 +314,10 @@
     closeMic(true);
     const track = stream.getAudioTracks()[0];
     if (!track) { micFailed(null); return; }
-    const current = { stream, track, wired: false, wiredAt: 0, last: 0, samples: 0, fixed: 0, paused: false, graph: null };
+    // echo: whether the phone cancels her voice's echo in the mic. Talking over her needs it.
+    let settings = {};
+    try { settings = (track.getSettings && track.getSettings()) || {}; } catch (error) {}
+    const current = { stream, track, wired: false, wiredAt: 0, last: 0, samples: 0, fixed: 0, paused: false, graph: null, echo: settings.echoCancellation !== false };
     mic = current;
     track.enabled = !muted;
     track.onended = () => { if (mic === current && live()) { trouble = 'gone'; draw(); } };
@@ -426,8 +452,23 @@
     if (now < playAt + AFTER_HER + RAISED) return 'raised';
     return '';
   };
+  // How loud her voice is at the speaker just now, in dB, or -100 while she's quiet or the speaker is off.
+  const loudness = new Float32Array(1024);
+  const herOut = () => {
+    if (!sound || !speakerOn || !playing.size || !sound.out.getFloatTimeDomainData) return -100;
+    sound.out.getFloatTimeDomainData(loudness);
+    let sum = 0;
+    for (let i = 0; i < loudness.length; i++) sum += loudness[i] * loudness[i];
+    return Math.max(-100, 10 * Math.log10(sum / loudness.length + 1e-12));
+  };
+  // Talking over her needs it on and the phone cancelling her voice's echo in the mic.
+  const overOn = () => pick.overHer && !!mic && mic.echo;
+  // The first moment after her voice starts, as it comes out of the speaker, while the echo cancelling catches up.
+  const settlingNow = () => !!sound && sound.context.currentTime < herStart + OVER_SETTLE + (sound.context.outputLatency || sound.context.baseLatency || 0);
   const step = (pcm, db) => {
     gate.level = db;
+    herLoud.push(herOut());
+    while (herLoud.length > OVER_HOLD) herLoud.shift();
     if (!hearing()) {
       drop();
       gate.ring.length = 0;
@@ -443,12 +484,22 @@
     else if (gate.mode === 'idle' && !herNow) pull = db < gate.floor ? 0.25 : 0.015;
     else if (gate.mode !== 'idle' && db > gate.floor) pull = 0.002;
     gate.floor = Math.max(-90, Math.min(-25, gate.floor + (db - gate.floor) * pull));
-    const raise = herNow === 'raised' ? RAISE : 0;
+    // A line that stopped her keeps the usual bar: she isn't playing any more.
+    const raise = herNow === 'raised' && !gate.stopped ? RAISE : 0;
     const start = Math.max(gate.floor + OVER, LEAST_DB) + raise;
     const stay = Math.max(gate.floor + STAY, LEAST_STAY_DB) + raise;
+    // While her voice plays, talking over her has to clear its own bar, and the first moment of her voice counts for nothing.
+    const over = herNow === 'on' && overOn();
+    const bar = over ? Math.max(start + OVER_START, Math.max(...herLoud) - OVER_UNDER) : start;
+    const settling = over && settlingNow();
+    stats.herDb = Math.round(Math.max(...herLoud));
+    stats.barDb = Math.round(bar);
+    if (over && !settling && gate.mode !== 'talking') stats.overPeak = Math.max(stats.overPeak, Math.round(db - bar));
     if (gate.mode === 'idle') {
-      if (herNow !== 'on' && gate.frames > SETTLE && db > start) {
+      if ((herNow !== 'on' || over) && !settling && gate.frames > SETTLE && db > bar) {
         gate.mode = 'maybe';
+        gate.over = over;
+        gate.overAt = performance.now();
         gate.pending = gate.ring;
         gate.ring = [];
         gate.keep = PRE;
@@ -466,17 +517,28 @@
     const voiced = db > stay;
     if (gate.mode === 'maybe') {
       gate.pending.push(pcm);
-      if (voiced) { gate.voiced++; gate.quiet = 0; } else gate.quiet++;
-      if (gate.voiced >= LEAST) { commit(); return; }
-      if (gate.quiet >= BLIP) {
+      // She stopped by herself while it started: from here it's an ordinary start.
+      if (gate.over && !over) gate.over = false;
+      if (gate.over) {
+        if (!settling) {
+          if (db > bar) { gate.voiced++; gate.quiet = 0; } else gate.quiet++;
+        }
+        if (gate.voiced >= OVER_HER) { commit(); return; }
+        if (gate.quiet < OVER_GAP) return;
+        // Her own voice back through the mic, or a sound under the bar: nothing goes, and she plays on.
+        stats.echoes++;
+      } else {
+        if (voiced) { gate.voiced++; gate.quiet = 0; } else gate.quiet++;
+        if (gate.voiced >= LEAST) { commit(); return; }
+        if (gate.quiet < BLIP) return;
         // A click, a blip or one short sound: nothing goes, but it stays in front of a line that starts soon after.
         stats.blips++;
-        const kept = gate.pending.slice(-KEPT);
-        idle();
-        gate.ring = kept;
-        gate.keep = kept.length;
-        draw();
       }
+      const kept = gate.pending.slice(-KEPT);
+      idle();
+      gate.ring = kept;
+      gate.keep = kept.length;
+      draw();
       return;
     }
     if (voiced) {
@@ -500,9 +562,18 @@
     gate.pending = [];
     gate.voiced = gate.quiet = 0;
     gate.tail = [];
+    gate.over = gate.stopped = false;
     if (!holdFor && held.length) release();
   };
+  // A line goes. Started over her voice, it stops her first, as does any line while she plays with her speaker off.
   const commit = () => {
+    if (gate.over || (pick.overHer && speaking())) {
+      stats.overHer++;
+      stats.overMs = Math.round(performance.now() - gate.overAt);
+      gate.stopped = true;
+      interrupt();
+    }
+    gate.over = false;
     gate.line = { id: newId(), n: 0, buffer: new Int16Array(PART), used: 0, total: 0 };
     gate.mode = 'talking';
     gate.quiet = 0;
@@ -621,7 +692,10 @@
     source.connect(sound.voiceIn);
     // A little slack ahead of the first part, then each part straight after the one before.
     const now = context.currentTime;
-    if (playAt < now + 0.03) playAt = now + 0.12;
+    if (playAt < now + 0.03) {
+      playAt = now + 0.12;
+      herStart = playAt;
+    }
     source.start(playAt);
     playAt += buffer.duration;
     playing.add(source);
@@ -645,10 +719,18 @@
     if (sound) playAt = sound.context.currentTime;
     stats.hushes++;
   };
+  // Interrupt, or talking over her: what hasn't played goes here and the rest of what she was saying is dropped as it
+  // comes. A PC that lists hush stops her answer there too (her.key is the message it answers), and its own call.hush
+  // ends the dropping.
+  const pcHushes = () => {
+    const r = remote();
+    return !!(r && r.info && Array.isArray(r.info.features) && r.info.features.includes('hush'));
+  };
   const interrupt = () => {
     hush();
     skipping = true;
     lastVoiceAt = performance.now();
+    if (pcHushes() && her.key && remote().send('call.hush', { re: her.key })) stats.interrupts++;
     draw();
   };
   const speaking = () => playing.size > 0;
@@ -869,10 +951,13 @@
     her = { key: '', text: '' };
     first = true;
     flashText = '';
-    Object.assign(gate, { mode: 'idle', floor: -70, frames: 0, ring: [], keep: PRE, pending: [], voiced: 0, quiet: 0, tail: [], line: null });
+    Object.assign(gate, { mode: 'idle', floor: -70, frames: 0, ring: [], keep: PRE, pending: [], voiced: 0, quiet: 0, tail: [], line: null, over: false, overAt: 0, stopped: false });
+    herLoud.length = 0;
+    herStart = -10;
     loadFace();
     show();
-    if (!remote().send('call.start', {})) { closeSound(); over('Not connected', false); return true; }
+    // hush: this phone stops her with call.hush, so a PC can send her answers a sentence at a time.
+    if (!remote().send('call.start', { hush: true })) { closeSound(); over('Not connected', false); return true; }
     ring = setTimeout(() => { if (state === 'ringing') { remote().send('call.stop', {}); over('No answer from your PC', false); } }, 8000);
     // The mic opens in this same tap, once for the whole call.
     openMic();
@@ -1030,6 +1115,11 @@
     supported,
     start,
     end,
+    get overHer() { return pick.overHer; },
+    set overHer(on) {
+      pick.overHer = !!on;
+      keep();
+    },
     stats: () => Object.assign({}, stats, {
       state,
       status: status().key,
@@ -1040,7 +1130,10 @@
       waiting: !!waiting,
       mode: gate.mode,
       floor: Math.round(gate.floor),
+      level: Math.round(gate.level),
       micLive: !!(mic && mic.track.readyState === 'live'),
+      echo: !!(mic && mic.echo),
+      overOn: pick.overHer,
       sound: sound ? sound.context.state : 'none',
       trouble
     }),

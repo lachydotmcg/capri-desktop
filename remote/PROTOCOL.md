@@ -384,7 +384,7 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 
 ### 8.2 Screen view and call
 
-`hello-ok.features` lists `watch` when the PC can show its screen and `call` when it takes calls. A phone sends these only when its session's `hello-ok` listed the feature.
+`hello-ok.features` lists `watch` when the PC can show its screen, `call` when it takes calls, and `hush` with `call` when a phone's `call.hush` stops her answer on the PC. A phone sends these only when its session's `hello-ok` listed the feature.
 
 | `type` | Sender | Fields |
 |---|---|---|
@@ -395,7 +395,7 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 | `watch.monitors` | PC | `list` (each `id`, `name`, `w`, `h`, `primary`), `monitor` (the id shown), `auto`, `missing` (true when the picked monitor is gone) |
 | `watch.frame` | PC | `n`, `part`, `parts`, `data` (base64url JPEG bytes); part 0 also has `w`, `h`, `monitor`, `bytes`, `cx`, `cy` |
 | `watch.cursor` | PC | `cx`, `cy` |
-| `call.start` | phone | none |
+| `call.start` | phone | `hush` (true from a phone that sends `call.hush`) |
 | `call.stop` | phone | none |
 | `call.state` | PC | `on`; `voice` and `ears` (her voice and her ears are on) with `on: true`; `reason` with `on: false` (`not-allowed` or `ended`) |
 | `call.audio` | phone | `id` (the line), `n`, `rate` (16000), `pcm`, `end` (on the last part) |
@@ -403,6 +403,7 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 | `call.heard` | PC | `id`, `text` (what her ears heard: empty when nothing) |
 | `call.voice` | PC | `n`, `rate` (24000 or less), `pcm` |
 | `call.hush` | PC | none |
+| `call.hush` | phone | `re` (the message her answer is for: a line id, or a `chat.send` id), only to a PC that lists `hush` |
 
 - **Watching:**
   - The PC captures only while a phone watches. A second `watch.start` changes the monitor, quality or size.
@@ -417,12 +418,14 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 - **Auto:** shows the monitor her pointer is on, else the one she's been asked to watch, else the one with the focused window. It moves once the new one has held for a second.
 - **Calls:** hands-free. The phone keeps its mic open for the whole call and sends each thing said as one line.
   - A line starts when talking starts, with about 300 ms from just before, and ends after about 0.8 seconds of quiet. Clicks and blips too short to be words send nothing.
-  - No line starts while the phone is muted or her voice plays on it, and for about a second after she stops it takes louder talking, so her voice never starts a line. Muting or hanging up mid-line sends `call.cancel`.
+  - No line starts while the phone is muted. While her voice plays, one starts only when he talks over her: his voice has to stay over a bar set by how loud she's been in the last 0.4 seconds (15 dB under it at least, so what the phone's echo cancelling leaves of her stays under) for about 300 ms, and nothing counts in the first 0.3 seconds after her voice starts. That line stops her: the phone drops what hasn't played and sends `call.hush`. With talking over her turned off on the phone (or no echo cancelling), no line starts while her voice plays, and for about a second after she stops it takes louder talking. Muting or hanging up mid-line sends `call.cancel`.
   - The phone sends a line as `call.audio` parts from `n: 0`: mono 16-bit little-endian PCM at 16 kHz, 320 ms a part, with `end: true` on the last. A line is at most 30 seconds.
   - Errors carry the line id as `re`: `too-long`, `bad-message` (a part out of order or at another rate), `not-allowed` (no call), `busy` (her ears couldn't run).
   - The PC's own ears hear the line, the PC answers `call.heard`, and the words go to her as if said at the PC. Her answer comes back as `chat.reply` with `re` set to the line id.
   - `call.cancel` drops a line that's still coming in.
 - **Her voice:** while she speaks, `call.voice` parts of a quarter second: mono 16-bit little-endian PCM at her speaker's rate, halved until it's 24 kHz or less. They're numbered from 0 in each call. `call.hush` means she stopped mid-line: drop whatever hasn't played.
+  - A PC that lists `hush` voices its answer to a line or message from a phone whose `call.start` had `hush: true` a sentence at a time: each sentence's parts go as soon as it's voiced, while the next is made, so a pause can come between them. Other phones get each answer's parts at once.
+- **Interrupt:** the phone's `call.hush` stops her answer to `re` on the PC at once, with whatever of it is still to be voiced or sent, and the PC answers with its own `call.hush`. If she's saying something else by then, nothing changes and nothing comes back. A `call.hush` without a good `re` gets `bad-message`. Either way the phone drops her voice until it pauses for a second or the PC's `call.hush` comes. A PC that doesn't list `hush` never gets `call.hush`: the phone only drops her voice itself.
 - **What it carries**, measured through the relay on a drawn 1920x1080 desktop with a 1280x720 view (sealed messages, so base64url and envelopes included; real screens vary):
 
   | Picture | Typing | Scrolling | Video |

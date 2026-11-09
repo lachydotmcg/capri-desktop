@@ -17,6 +17,8 @@
 .native-row .nbtn[hidden] { display: none; }
 .native-sheet .card-note { margin: 0 0 12px; }
 .native-sheet .native-home { margin-top: 10px; }
+.native-sheet .native-over { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.native-sheet .native-over[aria-pressed="false"] .tag { color: var(--faint); }
 .native-sheet .native-done { margin-top: 18px; }
 .native-or { margin: 16px 0 8px; color: var(--faint); font: 600 12px/1 var(--ui); font-stretch: 87.5%; letter-spacing: .12em; text-transform: uppercase; text-align: center; }
 .native-start { margin-bottom: 10px; }
