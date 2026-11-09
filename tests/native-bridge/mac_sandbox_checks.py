@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import signal
 import ssl
 import struct
 import subprocess
@@ -26,7 +27,7 @@ def load(name, path):
 
 
 sandbox = load('mac_sandbox', BRIDGE / 'mac_sandbox.py')
-with patch.dict(sys.modules, mac_process=Mock()):
+with patch.dict(sys.modules, mac_process=Mock(), mac_sandbox=sandbox):
     smoke = load('mac_sandbox_smoke_checks', BRIDGE / 'mac_smoke.py')
 
 
@@ -46,7 +47,8 @@ class MacSandboxChecks(unittest.TestCase):
         self.library.parent.mkdir(parents=True)
         self.library.touch()
         self.resolved = dict(executable=str(self.executable), launcher=str(self.launcher), base_prefix=str(self.prefix),
-                             prefixes={str(self.prefix)}, libraries={str(self.executable), str(self.library)})
+                             stdlib=str(self.prefix / 'lib/python3.15'), prefixes={str(self.prefix)},
+                             libraries={str(self.executable), str(self.library)})
 
     def macho(self, *commands, magic=0xfeedfacf):
         data = b''
@@ -210,6 +212,56 @@ class MacSandboxChecks(unittest.TestCase):
         self.assertNotIn('(subpath "/Library/Preferences")', text)
         self.assertNotIn('(allow file-write*', text)
 
+    def test_ancestor_directories_include_roots_and_resolved_aliases_without_file_leaves(self):
+        alias_file = self.root / 'aliases/bin/python3'
+        alias_directory = self.root / 'aliases/stdlib'
+        directory = self.prefix / 'lib/python3.15'
+        resolve = Path.resolve
+
+        def resolved(path, *args, **kwargs):
+            return {alias_file: self.executable, alias_directory: directory}.get(path, resolve(path, *args, **kwargs))
+
+        with patch.object(Path, 'resolve', resolved):
+            ancestors = sandbox.ancestor_directories((alias_file,), (alias_directory,))
+        for parent in (self.executable.parent, alias_file.parent, alias_directory, directory, self.root, Path(self.root.anchor)):
+            self.assertIn(str(parent), ancestors)
+        self.assertNotIn(str(self.executable), ancestors)
+        self.assertNotIn(str(alias_file), ancestors)
+        self.assertNotIn(str(directory / 'site-packages'), ancestors)
+
+    def test_production_ancestor_grants_are_read_only_directory_literals(self):
+        cwd, home, temporary = (self.root / name for name in ('cwd', 'home', 'temporary'))
+        with patch.object(Path, 'cwd', return_value=cwd), patch.object(Path, 'home', return_value=home), \
+                patch.dict(os.environ, TMPDIR=str(temporary)):
+            expected = sandbox.ancestor_directories((self.executable, self.launcher),
+                (self.resolved['stdlib'], cwd, home, temporary))
+            text = sandbox.profile({'/worker', '/account'}, set(), self.resolved)
+        grants = [line for line in text.splitlines() if line.startswith('(allow file-read-metadata file-read-data ')]
+        self.assertEqual(grants, ['(allow file-read-metadata file-read-data (literal ' + sandbox.quoted(path) + '))'
+                                 for path in sorted(expected)])
+        self.assertIn(str(Path(self.root.anchor)), expected)
+        for path in (cwd, home, temporary, self.executable.parent, Path(self.resolved['stdlib'])):
+            self.assertIn(str(path), expected)
+        for grant in grants:
+            self.assertNotIn('subpath', grant)
+            self.assertNotIn('file-write', grant)
+            self.assertNotIn('file-map-executable', grant)
+        self.assertNotIn('(allow file-read*)', text)
+
+    def test_runtime_keeps_measured_ancestors_when_the_confined_cwd_changes(self):
+        cwd, home, temporary = (self.root / name for name in ('bootstrap', 'home', 'temporary'))
+        with patch.object(Path, 'cwd', return_value=cwd), patch.object(Path, 'home', return_value=home), \
+                patch.dict(os.environ, TMPDIR=str(temporary)), patch('sysconfig.get_path', return_value=self.resolved['stdlib']):
+            resolved = self.measure()
+        self.assertEqual(resolved['stdlib'], self.resolved['stdlib'])
+        for path in (cwd, home, temporary, self.executable.parent, Path(self.resolved['stdlib'])):
+            self.assertIn(str(path), resolved['ancestors'])
+        confined = self.root / 'empty'
+        with patch.object(Path, 'cwd', return_value=confined):
+            text = sandbox.profile(set(), set(), resolved)
+        for path in (cwd, home, temporary, confined):
+            self.assertIn('(allow file-read-metadata file-read-data (literal ' + sandbox.quoted(path) + '))', text)
+
     def launch(self, kind, fail=False):
         worker = self.root / 'worker/worker.py'
         worker.parent.mkdir(exist_ok=True)
@@ -263,27 +315,146 @@ class MacSandboxChecks(unittest.TestCase):
                 sandbox.launch(SimpleNamespace(kind=kind, cache=None))
             execute.assert_not_called()
 
-    def test_denial_diagnostics_filter_the_interpreter_and_last_30_seconds(self):
-        output = '\n'.join('Sandbox deny ' + str(index) for index in range(12)).encode()
-        with patch.object(subprocess, 'run', return_value=SimpleNamespace(returncode=0, stdout=output, stderr=b'')) as run:
-            text = smoke.sandbox_failure('plan', self.resolved, -9)
-        self.assertIn('returncode=-9', text)
-        self.assertIn('interpreter=' + str(self.executable), text)
-        self.assertIn('sys.executable=' + str(self.launcher), text)
-        self.assertIn('base_prefix=' + str(self.prefix), text)
-        self.assertNotIn('Sandbox deny 3\n', text)
-        self.assertIn('Sandbox deny 11', text)
-        self.assertEqual(run.call_args.kwargs['timeout'], 20)
+    def denial_capture(self, show_control=True, stream_control=False, show_error=None, stream_error=None, query_exit=0,
+                       extra=b'', stream_extra=b''):
+        record, launch = self.captured_launch()
+        calls, controls = [], []
+
+        def bounded(command, **kwargs):
+            calls.append(('launch', command, kwargs))
+            if command[-2] == '/bin/cat':
+                controls.append(command)
+                self.assertTrue(Path(command[-1]).is_file())
+                self.assertEqual(command[:2], ['/usr/bin/sandbox-exec', '-p'])
+                self.assertEqual(command[2], '(version 1)\n(allow default)\n(deny file-read-data (literal '
+                                 + json.dumps(command[-1]) + '))')
+                return 400 + len(controls), 'exit=1'
+            self.assertEqual(command, [launch['path'], *launch['arguments'][1:]])
+            self.assertEqual(kwargs, dict(env=launch['environment'], cwd=launch['cwd']))
+            return 512, 'exit=-6'
+
+        def line(pid):
+            return ('Sandbox: cat(' + str(pid) + ') deny(1) file-read-data ' + controls[0][-1] + '\n').encode()
+
+        def show(command, **kwargs):
+            calls.append(('show', command, kwargs))
+            if show_error:
+                raise show_error
+            output = b'Timestamp Ty Process[PID:TID]\n' + extra
+            if show_control:
+                output += line(401)
+            return SimpleNamespace(returncode=query_exit, stdout=output, stderr=b'fixture log access denied')
+
+        def stream(command, **kwargs):
+            calls.append(('stream', command, kwargs))
+            if stream_error:
+                raise stream_error
+            process = Mock(returncode=-signal.SIGTERM)
+            process.poll.return_value = None
+
+            def terminate():
+                output = stream_extra + (line(402) if stream_control else b'')
+                kwargs['stdout'].write(output)
+            process.terminate.side_effect = terminate
+            return process
+
+        with patch.object(smoke, 'bounded_launch', side_effect=bounded) as bounded_mock, \
+                patch.object(subprocess, 'run', side_effect=show) as run, \
+                patch.object(subprocess, 'Popen', side_effect=stream) as popen, \
+                patch.object(smoke.time, 'sleep', side_effect=lambda seconds: calls.append(('sleep', seconds))):
+            text = smoke.sandbox_denials(self.resolved['executable'], record, 'fallback timestamp')
+        return text, calls, run, popen, bounded_mock
+
+    def test_denial_capture_uses_prelaunch_timestamp_and_proves_log_show_with_a_control(self):
+        text, calls, run, popen, _ = self.denial_capture(extra=b'Sandbox: Python(321) deny(1) file-read-data /outside/file\n')
+        self.assertIn('Denial control: seen via log show (exit=1)', text)
+        self.assertIn('file-read-data /outside/file', text)
+        popen.assert_not_called()
         command = run.call_args.args[0]
-        self.assertEqual(command[command.index('--last') + 1], '30s')
+        self.assertEqual(command[command.index('--start') + 1], '2026-11-10 12:34:56')
+        self.assertNotIn('--last', command)
+        self.assertEqual(run.call_args.kwargs['timeout'], 20)
         predicate = command[command.index('--predicate') + 1]
-        self.assertIn('process == "Python"', predicate)
-        self.assertIn('eventMessage CONTAINS "Python("', predicate)
-        self.assertIn('AND eventMessage CONTAINS[c] "deny"', predicate)
+        for expected in ('sender == "Sandbox"', 'subsystem == "com.apple.sandbox.reporting"', 'eventMessage CONTAINS "deny("'):
+            self.assertIn(expected, predicate)
+        self.assertNotIn('process ==', predicate)
+        self.assertEqual([call[0] for call in calls], ['launch', 'sleep', 'show'])
+        self.assertEqual(calls[1], ('sleep', 2))
+
+    def test_missing_show_control_starts_stream_before_the_control_and_confined_replay(self):
+        text, calls, run, popen, bounded = self.denial_capture(show_control=False, stream_control=True,
+            stream_extra=b'Sandbox: renamed(512) deny(1) file-read-xattr /root/alias\n')
+        self.assertIn('seen via log stream (log show unseen; exit=1)', text)
+        self.assertIn('file-read-xattr /root/alias', text)
+        self.assertEqual(bounded.call_count, 3)
+        popen.assert_called_once()
+        self.assertEqual([call[0] for call in calls], ['launch', 'sleep', 'show', 'stream', 'sleep', 'launch', 'launch', 'sleep'])
+        self.assertEqual(calls[-1], ('sleep', 2))
+        self.assertEqual(run.call_args.args[0][-1], popen.call_args.args[0][-1])
+
+    def test_unobservable_control_is_explicit_even_if_python_denials_are_present(self):
+        text, _, _, _, _ = self.denial_capture(show_control=False, stream_control=False,
+            extra=b'Sandbox: Python(321) deny(1) file-read-data /missing\n')
+        self.assertIn('not seen via log show or log stream', text)
+        self.assertIn('file-read-data /missing', text)
+
+    def test_denied_operations_deduplicate_every_operation_and_path_and_filter_child_identity(self):
+        output = ('Sandbox: Python(999) deny(1) file-read-data /first\n' * 5
+            + 'Sandbox: shim(321) deny(2) file-read-xattr /first\n'
+            + 'Sandbox: shim(321) deny(1) file-read-data /second\n'
+            + 'Sandbox: other(3210) deny(1) file-read-data /unrelated\n'
+            + '12:34:56.321 Sandbox: other(999) deny(1) file-read-data /unrelated-time\n'
+            + 'Sandbox: Python(321) allowed /ignored\n').encode()
+        self.assertEqual(smoke.denied_operations(output, (321,)),
+            [('file-read-data', '/first'), ('file-read-xattr', '/first'), ('file-read-data', '/second')])
+        text, _, _, _, _ = self.denial_capture(extra=output, stream_extra=output)
+        self.assertEqual(text.count('file-read-data /first'), 1)
+        self.assertIn('file-read-xattr /first', text)
+        self.assertIn('file-read-data /second', text)
+        self.assertNotIn('/unrelated', text)
+
+    def test_denial_limits_preserve_control_status_and_report_distinct_omissions(self):
+        output = '\n'.join(f'Sandbox: Python(321) deny(1) file-read-data /file{index}' for index in range(100)).encode()
+        text, _, _, _, _ = self.denial_capture(extra=output)
+        self.assertLessEqual(len(text), 900)
+        self.assertIn('seen via log show', text)
+        self.assertIn('distinct denials truncated/omitted', text)
+        self.assertIn('file-read-data /file0', text)
+
+    def test_log_errors_and_partial_timeout_denials_survive_a_failed_stream(self):
+        for error in (OSError('fixture log denied'), subprocess.TimeoutExpired('log', 20,
+                output=b'Sandbox: Python(321) deny(1) file-read-data /partial\n')):
+            with self.subTest(error=error):
+                text, _, _, _, _ = self.denial_capture(show_error=error, stream_error=OSError('no log stream'))
+            self.assertIn('not seen via log show or log stream', text)
+            self.assertIn('Log show: ' + type(error).__name__, text)
+            self.assertIn('Log stream: OSError', text)
+            if isinstance(error, subprocess.TimeoutExpired):
+                self.assertIn('file-read-data /partial', text)
+
+    def test_denial_query_nonzero_status_is_retained_with_its_events(self):
+        text, _, _, _, _ = self.denial_capture(query_exit=71,
+            extra=b'Sandbox: Python(321) deny(1) file-read-data /fixture\n')
+        self.assertIn('Log query exited 71: fixture log access denied', text)
+        self.assertIn('file-read-data /fixture', text)
+
+    def test_control_and_stream_replays_have_a_two_second_process_bound(self):
+        for timeout in (False, True):
+            process = Mock(pid=123, returncode=1)
+            process.__enter__ = Mock(return_value=process)
+            process.__exit__ = Mock(return_value=False)
+            process.communicate.side_effect = [subprocess.TimeoutExpired('cat', 2), (b'', b'')] if timeout else None
+            with self.subTest(timeout=timeout), patch.object(subprocess, 'Popen', return_value=process):
+                pid, state = smoke.bounded_launch(['/bin/cat', '/fixture'])
+            self.assertEqual(pid, 123)
+            self.assertEqual(state, 'timeout' if timeout else 'exit=1')
+            self.assertTrue(all(call.kwargs['timeout'] == 2 for call in process.communicate.call_args_list))
+            self.assertEqual(process.kill.call_count, int(timeout))
 
     def test_diagnostic_errors_do_not_hide_the_confined_launch_failure(self):
         for error in (OSError('fixture log denied'), subprocess.TimeoutExpired('log', 2)):
-            with self.subTest(error=error), patch.object(subprocess, 'run', side_effect=error):
+            with self.subTest(error=error), patch.object(subprocess, 'run', side_effect=error), \
+                    patch.object(subprocess, 'Popen', side_effect=error), patch.object(smoke.time, 'sleep'):
                 text = smoke.sandbox_failure('account', self.resolved, 71, b'', b'fixture error')
                 self.assertIn('returncode=71', text)
                 self.assertIn('fixture error', text)
@@ -309,7 +480,9 @@ class MacSandboxChecks(unittest.TestCase):
         record = record or self.root / 'sandbox-launch.json'
         launch = dict(path='/usr/bin/sandbox-exec', arguments=['sandbox-exec', '-p', '(version 1)\n(deny default)',
             str(self.executable), '-B', '-E', '-s', '-u', '/fixture/worker.py'],
-            environment={'HOME': '/var/empty', '__PYVENV_LAUNCHER__': str(self.launcher)}, cwd='/var/empty')
+            environment={'HOME': '/var/empty', '__PYVENV_LAUNCHER__': str(self.launcher)}, cwd='/var/empty',
+            pid=321, started='2026-11-10 12:34:56', stdlib=self.resolved['stdlib'],
+            home=str(self.root / 'home'), temporary=str(self.root / 'temporary'))
         record.write_text(json.dumps(launch), encoding='utf-8')
         return record, launch
 
@@ -342,6 +515,9 @@ class MacSandboxChecks(unittest.TestCase):
 
         with patch.object(sys, 'argv', ['-c', str(record), script, '--kind', 'plan']), \
                 patch.object(sys, 'path', list(sys.path)), patch.object(os, 'getcwd', return_value='/var/empty'), \
+                patch.object(os, 'getpid', return_value=321), patch.object(smoke.time, 'strftime', return_value=launch['started']), \
+                patch('sysconfig.get_path', return_value=launch['stdlib']), patch.object(os.path, 'expanduser', return_value=launch['home']), \
+                patch.dict(os.environ, TMPDIR=launch['temporary']), \
                 patch.object(os, 'execve', side_effect=SystemExit(0)) as execute, patch.object(runpy, 'run_path', side_effect=main):
             with self.assertRaises(SystemExit):
                 exec(smoke.CAPTURE_LAUNCH, {})
@@ -413,13 +589,13 @@ class MacSandboxChecks(unittest.TestCase):
             def run(command, **kwargs):
                 result = probe(command, **kwargs)
                 if not all_work or result.stdout:
-                    now[0] = 31
+                    now[0] = 121
                 return result
 
             with self.subTest(all_work=all_work), patch.object(smoke.time, 'monotonic', side_effect=lambda: now[0]), \
                     patch.object(subprocess, 'run', side_effect=run) as execute:
                 text = smoke.sandbox_bisect(record)
-            self.assertIn('30 s budget', text)
+            self.assertIn('120 s budget', text)
             self.assertNotIn('Smallest startup allowance:', text)
             self.assertEqual(execute.call_count, 9 if all_work else 1)
             if all_work:
@@ -461,7 +637,7 @@ class MacSandboxChecks(unittest.TestCase):
             text = smoke.sandbox_bisect(record)
         self.assertIn('Smallest tested startup path set:\n(allow file-read* (literal "' + required + '"))', text)
         self.assertNotIn('(subpath "/Users/runner")', text)
-        self.assertEqual(run.call_count, 8)
+        self.assertEqual(run.call_count, 11)
 
     def test_path_bisection_splits_a_working_subtree_and_keeps_multiple_required_files(self):
         record, launch = self.captured_launch()
@@ -503,14 +679,15 @@ class MacSandboxChecks(unittest.TestCase):
         def run(command, **kwargs):
             result = probe(command, **kwargs)
             if '(subpath "/Library")' in command[2]:
-                now[0] = 31
+                now[0] = 121
             return result
 
         with patch.object(smoke, 'startup_paths', return_value=(('subpath', '/Library'),)), \
+                patch.object(smoke, 'startup_ancestors', return_value=(('literal', '/'),)), \
                 patch.object(smoke.time, 'monotonic', side_effect=lambda: now[0]), \
                 patch.object(subprocess, 'run', side_effect=run) as execute:
             text = smoke.sandbox_bisect(record)
-        self.assertIn('Working startup path set (unresolved: 30 s budget)', text)
+        self.assertIn('Working startup path set (unresolved: 120 s budget)', text)
         self.assertIn('(allow file-read* (subpath "/Library"))', text)
         self.assertNotIn('Smallest tested', text)
         self.assertEqual(execute.call_count, 8)
@@ -568,11 +745,125 @@ class MacSandboxChecks(unittest.TestCase):
     def test_path_bisection_reports_when_listed_roots_do_not_cover_the_missing_read(self):
         record, launch = self.captured_launch()
         with patch.object(smoke, 'startup_paths', return_value=(('subpath', '/Library'), ('subpath', '/usr'))), \
+                patch.object(smoke, 'path_children', side_effect=OSError('root unreadable')), \
                 patch.object(subprocess, 'run', side_effect=self.path_probe(launch, ['/unlisted/needed'])):
             text = smoke.sandbox_bisect(record)
-        self.assertIn('listed roots did not reproduce startup', text)
+        self.assertIn('listed roots failed; splitting /', text)
+        self.assertIn('unreadable or oversized directory', text)
         self.assertIn('(allow file-read* (subpath "/"))', text)
         self.assertNotIn('Smallest tested', text)
+
+    def test_root_split_reduces_unlisted_roots_and_descends_with_other_paths_fixed(self):
+        record, launch = self.captured_launch()
+        required = ['/', '/bin/needed', '/.vol/required']
+        tree = {'/': (('literal', '/'), ('subpath', '/bin'), ('subpath', '/.vol'), ('literal', '/.file'),
+                      ('literal', '/.nofollow'), ('literal', '/.resolve'), ('subpath', '/sbin'),
+                      ('subpath', '/cores'), ('literal', '/home'), ('subpath', '/Network'), ('subpath', '/AppleInternal')),
+                '/bin': (('literal', '/bin'), ('literal', '/bin/needed'), ('literal', '/bin/unused')),
+                '/.vol': (('literal', '/.vol'), ('literal', '/.vol/required'), ('literal', '/.vol/unused'))}
+        with patch.object(smoke, 'startup_paths', return_value=(('subpath', '/Library'), ('subpath', '/usr'))), \
+                patch.object(smoke, 'startup_ancestors', return_value=(('literal', '/'),)), \
+                patch.object(smoke, 'path_children', side_effect=tree.__getitem__) as children, \
+                patch.object(subprocess, 'run', side_effect=self.path_probe(launch, required)):
+            text = smoke.sandbox_bisect(record)
+        self.assertIn('listed roots failed; splitting /', text)
+        self.assertIn('Smallest tested startup path set:', text)
+        self.assertIn('cwd="/var/empty"', text)
+        for path in required:
+            self.assertIn(smoke.path_rule(('literal', path)), text)
+        self.assertNotIn('(subpath ', text)
+        self.assertEqual({call.args[0] for call in children.call_args_list}, set(tree))
+
+    def test_early_ancestor_union_reduces_missing_parents_to_literals(self):
+        record, launch = self.captured_launch()
+        required = ['/opt', '/Users', '/private']
+        with patch.object(smoke, 'startup_paths', return_value=(('subpath', '/Library'), ('subpath', '/usr'))), \
+                patch.object(smoke, 'startup_ancestors', return_value=tuple(('literal', path) for path in ['/', *required])), \
+                patch.object(smoke, 'path_children', side_effect=AssertionError('Only parent literals are needed')), \
+                patch.object(subprocess, 'run', side_effect=self.path_probe(launch, required)) as run:
+            text = smoke.sandbox_bisect(record)
+        self.assertIn('listed roots+ancestors=started/exit=1', text)
+        self.assertIn('Smallest tested startup path set:', text)
+        for path in required:
+            self.assertIn(smoke.path_rule(('literal', path)), text)
+        self.assertNotIn('(subpath ', text)
+        for operation in ('file-read-metadata', 'file-read-xattr'):
+            probe = next(call.args[0][2] for call in run.call_args_list
+                         if call.args[0][2].endswith('(allow ' + operation + ')') and '(subpath "/Library")' in call.args[0][2])
+            self.assertIn('(subpath "/usr")', probe)
+            self.assertNotIn('(literal "/opt")', probe)
+
+    def test_early_global_xattr_probe_reports_success_and_root_search_still_isolates_the_path(self):
+        record, launch = self.captured_launch()
+        probe = self.path_probe(launch, ['/unlisted/required'])
+
+        def run(command, **kwargs):
+            if '(allow file-read-xattr)' in command[2]:
+                return SimpleNamespace(returncode=1, stdout=smoke.STARTED + b'\n', stderr=b'')
+            return probe(command, **kwargs)
+
+        tree = {'/': (('literal', '/'), ('subpath', '/unlisted')),
+                '/unlisted': (('literal', '/unlisted'), ('literal', '/unlisted/required'))}
+        with patch.object(smoke, 'startup_paths', return_value=(('subpath', '/Library'),)), \
+                patch.object(smoke, 'startup_ancestors', return_value=(('literal', '/'),)), \
+                patch.object(smoke, 'path_children', side_effect=tree.__getitem__), \
+                patch.object(subprocess, 'run', side_effect=run):
+            text = smoke.sandbox_bisect(record)
+        self.assertIn('roots+file-read-xattr=started/exit=1', text)
+        self.assertIn('roots+file-read-metadata=exit=-6', text)
+        self.assertIn('Smallest tested startup path set:\n' + smoke.path_rule(('literal', '/unlisted/required')), text)
+
+    def test_replay_ancestors_use_the_captured_interpreter_stdlib_cwd_home_and_tmpdir(self):
+        _, launch = self.captured_launch()
+        expected = sandbox.ancestor_directories((launch['arguments'][3], launch['environment']['__PYVENV_LAUNCHER__']),
+            (launch['stdlib'], launch['cwd'], launch['home'], launch['temporary'], launch['environment']['HOME']))
+        with patch.object(Path, 'home', return_value=self.root / 'different-user'), \
+                patch.dict(os.environ, TMPDIR=str(self.root / 'different-temp')):
+            paths = smoke.startup_ancestors(launch)
+        self.assertEqual(paths, tuple(('literal', path) for path in sorted(expected)))
+
+    def test_root_split_includes_hidden_files_symlinks_and_resolved_targets_using_only_names_and_types(self):
+        entries = Mock()
+        entries.__enter__ = Mock(return_value=[
+            SimpleNamespace(path='/bin', is_dir=lambda **kwargs: True, is_symlink=lambda: False),
+            SimpleNamespace(path='/.vol', is_dir=lambda **kwargs: True, is_symlink=lambda: False),
+            SimpleNamespace(path='/.resolve', is_dir=lambda **kwargs: False, is_symlink=lambda: False),
+            SimpleNamespace(path='/etc', is_symlink=lambda: True),
+            SimpleNamespace(path='/tmp', is_symlink=lambda: True),
+            SimpleNamespace(path='/var', is_symlink=lambda: True),
+        ])
+        entries.__exit__ = Mock(return_value=False)
+        targets = {'/etc': '/private/etc', '/tmp': '/private/tmp', '/var': '/private/var'}
+
+        class Target:
+            def __init__(self, value):
+                self.value = value
+
+            def resolve(self):
+                return self
+
+            def is_dir(self):
+                return True
+
+            def __str__(self):
+                return targets[self.value]
+
+        with patch.object(os, 'scandir', return_value=entries), patch.object(smoke, 'Path', Target):
+            children = smoke.path_children('/')
+        expected = {('literal', '/'), ('subpath', '/bin'), ('subpath', '/.vol'), ('literal', '/.resolve')}
+        expected.update(('literal', alias) for alias in targets)
+        expected.update(('subpath', target) for target in targets.values())
+        self.assertEqual(set(children), expected)
+        for alias in targets:
+            self.assertNotIn(('subpath', alias), children)
+
+    def test_shared_search_budget_and_outer_mac_smoke_timeouts_allow_the_new_diagnostic(self):
+        self.assertEqual(smoke.DIAGNOSTIC_SECONDS, 120)
+        root = BRIDGE.parents[1]
+        self.assertIn('process.WaitForExit(240000)', (root / 'cross/Smoke.cs').read_text(encoding='utf-8'))
+        for name, count in (('mac-linux.yml', 2), ('ci.yml', 1)):
+            workflow = (root / '.github/workflows' / name).read_text(encoding='utf-8')
+            self.assertEqual(workflow.count('timeout-minutes: 8'), count)
 
     def test_path_bisection_retains_a_proven_set_when_narrow_rules_exceed_the_report_limit(self):
         record, launch = self.captured_launch()
@@ -593,7 +884,7 @@ class MacSandboxChecks(unittest.TestCase):
         self.assertEqual(set(children), {('literal', str(directory)), ('literal', str(directory / 'data')),
                                         ('subpath', str(directory / 'nested'))})
         entries = Mock()
-        entries.__enter__ = Mock(return_value=[SimpleNamespace(path='x', is_dir=lambda: False)] * 2048)
+        entries.__enter__ = Mock(return_value=[SimpleNamespace(path='x', is_dir=lambda **kwargs: False, is_symlink=lambda: False)] * 2048)
         entries.__exit__ = Mock(return_value=False)
         with patch.object(os, 'scandir', return_value=entries), self.assertRaises(ValueError):
             smoke.path_children('/wide')
@@ -601,7 +892,7 @@ class MacSandboxChecks(unittest.TestCase):
     def test_path_split_supports_large_homebrew_library_directories(self):
         entries = Mock()
         entries.__enter__ = Mock(return_value=[SimpleNamespace(path='/opt/homebrew/lib/library' + str(index) + '.dylib',
-            is_dir=lambda: False) for index in range(512)])
+            is_dir=lambda **kwargs: False, is_symlink=lambda: False) for index in range(512)])
         entries.__exit__ = Mock(return_value=False)
         with patch.object(os, 'scandir', return_value=entries):
             children = smoke.path_children('/opt/homebrew/lib')
@@ -660,15 +951,15 @@ class MacSandboxChecks(unittest.TestCase):
 
     def test_failure_report_is_bounded_and_keeps_log_errors_and_original_status(self):
         resolved = {name: 'x' * 4000 for name in ('executable', 'launcher', 'base_prefix')}
-        result = SimpleNamespace(returncode=71, stdout=b'Sandbox deny file-read-data /fixture\n' * 200,
-                                 stderr=b'fixture log access denied')
-        with patch.object(subprocess, 'run', return_value=result):
+        denials, _, _, _, _ = self.denial_capture(query_exit=71,
+            extra=b'Sandbox: Python(321) deny(1) file-read-data /fixture\n' * 200)
+        with patch.object(smoke, 'sandbox_denials', return_value=denials):
             text = smoke.sandbox_failure('plan', resolved, -6, b'x' * 20000, b'y' * 20000)
         self.assertLessEqual(len(text), 3000)
         self.assertIn('returncode=-6', text)
         self.assertIn('Log query exited 71', text)
         self.assertIn('fixture log access denied', text)
-        self.assertIn('Sandbox deny file-read-data /fixture', text)
+        self.assertIn('file-read-data /fixture', text)
 
     def test_successful_bisection_preserves_the_original_smoke_failure(self):
         with tempfile.TemporaryDirectory(dir=self.root) as temporary:

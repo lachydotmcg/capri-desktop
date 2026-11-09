@@ -100,9 +100,23 @@ def library_paths(images, commands):
     return paths
 
 
+def ancestor_directories(files=(), directories=()):
+    result = set()
+    for values, is_directory in ((files, False), (directories, True)):
+        for value in values:
+            if not value:
+                continue
+            path = Path(value).absolute()
+            for candidate in (path, path.resolve()):
+                directory = candidate if is_directory else candidate.parent
+                result.update(str(parent) for parent in (directory, *directory.parents))
+    return result
+
+
 def runtime():
     import ctypes
     import ssl
+    import sysconfig
 
     dyld = ctypes.CDLL(None)
     dyld._dyld_image_count.argtypes = []
@@ -122,8 +136,11 @@ def runtime():
     broad = {Path(value).resolve() for value in ('/', '/Users', '/tmp', '/private/tmp', '/usr', '/usr/local', '/opt', '/opt/homebrew', '/Library', '/private', '/var')}
     if not images or not images[0].is_file() or prefixes & (broad | {Path.home().resolve()}):
         raise ValueError('Runtime reference is too broad or missing')
-    return dict(executable=str(images[0].resolve()), launcher=str(executable), base_prefix=sys.base_prefix,
-                prefixes={str(path) for path in prefixes}, libraries=library_paths(images, commands))
+    stdlib = sysconfig.get_path('stdlib')
+    ancestors = ancestor_directories((images[0], executable),
+        (stdlib, Path.cwd(), Path.home(), os.environ.get('TMPDIR', '')))
+    return dict(executable=str(images[0].resolve()), launcher=str(executable), base_prefix=sys.base_prefix, stdlib=stdlib,
+                ancestors=ancestors, prefixes={str(path) for path in prefixes}, libraries=library_paths(images, commands))
 
 
 def profile(reads, writes, runtime=None):
@@ -166,6 +183,11 @@ def profile(reads, writes, runtime=None):
     for path in sorted(writes):
         rules.append('(allow file-write* (subpath ' + quoted(path) + '))')
     if runtime is not None:
+        ancestors = set(runtime.get('ancestors', ())) | ancestor_directories(
+            (runtime['executable'], runtime['launcher']),
+            (runtime.get('stdlib', runtime['base_prefix']), Path.cwd(), Path.home(), os.environ.get('TMPDIR', '')))
+        for path in sorted(ancestors):
+            rules.append('(allow file-read-metadata file-read-data (literal ' + quoted(path) + '))')
         rules.append('(allow process-exec (literal ' + quoted(runtime['executable']) + '))')
         for path in sorted(runtime['prefixes']):
             rules.append('(allow file-read* file-map-executable (subpath ' + quoted(path) + '))')

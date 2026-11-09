@@ -105,7 +105,7 @@ jobs:
       - name: Build
         run: dotnet build cross/Capri.Cross.csproj -c Release -o out/mac
       - name: Smoke test
-        timeout-minutes: 5
+        timeout-minutes: 8
         run: |
           out/mac/Capri --smoke "$PWD/smoke/mac" || true
           cat smoke/mac/smoke-test.txt

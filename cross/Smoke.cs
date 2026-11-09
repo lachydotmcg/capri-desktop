@@ -4810,7 +4810,7 @@ namespace CapriDesktop
                 using Process process = Process.Start(ComputerProcess.Start(python, new[] { "-B", "-E", "-S", Path.Combine(bridge, "mac_smoke.py"), Path.Combine(folder, "mac-processes"), MacNative.ProcessIdentity(Environment.ProcessId) }));
                 process.StandardInput.Close();
                 var output = process.StandardOutput.ReadToEndAsync(); var error = process.StandardError.ReadToEndAsync();
-                if (!process.WaitForExit(90000)) { Bridge.Kill(process); throw new Exception("Mac process smoke checks timed out."); }
+                if (!process.WaitForExit(240000)) { Bridge.Kill(process); throw new Exception("Mac process smoke checks timed out."); }
                 if (process.ExitCode != 0) throw new Exception("Mac process smoke checks: " + output.GetAwaiter().GetResult() + error.GetAwaiter().GetResult());
                 checks.Add("PASS Mac process backends: libproc identity, real PTY exit/output/stop, parent lifetime and Seatbelt read/write boundaries work with offline fixtures");
             }

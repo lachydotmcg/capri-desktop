@@ -16,7 +16,10 @@ with patch.object(ctypes, 'CDLL', return_value=Mock()):
     spec.loader.exec_module(mac)
 smoke_spec = importlib.util.spec_from_file_location('mac_smoke', Path(spec.origin).with_name('mac_smoke.py'))
 smoke = importlib.util.module_from_spec(smoke_spec)
-with patch.dict(sys.modules, mac_process=mac):
+sandbox_spec = importlib.util.spec_from_file_location('mac_sandbox', Path(spec.origin).with_name('mac_sandbox.py'))
+sandbox = importlib.util.module_from_spec(sandbox_spec)
+sandbox_spec.loader.exec_module(sandbox)
+with patch.dict(sys.modules, mac_process=mac, mac_sandbox=sandbox):
     smoke_spec.loader.exec_module(smoke)
 
 
