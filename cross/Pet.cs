@@ -4166,8 +4166,9 @@ namespace CapriDesktop
                 // A code mod can change or take what they said first, like on Windows.
                 string sent = ModsSending(text);
                 if (sent == null) return;
+                bool fromMod = modSendDepth > 0 || sent != text;
                 text = sent;
-                if (modSendDepth > 0) Security.ModSaid(text); else Security.TheySaid();
+                if (fromMod) Security.ModSaid(text); else Security.TheySaid();
             }
             ModList.LogHearing(text, true);
             Typed();
