@@ -22,7 +22,14 @@ namespace CapriDesktop
         [DataMember(Name = "sounds_like")] public bool SoundsLike;
         [DataMember(Name = "hearing_log")] public bool HearingLog;
         [DataMember(Name = "colors")] public ModColors Colors;
+        [DataMember(Name = "accessory")] public bool Accessory;
+        // What accessories were called before they had a name of their own.
+        [DataMember(Name = "overlay")] public bool Overlay;
         internal bool Intro;
+        internal string[] Permissions = new string[0];
+        // A code mod's // requires: line: the mod API it needs, and other mods that must be installed and on.
+        internal int NeedsApi;
+        internal string[] Requires = new string[0];
         internal string[] Games;
         internal string Know;
     }
@@ -54,15 +61,6 @@ namespace CapriDesktop
 
     internal sealed partial class Mods
     {
-#if CROSS
-        internal const string CodeExtension = ".capri-code";
-        internal const string WindowsOnly = "Windows only for now";
-
-        private Mod LoadCode(string file, HashSet<string> off) { throw new ModException(WindowsOnly); }
-        private Mod ImportCode(string file, Func<ModFile, string, bool> ask, HashSet<string> keepOff = null) { throw new ModException(WindowsOnly); }
-        private bool SetCode(Mod mod, bool on, Func<ModFile, string, bool> ask) { throw new ModException(WindowsOnly); }
-        private void RemoveCode(Mod mod) { }
-#endif
         internal const string Extension = ".capri-mod";
         internal const int Format = 1;
         private const int Largest = 64 * 1024;
@@ -76,6 +74,10 @@ namespace CapriDesktop
         private readonly string folder;
         private volatile Regex called;
         private volatile string note = "";
+        // What running code mods add to her personality, after her own rules.
+        internal volatile string ModNotes = "";
+        // What running code mods tell her fresh each message, like the weather or a timer's time left.
+        internal Func<string> ModContext;
         private volatile SoundsLike sounds;
         private volatile bool logging;
 
@@ -90,7 +92,11 @@ namespace CapriDesktop
                 SoundsLike like = sounds;
                 return names != null && names.IsMatch(words ?? "") || like != null && like.Hears(words);
             };
-            Hands.AlsoCalled = delegate { return note; };
+            Hands.AlsoCalled = delegate
+            {
+                Func<string> context = ModContext;
+                return note + ModNotes + (context == null ? "" : context());
+            };
             Load();
         }
 
@@ -167,7 +173,7 @@ namespace CapriDesktop
         internal Mod Import(string file, Func<ModFile, string, bool> ask, HashSet<string> keepOff = null)
         {
             if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) return ImportCode(file, ask, keepOff);
-            if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkin(file);
+            if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkin(file, keepOff == null);
             if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkill(file);
             string text;
             try
@@ -325,8 +331,12 @@ namespace CapriDesktop
 
         internal string LogPath { get { return Path.Combine(folder, LogFile); } }
 
+        internal Action<string, bool> HeardSpeech;
+
         internal void LogHearing(string heard, bool forHer)
         {
+            Action<string, bool> tell = HeardSpeech;
+            if (tell != null) tell(heard, forHer);
             if (!logging) return;
             try
             {

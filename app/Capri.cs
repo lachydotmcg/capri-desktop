@@ -1450,6 +1450,7 @@ namespace CapriDesktop
         internal int Count { get { return source != null ? source.Count : Old ? oldCount : count; } }
         internal double Fps { get { return source != null ? source.Fps : Old ? oldFps : fps; } }
         internal readonly float Height;
+        internal string Title { get { return name; } }
         // How far a cell's middle sits from the middle of her square, as a share of her size. Narrow cells cut to the art need it.
         internal float ShiftX { get { return source != null ? source.ShiftX : Old ? 0 : shiftX; } }
         internal float ShiftY { get { return source != null ? source.ShiftY : Old ? 0 : shiftY; } }
@@ -2594,6 +2595,7 @@ namespace CapriDesktop
             ModList = new Mods(data);
             GameNotes.Skills = ModList.SkillsFor;
             ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
+            ModList.HeardSpeech = ModsHeard;
             ModList.SkinChanged = Reskinned;
             ArtAtStart();
             Shown += delegate { ModList.StartCode(Post); };
@@ -2616,6 +2618,7 @@ namespace CapriDesktop
             brain.Act = delegate(string tool, ToolArguments args)
             {
                 string result = DoTool(tool, args);
+                ModsToolUsed(tool, result);
                 return tool == "clip" && result != null && result.StartsWith("Saved ", StringComparison.Ordinal) ? ClipBuffer.Spoken(result) + " The CLIP SAVED popup shows where it went." : result;
             };
             brain.OwnSteps = !testing;
@@ -2752,6 +2755,7 @@ namespace CapriDesktop
                 if (!testing && background) CheckSulk(signalNow);
                 if (!testing) CheckMusic(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckPlayer(clock.Elapsed.TotalSeconds);
+                if (!testing) CheckModMusic(clock.Elapsed.TotalSeconds);
                 if (!testing && background) CheckHome(clock.Elapsed.TotalSeconds);
                 if (!testing && background) CheckLag(clock.Elapsed.TotalSeconds);
                 CheckGame(clock.Elapsed.TotalSeconds);
@@ -3041,12 +3045,15 @@ namespace CapriDesktop
         {
             string stand = Mods.StandArt(name, LegacyArt);
             Bitmap skinned = (stand != name ? SkinArt(stand) : null) ?? SkinArt(name);
-            if (skinned != null) return skinned;
+            if (skinned != null) using (Bitmap layered = Dressed(skinned, name)) return Finished(layered);
             using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream(Mods.StandArt(name, LegacyArt)))
             {
                 if (image == null) return null;
                 using (Bitmap original = new Bitmap(image))
-                    return Finished(original);
+                {
+                    if (SkinAccessories.Length == 0) return Finished(original);
+                    using (Bitmap layered = Dressed(new Bitmap(original), name)) return Finished(layered);
+                }
             }
         }
 
@@ -4115,6 +4122,7 @@ namespace CapriDesktop
         {
             if (preferences.Hologram) return;
             EndWalk();
+            ModsPatted();
             // A head pat makes up with her when she's sulking over being thrown, and her pat line says so (Zr4, F44).
             patForgives = Sulking;
             Forgive();
@@ -4340,6 +4348,7 @@ namespace CapriDesktop
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == HideKeyId) { ToggleHidden(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == QuietKeyId) { ToggleShush(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == GameKeyId) { ToggleGaming(); return; }
+            if (message.Msg == 0x0312 && ModHotkey(message.WParam.ToInt32())) return;
             if (message.Msg == 0x02E0) { anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
             base.WndProc(ref message);
         }
@@ -4362,6 +4371,7 @@ namespace CapriDesktop
             if (!pendingClick) return;
             pendingClick = false;
             if (preferences.Hologram || hidden || riding || dragging || pressed) return;
+            ModsClicked();
             React();
         }
 
@@ -4855,7 +4865,7 @@ namespace CapriDesktop
         private void SecurityChecks(System.Collections.Generic.List<string> checks, string output)
         {
             Func<string> bits = delegate { System.Text.StringBuilder all = new System.Text.StringBuilder(); for (int i = 0; i < Security.Count; i++) all.Append(Security.On(i) ? '1' : '0'); return all.ToString(); };
-            string[] presetBits = { "0000000000001", "1110000000001", "1111111000001", "1111111111100" };
+            string[] presetBits = { "00000000000010", "11100000000010", "11111110000011", "11111111111001" };
             System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
             for (int preset = Security.Lockdown; preset <= Security.Blackwall; preset++)
             {
@@ -5136,8 +5146,8 @@ namespace CapriDesktop
             string at150 = mainframe.SecurityAt(1.5f / machine, Path.Combine(output, "security-150.png"));
             string at200 = mainframe.SecurityAt(2f / machine, Path.Combine(output, "security-200.png"));
             Security.Pick(Security.Trusted);
-            if (opened == null || !opened.StartsWith("Trusted | Trusted | 1111111000001 | She does what you ask", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 0111111000001 | Your own mix", StringComparison.Ordinal) || flippedSaved != "0111111000"
-                || !tapped.StartsWith("Trusted | Trusted | 1111111000001", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 0000000000001 | She asks first before she does anything", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 1111111111100 | She never asks", StringComparison.Ordinal) || !walledHey || !walledSettings || HeyCapriOn)
+            if (opened == null || !opened.StartsWith("Trusted | Trusted | 11111110000011 | She does what you ask", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 01111110000011 | Your own mix", StringComparison.Ordinal) || flippedSaved != "0111111000"
+                || !tapped.StartsWith("Trusted | Trusted | 11111110000011", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 00000000000010 | She asks first before she does anything", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 11111111111001 | She never asks", StringComparison.Ordinal) || !walledHey || !walledSettings || HeyCapriOn)
                 throw new Exception("The SECURITY window went wrong: " + opened + " // " + flipped + " // " + tapped + " // " + locked + " // " + walled + " // " + walledSettings);
             if (!friendRow) throw new Exception("The SECURITY friend request row did not toggle and save.");
             if (crowded != null || at100 != null || at150 != null || at200 != null) throw new Exception("The SECURITY window's layout doesn't fit: " + crowded + " / 100% " + at100 + " / 150% " + at150 + " / 200% " + at200);
@@ -5305,8 +5315,8 @@ namespace CapriDesktop
                 string at100 = mainframe.SecurityAt(1f / machine, Path.Combine(output, "security-privacy-100.png"));
                 string at150 = mainframe.SecurityAt(1.5f / machine, Path.Combine(output, "security-privacy-150.png"));
                 string at200 = mainframe.SecurityAt(2f / machine, Path.Combine(output, "security-privacy-200.png"));
-                if (opened == null || !opened.StartsWith("Trusted | Trusted | 1111111000001", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 1111111000000 | Your own mix", StringComparison.Ordinal) || flippedSaved != "111111100000"
-                    || !back.StartsWith("Trusted | Trusted | 1111111000001", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 1111111111100", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 0000000000001 | She asks first before she does anything on your PC.", StringComparison.Ordinal)
+                if (opened == null || !opened.StartsWith("Trusted | Trusted | 11111110000011", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 11111110000001 | Your own mix", StringComparison.Ordinal) || flippedSaved != "111111100000"
+                    || !back.StartsWith("Trusted | Trusted | 11111110000011", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 11111111111001", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 00000000000010 | She asks first before she does anything on your PC.", StringComparison.Ordinal)
                     || crowded != null || at100 != null || at150 != null || at200 != null)
                     throw new Exception("The SECURITY window's 13th row went wrong: " + opened + " // " + flipped + " (" + flippedSaved + ") // " + back + " // " + walled + " // " + locked + " // fit " + crowded + " / 100% " + at100 + " / 150% " + at150 + " / 200% " + at200);
                 checks.Add("PASS SECURITY window's 13th row: Keep personal details out of her memories sits under HER MEMORY, on for Trusted and Lockdown and off for Blackwall; a click makes it Custom and saves, a second puts Trusted back; and at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off (security-privacy-100.png, security-privacy-150.png, security-privacy-200.png)");
@@ -5557,6 +5567,9 @@ namespace CapriDesktop
 
         private string RunTool(string tool, ToolArguments args, int ticket, bool beside)
         {
+            // A code mod's ToolUsing can stop it before anything runs, and says why.
+            string vetoed = ModsVeto(tool, args);
+            if (vetoed != null) return vetoed;
             if (args != null && args.FromFriend && (!Hands.CallAllowed(tool, args) || args.Current == null || !args.Current())) return "That call request has ended.";
             if (CallModeOn && !CallHands(ticket)) return CallSession.Conversation;
             if (ticket == callUser && (ticket != asking || !callSession.Current(callUserVersion))) return "That call request has ended.";
@@ -7601,7 +7614,8 @@ namespace CapriDesktop
             ShowPlayer(tune, now);
         }
 
-        private bool PlayerAllowed { get { return !preferences.NoPlayer && !quitting && !docked && (!hidden || fullScreenHidden && !manualHidden && preferences.PlayerFullScreen); } }
+        // A code mod that shows its own player can keep hers away while it runs.
+        private bool PlayerAllowed { get { return !preferences.NoPlayer && !quitting && !docked && !PlayerReplaced && (!hidden || fullScreenHidden && !manualHidden && preferences.PlayerFullScreen); } }
 
         private void ShowPlayer(Tune tune, double now)
         {
@@ -8995,6 +9009,7 @@ namespace CapriDesktop
             using (Bitmap screen = !area.IsEmpty ? (InvokeRequired ? (Bitmap)Invoke(new Func<Rectangle, Bitmap>(CaptureScreen), area) : CaptureScreen(area)) : InvokeRequired ? (Bitmap)Invoke(new Func<Bitmap>(CaptureScreen)) : CaptureScreen())
             {
                 if (screen == null) return BlackScreen;
+                ModsLooked(screen);
                 shot = Jpeg(screen, 1280);
             }
             string seen;
@@ -9044,6 +9059,7 @@ namespace CapriDesktop
                 {
                     if (screen == null) { lastPrint = null; mainframe.ShowProblem(BlackScreen); return; }
                     if (!Changed(screen, lastGlance < 0 || now - lastGlance >= 300)) return;
+                    ModsLooked(screen);
                     shot = Jpeg(screen, 1280);
                 }
             }
@@ -9783,12 +9799,15 @@ namespace CapriDesktop
         // that job's, and SECURITY's own question is answered by its hold instead (RemoteJobCommand).
         private string ResumeJob(string text, Job expected)
         {
+            // A code mod's line never answers her either. Checked before Resume, which uses that line up. A phone's answer
+            // from JOBS never comes through chat.
+            bool fromMod = expected == null && Security.FromMod(text);
             // Her asking first for SECURITY: their yes runs what she held, and their no leaves it.
             string answered = expected == null ? Security.Resume(text, ResumeTool) : null;
             if (answered != null) return answered;
             Job waiting = job;
             if (expected != null && waiting != expected) return null;
-            if (waiting == null || !waiting.Asking) return null;
+            if (fromMod || waiting == null || !waiting.Asking) return null;
             string said = text.Trim();
             if (Regex.IsMatch(Hands.Asked(said), @"^(yes|yeah|yep|yup|ya|yea|sure|ok|okay|do it|go ahead|go for it|send it|press it|oui)\b[\s.!,]*(please|pls|plz|choom)?[\s.!]*$", RegexOptions.IgnoreCase))
             {
@@ -13802,7 +13821,15 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
-            Func<int, string> callReply = prompt == "> you: " ? FriendAnswer(text) : null;
+            if (prompt == "> you: " && switches == 0)
+            {
+                string sent = ModsSending(text);
+                if (sent == null) return;
+                bool fromMod = modSendDepth > 0 || sent != text;
+                text = sent;
+                if (fromMod) Security.ModSaid(text); else Security.TheySaid();
+            }
+            Func<int, string> callReply = prompt == "> you: " && !Security.FromMod(text) ? FriendAnswer(text) : null;
             int callVersion = (callInput || prompt == "> you: ") && CallModeOn ? callSession.Generation : -1;
             string callContext = callVersion < 0 ? null : callSession.Context(callVersion);
             if (callVersion >= 0 && callHeard != null) callContext += "\nHeard this turn, in order. Only the user's words authorize this request.\n" + CallSession.Labels(callHeard);
@@ -13875,7 +13902,7 @@ namespace CapriDesktop
             string quick;
             ToolArguments quickArgs;
             // Their yes or no to her asking first (SECURITY) works before she has a brain too; anything else drops what she held.
-            if (think == null && brain.Model == null && Security.Holding != null)
+            if (think == null && brain.Model == null && Security.Holding != null && !Security.FromMod(text))
             {
                 if (Security.Agrees(text) || Security.Declines(text)) think = delegate { return Security.Resume(text, ResumeTool) ?? Security.Left; };
                 else Security.Drop();
@@ -13967,6 +13994,7 @@ namespace CapriDesktop
             if (thought) thoughtTicket = ticket;
             else said = Own(said);
             said = CallLine(ticket, said);
+            if (state != TalkState.Dormant) said = ModsReplying(said ?? "", ticket == remarkTicket ? "remark" : "reply");
             // Each answer owns its text and completion; talking over her cancels only its audio (ticket 35).
             int turn = ++answerTurn;
             CancelAnswerAudio();
@@ -13979,6 +14007,7 @@ namespace CapriDesktop
             // Her Fish Audio voice says her reply's emotion cues (F54). Her bubble and every other voice never see them.
             bool cued = FishCues(speak, free);
             string words = Voice.Spoken((cued ? Brain.Cued(said ?? "") : said ?? "").Replace(Computer.Dots, "the password"), cued);
+            if (speak != null && state != TalkState.Dormant) words = ModsSpeaking(words);
             if (speak == null || words.Length == 0 || state == TalkState.Dormant) { Begin(ticket, said, state, null); return; }
             answerVoice = ticket;
             reply = null;
@@ -14128,6 +14157,7 @@ namespace CapriDesktop
             Say(said);
             CallSpoke(ticket, said, state);
             PlayReply(said, wav);
+            if (state != TalkState.Dormant) ModsReplied(said, ticket == remarkTicket ? "remark" : "reply");
             if (seconds < 0.2 && state != TalkState.Dormant && TypingSound) Sfx.Type(said, pace, ticket);
             else Sfx.Untype();
             if (ticket == newsTicket) KeepNews();
@@ -14143,6 +14173,7 @@ namespace CapriDesktop
             mouths = Voice.Mouths(wav, MouthRate);
             Played(wav);
             PlayVoice(wav);
+            ModsSpoke(said);
         }
 
         private void PlayVoice(byte[] wav)
@@ -14253,6 +14284,7 @@ namespace CapriDesktop
             {
                 graphics.Clear(Color.Transparent);
                 Draw(graphics, shown, cell, talk, tween);
+                ModsDraw(graphics, shown, cell);
             }
             if (preferences.Hologram) TintHologram(frame);
             bodySurface.Show(Handle, anchor);
@@ -14747,6 +14779,7 @@ namespace CapriDesktop
             preferences.X = spot.X;
             preferences.Y = spot.Y;
             preferences.HasPosition = true;
+            ModsSaved();
             try
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(settingsPath));
@@ -14773,6 +14806,7 @@ namespace CapriDesktop
             Hands.Finder.Stop();
             clips.Dispose();
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplaysChanged;
+            UnhookModSystem();
             StopRide();
             clickDelay.Stop();
             frames.Stop();
@@ -50667,7 +50701,7 @@ namespace CapriDesktop
                 if (named == null || !named.On || ModDirectory.BlobSha(File.ReadAllBytes(named.Path)) != settingsSha || sheet.InstallTextOf(1) != "Reinstall" || posts.Count != 0 || sheet.StatusShown != "Far Names is updated.") throw new Exception("A card's Update didn't update it in place: " + sheet.StatusShown);
                 checks.Add("PASS mods window: a card with a newer copy says Update available and Update, which updates it in place without counting a download, then goes back to Reinstall");
 
-                // Skins: importing one turns the others off, so an update to a skin that's off must leave the one she's wearing on.
+                // Updating a skin that's off must leave the one she's wearing on.
                 Func<string, string, string> skin = delegate(string id, string version)
                 {
                     string file = Path.Combine(old, id + "-" + version + Mods.SkinExtension);
@@ -50686,12 +50720,20 @@ namespace CapriDesktop
                     return file;
                 };
                 if (!ImportMod(skin("update-worn", "1")) || !ImportMod(skin("update-spare", "1")) || !ImportMod(skin("update-worn", "1"))) throw new Exception("The test skins didn't import: " + modStatus.Text);
+                mods.Set(mods.All.Find(mod => mod.File.Id == "update-spare"), false, ModAsk);
                 Mod spare = mods.Update(skin("update-spare", "2"), ModAsk);
                 Mod worn = mods.All.Find(mod => mod.File.Id == "update-worn");
                 if (spare == null || spare.On || spare.File.Version != "2" || worn == null || !worn.On || Companion.SkinFolder == null || !Companion.SkinFolder.TrimEnd(Path.DirectorySeparatorChar).EndsWith("update-worn-skin", StringComparison.OrdinalIgnoreCase)) throw new Exception("Updating a skin that was off changed which skin she wears: " + Companion.SkinFolder);
                 Mod again = mods.Update(skin("update-worn", "2"), ModAsk);
                 if (again == null || !again.On || again.File.Version != "2" || mods.All.Find(mod => mod.File.Id == "update-spare").On) throw new Exception("Updating the skin she wears took it off or put another on.");
                 checks.Add("PASS mod updates: updating a skin that's off leaves the one she's wearing on, and updating the one she wears keeps it on");
+
+                mods.Set(mods.All.Find(mod => mod.File.Id == "update-spare"), true, ModAsk);
+                string outfit = Companion.SkinFolder, layers = string.Join("|", Companion.SkinAccessories);
+                Mod stacked = mods.Update(skin("update-worn", "3"), ModAsk);
+                List<Mod> stack = mods.SkinStack;
+                if (stacked == null || !stacked.On || stacked.File.Version != "3" || stack.Count != 2 || stack[0].File.Id != "update-worn" || stack[1].File.Id != "update-spare" || Companion.SkinFolder != outfit || string.Join("|", Companion.SkinAccessories) != layers) throw new Exception("Updating a stacked skin changed the outfit or layer order.");
+                checks.Add("PASS mod updates: updating the bottom of a skin stack preserves both skins, their order, and the outfit");
             }
             finally
             {

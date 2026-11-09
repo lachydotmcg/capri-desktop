@@ -6450,7 +6450,7 @@ namespace CapriDesktop
         // where Blackwall mode was. Zoom is 1 except in the smoke test, which draws it at 150% and 200% too.
         private sealed class SecuritySheet : Form, LookWindow, Tinted
         {
-            internal const int Wide = 900, Tall = 562, Column = 410;
+            internal const int Wide = 900, Tall = 590, Column = 410;
             internal readonly float Zoom;
             private readonly Mainframe owner;
             private readonly Slider presets;
@@ -6501,10 +6501,11 @@ namespace CapriDesktop
                 Heading(this, "HER JOBS >", new Point(Z(52 + Column), Z(144)), head, White, Column + 14);
                 Heading(this, "LISTENING >", new Point(Z(52 + Column), Z(362)), head, White, Column + 14);
                 Heading(this, "HER MEMORY >", new Point(Z(28), Z(454)), head, White, Column + 14);
+                Heading(this, "HER MODS >", new Point(Z(52 + Column), Z(498)), head, White, Column + 14);
                 for (int i = 0; i < Security.Count; i++)
                 {
                     int x = i <= Security.Mouse || i == Security.Personal ? 28 : 52 + Column;
-                    int y = i == Security.Personal ? 478 : i <= Security.Mouse ? 168 + 46 * i : i < Security.Wake ? 168 + 46 * (i - Security.Sends) : 386 + 46 * (i - Security.Wake);
+                    int y = i == Security.ModTools ? 522 : i == Security.Personal ? 478 : i <= Security.Mouse ? 168 + 46 * i : i < Security.Wake ? 168 + 46 * (i - Security.Sends) : 386 + 46 * (i - Security.Wake);
                     int toggle = i;
                     Toggle box = new Toggle();
                     box.Text = Security.Names[i];

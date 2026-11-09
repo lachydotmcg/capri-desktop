@@ -11,6 +11,7 @@ namespace CapriDesktop
     {
         internal Mods ModList { get; private set; }
         internal static volatile string SkinFolder;
+        internal static volatile string[] SkinAccessories = Array.Empty<string>();
         internal static volatile bool LegacyArt;
 
         private void StartMods()
@@ -20,6 +21,7 @@ namespace CapriDesktop
             Chores.Skills = ModList.SkillsFor;
             ModList.SkinChanged = Reskinned;
             Reskinned();
+            StartCodeMods();
         }
 
         private void Reskinned()
@@ -54,7 +56,7 @@ namespace CapriDesktop
                     string file = Path.Combine(skin, wanted.Substring("Capri.Sprite.".Length));
                     try
                     {
-                        if (File.Exists(file)) using (MemoryStream stream = new MemoryStream(File.ReadAllBytes(file))) return Finished(stream);
+                        if (File.Exists(file)) using (MemoryStream stream = new MemoryStream(File.ReadAllBytes(file))) return Finished(Dressed(stream, name));
                     }
                     catch (Exception error)
                     {
@@ -65,7 +67,101 @@ namespace CapriDesktop
             using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(Mods.StandArt(name, LegacyArt)))
             {
                 if (stream == null) throw new FileNotFoundException("Capri's animation is missing: " + name);
-                return Finished(stream);
+                return Finished(Dressed(stream, name));
+            }
+        }
+
+        // Each layer above her outfit that has this strip is drawn over it in order, before her colours go on: an accessory as it
+        // is, and a whole skin only where it changes her own art, so its ears or hat go on over the outfit like on Windows.
+        private static Stream Dressed(Stream art, string name)
+        {
+            string[] layers = SkinAccessories;
+            if (layers.Length == 0 || !name.StartsWith("Capri.Sprite.", StringComparison.Ordinal)) return art;
+            List<byte[]> found = new List<byte[]>();
+            foreach (string folder in layers)
+            {
+                bool whole = folder.StartsWith("~", StringComparison.Ordinal);
+                string file = Path.Combine(folder.TrimStart('=', '~'), name.Substring("Capri.Sprite.".Length));
+                try
+                {
+                    if (!File.Exists(file)) continue;
+                    byte[] bytes = whole ? Changes(file, name) : File.ReadAllBytes(file);
+                    if (bytes != null) found.Add(bytes);
+                }
+                catch (Exception error)
+                {
+                    if (!(error is IOException || error is UnauthorizedAccessException || error is ArgumentException)) throw;
+                    Brain.Log("mods", -1, "Accessory picture " + name + ": " + error.Message);
+                }
+            }
+            if (found.Count == 0) return art;
+            using (SkiaSharp.SKBitmap bottom = SkiaSharp.SKBitmap.Decode(art))
+            {
+                if (bottom == null) throw new ArgumentException("That picture couldn't be read.");
+                using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(bottom))
+                    foreach (byte[] bytes in found)
+                        using (SkiaSharp.SKBitmap layer = SkiaSharp.SKBitmap.Decode(bytes))
+                        {
+                            if (layer == null || layer.Width != bottom.Width || layer.Height != bottom.Height) continue;
+                            canvas.DrawBitmap(layer, 0, 0);
+                        }
+                using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(bottom))
+                using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100))
+                    return new MemoryStream(png.ToArray());
+            }
+        }
+
+        // What a whole skin changes from her own art for one strip, as a PNG, worked out once per strip and kept.
+        private static readonly Dictionary<string, byte[]> changes = new Dictionary<string, byte[]>();
+
+        private static byte[] Changes(string file, string name)
+        {
+            string key = file + "|" + File.GetLastWriteTimeUtc(file).Ticks;
+            byte[] kept;
+            lock (changes) if (changes.TryGetValue(key, out kept)) return kept;
+            int width, height;
+            int[] top = Pixels(File.ReadAllBytes(file), out width, out height);
+            int[] under;
+            int ownWidth, ownHeight;
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(Mods.BaseArt(name, width, height)))
+            {
+                if (stream == null) return null;
+                using (MemoryStream bytes = new MemoryStream())
+                {
+                    stream.CopyTo(bytes);
+                    under = Pixels(bytes.ToArray(), out ownWidth, out ownHeight);
+                }
+            }
+            if (ownWidth != width || ownHeight != height) return null;
+            int[] result = SkinLayers.Changed(top, under, width, height);
+            SkiaSharp.SKImageInfo info = new SkiaSharp.SKImageInfo(width, height, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Unpremul);
+            using (SkiaSharp.SKBitmap made = new SkiaSharp.SKBitmap(info))
+            {
+                System.Runtime.InteropServices.Marshal.Copy(result, 0, made.GetPixels(), result.Length);
+                using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(made))
+                using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100))
+                    kept = png.ToArray();
+            }
+            lock (changes) changes[key] = kept;
+            return kept;
+        }
+
+        // A picture's pixels as ARGB ints, not premultiplied, like Windows' 32bpp ARGB bitmaps.
+        private static int[] Pixels(byte[] picture, out int width, out int height)
+        {
+            using (SkiaSharp.SKCodec codec = SkiaSharp.SKCodec.Create(new MemoryStream(picture)))
+            {
+                if (codec == null) throw new ArgumentException("That picture couldn't be read.");
+                width = codec.Info.Width;
+                height = codec.Info.Height;
+                SkiaSharp.SKImageInfo info = new SkiaSharp.SKImageInfo(width, height, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Unpremul);
+                using (SkiaSharp.SKBitmap art = new SkiaSharp.SKBitmap(info))
+                {
+                    if (codec.GetPixels(info, art.GetPixels()) != SkiaSharp.SKCodecResult.Success) throw new ArgumentException("That picture couldn't be read.");
+                    int[] pixels = new int[width * height];
+                    System.Runtime.InteropServices.Marshal.Copy(art.GetPixels(), pixels, 0, pixels.Length);
+                    return pixels;
+                }
             }
         }
 

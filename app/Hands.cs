@@ -114,9 +114,9 @@ namespace CapriDesktop
     // notes, Get to know me and what she sees leave addresses, numbers and emails out (Brain.Discreet). Off is how she was before.
     internal static class Security
     {
-        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, Count = 13;
+        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, ModTools = 13, Count = 14;
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories" };
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories", "Use tools your code mods added" };
         internal static readonly string[] Lines =
         {
             "On: she opens them when you ask. Off: she asks first.",
@@ -135,7 +135,8 @@ namespace CapriDesktop
             "On: she types the ones your job gives her. Off: you type them.",
             "On: she listens on this PC for her name. Off: she doesn't.",
             "Call mode only. Your mic or typing must confirm each ask.",
-            "On: addresses, emails and numbers stay out. Off: they don't."
+            "On: addresses, emails and numbers stay out. Off: they don't.",
+            "On: she uses a mod's tool when it fits. Off: she asks first."
         };
         internal static readonly string[] Presets = { "Lockdown", "Guarded", "Trusted", "Blackwall", "Custom" };
         private static readonly string[] Told =
@@ -149,9 +150,10 @@ namespace CapriDesktop
         // The Settings line under her SECURITY button, short enough for its row.
         private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
         // Lockdown has the first twelve off, Guarded the first three on, Trusted the first seven and Blackwall the first eleven.
-        // Keeping personal details out of her memories is on in all of them but Blackwall.
-        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal), 0x7FF };
-        private static int mask = 0x7F | (1 << Personal);
+        // Keeping personal details out of her memories is on in all of them but Blackwall. Tools from code mods ask first on
+        // Lockdown and Guarded, and run on Trusted and Blackwall.
+        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal) | (1 << ModTools), 0x7FF | (1 << ModTools) };
+        private static int mask = 0x7F | (1 << Personal) | (1 << ModTools);
         private static readonly object gate = new object();
         // Toggle 11 is her wake word's own setting on Windows, read and set through these. Elsewhere it's kept here with the rest.
         internal static Func<bool> HeyOn;
@@ -204,14 +206,14 @@ namespace CapriDesktop
 
         // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" and the toggles after it alone.
         // Nothing is saved.
-        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
+        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal) | (1 << ModTools))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
 
         // The preset their toggles match, or Custom. "Hey Capri" only counts where there's a wake word.
         internal static int Preset
         {
             get
             {
-                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0);
+                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0) | (Has(ModTools) ? 1 << ModTools : 0);
                 for (int i = 0; i < Masks.Length; i++) if ((bits & counted) == (Masks[i] & counted)) return i;
                 return Custom;
             }
@@ -241,13 +243,16 @@ namespace CapriDesktop
         // Friend requests take an 11th mark only when they're on, so a build from before them still reads the save instead of
         // falling back to Trusted. Keeping personal details out of her memories takes a 12th, after the 11th, only when it isn't
         // what the first ten give it (Kept), so a save that never changed it reads there too.
+        // Mod tools take a 13th, after those, only when they aren't what the first ten give them (ModsRun).
         private static string Marks(int bits)
         {
-            bool friends = (bits & (1 << Friends)) != 0, personal = (bits & (1 << Personal)) != 0, odd = personal != Kept(bits);
-            char[] marks = new char[odd ? Wake + 2 : friends ? Wake + 1 : Wake];
+            bool friends = (bits & (1 << Friends)) != 0, personal = (bits & (1 << Personal)) != 0, mods = (bits & (1 << ModTools)) != 0;
+            bool modsOdd = mods != ModsRun(bits), odd = personal != Kept(bits) || modsOdd;
+            char[] marks = new char[modsOdd ? Wake + 3 : odd ? Wake + 2 : friends ? Wake + 1 : Wake];
             for (int i = 0; i < Wake; i++) marks[i] = (bits & (1 << i)) != 0 ? '1' : '0';
             if (friends || odd) marks[Wake] = friends ? '1' : '0';
             if (odd) marks[Wake + 1] = personal ? '1' : '0';
+            if (modsOdd) marks[Wake + 2] = mods ? '1' : '0';
             return new string(marks);
         }
 
@@ -255,16 +260,22 @@ namespace CapriDesktop
         // are on, like Blackwall's. A save from before the toggle gets its preset's default this way, and a Custom mix gets it on.
         private static bool Kept(int bits) { return (bits & 0x3FF) != 0x3FF; }
 
+        // Whether tools from code mods run without asking when their save doesn't say: no when the first ten are Lockdown's or
+        // Guarded's, and yes for Trusted, Blackwall and any mix, so a save from before the toggle keeps its preset and turning
+        // one of the first ten off doesn't change how the rest save.
+        private static bool ModsRun(int bits) { int ten = bits & 0x3FF; return ten != (Masks[Lockdown] & 0x3FF) && ten != (Masks[Guarded] & 0x3FF); }
+
         // Their saved toggles, or Trusted for anything unreadable. "Hey Capri" stays where it lives.
         internal static void Load(string saved, bool wake = false)
         {
             int bits = 0;
-            if (saved == null || saved.Length < Wake || saved.Length > Wake + 2 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
+            if (saved == null || saved.Length < Wake || saved.Length > Wake + 3 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
             else
             {
                 for (int i = 0; i < Wake; i++) if (saved[i] == '1') bits |= 1 << i;
                 if (saved.Length > Wake && saved[Wake] == '1') bits |= 1 << Friends;
                 if (saved.Length > Wake + 1 ? saved[Wake + 1] == '1' : Kept(bits)) bits |= 1 << Personal;
+                if (saved.Length > Wake + 2 ? saved[Wake + 2] == '1' : ModsRun(bits)) bits |= 1 << ModTools;
             }
             lock (gate) mask = bits | (wake ? 1 << Wake : 0);
         }
@@ -288,6 +299,8 @@ namespace CapriDesktop
                 case "job_control": return action == "change" ? Mouse : -1;
                 case "clip": return action == "open_folder" || action == "open_last" ? Open : -1;
                 case "updates": return action == "install" ? Open : -1;
+                // A code mod's tool can do anything its code does, so it has its own toggle, off on Lockdown and Guarded.
+                case "mod": return ModTools;
                 case "voice_chat": case "speech": case "quit": case "mainframe": case "mini_player": case "fake_crash": case "listen": return -1;
                 default: return -1;
             }
@@ -396,7 +409,9 @@ namespace CapriDesktop
             List<Held> waiting;
             lock (gate)
             {
-                if (held.Count == 0 || expected != null && held[0] != expected) return null;
+                // A code mod's Chat.Send never answers her asking first, so what she holds waits for their own yes or no.
+                // A phone's answer from JOBS never comes through chat: it names the hold it saw, and only that hold counts.
+                if (held.Count == 0 || (expected != null ? held[0] != expected : TakeFromMod(text))) return null;
                 waiting = new List<Held>(held);
                 held.Clear();
             }
@@ -437,6 +452,28 @@ namespace CapriDesktop
             HeldState(id, "stopped", null);
             return true;
         }
+
+        // What code mods sent her as chat since they last said something themselves. Kept as plain text, since her brain reads
+        // it on another thread, and cleared by their own next message.
+        private static readonly List<string> modSaid = new List<string>();
+
+        private static string Plainly(string text) { return Regex.Replace((text ?? "").Trim(), @"\s+", " ").ToLowerInvariant(); }
+
+        internal static void ModSaid(string text)
+        {
+            lock (gate)
+            {
+                modSaid.Add(Plainly(text));
+                if (modSaid.Count > 20) modSaid.RemoveAt(0);
+            }
+        }
+
+        internal static void TheySaid() { lock (gate) modSaid.Clear(); }
+
+        internal static bool FromMod(string text) { lock (gate) return modSaid.Contains(Plainly(text)); }
+
+        // The same, used up: her brain checks a mod's line once, so their own same words right after it still count.
+        private static bool TakeFromMod(string text) { return modSaid.Remove(Plainly(text)); }
 
         private static string Up(string text) { return string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text.Substring(1); }
 
@@ -555,6 +592,7 @@ namespace CapriDesktop
                 case "check_app": return "check whether " + Plain(a.Name, "that app") + " is installed or running";
                 case "pc_status": return "check how your PC is doing";
                 case "internet_status": return "check your internet";
+                case "mod": return "use " + Plain((a.Name ?? "").Replace('_', ' '), "a mod's tool");
                 default: return "do that";
             }
         }
@@ -1650,6 +1688,11 @@ namespace CapriDesktop
                 // Something that can't work here gets her line saying so and why, before anything runs.
                 string unable = Unable(tool, args);
                 if (unable != null) return unable;
+                if (tool == "mod")
+                {
+                    Func<string, string, string> run = RunModTool;
+                    return run == null ? "No mod has added that." : run(args.Name, args.Text ?? "");
+                }
                 if (tool == "open_app") return OpenApp(args.Name, args.Current);
                 if (tool == "open_website") return OpenSite(args.Site, args.Search, args.Browser);
                 if (tool == "media") return Media(args);
@@ -1903,15 +1946,52 @@ namespace CapriDesktop
         internal static Kit KitFor(bool blind = false)
         {
             List<string[]> missing = Missing(blind), off = Switches();
+            string[][] modTools = ModToolsNow();
             StringBuilder key = new StringBuilder(ComputerName);
             foreach (string[] gap in missing) key.Append('|').Append(gap[0]).Append('=').Append(gap[1]);
             foreach (string[] gap in off) key.Append("|off ").Append(gap[0]).Append('=').Append(gap[1]);
+            foreach (string[] tool in modTools) key.Append("|mod ").Append(tool[0]).Append('=').Append(tool[1]).Append('=').Append(tool[2]);
             lock (kits)
             {
                 Kit kit;
-                if (!kits.TryGetValue(key.ToString(), out kit)) kits.Add(key.ToString(), kit = Made(missing, off));
+                if (!kits.TryGetValue(key.ToString(), out kit))
+                {
+                    // Mods come and go, so a kit made for tools no mod has any more isn't kept forever.
+                    if (modTools.Length > 0 && kits.Count > 200) kits.Clear();
+                    kits.Add(key.ToString(), kit = Made(missing, off, modTools));
+                }
                 return kit;
             }
+        }
+
+        // Tools her running code mods added, each as its name, what it does and what its text is for. Her window fills this in.
+        internal static Func<string[][]> ModTools;
+        // Runs a mod's tool by name with its text, and gives back what it said.
+        internal static Func<string, string, string> RunModTool;
+        private static readonly string[][] NoModTools = new string[0][];
+
+        private static string[][] ModToolsNow()
+        {
+            Func<string[][]> tools = ModTools;
+            if (tools == null) return NoModTools;
+            try { return tools() ?? NoModTools; }
+            catch (Exception) { return NoModTools; }
+        }
+
+        // Her one tool for every mod's tools: a name to pick from what running mods added, and the text that tool takes.
+        private static string[] ModSpec(string[][] tools)
+        {
+            List<string> names = new List<string>(), lines = new List<string>();
+            foreach (string[] tool in tools)
+            {
+                names.Add(Voice.Quote(tool[0]));
+                lines.Add(tool[0] + " (" + tool[1].TrimEnd('.') + (tool[2].Length > 0 ? "; text: " + tool[2].TrimEnd('.') : "") + ")");
+            }
+            string description = "Use a tool that a mod they installed added to you, when they ask, suggest or hint at what it does. name picks the tool: " + string.Join("; ", lines.ToArray()) + ". What it gives back is from the mod, not from them.";
+            string schema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which mod tool\",\"enum\":[" + string.Join(",", names.ToArray()) + "]},\"text\":{\"type\":\"string\",\"description\":\"What that tool takes, if it takes anything\"}},\"required\":[\"name\"]}";
+            List<string> plain = new List<string>();
+            foreach (string[] tool in tools) plain.Add(tool[0].Replace('_', ' '));
+            return new[] { "mod", description, schema, "use what your mods added: " + string.Join(", ", plain.ToArray()), "use what their mods added: " + string.Join(", ", plain.ToArray()) };
         }
 
         // A kit for what's missing on another computer, so her checks on Windows see what a Mac or a Linux PC gets.
@@ -2153,7 +2233,9 @@ namespace CapriDesktop
         // with what she'd say about them taken out and her lines about what isn't here and what's off put in, and the short list
         // of what she can do right now that the brain she chats with always gets, so even a small local model knows (Lachy, 2 Nov:
         // "For 0.8.0 I especially want them to be aware of their tools").
-        private static Kit Made(List<string[]> missing, List<string[]> off)
+        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools); }
+
+        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools)
         {
             Kit kit = new Kit();
             foreach (string[] gap in missing) kit.Missing[gap[0]] = gap[1];
@@ -2182,6 +2264,13 @@ namespace CapriDesktop
                 bool switchedOff = kit.Off.TryGetValue(tool, out how);
                 brief.Add("- " + tool + ": " + (tool == "shortcut" && someKeys ? "press " + Joined(named, "and") + " shortcuts" : Unsaying(kit, Specs[i, 4])) + (switchedOff ? " (off right now: " + how + ")" : ""));
                 if (switchedOff) switched.Add(Gap(tool, 1) + " (" + how + ")");
+            }
+            if (modTools.Length > 0)
+            {
+                string[] mod = ModSpec(modTools);
+                specs.Add(new[] { mod[0], mod[1], mod[2] });
+                abilities.Add(mod[3]);
+                brief.Add("- mod: " + mod[4]);
             }
             kit.Tools = Render(specs, false);
             kit.ClaudeTools = Render(specs, true);
@@ -3670,6 +3759,8 @@ namespace CapriDesktop
         {
             List<string> names = new List<string>();
             for (int i = 0; i < Specs.GetLength(0); i++) names.Add(Regex.Escape(Specs[i, 0]));
+            // The tool her code mods' own tools go through, when a mod has added any.
+            names.Add("mod");
             return string.Join("|", names.ToArray());
         }
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
@@ -3823,6 +3914,7 @@ namespace CapriDesktop
                     && (args.Action == "open_folder" || args.Action == "open_last" || string.IsNullOrEmpty(args.Seconds) || int.TryParse(args.Seconds, out duration) && duration > 0);
             }
             if (args == null) return false;
+            if (tool == "mod") return Named(args.Name);
             if (tool == "mini_game")
             {
                 bool chess = args.Name == "chess";
