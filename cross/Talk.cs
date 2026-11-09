@@ -809,6 +809,7 @@ namespace CapriDesktop
         private double pillUntil;
         private bool thinking;
         private double pace = LettersPerSecond;
+        private readonly Queue<(string Heard, string Line, double Seconds)> notices = new Queue<(string, string, double)>();
         private Action<string> asked;
         // Where a key typed in the hidden box goes: her voice key unless something else asked for it.
         private Action<string> secretTo;
@@ -828,8 +829,8 @@ namespace CapriDesktop
                 keyTo(text);
             };
             Pill.Typing += delegate { if (Typer.IsVisible) Typer.Hide(); else Open(); };
-            Pill.Voice += delegate { pet.NoVoice(); };
-            Bubble.Dismissed += delegate { if (leaving < 0) leaving = pet.Now; };
+            Pill.Voice += pet.VoiceTurn;
+            Bubble.Dismissed += delegate { pet.StopListening(); if (leaving < 0) leaving = pet.Now; };
         }
 
         internal string Reply { get { return reply; } }
@@ -846,6 +847,7 @@ namespace CapriDesktop
 
         internal void Open()
         {
+            if (pet.StopListening()) Dismiss(false);
             pet.Typed();
             asked = null;
             secretTo = null;
@@ -889,10 +891,18 @@ namespace CapriDesktop
             Start(heard);
         }
 
+        internal void Notice(string heard, string line)
+        {
+            if (pet.Listening || notices.Count > 0) notices.Enqueue((heard, line, 0));
+            else Answer(heard, line);
+        }
+
         // Like on Windows, where her bubble is drawn in her own window, nothing new shows while she's hidden or glitching out of
         // sight: it would float there with nobody under it, and stop her pop-ins until she's shown.
+        // Anything she says while TALK's mic is open waits until their words are in, so it can't close the mic and lose them.
         internal void Answer(string heard, string answer, double seconds = 0)
         {
+            if (pet.Listening) { notices.Enqueue((heard, answer, seconds)); return; }
             pet.Answered();
             if (pet.Away) return;
             reply = answer;
@@ -918,6 +928,7 @@ namespace CapriDesktop
 
         internal void Dismiss(bool typing = true)
         {
+            pet.StopListening();
             reply = null;
             thinking = false;
             leaving = -1;
@@ -928,6 +939,7 @@ namespace CapriDesktop
         // While she's hidden her bubble and pill stay down too, even one that was still up when her window went.
         internal void Gone()
         {
+            pet.StopListening();
             reply = null;
             thinking = false;
             leaving = -1;
@@ -941,6 +953,12 @@ namespace CapriDesktop
 
         internal void Update(double now)
         {
+            if (notices.Count > 0 && !pet.Away && !pet.Listening && Quiet && Finished)
+            {
+                var notice = notices.Dequeue();
+                Answer(notice.Heard, notice.Line, notice.Seconds);
+                return;
+            }
             UpdatePill(now);
             if (reply == null && !thinking) { if (Bubble.IsVisible) Bubble.Hide(); return; }
             Sheet sheet = Bubble.Sheet;
