@@ -59,7 +59,7 @@ namespace CapriDesktop
         internal const string WindowsOnly = "Windows only for now";
 
         private Mod LoadCode(string file, HashSet<string> off) { throw new ModException(WindowsOnly); }
-        private Mod ImportCode(string file, Func<ModFile, string, bool> ask) { throw new ModException(WindowsOnly); }
+        private Mod ImportCode(string file, Func<ModFile, string, bool> ask, HashSet<string> keepOff = null) { throw new ModException(WindowsOnly); }
         private bool SetCode(Mod mod, bool on, Func<ModFile, string, bool> ask) { throw new ModException(WindowsOnly); }
         private void RemoveCode(Mod mod) { }
 #endif
@@ -164,9 +164,9 @@ namespace CapriDesktop
             Apply();
         }
 
-        internal Mod Import(string file, Func<ModFile, string, bool> ask)
+        internal Mod Import(string file, Func<ModFile, string, bool> ask, HashSet<string> keepOff = null)
         {
-            if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) return ImportCode(file, ask);
+            if (string.Equals(Path.GetExtension(file), CodeExtension, StringComparison.OrdinalIgnoreCase)) return ImportCode(file, ask, keepOff);
             if (string.Equals(Path.GetExtension(file), SkinExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkin(file);
             if (string.Equals(Path.GetExtension(file), SkillExtension, StringComparison.OrdinalIgnoreCase)) return ImportSkill(file);
             string text;
@@ -204,13 +204,10 @@ namespace CapriDesktop
         internal Mod Update(string file, Func<ModFile, string, bool> ask)
         {
             HashSet<string> before = Off();
-            Mod made = Import(file, ask);
+            Mod made = Import(file, ask, before);
             if (made == null) return null;
             string id = made.File.Id;
             if (Off().SetEquals(before)) return made;
-#if !CROSS
-            if (made.Code && before.Contains(id)) StopOne(id);
-#endif
             WriteOff(before);
             Load();
             Reskin();

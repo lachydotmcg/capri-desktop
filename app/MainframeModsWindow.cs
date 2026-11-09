@@ -171,8 +171,9 @@ namespace CapriDesktop
                                     if (capri.ModList.Update(file, ModAsk) != null) done.Add(listing);
                                     else kept.Add(listing);
                                 }
-                                catch (ModException error)
+                                catch (Exception error)
                                 {
+                                    if (!(error is ModException || error is IOException || error is UnauthorizedAccessException)) throw;
                                     Brain.Log("mods", -1, listing.FileName + ": " + error.Message);
                                     kept.Add(listing);
                                     reason = reason ?? error.Message;
