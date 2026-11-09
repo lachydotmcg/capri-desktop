@@ -127,6 +127,47 @@ up late again</textarea>
       <div class="col">
         <header class="hero" id="top" data-scene="hero">
           <div class="pitch">
+            <section class="countdown" id="remote-countdown" data-at="2026-11-09T23:00:00Z" aria-labelledby="countdown-tag">
+              <p class="countdown-tag" id="countdown-tag">Capri Remote</p>
+              <p class="countdown-time" role="timer" data-left>Tue 10 Nov</p>
+              <p class="countdown-note">Text, call and watch Capri from your phone. Out <span data-when>Tue 10 Nov, 10am AEDT</span>.</p>
+            </section>
+            <style>
+              .pitch:has(> .countdown) { margin-top: clamp(80px, calc(34svh - 240px), 120px); }
+              .countdown { display: grid; gap: 6px; width: fit-content; max-width: 100%; margin: 0 0 30px; padding: 16px 26px 18px 24px; background: var(--ink-0); color: var(--text); --cut: 14px; clip-path: var(--plate); }
+              .countdown p { margin: 0; }
+              .countdown-tag { color: var(--green); font: 800 var(--hud)/1.1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+              .countdown-time { font: 800 clamp(36px, 3.6vw, 54px)/1 var(--display); letter-spacing: .02em; text-transform: uppercase; font-variant-numeric: tabular-nums; white-space: nowrap; }
+              .countdown-note { max-width: 36ch; color: var(--muted); font-size: var(--small); line-height: 1.4; }
+              .countdown.is-due .countdown-time { color: var(--pink); }
+              @media (max-height: 820px) and (min-width: 901px) {
+                .countdown { gap: 3px; margin-bottom: 16px; padding: 11px 20px 13px 18px; }
+                .countdown-time { font-size: 34px; }
+                .countdown-note { font-size: 14px; }
+              }
+            </style>
+            <script>
+              (function () {
+                var box = document.getElementById('remote-countdown');
+                if (!box) return;
+                var left = box.querySelector('[data-left]');
+                var when = box.querySelector('[data-when]');
+                var at = function () { return Date.parse(box.getAttribute('data-at')); };
+                try {
+                  when.textContent = new Date(at()).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
+                } catch (e) {}
+                var two = function (n) { return n < 10 ? '0' + n : String(n); };
+                var tick = function () {
+                  var ms = at() - Date.now();
+                  if (!(ms > 0)) { left.textContent = 'Any minute now'; box.classList.add('is-due'); return; }
+                  var s = Math.floor(ms / 1000);
+                  var d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+                  left.textContent = (d ? d + 'd ' : '') + two(h) + 'h ' + two(m) + 'm ' + two(s % 60) + 's';
+                  setTimeout(tick, 1020 - Date.now() % 1000);
+                };
+                tick();
+              })();
+            </script>
             <p class="lead">Bring Capri back to life on your desktop! :)</p>
             <p class="systems">
               <a data-os="windows" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.6.1/Capri-Setup.exe">Windows</a>
