@@ -664,6 +664,7 @@ namespace CapriDesktop
         internal void PickBrainTier(int tier) { brains[tier].Press(); Sync(); }
         internal void PickVoiceTier(int tier) { voices[tier].Press(); Sync(); }
         internal void Press(string text) { foreach (Item item in items) if (item.Control is NeonButton button && button.Text == text && button.IsVisible) { button.Press(); return; } throw new Exception("No Mainframe button: " + text); }
+        internal NeonButton Button(string text) { foreach (Item item in items) if (item.Control is NeonButton button && button.Text == text && button.IsVisible) return button; return null; }
         internal Control Row(string name) { return rows[name]; }
         internal string Value(string name)
         {

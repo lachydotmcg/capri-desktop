@@ -2648,7 +2648,7 @@ namespace CapriDesktop
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 pet.OpenMainframe();
                 Mainframe frame = pet.Frame;
-                if (OperatingSystem.IsMacOS() && (frame.Row("ChatGPT plan") == null || frame.Row("Stop") == null))
+                if (OperatingSystem.IsMacOS() && (frame.Button("ChatGPT plan") == null || frame.Button("Stop") == null))
                     throw new Exception("The Mac Mainframe lost its plan or Stop button.");
                 foreach (string font in new[] { "BarlowSemiCondensed-Regular.ttf", "BarlowSemiCondensed-SemiBold.ttf", "BarlowCondensed-SemiBold.ttf" })
                     if (!Avalonia.Platform.AssetLoader.Exists(new Uri("avares://Capri/Assets/" + font))) throw new Exception("The Mainframe font is missing: " + font);
