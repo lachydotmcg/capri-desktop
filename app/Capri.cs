@@ -3025,7 +3025,8 @@ namespace CapriDesktop
 
         internal static Bitmap LoadArt(string name)
         {
-            Bitmap skinned = SkinArt(name);
+            string stand = Mods.StandArt(name, LegacyArt);
+            Bitmap skinned = (stand != name ? SkinArt(stand) : null) ?? SkinArt(name);
             if (skinned != null) return skinned;
             using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream(Mods.StandArt(name, LegacyArt)))
             {

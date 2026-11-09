@@ -25,7 +25,8 @@ namespace CapriDesktop
         internal const int OldIdleWide = 3840, OldIdleHigh = 384;
         // Legacy stand's hover tip, the same on every platform: Lachy's line, his spelling, and nothing else.
         internal const string LegacyTip = "Incase it broke your mod, soz!";
-        // Legacy stand's art is her own strip from 0.8.5, in those same old cells. Skins are read first, so a skin's idle.png wins.
+        // Legacy stand's art is her own strip from 0.8.5, in those same old cells. Skins are read first: a skin's idle_legacy.png
+        // for Legacy stand, so one skin can carry both stands, then its idle.png, which wins over hers either way.
         internal static string StandArt(string name, bool legacy) { return legacy && name == "Capri.Sprite.idle.png" ? "Capri.Sprite.idle_legacy.png" : name; }
         internal Action SkinChanged;
 
@@ -372,7 +373,8 @@ namespace CapriDesktop
                 string real = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), "..", "..", "mods", "maid-suit" + Mods.SkinExtension));
                 if (!File.Exists(real)) { checks.Add("LIMIT skins: the Maid Suit file isn't beside this build, so it wasn't imported"); return; }
                 Mod maid = mods.Import(real, null);
-                if (maid == null || shown() == original && idle.Strip.GetPixel(120, 240) == original) throw new Exception("The Maid Suit didn't import.");
+                // The middle of her first cell, in her old 240-wide cells or her new 116-wide ones.
+                if (maid == null || shown() == original && idle.Strip.GetPixel(idle.Strip.Width / idle.Count / 2, 240) == original) throw new Exception("The Maid Suit didn't import.");
                 using (Bitmap sample = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
                 using (Graphics paper = Graphics.FromImage(sample))
                 {
@@ -634,6 +636,35 @@ namespace CapriDesktop
                     mods.Remove(worn);
                     worn = null;
                     if (!idle.Old || idle.Count != 16) throw new Exception("Taking a new skin off lost Legacy stand.");
+
+                    // A skin that carries both stands: its idle_legacy.png for Legacy stand, its idle.png for the new one.
+                    string both = Path.Combine(output, "legacy-both" + Mods.SkinExtension);
+                    File.Delete(both);
+                    using (ZipArchive zip = ZipFile.Open(both, ZipArchiveMode.Create))
+                    {
+                        Put(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"legacy-both\",\"name\":\"legacy-both\"}"));
+                        foreach (string strip in new[] { "idle.png", "idle_legacy.png" })
+                            using (Bitmap art = new Bitmap(strip == "idle.png" ? Companion.ArtSize("Capri.Sprite.idle.png").Width : Mods.OldIdleWide, Mods.OldIdleHigh, PixelFormat.Format32bppArgb))
+                            using (MemoryStream made = new MemoryStream())
+                            {
+                                using (Graphics paper = Graphics.FromImage(art)) paper.Clear(strip == "idle.png" ? Color.FromArgb(255, 20, 40, 220) : Color.FromArgb(255, 10, 200, 90));
+                                art.Save(made, ImageFormat.Png);
+                                Put(zip, strip, made.ToArray());
+                            }
+                    }
+                    worn = mods.Import(both, null);
+                    Color legacyPaint = idle.Strip.GetPixel(10, 10);
+                    if (worn == null || !LegacyStand || !idle.Old || idle.Count != 16 || idle.Fps != 8 || legacyPaint.G != 200 || legacyPaint.R != 10) throw new Exception("With Legacy stand on, a skin with both stands didn't wear its old one: " + idle.Count + ", " + legacyPaint);
+                    mainframe.FlipLegacyStand();
+                    Color newPaint = idle.Strip.GetPixel(10, 10);
+                    if (LegacyStand || idle.Old || idle.Count != 60 || idle.Fps != 24 || newPaint.B != 220) throw new Exception("With Legacy stand off, a skin with both stands didn't wear its new one: " + idle.Count + ", " + newPaint);
+                    mainframe.FlipLegacyStand();
+                    legacyPaint = idle.Strip.GetPixel(10, 10);
+                    if (!LegacyStand || !idle.Old || idle.Count != 16 || legacyPaint.G != 200) throw new Exception("Turning Legacy stand back on didn't bring a skin's old stand back: " + legacyPaint);
+                    mods.Remove(worn);
+                    worn = null;
+                    if (!idle.Old || idle.Count != 16 || idle.Strip.GetPixel(10, 10).A != 0) throw new Exception("Taking a skin with both stands off lost her own Legacy stand.");
+                    checks.Add("PASS legacy stand: a skin with idle_legacy.png wears it while Legacy stand is on and its own new idle while it's off, live both ways, and taking it off gives her own legacy strip back");
                 }
                 finally { if (worn != null) mods.Remove(worn); }
                 string folder = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), "..", "..", "mods"));
@@ -943,15 +974,18 @@ namespace CapriDesktop
                 else checks.Add("LIMIT standing art: the colour preset isn't beside this build, so its preview wasn't drawn");
                 if (!File.Exists(maidFile)) { checks.Add("LIMIT old skins: the Maid Suit file isn't beside this build, so a real old skin wasn't tried"); return; }
                 Mod maid = mods.Import(maidFile, null);
+                // The Maid Suit came in her old cells, and since 2.1.0 it has her new stand too, so either is right here.
+                bool oldMaid = maid != null && idle.Old;
                 try
                 {
-                    if (maid == null || !idle.Old || idle.Count != 16 || idle.Strip.Width != Mods.OldIdleWide) throw new Exception("The Maid Suit didn't keep her old cells.");
+                    if (maid == null || (oldMaid ? idle.Count != 16 || idle.Strip.Width != Mods.OldIdleWide : idle.Count != 60 || idle.Fps != 24 || !idle.HasFlipped))
+                        throw new Exception("The Maid Suit didn't stand in the cells its idle.png is in: " + (maid == null ? "not imported" : idle.Count + " at " + idle.Fps));
                     using (Bitmap dressed = Stood(idle, 0)) dressed.Save(Path.Combine(output, "maid-right.png"), ImageFormat.Png);
                     facingLeft = true;
                     using (Bitmap dressed = Stood(idle, 0)) dressed.Save(Path.Combine(output, "maid-left.png"), ImageFormat.Png);
                     facingLeft = false;
-                    using (Bitmap dressed = Stood(blink, 1)) dressed.Save(Path.Combine(output, "maid-blink.png"), ImageFormat.Png);
-                    using (Bitmap dressed = Stood(idle, 8, 3)) dressed.Save(Path.Combine(output, "maid-talk.png"), ImageFormat.Png);
+                    using (Bitmap dressed = Stood(oldMaid ? blink : idleBlink, oldMaid ? 1 : 3)) dressed.Save(Path.Combine(output, "maid-blink.png"), ImageFormat.Png);
+                    using (Bitmap dressed = Stood(idle, oldMaid ? 8 : 29, 3)) dressed.Save(Path.Combine(output, "maid-talk.png"), ImageFormat.Png);
                     int maidFloor, stillFloor;
                     double maidMiddle, stillMiddle;
                     using (Bitmap dressed = Stood(idle, 0)) Footing(dressed, out maidFloor, out maidMiddle);
@@ -961,7 +995,7 @@ namespace CapriDesktop
                     if (Math.Abs(maidFloor - stillFloor) > 2 || Math.Abs(maidMiddle - stillMiddle) > 6) throw new Exception("The Maid Suit's feet or body sit off her new stand: " + maidFloor + ", " + maidMiddle + " against " + stillFloor + ", " + stillMiddle);
                 }
                 finally { if (maid != null) mods.Remove(maid); }
-                checks.Add("PASS old skins: the real Maid Suit keeps her old cells, facing either way, and stands on the same floor row as her new art");
+                checks.Add("PASS old skins: the real Maid Suit stands in " + (oldMaid ? "her old cells" : "her new cells") + ", facing either way, on the same floor row as her new art");
             }
             finally
             {
