@@ -354,6 +354,39 @@ namespace CapriDesktop
             Begin("done", "closing", 10);
         }
 
+        internal static int Child(string[] args)
+        {
+            try
+            {
+                if (args.Length == 4 && args[1] == "pipes")
+                {
+                    using (StreamWriter errors = new StreamWriter(Console.OpenStandardError(), new UTF8Encoding(false)))
+                    using (StreamWriter output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)))
+                    {
+                        errors.Write(new string('e', 131072)); errors.Flush();
+                        output.Write(new string('o', 131072)); output.Flush();
+                        using (Process tar = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "tar.exe"), "-xf " + Quote(args[2]) + " -C " + Quote(args[3])) { UseShellExecute = false, CreateNoWindow = true }))
+                        {
+                            tar.WaitForExit();
+                            return tar.ExitCode;
+                        }
+                    }
+                }
+                if (args.Length == 3 && args[1] == "hang")
+                {
+                    using (Process child = Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "ping.exe"), "-t 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true }))
+                    {
+                        File.WriteAllText(args[2] + ".new", child.Id.ToString(CultureInfo.InvariantCulture));
+                        File.Move(args[2] + ".new", args[2]);
+                        while (true) Thread.Sleep(1000);
+                    }
+                }
+                Console.Error.WriteLine("Unknown smoke child arguments.");
+                return 2;
+            }
+            catch (Exception error) { Console.Error.WriteLine(error.Message); return 1; }
+        }
+
         internal static int Run(string[] args)
         {
             string output = Path.GetFullPath(args[1]);
@@ -495,7 +528,7 @@ namespace CapriDesktop
             catch (IOException) { return null; }
         }
 
-        private static string Quote(string value)
+        internal static string Quote(string value)
         {
             StringBuilder quoted = new StringBuilder("\"");
             int slashes = 0;

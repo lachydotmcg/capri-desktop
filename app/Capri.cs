@@ -32,6 +32,7 @@ namespace CapriDesktop
         [STAThread]
         private static int Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "--smoke-child") return SmokeRun.Child(args);
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
             if (args.Length == 4 && args[0] == "--release-input") return InputRelease.Watch(args[1], args[2], args[3]);
             if (!Packaged.Is && CapriSetup.Program.Wanted(Application.ExecutablePath, args)) return CapriSetup.Program.Run(args);
@@ -46136,6 +46137,7 @@ namespace CapriDesktop
                             bool cleaned = false, emptyKept = false;
                             try
                             {
+                                if (!string.Equals(tarPath, Path.Combine(Environment.SystemDirectory, "tar.exe"), StringComparison.OrdinalIgnoreCase)) throw new Exception("The smoke tar isn't Windows tar.");
                                 if (systemBzip != (Environment.OSVersion.Version.Build >= 22000) || tarTimeout != 600000) throw new Exception("Her ears picked the wrong Windows tar bzip2 default, or changed its timeout.");
                                 LocalEars.SystemBzip = false;
                                 LocalEars.Untar(bunzipTar, bunzipInto);
@@ -46158,6 +46160,28 @@ namespace CapriDesktop
                                 LocalEars.TarPath = tarPath;
                                 LocalEars.StartTar = tarStart;
                                 checks.Add("PASS ears without tar.exe: a missing TarPath uses Bunzip and her tar reader, keeps the files unchanged and removes the plain archive and stale folder contents");
+                                string pipeTar = Path.Combine(bunzipRoot, "pipe check.tar"), pipeInto = Path.Combine(bunzipRoot, "pipe check");
+                                using (MemoryStream packed = new MemoryStream(bunzipPack))
+                                using (FileStream plain = new FileStream(pipeTar, FileMode.Create, FileAccess.Write)) Bunzip.Copy(packed, plain);
+                                Directory.CreateDirectory(pipeInto);
+                                using (SmokeJob pipeJob = new SmokeJob())
+                                using (Process pipe = Process.Start(new ProcessStartInfo(Application.ExecutablePath, "--smoke-child pipes " + SmokeRun.Quote(pipeTar) + " " + SmokeRun.Quote(pipeInto + Path.DirectorySeparatorChar)) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true }))
+                                try
+                                {
+                                    pipeJob.Assign(pipe);
+                                    string pipeError = null, pipeOutput = null;
+                                    Thread errors = new Thread(delegate() { try { pipeError = pipe.StandardError.ReadToEnd(); } catch (IOException) { } catch (ObjectDisposedException) { } });
+                                    Thread outputPipe = new Thread(delegate() { try { pipeOutput = pipe.StandardOutput.ReadToEnd(); } catch (IOException) { } catch (ObjectDisposedException) { } });
+                                    errors.IsBackground = outputPipe.IsBackground = true;
+                                    errors.Start(); outputPipe.Start();
+                                    if (!pipe.WaitForExit(15000) || !errors.Join(2000) || !outputPipe.Join(2000)) throw new Exception("The smoke child's pipes did not finish.");
+                                    if (pipe.ExitCode != 0 || pipeError != new string('e', 131072) || pipeOutput != new string('o', 131072)
+                                        || shaOf(File.ReadAllBytes(Path.Combine(Path.Combine(pipeInto, "pack"), "tricky.bin"))) != shaOf(trickyBytes)) throw new Exception("The smoke child's pipes or paths changed.");
+                                }
+                                finally { pipeJob.Stop(); }
+                                File.Delete(pipeTar);
+                                Directory.Delete(pipeInto, true);
+                                checks.Add("PASS smoke child pipes: both streams carry 131072 characters; spaced paths and a trailing folder slash reach tar");
                                 foreach (string tarTest in new[] { "pipes", "failure", "start", "hang", "plain-hang", "plain-failure", "plain-empty", "plain-start" })
                                 {
                                     string tarInstallRoot = Path.Combine(bunzipRoot, "install");
@@ -46194,19 +46218,15 @@ namespace CapriDesktop
                                                 info.Arguments = tarTest == "plain-empty" ? "/d /c exit /b 3" : "/d /c echo tar test failed 1>&2 & exit /b 3";
                                                 return tarStart(info);
                                             }
-                                            string script;
-                                            if (tarTest == "pipes")
-                                                script = "[Console]::Error.Write(('e' * 131072)); [Console]::Out.Write(('o' * 131072)); & '" + info.FileName.Replace("'", "''") + "' -xf '" + Path.ChangeExtension(bunzipTar, null).Replace("'", "''") + "' -C '" + tarInto.Replace("'", "''") + "'; exit $LASTEXITCODE";
-                                            else
-                                                script = "$child = Start-Process -FilePath '" + Path.Combine(Environment.SystemDirectory, "ping.exe").Replace("'", "''") + "' -ArgumentList '-t 127.0.0.1' -WindowStyle Hidden -PassThru; [IO.File]::WriteAllText('" + tarChildFile.Replace("'", "''") + ".new', $child.Id.ToString()); [IO.File]::Move('" + tarChildFile.Replace("'", "''") + ".new', '" + tarChildFile.Replace("'", "''") + "'); while ($true) { [Threading.Thread]::Sleep(1000) }";
-                                            info.FileName = Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe");
-                                            info.Arguments = "-NoProfile -NonInteractive -EncodedCommand " + Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
+                                            info.FileName = Application.ExecutablePath;
+                                            info.Arguments = tarTest == "pipes" ? "--smoke-child pipes " + SmokeRun.Quote(Path.ChangeExtension(bunzipTar, null)) + " " + SmokeRun.Quote(tarInto + Path.DirectorySeparatorChar)
+                                                : "--smoke-child hang " + SmokeRun.Quote(tarChildFile);
                                             Process fakeTar = tarStart(info);
                                             tarJob.Assign(fakeTar);
+                                            tarWatch = Process.GetProcessById(fakeTar.Id);
+                                            tarWatch.EnableRaisingEvents = true;
                                             if (tarTest != "pipes")
                                             {
-                                                tarWatch = Process.GetProcessById(fakeTar.Id);
-                                                tarWatch.EnableRaisingEvents = true;
                                                 Stopwatch ready = Stopwatch.StartNew();
                                                 while (!File.Exists(tarChildFile) && !fakeTar.HasExited && ready.ElapsedMilliseconds < 10000) Thread.Sleep(10);
                                                 if (!File.Exists(tarChildFile)) throw new Exception("The fake tar did not start its child.");
@@ -46239,7 +46259,8 @@ namespace CapriDesktop
                                                 throw new Exception("Tar did not unpack after " + tarTest + ": " + tarProblem);
                                         }
                                         if (tarCalls != (LocalEars.SystemBzip ? 2 : 1) || File.Exists(Path.Combine(bunzipRoot, "pack.tar"))) throw new Exception("Tar used the wrong path or left its plain archive after " + tarTest + ".");
-                                        if (tarWatch != null && (!tarWatch.WaitForExit(2000) || !tarChild.WaitForExit(2000) || tarWaited.ElapsedMilliseconds > tarLimit + 12000)) throw new Exception("Tar or its child survived the unpacking timeout.");
+                                        if (tarWatch != null && (!tarWatch.WaitForExit(2000) || (tarChild != null && !tarChild.WaitForExit(2000)) || tarWaited.ElapsedMilliseconds > tarLimit + 12000)) throw new Exception("Tar or its child survived the unpacking timeout.");
+                                        if (tarTest == "pipes" && (tarWatch.ExitCode != 0 || !File.Exists(tarPartial))) throw new Exception("The smoke child's tar needed a fallback.");
                                     }
                                     finally
                                     {
