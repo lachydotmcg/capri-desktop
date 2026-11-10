@@ -1181,6 +1181,7 @@ namespace CapriDesktop
         {
 #if CROSS
             if (name == "mini_player") return true;
+            if (name == "hologram") return OnMac;
 #endif
             return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "keep_awake", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "preview_voice", "edit_check_in_lines" }, name) >= 0;
         }
@@ -1301,11 +1302,16 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
             { "draw", Ink.Description, Ink.Schema, "draw and write on your screen", "draw on their screen" },
-#if !CROSS
+#if CROSS
+            { "clone", "Make a fixed number of copies of yourself on your screen, or clear them with stop. They wander until cleared. Chaos mode is only on Windows for now.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[\"spawn\",\"stop\"]},\"count\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"How many copies to make; one by default\"}},\"required\":[\"action\"]}", "make copies of herself", "make a fixed number of copies of yourself or clear them" },
+#else
             { "clone", "Make copies of yourself on their screen. They wander around, talk to each other, steal the cursor and drag notes in until they're cleared. Use it when they ask you to clone, copy, duplicate or multiply yourself or to activate chaos mode, in any language, and when they ask you to get rid of your clones or end chaos mode.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"spawn makes copies and stop removes them all\",\"enum\":[\"spawn\",\"stop\"]},\"count\":{\"type\":\"integer\",\"description\":\"How many copies to make. Leave it out and they keep multiplying by themselves until they're cleared\"}},\"required\":[\"action\"]}", "make clones of herself in chaos mode", "make clones of yourself" },
+#endif
             { "hologram", "Turn hologram mode on or off when asked, in any language. On makes you translucent and lets clicks pass through your body, talk pill and speech bubble. They can turn it off from your tray icon's right-click menu or by saying hologram off. Your type box, mini player, Mainframe and task panel stay usable.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"on lets clicks through and off gives them back\",\"enum\":[\"on\",\"off\"]}},\"required\":[\"action\"]}", "turn into a see-through hologram that clicks pass through", "turn hologram mode on or off; clicks pass through you while it's on" },
+#if !CROSS
             { "desktop_icons", "Prank the icons and shortcuts on their desktop, then put them back. mess scatters them around for a bit, hide makes them all vanish and come back after a few seconds, and back puts everything where it was right now. Use it when they ask you to mess up, shuffle, scatter, move around, hide or bring back their desktop icons or shortcuts. You never touch a file, only move or hide the icons.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"mess scatters them, hide makes them vanish, back puts them all back\",\"enum\":[\"mess\",\"hide\",\"back\"]}},\"required\":[\"action\"]}", "mess up or hide your desktop icons and put them back", "mess up or hide their desktop icons, then put them back" },
             { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action stop to finish watching together; watch_for is for a particular event.",
@@ -1584,11 +1590,11 @@ namespace CapriDesktop
         internal const string CrashKind = "fake blue screen";
 #endif
         internal static Func<string, string> Crash = delegate { return "Couldn't show my " + CrashKind + "."; };
-#if !CROSS
         // Makes her clones or clears them, and says how it went. Her window sets it.
         internal static Func<string, int, string> Clone = delegate { return "Couldn't do that just now."; };
         internal static Func<string, string> Hologram = delegate { return "Couldn't do that just now."; };
         internal static Func<bool> Cloning = delegate { return false; };
+#if !CROSS
         // Messes up, hides or puts back their desktop icons, and says how it went. Her window sets it.
         internal static Func<string, string> Icons = delegate { return "Couldn't do that just now."; };
         // Her own actions as tools: her fake blue screen, voice chat, stopping what she's saying, her running job, quitting,
@@ -1604,6 +1610,9 @@ namespace CapriDesktop
         // Mac and Linux have no clones, hologram or icon tricks yet, so asking for them gets this straight away instead of a joke from her brain.
         internal const string NoClones = "Clones and chaos mode are Windows-only for now, choom.";
         internal const string NoHologram = "Hologram mode is Windows-only for now, choom.";
+#if CROSS
+        internal const string NoCloneChaos = "Chaos mode is only on Windows for now.";
+#endif
         internal const string NoIcons = "Messing with your desktop icons is Windows-only for now, choom.";
         // "Clone yourself", "make 5 clones", "start multiplying". A number makes that many, and no number lets them keep multiplying.
         private static readonly Regex CloneOn = new Regex(@"^(?:start |begin |go ahead and |just )?(?:(?:clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|copy(?:ing)?) your ?self(?: (?<count>\d+) times?)?(?: as (?:many|much)(?: times)? as you (?:want|like|can))?|clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|(?:make|spawn|create|summon)(?: me)? (?:(?<count>\d+) |an? |some |more |lots of |a bunch of |as many )?(?:clones?|copies|duplicates?)(?: of (?:your ?self|you))?(?: as you (?:want|like|can))?|(?:(?:activate|enable|start|begin|turn on|enter|go into|switch to)(?: the)? )?chaos mode(?: on)?|(?:unleash|cause) (?:the )?chaos)$", RegexOptions.IgnoreCase);
@@ -1615,9 +1624,7 @@ namespace CapriDesktop
         private static readonly Regex IconsBack = new Regex(@"^(?:(?:put|move|bring|get|set)\s+(?:(?:my|the|all|them|everything|those|these)\s+)*(?:(?:desktop\s+)?(?:icons?|shortcuts?)\s+)?back(?:\s+(?:where\s+they\s+were|to\s+normal|in\s+place|please))?|(?:restore|undo|unmess|unscramble|fix)\s+(?:(?:my|the)\s+)?(?:desktop\s+)?(?:icons?|shortcuts?)(?:\s+back)?|give\s+me\s+(?:my|the)\s+(?:desktop\s+)?(?:icons?|shortcuts?)\s+back)$", RegexOptions.IgnoreCase);
         private static readonly Regex IconsHide = new Regex(@"^(?:(?:hide|vanish|disappear)\s+(?:(?:my|the|all|those|these)\s+)*(?:desktop\s+)?(?:icons?|shortcuts?)|make\s+(?:(?:my|the|all|those|these)\s+)*(?:desktop\s+)?(?:icons?|shortcuts?)\s+(?:disappear|vanish|go\s+away)|(?:get\s+rid\s+of|remove)\s+(?:(?:my|the|all)\s+)*(?:desktop\s+)?(?:icons?|shortcuts?))$", RegexOptions.IgnoreCase);
         private static readonly Regex IconsMess = new Regex(@"^(?:mess(?:\s+up|\s+with|\s+around)?|shuffle|scatter|scramble|jumble|rearrange|move(?:\s+around)?|mix\s+up|disorganise|disorganize)\s+(?:(?:my|the|all|those|these)\s+)*(?:desktop\s+)?(?:icons?|shortcuts?)(?:\s+(?:up|around|about))?$", RegexOptions.IgnoreCase);
-#if !CROSS
         private static readonly Regex CloneEnough = new Regex(@"^(?:ok(?:ay)? )?(?:stop|enough|that'?s enough)$", RegexOptions.IgnoreCase);
-#endif
         // Gaming Mode: on, off, or which way to move her HUD (up, down, left, right, reset). Her window sets it.
         internal static Func<string, string> GamingMode = delegate { return "Gaming Mode isn't on this PC yet."; };
         internal static Func<int, string> SaveClip = delegate { return "Turn on Clip my games in Settings > CLIPS, then I can clip that."; };
@@ -1796,12 +1803,16 @@ namespace CapriDesktop
                 if (tool == "updates") return Valid(tool, args) ? Updates(args) : "Couldn't find that update action.";
                 if (tool == "draw") return Draw(args);
                 if (tool == "fake_crash") return Valid(tool, args) ? Crash(args.Action) : "Couldn't find that fake crash action.";
+#if CROSS
+                if (tool == "clone") return Clone(args.Action, args.Count ?? 1);
+#else
+                if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
+#endif
+                if (tool == "hologram") return Hologram(args.Action);
 #if !CROSS
                 if (tool == "app_volume") return AppVolume(args);
                 if (tool == "pc_status") return PcStatus(args.Name);
                 if (tool == "internet_status") return InternetStatus(args.Address);
-                if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
-                if (tool == "hologram") return Hologram(args.Action);
                 if (tool == "desktop_icons") return Icons(args.Action);
                 if (tool == "voice_chat") return Valid(tool, args) ? VoiceChat(args) : "Couldn't find that voice chat action.";
 #endif
@@ -2131,7 +2142,7 @@ namespace CapriDesktop
         private static readonly string[] MacPresses = { "screenshot", "task_manager", "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "clipboard" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
         // Her moves still missing outside Windows.
         private static string[] WindowsMoves { get { return OnMac ? new[] { "sit_on" } : new string[0]; } }
-        private static readonly string[] WindowsTools = { "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "listen", "voice_chat" };
+        private static readonly string[] WindowsTools = { "draw", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "listen", "voice_chat" };
         // Her window tool's arranging, still missing on Linux.
         private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 #endif
@@ -2165,6 +2176,12 @@ namespace CapriDesktop
             foreach (string arrange in WindowsArranging)
                 if (!OnMac || arrange == "pin_on_top" || arrange == "unpin") missing.Add(new[] { "app_window:" + arrange, OnMac ? "macOS cannot pin another app's window" : OnlyWindows });
             foreach (string tool in WindowsTools) if (tool != "draw" || !OnMac) missing.Add(new[] { tool, OnlyWindows });
+            if (!OnMac)
+            {
+                missing.Add(new[] { "clone", OnlyWindows });
+                missing.Add(new[] { "hologram", OnlyWindows });
+            }
+            else missing.Add(new[] { "clone:chaos", OnlyWindows });
             foreach (string name in SettingNames()) if (!CrossSetting(name)) missing.Add(new[] { "capri_settings:" + name, OnlyWindows });
 
 #endif
@@ -2217,6 +2234,9 @@ namespace CapriDesktop
             { "read_file", "reading files", "Reading files is only on Windows for now, choom." },
             { "draw", "drawing on their screen", "Drawing on your screen is only on Windows for now, choom." },
             { "clone", "clones and chaos mode", NoClones },
+#if CROSS
+            { "clone:chaos", "chaos mode", NoCloneChaos },
+#endif
             { "hologram", "hologram mode", NoHologram },
             { "desktop_icons", "messing with their desktop icons", NoIcons },
 #if CROSS
@@ -2469,6 +2489,9 @@ namespace CapriDesktop
 
         private static string Cannot(Kit kit, string tool, ToolArguments args)
         {
+#if CROSS
+            if (OnMac && tool == "clone" && args != null && args.Action == "spawn" && args.Count.HasValue && args.Count.Value <= 0) return NoCloneChaos;
+#endif
             string choice = args == null ? null : tool == "shortcut" ? args.Name : tool == "capri_settings" ? (Array.IndexOf(SettingActions, args.Action) >= 0 ? args.Action : args.Name) : tool == "move_yourself" || tool == "app_window" ? args.Action : null;
             string key = !kit.Has(tool) ? tool : choice != null && !kit.Has(tool + ":" + choice) ? tool + ":" + choice : null;
             return key == null ? null : Line(kit, key);
@@ -3711,7 +3734,6 @@ namespace CapriDesktop
             if (napped.Success) { tool = "nap"; args.Action = napped.Groups["wake"].Success ? "wake" : "sleep"; return true; }
             if (HologramOff.IsMatch(text)) { tool = "hologram"; args.Action = "off"; return true; }
             if (HologramOn.IsMatch(text)) { tool = "hologram"; args.Action = "on"; return true; }
-#if !CROSS
             Match cloning = CloneOn.Match(text);
             if (cloning.Success)
             {
@@ -3719,12 +3741,12 @@ namespace CapriDesktop
                 tool = "clone";
                 args.Action = "spawn";
                 if (int.TryParse(cloning.Groups["count"].Value, out copies) && copies > 0) args.Count = copies;
+#if CROSS
+                else if (OnMac) args.Count = Regex.IsMatch(text, @"chaos|multipl|as many|as much", RegexOptions.IgnoreCase) ? 0 : 1;
+#endif
                 return true;
             }
             if (CloneOff.IsMatch(text) || (CloneEnough.IsMatch(text) && Cloning())) { tool = "clone"; args.Action = "stop"; return true; }
-#else
-            if (CloneOn.IsMatch(text) || CloneOff.IsMatch(text)) { tool = "clone"; return true; }
-#endif
             string screen, window;
             string moved = MovingFor(text, out screen, out window);
             // A window they named only counts here while it's open, so "sit on my homework" stays chat for her brain.
@@ -4103,11 +4125,11 @@ namespace CapriDesktop
             if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories)\z"));
 #endif
             if (tool == "draw") return Ink.Valid(args);
+            if (tool == "clone") return args != null && (args.Action == "spawn" || args.Action == "stop");
+            if (tool == "hologram") return args != null && (args.Action == "on" || args.Action == "off");
 #if !CROSS
             if (tool == "call_errand") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(open_app|play_song|cancel)\z");
             if (tool == "call_say") return args != null && Named(args.Text);
-            if (tool == "clone") return args != null && (args.Action == "spawn" || args.Action == "stop");
-            if (tool == "hologram") return args != null && (args.Action == "on" || args.Action == "off");
             if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back");
             if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "stop");
             if (tool == "fake_crash") return args != null && (args.Action == "show" || args.Action == "stop");

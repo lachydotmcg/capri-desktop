@@ -230,6 +230,9 @@ namespace CapriDesktop
 
     internal sealed class Body : Control
     {
+        internal bool HologramOn;
+        internal readonly HologramArt Hologram = new HologramArt();
+        internal readonly HologramArt HologramMouth = new HologramArt();
         internal Clip Shown;
         internal int Cell;
         internal Clip Mouth;
@@ -274,8 +277,8 @@ namespace CapriDesktop
             using (context.PushTransform(Pose))
             {
                 Rect place = Place(shown);
-                context.DrawImage(shown.Art(FacingLeft), new Rect(Cell * shown.Wide, 0, shown.Wide, shown.Strip.PixelSize.Height), place);
-                if (Talking >= 0 && Mouth != null) context.DrawImage(Mouth.Strip, new Rect(Talking * Mouth.Wide, 0, Mouth.Wide, Mouth.Strip.PixelSize.Height), place);
+                context.DrawImage(Hologram.Art(shown, FacingLeft, HologramOn), new Rect(Cell * shown.Wide, 0, shown.Wide, shown.Strip.PixelSize.Height), place);
+                if (Talking >= 0 && Mouth != null) context.DrawImage(HologramMouth.Art(Mouth, false, HologramOn), new Rect(Talking * Mouth.Wide, 0, Mouth.Wide, Mouth.Strip.PixelSize.Height), place);
             }
             if (Dozing >= 0) Zs(context);
         }
@@ -795,6 +798,7 @@ namespace CapriDesktop
             // Her bubble and pill come up by themselves with her, so they leave the keyboard alone too. Her typing box takes it.
             Unfocus(Talk.Bubble);
             Unfocus(Talk.Pill);
+            StartClones();
             if (!OnTop) Stack(false);
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
@@ -1006,6 +1010,7 @@ namespace CapriDesktop
         internal void HideAway()
         {
             if (away || quitting) return;
+            ClonesOff();
             // A reply still on its way is dropped and her voice stops, so no bubble turns up with nobody under it to hold up her
             // pop-ins. A job she's doing carries on.
             ++asking;
@@ -1042,6 +1047,7 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = Now;
+            TickClones();
             Desk.BindScreens(Screens.All);
             TickNameListening();
             if (ContextMenu.IsOpen && Desk is HyprlandDesk menuDesk && (menuDesk.Desktop.VisualSnapshot == null || menuDesk.Desktop.VisualSnapshot.Locked)) ContextMenu.Close();
@@ -1637,7 +1643,7 @@ namespace CapriDesktop
             base.OnPointerPressed(e);
             Program.Guard(() =>
             {
-                if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || outro != null) return;
+                if (body.HologramOn || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || outro != null) return;
                 Point at = e.GetPosition(this);
                 if (!Opaque(at)) return;
                 // Where the press is comes first and the capture next, so a bug in either leaves her not pressed, instead of
@@ -1848,6 +1854,7 @@ namespace CapriDesktop
 
         internal void Stroke(PixelPoint cursor)
         {
+            if (body.HologramOn) return;
             if (!HeadPats || pressed || dragging || falling || outro != null || Talk.Typing) { ForgetStroke(); return; }
             // Her window takes the pointer over her see-through edges too, so a pat that overshoots her outline skips that
             // spot instead of starting over.
@@ -2707,6 +2714,7 @@ namespace CapriDesktop
         // sitting up where she sits, or standing. Unlike the doze she falls into by herself, the mouse and keyboard don't wake her.
         internal string Nap(bool sleeping)
         {
+            if (sleeping) ClonesOff();
             if (!sleeping)
             {
                 bool resting = napAsked || napping || Asleep;
@@ -2946,6 +2954,7 @@ namespace CapriDesktop
             if (careKind >= 0) return CareOn((CareKind)careKind);
             switch (name)
             {
+                case "hologram": return OperatingSystem.IsMacOS() ? (bool?)Saved.Hologram : null;
                 case "head_pats": return HeadPats;
                 case "legacy_stand": return LegacyStand;
                 case "follow_ups": return FollowUps;
@@ -2977,6 +2986,7 @@ namespace CapriDesktop
             if (careKind >= 0) { SetCare((CareKind)careKind, on); return null; }
             switch (name)
             {
+                case "hologram": return OperatingSystem.IsMacOS() ? Hologram(on ? "on" : "off") : "That Capri setting is only on Windows for now.";
                 case "head_pats": SetHeadPats(on); break;
                 case "legacy_stand": SetLegacyStand(on); break;
                 case "follow_ups": SetFollowUps(on); break;
@@ -4412,7 +4422,7 @@ namespace CapriDesktop
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
             StopListening();
-            if (modSendDepth == 0 && System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); return; }
+            if (modSendDepth == 0 && System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
             if (!meeting.Asking)
             {
                 // A code mod can change or take what they said first, like on Windows.
@@ -4465,7 +4475,7 @@ namespace CapriDesktop
                 return;
             }
             // Her nap, her own moves and her animations work before she has a brain, like on Windows.
-            if (tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, Hands.Do(tool, args)); return; }
+            if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, Hands.Do(tool, args)); return; }
             if (Think == null && Brain.Model == null && News.Matching(text) != null) { Reply(ticket, text, News.Facts); return; }
             if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline); FindBrain(); return; }
             Talk.Thinking(text);
@@ -5302,6 +5312,7 @@ namespace CapriDesktop
             if (quitting) return;
             if (fileEditor != null && !fileEditor.Clear(Quit)) return;
             quitting = true;
+            ClonesOff();
             // Her click guard writes down a bug in any of these, so she still goes after it instead of being left unable to quit.
             try
             {

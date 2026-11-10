@@ -150,6 +150,7 @@ namespace CapriDesktop
                 GuardChecks();
                 Ink.Check(checks);
                 MainframeGuardChecks();
+                Pet.CloneChecks(pet, checks);
                 UnreadableChecks();
                 MacWindows.Checks(checks);
                 UpdateCheckChecks();
@@ -1006,6 +1007,10 @@ namespace CapriDesktop
                 checks.Add("PASS her own moves without a brain: \"dance for me\" and \"stop dancing\" work with no brain set up, like her nap and \"teleport here\"");
                 // Clones and chaos mode are Windows-only, which she says straight away whether or not she has a brain, and her hands
                 // aren't told this is a Windows PC.
+                bool cloneMac = Hands.OnMac;
+                Hands.OnMac = false;
+                try
+                {
                 pet.Hear("clone yourself");
                 string cloneLine = pet.Talk.Reply;
                 pet.Talk.Dismiss();
@@ -1039,9 +1044,11 @@ namespace CapriDesktop
                         pet.Talk.Dismiss();
                     }
                 }
-                for (int hologramTool = 0; hologramTool < Hands.Count; hologramTool++) if (Hands.Name(hologramTool) == "hologram") throw new Exception("Hologram tool was exposed on Mac or Linux.");
+                if (Hands.KitFor().Has("hologram")) throw new Exception("Hologram tool was exposed on Linux.");
                 if (Hands.Do("hologram", new ToolArguments { Action = "on" }) != Hands.NoHologram || Hands.Do("hologram", new ToolArguments { Action = "off" }) != Hands.NoHologram || Hands.Pulled(Hands.NoHologram) != Hands.NoHologram) throw new Exception("Hologram tool failed its Windows-only guard.");
                 checks.Add("PASS hologram on and off explain Windows-only immediately with or without a brain, and the tool stays Windows-only");
+                }
+                finally { Hands.OnMac = cloneMac; }
                 MiniChecks();
                 pet.Think = delegate(string words) { return words == "hey" ? "Just vibing, choom." : "wrong words"; };
                 pet.Talk.Pill.Press(1);
