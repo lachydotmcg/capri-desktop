@@ -686,6 +686,7 @@ namespace CapriDesktop
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
             Limbs.Attach(Brain);
+            MacFiles.Attach(Program.Smoke ?? folder);
             StartAwake();
             Hands.Look = LookAt;
             Hands.LookOn = (focus, screen) => RequestedVision.Run(Brain, new ToolArguments { Focus = focus, Screen = screen });

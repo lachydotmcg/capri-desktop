@@ -145,6 +145,7 @@ namespace CapriDesktop
                 }
                 if (Brain.Greeting(8) != "Good morning, choom." || Brain.Greeting(23) != "Isn't it late, choom?" || Brain.Greeting(15) != "Miss me, choom?" || Brain.GreetingClip(15) != "miss") throw new Exception("Startup greetings came at the wrong hours.");
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
+                MacFiles.Checks(checks);
                 NewsChecks();
                 GuardChecks();
                 MainframeGuardChecks();
