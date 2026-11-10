@@ -103,6 +103,7 @@ namespace CapriDesktop
                 Hands.NativeWebsite = LinuxRoutes.Website;
             }
             Hands.NativeTerminal = TerminalJobs.Run;
+            if (OnMac) Hands.NativeWindow = MacWindows.Request;
             Hands.NativeTerminalJob = TerminalJobs.Control;
             Hands.TerminalAvailable = () => TerminalJobs.Available;
             Hands.Run = delegate(string id) { Open(id, OnMac); };

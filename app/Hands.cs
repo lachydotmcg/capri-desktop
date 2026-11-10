@@ -2147,7 +2147,8 @@ namespace CapriDesktop
             for (int i = 0; i < Shortcuts.GetLength(0); i++)
                 if (Array.IndexOf(OnMac ? MacPresses : LinuxPresses, Shortcuts[i, 0]) < 0) missing.Add(new[] { "shortcut:" + Shortcuts[i, 0], OnlyWindows });
             foreach (string move in WindowsMoves) missing.Add(new[] { "move_yourself:" + move, OnlyWindows });
-            foreach (string arrange in WindowsArranging) missing.Add(new[] { "app_window:" + arrange, OnlyWindows });
+            foreach (string arrange in WindowsArranging)
+                if (!OnMac || arrange == "pin_on_top" || arrange == "unpin") missing.Add(new[] { "app_window:" + arrange, OnMac ? "macOS cannot pin another app's window" : OnlyWindows });
             foreach (string tool in WindowsTools) missing.Add(new[] { tool, OnlyWindows });
             foreach (string name in SettingNames()) if (!CrossSetting(name)) missing.Add(new[] { "capri_settings:" + name, OnlyWindows });
 
@@ -2418,6 +2419,9 @@ namespace CapriDesktop
 
         private static string Gap(string key, int column)
         {
+#if CROSS
+            if (OnMac && (key == "app_window:pin_on_top" || key == "app_window:unpin")) return column == 1 ? "pinning other apps' windows" : "macOS doesn't let me pin another app's window on top.";
+#endif
             if (key.StartsWith("capri_settings:", StringComparison.Ordinal)) return column == 1 ? "the other Capri settings" : "That Capri setting is only on Windows for now.";
             for (int i = 0; i < Gaps.GetLength(0); i++) if (Gaps[i, 0] == key) return Gaps[i, column];
             return null;

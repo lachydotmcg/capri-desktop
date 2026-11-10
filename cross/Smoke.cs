@@ -150,6 +150,7 @@ namespace CapriDesktop
                 GuardChecks();
                 MainframeGuardChecks();
                 UnreadableChecks();
+                MacWindows.Checks(checks);
                 UpdateCheckChecks();
                 OfflineChecks();
                 ProviderErrorChecks();
