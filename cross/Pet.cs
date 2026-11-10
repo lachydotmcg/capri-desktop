@@ -2954,7 +2954,7 @@ namespace CapriDesktop
             if (careKind >= 0) return CareOn((CareKind)careKind);
             switch (name)
             {
-                case "hologram": return OperatingSystem.IsMacOS() ? (bool?)Saved.Hologram : null;
+                case "hologram": return Hands.OnMac ? (bool?)Saved.Hologram : null;
                 case "head_pats": return HeadPats;
                 case "legacy_stand": return LegacyStand;
                 case "follow_ups": return FollowUps;

@@ -21,17 +21,20 @@ namespace CapriDesktop
         internal readonly MiniScore Score;
         internal readonly int[] Cells;
         private readonly Random random;
+        private readonly List<int> yourHands = new List<int>(), herHands = new List<int>();
         private bool slip;
         internal int Result, You, Her, YourHand = -1, HerHand = -1;
-        internal string Last = "Your move, choom.";
+        internal string Level = "normal", Last = "Your move, choom.";
+        internal static readonly string[] Levels = { "easy", "normal", "hard" };
         private static readonly string[] Hands = { "rock", "paper", "scissors" };
         private static readonly int[] Columns = { 3, 2, 4, 1, 5, 0, 6 };
 
-        internal MiniGame(string kind, MiniScore score, Random dice)
+        internal MiniGame(string kind, MiniScore score, Random dice, string level = null)
         {
             Kind = kind;
             Score = score;
             random = dice;
+            if (!string.IsNullOrEmpty(level)) Level = level;
             Cells = new int[kind == "connect_four" ? 42 : 9];
             Again();
         }
@@ -53,8 +56,10 @@ namespace CapriDesktop
             if (Kind == "rock_paper_scissors")
             {
                 if (move < 0 || move > 2) return false;
+                HerHand = NextHand();
                 YourHand = move;
-                HerHand = random.Next(3);
+                yourHands.Add(move);
+                herHands.Add(HerHand);
                 int won = HandResult(YourHand, HerHand);
                 if (won == 1) You++;
                 if (won == 2) Her++;
@@ -72,27 +77,73 @@ namespace CapriDesktop
             Last = "You played " + Place(square) + ".";
             int state = Outcome(Cells, Kind == "connect_four");
             if (state != 0) { End(state); return true; }
-            int reply;
-            if (Kind == "tic_tac_toe")
-            {
-                int best = TicMove(Cells, false, null);
-                reply = TicMove(Cells, slip, random);
-                Cells[best] = 2;
-                int bestValue = TicValue(Cells, 1);
-                Cells[best] = 0;
-                Cells[reply] = 2;
-                if (TicValue(Cells, 1) < bestValue) slip = false;
-            }
-            else
-            {
-                reply = Landing(Cells, FourMove(Cells, random));
-                Cells[reply] = 2;
-            }
+            int reply = Kind == "tic_tac_toe" ? TicReply() : Landing(Cells, FourReply());
+            Cells[reply] = 2;
             Last += " Capri played " + Place(reply) + ".";
             state = Outcome(Cells, Kind == "connect_four");
             if (state != 0) End(state);
             return true;
         }
+
+        private int TicReply()
+        {
+            if (Level == "easy" && random.Next(3) != 0) return RandomOpen();
+            bool wrong = slip && Level == "normal";
+            int reply = TicMove(Cells, wrong, random);
+            if (wrong && TicAfter(reply) < TicAfter(TicMove(Cells, false, null))) slip = false;
+            return reply;
+        }
+
+        private int TicAfter(int square)
+        {
+            Cells[square] = 2;
+            int value = TicValue(Cells, 1);
+            Cells[square] = 0;
+            return value;
+        }
+
+        private int FourReply()
+        {
+            if (Level == "easy" && random.Next(3) == 0) return RandomOpen();
+            return FourMove(Cells, random, FourDepth(Level));
+        }
+
+        internal static int FourDepth(string level) { return level == "easy" ? 0 : level == "hard" ? 4 : 2; }
+
+        private int RandomOpen()
+        {
+            List<int> open = new List<int>();
+            for (int pick = 0; pick < (Kind == "connect_four" ? 7 : 9); pick++) if (Cells[pick] == 0) open.Add(pick);
+            return open[random.Next(open.Count)];
+        }
+
+        private int NextHand()
+        {
+            if (Level == "easy" && HerHand >= 0 && random.Next(2) == 0) return HerHand;
+            if (Level == "hard" && yourHands.Count > 0) return (GuessYourHand() + 1) % 3;
+            return random.Next(3);
+        }
+
+        private int GuessYourHand()
+        {
+            int[] seen = HandsAfter(true);
+            if (Most(seen) == 0) seen = HandsAfter(false);
+            if (Most(seen) == 0) foreach (int hand in yourHands) seen[hand]++;
+            List<int> likely = new List<int>();
+            for (int hand = 0; hand < 3; hand++) if (seen[hand] == Most(seen)) likely.Add(hand);
+            return likely[random.Next(likely.Count)];
+        }
+
+        private int[] HandsAfter(bool herHandToo)
+        {
+            int[] seen = new int[3];
+            int latest = yourHands.Count - 1;
+            for (int after = 1; after <= latest; after++)
+                if (yourHands[after - 1] == yourHands[latest] && (!herHandToo || herHands[after - 1] == herHands[latest])) seen[yourHands[after]]++;
+            return seen;
+        }
+
+        private static int Most(int[] seen) { return Math.Max(seen[0], Math.Max(seen[1], seen[2])); }
 
         private string Place(int square)
         {
@@ -112,7 +163,7 @@ namespace CapriDesktop
 
         internal string BoardText()
         {
-            StringBuilder board = new StringBuilder("\nCapri's desktop board: " + Title + ". You are Capri, playing against the user.\n");
+            StringBuilder board = new StringBuilder("\nCapri's desktop board: " + Title + ". You are Capri, playing against the user. Level: " + Level + ".\n");
             if (Kind == "rock_paper_scissors")
                 board.Append("First to 3. User points: ").Append(You).Append(". Capri points: ").Append(Her).Append(".\nLast hands: user ").Append(YourHand < 0 ? "none" : Hands[YourHand]).Append(", Capri ").Append(HerHand < 0 ? "none" : Hands[HerHand]).Append(".\n");
             else
@@ -145,6 +196,12 @@ namespace CapriDesktop
             string[] numbers = { "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" };
             if (!int.TryParse(text, out number)) number = Array.IndexOf(numbers, text) + 1;
             return number >= 1 && number <= (kind == "connect_four" ? 7 : 9) ? number - 1 : -1;
+        }
+
+        internal static string LevelIn(string words)
+        {
+            Match level = Regex.Match((words ?? "").Trim().ToLowerInvariant(), @"^(?:(?:set|switch|change|put|make)(?: (?:it|this|the level|level))?(?: (?:on|to))? |level |(?:play )?on )(?<level>easy|normal|hard)(?: (?:mode|difficulty|level))?$|^(?<level>easy|normal|hard) (?:mode|difficulty|level)$");
+            return level.Success ? level.Groups["level"].Value : null;
         }
 
         internal static int HandResult(int you, int her) { return you == her ? 0 : (you + 2) % 3 == her ? 1 : 2; }
@@ -209,7 +266,7 @@ namespace CapriDesktop
             return best;
         }
 
-        internal static int FourMove(int[] board, Random dice)
+        internal static int FourMove(int[] board, Random dice, int depth = 4)
         {
             int best = int.MinValue;
             List<int> picks = new List<int>();
@@ -218,7 +275,7 @@ namespace CapriDesktop
                 int at = Landing(board, column);
                 if (at < 0) continue;
                 board[at] = 2;
-                int value = FourValue(board, 4, 1, -100000, 100000);
+                int value = FourValue(board, depth, 1, -100000, 100000);
                 board[at] = 0;
                 if (value > best) { best = value; picks.Clear(); }
                 if (value == best) picks.Add(column);
@@ -413,6 +470,7 @@ namespace CapriDesktop
         {
             if (pick == 9) return new RectangleF(326, 14, 30, 30);
             if (pick == 10) return new RectangleF(24, 450, 170, 24);
+            if (pick >= 11 && pick <= 13) return new RectangleF(126 + (pick - 11) * 76, 80, 70, 24);
             if (kind == "tic_tac_toe") return new RectangleF(48 + pick % 3 * 92, 138 + pick / 3 * 92, 92, 92);
             if (kind == "connect_four") return new RectangleF(25 + pick * 46, 138, 46, 276);
             return new RectangleF(24 + pick * 108, 171, 104, 130);
@@ -423,6 +481,7 @@ namespace CapriDesktop
             PointF at = new PointF(point.X / scale, point.Y / scale);
             if (Part(Game.Kind, 9).Contains(at)) return 9;
             if (Part(Game.Kind, 10).Contains(at)) return 10;
+            for (int level = 11; level <= 13; level++) if (Part(Game.Kind, level).Contains(at)) return level;
             int count = Game.Kind == "tic_tac_toe" ? 9 : Game.Kind == "connect_four" ? 7 : 3;
             for (int part = 0; part < count; part++) if (Part(Game.Kind, part).Contains(at)) return part;
             return -1;
@@ -438,10 +497,18 @@ namespace CapriDesktop
 
         internal void Again() { Game.Again(); Redraw(); if (Played != null) Played(); }
 
+        internal void SetLevel(string level)
+        {
+            if (level == Game.Level) return;
+            Game.Level = level;
+            Again();
+        }
+
         private void Press(int part)
         {
             if (part == 9) { Close(); return; }
             if (part == 10) { Again(); return; }
+            if (part >= 11 && part <= 13) { SetLevel(MiniGame.Levels[part - 11]); return; }
             if (part >= 0) { selected = part; PlayMove(part); }
         }
 
@@ -523,7 +590,15 @@ namespace CapriDesktop
                 CityLook.Frame(paint, new Size(Wide, Tall), 1, 20, 5, 55, 20);
                 Words(paint, game.Title, title, CityLook.Rose, new RectangleF(24, 22, 298, 32), false);
                 Words(paint, "X", body, CityLook.Rose, Part(game.Kind, 9), true);
-                Words(paint, "SESSION  /  " + game.Score.Text, small, CityLook.Cyan, new RectangleF(24, 72, 324, 22), false);
+                Words(paint, "SESSION  /  " + game.Score.Text, small, CityLook.Cyan, new RectangleF(24, 58, 324, 20), false);
+                Words(paint, "LEVEL", small, CityLook.White, new RectangleF(24, 84, 96, 20), false);
+                for (int level = 0; level < 3; level++)
+                {
+                    RectangleF button = Part(game.Kind, 11 + level);
+                    bool chosen = MiniGame.Levels[level] == game.Level;
+                    ChessBoard.Panel(paint, button, chosen);
+                    Words(paint,MiniGame.Levels[level].ToUpperInvariant(), small, chosen ? CityLook.Cyan : CityLook.Faint, button, true);
+                }
                 string keys = game.Kind == "tic_tac_toe" ? "1-9 or arrows + Enter  /  say top left, middle..." : game.Kind == "connect_four" ? "1-7 or arrows + Enter  /  say column 3..." : "R / P / S or arrows + Enter  /  first to 3";
                 Words(paint, keys, small, CityLook.Faint, new RectangleF(24, 108, 324, 22), false);
                 int count = game.Kind == "tic_tac_toe" ? 9 : game.Kind == "connect_four" ? 7 : 3;
@@ -613,7 +688,9 @@ namespace CapriDesktop
             string kind = miniKind;
             if (kind.Length == 0) return null;
             if (kind == "chess") return ChessGame.Input(text);
-            string action = Regex.IsMatch(text, @"^(?:close|quit|exit|stop)(?: (?:the |our |your )?(?:board|mini ?game))?$", RegexOptions.IgnoreCase) ? "close"
+            string level = MiniGame.LevelIn(text);
+            if (level != null) return new ToolArguments { Name = kind, Action = "level", Level = level };
+            string action = Regex.IsMatch(text,@"^(?:close|quit|exit|stop)(?: (?:the |our |your )?(?:board|mini ?game))?$", RegexOptions.IgnoreCase) ? "close"
                 : Regex.IsMatch(text, @"^(?:again|play again|another round|new round|rematch)$", RegexOptions.IgnoreCase) ? "again"
                 : MiniGame.Input(kind, text) >= 0 ? "move" : null;
             return action == null ? null : new ToolArguments { Name = kind, Action = action, Text = text };
@@ -636,7 +713,7 @@ namespace CapriDesktop
                 CloseMinis();
                 MiniScore score;
                 if (!miniScores.TryGetValue(args.Name, out score)) { score = new MiniScore(); miniScores.Add(args.Name, score); }
-                MiniBoard opened = new MiniBoard(new MiniGame(args.Name, score, miniRandom));
+                MiniBoard opened = new MiniBoard(new MiniGame(args.Name, score, miniRandom, args.Level));
                 minis = opened;
                 miniKind = args.Name;
                 opened.Motion = preferences.Motion;
@@ -653,9 +730,11 @@ namespace CapriDesktop
                 if (!minis.PlayMove(move)) return minis.Game.Last;
                 return miniContext;
             }
+            bool leveled = !string.IsNullOrEmpty(args.Level) && args.Level != minis.Game.Level;
+            if (leveled) minis.SetLevel(args.Level);
             else if (args.Action == "again") minis.Again();
             MiniContext();
-            return "Board's up, choom. " + minis.Game.Status;
+            return (leveled ? "Level's " + args.Level + " now, choom. " : "Board's up, choom. ") + minis.Game.Status;
         }
 
         private string ChessTool(ToolArguments args)

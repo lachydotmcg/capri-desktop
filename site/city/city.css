@@ -120,6 +120,17 @@
   .phone-row .keys.grid { grid-template-columns: 1fr 1fr; gap: 18px 20px; }
 }
 
+/* ---------- On a phone or tablet the nav's button opens her phone app ---------- */
+/* A touch device can't install the desktop app, so Download gives way to Capri Remote there. */
+.use-mobile { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .nav .use-mobile { display: inline-flex; }
+  .nav #install { display: none; }
+}
+@media (hover: none) and (pointer: coarse) and (max-width: 349px) {
+  .nav .use-mobile { padding: 0 12px 0 16px; font-size: 16px; letter-spacing: .01em; }
+}
+
 /* ---------- Her taskbar's speaker button: pressed means her sounds are off ---------- */
 [data-ui] .sound .is-off { display: none; }
 [data-ui] .sound[aria-pressed="true"] .is-on { display: none; }
