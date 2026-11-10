@@ -635,6 +635,7 @@ namespace CapriDesktop
                 TerminalSecurityChecks();
                 MacNativeChecks();
                 MacFingers.Checks(checks);
+                MacRoutes.Checks(checks);
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");

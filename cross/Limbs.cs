@@ -94,14 +94,7 @@ namespace CapriDesktop
 
         internal static void Attach(Brain brain)
         {
-            if (OperatingSystem.IsLinux())
-            {
-                Hands.NativeDirect = LinuxRoutes.Direct;
-                Hands.NativeRequest = LinuxRoutes.Request;
-                Hands.NativeWindow = LinuxRoutes.Window;
-                Hands.NativeSystem = LinuxRoutes.System;
-                Hands.NativeWebsite = LinuxRoutes.Website;
-            }
+            if (OperatingSystem.IsLinux() || OnMac) MacRoutes.Attach(OnMac);
             Hands.NativeTerminal = TerminalJobs.Run;
             if (OnMac) Hands.NativeWindow = MacWindows.Request;
             Hands.NativeTerminalJob = TerminalJobs.Control;

@@ -2741,6 +2741,10 @@ namespace CapriDesktop
 
         internal bool Napping { get { return napping; } }
 
+        // Her own moves, like on Windows: "teleport here" glitches her over to their mouse, "go to my other monitor" to the same
+        // spot on another screen, and she sits, stands, hangs, hides and comes back. Lying down, walking or wandering off when
+        // asked and riding the cursor are in Moves.cs. Sitting on a window they name is still Windows-only on Mac, and her hands
+        // say so before they get here.
         internal string MoveSelf(string action, string screen)
         {
             if (action == "move_mainframe") return MoveMainframe(screen);
