@@ -26227,6 +26227,9 @@ namespace CapriDesktop
             Action<bool, bool> open = delegate(bool onCall, bool named)
             {
                 slow.Set();
+                // What an earlier check posted and never pumped lands here, before this one's state is set. A job's "Did it."
+                // from the play jobs check used to arrive mid-check and start a new turn, which dropped the first cut line.
+                Application.DoEvents();
                 wait(delegate { return !transcribing && talkState != TalkState.Thinking; });
                 CloseTalk();
                 chatTicket++;
