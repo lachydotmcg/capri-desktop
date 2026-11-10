@@ -573,12 +573,22 @@ namespace CapriDesktop
             MenuItem menu = pet.hologramItem;
             bool saved = pet.Saved.Hologram, drawn = pet.body.HologramOn;
             bool riding = pet.riding;
+            Clip shown = pet.body.Shown;
+            int cell = pet.body.Cell, talking = pet.body.Talking;
+            double breathe = pet.body.Breathe, tilt = pet.body.Tilt, dozing = pet.body.Dozing;
+            bool facing = pet.body.FacingLeft;
             var applied = new Dictionary<Window, bool>();
             try
             {
                 pet.cloneThrough = (window, on) => applied[window] = on;
                 pet.hologramItem = menu ?? pet.HologramMenu();
                 pet.SetHologram(false);
+                pet.body.Shown = pet.idle;
+                pet.body.Cell = 0;
+                pet.body.Talking = -1;
+                pet.body.Breathe = pet.body.Tilt = 0;
+                pet.body.Dozing = -1;
+                pet.body.FacingLeft = false;
                 PixelSize size = new PixelSize((int)Math.Ceiling(pet.body.Bounds.Width), (int)Math.Ceiling(pet.body.Bounds.Height));
                 Func<int[]> pixels = () =>
                 {
@@ -624,6 +634,10 @@ namespace CapriDesktop
                 pet.Saved.Hologram = saved;
                 Hands.OnMac = mac; pet.riding = riding;
                 pet.body.HologramOn = drawn;
+                pet.body.Shown = shown;
+                pet.body.Cell = cell; pet.body.Talking = talking;
+                pet.body.Breathe = breathe; pet.body.Tilt = tilt; pet.body.Dozing = dozing;
+                pet.body.FacingLeft = facing;
                 pet.body.Hologram.Dispose();
                 pet.body.HologramMouth.Dispose();
                 pet.hologramItem = menu;

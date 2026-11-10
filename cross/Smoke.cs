@@ -156,6 +156,7 @@ namespace CapriDesktop
                 UpdateCheckChecks();
                 OfflineChecks();
                 Diag("FakeCrash.Checks", () => FakeCrash.Checks(checks));
+                Diag("FakeCrash.WindowChecks", () => FakeCrash.WindowChecks(checks));
                 ProviderErrorChecks();
                 Diag("Watching.Checks", () => Watching.Checks(checks));
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");

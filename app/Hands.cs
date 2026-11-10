@@ -1374,24 +1374,30 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"save by default, open_folder or open_last\",\"enum\":[\"save\",\"open_folder\",\"open_last\"]},\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}", "clip games or open your clips", "save game clips or open saved clips" },
             { "mini_game", "Play your own tic-tac-toe, connect four, rock paper scissors or native chess board beside you. Online play goes to their browser. A move uses their square, column or rock/paper/scissors as text; chess moves use the mouse. again starts a new round; close closes your board. Chess also has undo, hint, resign and level. Chess needs no brain or key; choose easy, normal or hard and their side, white by default.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\",\"chess\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\",\"undo\",\"hint\",\"resign\",\"level\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move on a non-chess board\"},\"level\":{\"type\":\"string\",\"description\":\"Chess strength\",\"enum\":[\"easy\",\"normal\",\"hard\"]},\"side\":{\"type\":\"string\",\"description\":\"Their chess pieces\",\"enum\":[\"white\",\"black\"]}},\"required\":[\"name\"]}", "play her mini games with you (tic-tac-toe, connect four, rock paper scissors and chess) on her own desktop boards, even without a brain", "play tic-tac-toe, connect four, rock paper scissors or chess" },
+#endif
             { "watch_for", "Watch for something that will show on their screen: tell me when, let me know when, warn me if, keep an eye on, or watch for. Stay quiet until it happens. Use remind for anything that goes by the clock. Watches last until she closes; list names them, stop with text stops a matching watch, and stop without text stops them all.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to watch for, in their words, or which watch to stop\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; watch by default\",\"enum\":[\"watch\",\"list\",\"stop\"]},\"often\":{\"type\":\"string\",\"description\":\"Once by default, or every time after the condition clears\",\"enum\":[\"once\",\"every_time\"]}}}", "watch your screen for something and tell you when it happens", "tell them when something shows on their screen" },
             { "fake_crash", "Show your five-second " + CrashKind + " or stop it when they ask, suggest or hint at the prank. It never crashes their PC and won't start over full screen, a stream or a mouse job.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"show or stop the prank\",\"enum\":[\"show\",\"stop\"]}},\"required\":[\"action\"]}", "show or stop her " + CrashKind, "show or stop your " + CrashKind },
+#if !CROSS
             { "voice_chat", "Turn your voice chat on or off, or read its status when they ask, suggest or hint at talking with you. The switch waits for this tool turn to finish.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"on, off or status\",\"enum\":[\"on\",\"off\",\"status\"]}},\"required\":[\"action\"]}", "turn voice chat on or off and check it", "turn voice chat on or off and check it" },
+#endif
             { "speech", "Stop your current spoken reply when they ask, suggest or hint that you stop talking. Your voice stays enabled for later replies.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"stop talking now\",\"enum\":[\"stop\"]}},\"required\":[\"action\"]}", "stop her current spoken reply", "stop your current spoken reply" },
             { "job_control", "Stop the running mouse job, read its status or change what it does when they ask, suggest or hint at it. For change, task is their new instruction in their words.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"stop, status or change\",\"enum\":[\"stop\",\"status\",\"change\"]},\"task\":{\"type\":\"string\",\"description\":\"For change, the new instruction in their words\"}},\"required\":[\"action\"]}", "stop, check or change a running job", "stop, check or change your running job" },
             { "quit", "Quit Capri after your reply is said when they ask, suggest or hint that you close yourself. This leaves their PC running.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"quit Capri\",\"enum\":[\"quit\"]}},\"required\":[\"action\"]}", "quit Capri after her reply", "quit Capri after your reply" },
+#if !CROSS
             { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you. This only opens it; keys, brains, voice services, SECURITY, Hey Capri and memories are changed there by them.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
+#endif
             { "updates", "Check for a Capri update or read its status when they ask, suggest or hint at it. Install only when they clearly ask to install or update Capri, through the usual update checks. A status question or hint alone never authorizes installation.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"check, status or install; install needs a clear request\",\"enum\":[\"check\",\"status\",\"install\"]}},\"required\":[\"action\"]}", "check Capri updates or install when asked", "check Capri updates or install when asked" },
             { "mini_player", "Show or hide your mini music player for now when they ask, suggest or hint at it. Showing turns its setting on if needed; hiding leaves the setting on.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"show or hide the mini player\",\"enum\":[\"show\",\"hide\"]}},\"required\":[\"action\"]}", "show or hide her mini player", "show or hide your mini player" },
+#if !CROSS
             { "listen", "Capture PC dialogue and return or translate the words when they ask, suggest or hint at it. start listens from now for 15 seconds by default, after your voice finishes. stop ends a running capture; its original call returns the words so far. It cannot replay earlier sound or identify songs by ear.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"start by default, or stop a running capture\",\"enum\":[\"start\",\"stop\"]},\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to listen from now; defaults to 15\"},\"focus\":{\"type\":\"string\",\"description\":\"What they want to know or translate, if they said\"}}}", "listen to PC dialogue or stop listening", "hear PC dialogue, translate it or stop listening" },
 #endif
@@ -2295,6 +2301,9 @@ namespace CapriDesktop
             { "clone", "clones and chaos mode", NoClones },
 #if CROSS
             { "clone:chaos", "chaos mode", NoCloneChaos },
+            { "linux_system", "Linux system tools", "I can't use Linux system tools on a Mac." },
+            { "run_terminal", "terminal commands", "I can't run terminal commands on this desktop." },
+            { "terminal_job", "terminal jobs", "I can't control terminal jobs on this desktop." },
 #endif
             { "hologram", "hologram mode", NoHologram },
             { "desktop_icons", "messing with their desktop icons", NoIcons },
@@ -2714,7 +2723,9 @@ namespace CapriDesktop
             // "Put on the song they want" leaves the call a choice, which is call_errand's job.
             if (CallSession.Blank(said) || Regex.IsMatch(said ?? "", @"\b(?:cancel|drop|forget|stop)\b.{0,30}\berrand\b", RegexOptions.IgnoreCase)) return true;
             if (Files.PathIn(said) != null) return true;
+#endif
             if (WatchRequest(Asked(said)) != null) return true;
+#if !CROSS
             if (CapriDesktop.Websites.Request(Asked(said)) != null || FileFinder.Request(Asked(said), Finder.Busy, Finder.Found) != null) return true;
 #endif
             if (Regex.IsMatch(said ?? "", @"\b(please|pls|plz|stp)\s*[.!?]*$", RegexOptions.IgnoreCase) && Site(Asked(said))) return true;
@@ -3954,9 +3965,7 @@ namespace CapriDesktop
             else if (key == "level") args.Level = value;
             else if (key == "side") args.Side = value;
             else if (key == "screen") args.Screen = value;
-#if !CROSS
             else if (key == "often") args.Often = value;
-#endif
         }
 
         private static readonly Regex ToolText = new Regex(@"\A(" + ToolNames + @")\s*(\{.*\})\z", RegexOptions.Singleline);
@@ -4128,13 +4137,17 @@ namespace CapriDesktop
 #if !CROSS
             if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back" || args.Action == "rampage");
             if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "stop");
+#endif
             if (tool == "fake_crash") return args != null && (args.Action == "show" || args.Action == "stop");
+#if !CROSS
             if (tool == "voice_chat") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(on|off|status)\z");
+#endif
             if (tool == "speech") return args != null && args.Action == "stop";
             if (tool == "job_control") return args != null && (args.Action == "stop" || args.Action == "status" || args.Action == "change" && Named(args.Task));
             if (tool == "quit") return args != null && args.Action == "quit";
             if (tool == "updates") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(check|status|install)\z");
             if (tool == "mini_player") return args != null && (args.Action == "show" || args.Action == "hide");
+#if !CROSS
             if (tool == "listen")
             {
                 int listenDuration;

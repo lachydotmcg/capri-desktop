@@ -42,11 +42,37 @@ namespace CapriDesktop
             Func<string, string[], string> runWas = Music.Run;
             Func<ToolArguments, string> jobWas = Hands.NativeTerminalJob;
             Func<bool> terminalWas = Hands.TerminalAvailable;
+            Func<bool> quietWas = Watching.Quiet;
             Action<string> openWas = Hands.Run;
             bool macWas = Hands.OnMac;
             var commands = new List<string>();
             try
             {
+                Watching.Quiet = () => true;
+                foreach (bool mac in new[] { false, true })
+                {
+                    Hands.OnMac = mac;
+                    Hands.Kit kit = Hands.KitFor();
+                    string[] names = { "watch_for", "fake_crash", "speech", "job_control", "quit", "updates", "mini_player" };
+                    string[] actions = { "list", "show", "stop", "status", "quit", "check", "show" };
+                    for (int i = 0; i < names.Length; i++)
+                    {
+                        string marker = "\"name\":\"" + names[i] + "\"";
+                        if (!kit.Has(names[i]) || !kit.Tools.Contains(marker) || !kit.ClaudeTools.Contains(marker)
+                            || !Hands.Valid(names[i], new ToolArguments { Action = actions[i] })
+                            || Hands.Valid(names[i], null) || Hands.Valid(names[i], new ToolArguments { Action = "invalid" }))
+                            throw new Exception("A cross tool lost its catalog row or argument checks: " + names[i]);
+                    }
+                    foreach (string name in new[] { "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "voice_chat", "listen" })
+                        if (kit.Has(name) || kit.Tools.Contains("\"name\":\"" + name + "\"")) throw new Exception("A Windows tool was exposed: " + name);
+                    Hands.TerminalAvailable = () => false;
+                    foreach (string name in new[] { "run_terminal", "terminal_job" })
+                        if (Hands.KitFor().Has(name) || Hands.Unable(name, new ToolArguments()) == null) throw new Exception("An unavailable terminal tool had no refusal: " + name);
+                    Hands.TerminalAvailable = null;
+                    foreach (string name in new[] { "run_terminal", "terminal_job" })
+                        if (Hands.Unable(name, new ToolArguments()) == null) throw new Exception("An unwired terminal tool had no refusal: " + name);
+                }
+                checks.Add("PASS seven cross tools reach both catalogs and validate arguments; Windows tools and unavailable terminals stay refused");
                 Music.Run = (file, args) =>
                 {
                     if (file != "/usr/bin/open" || args.Length != 1) throw new Exception("The Mac local URL command changed.");
@@ -116,6 +142,7 @@ namespace CapriDesktop
                 Hands.NativeDirect = directWas; Hands.NativeRequest = requestWas;
                 Hands.NativeWindow = windowWas; Hands.NativeSystem = systemWas; Hands.NativeWebsite = websiteWas;
                 Music.Run = runWas; Hands.NativeTerminalJob = jobWas; Hands.TerminalAvailable = terminalWas;
+                Watching.Quiet = quietWas;
                 Hands.Run = openWas; Hands.OnMac = macWas;
             }
         }
