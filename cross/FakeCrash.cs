@@ -308,9 +308,6 @@ namespace CapriDesktop
                     }
                     if (Refusal(false, false, false, false, false) != null) throw new Exception("Fake crash added a refusal beyond Windows' holds.");
                     refusal = null;
-                    var window = new CrashWindow(screens[0], mac, () => { }, () => { }, () => { });
-                    if (window.ShowActivated || window.Focusable || window.ShowInTaskbar) throw new Exception("Fake crash asked for focus or a taskbar button.");
-                    window.Close();
                     foreach (string exit in new[] { "key", "click", "stop", "limit", "closed", "escape", "hold", "screen", "tick failure" })
                     {
                         int first = plates.Count, said = lines.Count;
@@ -382,6 +379,20 @@ namespace CapriDesktop
                 checks.Add("PASS fake crash drawing: Mac power symbol, four restart messages and window selectors; Linux console panic text");
             }
             finally { Hands.OnMac = macWas; Hands.Crash = crashWas; }
+        }
+
+        internal static void WindowChecks(List<string> checks)
+        {
+            foreach (bool mac in new[] { false, true })
+            {
+                var window = new CrashWindow(new Display(new PixelRect(-1920, 0, 1920, 1080), 1), mac, () => { }, () => { }, () => { });
+                try
+                {
+                    if (window.ShowActivated || window.Focusable || window.ShowInTaskbar) throw new Exception("Fake crash asked for focus or a taskbar button.");
+                }
+                finally { window.Close(); }
+            }
+            checks.Add("PASS fake crash windows never ask for focus or a taskbar button");
         }
     }
 

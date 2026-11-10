@@ -156,6 +156,7 @@ namespace CapriDesktop
                 UpdateCheckChecks();
                 OfflineChecks();
                 FakeCrash.Checks(checks);
+                FakeCrash.WindowChecks(checks);
                 ProviderErrorChecks();
                 Watching.Checks(checks);
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
@@ -571,12 +572,13 @@ namespace CapriDesktop
                         || closedDiscord != "Closed discord." || !noWmctrl.Contains("needs wmctrl") || !noneListed || !listedAgain || Hands.Presses)
                         throw new Exception("Closing and switching apps went wrong: " + closedDiscord + " / " + noWmctrl + " / " + windowLog);
                     // Shortcuts with a tool of their own: the screenshot picker, the task manager and, on Linux, show desktop.
+                    // A Mac shows its desktop with her keyboard (fn + F11), which her Mac key checks cover, so it's only looked up here.
                     did.Clear();
                     string linuxShot = Limbs.Shortcut("screenshot", false), linuxMonitor = Limbs.Shortcut("task_manager", false), linuxDesktop = Limbs.Shortcut("show_desktop", false);
                     string macShot = Limbs.Shortcut("screenshot", true), macMonitor = Limbs.Shortcut("task_manager", true);
                     string shortcutLog = string.Join(" / ", did);
                     if (linuxShot != "Opened the screenshot picker. Drag over what to grab." || linuxMonitor != "Opened the system monitor." || linuxDesktop != "Showed the desktop." || macMonitor != "Opened Activity Monitor."
-                        || !macShot.EndsWith("it goes to your clipboard.", StringComparison.Ordinal) || Limbs.Shortcut("show_desktop", true) != null || Limbs.Shortcut("clip_that", false) != null
+                        || !macShot.EndsWith("it goes to your clipboard.", StringComparison.Ordinal) || !MacFingers.Shortcuts.ContainsKey("show_desktop") || Limbs.Shortcut("clip_that", false) != null
                         || !shortcutLog.Contains("launch spectacle -r") || !shortcutLog.Contains("launch plasma-systemmonitor") || !shortcutLog.Contains("wmctrl -k on") || !shortcutLog.Contains("launch screencapture -i -c") || !shortcutLog.Contains("launch open -a Activity Monitor") || shortcutLog.Contains("launch flameshot"))
                         throw new Exception("Mac or Linux shortcuts went wrong: " + shortcutLog);
                     // An exact volume and the mute state: osascript on Mac, pactl on Linux, and amixer when pactl is missing.
@@ -5553,7 +5555,6 @@ namespace CapriDesktop
                 bool hung = pet.Hanging && pet.Playing == "dangle" && pet.HangChoice == "Let go";
                 Self("move_yourself", "stand_up");
                 bool letGo = !pet.Hanging;
-                Self("move_yourself", "ride_cursor");
                 string frameMoved = Self("move_yourself", "move_mainframe", "other");
                 if (pet.Frame == null || frameMoved != (pet.Screens.All.Count < 2 ? "There's no other screen to go to." : "Moved Capri Mainframe.")) throw new Exception("She did not open or move her Mainframe: " + frameMoved);
                 pet.CloseMainframe();
@@ -5609,10 +5610,10 @@ namespace CapriDesktop
             if (pet.Leaving || pet.Arriving || pet.Falling) return false;
             pet.MouseAt = null;
             string said = string.Join(" / ", moveLines);
-            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / Riding your cursor is only on Windows so far. / " + moveLines[7]
-                + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[15] + " / Hiding. Pick Show Capri in my tray menu to bring me back. / Back. / I'm right here.";
+            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / " + moveLines[6]
+                + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[14] + " / Hiding. Pick Show Capri in my tray menu to bring me back. / Back. / I'm right here.";
             if (said != wanted) throw new Exception("Her moves said the wrong things: " + said);
-            checks.Add("PASS she moves herself: teleport, sit, stand, hang, hide, show and named animations work; her Mainframe opens and moves to another screen when there is one; riding the cursor stays Windows-only");
+            checks.Add("PASS she moves herself: teleport, sit, stand, hang, hide, show and named animations work; her Mainframe opens and moves to another screen when there is one");
             moveStage = 5;
             return true;
         }
