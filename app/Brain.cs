@@ -15,38 +15,28 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.8.7";
+        internal const string Version = "0.8.8";
         internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
+            + "Nothing changed on Mac and Linux in this version. From 0.8.7:\n"
             + "Her tools: she runs the tools her brain picks without swapping them for something else. Phrase checks help when her brain can't use tools. With an Ollama model that can use tools, she works jobs out with all of them and keeps plain chat quick.\n"
             + "Thinking: Mainframe > Settings > Advanced Settings > BRAIN > Thinking has Default, Off, Low, Medium or High for a cloud brain where the model supports them, saved per model; Extra request JSON is beside it.\n"
             + "Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode adds OpenCode. Turn Verbosity off there to keep her to the big moments.\n"
             + "Code mods: they run on Mac and Linux too. A code mod lists the permissions it asks for, and one that needs a part Mac and Linux don't have yet is refused with a message naming it.\n"
             + "Stacking skins: turn several skins on in Mainframe > Mods and each one goes on top, so a skin with just cat ears or a hat sits over the outfit under it.\n"
             + "Linux TALK: hover over her and press TALK to talk to her once her offline ears are set up.";
-        internal const string Line = "I just updated to " + Version + ": my tools follow my brain's choices now, and code mods run here too. Ask me what's new for the menu paths.";
+        internal const string Line = "I just updated to " + Version + ": nothing new for me on Mac and Linux this time. Ask me what's new for what 0.8.7 brought.";
 #else
-        internal const string Version = "0.8.7";
+        internal const string Version = "0.8.8";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Capri Remote: Mainframe > CAPRI > Remote, turn it on, press Pair a phone and scan the QR code with your phone. Check the codes match, then press Allow on your PC. Text her, call her, watch your PC's screen and follow JOBS at capriai.app/remote. With no PC, use her on your phone with your own key. Windows only; off until you turn it on.\n"
-            + "Her tools: she runs the tools her brain picks without swapping them for something else. Phrase checks help when her brain can't use tools.\n"
-            + "Local jobs: an Ollama model that can use tools now works jobs out with all her tools; plain chat still gets a quick answer.\n"
-            + "Voice chat: every reply with no tool behind it gets a second look from her brain, so she can act when she said she would.\n"
-            + "Thinking: Mainframe > Settings > Advanced Settings > BRAIN > Thinking has Default, Off, Low, Medium or High for a cloud brain where the model supports them, saved per model; Extra request JSON is beside it.\n"
-            + "Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode adds OpenCode. Turn Verbosity off there to keep her to the big moments.\n"
-            + "Mods directory: Mainframe > Mods > Browse mods sorts by Downloads or Top rated and now says every mod is checked for malware before it goes up.\n"
-            + "Installed mods: Mainframe > Mods lets you search by name or author. Press Update mods to find newer copies, then press it again to get them.\n"
-            + "Mod messages: on Mainframe > Mods, messages fade after five seconds and problems after ten.\n"
-            + "Skin mods: skins can carry both stands, so Mainframe > Settings > CAPRI > Legacy stand can use the skin's old stand too.\n"
-            + "Stacking skins: turn several skins on in Mainframe > Mods and each one goes on top, so a skin with just cat ears or a hat sits over the outfit under it.\n"
-            + "Code mods: a code mod can give her tools she uses by herself, see and change chat, add its own options and more, listing each permission it asks for. Mainframe > Settings > HABITS > Security > HER MODS > Use tools your code mods added says whether she asks first.\n"
-            + "Start with Windows: Mainframe > Settings > HABITS > Start with Windows stays off on a new install until you turn it on. If you already have it on, it stays on.\n"
-            + "File editor: Mainframe > Settings > YOU > File editor opens and closes more smoothly.\n"
-            + "Game keys: when she plays a game, she clicks inside it once after it loads or comes back to the front, so her movement keys reach it.\n"
-            + "Game reminders: with Mainframe > Settings > HABITS > Hide in full screen on, she comes out to show a due reminder, then hides again.\n"
-            + "Windows 10 ears: she starts unpacking her offline ears herself, without waiting for Windows' tar to try first.\n"
-            + "Finding her brain: while she can't see a brain, she looks again every 15 seconds, so she finds Ollama after it starts without you pressing Refresh in Mainframe > BRAIN.\n"
-            + "From 0.8.6.1: her file editor is see-through dark glass.";
-        internal const string Line = "I just updated to " + Version + ": you can text me from your phone with Capri Remote now. Ask me what's new for the menu paths.";
+            + "Teleporting: when she teleports somewhere, like to your mouse or your other monitor, she turns into her ribbons, travels as them and forms where she lands.\n"
+            + "Icon rampage: tell her Adam Smasher would beat her and she takes it out on your desktop icons. They form a train, ram the edge of the screen, get thrown around for about ten seconds and go home. Esc stops it early, and your real icons never move.\n"
+            + "Game voice chat: on a call she hears a game's voice chat even when it never pauses. Fifteen seconds of unbroken sound is cut at a quiet moment and heard.\n"
+            + "Bubbles in games: her speech bubble and reaction plate no longer stay torn on screen when a frame can't be drawn.\n"
+            + "Desktop icons: she reads and moves your desktop icons through Windows' own view of the desktop.\n"
+            + "Installer: Capri-Setup.exe is Capri.exe under another name, one program with nothing packed inside, and she no longer starts PowerShell for anything.\n"
+            + "From 0.8.7: Capri Remote at Mainframe > CAPRI > Remote lets you text her, call her, watch your PC's screen and follow JOBS from your phone at capriai.app/remote.\n"
+            + "Mods: every mod in the directory has always been checked for malware before it goes up. That check is not new.";
+        internal const string Line = "I just updated to " + Version + ": I travel as my ribbons when I teleport now. And tell me Adam Smasher would beat me, I dare you. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 

@@ -32517,25 +32517,15 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
+                    "Teleporting:",
+                    "Icon rampage:",
+                    "Game voice chat:",
+                    "Bubbles in games:",
+                    "Desktop icons:",
+                    "Installer:",
                     "CAPRI > Remote",
-                    "Her tools:",
-                    "Local jobs:",
-                    "Voice chat:",
-                    "BRAIN > Thinking",
-                    "BRAIN > Code/Husk Mode",
-                    "Browse mods",
-                    "Update mods",
-                    "Mod messages:",
-                    "skins can carry both stands",
-                    "Stacking skins:",
-                    "HER MODS > Use tools your code mods added",
-                    "HABITS > Start with Windows",
-                    "YOU > File editor",
-                    "Game keys:",
-                    "Hide in full screen",
-                    "Windows 10 ears:",
-                    "every 15 seconds",
-                    "From 0.8.6.1:"
+                    "From 0.8.7:",
+                    "always been checked for malware"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
