@@ -1475,10 +1475,15 @@ Ask "play tic-tac-toe", "play connect four" or "play rock paper scissors". Her o
 - On the board, use 1–9 for tic-tac-toe, 1–7 for connect four, or R, P and S for rock paper scissors. Arrow keys and Enter work too.
 - N starts another round. Esc closes the board.
 
+Every board has three levels: easy, normal and hard. Normal is the default. Add one when you ask, like "play connect four on easy", click it at the top of the board, or say "switch to hard" while a board is up. On tic-tac-toe, connect four and rock paper scissors, changing level starts a new round.
+
+- Easy is beatable. Hard tic-tac-toe never loses.
+- In rock paper scissors, easy means she has a habit you can spot, normal is pure chance, and hard guesses from the hands you've already played. She never sees the hand you're playing now.
+
 Rock paper scissors is first to three points. The boards keep your scores for the session.
 
 ### The Play menu (0.8.3)
-Right-click her > Open Capri Mainframe > Settings > GAMES > Play... opens the menu. Pick Chess, Connect four, Tic-tac-toe or Rock, paper, scissors. You can also ask her to play one, even without a brain connected.
+Right-click her > Play opens the menu. So does right-click her > Open Capri Mainframe > Settings > GAMES > Play.... Pick Chess, Connect four, Tic-tac-toe or Rock, paper, scissors. You can also ask her to play one, even without a brain connected.
 
 ### Can I give her a file to read?
 Drag a file onto her, or ask her to read its full path. Put paths with spaces in quotes, such as `read "C:\Notes\project plan.txt"`. Then ask about its contents.

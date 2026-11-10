@@ -2511,6 +2511,8 @@ namespace CapriDesktop
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
             menu.Items.Add(new ToolStripMenuItem("File editor", null, delegate { OpenFiles(0); }));
+            ToolStripMenuItem playItem = new ToolStripMenuItem("Play");
+            menu.Items.Add(playItem);
             visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
             menu.Items.Add(visibilityItem);
             ToolStripMenuItem sizes = new ToolStripMenuItem("Size");
@@ -2612,6 +2614,8 @@ namespace CapriDesktop
             Shown += delegate { ModList.StartCode(Post); };
             mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             Shown += delegate { StartRemote(); };
+            playItem.DropDown = mainframe.MiniChoices();
+            playItem.DropDown.Font = menu.Font;
             PrepareHusk(data);
             mainframe.VisibleChanged += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
             mainframe.Resize += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
@@ -18887,6 +18891,14 @@ namespace CapriDesktop
                 Application.DoEvents();
                 if (!mainframe.SuggestionHints || mainframe.Overlap() != null) throw new Exception("The new Mainframe controls lost a hover tip or overlapped another control.");
                 checks.Add("PASS Mainframe's mini-game menu opens all four existing boards through their tool, survives a click elsewhere closing it, and the new controls have hover help and fit the existing rows");
+                ToolStripMenuItem rightClickPlay = null;
+                foreach (ToolStripItem top in menu.Items) if (top.Text == "Play") rightClickPlay = top as ToolStripMenuItem;
+                if (rightClickPlay == null || rightClickPlay.DropDownItems.Count != 4 || rightClickPlay.DropDown == play) throw new Exception("Her right-click Play menu is missing a board or shares the Mainframe's open menu.");
+                if (Array.IndexOf(mainframe.Dropdowns, (ContextMenuStrip)rightClickPlay.DropDown) < 0) throw new Exception("Her right-click Play menu won't follow a new look.");
+                opened.Clear();
+                foreach (ToolStripMenuItem game in rightClickPlay.DropDownItems) game.PerformClick();
+                if (string.Join(",", opened.ToArray()) != "chess:open,connect_four:open,tic_tac_toe:open,rock_paper_scissors:open") throw new Exception("A right-click Play choice did not use its existing board tool.");
+                checks.Add("PASS her right-click Play menu is the Mainframe's game choice, opens all four boards through their tool, and follows a new look");
             }
             finally { Hands.Mini = miniWas; }
         }
@@ -24728,6 +24740,78 @@ namespace CapriDesktop
             public override int Next(int maximum) { return 0; }
         }
 
+        private static MiniScore MinisSimpleMatches(string kind, string level, int games)
+        {
+            MiniScore score = new MiniScore();
+            for (int seed = 0; seed < games; seed++)
+            {
+                MiniGame game = new MiniGame(kind, score, new Random(seed), level);
+                Random hand = new Random(seed + 9000);
+                while (game.Result == 0) game.Move(kind == "tic_tac_toe" ? MinisSimpleTic(game.Cells) : MinisSimpleFour(game.Cells, hand));
+            }
+            return score;
+        }
+
+        private static int MinisSimpleTic(int[] cells)
+        {
+            foreach (int who in new[] { 1, 2 })
+                for (int square = 0; square < 9; square++)
+                {
+                    if (cells[square] != 0) continue;
+                    cells[square] = who;
+                    bool wins = MiniGame.Outcome(cells, false) == who;
+                    cells[square] = 0;
+                    if (wins) return square;
+                }
+            foreach (int square in new[] { 4, 0, 2, 6, 8, 1, 3, 5, 7 }) if (cells[square] == 0) return square;
+            return -1;
+        }
+
+        private static int MinisSimpleFour(int[] cells, Random hand)
+        {
+            foreach (int who in new[] { 1, 2 })
+                for (int column = 0; column < 7; column++)
+                {
+                    int at = MiniGame.Landing(cells, column);
+                    if (at < 0) continue;
+                    cells[at] = who;
+                    bool wins = MiniGame.Outcome(cells, true) == who;
+                    cells[at] = 0;
+                    if (wins) return column;
+                }
+            System.Collections.Generic.List<int> open = new System.Collections.Generic.List<int>();
+            foreach (int column in new[] { 3, 2, 4, 1, 5, 0, 6 }) if (MiniGame.Landing(cells, column) >= 0) open.Add(column);
+            return hand.Next(3) == 0 ? open[hand.Next(open.Count)] : open[0];
+        }
+
+        private static int MinisHabitWins(Func<int, int, int> habit)
+        {
+            MiniGame game = new MiniGame("rock_paper_scissors", new MiniScore(), new Random(71), "hard");
+            int round = 0, laterWins = 0;
+            for (int match = 0; match < 40; match++)
+            {
+                while (game.Result == 0) game.Move(habit(round++, game.HerHand));
+                if (match >= 10 && game.Result == 1) laterWins++;
+                game.Again();
+            }
+            return laterWins;
+        }
+
+        private static int MinisHardUnbeaten(int[] cells, Random dice)
+        {
+            int games = 0;
+            for (int choice = 0; choice < 9; choice++)
+            {
+                if (cells[choice] != 0) continue;
+                MiniGame game = new MiniGame("tic_tac_toe", new MiniScore(), dice, "hard");
+                Array.Copy(cells, game.Cells, 9);
+                game.Move(choice);
+                if (game.Result == 1) throw new Exception("Hard tic-tac-toe lost.");
+                games += game.Result != 0 ? 1 : MinisHardUnbeaten(game.Cells, dice);
+            }
+            return games;
+        }
+
         private static int MinisUnbeaten(int[] cells, int turn)
         {
             int result = MiniGame.Outcome(cells, false);
@@ -25395,7 +25479,7 @@ namespace CapriDesktop
             int throws = 0;
             for (int seed = 0; seed < 400; seed++)
             {
-                MiniGame forgiving = new MiniGame("tic_tac_toe", new MiniScore(), new Random(seed));
+                MiniGame forgiving = new MiniGame("tic_tac_toe", new MiniScore(), new Random(seed), "normal");
                 forgiving.Move(0);
                 if (MiniGame.TicValue(forgiving.Cells, 1) < 0) throws++;
             }
@@ -25454,6 +25538,77 @@ namespace CapriDesktop
             must(rps.Result == 2 && rpsScore.Her == 1 && rpsScore.You == 1, "A rematch lost the session score.");
             checks.Add("PASS minis: all nine hand pairs, ties, first to three, no moves after the result, and session scores across rematches");
 
+            must(new MiniGame("tic_tac_toe", new MiniScore(), new Random(70)).Level == "normal" && new MiniGame("connect_four", new MiniScore(), new Random(70), "hard").Level == "hard" && new MiniGame("rock_paper_scissors", new MiniScore(), new Random(70), "easy").BoardText().Contains("Level: easy"), "A board lost its level or default.");
+            MiniScore ticEasy = MinisSimpleMatches("tic_tac_toe", "easy", 400), ticNormal = MinisSimpleMatches("tic_tac_toe", "normal", 400), ticHard = MinisSimpleMatches("tic_tac_toe", "hard", 400);
+            must(ticEasy.You >= 200 && ticNormal.You >= 50 && ticNormal.You <= 150 && ticHard.You == 0, "Tic-tac-toe levels were out of line: easy " + ticEasy.Text + ", normal " + ticNormal.Text + ", hard " + ticHard.Text);
+            int hardEndings = 0;
+            for (int hardSeed = 0; hardSeed < 6; hardSeed++) hardEndings += MinisHardUnbeaten(new int[9], new Random(hardSeed));
+            checks.Add("PASS minis: tic-tac-toe levels against a simple player: easy loses " + ticEasy.You + " of 400, normal " + ticNormal.You + ", hard none; hard never loses across " + hardEndings + " real board continuations");
+
+            MiniScore fourEasy = MinisSimpleMatches("connect_four", "easy", 200), fourNormal = MinisSimpleMatches("connect_four", "normal", 200), fourHard = MinisSimpleMatches("connect_four", "hard", 40);
+            must(fourEasy.You >= 60 && fourEasy.You > fourNormal.You && fourNormal.You * 40 >= fourHard.You * 200, "Connect four levels were out of line: easy " + fourEasy.Text + ", normal " + fourNormal.Text + ", hard " + fourHard.Text);
+            must(MiniGame.FourDepth("hard") == 4 && MiniGame.FourDepth("normal") < 4 && MiniGame.FourDepth("easy") < MiniGame.FourDepth("normal"), "Connect four's depths were out of order.");
+            MiniGame hardFour = new MiniGame("connect_four", new MiniScore(), new Random(77), "hard");
+            hardFour.Move(3);
+            int[] fourFirstDisc = new int[42];
+            fourFirstDisc[MiniGame.Landing(fourFirstDisc, 3)] = 1;
+            Random sameRoll = new Random(77);
+            sameRoll.Next(4);
+            must(hardFour.Cells[MiniGame.Landing(fourFirstDisc, MiniGame.FourMove(fourFirstDisc, sameRoll))] == 2, "Hard connect four stopped being her old strength.");
+            checks.Add("PASS minis: connect four levels against a simple player: easy loses " + fourEasy.You + " of 200, normal " + fourNormal.You + " of 200, hard " + fourHard.You + " of 40, and hard is still her full depth");
+
+            int beatenEasy = 0, evenNormal = 0;
+            for (int matchSeed = 0; matchSeed < 400; matchSeed++)
+            {
+                MiniGame easyHands = new MiniGame("rock_paper_scissors", new MiniScore(), new Random(matchSeed), "easy");
+                while (easyHands.Result == 0) easyHands.Move(easyHands.HerHand < 0 ? 0 : (easyHands.HerHand + 1) % 3);
+                if (easyHands.Result == 1) beatenEasy++;
+                MiniGame normalHands = new MiniGame("rock_paper_scissors", new MiniScore(), new Random(matchSeed), "normal");
+                while (normalHands.Result == 0) normalHands.Move(normalHands.HerHand < 0 ? 0 : (normalHands.HerHand + 1) % 3);
+                if (normalHands.Result == 1) evenNormal++;
+            }
+            must(beatenEasy >= 300 && evenNormal >= 150 && evenNormal <= 250, "Rock paper scissors easy or normal was out of line: " + beatenEasy + " and " + evenNormal + " of 400.");
+            int stuckWins = MinisHabitWins(delegate(int round, int herHand) { return 0; }), cycleWins = MinisHabitWins(delegate(int round, int herHand) { return round % 3; }), counterWins = MinisHabitWins(delegate(int round, int herHand) { return herHand < 0 ? 0 : (herHand + 1) % 3; });
+            must(stuckWins == 0 && cycleWins == 0 && counterWins == 0, "Hard rock paper scissors didn't learn a habit: " + stuckWins + ", " + cycleWins + ", " + counterWins + ".");
+            foreach (string peekLevel in MiniGame.Levels)
+                for (int peekSeed = 0; peekSeed < 60; peekSeed++)
+                {
+                    int[] herAnswers = new int[3];
+                    for (int thisHand = 0; thisHand < 3; thisHand++)
+                    {
+                        MiniGame peeking = new MiniGame("rock_paper_scissors", new MiniScore(), new Random(peekSeed), peekLevel);
+                        foreach (int earlier in new[] { 0, 1, 2, 1 }) { peeking.Move(earlier); if (peeking.Result != 0) peeking.Again(); }
+                        must(peeking.Move(thisHand), "A hand wasn't played.");
+                        herAnswers[thisHand] = peeking.HerHand;
+                    }
+                    must(herAnswers[0] == herAnswers[1] && herAnswers[1] == herAnswers[2], "She read the user's hand on " + peekLevel + ".");
+                }
+            checks.Add("PASS minis: rock paper scissors levels: easy's habit loses " + beatenEasy + " of 400, normal is even at " + evenNormal + ", hard learns fixed habits, and no level reads the hand being played");
+
+            foreach (string[] levelBoard in new[] { new[] { "tic tac toe", "tic_tac_toe" }, new[] { "connect four", "connect_four" }, new[] { "rock paper scissors", "rock_paper_scissors" } })
+                foreach (string wantLevel in MiniGame.Levels)
+                    foreach (string wording in new[] { "play {0} on {1}", "play {0} {1}", "play {1} {0}", "play {0} on {1} mode", "let's play a {1} game of {0}", "play {0} with me on {1}", "play {0} on {1} with me", "open a game of {0} on {1}" })
+                    {
+                        string ask = string.Format(wording, levelBoard[0], wantLevel), askTool; ToolArguments askArgs;
+                        must(Hands.Direct(ask, out askTool, out askArgs) && askTool == "mini_game" && askArgs.Name == levelBoard[1] && askArgs.Level == wantLevel && Hands.Valid(askTool, askArgs), "A level wording missed: " + ask);
+                        must(Hands.Heard("Hey Capri, " + ask + " please", out askTool, out askArgs) && askTool == "mini_game" && askArgs.Name == levelBoard[1] && askArgs.Level == wantLevel, "A spoken level wording missed: " + ask);
+                    }
+            foreach (string spokenLevel in MiniGame.Levels)
+                foreach (string openWords in new[] { "{0} mode", "on {0}", "play on {0}", "switch to {0}", "set it to {0}", "make it {0}", "level {0}" })
+                    must(MiniGame.LevelIn(string.Format(openWords, spokenLevel)) == spokenLevel, "An open board's level wording missed: " + openWords);
+            foreach (string notLevel in new[] { "easy", "hard", "normal", "play easy", "play hard", "that was easy", "hard luck", "nice one", "you're cheating", "top left", "normally" }) must(MiniGame.LevelIn(notLevel) == null, "Level words stole ordinary chat: " + notLevel);
+            must(Hands.Valid("mini_game", new ToolArguments { Name = "connect_four", Action = "level", Level = "easy" }) && Hands.Valid("mini_game", new ToolArguments { Name = "tic_tac_toe", Action = "open", Level = "hard" }) && !Hands.Valid("mini_game", new ToolArguments { Name = "tic_tac_toe", Action = "level" }) && !Hands.Valid("mini_game", new ToolArguments { Name = "tic_tac_toe", Level = "impossible" }) && !Hands.Valid("mini_game", new ToolArguments { Name = "tic_tac_toe", Side = "black" }), "The board tool took or lost a wrong level.");
+            must(!Hands.CallAllowed("mini_game", new ToolArguments { Name = "connect_four", Action = "level", Level = "hard" }) && !Hands.CallAllowed("mini_game", new ToolArguments { Name = "connect_four", Action = "open", Level = "hard" }) && !Hands.CallAllowed("mini_game", new ToolArguments { Name = "tic_tac_toe", Action = "again", Level = "easy" }) && Hands.CallAllowed("mini_game", new ToolArguments { Name = "connect_four", Action = "open" }), "Someone on a call could change a board's level, or lost the plain board.");
+            string typedTool; ToolArguments typedArgs;
+            must(Hands.Typed("mini_game{\"name\":\"connect_four\",\"action\":\"open\",\"level\":\"easy\"}", out typedTool, out typedArgs) && typedTool == "mini_game" && typedArgs.Name == "connect_four" && typedArgs.Level == "easy", "The text-only board tool lost its level.");
+            foreach (string levelKind in new[] { "tic_tac_toe", "connect_four", "rock_paper_scissors" })
+                for (int levelPart = 11; levelPart <= 13; levelPart++)
+                {
+                    RectangleF levelButton = MiniBoard.Part(levelKind, levelPart);
+                    must(!levelButton.IntersectsWith(MiniBoard.Part(levelKind, 0)) && !levelButton.IntersectsWith(MiniBoard.Part(levelKind, 9)) && !levelButton.IntersectsWith(MiniBoard.Part(levelKind, 10)), "A level button covered another part of the board.");
+                }
+            checks.Add("PASS minis: every level wording reaches its board and level, typed tool text takes one, and ordinary chat stays chat");
+
             MiniGame written = new MiniGame("tic_tac_toe", new MiniScore(), new Random(13));
             written.Cells[0] = 1; written.Cells[4] = 2;
             must(written.BoardText().Contains("X . .\n. O .\n. . .\n") && written.BoardText().Contains("User to move") && written.BoardText().Contains("X = user, O = Capri"), "The board text didn't match its cells and turn.");
@@ -25509,7 +25664,7 @@ namespace CapriDesktop
                 foreach (string titled in new[] { "play bohemian rhapsody", "play stay with me", "play this love", "play poker face", "play tetris on spotify" })
                     must(Hands.Direct(titled, out named, out namedArgs) && named == "play_music", "A song stopped routing to music: " + titled);
                 must(Hands.Heard("play tic tac toe online", out named, out namedArgs) && named == "open_website" && namedArgs.Site == "google", "Online tic-tac-toe did not reach the browser.");
-                foreach (string left in new[] { "don't play tic tac toe", "if we play tic tac toe", "play checkers", "play tic tac toe on youtube", "play tic tac toe and open discord", "top left", "middle", "column 3", "rock", "nice one", "you're cheating" })
+                foreach (string left in new[] { "don't play tic tac toe", "if we play tic tac toe", "play checkers", "play tic tac toe on youtube", "play tic tac toe and open discord", "top left", "middle", "column 3", "rock", "nice one", "you're cheating", "easy", "hard", "level hard", "play hard rock", "play easy" })
                     must(!Hands.Heard(left, out named, out namedArgs) || named != "mini_game", "A board stole these words: " + left);
                 must(Hands.Tools.Contains("mini_game") && Hands.ClaudeTools.Contains("mini_game") && Hands.Listing.Contains("mini_game") && Hands.Valid("mini_game", new ToolArguments { Name = "connect_four" }) && !Hands.Valid("mini_game", new ToolArguments { Name = "checkers" }), "The board tool wasn't registered or accepted another game.");
                 must(Hands.Listing.Contains("tic_tac_toe|connect_four|rock_paper_scissors") && Hands.Typed("mini_game{\"name\":\"tic_tac_toe\",\"action\":\"open\"}", out named, out namedArgs) && named == "mini_game" && namedArgs.Name == "tic_tac_toe", "The text-only board tool was missing its arguments or parser.");
@@ -25628,6 +25783,36 @@ namespace CapriDesktop
                 must(Hands.Heard("rock", out moveTool, out moveArgs) && moveTool == "mini_game", "A spoken hand missed the board.");
                 DoTool(moveTool, moveArgs);
                 must(minis.Game.YourHand == 0 && !Hands.Heard("nice one", out moveTool, out moveArgs), "The spoken hand or ordinary chat was wrong.");
+                CloseMinis();
+                foreach (string openLevel in MiniGame.Levels)
+                {
+                    must(Hands.Heard("play connect four on " + openLevel, out moveTool, out moveArgs) && moveTool == "mini_game", "A level request missed the board.");
+                    DoTool(moveTool, moveArgs);
+                    must(minis != null && minis.Game.Kind == "connect_four" && minis.Game.Level == openLevel && Hands.MiniBoard().Contains("Level: " + openLevel), "A spoken level didn't open its board: " + openLevel);
+                    CloseMinis();
+                }
+                MiniTool(new ToolArguments { Name = "rock_paper_scissors" });
+                must(minis.Game.Level == "normal", "A board without a level wasn't normal.");
+                MiniBoard levelBoardOpen = minis;
+                levelBoardOpen.Game.Cells[0] = 1;
+                foreach (string chatWord in new[] { "easy", "hard", "play hard" }) must(!Hands.Heard(chatWord, out moveTool, out moveArgs) || moveTool != "mini_game", "A bare word changed an open board's level: " + chatWord);
+                must(Hands.Heard("switch to hard", out moveTool, out moveArgs) && moveTool == "mini_game" && moveArgs.Action == "level" && moveArgs.Level == "hard" && moveArgs.Name == "rock_paper_scissors" && Hands.Valid(moveTool, moveArgs), "A level wording on an open board was missed.");
+                string levelSaid = DoTool(moveTool, moveArgs);
+                must(minis == levelBoardOpen && minis.Game.Level == "hard" && minis.Game.Cells[0] == 0 && levelSaid.Contains("hard") && Hands.MiniBoard().Contains("Level: hard"), "A level change didn't start a new round on that level.");
+                must(Hands.Heard("play rock paper scissors on easy", out moveTool, out moveArgs), "Asking for a level on an open board was missed.");
+                DoTool(moveTool, moveArgs);
+                must(minis == levelBoardOpen && minis.Game.Level == "easy" && Hands.MiniBoard().Contains("Level: easy"), "An open board ignored a new level.");
+                RectangleF normalButton = MiniBoard.Part("rock_paper_scissors", 12);
+                string contextBefore = Hands.MiniBoard();
+                levelBoardOpen.ClickAt(new Point((int)((normalButton.X + 10) * levelBoardOpen.ScaleShown), (int)((normalButton.Y + 10) * levelBoardOpen.ScaleShown)));
+                must(minis.Game.Level == "normal" && Hands.MiniBoard().Contains("Level: normal") && contextBefore != Hands.MiniBoard() && minis.Game.YourHand == -1, "The level button didn't change the board or played a hand.");
+                levelBoardOpen.Again();
+                must(minis.Game.Level == "normal", "Play again lost the level.");
+                CloseMinis();
+                MiniTool(new ToolArguments { Name = "tic_tac_toe", Action = "level", Level = "easy" });
+                must(minis.Game.Kind == "tic_tac_toe" && minis.Game.Level == "easy", "The level action didn't open its board.");
+                CloseMinis();
+                checks.Add("PASS minis: spoken levels open their boards, an open board changes level by words, tool or button and starts a new round, bare words stay chat, and play again keeps the level");
                 chatting = true; local = false;
                 ChatHeard("play tic tac toe");
                 ChatHeard("top left");
@@ -39566,7 +39751,7 @@ namespace CapriDesktop
                             checks.Add("PASS size menu");
                             System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
                             foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
-                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,File editor,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
+                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,File editor,Play,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
                             Ledge popSeat = seat;
