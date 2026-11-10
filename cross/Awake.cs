@@ -172,6 +172,7 @@ namespace CapriDesktop
             AppDomain.CurrentDomain.ProcessExit += (_, _) => StopAwake();
             desktop.Exit += (_, _) => StopAwake();
             Closed += (_, _) => StopAwake();
+            InControl.Started = StopMovesForWork;
             Func<string, ToolArguments, string> act = Brain.Act;
             Brain.Act = (tool, args) =>
             {

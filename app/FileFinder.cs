@@ -20,22 +20,49 @@ namespace CapriDesktop
 
     internal sealed class FileFinder
     {
+#if CROSS
+        internal const string Description = "Find files or folders by name. Give the name in its original language, keeping any extension, without command words or a location. Returns whole paths, best match first. Search is bounded. Use action show to reveal the first result in Finder on Mac or open its folder on Linux, or stop to cancel. Searches names only, not file contents.";
+#else
         internal const string Description = "Find files or folders on this PC by name. Give the name in its original language, keeping any extension, without command words or a location. Returns whole paths, best match first. Use action show to select the first result in File Explorer, or stop to cancel a search. Searches names only, not file contents.";
+#endif
         internal const string Schema = "{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\",\"description\":\"The file or folder name to match, in its original language; quote a literal name\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; search by default\",\"enum\":[\"search\",\"show\",\"stop\"]}}}";
         private readonly object gate = new object();
         private CancellationTokenSource searching;
         private List<FileMatch> last = new List<FileMatch>();
         private DateTime foundAt;
+#if !CROSS
         internal Func<IEnumerable<string>> Roots = Places;
         internal Func<IEnumerable<string>> Wider = Everywhere;
         internal Func<string, bool> Reveal = Show;
-        internal bool Busy { get { lock (gate) return searching != null; } }
-        internal bool Found { get { lock (gate) return last.Count > 0 && DateTime.UtcNow - foundAt < TimeSpan.FromMinutes(10); } }
+#endif
+        internal bool Busy { get {
+#if CROSS
+            return MacFiles.Busy;
+#else
+            lock (gate) return searching != null;
+#endif
+        } }
+        internal bool Found { get {
+#if CROSS
+            return MacFiles.Found;
+#else
+            lock (gate) return last.Count > 0 && DateTime.UtcNow - foundAt < TimeSpan.FromMinutes(10);
+#endif
+        } }
 
-        internal void Stop() { lock (gate) if (searching != null) searching.Cancel(); }
+        internal void Stop() {
+#if CROSS
+            MacFiles.Stop();
+#else
+            lock (gate) if (searching != null) searching.Cancel();
+#endif
+        }
 
         internal string Do(ToolArguments args, Func<bool> stopped)
         {
+#if CROSS
+            return MacFiles.Find(args, stopped);
+#else
             if (args.Action == "stop") { Stop(); return "Stopped looking for files."; }
             if (args.Action == "show")
             {
@@ -79,6 +106,7 @@ namespace CapriDesktop
                 lock (gate) if (searching == request) searching = null;
                 request.Dispose();
             }
+#endif
         }
 
         internal static ToolArguments Request(string text, bool busy, bool found)
@@ -98,7 +126,7 @@ namespace CapriDesktop
         private static readonly Regex Quoted = new Regex("(?:^|\\s)[\"'\u201c](?<name>.+?)[\"'\u201d](?=\\s|$)");
 
         // The words that name it. "My photos" keeps photos, because there's nothing else to go on.
-        private static string Wanted(string description)
+        internal static string Wanted(string description)
         {
             Match quoted = Quoted.Match(description ?? "");
             if (quoted.Success) return Plain(quoted.Groups["name"].Value);
@@ -108,7 +136,7 @@ namespace CapriDesktop
             return Regex.Replace(named.Trim().Length > 0 ? named : plain, @"\s+", " ").Trim();
         }
 
-        private static int Score(string name, string wanted)
+        internal static int Score(string name, string wanted)
         {
             string actual = Plain(name);
             if (wanted.Length == 0 || actual.Length == 0) return 0;
@@ -132,6 +160,7 @@ namespace CapriDesktop
             return Regex.IsMatch(name, @"^(?:Windows|WinSxS|node_modules|bower_components|\.git|\.svn|\.hg|\.cache|\.nuget|\.npm|\.pnpm-store|__pycache__|\.venv|venv|\$Recycle\.Bin|System Volume Information|Recovery|Config\.Msi)$", RegexOptions.IgnoreCase);
         }
 
+#if !CROSS
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         private struct FindData
         {
@@ -351,6 +380,7 @@ namespace CapriDesktop
             return true;
         }
 
+#endif
         internal static string Spoken(string text)
         {
             return Regex.Replace(text ?? "", @"(?m)^([a-zA-Z]):[\\/]([^\r\n]+)\r?$", delegate(Match path)

@@ -53,6 +53,34 @@ namespace CapriDesktop
         internal static int ClampLook(int look) { return look < 0 || look >= Looks.Length ? 0 : look; }
         internal static bool Mono { get { return shade != 0; } }
         internal static string[] LookColours(int look) { return Looks[ClampLook(look)]; }
+        // Fluent menu items and submenu presenters use DynamicResources instead of
+        // inheriting ContextMenu.Foreground. Keep those resources inside this menu
+        // and reuse the mutable look brushes so a live palette change stays readable.
+        internal static void ConfigureMenu(ContextMenu menu)
+        {
+            menu.Resources["MenuFlyoutPresenterBackground"] = Ground;
+            menu.Resources["MenuFlyoutPresenterBorderBrush"] = Brim;
+            menu.Resources["MenuFlyoutItemBackground"] = Brushes.Transparent;
+            menu.Resources["MenuFlyoutItemBackgroundPointerOver"] = Hover;
+            menu.Resources["MenuFlyoutItemBackgroundPressed"] = Pressed;
+            menu.Resources["MenuFlyoutItemBackgroundDisabled"] = Brushes.Transparent;
+            menu.Resources["MenuFlyoutItemForeground"] = White;
+            menu.Resources["MenuFlyoutItemForegroundPointerOver"] = White;
+            menu.Resources["MenuFlyoutItemForegroundPressed"] = White;
+            menu.Resources["MenuFlyoutItemForegroundDisabled"] = Faint;
+            menu.Resources["MenuFlyoutItemKeyboardAcceleratorTextForeground"] = Faint;
+            menu.Resources["MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver"] = White;
+            menu.Resources["MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed"] = White;
+            menu.Resources["MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled"] = Faint;
+            menu.Resources["MenuFlyoutSubItemChevron"] = White;
+            menu.Resources["MenuFlyoutSubItemChevronPointerOver"] = White;
+            menu.Resources["MenuFlyoutSubItemChevronPressed"] = White;
+            menu.Resources["MenuFlyoutSubItemChevronDisabled"] = Faint;
+            menu.Resources["MenuFlyoutSubItemChevronSubMenuOpened"] = Cyan;
+            // Separator.xaml uses this key; scope it to the same menu only.
+            menu.Resources["SystemControlForegroundBaseMediumLowBrush"] = Rule;
+        }
+
         internal static void UseLook(int look)
         {
             shade = ClampLook(look);
@@ -247,7 +275,8 @@ namespace CapriDesktop
         {
             FontFamily = MainframeTheme.Text; FontSize = MainframeTheme.Size;
             MinWidth = MinHeight = 0; Padding = new Thickness(0); Cursor = new Cursor(StandardCursorType.Hand);
-            Template = new FuncControlTemplate<Button>((owner, scope) => new Panel());
+            // Glyph buttons must hit across their full bounds, not only painted X strokes.
+            Template = new FuncControlTemplate<Button>((owner, scope) => new Panel { Background = Brushes.Transparent });
             PropertyChanged += (_, _) => InvalidateVisual();
         }
         internal void Press() { OnClick(); }

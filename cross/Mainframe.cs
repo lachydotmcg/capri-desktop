@@ -16,6 +16,9 @@ namespace CapriDesktop
 {
     internal class MainframeWindow : Window
     {
+        private readonly Canvas header = new Canvas { Height = 50, Background = Brushes.Transparent };
+        private readonly LayoutTransformControl headerZoom;
+        private readonly NeonPlate headerPlate;
         internal readonly Canvas Page = new Canvas { Background = Brushes.Transparent };
         internal readonly LayoutTransformControl Zoomed;
         internal readonly ScrollViewer Scroll;
@@ -33,7 +36,7 @@ namespace CapriDesktop
 
         internal MainframeWindow(string title)
         {
-            Title = "Capri " + title; SystemDecorations = SystemDecorations.None; CanResize = false;
+            Title = "Capri " + title; NativeSurface.Register(this, NativeSurfaceRole.Mainframe); SystemDecorations = SystemDecorations.None; CanResize = false;
             Background = Brushes.Transparent; TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent };
             FontFamily = MainframeTheme.Text; FontSize = MainframeTheme.Size; Foreground = MainframeTheme.White;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -41,7 +44,10 @@ namespace CapriDesktop
             Scroll = new ScrollViewer { Content = Zoomed, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden };
             plate = new NeonPlate { Child = Scroll };
             rim = new NeonRim { Plate = plate, IsHitTestVisible = false };
-            var surface = new Grid(); surface.Children.Add(plate); surface.Children.Add(rim); Content = surface;
+            headerZoom = new LayoutTransformControl { Child = header, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+            headerPlate = new NeonPlate { Child = headerZoom, IsVisible = false };
+            var surface = new Grid(); surface.Children.Add(plate); surface.Children.Add(headerPlate); surface.Children.Add(rim); Content = surface;
+            header.PointerPressed += (_, e) => Program.Guard(() => { if (e.GetCurrentPoint(header).Properties.IsLeftButtonPressed && (e.Source == header || e.Source is NeonCaption)) BeginMoveDrag(e); });
             Scroll.ScrollChanged += (_, _) => { plate.Scroll = Scroll.Offset.Y / Zoom; plate.View = Scroll.Viewport.Height / Zoom; rim.InvalidateVisual(); };
             // Her buttons, switches, sliders and pickers go through Program.Guard by themselves (MainframeTheme), and the window's
             // own scrolling, keys, dragging and boxes do here, so a bug in Mainframe is written down instead of ending her.
@@ -72,6 +78,12 @@ namespace CapriDesktop
             ScalingChanged += (_, _) => Program.Guard(ScreenChanged);
         }
 
+        // Keep the same native header controls reachable while the long Linux settings page scrolls.
+        protected void PinHeader(Control control)
+        {
+            Page.Children.Remove(control); header.Children.Add(control); headerPlate.IsVisible = true;
+        }
+
         internal void Fit(double width, double height, double zoom)
         {
             if (fitting) return;
@@ -88,6 +100,8 @@ namespace CapriDesktop
         private void FitPage(double width, double height, double zoom)
         {
             Zoom = zoom;
+            header.Width = width; headerZoom.LayoutTransform = new ScaleTransform(zoom, zoom);
+            headerPlate.Zoom = zoom; headerPlate.Clip = new RectangleGeometry(new Rect(0, 0, width * zoom, 50 * zoom));
             Page.Width = width; Page.Height = height;
             Zoomed.LayoutTransform = new ScaleTransform(zoom, zoom);
             plate.Zoom = zoom; plate.Page = height;
@@ -100,7 +114,7 @@ namespace CapriDesktop
             if (IsVisible)
             {
                 int maxX = area.Right - (int)Math.Ceiling(Width * dpi), maxY = area.Bottom - (int)Math.Ceiling(Height * dpi);
-                Position = new PixelPoint(Math.Clamp(Position.X, area.X, Math.Max(area.X, maxX)), Math.Clamp(Position.Y, area.Y, Math.Max(area.Y, maxY)));
+                Look.Position(this, new PixelPoint(Math.Clamp(Position.X, area.X, Math.Max(area.X, maxX)), Math.Clamp(Position.Y, area.Y, Math.Max(area.Y, maxY))));
             }
             UpdateLayout();
             plate.View = Scroll.Viewport.Height / Zoom; rim.InvalidateVisual();
@@ -155,7 +169,7 @@ namespace CapriDesktop
         private readonly DispatcherTimer heartbeat = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         private readonly Stopwatch beatClock = Stopwatch.StartNew();
         private readonly NeonButton support;
-        private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote;
+        private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote;
         private readonly NeonButton more, advanced, minimize, close, setup, refresh, textConnect, voiceConnect, customVoice, showHide;
         private readonly NeonCaption build;
         private readonly Dictionary<NeonEntry, string> entries = new Dictionary<NeonEntry, string>();
@@ -186,7 +200,7 @@ namespace CapriDesktop
         {
             pet = owner;
             Caption("MAINFRAME", 24, 15, 120, 29, MainframeTheme.Rose, 64.0 / 3, true, true);
-            build = Caption("v" + typeof(Pet).Assembly.GetName().Version.ToString(3), 230, 20, 62, 22, MainframeTheme.Faint, 34.0 / 3); build.Align = TextAlignment.Right;
+            build = Caption("v" + typeof(Pet).Assembly.GetName().Version.ToString(), 230, 20, 62, 22, MainframeTheme.Faint, 34.0 / 3); build.Align = TextAlignment.Right;
             minimize = Key("", 300, 20, 26, 22, () => WindowState = WindowState.Minimized); minimize.Glyph = 1;
             close = Key("", 330, 20, 26, 22, Close); close.Glyph = 2;
             AutomationProperties.SetName(minimize, "Minimize"); AutomationProperties.SetName(close, "Close");
@@ -194,6 +208,7 @@ namespace CapriDesktop
             more = Key("Settings", 146, 20, 84, 22, () => ShowSettings(!paged)); more.Accent = MainframeTheme.Cyan; more.Loud = true;
             foreach (Item item in items) item.Page = -1;
             Section("BRAIN", 0, 58);
+            if (TerminalJobs.Supported) { Key("ChatGPT plan", 230, 56, 126, 20, pet.UsePlan); Key("Stop", 134, 56, 86, 20, pet.StopNativeWork); }
             brainName = Caption("", 28, 79, 328, 20, MainframeTheme.White, 44.0 / 3, true); brainName.Ellipsis = true;
             brainNote = Caption("", 28, 101, 328, 24, MainframeTheme.Faint); brainNote.Ellipsis = true;
             models = Picker("Brain model", 28, 134, 244, () => Array.IndexOf(pet.MainframeModels, pet.Brain.Model), i => { if (i == pet.MainframeModels.Length) pet.AskPull(); else pet.MainframePickModel(pet.MainframeModels[i]); }); models.Ellipsis = true;
@@ -225,11 +240,11 @@ namespace CapriDesktop
             Caption("That's a paid key: it goes under MAX INTELLIGENCE.", 28, 315, 328, 24, MainframeTheme.Yellow);
             Key("Move to MAX", 28, 350, 128, 24, () => { string key = paidKey; if (key == null) return; paidKey = null; pet.SetBrainTier(2); pet.SaveBrainKey(key, 2); });
             Section("VOICE", 0, 184);
-            string[] voiceNames = { "OFF", "", "CUSTOM LOCAL", "CLOUD VOICE" };
-            string[] voiceHints = { "Silent · text only", "", "Your own model", "Needs a key" };
+            string[] voiceNames = { "OFF", "RETAINED LOCAL", "CUSTOM LOCAL", "CLOUD VOICE" };
+            string[] voiceHints = { "Silent · text only", "Existing voice pack", "Your own model", "Needs a key" };
             for (int i = 0; i < 4; i++)
             {
-                if (i == 1) continue;
+                if (i == 1 && !OperatingSystem.IsLinux()) continue;
                 int at = i;
                 voices[i] = Add(new NeonRung { Text = voiceNames[i], Hint = voiceHints[i] }, 28, 208 + i * 24, i >= 2 ? 246 : 328, 23, voiceNames[i]);
                 voices[i].Click += (_, _) => pet.MainframeVoiceModePick(at);
@@ -253,6 +268,13 @@ namespace CapriDesktop
             voiceNote = Caption("", 28, 499, 244, 22, MainframeTheme.Faint); voiceNote.Ellipsis = true;
             var voiceTest = Key("Test voice", 280, 499, 76, 22, () => { if (Program.Smoke == null) pet.HearStyle(); });
             items[items.Count - 1].When = () => pet.MainframeVoiceMode != 0;
+            nameListeningNote = null;
+            if (OperatingSystem.IsLinux())
+            {
+                Toggle("Listen for Capri", 0, 524, () => pet.NameListeningEnabled, pet.SetNameListening);
+                nameListeningNote = Caption("", 28, 555, 328, 22, MainframeTheme.Faint); nameListeningNote.Ellipsis = true;
+                MainframeTips.Explain(nameListeningNote, "Local decoder · 20-second follow-ups · selected physical microphone");
+            }
             Section("CAPRI", 0, 540);
             Key("Mods", 190, 539, 70, 18, OpenMods).Accent = MainframeTheme.Cyan;
             // Shorter than a band's other keys and level with CAPRI, so its lit rim stays off the band's teal rule (Lachy, 4 Nov).
@@ -268,11 +290,14 @@ namespace CapriDesktop
             building = 1;
             advanced = Key("Advanced Settings", 238, 20, 136, 22, () => { pet.SetAdvancedSettings(!pet.Saved.AdvancedSettings); ShowSettings(true); }); advanced.Accent = MainframeTheme.Cyan; advanced.Loud = true;
             Section("YOU", 0, 58);
-            var personality = Add(new NeonPicker(), 92, 55, 136, 20, "Her personality");
+            var personality = Add(new NeonPicker(), 72, 55, 106, 20, "Her personality");
             personality.Check = false;
+            // Match the released row's explicit fallback for narrower native text.
+            personality.Ellipsis = true;
             personality.Options(new[] { "Edit personality.md", "Reset to default" }); personality.Text = "Her personality";
             personality.Changed += i => { if (i == 0) pet.OpenPersonality(); else pet.ResetPersonality(); personality.Text = "Her personality"; };
-            Key("Open her notes", 236, 55, 120, 20, () => pet.OpenNotes());
+            Key("Open her notes", 184, 55, 96, 20, () => pet.OpenNotes()).Ellipsis = true;
+            Key("File editor", 286, 55, 70, 20, () => pet.OpenFiles(0)).Ellipsis = true;
             var language = Picker("Language", 184, 85, 172, () => LanguageIndex(), i => pet.SetLanguage(Brain.Languages[i, 1]));
             language.Height = 22;
             var languages = new string[Brain.Languages.GetLength(0)];
@@ -284,9 +309,10 @@ namespace CapriDesktop
             nickname = Entry("What should she call you?", "Your name or a nickname", 28, 141, 244, 22, () => pet.SetNickname(nickname.Box.Text));
             Key("Save", 280, 141, 76, 22, () => pet.SetNickname(nickname.Box.Text));
             Section("VOICE", 0, 180);
-            Caption("Applies to every voice", 88, 178, 192, 20, MainframeTheme.Faint, 34.0 / 3).Align = TextAlignment.Right;
+            var toneNote = Caption("Applies to every voice", 88, 178, 192, 20, MainframeTheme.Faint, 34.0 / 3); toneNote.Align = TextAlignment.Right;
+            readers.Add(() => toneNote.Text = pet.RetainedVoice ? "Tone: retained profile" : "Applies to every voice");
             var layersKey = Key("Layers", 286, 177, 70, 20, OpenLayers);
-            readers.Add(() => { layersKey.Picked = VoiceFx.Layers.On; layersKey.InvalidateVisual(); });
+            readers.Add(() => { layersKey.IsEnabled = !pet.RetainedVoice; layersKey.Picked = VoiceFx.Layers.On; layersKey.InvalidateVisual(); });
             Slider("Volume", Pet.VolumeNames, 0, 204, () => Nearest(Pet.Volumes, Voice.Loudness), i => pet.SetVolume(Pet.Volumes[i]));
             Slider("Pitch", Pet.PitchNames, 0, 232, () => VoiceFx.Pitch + VoiceFx.MostPitch, i => pet.SetPitch(i - VoiceFx.MostPitch), true);
             Slider("Speed", Pet.PaceNames, 0, 260, () => Nearest(Pet.Paces, VoiceFx.Speed), i => pet.SetPace(Pet.Paces[i]), true);
@@ -360,7 +386,9 @@ namespace CapriDesktop
             huskVerbosity = Toggle("Verbosity", 380, 466, () => !pet.Saved.NoHuskVerbosity, pet.SetHuskVerbosity);
             Toggle("Stay on my model", 380, 466, () => pet.Saved.StayOnModel, pet.SetStay);
             Slider("Replies", Lengths, 380, 494, () => Brain.Wordiness, pet.SetReplies);
-            Slider("Memory", Lengths, 380, 522, () => Array.IndexOf(Recalls, Brain.Recall), i => pet.SetRecall(Recalls[i]));
+            int[] recallChoices = Array.IndexOf(Recalls, Brain.Recall) < 0 ? new[] { Recalls[0], Recalls[1], Recalls[2], Brain.Recall } : Recalls;
+            string[] recallLabels = recallChoices.Length == Recalls.Length ? Lengths : new[] { Lengths[0], Lengths[1], Lengths[2], Brain.Recall + " turns" };
+            Slider("Memory", recallLabels, 380, 522, () => Array.IndexOf(recallChoices, Brain.Recall), i => pet.SetRecall(recallChoices[i]));
             Slider("Memory size", new[] { "Auto", "4K", "8K", "16K", "32K", "64K" }, 380, 550, () => Array.IndexOf(Brain.MemorySizes, Brain.MemorySize), i => pet.SetMemorySize(Brain.MemorySizes[i]));
             Slider("Max reply", new[] { "Auto", "256", "2K", "8K" }, 380, 578, () => Brain.ReplyLength, pet.SetReplyLength);
             Slider("Bubble", Pet.BubbleNames, 380, 606, () => pet.BubbleTime, pet.SetBubbleTime);
@@ -393,14 +421,14 @@ namespace CapriDesktop
                 time.Height = 22; time.Options(names);
             }
             Key("Edit check-in lines", 408, 1380, 328, 20, pet.OpenCare);
+            if (OperatingSystem.IsLinux()) foreach (Item item in items) if (item.Y < 50) PinHeader(item.Control);
             status.Tick += (_, _) => Program.Guard(Sync);
             pet.SettingsChanged += Sync;
             heartbeat.Tick += (_, _) => Program.Guard(Heartbeat);
             Opened += (_, _) => { Sync(); status.Start(); heartbeat.Start(); };
             Closed += (_, _) => { closed = true; status.Stop(); heartbeat.Stop(); pet.SettingsChanged -= Sync; foreach (Window sheet in sheets.ToArray()) sheet.Close(); CloseMenus(); };
-            // Only her own Close puts Mainframe away, like on Windows. A Mac's Quit, logging out or shutting down asks every window at
-            // once, and one saying no calls all of it off after her other windows have already gone.
-            Closing += (_, e) => { if (!finishing && e.CloseReason == WindowCloseReason.WindowClosing) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };
+            // Linux X closes this window; system quit is never vetoed on any platform.
+            Closing += (_, e) => { if (!finishing && !OperatingSystem.IsLinux() && e.CloseReason == WindowCloseReason.WindowClosing) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };
             Sync();
         }
 
@@ -466,6 +494,7 @@ namespace CapriDesktop
             Named(name, x, y);
             var slider = Add(new NeonSlider(name, labels), x + 184, y + 3, 172, 22, name);
             slider.Changed += i => { if (!syncing) change(i); };
+            if (sample) readers.Add(() => slider.IsEnabled = !pet.RetainedVoice);
             if (sample) slider.Released += () => { if (!syncing && Program.Smoke == null) pet.HearStyle(); };
             readers.Add(() => { if (!slider.Deferred || !slider.Editing) slider.Value = read(); });
             changes[name] = i => slider.Slide(i);
@@ -512,14 +541,15 @@ namespace CapriDesktop
                 for (int i = 0; i < brains.Length; i++) { brains[i].Checked = i == pet.MainframeTier; brains[i].InvalidateVisual(); }
                 for (int i = 0; i < voices.Length; i++) if (voices[i] != null) { voices[i].Checked = i == pet.MainframeVoiceMode; voices[i].InvalidateVisual(); }
                 brainName.Text = pet.Brain.Remote != null ? pet.Brain.Remote.Name + " · " + pet.Brain.Model : pet.Brain.Model ?? "Her brain isn't set up yet";
-                brainNote.Text = pet.MainframeTier > 0 && pet.MainframeConnecting ? "Checking the key..." : pet.MainframeProblem ?? pet.MainframeProgress ?? (pet.Brain.Remote != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier > 0 ? "Paste a brain key and press Connect." : pet.Brain.Server != null ? pet.Brain.Server : pet.Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model · Ollama");
+                brainNote.Text = pet.MainframeProblem ?? (pet.Brain.Provider != null ? "ChatGPT plan · retained account" : pet.MainframeTier > 0 && pet.MainframeConnecting ? "Checking the key..." : pet.MainframeProblem ?? pet.MainframeProgress ?? (pet.Brain.Remote != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier > 0 ? "Paste a brain key and press Connect." : pet.Brain.Server != null ? pet.Brain.Server : pet.Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model · Ollama"));
                 brainNote.Text = Brain.Brief(brainNote.Text) ?? brainNote.Text;
                 tierNote.Text = pet.MainframeTier == 1 ? pet.Brain.Remote?.Kind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : pet.MainframeTier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
                 textKey.Cue = pet.MainframeBrainKey != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
                 textConnect.Text = pet.MainframeBrainKey == null || !string.IsNullOrWhiteSpace(textKey.Box.Text) ? "Connect" : "Forget";
                 voiceKey.Cue = pet.MainframeVoiceKey == null ? "ElevenLabs key" : "Key saved, ends " + Voice.Tail(pet.MainframeVoiceKey);
                 voiceConnect.Text = pet.MainframeVoiceKey == null || !string.IsNullOrWhiteSpace(voiceKey.Box.Text) ? "Connect" : "Forget";
-                voiceNote.Text = pet.MainframeVoiceProblem ?? (pet.MainframeVoiceMode == 0 ? "Silent · text only" : pet.MainframeVoiceMode == 2 ? "Local voice server" : pet.MainframeVoiceName ?? "Connect your ElevenLabs key.");
+                voiceNote.Text = pet.MainframeVoiceProblem ?? (pet.MainframeVoiceMode == 0 ? "Silent · text only" : pet.MainframeVoiceMode == 1 ? "Retained local voice · existing profile" : pet.MainframeVoiceMode == 2 ? "Local voice server" : pet.MainframeVoiceName ?? "Connect your ElevenLabs key.");
+                if (nameListeningNote != null) nameListeningNote.Text = pet.NameListeningStatus;
                 customVoice.Text = string.IsNullOrEmpty(pet.MainframeLocalModel) ? "Voice server" : pet.MainframeLocalModel;
                 showHide.Text = pet.Away ? "Show Capri" : "Hide Capri";
                 updateNote.Text = pet.MainframeUpdate;
@@ -593,8 +623,12 @@ namespace CapriDesktop
                     if (below)
                     {
                         y += shift;
-                        if (item.Y >= 256) y -= 24;
+                        if (!OperatingSystem.IsLinux() && item.Y >= 256) y -= 24;
                         if (item.Y >= 499) y -= 117 + fold;
+                        // A section control starts five pixels above its authored band.
+                        // Move CAPRI's heading with its rows past the name controls.
+                        if (OperatingSystem.IsLinux() && control != nameListeningNote &&
+                            (item.Y >= 539 || control is NeonHead band && band.Text == "CAPRI")) y += 70;
                     }
                     if (item.Y == 310) show &= voice == 3;
                     if (item.Y == 346)
@@ -630,6 +664,7 @@ namespace CapriDesktop
         internal void PickBrainTier(int tier) { brains[tier].Press(); Sync(); }
         internal void PickVoiceTier(int tier) { voices[tier].Press(); Sync(); }
         internal void Press(string text) { foreach (Item item in items) if (item.Control is NeonButton button && button.Text == text && button.IsVisible) { button.Press(); return; } throw new Exception("No Mainframe button: " + text); }
+        internal NeonButton Button(string text) { foreach (Item item in items) if (item.Control is NeonButton button && button.Text == text && button.IsVisible) return button; return null; }
         internal Control Row(string name) { return rows[name]; }
         internal string Value(string name)
         {

@@ -4,7 +4,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
+#if !CROSS
 using System.Windows.Automation;
+#endif
 
 namespace CapriDesktop
 {
@@ -20,7 +22,12 @@ namespace CapriDesktop
         private readonly SavedList<Entry> file;
         private readonly object gate = new object();
         private readonly List<Entry> entries = new List<Entry>();
+        #if CROSS
+        internal Func<string> Current = delegate { return null; };
+        internal Func<string> CurrentProblem = delegate { return null; };
+#else
         internal Func<string> Current = FrontAddress;
+#endif
 
         internal Websites(string folder)
         {
@@ -74,6 +81,13 @@ namespace CapriDesktop
             string name = Key(args.Name);
             if (args.Action == "forget") name = Nickname(name) ?? name;
             string address = args.Action == "list" || args.Action == "forget" ? null : Address(string.IsNullOrWhiteSpace(args.Site) ? Current() : args.Site);
+#if CROSS
+            if (args.Action != "list" && args.Action != "forget" && address == null && string.IsNullOrWhiteSpace(args.Site))
+            {
+                string problem = CurrentProblem();
+                if (problem != null) return problem;
+            }
+#endif
             lock (gate)
             {
                 if (args.Action == "list")
@@ -127,6 +141,7 @@ namespace CapriDesktop
             return Regex.IsMatch(name ?? "", @"address|search or enter|search with.*enter|adresse|direcci[oó]n|indirizzo|endere[cç]o", RegexOptions.IgnoreCase) ? 2 : 0;
         }
 
+#if !CROSS
         internal static string FrontAddress()
         {
             try
@@ -162,5 +177,6 @@ namespace CapriDesktop
             }
             catch (Exception) { return null; }
         }
+#endif
     }
 }

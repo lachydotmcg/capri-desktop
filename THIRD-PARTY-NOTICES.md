@@ -11,3 +11,9 @@ Her own ears run [NVIDIA Parakeet TDT 0.6B v2](https://huggingface.co/nvidia/par
 ## QR codes
 
 Capri Remote's pairing QR code (app/RemoteQr.cs) is ported from Project Nayuki's [QR Code generator library](https://www.nayuki.io/page/qr-code-generator-library), Copyright (c) Project Nayuki, under the [MIT License](https://opensource.org/licenses/MIT). The licence text is in the file's header.
+
+## Arch v0.8.6.1 native adaptations
+
+The click animation is by **mixmix312352**, reused from the pinned upstream click strip. The stand/orientation, editor PanelArt and CapriMainframe-Bold font are reused from lachydotmcg/capri-desktop v0.8.6.1 under the existing project terms. Preserve upstream LICENSE.md and notices. Original Mochiiwuff source attribution remains https://github.com/mochiiwuff/capri-desktop. No generated visual media was added.
+
+The Linux native font bootstrap adapts SkiaSharp’s MIT-licensed LibraryLoader isolation flag from PR2247, merge `482e6ee2913a08a7cad76520ccf5fbce97c7c23b`. Its source provenance and MIT license are retained in `docs/provenance/SkiaSharp`; packaged HarfBuzzSharp and SkiaSharp dependency pins are unchanged.

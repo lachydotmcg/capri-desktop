@@ -1,0 +1,85 @@
+{
+  "moonshine_source_revision": "234f60faa0eb388b01cdf7e60aca232af37aefda",
+  "wake_source_revision": "c8ef6912c5feccf1037b852d9bc6c7ed644135ba",
+  "moonshine_weight_revision": "tiny-streaming-en/quantized_26_08_21",
+  "wake_weight_revision": "openWakeWord/v0.5.1/hey_jarvis_v0.1",
+  "artifacts": [
+    {
+      "name": "adapter.ort",
+      "url": "https://download.moonshine.ai/model/tiny-streaming-en/quantized_26_08_21/adapter.ort",
+      "sha256": "22ecc949e146c49667fda28d102d4e30749a107dc88a396292aa8f277ef1347c",
+      "license": "MIT",
+      "size": 1319664
+    },
+    {
+      "name": "cross_kv.ort",
+      "url": "https://download.moonshine.ai/model/tiny-streaming-en/quantized_26_08_21/cross_kv.ort",
+      "sha256": "143a36667b8d05fd9d04e8c337b7ee121f37ef299aea6b3d82bdb3d3401950b4",
+      "license": "MIT",
+      "size": 1287544
+    },
+    {
+      "name": "decoder_kv.ort",
+      "url": "https://download.moonshine.ai/model/tiny-streaming-en/quantized_26_08_21/decoder_kv.ort",
+      "sha256": "8852553f312adb6c9aa4d17418015049b30f412209ee569d336548c0044627de",
+      "license": "MIT",
+      "size": 32583720
+    },
+    {
+      "name": "encoder.ort",
+      "url": "https://download.moonshine.ai/model/tiny-streaming-en/quantized_26_08_21/encoder.ort",
+      "sha256": "a8414e1a5dedf9f2093d7680601dd8a9b0433e7020260eafe0e370ead91134ca",
+      "license": "MIT",
+      "size": 7675440
+    },
+    {
+      "name": "frontend.model.ort",
+      "url": "https://download.moonshine.ai/model/tiny-streaming-en/quantized_26_08_21/frontend.model.ort",
+      "sha256": "5121b561417b638afce0c6c31b760e37c93cf97f80d9b0031aad1fe7b6f25d61",
+      "license": "MIT",
+      "size": 23344
+    },
+    {
+      "name": "frontend.weights.ort",
+      "url": "https://download.moonshine.ai/model/tiny-streaming-en/quantized_26_08_21/frontend.weights.ort",
+      "sha256": "217da24ac6f522ebf02da8ef288e77d1ac68d50d4a6821433182e4fbf4204bbd",
+      "license": "MIT",
+      "size": 2093464
+    },
+    {
+      "name": "streaming_config.json",
+      "url": "https://download.moonshine.ai/model/tiny-streaming-en/quantized_26_08_21/streaming_config.json",
+      "sha256": "74fe5ddebd63b17caf59e8a3b18c17547ff7bce1642050edbb1c3962674f8950",
+      "license": "MIT",
+      "size": 509
+    },
+    {
+      "name": "tokenizer.bin",
+      "url": "https://download.moonshine.ai/model/tiny-streaming-en/quantized_26_08_21/tokenizer.bin",
+      "sha256": "6884b35fd6377d4c4d32336a0bc152f36b64d1e45b6503683cdc238250a8472d",
+      "license": "MIT",
+      "size": 249974
+    },
+    {
+      "name": "hey_jarvis_v0.1.onnx",
+      "url": "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/hey_jarvis_v0.1.onnx",
+      "sha256": "94a13cfe60075b132f6a472e7e462e8123ee70861bc3fb58434a73712ee0d2cb",
+      "license": "CC-BY-NC-SA-4.0 (upstream bundled model terms)",
+      "size": 1271370
+    },
+    {
+      "name": "melspectrogram.onnx",
+      "url": "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/melspectrogram.onnx",
+      "sha256": "ba2b0e0f8b7b875369a2c89cb13360ff53bac436f2895cced9f479fa65eb176f",
+      "license": "CC-BY-NC-SA-4.0 (upstream bundled model terms)",
+      "size": 1087958
+    },
+    {
+      "name": "embedding_model.onnx",
+      "url": "https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/embedding_model.onnx",
+      "sha256": "70d164290c1d095d1d4ee149bc5e00543250a7316b59f31d056cff7bd3075c1f",
+      "license": "CC-BY-NC-SA-4.0 (upstream bundled model terms)",
+      "size": 1326578
+    }
+  ]
+}

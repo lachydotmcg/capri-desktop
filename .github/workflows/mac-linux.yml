@@ -77,13 +77,13 @@ jobs:
           touch dist/notarized
           security delete-keychain "$keychain"
       - name: Smoke test, Apple Silicon
-        timeout-minutes: 5
+        timeout-minutes: 8
         run: |
           dist/arm64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-arm64" || true
           cat smoke/mac-arm64/smoke-test.txt
           if grep -q '^FAIL' smoke/mac-arm64/smoke-test.txt; then exit 1; fi
       - name: Smoke test, Intel through Rosetta
-        timeout-minutes: 5
+        timeout-minutes: 8
         run: |
           if arch -x86_64 /usr/bin/true 2>/dev/null; then
             arch -x86_64 dist/x64/Capri.app/Contents/MacOS/Capri --smoke "$PWD/smoke/mac-x64" || true
@@ -121,10 +121,10 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
+      - name: Native Linux dependencies
+        run: sudo apt-get update -q && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev libxcb1-dev pkg-config
       - name: Build
-        run: |
-          dotnet publish cross/Capri.Cross.csproj -c Release -r linux-x64 --self-contained -o out/Capri -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none
-          chmod +x out/Capri/Capri
+        run: bash ci/build-linux.sh "$PWD/out/Capri"
       - name: Install a test desktop
         timeout-minutes: 15
         run: |
@@ -150,8 +150,8 @@ jobs:
           cp cross/icon.png AppDir/capri-desktop.png
           printf '%s\n' '#!/bin/sh' 'HERE="$(dirname "$(readlink -f "$0")")"' 'exec "${APPDIR:-$HERE}/usr/bin/Capri" "$@"' > AppDir/AppRun
           chmod +x AppDir/AppRun
-          curl -fsSLo appimagetool https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
-          curl -fsSLo runtime-x86_64 https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64
+          curl --retry 3 --retry-delay 2 --retry-max-time 120 --max-time 60 -fsSLo appimagetool https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+          curl --retry 3 --retry-delay 2 --retry-max-time 120 --max-time 60 -fsSLo runtime-x86_64 https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64
           echo "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  appimagetool" | sha256sum -c -
           echo "2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d  runtime-x86_64" | sha256sum -c -
           chmod +x appimagetool

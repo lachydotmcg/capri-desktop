@@ -1,0 +1,12 @@
+[
+  {
+    "path": "rubberband-COPYING.txt",
+    "url": "https://raw.githubusercontent.com/breakfastquay/rubberband/v4.0.0/COPYING",
+    "sha256": "cedd4c1885d75991bf1077cc6e33359103cf04fbc996f20d30ab043d5fc5fcc5"
+  },
+  {
+    "path": "ffmpeg-COPYING.GPLv3.txt",
+    "url": "https://raw.githubusercontent.com/FFmpeg/FFmpeg/n9.0.2/COPYING.GPLv3",
+    "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+  }
+]

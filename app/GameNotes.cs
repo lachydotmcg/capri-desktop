@@ -170,8 +170,10 @@ namespace CapriDesktop
                 }
             Func<string, string> skills = Skills;
             if (skills != null) brief.Append(skills(game));
+#if !CROSS
             string keys = GameKeys.Summary(game);
             if (keys != null) brief.Append("\nIts keys on this PC: " + keys + ".");
+#endif
             string notes = Read(game);
             if (notes.Length > MostTold)
             {

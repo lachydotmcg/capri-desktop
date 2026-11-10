@@ -94,7 +94,7 @@ namespace CapriDesktop
             // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
             // a plain job over its stream tool.
             if (Hands.StreamAsked(job) || !brain.WorksOut() && Hands.StreamAsked(asked)) Hands.Streaming = true;
-            try { return Work(brain, job, asked); }
+            try { return SelfJobs.Run(new ToolArguments { Task = job, Asked = asked }, args => Work(brain, args.Task, args.Asked), delegate { }); }
             finally { Hands.Streaming = false; }
         }
 
@@ -104,7 +104,7 @@ namespace CapriDesktop
         {
             try
             {
-                string problem = Fingers.Problem;
+                string problem = Doing == null ? Fingers.Problem : null;
                 if (problem != null && Doing == null) return problem;
                 if (brain.Model == null) return "Couldn't do that: your brain is offline.";
                 InControl.Begin();
@@ -122,6 +122,7 @@ namespace CapriDesktop
             string skilled = "";
             for (int step = 0; Hands.Streaming || step < MostSteps; step++)
             {
+                if (!SelfJobs.Current()) return "Stopped my job.";
                 // A job can open the game itself, so until a skill turns up she looks again every few steps.
                 if (skilled.Length == 0 && step % 5 == 0) skilled = Skilled();
                 byte[] picture = Shot();
@@ -144,6 +145,7 @@ namespace CapriDesktop
                     if (error.Status == System.Net.WebExceptionStatus.RequestCanceled) return "You stopped because they asked you something else.";
                     return "Couldn't do that: your brain stopped answering.";
                 }
+                if (!SelfJobs.Current()) return "Stopped my job.";
                 JsonElement order;
                 if (!Read(reply, out order))
                 {
@@ -259,6 +261,7 @@ namespace CapriDesktop
 
         internal static string Act(string what, JsonElement order, int width, int height)
         {
+            if (!SelfJobs.Current()) return "Stopped my job.";
             double x = Number(order, "x") / 1000, y = Number(order, "y") / 1000;
             string at = " at " + (int)Number(order, "x") + ", " + (int)Number(order, "y");
             if (Doing != null) { Doing(what, order); return what + at; }

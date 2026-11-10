@@ -1,0 +1,4 @@
+# CPython 3.14 / Linux x86_64 wheels; no source builds.
+sherpa-onnx==1.13.8 --hash=sha256:97309e4b5d9850490085da61e35b0fca002a39ec9da93cd9e21d2d0dcc1cc62a
+sherpa-onnx-core==1.13.8 --hash=sha256:4da90acf435373d7b2ba9cc0be806e7e274d28f63f5780880b5dea6721626e36
+numpy==2.4.2 --hash=sha256:bba37bc29d4d85761deed3954a1bc62be7cf462b9510b51d367b769a8c8df325

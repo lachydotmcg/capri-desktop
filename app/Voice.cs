@@ -88,13 +88,24 @@ namespace CapriDesktop
         internal Voice(Speaker output) { player = output; }
 #endif
         internal static volatile int Loudness = 100;
+#if CROSS
+        internal static volatile bool CubicLoudness;
+#endif
 
         internal static short[] Louder(short[] samples)
         {
             int percent = Loudness;
             if (percent == 100) return samples;
+#if CROSS
+            double gain = percent / 100.0;
+            if (CubicLoudness) gain = gain * gain * gain;
+#endif
             short[] scaled = new short[samples.Length];
+#if CROSS
+            for (int i = 0; i < samples.Length; i++) scaled[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, samples[i] * gain));
+#else
             for (int i = 0; i < samples.Length; i++) scaled[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, samples[i] * percent / 100));
+#endif
             return scaled;
         }
 

@@ -26,6 +26,16 @@ namespace CapriDesktop
             kept = Path.GetFileNameWithoutExtension(path) + ".unreadable.json";
         }
 
+        private static Exception CopyUnreadable(string path, string kept)
+        {
+#if CROSS
+            try { File.Copy(path, Path.Combine(Path.GetDirectoryName(path), kept), true); return null; }
+            catch (Exception error) { return error; }
+#else
+            return Companion.CopyUnreadable(path, kept);
+#endif
+        }
+
         internal List<T> Read(Predicate<T> readable)
         {
             if (!File.Exists(path)) return new List<T>();
@@ -37,13 +47,18 @@ namespace CapriDesktop
             int count = saved.Count;
             saved.RemoveAll(item => item == null || !readable(item));
             if (error == null && saved.Count == count) return saved;
-            Exception copying = Companion.CopyUnreadable(path, kept);
+            Exception copying = CopyUnreadable(path, kept);
             uncopied = copying != null;
             // Only the kind of error goes in errors.txt: its message can quote the file.
             Brain.Log("startup", -1, Path.GetFileName(path) + (error == null ? " had entries she couldn't read" : " couldn't be read (" + error.GetType().Name + ")")
                 + (uncopied ? " or copied (" + copying.GetType().Name + "), so she won't save over it until she can copy it." : ". The old file is kept as " + kept + "."));
             note = (saved.Count == 0 ? "Your saved " + label + " couldn't be read, so I started a new list." : "Some of your saved " + label + " couldn't be read, so I kept the rest.")
-                + (uncopied ? " I couldn't keep a copy of the old file yet, so I won't save over it until I can." : " The old file is kept as " + kept + " in %LocalAppData%\\Capri.");
+                + (uncopied ? " I couldn't keep a copy of the old file yet, so I won't save over it until I can." : " The old file is kept as " + kept +
+#if CROSS
+                    " in " + Path.GetDirectoryName(path) + ".");
+#else
+                    " in %LocalAppData%\\Capri.");
+#endif
             return saved;
         }
 
@@ -51,7 +66,7 @@ namespace CapriDesktop
         {
             if (uncopied)
             {
-                if (Companion.CopyUnreadable(path, kept) != null) throw new IOException("Couldn't keep a copy of your old " + Path.GetFileName(path) + ", so I didn't save over it. Try again in a moment.");
+                if (CopyUnreadable(path, kept) != null) throw new IOException("Couldn't keep a copy of your old " + Path.GetFileName(path) + ", so I didn't save over it. Try again in a moment.");
                 uncopied = false;
             }
             Directory.CreateDirectory(Path.GetDirectoryName(path));

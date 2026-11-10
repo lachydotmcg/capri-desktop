@@ -151,6 +151,7 @@ namespace CapriDesktop
             if (HoldNews(ticket)) return false;
             bool current = answer == answerTurn;
             Talk.Answer(heard, said, seconds);
+            selfTools.Replied(ticket);
             if (ticket == newsTicket) KeepNews();
             if (following) Brain.Followed(said);
             else if (current && input == inputTurn && FollowAllowed) HoldFollowUp(after);

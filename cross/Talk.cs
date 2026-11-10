@@ -30,19 +30,19 @@ namespace CapriDesktop
 
         internal static double PanelWidth() { return 24 + Columns * Look.CharWidth(Type) + 14; }
 
-        internal static double PanelHeight(string reply) { return 13 + Line * (1 + Look.Wrap(Speaker + (reply ?? ""), Columns).Count) + 10; }
+        internal static double PanelHeight(string reply) { var layout = ReplyLayout.For(Speaker + (reply ?? "")); return 13 + layout.LineHeight + layout.Height + 10; }
 
         public override void Render(DrawingContext context)
         {
-            if (Glitch <= 0) { Clean(context); return; }
-            if (random.NextDouble() < 0.25 * Glitch) return;
+            if (Glitch <= 0) { Chrome(context); TextLayer(context); return; }
+
             double y = 0;
             while (y < Bounds.Height)
             {
                 double band = Math.Min(Bounds.Height - y, 3 + random.Next(10));
                 double shift = (random.NextDouble() * 2 - 1) * 10 * Glitch;
                 using (context.PushClip(new Rect(0, y, Bounds.Width, band)))
-                using (context.PushTransform(Matrix.CreateTranslation(shift, 0))) Clean(context);
+                using (context.PushTransform(Matrix.CreateTranslation(shift, 0))) Chrome(context);
                 y += band;
             }
             for (int i = 0; i < 2; i++)
@@ -54,9 +54,10 @@ namespace CapriDesktop
                 using (context.PushClip(new Rect(shift, row, Bounds.Width, band)))
                     context.FillRectangle(new SolidColorBrush(Color.FromArgb((byte)(150 * Glitch), tint.R, tint.G, tint.B)), new Rect(0, row, Bounds.Width, band));
             }
+            TextLayer(context);
         }
 
-        private void Clean(DrawingContext context)
+        private void Chrome(DrawingContext context)
         {
             Rect panel = Panel;
             Geometry path = Look.Plate(panel, 10, TipX, TipY, 18);
@@ -69,48 +70,39 @@ namespace CapriDesktop
             }
             context.DrawGeometry(null, new Pen(new SolidColorBrush(Look.Cyan), 2), path);
             context.FillRectangle(new SolidColorBrush(Look.Red), new Rect(panel.Left + 10, panel.Top + 13, 3, panel.Height - 26));
-            double cw = Look.CharWidth(Type);
-            double x = panel.Left + 24;
-            double row2 = panel.Top + 12;
-            string you = Prompt + (Heard ?? "");
+        }
+
+        private void TextLayer(DrawingContext context)
+        {
+            var layout = ReplyLayout.For(Speaker + (Reply ?? ""));
+            double cw = Look.CharWidth(Type), x = Math.Round(Panel.Left + 24), top = Math.Round(Panel.Top + 12);
+            string you = (Prompt + (Heard ?? "")).Replace("\r", " ").Replace("\n", " ").Replace("\t", " ");
             if (Look.Cells(you) > Columns) you = Look.Cut(you, Columns - 3) + "...";
-            context.DrawText(Look.Text(you, Look.Italic, Type, Look.Dim), new Point(x, row2));
-            row2 += Line;
-            List<string> lines = Look.Wrap(Speaker + (Reply ?? ""), Columns);
-            int[] takes = Look.Takes(lines, Speaker + (Reply ?? ""), Speaker.Length + (Thinking ? 0 : Math.Max(0, Revealed)));
-            Point caret = new Point(x, row2);
-            double right = x + Columns * cw;
-            for (int i = 0; i < lines.Count && takes[i] > 0; i++)
+            context.DrawText(Look.Text(you, Look.Italic, Type, Look.Dim), new Point(x, top));
+            top += layout.LineHeight;
+            int reveal = Speaker.Length + (Thinking ? 0 : Math.Max(0, Revealed));
+            Point caret = new Point(x, top);
+            for (int i = 0; i < layout.Rows.Count; i++)
             {
-                string shown = lines[i].Substring(0, takes[i]);
-                int name = i == 0 ? Math.Min(takes[i], Speaker.Length - 1) : 0;
-                if (name > 0) context.DrawText(Look.Text(shown.Substring(0, name), Look.Bold, Type, Look.Red), new Point(x, row2));
-                caret = new Point(x + Look.Cells(shown) * cw, row2 + i * Line);
-                if (shown.Length <= name) continue;
-                // An Arabic, Urdu, Persian or Hebrew line grows leftwards from the right edge as she types it. The whole line
-                // decides, so it doesn't flip sides partway through. Right-to-left marks at both ends keep a full stop or
-                // question mark at the line's own end.
-                if (Look.RightToLeft(lines[i].Substring(name)))
-                {
-                    FormattedText words = Look.Text("‏" + shown.Substring(name) + "‏", Look.Regular, Type, Look.Neon);
-                    double wide = words.WidthIncludingTrailingWhitespace;
-                    context.DrawText(words, new Point(right - wide, row2 + i * Line));
-                    caret = new Point(right - wide - cw - 2, row2 + i * Line);
-                }
-                else
-                {
-                    string ink = shown.Substring(name);
-                    FormattedText words = Look.Text(ink, Look.Regular, Type, Look.Neon);
-                    context.DrawText(words, new Point(x + name * cw, row2 + i * Line));
-                    // Thai and Indian letters don't keep to her columns, so the caret follows what was drawn.
-                    if (Look.Thai(ink) || Look.Indic(ink)) caret = new Point(x + name * cw + words.WidthIncludingTrailingWhitespace, row2 + i * Line);
-                }
+                var row = layout.Rows[i];
+                string shown = row.Visible(reveal);
+                if (shown.Length == 0) continue;
+                double y = top + i * layout.LineHeight;
+                int name = i == 0 ? Math.Min(shown.Length, Speaker.Length) : 0;
+                if (name > 0) context.DrawText(Look.Text(shown.Substring(0, name), Look.Bold, Type, Look.Red), new Point(x, y));
+                string ink = shown.Substring(name);
+                double prefix = ReplyLayout.Measure(shown.Substring(0, name));
+                bool rtl = Look.RightToLeft(row.Text.Substring(Math.Min(name, row.Text.Length)));
+                var words = Look.Text(rtl ? "\u200f" + ink + "\u200f" : ink, Look.Regular, Type, Look.Neon);
+                double left = rtl ? x + Columns * cw - words.WidthIncludingTrailingWhitespace : x + prefix;
+                context.DrawText(words, new Point(left, y));
+                caret = new Point(rtl ? left - cw - 2 : left + words.WidthIncludingTrailingWhitespace, y);
             }
-            if (CursorOn) context.FillRectangle(new SolidColorBrush(Look.Neon), new Rect(caret.X + 1, caret.Y + 1, cw * 0.85, Line - 5));
+            if (CursorOn) context.FillRectangle(new SolidColorBrush(Look.Neon), new Rect(caret.X + 1, caret.Y + 1, cw * 0.85, layout.LineHeight - 5));
         }
     }
 
-    internal sealed class Bubble : Window
+    internal sealed class Bubble : PassiveWindow
     {
         internal readonly Sheet Sheet = new Sheet();
         internal event Action Dismissed;
@@ -144,11 +136,12 @@ namespace CapriDesktop
             Sheet.Panel = panel;
             Sheet.TipX = Math.Max(panel.Left + 32, Math.Min(panel.Right - 10, (tip.X - left) / scale));
             Sheet.TipY = below ? 0 : height - 1;
+            bool resized = Width != width || Height != height;
             if (Width != width) Width = width;
             if (Height != height) Height = height;
             panelOnScreen = new PixelRect(left + (int)(panel.X * scale), y + (int)(panel.Y * scale), (int)(panel.Width * scale), (int)(panel.Height * scale));
             PixelPoint at = new PixelPoint(left, y);
-            if (Position != at) Position = at;
+            if (Position != at || resized) Look.Position(this, at, replySize: new PixelSize(widePx, tallPx));
             if (!IsVisible) { Show(); Look.OnTopAgain(this); }
             Sheet.InvalidateVisual();
         }
@@ -171,10 +164,13 @@ namespace CapriDesktop
         internal event Action Typed;
         private readonly TextBox input = new TextBox();
         private readonly TextBlock prompt;
+        private string ordinaryDraft = "";
+        private ComposerInput session;
+        private bool submitting;
 
         internal Typer()
         {
-            Look.Overlay(this, "Talk to Capri");
+            Look.Overlay(this, "Capri composer");
             ShowActivated = true;
             Width = Math.Ceiling(Sheet.PanelWidth());
             Height = Tall;
@@ -209,8 +205,23 @@ namespace CapriDesktop
             layers.Children.Add(new Plate());
             layers.Children.Add(row);
             Content = layers;
-            Deactivated += delegate { if (Program.Smoke == null) Hide(); };
+            Deactivated += delegate { if (HyprlandDesktop.Current == null && Program.Smoke == null) Hide(); };
+            PropertyChanged += (_, e) =>
+            {
+                if (e.Property != IsVisibleProperty) return;
+                session?.Dispose(); session = null;
+                if (!IsVisible && Secret && !submitting) Secret = false;
+            };
+            Opened += (_, _) =>
+            {
+                if (HyprlandDesktop.Current == null) return;
+                try { session?.Dispose(); session = new ComposerInput(this); }
+                catch (Exception error) { Hide(); Program.Crashed(error); }
+            };
+            Closed += (_, _) => { session?.Dispose(); session = null; };
         }
+
+        internal bool InputReady => HyprlandDesktop.Current == null || session?.Ready == true;
 
         internal string Draft { get { return input.Text; } set { input.Text = value; } }
 
@@ -219,10 +230,21 @@ namespace CapriDesktop
             get { return input.PasswordChar != '\0'; }
             set
             {
-                input.PasswordChar = value ? '\u2022' : '\0';
+                if (value == Secret) return;
+                if (value)
+                {
+                    ordinaryDraft = input.Text ?? "";
+                    input.PasswordChar = '\u2022';
+                    input.Text = "";
+                }
+                else
+                {
+                    // Restore before unmasking or notifying the ordinary draft writer.
+                    input.Text = ordinaryDraft;
+                    input.PasswordChar = '\0';
+                }
                 input.MaxLength = value ? 200 : 0;
                 prompt.Text = value ? "> key:" : "> you:";
-                if (value) input.Text = "";
             }
         }
 
@@ -233,7 +255,7 @@ namespace CapriDesktop
             bool below = head.Y - tallPx - 20 * scale < area.Y;
             int left = Math.Max(area.X, Math.Min(area.Right - widePx, (int)(head.X - widePx * 0.7)));
             int top = below ? feet.Y + (int)(8 * scale) : head.Y - tallPx - (int)(18 * scale);
-            Position = new PixelPoint(left, top);
+            Look.Position(this, new PixelPoint(left, top));
             if (above.Width > 0) Follow(above, area, scale);
             Show();
             Look.OnTopAgain(this);
@@ -248,7 +270,7 @@ namespace CapriDesktop
             int top = above.Y - tallPx - (int)(16 * scale);
             if (top < area.Y) top = above.Bottom + (int)(8 * scale);
             PixelPoint target = new PixelPoint(above.X, top);
-            if (Position != target) Position = target;
+            if (Position != target) Look.Position(this, target);
         }
 
         internal void Send(string text)
@@ -262,7 +284,14 @@ namespace CapriDesktop
             string text = (input.Text ?? "").Trim();
             if (text.Length == 0) return;
             input.Text = "";
-            if (Submitted != null) Submitted(text);
+            if (Submitted != null)
+            {
+                // Hide the submitted session before invoking callbacks: a callback may
+                // synchronously open the next prompt. Keep Secret until dispatch completes.
+                submitting = true;
+                try { Hide(); Submitted(text); }
+                finally { submitting = false; if (!IsVisible && Secret && !submitting) Secret = false; }
+            }
         }
     }
 
@@ -706,7 +735,7 @@ namespace CapriDesktop
         private static bool Red(Color c) { return c.A > 200 && c.R > 150 && c.G < 90 && c.B < 120; }
     }
 
-    internal sealed class Pill : Window
+    internal sealed class Pill : PassiveWindow
     {
         internal const double Wide = 100;
         internal const double Tall = 40;
@@ -753,7 +782,7 @@ namespace CapriDesktop
         internal void Place(PixelPoint topCentre, double scale, double now)
         {
             PixelPoint at = new PixelPoint(topCentre.X - (int)Math.Round(Wide * scale / 2), topCentre.Y);
-            if (Position != at) Position = at;
+            if (Position != at) Look.Position(this, at);
             if (!IsVisible)
             {
                 shown = now;
@@ -818,6 +847,7 @@ namespace CapriDesktop
         {
             this.pet = pet;
             Typer.Typed += pet.Typed;
+            if (Program.Smoke == null) pet.RestoreDraft(Typer);
             Typer.Submitted += delegate(string text)
             {
                 if (asked != null) { Action<string> to = asked; asked = null; Typer.Hide(); to(text); return; }
@@ -835,7 +865,7 @@ namespace CapriDesktop
 
         internal string Reply { get { return reply; } }
         internal double Pace { get { return pace; } }
-        internal string Shown { get { return reply == null ? "" : reply.Substring(0, Math.Min(reply.Length, Math.Max(0, Bubble.Sheet.Revealed))); } }
+        internal string Shown { get { return ReplyLayout.Revealed(reply, Bubble.Sheet.Revealed); } }
         internal bool Typing { get { return Typer.IsVisible; } }
         internal bool Thinks { get { return thinking; } }
         // Her voice is still saying her last line.
@@ -845,6 +875,7 @@ namespace CapriDesktop
         private double audioEnd;
         internal bool Finished { get { return !thinking && (reply == null || replyDone >= 0) && pet.Now >= audioEnd; } }
         internal bool Done { get { return reply != null && replyDone >= 0; } }
+        internal bool ThinkingNow => thinking;
         internal bool Quiet { get { return reply == null && !thinking && !Typer.IsVisible; } }
         internal Control Face { get { return Bubble.Sheet; } }
 

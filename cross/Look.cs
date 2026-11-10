@@ -303,6 +303,11 @@ namespace CapriDesktop
         [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern IntPtr XInternAtom(IntPtr display, string name, bool onlyIfExists);
         [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern int XChangeProperty(IntPtr display, IntPtr window, IntPtr property, IntPtr type, int format, int mode, IntPtr[] data, int count);
 
+        internal static void Position(Window window, PixelPoint position, HyprlandDisplayMap target = null, long sequence = 0, long sourceAt = 0, PixelSize? replySize = null)
+        {
+            if (!NativeSurface.TryMove(window, position, target, sequence, sourceAt, replySize)) window.Position = position;
+        }
+
         internal static void Overlay(Window window, string title)
         {
             AboveGames(window);
@@ -315,6 +320,8 @@ namespace CapriDesktop
             window.CanResize = false;
             window.ShowActivated = false;
             window.WindowStartupLocation = WindowStartupLocation.Manual;
+            NativeSurface.Register(window, window is Typer ? NativeSurfaceRole.Composer : NativeSurfaceRole.Passive,
+                acceptsInput: window is not HerCursor && window is not ControlGlow);
         }
 
         // Linux forgets a window is on top once it hides, and setting Topmost to true again does nothing when it already is,

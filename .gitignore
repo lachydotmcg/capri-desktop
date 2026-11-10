@@ -2,4 +2,10 @@ out/
 cross/bin/
 cross/obj/
 node_modules/
+
+**/bin/
+**/obj/
+**/__pycache__/
+*.pyc
+cross/native/capri-input
 worker/.codes-secret

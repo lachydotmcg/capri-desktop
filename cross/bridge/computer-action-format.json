@@ -1,0 +1,117 @@
+{
+  "type": "json_schema",
+  "name": "capri_computer_action",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "frame": {
+        "type": "string"
+      },
+      "label": {
+        "type": "string"
+      },
+      "text": {
+        "type": "string"
+      },
+      "keys": {
+        "type": "string"
+      },
+      "button": {
+        "type": "string"
+      },
+      "action": {
+        "type": "string",
+        "enum": [
+          "click",
+          "double_click",
+          "drag",
+          "scroll",
+          "type",
+          "press",
+          "wait",
+          "done",
+          "ask"
+        ]
+      },
+      "previous_effect": {
+        "type": "string",
+        "enum": [
+          "none",
+          "verified",
+          "uncertain",
+          "not_observed"
+        ]
+      },
+      "risk": {
+        "type": "string",
+        "enum": [
+          "none",
+          "send",
+          "buy",
+          "delete",
+          "install",
+          "unasked",
+          "secret"
+        ]
+      },
+      "secret": {
+        "type": "boolean"
+      },
+      "x": {
+        "type": "number"
+      },
+      "y": {
+        "type": "number"
+      },
+      "end_x": {
+        "type": "number"
+      },
+      "end_y": {
+        "type": "number"
+      },
+      "duration": {
+        "type": "integer"
+      },
+      "amount": {
+        "type": "integer"
+      },
+      "round_result": {
+        "type": "string",
+        "enum": [
+          "none",
+          "win",
+          "loss",
+          "complete"
+        ]
+      },
+      "transition": {
+        "type": "string",
+        "enum": [
+          "none",
+          "same_process"
+        ]
+      }
+    },
+    "required": [
+      "frame",
+      "label",
+      "text",
+      "keys",
+      "button",
+      "action",
+      "previous_effect",
+      "risk",
+      "secret",
+      "x",
+      "y",
+      "end_x",
+      "end_y",
+      "duration",
+      "amount",
+      "round_result",
+      "transition"
+    ],
+    "additionalProperties": false
+  }
+}
