@@ -11,7 +11,7 @@ using System.Threading;
 namespace CapriDesktop
 {
     // Only owner chat dispatch admits jobs. The screen worker deliberately has no access.
-    internal static class TerminalJobs
+    internal static partial class TerminalJobs
     {
         private sealed class Job
         {

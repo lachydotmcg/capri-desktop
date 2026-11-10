@@ -1173,7 +1173,7 @@ namespace CapriDesktop
         // Her settings Mac and Linux have.
         internal static bool CrossSetting(string name)
         {
-            return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "keep_awake", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "preview_voice" }, name) >= 0;
+            return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "keep_awake", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "preview_voice", "edit_check_in_lines" }, name) >= 0;
         }
 
         private static bool HasSetting(Kit kit, string name) { return kit == null || kit.Has("capri_settings:" + name); }
@@ -1772,6 +1772,10 @@ namespace CapriDesktop
                 if (tool == "check_app") return CheckApp(args.Name);
                 if (tool == "capri_settings") return Settings(args);
                 if (tool == "mainframe") return Valid(tool, args) ? Mainframe(args.Name) : "Couldn't find that Mainframe page.";
+                if (tool == "speech") return Valid(tool, args) ? StopSpeech() : "Couldn't find that speech action.";
+                if (tool == "job_control") return Valid(tool, args) ? JobControl(args) : "Couldn't find that job instruction.";
+                if (tool == "quit") return Valid(tool, args) ? Quit(args) : "Couldn't find that quit action.";
+                if (tool == "updates") return Valid(tool, args) ? Updates(args) : "Couldn't find that update action.";
 #if !CROSS
                 if (tool == "app_volume") return AppVolume(args);
                 if (tool == "pc_status") return PcStatus(args.Name);
@@ -1782,10 +1786,6 @@ namespace CapriDesktop
                 if (tool == "desktop_icons") return Icons(args.Action);
                 if (tool == "fake_crash") return Valid(tool, args) ? Crash(args.Action) : "Couldn't find that fake crash action.";
                 if (tool == "voice_chat") return Valid(tool, args) ? VoiceChat(args) : "Couldn't find that voice chat action.";
-                if (tool == "speech") return Valid(tool, args) ? StopSpeech() : "Couldn't find that speech action.";
-                if (tool == "job_control") return Valid(tool, args) ? JobControl(args) : "Couldn't find that job instruction.";
-                if (tool == "quit") return Valid(tool, args) ? Quit(args) : "Couldn't find that quit action.";
-                if (tool == "updates") return Valid(tool, args) ? Updates(args) : "Couldn't find that update action.";
                 if (tool == "mini_player") return Valid(tool, args) ? MiniPlayer(args.Action) : "Couldn't find that mini player action.";
 #endif
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
@@ -2115,7 +2115,7 @@ namespace CapriDesktop
         private static readonly string[] MacPresses = { "screenshot", "task_manager", "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "quick_settings", "voice_typing", "clipboard" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
         // Her moves that only Windows has so far.
         private static readonly string[] WindowsMoves = { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off" };
-        private static readonly string[] WindowsTools = { "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen", "fake_crash", "voice_chat", "speech", "job_control", "quit", "updates", "mini_player" };
+        private static readonly string[] WindowsTools = { "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen", "fake_crash", "voice_chat", "mini_player" };
         // Her window tool's arranging, which only Windows has so far.
         private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 #endif

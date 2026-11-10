@@ -228,7 +228,7 @@ namespace CapriDesktop
         }
     }
 
-    internal static class ComputerJobs
+    internal static partial class ComputerJobs
     {
         private static readonly object gate = new object();
         private static CancellationTokenSource running;
@@ -349,7 +349,7 @@ namespace CapriDesktop
         private static NativeGameEscape escape;
         private static MacFingers.Escape macEscape;
         internal static bool EscapeListening => Volatile.Read(ref escape)?.Armed == true || Volatile.Read(ref macEscape)?.Armed == true;
-        private static string Run(ComputerJob job, long? admitted = null)
+        private static string RunOnce(ComputerJob job, long? admitted = null)
         {
             bool mac = OperatingSystem.IsMacOS();
             if (mac)

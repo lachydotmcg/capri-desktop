@@ -625,6 +625,7 @@ namespace CapriDesktop
                 checks.Add("PASS whole words: an app opens only when its name has the whole word they said, so \"open minecraft\" never opens Minecraftle, and \"Kate text editor\" still opens Kate");
                 MinecraftChecks();
                 SettingsChecks();
+                Pet.SelfChecks(pet, checks);
                 SecurityChecks();
                 TerminalSecurityChecks();
                 MacNativeChecks();

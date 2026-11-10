@@ -694,6 +694,7 @@ namespace CapriDesktop
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
             Hands.Mainframe = MainframeTool;
+            AttachSelfTools();
             Hands.Animate = AnimateTool;
             // Her settings tool reads and changes what her menus show.
             Hands.SettingOn = SettingOn;
@@ -1040,6 +1041,7 @@ namespace CapriDesktop
             DragFrame();
             TickHusk();
             CheckStyle();
+            CheckSelfTools();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
             ShowUnreadableNotice();
@@ -3068,6 +3070,7 @@ namespace CapriDesktop
         internal string SettingAction(string action)
         {
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.InvokeAsync(delegate { return SettingAction(action); }).GetAwaiter().GetResult();
+            if (action == "edit_check_in_lines") return EditCheckInLines();
             if (action != "preview_voice") return "That action is only on Windows for now.";
             if (!Speaks) return "My voice isn't ready. Set it up under VOICE in Capri Mainframe first.";
             styleCheckDue = true;
@@ -4386,6 +4389,7 @@ namespace CapriDesktop
             if (meeting.Asking) { Met(text); return; }
             lastHeard = text;
             if (ModList.Heard(text)) return;
+            if (SelfJobRequest(text)) return;
             int ticket = ++asking;
             ComputerJobs.Stop();
             ownedVoice?.Cancel();
@@ -5267,6 +5271,8 @@ namespace CapriDesktop
                 ModList.StopCode();
                 CloseMainframe();
                 ComputerJobs.Stop();
+                SelfJobs.Stop();
+                TerminalJobs.Shutdown();
             ownedVoice?.Cancel();
             StopNativeListening();
             Brain.Cancel();

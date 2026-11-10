@@ -2544,8 +2544,8 @@ namespace CapriDesktop
                     Check(ticket);
                     if ((call.Key == "use_computer" || call.Key == "stream") && call.Value != null && call.Value.Asked == null) call.Value.Asked = request;
 #if CROSS
-                    if ((call.Key == "app_window" || call.Key == "linux_system" || call.Key == "run_terminal" || call.Key == "terminal_job" || call.Key == "open_website") && call.Value != null) call.Value.Asked = request;
-                    if ((call.Key == "run_terminal" || call.Key == "terminal_job") && call.Value != null) call.Value.Current = () => { lock (gate) return ticket == cancelled; };
+                    if ((call.Key == "app_window" || call.Key == "linux_system" || call.Key == "run_terminal" || call.Key == "terminal_job" || call.Key == "open_website" || call.Key == "updates" || call.Key == "job_control") && call.Value != null) call.Value.Asked = request;
+                    if ((call.Key == "run_terminal" || call.Key == "terminal_job" || call.Key == "updates" || call.Key == "quit" || call.Key == "job_control") && call.Value != null) call.Value.Current = () => { lock (gate) return ticket == cancelled; };
                     if (call.Key == "look_at_screen" && call.Value != null) { call.Value.Asked = request; call.Value.Current = () => { lock (gate) return ticket == cancelled; }; }
                     if (call.Key == "use_computer" && call.Value != null) call.Value.Current = () => { lock (gate) return ticket == cancelled; };
 #else
@@ -2719,8 +2719,8 @@ namespace CapriDesktop
                     ToolArguments args = call.Value ?? new ToolArguments();
                     if ((call.Key == "use_computer" || call.Key == "stream") && args.Asked == null) args.Asked = request;
 #if CROSS
-                    if (call.Key == "app_window" || call.Key == "linux_system" || call.Key == "run_terminal" || call.Key == "terminal_job" || call.Key == "open_website") args.Asked = request;
-                    if (call.Key == "run_terminal" || call.Key == "terminal_job") args.Current = () => { lock (gate) return ticket == cancelled; };
+                    if (call.Key == "app_window" || call.Key == "linux_system" || call.Key == "run_terminal" || call.Key == "terminal_job" || call.Key == "open_website" || call.Key == "updates" || call.Key == "job_control") args.Asked = request;
+                    if (call.Key == "run_terminal" || call.Key == "terminal_job" || call.Key == "updates" || call.Key == "quit" || call.Key == "job_control") args.Current = () => { lock (gate) return ticket == cancelled; };
                     if (call.Key == "look_at_screen") { args.Asked = request; args.Current = () => { lock (gate) return ticket == cancelled; }; }
                     if (call.Key == "use_computer") args.Current = () => { lock (gate) return ticket == cancelled; };
 #else
