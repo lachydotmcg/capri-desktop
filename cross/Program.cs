@@ -15,6 +15,7 @@ namespace CapriDesktop
     internal static class Program
     {
         internal static string Smoke;
+        internal static bool Companion;
         // Smoke checks turn this on to run Guard's catch path, which otherwise rethrows in smoke runs so a bug fails them.
         internal static bool Catching;
         internal static int[] Shelf;
@@ -25,6 +26,8 @@ namespace CapriDesktop
         private static int Main(string[] args)
         {
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
+            if (args.Length > 0 && args[0] == "--companion") return CompanionCli.Run(args);
+            for (int i = 0; i < args.Length; i++) if (args[i] == "--companion-bridge") Companion = true;
             if (args.Length >= 5 && args[0] == "--shelf")
             {
                 Shelf = new[] { int.Parse(args[1]), int.Parse(args[2]), int.Parse(args[3]), int.Parse(args[4]) };
