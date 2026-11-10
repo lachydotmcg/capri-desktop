@@ -545,6 +545,8 @@ namespace CapriDesktop
         internal Point Tip(double now)
         {
             double left = Shown(now);
+            // Fully shown, the tip is the end itself: walking there by distance can land a rounding step short of it.
+            if (left >= Length) return End;
             foreach (Point[] points in contours)
                 for (int i = 1; i < points.Length; i++)
                 {
