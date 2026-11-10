@@ -892,7 +892,7 @@ namespace CapriDesktop
             "When it matters whether a step worked, like a window opening, closing or coming to the front, check again before you say it did. " + WindowNote + OwnSettings +
             "Never say you did, started or are doing something unless one of your tools did it this turn, and don't stop at a step that only gets part of the way. If a tool fails, try another way once, then tell them plainly what didn't work. When they're just chatting, answer as yourself without tools. Once the job's done, or can't go any further, reply to them in one short line as yourself." + Hurting;
 
-        // Arranging their windows, which only Windows has so far: app_window says where a window really ended up, and list_windows
+        // Arranging their windows: app_window says where a window really ended up, and list_windows
         // names their monitors and says where one app's window is (Lachy, 2 Nov).
         private const string WindowNote =
 #if CROSS
@@ -2121,12 +2121,12 @@ namespace CapriDesktop
         private const string HandsLast = "Questions about their current";
 
 #if CROSS
-        // The shortcuts Mac and Linux do another way. The rest need key presses, which only Windows has so far.
-        private static readonly string[] MacPresses = { "screenshot", "task_manager", "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "quick_settings", "voice_typing", "clipboard" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
-        // Her moves that only Windows has so far.
+        // The shortcuts Mac and Linux can press. The rest still need Windows.
+        private static readonly string[] MacPresses = { "screenshot", "task_manager", "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "clipboard" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
+        // Her moves still missing outside Windows.
         private static string[] WindowsMoves { get { return OnMac ? new[] { "sit_on" } : new string[0]; } }
         private static readonly string[] WindowsTools = { "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "listen", "voice_chat" };
-        // Her window tool's arranging, which only Windows has so far.
+        // Her window tool's arranging, still missing on Linux.
         private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 #endif
 
@@ -2471,11 +2471,14 @@ namespace CapriDesktop
             if (key == "use_computer" || key == "stream")
             {
 #if CROSS
-                if (why == MacStream || why == "Clipboard history needs macOS Tahoe 26 or later.") return why;
+                if (why == MacStream) return why;
                 if (why == MacHands && HandsProblem != null) return HandsProblem() ?? MacHandsLine;
 #endif
                 return why == MacHands ? MacHandsLine : LinuxHandsLine;
             }
+#if CROSS
+            if (why == "Clipboard history needs macOS Tahoe 26 or later.") return why;
+#endif
             if (key.StartsWith("shortcut:", StringComparison.Ordinal)) return "I can only " + Security.Asking("shortcut", new ToolArguments { Name = key.Substring(9) }) + " on Windows for now, choom.";
             if (key.StartsWith("capri_settings:", StringComparison.Ordinal)) return "That Capri setting is only on Windows for now.";
             return Gap(key, 2);

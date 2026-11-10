@@ -26,7 +26,10 @@ namespace CapriDesktop
         internal static Action<int> Pause = Thread.Sleep;
         internal static Func<Point> Position = Cursor;
         internal static Func<Display[]> Displays = Screens;
+        internal static Func<int> Foreground = Focused;
         private static int inputPane;
+        private static bool automationBlocked;
+        private const string Automation = "Allow Capri to control System Events in System Settings > Privacy & Security > Automation.";
 
         [StructLayout(LayoutKind.Sequential)]
         internal struct Point
@@ -40,8 +43,11 @@ namespace CapriDesktop
             internal Point Origin, Size;
             internal ComputerRect Area => new ComputerRect((int)Origin.X, (int)Origin.Y, (int)Size.X, (int)Size.Y);
         }
-        internal sealed record Display(uint Id, int Index, ComputerRect Area, int PixelsWide, int PixelsHigh);
-        internal sealed record Event(uint Kind, Point At, int Button = 0, int Count = 0, ushort Key = 0, ulong Flags = 0, string Text = null, int Wheel = 0);
+        internal sealed record Display(uint Id, int Index, ComputerRect Area, int PixelsWide, int PixelsHigh)
+        {
+            internal ComputerOutput Output => new ComputerOutput(Id.ToString(CultureInfo.InvariantCulture), Area, (double)PixelsWide / Area.Width, 0, PixelsWide, PixelsHigh);
+        }
+        internal sealed record Event(uint Kind, Point At, int Button = 0, int Count = 0, ushort Key = 0, ulong Flags = 0, string Text = null, int Wheel = 0, uint Units = 1);
 
         [DllImport(Access)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool AXIsProcessTrusted();
         [DllImport(Graphics)] private static extern IntPtr CGEventCreateMouseEvent(IntPtr source, uint kind, Point point, uint button);
@@ -57,8 +63,10 @@ namespace CapriDesktop
         [DllImport(Graphics)] private static extern int CGGetActiveDisplayList(uint maximum, [Out] uint[] ids, out uint count);
         [DllImport(Graphics)] private static extern uint CGMainDisplayID();
         [DllImport(Graphics)] private static extern Rect CGDisplayBounds(uint id);
-        [DllImport(Graphics)] private static extern UIntPtr CGDisplayPixelsWide(uint id);
-        [DllImport(Graphics)] private static extern UIntPtr CGDisplayPixelsHigh(uint id);
+        [DllImport(Graphics)] private static extern IntPtr CGDisplayCopyDisplayMode(uint id);
+        [DllImport(Graphics)] private static extern UIntPtr CGDisplayModeGetPixelWidth(IntPtr mode);
+        [DllImport(Graphics)] private static extern UIntPtr CGDisplayModeGetPixelHeight(IntPtr mode);
+        [DllImport(Graphics)] private static extern void CGDisplayModeRelease(IntPtr mode);
         [DllImport(Graphics)] private static extern IntPtr CGWindowListCopyWindowInfo(uint options, uint relative);
         [DllImport(Graphics)] private static extern IntPtr CGSessionCopyCurrentDictionary();
         [DllImport(Graphics)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGPreflightScreenCaptureAccess();
@@ -71,7 +79,7 @@ namespace CapriDesktop
         [DllImport(Core)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CFNumberGetValue(IntPtr number, int kind, out long value);
         [DllImport(Core)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CFBooleanGetValue(IntPtr value);
         [DllImport(Core)] private static extern nint CFStringGetLength(IntPtr value);
-        [DllImport(Core)] private static extern void CFStringGetCharacters(IntPtr value, Range range, [Out] char[] text);
+        [DllImport(Core)] private static extern void CFStringGetCharacters(IntPtr value, Range range, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.U2)] [Out] char[] text);
         [StructLayout(LayoutKind.Sequential)] private struct Range { internal nint Start, Length; }
         [DllImport(Graphics)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGRectMakeWithDictionaryRepresentation(IntPtr dictionary, out Rect rect);
         [DllImport(Access)] private static extern IntPtr AXUIElementCreateSystemWide();
@@ -119,7 +127,7 @@ namespace CapriDesktop
         {
             IntPtr ev = value.Kind == 10 || value.Kind == 11
                 ? CGEventCreateKeyboardEvent(IntPtr.Zero, value.Key, value.Kind == 10)
-                : value.Kind == 22 ? CGEventCreateScrollWheelEvent2(IntPtr.Zero, 1, 1, value.Wheel, 0, 0)
+                : value.Kind == 22 ? CGEventCreateScrollWheelEvent2(IntPtr.Zero, value.Units, 1, value.Wheel, 0, 0)
                 : CGEventCreateMouseEvent(IntPtr.Zero, value.Kind, value.At, (uint)value.Button);
             if (ev == IntPtr.Zero) throw new InvalidOperationException("Couldn't create a Mac input event.");
             try
@@ -148,7 +156,13 @@ namespace CapriDesktop
                 throw new InvalidOperationException("Couldn't read the Mac display layout.");
             uint main = CGMainDisplayID();
             var ordered = ids.Take((int)count).OrderBy(id => id == main ? 0 : 1).ToArray();
-            return ordered.Select((id, index) => new Display(id, index + 1, CGDisplayBounds(id).Area, (int)CGDisplayPixelsWide(id), (int)CGDisplayPixelsHigh(id))).ToArray();
+            return ordered.Select((id, index) =>
+            {
+                IntPtr mode = CGDisplayCopyDisplayMode(id);
+                if (mode == IntPtr.Zero) throw new InvalidOperationException("Couldn't read the Mac display mode.");
+                try { return new Display(id, index + 1, CGDisplayBounds(id).Area, (int)CGDisplayModeGetPixelWidth(mode), (int)CGDisplayModeGetPixelHeight(mode)); }
+                finally { CGDisplayModeRelease(mode); }
+            }).ToArray();
         }
 
         internal static ComputerRect Bounds(Display[] displays)
@@ -189,10 +203,15 @@ namespace CapriDesktop
         internal static void Click(string button, int times, Action guard = null)
         {
             Ready();
+            Click(Position(), button, times, guard);
+        }
+
+        private static void Click(Point at, string button, int times, Action guard = null)
+        {
+            Ready();
             for (int i = 1; i <= Math.Max(1, times); i++)
             {
                 guard?.Invoke();
-                Point at = Position();
                 try { Sink(new Event(Down(button), at, Button(button), i)); Pause(30); }
                 finally { Sink(new Event(Down(button) + 1, at, Button(button), i)); }
                 Pause(70);
@@ -248,6 +267,13 @@ namespace CapriDesktop
 
         internal static bool Keys(string chord, Action guard = null)
         {
+            if (string.Equals(chord, "fn+f11", StringComparison.OrdinalIgnoreCase))
+            {
+                Ready(); guard?.Invoke();
+                try { Sink(new Event(10, default, Key: 103, Flags: 0x800000)); }
+                finally { Sink(new Event(11, default, Key: 103, Flags: 0x800000)); }
+                Pause(60); return true;
+            }
             int[] codes = (chord ?? "").Replace(" ", "").Split('+').Where(part => part.Length > 0).Select(Code).ToArray();
             if (codes.Length == 0 || codes.Any(code => code < 0)) return false;
             Ready();
@@ -332,7 +358,7 @@ namespace CapriDesktop
         internal static readonly Dictionary<string, string> Shortcuts = new Dictionary<string, string>
         {
             { "discord_mute", "cmd+shift+m" }, { "discord_deafen", "cmd+shift+d" }, { "show_desktop", "fn+f11" },
-            { "emoji", "ctrl+cmd+space" }, { "narrator", "cmd+f5" }, { "magnifier", "option+cmd+equals" }, { "record", "cmd+shift+5" }, { "quick_settings", "fn+c" }, { "voice_typing", "fn+d" }
+            { "emoji", "ctrl+cmd+space" }, { "narrator", "cmd+f5" }, { "magnifier", "option+cmd+equals" }, { "record", "cmd+shift+5" }
         };
         internal static readonly string[] ClipboardKeys = { "cmd+space", "cmd+4" };
 
@@ -354,13 +380,12 @@ namespace CapriDesktop
             if (problem != null) return problem;
             if (name.StartsWith("discord_", StringComparison.Ordinal))
             {
-                ComputerSnapshot snapshot = new Desktop().Snapshot();
+                ComputerSnapshot snapshot = new Desktop().Snapshot(focus: true);
                 if (snapshot.Target.App.IndexOf("discord", StringComparison.OrdinalIgnoreCase) < 0) return "Bring Discord to the front, then ask again.";
             }
             using (InControl.Hold()) Keys(keys);
             if (name == "magnifier") return "Sent the Mac zoom shortcut. Enable keyboard shortcuts in System Settings > Accessibility > Zoom if it did nothing.";
             if (name == "record") return "Opened screenshot and recording controls. Choose Record, or use the stop button in the menu bar.";
-            if (name == "voice_typing") return "Sent the Dictation shortcut. Enable Dictation in System Settings > Keyboard if it did nothing.";
             return "Sent " + keys.Replace("+", " + ") + ".";
         }
 
@@ -427,6 +452,19 @@ namespace CapriDesktop
             finally { CFRelease(session); }
         }
 
+        private static void Focus(int pid)
+        {
+            if (automationBlocked) throw new InvalidOperationException("App focus still needs Automation.");
+            string script = "try\ntell application \"System Events\" to set frontmost of (first process whose unix id is " + pid.ToString(CultureInfo.InvariantCulture) + ") to true\nreturn \"focused\"\non error msg number n\nif n is -1743 or n is -1744 then return \"automation\"\nreturn \"error\"\nend try";
+            string reply = Music.Run("/usr/bin/osascript", new[] { "-e", script })?.Trim();
+            if (reply == "automation")
+            {
+                automationBlocked = true;
+                throw new InvalidOperationException(Automation);
+            }
+            if (reply != "focused") throw new InvalidOperationException("Couldn't bring the target app to the front.");
+        }
+
         internal static ProcessStartInfo CaptureCommand(Display display, string path)
         {
             return ComputerProcess.Start("/usr/sbin/screencapture", new[] { "-x", "-D", display.Index.ToString(CultureInfo.InvariantCulture), "-t", "png", path });
@@ -469,15 +507,34 @@ namespace CapriDesktop
         internal sealed class Desktop : IComputerDesktop
         {
             private readonly CancellationToken lifetime;
-            internal Desktop(CancellationToken lifetime = default) { this.lifetime = lifetime; }
+            private readonly Func<string, ComputerSnapshot> read;
+            internal Desktop(CancellationToken lifetime = default, Func<string, ComputerSnapshot> read = null) { this.lifetime = lifetime; this.read = read ?? Read; }
 
             public ComputerSnapshot Snapshot(string output = null, bool focus = false)
             {
                 lifetime.ThrowIfCancellationRequested(); Ready();
+                ComputerSnapshot picked = read(output);
+                int active = Foreground();
+                if (active == picked.Target.Pid)
+                {
+                    automationBlocked = false;
+                    return picked with { Active = true };
+                }
+                if (focus && active == Environment.ProcessId)
+                {
+                    Focus(picked.Target.Pid); Pause(150);
+                    ComputerSnapshot focused = Snapshot(output, false);
+                    ComputerJobs.Same(picked, focused, true);
+                    return focused;
+                }
+                throw new InvalidOperationException("Bring the target app to the front, then ask again.");
+            }
+
+            private ComputerSnapshot Read(string output)
+            {
                 string session = Session();
                 Display[] displays = Displays();
                 string layout = string.Join("|", displays.Select(d => d.ToString()));
-                int active = Focused();
                 IntPtr windows = CGWindowListCopyWindowInfo(1 | 16, 0);
                 if (windows == IntPtr.Zero) throw new InvalidOperationException("Couldn't read the Mac windows.");
                 try
@@ -492,11 +549,10 @@ namespace CapriDesktop
                         if (area.Width <= 1 || area.Height <= 1) continue;
                         Display display = displays.OrderByDescending(d => { ComputerRect shared = d.Area.Intersect(area); return (long)shared.Width * shared.Height; }).First();
                         if (output != null && output != display.Id.ToString(CultureInfo.InvariantCulture)) throw new InvalidOperationException("The target moved to another display.");
-                        ComputerOutput screen = new ComputerOutput(display.Id.ToString(CultureInfo.InvariantCulture), display.Area, (double)display.PixelsWide / display.Area.Width, 0, display.PixelsWide, display.PixelsHigh);
+                        ComputerOutput screen = display.Output;
                         ComputerTarget target = new ComputerTarget("0x" + Number(window, "kCGWindowNumber").ToString("x"), pid, MacNative.ProcessIdentity(pid), Text(window, "kCGWindowOwnerName"), area, (int)display.Id, 0);
                         Point pointer = Position();
-                        if (active != pid) throw new InvalidOperationException("Bring the target app to the front, then ask again.");
-                        return new ComputerSnapshot(session, layout, target, screen, pointer.X, pointer.Y, true);
+                        return new ComputerSnapshot(session, layout, target, screen, pointer.X, pointer.Y, false);
                     }
                     throw new InvalidOperationException("Bring the target app to the front, then ask again.");
                 }
@@ -554,7 +610,10 @@ namespace CapriDesktop
                 {
                     if (!Keys(JobKeys(action.Keys), Check)) throw new InvalidOperationException("That key has no Mac mapping.");
                 }
-                else if (action.Action == "scroll") Scroll(action.Amount, Check);
+                else if (action.Action == "scroll")
+                {
+                    Check(); Sink(new Event(22, new Point(x, y), Wheel: -action.Amount, Units: 0));
+                }
                 else if (action.Action == "drag")
                 {
                     var end = frame.ToLogical(action.EndX, action.EndY);
@@ -562,7 +621,7 @@ namespace CapriDesktop
                     Drag(x, y, end.X, end.Y, action.Duration, (px, py) => { x = px; y = py; Check(); });
                     x = end.X; y = end.Y;
                 }
-                else if (action.Action == "click" || action.Action == "double_click") Click(action.Button, action.Action == "double_click" ? 2 : 1, Check);
+                else if (action.Action == "click" || action.Action == "double_click") Click(new Point(x, y), action.Button, action.Action == "double_click" ? 2 : 1, Check);
                 else throw new InvalidOperationException("That Mac input action is unavailable.");
                 token.ThrowIfCancellationRequested(); (completed ?? guard)(x, y);
             }
@@ -661,14 +720,17 @@ namespace CapriDesktop
         internal static void Checks(List<string> checks)
         {
             var trusted = Trusted; var launch = Launch; var sink = Sink; var pause = Pause; var position = Position; var displays = Displays;
+            var foreground = Foreground; var run = Music.Run;
             var handsReady = Hands.HandsReady; var handsProblem = Hands.HandsProblem;
             bool macWas = Hands.OnMac, ownWas = Hands.OwnHands, clipboardWas = Hands.MacClipboard;
             bool wasOpened = opened;
+            bool wasBlocked = automationBlocked;
             try
             {
                 List<Event> events = new List<Event>(); int panes = 0;
                 Trusted = () => true; Sink = events.Add; Pause = _ => { }; Position = () => new Point(30, 40);
                 Displays = () => new[] { new Display(1, 1, new ComputerRect(0, 0, 1440, 900), 2880, 1800), new Display(2, 2, new ComputerRect(-1920, -200, 1920, 1080), 1920, 1080) };
+                if (Displays()[0].Output.Scale != 2 || Displays()[0].Output.PixelWidth != 2880 || Displays()[0].Output.PixelHeight != 1800 || Displays()[1].Output.Scale != 1) throw new Exception("Mac Retina output dimensions");
                 Click("left", 1);
                 if (events.Count != 2 || events[0].Kind != 1 || events[1].Kind != 2 || events.Any(e => e.Count != 1)) throw new Exception("Mac click sequence");
                 events.Clear(); Click("left", 2);
@@ -678,7 +740,15 @@ namespace CapriDesktop
                 events.Clear(); Drag(-100, 20, 100, 80);
                 if (events.Count != 23 || events[0].Kind != 5 || events[1].Kind != 1 || events.Skip(2).Take(20).Any(e => e.Kind != 6) || events[^1].Kind != 2 || events[^1].At.X != 100) throw new Exception("Mac drag sequence");
                 events.Clear(); Scroll(2); Scroll(-1);
-                if (!events.Select(e => e.Wheel).SequenceEqual(new[] { -1, -1, 1 }) || events.Any(e => e.Kind != 22)) throw new Exception("Mac scroll sequence");
+                if (!events.Select(e => e.Wheel).SequenceEqual(new[] { -1, -1, 1 }) || events.Any(e => e.Kind != 22 || e.Units != 1)) throw new Exception("Mac scroll sequence");
+                events.Clear(); Click(new Point(-80, 90), "left", 1);
+                if (events.Any(e => e.At.X != -80 || e.At.Y != 90)) throw new Exception("Mac click ignored its point");
+                foreach (string method in new[] { "CFStringGetCharacters", "CFStringCreateWithCharacters", "CGEventKeyboardSetUnicodeString" })
+                {
+                    var text = typeof(MacFingers).GetMethod(method, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetParameters().Single(p => p.ParameterType == typeof(char[]));
+                    var marshal = (MarshalAsAttribute)Attribute.GetCustomAttribute(text, typeof(MarshalAsAttribute));
+                    if (marshal == null || marshal.Value != UnmanagedType.LPArray || marshal.ArraySubType != UnmanagedType.U2) throw new Exception("Mac UTF-16 import " + method);
+                }
                 events.Clear(); Type("héllo 👋");
                 if (string.Concat(events.Where(e => e.Kind == 10).Select(e => e.Text)) != "héllo 👋" || events.Count != 14 || events[^1].Text.Length != 2) throw new Exception("Mac Unicode sequence");
                 events.Clear(); Keys("cmd+c");
@@ -701,13 +771,17 @@ namespace CapriDesktop
                 if (Problem() != null) throw new Exception("Mac permission refresh");
                 foreach (string chord in Shortcuts.Values)
                     if (chord.Split('+').Any(part => Code(part) < 0)) throw new Exception("Mac shortcut key map");
-                string[] names = { "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "quick_settings", "voice_typing" };
-                string[] chords = { "cmd+shift+m", "cmd+shift+d", "fn+f11", "ctrl+cmd+space", "cmd+f5", "option+cmd+equals", "cmd+shift+5", "fn+c", "fn+d" };
+                string[] names = { "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record" };
+                string[] chords = { "cmd+shift+m", "cmd+shift+d", "fn+f11", "ctrl+cmd+space", "cmd+f5", "option+cmd+equals", "cmd+shift+5" };
                 for (int i = 0; i < names.Length; i++)
                 {
                     if (Shortcuts[names[i]] != chords[i]) throw new Exception("Mac shortcut mapping " + names[i]);
                     events.Clear(); Keys(Shortcuts[names[i]]);
-                    if (events.Count != chords[i].Split('+').Length * 2 || events[^1].Flags != 0) throw new Exception("Mac shortcut release " + names[i]);
+                    if (names[i] == "show_desktop")
+                    {
+                        if (!events.Select(e => e.Kind).SequenceEqual(new uint[] { 10, 11 }) || events.Any(e => e.Key != 103 || e.Flags != 0x800000)) throw new Exception("Mac desktop fn flag");
+                    }
+                    else if (events.Count != chords[i].Split('+').Length * 2 || events[^1].Flags != 0) throw new Exception("Mac shortcut release " + names[i]);
                 }
                 if (ChordKeys(new byte[] { 0x11, 0x43 }) != "cmd+c" || ChordKeys(new byte[] { 0x11, 0x56 }) != "cmd+v" || ChordKeys(new byte[] { 0x12, 0x09 }) != "cmd+tab"
                     || ChordKeys(new byte[] { 0x12, 0x73 }) != "cmd+w" || ChordKeys(new byte[] { 0x5B, 0x4C }) != "ctrl+cmd+q" || ChordKeys(new byte[] { 0x5B, 0x44 }) != "fn+f11") throw new Exception("Mac Windows chord equivalents");
@@ -720,6 +794,8 @@ namespace CapriDesktop
                 Trusted = () => true;
                 Hands.Kit mac = Hands.KitFor();
                 if (!Hands.OwnHands || mac.Missing.ContainsKey("use_computer") || !mac.Missing.ContainsKey("stream")) throw new Exception("Mac available hands gaps");
+                foreach (string name in new[] { "quick_settings", "voice_typing" })
+                    if (!mac.Missing.ContainsKey("shortcut:" + name) || Shortcuts.ContainsKey(name) || string.IsNullOrWhiteSpace(Hands.Unable("shortcut", new ToolArguments { Name = name }))) throw new Exception("Mac unchecked shortcut gap " + name);
                 if (!mac.Keys.OrderBy(value => value).SequenceEqual(names.Concat(new[] { "screenshot", "task_manager", "clipboard" }).OrderBy(value => value))) throw new Exception("Mac shortcut availability");
                 if (!ClipboardKeys.SequenceEqual(new[] { "cmd+space", "cmd+4" })) throw new Exception("Mac clipboard keys");
                 Hands.MacClipboard = false;
@@ -740,13 +816,57 @@ namespace CapriDesktop
                     Source = new ComputerSnapshot("fake", "fake", new ComputerTarget("0x1", 1, "fake", "fake", room, 1, 0), new ComputerOutput("1", room, 2, 0, 800, 400), cursor.X, cursor.Y, true),
                     Moving = (x, y) => Move(x, y)
                 };
+                ComputerSnapshot picked = desktop.Source with { Target = desktop.Source.Target with { Pid = Environment.ProcessId + 1 } };
+                int active = Environment.ProcessId, focuses = 0, reads = 0;
+                Foreground = () => active;
+                Music.Run = (tool, args) =>
+                {
+                    if (tool != "/usr/bin/osascript" || args.Length != 2 || args[0] != "-e" || !args[1].Contains("tell application \"System Events\" to set frontmost of (first process whose unix id is " + picked.Target.Pid.ToString(CultureInfo.InvariantCulture) + ") to true")) throw new Exception("Mac focus command");
+                    focuses++; active = picked.Target.Pid; return "focused\n";
+                };
+                automationBlocked = false;
+                Desktop target = new Desktop(read: output => { reads++; return picked; });
+                if (!target.Snapshot(focus: true).Active || reads != 2 || focuses != 1) throw new Exception("Mac typed focus handoff");
+                active = Environment.ProcessId; reads = 0;
+                Desktop changed = new Desktop(read: output => ++reads == 1 ? picked : picked with { Target = picked.Target with { Address = "0x2" } });
+                try { changed.Snapshot(focus: true); throw new Exception("Mac accepted a changed focus target"); }
+                catch (InvalidOperationException) { }
+                active = Environment.ProcessId; reads = 0;
+                try { target.Snapshot(); throw new Exception("Mac focused without being asked"); }
+                catch (InvalidOperationException) { }
+                active = Environment.ProcessId + 2;
+                int before = focuses;
+                try { target.Snapshot(focus: true); throw new Exception("Mac stole another app's focus"); }
+                catch (InvalidOperationException) { }
+                if (focuses != before) throw new Exception("Mac unexpected focus command");
+                active = Environment.ProcessId;
+                Music.Run = (tool, args) => { focuses++; return "automation\n"; };
+                try { target.Snapshot(focus: true); throw new Exception("Mac hid Automation refusal"); }
+                catch (InvalidOperationException error) { if (error.Message != Automation) throw; }
+                before = focuses;
+                try { target.Snapshot(focus: true); throw new Exception("Mac retried Automation refusal"); }
+                catch (InvalidOperationException error) { if (error.Message != "App focus still needs Automation.") throw; }
+                if (focuses != before) throw new Exception("Mac asked for Automation twice");
+                active = picked.Target.Pid;
+                if (!target.Snapshot().Active || automationBlocked) throw new Exception("Mac focus permission reset");
                 ComputerFrame frame = new ComputerFrame { Source = desktop.Source, Area = room, Width = 800, Height = 400 };
                 int guards = 0, completed = 0;
                 Action<double, double> guard = (x, y) => { guards++; if (x != cursor.X || y != cursor.Y) throw new Exception("Mac input guard lost the pointer"); };
                 events.Clear();
                 new Input().Execute(new ComputerAction { Action = "click", X = 200, Y = 100, Button = "left" }, frame, desktop, guard, CancellationToken.None, (x, y) => { guard(x, y); completed++; });
-                if (cursor.X != -860 || cursor.Y != 150 || events.Count != 3 || guards < 3 || completed != 1) throw new Exception("Mac computer input seam");
+                if (cursor.X != -860 || cursor.Y != 150 || events.Count != 3 || guards < 3 || completed != 1 || events.Skip(1).Any(e => e.At.X != -860 || e.At.Y != 150)) throw new Exception("Mac computer input seam");
                 desktop.Source = desktop.Source with { PointerX = cursor.X, PointerY = cursor.Y }; frame.Source = desktop.Source;
+                Position = () => new Point(30, 40);
+                events.Clear();
+                new Input().Execute(new ComputerAction { Action = "double_click", X = 200, Y = 100, Button = "left" }, frame, desktop, guard, CancellationToken.None);
+                if (events.Count != 5 || events.Skip(1).Any(e => e.At.X != -860 || e.At.Y != 150)) throw new Exception("Mac job click reread the pointer");
+                Position = () => cursor;
+                foreach (int amount in new[] { 300, -300 })
+                {
+                    events.Clear();
+                    new Input().Execute(new ComputerAction { Action = "scroll", X = 200, Y = 100, Amount = amount }, frame, desktop, guard, CancellationToken.None);
+                    if (events.Count != 2 || events[1].Kind != 22 || events[1].Units != 0 || events[1].Wheel != -amount) throw new Exception("Mac job pixel scroll");
+                }
                 events.Clear();
                 new Input().Execute(new ComputerAction { Action = "press", Keys = "CTRL+C" }, frame, desktop, guard, CancellationToken.None);
                 if (!events.Select(ev => ev.Key).SequenceEqual(new ushort[] { 55, 8, 8, 55 })) throw new Exception("Mac computer job command key");
@@ -763,10 +883,12 @@ namespace CapriDesktop
                 if (start.FileName != "/usr/sbin/screencapture" || !start.ArgumentList.SequenceEqual(new[] { "-x", "-D", "2", "-t", "png", "shot.png" })) throw new Exception("Mac capture command");
                 checks.Add("PASS Mac input events, Unicode, command keys, cancellation release, display scaling and Accessibility refresh");
                 checks.Add("PASS Mac job input guards, shortcut maps, Esc filter and platform capability gaps through fakes");
+                checks.Add("PASS Mac UTF-16 imports, explicit click points, pixel scroll, fn flag and safe focus handoff through fakes");
             }
             finally
             {
                 Trusted = trusted; Launch = launch; Sink = sink; Pause = pause; Position = position; Displays = displays; opened = wasOpened;
+                Foreground = foreground; Music.Run = run; automationBlocked = wasBlocked;
                 Hands.HandsReady = handsReady; Hands.HandsProblem = handsProblem; Hands.OnMac = macWas; Hands.OwnHands = ownWas;
                 Hands.MacClipboard = clipboardWas;
             }
