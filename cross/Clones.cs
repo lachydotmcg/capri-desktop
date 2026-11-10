@@ -599,7 +599,7 @@ namespace CapriDesktop
                 pet.SetHologram(true);
                 int[] after = pixels();
                 int at = Array.FindIndex(before, pixel => (uint)pixel >> 24 > 240);
-                if (at < 0 || before[at] == after[at] || ((uint)after[at] >> 24) < 140 || ((uint)after[at] >> 24) > 154) throw new Exception("Hologram did not tint a drawn sprite at 60 percent opacity.");
+                if (at < 0 || before[at] == after[at] || ((uint)after[at] >> 24) < 140 || ((uint)after[at] >> 24) > 154) throw new Exception("Hologram did not tint a drawn sprite at 60 percent opacity. at " + at + " of " + before.Length + ", size " + size + ", before " + (at < 0 ? "none" : before[at].ToString("X8")) + ", after " + (at < 0 ? "none" : after[at].ToString("X8")) + ", most opaque before " + before.Max(pixel => (uint)pixel >> 24) + ", after " + after.Max(pixel => (uint)pixel >> 24) + ", shown " + (pet.body.Shown == null ? "null" : pet.body.Shown.Title) + " cell " + pet.body.Cell + ", arriving " + pet.Arriving + ", falling " + pet.Falling);
                 if (applied.Count != 3 || !applied[pet] || !applied[pet.Talk.Pill] || !applied[pet.Talk.Bubble]) throw new Exception("Hologram did not pass clicks through exactly her body, pill and bubble.");
                 using (var stream = new System.IO.MemoryStream())
                 {

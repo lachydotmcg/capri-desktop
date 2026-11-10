@@ -145,19 +145,19 @@ namespace CapriDesktop
                 }
                 if (Brain.Greeting(8) != "Good morning, choom." || Brain.Greeting(23) != "Isn't it late, choom?" || Brain.Greeting(15) != "Miss me, choom?" || Brain.GreetingClip(15) != "miss") throw new Exception("Startup greetings came at the wrong hours.");
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
-                MacFiles.Checks(checks);
+                Diag("MacFiles.Checks", () => MacFiles.Checks(checks));
                 NewsChecks();
                 GuardChecks();
-                Ink.Check(checks);
+                Diag("Ink.Check", () => Ink.Check(checks));
                 MainframeGuardChecks();
-                Pet.CloneChecks(pet, checks);
+                Diag("Pet.CloneChecks", () => Pet.CloneChecks(pet, checks));
                 UnreadableChecks();
-                MacWindows.Checks(checks);
+                Diag("MacWindows.Checks", () => MacWindows.Checks(checks));
                 UpdateCheckChecks();
                 OfflineChecks();
-                FakeCrash.Checks(checks);
+                Diag("FakeCrash.Checks", () => FakeCrash.Checks(checks));
                 ProviderErrorChecks();
-                Watching.Checks(checks);
+                Diag("Watching.Checks", () => Watching.Checks(checks));
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -184,7 +184,7 @@ namespace CapriDesktop
                 if (!Sitting()) throw new Exception("A dropped Capri didn't sit down again.");
                 checks.Add("PASS drag and drop: grabbing her lifts her off, dropping her near a ledge makes her fall and sit on it");
                 DragChecks();
-                Pet.MoveChecks(pet, checks);
+                Diag("Pet.MoveChecks", () => Pet.MoveChecks(pet, checks));
                 PixelPoint hip = pet.Hip;
                 pet.Resize(320);
                 if (pet.Hip != hip) throw new Exception("Resizing moved her off her seat: " + hip + " to " + pet.Hip + ".");
@@ -631,12 +631,12 @@ namespace CapriDesktop
                 checks.Add("PASS whole words: an app opens only when its name has the whole word they said, so \"open minecraft\" never opens Minecraftle, and \"Kate text editor\" still opens Kate");
                 MinecraftChecks();
                 SettingsChecks();
-                Pet.SelfChecks(pet, checks);
+                Diag("Pet.SelfChecks", () => Pet.SelfChecks(pet, checks));
                 SecurityChecks();
                 TerminalSecurityChecks();
                 MacNativeChecks();
-                MacFingers.Checks(checks);
-                MacRoutes.Checks(checks);
+                Diag("MacFingers.Checks", () => MacFingers.Checks(checks));
+                Diag("MacRoutes.Checks", () => MacRoutes.Checks(checks));
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");
@@ -1591,7 +1591,7 @@ namespace CapriDesktop
             {
                 if (OperatingSystem.IsLinux() && !LinuxTalk()) return false;
                 MainframeChecks();
-                MiniPlayer.Checks(pet, folder, checks);
+                Diag("MiniPlayer.Checks", () => MiniPlayer.Checks(pet, folder, checks));
                 Finish(null);
                 return true;
             }
@@ -5712,9 +5712,17 @@ namespace CapriDesktop
             }
         }
 
+        private int diagFailed;
+        private void Diag(string name, Action run)
+        {
+            try { run(); }
+            catch (Exception error) { diagFailed++; checks.Add("DIAGFAIL " + name + ": " + error.GetType().Name + ": " + error.Message); }
+        }
+
         private void Finish(string failure)
         {
             if (finished) return;
+            if (failure == null && diagFailed > 0) failure = diagFailed + " check groups failed, see DIAGFAIL lines.";
             finished = true;
             foreach (Process process in shelves)
             {
