@@ -1640,6 +1640,7 @@
   const mark = $('#wordmark');
   const hero = $('.hero');
   const weigh = () => {
+    if (!mark) return;
     if (still || !wide.matches) { mark.style.transform = ''; return; }
     const box = hero.getBoundingClientRect();
     const gone = clamp(-box.top / Math.max(1, box.height), 0, 1);
@@ -1741,7 +1742,7 @@
     const link = event.target.closest('a[data-os], #install');
     if (!link) return;
     warn(link.dataset.os || system);
-    readCount({ method: 'POST', keepalive: true }).catch(() => {});
+    if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) readCount({ method: 'POST', keepalive: true }).catch(() => {});
   });
   headsUp.addEventListener('click', event => { if (event.target === headsUp) headsUp.close(); });
 
