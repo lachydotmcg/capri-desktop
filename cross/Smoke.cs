@@ -148,6 +148,7 @@ namespace CapriDesktop
                 MacFiles.Checks(checks);
                 NewsChecks();
                 GuardChecks();
+                Ink.Check(checks);
                 MainframeGuardChecks();
                 UnreadableChecks();
                 MacWindows.Checks(checks);

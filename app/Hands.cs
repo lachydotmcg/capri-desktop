@@ -762,7 +762,7 @@ namespace CapriDesktop
             get
             {
 #if CROSS
-                return "";
+                return OnMac ? Ink.Note + Ink.Context() : "";
 #else
                 return Ink.Note + Ink.Context();
 #endif
@@ -1287,8 +1287,8 @@ namespace CapriDesktop
             { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. This only opens it; they change settings there.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
-#if !CROSS
             { "draw", Ink.Description, Ink.Schema, "draw and write on your screen", "draw on their screen" },
+#if !CROSS
             { "clone", "Make copies of yourself on their screen. They wander around, talk to each other, steal the cursor and drag notes in until they're cleared. Use it when they ask you to clone, copy, duplicate or multiply yourself or to activate chaos mode, in any language, and when they ask you to get rid of your clones or end chaos mode.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"spawn makes copies and stop removes them all\",\"enum\":[\"spawn\",\"stop\"]},\"count\":{\"type\":\"integer\",\"description\":\"How many copies to make. Leave it out and they keep multiplying by themselves until they're cleared\"}},\"required\":[\"action\"]}", "make clones of herself in chaos mode", "make clones of yourself" },
             { "hologram", "Turn hologram mode on or off when asked, in any language. On makes you translucent and lets clicks pass through your body, talk pill and speech bubble. They can turn it off from your tray icon's right-click menu or by saying hologram off. Your type box, mini player, Mainframe and task panel stay usable.",
@@ -1776,11 +1776,11 @@ namespace CapriDesktop
                 if (tool == "job_control") return Valid(tool, args) ? JobControl(args) : "Couldn't find that job instruction.";
                 if (tool == "quit") return Valid(tool, args) ? Quit(args) : "Couldn't find that quit action.";
                 if (tool == "updates") return Valid(tool, args) ? Updates(args) : "Couldn't find that update action.";
+                if (tool == "draw") return Draw(args);
 #if !CROSS
                 if (tool == "app_volume") return AppVolume(args);
                 if (tool == "pc_status") return PcStatus(args.Name);
                 if (tool == "internet_status") return InternetStatus(args.Address);
-                if (tool == "draw") return Draw(args);
                 if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
                 if (tool == "hologram") return Hologram(args.Action);
                 if (tool == "desktop_icons") return Icons(args.Action);
@@ -2149,7 +2149,7 @@ namespace CapriDesktop
             foreach (string move in WindowsMoves) missing.Add(new[] { "move_yourself:" + move, OnlyWindows });
             foreach (string arrange in WindowsArranging)
                 if (!OnMac || arrange == "pin_on_top" || arrange == "unpin") missing.Add(new[] { "app_window:" + arrange, OnMac ? "macOS cannot pin another app's window" : OnlyWindows });
-            foreach (string tool in WindowsTools) missing.Add(new[] { tool, OnlyWindows });
+            foreach (string tool in WindowsTools) if (tool != "draw" || !OnMac) missing.Add(new[] { tool, OnlyWindows });
             foreach (string name in SettingNames()) if (!CrossSetting(name)) missing.Add(new[] { "capri_settings:" + name, OnlyWindows });
 
 #endif
@@ -2594,6 +2594,9 @@ namespace CapriDesktop
             if (GameNotes.Request(Asked(said)) != null || CapriDesktop.Websites.Request(Asked(said)) != null || FileFinder.Request(Asked(said), Finder.Busy, Finder.Found) != null) return true;
             if (MacFiles.PathIn(said) != null) return true;
 #endif
+#if CROSS
+            if (OnMac && Ink.Request(Asked(said)) != null) return true;
+#endif
 #if !CROSS
             if (Ink.Request(Asked(said)) != null) return true;
             if (GameNotes.Request(Asked(said)) != null) return true;
@@ -2664,6 +2667,9 @@ namespace CapriDesktop
                 return false;
             }
             if (calls.Exists(drawn => drawn.Key == "draw")) return false;
+#endif
+#if CROSS
+            if (OnMac && calls.Exists(drawn => drawn.Key == "draw")) return false;
 #endif
             if (calls.Exists(call => call.Key == "use_computer" || call.Key == "look_at_screen" || call.Key == "listen" || call.Key == "media" || call.Key == "play_music")) return false;
             if (!calls.Exists(call => Array.IndexOf(Herself, call.Key) >= 0) && Wants(said) && ((Errand(said) && !calls.Exists(call => call.Key == "shortcut" || call.Key == "remember")) || Regex.IsMatch(text, @"\s(and|then|&)\s+(then\s+)?(\w+\s+)?(search|look|type|click|go|make|create|write|find|open|sign|log|send|start|join|watch|check|put|add|draw|set|turn|say|tell|message|text|dm|reply|post|ask|paste|share|ping|install|uninstall|reinstall|download|upload|update|upgrade)\b", RegexOptions.IgnoreCase)))
@@ -2752,7 +2758,9 @@ namespace CapriDesktop
         internal static string Pulled(string result)
         {
             if ((result ?? "").StartsWith("Hologram mode ", StringComparison.Ordinal)) return result;
-#if !CROSS
+#if CROSS
+            if (OnMac && (result == Ink.Question || result == "Cleared my drawing." || result == "Drew on your screen." || result == "Added to my drawing.")) return result;
+#else
             if (result == Ink.Question || result == "Cleared my drawing." || result == "Drew on your screen." || result == "Added to my drawing.") return result;
 #endif
             // What isn't here goes out as she said it, like her line that clones are Windows-only.
@@ -3589,6 +3597,10 @@ namespace CapriDesktop
 #endif
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
+#if CROSS
+            ToolArguments drawing = OnMac ? Ink.Request(text) : null;
+            if (drawing != null) { tool = drawing.Task == null ? "draw" : "use_computer"; args = drawing; if (drawing.Task != null) args.Task = said; return true; }
+#endif
             ToolArguments controls = GameNotes.Request(text);
             if (controls != null) { tool = "game_notes"; args = controls; return true; }
 #if !CROSS
@@ -4058,10 +4070,10 @@ namespace CapriDesktop
 #else
             if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories)\z"));
 #endif
+            if (tool == "draw") return Ink.Valid(args);
 #if !CROSS
             if (tool == "call_errand") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(open_app|play_song|cancel)\z");
             if (tool == "call_say") return args != null && Named(args.Text);
-            if (tool == "draw") return Ink.Valid(args);
             if (tool == "clone") return args != null && (args.Action == "spawn" || args.Action == "stop");
             if (tool == "hologram") return args != null && (args.Action == "on" || args.Action == "off");
             if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back");

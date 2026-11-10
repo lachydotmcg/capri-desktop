@@ -697,6 +697,7 @@ namespace CapriDesktop
             Hands.Mainframe = MainframeTool;
             AttachSelfTools();
             Hands.Animate = AnimateTool;
+            StartInk();
             // Her settings tool reads and changes what her menus show.
             Hands.SettingOn = SettingOn;
             Hands.SetSetting = SetSetting;
@@ -4452,7 +4453,7 @@ namespace CapriDesktop
                 return;
             }
             // Her nap, her own moves and her animations work before she has a brain, like on Windows.
-            if (tool == "mainframe" || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, Hands.Do(tool, args)); return; }
+            if (tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, Hands.Do(tool, args)); return; }
             if (Think == null && Brain.Model == null && News.Matching(text) != null) { Reply(ticket, text, News.Facts); return; }
             if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline); FindBrain(); return; }
             Talk.Thinking(text);
