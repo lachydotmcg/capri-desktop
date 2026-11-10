@@ -645,6 +645,7 @@ namespace CapriDesktop
 #if CROSS
         // Esc is advertised only by a native session whose target-specific watcher is armed.
         internal static Func<string> NativeStopHint;
+        internal static Action Started = delegate { };
         internal static string Line { get { return NativeStopHint?.Invoke() ?? "Capri's using your mouse. Say stop to stop her."; } }
 #else
         internal const string Line = "Capri's using your mouse. Esc stops her.";
@@ -679,6 +680,9 @@ namespace CapriDesktop
                 up = true;
                 if (spot.HasValue) at = spot;
             }
+#if CROSS
+            Started();
+#endif
             if (rising || moved) Changed(rising);
         }
 

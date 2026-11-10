@@ -172,16 +172,17 @@ namespace CapriDesktop
             AppDomain.CurrentDomain.ProcessExit += (_, _) => StopAwake();
             desktop.Exit += (_, _) => StopAwake();
             Closed += (_, _) => StopAwake();
+            InControl.Started = StopMovesForWork;
             Func<string, ToolArguments, string> act = Brain.Act;
             Brain.Act = (tool, args) =>
             {
-                BeginWork(tool == "move_yourself" || tool == "nap");
+                BeginWork();
                 try { return act(tool, args); }
                 finally { EndWork(); }
             };
         }
 
-        internal void BeginWork(bool moving = false) { if (!moving) StopMovesForWork(); lock (workGate) { workCount++; CheckKeepAwake(); } }
+        internal void BeginWork() { lock (workGate) { workCount++; CheckKeepAwake(); } }
         internal void EndWork() { lock (workGate) { workCount = Math.Max(0, workCount - 1); CheckKeepAwake(); } }
         internal void SetKeepAwake(bool on) { Saved.NoKeepAwake = !on; CheckKeepAwake(); Save(); }
         internal void CheckKeepAwake() { lock (workGate) Wakeful?.Set(KeepAwake && !quitting && JobActive); }

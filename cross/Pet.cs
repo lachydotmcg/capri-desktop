@@ -1992,7 +1992,7 @@ namespace CapriDesktop
 
         internal void React()
         {
-            if (riding) { HopOff(); return; }
+            if (riding) return;
             SitUp();
             ModsClicked();
             napAsked = false;

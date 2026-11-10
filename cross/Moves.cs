@@ -18,6 +18,8 @@ namespace CapriDesktop
         private bool lying, riding, askedHop;
         private double lieBy = -1;
         private Func<double> MoveClock;
+        private Func<bool, bool> RideThrough;
+        private Action<Action> MovePost = action => Dispatcher.UIThread.Post(action);
         private PixelRect? MoveArea;
         private bool LyingClip { get { return clip == laydown || clip == laydownGlitch || clip == laydownTalk; } }
 
@@ -46,6 +48,12 @@ namespace CapriDesktop
                 falling = hanging = false;
                 fallTo = seat = null;
                 dancing = false;
+                if (!CursorThrough(true))
+                {
+                    CursorThrough(false);
+                    Fall();
+                    return "Couldn't let clicks through my window on this desktop.";
+                }
                 riding = true;
                 Play(perchGlitch);
                 FollowCursor(cursor.Value, false);
@@ -78,6 +86,7 @@ namespace CapriDesktop
 
         private void ClearMoves()
         {
+            if (riding && !CursorThrough(false)) Talk.Notice("(move)", "Couldn't turn my window's clicks back on.");
             riding = false;
             askedHop = false;
             SitUp();
@@ -95,12 +104,18 @@ namespace CapriDesktop
         private void StopMovesForWork()
         {
             if (Dispatcher.UIThread.CheckAccess()) StopMoves();
-            else Dispatcher.UIThread.Invoke(StopMoves);
+            else MovePost(StopMoves);
+        }
+
+        private bool CursorThrough(bool through)
+        {
+            if (RideThrough != null) return RideThrough(through);
+            try { return OperatingSystem.IsMacOS() ? Ink.Through(this, through) : HerCursor.ClicksThrough(this, through); }
+            catch (Exception) { return false; }
         }
 
         private void HopOff()
         {
-            riding = false;
             Fall();
             Play(grin);
         }
@@ -228,7 +243,7 @@ namespace CapriDesktop
 
         private string SitOn(string wanted, bool lie)
         {
-            if (Hands.OnMac) return "Sitting on a window you name is only on Windows so far.";
+            if (Hands.OnMac) return lie ? "Lying down on a window you name is only on Windows so far." : "Sitting on a window you name is only on Windows so far.";
             string name = Regex.Replace((wanted ?? "").Trim(), @"^(?:the|my|your|ur|our|that|this) | (?:window|app|application|game|tab)$", "", RegexOptions.IgnoreCase).Trim();
             if (name.Length == 0) return "Which window?";
             List<Ledge> ledges = Ledges();
@@ -286,6 +301,10 @@ namespace CapriDesktop
             Func<PixelPoint?> mouse = pet.MouseAt;
             Action<PixelPoint> moveTo = pet.MoveTo;
             Func<double> clock = pet.MoveClock;
+            Func<bool, bool> through = pet.RideThrough;
+            Action<Action> post = pet.MovePost;
+            Func<string, bool?> setting = Hands.SettingOn;
+            Action<bool> control = InControl.Changed;
             PixelRect? moveArea = pet.MoveArea;
             Func<List<OpenWindow>> windows = Hands.Windows;
             Func<string, string, string> moveSelf = Hands.MoveSelf;
@@ -296,6 +315,8 @@ namespace CapriDesktop
             PixelRect area = new PixelRect(-800, -100, 1600, 1000);
             double now = 0;
             PixelPoint? cursor = new PixelPoint(0, 400);
+            bool clicksThrough = false;
+            var clicks = new List<bool>();
             MoveDesk fake = new MoveDesk();
             fake.Shown.Add(new Spot { Window = 71, Bounds = new PixelRect(-740, 350, 1400, 120), Seat = true, Solid = true });
             fake.Shown.Add(new Spot { Window = 72, Bounds = new PixelRect(-680, 580, 1200, 120), Seat = true, Solid = true });
@@ -334,6 +355,9 @@ namespace CapriDesktop
             {
                 pet.Desk = fake;
                 pet.MoveClock = () => now;
+                pet.RideThrough = on => { clicksThrough = on; clicks.Add(on); return true; };
+                Hands.SettingOn = _ => true;
+                InControl.Changed = _ => { };
                 pet.MoveArea = area;
                 pet.MoveTo = _ => { };
                 pet.MouseAt = () => cursor;
@@ -353,6 +377,7 @@ namespace CapriDesktop
                     foreach (string action in new[] { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off" })
                         if (Hands.KitFor().Has("move_yourself:" + action) != (!platform || action != "sit_on")) throw new Exception("The moves list was wrong for " + action + ".");
                     if (platform && tool("sit_on", "Roblox") != "Sitting on a window you name is only on Windows so far.") throw new Exception("Mac lost its named window gap.");
+                    if (platform && tool("lie_down", "Roblox") != "Lying down on a window you name is only on Windows so far.") throw new Exception("Mac named lying answered about sitting.");
                     if (tool("walk_around", null) != "Going for a little walk." || !pet.walking || pet.clip != pet.walk) throw new Exception("Walk did not start from her tool.");
                     settle();
                     pet.Move(pet.Seated(Math.Min(pet.seat.Right, area.Right) - pet.Px(pet.body.Size * 0.41) - pet.Px(8) - 1, pet.seat.Y));
@@ -367,14 +392,17 @@ namespace CapriDesktop
                     Ledge from = pet.seat;
                     settle();
                     if (pet.seat.Window == from.Window && pet.seat.Y == from.Y) throw new Exception("Wander returned to the same ledge.");
-                    if (!tool("ride_cursor", null).StartsWith("Riding your cursor.") || !pet.riding || pet.clip != pet.perchGlitch) throw new Exception("Ride did not start from her tool.");
+                    int clickCount = clicks.Count;
+                    if (!tool("ride_cursor", null).StartsWith("Riding your cursor.") || !pet.riding || !clicksThrough || clicks.Count != clickCount + 1 || !clicks[clickCount] || pet.clip != pet.perchGlitch) throw new Exception("Ride did not start with click-through.");
+                    pet.React();
+                    if (!pet.riding || !clicksThrough) throw new Exception("A stale click ended her ride.");
                     foreach (PixelPoint edge in new[] { new PixelPoint(area.X, area.Y), new PixelPoint(area.Right - 1, area.Bottom - 1), new PixelPoint(area.X, area.Bottom - 1), new PixelPoint(area.Right - 1, area.Y) })
                     {
                         cursor = edge;
                         for (int i = 0; i < 30; i++) step();
                     }
                     if (pet.clip != pet.perch || !pet.riding) throw new Exception("Riding did not keep her perched.");
-                    if (tool("hop_off", null) != "Hopped off your cursor." || pet.riding || !pet.falling || pet.clip != pet.grin) throw new Exception("Hop off did not release her.");
+                    if (tool("hop_off", null) != "Hopped off your cursor." || pet.riding || clicksThrough || clicks.Count != clickCount + 2 || clicks[clickCount + 1] || !pet.falling || pet.clip != pet.grin) throw new Exception("Hop off did not restore clicks.");
                     settle();
                     if (tool("hop_off", null) != "I'm not riding your cursor.") throw new Exception("Hop off claimed a second ride.");
                 }
@@ -391,31 +419,61 @@ namespace CapriDesktop
                     pet.Play(pet.perch);
                     tool(action, action == "sit_on" ? "Roblox" : null);
                     pet.Grab();
-                    if (pet.riding || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0 || pet.outro != null || pet.clip != pet.dangle) throw new Exception("Dragging did not end " + action + ".");
+                    if (pet.riding || clicksThrough || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0 || pet.outro != null || pet.clip != pet.dangle) throw new Exception("Dragging did not end " + action + ".");
                     pet.Fall();
                     pet.dragging = false;
                     settle();
                 }
                 tool("ride_cursor", null);
+                pet.SitHere();
+                if (pet.riding || clicksThrough) throw new Exception("Her sit menu left the ride blocking clicks.");
+                pet.Fall();
+                settle();
+                tool("ride_cursor", null);
                 cursor = null;
                 step();
-                if (pet.riding || !pet.falling) throw new Exception("Losing the cursor kept her riding.");
+                if (pet.riding || clicksThrough || !pet.falling) throw new Exception("Losing the cursor kept her riding or blocking clicks.");
                 pet.Talk.Dismiss();
                 settle();
                 cursor = new PixelPoint(0, 400);
-                foreach (string action in new[] { "lie_down", "walk_around", "wander", "ride_cursor" })
+                tool("ride_cursor", null);
+                Action queuedMove = null;
+                Exception postError = null;
+                pet.MovePost = action => queuedMove = action;
+                using (var posted = new System.Threading.ManualResetEventSlim())
                 {
-                    pet.Play(pet.perch);
-                    tool(action, null);
-                    pet.BeginWork();
-                    pet.EndWork();
-                    if (pet.riding || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0 || pet.outro != null) throw new Exception("Work did not end " + action + ".");
-                    settle();
-                    tool(action, null);
-                    pet.Nap(true);
-                    if (pet.riding || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0 || pet.outro != null) throw new Exception("A nap did not end " + action + ".");
-                    pet.napAsked = false;
-                    settle();
+                    System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+                    {
+                        try { pet.StopMovesForWork(); }
+                        catch (Exception error) { postError = error; }
+                        finally { posted.Set(); }
+                    });
+                    if (!posted.Wait(2000)) throw new Exception("Stopping moves waited for the UI thread.");
+                }
+                if (postError != null || queuedMove == null || !pet.riding || !clicksThrough) throw new Exception("Work did not post its move stop.");
+                queuedMove();
+                if (pet.riding || clicksThrough) throw new Exception("The posted work stop left her riding.");
+                pet.MovePost = post;
+                settle();
+                foreach (bool platform in new[] { true, false })
+                {
+                    Hands.OnMac = platform;
+                    foreach (string action in new[] { "lie_down", "walk_around", "wander", "ride_cursor" })
+                    {
+                        pet.Play(pet.perch);
+                        tool(action, null);
+                        pet.BeginWork();
+                        pet.EndWork();
+                        if (!pet.Brain.Act("capri_settings", new ToolArguments { Action = "list", Name = "quiet" }).Contains(" on") || !(pet.riding || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0)) throw new Exception("A non-job tool ended " + action + ".");
+                        using (InControl.Hold())
+                            if (pet.riding || clicksThrough || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0 || pet.outro != null) throw new Exception("Computer input did not end " + action + ".");
+                        settle();
+                        tool(action, null);
+                        pet.Nap(true);
+                        if (pet.riding || clicksThrough || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0 || pet.outro != null) throw new Exception("A nap did not end " + action + ".");
+                        pet.napAsked = false;
+                        settle();
+                    }
                 }
                 pet.StandUp();
                 pet.Move(pet.Seated(0, area.Bottom));
@@ -442,11 +500,14 @@ namespace CapriDesktop
                 pet.Nap(false);
                 checks.Add("PASS asked moves on Mac and Linux use her walk, perch and laydown clips, keep her in the work area, land on real seats and stop for dragging, naps and work");
                 checks.Add("PASS sit up and hop off end their moves, losing the cursor drops her safely, Linux finds a named window and Mac keeps its named window gap");
+                checks.Add("PASS non-job tools keep moves running, input holds stop moves, background stops post without waiting, rides pass clicks through and exits restore clicks");
             }
             finally
             {
                 pet.Talk.Dismiss();
                 pet.MoveClock = clock; pet.MoveArea = moveArea;
+                pet.RideThrough = through; Hands.SettingOn = setting; InControl.Changed = control;
+                pet.MovePost = post;
                 pet.Desk = desk; pet.MouseAt = mouse; pet.MoveTo = moveTo;
                 Hands.OnMac = mac; Hands.Windows = windows; Hands.MoveSelf = moveSelf;
                 foreach (string name in names) typeof(Pet).GetField(name, fields).SetValue(pet, before[name]);

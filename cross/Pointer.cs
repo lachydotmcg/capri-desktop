@@ -369,7 +369,7 @@ namespace CapriDesktop
         }
 
         // Her sign uses it too. True once clicks go through the window.
-        internal static bool ClicksThrough(Window window)
+        internal static bool ClicksThrough(Window window, bool through = true)
         {
             if (!OperatingSystem.IsLinux()) return false;
             try
@@ -378,7 +378,8 @@ namespace CapriDesktop
                 if (handle == null) return false;
                 IntPtr display = XOpenDisplay(IntPtr.Zero);
                 if (display == IntPtr.Zero) return false;
-                XShapeCombineRectangles(display, handle.Handle, 2, 0, 0, IntPtr.Zero, 0, 0, 0);
+                if (through) XShapeCombineRectangles(display, handle.Handle, 2, 0, 0, IntPtr.Zero, 0, 0, 0);
+                else XShapeCombineMask(display, handle.Handle, 2, 0, 0, IntPtr.Zero, 0);
                 XFlush(display);
                 XCloseDisplay(display);
                 return true;
@@ -390,6 +391,7 @@ namespace CapriDesktop
         [DllImport("libX11.so.6")] private static extern int XCloseDisplay(IntPtr display);
         [DllImport("libX11.so.6")] private static extern int XFlush(IntPtr display);
         [DllImport("libXext.so.6")] private static extern void XShapeCombineRectangles(IntPtr display, IntPtr window, int kind, int x, int y, IntPtr rectangles, int count, int op, int ordering);
+        [DllImport("libXext.so.6")] private static extern void XShapeCombineMask(IntPtr display, IntPtr window, int kind, int x, int y, IntPtr mask, int op);
     }
 
     // #106 on Linux, like Windows' ControlGlow: while a job has their mouse and keyboard, a thin pink and cyan glow round the

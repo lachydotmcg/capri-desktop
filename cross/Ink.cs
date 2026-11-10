@@ -14,11 +14,6 @@ using SkiaSharp;
 
 namespace CapriDesktop
 {
-    internal sealed partial class Settings
-    {
-        [System.Runtime.Serialization.DataMember(EmitDefaultValue = false)] internal bool? Motion;
-    }
-
     internal sealed class InkShape
     {
         internal string Kind, Text;
@@ -71,17 +66,17 @@ namespace CapriDesktop
 
 
         internal const string BadShapes = "Couldn't read any shapes to draw.";
-        internal const string MovesOff = "Turn on my moves before asking me to draw.";
-        internal const string Permission = "Allow Capri in System Settings > Privacy & Security > Input Monitoring so holding Esc can clear my drawing.";
+        internal const string Permission = "I can't read Esc. Say clear to wipe my drawing, or allow Capri in System Settings > Privacy & Security > Input Monitoring to use Esc.";
         internal const double EscHold = 0.7;
         internal static Func<bool> Active = delegate { return false; };
         internal static Func<string> Layout = delegate { return ""; };
         internal Func<double> Time = delegate { return Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency; };
-        internal Func<bool> Moves = delegate { return true; };
         internal Func<bool> Allowed = CGPreflightListenEventAccess;
+        internal Func<bool> RequestAccess = CGRequestListenEventAccess;
         internal Func<bool> EscDown = delegate { return CGEventSourceKeyState(1, 53); };
         internal Func<List<InkStroke>, Func<double>, Action, InkSurface> Make;
         internal Action<string> Failed;
+        internal Action<string> Notice;
         internal static Func<IntPtr, string, bool?, bool> Message = NativeMessage;
         private List<InkStroke> strokes = new List<InkStroke>();
         private InkSurface surface;
@@ -192,23 +187,25 @@ namespace CapriDesktop
             return plan;
         }
 
-        private string Access()
+        private bool Access()
         {
-            if (Allowed()) { permissionSaid = false; return null; }
-            bool repeated = permissionSaid;
-            permissionSaid = true;
-            return repeated ? "I still can't read Esc to clear my drawing." : Permission;
+            if (Allowed()) return true;
+            if (!permissionSaid)
+            {
+                permissionSaid = true;
+                try { RequestAccess(); }
+                catch (Exception) { }
+                if (Notice != null) Notice(Permission);
+            }
+            return false;
         }
 
         internal string Draw(List<InkShape> shapes, bool add)
         {
             if (shapes.Count == 0) return BadShapes;
-            if (!Moves()) return MovesOff;
             InkSurface opened = null;
             try
             {
-                string access = Access();
-                if (access != null) return access;
                 var fresh = Plan(shapes, Time());
                 if (fresh.Count == 0) return BadShapes;
                 var drawing = add ? new List<InkStroke>(strokes) : new List<InkStroke>();
@@ -220,6 +217,7 @@ namespace CapriDesktop
                 surface = opened;
                 strokes = drawing;
                 escFrom = -1;
+                Access();
                 return add ? "Added to my drawing." : "Drew on your screen.";
             }
             catch (Exception)
@@ -232,10 +230,7 @@ namespace CapriDesktop
         internal void Step(double now)
         {
             if (!Has) return;
-            if (!Moves()) { Clear(); return; }
-            string access = Access();
-            if (access != null) { Clear(); if (Failed != null) Failed(access); return; }
-            if (!EscDown()) escFrom = -1;
+            if (!Access() || !EscDown()) escFrom = -1;
             else
             {
                 if (escFrom < 0) escFrom = now;
@@ -262,18 +257,18 @@ namespace CapriDesktop
 
         public void Dispose() { Clear(); }
 
-        internal static bool Through(Window window)
+        internal static bool Through(Window window, bool through = true)
         {
-            return Through(window.TryGetPlatformHandle());
+            return Through(window.TryGetPlatformHandle(), through);
         }
 
-        private static bool Through(IPlatformHandle handle)
+        private static bool Through(IPlatformHandle handle, bool through = true)
         {
             IntPtr native = handle is IMacOSTopLevelPlatformHandle mac ? mac.NSWindow : handle != null && handle.HandleDescriptor == "NSWindow" ? handle.Handle : IntPtr.Zero;
             if (native == IntPtr.Zero) return false;
-            Message(native, "setIgnoresMouseEvents:", true);
-            Message(native, "setHidesOnDeactivate:", false);
-            return Message(native, "ignoresMouseEvents", null);
+            Message(native, "setIgnoresMouseEvents:", through);
+            if (through) Message(native, "setHidesOnDeactivate:", false);
+            return Message(native, "ignoresMouseEvents", null) == through;
         }
 
         private static bool NativeMessage(IntPtr receiver, string selector, bool? value)
@@ -289,6 +284,8 @@ namespace CapriDesktop
         [return: MarshalAs(UnmanagedType.I1)] private static extern bool GetBool(IntPtr receiver, IntPtr selector);
         [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
         [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGPreflightListenEventAccess();
+        [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+        [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGRequestListenEventAccess();
         [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
         [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGEventSourceKeyState(int state, ushort key);
 
@@ -321,52 +318,92 @@ namespace CapriDesktop
             try
             {
                 var messages = new List<string>();
-                Message = (receiver, selector, value) => { if (receiver != new IntPtr(12)) throw new Exception("Ink used the wrong native window."); messages.Add(selector + ":" + value); return true; };
+                bool ignores = false;
+                Message = (receiver, selector, value) => { if (receiver != new IntPtr(12)) throw new Exception("Ink used the wrong native window."); messages.Add(selector + ":" + value); if (selector == "setIgnoresMouseEvents:") ignores = value.Value; return ignores; };
                 if (!Through(new PlatformHandle(new IntPtr(12), "NSWindow")) || messages.Count != 3 || messages[0] != "setIgnoresMouseEvents::True" || messages[1] != "setHidesOnDeactivate::False" || messages[2] != "ignoresMouseEvents:") throw new Exception("Ink did not set and verify native click-through.");
+                if (!Through(new PlatformHandle(new IntPtr(12), "NSWindow"), false) || ignores || messages.Count != 5 || messages[3] != "setIgnoresMouseEvents::False" || messages[4] != "ignoresMouseEvents:") throw new Exception("Native click-through did not restore clicks.");
                 if (Through(new PlatformHandle(new IntPtr(12), "XID"))) throw new Exception("Ink treated a foreign handle as NSWindow.");
             }
             finally { Message = messageWas; }
             double now = 10;
-            bool down = false, moves = true, allowed = true;
+            bool down = false, allowed = false;
+            int requests = 0;
+            var notices = new List<string>();
             var made = new List<Probe>();
             using (var ink = new Ink())
             {
                 ink.Time = () => now;
-                ink.Moves = () => moves;
                 ink.Allowed = () => allowed;
-                ink.EscDown = () => down;
+                ink.RequestAccess = () => { requests++; return false; };
+                ink.Notice = line => notices.Add(line);
+                ink.EscDown = () => { if (!allowed) throw new Exception("Ink read Esc without listen access."); return down; };
                 ink.Make = (drawing, time, broken) => { var probe = new Probe(); made.Add(probe); return probe; };
                 if (ink.Draw(Parse("line NaN 0 0 0"), false) != BadShapes || made.Count != 0 || !Valid(new ToolArguments { Action = "ADD" }) || Valid(new ToolArguments { Action = "erase" })) throw new Exception("Ink accepted bad input.");
-                moves = false;
-                if (ink.Draw(good, false) != MovesOff || made.Count != 0) throw new Exception("Ink drew with moves off.");
-                moves = true; allowed = false;
-                if (ink.Draw(good, false) != Permission || ink.Draw(good, false) == Permission || made.Count != 0) throw new Exception("Ink repeated its permission request.");
-                allowed = true;
-                if (ink.Draw(good, false) != "Drew on your screen." || ink.Count != 6 || !made[0].Safe) throw new Exception("Ink overlay policy was unsafe.");
+                if (ink.Draw(good, false) != "Drew on your screen." || ink.Count != 6 || !made[0].Safe || requests != 1 || notices.Count != 1 || notices[0] != Permission) throw new Exception("Ink did not draw without listen access and explain clear once.");
+                down = true; ink.Step(20); ink.Step(22);
+                if (!ink.Has || made[0].Steps != 2 || made[0].Closed || requests != 1 || notices.Count != 1) throw new Exception("Missing listen access stopped ink or repeated its request.");
                 if (ink.Draw(Parse("line 0 0 1 1"), true) != "Added to my drawing." || ink.Count != 7 || !made[0].Closed) throw new Exception("Ink add lost its old drawing.");
+                if (requests != 1 || notices.Count != 1) throw new Exception("Adding ink asked for listen access again.");
+                if (ink.Clear() != "Cleared my drawing." || ink.Has || !made[1].Closed) throw new Exception("Clear needed listen access.");
+                if (ink.Draw(good, false) != "Drew on your screen." || requests != 1 || notices.Count != 1) throw new Exception("Drawing after clear asked for listen access again.");
+                allowed = true;
                 down = true; ink.Step(20); ink.Step(20.5);
                 down = false; ink.Step(20.6);
                 if (!ink.Has) throw new Exception("An Esc tap cleared ink.");
                 down = true; ink.Step(21); ink.Step(21.71);
-                if (ink.Has || !made[1].Closed) throw new Exception("Holding Esc did not clear ink.");
+                if (ink.Has || !made[2].Closed) throw new Exception("Holding Esc did not clear ink.");
                 ink.Draw(good, false);
-                if (ink.Clear() != "Cleared my drawing." || ink.Has || !made[2].Closed) throw new Exception("Clear left ink behind.");
+                if (ink.Clear() != "Cleared my drawing." || ink.Has || !made[3].Closed) throw new Exception("Clear left ink behind.");
                 ink.Draw(good, false);
                 now++;
-                if (ink.Draw(Parse("line 0 0 2 2"), false) != "Drew on your screen." || ink.Count != 1 || !made[3].Closed) throw new Exception("Replace kept old ink.");
-                moves = false; ink.Step(now);
-                if (ink.Has || !made[4].Closed) throw new Exception("Moves off left ink behind.");
-                moves = true;
-                ink.Draw(good, false);
+                if (ink.Draw(Parse("line 0 0 2 2"), false) != "Drew on your screen." || ink.Count != 1 || !made[4].Closed) throw new Exception("Replace kept old ink.");
                 string failure = null;
                 ink.Failed = line => failure = line;
-                allowed = false; ink.Step(now);
-                if (ink.Has || failure != Permission || !made[5].Closed) throw new Exception("Ink ignored revoked Input Monitoring.");
+                down = true; ink.Step(now);
+                allowed = false; ink.Step(now + 1);
+                if (!ink.Has || failure != null || made[5].Closed || requests != 1 || notices.Count != 1) throw new Exception("Revoked listen access erased ink or repeated its request.");
+                allowed = true; ink.Step(now + 2);
+                if (!ink.Has) throw new Exception("Lost listen access kept an old Esc hold.");
+                ink.Clear();
                 allowed = true;
                 ink.Make = (drawing, time, broken) => null;
                 if (ink.Draw(good, false) != NoSpace || ink.Has) throw new Exception("Ink drew outside its screen.");
                 ink.Make = (drawing, time, broken) => new Probe { Works = false };
                 if (ink.Draw(good, false) != NoOverlay || ink.Has) throw new Exception("A broken overlay reported success.");
+            }
+            var first = new PixelRect(0, 0, 100, 100);
+            var second = new PixelRect(-200, -50, 100, 100);
+            var rooms = new List<PixelRect>();
+            var overlays = new List<Probe>();
+            using (var ink = new Ink())
+            {
+                ink.Time = () => now;
+                ink.Allowed = () => true;
+                ink.EscDown = () => false;
+                ink.Make = (drawing, time, broken) =>
+                {
+                    var screens = new InkScreens();
+                    foreach (PixelRect room in new[] { first, second })
+                        screens.Add(room, drawing, () => { rooms.Add(room); var probe = new Probe(); overlays.Add(probe); return probe; });
+                    return screens.Any ? screens : null;
+                };
+                if (ink.Draw(Parse("line -180 -25 -120 25"), false) != "Drew on your screen." || rooms.Count != 1 || rooms[0] != second || !overlays[0].Safe) throw new Exception("Ink dropped a second-monitor stroke.");
+                ink.Step(now);
+                if (overlays[0].Steps != 1) throw new Exception("Ink did not advance its second-monitor overlay.");
+                if (ink.Draw(Parse("line 20 20 50 50"), true) != "Added to my drawing." || ink.Count != 2 || rooms.Count != 3 || rooms[1] != first || rooms[2] != second || !overlays[0].Closed || !overlays[1].Safe || !overlays[2].Safe) throw new Exception("Adding ink lost one monitor's overlay.");
+                ink.Step(now);
+                if (overlays[1].Steps != 1 || overlays[2].Steps != 1) throw new Exception("Ink did not advance every overlay.");
+                ink.Clear();
+                if (!overlays[1].Closed || !overlays[2].Closed || ink.Has) throw new Exception("Clear left a monitor's overlay open.");
+                if (ink.Draw(Parse("line 300 300 320 320"), false) != NoSpace || ink.Has) throw new Exception("Ink reported a monitor outside its layout.");
+                ink.Make = (drawing, time, broken) =>
+                {
+                    var screens = new InkScreens();
+                    screens.Add(first, drawing, () => { var probe = new Probe(); overlays.Add(probe); return probe; });
+                    screens.Add(second, drawing, () => { var probe = new Probe { Works = false }; overlays.Add(probe); return probe; });
+                    return screens;
+                };
+                if (ink.Draw(Parse("line -120 25 20 25"), false) != NoOverlay || ink.Has || !overlays[3].Closed || !overlays[4].Closed) throw new Exception("A failed monitor left a partial drawing open.");
             }
             bool macWas = Hands.OnMac;
             var drawWas = Hands.Draw;
@@ -384,16 +421,39 @@ namespace CapriDesktop
                 if (Hands.Unable("draw", new ToolArguments()) == null || Hands.Note.Contains(Note) || Hands.Tools.Contains("\"draw\"")) throw new Exception("Linux drawing gap changed.");
             }
             finally { Hands.OnMac = macWas; Hands.Draw = drawWas; Active = activeWas; }
-            checks.Add("PASS Mac ink: Windows shape format, timed strokes, passive click-through policy, moves and permission gates, add, replace, clear, held Esc and platform lists");
+            checks.Add("PASS Mac ink: shapes, timed strokes, click-through, add, replace, clear, optional listen access, one permission request, held Esc and platform lists");
+            checks.Add("PASS ink draws on the second monitor, keeps both monitors on add, advances and clears every overlay, and closes partial failures");
         }
 
         private sealed class Probe : InkSurface
         {
             internal bool Safe, Closed, Works = true;
+            internal int Steps;
             public bool Open(InkPolicy policy) { Safe = policy.Transparent && policy.Topmost && policy.ClickThrough && !policy.Activate && !policy.Decorated; return Works && Safe; }
-            public void Advance(double now) { }
+            public void Advance(double now) { Steps++; }
             public void Dispose() { Closed = true; }
         }
+    }
+
+    internal sealed class InkScreens : InkSurface
+    {
+        private readonly List<InkSurface> windows = new List<InkSurface>();
+        private bool closed;
+        internal bool Any { get { return windows.Count != 0; } }
+
+        internal void Add(PixelRect room, List<InkStroke> drawing, Func<InkSurface> make)
+        {
+            if (drawing.Exists(stroke => stroke.Touches(room))) windows.Add(make());
+        }
+
+        public bool Open(InkPolicy policy)
+        {
+            foreach (InkSurface window in windows) if (!window.Open(policy)) return false;
+            return Any;
+        }
+
+        public void Advance(double now) { foreach (InkSurface window in windows) { if (closed) break; window.Advance(now); } }
+        public void Dispose() { if (closed) return; closed = true; foreach (InkSurface window in windows) window.Dispose(); }
     }
 
     internal sealed class InkStroke
@@ -614,13 +674,14 @@ namespace CapriDesktop
                 if (here != null) layout.Append("\nThey're on " + here.Bounds.X + " " + here.Bounds.Y + " " + here.Bounds.Right + " " + here.Bounds.Bottom + ", so draw there unless they say otherwise.");
                 return layout.ToString();
             });
-            ink.Moves = () => Saved.Motion != false;
             ink.Make = (drawing, time, broken) =>
             {
-                Screen screen = ScreenHere();
-                if (screen == null || !drawing.Exists(stroke => stroke.Touches(screen.Bounds))) return null;
-                return new InkWindow(screen.Bounds, screen.Scaling > 0 ? screen.Scaling : 1, drawing, time, broken);
+                var screens = new InkScreens();
+                foreach (Screen screen in Screens.All)
+                    screens.Add(screen.Bounds, drawing, () => new InkWindow(screen.Bounds, screen.Scaling > 0 ? screen.Scaling : 1, drawing, time, broken));
+                return screens.Any ? screens : null;
             };
+            ink.Notice = line => Talk.Notice("(drawing)", line);
             ink.Failed = line => { ticks.Stop(); Talk.Answer("(drawing)", line); };
             ticks.Tick += delegate { try { ink.Step(ink.Time()); ticks.Interval = TimeSpan.FromMilliseconds(ink.Moving ? 25 : 100); if (!ink.Has) ticks.Stop(); } catch (Exception) { ink.Clear(); ticks.Stop(); Talk.Answer("(drawing)", Ink.NoOverlay); } };
             Hands.Draw = args =>
@@ -628,7 +689,6 @@ namespace CapriDesktop
                 args = args ?? new ToolArguments();
                 if (!Ink.Valid(args)) return "Couldn't read that drawing action.";
                 if (string.Equals(args.Action, "clear", StringComparison.OrdinalIgnoreCase)) return Dispatcher.UIThread.Invoke(() => { ticks.Stop(); return ink.Clear(); });
-                if (!Dispatcher.UIThread.Invoke(ink.Moves)) return Ink.MovesOff;
                 if (args.Shapes == null && !string.IsNullOrWhiteSpace(args.Description))
                 {
                     if (Ink.ScreenRequest(args.Description)) return Hands.Work(args.Description, args.Asked);
