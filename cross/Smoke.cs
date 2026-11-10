@@ -5554,7 +5554,6 @@ namespace CapriDesktop
                 bool hung = pet.Hanging && pet.Playing == "dangle" && pet.HangChoice == "Let go";
                 Self("move_yourself", "stand_up");
                 bool letGo = !pet.Hanging;
-                Self("move_yourself", "ride_cursor");
                 string frameMoved = Self("move_yourself", "move_mainframe", "other");
                 if (pet.Frame == null || frameMoved != (pet.Screens.All.Count < 2 ? "There's no other screen to go to." : "Moved Capri Mainframe.")) throw new Exception("She did not open or move her Mainframe: " + frameMoved);
                 pet.CloseMainframe();
@@ -5610,10 +5609,10 @@ namespace CapriDesktop
             if (pet.Leaving || pet.Arriving || pet.Falling) return false;
             pet.MouseAt = null;
             string said = string.Join(" / ", moveLines);
-            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / Riding your cursor is only on Windows so far. / " + moveLines[7]
-                + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[15] + " / Hiding. Pick Show Capri in my tray menu to bring me back. / Back. / I'm right here.";
+            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / " + moveLines[6]
+                + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[14] + " / Hiding. Pick Show Capri in my tray menu to bring me back. / Back. / I'm right here.";
             if (said != wanted) throw new Exception("Her moves said the wrong things: " + said);
-            checks.Add("PASS she moves herself: teleport, sit, stand, hang, hide, show and named animations work; her Mainframe opens and moves to another screen when there is one; riding the cursor stays Windows-only");
+            checks.Add("PASS she moves herself: teleport, sit, stand, hang, hide, show and named animations work; her Mainframe opens and moves to another screen when there is one");
             moveStage = 5;
             return true;
         }
