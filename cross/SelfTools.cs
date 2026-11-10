@@ -29,6 +29,11 @@ namespace CapriDesktop
             foreach (Later item in later) if (item.Ticket == ticket) item.Shown = true;
         }
 
+        internal bool Pending(int ticket)
+        {
+            return later.Exists(item => item.Ticket == ticket && (item.Current == null || item.Current()));
+        }
+
         internal void Tick(int ticket, bool finished)
         {
             foreach (Later item in later.ToArray())
@@ -74,6 +79,8 @@ namespace CapriDesktop
         [ThreadStatic] private static Running local;
         [ThreadStatic] private static int revision;
 
+        internal static bool Active { get { lock (gate) return running != null && !running.Stopped; } }
+
         internal static bool Current()
         {
             lock (gate) return local == null || !local.Stopped && local.Revision == revision;
@@ -89,6 +96,9 @@ namespace CapriDesktop
             Running job = new Running { Args = args.Copy(), Cancel = cancel };
             lock (gate)
             {
+                var wait = System.Diagnostics.Stopwatch.StartNew();
+                while (running != null && running.Stopped && wait.ElapsedMilliseconds < 1000)
+                    Monitor.Wait(gate, (int)Math.Max(1, 1000 - wait.ElapsedMilliseconds));
                 if (running != null) return "I'm already on a job.";
                 running = job;
             }
@@ -113,7 +123,7 @@ namespace CapriDesktop
                     }
                 }
             }
-            finally { local = null; lock (gate) if (running == job) running = null; }
+            finally { local = null; lock (gate) if (running == job) { running = null; Monitor.PulseAll(gate); } }
         }
 
         internal static string Control(ToolArguments args)
@@ -245,6 +255,47 @@ namespace CapriDesktop
                 if (closed) throw new Exception("The quit seam skipped speech.");
                 pet.selfTools.Tick(ticket, true);
                 if (!closed) throw new Exception("The quit seam did not close its fake window.");
+                int newsTicketWas = pet.newsTicket;
+                long newsQuietWas = pet.newsQuiet;
+                bool newsPendingWas = pet.newsPending;
+                string versionWas = pet.Saved.LastVersion;
+                Func<string, string> newsThinkWas = pet.Think;
+                string problemWas = pet.frameProblem;
+                try
+                {
+                    closed = false;
+                    pet.newsTicket = ticket; pet.newsQuiet = -1;
+                    Hands.Do("quit", new ToolArguments { Action = "quit" });
+                    if (pet.HoldNews(ticket) || pet.asking != ticket) throw new Exception("Held news discarded an agreed quit.");
+                    if (!pet.ShowReply(ticket, "(updated)", "I'll quit after this reply.", 0, null, false, pet.inputTurn, pet.answerTurn)) throw new Exception("A held quit reply was not shown.");
+                    pet.selfTools.Tick(ticket, false);
+                    if (closed) throw new Exception("A held quit skipped its line.");
+                    pet.selfTools.Tick(ticket, true);
+                    if (!closed) throw new Exception("A held reply lost its agreed quit.");
+                    closed = false;
+                    pet.Talk.Dismiss();
+                    pet.newsTicket = ticket; pet.newsQuiet = -1;
+                    pet.Think = delegate
+                    {
+                        Hands.Do("quit", new ToolArguments { Action = "quit" });
+                        throw new BrainException("Test reply failure.");
+                    };
+                    pet.Ask(ticket, "(updated)", 0);
+                    var replyWait = System.Diagnostics.Stopwatch.StartNew();
+                    while (pet.Talk.Reply == null && replyWait.ElapsedMilliseconds < 3000) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+                    if (pet.Talk.Reply != News.Line || pet.asking != ticket) throw new Exception("A held fallback reply lost its quit line.");
+                    pet.selfTools.Tick(ticket, false);
+                    if (closed) throw new Exception("A fallback quit skipped its line.");
+                    pet.selfTools.Tick(ticket, true);
+                    if (!closed) throw new Exception("A fallback reply never released its agreed quit.");
+                }
+                finally
+                {
+                    pet.newsTicket = newsTicketWas; pet.newsQuiet = newsQuietWas;
+                    pet.newsPending = newsPendingWas; pet.Saved.LastVersion = versionWas;
+                    pet.Think = newsThinkWas; pet.frameProblem = problemWas;
+                    pet.Talk.Dismiss();
+                }
                 Hands.Do("updates", new ToolArguments { Action = "install", Asked = "Update Capri" });
                 pet.selfTools.Tick(ticket, true);
                 if (opens != 0) throw new Exception("Install opened before its reply.");
@@ -264,6 +315,7 @@ namespace CapriDesktop
                 if (opened == null || !opened.EndsWith("check-ins.md", StringComparison.Ordinal) || edit != "Opened your check-in lines.") throw new Exception("The settings tool did not open the existing check-in lines.");
                 checks.Add("PASS self updates report newer, same and older releases; hints cannot install; a clear ask opens the menu page after the reply");
                 checks.Add("PASS self settings edit_check_in_lines opens the existing editor on Mac and Linux");
+                checks.Add("PASS self quit survives held news and fallback replies, shows its line and waits for it to finish");
             }
             finally
             {
@@ -297,6 +349,72 @@ namespace CapriDesktop
             ToolArguments correction = SelfTools.JobRequest("change the job to Use Firefox instead");
             if (correction == null || correction.Action != "change" || correction.Task != "Use Firefox instead" || SelfTools.JobRequest("how is the job going?").Action != "status" || SelfTools.JobRequest("stop your job").Action != "stop" || SelfTools.JobRequest("don't stop your job") != null) throw new Exception("A job request was lost or a negation became a stop.");
             checks.Add("PASS self jobs report no job, report a running task, apply ordered corrections and stop before another action");
+
+            Func<string, string> thinkWas = pet.Think;
+            silent = pet.Saved.Silent;
+            try
+            {
+                pet.Saved.Silent = true;
+                pet.Think = delegate
+                {
+                    if (!Hands.Do("job_control", new ToolArguments { Action = "status" }).Contains("chat job")) throw new Exception("Chat stopped a job before its status tool.");
+                    return Hands.Do("job_control", new ToolArguments { Action = "change", Task = "changed by chat" });
+                };
+                int changed = 0;
+                result = SelfJobs.Run(new ToolArguments { Task = "chat job" }, args =>
+                {
+                    if (++changed == 1)
+                    {
+                        pet.Talk.Dismiss();
+                        pet.Hear("Could you carry on using Firefox instead?");
+                        var wait = System.Diagnostics.Stopwatch.StartNew();
+                        while (pet.Talk.Reply == null && wait.ElapsedMilliseconds < 3000) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+                        if (pet.Talk.Reply != "Changed what my job should do." || !SelfJobs.Active) throw new Exception("An ordinary chat lost its running job before control.");
+                    }
+                    else
+                    {
+                        if (args.Task != "changed by chat") throw new Exception("Chat did not change the running job.");
+                        pet.Hear("stop");
+                    }
+                    return "fake job";
+                }, delegate { });
+                if (changed != 2 || result != "Stopped my job." || SelfJobs.Active) throw new Exception("A plain stop did not end the chat-controlled job.");
+            }
+            finally { pet.Think = thinkWas; pet.Saved.Silent = silent; pet.Talk.Dismiss(); SelfJobs.Stop(); }
+            checks.Add("PASS self jobs survive ordinary chat for status and change, and a plain stop ends them");
+
+            using (var entered = new ManualResetEvent(false))
+            using (var cancelled = new ManualResetEvent(false))
+            {
+                string oldResult = null;
+                Exception problem = null;
+                Thread old = new Thread(delegate()
+                {
+                    try
+                    {
+                        oldResult = SelfJobs.Run(new ToolArguments { Task = "old job" }, args =>
+                        {
+                            entered.Set();
+                            if (!cancelled.WaitOne(3000)) throw new Exception("The old job was never stopped.");
+                            Thread.Sleep(100);
+                            return "old result";
+                        }, () => cancelled.Set());
+                    }
+                    catch (Exception error) { problem = error; }
+                }) { IsBackground = true };
+                old.Start();
+                try
+                {
+                    if (!entered.WaitOne(3000)) throw new Exception("The fake old job never started.");
+                    ComputerJobs.Stop();
+                    result = SelfJobs.Run(new ToolArguments { Task = "new job" }, args => "new result", delegate { });
+                    if (result != "new result") throw new Exception("A stopped job refused its immediate replacement.");
+                }
+                finally { cancelled.Set(); SelfJobs.Stop(); if (!old.Join(3000)) throw new Exception("The fake old job never unwound."); }
+                if (problem != null) throw problem;
+                if (oldResult != "Stopped my job." || SelfJobs.Active) throw new Exception("A stopped job survived its replacement.");
+            }
+            checks.Add("PASS self jobs stop through ComputerJobs and admit a replacement after the old job unwinds");
 
             var fields = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
             var terminals = (System.Collections.IDictionary)typeof(TerminalJobs).GetField("jobs", fields).GetValue(null);

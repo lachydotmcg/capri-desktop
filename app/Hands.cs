@@ -2142,6 +2142,7 @@ namespace CapriDesktop
             }
 #if CROSS
             if (OnMac && HandsReady != null) OwnHands = HandsReady();
+            if (!blind && !Watching.Quiet()) missing.Add(new[] { "watch_for", "this desktop can't take quiet screenshots" });
             if (OnMac) missing.Add(new[] { "linux_system", "Linux system tools are unavailable on macOS." });
             if (TerminalAvailable == null || !TerminalAvailable())
                 foreach (string tool in new[] { "run_terminal", "terminal_job" }) missing.Add(new[] { tool, "Native terminal jobs are unavailable on this platform." });
@@ -2230,7 +2231,11 @@ namespace CapriDesktop
             { "clip", "game clips", "Game clips are only on Windows for now, choom." },
             { "mini_game", "mini games", "My mini games are only on Windows for now, choom." },
             { "game_notes", "saved game controls", "Saved game controls are only on Windows for now, choom." },
+#if CROSS
+            { "watch_for", "watching their screen for something", "I can't watch your screen quietly on this desktop. Ask me to look when you need a check." },
+#else
             { "watch_for", "watching their screen for something", "Watching your screen for something is only on Windows for now, choom." },
+#endif
             { "listen", "listening to what's playing", "Listening to what's playing is only on Windows for now, choom." }
         };
 

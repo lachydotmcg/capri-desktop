@@ -273,6 +273,7 @@ namespace CapriDesktop
 
         internal static void Stop()
         {
+            SelfJobs.Stop();
             Eyes.Stop();
             lock (gate)
             {

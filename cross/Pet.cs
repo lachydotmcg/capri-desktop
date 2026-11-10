@@ -1930,7 +1930,7 @@ namespace CapriDesktop
 
         private bool HoldNews(int ticket)
         {
-            if (ticket != newsTicket || !NewsBusy(newsQuiet)) return false;
+            if (selfTools.Pending(ticket) || ticket != newsTicket || !NewsBusy(newsQuiet)) return false;
             newsTicket = -1;
             asking++;
             Talk.Dismiss(false);
@@ -4428,10 +4428,11 @@ namespace CapriDesktop
             if (ModList.Heard(text)) return;
             if (SelfJobRequest(text)) return;
             int ticket = ++asking;
-            ComputerJobs.Stop();
+            bool working = SelfJobs.Active;
+            if (!working) ComputerJobs.Stop();
             ownedVoice?.Cancel();
             StopNativeListening(!fromVoice);
-            Brain.Cancel();
+            if (!working) Brain.Cancel();
             voice.Stop();
             string tool;
             if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:please )?(?:(?:can|could|would) you )?(?:open|show|bring up|let me see|can i see)(?: me)?(?: the| your| her| capri'?s?)? (?:capri )?main ?frame(?: window)?(?: please)?[.!?]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
@@ -4505,7 +4506,7 @@ namespace CapriDesktop
                     if (problem != null) { frameProblem = problem; NotifySettings(); }
                     if (input != inputTurn) after = null;
                     if (HoldNews(ticket)) return;
-                    if (ticket == newsTicket && failed) { Talk.Answer("(updated)", News.Line); KeepNews(); return; }
+                    if (ticket == newsTicket && failed) { Talk.Answer("(updated)", News.Line); selfTools.Replied(ticket); KeepNews(); return; }
                     Reply(ticket, ticket == newsTicket ? "(updated)" : text, said, ticket == newsTicket ? null : after);
                 });
             });
