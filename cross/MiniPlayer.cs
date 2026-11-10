@@ -29,7 +29,7 @@ namespace CapriDesktop
         private readonly NeonCaption title, artist, time;
         private readonly NeonButton previous, play, next, close;
         private readonly Timeline timeline = new Timeline();
-        private readonly DispatcherTimer ticks = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        private readonly DispatcherTimer ticks = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         private readonly Queue<KeyValuePair<Song, byte>> presses = new Queue<KeyValuePair<Song, byte>>();
         internal Func<Song> Read = () => ReadSong(OperatingSystem.IsMacOS());
         internal Func<Song, byte, bool> Send = (song, key) => SendKey(song, key, OperatingSystem.IsMacOS());
@@ -37,10 +37,12 @@ namespace CapriDesktop
         internal Func<double> Now = () => Environment.TickCount64 / 1000.0;
         internal Func<bool> Allowed = () => true;
         internal Func<bool> Above = () => true;
+        internal Func<PixelPoint?> Place = () => null;
         internal Action<bool> Changed;
         internal Action<string> Notice;
-        internal bool Enabled = true;
-        private bool dismissed, reading, sending, stopped, blocked;
+        private bool enabled = true;
+        internal bool Enabled { get { return enabled; } set { SetEnabled(value); } }
+        private bool dismissed, reading, sending, stopped, blocked, started;
         private int epoch;
         private double heard = -1;
         private Song song;
@@ -71,12 +73,24 @@ namespace CapriDesktop
                 if (e.GetCurrentPoint(page).Properties.IsLeftButtonPressed && (e.Source == page || e.Source is NeonCaption)) BeginMoveDrag(e);
             });
             ticks.Tick += (_, _) => Program.Guard(Refresh);
+            PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) Schedule(); };
             SizeChanged += (_, _) => surface.Clip = MainframeTheme.Cut(new Rect(Bounds.Size), 16 * zoom, 6 * zoom, 16 * zoom, 6 * zoom);
             Closed += (_, _) => { stopped = true; epoch++; ticks.Stop(); };
             Scale(1);
         }
 
-        internal void Start() { if (!stopped) { ticks.Start(); Refresh(); } }
+        internal void Start() { if (!stopped) { started = true; Schedule(); Refresh(); } }
+
+        internal int PollSeconds { get { return !Enabled || stopped || blocked ? 0 : IsVisible && song != null && song.Playing ? 1 : 3; } }
+
+        private void Schedule()
+        {
+            int seconds = PollSeconds;
+            if (!started || seconds == 0) { ticks.Stop(); return; }
+            TimeSpan interval = TimeSpan.FromSeconds(seconds);
+            if (ticks.Interval != interval) ticks.Interval = interval;
+            if (!ticks.IsEnabled) ticks.Start();
+        }
 
         internal void Scale(double value)
         {
@@ -96,17 +110,20 @@ namespace CapriDesktop
         internal void SetEnabled(bool on)
         {
             if (Enabled == on) return;
-            Enabled = on; epoch++;
+            enabled = on; epoch++;
             if (!on) Hide();
             else { dismissed = false; blocked = false; problem = null; }
+            Schedule();
             if (Changed != null) Changed(on);
         }
 
         internal void Refresh()
         {
+            Schedule();
             if (stopped) return;
             if (!Enabled || !Allowed()) { Hide(); return; }
             Topmost = Above();
+            if (IsVisible) Follow();
             if (reading || blocked || sending) return;
             reading = true;
             int asked = epoch;
@@ -134,34 +151,39 @@ namespace CapriDesktop
         {
             if (blocked) return;
             blocked = true; problem = error; Hide();
+            Schedule();
             if (Notice != null && lastNotice != error) { lastNotice = error; Notice(error); }
         }
 
         internal void Apply(Song found, double now)
         {
             lastNotice = null;
+            song = found;
             if (found != null && found.Playing) heard = now;
             else if (dismissed && now - heard >= 10) { dismissed = false; heard = -1; }
             if (!Enabled || !Allowed() || dismissed || found == null || heard < 0 || now - heard >= 60) { Hide(); return; }
-            song = found;
             title.Text = found.Title ?? ""; artist.Text = string.IsNullOrWhiteSpace(found.Artist) ? found.App : found.Artist;
             play.Text = found.Playing ? "Pause" : "Play";
             time.Text = found.Length > 0 ? Clock(found.Position) + " / " + Clock(found.Length) : "";
             timeline.Fraction = found.Length > 0 ? Math.Clamp(found.Position / found.Length, 0, 1) : 0;
             timeline.InvalidateVisual();
-            if (IsVisible) return;
-            var screen = Screens.Primary;
-            if (screen != null)
-            {
-                Look.Position(this, Spot(screen.WorkingArea, screen.Scaling, new Size(Width, Height)));
-            }
-            Show(); Look.OnTopAgain(this);
+            Follow();
+            if (!IsVisible) { Show(); Look.OnTopAgain(this); }
+            Schedule();
         }
 
-        internal static PixelPoint Spot(PixelRect area, double dpi, Size size)
+        internal void Follow()
         {
-            return new PixelPoint(Math.Max(area.X, Math.Min(area.X + (int)Math.Round(12 * dpi), area.Right - (int)Math.Ceiling(size.Width * dpi))),
-                Math.Max(area.Y, area.Bottom - (int)Math.Round((size.Height + 12) * dpi)));
+            PixelPoint? at = Place();
+            if (at.HasValue && Position != at.Value) Look.Position(this, at.Value);
+        }
+
+        internal static PixelPoint Spot(PixelRect area, double dpi, Size size, PixelRect near)
+        {
+            int gap = (int)Math.Round(12 * dpi), width = (int)Math.Ceiling(size.Width * dpi), height = (int)Math.Ceiling(size.Height * dpi);
+            int x = near.Right + gap;
+            if (x + width > area.Right) x = near.X - gap - width;
+            return new PixelPoint(Math.Max(area.X, Math.Min(x, area.Right - width)), Math.Max(area.Y, Math.Min(near.Bottom - height, area.Bottom - height)));
         }
 
         internal void Press(byte key)
@@ -320,9 +342,10 @@ namespace CapriDesktop
             var petRead = pet.miniPlayer.Read; var petWork = pet.miniPlayer.Work; bool petOff = pet.Saved.NoPlayer;
             try
             {
-                double now = 100; var commands = new List<byte>();
+                double now = 100; int pollReads = 0; var commands = new List<byte>();
                 Song fake = new Song { App = "Spotify", Title = "Never Fade Away", Artist = "SAMURAI", Playing = true, Position = 61, Length = 240 };
-                player.Work = action => action(); player.Now = () => now; player.Read = () => fake;
+                player.Work = action => action(); player.Now = () => now; player.Read = () => { pollReads++; return fake; };
+                if (player.PollSeconds != 3) throw new Exception("Hidden mini player did not wait three seconds.");
                 player.Send = (shown, key) => { if (shown != fake) throw new Exception("Mini player sent to another song."); commands.Add(key); return true; };
                 pet.miniPlayer.Read = () => fake; pet.miniPlayer.Work = action => action();
                 Hands.Do("capri_settings", new ToolArguments { Name = "mini_player", Action = "off" });
@@ -339,6 +362,8 @@ namespace CapriDesktop
                 }
                 Hands.Do("mini_player", new ToolArguments { Action = "show" });
                 if (!player.IsVisible || player.title.Text != fake.Title || player.artist.Text != fake.Artist || player.time.Text != "1:01 / 4:00" || player.ShowActivated || player.Focusable || player.ShowInTaskbar) throw new Exception("Mini player did not show the fake song without focus.");
+                player.Start();
+                if (player.PollSeconds != 1 || !player.ticks.IsEnabled || player.ticks.Interval != TimeSpan.FromSeconds(1)) throw new Exception("Playing mini player did not poll once a second.");
                 fake = new Song { App = "Music", Title = "A long title " + new string('T', 160), Artist = "A long artist " + new string('A', 120), Playing = true };
                 player.Refresh();
                 if (player.title.Text != fake.Title || player.artist.Text != fake.Artist || player.time.Text != "") throw new Exception("Mini player kept the old title, artist or progress.");
@@ -346,9 +371,10 @@ namespace CapriDesktop
                 if (commands.Count != 3 || commands[0] != 0xB1 || commands[1] != 0xB3 || commands[2] != 0xB0) throw new Exception("Mini player buttons sent the wrong commands.");
                 Hands.Do("mini_player", new ToolArguments { Action = "hide" }); player.Refresh();
                 if (player.IsVisible || !player.Enabled) throw new Exception("Mini player hide changed its setting or came back.");
+                if (player.PollSeconds != 3 || player.ticks.Interval != TimeSpan.FromSeconds(3)) throw new Exception("Hidden mini player kept polling every second.");
                 Hands.Do("mini_player", new ToolArguments { Action = "show" });
-                player.SetEnabled(false); player.Refresh();
-                if (player.IsVisible) throw new Exception("Mini player setting off stayed visible.");
+                player.SetEnabled(false); int beforeOff = pollReads; player.Refresh();
+                if (player.IsVisible || player.PollSeconds != 0 || player.ticks.IsEnabled || pollReads != beforeOff) throw new Exception("Mini player setting off stayed visible or kept polling.");
                 Hands.Do("mini_player", new ToolArguments { Action = "show" });
                 if (!player.Enabled || !player.IsVisible) throw new Exception("Mini player show did not turn its setting on.");
                 Action delayed = null;
@@ -358,6 +384,7 @@ namespace CapriDesktop
                 player.Work = action => action(); Hands.Do("mini_player", new ToolArguments { Action = "show" });
                 fake.Playing = false; now += 59; player.Refresh();
                 if (!player.IsVisible || player.play.Text != "Play") throw new Exception("Mini player did not linger after a pause.");
+                if (player.PollSeconds != 3 || player.ticks.Interval != TimeSpan.FromSeconds(3)) throw new Exception("Paused mini player kept polling every second.");
                 now += 1; player.Refresh(); if (player.IsVisible) throw new Exception("Mini player did not hide a minute after a pause.");
                 fake.Playing = true; player.Refresh(); player.close.Press(); fake.Playing = false; now += 10; player.Refresh(); fake.Playing = true; player.Refresh();
                 if (!player.IsVisible) throw new Exception("Mini player dismissal did not reset after quiet.");
@@ -368,8 +395,19 @@ namespace CapriDesktop
                 {
                     double dpi = scale / 100.0;
                     var area = new PixelRect(-1920, -200, 1920, 1080);
-                    PixelPoint spot = Spot(area, dpi, new Size(336, 116));
-                    if (spot.X != area.X + (int)Math.Round(12 * dpi) || spot.Y + (int)Math.Round(116 * dpi) != area.Bottom - (int)Math.Round(12 * dpi)) throw new Exception("Mini player missed the work area's bottom-left at " + scale + "%.");
+                    var near = new PixelRect(-1600, 100, 160, 240);
+                    PixelPoint spot = Spot(area, dpi, new Size(336, 116), near);
+                    if (spot.X != near.Right + (int)Math.Round(12 * dpi) || spot.Y + (int)Math.Ceiling(116 * dpi) != near.Bottom) throw new Exception("Mini player did not sit beside Capri at " + scale + "%.");
+                    player.Place = () => Spot(area, dpi, new Size(336, 116), near);
+                    player.Follow();
+                    if (player.Position != spot) throw new Exception("Mini player ignored Capri's position.");
+                    near = new PixelRect(-1300, 200, 160, 240); player.Follow();
+                    if (player.Position == spot || player.Position != Spot(area, dpi, new Size(336, 116), near)) throw new Exception("Mini player did not follow Capri.");
+                    near = new PixelRect(-160, 700, 160, 240);
+                    spot = Spot(area, dpi, new Size(336, 116), near);
+                    if (spot.X + (int)Math.Ceiling(336 * dpi) != near.X - (int)Math.Round(12 * dpi) || spot.Y + (int)Math.Ceiling(116 * dpi) != area.Bottom) throw new Exception("Mini player did not switch sides or stay in the work area.");
+                    spot = Spot(area, dpi, new Size(2000, 2000), near);
+                    if (spot != area.Position) throw new Exception("Oversized mini player left the work area's top-left.");
                     player.SavePicture(Path.Combine(folder, "mainframe-mini-player-" + scale + ".png"), scale / 100.0);
                     var boxes = new List<Rect>();
                     foreach (Control child in player.page.Children)
@@ -382,7 +420,7 @@ namespace CapriDesktop
                     using (var picture = new Bitmap(Path.Combine(folder, "mainframe-mini-player-" + scale + ".png")))
                         if (picture.PixelSize != new PixelSize(336 * scale / 100, 116 * scale / 100)) throw new Exception("Mini player picture has the wrong scale.");
                 }
-                checks.Add("PASS mini player: fake songs, title and artist changes, buttons, show, hide, setting, pause and quiet timers; cut-corner Barlow pictures and no overlaps at 100%, 150% and 200%");
+                checks.Add("PASS mini player: one-second playing polls, three-second hidden and paused polls, no off polls, follows Capri on either side within the work area; songs, buttons, settings and pictures at 100%, 150% and 200%");
                 var calls = new List<string>();
                 Music.Run = (file, args) => { calls.Add(file + " " + string.Join(" ", args)); return null; };
                 if (ReadSong(true) != null || SendKey(new Song { App = "Spotify" }, 0xB3, true)) throw new Exception("Mini player used a closed Mac player.");
@@ -443,6 +481,12 @@ namespace CapriDesktop
         private void StartMiniPlayer()
         {
             miniPlayer = new MiniPlayer { Enabled = !Saved.NoPlayer, Allowed = () => !away && !quitting, Above = () => OnTop };
+            miniPlayer.Place = () =>
+            {
+                var screen = ScreenHere();
+                return screen == null ? null : MiniPlayer.Spot(screen.WorkingArea, screen.Scaling, new Size(miniPlayer.Width, miniPlayer.Height), DrawnBox);
+            };
+            PositionChanged += (_, _) => { if (miniPlayer.IsVisible) miniPlayer.Follow(); };
             Unfocus(miniPlayer);
             miniPlayer.Changed = on => { Saved.NoPlayer = !on; Save(); };
             miniPlayer.Notice = line => { Brain.Log("mini player", -1, line); Talk.Answer("(mini player)", line); };

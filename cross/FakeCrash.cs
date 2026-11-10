@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -17,7 +18,7 @@ namespace CapriDesktop
         internal const int Milliseconds = 5000;
         internal const string Punchline = "jk. you're fine, choom";
         internal const string Held = "I can't show that during full screen, a stream or a mouse job.";
-        internal const string Game = "I can't show that while a game is open.";
+        internal const string Permission = "Allow Capri in System Settings > Privacy & Security > Input Monitoring so Esc can close my fake crash screen.";
         internal const string Failed = "Couldn't show my fake crash screen.";
         internal readonly bool Mac;
         internal Func<List<Display>> Screens;
@@ -26,7 +27,17 @@ namespace CapriDesktop
         internal Action<string> Say;
         internal Action<int, Action> After = (ms, done) => { Task.Delay(ms).ContinueWith(_ => Dispatcher.UIThread.Post(done, DispatcherPriority.Send)); };
         internal Func<double> Clock = () => (double)Stopwatch.GetTimestamp() / Stopwatch.Frequency;
+        internal Func<bool> Allowed = CGPreflightListenEventAccess;
+        internal Func<bool> EscDown = () => CGEventSourceKeyState(1, 53);
+        internal Func<int, Action, Action> Watch = (ms, tick) =>
+        {
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(ms) };
+            timer.Tick += (_, _) => tick();
+            timer.Start();
+            return timer.Stop;
+        };
         private Run current;
+        private bool permissionSaid;
 
         internal sealed class Display
         {
@@ -46,6 +57,8 @@ namespace CapriDesktop
             internal readonly List<Plate> Plates = new List<Plate>();
             internal double Until;
             internal bool Shown;
+            internal bool Keys;
+            internal Action Stop;
         }
 
         internal FakeCrash(bool mac) { Mac = mac; Make = (screen, apple, key, click, closed) => new CrashWindow(screen, apple, key, click, closed); }
@@ -62,6 +75,9 @@ namespace CapriDesktop
             current = run;
             try
             {
+                run.Keys = Mac && Allowed();
+                if (Mac && !run.Keys && !permissionSaid) { permissionSaid = true; Say(Permission); }
+                if (run.Keys) permissionSaid = false;
                 After(Milliseconds, () => End(run, true));
                 foreach (Display screen in Screens())
                 {
@@ -72,6 +88,7 @@ namespace CapriDesktop
                     plate.Show();
                 }
                 if (run.Plates.Count == 0 || current != run || Clock() >= run.Until) { End(run, false); return Failed; }
+                run.Stop = Watch(40, () => Tick(run));
                 return "Showing my fake crash screen.";
             }
             catch (Exception error)
@@ -84,10 +101,32 @@ namespace CapriDesktop
 
         internal void Close() { End(current, false); }
 
+        internal void Skip(List<long> windows)
+        {
+            if (current == null) return;
+            foreach (Plate plate in current.Plates)
+            {
+                var window = plate as Window;
+                var handle = window == null ? null : window.TryGetPlatformHandle();
+                if (handle != null) windows.Add(handle.Handle.ToInt64());
+            }
+        }
+
+        private void Tick(Run run)
+        {
+            if (current != run) return;
+            try
+            {
+                if (Clock() >= run.Until || Refuse() != null || (run.Keys && EscDown())) End(run, true);
+            }
+            catch (Exception error) { End(run, false); Brain.Log("fake crash", -1, error.Message); }
+        }
+
         private void End(Run run, bool say)
         {
             if (run == null || current != run) return;
             current = null;
+            if (run.Stop != null) run.Stop();
             foreach (Plate plate in run.Plates)
             {
                 try { plate.Close(); }
@@ -96,10 +135,9 @@ namespace CapriDesktop
             if (say && run.Shown) Say(Punchline);
         }
 
-        internal static string Refusal(bool quitting, bool full, bool stream, bool job, bool held, bool game)
+        internal static string Refusal(bool quitting, bool full, bool stream, bool job, bool held)
         {
-            if (quitting || full || stream || job || held) return Held;
-            return game ? Game : null;
+            return quitting || full || stream || job || held ? Held : null;
         }
 
         internal static void Draw(bool mac, Action<string, double, double, double> text, Action power)
@@ -120,40 +158,56 @@ namespace CapriDesktop
 
         private sealed class CrashWindow : Window, Plate
         {
+            private readonly CancellationTokenSource showing = new CancellationTokenSource();
+            private readonly Action failed;
+
             internal CrashWindow(Display screen, bool mac, Action key, Action click, Action closed)
             {
-                Title = "Capri fake crash";
-                SystemDecorations = SystemDecorations.None;
-                CanResize = false;
-                ShowInTaskbar = false;
-                ShowActivated = true;
-                Topmost = true;
-                WindowStartupLocation = WindowStartupLocation.Manual;
+                failed = closed;
+                Look.Overlay(this, "Capri fake crash");
+                Focusable = false;
                 Position = screen.Bounds.Position;
                 Width = screen.Bounds.Width / screen.Scale;
                 Height = screen.Bounds.Height / screen.Scale;
                 Background = mac ? new SolidColorBrush(Color.FromRgb(110, 110, 110)) : Brushes.Black;
                 Cursor = new Cursor(StandardCursorType.None);
-                Content = new CrashCanvas(mac);
+                Content = new CrashCanvas(mac, closed);
                 AddHandler(KeyDownEvent, (_, e) => { e.Handled = true; key(); }, RoutingStrategies.Tunnel, true);
                 AddHandler(PointerPressedEvent, (_, e) => { e.Handled = true; click(); }, RoutingStrategies.Tunnel, true);
-                Closed += (_, _) => { Cursor?.Dispose(); closed(); };
+                Closed += (_, _) => { showing.Cancel(); Cursor?.Dispose(); closed(); };
                 Opened += (_, _) =>
                 {
-                    Position = screen.Bounds.Position;
-                    if (OperatingSystem.IsMacOS()) MacCover(this);
-                    else WindowState = WindowState.FullScreen;
-                    Activate();
-                    ((Control)Content).Focus();
+                    try
+                    {
+                        if (OperatingSystem.IsMacOS()) MacCover(this);
+                        else if (HyprlandDesktop.Current == null) WindowState = WindowState.FullScreen;
+                        Look.Position(this, screen.Bounds.Position);
+                    }
+                    catch (Exception error) { Brain.Log("fake crash", -1, error.Message); closed(); }
                 };
             }
 
-            void Plate.Close() { Hide(); Close(); }
+            async void Plate.Show()
+            {
+                try
+                {
+                    await NativeSurface.Prepare(this, showing.Token);
+                    if (!showing.IsCancellationRequested) Show();
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception error) { Brain.Log("fake crash", -1, error.Message); failed(); }
+            }
+
+            void Plate.Close() { showing.Cancel(); Hide(); Close(); }
         }
 
         [DllImport("/usr/lib/libobjc.A.dylib")] private static extern IntPtr sel_registerName(string name);
         [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_msgSend")] private static extern void SendNumber(IntPtr target, IntPtr selector, long number);
         [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")] private static extern int CGWindowLevelForKey(int key);
+        [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+        [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGPreflightListenEventAccess();
+        [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+        [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGEventSourceKeyState(int state, ushort key);
 
         private static void MacCover(Window window)
         {
@@ -171,9 +225,16 @@ namespace CapriDesktop
         private sealed class CrashCanvas : Control
         {
             private readonly bool mac;
-            internal CrashCanvas(bool mac) { this.mac = mac; Focusable = true; }
+            private readonly Action failed;
+            internal CrashCanvas(bool mac, Action failed) { this.mac = mac; this.failed = failed; }
 
             public override void Render(DrawingContext context)
+            {
+                try { Paint(context); }
+                catch (Exception error) { Brain.Log("fake crash", -1, error.Message); Dispatcher.UIThread.Post(failed); }
+            }
+
+            private void Paint(DrawingContext context)
             {
                 base.Render(context);
                 context.DrawRectangle(mac ? new SolidColorBrush(Color.FromRgb(110, 110, 110)) : Brushes.Black, null, new Rect(Bounds.Size));
@@ -219,8 +280,15 @@ namespace CapriDesktop
                     var lines = new List<string>();
                     var screens = new List<Display> { new Display(new PixelRect(-1920, 0, 1920, 1080), 1), new Display(new PixelRect(0, -100, 2560, 1440), 2) };
                     string refusal = null;
-                    bool fail = false;
-                    var prank = new FakeCrash(mac) { Clock = () => now, Screens = () => screens, Refuse = () => refusal, Say = lines.Add };
+                    bool fail = false, down = false, allowed = true, watching = false, tickFail = false;
+                    Action tick = null;
+                    var prank = new FakeCrash(mac) { Clock = () => now, Screens = () => screens, Refuse = () => { if (tickFail) throw new Exception("Fake hold failure."); return refusal; }, Say = lines.Add, Allowed = () => allowed, EscDown = () => down };
+                    prank.Watch = (ms, step) =>
+                    {
+                        if (ms != 40) throw new Exception("Fake crash did not check holds every 40 ms.");
+                        watching = true; tick = step;
+                        return () => watching = false;
+                    };
                     prank.After = (ms, done) => timers.Add(new KeyValuePair<double, Action>(now + ms / 1000.0, done));
                     prank.Make = (screen, apple, key, click, closed) =>
                     {
@@ -233,13 +301,17 @@ namespace CapriDesktop
                     Hands.Kit kit = Hands.KitFor();
                     if (!kit.Has("fake_crash") || kit.Missing.ContainsKey("fake_crash") || kit.Tools.IndexOf("fake crash screen", StringComparison.Ordinal) < 0 || kit.Tools.IndexOf("fake blue screen", StringComparison.Ordinal) >= 0 || kit.NotHere.IndexOf("fake crash", StringComparison.Ordinal) >= 0) throw new Exception("Fake crash stayed missing or blue on Mac or Linux.");
                     if (Security.Asking("fake_crash", new ToolArguments { Action = "show" }) != "show the fake crash screen" || Security.Asking("fake_crash", new ToolArguments { Action = "stop" }) != "stop the fake crash screen") throw new Exception("Fake crash kept its Windows summary.");
-                    foreach (int flag in new[] { 0, 1, 2, 3, 4, 5 })
+                    foreach (int flag in new[] { 0, 1, 2, 3, 4 })
                     {
-                        refusal = Refusal(flag == 0, flag == 1, flag == 2, flag == 3, flag == 4, flag == 5);
-                        if (Hands.Do("fake_crash", new ToolArguments { Action = "show" }) != (flag == 5 ? Game : Held) || prank.Up || plates.Count != 0 || timers.Count != 0) throw new Exception("Fake crash ignored a refusal.");
+                        refusal = Refusal(flag == 0, flag == 1, flag == 2, flag == 3, flag == 4);
+                        if (Hands.Do("fake_crash", new ToolArguments { Action = "show" }) != Held || prank.Up || plates.Count != 0 || timers.Count != 0) throw new Exception("Fake crash ignored a refusal.");
                     }
+                    if (Refusal(false, false, false, false, false) != null) throw new Exception("Fake crash added a refusal beyond Windows' holds.");
                     refusal = null;
-                    foreach (string exit in new[] { "key", "click", "stop", "limit", "closed" })
+                    var window = new CrashWindow(screens[0], mac, () => { }, () => { }, () => { });
+                    if (window.ShowActivated || window.Focusable || window.ShowInTaskbar) throw new Exception("Fake crash asked for focus or a taskbar button.");
+                    window.Close();
+                    foreach (string exit in new[] { "key", "click", "stop", "limit", "closed", "escape", "hold", "screen", "tick failure" })
                     {
                         int first = plates.Count, said = lines.Count;
                         if (Hands.Do("fake_crash", new ToolArguments { Action = "show" }) != "Showing my fake crash screen." || !prank.Up || plates.Count != first + screens.Count) throw new Exception("Fake crash missed a screen.");
@@ -249,6 +321,15 @@ namespace CapriDesktop
                         if (exit == "click") plates[first + 1].Click();
                         if (exit == "stop" && Hands.Do("fake_crash", new ToolArguments { Action = "stop" }) != "Stopped my fake crash screen.") throw new Exception("Fake crash stop did not dispatch.");
                         if (exit == "closed") plates[first].Shut();
+                        if (!watching && prank.Up) throw new Exception("Fake crash stopped checking holds while showing.");
+                        if (exit == "hold") { refusal = Held; tick(); refusal = null; }
+                        if (exit == "escape")
+                        {
+                            down = true; tick(); down = false;
+                            if (!mac) { if (!prank.Up) throw new Exception("Linux polled a Mac key."); plates[first].Click(); }
+                        }
+                        if (exit == "screen") prank.Close();
+                        if (exit == "tick failure") { tickFail = true; tick(); tickFail = false; }
                         if (exit == "limit")
                         {
                             now += 4.999;
@@ -257,10 +338,14 @@ namespace CapriDesktop
                             if (Math.Abs(now - timers[timers.Count - 1].Key) > 0.00001) throw new Exception("Fake crash did not schedule five seconds.");
                             foreach (var timer in timers) if (timer.Key <= now + 0.00001) timer.Value();
                         }
-                        if (prank.Up || lines.Count != said + 1 || lines[said] != Punchline) throw new Exception("Fake crash did not end with her line.");
+                        bool speaks = exit != "screen" && exit != "tick failure";
+                        if (prank.Up || watching || lines.Count != said + (speaks ? 1 : 0) || (speaks && lines[said] != Punchline)) throw new Exception("Fake crash did not end cleanly with her line.");
                         for (int i = first; i < plates.Count; i++) if (!plates[i].Closed) throw new Exception("Fake crash left a screen open.");
                     }
+                    Action oldTick = tick;
                     prank.Request("show");
+                    refusal = Held; oldTick(); refusal = null;
+                    if (!prank.Up) throw new Exception("An old fake crash tick closed a new prank.");
                     foreach (var timer in timers.GetRange(0, timers.Count - 1)) timer.Value();
                     if (!prank.Up) throw new Exception("An old fake crash timer closed a new prank.");
                     prank.Close();
@@ -272,6 +357,15 @@ namespace CapriDesktop
                     if (prank.Request("show") != Failed || prank.Up) throw new Exception("A failed fake crash stayed open.");
                     for (int i = failedAt; i < plates.Count; i++) if (!plates[i].Closed) throw new Exception("Fake crash did not close after a show failure.");
                     fail = false;
+                    if (mac)
+                    {
+                        allowed = false;
+                        int notices = lines.Count;
+                        prank.Request("show"); tick(); prank.Close();
+                        prank.Request("show"); prank.Close();
+                        if (lines.Count != notices + 1 || lines[notices] != Permission) throw new Exception("Fake crash missed or repeated its Input Monitoring line.");
+                        allowed = true;
+                    }
                     screens.Clear();
                     if (prank.Request("show") != Failed || prank.Up) throw new Exception("Fake crash succeeded without screens.");
                     List<string> drawn = new List<string>();
@@ -284,7 +378,7 @@ namespace CapriDesktop
                 int askedLevel = -1;
                 Cover((selector, value) => sent.Add(selector + value), key => { askedLevel = key; return 1000; });
                 if (askedLevel != 13 || sent.Count != 2 || sent[0] != "setCollectionBehavior:257" || sent[1] != "setLevel:1000") throw new Exception("Fake crash lost its Mac window level or Spaces flags.");
-                checks.Add("PASS fake crash: Mac and Linux lists and dispatch, refusals, every screen, no stacking, key, click, stop, close, five-second limit, stale timers and failed-window cleanup");
+                checks.Add("PASS fake crash: no activation, Windows holds only, 40 ms hold checks, polled Mac Esc, Linux click fallback, screen changes, one permission line, five-second limit, stale callbacks and failure cleanup");
                 checks.Add("PASS fake crash drawing: Mac power symbol, four restart messages and window selectors; Linux console panic text");
             }
             finally { Hands.OnMac = macWas; Hands.Crash = crashWas; }
@@ -304,11 +398,20 @@ namespace CapriDesktop
                 foreach (var screen in Screens.All) found.Add(new FakeCrash.Display(screen.Bounds, screen.Scaling));
                 return found;
             };
-            fakeCrash.Refuse = () => FakeCrash.Refusal(quitting, FullScreen(), Hands.Streaming, ComputerJobs.Active || InControl.On, dragging || pressed, !OperatingSystem.IsMacOS() && Hands.GameOpen() != null);
+            fakeCrash.Refuse = () => FakeCrash.Refusal(quitting, CrashFullScreen(), Hands.Streaming, ComputerJobs.Active || InControl.On, dragging || pressed);
             fakeCrash.Say = line => Blurt("(fake crash)", line);
             Hands.Crash = action => Dispatcher.UIThread.CheckAccess() ? fakeCrash.Request(action) : Dispatcher.UIThread.Invoke(() => fakeCrash.Request(action));
             Closed += (_, _) => fakeCrash.Close();
             Screens.Changed += (_, _) => fakeCrash.Close();
+        }
+
+        private bool CrashFullScreen()
+        {
+            var skip = Ours();
+            fakeCrash.Skip(skip);
+            Desk.Screens.Clear();
+            foreach (var screen in Screens.All) Desk.Screens.Add(screen.Bounds);
+            return Desk.Covering(Desk.Windows(skip));
         }
 
         private void StopCrash() { if (fakeCrash != null && fakeCrash.Up) fakeCrash.Request("stop"); }
