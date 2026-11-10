@@ -1583,6 +1583,7 @@ namespace CapriDesktop
             {
                 if (OperatingSystem.IsLinux() && !LinuxTalk()) return false;
                 MainframeChecks();
+                MiniPlayer.Checks(pet, folder, checks);
                 Finish(null);
                 return true;
             }

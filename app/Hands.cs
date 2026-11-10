@@ -1177,6 +1177,9 @@ namespace CapriDesktop
         // Her settings Mac and Linux have.
         internal static bool CrossSetting(string name)
         {
+#if CROSS
+            if (name == "mini_player") return true;
+#endif
             return Array.IndexOf(new[] { "head_pats", "legacy_stand", "follow_ups", "keep_awake", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "preview_voice", "edit_check_in_lines" }, name) >= 0;
         }
 
@@ -1795,8 +1798,8 @@ namespace CapriDesktop
                 if (tool == "hologram") return Hologram(args.Action);
                 if (tool == "desktop_icons") return Icons(args.Action);
                 if (tool == "voice_chat") return Valid(tool, args) ? VoiceChat(args) : "Couldn't find that voice chat action.";
-                if (tool == "mini_player") return Valid(tool, args) ? MiniPlayer(args.Action) : "Couldn't find that mini player action.";
 #endif
+                if (tool == "mini_player") return Valid(tool, args) ? MiniPlayer(args.Action) : "Couldn't find that mini player action.";
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
                 if (tool == "find_file") return Finder.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
@@ -2122,7 +2125,7 @@ namespace CapriDesktop
         private static readonly string[] MacPresses = { "screenshot", "task_manager", "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "quick_settings", "voice_typing", "clipboard" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
         // Her moves that only Windows has so far.
         private static string[] WindowsMoves { get { return OnMac ? new[] { "sit_on" } : new string[0]; } }
-        private static readonly string[] WindowsTools = { "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "listen", "voice_chat", "mini_player" };
+        private static readonly string[] WindowsTools = { "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "listen", "voice_chat" };
         // Her window tool's arranging, which only Windows has so far.
         private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 #endif
@@ -2219,7 +2222,9 @@ namespace CapriDesktop
             { "job_control", "controlling the running job", "Job control is only on Windows for now." },
             { "quit", "quitting Capri with a tool", "Quitting with a tool is only on Windows for now." },
             { "updates", "Capri updates", "Checking my updates with a tool is only on Windows for now." },
+#if !CROSS
             { "mini_player", "the mini player", "My mini player is only on Windows for now." },
+#endif
             { "watch_along", "watching videos together", "Watching videos together is only on Windows for now, choom." },
             { "gaming_mode", "Gaming Mode", "Gaming Mode is only on Windows for now, choom." },
             { "clip", "game clips", "Game clips are only on Windows for now, choom." },

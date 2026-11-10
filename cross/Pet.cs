@@ -697,6 +697,7 @@ namespace CapriDesktop
             Hands.MoveSelf = MoveTool;
             Hands.Mainframe = MainframeTool;
             AttachSelfTools();
+            StartMiniPlayer();
             Hands.Animate = AnimateTool;
             StartInk();
             AttachCrash();
@@ -2950,6 +2951,7 @@ namespace CapriDesktop
                 case "wander": return Saved.Wander > 0;
                 case "dance_to_music": return !Saved.NoDance;
                 case "always_on_top": return OnTop;
+                case "mini_player": return !Saved.NoPlayer;
                 case "typing_sound": return TypingSound;
                 case "glitch_in": return !Saved.NoIntro;
                 case "watch_my_screen": return Saved.Watch;
@@ -2980,6 +2982,7 @@ namespace CapriDesktop
                 case "wander": SetWander(on ? 2 : 0); break;
                 case "dance_to_music": SetDanceToMusic(on); break;
                 case "always_on_top": SetOnTop(on); break;
+                case "mini_player": miniPlayer.SetEnabled(on); miniPlayer.Refresh(); break;
                 case "typing_sound": SetTypingMode(on ? 1 : 2); break;
                 case "glitch_in": SetIntro(on); break;
                 case "watch_my_screen": SetWatch(on, false); break;
