@@ -610,6 +610,7 @@ namespace CapriDesktop
         internal bool ClickThrough;
         private Bitmap shown;
         internal bool Above = true;
+        internal Action<IntPtr, Bitmap, Point> Layer = Native.DrawLayered;
 
         internal Overlay(string name)
         {
@@ -646,8 +647,12 @@ namespace CapriDesktop
         {
             Rectangle target = new Rectangle(at, image.Size);
             if (Bounds != target) Bounds = target;
-            if (!Visible) Show();
-            Native.DrawLayered(Handle, image, at);
+            bool opened = !Visible;
+            if (opened) Show();
+            // A hidden window still holds the last picture it was given. If this one can't be drawn it goes away again, so
+            // the old one never comes back up in its place.
+            try { Layer(Handle, image, at); }
+            catch (Exception) { if (opened && Visible) Hide(); throw; }
             Bitmap old = shown;
             shown = image;
             if (old != null && old != image) old.Dispose();
@@ -3124,7 +3129,15 @@ namespace CapriDesktop
                 image.Dispose();
                 image = broken;
             }
-            Present(image, at);
+            // A frame of her glitch is never what stays up when the next one can't be drawn (fushen, 10 Nov: her bubble sat torn
+            // over a game until she was restarted). A clean frame stays until its new words draw.
+            try { Present(image, at); }
+            catch (Exception)
+            {
+                image.Dispose();
+                if (!clean && Visible) Hide();
+                throw;
+            }
             clean = glitch == 0;
             lastCursor = cursor;
             lastState = State;

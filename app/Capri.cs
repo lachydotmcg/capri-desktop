@@ -14330,7 +14330,9 @@ namespace CapriDesktop
             Point head = Head();
             Point feet = Feet();
             Rectangle area = Screen.FromPoint(head).WorkingArea;
-            box.Update(now, s, head, new Point(feet.X, feet.Y + (int)(44 * s)), area);
+            // A bubble that can't be drawn goes in errors.txt like any crash in a timer, and her body still gets its frame.
+            try { box.Update(now, s, head, new Point(feet.X, feet.Y + (int)(44 * s)), area); }
+            catch (Exception error) { if (testing) throw; Program.Crashed(error); }
             if (typer.Visible) typer.Follow(box.PanelOnScreen, area);
         }
 
@@ -21405,6 +21407,132 @@ namespace CapriDesktop
             }
         }
 
+        // A draw that fails leaves none of Windows' drawing objects behind, never brings a window's old picture back up, takes a
+        // torn bubble off screen, and doesn't cost her body its frame.
+        private void SmokeOverlayDraw(System.Collections.Generic.List<string> checks)
+        {
+            using (Bitmap broken = new Bitmap(8, 8))
+            {
+                broken.Dispose();
+                Action draw = delegate
+                {
+                    try { Native.DrawLayered(IntPtr.Zero, broken, Point.Empty); }
+                    catch (ArgumentException) { return; }
+                    throw new Exception("The native draw check did not fail before its bitmap was made.");
+                };
+                draw();
+                int before = WindowUse.Read().Gdi;
+                for (int i = 0; i < 32; i++) draw();
+                int after = WindowUse.Read().Gdi;
+                if (before < 1 || after > before + 2) throw new Exception("Failed native draws leaked drawing objects: " + before + " to " + after + ".");
+                checks.Add("PASS native drawing releases its drawing contexts when making the bitmap fails");
+            }
+            InvalidOperationException fault = new InvalidOperationException("test overlay draw");
+            Action<Action> fails = delegate(Action attempt)
+            {
+                try { attempt(); }
+                catch (InvalidOperationException error) { if (error == fault) return; throw; }
+                throw new Exception("An overlay draw failure was swallowed.");
+            };
+            using (Overlay overlay = new Overlay("draw check"))
+            using (Bitmap image = new Bitmap(8, 8))
+            {
+                Action<IntPtr, Bitmap, Point> layerWas = overlay.Layer;
+                try
+                {
+                    overlay.Present(new Bitmap(8, 8), Point.Empty);
+                    Bitmap still = overlay.Image;
+                    overlay.Hide();
+                    overlay.Layer = delegate { throw fault; };
+                    fails(delegate { overlay.Present(image, Point.Empty); });
+                    image.GetPixel(0, 0);
+                    if (overlay.Visible || overlay.Image != still) throw new Exception("A failed overlay draw showed its old picture or took the caller's image.");
+                    overlay.Show();
+                    fails(delegate { overlay.Present(image, Point.Empty); });
+                    if (!overlay.Visible || overlay.Image != still) throw new Exception("A failed overlay draw hid a window it did not show.");
+                    checks.Add("PASS a failed overlay open stays hidden, keeps its old picture and leaves the caller's image alone");
+                }
+                finally { overlay.Layer = layerWas; }
+            }
+            using (SpeechBox bubble = new SpeechBox())
+            {
+                Action<IntPtr, Bitmap, Point> layerWas = bubble.Layer;
+                try
+                {
+                    Point head = new Point(600, 400), feet = new Point(600, 650);
+                    Rectangle area = new Rectangle(0, 0, 1200, 800);
+                    bubble.State = TalkState.Online;
+                    bubble.Reply = "Hello.";
+                    bubble.Revealed = bubble.Reply.Length;
+                    bubble.Opened = 20;
+                    bubble.Update(20.01, 1, head, feet, area);
+                    if (!bubble.Visible) throw new Exception("The torn bubble check never opened.");
+                    Bitmap still = bubble.Image, rejected = null;
+                    bubble.Layer = delegate(IntPtr window, Bitmap image, Point at) { rejected = image; throw fault; };
+                    fails(delegate { bubble.Update(20.3, 1, head, feet, area); });
+                    bool disposed = false;
+                    try { rejected.GetPixel(0, 0); } catch (ArgumentException) { disposed = true; }
+                    if (bubble.Visible || bubble.Image != still || !disposed) throw new Exception("A failed bubble draw kept a torn frame up or kept its new bitmap.");
+                    bubble.Layer = layerWas;
+                    bubble.Update(20.3, 1, head, feet, area);
+                    if (!bubble.Visible || bubble.Image == still) throw new Exception("The bubble did not return after a failed draw.");
+                    still = bubble.Image;
+                    bubble.Update(20.31, 1, head, feet, area);
+                    if (bubble.Image != still) throw new Exception("The recovered bubble was not clean.");
+                    bubble.Reply = "Changed.";
+                    bubble.Layer = delegate { throw fault; };
+                    fails(delegate { bubble.Update(20.31, 1, head, feet, area); });
+                    if (!bubble.Visible || bubble.Image != still) throw new Exception("A failed bubble draw hid its clean frame.");
+                    bubble.Layer = layerWas;
+                    bubble.Update(20.31, 1, head, feet, area);
+                    if (bubble.Image == still) throw new Exception("A failed bubble draw cached the rejected content.");
+                    checks.Add("PASS a torn bubble hides on a failed draw, frees its bitmap and returns clean on the next draw; a clean frame stays up until its new content draws");
+                }
+                finally { bubble.Layer = layerWas; }
+            }
+            Action<IntPtr, Bitmap, Point> boxLayer = box.Layer;
+            bool dockWas = docked, hiddenWas = hidden, arrivalWas = arrivalDue, testWas = testing;
+            Clip clipWas = clip;
+            double startWas = clipStart;
+            string logWas = Brain.LogPath;
+            FieldInfo test = typeof(Companion).GetField("testing", BindingFlags.Instance | BindingFlags.NonPublic);
+            try
+            {
+                CloseTalk();
+                docked = hidden = false;
+                talkState = TalkState.Dormant;
+                box.Layer = delegate { throw fault; };
+                fails(delegate { UpdateTalk(clock.Elapsed.TotalSeconds); });
+                checks.Add("PASS a bubble draw failure still reaches the smoke test");
+                string folder = Path.Combine(Path.GetDirectoryName(logWas), "overlay-draw");
+                Directory.CreateDirectory(folder);
+                Brain.LogPath = Path.Combine(folder, "errors.txt");
+                File.WriteAllText(Brain.LogPath, "");
+                arrivalDue = false;
+                clip = idle;
+                clipStart = clock.Elapsed.TotalSeconds;
+                drawnClip = null;
+                int paints = bodyPaints;
+                test.SetValue(this, false);
+                RenderFrame();
+                if (bodyPaints <= paints || !File.ReadAllText(Brain.LogPath).Contains(" | crash | - | InvalidOperationException: test overlay draw")) throw new Exception("A failed bubble draw stopped her body or lost its crash log.");
+                checks.Add("PASS a bubble draw failure is logged and her body still draws outside the smoke test");
+            }
+            finally
+            {
+                test.SetValue(this, testWas);
+                box.Layer = boxLayer;
+                Brain.LogPath = logWas;
+                CloseTalk();
+                docked = dockWas;
+                hidden = hiddenWas;
+                arrivalDue = arrivalWas;
+                clip = clipWas;
+                clipStart = startWas;
+                drawnClip = null;
+            }
+        }
+
         private static void SmokeTalkLogic(System.Collections.Generic.List<string> checks)
         {
             string[,] parts = {
@@ -27381,6 +27509,7 @@ namespace CapriDesktop
             Section(checks, "SmokeReactQuick", delegate { ReactCheck(checks, SmokeReactQuick); });
             Section(checks, "SmokeReactFeed", delegate { ReactCheck(checks, SmokeReactFeed); });
             Section(checks, "SmokeReactFade", delegate { ReactCheck(checks, SmokeReactFade); });
+            Section(checks, "SmokeReactDraw", delegate { ReactCheck(checks, SmokeReactDraw); });
             Section(checks, "SmokeReactMoods", delegate { ReactCheck(checks, SmokeReactMoods); });
             Section(checks, "SmokeReactWritten", delegate { ReactCheck(checks, SmokeReactWritten); });
             Section(checks, "SmokeReactBrain", delegate { ReactCheck(checks, SmokeReactBrain); });
@@ -27653,6 +27782,98 @@ namespace CapriDesktop
             feed.Step();
             ReactMust(feed.Count == 0 && !feed.Visible && feed.Area.IsEmpty, "The feed didn't fade away: " + feed.Count + " left");
             checks.Add("PASS live reactions fade after 4 s, the oldest first, and the feed goes once they have");
+        }
+
+        // A reaction that can't be drawn still runs out after its 4 s, and a feed whose timer stopped clears itself on the next line.
+        private void SmokeReactDraw(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            Action<IntPtr, Bitmap, Point> layerWas = feed.Layer;
+            bool motionWas = feed.Motion;
+            string logWas = Brain.LogPath;
+            string folder = Path.Combine(Path.GetDirectoryName(logWas), "reaction-draw");
+            Directory.CreateDirectory(folder);
+            string log = Path.Combine(folder, "errors.txt");
+            System.Windows.Forms.Timer timer = (System.Windows.Forms.Timer)typeof(ReactionFeed).GetField("ticks", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(feed);
+            InvalidOperationException fault = new InvalidOperationException("test reaction draw");
+            Action<Action> fails = delegate(Action attempt)
+            {
+                try { attempt(); }
+                catch (InvalidOperationException error) { if (error == fault) return; throw; }
+                throw new Exception("A reaction draw failure was swallowed.");
+            };
+            try
+            {
+                feed.Motion = false;
+                feed.Place(rig.GameArea);
+                Bitmap rejected = null;
+                feed.Layer = delegate(IntPtr window, Bitmap image, Point at) { rejected = image; throw fault; };
+                fails(delegate { feed.Add("First line.", false); });
+                if (feed.Count != 1 || feed.Visible || !feed.Area.IsEmpty || !feed.Ticking || timer.Interval != 30) throw new Exception("A failed first reaction draw left its feed visible or its timer asleep.");
+                bool disposed = false;
+                try { rejected.GetPixel(0, 0); } catch (ArgumentException) { disposed = true; }
+                if (!disposed) throw new Exception("A failed reaction draw kept its canvas.");
+                rig.Now += Reactions.Stay - 1;
+                fails(delegate { feed.Step(); });
+                if (feed.Count != 1 || !feed.Ticking || timer.Interval != 30) throw new Exception("A failed reaction step stopped retrying before its line expired.");
+                rig.Now++;
+                feed.Step();
+                if (feed.Count != 0 || feed.Visible || feed.Ticking || !feed.Area.IsEmpty) throw new Exception("A reaction whose drawing kept failing stayed past four seconds.");
+                checks.Add("PASS a failed first reaction draw keeps retrying, frees its canvas and expires at four seconds with the feed hidden and empty");
+
+                fails(delegate { feed.Add("Try again.", false); });
+                rig.Now += 250;
+                feed.Layer = layerWas;
+                feed.Step();
+                if (!feed.Visible || !feed.Ticking || timer.Interval <= 30 || feed.Area.IsEmpty) throw new Exception("A reaction draw did not recover or kept its failed retry rate.");
+                feed.Layer = delegate { throw fault; };
+                fails(delegate { feed.Step(); });
+                if (feed.Visible || !feed.Ticking || timer.Interval != 30 || !feed.Area.IsEmpty) throw new Exception("A failed reaction step left its old frame up or lost its retry.");
+                feed.Layer = layerWas;
+                feed.Step();
+                feed.Layer = delegate { throw fault; };
+                Rectangle moved = rig.GameArea;
+                moved.Width--;
+                fails(delegate { feed.Place(moved); });
+                if (feed.Visible || !feed.Ticking || timer.Interval != 30) throw new Exception("A failed reaction move lost its retry.");
+                feed.Layer = layerWas;
+                feed.Step();
+                if (!feed.Visible || timer.Interval <= 30) throw new Exception("A reaction did not return after a failed move.");
+                feed.Clear();
+                checks.Add("PASS reaction draws recover on the next tick, hide failed frames and retry failed moves at 30 ms");
+
+                Brain.LogPath = log;
+                File.WriteAllText(log, "");
+                feed.Add("Just late.", false);
+                timer.Stop();
+                rig.Now += Reactions.Stay + 900;
+                feed.Add("Within grace.", false);
+                if (feed.Count != 1 || File.ReadAllLines(log).Length != 0) throw new Exception("A reaction under a second late stayed or was logged as a timer stall.");
+                feed.Clear();
+                feed.Add("Old one.", false);
+                feed.Add("Old two.", true);
+                timer.Stop();
+                if (feed.Ticking) throw new Exception("The stalled reaction check left its timer running.");
+                rig.Now += Reactions.Stay + 2000;
+                feed.Add("Fresh line.", false);
+                string[] logged = File.ReadAllLines(log);
+                if (feed.Count != 1 || feed.Texts[0] != "Fresh line." || feed.Slots[0] != 0 || !feed.Ticking || logged.Length != 1 || !logged[0].Contains(" | reactions | - | ") || !logged[0].Contains("A line stayed up 2.0 s past its time. The feed's timer didn't run.")) throw new Exception("A new reaction kept expired lines or lost the stalled timer's log.");
+                timer.Stop();
+                rig.Now += Reactions.Stay + 2000;
+                feed.Add("Another line.", false);
+                if (feed.Count != 1 || File.ReadAllLines(log).Length != 1) throw new Exception("A stalled reaction timer logged twice within a minute.");
+                timer.Stop();
+                rig.Now += 60000;
+                feed.Add("Later line.", false);
+                if (feed.Count != 1 || File.ReadAllLines(log).Length != 2) throw new Exception("A later reaction timer stall was not logged.");
+                checks.Add("PASS a new reaction drops every expired line from a stopped timer and errors.txt records the delay at most once a minute");
+            }
+            finally
+            {
+                feed.Layer = layerWas;
+                feed.Motion = motionWas;
+                Brain.LogPath = logWas;
+                feed.Clear();
+            }
         }
 
         // Her brain is asked in the mood the run of the game has put her in: each kind of moment comes with three of its own lines
@@ -34693,6 +34914,7 @@ namespace CapriDesktop
             Section(checks, "SmokeChaosScreen", delegate { SmokeChaosScreen(checks); });
             Section(checks, "SmokeListen", delegate { SmokeListen(checks); });
             Section(checks, "SmokeTalkLogic", delegate { SmokeTalkLogic(checks); });
+            Section(checks, "SmokeOverlayDraw", delegate { SmokeOverlayDraw(checks); });
             Section(checks, "SmokeTalkSettings", delegate { SmokeTalkSettings(checks); });
             Section(checks, "SmokeTalkBrain", delegate { SmokeTalkBrain(checks, Path.Combine(output, "talk-checks")); });
             Section(checks, "SmokeClipToggle", delegate { SmokeClipToggle(checks); });
@@ -51038,12 +51260,15 @@ namespace CapriDesktop
 
         internal static void DrawLayered(IntPtr window, Bitmap bitmap, System.Drawing.Point location)
         {
-            IntPtr screen = GetDC(IntPtr.Zero);
-            IntPtr memory = CreateCompatibleDC(screen);
-            IntPtr nativeBitmap = bitmap.GetHbitmap(Color.FromArgb(0));
-            IntPtr previous = SelectObject(memory, nativeBitmap);
+            // Everything is taken inside the try. Taken before it, a bitmap Windows couldn't make left two drawing contexts
+            // behind on every try, and a process only gets 10,000 drawing objects.
+            IntPtr screen = IntPtr.Zero, memory = IntPtr.Zero, nativeBitmap = IntPtr.Zero, previous = IntPtr.Zero;
             try
             {
+                screen = GetDC(IntPtr.Zero);
+                memory = CreateCompatibleDC(screen);
+                nativeBitmap = bitmap.GetHbitmap(Color.FromArgb(0));
+                previous = SelectObject(memory, nativeBitmap);
                 Point destination = new Point(location.X, location.Y);
                 Point origin = new Point(0, 0);
                 Size size = new Size(bitmap.Width, bitmap.Height);
@@ -51052,10 +51277,10 @@ namespace CapriDesktop
             }
             finally
             {
-                SelectObject(memory, previous);
-                DeleteObject(nativeBitmap);
-                DeleteDC(memory);
-                ReleaseDC(IntPtr.Zero, screen);
+                if (previous != IntPtr.Zero) SelectObject(memory, previous);
+                if (nativeBitmap != IntPtr.Zero) DeleteObject(nativeBitmap);
+                if (memory != IntPtr.Zero) DeleteDC(memory);
+                if (screen != IntPtr.Zero) ReleaseDC(IntPtr.Zero, screen);
             }
         }
     }

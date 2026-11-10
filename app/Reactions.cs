@@ -506,6 +506,8 @@ namespace CapriDesktop
         private float scale;
         private Point corner;
         private Size canvas;
+        private bool failed;
+        private double lateAt = double.NegativeInfinity;
         internal Func<double> Clock;
         internal bool Motion = true;
 
@@ -536,6 +538,7 @@ namespace CapriDesktop
         }
 
         internal int Count { get { return lines.Count; } }
+        internal bool Ticking { get { return ticks.Enabled; } }
 
         // Its lines, oldest first, so the newest is last.
         internal string[] Texts { get { return lines.ConvertAll(line => line.Text).ToArray(); } }
@@ -771,7 +774,9 @@ namespace CapriDesktop
             }
             canvas = CanvasSize(scale);
             corner = Spot(bounds, Screen.FromRectangle(bounds).Bounds, canvas, scale).Location;
-            if (lines.Count > 0) Draw();
+            if (lines.Count == 0) return;
+            try { Draw(); }
+            catch (Exception) { Wake(); throw; }
         }
 
         // A new line at the bottom. A fifth pushes the oldest out, and the rest slide up to make room.
@@ -779,21 +784,37 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0 || scale <= 0) return;
+            // Lines past their time go first, so a feed whose timer never got its turn clears itself when the next line comes.
+            // More than a second late goes in errors.txt, at most once a minute.
+            double now = Clock(), late = 0;
+            for (int i = lines.Count - 1; i >= 0; i--)
+            {
+                double past = now - lines[i].At - Reactions.Stay / 1000.0;
+                if (past < 0) continue;
+                late = Math.Max(late, past);
+                Drop(i);
+            }
+            if (late > 1 && now - lateAt >= 60)
+            {
+                lateAt = now;
+                Brain.Log("reactions", -1, "A line stayed up " + late.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s past its time. The feed's timer didn't run.");
+            }
             while (lines.Count >= Reactions.Most) Drop(0);
             Line line = new Line { Text = text, Brain = brain, At = Clock(), Glitch = Motion, Seed = random.Next(1, int.MaxValue) };
             line.Plate = Plate(text, brain, scale);
             line.Y = line.From = line.To = -1;
             lines.Add(line);
             Restack(Motion);
-            Draw();
-            Lift();
-            Wake();
+            // The timer starts whether or not the line could be drawn, so it always runs out and the feed always goes.
+            try { Draw(); }
+            finally { Lift(); Wake(); }
         }
 
         internal void Clear()
         {
             ticks.Stop();
             while (lines.Count > 0) Drop(0);
+            failed = false;
             lock (spot) area = Rectangle.Empty;
             if (Visible) Hide();
         }
@@ -854,16 +875,16 @@ namespace CapriDesktop
                 if (done >= 1 || !Motion) { line.Y = line.To; line.Moved = -1; }
                 else line.Y = line.From + (line.To - line.From) * (float)(1 - (1 - done) * (1 - done));
             }
-            Draw();
-            Wake();
+            try { Draw(); }
+            finally { Wake(); }
         }
 
-        // The timer runs only while something moves, and otherwise sleeps until the next fade.
+        // The timer runs only while something moves or the last frame couldn't be drawn, and otherwise sleeps until the next fade.
         private void Wake()
         {
             ticks.Stop();
             if (lines.Count == 0) return;
-            double now = Clock(), next = double.MaxValue, fadeAt = Reactions.Stay / 1000.0 - FadeTime;
+            double now = Clock(), next = failed ? 0.03 : double.MaxValue, fadeAt = Reactions.Stay / 1000.0 - FadeTime;
             foreach (Line line in lines)
             {
                 double age = now - line.At;
@@ -880,12 +901,35 @@ namespace CapriDesktop
             return left >= FadeTime ? 1f : (float)Math.Max(0, left / FadeTime);
         }
 
+        // A frame that can't be drawn takes the feed off screen until one can, so a torn or old frame is never what stays up
+        // (fushen, 10 Nov: a plate sat torn over a game until she was restarted).
         private void Draw()
         {
             if (lines.Count == 0 || IsDisposed) return;
+            Bitmap image = null;
+            try
+            {
+                image = new Bitmap(canvas.Width, canvas.Height, PixelFormat.Format32bppPArgb);
+                Rectangle used = Compose(image);
+                Present(image, corner);
+                failed = false;
+                lock (spot) area = used;
+            }
+            catch (Exception)
+            {
+                if (image != null) image.Dispose();
+                failed = true;
+                if (Visible) Hide();
+                lock (spot) area = Rectangle.Empty;
+                throw;
+            }
+        }
+
+        // Every line's plate on the feed's canvas, and where they are on screen.
+        private Rectangle Compose(Bitmap image)
+        {
             double now = Clock();
             Rectangle used = Rectangle.Empty;
-            Bitmap image = new Bitmap(canvas.Width, canvas.Height, PixelFormat.Format32bppPArgb);
             using (Graphics graphics = Graphics.FromImage(image))
                 foreach (Line line in lines)
                 {
@@ -912,8 +956,7 @@ namespace CapriDesktop
                     box.Offset(corner);
                     used = used.IsEmpty ? box : Rectangle.Union(used, box);
                 }
-            Present(image, corner);
-            lock (spot) area = used;
+            return used;
         }
 
         protected override void Dispose(bool disposing)
