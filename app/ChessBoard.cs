@@ -467,7 +467,7 @@ namespace CapriDesktop
             return bitmap;
         }
 
-        private static void Panel(Graphics paint, RectangleF box, bool selected)
+        internal static void Panel(Graphics paint, RectangleF box, bool selected)
         {
             using (GraphicsPath shape = Neon.Cut(box, 5, 2, 5, 2))
             using (Brush fill = new SolidBrush(selected ? CityLook.Deep : CityLook.Well))
