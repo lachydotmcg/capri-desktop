@@ -17063,8 +17063,218 @@ namespace CapriDesktop
             checks.Add("PASS clones' windows after a crash: her next start puts back a window still where they had it, and leaves one moved by hand since, one that's closed and a broken line");
         }
 
-        // Her desktop icon prank (F72). It only ever runs against a fake list view this check makes, never the real desktop, and
-        // VirtualAllocEx on her own process walks the same path as reaching into Explorer's.
+        private sealed class FakeIcons
+        {
+            internal readonly System.Collections.Generic.List<IconSpot> Spots = new System.Collections.Generic.List<IconSpot>();
+            internal Action<string, int, Point> Call;
+            internal bool Arrange, BadThread, BadFlags;
+            internal int Opened, Closed, Moves;
+            private readonly int owner = System.Threading.Thread.CurrentThread.ManagedThreadId;
+
+            internal DesktopIcons.View Open(DesktopIcons.Batch batch)
+            {
+                Held view = new Held(this, batch);
+                try { view.Step("open", -1, Point.Empty); return view; }
+                catch { view.Dispose(); throw; }
+            }
+
+            private sealed class Held : DesktopIcons.View
+            {
+                private readonly FakeIcons icons;
+                private readonly DesktopIcons.Batch batch;
+                private readonly int thread = System.Threading.Thread.CurrentThread.ManagedThreadId;
+                private bool disposed;
+
+                internal Held(FakeIcons view, DesktopIcons.Batch work) { icons = view; batch = work; System.Threading.Interlocked.Increment(ref icons.Opened); }
+
+                private void ThreadCheck()
+                {
+                    if (thread != System.Threading.Thread.CurrentThread.ManagedThreadId || thread == icons.owner || System.Threading.Thread.CurrentThread.GetApartmentState() != System.Threading.ApartmentState.MTA) icons.BadThread = true;
+                }
+
+                internal void Step(string action, int index, Point at)
+                {
+                    ThreadCheck();
+                    batch.Check();
+                    Action<string, int, Point> call = icons.Call;
+                    if (call != null) call(action, index, at);
+                }
+
+                public bool AutoArrange() { Step("arrange", -1, Point.Empty); return icons.Arrange; }
+                public int Count() { Step("count", -1, Point.Empty); return icons.Spots.Count; }
+
+                public IconSpot Read(int index)
+                {
+                    Step("item", index, Point.Empty);
+                    IconSpot spot = icons.Spots[index];
+                    Step("position", index, spot.At);
+                    Step("name", index, spot.At);
+                    return new IconSpot(index, spot.Name, spot.At);
+                }
+
+                public void Move(int index, Point at, int flags)
+                {
+                    if (flags != 0x0080) { icons.BadFlags = true; throw new Exception("An icon move changed selection flags."); }
+                    Step("item", index, at);
+                    Step("move", index, at);
+                    IconSpot spot = icons.Spots[index];
+                    icons.Spots[index] = new IconSpot(index, spot.Name, at);
+                    System.Threading.Interlocked.Increment(ref icons.Moves);
+                }
+
+                public void Dispose()
+                {
+                    if (disposed) return;
+                    disposed = true;
+                    ThreadCheck();
+                    try
+                    {
+                        Action<string, int, Point> call = icons.Call;
+                        if (call != null) call("close", -1, Point.Empty);
+                    }
+                    finally { System.Threading.Interlocked.Increment(ref icons.Closed); }
+                }
+            }
+        }
+
+        private void SmokeIconBatches(System.Collections.Generic.List<string> checks, IntPtr handle, FakeIcons icons)
+        {
+            if (Marshal.SizeOf(typeof(DesktopIcons.StrRet)) != (IntPtr.Size == 8 ? 272 : 264) || Marshal.OffsetOf(typeof(DesktopIcons.StrRet), "Data").ToInt32() != IntPtr.Size || Marshal.SizeOf(typeof(Point)) != 8) throw new Exception("The shell name or point layout is wrong.");
+            System.Collections.Generic.List<IconSpot> homes = DesktopIcons.Read(handle);
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, Point>> moves = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, Point>>();
+            foreach (IconSpot spot in homes) moves.Add(new System.Collections.Generic.KeyValuePair<int, Point>(spot.Index, spot.At));
+            try
+            {
+                foreach (string fail in new[] { "open", "arrange", "count", "item", "position", "name", "move" })
+                {
+                    bool failed = false;
+                    int after = 0, opened = icons.Opened, closed = icons.Closed;
+                    icons.Call = delegate(string action, int index, Point at)
+                    {
+                        if (action == "close") return;
+                        if (failed) after++;
+                        if (action == fail && (index < 0 || index == 1)) { failed = true; throw new Exception("The fake view failed."); }
+                    };
+                    if (fail == "move")
+                    {
+                        if (DesktopIcons.MoveMany(handle, moves) != 1) throw new Exception("A partial icon batch counted the wrong moves.");
+                    }
+                    else if (fail == "arrange")
+                    {
+                        bool arrange;
+                        if (DesktopIcons.TryAutoArrange(handle, out arrange)) throw new Exception("An unreadable Auto arrange state was accepted.");
+                    }
+                    else
+                    {
+                        System.Collections.Generic.List<IconSpot> read;
+                        if (DesktopIcons.TryRead(handle, out read) || read.Count != 0) throw new Exception("A failed icon read returned a partial desktop.");
+                    }
+                    if (!failed || after != 0 || icons.Opened != opened + 1 || icons.Closed != closed + 1) throw new Exception("A failed shell batch continued or kept its view.");
+                }
+                icons.Call = null;
+                checks.Add("PASS shell open, count, item, position, name and move failures stop the batch; failed reads return no partial list and partial moves count only completed items");
+
+                int nested = 0, before = icons.Opened;
+                icons.Call = delegate(string action, int index, Point at)
+                {
+                    if (action != "count") return;
+                    System.Collections.Generic.List<IconSpot> read;
+                    bool arrange;
+                    if (!DesktopIcons.TryRead(handle, out read) && read.Count == 0 && !DesktopIcons.Move(handle, 0, homes[0].At) && !DesktopIcons.TryAutoArrange(handle, out arrange)) nested++;
+                };
+                System.Collections.Generic.List<IconSpot> whole;
+                if (!DesktopIcons.TryRead(handle, out whole) || nested != 1 || icons.Opened != before + 1) throw new Exception("A shell batch re-entered its view.");
+                icons.Call = null;
+                checks.Add("PASS a read, move or Auto arrange request cannot re-enter a shell batch");
+
+                foreach (string hang in new[] { "open", "count", "move", "close" })
+                {
+                    using (System.Threading.ManualResetEvent entered = new System.Threading.ManualResetEvent(false))
+                    using (System.Threading.ManualResetEvent release = new System.Threading.ManualResetEvent(false))
+                    {
+                        bool blocked = false;
+                        int opened = icons.Opened, closed = icons.Closed, moved = icons.Moves;
+                        icons.Call = delegate(string action, int index, Point at)
+                        {
+                            if (action != hang || blocked || (hang == "move" && index != 1)) return;
+                            blocked = true;
+                            entered.Set();
+                            release.WaitOne(10000);
+                        };
+                        try
+                        {
+                            Stopwatch elapsed = Stopwatch.StartNew();
+                            if (hang == "move")
+                            {
+                                if (DesktopIcons.MoveMany(handle, moves) != 0) throw new Exception("A timed-out move batch reported success.");
+                            }
+                            else
+                            {
+                                System.Collections.Generic.List<IconSpot> read;
+                                if (DesktopIcons.TryRead(handle, out read) || read.Count != 0) throw new Exception("A timed-out read returned icons.");
+                            }
+                            if (!entered.WaitOne(0) || elapsed.ElapsedMilliseconds < 1700 || elapsed.ElapsedMilliseconds > 3000 || !DesktopIcons.Busy) throw new Exception("A hung shell batch did not give up after two seconds.");
+                            elapsed.Restart();
+                            System.Collections.Generic.List<IconSpot> again;
+                            bool arrange;
+                            if (DesktopIcons.TryRead(handle, out again) || DesktopIcons.Move(handle, 0, homes[0].At) || DesktopIcons.TryAutoArrange(handle, out arrange) || icons.Opened != opened + 1 || elapsed.ElapsedMilliseconds > 500) throw new Exception("A timed-out worker let a second shell batch start.");
+                        }
+                        finally
+                        {
+                            release.Set();
+                            if (!System.Threading.SpinWait.SpinUntil(delegate { return !DesktopIcons.Busy; }, 2000)) throw new Exception("The released shell worker did not finish.");
+                            icons.Call = null;
+                        }
+                        if (icons.Closed != closed + 1 || icons.Moves != moved + (hang == "move" ? 2 : 0)) throw new Exception("A late shell call kept its view or continued the cancelled batch.");
+                    }
+                }
+                checks.Add("PASS hung shell creation, reads, moves and cleanup return failure within two seconds; new batches stay blocked until cleanup and a late move cannot continue its batch");
+
+                int positions = 0;
+                icons.Call = delegate(string action, int index, Point at) { if (action == "position") { positions++; System.Threading.Thread.Sleep(450); } };
+                Stopwatch budget = Stopwatch.StartNew();
+                try
+                {
+                    if (DesktopIcons.TryRead(handle, out whole) || whole.Count != 0 || budget.ElapsedMilliseconds > 3000) throw new Exception("A shell batch restarted its timeout for each item.");
+                }
+                finally
+                {
+                    if (!System.Threading.SpinWait.SpinUntil(delegate { return !DesktopIcons.Busy; }, 2000)) throw new Exception("The slow shell worker did not finish.");
+                    icons.Call = null;
+                }
+                if (positions >= homes.Count) throw new Exception("A slow shell read continued after its deadline.");
+                checks.Add("PASS the two second limit covers a whole shell batch and returns no partial read");
+
+                int items = 0;
+                icons.Call = delegate(string action, int index, Point at) { if (action == "item") items++; };
+                System.Collections.Generic.List<IconSpot> some, landed = new System.Collections.Generic.List<IconSpot>();
+                if (!DesktopIcons.TryRead(handle, new System.Collections.Generic.List<IconSpot> { homes[2], homes[4] }, out some) || items != 2 || some.Count != 2 || some[0].Index != 2 || some[0].Name != homes[2].Name || some[1].At != homes[4].At) throw new Exception("A read of two icons went past the two she asked for.");
+                if (!DesktopIcons.TryRead(handle, new System.Collections.Generic.List<IconSpot> { new IconSpot(3, homes[2].Name, homes[2].At) }, out some) || some.Count != homes.Count || some[2].Name != homes[2].Name) throw new Exception("An icon that changed place in the view did not send her back to the whole desktop.");
+                if (!DesktopIcons.TryRead(handle, new System.Collections.Generic.List<IconSpot> { new IconSpot(homes.Count, homes[2].Name, homes[2].At) }, out some) || some.Count != homes.Count) throw new Exception("An icon past the end of the view did not send her back to the whole desktop.");
+                Point nudged = new Point(homes[1].At.X + 7, homes[1].At.Y + 9);
+                if (DesktopIcons.MoveMany(handle, new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, Point>> { new System.Collections.Generic.KeyValuePair<int, Point>(1, nudged) }, landed) != 1 || landed.Count != 1 || landed[0].Index != 1 || landed[0].At != nudged || landed[0].Name != homes[1].Name) throw new Exception("A move did not say where its icon landed.");
+                if (!DesktopIcons.Move(handle, 1, homes[1].At)) throw new Exception("The nudged icon could not go home.");
+                icons.Call = null;
+                checks.Add("PASS a scatter step reads only the icons she's moving, goes back to the whole desktop when one has changed place in the view, and learns where each move landed in the same trip");
+
+                Point far = new Point(-90000, 120000);
+                string name = "\u684c\u9762 " + new string('x', 300);
+                IconSpot first = icons.Spots[0];
+                icons.Spots[0] = new IconSpot(0, name, first.At);
+                try
+                {
+                    if (!DesktopIcons.Move(handle, 0, far)) throw new Exception("A signed desktop position could not be moved.");
+                    whole = DesktopIcons.Read(handle);
+                    if (whole.Count != homes.Count || whole[0].At != far || whole[0].Name != name) throw new Exception("A desktop label or signed position was truncated.");
+                }
+                finally { icons.Spots[0] = first; }
+                if (icons.BadThread || icons.BadFlags || icons.Opened != icons.Closed) throw new Exception("Shell work crossed threads, changed selection flags or kept a view.");
+                checks.Add("PASS shell batches create, use and close views on their own free-threaded worker, request only position flags, and retain long labels and signed coordinates");
+            }
+            finally { icons.Call = null; }
+        }
+
+        // Her desktop icon prank (F72). It only ever runs against a fake view this check makes, never the real desktop.
         private void SmokeIcons(System.Collections.Generic.List<string> checks)
         {
             string iconsTool;
@@ -17078,6 +17288,7 @@ namespace CapriDesktop
                 throw new Exception("Asking her to mess with the desktop icons went the wrong way.");
 
             Func<IntPtr> targetWas = DesktopIcons.Target;
+            Func<DesktopIcons.Batch, DesktopIcons.View> openWas = DesktopIcons.Open;
             string markerWas = IconMischief.Marker;
             int iconsPid;
             using (Process iconsSelf = Process.GetCurrentProcess()) iconsPid = iconsSelf.Id;
@@ -17085,23 +17296,23 @@ namespace CapriDesktop
             using (Form iconsHost = new Form())
             using (ListView iconsList = new ListView())
             {
+                FakeIcons icons = new FakeIcons();
                 try
                 {
                     iconsHost.Text = "Capri icon check";
                     iconsHost.StartPosition = FormStartPosition.Manual;
                     iconsHost.Bounds = new Rectangle(Screen.PrimaryScreen.WorkingArea.Left + 10, Screen.PrimaryScreen.WorkingArea.Top + 10, 1000, 560);
                     iconsList.View = View.LargeIcon;
-                    iconsList.AutoArrange = false;
                     iconsList.Dock = DockStyle.Fill;
-                    for (int i = 0; i < 6; i++) iconsList.Items.Add("icon" + i);
+                    for (int i = 0; i < 6; i++) icons.Spots.Add(new IconSpot(i, "icon" + i, new Point(30 + i * 110, 30)));
                     iconsHost.Controls.Add(iconsList);
                     iconsHost.Show();
                     Application.DoEvents();
-                    for (int i = 0; i < 6; i++) iconsList.Items[i].Position = new Point(30 + i * 110, 30);
-                    Application.DoEvents();
                     IntPtr iconsHandle = iconsList.Handle;
                     DesktopIcons.Target = delegate { return iconsHandle; };
+                    DesktopIcons.Open = icons.Open;
                     IconMischief.Marker = iconsFile;
+                    SmokeIconBatches(checks, iconsHandle, icons);
 
                     Func<System.Collections.Generic.Dictionary<string, Point>> map = delegate
                     {
@@ -17142,15 +17353,25 @@ namespace CapriDesktop
                     if (vanish.Active || DesktopIcons.Hidden(iconsHandle)) throw new Exception("Her icon vanish didn't bring the icons back within 10 to 20 seconds.");
 
                     // With Auto arrange on, moves won't stick, so she falls back to the vanish.
-                    iconsList.AutoArrange = true;
-                    Application.DoEvents();
+                    icons.Arrange = true;
                     if (!DesktopIcons.AutoArrange(iconsHandle)) throw new Exception("Auto arrange wasn't detected on the fake list view.");
                     IconMischief arrange = new IconMischief(DesktopIcons.Target, 3);
                     if (!arrange.Start(0, true) || !arrange.Vanishing || arrange.Moves != 0 || !DesktopIcons.Hidden(iconsHandle)) throw new Exception("Auto arrange didn't make her fall back to the vanish.");
                     arrange.PutBack();
                     if (DesktopIcons.Hidden(iconsHandle)) throw new Exception("The Auto arrange fallback vanish didn't restore the list view.");
-                    iconsList.AutoArrange = false;
-                    Application.DoEvents();
+                    icons.Arrange = false;
+
+                    System.Collections.Generic.List<IconSpot> saved = new System.Collections.Generic.List<IconSpot>(icons.Spots);
+                    icons.Spots.Clear();
+                    try
+                    {
+                        IconMischief empty = new IconMischief(DesktopIcons.Target, 3);
+                        if (!empty.Start(0, true) || !empty.Vanishing || empty.Moves != 0 || !DesktopIcons.Hidden(iconsHandle)) throw new Exception("An empty desktop did not fall back to the vanish.");
+                        empty.PutBack();
+                        if (DesktopIcons.Hidden(iconsHandle) || File.Exists(iconsFile)) throw new Exception("The empty desktop vanish did not restore its window.");
+                    }
+                    finally { icons.Spots.AddRange(saved); }
+                    checks.Add("PASS an empty desktop falls back to the vanish and restores its window");
 
                     // The backup file puts a scatter right after a crash, matching by name, and leaves an icon moved by hand alone.
                     System.Collections.Generic.Dictionary<string, Point> baseline = map();
@@ -17173,6 +17394,7 @@ namespace CapriDesktop
                     leftAt.Add(new System.Collections.Generic.KeyValuePair<int, Point>(indexOf(crashMove), movedByHand));
                     DesktopIcons.MoveMany(iconsHandle, leftAt);
                     File.WriteAllLines(iconsFile, lines.ToArray());
+                    icons.Spots.Reverse();
                     int recovered = IconMischief.Recover();
                     System.Collections.Generic.Dictionary<string, Point> afterCrash = map();
                     foreach (string name in crashBack) if (afterCrash[name] != baseline[name]) throw new Exception("Her next start didn't put " + name + " back from the backup file: " + afterCrash[name] + " vs " + baseline[name]);
@@ -17193,18 +17415,20 @@ namespace CapriDesktop
                     System.Collections.Generic.Dictionary<string, Point> afterLive = map();
                     if (afterLive[hijacked] != grabbed) throw new Exception("She didn't leave the icon a hand grabbed mid-scatter alone: " + afterLive[hijacked] + " vs " + grabbed);
                     if (afterLive[kept] != before[kept]) throw new Exception("She didn't put the icon she scattered back home: " + afterLive[kept] + " vs " + before[kept]);
-                    SmokeIconFailures(checks, iconsList, iconsFile);
+                    SmokeIconFailures(checks, iconsHandle, icons, iconsFile);
+                    if (icons.BadThread || icons.BadFlags || icons.Opened != icons.Closed) throw new Exception("An icon prank crossed threads, changed selection flags or kept a view.");
                 }
                 finally
                 {
                     DesktopIcons.Target = targetWas;
+                    DesktopIcons.Open = openWas;
                     IconMischief.Marker = markerWas;
                     try { File.Delete(iconsFile); }
                     catch (IOException) { }
                 }
             }
-            checks.Add("PASS desktop icon chaos on a fake list view: reads icon names and spots through her own process the way she'd reach into Explorer's, a scatter slides several and puts every one back exactly, a vanish hides the list view and brings it back in 10 to 20 s, Auto arrange falls back to the vanish, the backup file restores a scatter after a simulated crash matched by name, and an icon moved by hand meanwhile is left where it was put");
-            checks.Add("LIMIT desktop icon chaos on the real desktop: the smoke test only ever runs against a fake list view it creates, so moving, hiding and restoring real Explorer icons is for Lachy to check live");
+            checks.Add("PASS desktop icon chaos on a fake view: names and positions, slide and exact return, vanish for 10 to 20 seconds, Auto arrange fallback, crash recovery by name after item order changes, and hand-moved icons left alone");
+            checks.Add("LIMIT real desktop shell calls, labels, selection, grid snapping and Explorer hangs need a live check");
         }
 
         private void SmokeChaosScreen(System.Collections.Generic.List<string> checks)
