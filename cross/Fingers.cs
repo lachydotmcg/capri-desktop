@@ -38,6 +38,7 @@ namespace CapriDesktop
         {
             get
             {
+                if (OperatingSystem.IsMacOS()) return MacFingers.Problem();
                 if (!OperatingSystem.IsLinux()) return "Using the mouse and keyboard isn't ready on this PC yet.";
                 if (!File.Exists(Device)) return "Using the mouse and keyboard isn't ready on this PC yet: there's no " + Device + ". Run sudo modprobe uinput, then ask again.";
                 if (access(Device, 2) != 0) return "Using the mouse and keyboard isn't ready on this PC yet: Capri can't write to " + Device + ". Open Capri Mainframe > Settings > KEYS > Set up mouse and keyboard, run the command it copies, then ask again.";
@@ -114,6 +115,7 @@ namespace CapriDesktop
         // The cursor to x and y, each 0 to 1 across the whole desktop, which is how screenshots of it are laid out too.
         internal static void MoveTo(double x, double y)
         {
+            if (OperatingSystem.IsMacOS()) { MacFingers.MoveTo(x, y); return; }
             Ready();
             x = Math.Max(0, Math.Min(1, x));
             y = Math.Max(0, Math.Min(1, y));
@@ -125,6 +127,7 @@ namespace CapriDesktop
 
         internal static void Click(string button, int times)
         {
+            if (OperatingSystem.IsMacOS()) { MacFingers.Click(button, times); return; }
             Ready();
             ushort code = button == "right" ? Right : button == "middle" ? Middle : Left;
             for (int i = 0; i < Math.Max(1, times); i++)
@@ -138,6 +141,11 @@ namespace CapriDesktop
 
         internal static void Drag(double fromX, double fromY, double toX, double toY)
         {
+            if (OperatingSystem.IsMacOS())
+            {
+                MacFingers.Point from = MacFingers.Fraction(fromX, fromY), to = MacFingers.Fraction(toX, toY);
+                MacFingers.Drag(from.X, from.Y, to.X, to.Y); return;
+            }
             MoveTo(fromX, fromY);
             Send(pointer, Key, Left, 1, Syn, 0, 0);
             for (int step = 1; step <= 12; step++)
@@ -151,6 +159,7 @@ namespace CapriDesktop
         // Notches of the wheel: positive scrolls down, like the wheel turned toward them.
         internal static void Scroll(int notches)
         {
+            if (OperatingSystem.IsMacOS()) { MacFingers.Scroll(notches); return; }
             Ready();
             for (int i = 0; i < Math.Abs(notches); i++)
             {
@@ -191,6 +200,7 @@ namespace CapriDesktop
         // A key or chord like enter, ctrl+l or ctrl+shift+t: all pressed in order, then let go backwards.
         internal static bool Keys(string chord)
         {
+            if (OperatingSystem.IsMacOS()) return MacFingers.Keys(MacFingers.JobKeys(chord));
             List<int> codes = new List<int>();
             foreach (string part in (chord ?? "").ToLowerInvariant().Replace(" ", "").Split('+'))
             {
@@ -213,6 +223,7 @@ namespace CapriDesktop
 
         internal static bool Type(string text)
         {
+            if (OperatingSystem.IsMacOS()) return MacFingers.Type(text);
             text = text ?? "";
             if (text.Length == 0) return true;
             if (Regex.IsMatch(text, @"^[A-Za-z0-9 ]{1,200}$"))

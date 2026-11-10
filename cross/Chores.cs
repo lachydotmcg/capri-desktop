@@ -102,7 +102,7 @@ namespace CapriDesktop
         {
             try
             {
-                string problem = Fingers.Problem;
+                string problem = Doing == null ? Fingers.Problem : null;
                 if (problem != null && Doing == null) return problem;
                 if (brain.Model == null) return "Couldn't do that: your brain is offline.";
                 InControl.Begin();

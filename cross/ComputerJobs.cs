@@ -241,11 +241,12 @@ namespace CapriDesktop
         private static Task<bool> protocols;
         private static string protocolSession;
         private static readonly Lazy<bool> supported = new Lazy<bool>(() => HyprlandDesktop.Current != null && ArchInput.Available);
-        internal static bool Supported { get { return supported.Value; } }
+        internal static bool Supported { get { return OperatingSystem.IsMacOS() ? MacFingers.Available : supported.Value; } }
         internal static bool Available
         {
             get
             {
+                if (OperatingSystem.IsMacOS()) return MacFingers.Available;
                 HyprlandDesktop desktop = HyprlandDesktop.Current;
                 if (desktop == null || !ArchInput.Available) return false;
                 lock (gate)
@@ -346,13 +347,21 @@ namespace CapriDesktop
         internal static string Run(string task, string asked) { return Run(task, asked, null); }
         internal static string Run(string task, string asked, Func<bool> current) { return Run(new ComputerJob { Task = task, Asked = asked ?? task, Current = current }); }
         private static NativeGameEscape escape;
-        internal static bool EscapeListening => Volatile.Read(ref escape)?.Armed == true;
+        private static MacFingers.Escape macEscape;
+        internal static bool EscapeListening => Volatile.Read(ref escape)?.Armed == true || Volatile.Read(ref macEscape)?.Armed == true;
         private static string Run(ComputerJob job, long? admitted = null)
         {
-            if (!Supported) return "Native screen jobs were unavailable when Capri opened. Install the helper in a supported Hyprland session, then reopen Capri.";
+            bool mac = OperatingSystem.IsMacOS();
+            if (mac)
+            {
+                string problem = MacFingers.Problem();
+                if (problem != null) return problem;
+                if (Hands.Streaming || Hands.StreamAsked(job.Task) || Hands.StreamAsked(job.Asked)) return "Live stream chat and timing aren't connected to Mac screen jobs yet.";
+            }
+            if (!mac && !Supported) return "Native screen jobs were unavailable when Capri opened. Install the helper in a supported Hyprland session, then reopen Capri.";
             HyprlandDesktop desktop = HyprlandDesktop.Current;
-            if (desktop == null) return "Native screen jobs need a supported Hyprland session. This desktop doesn't expose that capability.";
-            if (!ArchInput.Available) return "Native screen jobs need Capri's native/capri-input helper installed beside the app.";
+            if (!mac && desktop == null) return "Native screen jobs need a supported Hyprland session. This desktop doesn't expose that capability.";
+            if (!mac && !ArchInput.Available) return "Native screen jobs need Capri's native/capri-input helper installed beside the app.";
             if (job.Current != null && !job.Current()) return "That screen request has ended; no job started.";
             job.Game ??= ComputerGameSession.FromRequest(job.Task, job.Asked);
             using CancellationTokenSource cancel = job.Game == null ? new CancellationTokenSource(TimeSpan.FromSeconds(90)) : new CancellationTokenSource();
@@ -366,13 +375,16 @@ namespace CapriDesktop
             using CancellationTokenRegistration abortModel = cancel.Token.Register(() => vision.Cancel());
             try
             {
-                if (!ArchInput.Probe(cancel.Token)) return "This compositor doesn't provide both native virtual pointer and keyboard protocols.";
-                ComputerRunner runner = new ComputerRunner { Desktop = new ArchComputer(desktop, cancel.Token), Input = new ArchInput(), Account = Account, CancelInference = () => vision.Cancel(), Think = (jpeg, system, instruction) => vision.See(jpeg, Brain.Persona + system, instruction, 900, true, preserveWhitespace: true, computerAction: true) };
+                if (!mac && !ArchInput.Probe(cancel.Token)) return "This compositor doesn't provide both native virtual pointer and keyboard protocols.";
+                ComputerRunner runner = new ComputerRunner { Desktop = mac ? new MacFingers.Desktop(cancel.Token) : new ArchComputer(desktop, cancel.Token), Input = mac ? new MacFingers.Input() : new ArchInput(), Account = Account, CancelInference = () => vision.Cancel(), Think = (jpeg, system, instruction) => vision.See(jpeg, Brain.Persona + (mac ? system.Replace("user's Linux desktop", "user's Mac desktop") + " Key names use Windows notation: CTRL letter shortcuts map to Command on Mac; ALT+F4 closes the window with Command+W." : system), instruction, 900, true, preserveWhitespace: true, computerAction: true) };
                 job.Account ??= Account(); job.Permissions ??= Security.Saved;
                 runner.CheckAccount(job);
-                if (job.Game != null && job.Binding == null)
+                if (!mac && job.Game != null && job.Binding == null)
                     job.Binding = new ComputerGameLauncher().Prepare(job, runner.Desktop, () => runner.CheckAccount(job), cancel.Token);
                 else runner.Bind(job);
+                if (mac && job.Game != null && !MacFingers.GameMatches(job)) return "Bring the game you asked for to the front, then ask again.";
+                using MacFingers.Escape macWatch = mac ? new MacFingers.Escape(() => cancel.Cancel(), cancel.Token) : null;
+                Volatile.Write(ref macEscape, macWatch);
                 using NativeGameEscape watch = NativeGameEscape.Start(job.Binding, () =>
                 {
                     try
@@ -390,7 +402,7 @@ namespace CapriDesktop
                     lock (gate) if (job.Waiting != null && !cancel.IsCancellationRequested) pending = job;
                     return result;
                 }
-                finally { Volatile.Write(ref escape, null); InControl.End(); }
+                finally { Volatile.Write(ref escape, null); Volatile.Write(ref macEscape, null); InControl.End(); }
             }
             catch (OperationCanceledException) { return "I stopped the screen job and released its input. Any last effect still needs checking."; }
             catch (Exception error) { return "I stopped the screen job: " + error.Message + " No action was retried."; }

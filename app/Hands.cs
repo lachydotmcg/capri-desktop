@@ -814,6 +814,11 @@ namespace CapriDesktop
         // Whether it's a Mac, and whether her own mouse and keyboard work here, which Linux has once uinput is set up. Limbs and
         // her window set them, so she knows which of her tools work.
         internal static bool OnMac, OwnHands;
+#if CROSS
+        internal static Func<bool> HandsReady;
+        internal static bool MacClipboard;
+        internal static Func<string> HandsProblem;
+#endif
 #endif
 
         private static string Here(string prompt)
@@ -2080,8 +2085,13 @@ namespace CapriDesktop
         }
 
         // Why something can't work here, in her prompts' words, and what she says when she's asked for a mouse and keyboard job anyway.
-        private const string OnlyWindows = "only on Windows for now", MacHands = "Mac doesn't let apps use the mouse and keyboard yet", LinuxHands = "needs uinput on Linux", NoSight = "this brain can't see pictures";
-        private const string MacHandsLine = "I can't use your mouse and keyboard on a Mac yet, choom.";
+        private const string OnlyWindows = "only on Windows for now", LinuxHands = "needs uinput on Linux", NoSight = "this brain can't see pictures";
+#if CROSS
+        private const string MacHands = "needs Accessibility on Mac", MacHandsLine = "Turn Capri on in System Settings > Privacy & Security > Accessibility, then ask again.";
+        private const string MacStream = "Live stream chat and timing aren't connected to Mac screen jobs yet.";
+#else
+        private const string MacHands = "Mac doesn't let apps use the mouse and keyboard yet", MacHandsLine = "I can't use your mouse and keyboard on a Mac yet, choom.";
+#endif
         private const string LinuxHandsLine = "I can't use your mouse and keyboard yet. Open Capri Mainframe > Settings > KEYS > Set up mouse and keyboard.";
         // A screen watch asked for in words her lookout doesn't take, on a brain that can't see. Asked for in its own words, her
         // lookout says which brain.
@@ -2091,7 +2101,7 @@ namespace CapriDesktop
 
 #if CROSS
         // The shortcuts Mac and Linux do another way. The rest need key presses, which only Windows has so far.
-        private static readonly string[] MacPresses = { "screenshot", "task_manager" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
+        private static readonly string[] MacPresses = { "screenshot", "task_manager", "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "quick_settings", "voice_typing", "clipboard" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
         // Her moves that only Windows has so far.
         private static readonly string[] WindowsMoves = { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off" };
         private static readonly string[] WindowsTools = { "find_file", "website_nickname", "read_file", "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen", "fake_crash", "voice_chat", "speech", "job_control", "quit", "updates", "mini_player", "game_notes" };
@@ -2112,14 +2122,17 @@ namespace CapriDesktop
 #endif
             }
 #if CROSS
+            if (OnMac && HandsReady != null) OwnHands = HandsReady();
             if (OnMac) missing.Add(new[] { "linux_system", "Linux system tools are unavailable on macOS." });
             if (TerminalAvailable == null || !TerminalAvailable())
                 foreach (string tool in new[] { "run_terminal", "terminal_job" }) missing.Add(new[] { tool, "Native terminal jobs are unavailable on this platform." });
             if (!OwnHands)
             {
                 missing.Add(new[] { "use_computer", OnMac ? MacHands : LinuxHands });
-                missing.Add(new[] { "stream", OnMac ? MacHands : LinuxHands });
+                missing.Add(new[] { "stream", OnMac ? MacStream : LinuxHands });
             }
+            else if (OnMac) missing.Add(new[] { "stream", MacStream });
+            if (OnMac && !MacClipboard) missing.Add(new[] { "shortcut:clipboard", "Clipboard history needs macOS Tahoe 26 or later." });
             for (int i = 0; i < Shortcuts.GetLength(0); i++)
                 if (Array.IndexOf(OnMac ? MacPresses : LinuxPresses, Shortcuts[i, 0]) < 0) missing.Add(new[] { "shortcut:" + Shortcuts[i, 0], OnlyWindows });
             foreach (string move in WindowsMoves) missing.Add(new[] { "move_yourself:" + move, OnlyWindows });
@@ -2428,7 +2441,14 @@ namespace CapriDesktop
         {
             string why;
             if (!kit.Missing.TryGetValue(key, out why) || why == NoSight) return null;
-            if (key == "use_computer" || key == "stream") return why == MacHands ? MacHandsLine : LinuxHandsLine;
+            if (key == "use_computer" || key == "stream")
+            {
+#if CROSS
+                if (why == MacStream || why == "Clipboard history needs macOS Tahoe 26 or later.") return why;
+                if (why == MacHands && HandsProblem != null) return HandsProblem() ?? MacHandsLine;
+#endif
+                return why == MacHands ? MacHandsLine : LinuxHandsLine;
+            }
             if (key.StartsWith("shortcut:", StringComparison.Ordinal)) return "I can only " + Security.Asking("shortcut", new ToolArguments { Name = key.Substring(9) }) + " on Windows for now, choom.";
             if (key.StartsWith("capri_settings:", StringComparison.Ordinal)) return "That Capri setting is only on Windows for now.";
             return Gap(key, 2);

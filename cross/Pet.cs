@@ -642,8 +642,8 @@ namespace CapriDesktop
             StartCare();
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
             // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
-            fingers = Program.Smoke == null && (ComputerJobs.Supported || Fingers.Problem == null);
-            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers) || toggle == Security.Personal || toggle == Security.ModTools || (toggle == Security.Terminal && TerminalJobs.Supported); };
+            fingers = Program.Smoke == null && (OperatingSystem.IsMacOS() ? MacFingers.Available : ComputerJobs.Supported || Fingers.Problem == null);
+            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && (OperatingSystem.IsMacOS() && Program.Smoke == null ? MacFingers.Available : fingers)) || toggle == Security.Personal || toggle == Security.ModTools || (toggle == Security.Terminal && TerminalJobs.Supported); };
             Hands.OwnHands = fingers;
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
@@ -702,9 +702,9 @@ namespace CapriDesktop
             Hands.SettingAction = delegate(ToolArguments args) { return SettingAction(args.Action); };
             if (Program.Smoke == null)
             {
-                if (ComputerJobs.Supported) ComputerJobs.Attach(Brain);
+                if (OperatingSystem.IsMacOS() || ComputerJobs.Supported) ComputerJobs.Attach(Brain);
                 else Hands.Work = delegate(string job, string asked) { return Chores.Run(Brain, job, asked); };
-                Chores.Mouse = delegate { return Dispatcher.UIThread.Invoke(MouseShare) ?? KWinMouse.Ask(); };
+                Chores.Mouse = delegate { return OperatingSystem.IsMacOS() ? MacFingers.Mouse() : Dispatcher.UIThread.Invoke(MouseShare) ?? KWinMouse.Ask(); };
                 Chores.Says = delegate(string line) { Dispatcher.UIThread.Post(delegate { Reply(asking, "(chat)", line); }); };
                 // Her own pointer, like Windows': it glides while their mouse stays put, and hides for her screenshots.
                 Chores.Track = delegate(double x, double y) { Dispatcher.UIThread.Post(delegate { PixelPoint at = DesktopPixel(x, y); HerPointer.Point(at); glowAt = at; SyncGlow(); }); };

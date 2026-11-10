@@ -135,7 +135,14 @@ namespace CapriDesktop
             Hands.VolumeNow = delegate { return Level(OnMac); };
             Hands.MuteState = delegate { return Muted(OnMac); };
             Hands.SetMute = delegate(bool on) { return Mute(on, OnMac); };
-            Hands.Chord = delegate { throw new PlatformNotSupportedException("keyboard shortcuts only work on Windows for now"); };
+            Hands.Chord = delegate(byte[] keys) { if (OnMac) MacFingers.Chord(keys); else throw new PlatformNotSupportedException("keyboard shortcuts only work on Windows for now"); };
+            if (OnMac && Program.Smoke == null)
+            {
+                Hands.HandsReady = () => MacFingers.Available;
+                Hands.HandsProblem = MacFingers.Problem;
+                Hands.MacClipboard = OperatingSystem.IsMacOSVersionAtLeast(26);
+                Chores.Shoot = MacFingers.Picture;
+            }
             // A look is already in her transcript; anything else she did goes in as a job, like on Windows, except a check of what's
             // open or installed. Something that can't work here gets her line saying why before Security could ask about it. A toggle
             // switched off in Security holds the call so she asks first, and their yes runs it.
@@ -157,7 +164,7 @@ namespace CapriDesktop
                 return done;
             };
             Hands.Resume = delegate(string text) { return Security.Resume(text, brain.Act); };
-            if (!OnMac) ComputerJobs.Attach(brain);
+            if (!OnMac || Program.Smoke == null) ComputerJobs.Attach(brain);
         }
 
         internal static void Open(string id, bool mac)
@@ -559,6 +566,11 @@ namespace CapriDesktop
         // Shortcuts with a tool of their own on Mac and Linux. The rest need key presses, which only Windows has so far.
         internal static string Shortcut(string name, bool mac)
         {
+            if (mac)
+            {
+                string done = MacFingers.Shortcut(name);
+                if (done != null) return done;
+            }
             if (!mac && HyprlandDesktop.Current != null && (name == "discord_mute" || name == "discord_deafen")) return ComputerJobs.Shortcut(name);
             if (name == "screenshot")
             {
