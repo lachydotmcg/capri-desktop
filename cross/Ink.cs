@@ -488,7 +488,7 @@ namespace CapriDesktop
                 contours.Add(shape.Points);
                 if (shape.Kind == "arrow")
                 {
-                    double angle = Math.Atan2(last.Y - first.Y, last.X - first.X), head = Math.Min(18, (last - first).Length / 3);
+                    double angle = Math.Atan2(last.Y - first.Y, last.X - first.X), head = Math.Min(18, ((Avalonia.Vector)(last - first)).Length / 3);
                     path.MoveTo((float)(last.X - head * Math.Cos(angle - 0.5)), (float)(last.Y - head * Math.Sin(angle - 0.5)));
                     path.LineTo((float)last.X, (float)last.Y);
                     path.LineTo((float)(last.X - head * Math.Cos(angle + 0.5)), (float)(last.Y - head * Math.Sin(angle + 0.5)));
@@ -513,7 +513,7 @@ namespace CapriDesktop
                 } while (measure.NextContour());
             }
             foreach (Point[] points in contours)
-                for (int i = 1; i < points.Length; i++) Length += (points[i] - points[i - 1]).Length;
+                for (int i = 1; i < points.Length; i++) Length += ((Avalonia.Vector)(points[i] - points[i - 1])).Length;
             SKRect bounds = path.Bounds;
             Bounds = new Rect(bounds.Left - 12, bounds.Top - 12, bounds.Width + 24, bounds.Height + 24);
         }
@@ -548,7 +548,7 @@ namespace CapriDesktop
             foreach (Point[] points in contours)
                 for (int i = 1; i < points.Length; i++)
                 {
-                    double length = (points[i] - points[i - 1]).Length;
+                    double length = ((Avalonia.Vector)(points[i] - points[i - 1])).Length;
                     if (left <= length && length > 0) return points[i - 1] + (points[i] - points[i - 1]) * (left / length);
                     left -= length;
                 }
@@ -566,7 +566,7 @@ namespace CapriDesktop
                     pen.BeginFigure(points[0], false);
                     for (int i = 1; i < points.Length && left > 0; i++)
                     {
-                        double length = (points[i] - points[i - 1]).Length;
+                        double length = ((Avalonia.Vector)(points[i] - points[i - 1])).Length;
                         if (length <= 0) continue;
                         pen.LineTo(left < length ? points[i - 1] + (points[i] - points[i - 1]) * (left / length) : points[i]);
                         left -= length;

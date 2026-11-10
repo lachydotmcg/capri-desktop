@@ -578,8 +578,8 @@ namespace CapriDesktop
                 foreach (bool mac in new[] { true, false })
                 {
                     Hands.OnMac = mac;
-                    foreach (string tool in new[] { "find_file", "read_file", "website_nickname", "game_notes" })
-                        if (!Hands.KitFor().Has(tool) || Hands.Unable(tool, new ToolArguments()) != null) throw new Exception("A file tool is still missing: " + tool);
+                    foreach (string fileTool in new[] { "find_file", "read_file", "website_nickname", "game_notes" })
+                        if (!Hands.KitFor().Has(fileTool) || Hands.Unable(fileTool, new ToolArguments()) != null) throw new Exception("A file tool is still missing: " + fileTool);
                     Hands.Do("website_nickname", new ToolArguments { Action = "save", Name = "my school", Site = "example.com/School" });
                     Hands.Websites = new Websites(folder);
                     if (Hands.Websites.Find("MY SCHOOL") != "https://example.com/School" || !Hands.Do("website_nickname", new ToolArguments { Action = "list" }).Contains("my school: https://example.com/School")) throw new Exception("A saved nickname didn't survive reload.");

@@ -1642,14 +1642,16 @@ namespace CapriDesktop
 #if !CROSS
         // Messes up, hides or puts back their desktop icons, and says how it went. Her window sets it.
         internal static Func<string, string> Icons = delegate { return "Couldn't do that just now."; };
+#endif
         // Her own actions as tools: her fake blue screen, voice chat, stopping what she's saying, her running job, quitting,
-        // Mainframe, updates, her mini player and her saved clips. Her window sets them.
-        internal static Func<ToolArguments, string> VoiceChat = delegate { return "Couldn't change voice chat."; };
+        // Mainframe, updates, her mini player and her saved clips. Her window sets them. Voice chat and clips are Windows only.
         internal static Func<string> StopSpeech = delegate { return "Stopped talking."; };
         internal static Func<ToolArguments, string> JobControl = delegate { return "I'm not on a job right now."; };
         internal static Func<ToolArguments, string> Quit = delegate { return "Couldn't quit Capri."; };
         internal static Func<ToolArguments, string> Updates = delegate { return "Couldn't check for an update."; };
         internal static Func<string, string> MiniPlayer = delegate { return "Couldn't show my mini player."; };
+#if !CROSS
+        internal static Func<ToolArguments, string> VoiceChat = delegate { return "Couldn't change voice chat."; };
         internal static Func<string, string> OpenClip = delegate { return "Couldn't open your clips."; };
 #endif
         // Mac and Linux have no clones, hologram or icon tricks yet, so asking for them gets this straight away instead of a joke from her brain.
