@@ -2030,6 +2030,7 @@ namespace CapriDesktop
         private readonly TypeBox typer = new TypeBox();
         private readonly Tear tear = new Tear();
         private readonly Shatter shatter = new Shatter();
+        private readonly Ribbons ribbons = new Ribbons();
         private readonly Takeover takeover = new Takeover();
         private readonly ControlGlow controlGlow = new ControlGlow();
         private readonly TaskPanel taskPanel = new TaskPanel();
@@ -3134,7 +3135,8 @@ namespace CapriDesktop
             if (facingLeft && (clip == idle || clip == dance)) WarmStand();
             if (perched && (!seated || (lain && !lying && clip != laydownLeave)) && !walking) Play(lying ? laydown : perch);
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
-            int index = (int)((now - clipStart) * clip.Fps);
+            // An arrival that waits for her ribbons can start a moment from now, and holds its first frame until then.
+            int index = Math.Max(0, (int)((now - clipStart) * clip.Fps));
             perchMix = 0;
             int perchRate = PerchRateNow(now);
             if ((clip == perch || clip == perchDance || clip == laydown || clip == laydownSleep) && perchRate != 30) index = PerchIndex(now - clipStart, perchRate, out perchMix);
@@ -5987,10 +5989,15 @@ namespace CapriDesktop
             pendingClick = false;
             clickDelay.Stop();
             Play(lying ? laydownLeave : seat != null || riding || onPanel ? perchLeave : leave);
-            if (frame != null) { shatter.Play(new Bitmap(frame), anchor, Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).Bounds, true, preferences.Size); veiled = true; }
+            // Going somewhere, she turns into her ribbons, and they need to know where sooner than her shatter takes. Hiding and
+            // quitting go nowhere, so those shatter.
+            bool trip = !everywhere && frame != null;
+            ribbons.Stop();
+            if (trip) { form.Warm(false); ribbons.Leave(new Bitmap(frame), anchor, BodyOnScreen(anchor, lying || seat != null || riding || onPanel ? PerchedBody : Body), RibbonColour(ArtColors.Hair), RibbonColour(ArtColors.Accent), preferences.Size); veiled = true; }
+            else if (frame != null) { shatter.Play(new Bitmap(frame), anchor, Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).Bounds, true, preferences.Size); veiled = true; }
             Static(everywhere, everywhere ? Cue.Leave : Cue.Hop);
             outro = then;
-            outroAt = clipStart + (clip.Count + 1) / clip.Fps;
+            outroAt = trip ? clipStart + Ribbons.Gather : clipStart + (clip.Count + 1) / clip.Fps;
             frames.Start();
         }
 
@@ -6035,6 +6042,7 @@ namespace CapriDesktop
             if (outro == null || quitting) return;
             outro = null;
             shatter.Stop();
+            ribbons.Stop();
             if (clip == leave || clip == perchLeave || clip == laydownLeave) Play(lying ? laydown : seat != null || riding || onPanel ? perch : idle);
         }
 
@@ -8787,7 +8795,7 @@ namespace CapriDesktop
             outro = null;
             hidden = value;
             visibilityItem.Text = value ? "Show Capri" : "Hide Capri";
-            if (value) { SitUp(false); StopRide(); LeavePanel(true); seat = null; falling = false; hanging = false; walking = false; dropAfter = false; pendingClick = false; clickDelay.Stop(); frames.Stop(); Hide(); pill.Hide(); typer.Hide(); CloseTalk(); StopChat(); }
+            if (value) { SitUp(false); StopRide(); LeavePanel(true); seat = null; falling = false; hanging = false; walking = false; dropAfter = false; pendingClick = false; clickDelay.Stop(); frames.Stop(); ribbons.Stop(); Hide(); pill.Hide(); typer.Hide(); CloseTalk(); StopChat(); }
             else { anchor = KeepOnScreen(anchor); Location = anchor; Play(instant || !preferences.Motion ? grin : arrive); Show(); RenderFrame(); UpdateAnimation(); Static(true, Cue.Arrive); }
             mainframe.Sync();
         }
@@ -14359,6 +14367,9 @@ namespace CapriDesktop
                 arrivalDue = false;
                 if ((clip == arrive || clip == perchArrive) && !instant && preferences.Motion) Arrival(now);
             }
+            // Where she shows up with no arrival of her own (hanging, or a quick glitch), her waiting ribbons still go to her,
+            // and she stays out of sight until she has formed there.
+            else if (ribbons.Waiting && outro == null && clip != leave && clip != perchLeave && clip != laydownLeave) LandRibbons(now, lying || seat != null || riding || onPanel);
             Clip shown = clip;
             int blinkFrom = clip == perch || clip == laydown ? PerchBlinkFrom : idle.Old ? BlinkFrom : IdleBlinkFrom;
             int following = (cell + 1) % clip.Count, loopCell = cell;
@@ -14564,6 +14575,15 @@ namespace CapriDesktop
 
         private void Arrival(double now)
         {
+            if (ribbons.Waiting)
+            {
+                // She left as ribbons, and now they know where she's landing. She forms there from the transformation
+                // animation's drawings, and her own window takes over under the last of them with her arrival at its end,
+                // where she's whole: its glitching in is for after her shatter.
+                LandRibbons(now, clip == perchArrive);
+                clipStart = veilUntil - Ribbons.Whole;
+                return;
+            }
             Bitmap target = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb);
             using (Graphics graphics = Graphics.FromImage(target)) Draw(graphics, clip == perchArrive ? perch : idle, 0);
             shatter.Play(target, anchor, Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).Bounds, false, preferences.Size);
@@ -14937,6 +14957,7 @@ namespace CapriDesktop
             mainframe.Close();
             tear.Close();
             shatter.Close();
+            ribbons.Close();
             takeover.Close();
             controlGlow.Close();
             taskPanel.Close();
@@ -28577,6 +28598,7 @@ namespace CapriDesktop
                 LeavePanel(true);
                 outro = null;
                 homeTrip = null;
+                ribbons.Stop();
             }
         }
 
@@ -34898,6 +34920,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallMode", delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeCallApps", delegate { SmokeCallApps(checks); });
             Section(checks, "SmokeCapriCodes", delegate { SmokeCapriCodes(checks); });
+            Section(checks, "SmokeRibbons", delegate { SmokeRibbons(checks, output); });
             Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });

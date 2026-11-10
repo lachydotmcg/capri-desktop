@@ -1735,11 +1735,12 @@ namespace CapriDesktop
             using (Brush flash = new SolidBrush(Color.FromArgb((int)(150 * Math.Min(1, wide / (30 * scale))), 255, 255, 255))) graphics.FillEllipse(flash, middle - w * 1.6f, lower - w * 0.35f, w * 3.2f, w * 0.7f);
         }
 
-        private static void Sliced(Graphics graphics, Bitmap self, Point at, double shown, double glitch, float scale, Random pick)
+        // Her picture in slices that slide apart, with a colour split either side. Her ribbons use it too, split in her own colours.
+        internal static void Sliced(Graphics graphics, Bitmap self, Point at, double shown, double glitch, float scale, Random pick, Color? one = null, Color? other = null)
         {
             using (ImageAttributes plain = Tint(Color.Empty, shown))
-            using (ImageAttributes green = Tint(Mint, shown * 0.6 * glitch))
-            using (ImageAttributes violet = Tint(Violet, shown * 0.6 * glitch))
+            using (ImageAttributes green = Tint(one ?? Mint, shown * 0.6 * glitch))
+            using (ImageAttributes violet = Tint(other ?? Violet, shown * 0.6 * glitch))
             {
                 float shift = (float)(4 * scale * glitch);
                 for (int top = 0; top < self.Height; )
@@ -1751,7 +1752,7 @@ namespace CapriDesktop
                     top += tall;
                 }
             }
-            Color[] bars = { Color.White, Mint, Look.Red, Violet };
+            Color[] bars = { Color.White, one ?? Mint, other ?? Look.Red, other ?? Violet };
             for (int i = 0, count = (int)Math.Round(5 * glitch); i < count; i++)
             {
                 int y = at.Y + (int)(self.Height * (0.1 + pick.NextDouble() * 0.8));

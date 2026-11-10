@@ -1070,6 +1070,7 @@ namespace CapriDesktop
             hideAsked = false;
             dockHid = hidden && (!fullScreenHidden || manualHidden);
             fullScreenHidden = false;
+            ribbons.Stop();
             if (!hidden)
             {
                 StopRide();
