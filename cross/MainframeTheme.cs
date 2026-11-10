@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
@@ -609,9 +610,14 @@ namespace CapriDesktop
                 };
                 buttons.Add(row); rows.Children.Add(row);
             }
-            var scroll = new ScrollViewer { Content = rows, MaxHeight = 400, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+            // On a Mac her menu's ScrollViewer came up with a plain ContentPresenter, which squeezed a long list like Language to its
+            // height so it couldn't scroll. Her own template always scrolls, and the rim draws her thumb as the Mainframe page does.
+            var scroll = new ScrollViewer { Content = rows, MaxHeight = 400, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
+                Template = new FuncControlTemplate<ScrollViewer>((owner, scope) => new ScrollContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope)) };
             var plate = new NeonPlate { Menu = true, Child = new Border { Padding = new Thickness(4), Child = scroll } };
-            var surface = new Grid(); surface.Children.Add(plate); surface.Children.Add(new NeonRim { Plate = plate, IsHitTestVisible = false });
+            var rim = new NeonRim { Plate = plate, IsHitTestVisible = false };
+            scroll.ScrollChanged += (_, _) => { plate.Scroll = scroll.Offset.Y; plate.View = scroll.Viewport.Height; plate.Page = scroll.Extent.Height; rim.InvalidateVisual(); };
+            var surface = new Grid(); surface.Children.Add(plate); surface.Children.Add(rim);
             surface.SizeChanged += (_, _) => surface.Clip = MainframeTheme.Cut(new Rect(surface.Bounds.Size), 10, 4, 10, 4);
             popup = new Popup { PlacementTarget = target, Placement = PlacementMode.Bottom, IsLightDismissEnabled = true,
                 Child = surface };
