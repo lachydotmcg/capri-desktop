@@ -779,6 +779,7 @@ namespace CapriDesktop
             body.Size = Array.IndexOf(Sizes, Saved.Size) >= 0 ? Saved.Size : 240;
             RenderOptions.SetBitmapInterpolationMode(body, BitmapInterpolationMode.HighQuality);
             Content = body;
+            MacFiles.Drops(body, words => Hear(words));
             Fit();
             // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
             // so she follows where it really went. A Mac moves her window right away, as asked.

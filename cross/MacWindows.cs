@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Platform;
@@ -17,11 +19,11 @@ namespace CapriDesktop
 
         private sealed class Window
         {
-            internal int Pid;
+            internal int Pid, Index;
             internal string Title;
             internal PixelRect Bounds;
             internal bool Minimized;
-            internal string Key { get { return Pid + "\t" + Title; } }
+            internal string Key { get { return Pid + "\t" + (Title.Length == 0 ? "index:" + Index : "title:" + Title); } }
         }
 
         private sealed class Saved
@@ -34,10 +36,39 @@ namespace CapriDesktop
         private static readonly object gate = new object();
         private static readonly Dictionary<string, Saved> saved = new Dictionary<string, Saved>();
         private static string permission;
+        private const int Milliseconds = 10000;
+        internal static Func<ProcessStartInfo, int, string> Run = Command;
         internal static Func<List<Display>> Displays = () => new List<Display>();
         private const string Accessibility = "Turn Capri on in System Settings > Privacy & Security > Accessibility.";
         private const string Automation = "Allow Capri to control System Events in System Settings > Privacy & Security > Automation.";
-        private const string Reply = "set pt to position of w\nset sz to size of w\nreturn (unix id of p as text) & tab & (item 1 of pt as text) & tab & (item 2 of pt as text) & tab & (item 1 of sz as text) & tab & (item 2 of sz as text) & tab & (value of attribute \"AXMinimized\" of w as text) & tab & (name of w as text)\n";
+        private const string Title = "set titleText to name of w\nif titleText is missing value then set titleText to \"\"\nset titleText to titleText as text\n";
+        private const string Reply = "set pt to position of w\nset sz to size of w\nset minimized to false\nif exists attribute \"AXMinimized\" of w then set minimized to value of attribute \"AXMinimized\" of w\n" + Title + "return (unix id of p as text) & tab & (item 1 of pt as text) & tab & (item 2 of pt as text) & tab & (item 1 of sz as text) & tab & (item 2 of sz as text) & tab & (minimized as text) & tab & (wi as text) & tab & titleText\n";
+
+        private static ProcessStartInfo Start(string script)
+        {
+            var start = new ProcessStartInfo("/usr/bin/osascript") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+            start.ArgumentList.Add("-e");
+            start.ArgumentList.Add(script);
+            return start;
+        }
+
+        private static string Command(ProcessStartInfo start, int milliseconds)
+        {
+            try
+            {
+                using (Process process = Process.Start(start))
+                {
+                    if (process == null) return null;
+                    Task<string> output = process.StandardOutput.ReadToEndAsync(), error = process.StandardError.ReadToEndAsync();
+                    var clock = Stopwatch.StartNew();
+                    if (!process.WaitForExit(milliseconds)) { process.Kill(); return "timeout"; }
+                    int remaining = Math.Max(0, milliseconds - (int)clock.ElapsedMilliseconds);
+                    if (!Task.WaitAll(new Task[] { output, error }, remaining)) return "timeout";
+                    return process.ExitCode == 0 ? output.Result : error.Result;
+                }
+            }
+            catch (Exception) { return null; }
+        }
 
         internal static List<Display> ReadDisplays(IReadOnlyList<Screen> screens, PixelPoint? mouse)
         {
@@ -50,27 +81,28 @@ namespace CapriDesktop
         private static string Wrapped(string body)
         {
             return "try\ntell application \"System Events\"\nif not UI elements enabled then return \"accessibility\"\n" + body +
-                "end tell\non error msg number n\nif n is -1743 then return \"automation\"\nif n is -25211 or msg contains \"assistive access\" then return \"accessibility\"\nreturn \"error:\" & n\nend try";
+                "end tell\non error msg number n\nif n is -1743 then return \"automation\"\nif n is -25211 or n is -1719 or msg contains \"assistive access\" then return \"accessibility\"\nreturn \"error:\" & n\nend try";
         }
 
         private static string ReadScript(string name)
         {
-            return Wrapped("set wanted to " + MacNative.AppleString(name) + "\nrepeat with rank from 1 to 3\nrepeat with p in (every application process whose background only is false)\n" +
-                "if unix id of p is not " + Environment.ProcessId + " then\nrepeat with w in windows of p\nset appName to name of p as text\nset titleText to name of w as text\nignoring case\n" +
+            return Wrapped("set wanted to " + MacNative.AppleString(name) + "\nset stalled to false\nrepeat with rank from 1 to 3\nrepeat with p in (every application process whose background only is false)\ntry\n" +
+                "if unix id of p is not " + Environment.ProcessId + " then\nwith timeout of 2 seconds\nrepeat with wi from 1 to (count of windows of p)\nset w to window wi of p\nset appName to name of p as text\n" + Title + "ignoring case\n" +
                 "set fits to (rank is 1 and appName is wanted) or (rank is 2 and titleText is wanted) or (rank is 3 and (appName contains wanted or titleText contains wanted))\nend ignoring\n" +
-                "if fits then\n" + Reply + "end if\nend repeat\nend if\nend repeat\nend repeat\nreturn \"missing\"\n");
+                "if fits then\n" + Reply + "end if\nend repeat\nend timeout\nend if\non error msg number n\nif n is -1743 or n is -25211 or n is -1719 then error msg number n\nif n is -1712 then set stalled to true\nend try\nend repeat\nend repeat\nif stalled then return \"timeout\"\nreturn \"missing\"\n");
         }
 
         private static string PlaceScript(Window window, PixelRect to)
         {
             PixelRect before = window.Bounds;
             bool size = before.Width != to.Width || before.Height != to.Height;
-            return Wrapped("set p to first application process whose unix id is " + window.Pid + "\nset hits to every window of p whose name is " + MacNative.AppleString(window.Title) +
-                "\nif (count of hits) is not 1 then return \"ambiguous\"\nset w to item 1 of hits\n" +
+            string find = window.Title.Length == 0 ? "if not (exists window wi of p) then return \"changed\"\nset w to window wi of p\n" + Title + "if titleText is not \"\" then return \"changed\"\n" :
+                "set hits to every window of p whose name is " + MacNative.AppleString(window.Title) + "\nif (count of hits) is not 1 then return \"ambiguous\"\nset w to item 1 of hits\n";
+            return Wrapped("set p to first application process whose unix id is " + window.Pid + "\nset wi to " + window.Index + "\n" + find +
                 "if (position of w is not {" + before.X + ", " + before.Y + "}) or (size of w is not {" + before.Width + ", " + before.Height + "}) then return \"changed\"\n" +
                 "if exists attribute \"AXFullScreen\" of w then\nif value of attribute \"AXFullScreen\" of w then return \"fullscreen\"\nend if\n" +
                 (size ? "if not (settable of attribute \"AXSize\" of w) then return \"fixed\"\n" : "") +
-                "set visible of p to true\nset value of attribute \"AXMinimized\" of w to false\n" +
+                "set visible of p to true\nif exists attribute \"AXMinimized\" of w then\nif value of attribute \"AXMinimized\" of w then set value of attribute \"AXMinimized\" of w to false\nend if\n" +
                 (size && (before.X != to.X || before.Y != to.Y) ? "set position of w to {" + to.X + ", " + to.Y + "}\n" : "") +
                 (size ? "set size of w to {" + to.Width + ", " + to.Height + "}\n" : "") +
                 "set position of w to {" + to.X + ", " + to.Y + "}\ndelay 0.15\n" + Reply);
@@ -79,17 +111,20 @@ namespace CapriDesktop
         private static Window Parse(string text)
         {
             if (text == null) return null;
-            string[] parts = text.TrimEnd('\r', '\n').Split(new[] { '\t' }, 7);
-            if (parts.Length != 7) return null;
+            string[] parts = text.TrimEnd('\r', '\n').Split(new[] { '\t' }, 8);
+            if (parts.Length != 8) return null;
             int[] n = new int[5];
             for (int i = 0; i < n.Length; i++) if (!int.TryParse(parts[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out n[i])) return null;
             if (n[0] <= 0 || n[3] <= 0 || n[4] <= 0 || parts[5] != "true" && parts[5] != "false") return null;
-            return new Window { Pid = n[0], Bounds = new PixelRect(n[1], n[2], n[3], n[4]), Minimized = parts[5] == "true", Title = parts[6] };
+            int index;
+            if (!int.TryParse(parts[6], out index) || index < 1) return null;
+            return new Window { Index = index, Pid = n[0], Bounds = new PixelRect(n[1], n[2], n[3], n[4]), Minimized = parts[5] == "true", Title = parts[7] };
         }
 
         private static string Problem(string text)
         {
             string code = (text ?? "").Trim();
+            if (Regex.IsMatch(code, @"(?<!\d)-(?:1719|25211)(?!\d)")) code = "accessibility";
             if (code == "accessibility" || code == "automation")
             {
                 bool again = permission == code;
@@ -97,6 +132,7 @@ namespace CapriDesktop
                 return again ? "Window arranging still needs " + (code == "accessibility" ? "Accessibility." : "Automation.") : code == "accessibility" ? Accessibility : Automation;
             }
             permission = null;
+            if (code == "timeout") return "System Events didn't answer. If the Mac is waiting on a permission prompt, answer it and ask again.";
             if (code == "fixed") return "That app won't let me resize its window.";
             if (code == "fullscreen") return "Take that window out of full screen before arranging it.";
             if (code == "ambiguous") return "Those windows have the same title. Give one a different title first.";
@@ -112,7 +148,7 @@ namespace CapriDesktop
             if (string.IsNullOrWhiteSpace(name)) return "Which app?";
             lock (gate)
             {
-                string read = Music.Run("/usr/bin/osascript", new[] { "-e", ReadScript(name) });
+                string read = Run(Start(ReadScript(name)), Milliseconds);
                 Window window = Parse(read);
                 if (window == null) return Problem(read);
                 permission = null;
@@ -126,7 +162,7 @@ namespace CapriDesktop
                 string error = Target(window.Bounds, screens, args, remembered, out to);
                 if (error != null) return error;
                 if (args.Current != null && !args.Current()) return "The window request was cancelled.";
-                string placed = Music.Run("/usr/bin/osascript", new[] { "-e", PlaceScript(window, to) });
+                string placed = Run(Start(PlaceScript(window, to)), Milliseconds);
                 Window after = Parse(placed);
                 if (after == null) return Problem(placed);
                 if (after.Key != window.Key) return "I couldn't verify which window changed.";
@@ -271,7 +307,7 @@ namespace CapriDesktop
 
         internal static void Checks(List<string> checks)
         {
-            Func<string, string[], string> run = Music.Run;
+            var run = Run;
             Func<List<Display>> displays = Displays;
             Func<ToolArguments, string> native = Hands.NativeWindow;
             Func<bool> terminal = Hands.TerminalAvailable;
@@ -288,30 +324,31 @@ namespace CapriDesktop
                     new Display { Bounds = new PixelRect(-1200, -100, 1200, 1000), Work = new PixelRect(-1200, -75, 1200, 975) }
                 };
                 Displays = () => screens;
-                Window window = new Window { Pid = 123, Title = "Notes \"tonight\"", Bounds = new PixelRect(100, 125, 600, 400) };
+                Window window = new Window { Pid = 123, Index = 1, Title = "Notes \"tonight\"", Bounds = new PixelRect(100, 125, 600, 400) };
                 PixelRect original = window.Bounds;
                 string emitted = null, failure = null;
-                bool refuse = false;
+                bool refuse = false, timeOutPlace = false;
                 int writes = 0, calls = 0;
-                Music.Run = (file, argv) =>
+                Run = (start, milliseconds) =>
                 {
                     calls++;
-                    if (file != "/usr/bin/osascript" || argv.Length != 2 || argv[0] != "-e") throw new Exception("Mac arranging used the wrong command.");
-                    string script = argv[1];
+                    if (start.FileName != "/usr/bin/osascript" || start.ArgumentList.Count != 2 || start.ArgumentList[0] != "-e" || milliseconds != 10000) throw new Exception("Mac arranging lost its command or ten second timeout.");
+                    string script = start.ArgumentList[1];
                     if (!script.Contains("UI elements enabled") || !script.Contains("n is -1743")) throw new Exception("Mac arranging lost its permission checks.");
                     if (failure != null) return failure;
-                    if (script.Contains("set hits to"))
+                    if (script.Contains("set p to first application process"))
                     {
                         writes++;
                         emitted = script;
-                        if (!script.Contains("unix id is 123") || !script.Contains("whose name is \"Notes \\\"tonight\\\"\"") || !script.Contains("count of hits") || !script.Contains("position of w is not")) throw new Exception("Mac arranging did not bind its quoted window.");
+                        if (window.Title.Length > 0 && (!script.Contains("unix id is 123") || !script.Contains("whose name is \"Notes \\\"tonight\\\"\"") || !script.Contains("count of hits") || !script.Contains("position of w is not"))) throw new Exception("Mac arranging did not bind its quoted window.");
                         Match size = Regex.Match(script, @"set size of w to \{(-?\d+), (-?\d+)\}");
                         Match position = Regex.Match(script, @"set position of w to \{(-?\d+), (-?\d+)\}");
                         if (!position.Success) throw new Exception("Mac arranging did not set a position.");
                         if (!refuse) window.Bounds = new PixelRect(int.Parse(position.Groups[1].Value), int.Parse(position.Groups[2].Value), size.Success ? int.Parse(size.Groups[1].Value) : window.Bounds.Width, size.Success ? int.Parse(size.Groups[2].Value) : window.Bounds.Height);
                         window.Minimized = false;
+                        if (timeOutPlace) return "timeout";
                     }
-                    return window.Pid + "\t" + window.Bounds.X + "\t" + window.Bounds.Y + "\t" + window.Bounds.Width + "\t" + window.Bounds.Height + "\t" + (window.Minimized ? "true" : "false") + "\t" + window.Title;
+                    return window.Pid + "\t" + window.Bounds.X + "\t" + window.Bounds.Y + "\t" + window.Bounds.Width + "\t" + window.Bounds.Height + "\t" + (window.Minimized ? "true" : "false") + "\t" + window.Index + "\t" + window.Title;
                 };
                 Hands.OnMac = true;
                 Hands.TerminalAvailable = () => false;
@@ -380,8 +417,26 @@ namespace CapriDesktop
                 if (Request(new ToolArguments { Name = "Notes", Action = "maximize" }) != Automation) throw new Exception("Mac Automation guidance was missing.");
                 failure = null;
                 if (Problem("fixed") != "That app won't let me resize its window." || Parse("123\t0\t0\tbad") != null) throw new Exception("Mac arranging accepted an unreadable reply or hid a fixed window.");
-                Window quoted = Parse("123\t-100\t25\t600\t400\tfalse\tA \"quote\"\tand a tab\n");
+                Window quoted = Parse("123\t-100\t25\t600\t400\tfalse\t1\tA \"quote\"\tand a tab\n");
                 if (quoted == null || quoted.Title != "A \"quote\"\tand a tab" || !ReadScript("A \"quote\"").Contains("set wanted to \"A \\\"quote\\\"\"")) throw new Exception("Mac arranging lost quotes in a title.");
+                permission = null;
+                if (Problem("error:-1719") != Accessibility || !Wrapped("").Contains("n is -1719")) throw new Exception("Mac arranging missed Accessibility error -1719.");
+                failure = "timeout";
+                if (!Request(new ToolArguments { Name = "Notes", Action = "maximize" }).Contains("ask again")) throw new Exception("Mac arranging hid a timeout.");
+                failure = null;
+                timeOutPlace = true;
+                window.Bounds = original;
+                if (!Request(new ToolArguments { Name = "Notes", Action = "maximize" }).Contains("System Events didn't answer") || window.Bounds != screens[0].Work) throw new Exception("A timeout after moving a window became an app refusal.");
+                timeOutPlace = false;
+                window.Title = "";
+                window.Index = 2;
+                window.Bounds = original;
+                string untitled = Request(new ToolArguments { Name = "Notes", Action = "maximize" });
+                if (!untitled.StartsWith("Maximized") || !emitted.Contains("set wi to 2") || !emitted.Contains("set w to window wi of p") || emitted.Contains("ambiguous") || !emitted.Contains("if exists attribute \"AXMinimized\" of w then\nif value")) throw new Exception("Mac arranging lost an untitled or non-minimizable window.");
+                string readScript = ReadScript("Notes");
+                if (!readScript.Contains("false)\ntry\n") || !readScript.Contains("end try\nend repeat") || !readScript.Contains("if titleText is missing value") || !readScript.Contains("if exists attribute \"AXMinimized\" of w then")) throw new Exception("Mac window search lost its process guard or optional attributes.");
+                if (Parse("123\t0\t25\t600\t400\tfalse\t2\t\n").Title != "" || Milliseconds != 10000) throw new Exception("Mac arranging lost untitled replies or its timeout.");
+                checks.Add("PASS Mac arranging: ten second runner, timeout guidance, process guards, Accessibility -1719, optional minimization and untitled window indices");
                 checks.Add("PASS Mac arranging: quoted titles, relative measures, cancellation, refused bounds and permission guidance use fake commands");
                 Hands.OnMac = false;
                 foreach (string action in Actions)
@@ -392,7 +447,7 @@ namespace CapriDesktop
             }
             finally
             {
-                Music.Run = run;
+                Run = run;
                 Displays = displays;
                 Hands.NativeWindow = native;
                 Hands.TerminalAvailable = terminal;
