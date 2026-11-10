@@ -600,7 +600,7 @@ namespace CapriDesktop
                 case "draw": return "draw " + Plain(a.Description ?? a.Text, "on your screen");
                 case "desktop_icons": return a.Action == "back" ? "put your desktop icons back" : a.Action == "hide" ? "hide your desktop icons briefly" : "scatter your desktop icons";
                 case "mini_game": return "play " + Plain(a.Name, "a mini game").Replace('_', ' ');
-                case "fake_crash": return a.Action == "stop" ? "stop the fake blue screen" : "show the fake blue screen";
+                case "fake_crash": return a.Action == "stop" ? "stop the " + Hands.CrashKind : "show the " + Hands.CrashKind;
                 case "listen": return a.Action == "stop" ? "stop listening to PC dialogue" : "listen to PC dialogue";
                 case "list_windows": return "check your open windows";
                 case "check_app": return "check whether " + Plain(a.Name, "that app") + " is installed or running";
@@ -1305,8 +1305,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\",\"chess\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\",\"undo\",\"hint\",\"resign\",\"level\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move on a non-chess board\"},\"level\":{\"type\":\"string\",\"description\":\"Chess strength\",\"enum\":[\"easy\",\"normal\",\"hard\"]},\"side\":{\"type\":\"string\",\"description\":\"Their chess pieces\",\"enum\":[\"white\",\"black\"]}},\"required\":[\"name\"]}", "play her mini games with you (tic-tac-toe, connect four, rock paper scissors and chess) on her own desktop boards, even without a brain", "play tic-tac-toe, connect four, rock paper scissors or chess" },
             { "watch_for", "Watch for something that will show on their screen: tell me when, let me know when, warn me if, keep an eye on, or watch for. Stay quiet until it happens. Use remind for anything that goes by the clock. Watches last until she closes; list names them, stop with text stops a matching watch, and stop without text stops them all.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to watch for, in their words, or which watch to stop\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; watch by default\",\"enum\":[\"watch\",\"list\",\"stop\"]},\"often\":{\"type\":\"string\",\"description\":\"Once by default, or every time after the condition clears\",\"enum\":[\"once\",\"every_time\"]}}}", "watch your screen for something and tell you when it happens", "tell them when something shows on their screen" },
-            { "fake_crash", "Show your five-second fake blue screen or stop it when they ask, suggest or hint at the prank. It never crashes their PC and won't start over full screen, a stream or a mouse job.",
-              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"show or stop the prank\",\"enum\":[\"show\",\"stop\"]}},\"required\":[\"action\"]}", "show or stop her fake blue screen", "show or stop your fake blue screen" },
+            { "fake_crash", "Show your five-second " + CrashKind + " or stop it when they ask, suggest or hint at the prank. It never crashes their PC and won't start over full screen, a stream or a mouse job.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"show or stop the prank\",\"enum\":[\"show\",\"stop\"]}},\"required\":[\"action\"]}", "show or stop her " + CrashKind, "show or stop your " + CrashKind },
             { "voice_chat", "Turn your voice chat on or off, or read its status when they ask, suggest or hint at talking with you. The switch waits for this tool turn to finish.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"on, off or status\",\"enum\":[\"on\",\"off\",\"status\"]}},\"required\":[\"action\"]}", "turn voice chat on or off and check it", "turn voice chat on or off and check it" },
             { "speech", "Stop your current spoken reply when they ask, suggest or hint that you stop talking. Your voice stays enabled for later replies.",
@@ -1565,6 +1565,12 @@ namespace CapriDesktop
         // Plays one of her animations by name, or starts or stops her dance, and says how it went. Her window sets it.
         internal static Func<string, string> Animate = delegate { return "Couldn't do that just now."; };
         internal static Func<string, string> Mainframe = delegate { return "Couldn't open Mainframe."; };
+#if CROSS
+        internal const string CrashKind = "fake crash screen";
+#else
+        internal const string CrashKind = "fake blue screen";
+#endif
+        internal static Func<string, string> Crash = delegate { return "Couldn't show my " + CrashKind + "."; };
 #if !CROSS
         // Makes her clones or clears them, and says how it went. Her window sets it.
         internal static Func<string, int, string> Clone = delegate { return "Couldn't do that just now."; };
@@ -1574,7 +1580,6 @@ namespace CapriDesktop
         internal static Func<string, string> Icons = delegate { return "Couldn't do that just now."; };
         // Her own actions as tools: her fake blue screen, voice chat, stopping what she's saying, her running job, quitting,
         // Mainframe, updates, her mini player and her saved clips. Her window sets them.
-        internal static Func<string, string> Crash = delegate { return "Couldn't show my fake blue screen."; };
         internal static Func<ToolArguments, string> VoiceChat = delegate { return "Couldn't change voice chat."; };
         internal static Func<string> StopSpeech = delegate { return "Stopped talking."; };
         internal static Func<ToolArguments, string> JobControl = delegate { return "I'm not on a job right now."; };
@@ -1777,6 +1782,7 @@ namespace CapriDesktop
                 if (tool == "quit") return Valid(tool, args) ? Quit(args) : "Couldn't find that quit action.";
                 if (tool == "updates") return Valid(tool, args) ? Updates(args) : "Couldn't find that update action.";
                 if (tool == "draw") return Draw(args);
+                if (tool == "fake_crash") return Valid(tool, args) ? Crash(args.Action) : "Couldn't find that fake crash action.";
 #if !CROSS
                 if (tool == "app_volume") return AppVolume(args);
                 if (tool == "pc_status") return PcStatus(args.Name);
@@ -1784,7 +1790,6 @@ namespace CapriDesktop
                 if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
                 if (tool == "hologram") return Hologram(args.Action);
                 if (tool == "desktop_icons") return Icons(args.Action);
-                if (tool == "fake_crash") return Valid(tool, args) ? Crash(args.Action) : "Couldn't find that fake crash action.";
                 if (tool == "voice_chat") return Valid(tool, args) ? VoiceChat(args) : "Couldn't find that voice chat action.";
                 if (tool == "mini_player") return Valid(tool, args) ? MiniPlayer(args.Action) : "Couldn't find that mini player action.";
 #endif
@@ -2115,7 +2120,7 @@ namespace CapriDesktop
         private static readonly string[] MacPresses = { "screenshot", "task_manager", "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "quick_settings", "voice_typing", "clipboard" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
         // Her moves that only Windows has so far.
         private static string[] WindowsMoves { get { return OnMac ? new[] { "sit_on" } : new string[0]; } }
-        private static readonly string[] WindowsTools = { "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen", "fake_crash", "voice_chat", "mini_player" };
+        private static readonly string[] WindowsTools = { "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen", "voice_chat", "mini_player" };
         // Her window tool's arranging, which only Windows has so far.
         private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 #endif
@@ -2204,7 +2209,11 @@ namespace CapriDesktop
             { "clone", "clones and chaos mode", NoClones },
             { "hologram", "hologram mode", NoHologram },
             { "desktop_icons", "messing with their desktop icons", NoIcons },
+#if CROSS
+            { "fake_crash", "the fake crash screen", "Couldn't show my fake crash screen." },
+#else
             { "fake_crash", "the fake blue screen", "My fake blue screen is only on Windows for now." },
+#endif
             { "voice_chat", "voice chat", "Voice chat is only on Windows for now." },
             { "speech", "stopping the current spoken reply", "Stopping my current reply with a tool is only on Windows for now." },
             { "job_control", "controlling the running job", "Job control is only on Windows for now." },

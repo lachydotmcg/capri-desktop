@@ -154,6 +154,7 @@ namespace CapriDesktop
                 MacWindows.Checks(checks);
                 UpdateCheckChecks();
                 OfflineChecks();
+                FakeCrash.Checks(checks);
                 ProviderErrorChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");

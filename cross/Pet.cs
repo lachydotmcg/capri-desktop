@@ -698,6 +698,7 @@ namespace CapriDesktop
             AttachSelfTools();
             Hands.Animate = AnimateTool;
             StartInk();
+            AttachCrash();
             // Her settings tool reads and changes what her menus show.
             Hands.SettingOn = SettingOn;
             Hands.SetSetting = SetSetting;
@@ -4401,7 +4402,7 @@ namespace CapriDesktop
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
             StopListening();
-            if (modSendDepth == 0 && System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); return; }
+            if (modSendDepth == 0 && System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); return; }
             if (!meeting.Asking)
             {
                 // A code mod can change or take what they said first, like on Windows.
