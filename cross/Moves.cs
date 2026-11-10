@@ -109,6 +109,7 @@ namespace CapriDesktop
 
         private bool CursorThrough(bool through)
         {
+            through = through || Hands.OnMac && Saved.Hologram;
             if (RideThrough != null) return RideThrough(through);
             try { return OperatingSystem.IsMacOS() ? Ink.Through(this, through) : HerCursor.ClicksThrough(this, through); }
             catch (Exception) { return false; }
@@ -310,7 +311,10 @@ namespace CapriDesktop
             Func<string, string, string> moveSelf = Hands.MoveSelf;
             bool mac = Hands.OnMac, facing = pet.FacingLeft;
             int savedX = pet.Saved.X, savedY = pet.Saved.Y;
-            bool placed = pet.Saved.Placed;
+            bool placed = pet.Saved.Placed, hologram = pet.Saved.Hologram;
+            var trusted = MacFingers.Trusted;
+            var sink = MacFingers.Sink;
+            var pause = MacFingers.Pause;
             PixelPoint[] asked = pet.asked.ToArray();
             PixelRect area = new PixelRect(-800, -100, 1600, 1000);
             double now = 0;
@@ -354,6 +358,10 @@ namespace CapriDesktop
             try
             {
                 pet.Desk = fake;
+                pet.Saved.Hologram = false;
+                MacFingers.Trusted = () => true;
+                MacFingers.Sink = _ => { };
+                MacFingers.Pause = _ => { };
                 pet.MoveClock = () => now;
                 pet.RideThrough = on => { clicksThrough = on; clicks.Add(on); return true; };
                 Hands.SettingOn = _ => true;
@@ -405,6 +413,16 @@ namespace CapriDesktop
                     if (tool("hop_off", null) != "Hopped off your cursor." || pet.riding || clicksThrough || clicks.Count != clickCount + 2 || clicks[clickCount + 1] || !pet.falling || pet.clip != pet.grin) throw new Exception("Hop off did not restore clicks.");
                     settle();
                     if (tool("hop_off", null) != "I'm not riding your cursor.") throw new Exception("Hop off claimed a second ride.");
+                    if (platform)
+                    {
+                        pet.Saved.Hologram = true;
+                        tool("ride_cursor", null);
+                        tool("hop_off", null);
+                        if (pet.riding || !clicksThrough) throw new Exception("Hopping off turned hologram clicks back on.");
+                        pet.Saved.Hologram = false;
+                        pet.CursorThrough(false);
+                        settle();
+                    }
                 }
                 Hands.OnMac = false;
                 if (tool("sit_on", "my Roblox window") != "Sitting on your Roblox window." || !pet.askedHop) throw new Exception("Named seating did not use the tool.");
@@ -465,6 +483,12 @@ namespace CapriDesktop
                         pet.BeginWork();
                         pet.EndWork();
                         if (!pet.Brain.Act("capri_settings", new ToolArguments { Action = "list", Name = "quiet" }).Contains(" on") || !(pet.riding || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0)) throw new Exception("A non-job tool ended " + action + ".");
+                        if (platform)
+                        {
+                            MacFingers.Chord(new byte[] { 0x11, 0x43 });
+                            MacFingers.Shortcut("emoji");
+                            if (InControl.Shortcut || !(pet.riding || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0)) throw new Exception("A Mac shortcut or chord ended " + action + " or leaked its hold flag.");
+                        }
                         using (InControl.Hold())
                             if (pet.riding || clicksThrough || pet.lying || pet.walking || pet.askedHop || pet.lieBy >= 0 || pet.outro != null) throw new Exception("Computer input did not end " + action + ".");
                         settle();
@@ -500,7 +524,7 @@ namespace CapriDesktop
                 pet.Nap(false);
                 checks.Add("PASS asked moves on Mac and Linux use her walk, perch and laydown clips, keep her in the work area, land on real seats and stop for dragging, naps and work");
                 checks.Add("PASS sit up and hop off end their moves, losing the cursor drops her safely, Linux finds a named window and Mac keeps its named window gap");
-                checks.Add("PASS non-job tools keep moves running, input holds stop moves, background stops post without waiting, rides pass clicks through and exits restore clicks");
+                checks.Add("PASS non-job tools and Mac shortcuts keep moves running, job input holds stop moves, background stops post without waiting, and rides restore hologram click-through");
             }
             finally
             {
@@ -515,6 +539,8 @@ namespace CapriDesktop
                 pet.Fit();
                 pet.asked.Clear(); pet.asked.AddRange(asked);
                 pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
+                pet.Saved.Hologram = hologram;
+                MacFingers.Trusted = trusted; MacFingers.Sink = sink; MacFingers.Pause = pause;
             }
         }
     }

@@ -693,6 +693,14 @@ namespace CapriDesktop
         // Esc is advertised only by a native session whose target-specific watcher is armed.
         internal static Func<string> NativeStopHint;
         internal static Action Started = delegate { };
+        [ThreadStatic] internal static bool Shortcut;
+        internal static IDisposable Hold(bool shortcut)
+        {
+            bool before = Shortcut;
+            Shortcut = shortcut;
+            try { return Hold(); }
+            finally { Shortcut = before; }
+        }
         internal static string Line { get { return NativeStopHint?.Invoke() ?? "Capri's using your mouse. Say stop to stop her."; } }
 #else
         internal const string Line = "Capri's using your mouse. Esc stops her.";

@@ -5134,6 +5134,38 @@ namespace CapriDesktop
         // keyboard (watched here instead), again until the brain says done or stop; and its replies, keys and secrets read right.
         private void ChoresChecks()
         {
+            bool streaming = Hands.Streaming;
+            Func<byte[]> shoot = Chores.Shoot;
+            Action<string, System.Text.Json.JsonElement> doing = Chores.Doing;
+            Func<string, string> skills = Chores.Skills;
+            try
+            {
+                Brain brain = new Brain { Model = "stream-check" };
+                SelfJobs.Run(new ToolArguments { Task = "held job" }, args =>
+                {
+                    foreach (bool mode in new[] { true, false })
+                    {
+                        Hands.Streaming = mode;
+                        string refused = Chores.Run(brain, mode ? "open a folder" : "stream mode", null);
+                        if (refused != "I'm already on a job." || Hands.Streaming != mode) throw new Exception("A refused job changed the running stream mode.");
+                    }
+                    return "held job";
+                }, delegate { });
+                int runs = 0;
+                Chores.Doing = delegate { };
+                Chores.Skills = null;
+                Chores.Shoot = delegate
+                {
+                    runs++;
+                    if (Hands.Streaming != (runs == 1)) throw new Exception("A changed job kept the previous stream mode.");
+                    if (runs == 1) SelfJobs.Control(new ToolArguments { Action = "change", Task = "open a folder" });
+                    return null;
+                };
+                Chores.Run(brain, "stream mode", null);
+                if (runs != 2 || Hands.Streaming) throw new Exception("A changed stream did not run its plain task or release stream mode.");
+                checks.Add("PASS refused jobs leave stream mode alone and changing a stream to a plain task clears it for the next run");
+            }
+            finally { Hands.Streaming = streaming; Chores.Shoot = shoot; Chores.Doing = doing; Chores.Skills = skills; }
             List<string> wrong = new List<string>();
             Func<string, bool, string> fail = delegate(string what, bool ok) { if (!ok) wrong.Add(what); return what; };
             System.Text.Json.JsonElement order;

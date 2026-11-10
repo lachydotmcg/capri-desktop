@@ -128,20 +128,27 @@ namespace CapriDesktop
                     }) : Task.FromResult("");
                     Task<string> errors = start.RedirectStandardError ? process.StandardError.ReadToEndAsync() : Task.FromResult("");
                     var clock = Stopwatch.StartNew();
-                    bool timedOut = false;
+                    bool timedOut = false, killed = false;
                     while (!process.WaitForExit(25))
                     {
                         timedOut = clock.ElapsedMilliseconds >= milliseconds;
-                        if (timedOut || output.IsCompleted && capped || stopped != null && stopped()) { process.Kill(); break; }
+                        if (timedOut || output.IsCompleted && capped || stopped != null && stopped()) { process.Kill(); killed = true; break; }
                     }
                     int remaining = Math.Max(0, milliseconds - (int)clock.ElapsedMilliseconds);
-                    if (!process.WaitForExit(remaining)) return new Reply { Code = -1, TimedOut = true, Capped = capped };
-                    remaining = Math.Max(0, milliseconds - (int)clock.ElapsedMilliseconds);
-                    if (!Task.WaitAll(new Task[] { output, errors }, remaining)) return new Reply { Text = output.IsCompletedSuccessfully ? output.Result : "", Code = -1, TimedOut = true, Capped = capped };
-                    return new Reply { Text = output.Result, Error = errors.Result, Code = process.ExitCode, TimedOut = timedOut, Capped = capped };
+                    return Collect(output, errors, process.WaitForExit, () => process.ExitCode, remaining, killed, timedOut, capped);
                 }
             }
             catch (Exception) { return new Reply { Code = -1 }; }
+        }
+
+        private static Reply Collect(Task<string> output, Task<string> errors, Func<int, bool> wait, Func<int> code, int remaining, bool killed, bool timedOut, bool capped)
+        {
+            remaining = killed ? 500 : remaining;
+            var clock = Stopwatch.StartNew();
+            if (!wait(remaining)) return new Reply { Text = output.IsCompletedSuccessfully ? output.Result : "", Code = -1, TimedOut = true, Capped = capped };
+            remaining = Math.Max(0, remaining - (int)clock.ElapsedMilliseconds);
+            if (!Task.WaitAll(new Task[] { output, errors }, remaining)) return new Reply { Text = output.IsCompletedSuccessfully ? output.Result : "", Code = -1, TimedOut = true, Capped = capped };
+            return new Reply { Text = output.Result, Error = errors.Result, Code = code(), TimedOut = timedOut, Capped = capped };
         }
 
         internal static void Stop() { lock (gate) if (searching != null) searching.Cancel(); }
@@ -483,6 +490,15 @@ namespace CapriDesktop
                 checks.Add("PASS files: text reads page at 24000 characters and keep contents as data, with home paths and quoted names");
                 string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
                 var command = SearchCommand(home, "quote.txt");
+                var pending = new TaskCompletionSource<string>();
+                Reply drained = Collect(pending.Task, Task.FromResult(""), time =>
+                {
+                    if (time != 500) throw new Exception("A killed Spotlight search did not get its drain time.");
+                    pending.SetResult(home + "/quote.txt\0");
+                    return true;
+                }, () => -1, 0, true, true, false);
+                if (!drained.TimedOut || Paths(drained.Text, "quote.txt", home).Count != 1) throw new Exception("A killed Spotlight search lost its drained matches.");
+                checks.Add("PASS Spotlight keeps completed paths after its deadline and gives a killed process and readers 500 ms to drain");
                 if (command.FileName != "/usr/bin/mdfind" || command.ArgumentList[0] != "-0" || command.ArgumentList[1] != "-onlyin" || command.ArgumentList[2] != home || command.ArgumentList[3] != "-name") throw new Exception("Spotlight stopped searching names in home.");
                 var output = new StringBuilder();
                 for (int i = 0; i < Limit + 5; i++) output.Append(home + "/quote '" + i + ".txt\0");

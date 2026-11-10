@@ -41,6 +41,7 @@ namespace CapriDesktop
         internal static Func<List<Display>> Displays = () => new List<Display>();
         private const string Accessibility = "Turn Capri on in System Settings > Privacy & Security > Accessibility.";
         private const string Automation = "Allow Capri to control System Events in System Settings > Privacy & Security > Automation.";
+        internal const string Timeout = "System Events didn't answer. If the Mac is waiting on a permission prompt, answer it and ask again.";
         private const string Title = "set titleText to name of w\nif titleText is missing value then set titleText to \"\"\nset titleText to titleText as text\n";
         private const string Reply = "set pt to position of w\nset sz to size of w\nset minimized to false\nif exists attribute \"AXMinimized\" of w then set minimized to value of attribute \"AXMinimized\" of w\n" + Title + "return (unix id of p as text) & tab & (item 1 of pt as text) & tab & (item 2 of pt as text) & tab & (item 1 of sz as text) & tab & (item 2 of sz as text) & tab & (minimized as text) & tab & (wi as text) & tab & titleText\n";
 
@@ -74,8 +75,18 @@ namespace CapriDesktop
         {
             List<Display> found = new List<Display>();
             foreach (Screen screen in screens)
-                found.Add(new Display { Bounds = screen.Bounds, Work = screen.WorkingArea, Primary = screen.IsPrimary, Pointed = mouse.HasValue && screen.Bounds.Contains(mouse.Value) });
+                found.Add(ReadDisplay(screen.Bounds, screen.WorkingArea, screen.Scaling, screen.IsPrimary, mouse));
             return found;
+        }
+
+        private static Display ReadDisplay(PixelRect bounds, PixelRect work, double scaling, bool primary, PixelPoint? mouse)
+        {
+            return new Display { Bounds = Points(bounds, scaling), Work = Points(work, scaling), Primary = primary, Pointed = mouse.HasValue && bounds.Contains(mouse.Value) };
+        }
+
+        private static PixelRect Points(PixelRect rect, double scaling)
+        {
+            return new PixelRect((int)Math.Round(rect.X / scaling), (int)Math.Round(rect.Y / scaling), (int)Math.Round(rect.Width / scaling), (int)Math.Round(rect.Height / scaling));
         }
 
         private static string Wrapped(string body)
@@ -87,9 +98,9 @@ namespace CapriDesktop
         private static string ReadScript(string name)
         {
             return Wrapped("set wanted to " + MacNative.AppleString(name) + "\nset stalled to false\nrepeat with rank from 1 to 3\nrepeat with p in (every application process whose background only is false)\ntry\n" +
-                "if unix id of p is not " + Environment.ProcessId + " then\nwith timeout of 2 seconds\nrepeat with wi from 1 to (count of windows of p)\nset w to window wi of p\nset appName to name of p as text\n" + Title + "ignoring case\n" +
+                "if unix id of p is not " + Environment.ProcessId + " then\nwith timeout of 2 seconds\nrepeat with wi from 1 to (count of windows of p)\ntry\nset w to window wi of p\nset appName to name of p as text\n" + Title + "ignoring case\n" +
                 "set fits to (rank is 1 and appName is wanted) or (rank is 2 and titleText is wanted) or (rank is 3 and (appName contains wanted or titleText contains wanted))\nend ignoring\n" +
-                "if fits then\n" + Reply + "end if\nend repeat\nend timeout\nend if\non error msg number n\nif n is -1743 or n is -25211 or n is -1719 then error msg number n\nif n is -1712 then set stalled to true\nend try\nend repeat\nend repeat\nif stalled then return \"timeout\"\nreturn \"missing\"\n");
+                "if fits then\n" + Reply + "end if\non error msg number n\nif n is -1743 or n is -25211 then error msg number n\nif n is -1712 then set stalled to true\nend try\nend repeat\nend timeout\nend if\non error msg number n\nif n is -1743 or n is -25211 then error msg number n\nif n is -1712 then set stalled to true\nend try\nend repeat\nend repeat\nif stalled then return \"timeout\"\nreturn \"missing\"\n");
         }
 
         private static string PlaceScript(Window window, PixelRect to)
@@ -132,7 +143,7 @@ namespace CapriDesktop
                 return again ? "Window arranging still needs " + (code == "accessibility" ? "Accessibility." : "Automation.") : code == "accessibility" ? Accessibility : Automation;
             }
             permission = null;
-            if (code == "timeout") return "System Events didn't answer. If the Mac is waiting on a permission prompt, answer it and ask again.";
+            if (code == "timeout") return Timeout;
             if (code == "fixed") return "That app won't let me resize its window.";
             if (code == "fullscreen") return "Take that window out of full screen before arranging it.";
             if (code == "ambiguous") return "Those windows have the same title. Give one a different title first.";
@@ -320,9 +331,10 @@ namespace CapriDesktop
                 permission = null;
                 List<Display> screens = new List<Display>
                 {
-                    new Display { Bounds = new PixelRect(0, 0, 1440, 900), Work = new PixelRect(0, 25, 1440, 825), Primary = true, Pointed = true },
-                    new Display { Bounds = new PixelRect(-1200, -100, 1200, 1000), Work = new PixelRect(-1200, -75, 1200, 975) }
+                    ReadDisplay(new PixelRect(0, 0, 2880, 1800), new PixelRect(0, 50, 2880, 1650), 2, true, new PixelPoint(2000, 1200)),
+                    ReadDisplay(new PixelRect(-1200, -100, 1200, 1000), new PixelRect(-1200, -75, 1200, 975), 1, false, new PixelPoint(2000, 1200))
                 };
+                if (screens[0].Bounds != new PixelRect(0, 0, 1440, 900) || screens[0].Work != new PixelRect(0, 25, 1440, 825) || !screens[0].Pointed || screens[1].Bounds != new PixelRect(-1200, -100, 1200, 1000) || screens[1].Pointed) throw new Exception("Mac arranging did not convert each display to points or kept the pointer in points.");
                 Displays = () => screens;
                 Window window = new Window { Pid = 123, Index = 1, Title = "Notes \"tonight\"", Bounds = new PixelRect(100, 125, 600, 400) };
                 PixelRect original = window.Bounds;
@@ -380,6 +392,7 @@ namespace CapriDesktop
                         else expected = left ? new PixelRect(-1129, 20, 600, 480) : new PixelRect(40, 85, 720, 480);
                         string result = Hands.Do("app_window", args);
                         if (window.Bounds != expected || result == null || !emitted.Contains("set position of w to {" + expected.X + ", " + expected.Y + "}")) throw new Exception("Mac " + action + " missed its work area: " + window.Bounds + " expected " + expected);
+                        if (action == "maximize" && !left && !emitted.Contains("set size of w to {1440, 825}")) throw new Exception("Mac Retina maximize did not set its point size.");
                         if (action == "maximize" || action.StartsWith("snap_", StringComparison.Ordinal))
                         {
                             Request(new ToolArguments { Name = "Notes", Action = "restore" });
@@ -434,6 +447,8 @@ namespace CapriDesktop
                 string untitled = Request(new ToolArguments { Name = "Notes", Action = "maximize" });
                 if (!untitled.StartsWith("Maximized") || !emitted.Contains("set wi to 2") || !emitted.Contains("set w to window wi of p") || emitted.Contains("ambiguous") || !emitted.Contains("if exists attribute \"AXMinimized\" of w then\nif value")) throw new Exception("Mac arranging lost an untitled or non-minimizable window.");
                 string readScript = ReadScript("Notes");
+                if (!readScript.Contains("repeat with wi from 1 to (count of windows of p)\ntry\nset w to window wi of p") || !readScript.Contains("end try\nend repeat\nend timeout") || readScript.Contains("n is -1719 then error") || !readScript.Contains("if n is -1743 or n is -25211 then error msg number n")) throw new Exception("Mac window search treated a closed window as a permission failure.");
+                checks.Add("PASS Mac arranging: per-screen Retina points, pixel pointer selection and maximize size; vanished window indices are skipped inside the walk");
                 if (!readScript.Contains("false)\ntry\n") || !readScript.Contains("end try\nend repeat") || !readScript.Contains("if titleText is missing value") || !readScript.Contains("if exists attribute \"AXMinimized\" of w then")) throw new Exception("Mac window search lost its process guard or optional attributes.");
                 if (Parse("123\t0\t25\t600\t400\tfalse\t2\t\n").Title != "" || Milliseconds != 10000) throw new Exception("Mac arranging lost untitled replies or its timeout.");
                 checks.Add("PASS Mac arranging: ten second runner, timeout guidance, process guards, Accessibility -1719, optional minimization and untitled window indices");

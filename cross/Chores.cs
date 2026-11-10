@@ -91,11 +91,14 @@ namespace CapriDesktop
 
         internal static string Run(Brain brain, string job, string asked)
         {
-            // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
-            // a plain job over its stream tool.
-            if (Hands.StreamAsked(job) || !brain.WorksOut() && Hands.StreamAsked(asked)) Hands.Streaming = true;
-            try { return SelfJobs.Run(new ToolArguments { Task = job, Asked = asked }, args => Work(brain, args.Task, args.Asked), delegate { }); }
-            finally { Hands.Streaming = false; }
+            return SelfJobs.Run(new ToolArguments { Task = job, Asked = asked }, args =>
+            {
+                // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
+                // a plain job over its stream tool.
+                Hands.Streaming = Hands.StreamAsked(args.Task) || !brain.WorksOut() && Hands.StreamAsked(args.Asked);
+                try { return Work(brain, args.Task, args.Asked); }
+                finally { Hands.Streaming = false; }
+            }, delegate { });
         }
 
         // Her pointer parks however the job ends, even one that can't start. Her sign is up from her first look until the job

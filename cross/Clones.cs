@@ -421,11 +421,11 @@ namespace CapriDesktop
             bool was = Saved.Hologram;
             try
             {
-                foreach (Window window in new Window[] { this, Talk.Pill, Talk.Bubble }) cloneThrough(window, on);
+                foreach (Window window in new Window[] { this, Talk.Pill, Talk.Bubble }) cloneThrough(window, on || Hands.OnMac && window == this && riding);
             }
             catch
             {
-                foreach (Window window in new Window[] { this, Talk.Pill, Talk.Bubble }) cloneThrough(window, was);
+                foreach (Window window in new Window[] { this, Talk.Pill, Talk.Bubble }) cloneThrough(window, was || Hands.OnMac && window == this && riding);
                 throw;
             }
             if (on)
@@ -572,6 +572,7 @@ namespace CapriDesktop
             Action<Window, bool> through = pet.cloneThrough;
             MenuItem menu = pet.hologramItem;
             bool saved = pet.Saved.Hologram, drawn = pet.body.HologramOn;
+            bool riding = pet.riding;
             var applied = new Dictionary<Window, bool>();
             try
             {
@@ -611,10 +612,17 @@ namespace CapriDesktop
                 pet.hologramItem.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
                 if (pet.Saved.Hologram || pet.hologramItem.IsChecked || !before.SequenceEqual(pixels()) || applied.Values.Any(on => on)) throw new Exception("The Hologram menu did not restore her pixels and clicks.");
                 if (new Settings().Hologram || HologramArt.Tint(0) != 0) throw new Exception("Hologram changed defaults or transparent pixels.");
+                Hands.OnMac = true;
+                pet.riding = true;
+                pet.SetHologram(true);
+                pet.SetHologram(false);
+                if (pet.Saved.Hologram || pet.hologramItem.IsChecked || !applied[pet] || applied[pet.Talk.Pill] || applied[pet.Talk.Bubble]) throw new Exception("Turning hologram off during a Mac ride stopped passing clicks through her body.");
+                checks.Add("PASS turning hologram off during a Mac ride keeps her body transparent to clicks until the ride ends");
             }
             finally
             {
                 pet.Saved.Hologram = saved;
+                Hands.OnMac = mac; pet.riding = riding;
                 pet.body.HologramOn = drawn;
                 pet.body.Hologram.Dispose();
                 pet.body.HologramMouth.Dispose();

@@ -28,7 +28,8 @@ namespace CapriDesktop
         internal static Func<Display[]> Displays = Screens;
         internal static Func<int> Foreground = Focused;
         private static int inputPane;
-        private static bool automationBlocked;
+        private static long automationUntil;
+        internal static Func<long> Now = () => Environment.TickCount64;
         private const string Automation = "Allow Capri to control System Events in System Settings > Privacy & Security > Automation.";
 
         [StructLayout(LayoutKind.Sequential)]
@@ -351,7 +352,7 @@ namespace CapriDesktop
 
         internal static void Chord(byte[] keys)
         {
-            using (InControl.Hold())
+            using (InControl.Hold(true))
                 if (!Keys(ChordKeys(keys))) throw new InvalidOperationException("That shortcut has no Mac key mapping.");
         }
 
@@ -369,7 +370,7 @@ namespace CapriDesktop
                 if (!OperatingSystem.IsMacOSVersionAtLeast(26)) return "Clipboard history needs macOS Tahoe 26 or later.";
                 string missing = Problem();
                 if (missing != null) return missing;
-                using (InControl.Hold())
+                using (InControl.Hold(true))
                 {
                     Keys(ClipboardKeys[0]); Pause(200); Keys(ClipboardKeys[1]);
                 }
@@ -383,7 +384,7 @@ namespace CapriDesktop
                 ComputerSnapshot snapshot = new Desktop().Snapshot(focus: true);
                 if (snapshot.Target.App.IndexOf("discord", StringComparison.OrdinalIgnoreCase) < 0) return "Bring Discord to the front, then ask again.";
             }
-            using (InControl.Hold()) Keys(keys);
+            using (InControl.Hold(true)) Keys(keys);
             if (name == "magnifier") return "Sent the Mac zoom shortcut. Enable keyboard shortcuts in System Settings > Accessibility > Zoom if it did nothing.";
             if (name == "record") return "Opened screenshot and recording controls. Choose Record, or use the stop button in the menu bar.";
             return "Sent " + keys.Replace("+", " + ") + ".";
@@ -454,12 +455,13 @@ namespace CapriDesktop
 
         private static void Focus(int pid)
         {
-            if (automationBlocked) throw new InvalidOperationException("App focus still needs Automation.");
+            if (Now() < automationUntil) throw new InvalidOperationException("App focus still needs Automation.");
             string script = "try\ntell application \"System Events\" to set frontmost of (first process whose unix id is " + pid.ToString(CultureInfo.InvariantCulture) + ") to true\nreturn \"focused\"\non error msg number n\nif n is -1743 or n is -1744 then return \"automation\"\nreturn \"error\"\nend try";
-            string reply = Music.Run("/usr/bin/osascript", new[] { "-e", script })?.Trim();
+            string reply = MacWindows.Run(ComputerProcess.Start("/usr/bin/osascript", new[] { "-e", script }), 10000)?.Trim();
+            if (reply == "timeout") throw new InvalidOperationException(MacWindows.Timeout);
             if (reply == "automation")
             {
-                automationBlocked = true;
+                automationUntil = Now() + 180000;
                 throw new InvalidOperationException(Automation);
             }
             if (reply != "focused") throw new InvalidOperationException("Couldn't bring the target app to the front.");
@@ -517,7 +519,7 @@ namespace CapriDesktop
                 int active = Foreground();
                 if (active == picked.Target.Pid)
                 {
-                    automationBlocked = false;
+                    automationUntil = 0;
                     return picked with { Active = true };
                 }
                 if (focus && active == Environment.ProcessId)
@@ -720,14 +722,15 @@ namespace CapriDesktop
         internal static void Checks(List<string> checks)
         {
             var trusted = Trusted; var launch = Launch; var sink = Sink; var pause = Pause; var position = Position; var displays = Displays;
-            var foreground = Foreground; var run = Music.Run;
+            var foreground = Foreground; var run = MacWindows.Run; var now = Now; var music = Music.Run;
             var handsReady = Hands.HandsReady; var handsProblem = Hands.HandsProblem;
             bool macWas = Hands.OnMac, ownWas = Hands.OwnHands, clipboardWas = Hands.MacClipboard;
             bool wasOpened = opened;
-            bool wasBlocked = automationBlocked;
+            long wasBlocked = automationUntil;
             try
             {
                 List<Event> events = new List<Event>(); int panes = 0;
+                Music.Run = (tool, args) => { throw new Exception("Mac focus used the short music runner."); };
                 Trusted = () => true; Sink = events.Add; Pause = _ => { }; Position = () => new Point(30, 40);
                 Displays = () => new[] { new Display(1, 1, new ComputerRect(0, 0, 1440, 900), 2880, 1800), new Display(2, 2, new ComputerRect(-1920, -200, 1920, 1080), 1920, 1080) };
                 if (Displays()[0].Output.Scale != 2 || Displays()[0].Output.PixelWidth != 2880 || Displays()[0].Output.PixelHeight != 1800 || Displays()[1].Output.Scale != 1) throw new Exception("Mac Retina output dimensions");
@@ -819,12 +822,14 @@ namespace CapriDesktop
                 ComputerSnapshot picked = desktop.Source with { Target = desktop.Source.Target with { Pid = Environment.ProcessId + 1 } };
                 int active = Environment.ProcessId, focuses = 0, reads = 0;
                 Foreground = () => active;
-                Music.Run = (tool, args) =>
+                MacWindows.Run = (start, milliseconds) =>
                 {
-                    if (tool != "/usr/bin/osascript" || args.Length != 2 || args[0] != "-e" || !args[1].Contains("tell application \"System Events\" to set frontmost of (first process whose unix id is " + picked.Target.Pid.ToString(CultureInfo.InvariantCulture) + ") to true")) throw new Exception("Mac focus command");
+                    if (start.FileName != "/usr/bin/osascript" || milliseconds != 10000 || start.ArgumentList.Count != 2 || start.ArgumentList[0] != "-e" || !start.ArgumentList[1].Contains("tell application \"System Events\" to set frontmost of (first process whose unix id is " + picked.Target.Pid.ToString(CultureInfo.InvariantCulture) + ") to true")) throw new Exception("Mac focus command");
                     focuses++; active = picked.Target.Pid; return "focused\n";
                 };
-                automationBlocked = false;
+                automationUntil = 0;
+                long tick = 0;
+                Now = () => tick;
                 Desktop target = new Desktop(read: output => { reads++; return picked; });
                 if (!target.Snapshot(focus: true).Active || reads != 2 || focuses != 1) throw new Exception("Mac typed focus handoff");
                 active = Environment.ProcessId; reads = 0;
@@ -840,15 +845,28 @@ namespace CapriDesktop
                 catch (InvalidOperationException) { }
                 if (focuses != before) throw new Exception("Mac unexpected focus command");
                 active = Environment.ProcessId;
-                Music.Run = (tool, args) => { focuses++; return "automation\n"; };
+                MacWindows.Run = (start, milliseconds) => { focuses++; return "timeout"; };
+                try { target.Snapshot(focus: true); throw new Exception("Mac hid its focus timeout"); }
+                catch (InvalidOperationException error) { if (error.Message != MacWindows.Timeout) throw; }
+                if (automationUntil != 0) throw new Exception("Mac focus timeout blocked the next prompt");
+                MacWindows.Run = (start, milliseconds) => { focuses++; return "automation\n"; };
                 try { target.Snapshot(focus: true); throw new Exception("Mac hid Automation refusal"); }
                 catch (InvalidOperationException error) { if (error.Message != Automation) throw; }
                 before = focuses;
                 try { target.Snapshot(focus: true); throw new Exception("Mac retried Automation refusal"); }
                 catch (InvalidOperationException error) { if (error.Message != "App focus still needs Automation.") throw; }
                 if (focuses != before) throw new Exception("Mac asked for Automation twice");
+                tick = 179999;
+                try { target.Snapshot(focus: true); throw new Exception("Mac retried Automation too soon"); }
+                catch (InvalidOperationException error) { if (error.Message != "App focus still needs Automation.") throw; }
+                if (focuses != before || automationUntil != 180000) throw new Exception("Mac focus refusal lost its expiry");
+                tick = 180000;
+                MacWindows.Run = (start, milliseconds) => { focuses++; active = picked.Target.Pid; return "focused"; };
+                if (!target.Snapshot(focus: true).Active || focuses != before + 1) throw new Exception("Mac typed focus never retried after its refusal expired");
+                automationUntil = tick + 180000;
                 active = picked.Target.Pid;
-                if (!target.Snapshot().Active || automationBlocked) throw new Exception("Mac focus permission reset");
+                if (!target.Snapshot().Active || automationUntil != 0) throw new Exception("Mac focus permission reset");
+                checks.Add("PASS Mac focus uses the ten second runner, reports permission prompt timeouts and retries refused typed jobs after 180 seconds");
                 ComputerFrame frame = new ComputerFrame { Source = desktop.Source, Area = room, Width = 800, Height = 400 };
                 int guards = 0, completed = 0;
                 Action<double, double> guard = (x, y) => { guards++; if (x != cursor.X || y != cursor.Y) throw new Exception("Mac input guard lost the pointer"); };
@@ -888,7 +906,7 @@ namespace CapriDesktop
             finally
             {
                 Trusted = trusted; Launch = launch; Sink = sink; Pause = pause; Position = position; Displays = displays; opened = wasOpened;
-                Foreground = foreground; Music.Run = run; automationBlocked = wasBlocked;
+                Foreground = foreground; MacWindows.Run = run; automationUntil = wasBlocked; Now = now; Music.Run = music;
                 Hands.HandsReady = handsReady; Hands.HandsProblem = handsProblem; Hands.OnMac = macWas; Hands.OwnHands = ownWas;
                 Hands.MacClipboard = clipboardWas;
             }
