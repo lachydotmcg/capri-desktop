@@ -1009,7 +1009,7 @@ namespace CapriDesktop
             bool hide = action == "hide";
             if (!StartIconChaos(hide)) return "Couldn't get at your desktop icons just now, choom.";
             if (hide || (iconChaos != null && iconChaos.Vanishing)) return "Poof. Your icons are gone... I'll put them back in a sec.";
-            return "Messing with your icons, choom. Say put my icons back when you want them.";
+            return "Messing with your icons, choom. They'll go back on their own in a few seconds.";
         }
 
         private string IconTool(string action) { return InvokeRequired ? (string)Invoke(new Func<string, string>(IconPrank), action) : IconPrank(action); }
