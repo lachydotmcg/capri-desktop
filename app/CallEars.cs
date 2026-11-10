@@ -396,6 +396,7 @@ namespace CapriDesktop
         private readonly short[] ring = new short[Ears.Rate * 2];
         private readonly CallEcho echo = new CallEcho();
         private int start, count;
+        private long dropped;
         private double heard, level;
         private int heardCount, levelAt = Environment.TickCount - 100000;
         private volatile bool running;
@@ -412,6 +413,9 @@ namespace CapriDesktop
 
         // Discord's loudness over its last tenth of a second, or 0 when nothing has come in for that long.
         internal double Level { get { lock (gate) return Environment.TickCount - levelAt < 300 ? level : 0; } }
+
+        // How many samples of the call's sound Mix let go to stay beside the mic since this was last asked, for her log.
+        internal long TakeDropped() { return Interlocked.Exchange(ref dropped, 0); }
 
         internal void Start()
         {
@@ -534,7 +538,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 int extra = count - 2 * chunk.Length;
-                if (extra > 0) { start = (start + extra) % ring.Length; count -= extra; }
+                if (extra > 0) { start = (start + extra) % ring.Length; count -= extra; Interlocked.Add(ref dropped, extra); }
                 for (int i = 0; i < chunk.Length; i++)
                 {
                     int theirSample = 0;
@@ -1152,6 +1156,7 @@ namespace CapriDesktop
     {
         internal readonly List<CallPart> Parts = new List<CallPart>();
         internal readonly CallApp App = CallApps.Current;
+        internal bool CallSound;
 
         internal CallTranscript() { }
 
@@ -1199,7 +1204,7 @@ namespace CapriDesktop
 
         internal static CallTranscript Read(CallChunk[] chunks)
         {
-            CallTranscript line = new CallTranscript();
+            CallTranscript line = new CallTranscript { CallSound = HasSound(chunks) };
             foreach (bool fromCall in new[] { false, true })
             {
                 int i = 0;
@@ -1248,6 +1253,14 @@ namespace CapriDesktop
                 line.Parts.RemoveAt(i);
             }
             return line;
+        }
+
+        // The call's own side made sound for 0.3 s or more, a voice or a game, whatever words came of it.
+        internal static bool HasSound(CallChunk[] chunks)
+        {
+            int count = 0;
+            if (chunks != null) foreach (CallChunk chunk in chunks) if (Active(chunk, true) && ++count >= 3) return true;
+            return false;
         }
 
         private static bool Active(CallChunk chunk, bool fromCall)
