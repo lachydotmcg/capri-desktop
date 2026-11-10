@@ -1271,6 +1271,27 @@ namespace CapriDesktop
             return image;
         }
 
+        // The same bars, few, thin and faint, drawn straight onto someone else's picture: the light glitch that flickers behind
+        // the icons while she throws them around.
+        internal static void Light(Graphics graphics, Size size, double progress, int seed, int flicker)
+        {
+            Random pick = new Random(seed + flicker);
+            double fade = Math.Max(0, Math.Min(1, (1 - progress) / 0.65));
+            fade = fade * fade * (3 - 2 * fade);
+            int bars = (int)Math.Round((3 + pick.Next(4)) * (0.45 + 0.55 * fade));
+            for (int i = 0; i < bars; i++)
+            {
+                int tall = 1 + pick.Next(6), width = size.Width / 4 + pick.Next(Math.Max(1, size.Width * 3 / 4));
+                int x = pick.Next(Math.Max(1, size.Width - width)), y = pick.Next(Math.Max(1, size.Height - tall));
+                int kind = pick.Next(10);
+                int alpha = (int)((kind < 4 ? 180 + pick.Next(60) : 150 + pick.Next(100)) * fade * 0.4);
+                if (alpha <= 0) continue;
+                using (Brush brush = new SolidBrush(Color.FromArgb(alpha, kind < 4 ? Ink : kind < 8 ? Look.Red : Crimson))) graphics.FillRectangle(brush, x, y, width, tall);
+                if (pick.Next(3) == 0)
+                    using (Brush ghost = new SolidBrush(Color.FromArgb(alpha / 3, Look.Red))) graphics.FillRectangle(ghost, x + pick.Next(-size.Width / 16, size.Width / 16 + 1), y + tall + 1, width / 2, Math.Max(1, tall / 2));
+            }
+        }
+
         internal static void Tendrils(Bitmap image, Rectangle room, PointF middle, SizeF spread, float unit, double progress, int seed, int flicker)
         {
             room = Rectangle.Intersect(room, new Rectangle(Point.Empty, image.Size));

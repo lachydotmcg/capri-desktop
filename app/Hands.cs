@@ -584,7 +584,7 @@ namespace CapriDesktop
                 case "look_at_screen": return "look at your screen" + (string.IsNullOrWhiteSpace(a.Focus) ? "" : " for " + Plain(a.Focus, "that"));
                 case "animate": return "do the " + Plain(a.Name, "requested") + " animation";
                 case "draw": return "draw " + Plain(a.Description ?? a.Text, "on your screen");
-                case "desktop_icons": return a.Action == "back" ? "put your desktop icons back" : a.Action == "hide" ? "hide your desktop icons briefly" : "scatter your desktop icons";
+                case "desktop_icons": return a.Action == "back" ? "put your desktop icons back" : a.Action == "hide" ? "hide your desktop icons briefly" : a.Action == "rampage" ? "ram your desktop icons into the screen edge and fling them around" : "scatter your desktop icons";
                 case "mini_game": return "play " + Plain(a.Name, "a mini game").Replace('_', ' ');
                 case "fake_crash": return a.Action == "stop" ? "stop the fake blue screen" : "show the fake blue screen";
                 case "listen": return a.Action == "stop" ? "stop listening to PC dialogue" : "listen to PC dialogue";
@@ -1259,8 +1259,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"spawn makes copies and stop removes them all\",\"enum\":[\"spawn\",\"stop\"]},\"count\":{\"type\":\"integer\",\"description\":\"How many copies to make. Leave it out and they keep multiplying by themselves until they're cleared\"}},\"required\":[\"action\"]}", "make clones of herself in chaos mode", "make clones of yourself" },
             { "hologram", "Turn hologram mode on or off when asked, in any language. On makes you translucent and lets clicks pass through your body, talk pill and speech bubble. They can turn it off from your tray icon's right-click menu or by saying hologram off. Your type box, mini player, Mainframe and task panel stay usable.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"on lets clicks through and off gives them back\",\"enum\":[\"on\",\"off\"]}},\"required\":[\"action\"]}", "turn into a see-through hologram that clicks pass through", "turn hologram mode on or off; clicks pass through you while it's on" },
-            { "desktop_icons", "Prank the icons and shortcuts on their desktop, then put them back. mess scatters them around for a bit, hide makes them all vanish and come back after a few seconds, and back puts everything where it was right now. Use it when they ask you to mess up, shuffle, scatter, move around, hide or bring back their desktop icons or shortcuts. You never touch a file, only move or hide the icons.",
-              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"mess scatters them, hide makes them vanish, back puts them all back\",\"enum\":[\"mess\",\"hide\",\"back\"]}},\"required\":[\"action\"]}", "mess up or hide your desktop icons and put them back", "mess up or hide their desktop icons, then put them back" },
+            { "desktop_icons", "Prank the icons and shortcuts on their desktop, then put them back. mess scatters them around for a bit, hide makes them all vanish and come back after a few seconds, and back puts everything where it was right now. Use it when they ask you to mess up, shuffle, scatter, move around, hide or bring back their desktop icons or shortcuts. Use rampage when they taunt you or say someone would beat you, like Adam Smasher would rock your shit. Every icon forms a train, rams the edge of the screen and gets flung around for about ten seconds, then they all go home. You never touch a file, only move or hide the icons.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"mess scatters them, hide makes them vanish, back puts them all back, rampage throws drawn copies\",\"enum\":[\"mess\",\"hide\",\"back\",\"rampage\"]}},\"required\":[\"action\"]}", "scatter, hide or throw your desktop icons and put them back", "scatter, hide or throw their desktop icons, then put them back" },
             { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action stop to finish watching together; watch_for is for a particular event.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"stop\"]}},\"required\":[\"action\"]}", "watch videos with you and react", "watch videos with them" },
             { "gaming_mode", "Turn Gaming Mode on or off: you watch their game and react when something happens, until it closes. Use it when they ask, suggest or hint at your game overlay or reactions, however they word it. Playing the game yourself uses use_computer.",
@@ -1556,6 +1556,10 @@ namespace CapriDesktop
         private static readonly Regex IconsBack = new Regex(@"^(?:(?:put|move|bring|get|set)\s+(?:(?:my|the|all|them|everything|those|these)\s+)*(?:(?:desktop\s+)?(?:icons?|shortcuts?)\s+)?back(?:\s+(?:where\s+they\s+were|to\s+normal|in\s+place|please))?|(?:restore|undo|unmess|unscramble|fix)\s+(?:(?:my|the)\s+)?(?:desktop\s+)?(?:icons?|shortcuts?)(?:\s+back)?|give\s+me\s+(?:my|the)\s+(?:desktop\s+)?(?:icons?|shortcuts?)\s+back)$", RegexOptions.IgnoreCase);
         private static readonly Regex IconsHide = new Regex(@"^(?:(?:hide|vanish|disappear)\s+(?:(?:my|the|all|those|these)\s+)*(?:desktop\s+)?(?:icons?|shortcuts?)|make\s+(?:(?:my|the|all|those|these)\s+)*(?:desktop\s+)?(?:icons?|shortcuts?)\s+(?:disappear|vanish|go\s+away)|(?:get\s+rid\s+of|remove)\s+(?:(?:my|the|all)\s+)*(?:desktop\s+)?(?:icons?|shortcuts?))$", RegexOptions.IgnoreCase);
         private static readonly Regex IconsMess = new Regex(@"^(?:mess(?:\s+up|\s+with|\s+around)?|shuffle|scatter|scramble|jumble|rearrange|move(?:\s+around)?|mix\s+up|disorganise|disorganize)\s+(?:(?:my|the|all|those|these)\s+)*(?:desktop\s+)?(?:icons?|shortcuts?)(?:\s+(?:up|around|about))?$", RegexOptions.IgnoreCase);
+        // A taunt that has Adam Smasher beating her, typed or heard, "Adam" or not. It sets off the icon rampage. His name with
+        // no beating in it ("who is adam smasher") is only chat.
+        private static readonly Regex IconsRampage = new Regex(@"\b(?:adam\s+)?smashers?\s+(?:(?:would|could|will|can|is\s+(?:going\s+to|gonna))\s+)?(?:(?:totally|absolutely|easily|just|literally)\s+)?(?:(?:rock|wreck|beat|destroy|smash|crush|kill|fold|clap|stomp)(?:s|es)?\s+(?:you(?:r\s+(?:shit|ass))?|ur\s+(?:shit|ass)|u)\b|(?:would|could|will)\s+win\b)", RegexOptions.IgnoreCase);
+
 #if !CROSS
         private static readonly Regex CloneEnough = new Regex(@"^(?:ok(?:ay)? )?(?:stop|enough|that'?s enough)$", RegexOptions.IgnoreCase);
 #endif
@@ -3441,6 +3445,7 @@ namespace CapriDesktop
             // Her icon prank, before the chatter gate so "put my icons back" always lands. Back is matched first.
             if (IconsBack.IsMatch(text)) { tool = "desktop_icons"; args.Action = "back"; return true; }
             if (IconsHide.IsMatch(text)) { tool = "desktop_icons"; args.Action = "hide"; return true; }
+            if (IconsRampage.IsMatch(text)) { tool = "desktop_icons"; args.Action = "rampage"; return true; }
             if (IconsMess.IsMatch(text)) { tool = "desktop_icons"; args.Action = "mess"; return true; }
             if (Chatter.IsMatch(text) || Regex.IsMatch(text, @"\b(if|unless|until|after|before|when) (i|you|we|it|the)\b", RegexOptions.IgnoreCase)) return false;
             string suggested = Suggestion(text);
@@ -3889,7 +3894,7 @@ namespace CapriDesktop
             if (tool == "draw") return Ink.Valid(args);
             if (tool == "clone") return args != null && (args.Action == "spawn" || args.Action == "stop");
             if (tool == "hologram") return args != null && (args.Action == "on" || args.Action == "off");
-            if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back");
+            if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back" || args.Action == "rampage");
             if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "stop");
             if (tool == "fake_crash") return args != null && (args.Action == "show" || args.Action == "stop");
             if (tool == "voice_chat") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(on|off|status)\z");

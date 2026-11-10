@@ -2960,12 +2960,13 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = clock.Elapsed.TotalSeconds;
+            RampageTick(now);
             MoveExplorePointer(now);
             int interval = FrameInterval(now);
             if (frames.Interval != interval) frames.Interval = interval;
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
-            if (docked) { DockTick(now); return; }
-            if (hidden) { frames.Stop(); return; }
+            if (docked) { DockTick(now); if (iconRampage != null) frames.Start(); return; }
+            if (hidden) { if (iconRampage != null) ClearIcons(); frames.Stop(); return; }
             if (riding) FollowCursor(); else if (onPanel) HoldPanel(); else if (falling) Tumble(now); else if (seat != null) HoldSeat(now);
             if (walking) Walk(now);
             if (Sulking) Shy(now);
@@ -2973,13 +2974,14 @@ namespace CapriDesktop
             if (!riding && !dragging && !walking && !falling && outro == null && clip != arrive && clip != leave) Face();
             if (!Steady(now)) RenderFrame();
             else UpdateTalk(now);
-            if (!exploring && !riding && !dragging && !walking && !falling && !Sulking && outro == null && !preferences.Motion && clip == idle && speech == null && talkState == TalkState.Off) frames.Stop();
+            if (!exploring && !riding && !dragging && !walking && !falling && !Sulking && outro == null && !preferences.Motion && clip == idle && speech == null && talkState == TalkState.Off && iconRampage == null) frames.Stop();
         }
 
         // Over a game her quiet body follows its art and her docked mouth follows speech. Otherwise she keeps 33 ms or her
         // selected perch rate. On Windows' 1/64 s clock, 33 ms takes 47 ms; off 30 she asks just under a whole number of ticks.
         private int FrameInterval(double now)
         {
+            if (iconRampage != null) return IconRampage.FrameMilliseconds;
             if (exploring && now - exploreMoved < 0.8) return 33;
             // Thrown, she covers a lot of screen a frame, so she's drawn every 1/64 s; dizzy, her sway needs 30 a second.
             if (Flying) return frontBusy ? 33 : 15;
@@ -4012,7 +4014,7 @@ namespace CapriDesktop
         private void Rescreen()
         {
             RefreshWatchScreens();
-            if (cloneWindow != null) ClonesOff();
+            if (cloneWindow != null || iconRampage != null) ClonesOff();
             if (!Refloor())
             {
                 bool aside = Aside;
@@ -8789,7 +8791,7 @@ namespace CapriDesktop
         private void ApplyHidden(bool value)
         {
             if (quitting) return;
-            if (value) StopExplore();
+            if (value) { StopExplore(); if (iconRampage != null) ClearIcons(); }
             if (docked && !value) { dockHid = true; gaming.Off(); }
             if (value) WakeRest(true);
             outro = null;
@@ -14010,7 +14012,7 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (callReply == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Hands.Shown(Security.Said(DoTool(quick, quickArgs))); }; }
+            if (callReply == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || quick == "desktop_icons" && quickArgs.Action == "rampage" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Hands.Shown(Security.Said(DoTool(quick, quickArgs))); }; }
             if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, question); }); };
             if (think == null && brain.Model == null && News.Matching(text) != null) think = delegate { return News.Facts; };
             if (think == null)
@@ -14348,12 +14350,12 @@ namespace CapriDesktop
         {
             if (docked)
             {
-                if (speech != null || talkState != TalkState.Off) frames.Start();
+                if (iconRampage != null || speech != null || talkState != TalkState.Off) frames.Start();
                 else frames.Stop();
                 return;
             }
             if (!preferences.Motion && !riding && seat == null && !falling && clip != glitch && clip != dangle && clip != wake && !Asleep) Play(idle);
-            if ((exploring || preferences.Motion || riding || seat != null || falling || Sulking || clip != idle || speech != null || talkState != TalkState.Off) && !hidden) frames.Start(); else frames.Stop();
+            if ((iconRampage != null || exploring || preferences.Motion || riding || seat != null || falling || Sulking || clip != idle || speech != null || talkState != TalkState.Off) && !hidden) frames.Start(); else frames.Stop();
             RenderFrame();
         }
 
@@ -14974,6 +14976,7 @@ namespace CapriDesktop
                 quitting = true;
                 if (afterToolTimer != null) afterToolTimer.Dispose();
                 toolEnds.Clear();
+                if (iconRampage != null) ClearIcons();
                 ChaosOff();
                 CheckKeepAwake();
                 clips.Dispose();
@@ -17227,6 +17230,13 @@ namespace CapriDesktop
                     return new IconSpot(index, spot.Name, spot.At);
                 }
 
+                public IconItem Item(int index)
+                {
+                    IconSpot spot = Read(index);
+                    Step("address", index, spot.At);
+                    return new IconItem(spot.Name, spot.At, System.Text.Encoding.UTF8.GetBytes(index + ":" + spot.Name));
+                }
+
                 public void Move(int index, Point at, int flags)
                 {
                     if (flags != 0x0080) { icons.BadFlags = true; throw new Exception("An icon move changed selection flags."); }
@@ -17531,6 +17541,7 @@ namespace CapriDesktop
                     if (afterLive[hijacked] != grabbed) throw new Exception("She didn't leave the icon a hand grabbed mid-scatter alone: " + afterLive[hijacked] + " vs " + grabbed);
                     if (afterLive[kept] != before[kept]) throw new Exception("She didn't put the icon she scattered back home: " + afterLive[kept] + " vs " + before[kept]);
                     SmokeIconFailures(checks, iconsHandle, icons, iconsFile);
+                    SmokeRampage(checks, iconsHandle, icons, iconsFile, iconsList.PointToScreen(Point.Empty));
                     if (icons.BadThread || icons.BadFlags || icons.Opened != icons.Closed) throw new Exception("An icon prank crossed threads, changed selection flags or kept a view.");
                 }
                 finally
@@ -17544,6 +17555,193 @@ namespace CapriDesktop
             }
             checks.Add("PASS desktop icon chaos on a fake view: names and positions, slide and exact return, vanish for 10 to 20 seconds, Auto arrange fallback, crash recovery by name after item order changes, and hand-moved icons left alone");
             checks.Add("LIMIT real desktop shell calls, labels, selection, grid snapping and Explorer hangs need a live check");
+        }
+
+        private void SmokeRampage(System.Collections.Generic.List<string> checks, IntPtr handle, FakeIcons icons, string marker, Point origin)
+        {
+            string tool;
+            ToolArguments args;
+            foreach (string verb in new[] { "rock", "wreck", "beat", "destroy", "smash", "crush", "kill", "fold", "clap", "stomp" })
+                foreach (string prefix in new[] { "", "Capri, " })
+                    foreach (string target in new[] { "your shit", "you", "ur shit" })
+                        if (!Hands.Heard(prefix + "Adam Smasher would " + verb + " " + target, out tool, out args) || tool != "desktop_icons" || args.Action != "rampage") throw new Exception("An Adam Smasher taunt missed the rampage: " + verb + " " + target);
+            if (!Hands.Heard("Capri, Adam Smasher would win", out tool, out args, true) || tool != "desktop_icons" || args.Action != "rampage"
+                || Hands.Heard("who is adam smasher", out tool, out args) && tool == "desktop_icons"
+                || !Hands.Valid("desktop_icons", new ToolArguments { Action = "rampage" }) || Hands.Valid("desktop_icons", new ToolArguments { Action = "nuke" })) throw new Exception("The rampage route, question exclusion or action validation failed.");
+            checks.Add("PASS Adam Smasher taunts route to desktop_icons rampage with every verb, prefix and target; his name alone stays chat and nuke stays invalid");
+            using (Bitmap full = Tear.Frame(new Size(800, 600), 0.15, 42))
+            using (Bitmap light = new Bitmap(800, 600, PixelFormat.Format32bppPArgb))
+            {
+                using (Graphics graphics = Graphics.FromImage(light)) Tear.Light(graphics, light.Size, 0.15, 42, 0);
+                long fullAlpha = 0, lightAlpha = 0;
+                int fullPixels = 0, lightPixels = 0;
+                for (int y = 0; y < full.Height; y++)
+                    for (int x = 0; x < full.Width; x++)
+                    {
+                        int a = full.GetPixel(x, y).A, b = light.GetPixel(x, y).A;
+                        fullAlpha += a;
+                        lightAlpha += b;
+                        if (a != 0) fullPixels++;
+                        if (b != 0) lightPixels++;
+                    }
+                if (lightAlpha <= 0 || lightAlpha >= fullAlpha / 3 || lightPixels >= fullPixels / 3) throw new Exception("Light tear bars were missing, too bright or too broad.");
+            }
+            checks.Add("PASS light tear bars cover fewer pixels with less alpha than the ordinary bars");
+
+            Func<Rectangle[]> monitorsWas = IconRampage.Monitors;
+            Func<int, bool> keysWas = KeyHeld;
+            Func<byte[], int, Bitmap> fetchWas = IconPictures.Fetch;
+            bool motionWas = preferences.Motion;
+            Action<string, int, Point> callWas = icons.Call;
+            System.Collections.Generic.List<IconSpot> saved = new System.Collections.Generic.List<IconSpot>(icons.Spots);
+            Rectangle room = new Rectangle(-1600, -200, 1200, 900);
+            IconRampage rampage = null;
+            int fetches = 0, fetchThread = Thread.CurrentThread.ManagedThreadId;
+            bool fetchedHere = false, fetchFails = false;
+            Func<byte[], int, Bitmap> fakePicture = delegate(byte[] id, int size)
+            {
+                Interlocked.Increment(ref fetches);
+                if (Thread.CurrentThread.ManagedThreadId == fetchThread) fetchedHere = true;
+                if (fetchFails) throw new Exception("The fake shell picture failed.");
+                Bitmap picture = new Bitmap(size, size, PixelFormat.Format32bppPArgb);
+                using (Graphics graphics = Graphics.FromImage(picture)) graphics.Clear(Color.Cyan);
+                return picture;
+            };
+            // The pictures the show needs, fetched ahead on this thread, so a check that isn't about fetching starts at once.
+            Action prime = delegate
+            {
+                System.Collections.Generic.List<IconItem> items;
+                int size, dpi;
+                if (!DesktopIcons.TryItems(handle, out items, out size, out dpi) || !IconPictures.Fill(items, size)) throw new Exception("The fake icon pictures could not be fetched.");
+            };
+            Action settle = delegate
+            {
+                Stopwatch wait = Stopwatch.StartNew();
+                while (IconPictures.Loading && wait.ElapsedMilliseconds < 5000) Thread.Sleep(5);
+                if (IconPictures.Loading) throw new Exception("The icon pictures were still being fetched after five seconds.");
+                Application.DoEvents();
+            };
+            try
+            {
+                ClearIcons();
+                IconPictures.Forget();
+                IconPictures.Fetch = fakePicture;
+                preferences.Motion = true;
+                IconRampage.Monitors = delegate { return new[] { new Rectangle(0, 0, 1000, 800), room }; };
+                icons.Spots.Clear();
+                for (int i = 0; i < 6; i++)
+                {
+                    Point at = i == 5 ? new Point(100, 100) : new Point(-1450 + i * 150, -50 + i * 30);
+                    icons.Spots.Add(new IconSpot(i, "rampage" + i, new Point(at.X - origin.X, at.Y - origin.Y)));
+                }
+                int moves = icons.Moves, glitches = 0, crashes = 0, throws = 0;
+                rampage = new IconRampage(73);
+                if (rampage.Load() != 2 || rampage.Wanted.Count != 6 || rampage.Copies.Count != 0) throw new Exception("A rampage with no pictures yet didn't ask for them first.");
+                rampage.Dispose();
+                prime();
+                rampage = new IconRampage(73);
+                if (rampage.Load() != 1 || rampage.Room != room || rampage.Copies.Count != 5) throw new Exception("The rampage did not choose the monitor holding most icons.");
+                foreach (IconCopy copy in rampage.Copies)
+                    if (copy.X != copy.Home.X || copy.Y != copy.Home.Y || copy.Spin != 0 || copy.Picture.PixelFormat != PixelFormat.Format32bppPArgb) throw new Exception("An icon copy jumped or lost its premultiplied picture before the swap.");
+                rampage.Glitch = delegate { glitches++; };
+                rampage.Crash = delegate { crashes++; };
+                rampage.Throw = delegate { throws++; };
+                if (!rampage.Start(0, false) || !DesktopIcons.Hidden(handle) || !File.Exists(marker) || File.ReadAllText(marker).Trim() != "vanish") throw new Exception("The rampage did not hide the list behind its vanish marker.");
+                IconMischief other = new IconMischief(DesktopIcons.Target, 2);
+                if (other.Start(0, true) || other.Vanish(0) || StartIconChaos(false) || !IconPrank("rampage").StartsWith("I'm already", StringComparison.Ordinal)) throw new Exception("A second prank started during the rampage.");
+                double t = 0;
+                while (t < IconRampage.EndAt)
+                {
+                    t = Math.Min(IconRampage.EndAt, t + IconRampage.StepSeconds);
+                    rampage.Advance(t, false);
+                    if (t < IconRampage.EndAt && (!DesktopIcons.Hidden(handle) || !File.Exists(marker))) throw new Exception("The rampage showed its real icons or dropped its marker early.");
+                    if (t >= IconRampage.TrainSeconds + IconRampage.CrashSeconds && t <= IconRampage.HomeAt)
+                        foreach (IconCopy copy in rampage.Copies)
+                        {
+                            double r = copy.Radius;
+                            if (!copy.Hit || copy.X - r < room.Left - 0.001 || copy.X + r > room.Right + 0.001 || copy.Y - r < room.Top - 0.001 || copy.Y + r > room.Bottom + 0.001) throw new Exception("A spinning icon left a wall during the fling.");
+                        }
+                }
+                foreach (IconCopy copy in rampage.Copies)
+                    if (copy.X != copy.Home.X || copy.Y != copy.Home.Y || copy.Spin != 0) throw new Exception("An icon copy did not end exactly home with no spin.");
+                if (rampage.Active || DesktopIcons.Hidden(handle) || File.Exists(marker) || icons.Moves != moves || glitches != 9 || crashes != 1 || throws != 7) throw new Exception("The rampage changed a real icon, missed a cue or kept its list hidden.");
+                rampage.Dispose();
+                rampage = null;
+                checks.Add("PASS a stepped rampage chooses one monitor, starts at each home, hides behind a vanish marker, blocks other pranks, keeps every spinning copy inside all four walls, returns exactly home and never moves a real icon; swap, crash and seven throws have their cues");
+
+                rampage = new IconRampage(73);
+                if (rampage.Load() != 1 || !rampage.Start(0, false)) throw new Exception("The rampage Esc fixture did not start.");
+                rampage.Advance(4, false);
+                iconRampage = rampage;
+                KeyHeld = delegate(int key) { return key == (int)Keys.Escape; };
+                RampageTick(4.01);
+                rampage = null;
+                if (iconRampage != null || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("Esc did not restore the rampage in that step.");
+                KeyHeld = keysWas;
+                if (IconPrank("rampage").StartsWith("Couldn't", StringComparison.Ordinal) || iconRampage == null) throw new Exception("The tool did not start a fake rampage.");
+                if (IconPrank("back") != "Put your icons back, choom." || iconRampage != null || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("Back did not clear the rampage.");
+                if (IconPrank("rampage").StartsWith("Couldn't", StringComparison.Ordinal) || iconRampage == null) throw new Exception("The clear fixture did not start.");
+                ClearIcons();
+                if (IconRampage.Running || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("ClearIcons did not clear the rampage.");
+                checks.Add("PASS Esc restores a rampage in the same frame; desktop_icons back and ClearIcons close it and remove its marker");
+
+                foreach (bool hide in new[] { false, true })
+                {
+                    if (!StartIconChaos(hide)) throw new Exception("The existing prank exclusion fixture did not start.");
+                    if (!IconPrank("rampage").StartsWith("I'm already", StringComparison.Ordinal) || iconRampage != null) throw new Exception("A rampage started during scatter or vanish.");
+                    ClearIcons();
+                }
+                // The first rampage has no pictures: they're fetched off her window's thread while she says her line, and the
+                // show starts when they're in.
+                IconPictures.Forget();
+                fetches = 0;
+                fetchedHere = false;
+                string first = IconPrank("rampage");
+                if (first.StartsWith("Couldn't", StringComparison.Ordinal) || first.StartsWith("Messing", StringComparison.Ordinal) || iconRampage != null || iconChaos != null || !rampageWaiting || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("A rampage with no pictures yet didn't wait for them with her line: " + first);
+                if (!IconPrank("mess").StartsWith("I'm already", StringComparison.Ordinal) || StartIconChaos(true)) throw new Exception("Another prank started while the rampage's pictures were being fetched.");
+                settle();
+                if (iconRampage == null || rampageWaiting || fetches != 6 || fetchedHere || !DesktopIcons.Hidden(handle) || !File.Exists(marker)) throw new Exception("The rampage didn't start once its pictures were in, or fetched them on her window's thread: " + fetches + " fetched.");
+                ClearIcons();
+                fetches = 0;
+                if (IconPrank("rampage").StartsWith("Couldn't", StringComparison.Ordinal) || iconRampage == null || fetches != 0) throw new Exception("A second rampage didn't start at once from the pictures she kept.");
+                ClearIcons();
+                IconPictures.Forget();
+                IconPrank("rampage");
+                if (!rampageWaiting || IconPrank("back") != "Put your icons back, choom." || rampageWaiting) throw new Exception("Back didn't call off a rampage that was waiting for its pictures.");
+                settle();
+                if (iconRampage != null || iconChaos != null || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("A rampage that was called off started anyway when its pictures came in.");
+                checks.Add("PASS the first rampage fetches its six pictures off her window's thread behind her line and starts when they're in, the next starts at once from the ones she kept, nothing else starts in between, and back calls off one that's still waiting");
+                IconPictures.Forget();
+                fetchFails = true;
+                string fallback = IconPrank("rampage");
+                settle();
+                fetchFails = false;
+                if (fallback.StartsWith("Couldn't", StringComparison.Ordinal) || iconChaos == null || !iconChaos.Sliding || iconRampage != null || rampageWaiting) throw new Exception("Pictures that couldn't be had didn't end in the plain scatter.");
+                ClearIcons();
+                prime();
+                preferences.Motion = false;
+                if (!IconPrank("rampage").StartsWith("Poof.", StringComparison.Ordinal) || iconChaos == null || !iconChaos.Vanishing || iconRampage != null) throw new Exception("Reduced motion did not use the plain hide prank.");
+                ClearIcons();
+                icons.Spots.Clear();
+                preferences.Motion = true;
+                if (IconPrank("rampage") != "Nothing on your desktop to throw, choom." || iconRampage != null || iconChaos != null || DesktopIcons.Hidden(handle) || File.Exists(marker)) throw new Exception("An empty desktop started a prank.");
+                checks.Add("PASS scatter and vanish block rampage; pictures that can't be had end in the plain scatter, moves off uses hide, and an empty desktop only gets its line");
+            }
+            finally
+            {
+                icons.Call = callWas;
+                KeyHeld = keysWas;
+                if (rampage != null) rampage.Dispose();
+                ClearIcons();
+                Stopwatch last = Stopwatch.StartNew();
+                while (IconPictures.Loading && last.ElapsedMilliseconds < 5000) Thread.Sleep(5);
+                IconPictures.Fetch = fetchWas;
+                IconPictures.Forget();
+                IconRampage.Monitors = monitorsWas;
+                preferences.Motion = motionWas;
+                icons.Spots.Clear();
+                icons.Spots.AddRange(saved);
+            }
         }
 
         private void SmokeChaosScreen(System.Collections.Generic.List<string> checks)
