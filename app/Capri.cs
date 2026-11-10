@@ -34,6 +34,7 @@ namespace CapriDesktop
         {
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
             if (args.Length == 4 && args[0] == "--release-input") return InputRelease.Watch(args[1], args[2], args[3]);
+            if (!Packaged.Is && CapriSetup.Program.Wanted(Application.ExecutablePath, args)) return CapriSetup.Program.Run(args);
             try { Native.SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) { Native.SetProcessDPIAware(); }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -23514,6 +23515,15 @@ namespace CapriDesktop
 
         private static void SmokeSetupFiles(System.Collections.Generic.List<string> checks, string output)
         {
+            if (CapriSetup.Program.Wanted("Capri.exe", new string[0]) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--smoke-test", "out" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--bench", "x" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--stream" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--hook", "x" }) || CapriSetup.Program.Wanted(@"C:\setup\Capri.exe", new string[0])) throw new Exception("Capri took herself for her installer.");
+            foreach (string name in new[] { "Capri-Setup.exe", "capri-setup (1).exe", "Capri-Setup-0.8.8-123.exe", "Uninstall.exe", "CAPRI-SETUP.EXE", "UNINSTALL.EXE" })
+                if (!CapriSetup.Program.Wanted(name, new string[0])) throw new Exception("Capri didn't recognise her installer name: " + name);
+            foreach (string[] command in new[] { new[] { "--silent" }, new[] { "--silent", "--package", "winget" }, new[] { "--package", "winget" }, new[] { "--uninstall" }, new[] { "--update", "1", "2" }, new[] { "--verify", "out" }, new[] { "--verify-voice", "out" }, new[] { "--remove-files" }, new[] { "--close", @"C:\x" }, new[] { "--uninstall", "--silent" }, new[] { "--unknown", "--silent" }, new[] { "--unknown", "--package", "winget" } })
+                if (!CapriSetup.Program.Wanted("Capri.exe", command)) throw new Exception("Capri didn't recognise her setup command: " + string.Join(" ", command));
+            if (CapriSetup.Program.Wanted("Capri.exe", new[] { "x", "--update", "1", "2" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--SILENT" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--PACKAGE", "winget" })) throw new Exception("Capri took another command for her installer.");
+            foreach (string packed in Assembly.GetExecutingAssembly().GetManifestResourceNames())
+                if (packed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) throw new Exception("Capri still has a program packed inside her: " + packed);
+            checks.Add("PASS setup names and commands choose the installer, normal app commands stay with Capri and no app is packed inside her");
             if (SetupFiles.Mode(new string[0]) != 0 || SetupFiles.Mode(new[] { "--uninstall" }) != 0 || SetupFiles.Mode(new[] { "--silent" }) != 1 || SetupFiles.Mode(new[] { "--uninstall", "--silent" }) != 2 || SetupFiles.Mode(new[] { "--silent", "--uninstall" }) != 2) throw new Exception("Silent setup flags chose the wrong path.");
             foreach (string flag in new[] { "--update", "--remove-files", "--verify", "--unknown" })
             {

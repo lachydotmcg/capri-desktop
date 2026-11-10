@@ -21,8 +21,15 @@ namespace CapriSetup
         internal const string RegistryPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Capri.Desktop";
         internal static readonly string[] Packs = { "brain", "voice", "ears", "wake" };
 
-        [STAThread]
-        private static int Main(string[] args)
+        internal static bool Wanted(string file, string[] args)
+        {
+            if (Array.IndexOf(args, "--silent") >= 0 || Array.IndexOf(args, "--package") >= 0) return true;
+            if (args.Length > 0 && Array.IndexOf(new[] { "--close", "--update", "--verify", "--verify-voice", "--remove-files", "--uninstall" }, args[0]) >= 0) return true;
+            string name = Path.GetFileNameWithoutExtension(file);
+            return name.IndexOf("setup", StringComparison.OrdinalIgnoreCase) >= 0 || string.Equals(name, "Uninstall", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static int Run(string[] args)
         {
             if (args.Length == 2 && args[0] == "--close") return CloseFolder(args[1]);
             // A silent command she can't read exits 2, and one that fails exits 1, each with the reason on stderr.
@@ -80,16 +87,7 @@ namespace CapriSetup
             catch (Exception error) { Notice.Tell(null, error.Message, "Capri couldn't update", true); return 1; }
         }
 
-        internal static byte[] Payload()
-        {
-            using (Stream source = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.App.exe"))
-            using (MemoryStream memory = new MemoryStream())
-            {
-                if (source == null) throw new InvalidDataException("The Capri application payload is missing.");
-                source.CopyTo(memory);
-                return memory.ToArray();
-            }
-        }
+        internal static byte[] Payload() { return File.ReadAllBytes(Application.ExecutablePath); }
 
         private static int Verify(string output)
         {
@@ -102,7 +100,7 @@ namespace CapriSetup
                 File.WriteAllBytes(Path.Combine(output, "Capri.exe"), bytes);
                 using (SHA256 sha = SHA256.Create()) File.WriteAllText(Path.Combine(output, "payload.sha256"), BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant());
                 if (!Ours(Path.Combine(output, "Capri.exe"))) throw new InvalidDataException("The installer doesn't recognise its own Capri.exe.");
-                if (Ours(Application.ExecutablePath) || Ours(Path.Combine(Environment.SystemDirectory, "notepad.exe")) || Ours(Path.Combine(output, "missing.exe"))) throw new InvalidDataException("The installer takes other programs for Capri.");
+                if (Ours(Path.Combine(Environment.SystemDirectory, "notepad.exe")) || Ours(Path.Combine(output, "missing.exe"))) throw new InvalidDataException("The installer takes other programs for Capri.");
                 string home = Path.Combine(output, "Capri");
                 if (!Inside(Path.Combine(home, "Capri.exe"), home) || !Inside(Path.Combine(home, "brain", "llama-server.exe"), home + "\\") || Inside(Path.Combine(output, "Capri2", "Capri.exe"), home) || Inside(Path.Combine(Environment.SystemDirectory, "notepad.exe"), home) || Inside(home, home)) throw new InvalidDataException("The uninstaller would close the wrong programs.");
                 string link = Path.Combine(output, "Capri.lnk");
@@ -144,7 +142,7 @@ namespace CapriSetup
                     failed.Close();
                 }
                 if (Array.IndexOf(Packs, "brain") < 0 || Array.IndexOf(Packs, "voice") < 0 || Array.IndexOf(Packs, "ears") < 0 || Array.IndexOf(Packs, "wake") < 0) throw new InvalidDataException("The uninstaller would leave one of her packs behind.");
-                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nPASS the uninstaller removes her brain, voice, ears and wake packs\nLIMIT installation and uninstallation were not performed\n");
+                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS the installer wrote itself as Capri.exe\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nPASS the uninstaller removes her brain, voice, ears and wake packs\nLIMIT installation and uninstallation were not performed\n");
                 return 0;
             }
             catch (Exception error) { Directory.CreateDirectory(output); File.WriteAllText(Path.Combine(output, "failure.txt"), error.ToString()); return 1; }
@@ -203,7 +201,7 @@ namespace CapriSetup
                 key.SetValue("QuietUninstallString", "\"" + Path.Combine(destination, "Uninstall.exe") + "\" --silent --uninstall");
                 key.SetValue("NoModify", 1, RegistryValueKind.DWord);
                 key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
-                key.SetValue("EstimatedSize", (Payload().Length + new FileInfo(Application.ExecutablePath).Length) / 1024, RegistryValueKind.DWord);
+                key.SetValue("EstimatedSize", new FileInfo(Application.ExecutablePath).Length * 2 / 1024, RegistryValueKind.DWord);
             }
             return unsaved ?? onDesktop;
         }
