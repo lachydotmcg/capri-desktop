@@ -156,6 +156,7 @@ namespace CapriDesktop
                 OfflineChecks();
                 FakeCrash.Checks(checks);
                 ProviderErrorChecks();
+                Watching.Checks(checks);
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");

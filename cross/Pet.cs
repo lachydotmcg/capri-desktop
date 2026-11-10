@@ -688,6 +688,7 @@ namespace CapriDesktop
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder);
             if (OperatingSystem.IsMacOS()) MacWindows.Displays = () => Dispatcher.UIThread.Invoke(() => MacWindows.ReadDisplays(Screens.All, Desk.Pointer()));
+            WireWatching();
             StartAwake();
             Hands.Look = LookAt;
             Hands.LookOn = (focus, screen) => RequestedVision.Run(Brain, new ToolArguments { Focus = focus, Screen = screen });
@@ -1045,6 +1046,7 @@ namespace CapriDesktop
             if (releaseSettling && Desk is HyprlandDesk settlingDesk && (settlingDesk.Desktop.VisualSnapshot == null || settlingDesk.Desktop.VisualSnapshot.Locked)) CancelNativeRelease();
             DragFrame();
             TickHusk();
+            watching.Deliver();
             CheckStyle();
             CheckSelfTools();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
