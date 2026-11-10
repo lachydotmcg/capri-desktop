@@ -172,10 +172,15 @@ namespace CapriDesktop
             Schedule();
         }
 
+        // Where Follow last put the panel. A shown window on X11 only reports a move once the server has confirmed it.
+        internal PixelPoint? Placed;
+
         internal void Follow()
         {
             PixelPoint? at = Place();
-            if (at.HasValue && Position != at.Value) Look.Position(this, at.Value);
+            if (!at.HasValue) return;
+            Placed = at;
+            if (Position != at.Value) Look.Position(this, at.Value);
         }
 
         internal static PixelPoint Spot(PixelRect area, double dpi, Size size, PixelRect near)
@@ -391,6 +396,8 @@ namespace CapriDesktop
                 player.Allowed = () => false; player.Refresh();
                 if (player.IsVisible) throw new Exception("Mini player stayed up while Capri was hidden.");
                 player.Allowed = () => true; fake.Length = 240; fake.Position = 61; player.Refresh();
+                // On Linux the window's own position lags behind the move, so there this reads where Follow put it.
+                Func<PixelPoint> where = () => OperatingSystem.IsLinux() ? player.Placed ?? player.Position : player.Position;
                 foreach (int scale in new[] { 100, 150, 200 })
                 {
                     double dpi = scale / 100.0;
@@ -400,9 +407,9 @@ namespace CapriDesktop
                     if (spot.X != near.Right + (int)Math.Round(12 * dpi) || spot.Y + (int)Math.Ceiling(116 * dpi) != near.Bottom) throw new Exception("Mini player did not sit beside Capri at " + scale + "%.");
                     player.Place = () => Spot(area, dpi, new Size(336, 116), near);
                     player.Follow();
-                    if (player.Position != spot) throw new Exception("Mini player ignored Capri's position.");
+                    if (where() != spot) throw new Exception("Mini player ignored Capri's position: " + where() + " for " + spot);
                     near = new PixelRect(-1300, 200, 160, 240); player.Follow();
-                    if (player.Position == spot || player.Position != Spot(area, dpi, new Size(336, 116), near)) throw new Exception("Mini player did not follow Capri.");
+                    if (where() == spot || where() != Spot(area, dpi, new Size(336, 116), near)) throw new Exception("Mini player did not follow Capri: " + where());
                     near = new PixelRect(-160, 700, 160, 240);
                     spot = Spot(area, dpi, new Size(336, 116), near);
                     if (spot.X + (int)Math.Ceiling(336 * dpi) != near.X - (int)Math.Round(12 * dpi) || spot.Y + (int)Math.Ceiling(116 * dpi) != area.Bottom) throw new Exception("Mini player did not switch sides or stay in the work area.");
