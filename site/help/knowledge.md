@@ -133,7 +133,7 @@ On VirusTotal, a few of about 70 engines flagging Capri.exe or Capri-Setup.exe i
 ### What do VirusTotal behaviour reports mean? (memory, mscoree.dll, process injection, obfuscated)
 VirusTotal's behaviour tab lists what a sandbox saw Capri-Setup.exe or Capri.exe do. Each flag is most likely from one of these things, not from a virus:
 - "Memory from unbacked memory", mscoree.dll loads, a vectored exception handler, CFG or DEP policy, or "unhooking": most likely the .NET runtime. Capri is a .NET app, so the runtime compiles her code into memory as she runs, and compiles any code mods you add, and sets up its own handlers. Sandboxes read that as these behaviours. Capri has no code that changes CFG or DEP or unhooks anything.
-- Starts at logon: most likely her Start with Windows entry. You can turn it off in Capri Mainframe > Settings > HABITS > Start with Windows.
+- Starts at logon: most likely her Start with Windows entry, if you turned it on or had it on from an earlier version. The switch is in Capri Mainframe > Settings > HABITS > Start with Windows.
 - Process injection: most likely her desktop icon prank. To read and move your desktop icons she uses a small piece of memory inside Explorer, the program that draws your desktop.
 - Obfuscated: most likely the setup carrying Capri.exe inside it and writing it out when it installs.
 - Names ending in !ml, or FileRep and Generic: machine-learning and reputation guesses for a new, unsigned file. Signing is the real fix, tracked in https://github.com/lachydotmcg/capri-desktop/issues/101
