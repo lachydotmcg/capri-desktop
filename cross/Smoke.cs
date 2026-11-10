@@ -112,7 +112,7 @@ namespace CapriDesktop
                     stepStart = -1;
                 }
             }
-            catch (Exception error) { Finish(error.Message); }
+            catch (Exception error) { diagFailed++; checks.Add("DIAGFAIL step " + step + ": " + error.GetType().Name + ": " + error.Message); step++; stepStart = -1; }
         }
 
         private int Px(double dip) { return (int)Math.Round(dip * pet.DesktopScaling); }
@@ -571,12 +571,13 @@ namespace CapriDesktop
                         || closedDiscord != "Closed discord." || !noWmctrl.Contains("needs wmctrl") || !noneListed || !listedAgain || Hands.Presses)
                         throw new Exception("Closing and switching apps went wrong: " + closedDiscord + " / " + noWmctrl + " / " + windowLog);
                     // Shortcuts with a tool of their own: the screenshot picker, the task manager and, on Linux, show desktop.
+                    // A Mac shows its desktop with her keyboard (fn + F11), which her Mac key checks cover, so it's only looked up here.
                     did.Clear();
                     string linuxShot = Limbs.Shortcut("screenshot", false), linuxMonitor = Limbs.Shortcut("task_manager", false), linuxDesktop = Limbs.Shortcut("show_desktop", false);
                     string macShot = Limbs.Shortcut("screenshot", true), macMonitor = Limbs.Shortcut("task_manager", true);
                     string shortcutLog = string.Join(" / ", did);
                     if (linuxShot != "Opened the screenshot picker. Drag over what to grab." || linuxMonitor != "Opened the system monitor." || linuxDesktop != "Showed the desktop." || macMonitor != "Opened Activity Monitor."
-                        || !macShot.EndsWith("it goes to your clipboard.", StringComparison.Ordinal) || Limbs.Shortcut("show_desktop", true) != null || Limbs.Shortcut("clip_that", false) != null
+                        || !macShot.EndsWith("it goes to your clipboard.", StringComparison.Ordinal) || !MacFingers.Shortcuts.ContainsKey("show_desktop") || Limbs.Shortcut("clip_that", false) != null
                         || !shortcutLog.Contains("launch spectacle -r") || !shortcutLog.Contains("launch plasma-systemmonitor") || !shortcutLog.Contains("wmctrl -k on") || !shortcutLog.Contains("launch screencapture -i -c") || !shortcutLog.Contains("launch open -a Activity Monitor") || shortcutLog.Contains("launch flameshot"))
                         throw new Exception("Mac or Linux shortcuts went wrong: " + shortcutLog);
                     // An exact volume and the mute state: osascript on Mac, pactl on Linux, and amixer when pactl is missing.
