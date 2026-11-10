@@ -2114,7 +2114,7 @@ namespace CapriDesktop
         // The shortcuts Mac and Linux do another way. The rest need key presses, which only Windows has so far.
         private static readonly string[] MacPresses = { "screenshot", "task_manager", "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "quick_settings", "voice_typing", "clipboard" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
         // Her moves that only Windows has so far.
-        private static readonly string[] WindowsMoves = { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off" };
+        private static string[] WindowsMoves { get { return OnMac ? new[] { "sit_on" } : new string[0]; } }
         private static readonly string[] WindowsTools = { "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen", "fake_crash", "voice_chat", "mini_player" };
         // Her window tool's arranging, which only Windows has so far.
         private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };

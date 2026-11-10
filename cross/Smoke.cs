@@ -134,7 +134,7 @@ namespace CapriDesktop
         {
             if (step == 0)
             {
-                foreach (Clip clip in pet.Clips) if (!clip.Even || clip.Strip.PixelSize.Height != 384) throw new Exception("A sprite strip doesn't split into even 384 px cells.");
+                foreach (Clip clip in pet.Clips) if (!clip.Even || clip.Strip.PixelSize.Height != (clip.Title.StartsWith("laydown", StringComparison.Ordinal) ? 250 : 384)) throw new Exception("A sprite strip doesn't split into its cells.");
                 Clip stand = pet.Clips[0];
                 if (stand.Old || stand.Count != 60 || stand.Fps != 24 || stand.Wide != 116) throw new Exception("Her standing loop isn't 60 cells of 116 px at 24 fps: " + stand.Count + " at " + stand.Fps + ", " + stand.Wide + " px.");
                 checks.Add("PASS sprites: all " + pet.Clips.Count + " clips, standing and perched, load from the app and split into even cells");
@@ -179,6 +179,7 @@ namespace CapriDesktop
                 if (!Sitting()) throw new Exception("A dropped Capri didn't sit down again.");
                 checks.Add("PASS drag and drop: grabbing her lifts her off, dropping her near a ledge makes her fall and sit on it");
                 DragChecks();
+                Pet.MoveChecks(pet, checks);
                 PixelPoint hip = pet.Hip;
                 pet.Resize(320);
                 if (pet.Hip != hip) throw new Exception("Resizing moved her off her seat: " + hip + " to " + pet.Hip + ".");

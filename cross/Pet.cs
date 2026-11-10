@@ -833,7 +833,7 @@ namespace CapriDesktop
             catch (Exception) { }
         }
 
-        internal double Now { get { return clock.Elapsed.TotalSeconds; } }
+        internal double Now { get { return MoveClock != null ? MoveClock() : clock.Elapsed.TotalSeconds; } }
         internal bool Falling { get { return falling; } }
         internal bool Dragging { get { return dragging; } }
         internal Ledge Seat { get { return seat; } }
@@ -842,7 +842,7 @@ namespace CapriDesktop
         internal Clip PerchGlitch { get { return perchGlitch; } }
         internal Clip Perched { get { return perch; } }
         internal Clip SatAsleep { get { return perchSleep; } }
-        internal IList<Clip> Clips { get { return new[] { idle, blink, blinkGlitch, glitch, dangle, perch, perchBlink, perchBlinkGlitch, perchGlitch, mouth, walk, dance, perchDance, arrive, leave, perchArrive, perchLeave, grin, sleep, wake, idleBlink, idleBlinkGlitch, idleMouth }; } }
+        internal IList<Clip> Clips { get { return new[] { idle, blink, blinkGlitch, glitch, dangle, perch, perchBlink, perchBlinkGlitch, perchGlitch, mouth, walk, dance, perchDance, arrive, leave, perchArrive, perchLeave, grin, sleep, wake, idleBlink, idleBlinkGlitch, idleMouth, laydown, laydownGlitch, laydownTalk }; } }
         internal Clip Arrival { get { return arrive; } }
         internal Clip PerchArrival { get { return perchArrive; } }
         internal Clip SeatDance { get { return perchDance; } }
@@ -855,7 +855,7 @@ namespace CapriDesktop
         internal bool Dancing { get { return dancing; } set { dancing = value; Sync(); } }
         internal PixelPoint Anchor { get { return anchor; } }
         internal bool FacingLeft { get { return body.FacingLeft; } }
-        private double SitAcross { get { return FacingLeft ? 1 - SitX : SitX; } }
+        private double SitAcross { get { double x = lying ? LieRight : SitX; return FacingLeft ? 1 - x : x; } }
         private double StandAcross { get { return FacingLeft ? 1 - StandX : StandX; } }
         private double PerchNear { get { return FacingLeft ? 1 - PerchRight : PerchLeft; } }
         private double PerchFar { get { return FacingLeft ? 1 - PerchLeft : PerchRight; } }
@@ -874,7 +874,7 @@ namespace CapriDesktop
         // Like the released app, leave room at a screen edge without oscillating around one threshold.
         private void Face()
         {
-            if (dragging || pressed || walking || falling || outro != null || clip == arrive || clip == leave) return;
+            if (dragging || pressed || walking || falling || riding || lying || outro != null || clip == arrive || clip == leave) return;
             SetFacing(WorkAt(Hip).Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
         }
         internal int Headroom { get { return (int)Math.Ceiling(body.Size * (SitY - PerchTop) * DesktopScaling); } }
@@ -885,7 +885,7 @@ namespace CapriDesktop
         internal PixelRect Area { get { Screen screen = ScreenHere(); return screen == null ? new PixelRect(0, 0, 1920, 1080) : screen.WorkingArea; } }
         internal bool Busy { get { return dragging || pressed || falling; } }
         internal bool Hovered { get { return body.IsPointerOver && Opaque(pointer); } }
-        private double FrameX { get { return body.Size * 0.08 - 8; } }
+        private double FrameX { get { return lying ? -8 : body.Size * 0.08 - 8; } }
         private double FrameY { get { return -body.Size * 0.06 - 8; } }
 
         private int Px(double dip) { return (int)Math.Round(dip * DesktopScaling); }
@@ -916,7 +916,7 @@ namespace CapriDesktop
 
         private void Fit()
         {
-            Width = Math.Ceiling(body.Size * 0.77 + 16);
+            Width = Math.Ceiling(body.Size * (lying ? 1 : 0.77) + 16);
             Height = Math.Ceiling(body.Size * 1.16 + 16);
             body.Centre = new Point(body.Size / 2 - FrameX, body.Size / 2 - FrameY);
         }
@@ -931,12 +931,14 @@ namespace CapriDesktop
 
         private PixelRect ScreenAt(PixelPoint point)
         {
+            if (MoveArea != null) return MoveArea.Value;
             Screen screen = Screens.ScreenFromPoint(point) ?? Screens.Primary;
             return screen == null ? new PixelRect(0, 0, 1920, 1080) : screen.Bounds;
         }
 
         private PixelRect WorkAt(PixelPoint point)
         {
+            if (MoveArea != null) return MoveArea.Value;
             Screen screen = Screens.ScreenFromPoint(point) ?? ScreenHere();
             return screen == null ? new PixelRect(0, 0, 1920, 1080) : screen.WorkingArea;
         }
@@ -1059,6 +1061,7 @@ namespace CapriDesktop
             }
             if (!pressed && !dragging)
             {
+                TickMoves(now);
                 if (falling) Tumble(now);
                 else if (seat != null) HoldSeat(now);
             }
@@ -1335,8 +1338,8 @@ namespace CapriDesktop
 
         private void Advance(double now)
         {
-            bool seated = clip == perch || clip == perchGlitch || clip == perchDance || clip == perchArrive || clip == perchLeave || clip == perchSleep;
-            bool perched = seat != null;
+            bool seated = clip == perch || clip == perchGlitch || clip == perchDance || clip == perchArrive || clip == perchLeave || clip == perchSleep || LyingClip;
+            bool perched = seat != null || riding;
             if (perched && !seated && !walking) Play(perch);
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
             int index = (int)((now - clipStart) * clip.Fps);
@@ -1351,12 +1354,14 @@ namespace CapriDesktop
                 if (dropAfter) { dropAfter = false; Fall(); }
             }
             if ((clip == perchGlitch && index >= perchGlitch.Count) || (clip == perchArrive && index >= perchArrive.Count)) { Play(perch); index = 0; }
+            if (lying && (clip == laydownGlitch && index >= laydownGlitch.Count || clip == perch)) { Play(laydown); index = 0; }
+            if (lying && (clip == laydown || clip == laydownTalk) && (clip == laydownTalk) == Talk.Quiet) { Play(Talk.Quiet ? laydown : laydownTalk); index = 0; }
             if (dropAfter && clip != arrive && clip != glitch)
             {
                 dropAfter = false;
                 if (seat == null && !dragging && !falling) Fall();
             }
-            bool still = !walking && !dragging && !falling && !hanging && outro == null && Talk.Quiet && !napAsked && !napping;
+            bool still = !walking && !dragging && !falling && !hanging && !riding && !lying && outro == null && Talk.Quiet && !napAsked && !napping;
             bool grooving = dancing || (musicOn && !Saved.NoDance && !danceHeld);
             if (grooving && still && (clip == idle || clip == perch)) { Play(clip == perch ? perchDance : dance); index = 0; }
             if ((!grooving || !still) && (clip == dance || clip == perchDance)) { Play(clip == perchDance ? perch : idle); index = 0; }
@@ -1463,6 +1468,7 @@ namespace CapriDesktop
                 floors.Add(screen.WorkingArea);
                 Desk.Screens.Add(screen.Bounds);
             }
+            if (MoveArea != null) { floors.Clear(); floors.Add(MoveArea.Value); }
             return Perches.Find(Windows(), floors);
         }
 
@@ -1473,6 +1479,7 @@ namespace CapriDesktop
 
         internal void Fall()
         {
+            ClearMoves();
             walking = false;
             seat = null;
             hanging = false;
@@ -1538,6 +1545,7 @@ namespace CapriDesktop
             PixelRect bounds = spot.Bounds;
             if (bounds == seat.Bounds) return;
             EndWalk();
+            SitUp();
             int dx =bounds.Width == seat.Bounds.Width ? bounds.X - seat.Bounds.X : 0;
             int x = Math.Max(bounds.X + Px(8), Math.Min(Hip.X + dx, bounds.Right - Px(8)));
             seat.Bounds = bounds;
@@ -1559,12 +1567,15 @@ namespace CapriDesktop
         private void LoseSeat()
         {
             bool sat = clip == perchSleep;
+            bool moved = lying || walking;
             StandUp();
+            if (moved) Fall();
             if (sat) Play(sleep);
         }
 
         internal void StandUp()
         {
+            ClearMoves();
             Halt();
             walking = false;
             seat = null;
@@ -1578,6 +1589,7 @@ namespace CapriDesktop
 
         private void SitHere()
         {
+            ClearMoves();
             Halt();
             EndWalk();
             hanging = false;
@@ -1588,6 +1600,7 @@ namespace CapriDesktop
         // Hang here, like on Windows: she dangles where she is until a click, a drag, "let go" or "stand up".
         private void HangHere()
         {
+            ClearMoves();
             Halt();
             EndWalk();
             dropAfter = false;
@@ -1973,6 +1986,8 @@ namespace CapriDesktop
 
         internal void React()
         {
+            if (riding) { HopOff(); return; }
+            SitUp();
             ModsClicked();
             napAsked = false;
             if (hanging) { LetGo(); return; }
@@ -2034,6 +2049,7 @@ namespace CapriDesktop
 
         internal void Grab()
         {
+            ClearMoves();
             Halt();
             walking = false;
             dropAfter = false;
@@ -2064,7 +2080,7 @@ namespace CapriDesktop
 
         internal void Resize(double size)
         {
-            EndWalk();
+            StopMoves();
             PixelPoint hip = Hip;
             PixelPoint middle = Middle;
             body.Size = size;
@@ -2694,6 +2710,7 @@ namespace CapriDesktop
                 return resting ? "Woke up." : "Already awake.";
             }
             ComeBack();
+            StopMoves();
             if (hanging) StandUp();
             EndWalk();
             dancing = false;
@@ -2718,10 +2735,6 @@ namespace CapriDesktop
 
         internal bool Napping { get { return napping; } }
 
-        // Her own moves, like on Windows: "teleport here" glitches her over to their mouse, "go to my other monitor" to the same
-        // spot on another screen, and she sits, stands, hangs, hides and comes back. Sitting on a window they name, lying down,
-        // walking or wandering off when asked, riding the cursor and the Mainframe are Windows-only so far, and her hands say so
-        // before they get here.
         internal string MoveSelf(string action, string screen)
         {
             if (action == "move_mainframe") return MoveMainframe(screen);
@@ -2740,6 +2753,9 @@ namespace CapriDesktop
             }
             napAsked = false;
             napping = false;
+            string move = AskedMove(action, screen);
+            if (move != null) return move;
+            StopMoves();
             if (action == "come_here")
             {
                 PixelPoint? mouse = MouseAt != null ? MouseAt() : Mouse();
@@ -2851,6 +2867,7 @@ namespace CapriDesktop
         // Her animations by name, like on Windows. Her dance is her Move menu's Dance, on until "stop dancing".
         internal string Animate(string name)
         {
+            StopMoves();
             if (name == "stop_dancing")
             {
                 bool was = dancing || clip == dance || clip == perchDance;
@@ -3814,7 +3831,7 @@ namespace CapriDesktop
         private void CheckWander(double now)
         {
             if (Saved.Wander <= 0) { nextWander = -1; return; }
-            if (dragging || pressed || falling || walking || outro != null || quitting || seat == null || seat.Free || !Talk.Quiet || napAsked) return;
+            if (dragging || pressed || falling || walking || riding || lying || lieBy >= 0 || outro != null || quitting || seat == null || seat.Free || !Talk.Quiet || napAsked) return;
             double pace = WanderPaces[Saved.Wander - 1];
             if (nextWander < 0) nextWander = now + (20 + random.NextDouble() * 40) * pace;
             if (now < nextWander) return;
@@ -3837,7 +3854,7 @@ namespace CapriDesktop
             return true;
         }
 
-        internal bool Wander()
+        internal bool Wander(bool asked = false)
         {
             if (outro != null || quitting) return false;
             List<Ledge> spots = new List<Ledge>();
@@ -3846,6 +3863,7 @@ namespace CapriDesktop
                 if (ledge.Right - ledge.Left < Px(body.Size / 2)) continue;
                 if (seat != null && ledge.Window == seat.Window && ledge.Floor == seat.Floor && ledge.Y == seat.Y) continue;
                 if (ledge.Y - Headroom < ScreenAt(new PixelPoint(ledge.Left, ledge.Y)).Y) continue;
+                if (asked && !MoveRoom(ledge)) continue;
                 spots.Add(ledge);
             }
             if (spots.Count == 0) return false;
@@ -3858,6 +3876,12 @@ namespace CapriDesktop
 
         private void Hop(Ledge spot, int x)
         {
+            if (askedHop && !MovePlace(ref spot, ref x))
+            {
+                Fall();
+                Talk.Notice("(move)", "That ledge is gone. I'm dropping onto what's below.");
+                return;
+            }
             walking = false;
             seat = null;
             Move(Seated(x, spot.Y));
@@ -3868,6 +3892,7 @@ namespace CapriDesktop
 
         internal void GlitchOut(Action then, bool hop = false)
         {
+            ClearMoves();
             EndWalk();
             falling = false;
             hanging = false;
