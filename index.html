@@ -12,8 +12,29 @@
   <link rel="preload" href="assets/sprites/perch.webp" as="image">
   <link rel="preload" href="assets/sprites/laydown.png" as="image">
   <link rel="stylesheet" href="home.css?v=0.8.8">
-  <script src="home.js?v=0.8.8" defer></script>
+  <link rel="stylesheet" href="city/city.css?v=0.8.8.1">
+  <script>
+    // "pre" keeps the nav, the panel and her out of the first paint when her fly-out is going to play.
+    (function () {
+      var intro = true;
+      try {
+        intro = !matchMedia('(prefers-reduced-motion: reduce)').matches && !location.hash &&
+          (/[?&](intro|freeze)(=|&|$)/.test(location.search) || sessionStorage.getItem('capri-flyout-seen') !== '1');
+      } catch (e) {}
+      if (!intro) return;
+      document.documentElement.classList.add('pre');
+      // If her pictures are slow to arrive the page stops waiting: everything shows, and her fly-out is left for the next visit.
+      setTimeout(function () {
+        if (!document.documentElement.classList.contains('pre')) return;
+        document.documentElement.classList.remove('pre');
+        window.__foLate = true;
+      }, 6000);
+    })();
+  </script>
+  <script src="city/manifest.js?v=0.8.8.1" defer></script>
+  <script src="home.js?v=0.8.8.1" defer></script>
   <script src="helper.js?v=0.8.8" defer></script>
+  <script src="city/city.js?v=0.8.8.1" defer></script>
 </head>
 <body>
   <a class="skip" href="#desktop">Skip to what she does</a>
@@ -55,6 +76,33 @@
     </details>
     <a id="install" class="download" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.8/Capri-Setup.exe" data-api="https://capri-reactions.lachydotmcg.workers.dev/download"><span>Download</span> <span class="download-count">47.9K</span></a>
   </nav>
+
+  <!-- The first screen: she leaves her billboard as her ribbons and lands on the panel's edge (city/city.js).
+       Her ribbons are the transformation animation by Qewiw (mix_qewiw1412_86144). Once she has left, her
+       billboard shows the Capri Remote demo and is a link to the Remote chapter. Clicking her plays it again. -->
+  <header class="fo" id="top">
+    <div class="fo-stage">
+      <picture>
+        <source media="(max-aspect-ratio: 1/1)" srcset="city/city-tall.webp" width="1080" height="1920">
+        <img src="city/city-wide.webp" width="1920" height="1080" alt="A deep canyon of towers in teal haze, cables and bridges crossing it, with Capri on a tall screen above a lit bridge">
+      </picture>
+      <canvas id="fo-city" aria-hidden="true"></canvas>
+    </div>
+    <div class="fo-scrim" aria-hidden="true"></div>
+
+    <a class="fo-billboard" id="fo-billboard" href="#remote" aria-label="Capri Remote, her phone app: jump to On your phone"><span>On your phone</span></a>
+
+    <!-- The foot is as tall as the panel, so the headline and her seat hang off the panel's real top edge. -->
+    <div class="fo-foot">
+      <h1 class="fo-wordmark" id="fo-wordmark">Capri</h1>
+      <div class="fo-panel" id="fo-panel">
+        <div class="fo-ground" id="fo-ground"></div>
+        <a class="fo-cue" id="fo-cue" href="#desktop">What she does <svg viewBox="0 0 12 14" aria-hidden="true" focusable="false"><path d="M6 1v11M1.5 7.5 6 12l4.5-4.5"/></svg></a>
+      </div>
+      <button class="fo-her" id="fo-her" type="button" aria-label="Capri, sitting on the panel's edge. Play her fly-out again"><span class="fo-sprite"></span></button>
+    </div>
+    <canvas id="fo-front" aria-hidden="true"></canvas>
+  </header>
 
   <main id="main">
     <div class="split">
@@ -128,10 +176,11 @@ up late again</textarea>
       </div>
 
       <div class="col">
-        <header class="hero" id="top" data-scene="hero">
+        <header class="hero" id="pitch" data-scene="hero">
           <div class="pitch">
-            <section class="launch" id="remote-out" aria-labelledby="remote-out-tag">
-              <p class="launch-tag" id="remote-out-tag">Capri Remote</p>
+            <section class="launch app-launch" id="remote-out" aria-labelledby="remote-out-tag">
+              <img class="app-icon" src="remote/icons/icon-192.png" width="56" height="56" alt="">
+              <p class="launch-tag" id="remote-out-tag">Capri Remote <span aria-hidden="true">/</span> her phone app</p>
               <p class="launch-big">Out now</p>
               <p class="launch-note">Text, call and watch Capri from your phone. Needs Capri 0.8.7 on Windows.</p>
               <a class="launch-go" href="https://capriai.app/remote/">Open Capri Remote</a>
@@ -149,7 +198,6 @@ up late again</textarea>
             <p class="fan">Capri is an unofficial fan project and is not approved or endorsed by CD PROJEKT RED, the anime's rights holders or its voice actors.</p>
           </div>
 
-          <h1 class="wordmark" id="wordmark"><span class="wm">Capri</span><span class="wm-cut one" aria-hidden="true">Capri</span><span class="wm-cut two" aria-hidden="true">Capri</span></h1>
         </header>
 
         <section class="chapter" id="desktop" data-scene="desktop" aria-labelledby="desktop-h">
@@ -182,6 +230,42 @@ up late again</textarea>
               <img src="assets/pictures/sleep.webp" width="240" height="384" alt="Capri asleep, curled up and floating" loading="lazy">
               <figcaption><b>Asleep</b> she sleeps and wakes</figcaption>
             </figure>
+          </div>
+        </section>
+
+        <section class="chapter" id="remote" data-scene="talk" aria-labelledby="remote-h">
+          <h2 class="reveal" id="remote-h">On your phone</h2>
+          <p class="hud reveal" style="--d: 60ms">Capri Remote <span aria-hidden="true">/</span> Windows <span aria-hidden="true">/</span> any phone's browser</p>
+          <p class="lead reveal" style="--d: 120ms">Text her, call her and watch your screen from your phone, end-to-end encrypted.</p>
+
+          <!-- Capri Remote shown as the app it is: its icon, its name, one button, and the real demo clip in a phone. -->
+          <div class="app reveal" style="--d: 180ms">
+            <img class="app-icon" src="remote/icons/icon-192.png" width="72" height="72" alt="">
+            <p class="app-name"><b>Capri Remote</b><span>Web app <i aria-hidden="true">/</i> Free <i aria-hidden="true">/</i> iPhone and Android</span></p>
+            <a class="btn" href="https://capriai.app/remote/">Open Capri Remote</a>
+            <div class="app-scan">
+              <img src="city/remote-qr.svg" width="112" height="112" alt="QR code that opens capriai.app/remote" loading="lazy">
+              <p><b>On your PC right now?</b> Point your phone's camera at this, or type capriai.app/remote on it.</p>
+            </div>
+            <p class="app-home"><b>Keep her on your home screen.</b> iPhone: Share, then Add to Home Screen. Android: the three-dot menu, then Install app.</p>
+          </div>
+
+          <div class="phone-row">
+            <figure class="phone reveal" style="--d: 240ms">
+              <video id="remote-demo" muted loop playsinline preload="none" poster="city/remote-demo.webp" width="540" height="960" aria-label="Capri Remote on a phone: texting her to play music, calling her while she opens Minecraft on the PC, a reminder, and launching a game">
+                <source src="city/remote-demo.mp4" type="video/mp4">
+              </video>
+              <figcaption><b>Capri Remote</b> text her, call her, watch your PC</figcaption>
+            </figure>
+
+            <dl class="keys grid reveal" style="--d: 300ms">
+              <div><dt>Pair</dt><dd>scan her QR code, then tap Allow on your PC</dd></div>
+              <div><dt>Chat</dt><dd>text her from your phone</dd></div>
+              <div><dt>Call</dt><dd>talk to her out loud</dd></div>
+              <div><dt>Screen</dt><dd>watch your PC screen</dd></div>
+              <div><dt>Jobs</dt><dd>follow her steps, stop her or answer her</dd></div>
+              <div><dt>No PC</dt><dd>chat with your own key, on your phone</dd></div>
+            </dl>
           </div>
         </section>
 
@@ -253,23 +337,6 @@ up late again</textarea>
             <div><dt>Jobs</dt><dd>her pink cursor and a steps panel</dd></div>
             <div><dt>Linux</dt><dd>any MPRIS music player</dd></div>
           </dl>
-        </section>
-
-        <section class="chapter" id="remote" data-scene="talk" aria-labelledby="remote-h">
-          <h2 class="reveal" id="remote-h">On your phone</h2>
-          <p class="hud reveal" style="--d: 60ms">Capri Remote <span aria-hidden="true">/</span> Windows <span aria-hidden="true">/</span> any phone's browser</p>
-          <p class="lead reveal" style="--d: 120ms">Text her, call her and watch your screen from your phone, end-to-end encrypted.</p>
-
-          <dl class="keys grid reveal" style="--d: 180ms">
-            <div><dt>Pair</dt><dd>scan her QR code, then tap Allow on your PC</dd></div>
-            <div><dt>Chat</dt><dd>text her from your phone</dd></div>
-            <div><dt>Call</dt><dd>talk to her out loud</dd></div>
-            <div><dt>Screen</dt><dd>watch your PC screen</dd></div>
-            <div><dt>Jobs</dt><dd>follow her steps, stop her or answer her</dd></div>
-            <div><dt>No PC</dt><dd>chat with your own key, on your phone</dd></div>
-          </dl>
-
-          <p class="os-links reveal" style="--d: 240ms"><a href="https://capriai.app/remote/">Open Capri Remote</a></p>
         </section>
     <section class="chaos" id="chaos" aria-labelledby="chaos-h">
       <p class="seam-tag">Beta <span aria-hidden="true">/</span> Windows only</p>
@@ -428,7 +495,7 @@ up late again</textarea>
     </nav>
     <p class="kofi">Support on Ko-fi: <a href="https://ko-fi.com/lachysdev">Lachy</a>, developer. <a href="https://ko-fi.com/xorulance">Lance and xoru</a>, managers. <a href="https://ko-fi.com/balddcmod">BaldDcMod</a>, Discord moderator.</p>
     <p class="fan">Capri is an unofficial fan project and is not approved or endorsed by CD PROJEKT RED, the anime's rights holders or its voice actors.</p>
-    <p class="fan">Animations by her artist. Type: Big Shoulders, Public Sans and Share Tech Mono, under the SIL Open Font License.</p>
+    <p class="fan">Animations by her artist. Her ribbons are the transformation animation by Qewiw (mix_qewiw1412_86144). Type: Big Shoulders, Public Sans and Share Tech Mono, under the SIL Open Font License.</p>
     <p class="foot-mark" aria-hidden="true">Capri</p>
   </footer>
 

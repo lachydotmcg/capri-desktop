@@ -1,0 +1,126 @@
+/* What the city adds to the live site's home.css: the new first screen, Capri Remote shown as an
+   app, and a speaker button. Every colour is one of home.css's own tokens (her inks, her text,
+   her pink, her green); nothing is picked out of the city picture. */
+
+/* ---------- The first screen: the city and her fly-out ---------- */
+.fo {
+  --fo-pad: 56px;
+  --fo-panel-h: max(25svh, 216px);
+  --fo-s: clamp(400px, 58svh, 680px);   /* her cell height; the cell is 196 x 384 */
+  --fo-seat: .66;                       /* how far down the cell her seat is */
+  --fo-her-right: 84px;
+  position: relative; height: 100svh; min-height: 560px; overflow: hidden; isolation: isolate; background: var(--ink-0);
+}
+.fo-stage, .fo-stage picture, .fo-stage img, #fo-city, #fo-front { position: absolute; inset: 0; width: 100%; height: 100%; }
+.fo-stage img { max-width: none; object-fit: cover; object-position: 56% 40%; }
+@media (max-aspect-ratio: 1/1) { .fo-stage img { object-position: 60% 35%; } }
+.fo-plain #fo-city, .fo-plain #fo-front { display: none; }
+#fo-front { z-index: 7; pointer-events: none; }
+
+/* Keeps the headline readable on the bare city, before the panel exists. */
+.fo-scrim { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; height: 50%; background: linear-gradient(to top, rgba(11, 9, 20, .93) 0, rgba(11, 9, 20, .8) 44%, rgba(11, 9, 20, .26) 78%, rgba(11, 9, 20, 0) 100%); pointer-events: none; }
+
+/* Her billboard: once the phone demo is on it, it is a link to the Remote chapter. Placed by city.js. */
+.fo-billboard { position: absolute; z-index: 2; display: block; color: var(--text); text-decoration: none; pointer-events: none; }
+.fo-ad .fo-billboard { pointer-events: auto; }
+.fo-billboard span { position: absolute; left: 50%; bottom: 8%; padding: 6px 10px 5px; background: var(--pink); color: var(--on-pink); font: 800 15px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; opacity: 0; translate: -50% 0; transition: opacity .15s; --cut: 5px; clip-path: var(--plate); }
+.fo-billboard:hover span, .fo-billboard:focus-visible span { opacity: 1; }
+.fo-billboard:focus-visible { outline-offset: 2px; }
+
+/* The headline */
+.fo-foot { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4; }
+.fo-wordmark { position: absolute; left: var(--fo-pad); bottom: calc(100% + 22px); margin: 0; color: var(--text); font: 800 clamp(120px, 23svh, 240px)/.76 var(--display); letter-spacing: -.005em; text-transform: uppercase; white-space: nowrap; }
+
+/* The panel on the lower quarter: her seat, and one way down the page. */
+.fo-panel { position: relative; isolation: isolate; height: var(--fo-panel-h); }
+/* The plate is on ::before so the glitch-in can clip the ground itself without losing the cut corners. */
+.fo-ground { position: absolute; inset: 0; z-index: -1; }
+.fo-ground::before { content: ""; position: absolute; inset: 0; background: linear-gradient(var(--green), var(--green)) 22px 0 / calc(100% - 44px) 2px no-repeat, var(--ink-0); clip-path: polygon(22px 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%, 0 22px); }
+.fo-cue { position: absolute; left: var(--fo-pad); top: 30px; display: inline-flex; align-items: center; gap: 10px; padding: 6px 0; color: var(--green); font: 800 var(--hud)/1 var(--display); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; transition: color .15s; }
+.fo-cue svg { width: 12px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: square; transition: transform .15s; }
+.fo-cue:hover { color: var(--text); }
+.fo-cue:hover svg { transform: translateY(3px); }
+
+/* Her, on the panel's top edge. She is a button: clicking her plays her fly-out again. */
+.fo-her { position: absolute; right: var(--fo-her-right); bottom: calc(100% - var(--fo-s) * (1 - var(--fo-seat))); z-index: 5; width: calc(var(--fo-s) * 196 / 384); height: var(--fo-s); margin: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.fo-her:disabled { cursor: default; }
+.fo-her:focus-visible { outline-offset: -8px; }
+.fo-sprite { position: absolute; inset: 0; background: url("perch-left.webp") 55.5556% 100% / 1000% 600% no-repeat; }
+/* Sharp screens and tall windows get her strip at the size she was drawn. */
+@media (min-width: 701px) and (min-resolution: 1.2dppx), (min-width: 701px) and (min-height: 1000px) {
+  .fo-sprite { background-image: url("perch-left-2x.webp"); }
+}
+
+/* While her fly-out is about to play, the parts that glitch in later stay out of the first paint. */
+.pre .nav, .pre .fo-ground, .pre .fo-cue { visibility: hidden; }
+/* She is see-through, not hidden, so her strip is already decoded when she lands. */
+.pre .fo-her { opacity: 0; }
+/* The help chat's corner is her seat on this screen, so it waits until the first screen is on its way out. */
+.helper { transition: opacity .2s, visibility .2s; }
+.pre .helper, .fo-top .helper { opacity: 0; visibility: hidden; pointer-events: none; }
+
+@media (max-width: 1180px) {
+  .fo { --fo-pad: 36px; --fo-her-right: 48px; }
+}
+@media (max-width: 700px) {
+  .fo { --fo-pad: 16px; --fo-panel-h: max(25svh, 200px); --fo-s: min(300px, 36svh); --fo-her-right: 4px; }
+  /* The headline sits straight on the panel's edge, beside her. */
+  .fo-wordmark { bottom: calc(100% + 12px); font-size: min(24vw, 15svh); }
+  .fo-cue { top: 22px; }
+}
+
+/* On phones her desktop stays pinned under the nav, so a jump to a chapter (her billboard, the cue) stops below it. */
+@media (max-width: 900px) {
+  html { scroll-padding-top: calc(64px + 46svh + 10px); }
+}
+
+/* ---------- The column's first block ---------- */
+/* It used to be the first screen. It keeps its words and gives up its height and its CAPRI. */
+.hero { height: auto; min-height: 0; padding-bottom: 88px; }
+@media (min-width: 901px) {
+  .pitch, .pitch:has(> .launch) { margin-top: 96px; }
+}
+
+/* ---------- Capri Remote, shown as the app it is ---------- */
+.app-icon { display: block; flex: none; --cut: 9px; clip-path: var(--plate); }
+/* the small card at the top of the column */
+.app-launch { grid-template-columns: auto minmax(0, 1fr); column-gap: 18px; }
+.app-launch .app-icon { grid-row: 1 / span 2; align-self: center; width: 56px; height: 56px; }
+.app-launch .launch-note, .app-launch .launch-go { grid-column: 1 / -1; }
+
+/* the chapter's own card: icon, name, one button, and how to get it onto a phone */
+.app { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 20px 18px; align-items: center; max-width: 520px; margin: 0 0 30px; padding: 24px 26px 26px; background: var(--ink-2); clip-path: var(--plate); }
+.app .app-icon { width: 72px; height: 72px; }
+.app p { margin: 0; }
+.app-name b { display: block; font: 800 38px/1 var(--display); letter-spacing: .01em; text-transform: uppercase; }
+.app-name span { display: block; margin-top: 6px; color: var(--green); font: 800 var(--hud)/1.2 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.app-name i { font-style: normal; }
+.app .btn { grid-column: 1 / -1; justify-self: start; }
+.app-scan { grid-column: 1 / -1; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 18px; align-items: center; padding-top: 20px; border-top: 2px solid var(--ink-3); color: var(--muted); font-size: var(--small); line-height: 1.45; }
+.app-scan img { display: block; width: 112px; height: 112px; }
+.app-scan b, .app-home b { display: block; margin-bottom: 4px; color: var(--text); font: 800 var(--hud)/1.2 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.app-home { grid-column: 1 / -1; color: var(--muted); font-size: var(--small); line-height: 1.45; }
+/* On a phone the button is the way in, so the code to scan is left out. */
+@media (hover: none) and (pointer: coarse), (max-width: 700px) {
+  .app-scan { display: none; }
+}
+
+/* the demo clip in a phone, with what Remote does beside it */
+.phone-row { display: grid; grid-template-columns: minmax(0, 232px) minmax(0, 1fr); gap: 30px; align-items: start; max-width: 520px; margin: 0 0 34px; }
+.phone { margin: 0; }
+.phone video { display: block; width: 100%; height: auto; aspect-ratio: 9 / 16; border: 3px solid var(--ink-3); border-radius: 24px; background: var(--ink-0); }
+.phone figcaption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 12px; color: var(--muted); font-size: var(--small); }
+.phone figcaption b { color: var(--text); font: 800 var(--hud)/1.2 var(--display); letter-spacing: .05em; text-transform: uppercase; }
+.phone-row .keys.grid { grid-template-columns: 1fr; gap: 16px; margin: 6px 0 0; }
+@media (max-width: 600px) {
+  .app { padding: 20px 20px 22px; }
+  .app-name b { font-size: 32px; }
+  .phone-row { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  .phone { max-width: 250px; }
+  .phone-row .keys.grid { grid-template-columns: 1fr 1fr; gap: 18px 20px; }
+}
+
+/* ---------- Her taskbar's speaker button: pressed means her sounds are off ---------- */
+[data-ui] .sound .is-off { display: none; }
+[data-ui] .sound[aria-pressed="true"] .is-on { display: none; }
+[data-ui] .sound[aria-pressed="true"] .is-off { display: block; }
