@@ -2163,6 +2163,12 @@ namespace CapriDesktop
         private System.Collections.Generic.List<short[]> backlog;
         private bool resting;
         private int loudRun;
+        private double restRoom = -1;
+        private readonly double[] restLevels = new double[5];
+        private int restSlot;
+        private double chatToolAt = -10;
+        private Action<int> deliveryTest;
+        private Action<short[]> sendMicTest;
         private Dictation dictation;
         private string dictationMic;
         private double dictationMicAt;
@@ -2375,10 +2381,10 @@ namespace CapriDesktop
             speakerLook = new DeviceLook(this);
             micLook = new DeviceLook(this);
             choicesLook = new DeviceLook(this);
-            voice = new Voice(new Speaker(smoke));
+            voice = new Voice(new Speaker(smoke) { Name = "her voice" });
             AllowDrop = true;
             instant = smoke;
-            speaker = new Speaker(smoke);
+            speaker = new Speaker(smoke) { Name = "voice chat" };
             effects = new Speaker(smoke) { Plain = true };
             typist = new Speaker(smoke) { Plain = true };
             restore = signal;
@@ -5443,7 +5449,7 @@ namespace CapriDesktop
                 }
                 chatArmed = chatTail.Enabled && chatFx != null && chatFx.Layers.Same(layers);
                 chatHeard.AddRange(chatFx.Flush());
-                Hush();
+                Hush("smoke reset");
             }
             finally
             {
@@ -8953,7 +8959,7 @@ namespace CapriDesktop
             if (preferences.Silent) return;
             preferences.Silent = true;
             BargeIn("voice off");
-            Hush();
+            Hush("voice off");
             qwen.Stop();
             LeaveCall();
             SavePreferences();
@@ -13571,7 +13577,7 @@ namespace CapriDesktop
                 Post(delegate
                 {
                     if (agent != opened || dropping || repeating || clock.Elapsed.TotalSeconds < bargedUntil) return;
-                    if (Unprompted()) { dropping = true; checkedIn = true; Hush(); return; }
+                    if (Unprompted()) { dropping = true; checkedIn = true; Hush("unprompted reply"); return; }
                     stirred = Environment.TickCount;
                     // A speaker lost mid-reply ends voice chat with a note, instead of failing again on every chunk after it.
                     try { speaker.Play(ChatVoice(samples)); }
@@ -13580,8 +13586,10 @@ namespace CapriDesktop
                     if (!frames.Enabled && (!hidden || docked)) frames.Start();
                 });
             };
+            opened.ToolReturned += delegate { ToolSent(opened); };
             opened.Interrupted += delegate { Post(delegate { if (agent == opened) ChatInterrupted(); }); };
             opened.Closed += delegate(string problem) { Post(delegate { if (agent != opened) return; if (problem != null) ChatFailed(problem); else Rest(); }); };
+            Interlocked.Exchange(ref chatToolAt, -10);
             agent = opened;
             opened.Start(url, voiceId);
         }
@@ -13614,9 +13622,9 @@ namespace CapriDesktop
             }
         }
 
-        private void Hush()
+        private void Hush(string reason)
         {
-            speaker.Clear();
+            speaker.Clear(reason, true);
             chatTail.Stop();
             chatFx = null;
         }
@@ -13626,7 +13634,7 @@ namespace CapriDesktop
             LogVoiceInterruption("server interruption", audioTurn, false);
             CancelAnswerAudio();
             bargedUntil = -1;
-            Hush();
+            Hush("server interruption");
         }
 
         private void ChatOpened(int rate)
@@ -13768,7 +13776,7 @@ namespace CapriDesktop
             Action<string> heard = finishedTest;
             if (heard != null) { heard(result); return; }
             // Their own "stop" in voice chat got its answer from the agent, which only needs to know it happened.
-            if (told != null && told.Ready && result != Computer.Escaped && Computer.Stopped(result)) { told.Tell("Capri's hands stopped the job, like they asked. It's over, so don't bring it up again."); return; }
+            if (told != null && told.Ready && result != Computer.Escaped && Computer.Stopped(result)) { told.Tell("Capri's hands stopped the job, like they asked. It's over, so don't bring it up again."); ToolSent(told); return; }
             if (told != null && told.Ready)
             {
                 if (tool == "find_file") Post(delegate { if (ticket == asking) Begin(ticket, result, TalkState.Talking, null); });
@@ -13826,7 +13834,7 @@ namespace CapriDesktop
                 string line = result == Security.Left ? "They said no, so Capri left it alone. Say so in one short line and don't call a tool for it." : "Capri's hands did what they just said yes to (" + resumed + "): " + result + " Don't call a tool for it again. React to it in one short line.";
                 Action<string> heard = finishedTest;
                 if (heard != null) heard(line);
-                else if (asker != null) asker.Tell(line);
+                else if (asker != null) { asker.Tell(line); ToolSent(asker); }
             });
             return true;
         }
@@ -13872,7 +13880,7 @@ namespace CapriDesktop
             lock (shortcutGate) { if (!answering) { toolAsked = shortcut; heardLast = text; toolDone = null; } }
             if (shortcut)
             {
-                if (tool == "clip") { dropping = true; Hush(); }
+                if (tool == "clip") { dropping = true; Hush("clip reply"); }
                 Agent told = agent;
                 string key = MouseKey(tool, args);
                 bool claimed = key != null && Claim(key);
@@ -13893,9 +13901,9 @@ namespace CapriDesktop
                         lock (shortcutGate) toolDone = result;
                         Post(delegate { Answer(ticket, ClipBuffer.Spoken(result), TalkState.Talking); });
                     }
-                    else if (Security.IsHold(result)) { if (told != null) told.Tell(result); }
+                    else if (Security.IsHold(result)) { if (told != null) { told.Tell(result); ToolSent(told); } }
                     else if (tool == "find_file" || unchecked(Environment.TickCount - began) > 8000) Finished(told, tool, result, ticket);
-                    else if (told != null) told.Tell("Capri's hands already did what they just asked (" + tool + "): " + result + " Don't call a tool for it again. React to it in one short line.");
+                    else if (told != null) { told.Tell("Capri's hands already did what they just asked (" + tool + "): " + result + " Don't call a tool for it again. React to it in one short line."); ToolSent(told); }
                 });
             }
             reply = null;
@@ -13914,7 +13922,7 @@ namespace CapriDesktop
             checkedIn = !spoke;
             spoke = false;
             if (dropping) return;
-            if (checkedIn && Unprompted()) { dropping = true; Hush(); return; }
+            if (checkedIn && Unprompted()) { dropping = true; Hush("unprompted reply"); return; }
             string said = Computer.Mask(Voice.Spoken(text));
             remarkTicket = agentComment ? asking : -1;
             agentComment = false;
@@ -13974,7 +13982,7 @@ namespace CapriDesktop
             ears.Muted = false;
             Hearing.Own = null;
             if (!testing) EarsModel(false);
-            Hush();
+            Hush("voice chat stopped");
             dropping = false;
             checkedIn = false;
             quietSince = -1;
@@ -13999,6 +14007,7 @@ namespace CapriDesktop
 
         private void CheckChat(double now)
         {
+            if (agent != null && (agent.ToolBusy || now - Interlocked.CompareExchange(ref chatToolAt, 0, 0) < 4)) { quietSince = -1; return; }
             if (agent != null && ears.Muted && !speaker.Busy)
             {
                 Rest();
@@ -14023,7 +14032,7 @@ namespace CapriDesktop
             checkedIn = false;
             quietSince = -1;
             wokeAt = -1;
-            lock (waking) { resting = true; backlog = null; preroll.Clear(); loudRun = 0; }
+            lock (waking) { resting = true; backlog = null; preroll.Clear(); loudRun = 0; restRoom = -1; Array.Clear(restLevels, 0, restLevels.Length); restSlot = 0; }
             mainframe.VoiceNote("Voice chat resting. Talk and she'll pick up.", false);
         }
 
@@ -14060,8 +14069,15 @@ namespace CapriDesktop
                 {
                     preroll.Add(chunk);
                     if (preroll.Count > 5) preroll.RemoveAt(0);
-                    loudRun = !speaker.Busy && Speaker.Loudness(chunk, 0, chunk.Length) >= WakeLevel ? loudRun + 1 : 0;
-                    if (loudRun < 2) return;
+                    double level = VoiceLevel(chunk);
+                    restRoom = restRoom < 0 ? Math.Max(0.0003, level) : Math.Max(0.0003, Math.Min(level, restRoom * 1.02));
+                    restLevels[restSlot] = speaker.Busy ? 0 : level;
+                    restSlot = (restSlot + 1) % restLevels.Length;
+                    double wake = Math.Max(WakeLevel, restRoom * 1.6), low = double.MaxValue, high = 0;
+                    int speech = 0;
+                    foreach (double recent in restLevels)
+                        if (recent >= wake) { speech++; low = Math.Min(low, recent); high = Math.Max(high, recent); }
+                    if (speaker.Busy || speech < 3 || high < low * 1.2) return;
                     resting = false;
                     loudRun = 0;
                     backlog = new System.Collections.Generic.List<short[]>(preroll);
@@ -14077,7 +14093,19 @@ namespace CapriDesktop
                 }
             }
             Agent open = agent;
-            if (open != null) open.Send(OverHer(chunk, open));
+            if (open != null) SendMic(open, OverHer(chunk, open));
+        }
+
+        private void SendMic(Agent open, short[] chunk)
+        {
+            Action<short[]> test = sendMicTest;
+            if (test != null) test(chunk);
+            else open.Send(chunk);
+        }
+
+        private void ToolSent(Agent told)
+        {
+            if (told != null && told == agent) Interlocked.Exchange(ref chatToolAt, clock.Elapsed.TotalSeconds);
         }
 
         internal void Hear(string text) { Hear(text, text, "> you: "); }
@@ -14333,8 +14361,7 @@ namespace CapriDesktop
                     bool current = turn == answerTurn && ticket == asking && !IsDisposed;
                     bool audible = current && audio == audioTurn;
                     // How long her sound is against how much there was to say tells a clip cut short from playback that was stopped (ticket 35).
-                    Brain.Log("voice delivery", took.ElapsedMilliseconds, "answer=" + turn + " audio=" + audio + " current_answer=" + answerTurn + " current_audio=" + audioTurn + " text_current=" + current + " audio_current=" + audible
-                        + " seconds=" + (wav == null ? "none" : Voice.Seconds(wav).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)) + " letters=" + VoiceServer.Letters(words));
+                    VoiceDelivered(turn, audio, current, audible, wav, words, took.ElapsedMilliseconds, "");
                     if (!current) return;
                     if (audible)
                     {
@@ -14347,6 +14374,17 @@ namespace CapriDesktop
                     else if (audible && FollowDelivery(ticket) && talkState != TalkState.Off && box.Leaving < 0 && reply == said && (speak == free || !preferences.Quiet)) PlayReply(said, wav);
                 });
             });
+        }
+
+        private void VoiceDelivered(int turn, int audio, bool current, bool audible, byte[] wav, string words, long ms, string piece)
+        {
+            Action<int> done = deliveryTest;
+            if (done != null) done(turn);
+            double seconds = wav == null ? 0 : Voice.Seconds(wav);
+            int letters = VoiceServer.Letters(words);
+            if (seconds > 0 && (letters < 40 || letters / seconds <= 18)) return;
+            Brain.Log("voice delivery", ms, "answer=" + turn + " audio=" + audio + " current_answer=" + answerTurn + " current_audio=" + audioTurn + " text_current=" + current + " audio_current=" + audible
+                + " seconds=" + (wav == null ? "none" : seconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)) + " letters=" + letters + piece);
         }
 
         private bool FishCues(Func<string, byte[]> speak, Func<string, byte[]> free) { return speak != null && speak == free && preferences.ServerVoice && server.Api == VoiceServer.Fish; }
@@ -34472,7 +34510,7 @@ namespace CapriDesktop
             try
             {
                 signals.Stop();
-                CloseTalk(); Hush();
+                CloseTalk(); Hush("smoke reset");
                 voiceChanges.Clear(); ownLines.Clear(); voicePreview = null;
                 FullScreen = delegate { return false; };
                 hidden = shushed = docked = chatting = local = false;
@@ -34543,7 +34581,7 @@ namespace CapriDesktop
                 ChatVoice(piece);
                 if (VoiceFx.Pitch != 4 || VoiceFx.Speed != 120 || VoiceFx.Robot != 20 || VoiceFx.Glitch != 10 || !VoiceFx.Layers.On || chatFx == null || chatFx.Pitch != 4 || voiceChanges.Count != 0)
                     throw new Exception("The next streamed line missed its new style.");
-                Hush(); chatting = false;
+                Hush("smoke reset"); chatting = false;
                 checks.Add("PASS pitch, speed, robot, glitch and layers keep the live line's style, then reach the next streamed line");
 
                 voice.Play(wav);
@@ -34631,7 +34669,7 @@ namespace CapriDesktop
             finally
             {
                 voiceChanges.Clear(); ownLines.Clear(); voicePreview = null;
-                CloseTalk(); Hush(); FullScreen = fullWas;
+                CloseTalk(); Hush("smoke reset"); FullScreen = fullWas;
                 cloneWindow = clonesWas; if (clonesHere != null) clonesHere.Dispose(); cloneTalking = talkingWas; cloneTalkAt = cloneAtWas;
                 preferences.HideFullScreen = hideFullWas; fullScreenHidden = fullHiddenWas; fullThrough = throughWas; micTalked = micWas; PassThrough();
                 Speak = speakWas; FreeSpeak = freeWas;
@@ -34667,7 +34705,7 @@ namespace CapriDesktop
             string[] warnedWas = new string[keyWarnings.Count]; keyWarnings.CopyTo(warnedWas);
             try
             {
-                signals.Stop(); CloseTalk(); Hush();
+                signals.Stop(); CloseTalk(); Hush("smoke reset");
                 ownLines.Clear(); voicePreview = null;
                 hidden = shushed = chatting = local = docked = false;
                 preferences.Silent = preferences.Quiet = preferences.HdVoice = preferences.ServerVoice = false;
@@ -34702,7 +34740,7 @@ namespace CapriDesktop
             }
             finally
             {
-                ownLines.Clear(); voicePreview = null; CloseTalk(); Hush();
+                ownLines.Clear(); voicePreview = null; CloseTalk(); Hush("smoke reset");
                 Hands.Foreground = frontWas; Computer.Glimpse = sightWas; Computer.AboveHer = raisedWas; FullScreen = fullWas;
                 Speak = speakWas; FreeSpeak = freeWas; VoiceWait = waitWas; FreeWait = freeWaitWas; job = jobWas;
                 preferences.HdVoice = hdWas; preferences.ServerVoice = servedWas;
@@ -34730,7 +34768,10 @@ namespace CapriDesktop
             Func<ManualResetEvent> gate = delegate { ManualResetEvent made = new ManualResetEvent(false); gates.Add(made); return made; };
             // Her log rewrites the whole file under its lock, and an answer's cable note can land on a pool thread mid-read.
             Func<string> logNow = delegate { lock (typeof(Brain)) return File.Exists(log) ? File.ReadAllText(log) : ""; };
-            Func<int, bool> completed = delegate(int turn) { return logNow().Contains(" | answer=" + turn + " audio="); };
+            Action<int> deliveryWas = deliveryTest;
+            System.Collections.Generic.HashSet<int> deliveries = new System.Collections.Generic.HashSet<int>();
+            deliveryTest = delegate(int turn) { deliveries.Add(turn); };
+            Func<int, bool> completed = delegate(int turn) { return deliveries.Contains(turn); };
             Action<int> settle = delegate(int milliseconds)
             {
                 Stopwatch waited = Stopwatch.StartNew();
@@ -34871,7 +34912,7 @@ namespace CapriDesktop
                     talkOver.Reset(); wakeOver.Reset();
                     short[] echo = new short[1600], talking = new short[1600];
                     for (int at = 0; at < echo.Length; at++) { echo[at] = (short)(1200 * Math.Sin(at * 0.05)); talking[at] = (short)(14000 * Math.Sin(at * 0.05)); }
-                    for (int at = 0; at < 6; at++) { if (wakeMic) OverHeard(echo); else OverHerLocally(echo, VoiceLevel(echo)); }
+                    for (int at = 0; at < 15; at++) { if (wakeMic) OverHeard(echo); else OverHerLocally(echo, VoiceLevel(echo)); }
                     for (int at = 0; at < 4; at++) { if (wakeMic) OverHeard(talking); else OverHerLocally(talking, VoiceLevel(talking)); }
                     Answer(asking, "Private talk-over replacement.", TalkState.Talking, true);
                     int turn = answerTurn;
@@ -34889,7 +34930,7 @@ namespace CapriDesktop
                 talkOver.Reset();
                 short[] streamEcho = new short[1600], streamVoice = new short[1600];
                 for (int at = 0; at < streamEcho.Length; at++) { streamEcho[at] = (short)(1200 * Math.Sin(at * 0.05)); streamVoice[at] = (short)(14000 * Math.Sin(at * 0.05)); }
-                for (int at = 0; at < 6; at++) OverHer(streamEcho, quietLink);
+                for (int at = 0; at < 15; at++) OverHer(streamEcho, quietLink);
                 int streamBarges = bargeIns;
                 bool streamDetected = false;
                 for (int at = 0; at < 4 && !streamDetected; at++) streamDetected = OverHer(streamVoice, quietLink) == streamVoice;
@@ -34963,7 +35004,7 @@ namespace CapriDesktop
                             bool sounded = false;
                             foreach (float sample in pc.Cables[0].Kept) if (Math.Abs(sample) > 0.01) sounded = true;
                             if (!sounded) throw new Exception("The " + stop + " check sent no voice to the cable.");
-                            if (stop == "Stop") { voice.Stop(); Hush(); }
+                            if (stop == "Stop") { voice.Stop(); Hush("smoke reset"); }
                             else if (stop == "mute") Silence(false);
                             else
                             {
@@ -34980,7 +35021,7 @@ namespace CapriDesktop
                             for (int at = stoppedAt; at < got.Length; at++)
                                 if (Math.Abs(got[at]) > 0.00001) throw new Exception(stop + " left waiting speech in the cable.");
                         }
-                        finally { voice.Stop(); Hush(); mix.Stop(); MicMix.Current = currentWas; }
+                        finally { voice.Stop(); Hush("smoke reset"); mix.Stop(); MicMix.Current = currentWas; }
                     }
                 }
                 checks.Add("PASS Stop, voice off and ending call mode drop queued WAV and streamed voice, including a finished answer's tail whose ticket is no longer current");
@@ -34988,6 +35029,7 @@ namespace CapriDesktop
             }
             finally
             {
+                deliveryTest = deliveryWas;
                 CloseTalk();
                 foreach (ManualResetEvent release in gates) release.Set();
                 asideVoice++;
@@ -38008,7 +38050,7 @@ namespace CapriDesktop
             Clip clipWas = clip;
             try
             {
-                CloseTalk(); Hush();
+                CloseTalk(); Hush("smoke reset");
                 ownSpeech = new OwnSpeech();
                 Brain.Language = null;
                 FullScreen = delegate { return false; };
@@ -38092,7 +38134,7 @@ namespace CapriDesktop
             double untilWas = voiceUntil;
             try
             {
-                CloseTalk(); Hush();
+                CloseTalk(); Hush("smoke reset");
                 preferences = new Preferences { Silent = true, NoGaming = true };
                 hidden = shushed = pushing = transcribing = chatting = local = napping = napAsked = ownNap = false;
                 clip = idle;
@@ -38406,6 +38448,7 @@ namespace CapriDesktop
             Section(checks, "SmokeLineChanges", delegate { SmokeLineChanges(checks); });
             Section(checks, "SmokeAdminKeys", delegate { SmokeAdminKeys(checks); });
             Section(checks, "SmokeAnswerVoice", delegate { SmokeAnswerVoice(checks, output); });
+            Section(checks, "SmokeVoiceCuts", delegate { SmokeVoiceCuts(checks, output); });
             Section(checks, "SmokeVoiceLanguages", delegate { SmokeVoiceLanguages(checks, output); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
@@ -38699,6 +38742,562 @@ namespace CapriDesktop
             };
             backdrop.Show();
             return backdrop;
+        }
+
+        private void SmokeVoiceCuts(System.Collections.Generic.List<string> checks, string output)
+        {
+            string logWas = Brain.LogPath;
+            bool signalsWas = signals.Enabled;
+            string log = Path.Combine(output, "voice-cuts.txt");
+            signals.Stop();
+            try
+            {
+                CloseTalk();
+                Hush("smoke reset");
+                Brain.LogPath = log;
+                File.WriteAllText(log, "");
+                SmokeCutEcho(checks);
+                SmokeCutGate(checks);
+                SmokeCutRest(checks);
+                SmokeCutLogs(checks, log);
+                SmokeCutEleven(checks, log);
+            }
+            finally
+            {
+                CloseTalk();
+                Hush("smoke reset");
+                Brain.LogPath = logWas;
+                if (signalsWas) signals.Start();
+            }
+        }
+
+        private static short[] CutSpeech(string words, bool other, System.Collections.Generic.List<string> checks)
+        {
+            try
+            {
+                using (System.Speech.Synthesis.SpeechSynthesizer synth = new System.Speech.Synthesis.SpeechSynthesizer())
+                using (MemoryStream pcm = new MemoryStream())
+                {
+                    if (other && synth.GetInstalledVoices().Count < 2) throw new Exception("No second offline voice.");
+                    synth.SelectVoiceByHints(other ? System.Speech.Synthesis.VoiceGender.Male : System.Speech.Synthesis.VoiceGender.Female);
+                    synth.SetOutputToAudioStream(pcm, new System.Speech.AudioFormat.SpeechAudioFormatInfo(Ears.Rate, System.Speech.AudioFormat.AudioBitsPerSample.Sixteen, System.Speech.AudioFormat.AudioChannel.Mono));
+                    synth.Speak(words);
+                    byte[] bytes = pcm.ToArray();
+                    short[] samples = new short[bytes.Length / 2];
+                    Buffer.BlockCopy(bytes, 0, samples, 0, samples.Length * 2);
+                    if (samples.Length < Ears.Rate * 3 || Speaker.Loudness(samples, 0, samples.Length) < 0.001) throw new Exception("No offline speech.");
+                    checks.Add("PASS voice cut echo source uses offline System.Speech: " + synth.Voice.Name);
+                    return samples;
+                }
+            }
+            catch (Exception error)
+            {
+                checks.Add("LIMIT offline System.Speech failed (" + error.GetType().Name + "); voice cut echo uses a fixed-seed syllable pattern with pauses");
+                Random random = new Random(other ? 1582 : 1581);
+                short[] samples = new short[Ears.Rate * 8];
+                for (int i = 0; i < samples.Length; i++)
+                {
+                    double time = i / (double)Ears.Rate;
+                    int beat = (int)(time / 0.19);
+                    double part = time / 0.19 - beat;
+                    double shape = (beat % 11 >= 8 ? 0 : Math.Pow(Math.Sin(Math.PI * part), 0.6)) * Math.Min(1, (time + 0.01) / 0.6);
+                    double hz = (other ? 165 : 210) + 25 * Math.Sin(beat * 0.7);
+                    samples[i] = (short)(11000 * shape * (0.8 * Math.Sin(2 * Math.PI * hz * time) + 0.2 * Math.Sin(4 * Math.PI * hz * time)) + random.Next(-8, 9));
+                }
+                return samples;
+            }
+        }
+
+        private static double CutMine(double[] levels, int at, int window)
+        {
+            double most = 0;
+            for (int i = Math.Max(0, at - window); i <= at && i < levels.Length; i++) most = Math.Max(most, levels[i]);
+            return most;
+        }
+
+        private static short[] CutMic(short[] said, int start, int delay, Random noise)
+        {
+            short[] chunk = new short[Ears.Chunk];
+            for (int i = 0; i < chunk.Length; i++)
+            {
+                int at = start + i - delay;
+                double value = at >= 0 && at < said.Length ? said[at] * 0.25 : 0;
+                for (int tail = 1; tail <= 4; tail++)
+                {
+                    int behind = at - tail * Ears.Rate / 40;
+                    if (behind >= 0 && behind < said.Length) value += said[behind] * 0.035 * Math.Pow(0.5, tail - 1);
+                }
+                chunk[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, value + noise.Next(-12, 13)));
+            }
+            return chunk;
+        }
+
+        private static void SmokeCutEcho(System.Collections.Generic.List<string> checks)
+        {
+            short[] said = CutSpeech("The window is open. I can see the lights across the street. Give me a moment to read the next sentence. Then we can carry on with the game.", false, checks);
+            short[] other = CutSpeech("Please wait a moment. I have something else to ask you before you finish speaking. Can you hear what I am saying?", true, checks);
+            double level = Speaker.Loudness(said, 0, said.Length);
+            double gain = 0.13 / level;
+            for (int i = 0; i < said.Length; i++) said[i] = (short)Math.Max(-28000, Math.Min(28000, said[i] * gain));
+            double[] levels = TalkOver.Levels(Voice.Wave(said, Ears.Rate));
+            TalkOver rows = new TalkOver();
+            for (int i = 0; i < 15; i++) rows.Heard(0.03, 0.1, WakeLevel);
+            for (int i = 0; i < 20; i++) rows.Heard(0.0003, 0.1, WakeLevel);
+            for (int i = 0; i < 6; i++)
+                if (rows.Heard(0.03, 0.1, WakeLevel)) throw new Exception("Soft passages erased the learned echo floor.");
+            if (rows.Heard(0.3, 0.1, WakeLevel) || rows.Heard(0.3, 0.1, WakeLevel)) throw new Exception("Two loud chunks stopped her.");
+            rows.Heard(0.03, 0.1, WakeLevel);
+            if (rows.Heard(0.3, 0.1, WakeLevel) || rows.Heard(0.3, 0.1, WakeLevel) || !rows.Heard(0.3, 0.1, WakeLevel)) throw new Exception("Off-call talk-over did not take three loud chunks in a row.");
+            rows.Heard(0.03, 0.1, WakeLevel);
+            rows.Heard(0.3, 0.1, WakeLevel); rows.Heard(0.3, 0.1, WakeLevel); rows.Heard(0.3, 0, WakeLevel);
+            if (!rows.Heard(0.3, 0.1, WakeLevel)) throw new Exception("A gap between her words broke their run of talking over her.");
+            TalkOver rise = new TalkOver();
+            rise.Heard(0.03, 0.1, WakeLevel);
+            rise.Heard(0.001, 0, WakeLevel);
+            for (int i = 0; i < 3; i++) rise.Heard(0.004, 0.1, WakeLevel);
+            if (rise.Heard(0.3, 0.1, WakeLevel) || rise.Heard(0.3, 0.1, WakeLevel) || !rise.Heard(0.3, 0.1, WakeLevel)) throw new Exception("Three mic rises above the quiet gap did not finish learning.");
+            checks.Add("PASS off-call learning ends on three mic rises or fifteen sounding chunks, keeps the sixty percent echo floor through two seconds of soft passage, and needs three loud chunks in a row, which her gaps between words don't break");
+            int otherAt = -1;
+            double otherLow = 0, otherHigh = 0;
+            for (int i = 0; i + Ears.Chunk * 4 <= other.Length; i += Ears.Chunk)
+            {
+                double low = double.MaxValue, high = 0;
+                for (int j = 0; j < 4; j++)
+                {
+                    double each = Speaker.Loudness(other, i + j * Ears.Chunk, Ears.Chunk);
+                    low = Math.Min(low, each); high = Math.Max(high, each);
+                }
+                if (low > otherLow) { otherAt = i; otherLow = low; otherHigh = high; }
+            }
+            if (otherAt < 0 || otherLow <= 0.002) throw new Exception("The second offline voice had no four sounding chunks.");
+            const int window = 6;
+            foreach (int latency in new[] { 0, 300, 600, 900 })
+            {
+                int count = levels.Length + 20;
+                foreach (bool call in new[] { false, true })
+                {
+                    TalkOver over = new TalkOver();
+                    Random noise = new Random(158);
+                    over.Heard(0.0003, 0, WakeLevel, call);
+                    for (int i = 0; i < count; i++)
+                    {
+                        short[] mic = CutMic(said, i * Ears.Chunk, latency * Ears.Rate / 1000, noise);
+                        if (over.Heard(VoiceLevel(mic), CutMine(levels, i, window), WakeLevel, call)) throw new Exception("Her own offline line stopped her at " + latency + " ms, call=" + call + ", chunk=" + i);
+                    }
+                }
+                int start = -1;
+                for (int i = 20; i + 4 < levels.Length; i++)
+                {
+                    bool sounding = true;
+                    for (int j = 0; j < 4; j++) sounding &= CutMine(levels, i + j, window) > 0.025;
+                    if (sounding) { start = i; break; }
+                }
+                if (start < 0) throw new Exception("Her offline line had no learned stretch for talk-over.");
+                double mine = 0;
+                for (int i = 0; i < 4; i++) mine = Math.Max(mine, CutMine(levels, start + i, window));
+                double louder = mine / otherLow;
+                TalkOver talking = new TalkOver();
+                Random micNoise = new Random(158);
+                talking.Heard(0.0003, 0, WakeLevel);
+                bool heardOther = false;
+                for (int i = 0; i < start + 4; i++)
+                {
+                    short[] mic = CutMic(said, i * Ears.Chunk, latency * Ears.Rate / 1000, micNoise);
+                    if (i >= start)
+                        for (int at = 0; at < mic.Length; at++) mic[at] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, mic[at] + other[otherAt + (i - start) * Ears.Chunk + at] * louder));
+                    bool caught = talking.Heard(VoiceLevel(mic), CutMine(levels, i, window), WakeLevel);
+                    if (i < start && caught) throw new Exception("Echo interrupted before the second voice began at " + latency + " ms.");
+                    if (i >= start && caught) { heardOther = true; break; }
+                }
+                if (!heardOther) throw new Exception("A second voice was not heard within 400 ms at " + latency + " ms, peak=" + otherHigh);
+            }
+            checks.Add("PASS her offline line at a quarter level with noise and a decaying tail never interrupts at 0, 300, 600 or 900 ms against her loudest of the last 600 ms, as all three mics read her, off calls and on calls");
+            checks.Add("PASS a second offline voice as loud as her output is heard within 400 ms off calls at every echo latency");
+        }
+
+        private void SmokeCutGate(System.Collections.Generic.List<string> checks)
+        {
+            Func<double> clockWas = speaker.Clock;
+            Action<short[]> micWas = sendMicTest;
+            bool localWas = local, chattingWas = chatting;
+            double now = 100;
+            short[] echo = new short[Ears.Chunk], loud = new short[Ears.Chunk], quiet = new short[Ears.Chunk];
+            short[] sentence = new short[Ears.Rate * 2];
+            for (int i = 0; i < sentence.Length; i++) sentence[i] = (short)(9000 * Math.Sin(i * 0.07));
+            for (int i = 0; i < echo.Length; i++) { echo[i] = (short)(2250 * Math.Sin(i * 0.07)); loud[i] = (short)(14000 * Math.Sin(i * 0.09)); }
+            Agent link = new Agent();
+            System.Collections.Generic.List<short[]> sent = new System.Collections.Generic.List<short[]>();
+            Func<short[], short[]> feed = delegate(short[] chunk) { short[] passed = OverHer(chunk, link); SendMic(link, passed); return passed; };
+            try
+            {
+                local = false; chatting = true;
+                speaker.Clock = delegate { return now; };
+                sendMicTest = delegate(short[] chunk) { sent.Add(chunk); };
+                Hush("smoke reset");
+                barging = tailOpen = false;
+                talkOver.Reset(); heldBack.Clear();
+                speaker.Open(Ears.Rate); speaker.Play(sentence);
+                for (int i = 0; i < 20; i++)
+                {
+                    now = 100 + i * 0.1;
+                    short[] passed = feed(i < 2 ? quiet : echo);
+                    if (Array.Exists(passed, sample => sample != 0)) throw new Exception("The agent heard her own playing line.");
+                }
+                for (int i = 0; i < 6; i++)
+                {
+                    now = 102 + i * 0.1;
+                    if (Array.Exists(feed(echo), sample => sample != 0)) throw new Exception("The agent heard echo in her 600 ms stream gap.");
+                }
+                int learned = (int)typeof(TalkOver).GetField("chunks", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(talkOver);
+                now = 102.6;
+                speaker.Play(sentence);
+                feed(echo);
+                int after = (int)typeof(TalkOver).GetField("chunks", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(talkOver);
+                if (after <= learned) throw new Exception("A stream gap reset talk-over learning.");
+                for (int i = 0; i < 10; i++)
+                {
+                    now = 104.6 + i * 0.1;
+                    if (Array.Exists(feed(echo), sample => sample != 0)) throw new Exception("Echo passed in the second after her stream ended.");
+                }
+                now = 105.601;
+                if (feed(echo) != echo || heldBack.Count != 0) throw new Exception("The mic stayed closed after one idle second.");
+                now = 110;
+                speaker.Play(sentence);
+                talkOver.Reset();
+                for (int i = 0; i < 20; i++) { now = 110 + i * 0.1; feed(i < 2 ? quiet : echo); }
+                int barges = bargeIns;
+                now = 112.1; feed(echo);
+                now = 112.2; feed(loud);
+                now = 112.3; feed(loud);
+                int before = sent.Count;
+                now = 112.4;
+                if (feed(loud) != loud || sent.Count - before != TalkOver.Held + 2 || sent[sent.Count - 3] != loud || barging) throw new Exception("An immediate answer lost its first chunks or queued a local barge-in.");
+                now = 112.5;
+                if (feed(quiet) != quiet) throw new Exception("The mic closed again during their answer.");
+                bool drained = false;
+                Post(delegate { drained = true; });
+                WaitVoice(delegate { return drained; }, "The tail answer check did not drain.");
+                if (bargeIns != barges) throw new Exception("An answer in her echo tail barged in locally.");
+                now = 112.6;
+                speaker.Play(sentence);
+                if (Array.Exists(feed(echo), sample => sample != 0)) throw new Exception("The mic stayed open when she played again.");
+                now = 112.7; feed(loud);
+                now = 112.8; feed(loud);
+                now = 112.9;
+                if (feed(loud) != loud) throw new Exception("Learned stream talk-over missed three loud chunks.");
+                WaitVoice(delegate { return bargeIns == barges + 1; }, "Playing stream talk-over did not barge in.");
+                checks.Add("PASS the agent mic stays silent through a 600 ms stream gap and the one second echo tail, keeps its learning on resumption, and opens after one idle second");
+                checks.Add("PASS an immediate answer sends five held chunks first and opens the mic until she plays again without a local barge-in; three loud chunks during playback still barge in");
+            }
+            finally
+            {
+                Hush("smoke reset");
+                speaker.Clock = clockWas; sendMicTest = micWas;
+                local = localWas; chatting = chattingWas;
+                barging = tailOpen = false;
+                talkOver.Reset(); heldBack.Clear();
+                link.Dispose();
+            }
+        }
+
+        private void SmokeCutRest(System.Collections.Generic.List<string> checks)
+        {
+            Agent agentWas = agent;
+            bool chattingWas = chatting, localWas = local, mutedWas = ears.Muted;
+            bool restingWas = resting, checkedWas = checkedIn;
+            double toolWas = Interlocked.CompareExchange(ref chatToolAt, 0, 0), quietWas = quietSince, wokeWas = wokeAt, roomWas = room;
+            System.Reflection.FieldInfo busy = typeof(Agent).GetField("toolBusy", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            try
+            {
+                local = false; chatting = true; checkedIn = true;
+                Hush("smoke reset");
+                foreach (bool muted in new[] { false, true })
+                {
+                    agent = new Agent();
+                    ears.Muted = muted;
+                    busy.SetValue(agent, 1);
+                    double now = clock.Elapsed.TotalSeconds;
+                    CheckChat(now); CheckChat(now + 20);
+                    if (agent == null) throw new Exception("Voice chat rested while a tool was busy, muted=" + muted);
+                    busy.SetValue(agent, 0);
+                    ToolSent(agent);
+                    double sentAt = Interlocked.CompareExchange(ref chatToolAt, 0, 0);
+                    CheckChat(sentAt + 3.9);
+                    if (agent == null) throw new Exception("Voice chat rested within four seconds of its tool result, muted=" + muted);
+                    CheckChat(sentAt + 4.01);
+                    if (!muted) CheckChat(sentAt + 5.3);
+                    if (agent != null || !resting) throw new Exception("Voice chat did not rest after its tool result grace period.");
+                    checkedIn = true;
+                }
+                ears.Muted = false;
+                restRoom = -1; Array.Clear(restLevels, 0, restLevels.Length); restSlot = 0;
+                preroll.Clear(); backlog = null; resting = true;
+                short[] steady = new short[Ears.Chunk], talking = new short[Ears.Chunk], louder = new short[Ears.Chunk];
+                for (int i = 0; i < steady.Length; i++) { steady[i] = (short)(2200 * Math.Sin(i * 0.09)); talking[i] = (short)(9000 * Math.Sin(i * 0.09)); louder[i] = (short)(12000 * Math.Sin(i * 0.09)); }
+                for (int i = 0; i < 30; i++) Listen(steady);
+                if (!resting || room != roomWas) throw new Exception("Steady room sound woke a resting link or changed free chat's room.");
+                Listen(talking);
+                if (!resting) throw new Exception("One loud blip woke the resting link.");
+                Listen(louder); Listen(talking);
+                if (resting || backlog == null || backlog.Count != 5 || backlog[backlog.Count - 3] != talking || backlog[backlog.Count - 2] != louder) throw new Exception("Varying speech did not wake the link with its preroll.");
+                Listen(louder);
+                if (backlog == null || backlog.Count != 6 || backlog[5] != louder) throw new Exception("Wake backlog lost the next chunk.");
+                chatting = false;
+                bool drained = false;
+                Post(delegate { drained = true; });
+                WaitVoice(delegate { return drained; }, "The resting wake check did not drain.");
+                chatting = true; resting = true; backlog = null; preroll.Clear(); restRoom = -1; Array.Clear(restLevels, 0, restLevels.Length);
+                speaker.Open(Ears.Rate); speaker.Play(talking);
+                Listen(new short[Ears.Chunk]); Listen(talking); Listen(louder); Listen(talking);
+                if (!resting) throw new Exception("Playing sound woke the resting link.");
+                Hush("smoke reset");
+                checks.Add("PASS busy tools and four seconds after their results protect muted and unmuted links, with CheckChat's clock deciding the grace period");
+                checks.Add("PASS resting links ignore steady room sound and a loud blip, wake on three varying voice chunks, retain preroll and backlog, leave free chat's room alone, and stay asleep during playback");
+            }
+            finally
+            {
+                if (agent != null && agent != agentWas) agent.Dispose();
+                agent = agentWas; chatting = chattingWas; local = localWas; ears.Muted = mutedWas;
+                resting = restingWas; checkedIn = checkedWas; quietSince = quietWas; wokeAt = wokeWas;
+                Interlocked.Exchange(ref chatToolAt, toolWas);
+                restRoom = -1; Array.Clear(restLevels, 0, restLevels.Length); restSlot = 0;
+                preroll.Clear(); backlog = null;
+            }
+        }
+
+        private void SmokeCutLogs(System.Collections.Generic.List<string> checks, string log)
+        {
+            Func<string[]> cuts = delegate { lock (typeof(Brain)) return Array.FindAll(File.ReadAllLines(log), line => line.Contains(" | voice cut | - | ")); };
+            Func<double> clockWas = speaker.Clock;
+            bool skipWas = Speaker.SkipWave;
+            string chosenWas = Speaker.Chosen;
+            Func<string, string> thinkWas = Think;
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            bool silentWas = preferences.Silent, quietWas = preferences.Quiet, localWas = local, chattingWas = chatting;
+            Job jobWas = job;
+            double now = 200;
+            short[] samples = new short[Ears.Rate * 2];
+            for (int i = 0; i < samples.Length; i++) samples[i] = (short)(9000 * Math.Sin(i * 0.08));
+            byte[] wav = Voice.Wave(samples, Ears.Rate);
+            try
+            {
+                Speaker.Chosen = null;
+                using (Speaker output = new Speaker(true) { Name = "her voice", Clock = delegate { return now; } })
+                {
+                    Voice clip = new Voice(output);
+                    int before = cuts().Length;
+                    clip.Play(wav); clip.Stop();
+                    string[] logged = cuts();
+                    if (logged.Length != before + 1 || !logged[logged.Length - 1].Contains("| her voice: 2.0 s left, stopped by ")) throw new Exception("Stop did not write one named voice cut with seconds left.");
+                    before = logged.Length;
+                    clip.Play(wav); clip.Finish();
+                    logged = cuts();
+                    if (logged.Length != before + 1 || !logged[logged.Length - 1].Contains("| her voice: 2.0 s left, finished, stopped by ")) throw new Exception("Finish did not write one named voice cut with seconds left.");
+                    before = logged.Length;
+                    clip.Stop(); clip.Finish();
+                    if (cuts().Length != before) throw new Exception("An empty clip player wrote a voice cut.");
+                }
+                speaker.Clock = delegate { return now; };
+                Hush("smoke reset");
+                speaker.Open(Ears.Rate); speaker.Play(samples);
+                int count = cuts().Length;
+                Hush("server interruption");
+                string[] cut = cuts();
+                if (cut.Length != count + 1 || !cut[cut.Length - 1].Contains("voice chat: 2.0 s left, server interruption, stopped by ")) throw new Exception("Hush lost its reason, name, seconds left or wrote more than one line.");
+                count = cut.Length;
+                Hush("server interruption");
+                if (cuts().Length != count) throw new Exception("An empty stream wrote a voice cut.");
+                speaker.Play(new short[Ears.Chunk]);
+                now += 0.6;
+                Hush("server interruption");
+                cut = cuts();
+                if (cut.Length != count + 1 || !cut[cut.Length - 1].Contains("voice chat: 0.0 s left, server interruption")) throw new Exception("A server interruption in the stream's last second was not logged.");
+                count = cut.Length;
+                speaker.Play(new short[Ears.Chunk]);
+                now += 1.2;
+                Hush("server interruption");
+                if (cuts().Length != count) throw new Exception("An idle stream wrote a voice cut.");
+                speaker.Play(samples);
+                speaker.Open(22050);
+                cut = cuts();
+                if (cut.Length != count + 1 || !cut[cut.Length - 1].Contains("voice chat: 2.0 s left, speaker reopened")) throw new Exception("A rate reopen did not write one named cut.");
+                count = cut.Length;
+                using (Speaker unnamed = new Speaker(true) { Clock = delegate { return now; } }) { unnamed.Open(Ears.Rate); unnamed.Play(samples); unnamed.Close(); }
+                if (cuts().Length != count) throw new Exception("An unnamed smoke speaker wrote a voice cut.");
+                Speaker.SkipWave = true;
+                using (SoundCheck device = new SoundCheck { Drain = false })
+                using (Speaker output = new Speaker(false, delegate(int rate) { return new SoundOut(rate, device, device); }) { Name = "her voice", Clock = delegate { return now; } })
+                {
+                    Voice clip = new Voice(output);
+                    clip.Play(wav);
+                    WaitSound(delegate { return output.ModernFed > 0; }, "The fake device did not accept her sound.");
+                    now += 3;
+                    if (output.Left != 0 || output.DeviceLeft <= 0.25) throw new Exception("The fake device did not lag behind her clock.");
+                    count = cuts().Length;
+                    clip.Finish();
+                    cut = cuts();
+                    if (cut.Length != count + 1 || !cut[cut.Length - 1].Contains("| her voice: 2.0 s left, finished")) throw new Exception("Finish missed sound left in a device after her clock ended.");
+                }
+                checks.Add("PASS Stop, Finish, Hush with its reason and a rate reopen each write one named voice cut with seconds left; empty and unnamed speakers write none");
+                checks.Add("PASS a stream interruption in its last second is logged, and Finish counts a fake WASAPI device's queued and unplayed samples after her clock ends");
+                Hush("smoke reset");
+                CloseTalk();
+                job = null; local = chatting = false;
+                preferences.Silent = true;
+                Think = delegate { return "Heard the smoke question."; };
+                Speak = FreeSpeak = null;
+                answerVoice = hdSpeaking = -1;
+                voiceUntil = 0; spokenLevels = null;
+                int explicitBefore;
+                lock (typeof(Brain)) explicitBefore = Regex.Matches(File.ReadAllText(log), @"voice interruption \| - \| explicit input answer=").Count;
+                Hear("smoke voice cut question");
+                WaitVoice(delegate { return reply == "Heard the smoke question."; }, "The idle Hear check did not finish.");
+                lock (typeof(Brain))
+                    if (Regex.Matches(File.ReadAllText(log), @"voice interruption \| - \| explicit input answer=").Count != explicitBefore) throw new Exception("Hear with no sound or pending voice wrote explicit input.");
+                int deliveries;
+                lock (typeof(Brain)) deliveries = Regex.Matches(File.ReadAllText(log), @"\| voice delivery \|").Count;
+                string words = new string('v', 80);
+                VoiceDelivered(answerTurn, audioTurn, true, true, Voice.Wave(new short[Ears.Rate * 8], Ears.Rate), words, 0, "");
+                lock (typeof(Brain))
+                    if (Regex.Matches(File.ReadAllText(log), @"\| voice delivery \|").Count != deliveries) throw new Exception("A normal clip wrote voice delivery.");
+                VoiceDelivered(answerTurn, audioTurn, true, true, Voice.Wave(new short[Ears.Rate * 2], Ears.Rate), words, 0, "");
+                lock (typeof(Brain))
+                    if (Regex.Matches(File.ReadAllText(log), @"\| voice delivery \|").Count != deliveries + 1) throw new Exception("A short clip did not write voice delivery.");
+                VoiceDelivered(answerTurn, audioTurn, true, true, null, words, 0, " piece=1/2");
+                lock (typeof(Brain))
+                    if (Regex.Matches(File.ReadAllText(log), @"\| voice delivery \|").Count != deliveries + 2) throw new Exception("Missing sound did not write voice delivery.");
+                checks.Add("PASS Hear with no playing or pending voice writes no explicit input; normal clips write no voice delivery, while short clips and missing sound do");
+            }
+            finally
+            {
+                CloseTalk(); Hush("smoke reset");
+                speaker.Clock = clockWas; Speaker.SkipWave = skipWas; Speaker.Chosen = chosenWas;
+                Think = thinkWas; Speak = speakWas; FreeSpeak = freeWas;
+                preferences.Silent = silentWas; preferences.Quiet = quietWas; local = localWas; chatting = chattingWas; job = jobWas;
+            }
+        }
+
+        private static void SmokeCutEleven(System.Collections.Generic.List<string> checks, string log)
+        {
+            string hostWas = Voice.Host;
+            int patienceWas = Voice.Patience;
+            System.Collections.Generic.List<byte[]> replies = new System.Collections.Generic.List<byte[]>();
+            Func<double, byte[]> clip = delegate(double seconds) { return Voice.Wave(new short[(int)(24000 * seconds)], 24000); };
+            replies.Add(clip(8)); replies.Add(clip(8)); replies.Add(clip(8));
+            replies.Add(clip(2)); replies.Add(clip(8));
+            for (int i = 0; i < 5; i++) replies.Add(clip(80.0 / 14));
+            replies.Add(clip(0.1));
+            replies.Add(clip(80.0 / 24));
+            replies.Add(clip(80.0 / 28)); replies.Add(clip(80.0 / 12));
+            replies.Add(clip(80.0 / 24));
+            replies.Add(clip(80.0 / 14));
+            for (int i = 0; i < 8; i++) replies.Add(clip(80.0 / 12.5));
+            replies.Add(clip(80.0 / 19.5));
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener server = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+            server.Start();
+            Exception failed = null;
+            using (ManualResetEvent done = new ManualResetEvent(false))
+            {
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    try
+                    {
+                        foreach (byte[] response in replies)
+                            using (System.Net.Sockets.TcpClient client = server.AcceptTcpClient())
+                            using (System.Net.Sockets.NetworkStream stream = client.GetStream())
+                            using (MemoryStream request = new MemoryStream())
+                            {
+                                client.ReceiveTimeout = client.SendTimeout = 3000;
+                                byte[] buffer = new byte[4096];
+                                string text = "";
+                                while (true)
+                                {
+                                    int read = stream.Read(buffer, 0, buffer.Length);
+                                    if (read <= 0) throw new IOException("The fake voice request ended early.");
+                                    request.Write(buffer, 0, read);
+                                    text = System.Text.Encoding.UTF8.GetString(request.ToArray());
+                                    int end = text.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+                                    if (end < 0) continue;
+                                    Match length = Regex.Match(text, @"Content-Length:\s*(\d+)", RegexOptions.IgnoreCase);
+                                    if (request.Length >= end + 4 + (length.Success ? int.Parse(length.Groups[1].Value) : 0)) break;
+                                }
+                                lock (asked) asked.Add(text);
+                                byte[] header = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nContent-Length: " + response.Length + "\r\nConnection: close\r\n\r\n");
+                                stream.Write(header, 0, header.Length); stream.Write(response, 0, response.Length);
+                            }
+                    }
+                    catch (Exception error) { failed = error; }
+                    finally { done.Set(); }
+                });
+                Func<int> requests = delegate { lock (asked) return asked.Count; };
+                Func<string[]> cuts = delegate { lock (typeof(Brain)) return Array.FindAll(File.ReadAllLines(log), line => line.Contains(" | voice cut | - | ElevenLabs:")); };
+                try
+                {
+                    Voice.Host = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port;
+                    Voice.Patience = 2000;
+                    Voice voice = new Voice(new Speaker(true));
+                    voice.Key = "smoke-158-private-key"; voice.VoiceId = "smoke-158-cuts"; voice.Model = "smoke-cut-model";
+                    int letter = 0;
+                    Func<string> line = delegate { return new string((char)('a' + letter++), 80); };
+                    int before = cuts().Length;
+                    for (int i = 0; i < 3; i++) voice.Speak(line());
+                    if (requests() != 3 || cuts().Length != before) throw new Exception("Whole ElevenLabs clips were retried or logged as cuts.");
+                    string shortLine = line();
+                    byte[] kept = voice.Speak(shortLine);
+                    if (requests() != 5 || Math.Abs(Voice.Seconds(kept) - 8) > 0.001 || voice.Speak(shortLine) != kept || requests() != 5) throw new Exception("A clear ElevenLabs cut was not retried once, kept longer and cached.");
+                    string[] logged = cuts();
+                    if (logged.Length != before + 1 || !logged[logged.Length - 1].Contains("letters=80, letters/s=40.0, pace=10.0, asked again=True, returned=8.0 s, kept=8.0 s")) throw new Exception("A clear ElevenLabs cut lost its private-free diagnostic.");
+                    for (int i = 0; i < 5; i++)
+                    {
+                        int sent = requests();
+                        voice.Speak(line());
+                        logged = cuts();
+                        if (requests() != sent + 1 || logged.Length != before + i + 2 || !logged[logged.Length - 1].Contains("pace=10.0, asked again=False, returned=not asked")) throw new Exception("A borderline ElevenLabs clip cost a retry or entered the pace.");
+                    }
+                    int sentBefore = requests(), cutsBefore = cuts().Length;
+                    voice.Speak("A short line.");
+                    if (requests() != sentBefore + 1 || cuts().Length != cutsBefore) throw new Exception("A line under forty letters was checked for clipping.");
+                    voice.Settings = "{\"speed\":2}";
+                    sentBefore = requests();
+                    voice.Speak(line());
+                    logged = cuts();
+                    if (requests() != sentBefore + 1 || logged.Length != cutsBefore + 1 || !logged[logged.Length - 1].Contains("pace=none, asked again=False")) throw new Exception("A voice setting reused another pace or retried a borderline new voice.");
+                    voice.Settings = null; voice.Model = "smoke-cut-model-two";
+                    sentBefore = requests();
+                    kept = voice.Speak(line());
+                    logged = cuts();
+                    if (requests() != sentBefore + 2 || Math.Abs(Voice.Seconds(kept) - 80.0 / 12) > 0.001 || logged.Length != cutsBefore + 2 || !logged[logged.Length - 1].Contains("pace=none, asked again=True")) throw new Exception("A fresh model did not use the twenty-five letter clear-cut threshold.");
+                    voice.VoiceId = "smoke-158-cuts-two";
+                    sentBefore = requests();
+                    voice.Speak(line());
+                    logged = cuts();
+                    if (requests() != sentBefore + 1 || !logged[logged.Length - 1].Contains("pace=none, asked again=False")) throw new Exception("A voice id reused another voice's pace.");
+                    voice.VoiceId = "smoke-158-cuts";
+                    Voice same = new Voice(new Speaker(true));
+                    same.Key = voice.Key; same.VoiceId = voice.VoiceId; same.Model = "smoke-cut-model";
+                    sentBefore = requests();
+                    same.Speak(line());
+                    logged = cuts();
+                    if (requests() != sentBefore + 1 || !logged[logged.Length - 1].Contains("pace=10.0, asked again=False")) throw new Exception("A second voice instance forgot its voice's learned pace.");
+                    for (int i = 0; i < 8; i++) same.Speak(line());
+                    sentBefore = requests();
+                    same.Speak(line());
+                    logged = cuts();
+                    if (requests() != sentBefore + 1 || !logged[logged.Length - 1].Contains("pace=12.5, asked again=False")) throw new Exception("ElevenLabs did not use the median of the last eight whole clips across voice instances.");
+                    if (!done.WaitOne(3000) || failed != null || requests() != replies.Count) throw new Exception("The localhost voice check did not finish its expected requests.");
+                    foreach (string entry in logged)
+                        if (entry.Contains("smoke-158-private-key") || entry.Contains("smoke-158-cuts") || entry.Contains(shortLine)) throw new Exception("A cut diagnostic included a key, voice id or spoken words.");
+                    checks.Add("PASS localhost ElevenLabs learns whole-clip pace, retries a clear cut once past the cache and keeps the longer clip, logs borderline cuts without retry, and leaves lines under forty letters alone");
+                    checks.Add("PASS ElevenLabs pace uses the last eight whole clips' median across instances and keeps settings and models separate; short clips stay out, and every short clip has one diagnostic without words or keys");
+                }
+                finally
+                {
+                    Voice.Host = hostWas; Voice.Patience = patienceWas;
+                    server.Stop();
+                    if (!done.WaitOne(3000)) throw new Exception("The localhost voice worker did not stop.");
+                }
+            }
         }
 
         private void SmokeVoiceLanguages(System.Collections.Generic.List<string> checks, string output)
@@ -48957,7 +49556,7 @@ namespace CapriDesktop
                                 }
                                 fxChatArmed = chatTail.Enabled && chatFx != null && chatFx.Pitch == 6 && chatFx.Robot == 10;
                                 fxChatHeard.AddRange(chatFx.Flush());
-                                Hush();
+                                Hush("smoke reset");
                             }
                             finally
                             {
@@ -52297,6 +52896,7 @@ namespace CapriDesktop
                             checks.Add("PASS no check-ins on calls: ElevenLabs waits the longest it allows (30 s) before making her talk, her call prompt says never check in, and a line that comes after 12 s with no words from you, no job and nothing of hers playing is dropped unheard and the call rests, while a line right after a job still plays");
                             speaker.Clear();
                             double quiet = clock.Elapsed.TotalSeconds;
+                            Interlocked.Exchange(ref chatToolAt, quiet - 5);
                             CheckChat(quiet);
                             CheckChat(quiet + 0.6);
                             if (agent == null) throw new Exception("She hung up before her check-in had time to land.");
@@ -52309,9 +52909,11 @@ namespace CapriDesktop
                             ears.Feed(new short[Ears.Chunk]);
                             ears.Feed(speech);
                             if (!resting) throw new Exception("One loud blip woke her.");
+                            short[] louder = (short[])speech.Clone();
+                            for (int i = 0; i < louder.Length; i++) louder[i] = (short)(louder[i] * 1.3);
+                            ears.Feed(louder);
                             ears.Feed(speech);
                             if (resting) throw new Exception("Talking did not wake her.");
-                            ears.Feed(speech);
                         }
                         else if (step == 8)
                         {
@@ -52336,7 +52938,13 @@ namespace CapriDesktop
                             bool mutedRest = agent == null && resting && ears.Muted && mainframe.VoiceStatus.IndexOf("Mic muted. Voice chat is paused until you unmute.", StringComparison.Ordinal) == 0;
                             short[] mutedTalk = new short[Ears.Chunk];
                             for (int i = 0; i < mutedTalk.Length; i++) mutedTalk[i] = (short)(Math.Sin(i * 0.3) * 9000);
-                            for (int i = 0; i < 4; i++) ears.Feed(mutedTalk);
+                            ears.Feed(new short[Ears.Chunk]);
+                            for (int i = 0; i < 4; i++)
+                            {
+                                short[] varying = (short[])mutedTalk.Clone();
+                                for (int at = 0; at < varying.Length; at++) varying[at] = (short)(varying[at] * (i % 2 == 0 ? 1 : 1.3));
+                                ears.Feed(varying);
+                            }
                             bool stayedAsleep = resting && agent == null;
                             ToggleMic();
                             bool unmuted = !ears.Muted && resting && mainframe.VoiceStatus.IndexOf("Mic on. Talk and she'll pick up.", StringComparison.Ordinal) == 0;
@@ -54326,7 +54934,8 @@ namespace CapriDesktop
                 must(!echoed, "A noise in the gap between her words counted as them talking.");
                 bool talkedOnce = over.Heard(0.3, 0.1, WakeLevel);
                 bool talkedTwice = over.Heard(0.3, 0.1, WakeLevel);
-                must(!talkedOnce && talkedTwice, "Them talking over her wasn't heard: " + talkedOnce + " " + talkedTwice);
+                bool talkedThird = over.Heard(0.3, 0.1, WakeLevel);
+                must(!talkedOnce && !talkedTwice && talkedThird, "Them talking over her wasn't heard: " + talkedOnce + " " + talkedTwice + " " + talkedThird);
                 Agent quietLink = new Agent();
                 speaker.Open(16000);
                 speaker.Play(wave(64000, 9000));
@@ -54334,7 +54943,7 @@ namespace CapriDesktop
                 talkOver.Reset();
                 short[] echoChunk = wave(1600, 1200);
                 short[] voiceChunk = wave(1600, 14000);
-                for (int i = 0; i < 6; i++)
+                for (int i = 0; i < 15; i++)
                 {
                     short[] passed = OverHer(echoChunk, quietLink);
                     must(passed != echoChunk && Array.TrueForAll(passed, sample => sample == 0), "Voice chat's agent got her own voice back.");
@@ -54354,10 +54963,10 @@ namespace CapriDesktop
                 spokenAt = talkNow;
                 talkOver.Reset();
                 TalkOver breathy = new TalkOver();
-                for (int i = 0; i < 6; i++) breathy.Heard(0.03, 0.1, WakeLevel);
+                for (int i = 0; i < 15; i++) breathy.Heard(0.03, 0.1, WakeLevel);
                 bool breathHeard = false, wordsHeard = false;
                 for (int i = 0; i < 4; i++) breathHeard |= breathy.Heard(0.05, 0.006, WakeLevel);
-                for (int i = 0; i < 2; i++) wordsHeard |= breathy.Heard(0.4, 0.1, WakeLevel);
+                for (int i = 0; i < 3; i++) wordsHeard |= breathy.Heard(0.4, 0.1, WakeLevel);
                 must(!breathHeard && wordsHeard, "The echo of her last word over a breath counted as them talking over her, or them talking over her words didn't: " + breathHeard + " " + wordsHeard);
                 // Speakers that start late: the mic hears nothing of her for 300 ms, then her echo. That's still her.
                 TalkOver late = new TalkOver();
@@ -54368,14 +54977,14 @@ namespace CapriDesktop
                 // Them talking over a soft word right after a loud one is still them, and so is talking over her soft words a
                 // second later, once her loud one can't be ringing any more.
                 TalkOver soft = new TalkOver();
-                for (int i = 0; i < 6; i++) soft.Heard(0.03, 0.1, WakeLevel);
+                for (int i = 0; i < 15; i++) soft.Heard(0.03, 0.1, WakeLevel);
                 soft.Heard(0.24, 0.8, WakeLevel);
                 bool softHeard = false, laterHeard = false;
-                for (int i = 0; i < 2; i++) softHeard |= soft.Heard(0.8, 0.05, WakeLevel);
+                for (int i = 0; i < 3; i++) softHeard |= soft.Heard(0.8, 0.05, WakeLevel);
                 for (int i = 0; i < 10; i++) soft.Heard(0.004, 0.05, WakeLevel);
-                for (int i = 0; i < 2; i++) laterHeard |= soft.Heard(0.2, 0.05, WakeLevel);
+                for (int i = 0; i < 3; i++) laterHeard |= soft.Heard(0.2, 0.05, WakeLevel);
                 must(softHeard && laterHeard, "Them talking over her soft words after a loud one wasn't heard: " + softHeard + " " + laterHeard);
-                for (int i = 0; i < 6; i++) must(OverHerLocally(echoChunk, VoiceLevel(echoChunk)), "Free voice chat's ears opened on her own voice.");
+                for (int i = 0; i < 15; i++) must(OverHerLocally(echoChunk, VoiceLevel(echoChunk)), "Free voice chat's ears opened on her own voice.");
                 must(bargeIns == bargedBefore + 1, "Her own voice barged in on free voice chat.");
                 for (int i = 0; i < 4; i++) OverHerLocally(voiceChunk, VoiceLevel(voiceChunk));
                 waitFor(delegate { return bargeIns > bargedBefore + 1; });
@@ -54393,7 +55002,7 @@ namespace CapriDesktop
                 for (int i = 0; i < spokenLevels.Length; i++) spokenLevels[i] = 0.1;
                 spokenAt = clock.Elapsed.TotalSeconds;
                 wakeOver.Reset();
-                for (int i = 0; i < 6; i++) OverHeard(echoChunk);
+                for (int i = 0; i < 15; i++) OverHeard(echoChunk);
                 must(bargeIns == bargedBefore + 2, "Her own voice barged in through Hey Capri's mic.");
                 for (int i = 0; i < 4; i++) OverHeard(voiceChunk);
                 waitFor(delegate { return bargeIns > bargedBefore + 2; });

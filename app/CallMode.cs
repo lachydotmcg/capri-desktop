@@ -365,7 +365,7 @@ namespace CapriDesktop
             callCaptionRun = false;
             preferences.CallMode = on;
             if (on) { EndWatchAlong(); PcEars.Stop(); }
-            else { voice.Stop(); Hush(); }
+            else { voice.Stop(); Hush("call ended"); }
             if (!callJoining && asking == callAnswer) { asking++; brain.Cancel(); CloseTalk(); }
             callAnswer = -1;
             if (pushing) { lock (waking) pushed = null; PushDone(); }
