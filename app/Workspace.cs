@@ -817,11 +817,9 @@ namespace CapriDesktop
                 while (true)
                 {
                     IAsyncResult read = stream.BeginRead(buffer, 0, buffer.Length, null, null);
-                    using (WaitHandle ready = read.AsyncWaitHandle)
-                    {
-                        int left = Math.Max(0, timeout - (int)clock.ElapsedMilliseconds);
-                        if (!ready.WaitOne(left)) throw new IOException("Workspace didn't answer in time.");
-                    }
+                    // EndRead waits on this same handle and closes it itself, so it mustn't be disposed here.
+                    int left = Math.Max(0, timeout - (int)clock.ElapsedMilliseconds);
+                    if (!read.AsyncWaitHandle.WaitOne(left)) throw new IOException("Workspace didn't answer in time.");
                     int count = stream.EndRead(read);
                     if (count == 0) throw new IOException("Workspace closed the approval pipe.");
                     int end = Array.IndexOf(buffer, (byte)'\n', 0, count);
