@@ -325,7 +325,9 @@ all();
             if (window.Pid == own || window.Minimized || !window.Shown || window.Bounds.Width <= 0 || window.Bounds.Height <= 0) return null;
             PixelRect b = window.Bounds;
             PixelRect bounds = scale == 1 ? b : new PixelRect((int)Math.Round(b.X * scale), (int)Math.Round(b.Y * scale), (int)Math.Round(b.Width * scale), (int)Math.Round(b.Height * scale));
-            return Make(window.Id, bounds, !window.FullScreen);
+            Spot spot = Make(window.Id, bounds, !window.FullScreen);
+            spot.Name = window.Class + "\n" + window.Title;
+            return spot;
         }
 
         internal override List<Spot> Windows(ICollection<long> skip)

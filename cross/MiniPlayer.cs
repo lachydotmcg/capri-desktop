@@ -76,6 +76,7 @@ namespace CapriDesktop
             PropertyChanged += (_, e) => { if (e.Property == IsVisibleProperty) Schedule(); };
             SizeChanged += (_, _) => surface.Clip = MainframeTheme.Cut(new Rect(Bounds.Size), 16 * zoom, 6 * zoom, 16 * zoom, 6 * zoom);
             Closed += (_, _) => { stopped = true; epoch++; ticks.Stop(); };
+            CatchUp.PlayerFocus(this);
             Scale(1);
         }
 

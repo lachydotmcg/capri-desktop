@@ -643,7 +643,7 @@ namespace CapriDesktop
                     PixelRect bounds = map.Pixels(logical).Intersect(map.Bounds);
                     if (bounds.Width <= 0 || bounds.Height <= 0) continue;
                     bool big = bounds.Width >= 120 && bounds.Height >= 60;
-                    found.Add(new Spot { Window = window.Id, Bounds = bounds, Seat = big && bounds != map.Bounds, Solid = big });
+                    found.Add(new Spot { Window = window.Id, Name = window.App, Bounds = bounds, Seat = big && bounds != map.Bounds, Solid = big });
                 }
                 return found;
             }

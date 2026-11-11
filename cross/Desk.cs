@@ -13,6 +13,8 @@ namespace CapriDesktop
     internal sealed class Spot
     {
         internal long Window;
+        internal int Pid;
+        internal string Name;
         internal PixelRect Bounds;
         internal bool Seat;
         internal bool Solid;
@@ -251,7 +253,9 @@ namespace CapriDesktop
                     if (box == IntPtr.Zero || !CGRectMakeWithDictionaryRepresentation(box, out area)) continue;
                     PixelRect bounds = new PixelRect((int)Math.Round(area.X * Scale), (int)Math.Round(area.Y * Scale), (int)Math.Round(area.Width * Scale), (int)Math.Round(area.Height * Scale));
                     if (bounds.Width <= 0 || bounds.Height <= 0) continue;
-                    found.Add(Make(id, bounds, true));
+                    Spot spot = Make(id, bounds, true);
+                    spot.Pid = (int)Whole(info, owner);
+                    found.Add(spot);
                 }
             }
             finally { CFRelease(array); }

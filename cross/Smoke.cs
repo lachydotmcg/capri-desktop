@@ -158,6 +158,7 @@ namespace CapriDesktop
                 Pet.CloneChecks(pet, checks);
                 UnreadableChecks();
                 MacWindows.Checks(checks);
+                Pet.CatchUpChecks(pet, checks);
                 UpdateCheckChecks();
                 OfflineChecks();
                 FakeCrash.Checks(checks);

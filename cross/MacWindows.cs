@@ -152,6 +152,18 @@ namespace CapriDesktop
             return "I couldn't arrange that window. The app may have refused the change.";
         }
 
+        internal static Spot Perch(string name, out string problem)
+        {
+            lock (gate)
+            {
+                string reply = Run(Start(ReadScript(name)), Milliseconds);
+                Window window = Parse(reply);
+                if (window != null) permission = null;
+                problem = window == null ? Problem(reply) : window.Minimized ? "That window is minimized. Open it first." : null;
+                return problem == null ? new Spot { Pid = window.Pid, Bounds = window.Bounds } : null;
+            }
+        }
+
         internal static string Request(ToolArguments args)
         {
             if (args == null || Array.IndexOf(Actions, args.Action) < 0) return null;
