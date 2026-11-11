@@ -28,10 +28,15 @@ namespace CapriDesktop
         internal const string StartMarker = "starting.on";
         private static string lastCrash;
         private static int lastCrashAt;
+        internal static long Started;
+        internal static long FirstFrameAt;
+        internal static bool WatchFrame;
+        internal static event Action FirstFrame;
 
         [STAThread]
         private static int Main(string[] args)
         {
+            Started = Stopwatch.GetTimestamp();
             if (args.Length > 0 && args[0] == "--smoke-child") return SmokeRun.Child(args);
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
             if (args.Length > 0 && args[0] == "--workspace-hook") return WorkspaceHook.Run(args);
@@ -107,6 +112,35 @@ namespace CapriDesktop
                     return 1;
                 }
             }
+        }
+
+        internal static void FrameShown(IntPtr window, Bitmap image)
+        {
+            if (!WatchFrame || Interlocked.Read(ref FirstFrameAt) != 0 || !Native.IsWindowVisible(window)) return;
+            if (!HasFrame(image)) return;
+            long at = Stopwatch.GetTimestamp();
+            if (Interlocked.CompareExchange(ref FirstFrameAt, at, 0) != 0) return;
+            long elapsed = (at - Started) * 1000 / Stopwatch.Frequency;
+            string log = Brain.LogPath;
+            ThreadPool.QueueUserWorkItem(delegate { Brain.LogAt(log, "startup", elapsed, "First frame on screen."); });
+            Action first = FirstFrame;
+            if (first != null) first();
+        }
+
+        internal static unsafe bool HasFrame(Bitmap image)
+        {
+            bool visible = false;
+            BitmapData data = image.LockBits(new Rectangle(Point.Empty, image.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            try
+            {
+                for (int y = 0; y < image.Height && !visible; y++)
+                {
+                    byte* row = (byte*)data.Scan0.ToPointer() + y * data.Stride;
+                    for (int x = 0; x < image.Width; x++) if (row[x * 4 + 3] != 0) { visible = true; break; }
+                }
+            }
+            finally { image.UnlockBits(data); }
+            return visible;
         }
 
         // A start that never settled means she closed while starting: a crash, but also Task Manager, an antivirus, a stuck
@@ -1442,8 +1476,10 @@ namespace CapriDesktop
 
     internal sealed class Clip
     {
+        internal static int ArtVersion;
+        internal static event Action ArtChanged;
         // Art that only some moments need loads off her thread when she might need it and is let go after this long undrawn:
-        // every facing-left set, and the clips made lazy (her perch talking). The rest loads with her, as it always has.
+        // every facing-left set, and the clips made lazy (her perch talking). The rest warms after her first frame.
         internal const int RestAfter = 90000;
         private static readonly System.Collections.Generic.List<Clip> all = new System.Collections.Generic.List<Clip>();
         private readonly string name;
@@ -1456,6 +1492,7 @@ namespace CapriDesktop
         // mirror of Strip isn't her. They're stored mirrored back onto Strip's cells and drawn mirrored like the rest.
         private Bitmap flipped;
         private bool fetching;
+        private bool disposed;
         private int stripUsed, flippedUsed;
         private readonly int count;
         private readonly double fps;
@@ -1483,8 +1520,29 @@ namespace CapriDesktop
             this.shiftY = shiftY;
             if (!Companion.HasArt(Resource(false))) throw new FileNotFoundException("Capri's " + name + " animation is missing. Rebuild with assets/sprites.");
             flippable = Companion.HasArt(Resource(true));
-            if (!lazy) strip = Companion.LoadArt(Resource(false));
             lock (all) all.Add(this);
+        }
+
+        internal static void WarmAll()
+        {
+            Clip[] clips;
+            lock (all) clips = all.ToArray();
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                foreach (Clip clip in clips)
+                    if (!clip.lazy)
+                    {
+                        int version;
+                        lock (clip.gate)
+                        {
+                            if (clip.disposed || clip.fetching || clip.strip != null) continue;
+                            clip.fetching = true;
+                            clip.stripUsed = Environment.TickCount;
+                            version = ArtVersion;
+                        }
+                        clip.Fetch(false, version);
+                    }
+            });
         }
 
         // Another clip's art under a new name, like her dance: her idle with a nod on top.
@@ -1585,30 +1643,35 @@ namespace CapriDesktop
         {
             if (source != null) { source.Warm(left); return; }
             bool wantLeft = left && Turns;
+            int version;
             if (wantLeft) flippedUsed = Environment.TickCount; else stripUsed = Environment.TickCount;
             lock (gate)
             {
-                if (fetching || (wantLeft ? flipped != null : strip != null)) return;
+                if (disposed || fetching || (wantLeft ? flipped != null : strip != null)) return;
                 fetching = true;
+                version = ArtVersion;
             }
-            System.Threading.ThreadPool.QueueUserWorkItem(delegate
-            {
-                Bitmap art = null;
-                // A load that fails, out of memory say, leaves her drawn as she was, and the next ask tries again.
-                try { art = Companion.LoadArt(Resource(wantLeft)); }
-                catch (Exception) { }
-                lock (gate)
-                {
-                    fetching = false;
-                    if (art == null) return;
-                    if (wantLeft && flipped == null) flipped = art;
-                    else if (!wantLeft && strip == null) strip = art;
-                    else art.Dispose();
-                }
-            });
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate { Fetch(wantLeft, version); });
         }
 
-        // Lets go of art undrawn for RestAfter: lazy clips' own, and every facing-left set. Called on her thread, between frames.
+        private void Fetch(bool wantLeft, int version)
+        {
+            Bitmap art = null;
+            // A load that fails, out of memory say, leaves her drawn as she was, and the next ask tries again.
+            try { art = Companion.LoadArt(Resource(wantLeft)); }
+            catch (Exception) { }
+            lock (gate)
+            {
+                fetching = false;
+                if (art == null) return;
+                if (disposed || version != ArtVersion) { art.Dispose(); return; }
+                if (wantLeft && flipped == null) flipped = art;
+                else if (!wantLeft && strip == null) strip = art;
+                else art.Dispose();
+            }
+        }
+
+        // Lets go of lazy and facing-left art after RestAfter, and other art after ten minutes. Called between frames.
         internal static void RestAll(int now)
         {
             Clip[] clips;
@@ -1621,13 +1684,15 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (fetching) return;
-                if (lazy && strip != null && unchecked(now - stripUsed) > RestAfter) { strip.Dispose(); strip = null; }
+                if (strip != null && unchecked(now - stripUsed) > (lazy ? RestAfter : 600000)) { strip.Dispose(); strip = null; }
                 if (flipped != null && unchecked(now - flippedUsed) > RestAfter) { flipped.Dispose(); flipped = null; }
             }
         }
 
         internal static void ReloadAll()
         {
+            ArtVersion++;
+            if (ArtChanged != null) ArtChanged();
             Clip[] clips;
             lock (all) clips = all.ToArray();
             foreach (Clip clip in clips) clip.Reload();
@@ -1640,6 +1705,7 @@ namespace CapriDesktop
             {
                 Bitmap wasStrip = strip, wasFlipped = flipped;
                 strip = lazy ? null : Companion.LoadArt(Resource(false));
+                stripUsed = Environment.TickCount;
                 flipped = null;
                 if (wasStrip != null) wasStrip.Dispose();
                 if (wasFlipped != null) wasFlipped.Dispose();
@@ -1666,6 +1732,7 @@ namespace CapriDesktop
             foreach (Clip clip in clips)
                 lock (clip.gate)
                 {
+                    clip.disposed = true;
                     if (clip.strip != null) clip.strip.Dispose();
                     if (clip.flipped != null) clip.flipped.Dispose();
                     clip.strip = clip.flipped = null;
@@ -1679,6 +1746,238 @@ namespace CapriDesktop
         internal int Side;
         internal int Shape;
         internal double Seed;
+    }
+
+    internal sealed class CellCache : IDisposable
+    {
+        internal const long Limit = 48L * 1024 * 1024;
+        internal struct Key : IEquatable<Key>
+        {
+            internal Bitmap Strip;
+            internal int Cell, Width;
+            internal RectangleF Target;
+            internal Size Canvas;
+            internal bool Flip, Tint;
+
+            public bool Equals(Key other)
+            {
+                return Strip == other.Strip && Cell == other.Cell && Width == other.Width && Target == other.Target && Canvas == other.Canvas && Flip == other.Flip && Tint == other.Tint;
+            }
+
+            public override bool Equals(object other) { return other is Key && Equals((Key)other); }
+
+            public override int GetHashCode()
+            {
+                return Strip.GetHashCode() ^ Cell * 397 ^ Width * 31 ^ Target.GetHashCode() ^ Canvas.GetHashCode() ^ (Flip ? 1 : 0) ^ (Tint ? 2 : 0);
+            }
+        }
+
+        internal sealed class Cell
+        {
+            internal Key Key;
+            internal Bitmap Image;
+            internal Rectangle Bounds;
+            internal int Used;
+            internal long Bytes { get { return 4L * Image.Width * Image.Height; } }
+        }
+
+        private readonly Dictionary<Key, LinkedListNode<Cell>> found = new Dictionary<Key, LinkedListNode<Cell>>();
+        private readonly LinkedList<Cell> recent = new LinkedList<Cell>();
+        private int version = -1;
+        internal long Bytes;
+        internal int Count { get { return found.Count; } }
+
+        internal static Rectangle Bounds(RectangleF target, Size canvas, bool flip)
+        {
+            float left = canvas.Width / 2f + (flip ? -target.Right : target.Left), top = canvas.Height / 2f + target.Top;
+            return Rectangle.FromLTRB((int)Math.Floor(left) - 2, (int)Math.Floor(top) - 2, (int)Math.Ceiling(left + target.Width) + 2, (int)Math.Ceiling(top + target.Height) + 2);
+        }
+
+        internal Cell Get(Bitmap strip, int cell, int width, RectangleF target, Size canvas, bool flip, bool tint)
+        {
+            if (version != Clip.ArtVersion) { Clear(); version = Clip.ArtVersion; }
+            Key key = new Key { Strip = strip, Cell = cell, Width = width, Target = target, Canvas = canvas, Flip = flip, Tint = tint };
+            LinkedListNode<Cell> node;
+            if (found.TryGetValue(key, out node))
+            {
+                recent.Remove(node);
+                recent.AddFirst(node);
+                Cell kept = node.Value;
+                kept.Used = Environment.TickCount;
+                return kept;
+            }
+            Rectangle bounds = Rectangle.Intersect(new Rectangle(Point.Empty, canvas), Bounds(target, canvas, flip));
+            long bytes = 4L * bounds.Width * bounds.Height;
+            if (bounds.Width <= 0 || bounds.Height <= 0 || bytes > Limit) return null;
+            while (Bytes + bytes > Limit && recent.Count > 0) Drop();
+            Bitmap image = null;
+            try
+            {
+                using (Bitmap raster = new Bitmap(canvas.Width, canvas.Height, PixelFormat.Format32bppPArgb))
+                {
+                    using (Graphics graphics = Graphics.FromImage(raster))
+                    {
+                        graphics.CompositingMode = CompositingMode.SourceOver;
+                        graphics.CompositingQuality = CompositingQuality.HighQuality;
+                        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        graphics.SmoothingMode = SmoothingMode.HighQuality;
+                        graphics.TranslateTransform(canvas.Width / 2f, canvas.Height / 2f);
+                        if (flip) graphics.ScaleTransform(-1, 1);
+                        graphics.DrawImage(strip, target, new RectangleF(cell * width, 0, width, strip.Height), GraphicsUnit.Pixel);
+                    }
+                    image = raster.Clone(bounds, PixelFormat.Format32bppPArgb);
+                }
+                Cell made = new Cell { Key = key, Image = image, Bounds = bounds, Used = Environment.TickCount };
+                node = new LinkedListNode<Cell>(made);
+                found.Add(key, node);
+                recent.AddFirst(node);
+                Bytes += bytes;
+                return made;
+            }
+            catch { if (image != null) image.Dispose(); throw; }
+        }
+
+        private void Drop()
+        {
+            Cell cell = recent.Last.Value;
+            Bytes -= cell.Bytes;
+            cell.Image.Dispose();
+            found.Remove(cell.Key);
+            recent.RemoveLast();
+        }
+
+        internal void Rest(int now)
+        {
+            while (recent.Count > 0 && unchecked(now - recent.Last.Value.Used) >= 600000) Drop();
+        }
+
+        internal void Clear()
+        {
+            while (recent.Count > 0) Drop();
+        }
+
+        public void Dispose() { Clear(); }
+    }
+
+    internal sealed class CellSampler
+    {
+        private double scaleX = -1, scaleY = -1;
+        private int tapsX, tapsY;
+        private int[] weightsX, weightsY;
+
+        internal void Copy(Native.Surface surface, Bitmap strip, int cell, int width, RectangleF target, PointF centre, float angle, float lift, bool flip)
+        {
+            using (Graphics graphics = Graphics.FromImage(surface.Image))
+            {
+                graphics.CompositingMode = angle == 0 ? CompositingMode.SourceOver : CompositingMode.SourceCopy;
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.TranslateTransform(centre.X, centre.Y + lift);
+                graphics.RotateTransform(angle);
+                if (flip) graphics.ScaleTransform(-1, 1);
+                graphics.DrawImage(strip, target, new RectangleF(cell * width, 0, width, strip.Height), GraphicsUnit.Pixel);
+            }
+        }
+
+        private static int[] Weights(double scale, out int taps)
+        {
+            scale = Math.Max(1, scale);
+            taps = (int)Math.Ceiling(scale * 2) * 2;
+            int[] weights = new int[1024 * taps];
+            for (int phase = 0; phase < 1024; phase++)
+            {
+                double sum = 0;
+                for (int tap = 0; tap < taps; tap++) sum += Cubic((tap - taps / 2 + 1 - phase / 1024.0) / scale);
+                int total = 0;
+                for (int tap = 0; tap < taps; tap++)
+                {
+                    int weight = (int)Math.Round(Cubic((tap - taps / 2 + 1 - phase / 1024.0) / scale) * 1024 / sum);
+                    weights[phase * taps + tap] = weight;
+                    total += weight;
+                }
+                weights[phase * taps + taps / 2 - 1] += 1024 - total;
+            }
+            return weights;
+        }
+
+        private static double Cubic(double x)
+        {
+            x = Math.Abs(x);
+            if (x < 1) return (1.5 * x - 2.5) * x * x + 1;
+            if (x < 2) return ((-0.5 * x + 2.5) * x - 4) * x + 2;
+            return 0;
+        }
+
+        internal unsafe void Sample(Native.Surface surface, Bitmap strip, int cell, int width, RectangleF target, PointF centre, float angle, float lift, bool flip, bool phase)
+        {
+            int sourceWidth = strip.Width, sourceHeight = strip.Height, intoWidth = surface.Image.Width;
+            double sx = width / (double)target.Width, sy = sourceHeight / (double)target.Height;
+            if (sx != scaleX) { weightsX = Weights(sx, out tapsX); scaleX = sx; }
+            if (sy != scaleY) { weightsY = Weights(sy, out tapsY); scaleY = sy; }
+            PointF[] corners = { new PointF(target.Left, target.Top), new PointF(target.Right, target.Top), new PointF(target.Left, target.Bottom), new PointF(target.Right, target.Bottom) };
+            using (Matrix pose = new Matrix())
+            {
+                pose.Translate(centre.X, centre.Y + lift);
+                pose.Rotate(angle);
+                if (flip) pose.Scale(-1, 1);
+                pose.TransformPoints(corners);
+            }
+            float left = corners[0].X, top = corners[0].Y, right = left, bottom = top;
+            for (int i = 1; i < corners.Length; i++)
+            {
+                left = Math.Min(left, corners[i].X); top = Math.Min(top, corners[i].Y);
+                right = Math.Max(right, corners[i].X); bottom = Math.Max(bottom, corners[i].Y);
+            }
+            Rectangle area = Rectangle.Intersect(new Rectangle(Point.Empty, surface.Image.Size), Rectangle.FromLTRB((int)Math.Floor(left) - 3, (int)Math.Floor(top) - 3, (int)Math.Ceiling(right) + 3, (int)Math.Ceiling(bottom) + 3));
+            if (area.Width <= 0 || area.Height <= 0) return;
+            double cos = Math.Cos(angle * Math.PI / 180), sin = Math.Sin(angle * Math.PI / 180), sign = flip ? -1 : 1;
+            double offset = phase ? 0.5 : 0;
+            int stepX = (int)Math.Round(sign * cos * sx * 65536), stepY = (int)Math.Round(-sin * sy * 65536);
+            BitmapData source = strip.LockBits(new Rectangle(Point.Empty, strip.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            try
+            {
+                fixed (int* weightX = weightsX, weightY = weightsY)
+                for (int y = area.Top; y < area.Bottom; y++)
+                {
+                    double dx = area.Left + 0.5 - centre.X, dy = y + 0.5 - centre.Y - lift;
+                    int sampleX = (int)Math.Floor(((sign * (cos * dx + sin * dy) - target.Left - offset) * sx - 0.5) * 65536);
+                    int sampleY = (int)Math.Floor(((-sin * dx + cos * dy - target.Top - offset) * sy - 0.5) * 65536);
+                    uint* into = (uint*)surface.Pixels.ToPointer() + y * intoWidth;
+                    for (int x = area.Left; x < area.Right; x++, sampleX += stepX, sampleY += stepY)
+                    {
+                        int px = (sampleX >> 16) - tapsX / 2 + 1 + cell * width, py = (sampleY >> 16) - tapsY / 2 + 1;
+                        int* across = weightX + ((sampleX >> 6) & 1023) * tapsX;
+                        int* down = weightY + ((sampleY >> 6) & 1023) * tapsY;
+                        int firstCol = Math.Max(0, -px), lastCol = Math.Min(tapsX, sourceWidth - px);
+                        int firstRow = Math.Max(0, -py), lastRow = Math.Min(tapsY, sourceHeight - py);
+                        long blueRed = 0, greenAlpha = 0;
+                        for (int row = firstRow; row < lastRow; row++)
+                        {
+                            uint* pixel = (uint*)((byte*)source.Scan0.ToPointer() + (py + row) * source.Stride);
+                            long blue = 0, green = 0;
+                            for (int col = firstCol; col < lastCol; col++)
+                            {
+                                uint value = pixel[px + col]; int weight = across[col];
+                                blue += ((long)(value & 255) | ((long)((value >> 16) & 255) << 32)) * weight;
+                                green += ((long)((value >> 8) & 255) | ((long)(value >> 24) << 32)) * weight;
+                            }
+                            blueRed += blue * down[row]; greenAlpha += green * down[row];
+                        }
+                        int b = (int)blueRed, g = (int)greenAlpha;
+                        int r = (int)(blueRed >> 32) - (b >> 31), a = (int)(greenAlpha >> 32) - (g >> 31);
+                        a = Math.Max(0, Math.Min(255, (a + 524288) >> 20));
+                        b = Math.Max(0, Math.Min(a, (b + 524288) >> 20));
+                        g = Math.Max(0, Math.Min(a, (g + 524288) >> 20));
+                        r = Math.Max(0, Math.Min(a, (r + 524288) >> 20));
+                        into[x] = (uint)((a << 24) | (r << 16) | (g << 8) | b);
+                    }
+                }
+            }
+            finally { strip.UnlockBits(source); }
+        }
     }
 
     internal sealed partial class Companion : Form
@@ -1807,12 +2106,18 @@ namespace CapriDesktop
         private readonly System.Collections.Generic.List<string> clipsOpened = new System.Collections.Generic.List<string>();
         private Bitmap frame;
         private Native.Surface bodySurface;
+        private readonly CellCache bodyCells = new CellCache();
+        private readonly CellSampler bodySampler = new CellSampler();
+        private bool firstFrame;
         private Clip drawnClip;
         private Bitmap drawnArt;
         private int drawnCell = -1, drawnMouth = -1, drawnMix, bodyPaints;
-        private bool drawnVeil, drawnMotion, drawnSettled, drawnNotes, drawnHologram;
+        private bool drawnVeil, drawnMotion, drawnSettled, drawnNotes, drawnHologram, drawnMods;
         private double drawnLean;
-        private float drawnBreath, drawnTilt, drawnTurn;
+        private float drawnBreath, drawnTilt, drawnTurn, drawnDip, drawnHusk;
+        private Rectangle drawnBounds;
+        private bool bodyTiming;
+        private long bodyClear, bodyDraw, bodyMods, bodyTint, bodyDiff, bodyShow;
         private bool fullScreenHidden, manualHidden, frontBusy;
         // A full-screen game or video is in front and Gaming Mode hasn't docked her.
         private bool fullThrough;
@@ -1839,6 +2144,7 @@ namespace CapriDesktop
         private int perchMix;
         private Bitmap inBetween;
         private int[] mixFrom, mixTo;
+        private double tweenUsed;
         // The perch step, place and facing she was last drawn at. Off 30 fps a tick with nothing new to show skips drawing.
         private long drawnStep = -1;
         private Point drawnAt;
@@ -2375,6 +2681,8 @@ namespace CapriDesktop
 
         internal Companion(string data, EventWaitHandle signal, EventWaitHandle shownSignal, bool smoke, RunMark running)
         {
+            Clip.ArtChanged += bodyCells.Clear;
+            Program.FirstFrame += FirstFrame;
             this.running = running;
             groove = new Groove(delegate { return clock.Elapsed.TotalSeconds; });
             dance = new Clip(idle);
@@ -2415,7 +2723,6 @@ namespace CapriDesktop
             iconRecoveryTimer.Tick += IconRecoveryTick;
             // Smoke tests never touch the real desktop: point her icon prank at nothing until a check hands it a fake list view.
             if (smoke) DesktopIcons.Target = delegate { return IntPtr.Zero; };
-            else BeginIconRecovery();
             iconTimer.Interval = 120;
             iconTimer.Tick += IconTick;
             Computer.Track = herPointer.MoveTo;
@@ -2807,7 +3114,7 @@ namespace CapriDesktop
                 CheckGame(clock.Elapsed.TotalSeconds);
                 CheckReactions();
                 if (!testing) CheckInkEsc(signalNow);
-                if (!testing && background) Clip.RestAll(Environment.TickCount);
+                if (!testing && background) RestArt(signalNow, Environment.TickCount);
                 if (!testing) CheckPopIn(signalNow, signalIdle);
                 if (!testing) lookout.Deliver();
                 if (!testing) CheckNudge(signalNow, signalIdle);
@@ -2834,7 +3141,6 @@ namespace CapriDesktop
                 UpdatePill(clock.Elapsed.TotalSeconds);
                 if (!testing && background && UpdateDue(preferences.UpdateCheckedAt, DateTime.UtcNow.Ticks, clock.Elapsed.TotalSeconds, updateStarted)) CheckForUpdates(false);
             };
-            signals.Start();
             Size = CanvasSize(preferences.Size);
             Rectangle work = Screen.PrimaryScreen.WorkingArea;
             anchor = preferences.HasPosition ? new Point(preferences.X, preferences.Y) : new Point(work.Right - Width - 28, work.Bottom - Height - 12);
@@ -2868,7 +3174,9 @@ namespace CapriDesktop
 
         protected override void OnShown(EventArgs e)
         {
+            Program.WatchFrame = true;
             base.OnShown(e);
+            signals.Start();
             Ledges.Enabled = !testing;
             if (!testing) Native.WatchScreen(Handle);
             bool spawn = !instant && preferences.Motion && !preferences.NoIntro && !preferences.NoSitting;
@@ -3064,7 +3372,13 @@ namespace CapriDesktop
         private bool SittingStill { get { return seat != null && !riding && !dragging && !walking && !falling && outro == null; } }
 
         // Nothing else about her moves: no words, bubble, typing box or music notes. Her pill only redraws when it changes.
-        private bool Quiet(double now) { return speech == null && talkState == TalkState.Off && !box.Visible && !typer.Visible && !notes.Exists(note => now - note.Born < NoteLife); }
+        private bool Quiet(double now) { return speech == null && talkState == TalkState.Off && !box.Visible && !typer.Visible && !LiveNotes(now); }
+
+        private bool LiveNotes(double now)
+        {
+            foreach (Note note in notes) if (now - note.Born < NoteLife) return true;
+            return false;
+        }
 
         private void Face()
         {
@@ -4019,6 +4333,7 @@ namespace CapriDesktop
         internal void SetCharacterSize(int size)
         {
             size = Math.Max(MinSize, Math.Min(MaxSize, size));
+            bodyCells.Clear();
             EndWalk();
             Point center = new Point(anchor.X + Width / 2, anchor.Y + Height / 2);
             int hipX = Hip().X;
@@ -4419,7 +4734,7 @@ namespace CapriDesktop
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == QuietKeyId) { ToggleShush(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == GameKeyId) { ToggleGaming(); return; }
             if (message.Msg == 0x0312 && ModHotkey(message.WParam.ToInt32())) return;
-            if (message.Msg == 0x02E0) { anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
+            if (message.Msg == 0x02E0) { bodyCells.Clear(); drawnClip = null; anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
             base.WndProc(ref message);
         }
 
@@ -7453,12 +7768,13 @@ namespace CapriDesktop
         // A bound mouse button is checked about 30 times a second, only while one of her keys is a mouse button.
         private readonly System.Windows.Forms.Timer mouseKeys = new System.Windows.Forms.Timer { Interval = 30 };
         private readonly bool[] mouseHeld = new bool[6];
+        private static readonly int[] MouseIds = { TalkKeyId, MuteKeyId, TypeKeyId, HideKeyId, QuietKeyId, GameKeyId };
         // A mouse button also counts when it went down and back up between two checks (the low bit), so a quick tap isn't missed.
         internal static Func<int, bool> KeyHeld = delegate(int vk) { return (Native.GetAsyncKeyState(vk) & (ByMouse(vk) ? 0x8001 : 0x8000)) != 0; };
 
         private void WatchMouse()
         {
-            if (!testing && (preferences.PushVk != 0 || ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk) || ByMouse(preferences.GameVk)))
+            if (!testing && MouseWork)
             {
                 // A click from before she started watching doesn't count.
                 if (!mouseKeys.Enabled) foreach (int vk in new[] { 0x04, 0x05, 0x06 }) Native.GetAsyncKeyState(vk);
@@ -7467,24 +7783,33 @@ namespace CapriDesktop
             else mouseKeys.Stop();
         }
 
+        private bool MouseWork
+        {
+            get { return preferences.PushVk != 0 || ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk) || ByMouse(preferences.GameVk); }
+        }
+
         // A press counts once, when the button goes down with exactly its modifiers held, like RegisterHotKey's keys. It isn't
         // swallowed, so the button still does its own job in the app under it. While a new key is being picked, nothing fires.
         internal void WatchMouseKeys()
         {
             int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk, preferences.GameMods, preferences.GameVk };
-            int[] ids = { TalkKeyId, MuteKeyId, TypeKeyId, HideKeyId, QuietKeyId, GameKeyId };
             int mods = (KeyHeld(0x12) ? 1 : 0) | (KeyHeld(0x11) ? 2 : 0) | (KeyHeld(0x10) ? 4 : 0) | (KeyHeld(0x5B) || KeyHeld(0x5C) ? 8 : 0);
             // Each button is read once a check: reading it clears its quick-tap bit, so a second key on the same button would miss the tap.
-            System.Collections.Generic.Dictionary<int, bool> buttons = new System.Collections.Generic.Dictionary<int, bool>();
-            for (int slot = 0; slot < ids.Length; slot++)
+            int read = 0, buttons = 0;
+            for (int slot = 0; slot < MouseIds.Length; slot++)
             {
                 int vk = bound[slot * 2 + 1];
                 bool down = false;
-                if (ByMouse(vk) && !buttons.TryGetValue(vk, out down)) { down = KeyHeld(vk); buttons[vk] = down; }
+                if (ByMouse(vk))
+                {
+                    int bit = 1 << vk;
+                    if ((read & bit) == 0) { read |= bit; if (KeyHeld(vk)) buttons |= bit; }
+                    down = (buttons & bit) != 0;
+                }
                 bool pressed = down && !mouseHeld[slot] && mods == bound[slot * 2];
                 mouseHeld[slot] = down;
                 if (!pressed || (slot == 1 && !muteKey) || mainframe.Picking) continue;
-                Message press = Message.Create(Handle, 0x0312, new IntPtr(ids[slot]), IntPtr.Zero);
+                Message press = Message.Create(Handle, 0x0312, new IntPtr(MouseIds[slot]), IntPtr.Zero);
                 WndProc(ref press);
             }
             WatchPush();
@@ -7542,6 +7867,23 @@ namespace CapriDesktop
 
         // One signals tick under Power saver: her ears' pace follows it, and it says whether the background checks run this tick.
         private bool SaverTick() { Ears.Gentle = Saving; return BackgroundDue(++signalTicks); }
+
+        private bool CanRest
+        {
+            get { return !CallModeOn && !chatting && !ears.Listening && !heyCapri.Listening && dictation == null && micTest == null && !PcEars.Active && talkState == TalkState.Off && speech == null && !LineBusy && job == null && working == null && watchAlong == null; }
+        }
+
+        private void RestArt(double now, int tick)
+        {
+            if (!CanRest) return;
+            Clip.RestAll(tick);
+            bodyCells.Rest(tick);
+            shatter.Rest(tick);
+            if (inBetween != null && perchMix == 0 && now - tweenUsed >= 600)
+            {
+                inBetween.Dispose(); inBetween = null; mixFrom = mixTo = null;
+            }
+        }
 
         // How often she looks at her mic's mute switch for Hey Capri, and at Windows' default mic for Windows speech, in seconds.
         private double MicLookGap { get { return Saving ? 6 : 2; } }
@@ -12013,7 +12355,7 @@ namespace CapriDesktop
         {
             if (now - hdChecked < 3) return;
             hdChecked = now;
-            if (wakingHd || !qwen.Awake) return;
+            if (wakingHd || !qwen.Awake || !CanRest) return;
             if (!preferences.HdVoice || preferences.Silent || now - hdUsed > HdRest || HdStepsAside()) qwen.Stop();
         }
 
@@ -14684,14 +15026,39 @@ namespace CapriDesktop
                 bodySurface = new Native.Surface(Width, Height);
             }
             frame = bodySurface.Image;
-            using (Graphics graphics = Graphics.FromImage(frame))
+            try
             {
-                graphics.Clear(Color.Transparent);
-                Draw(graphics, shown, cell, talk, tween);
-                ModsDraw(graphics, shown, cell);
+                long phase = bodyTiming ? Stopwatch.GetTimestamp() : 0;
+                bodySurface.ClearBody();
+                if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyClear += end - phase; phase = end; }
+                bool mods = ModsListen(host => host.drawing != null);
+                if (!CopyBody(bodySurface, shown, cell, talk, tween, now))
+                    using (Graphics graphics = Graphics.FromImage(frame)) Draw(graphics, shown, cell, talk, tween, true, now);
+                if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyDraw += end - phase; phase = end; }
+                if (mods)
+                {
+                    using (Graphics graphics = Graphics.FromImage(frame))
+                    {
+                        graphics.CompositingMode = CompositingMode.SourceOver;
+                        graphics.CompositingQuality = CompositingQuality.HighQuality;
+                        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        graphics.SmoothingMode = SmoothingMode.HighQuality;
+                        ModsDraw(graphics, shown, cell);
+                    }
+                }
+                if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyMods += end - phase; phase = end; }
+                if (preferences.Hologram) TintHologram(frame);
+                if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyTint += end - phase; phase = end; }
+                drawnBounds = BodyBounds(shown, now);
+                Rectangle content = PaintBounds(shown, drawnBounds, mods);
+                Rectangle dirty = bodySurface.Damage(content);
+                if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyDiff += end - phase; phase = end; }
+                bodySurface.ShowBody(Handle, anchor, dirty, content);
+                if (bodyTiming) bodyShow += Stopwatch.GetTimestamp() - phase;
+                drawnMods = mods;
             }
-            if (preferences.Hologram) TintHologram(frame);
-            bodySurface.Show(Handle, anchor);
+            catch { bodySurface.Forget(); throw; }
             bodyPaints++;
             drawnClip = shown;
             drawnArt = Art(shown);
@@ -14706,10 +15073,18 @@ namespace CapriDesktop
             drawnTurn = Turn() + Sway(now);
             drawnBreath = Breath(now);
             drawnTilt = Tilt(now);
-            drawnNotes = preferences.Motion && notes.Exists(note => now - note.Born < NoteLife);
+            drawnDip = HuskDip(now);
+            drawnHusk = HuskTurn(now);
+            drawnNotes = preferences.Motion && LiveNotes(now);
             drawnStep = veiled || now < veilUntil ? -1 : (long)((now - clipStart) * PerchRateNow(now));
             drawnAt = anchor;
             drawnFacing = facingLeft;
+        }
+
+        private void FirstFrame()
+        {
+            firstFrame = true;
+            if (!testing) Post(delegate { if (quitting) return; Clip.WarmAll(); BeginIconRecovery(); });
         }
 
         private static unsafe void TintHologram(Bitmap image)
@@ -14736,18 +15111,97 @@ namespace CapriDesktop
 
         private bool BodyChanged(double now, Clip shown, int cell, int talk)
         {
+            bool mods = ModsListen(host => host.drawing != null);
             return frame == null || frame.Size != Size || shown != drawnClip || Art(shown) != drawnArt || cell != drawnCell || talk != drawnMouth || perchMix != drawnMix
                 || anchor != drawnAt || facingLeft != drawnFacing || leanAngle != drawnLean || Turn() + Sway(now) != drawnTurn || preferences.Motion != drawnMotion || preferences.Hologram != drawnHologram
-                || Calm != drawnSettled || (veiled || now < veilUntil) != drawnVeil
-                || (preferences.Motion && (walking || clip == dance || clip == perchDance || shown == perchSleep || drawnNotes || notes.Exists(note => now - note.Born < NoteLife)))
+                || HuskDip(now) != drawnDip || HuskTurn(now) != drawnHusk
+                || Calm != drawnSettled || (veiled || now < veilUntil) != drawnVeil || mods || mods != drawnMods
+                || (preferences.Motion && (walking || clip == dance || clip == perchDance || shown == perchSleep || drawnNotes || LiveNotes(now)))
                 // Her breathing is slower than her art, so a step too small to see isn't worth a paint.
-                || (Calm && (Math.Abs(Breath(now) - drawnBreath) >= 0.25f || Math.Abs(Tilt(now) - drawnTilt) >= 0.1f));
+                || (Calm && BreathShift(shown, now) >= 0.5);
+        }
+
+        private double BreathShift(Clip shown, double now)
+        {
+            Bitmap art = Art(shown);
+            float tall = preferences.Size * shown.Height, wide = tall * (art.Width / shown.Count) / art.Height;
+            double x = wide / 2 + Math.Abs(shown.ShiftX * preferences.Size), y = tall / 2 + Math.Abs(shown.ShiftY * preferences.Size);
+            return Math.Abs(Breath(now) - drawnBreath) + 2 * Math.Sqrt(x * x + y * y) * Math.Abs(Math.Sin((Tilt(now) - drawnTilt) * Math.PI / 360));
+        }
+
+        private PointF[] BodyCorners(Clip shown, double now)
+        {
+            Bitmap art = Art(shown);
+            float tall = preferences.Size * shown.Height, wide = tall * (art.Width / shown.Count) / art.Height;
+            float left = -wide / 2 + shown.ShiftX * preferences.Size, top = -tall / 2 + shown.ShiftY * preferences.Size;
+            PointF[] points = { new PointF(left, top), new PointF(left + wide, top), new PointF(left, top + tall), new PointF(left + wide, top + tall) };
+            using (Matrix transform = new Matrix())
+            {
+                float sway = Sway(now);
+                if (sway != 0)
+                {
+                    float hipX = PaddingSize + preferences.Size * SitX, hipY = PaddingSize + preferences.Size * SitY;
+                    transform.Translate(hipX, hipY);
+                    transform.Rotate(sway);
+                    transform.Translate(-hipX, -hipY);
+                }
+                float breathe = Calm ? Breath(now) : shown == perchSleep && preferences.Motion ? Doze(now, preferences.Size) : 0;
+                transform.Translate(Width / 2f, Height / 2f + breathe + HuskDip(now));
+                transform.Rotate((Calm ? Tilt(now) : 0) + (float)leanAngle + Turn() + HuskTurn(now));
+                if (facingLeft) transform.Scale(-1, 1);
+                transform.TransformPoints(points);
+            }
+            return points;
+        }
+
+        private Rectangle BodyBounds(Clip shown, double now)
+        {
+            if (veiled || now < veilUntil) return Rectangle.Empty;
+            PointF[] points = BodyCorners(shown, now);
+            float left = points[0].X, top = points[0].Y, right = left, bottom = top;
+            for (int i = 1; i < points.Length; i++)
+            {
+                left = Math.Min(left, points[i].X); top = Math.Min(top, points[i].Y);
+                right = Math.Max(right, points[i].X); bottom = Math.Max(bottom, points[i].Y);
+            }
+            Rectangle bounds = Rectangle.Intersect(new Rectangle(Point.Empty, Size), Rectangle.FromLTRB((int)Math.Floor(left) - 3, (int)Math.Floor(top) - 3, (int)Math.Ceiling(right) + 3, (int)Math.Ceiling(bottom) + 3));
+            return bounds.Width <= 0 || bounds.Height <= 0 ? Rectangle.Empty : bounds;
+        }
+
+        private Rectangle PaintBounds(Clip shown, Rectangle body, bool mods)
+        {
+            if (mods || (preferences.Motion && (notes.Count > 0 || shown == perchSleep || (shown == walk && walking)))
+                || ((shown == dance || shown == perchDance) && NodDepth() > 0.002f)) return new Rectangle(Point.Empty, Size);
+            return body;
+        }
+
+        private bool CopyBody(Native.Surface surface, Clip shown, int cell, int talk, Bitmap tween, double now)
+        {
+            if (veiled || now < veilUntil || talk >= 0 || tween != null || Sway(now) != 0
+                || (preferences.Motion && (notes.Count > 0 || shown == perchSleep || (shown == walk && walking)))
+                || ((shown == dance || shown == perchDance) && NodDepth() > 0.002f)) return false;
+            float angle = (Calm ? Tilt(now) : 0) + (float)leanAngle + Turn() + HuskTurn(now), lift = (Calm ? Breath(now) : 0) + HuskDip(now);
+            if (Math.Abs(angle) > 1) return false;
+            Bitmap art = Art(shown);
+            int width = art.Width / shown.Count;
+            float tall = preferences.Size * shown.Height, wide = tall * width / art.Height;
+            RectangleF target = new RectangleF(-wide / 2f + shown.ShiftX * preferences.Size, -tall / 2f + shown.ShiftY * preferences.Size, wide, tall);
+            if ((angle != 0 || lift != 0) && !new Rectangle(Point.Empty, Size).Contains(CellCache.Bounds(target, Size, facingLeft))) return false;
+            if (angle == 0 && lift == (int)lift)
+            {
+                CellCache.Cell kept = bodyCells.Get(art, cell, width, target, Size, facingLeft, preferences.Hologram);
+                if (kept == null) return false;
+                surface.Copy(kept.Image, new Point(kept.Bounds.X, kept.Bounds.Y + (int)lift));
+            }
+            else bodySampler.Copy(surface, art, cell, width, target, new PointF(Width / 2f, Height / 2f), angle, lift, facingLeft);
+            return true;
         }
 
         // Above 30 fps, the in-between of a perch frame and the one after it (or the blink frame there), mixed into one spare cell.
         // Neighbouring frames barely differ, so a straight mix reads as the frame between them, with no extra art in memory.
         private Bitmap Tween(Clip shown, int cell, int following)
         {
+            tweenUsed = clock.Elapsed.TotalSeconds;
             Clip after = shown == perchTalk || shown == laydownTalk ? shown : clip;
             if ((after == perch || after == laydown) && blinkWith != null && following >= PerchBlinkFrom && following < PerchBlinkFrom + blinkWith.Count) { after = blinkWith; following -= PerchBlinkFrom; }
             Bitmap from = Art(shown);
@@ -14894,7 +15348,7 @@ namespace CapriDesktop
 
         private static float Tilt(double now) { return (float)Math.Sin(now * 0.95) * 0.65f; }
 
-        private void Draw(Graphics graphics, Clip shown, int cell, int talk = -1, Bitmap tween = null)
+        private void Draw(Graphics graphics, Clip shown, int cell, int talk = -1, Bitmap tween = null, bool cached = true, double at = -1)
         {
             if (veiled || clock.Elapsed.TotalSeconds < veilUntil) return;
             graphics.CompositingMode = CompositingMode.SourceOver;
@@ -14902,7 +15356,7 @@ namespace CapriDesktop
             graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
             graphics.SmoothingMode = SmoothingMode.HighQuality;
-            double now = clock.Elapsed.TotalSeconds;
+            double now = at >= 0 ? at : clock.Elapsed.TotalSeconds;
             bool settled = Calm, dozing = shown == perchSleep && preferences.Motion;
             float breathe = settled ? Breath(now) : dozing ? Doze(now, preferences.Size) : 0;
             float tilt = settled ? Tilt(now) : 0;
@@ -14927,7 +15381,8 @@ namespace CapriDesktop
             if (shown == walk && walking && preferences.Motion) Wisp(graphics, now, Math.Sign(walkTo - anchor.X) * (facingLeft ? -1 : 1), wide, tall);
             float nod = shown == dance || shown == perchDance ? NodDepth() : 0;
             if (nod > 0.002f) Nod(graphics, strip, cell, width, wide, tall, nod, shown == perchDance ? SitNeck : idle.Old ? OldNeck : StandNeck, shiftX, shiftY);
-            else graphics.DrawImage(strip, new RectangleF(-wide / 2f + shiftX, -tall / 2f + shiftY, wide, tall), new RectangleF(cell * width, 0, width, strip.Height), GraphicsUnit.Pixel);
+            else if (!cached || tween != null || (shown == walk && walking && preferences.Motion) || !DrawCell(graphics, strip, cell, width, wide, tall, shiftX, shiftY, sway, tilt + (float)leanAngle + Turn() + HuskTurn(now), breathe + HuskDip(now)))
+                graphics.DrawImage(strip, new RectangleF(-wide / 2f + shiftX, -tall / 2f + shiftY, wide, tall), new RectangleF(cell * width, 0, width, strip.Height), GraphicsUnit.Pixel);
             if (talk >= 0)
             {
                 Bitmap lips = (idle.Old ? mouth : idleMouth).Strip;
@@ -14935,6 +15390,23 @@ namespace CapriDesktop
             }
             if (notes.Count > 0 && preferences.Motion) Notes(graphics, now, seat != null || riding || onPanel);
             if (dozing) Zs(graphics, now);
+        }
+
+        private bool DrawCell(Graphics graphics, Bitmap strip, int cell, int width, float wide, float tall, float shiftX, float shiftY, float sway, float angle, float lift)
+        {
+            if (sway != 0 || angle != 0 || lift != 0) return false;
+            RectangleF target = new RectangleF(-wide / 2f + shiftX, -tall / 2f + shiftY, wide, tall);
+            CellCache.Cell cached = bodyCells.Get(strip, cell, width, target, Size, facingLeft, preferences.Hologram);
+            if (cached == null) return false;
+            GraphicsState saved = graphics.Save();
+            try
+            {
+                graphics.ResetTransform();
+                graphics.CompositingQuality = CompositingQuality.AssumeLinear;
+                graphics.DrawImageUnscaled(cached.Image, cached.Bounds.Location);
+            }
+            finally { graphics.Restore(saved); }
+            return true;
         }
 
         // Asleep sitting up she breathes slower and deeper than awake.
@@ -15300,6 +15772,9 @@ namespace CapriDesktop
                 CloseCallWindows();
                 mainframe.Dispose();
                 Clip.DisposeAll();
+                Clip.ArtChanged -= bodyCells.Clear;
+                Program.FirstFrame -= FirstFrame;
+                bodyCells.Dispose();
                 if (bodySurface != null) bodySurface.Dispose();
                 if (inBetween != null) inBetween.Dispose();
             }
@@ -23731,6 +24206,805 @@ namespace CapriDesktop
             checks.Add("PASS over a game she gives way below normal, but her window's thread stays level with the game's, so a game on every core can't freeze her");
         }
 
+        private void SmokePerformance(System.Collections.Generic.List<string> checks)
+        {
+            bool framesWas = frames.Enabled, signalsWas = signals.Enabled, motionWas = preferences.Motion, facingWas = facingLeft;
+            bool veilWas = veiled, hologramWas = preferences.Hologram, chatWas = chatting, transcribeWas = transcribing, callWas = CallModeOn;
+            bool lyingWas = lying, draggingWas = dragging, walkingWas = walking;
+            int sizeWas = preferences.Size, mixWas = perchMix, pushWas = preferences.PushVk;
+            Size canvasWas = Size;
+            double leanWas = leanAngle, veilUntilWas = veilUntil, dizzyWas = dizzyUntil, moodWas = huskMoodAt;
+            Clip clipWas = clip;
+            string speechWas = speech;
+            TalkState talkWas = talkState;
+            Func<int, bool> keysWas = KeyHeld;
+            bool[] heldWas = (bool[])mouseHeld.Clone();
+            int walkToWas = walkTo;
+            List<Note> notesWas = new List<Note>(notes);
+            int[] boundWas = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk, preferences.GameMods, preferences.GameVk };
+            string mismatch = "";
+            Func<Bitmap, Bitmap, bool> exact = delegate(Bitmap a, Bitmap b)
+            {
+                int[] first = new int[a.Width * a.Height], second = new int[b.Width * b.Height];
+                Pixels(a, new Rectangle(Point.Empty, a.Size), first, false);
+                Pixels(b, new Rectangle(Point.Empty, b.Size), second, false);
+                for (int i = 0; i < first.Length; i++) if (first[i] != second[i]) return false;
+                return true;
+            };
+            Func<Bitmap, Bitmap, bool> same = delegate(Bitmap a, Bitmap b)
+            {
+                mismatch = "";
+                int[] first = new int[a.Width * a.Height], second = new int[b.Width * b.Height];
+                Pixels(a, new Rectangle(Point.Empty, a.Size), first, false);
+                Pixels(b, new Rectangle(Point.Empty, b.Size), second, false);
+                for (int i = 0; i < first.Length; i++)
+                    for (int shift = 0; shift < 32; shift += 8)
+                        if (Math.Abs(((first[i] >> shift) & 255) - ((second[i] >> shift) & 255)) > 1)
+                        {
+                            mismatch = " pixel " + (i % a.Width) + "," + (i / a.Width) + " direct=0x" + first[i].ToString("X8") + " cached=0x" + second[i].ToString("X8");
+                            return false;
+                        }
+                return true;
+            };
+            Func<Bitmap, Bitmap, bool> near = delegate(Bitmap a, Bitmap b)
+            {
+                mismatch = "";
+                int[] first = new int[a.Width * a.Height], second = new int[b.Width * b.Height];
+                Pixels(a, new Rectangle(Point.Empty, a.Size), first, false);
+                Pixels(b, new Rectangle(Point.Empty, b.Size), second, false);
+                long error = 0;
+                int compared = 0, far = 0;
+                for (int pixel = 0; pixel < first.Length; pixel++)
+                {
+                    if ((first[pixel] | second[pixel]) == 0) continue;
+                    for (int shift = 0; shift < 32; shift += 8)
+                    {
+                        int difference = Math.Abs(((first[pixel] >> shift) & 255) - ((second[pixel] >> shift) & 255));
+                        error += difference; compared++;
+                        if (difference > 32) far++;
+                        if (difference > 1 && mismatch.Length == 0) mismatch = " pixel " + (pixel % a.Width) + "," + (pixel / a.Width) + " direct=0x" + first[pixel].ToString("X8") + " cached=0x" + second[pixel].ToString("X8");
+                    }
+                }
+                mismatch += " avg " + (compared == 0 ? 0 : error / (double)compared).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " far " + (compared == 0 ? 0 : far * 100.0 / compared).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + "%";
+                return error <= compared * 4L && far <= compared / 50;
+            };
+            try
+            {
+                frames.Stop(); signals.Stop();
+                if (!firstFrame || Program.FirstFrameAt < Program.Started) throw new Exception("The first visible frame was not timed.");
+                preferences.Motion = false; veiled = false; veilUntil = -1; leanAngle = 0; dizzyUntil = huskMoodAt = -100;
+                walking = false;
+                notes.Clear();
+                foreach (int size in new[] { MinSize, 241, MaxSize })
+                {
+                    preferences.Size = size;
+                    Size = CanvasSize(size);
+                    bodyCells.Clear();
+                    foreach (Clip art in new[] { idle, perch, laydown })
+                        foreach (bool left in new[] { false, true })
+                            foreach (bool tint in new[] { false, true })
+                            {
+                                facingLeft = left;
+                                preferences.Hologram = tint;
+                                art.Load(left);
+                                using (Bitmap direct = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                                using (Bitmap cached = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                                {
+                                    int talk = art == idle ? 2 : -1;
+                                    using (Graphics graphics = Graphics.FromImage(direct)) Draw(graphics, art, 0, talk, null, false);
+                                    using (Graphics graphics = Graphics.FromImage(cached)) Draw(graphics, art, 0, talk);
+                                    if (tint) { TintHologram(direct); TintHologram(cached); }
+                                    if (!same(direct, cached)) throw new Exception("A cached body changed her still frame at " + size + ": " + art.Title + ", left " + left + ", tint " + tint + "." + mismatch);
+                                    if (!exact(direct, cached)) throw new Exception("A still drawing changed a pixel.");
+                                    using (Native.Surface copied = new Native.Surface(Width, Height))
+                                    {
+                                        using (Graphics graphics = Graphics.FromImage(direct)) { graphics.Clear(Color.Transparent); Draw(graphics, art, 1, -1, null, false); }
+                                        copied.ClearBody();
+                                        if (!CopyBody(copied, art, 1, -1, null, 0)) throw new Exception("A still body missed the cached copy path.");
+                                        if (tint) { TintHologram(direct); TintHologram(copied.Image); }
+                                        if (!same(direct, copied.Image)) throw new Exception("A cached copy changed her still frame at " + size + ": " + art.Title + ", left " + left + ", tint " + tint + "." + mismatch);
+                                        if (!exact(direct, copied.Image)) throw new Exception("A still row copy changed a pixel.");
+                                    }
+                                }
+                            }
+                }
+                preferences.Size = sizeWas; Size = canvasWas;
+                preferences.Motion = true; lying = dragging = false; clip = idle;
+                foreach (bool left in new[] { false, true })
+                    foreach (double at in new[] { 0.37, 1.2, 2.4 })
+                    {
+                        facingLeft = left;
+                        using (Bitmap direct = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                        using (Bitmap cached = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                        {
+                            using (Graphics graphics = Graphics.FromImage(direct)) Draw(graphics, idle, 0, -1, null, false, at);
+                            using (Graphics graphics = Graphics.FromImage(cached)) Draw(graphics, idle, 0, -1, null, true, at);
+                            bool close = near(direct, cached);
+                            if (!close) throw new Exception("Cached breathing or tilt moved too far from the direct drawing." + mismatch);
+                        }
+                    }
+                foreach (int size in new[] { MinSize, 241, MaxSize })
+                    foreach (Clip art in new[] { idle, perch })
+                        foreach (bool left in new[] { false, true })
+                        {
+                            preferences.Size = size; Size = CanvasSize(size); clip = art; facingLeft = left;
+                            using (Native.Surface moving = new Native.Surface(Width, Height))
+                            {
+                                moving.ClearBody();
+                                int[] oldPixels = new int[Width * Height], newPixels = new int[Width * Height];
+                                foreach (double at in new[] { 0.37, 1.2, 2.4, 4.0, 5.8 })
+                                {
+                                    using (Bitmap direct = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                                    using (Native.Surface whole = new Native.Surface(Width, Height))
+                                    {
+                                        Pixels(moving.Image, new Rectangle(Point.Empty, Size), oldPixels, false);
+                                        moving.ClearBody(); whole.ClearBody();
+                                        int before = bodyCells.Count;
+                                        bool copied = CopyBody(moving, art, 0, -1, null, at);
+                                        if (copied == (art == perch && size == MaxSize)) throw new Exception("A cached pose took the wrong copy path.");
+                                        if (!copied)
+                                        {
+                                            using (Graphics graphics = Graphics.FromImage(moving.Image)) Draw(graphics, art, 0, -1, null, true, at);
+                                            if (bodyCells.Count != before) throw new Exception("A clipped pose still filled the cell cache.");
+                                        }
+                                        if (!CopyBody(whole, art, 0, -1, null, at))
+                                            using (Graphics graphics = Graphics.FromImage(whole.Image)) Draw(graphics, art, 0, -1, null, true, at);
+                                        using (Graphics graphics = Graphics.FromImage(direct)) Draw(graphics, art, 0, -1, null, false, at);
+                                        if (!same(whole.Image, moving.Image)) throw new Exception("A copied pose kept pixels after a partial clear." + mismatch);
+                                        if (copied ? !near(direct, moving.Image) : !same(direct, moving.Image)) throw new Exception("A copied pose changed the original drawing at " + size + ": " + art.Title + ", left " + left + ", phase " + at + "." + mismatch);
+                                        using (Graphics graphics = Graphics.FromImage(direct)) { graphics.Clear(Color.Transparent); Draw(graphics, art, 0, -1, null, true, at); }
+                                        if (!near(direct, moving.Image)) throw new Exception("Switching from the sampler to Draw moved her body." + mismatch);
+                                        if (CopyBody(whole, art, 0, 0, null, at)) throw new Exception("A mouth missed the drawing path.");
+                                        Rectangle content = BodyBounds(art, at), dirty = moving.Damage(content);
+                                        Pixels(moving.Image, new Rectangle(Point.Empty, Size), newPixels, false);
+                                        for (int pixel = 0; pixel < oldPixels.Length; pixel++)
+                                            if (oldPixels[pixel] != newPixels[pixel] && !dirty.Contains(pixel % Width, pixel / Width)) throw new Exception("A copied pose left the geometric dirty area.");
+                                        moving.Remember(IntPtr.Zero, Point.Empty, content);
+                                    }
+                                }
+                            }
+                        }
+                preferences.Motion = false;
+                clip = perch;
+                preferences.Size = sizeWas; Size = canvasWas;
+                perchMix = 128;
+                Bitmap tween = Tween(perch, 0, 1);
+                int cachedBefore = bodyCells.Count;
+                using (Bitmap direct = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                using (Bitmap cached = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                {
+                    using (Graphics graphics = Graphics.FromImage(direct)) Draw(graphics, perch, 0, -1, tween, false);
+                    using (Graphics graphics = Graphics.FromImage(cached)) Draw(graphics, perch, 0, -1, tween);
+                    if (!same(direct, cached) || bodyCells.Count != cachedBefore) throw new Exception("The body cache changed a tween." + mismatch);
+                }
+                checks.Add("PASS cached idle, perch and lying frames keep their size, shift, mouth, facing and hologram at Tiny, an odd size and Giant; tweens keep their direct path");
+                checks.Add("PASS cached breathing and tilt stay close to the direct drawing at three phases facing both ways");
+                checks.Add("PASS cached row copies match the original drawing at Tiny, an odd size and Giant, facing both ways with hologram on and off");
+                checks.Add("PASS copied breathing and tilt keep the original tolerance at three sizes and five phases facing both ways, clear moved pixels and use the original drawing when a cell is clipped");
+                checks.Add("PASS still row copies are pixel-identical and switching between source sampling and Draw keeps the same cell and phase within the original tolerance");
+
+                preferences.Size = 241; Size = CanvasSize(preferences.Size);
+                foreach (Clip art in new[] { idle, laydown })
+                    foreach (bool left in new[] { false, true })
+                    {
+                        facingLeft = left;
+                        Bitmap strip = Art(art);
+                        int width = strip.Width / art.Count;
+                        float tall = preferences.Size * art.Height, wide = tall * width / strip.Height;
+                        RectangleF target = new RectangleF(-wide / 2 + art.ShiftX * preferences.Size, -tall / 2 + art.ShiftY * preferences.Size, wide, tall);
+                        PointF centre = new PointF(Width / 2f, Height / 2f);
+                        CellCache.Cell kept = bodyCells.Get(strip, 1, width, target, Size, left, false);
+                        foreach (float dx in new[] { -1f, 0f, 0.5f })
+                            foreach (float dy in new[] { -2f, 0f, 1f, 0.25f, 1.327f })
+                                using (Bitmap direct = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                                using (Native.Surface translated = new Native.Surface(Width, Height))
+                                {
+                                    translated.ClearBody();
+                                    PointF shifted = centre; shifted.X += dx;
+                                    using (Graphics graphics = Graphics.FromImage(direct))
+                                    {
+                                        graphics.CompositingMode = CompositingMode.SourceOver;
+                                        graphics.CompositingQuality = CompositingQuality.HighQuality;
+                                        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                                        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                                        graphics.SmoothingMode = SmoothingMode.HighQuality;
+                                        graphics.TranslateTransform(shifted.X, shifted.Y + dy);
+                                        if (left) graphics.ScaleTransform(-1, 1);
+                                        graphics.DrawImage(strip, target, new RectangleF(width, 0, width, strip.Height), GraphicsUnit.Pixel);
+                                    }
+                                    bodySampler.Copy(translated, strip, 1, width, target, shifted, 0, dy, left);
+                                    if (!exact(direct, translated.Image)) throw new Exception("A pure translation changed a pixel.");
+                                    if (dx == (int)dx && dy == (int)dy)
+                                    {
+                                        translated.ClearBody();
+                                        translated.Copy(kept.Image, new Point(kept.Bounds.X + (int)dx, kept.Bounds.Y + (int)dy));
+                                        if (!exact(direct, translated.Image)) throw new Exception("An integer row translation changed a pixel.");
+                                    }
+                                }
+                    }
+                checks.Add("PASS source translations match direct drawing pixel for pixel at an odd canvas size, with integer and fractional offsets facing both ways. Integer row translations match too");
+
+                foreach (bool translucent in new[] { false, true })
+                    using (Bitmap strip = new Bitmap(384, 384, PixelFormat.Format32bppPArgb))
+                    {
+                        int[] pixels = new int[strip.Width * strip.Height];
+                        for (int y = 0; y < strip.Height; y++)
+                            for (int x = 0; x < strip.Width; x++)
+                            {
+                                int alpha = translucent ? 60 + (x * 7 + y * 3) % 196 : 255;
+                                int value = ((x / 2 + y / 2) & 1) == 0 ? alpha : 0;
+                                pixels[y * strip.Width + x] = (alpha << 24) | (value << 16) | (value << 8) | value;
+                            }
+                        Pixels(strip, new Rectangle(Point.Empty, strip.Size), pixels, true);
+                        foreach (int scale in new[] { 1, 2 })
+                        {
+                            Size canvas = CanvasSize(240 * scale);
+                            PointF centre = new PointF(canvas.Width / 2f, canvas.Height / 2f);
+                            RectangleF target = new RectangleF(-38.63f * scale, -134.38f * scale, 90 * scale, 275 * scale);
+                            using (Native.Surface surface = new Native.Surface(canvas.Width, canvas.Height))
+                            using (Bitmap direct = new Bitmap(canvas.Width, canvas.Height, PixelFormat.Format32bppPArgb))
+                                foreach (int cell in new[] { 0, 1, 2 })
+                                    foreach (bool left in new[] { false, true })
+                                        foreach (double at in new[] { 0.37, 1.2, 2.4 })
+                                        {
+                                            float angle = Tilt(at), lift = Breath(at);
+                                            surface.ClearBody();
+                                            bodySampler.Copy(surface, strip, cell, 128, target, centre, angle, lift, left);
+                                            using (Graphics graphics = Graphics.FromImage(direct))
+                                            {
+                                                graphics.Clear(Color.Transparent);
+                                                graphics.CompositingMode = CompositingMode.SourceOver;
+                                                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                                                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                                                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                                                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                                                graphics.TranslateTransform(centre.X, centre.Y + lift);
+                                                graphics.RotateTransform(angle);
+                                                if (left) graphics.ScaleTransform(-1, 1);
+                                                graphics.DrawImage(strip, target, new RectangleF(cell * 128, 0, 128, strip.Height), GraphicsUnit.Pixel);
+                                            }
+                                            if (!near(direct, surface.Image)) throw new Exception("Source sampling changed a fine pattern." + mismatch);
+                                        }
+                        }
+                    }
+                checks.Add("PASS source sampling keeps fine opaque and translucent patterns within the original tolerance at 100 and 200 percent, across strip edges and middle cells facing both ways");
+
+                foreach (int size in new[] { 240, 480 })
+                    foreach (Clip art in new[] { idle, laydown })
+                    {
+                        preferences.Size = size; Size = CanvasSize(size); clip = art; facingLeft = false;
+                        preferences.Motion = true; preferences.Hologram = false; lying = dragging = false;
+                        Bitmap strip = Art(art);
+                        int width = strip.Width / art.Count;
+                        float tall = size * art.Height, wide = tall * width / strip.Height;
+                        RectangleF target = new RectangleF(-wide / 2 + art.ShiftX * size, -tall / 2 + art.ShiftY * size, wide, tall);
+                        PointF centre = new PointF(Width / 2f, Height / 2f);
+                        float angle = Tilt(0.37), lift = Breath(0.37);
+                        using (CellCache cache = new CellCache())
+                        using (Native.Surface surface = new Native.Surface(Width, Height))
+                        using (Bitmap direct = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                        {
+                            using (Graphics graphics = Graphics.FromImage(direct)) Draw(graphics, art, 0, -1, null, false, 0.37);
+                            CellCache.Cell once = cache.Get(strip, 0, width, target, Size, false, false);
+                            RectangleF bigger = new RectangleF(target.X * 2, target.Y * 2, target.Width * 2, target.Height * 2);
+                            CellCache.Cell twice = cache.Get(strip, 0, width, bigger, new Size(Width * 2, Height * 2), false, false);
+                            foreach (string candidate in new[] { "cached_cubic", "cached_2x", "source_cubic", "source" })
+                            {
+                                CellSampler sampler = new CellSampler();
+                                Action paint = delegate
+                                {
+                                    surface.ClearBody();
+                                    if (candidate == "source") sampler.Copy(surface, strip, 0, width, target, centre, angle, lift, false);
+                                    else if (candidate == "source_cubic") sampler.Sample(surface, strip, 0, width, target, centre, angle, lift, false, true);
+                                    else
+                                    {
+                                        CellCache.Cell input = candidate == "cached_cubic" ? once : twice;
+                                        float scale = candidate == "cached_cubic" ? 1 : 2;
+                                        RectangleF placed = new RectangleF(input.Bounds.X / scale - centre.X, input.Bounds.Y / scale - centre.Y, input.Bounds.Width / scale, input.Bounds.Height / scale);
+                                        if (scale == 2) { placed.X += 0.25f; placed.Y += 0.25f; }
+                                        sampler.Sample(surface, input.Image, 0, input.Image.Width, placed, centre, angle, lift, false, false);
+                                    }
+                                };
+                                if (candidate == "cached_cubic")
+                                {
+                                    using (Native.Surface still = new Native.Surface(Width, Height))
+                                    {
+                                        still.ClearBody(); still.Copy(once.Image, once.Bounds.Location);
+                                        surface.ClearBody();
+                                        RectangleF placed = new RectangleF(once.Bounds.X - centre.X, once.Bounds.Y - centre.Y, once.Bounds.Width, once.Bounds.Height);
+                                        sampler.Sample(surface, once.Image, 0, once.Image.Width, placed, centre, 0, 0, false, false);
+                                        if (!exact(still.Image, surface.Image)) throw new Exception("The cubic sampler changed an identity copy.");
+                                    }
+                                }
+                                for (int warm = 0; warm < 8; warm++) paint();
+                                Stopwatch timer = Stopwatch.StartNew();
+                                for (int run = 0; run < 64; run++) paint();
+                                timer.Stop();
+                                bool close = near(direct, surface.Image);
+                                if (candidate == "source" && !close) throw new Exception("Source sampling changed her benchmark pose." + mismatch);
+                                checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                    "perf: sampler pose={0} size={1} cell={2:0.0}x{3:0.0} candidate={4} paint_avg_ms={5:0.000} close={6}{7}",
+                                    art.Title, size, wide, tall, candidate, timer.Elapsed.TotalMilliseconds / 64, close, mismatch));
+                            }
+                        }
+                    }
+                checks.Add("PASS source sampling meets the original tolerance in standing and lying benchmarks at 100 and 200 percent");
+
+                using (Bitmap strip = new Bitmap(16, 2, PixelFormat.Format32bppPArgb))
+                using (CellCache cache = new CellCache())
+                {
+                    RectangleF target = new RectangleF(-512, -512, 1024, 1024);
+                    Size canvas = new Size(1028, 1028);
+                    CellCache.Cell hot = cache.Get(strip, 0, 1, target, canvas, false, false);
+                    CellCache.Cell cold = cache.Get(strip, 1, 1, target, canvas, false, false);
+                    for (int cell = 2; cell < 16; cell++)
+                    {
+                        if (cache.Get(strip, 0, 1, target, canvas, false, false) != hot) throw new Exception("The cache dropped its most recently used cell.");
+                        cache.Get(strip, cell, 1, target, canvas, false, false);
+                        if (cache.Bytes > CellCache.Limit) throw new Exception("The cell cache passed 48 MB.");
+                    }
+                    if (cache.Get(strip, 1, 1, target, canvas, false, false) == cold) throw new Exception("The cache kept its oldest cell past its limit.");
+                    cache.Clear();
+                    target = new RectangleF(-10, -10, 20, 20);
+                    canvas = new Size(24, 24);
+                    hot = cache.Get(strip, 0, 1, target, canvas, false, false);
+                    if (cache.Get(strip, 0, 1, target, canvas, true, false) == hot || cache.Get(strip, 0, 1, target, canvas, false, true) == hot) throw new Exception("The cache shared a flip or tint key.");
+                    Clip.ArtVersion++;
+                    if (cache.Get(strip, 0, 1, target, canvas, false, false) == hot || cache.Count != 1) throw new Exception("New art retained cached pixels.");
+                    cache.Rest(unchecked(Environment.TickCount + 600001));
+                    if (cache.Bytes != 0 || cache.Count != 0) throw new Exception("Unused cached cells stayed loaded.");
+                }
+                checks.Add("PASS the cell cache keeps recently used cells, stays within 48 MB, separates flip and tint, clears for new art and releases ten-minute-old cells");
+
+                using (Native.Surface surface = new Native.Surface(8, 6))
+                {
+                    surface.ClearBody();
+                    Rectangle content;
+                    if (surface.Changes(out content) != new Rectangle(0, 0, 8, 6) || !content.IsEmpty || Program.HasFrame(surface.Image)) throw new Exception("A new clear surface had visible pixels.");
+                    surface.Remember(IntPtr.Zero, Point.Empty, content);
+                    surface.Image.SetPixel(2, 3, Color.Red);
+                    if (surface.Changes(out content) != new Rectangle(2, 3, 1, 1) || !Program.HasFrame(surface.Image)) throw new Exception("The surface missed a changed pixel.");
+                    surface.Remember(IntPtr.Zero, Point.Empty, content);
+                    if (!surface.Changes(out content).IsEmpty) throw new Exception("An identical surface needed an update.");
+                    surface.ClearBody();
+                    surface.Image.SetPixel(5, 1, Color.Blue);
+                    if (surface.Changes(out content) != Rectangle.FromLTRB(2, 1, 6, 4)) throw new Exception("The dirty area missed an old or new pixel.");
+                    surface.Remember(IntPtr.Zero, Point.Empty, content);
+                    surface.Image.SetPixel(7, 5, Color.Green);
+                    surface.Forget();
+                    surface.ClearBody();
+                    if (Program.HasFrame(surface.Image) || surface.Changes(out content) != new Rectangle(0, 0, 8, 6)) throw new Exception("A failed paint survived a full clear.");
+                    using (Shelf window = new Shelf(0x80000))
+                    {
+                        window.Bounds = new Rectangle(Screen.PrimaryScreen.WorkingArea.Location, surface.Image.Size);
+                        window.Show();
+                        Point at = window.Location;
+                        long firstShown = Program.FirstFrameAt;
+                        surface.Image.SetPixel(1, 1, Color.White);
+                        surface.ShowBody(window.Handle, at);
+                        if (surface.LastDirty != new Rectangle(0, 0, 8, 6)) throw new Exception("A first surface update was partial.");
+                        surface.Image.SetPixel(6, 4, Color.Red);
+                        surface.ShowBody(window.Handle, at);
+                        if (surface.LastDirty != new Rectangle(6, 4, 1, 1)) throw new Exception("A small surface change updated the wrong area.");
+                        surface.ShowBody(window.Handle, at);
+                        if (!surface.LastDirty.IsEmpty) throw new Exception("An identical window needed an update.");
+                        surface.ShowBody(window.Handle, new Point(at.X + 1, at.Y));
+                        if (surface.LastDirty != new Rectangle(0, 0, 8, 6)) throw new Exception("A moving surface kept a partial update.");
+                        typeof(Native.Surface).GetField("indirect", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(surface, false);
+                        surface.Image.SetPixel(2, 2, Color.Green);
+                        surface.ShowBody(window.Handle, new Point(at.X + 1, at.Y));
+                        if (Program.FirstFrameAt != firstShown) throw new Exception("A later window changed the startup time.");
+                        using (Native.Surface geometry = new Native.Surface(8, 6))
+                        {
+                            geometry.ClearBody();
+                            geometry.Image.SetPixel(1, 1, Color.White);
+                            content = new Rectangle(1, 1, 1, 1);
+                            geometry.ShowBody(window.Handle, at, geometry.Damage(content), content);
+                            if (geometry.LastDirty != new Rectangle(0, 0, 8, 6)) throw new Exception("A first geometric update was partial.");
+                            geometry.ClearBody();
+                            geometry.Image.SetPixel(6, 4, Color.Red);
+                            content = new Rectangle(6, 4, 1, 1);
+                            geometry.ShowBody(window.Handle, at, geometry.Damage(content), content);
+                            if (geometry.LastDirty != Rectangle.Union(Rectangle.Intersect(Rectangle.Inflate(new Rectangle(1, 1, 1, 1), 4, 4), new Rectangle(0, 0, 8, 6)), new Rectangle(6, 4, 1, 1))) throw new Exception("A geometric window update missed an old or new bound.");
+                            geometry.ClearBody();
+                            geometry.ShowBody(window.Handle, at, geometry.Damage(Rectangle.Empty), Rectangle.Empty);
+                            if (geometry.LastDirty != Rectangle.Intersect(Rectangle.Inflate(content, 4, 4), new Rectangle(0, 0, 8, 6))) throw new Exception("An empty geometric frame left its old bounds.");
+                            geometry.ShowBody(window.Handle, at, geometry.Damage(Rectangle.Empty), Rectangle.Empty);
+                            if (!geometry.LastDirty.IsEmpty) throw new Exception("An empty geometric frame needed another update.");
+                            geometry.ShowBody(window.Handle, new Point(at.X + 1, at.Y), Rectangle.Empty, Rectangle.Empty);
+                            if (geometry.LastDirty != new Rectangle(0, 0, 8, 6)) throw new Exception("A moving geometric frame kept a partial update.");
+                            typeof(Native.Surface).GetField("indirect", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(geometry, false);
+                            geometry.Image.SetPixel(2, 2, Color.Green);
+                            content = new Rectangle(2, 2, 1, 1);
+                            geometry.ShowBody(window.Handle, new Point(at.X + 1, at.Y), geometry.Damage(content), content);
+                            if (geometry.LastDirty != content || Program.FirstFrameAt != firstShown) throw new Exception("A geometric fallback changed the dirty area or startup time.");
+                        }
+                    }
+                }
+                if (Marshal.SizeOf(typeof(Native.LayerInfo)) != (IntPtr.Size == 8 ? 80 : 40)) throw new Exception("The layered-window layout changed.");
+                checks.Add("PASS dirty surfaces include erased and new pixels, skip identical pixels and fully clear after failed paints; transparent frames do not count as startup");
+                checks.Add("PASS geometric window updates include old and new bounds, erase empty frames, move in full and keep the layered-window fallback");
+
+                using (Bitmap cell = new Bitmap(5, 3, PixelFormat.Format32bppPArgb))
+                using (Native.Surface surface = new Native.Surface(8, 6))
+                {
+                    for (int y = 0; y < cell.Height; y++)
+                        for (int x = 0; x < cell.Width; x++) cell.SetPixel(x, y, Color.FromArgb(20 + x * 30 + y * 40, x * 40, y * 70, 100));
+                    int[] source = new int[15], copied = new int[48];
+                    Pixels(cell, new Rectangle(Point.Empty, cell.Size), source, false);
+                    foreach (Point at in new[] { new Point(1, 1), new Point(-1, 4), new Point(6, -1), new Point(7, 5), new Point(8, 0) })
+                    {
+                        surface.Forget(); surface.ClearBody(); surface.Copy(cell, at);
+                        Pixels(surface.Image, new Rectangle(Point.Empty, surface.Image.Size), copied, false);
+                        for (int y = 0; y < 6; y++)
+                            for (int x = 0; x < 8; x++)
+                            {
+                                int fromX = x - at.X, fromY = y - at.Y;
+                                int wanted = fromX >= 0 && fromX < 5 && fromY >= 0 && fromY < 3 ? source[fromY * 5 + fromX] : 0;
+                                if (copied[y * 8 + x] != wanted) throw new Exception("A clipped cached copy changed pixel " + x + "," + y + ".");
+                            }
+                    }
+                }
+                checks.Add("PASS cached row copies keep premultiplied pixels through odd widths, integer offsets and clipping at every edge");
+
+                preferences.Size = 241; Size = CanvasSize(preferences.Size);
+                preferences.Hologram = false;
+                perchMix = 0;
+                using (Native.Surface surface = new Native.Surface(Width, Height))
+                using (Native.Surface visible = new Native.Surface(Width, Height))
+                using (Bitmap direct = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                using (ModHost mod = new ModHost(this, "perf-draw-check"))
+                {
+                    visible.ClearBody();
+                    int[] oldPixels = new int[Width * Height], newPixels = new int[Width * Height];
+                    bool partial = false;
+                    for (int step = 0; step < 8; step++)
+                    {
+                        double at = 1.2;
+                        preferences.Motion = step >= 2 && step <= 5;
+                        walking = step == 4;
+                        walkTo = anchor.X + 100;
+                        clip = step == 3 ? perchSleep : walking ? walk : idle;
+                        lying = dragging = false;
+                        facingLeft = (step & 1) != 0;
+                        leanAngle = step == 1 ? 23 : step == 2 ? -23 : 0;
+                        veiled = step == 6;
+                        notes.Clear();
+                        if (step == 5) notes.Add(new Note { Born = at - 0.4, Side = -1, Shape = 0, Seed = 0.37 });
+                        mod.drawing = step == 0 ? new Action<CapriFrame>(delegate(CapriFrame shown) { shown.Graphics.FillRectangle(Brushes.Red, 1, 1, 7, 5); }) : null;
+                        Pixels(surface.Image, new Rectangle(Point.Empty, Size), oldPixels, false);
+                        surface.ClearBody();
+                        using (Graphics graphics = Graphics.FromImage(surface.Image)) { Draw(graphics, clip, 0, -1, null, false, at); ModsDraw(graphics, clip, 0); }
+                        using (Graphics graphics = Graphics.FromImage(direct)) { graphics.Clear(Color.Transparent); Draw(graphics, clip, 0, -1, null, false, at); ModsDraw(graphics, clip, 0); }
+                        int[] wanted = new int[Width * Height], got = new int[Width * Height];
+                        Pixels(direct, new Rectangle(Point.Empty, Size), wanted, false);
+                        Pixels(surface.Image, new Rectangle(Point.Empty, Size), got, false);
+                        // Her sleeping perch moves with the real clock, so step 3's two drawings are different moments and aren't compared.
+                        for (int pixel = 0; pixel < wanted.Length && step != 3; pixel++)
+                        {
+                            bool left = wanted[pixel] == 0 ? got[pixel] != 0 : false;
+                            for (int shift = 0; shift < 32 && !left; shift += 8) left = Math.Abs(((wanted[pixel] >> shift) & 255) - ((got[pixel] >> shift) & 255)) > 3;
+                            if (left) throw new Exception("A partial clear left her old drawing at step " + step + ": pixel " + (pixel % Width) + "," + (pixel / Width) + " direct=0x" + wanted[pixel].ToString("X8") + " cleared=0x" + got[pixel].ToString("X8"));
+                        }
+                        Rectangle body = BodyBounds(clip, at);
+                        Rectangle content = PaintBounds(clip, body, ModsListen(host => host.drawing != null));
+                        Rectangle dirty = surface.Damage(content);
+                        if (step == 0 && (body.Contains(1, 1) || content != new Rectangle(Point.Empty, Size))) throw new Exception("A mod outside her body missed the paint bounds.");
+                        if (!dirty.IsEmpty && dirty != new Rectangle(Point.Empty, Size)) partial = true;
+                        Pixels(direct, new Rectangle(Point.Empty, Size), newPixels, false);
+                        for (int pixel = 0; pixel < oldPixels.Length; pixel++)
+                            if (oldPixels[pixel] != newPixels[pixel] && !dirty.Contains(pixel % Width, pixel / Width)) throw new Exception("The geometric dirty area missed pixel " + (pixel % Width) + "," + (pixel / Width) + " at step " + step + ".");
+                        if (!dirty.IsEmpty)
+                            using (Bitmap patch = surface.Image.Clone(dirty, PixelFormat.Format32bppPArgb)) visible.Copy(patch, dirty.Location);
+                        if (step != 3 && !same(direct, visible.Image)) throw new Exception("A geometric update changed the original drawing at step " + step + "." + mismatch);
+                        surface.Remember(IntPtr.Zero, Point.Empty, content);
+                    }
+                    if (!partial || typeof(Native.Surface).GetField("last", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(surface) != null) throw new Exception("Geometric updates kept a full pixel history or never used a partial area.");
+                    surface.Image.SetPixel(0, 0, Color.Red);
+                    surface.Forget();
+                    surface.ClearBody();
+                    if (Program.HasFrame(surface.Image)) throw new Exception("A failed geometric paint survived the next clear.");
+                }
+                checks.Add("PASS geometric updates match the original drawing through turns, breathing, walking, notes, sleep and hiding, including a mod outside her body and its removal");
+                checks.Add("PASS partial clears erase old bounds after she moves, geometric updates use no pixel history, and a failed paint gets a full clear");
+
+                veiled = false; walking = lying = dragging = false; leanAngle = 0; clip = idle;
+                notes.Clear();
+                preferences.Motion = true;
+                Bitmap frameWas = frame;
+                int skipped = 0, painted = 0;
+                try
+                {
+                    foreach (int size in new[] { MinSize, 241, MaxSize })
+                        foreach (bool left in new[] { false, true })
+                        {
+                            preferences.Size = size; Size = CanvasSize(size); facingLeft = left;
+                            using (Bitmap picture = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                            using (Bitmap original = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                            {
+                                frame = picture;
+                                drawnClip = idle; drawnArt = Art(idle); drawnCell = 0; drawnMouth = -1; drawnMix = 0;
+                                drawnVeil = drawnNotes = drawnMods = false; drawnMotion = drawnSettled = true; drawnHologram = false;
+                                drawnLean = 0; drawnTurn = drawnDip = drawnHusk = 0; drawnFacing = left; drawnAt = anchor;
+                                drawnBreath = Breath(0); drawnTilt = Tilt(0);
+                                Bitmap art = Art(idle);
+                                float tall = size * idle.Height, wide = tall * (art.Width / idle.Count) / art.Height;
+                                float x = -wide / 2 + idle.ShiftX * size, y = -tall / 2 + idle.ShiftY * size;
+                                PointF[] corners = { new PointF(x, y), new PointF(x + wide, y), new PointF(x, y + tall), new PointF(x + wide, y + tall) };
+                                PointF[] kept = (PointF[])corners.Clone();
+                                using (Graphics graphics = Graphics.FromImage(picture))
+                                {
+                                    Draw(graphics, idle, 0, -1, null, false, 0);
+                                    using (Matrix pose = graphics.Transform) pose.TransformPoints(kept);
+                                }
+                                if (BodyChanged(0, idle, 0, -1)) throw new Exception("An unchanged original picture needed a breathing paint.");
+                                drawnDip = 1;
+                                if (!BodyChanged(0, idle, 0, -1)) throw new Exception("A Husk dip was skipped with breathing.");
+                                drawnDip = 0; drawnHusk = 1;
+                                if (!BodyChanged(0, idle, 0, -1)) throw new Exception("A Husk turn was skipped with breathing.");
+                                drawnHusk = 0;
+                                using (ModHost mod = new ModHost(this, "perf-skip-check"))
+                                {
+                                    mod.drawing = delegate { };
+                                    if (!BodyChanged(0, idle, 0, -1)) throw new Exception("A drawing mod missed a body paint.");
+                                    drawnMods = true;
+                                    mod.drawing = null;
+                                    if (!BodyChanged(0, idle, 0, -1)) throw new Exception("A removed drawing mod kept its old pixels.");
+                                    drawnMods = false;
+                                }
+                                for (int step = 1; step <= 120; step++)
+                                {
+                                    double at = step * 0.02;
+                                    PointF[] current = (PointF[])corners.Clone();
+                                    using (Graphics graphics = Graphics.FromImage(original))
+                                    {
+                                        graphics.Clear(Color.Transparent);
+                                        Draw(graphics, idle, 0, -1, null, false, at);
+                                        using (Matrix pose = graphics.Transform) pose.TransformPoints(current);
+                                    }
+                                    if (BodyChanged(at, idle, 0, -1))
+                                    {
+                                        using (Graphics graphics = Graphics.FromImage(picture)) { graphics.Clear(Color.Transparent); Draw(graphics, idle, 0, -1, null, false, at); }
+                                        drawnBreath = Breath(at); drawnTilt = Tilt(at); kept = current; painted++;
+                                        continue;
+                                    }
+                                    for (int corner = 0; corner < current.Length; corner++)
+                                    {
+                                        double dx = current[corner].X - kept[corner].X, dy = current[corner].Y - kept[corner].Y;
+                                        if (dx * dx + dy * dy > 0.25001) throw new Exception("Skipped breathing moved the original drawing by half a pixel at " + size + ", left " + left + ".");
+                                    }
+                                    if (!BodyChanged(at, idle, 1, -1) || !BodyChanged(at, idle, 0, 2)) throw new Exception("Skipped breathing also skipped an art or mouth change.");
+                                    skipped++;
+                                }
+                            }
+                        }
+                }
+                finally { frame = frameWas; }
+                if (skipped == 0 || painted == 0) throw new Exception("The breathing check missed a skipped or required paint.");
+                preferences.Size = sizeWas; Size = canvasWas;
+                preferences.Motion = false;
+                checks.Add("PASS breathing-only paints wait for half a device pixel at Tiny, an odd size and Giant, facing both ways, while art and mouth changes still paint");
+                checks.Add("PASS Husk dip and turn changes still paint while breathing waits");
+                checks.Add("PASS drawing mods keep painting and removing one erases its old pixels even when her own picture is unchanged");
+
+                using (Shatter proof = new Shatter())
+                {
+                    proof.Layer = delegate { };
+                    Bitmap self = new Bitmap(16, 16, PixelFormat.Format32bppPArgb);
+                    using (Graphics graphics = Graphics.FromImage(self)) graphics.Clear(Color.Red);
+                    Rectangle screen = Screen.PrimaryScreen.Bounds;
+                    proof.Play(self, new Point(screen.Left + 30, screen.Top + 30), screen, false, 240);
+                    proof.Stop();
+                    int now = Environment.TickCount;
+                    proof.Rest(unchecked(now + 599000));
+                    if (proof.Image == null) throw new Exception("A recent shatter frame was released early.");
+                    proof.Rest(unchecked(now + 600001));
+                    if (proof.Image != null) throw new Exception("An unused shatter frame stayed loaded.");
+                    self = new Bitmap(16, 16, PixelFormat.Format32bppPArgb);
+                    using (Graphics graphics = Graphics.FromImage(self)) graphics.Clear(Color.Blue);
+                    proof.Play(self, new Point(screen.Left + 30, screen.Top + 30), screen, false, 240);
+                    proof.Stop();
+                    if (proof.Image == null) throw new Exception("A rested shatter effect did not draw again.");
+                }
+                checks.Add("PASS a hidden shatter frame releases after ten minutes and its next effect can draw afresh");
+
+                preferences.TalkVk = preferences.MuteVk = preferences.TypeVk = preferences.HideVk = preferences.QuietVk = preferences.GameVk = 0x04;
+                preferences.TalkMods = preferences.MuteMods = preferences.TypeMods = preferences.HideMods = preferences.QuietMods = preferences.GameMods = 1;
+                preferences.PushVk = 0;
+                Array.Clear(mouseHeld, 0, mouseHeld.Length);
+                int reads = 0;
+                KeyHeld = delegate(int vk) { if (vk != 0x04) return false; reads++; return true; };
+                WatchMouseKeys();
+                if (reads != 1 || !mouseHeld[0] || !mouseHeld[5] || !MouseWork) throw new Exception("Shared mouse keys read a quick tap twice.");
+                preferences.TalkVk = preferences.MuteVk = preferences.TypeVk = preferences.HideVk = preferences.QuietVk = preferences.GameVk = (int)Keys.F8;
+                if (MouseWork) throw new Exception("Unbound mouse keys still had work.");
+                preferences.PushVk = (int)Keys.F9;
+                if (!MouseWork) throw new Exception("Push to talk lost its key watcher.");
+                WatchMouse();
+                if (mouseKeys.Enabled || iconChaos == null && iconTimer.Enabled || chatFx == null && chatTail.Enabled) throw new Exception("An idle work timer stayed on.");
+                checks.Add("PASS mouse work follows mouse bindings and push to talk, reads a shared button once and keeps idle mouse, icon and chat-tail timers stopped");
+
+                idle.Load(false);
+                int later = unchecked(Environment.TickCount + 600001);
+                double after = clock.Elapsed.TotalSeconds + 601;
+                chatting = true; speech = null; talkState = TalkState.Off; perchMix = 0;
+                RestArt(after, later);
+                if (!idle.Ready(false) || inBetween == null) throw new Exception("Active chat lost art or tween buffers.");
+                chatting = false; speech = "Still talking.";
+                RestArt(after, later);
+                if (!idle.Ready(false)) throw new Exception("Speech lost its art.");
+                speech = null; transcribing = true;
+                RestArt(after, later);
+                if (!idle.Ready(false)) throw new Exception("Listening lost its art.");
+                transcribing = false; callSession.Change(true);
+                RestArt(after, later);
+                if (!idle.Ready(false)) throw new Exception("A call lost its art.");
+                callSession.Change(false);
+                RestArt(after, later);
+                if (idle.Ready(false) || inBetween != null || mixFrom != null || mixTo != null) throw new Exception("Ten-minute-old art or tween buffers stayed loaded.");
+                idle.Warm(false);
+                if (!SpinWait.SpinUntil(delegate { return idle.Ready(false); }, 8000)) throw new Exception("Rested art did not warm again.");
+                checks.Add("PASS cold standing art and tween buffers release after ten safe minutes, stay loaded during chat, speech, hearing or calls, and warm again");
+                CallEars.CheckWaits(checks);
+            }
+            finally
+            {
+                preferences.Size = sizeWas; Size = canvasWas; preferences.Motion = motionWas; preferences.Hologram = hologramWas;
+                facingLeft = facingWas; veiled = veilWas; veilUntil = veilUntilWas; leanAngle = leanWas; clip = clipWas; perchMix = mixWas;
+                dizzyUntil = dizzyWas; huskMoodAt = moodWas;
+                lying = lyingWas; dragging = draggingWas; walking = walkingWas; walkTo = walkToWas;
+                notes.Clear(); notes.AddRange(notesWas);
+                chatting = chatWas; transcribing = transcribeWas; speech = speechWas; talkState = talkWas; callSession.Change(callWas);
+                preferences.TalkMods = boundWas[0]; preferences.TalkVk = boundWas[1]; preferences.MuteMods = boundWas[2]; preferences.MuteVk = boundWas[3];
+                preferences.TypeMods = boundWas[4]; preferences.TypeVk = boundWas[5]; preferences.HideMods = boundWas[6]; preferences.HideVk = boundWas[7];
+                preferences.QuietMods = boundWas[8]; preferences.QuietVk = boundWas[9]; preferences.GameMods = boundWas[10]; preferences.GameVk = boundWas[11];
+                preferences.PushVk = pushWas; KeyHeld = keysWas; Array.Copy(heldWas, mouseHeld, mouseHeld.Length);
+                bodyCells.Clear(); drawnClip = null; RenderFrame();
+                if (framesWas) frames.Start();
+                if (signalsWas) signals.Start();
+            }
+        }
+
+        [DllImport("kernel32.dll", EntryPoint = "GetThreadTimes", SetLastError = true)]
+        private static extern bool PerfThreadTimes(IntPtr thread, out long created, out long ended, out long kernel, out long user);
+
+        private static double PerfCpu()
+        {
+            long created, ended, kernel, user;
+            if (!PerfThreadTimes(new IntPtr(-2), out created, out ended, out kernel, out user)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            return (kernel + user) / 10000.0;
+        }
+
+        private void SmokePerf(System.Collections.Generic.List<string> checks)
+        {
+            bool framesWas = frames.Enabled, signalsWas = signals.Enabled, hiddenWas = hidden, dockedWas = docked;
+            bool timingWas = bodyTiming;
+            bool ridingWas = riding, panelWas = onPanel, fallingWas = falling, draggingWas = dragging, lyingWas = lying, walkingWas = walking;
+            bool motionWas = preferences.Motion, facingWas = facingLeft, veilWas = veiled;
+            int saverWas = preferences.PowerSaver, fpsWas = preferences.PerchFps, intervalWas = frames.Interval, targetWas = walkTo;
+            double startWas = clipStart, veilUntilWas = veilUntil, leanWas = leanAngle, stepWas = walkStep, carryWas = walkCarry, sulkWas = sulkSince;
+            Point anchorWas = anchor;
+            Clip clipWas = clip, blinkWas = blinkWith;
+            Ledge seatWas = seat;
+            Action outroWas = outro;
+            string speechWas = speech;
+            TalkState talkWas = talkState;
+            double movedWas = seatMovedAt;
+            bool bubbleWas = box.Visible, typerWas = typer.Visible;
+            System.Collections.Generic.List<Note> notesWas = new System.Collections.Generic.List<Note>(notes);
+            try
+            {
+                frames.Stop();
+                signals.Stop();
+                hidden = docked = riding = onPanel = falling = dragging = lying = walking = false;
+                veiled = false;
+                veilUntil = -1;
+                sulkSince = -1;
+                outro = null;
+                speech = null;
+                talkState = TalkState.Off;
+                box.Hide();
+                typer.Hide();
+                notes.Clear();
+                preferences.Motion = true;
+                preferences.PowerSaver = 0;
+                preferences.PerchFps = 30;
+                Rectangle room = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
+                Point origin = new Point(room.Left + (room.Width - Width) / 2, room.Top + (room.Height - Height) / 2);
+                foreach (string scene in new[] { "idle", "perched", "lying", "walking" })
+                {
+                    anchor = origin;
+                    Location = anchor;
+                    facingLeft = false;
+                    lying = scene == "lying";
+                    walking = scene == "walking";
+                    seat = scene == "perched" || lying ? new Ledge { Floor = true, Left = room.Left, Right = room.Right, Y = room.Bottom } : null;
+                    if (seat != null) anchor = Seated(room.Left + room.Width / 2, seat.Y);
+                    seatMovedAt = -10;
+                    leanAngle = 0;
+                    walkStep = clock.Elapsed.TotalSeconds;
+                    walkCarry = 0;
+                    int left = room.Left - PaddingSize - (int)(preferences.Size * Body.Left);
+                    int right = room.Right - PaddingSize - (int)Math.Ceiling(preferences.Size * Body.Right);
+                    walkTo = right;
+                    Play(lying ? laydown : walking ? walk : seat != null ? perch : idle);
+                    RenderFrame();
+                    int ticks = 0, paints = 0;
+                    long paintTime = 0, paintMax = 0;
+                    Stopwatch sample = new Stopwatch();
+                    using (System.Windows.Forms.Timer probe = new System.Windows.Forms.Timer())
+                    using (Process process = Process.GetCurrentProcess())
+                    {
+                        probe.Interval = FrameInterval(clock.Elapsed.TotalSeconds);
+                        probe.Tick += delegate
+                        {
+                            if (sample.Elapsed.TotalSeconds >= 10) { probe.Stop(); return; }
+                            frames.Stop();
+                            if (walking && Math.Abs(walkTo - anchor.X) <= preferences.Size / 10)
+                            {
+                                walkTo = walkTo == right ? left : right;
+                                facingLeft = walkTo < anchor.X;
+                            }
+                            int before = bodyPaints;
+                            long at = Stopwatch.GetTimestamp();
+                            Tick();
+                            long spent = Stopwatch.GetTimestamp() - at;
+                            frames.Stop();
+                            ticks++;
+                            int made = bodyPaints - before;
+                            if (made > 0) { paints += made; paintTime += spent; paintMax = Math.Max(paintMax, spent); }
+                            int wanted = FrameInterval(clock.Elapsed.TotalSeconds);
+                            if (probe.Interval != wanted) probe.Interval = wanted;
+                        };
+                        process.Refresh();
+                        double privateStart = process.PrivateMemorySize64 / 1048576.0;
+                        double processStart = process.TotalProcessorTime.TotalMilliseconds, uiStart = PerfCpu();
+                        int gen0 = GC.CollectionCount(0), gen1 = GC.CollectionCount(1), gen2 = GC.CollectionCount(2);
+                        bodyClear = bodyDraw = bodyMods = bodyTint = bodyDiff = bodyShow = 0;
+                        bodyTiming = true;
+                        sample.Start();
+                        probe.Start();
+                        while (sample.Elapsed.TotalSeconds < 10)
+                        {
+                            Native.MsgWaitForMultipleObjectsEx(0, null, (int)Math.Max(1, Math.Min(100, 10000 - sample.ElapsedMilliseconds)), 0x04FF, 0x0004);
+                            Application.DoEvents();
+                        }
+                        probe.Stop();
+                        bodyTiming = false;
+                        double uiMs = PerfCpu() - uiStart;
+                        process.Refresh();
+                        checks.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                            "perf: {0} ui_cpu_ms={1:0.00} process_cpu_ms={2:0.00} frames={3} paints={4} paint_avg_ms={5:0.000} paint_max_ms={6:0.000} gen0={7} gen1={8} gen2={9} private_mb_start={10:0.00} private_mb_end={11:0.00} clear_ms={12:0.000} draw_ms={13:0.000} mods_ms={14:0.000} tint_ms={15:0.000} diff_ms={16:0.000} show_ms={17:0.000} surface={18}x{19} body={20}x{21}",
+                            scene, uiMs, process.TotalProcessorTime.TotalMilliseconds - processStart, ticks, paints,
+                            paints == 0 ? 0 : paintTime * 1000.0 / Stopwatch.Frequency / paints, paintMax * 1000.0 / Stopwatch.Frequency,
+                            GC.CollectionCount(0) - gen0, GC.CollectionCount(1) - gen1, GC.CollectionCount(2) - gen2, privateStart, process.PrivateMemorySize64 / 1048576.0,
+                            bodyClear * 1000.0 / Stopwatch.Frequency, bodyDraw * 1000.0 / Stopwatch.Frequency, bodyMods * 1000.0 / Stopwatch.Frequency,
+                            bodyTint * 1000.0 / Stopwatch.Frequency, bodyDiff * 1000.0 / Stopwatch.Frequency, bodyShow * 1000.0 / Stopwatch.Frequency,
+                            Width, Height, drawnBounds.Width, drawnBounds.Height));
+                    }
+                }
+            }
+            finally
+            {
+                bodyTiming = timingWas;
+                frames.Stop();
+                hidden = hiddenWas; docked = dockedWas; riding = ridingWas; onPanel = panelWas; falling = fallingWas; dragging = draggingWas;
+                lying = lyingWas; walking = walkingWas; facingLeft = facingWas; veiled = veilWas; veilUntil = veilUntilWas; sulkSince = sulkWas;
+                preferences.Motion = motionWas; preferences.PowerSaver = saverWas; preferences.PerchFps = fpsWas;
+                anchor = anchorWas; Location = anchor; seat = seatWas; seatMovedAt = movedWas;
+                clip = clipWas; clipStart = startWas; blinkWith = blinkWas; outro = outroWas; leanAngle = leanWas;
+                walkStep = stepWas; walkCarry = carryWas; walkTo = targetWas; speech = speechWas; talkState = talkWas;
+                notes.Clear(); notes.AddRange(notesWas);
+                if (bubbleWas) box.Show();
+                if (typerWas) typer.Show();
+                drawnClip = null;
+                RenderFrame();
+                frames.Interval = intervalWas;
+                if (framesWas) frames.Start();
+                if (signalsWas) signals.Start();
+            }
+        }
+
         // Power saver (issue #111): HABITS' row saves, syncs and stays in Simple Settings. Only while it works, over a faked game
         // for In games or all the time for Always, she rests at 15 fps, runs her background checks once a second and her ears go
         // at a gentler pace; Off, or In games with nothing in front, leaves every interval as it was.
@@ -25227,8 +26501,6 @@ namespace CapriDesktop
                 catch (InvalidOperationException) { }
                 GameSense timedSense = new GameSense();
                 for (int timingWarm = 0; timingWarm < senseBench.Length; timingWarm++) timedSense.Feed(senseBench[timingWarm], 240, 135, timingWarm / 5.0);
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
                 double timingTotal = 0, timingPeak = 0;
                 for (int timingRound = 0; timingRound < 8; timingRound++)
                 {
@@ -39023,6 +40295,8 @@ namespace CapriDesktop
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
             Section(checks, "SmokePowerSaver", delegate { SmokePowerSaver(checks, output); });
             Section(checks, "SmokeMusicApp", delegate { SmokeMusicApp(checks); });
+            Section(checks, "SmokePerf", delegate { SmokePerf(checks); });
+            Section(checks, "SmokePerformance", delegate { SmokePerformance(checks); });
             Section(checks, "SmokeHaul", delegate { SmokeHaul(checks); });
             Section(checks, "SmokeIcons", delegate { SmokeIcons(checks); });
             Section(checks, "SmokeChaosScreen", delegate { SmokeChaosScreen(checks); });
@@ -56899,9 +58173,20 @@ namespace CapriDesktop
         [StructLayout(LayoutKind.Sequential)] internal struct Point { internal int X, Y; internal Point(int x, int y) { X = x; Y = y; } }
         [StructLayout(LayoutKind.Sequential)] internal struct Size { internal int Width, Height; internal Size(int width, int height) { Width = width; Height = height; } }
         [StructLayout(LayoutKind.Sequential, Pack = 1)] internal struct Blend { internal byte Operation, Flags, Alpha, Format; }
+        [StructLayout(LayoutKind.Sequential)] private struct DirtyRect { internal int Left, Top, Right, Bottom; }
+        [StructLayout(LayoutKind.Sequential)] internal struct LayerInfo
+        {
+            internal int Bytes;
+            internal IntPtr Screen, Destination, Size, Source, Origin;
+            internal int Color;
+            internal IntPtr Blend;
+            internal int Flags;
+            internal IntPtr Dirty;
+        }
         [StructLayout(LayoutKind.Sequential)] private struct InputInfo { internal int Size; internal uint Time; }
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref InputInfo info);
         [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] internal static extern bool IsWindowVisible(IntPtr window);
         [DllImport("user32.dll")] internal static extern bool InSendMessage();
         [DllImport("user32.dll")] internal static extern void DisableProcessWindowsGhosting();
         [DllImport("user32.dll")] internal static extern int GetWindowThreadProcessId(IntPtr window, out int process);
@@ -56949,6 +58234,7 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern bool IsZoomed(IntPtr window);
         [DllImport("user32.dll")] private static extern IntPtr RegisterPowerSettingNotification(IntPtr window, ref Guid setting, int flags);
         [DllImport("user32.dll", SetLastError = true)] private static extern bool UpdateLayeredWindow(IntPtr window, IntPtr screen, ref Point destination, ref Size size, IntPtr source, ref Point origin, int colorKey, ref Blend blend, int flags);
+        [DllImport("user32.dll", SetLastError = true)] private static extern bool UpdateLayeredWindowIndirect(IntPtr window, ref LayerInfo info);
         [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
         [DllImport("kernel32.dll")] private static extern bool GetSystemTimes(out long idle, out long kernel, out long user);
         internal const uint ES_CONTINUOUS = 0x80000000, ES_SYSTEM_REQUIRED = 0x00000001, ES_DISPLAY_REQUIRED = 0x00000002;
@@ -57053,6 +58339,12 @@ namespace CapriDesktop
         {
             internal readonly Bitmap Image;
             private IntPtr memory, bitmap, previous, pixels;
+            private int[] last;
+            private Rectangle occupied;
+            private bool remembered, indirect = true;
+            private IntPtr shownWindow;
+            private System.Drawing.Point shownAt;
+            internal Rectangle LastDirty;
 
             internal Surface(int width, int height)
             {
@@ -57075,6 +58367,124 @@ namespace CapriDesktop
                 Size size = new Size(Image.Width, Image.Height);
                 Blend blend = new Blend { Alpha = alpha, Format = 1 };
                 if (!UpdateLayeredWindow(window, IntPtr.Zero, ref destination, ref size, memory, ref origin, 0, ref blend, 2)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                remembered = false;
+                Program.FrameShown(window, Image);
+            }
+
+            internal void Forget() { remembered = false; }
+
+            internal unsafe void ClearBody()
+            {
+                Rectangle area = remembered ? occupied : new Rectangle(System.Drawing.Point.Empty, Image.Size);
+                int width = Image.Width;
+                int* data = (int*)pixels.ToPointer();
+                for (int y = area.Top; y < area.Bottom; y++)
+                {
+                    int* row = data + y * width + area.Left;
+                    long* pairs = (long*)row;
+                    for (int x = 0; x < area.Width / 2; x++) pairs[x] = 0;
+                    if ((area.Width & 1) != 0) row[area.Width - 1] = 0;
+                }
+            }
+
+            internal unsafe void Copy(Bitmap image, System.Drawing.Point location)
+            {
+                Rectangle area = Rectangle.Intersect(new Rectangle(location, image.Size), new Rectangle(System.Drawing.Point.Empty, Image.Size));
+                if (area.Width <= 0 || area.Height <= 0) return;
+                int width = Image.Width;
+                BitmapData source = image.LockBits(new Rectangle(area.X - location.X, area.Y - location.Y, area.Width, area.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+                try
+                {
+                    for (int y = 0; y < area.Height; y++)
+                    {
+                        int* from = (int*)((byte*)source.Scan0.ToPointer() + y * source.Stride);
+                        int* into = (int*)pixels.ToPointer() + (y + area.Top) * width + area.Left;
+                        long* read = (long*)from, write = (long*)into;
+                        for (int x = 0; x < area.Width / 2; x++) write[x] = read[x];
+                        if ((area.Width & 1) != 0) into[area.Width - 1] = from[area.Width - 1];
+                    }
+                }
+                finally { image.UnlockBits(source); }
+            }
+
+            internal Rectangle Damage(Rectangle content)
+            {
+                if (!remembered) return new Rectangle(System.Drawing.Point.Empty, Image.Size);
+                if (occupied.IsEmpty) return content;
+                return content.IsEmpty ? occupied : Rectangle.Union(occupied, content);
+            }
+
+            internal unsafe Rectangle Changes(out Rectangle content)
+            {
+                int width = Image.Width, height = Image.Height;
+                if (last == null) last = new int[width * height];
+                int left = width, top = height, right = 0, bottom = 0;
+                int drawnLeft = width, drawnTop = height, drawnRight = 0, drawnBottom = 0;
+                int* data = (int*)pixels.ToPointer();
+                for (int y = 0, at = 0; y < height; y++)
+                    for (int x = 0; x < width; x++, at++)
+                    {
+                        int pixel = data[at];
+                        if (pixel != 0)
+                        {
+                            drawnLeft = Math.Min(drawnLeft, x); drawnTop = Math.Min(drawnTop, y);
+                            drawnRight = Math.Max(drawnRight, x + 1); drawnBottom = y + 1;
+                        }
+                        if (pixel == last[at]) continue;
+                        left = Math.Min(left, x); top = Math.Min(top, y); right = Math.Max(right, x + 1); bottom = y + 1;
+                    }
+                content = drawnRight == 0 ? Rectangle.Empty : Rectangle.FromLTRB(drawnLeft, drawnTop, drawnRight, drawnBottom);
+                return !remembered ? new Rectangle(System.Drawing.Point.Empty, Image.Size) : right == 0 ? Rectangle.Empty : Rectangle.FromLTRB(left, top, right, bottom);
+            }
+
+            internal void Remember(IntPtr window, System.Drawing.Point location, Rectangle content)
+            {
+                if (last != null) Marshal.Copy(pixels, last, 0, last.Length);
+                // A little past what she drew, so the faint edge of a turned or breathing frame is cleared and sent with the next one.
+                occupied = content.IsEmpty ? content : Rectangle.Intersect(Rectangle.Inflate(content, 4, 4), new Rectangle(System.Drawing.Point.Empty, Image.Size));
+                shownWindow = window;
+                shownAt = location;
+                remembered = true;
+            }
+
+            internal void ShowBody(IntPtr window, System.Drawing.Point location)
+            {
+                try
+                {
+                    Rectangle content;
+                    Rectangle dirty = Changes(out content);
+                    ShowBody(window, location, dirty, content);
+                }
+                catch { remembered = false; throw; }
+            }
+
+            internal unsafe void ShowBody(IntPtr window, System.Drawing.Point location, Rectangle dirty, Rectangle content)
+            {
+                try
+                {
+                    bool full = !remembered || shownWindow != window || shownAt != location;
+                    if (full) dirty = new Rectangle(System.Drawing.Point.Empty, Image.Size);
+                    LastDirty = dirty;
+                    if (!dirty.IsEmpty)
+                    {
+                        bool done = false;
+                        if (!full && indirect)
+                        {
+                            Point destination = new Point(location.X, location.Y), origin = new Point(0, 0);
+                            Size size = new Size(Image.Width, Image.Height);
+                            Blend blend = new Blend { Alpha = 255, Format = 1 };
+                            DirtyRect area = new DirtyRect { Left = dirty.Left, Top = dirty.Top, Right = dirty.Right, Bottom = dirty.Bottom };
+                            LayerInfo info = new LayerInfo { Bytes = Marshal.SizeOf(typeof(LayerInfo)), Destination = new IntPtr(&destination), Size = new IntPtr(&size), Source = memory, Origin = new IntPtr(&origin), Blend = new IntPtr(&blend), Flags = 2, Dirty = new IntPtr(&area) };
+                            try { done = UpdateLayeredWindowIndirect(window, ref info); }
+                            catch (EntryPointNotFoundException) { indirect = false; }
+                            if (!done) indirect = false;
+                        }
+                        if (!done) Show(window, location);
+                    }
+                    Remember(window, location, content);
+                    Program.FrameShown(window, Image);
+                }
+                catch { remembered = false; throw; }
             }
 
             public void Dispose()
@@ -57084,6 +58494,7 @@ namespace CapriDesktop
                 if (bitmap != IntPtr.Zero) DeleteObject(bitmap);
                 if (memory != IntPtr.Zero) DeleteDC(memory);
                 previous = bitmap = memory = pixels = IntPtr.Zero;
+                last = null;
             }
         }
 
@@ -57103,6 +58514,7 @@ namespace CapriDesktop
                 Size size = new Size(bitmap.Width, bitmap.Height);
                 Blend blend = new Blend { Operation = 0, Flags = 0, Alpha = 255, Format = 1 };
                 if (!UpdateLayeredWindow(window, screen, ref destination, ref size, memory, ref origin, 0, ref blend, 2)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+                Program.FrameShown(window, bitmap);
             }
             finally
             {

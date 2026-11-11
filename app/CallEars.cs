@@ -402,6 +402,7 @@ namespace CapriDesktop
         private volatile bool running;
         private volatile string problem = NotOpen;
         private int generation;
+        private ManualResetEvent stopped;
 
         // The process whose sound is Discord's, 0 when it isn't open. The smoke test stands in for it.
         internal static Func<int> Find = CallApps.Find;
@@ -419,26 +420,46 @@ namespace CapriDesktop
 
         internal void Start()
         {
-            if (running) return;
-            running = true;
-            problem = CallApps.Current.NotOpen;
-            int mine = Interlocked.Increment(ref generation);
-            new Thread(delegate() { Listen(mine); }) { IsBackground = true, Name = "Capri call ears" }.Start();
+            lock (gate)
+            {
+                if (running) return;
+                ManualResetEvent stop = new ManualResetEvent(false);
+                stopped = stop;
+                running = true;
+                problem = CallApps.Current.NotOpen;
+                int mine = Interlocked.Increment(ref generation);
+                try { new Thread(delegate() { Listen(mine, stop); }) { IsBackground = true, Name = "Capri call ears" }.Start(); }
+                catch { running = false; stopped = null; stop.Dispose(); throw; }
+            }
         }
 
         // Her thread sees this within 10 ms, or once Windows answers a capture it's opening, and closes the capture itself.
         internal void Stop()
         {
-            running = false;
-            Interlocked.Increment(ref generation);
-            lock (gate) { start = count = 0; heard = 0; heardCount = 0; level = 0; echo.Clear(); }
+            lock (gate)
+            {
+                running = false;
+                Interlocked.Increment(ref generation);
+                if (stopped != null) stopped.Set();
+                start = count = 0; heard = 0; heardCount = 0; level = 0; echo.Clear();
+            }
         }
 
         public void Dispose() { Stop(); }
 
         private bool Live(int mine) { return running && Volatile.Read(ref generation) == mine; }
 
-        private void Listen(int mine)
+        private void Listen(int mine, ManualResetEvent stop)
+        {
+            try { ListenLoop(mine, stop); }
+            finally
+            {
+                lock (gate) if (stopped == stop) stopped = null;
+                stop.Dispose();
+            }
+        }
+
+        private void ListenLoop(int mine, ManualResetEvent stop)
         {
             object owner = new object();
             string told = null;
@@ -448,7 +469,7 @@ namespace CapriDesktop
                 try { pid = Find(); }
                 catch (Exception) { }
                 if (!Live(mine)) break;
-                if (pid == 0) { Say(mine, CallApps.Current.NotOpen); Rest(mine, 500); continue; }
+                if (pid == 0) { Say(mine, CallApps.Current.NotOpen); Rest(mine, 500, stop); continue; }
                 CallApp app = CallApps.Current;
                 Tap tap = null;
                 try
@@ -460,7 +481,7 @@ namespace CapriDesktop
                         Say(mine, failed);
                         if (failed != told) Brain.Log("call ears", -1, failed);
                         told = failed;
-                        Rest(mine, 15000);
+                        Rest(mine, 15000, stop);
                         continue;
                     }
                     told = null;
@@ -470,7 +491,7 @@ namespace CapriDesktop
                     int lookedAt = Environment.TickCount;
                     while (Live(mine))
                     {
-                        Thread.Sleep(10);
+                        if (!tap.Wait(stop) || !Live(mine)) break;
                         if (!tap.Read(this, mine)) { Brain.Log("call ears", -1, app.Name + "'s sound stopped coming. Opening it again."); break; }
                         if (Environment.TickCount - lookedAt < 1000) continue;
                         lookedAt = Environment.TickCount;
@@ -487,7 +508,7 @@ namespace CapriDesktop
                 {
                     Say(mine, "Couldn't hear " + app.Said + ": " + Voice.Short(error.Message));
                     Brain.Log("call ears", -1, error.Message);
-                    Rest(mine, 5000);
+                    Rest(mine, 5000, stop);
                 }
                 finally { if (tap != null) { tap.Dispose(); CallApps.Left(pid, owner); } }
             }
@@ -495,9 +516,9 @@ namespace CapriDesktop
 
         private void Say(int mine, string why) { if (Live(mine)) problem = why; }
 
-        private void Rest(int mine, int milliseconds)
+        private void Rest(int mine, int milliseconds, ManualResetEvent stop)
         {
-            for (int waited = 0; waited < milliseconds && Live(mine); waited += 50) Thread.Sleep(50);
+            if (Live(mine)) stop.WaitOne(milliseconds);
         }
 
         private static bool Gone(int pid)
@@ -574,12 +595,15 @@ namespace CapriDesktop
             private ISoundClient client;
             private ISoundCapture capture;
             private short[] samples = new short[0];
+            internal AutoResetEvent ready;
+            private WaitHandle[] waiting;
 
             internal static Tap Open(int pid, string app, out string failed)
             {
                 failed = null;
                 IntPtr parameters = Marshal.AllocHGlobal(12), blob = Marshal.AllocHGlobal(8 + 2 * IntPtr.Size), format = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(WaveFormat)));
                 ISoundClient client = null;
+                AutoResetEvent ready = new AutoResetEvent(false);
                 IActivation operation = null;
                 CallActivated done = new CallActivated();
                 try
@@ -614,8 +638,9 @@ namespace CapriDesktop
                     if (result != 0) { failed = Refused(result, app); return null; }
                     result = client.Start();
                     if (result != 0) { Wasapi.Release(service); failed = Refused(result, app); return null; }
-                    Tap tap = new Tap { client = client, capture = (ISoundCapture)service };
+                    Tap tap = new Tap { client = client, capture = (ISoundCapture)service, ready = ready };
                     client = null;
+                    ready = null;
                     return tap;
                 }
                 finally
@@ -626,7 +651,14 @@ namespace CapriDesktop
                     Wasapi.Release(client);
                     Wasapi.Release(operation);
                     done.Dispose();
+                    if (ready != null) ready.Dispose();
                 }
+            }
+
+            internal bool Wait(ManualResetEvent stop)
+            {
+                if (waiting == null) waiting = new WaitHandle[] { stop, ready };
+                return WaitHandle.WaitAny(waiting, 10) != 0;
             }
 
             // Hearing one app needs Windows 10 version 2004 (build 19041) or later, the same as OBS's app audio capture. On
@@ -681,7 +713,32 @@ namespace CapriDesktop
                 Wasapi.Release(client);
                 capture = null;
                 client = null;
+                if (ready != null) ready.Dispose();
+                ready = null;
+                waiting = null;
             }
+        }
+
+        internal static void CheckWaits(List<string> checks)
+        {
+            using (ManualResetEvent stop = new ManualResetEvent(false))
+            using (Tap tap = new Tap { ready = new AutoResetEvent(false) })
+            {
+                tap.ready.Set();
+                if (!tap.Wait(stop) || tap.ready.WaitOne(0)) throw new Exception("Call audio did not consume its ready event.");
+                stop.Set();
+                if (tap.Wait(stop)) throw new Exception("Stopping call ears did not wake the audio wait.");
+                stop.Reset();
+                if (!tap.Wait(stop)) throw new Exception("The call audio timeout stopped the capture.");
+                using (ManualResetEvent next = new ManualResetEvent(false))
+                using (Tap fresh = new Tap { ready = new AutoResetEvent(false) })
+                {
+                    stop.Set();
+                    fresh.ready.Set();
+                    if (!fresh.Wait(next)) throw new Exception("An old call stopped the next capture.");
+                }
+            }
+            checks.Add("PASS call ears wake on audio or stop, keep the 10 ms timeout and give each capture its own events");
         }
 
         private static void SmokeApps(List<string> checks)

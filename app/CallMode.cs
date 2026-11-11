@@ -1428,13 +1428,14 @@ namespace CapriDesktop
                 checks.Add("PASS call mode transport: spoken commands and returned tool calls execute nothing, and calls cannot read or change direct history or saved notes");
 
                 requests.Clear();
-                address = FakeServer(new[] { LocalReply("Too late.") }, requests, out listener, 200, 250);
-                direct.Remote = new Cloud(0, "fake-call-brain", address);
                 string late = "not finished";
                 Exception failed = null;
                 int currentTurn = 1;
+                using (ManualResetEvent arrived = new ManualResetEvent(false))
                 using (ManualResetEvent done = new ManualResetEvent(false))
                 {
+                    address = FakeServer(new[] { LocalReply("Too late.") }, requests, out listener, 200, 250, received: delegate { arrived.Set(); });
+                    direct.Remote = new Cloud(0, "fake-call-brain", address);
                     ThreadPool.QueueUserWorkItem(delegate
                     {
                         try { late = direct.AskCall("superseded call", session, version, delegate { return Volatile.Read(ref currentTurn) == 1; }); }
@@ -1446,7 +1447,7 @@ namespace CapriDesktop
                     {
                         lock (requests) if (requests.Count > 0) break;
                         if (DateTime.UtcNow >= until) throw new Exception("The fake call did not arrive.");
-                        Thread.Sleep(5);
+                        arrived.WaitOne(5);
                     }
                     currentTurn = 2;
                     if (!session.Keep(version, "newer call", "delivered answer", 8, delegate { return Volatile.Read(ref currentTurn) == 2; })) throw new Exception("The newer call did not commit.");
@@ -1458,12 +1459,13 @@ namespace CapriDesktop
 
                 listener.Stop(); listener = null;
                 requests.Clear();
-                address = FakeServer(new[] { LocalReply("Too late.") }, requests, out listener, 200, 250);
-                direct.Remote = new Cloud(0, "fake-call-brain", address);
                 late = "not finished";
                 failed = null;
+                using (ManualResetEvent arrived = new ManualResetEvent(false))
                 using (ManualResetEvent done = new ManualResetEvent(false))
                 {
+                    address = FakeServer(new[] { LocalReply("Too late.") }, requests, out listener, 200, 250, received: delegate { arrived.Set(); });
+                    direct.Remote = new Cloud(0, "fake-call-brain", address);
                     ThreadPool.QueueUserWorkItem(delegate
                     {
                         try { late = direct.AskCall("call before toggle", session, version); }
@@ -1475,7 +1477,7 @@ namespace CapriDesktop
                     {
                         lock (requests) if (requests.Count > 0) break;
                         if (DateTime.UtcNow >= until) throw new Exception("The fake call did not arrive.");
-                        Thread.Sleep(5);
+                        arrived.WaitOne(5);
                     }
                     session.Change(false);
                     session.Change(true);

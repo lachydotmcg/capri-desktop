@@ -1581,6 +1581,7 @@ namespace CapriDesktop
         private bool leaving;
         private float scale;
         private int seed;
+        private int used;
 
         internal Shatter() : base("Capri shatter")
         {
@@ -1624,11 +1625,17 @@ namespace CapriDesktop
             if (picture != null) { picture.Dispose(); picture = null; }
         }
 
+        internal void Rest(int now)
+        {
+            if (unchecked(now - used) >= 600000) Forget();
+        }
+
         private void Step()
         {
             double t = watch.Elapsed.TotalSeconds;
             if (picture == null || t >= (leaving ? LeaveLength : ArriveLength)) { Stop(); return; }
             Present(Frame(area.Size, picture, at, shards, t, leaving, scale, seed, (int)(t * 30)), area.Location);
+            used = Environment.TickCount;
         }
 
         private static double Smooth(double x)
