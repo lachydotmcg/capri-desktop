@@ -841,6 +841,7 @@ namespace CapriDesktop
             frameColours.Changed += delegate { if (!syncing) capri.SetMainframeColours(frameColours.Value); };
             headPats = Switch("Head pats", c, 222, delegate { if (!syncing) capri.ToggleHeadPats(); });
             headPats.AccessibleName = "Head pats. Rubbing the cursor over her gets a grin and a line";
+            // A longer Pat stroke keeps the cursor brushing past her from counting as a pat (issue #222).
             patStroke = Setting("Pat stroke", Lengths, c, 250, "How long a stroke over her a head pat needs");
             patStroke.Changed += delegate { if (!syncing) capri.SetPatStroke(patStroke.Value); };
             upsetChaos = Switch("Chaos when upset", c, 278, delegate { if (!syncing) capri.ToggleUpsetChaos(); });
@@ -1032,7 +1033,7 @@ namespace CapriDesktop
                 if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row * 3;
             for (int belowVerbosity = afterVerbosity; belowVerbosity < Controls.Count; belowVerbosity++)
                 if (Controls[belowVerbosity].Left >= c) Controls[belowVerbosity].Top += Row;
-            // Mainframe colours, Head pats, Chaos when upset, Hologram and Legacy stand each take a row under Mainframe size.
+            // Mainframe colours, Head pats, Pat stroke, Chaos when upset, Hologram and Legacy stand each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 6;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)

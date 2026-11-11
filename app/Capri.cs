@@ -851,6 +851,7 @@ namespace CapriDesktop
         [DataMember] public bool ListenCapriTold;
         [DataMember] public bool NoDance;
         [DataMember] public bool NoHeadPats;
+        // How long a stroke a head pat needs (issue #222): 0 Short, the pat she's always had, then 1 Medium and 2 Long.
         [DataMember] public int PatStroke;
         // Off until they turn it on (Lachy, 2 Nov: "Chaos when upset can be off by default"). It replaced NoUpsetChaos, which
         // was on by default, so everyone starts with it off.
@@ -1880,9 +1881,11 @@ namespace CapriDesktop
         private readonly System.Collections.Generic.List<int> petBag = new System.Collections.Generic.List<int>();
         private int lastPet = -1;
         private int petTicket;
+        // Pat stroke's turns, time and reach each way. Medium and Long want strokes a sixteenth and an eighth of her size and
+        // give slow ones longer, so a cursor brushing past her doesn't count.
         private static readonly int[] PatTurns = { 3, 3, 4 };
         private static readonly int[] PatTimes = { 2000, 3000, 4000 };
-        private int PatReach { get { return PatStroke == 0 ? 6 : CharacterSize / (PatStroke == 1 ? 16 : 8); } }
+        private int PatReach { get { return PatStroke == 0 ? 6 : CharacterSize * PatStroke / 16; } }
         private const int PetPause = 1300;
         // A busy moment holds her pat line up to PetWaits times, PetWait ms each, before she lets it go.
         private const int PetWait = 500, PetWaits = 12;
@@ -4113,8 +4116,8 @@ namespace CapriDesktop
         {
             // Voice chat doesn't stop pats: she still reacts, and PetLine puts her line in her bubble.
             if (preferences.Hologram || preferences.NoHeadPats || pressed || dragging || riding || hidden || working != null || frame == null || !Solid(PointToClient(cursor))) { ForgetStroke(); return; }
-            int step = PatStroke, reach = PatReach, time = PatTimes[step];
-            bool turned = Turned(cursor.X, ref petX, ref petWay, petTurns, now, reach, time) | Turned(cursor.Y, ref petY, ref petRise, petRises, now, reach, time);
+            int step = PatStroke, reach = PatReach, within = PatTimes[step];
+            bool turned = Turned(cursor.X, ref petX, ref petWay, petTurns, now, reach, within) | Turned(cursor.Y, ref petY, ref petRise, petRises, now, reach, within);
             if (!turned || (petTurns.Count < PatTurns[step] && petRises.Count < PatTurns[step]) || (now - petAt < 20000 && !Sulking)) return;
             ForgetStroke();
             petAt = now;
@@ -4122,7 +4125,8 @@ namespace CapriDesktop
         }
 
         // Side to side or up and down: a turn after at least 6 px each way counts, and three on one axis inside 2 s make a pat.
-        private static bool Turned(int at, ref int from, ref int way, System.Collections.Generic.List<long> turns, long now, int reach, int time)
+        // Those are Pat stroke's Short numbers; Medium and Long ask for more.
+        private static bool Turned(int at, ref int from, ref int way, System.Collections.Generic.List<long> turns, long now, int reach, int within)
         {
             int moved = at - from;
             if (Math.Abs(moved) < reach) return false;
@@ -4131,7 +4135,7 @@ namespace CapriDesktop
             bool turned = way != 0 && heading != way;
             if (turned) turns.Add(now);
             way = heading;
-            turns.RemoveAll(delegate(long atTime) { return now - atTime > time; });
+            turns.RemoveAll(delegate(long time) { return now - time > within; });
             return turned;
         }
 
@@ -40608,6 +40612,8 @@ namespace CapriDesktop
                             Play(seat != null ? perch : idle);
                             if (earlyPet || !smiled || !spoke || !cooled) throw new Exception("Petting her went wrong: early " + earlyPet + ", smiled " + smiled + ", spoke " + spoke + ", cooled " + cooled + " (" + petReply + ")");
                             checks.Add("PASS petting: rubbing the cursor back and forth over her makes her smile and say a short line, not too easily, not again for 20 s, and not when she moves under a still cursor");
+                            // Pat stroke (issue #222): Short keeps today's pat, and Medium and Long wait for a longer stroke. Each rub
+                            // gets its own times, so slow strokes take no real waiting.
                             int patStrokeWas = preferences.PatStroke;
                             try
                             {
@@ -40620,11 +40626,12 @@ namespace CapriDesktop
                                 int patWidth = PatReach + 4;
                                 Func<int, long[], int> rub = delegate(int width, long[] times)
                                 {
+                                    // A pat changes her pose, so each rub finds its own spot with both ends on her.
                                     Point spot = Point.Empty;
                                     for (int row = frame.Height / 4; row < frame.Height * 3 / 4 && spot.IsEmpty; row += 3)
-                                        for (int column = 4; column + patWidth < frame.Width && spot.IsEmpty; column += 3)
-                                            if (Solid(new Point(column, row)) && Solid(new Point(column + patWidth, row)) && Solid(new Point(column + width, row))) spot = new Point(column, row);
-                                    if (spot.IsEmpty) throw new Exception("Couldn't find her body for a long pat stroke.");
+                                        for (int column = 4; column + width < frame.Width && spot.IsEmpty; column += 3)
+                                            if (Solid(new Point(column, row)) && Solid(new Point(column + width, row))) spot = new Point(column, row);
+                                    if (spot.IsEmpty) throw new Exception("Couldn't find her body for a " + width + " px pat stroke.");
                                     Point start = PointToScreen(spot), end = new Point(start.X + width, start.Y);
                                     int patBefore = petTicket;
                                     petAt = -60000;
@@ -40652,8 +40659,8 @@ namespace CapriDesktop
                                 SetPatStroke(0);
                                 bool patCleared = petTurns.Count == 0 && petRises.Count == 0 && petWay == 0 && petRise == 0;
                                 if (!patDefault || !patLow || !patHigh || !patCleared || shortSmall != 0 || shortTwo != 0 || shortThree != 1 || shortQuick != 1 || shortEdge != 1 || shortLate != 0 || shortSlow != 0 || mediumReach != CharacterSize / 16 || mediumSmall != 0 || mediumTwo != 0 || mediumThree != 1 || mediumSlow != 1 || mediumLate != 0 || longSmall != 0 || longThree != 0 || longFour != 1 || longSlow != 1 || longEdge != 1 || longLate != 0)
-                                    throw new Exception("Pat stroke: default " + patDefault + ", clamp low/high " + patLow + "/" + patHigh + ", cleared " + patCleared + "; Short small/two/three " + shortSmall + "/" + shortTwo + "/" + shortThree + ", 0.9/1/1.1/1.2 s " + shortQuick + "/" + shortEdge + "/" + shortLate + "/" + shortSlow + "; Medium reach " + mediumReach + ", small/two/three " + mediumSmall + "/" + mediumTwo + "/" + mediumThree + ", slow/late " + mediumSlow + "/" + mediumLate + "; Long small/three/four " + longSmall + "/" + longThree + "/" + longFour + ", slow/edge/late " + longSlow + "/" + longEdge + "/" + longLate);
-                                checks.Add("PASS pat stroke: Short keeps 6 px and three turns in 2 s, Medium needs longer strokes in 3 s, and Long ignores a quick brush but takes four long turns in 4 s, including slow strokes; Short is the default, bad levels clamp, and changing it clears the stroke");
+                                    throw new Exception("Pat stroke went wrong: default " + patDefault + ", clamp low/high " + patLow + "/" + patHigh + ", cleared " + patCleared + "; Short small/two/three " + shortSmall + "/" + shortTwo + "/" + shortThree + ", 0.9/1/1.1/1.2 s " + shortQuick + "/" + shortEdge + "/" + shortLate + "/" + shortSlow + "; Medium reach " + mediumReach + ", small/two/three " + mediumSmall + "/" + mediumTwo + "/" + mediumThree + ", slow/late " + mediumSlow + "/" + mediumLate + "; Long small/three/four " + longSmall + "/" + longThree + "/" + longFour + ", slow/edge/late " + longSlow + "/" + longEdge + "/" + longLate);
+                                checks.Add("PASS pat stroke: Short is the default, old settings too, and keeps today's pat (6 px each way, three turns inside 2 s); Medium wants longer strokes inside 3 s; Long ignores a quick brush and still takes four long turns inside 4 s, slow ones too; bad levels clamp and a change forgets the stroke");
                             }
                             finally
                             {
