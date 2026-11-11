@@ -197,6 +197,7 @@ namespace CapriDesktop
                 checks.Add("PASS drag and drop: grabbing her lifts her off, dropping her near a ledge makes her fall and sit on it");
                 DragChecks();
                 Pet.MoveChecks(pet, checks);
+                Pet.FaceChecks(pet, checks);
                 PixelPoint hip = pet.Hip;
                 pet.Resize(320);
                 if (pet.Hip != hip) throw new Exception("Resizing moved her off her seat: " + hip + " to " + pet.Hip + ".");
