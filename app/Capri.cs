@@ -772,8 +772,9 @@ namespace CapriDesktop
     }
 
     [DataContract]
-    internal sealed class Preferences
+    internal sealed class Preferences : IExtensibleDataObject
     {
+        public ExtensionDataObject ExtensionData { get; set; }
         [DataMember] public int X;
         [DataMember] public int Y;
         [DataMember] public bool HasPosition;
@@ -856,6 +857,9 @@ namespace CapriDesktop
         // Off until they turn it on (Lachy, 2 Nov: "Chaos when upset can be off by default"). It replaced NoUpsetChaos, which
         // was on by default, so everyone starts with it off.
         [DataMember] public bool UpsetChaos;
+        [DataMember] public bool JealousAIs;
+        [DataMember] public bool CloseAIs;
+        [DataMember] public string[] JealousApps;
         // Off until they turn it on (Lachy, 7 Nov: "Maybe add a legacy stand"): her stand from 0.8.5, for mods her new one broke.
         [DataMember] public bool LegacyStand;
         [DataMember] public string Language;
@@ -8764,6 +8768,7 @@ namespace CapriDesktop
             frontChecked = now + 1;
             Sight ahead = Computer.Glimpse();
             frontBusy = full || (ahead != null && ahead.Window == Native.GetForegroundWindow() && Computer.GameWindow(ahead));
+            CheckJealous(ahead, full, now);
             // Over a game with nothing to do she gives way to it. Listening, talking, clipping or working, she keeps her place so her ears and hands don't stutter.
             Native.Lower(frontBusy && working == null && !chatting && !preferences.HeyCapri && !preferences.ClipGames && talkState == TalkState.Off);
         }
@@ -10362,6 +10367,8 @@ namespace CapriDesktop
                 case "dance_to_music": return Dancing;
                 case "head_pats": return HeadPats;
                 case "chaos_when_upset": return UpsetChaos;
+                case "jealous_of_other_ais": return JealousAIs;
+                case "close_other_ais": return CloseAIs;
                 case "legacy_stand": return LegacyStand;
                 case "sit_on_windows": return Sitting;
                 case "always_on_top": return OnTop;
@@ -10412,6 +10419,8 @@ namespace CapriDesktop
                 case "dance_to_music": ToggleDance(); return null;
                 case "head_pats": ToggleHeadPats(); return null;
                 case "chaos_when_upset": ToggleUpsetChaos(); return null;
+                case "jealous_of_other_ais": ToggleJealousAIs(); return null;
+                case "close_other_ais": if (on && !JealousAIs) return "Turn on Jealous of other AIs first."; ToggleCloseAIs(); return null;
                 case "legacy_stand": ToggleLegacyStand(); return null;
                 case "sit_on_windows": ToggleSitting(); return null;
                 case "always_on_top": ToggleOnTop(); return null;
@@ -10609,6 +10618,7 @@ namespace CapriDesktop
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player })
             {
                 bool through = lentOut || (preferences.Hologram && (form == this || form == pill || form == box)) || (form == this ? riding : form != taskPanel && pointing);
+                if (form == box && box.Choosing) through = false;
                 Overlay overlay = form as Overlay;
                 if (overlay != null) overlay.ClickThrough = through;
                 if (!form.IsHandleCreated) continue;
@@ -11291,7 +11301,7 @@ namespace CapriDesktop
             }
         }
 
-        private bool LineBusy { get { return Voicing || pushing || transcribing || talkState == TalkState.Thinking || talkState == TalkState.Talking; } }
+        private bool LineBusy { get { return Voicing || pushing || transcribing || jealousOffer != null || box.Choosing || talkState == TalkState.Thinking || talkState == TalkState.Talking; } }
 
         private bool AfterLine(Action change)
         {
@@ -14525,6 +14535,7 @@ namespace CapriDesktop
 
         private void CloseTalk(bool cut = true)
         {
+            DropJealous();
             answerTurn++;
             CancelAnswerAudio();
             if (cut) voice.Stop(); else voice.Finish();
@@ -14560,7 +14571,7 @@ namespace CapriDesktop
             }
             bool comment = remarkTicket == asking;
             double hold = reply == null ? 0 : comment ? CommentHold(reply.Length, BubbleTime) : BubbleHold(reply.Length);
-            if (replyDone >= 0 && hdSpeaking != asking && (!reminderUp || answerVoice != asking) && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && !voice.Busy && !speaker.Busy && !chatTail.Enabled && now > replyDone + hold) box.Leaving = now;
+            if (jealousOffer == null && !box.Choosing && replyDone >= 0 && hdSpeaking != asking && (!reminderUp || answerVoice != asking) && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && !voice.Busy && !speaker.Busy && !chatTail.Enabled && now > replyDone + hold) box.Leaving = now;
             if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(false); return; }
             if (hidden && !docked && !ReminderShown(now)) { if (box.Visible) box.Hide(); return; }
             if (docked) { DockTalk(); return; }
@@ -38456,12 +38467,197 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeJealous(System.Collections.Generic.List<string> checks)
+        {
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(Preferences));
+            Preferences old;
+            using (MemoryStream saved = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":280,\"FutureChoice\":{\"keep\":true}}"))) old = (Preferences)serializer.ReadObject(saved);
+            if (new Preferences().JealousAIs || new Preferences().CloseAIs || Preferences.Fresh().JealousAIs || Preferences.Fresh().CloseAIs || old.JealousAIs || old.CloseAIs || Jealous.Chosen(old.JealousApps, "chatgpt")) throw new Exception("Jealous settings or a close choice started on.");
+            old.JealousAIs = old.CloseAIs = true;
+            old.JealousApps = new[] { "claude", "chatgpt" };
+            using (MemoryStream saved = new MemoryStream())
+            {
+                serializer.WriteObject(saved, old);
+                string kept = System.Text.Encoding.UTF8.GetString(saved.ToArray());
+                if (!kept.Contains("\"FutureChoice\"") || !kept.Contains("\"keep\":true")) throw new Exception("Saving jealous settings dropped an unknown setting.");
+                saved.Position = 0;
+                Preferences loaded = (Preferences)serializer.ReadObject(saved);
+                if (!loaded.JealousAIs || !loaded.CloseAIs || loaded.Size != 280 || !Jealous.Chosen(loaded.JealousApps, "claude") || Jealous.Chosen(loaded.JealousApps, "grok")) throw new Exception("Jealous settings lost a switch, a choice or an existing setting on save.");
+            }
+            checks.Add("PASS jealous settings start off with no apps chosen, load old settings, save both switches and app choices, and preserve existing and unknown settings");
+
+            string[,] pages = {
+                { "chatgpt", "ChatGPT", "Trip ideas - ChatGPT" }, { "claude", "Claude", "Trip ideas - Claude" },
+                { "gemini", "Google Gemini", "Google Gemini" }, { "copilot", "Microsoft Copilot: Your AI companion", "Microsoft Copilot | Sign in" },
+                { "perplexity", "Perplexity", "Trip ideas - Perplexity" }, { "grok", "Grok", "Trip ideas - Grok" },
+                { "deepseek", "DeepSeek - Into the Unknown", "Trip ideas - DeepSeek" }, { "character", "character.ai | AI Chat, Reimagined\u2013Your Words. Your World.", "Chat with Alice | Character.AI" },
+                { "mistral", "Le Chat - Mistral AI", "Le Chat" }, { "meta", "Meta AI", "Meta AI: Discover & Create with AI" }
+            };
+            if (pages.GetLength(0) != Jealous.Apps.Length) throw new Exception("The jealous table needs a browser fixture for every AI.");
+            for (int app = 0; app < pages.GetLength(0); app++)
+            {
+                foreach (string browser in new[] { "chrome", "msedge.exe", "firefox", "brave", "opera", "vivaldi" })
+                {
+                    for (int page = 1; page <= 2; page++)
+                    {
+                        Sight sight = new Sight { Window = new IntPtr(219), Program = browser, Title = pages[app, page] + (page == 1 ? " - Google Chrome" : " \u2014 Mozilla Firefox") };
+                        JealousApp found = Jealous.Match(sight);
+                        if (found == null || found.Id != pages[app, 0]) throw new Exception("Missed an AI browser title: " + sight.Title);
+                    }
+                }
+            }
+            foreach (string name in new[] { "ChatGPT", "Claude", "Copilot", "Perplexity", "Grok" })
+            {
+                JealousApp found = Jealous.Match(new Sight { Window = new IntPtr(219), Program = name.ToUpperInvariant() + ".exe", Title = "A conversation" });
+                if (found == null || found.Name != name) throw new Exception("Missed an AI process: " + name);
+                if (Jealous.Match(new Sight { Window = new IntPtr(219), Program = name + "Helper", Title = name }) != null) throw new Exception("An AI helper process counted as the app: " + name);
+            }
+            foreach (string title in new[] { "Using ChatGPT for homework - Google Chrome", "Claude - Wikipedia - Google Chrome", "Gemini stars - Google Chrome", "Copilot tips - Google Chrome", "Perplexity review - Google Chrome", "Grok news - Google Chrome", "DeepSeek downloads - Google Chrome", "Character.AI review - Google Chrome", "Le Chat recipes - Google Chrome", "Meta AI news - Google Chrome", "ChatGPT - Google Search - Google Chrome", "Claude Code - Google Chrome", "Capri Workspace" })
+                if (Jealous.Match(new Sight { Window = new IntPtr(219), Program = "chrome", Title = title }) != null) throw new Exception("A passing AI mention counted: " + title);
+            foreach (string program in new[] { "WindowsTerminal", "powershell", "cmd", "Code", "Capri", "Capri-Workspace" })
+                if (Jealous.Match(new Sight { Window = new IntPtr(219), Program = program, Title = "Claude" }) != null) throw new Exception("Her own window or a terminal counted as an AI: " + program);
+            if (Jealous.Match(new Sight { Window = new IntPtr(219), Program = "Claude", Title = "Claude Code" }) != null || Jealous.Match(new Sight { Window = IntPtr.Zero, Program = "ChatGPT", Title = "ChatGPT" }) != null) throw new Exception("Claude Code or a missing window counted as an AI.");
+            checks.Add("PASS jealous matching covers every table entry, the five desktop processes, browser title formats and suffixes, and ignores helper processes, terminals, her windows and passing mentions");
+
+            Sight desktop = new Sight { Window = new IntPtr(219), Program = "ChatGPT", Title = "A conversation" };
+            Sight browserTab = new Sight { Window = new IntPtr(220), Program = "chrome", Title = "ChatGPT - Google Chrome" };
+            Jealous watch = new Jealous();
+            JealousWindow first = watch.Notice(desktop, true, 0);
+            if (first == null || !first.React || watch.Notice(desktop, true, 1200) != null) throw new Exception("Jealousy missed the first window or repeated while it stayed in front.");
+            watch.Notice(null, true, 1);
+            JealousWindow cooling = watch.Notice(browserTab, true, 1199.999);
+            if (cooling == null || cooling.React) throw new Exception("An AI's browser page skipped its desktop cooldown or could not offer a close.");
+            watch.Notice(null, true, 1199.999);
+            JealousWindow cooled = watch.Notice(browserTab, true, 1200);
+            if (cooled == null || !cooled.React) throw new Exception("An AI stayed on cooldown after 20 minutes.");
+            JealousWindow other = watch.Notice(new Sight { Window = new IntPtr(221), Program = "Claude", Title = "Claude" }, true, 1201);
+            if (other == null || !other.React) throw new Exception("One AI used another AI's cooldown.");
+            for (int block = 0; block < 4; block++)
+            {
+                Jealous blocked = new Jealous();
+                bool free = Jealous.Free(block != 0, block == 1, block == 2, block == 3);
+                if (blocked.Notice(desktop, free, 10) != null) throw new Exception("Jealousy reacted while off, on a call, speaking or in full screen.");
+                blocked.Notice(null, true, 11);
+                if (blocked.Notice(desktop, true, 12) == null) throw new Exception("A blocked reaction used up its cooldown.");
+            }
+            HashSet<string> lines = new HashSet<string>();
+            int named = 0;
+            for (int pick = 0; pick < Jealous.Lines.Length; pick++)
+            {
+                string line = Jealous.Line(Jealous.Apps[0], pick);
+                if (string.IsNullOrWhiteSpace(line) || line.Contains("{") || line.Contains("}")) throw new Exception("A jealous line was empty or kept its placeholder.");
+                if (line.Contains("ChatGPT")) named++;
+                lines.Add(line);
+            }
+            if (lines.Count != 10 || named < 2) throw new Exception("Jealousy lost its ten lines or the app's name.");
+            checks.Add("PASS jealous reactions share a 20 minute cooldown per AI, need a new foreground window or title, stay quiet while off, in calls, talking and full screen, and choose ten filled lines");
+
+            Sight active = desktop;
+            IntPtr front = desktop.Window;
+            string tabId = "tab-1";
+            int messages = 0, keys = 0, messageKind = 0;
+            watch.Front = delegate { return front; };
+            watch.Look = delegate { return active; };
+            watch.Tab = delegate { return tabId; };
+            watch.Message = delegate(IntPtr window, int message) { if (window != desktop.Window) throw new Exception("Jealousy closed the wrong window."); messages++; messageKind = message; return true; };
+            watch.Keys = delegate(byte[] chord) { if (chord.Length != 2 || chord[0] != 0x11 || chord[1] != 0x57) throw new Exception("Jealousy pressed something other than Ctrl+W."); keys++; };
+            Func<JealousWindow> desk = delegate { return new JealousWindow { App = Jealous.Apps[0], Window = desktop.Window, Program = desktop.Program, Title = desktop.Title, Until = 30 }; };
+            Func<JealousWindow> tab = delegate { return new JealousWindow { App = Jealous.Apps[0], Window = browserTab.Window, Program = browserTab.Program, Title = browserTab.Title, Browser = true, TabId = "tab-1", Until = 30 }; };
+            Func<bool> allowed = delegate { return true; };
+            if (watch.Close(desk(), false, 1, allowed) != null || watch.Close(desk(), true, 30, allowed) != null || watch.Close(desk(), true, 1, delegate { return false; }) != null || messages != 0 || keys != 0) throw new Exception("Jealousy closed without Yes, after 30 seconds or without permission.");
+            JealousWindow confirmed = desk();
+            if (watch.Close(confirmed, true, 29.9, allowed) == null || messages != 1 || messageKind != 0x0010 || keys != 0) throw new Exception("A desktop Yes did not send only WM_CLOSE.");
+            watch.Close(confirmed, true, 29.9, allowed);
+            if (messages != 1) throw new Exception("One Yes closed a window twice.");
+            front = new IntPtr(999);
+            if (watch.Close(desk(), true, 1, allowed) == null || messages != 1) throw new Exception("A changed desktop window still closed.");
+            front = browserTab.Window; active = browserTab;
+            watch.Close(tab(), true, 1, allowed);
+            if (keys != 1 || messages != 1) throw new Exception("A confirmed active browser tab did not get only Ctrl+W.");
+            tabId = "tab-2";
+            watch.Close(tab(), true, 1, allowed);
+            tabId = null;
+            watch.Close(tab(), true, 1, allowed);
+            tabId = "tab-1";
+            active = new Sight { Window = browserTab.Window, Program = "chrome", Title = "Claude - Google Chrome" };
+            watch.Close(tab(), true, 1, allowed);
+            active = browserTab; front = new IntPtr(221);
+            watch.Close(tab(), true, 1, allowed);
+            front = browserTab.Window;
+            watch.Tab = delegate { front = new IntPtr(999); return "tab-1"; };
+            watch.Close(tab(), true, 1, allowed);
+            if (keys != 1 || messages != 1) throw new Exception("A stale, unreadable, same-title or background browser tab still got a close key.");
+            checks.Add("PASS jealous closing needs an unexpired Yes and permission, sends one WM_CLOSE to a desktop window, and sends Ctrl+W only to the same identified tab still in the browser in front");
+
+            using (SpeechBox prompt = new SpeechBox())
+            {
+                prompt.State = TalkState.Online;
+                prompt.Prompt = "";
+                prompt.Reply = Jealous.Question(desk());
+                prompt.Revealed = prompt.Reply.Length;
+                if (prompt.Reply != "Want me to close ChatGPT? Save anything you need first.") throw new Exception("The jealous close question lost its save reminder.");
+                for (int choice = 0; choice < 3; choice++)
+                {
+                    bool? answer = null;
+                    prompt.Choose(delegate(bool yes) { answer = yes; });
+                    Point at;
+                    using (Bitmap image = prompt.Render(1, new Point(500, 500), new Point(500, 600), new Rectangle(0, 0, 1280, 720), false, out at))
+                        if (prompt.YesButton.IsEmpty || prompt.NoButton.IsEmpty || prompt.YesButton.IntersectsWith(prompt.NoButton) || !new RectangleF(0, 0, image.Width, image.Height).Contains(prompt.NoButton)) throw new Exception("The jealous Yes and No buttons do not fit in her bubble.");
+                    if (answer != null) throw new Exception("Showing a jealous question answered it.");
+                    RectangleF button = choice == 0 ? prompt.NoButton : prompt.YesButton;
+                    prompt.ClickChoice(choice == 2 ? Point.Empty : new Point((int)button.Left + 4, (int)button.Top + 4));
+                    if (answer != (choice == 1) || prompt.Choosing) throw new Exception("A jealous bubble button gave the wrong answer or stayed active.");
+                }
+            }
+            checks.Add("PASS jealous close questions show the save reminder and separate Yes and No buttons; showing the question gives no answer and a click outside Yes means No");
+
+            bool onWas = preferences.JealousAIs, closeWas = preferences.CloseAIs, advancedWas = preferences.AdvancedSettings, pageWas = mainframe.SettingsShown;
+            string[] choicesWas = preferences.JealousApps;
+            try
+            {
+                preferences.JealousAIs = preferences.CloseAIs = false;
+                preferences.JealousApps = null;
+                mainframe.Sync();
+                if (mainframe.JealousShown || mainframe.CloseAIsShown || mainframe.JealousChoicesEnabled) throw new Exception("The jealous controls started enabled or checked.");
+                Hands.Do("capri_settings", new ToolArguments { Name = "close_other_ais", Action = "on" });
+                if (preferences.CloseAIs) throw new Exception("The close setting turned on while jealousy was off.");
+                mainframe.FlipJealous(); mainframe.FlipCloseAIs(); mainframe.PickJealousApp(0);
+                Preferences loaded = LoadPreferences();
+                if (!mainframe.JealousShown || !mainframe.CloseAIsShown || !mainframe.JealousChoicesEnabled || !loaded.JealousAIs || !loaded.CloseAIs || !Jealous.Chosen(loaded.JealousApps, "chatgpt") || Jealous.Chosen(loaded.JealousApps, "claude")) throw new Exception("The jealous switches and app picker did not save.");
+                InSimpleSettings(delegate { mainframe.ShowSettings(true); if (!mainframe.JealousInPage || !mainframe.JealousDescriptions) throw new Exception("Simple Settings lost jealous controls or descriptions."); });
+                preferences.AdvancedSettings = true;
+                mainframe.ShowSettings(true);
+                if (!mainframe.JealousInPage) throw new Exception("Advanced Settings lost jealous controls.");
+                Hands.Do("capri_settings", new ToolArguments { Name = "jealous_of_other_ais", Action = "off" });
+                if (SettingOn("jealous_of_other_ais") != false || mainframe.JealousChoicesEnabled || !CloseAIs || !JealousChosen("chatgpt")) throw new Exception("Turning jealousy off lost the close choices or left them enabled.");
+                Hands.Do("capri_settings", new ToolArguments { Name = "close_other_ais", Action = "off" });
+                loaded = LoadPreferences();
+                if (loaded.JealousAIs || loaded.CloseAIs) throw new Exception("Jealous switches did not save when turned off.");
+                Hands.Do("capri_settings", new ToolArguments { Name = "jealous_of_other_ais", Action = "on" });
+                Hands.Do("capri_settings", new ToolArguments { Name = "close_other_ais", Action = "on" });
+                if (SettingOn("close_other_ais") != true || SettingOn("jealous_of_other_ais") != true) throw new Exception("Her tools could not turn both jealous settings on.");
+                mainframe.PickJealousApp(0);
+                if (JealousChosen("chatgpt") || Jealous.Chosen(LoadPreferences().JealousApps, "chatgpt")) throw new Exception("The jealous app picker could not remove a choice.");
+                foreach (string label in new[] { "Jealous of other AIs", "Close other AIs for me", "Apps she may close" })
+                    if (SelfKnow.Setting("Mainframe.cs", label) == null) throw new Exception("Jealous settings lost their help: " + label);
+                if (!SelfKnow.Matching("what does jealous of other ais do?").Contains("Jealous of other AIs:") || !SelfKnow.Matching("how does close other ais for me work?").Contains("Close other AIs for me:")) throw new Exception("Her jealous help did not match plain questions.");
+                checks.Add("PASS Mainframe keeps jealous controls and descriptions in Simple and Advanced Settings, saves both opt-ins and chosen apps, gates closing behind jealousy, and exposes both switches to her settings tool with SelfKnow help");
+            }
+            finally
+            {
+                EndJealous();
+                preferences.JealousAIs = onWas; preferences.CloseAIs = closeWas; preferences.JealousApps = choicesWas; preferences.AdvancedSettings = advancedWas;
+                mainframe.Sync(); mainframe.ShowSettings(pageWas); SavePreferences();
+            }
+        }
+
         private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)
         {
             Section(checks, "HologramChecks", delegate { HologramChecks(checks, output); });
             Section(checks, "SmokeReportedLogic", delegate { SmokeReportedLogic(checks); });
             Section(checks, "SmokeRepeats", delegate { SmokeRepeats(checks); });
             Section(checks, "SmokeOwnDelivery", delegate { SmokeOwnDelivery(checks); });
+            Section(checks, "SmokeJealous", delegate { SmokeJealous(checks); });
             Section(checks, "SmokeCommentDelivery", delegate { SmokeCommentDelivery(checks); });
             Section(checks, "SmokeTypingRepeats", delegate { SmokeTypingRepeats(checks); });
             Section(checks, "SmokeComments", delegate { SmokeComments(checks); });

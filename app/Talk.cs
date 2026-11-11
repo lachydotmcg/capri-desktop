@@ -3079,6 +3079,30 @@ namespace CapriDesktop
         private string scrollReply;
         private RectangleF pages;
         private bool copied;
+        private Action<bool> picked;
+        private RectangleF yesButton, noButton;
+        internal bool Choosing { get { return picked != null; } }
+        internal RectangleF YesButton { get { return yesButton; } }
+        internal RectangleF NoButton { get { return noButton; } }
+
+        internal void Choose(Action<bool> answer)
+        {
+            picked = answer;
+            yesButton = noButton = RectangleF.Empty;
+            clean = false;
+        }
+
+        internal void Pick(bool yes)
+        {
+            Action<bool> answer = picked;
+            if (answer != null) answer(yes);
+            if (picked == answer) Choose(null);
+        }
+
+        internal void ClickChoice(Point point)
+        {
+            if (Choosing) Pick(yesButton.Contains(point));
+        }
         internal Action<string> Copying = delegate(string reply) { Clipboard.SetText(reply); };
         private const int Columns = 34;
         private const string Speaker = "CAPRI: ";
@@ -3120,6 +3144,7 @@ namespace CapriDesktop
             base.OnMouseUp(e);
             if (e.Button == MouseButtons.Right) { CopyReply(); return; }
             if (e.Button != MouseButtons.Left) return;
+            if (Choosing) { ClickChoice(e.Location); return; }
             if (Scrollable && pages.Contains(e.Location)) { ScrollRows(e.X < pages.Left + pages.Width / 2 ? -visibleLines : visibleLines); return; }
             if (Dismissed != null) Dismissed();
         }
@@ -3193,10 +3218,10 @@ namespace CapriDesktop
                 int above = string.IsNullOrEmpty(Prompt) && !copied ? 0 : 1;
                 float panelWidth = 24 * s + columns * cw + 14 * s;
                 totalLines = lines.Count;
-                int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above);
+                int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above - (Choosing ? 2 : 0));
                 visibleLines = Math.Min(totalLines, totalLines > room ? Math.Max(1, room - 1) : room);
                 firstLine = Math.Max(0, Math.Min(firstLine, totalLines - visibleLines));
-                float panelHeight = 13 * s + line * (above + visibleLines + (Scrollable ? 1 : 0)) + 10 * s;
+                float panelHeight = 13 * s + line * (above + visibleLines + (Scrollable ? 1 : 0) + (Choosing ? 2 : 0)) + 10 * s;
                 int width = (int)Math.Ceiling(panelWidth + margin * 2);
                 int height = (int)Math.Ceiling(top + panelHeight + tail + 4 * s);
                 bool below = head.Y - height < area.Top;
@@ -3206,7 +3231,9 @@ namespace CapriDesktop
                 at = new Point(left, y);
                 RectangleF panel = new RectangleF(margin, below ? tail + 4 * s : top, panelWidth, panelHeight);
                 panelOnScreen = new Rectangle(left + (int)panel.X, y + (int)panel.Y, (int)panel.Width, (int)panel.Height);
-                pages = Scrollable ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line, panel.Width - 38 * s, line) : RectangleF.Empty;
+                pages = Scrollable ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line - (Choosing ? line * 2 : 0), panel.Width - 38 * s, line) : RectangleF.Empty;
+                yesButton = Choosing ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line * 1.7f, (panel.Width - 58 * s) / 2, line * 1.4f) : RectangleF.Empty;
+                noButton = Choosing ? new RectangleF(yesButton.Right + 10 * s, yesButton.Top, yesButton.Width, yesButton.Height) : RectangleF.Empty;
                 float tipX = Math.Max(panel.Left + 32 * s, Math.Min(panel.Right - 10 * s, tip.X - left));
                 float tipY = below ? 0 : height - 1;
                 Bitmap image = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
@@ -3265,6 +3292,17 @@ namespace CapriDesktop
                     {
                         string paging = "< PREV   " + (firstLine + 1) + "-" + (firstLine + visibleLines) + "/" + totalLines + "   NEXT >";
                         using (Brush dim = new SolidBrush(Look.Dim)) Look.Draw(graphics, paging, text, dim, pages.Left, pages.Top);
+                    }
+                    if (Choosing)
+                    {
+                        using (Pen edge = new Pen(Look.Cyan, Math.Max(1, s)))
+                        using (Brush ink = new SolidBrush(Look.Neon))
+                        {
+                            graphics.DrawRectangle(edge, yesButton.X, yesButton.Y, yesButton.Width, yesButton.Height);
+                            graphics.DrawRectangle(edge, noButton.X, noButton.Y, noButton.Width, noButton.Height);
+                            Look.Draw(graphics, "Yes", bold, ink, yesButton.Left + 10 * s, yesButton.Top + 3 * s);
+                            Look.Draw(graphics, "No", bold, ink, noButton.Left + 10 * s, noButton.Top + 3 * s);
+                        }
                     }
                 }
                 return image;

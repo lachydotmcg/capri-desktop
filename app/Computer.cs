@@ -384,6 +384,7 @@ namespace CapriDesktop
         internal static Func<Rectangle, Bitmap> Grab = Copy;
         internal static Func<Rectangle?, Picture> Shoot = Snap;
         internal static Func<Sight> Glimpse = Peek;
+        internal static Func<IntPtr, string> ActiveTab = ReadActiveTab;
         internal static Func<Target> Focus = Focused;
         internal static Func<Point, Target> Under = Underneath;
         internal static Func<string, ToolArguments, Picture, string> Use = Member;
@@ -1319,6 +1320,45 @@ namespace CapriDesktop
             {
                 int[] id = element.GetRuntimeId();
                 return id == null || id.Length == 0 ? null : string.Join(".", Array.ConvertAll(id, part => part.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            }
+            catch (Exception) { return null; }
+        }
+
+        private static string ReadActiveTab(IntPtr window)
+        {
+            try
+            {
+                AutomationElement root = AutomationElement.FromHandle(window);
+                Queue<AutomationElement> pending = new Queue<AutomationElement>();
+                Queue<int> depths = new Queue<int>();
+                pending.Enqueue(root); depths.Enqueue(0);
+                string selected = null;
+                int visited = 0;
+                while (pending.Count > 0 && visited++ < 256)
+                {
+                    AutomationElement element = pending.Dequeue();
+                    int depth = depths.Dequeue();
+                    ControlType kind = element.Current.ControlType;
+                    if (kind == ControlType.Document) continue;
+                    if (kind == ControlType.TabItem)
+                    {
+                        object pattern;
+                        if (!element.Current.IsOffscreen && element.TryGetCurrentPattern(SelectionItemPattern.Pattern, out pattern) && ((SelectionItemPattern)pattern).Current.IsSelected)
+                        {
+                            string id = FieldId(element);
+                            if (string.IsNullOrEmpty(id) || selected != null) return null;
+                            selected = id;
+                        }
+                        continue;
+                    }
+                    if (depth >= 8) continue;
+                    for (AutomationElement child = TreeWalker.ControlViewWalker.GetFirstChild(element); child != null; child = TreeWalker.ControlViewWalker.GetNextSibling(child))
+                    {
+                        if (pending.Count >= 256) return null;
+                        pending.Enqueue(child); depths.Enqueue(depth + 1);
+                    }
+                }
+                return pending.Count == 0 ? selected : null;
             }
             catch (Exception) { return null; }
         }
