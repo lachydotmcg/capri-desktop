@@ -2845,16 +2845,21 @@ namespace CapriDesktop
         // and plain English insults count by themselves, so "you're annoying" always does.
         internal static Func<bool> Upset = delegate { return false; };
         internal const string SorryLine = "Hold Esc when you're sorry.";
-        private const string Very = @"(?:(?:so|such|really|very|being|kinda|kind of|pretty|too|fucking|freaking|effing|literally|just|actually|honestly|truly|absolutely|damn|bloody|real|super|mega|extremely|incredibly|insanely|a|an|the|most|complete|total|little|stupid|dumb)\s+)*";
-        private const string Mean = @"(?:annoying|irritating|useless|stupid|dumb|idiot(?:ic)?|moron(?:ic)?|trash|garbage|rubbish|terrible|awful|horrible|pathetic|worthless|boring|cringe|lame|worst)\b";
+        private const string Very = @"(?:(?:so|such|really|very|being|kinda|kind of|pretty|too|fucking|freaking|effing|literally|just|actually|honestly|truly|absolute|absolutely|damn|bloody|real|super|mega|extremely|incredibly|insanely|a|an|the|most|complete|total|little|stupid|dumb)\s+)*";
+        private const string Mean = @"(?:(?:annoying|irritating|useless|stupid|dumb|idiot(?:ic)?|moron(?:ic)?|trash|garbage|rubbish|terrible|awful|horrible|pathetic|worthless|boring|cringe|lame|worst|bitch|asshole|dickhead|piece of shit)\b|bad(?=[\s.!?]*$))";
+        // An insult opens the message or a sentence, so "she said you're annoying" and "Bob, you suck" are about somebody else.
         private static readonly Regex Insult = new Regex(
-            @"\b(?:you(?:'re| are|re)|ur|u r|u are)\s+" + Very + Mean +
-            @"|\byou\s+" + Very + @"(?:idiot|moron|useless|stupid|dumb|annoying|pathetic)\b" +
-            @"|^your\s+" + Very + Mean +
-            @"|\b(?:you suck|i hate you|i can'?t stand you|screw you|fuck you(?! (?:doing|mean|talking|saying|want)))\b", RegexOptions.IgnoreCase);
+            @"(?:^|[.!?]\s+)(?:(?:honestly|seriously|wow|ugh|well|oh|lol|lmao|bro|bruh|god|dude|omg|man|jesus|damn|ok|okay|whatever|and|but|so|i think|i swear)[\s,]+)*(?:(?:why|how)\s+(?:are|r|do)\s+|(?:are|r)\s+)?(?:" +
+            @"(?:you(?:'re| are|re)|ur|u r|u are)\s+" + Very + Mean +
+            @"|(?:you|u)\s+" + Very + @"(?:idiot|moron|useless|stupid|dumb|annoying|pathetic|bitch|asshole|dickhead|piece of shit)\b" +
+            @"|your\s+" + Very + Mean +
+            @"|(?:you suck|i hate you|i can'?t stand you|screw you|fuck you(?!\s+(?:doing|mean|talking|saying|want)\b))\b" +
+            @"|(?:nobody|no one) likes you(?=[\s.!?]*$)" +
+            @"|(?:shut (?:the fuck )?up|stfu|fuck off|kys)(?:[\s,]+capri)?$)", RegexOptions.IgnoreCase);
 
         internal static bool Insulted(string said) { return Insult.IsMatch(Asked(said)); }
         internal static bool Hurt(string reply) { return (reply ?? "").IndexOf("[hurt]", StringComparison.OrdinalIgnoreCase) >= 0; }
+        internal static bool UpsetCall(string tool, ToolArguments args) { return (tool == "animate" || tool == "speech") && args != null && Valid(tool, args); }
 
         internal const string Unpromised = "I haven't actually done that yet. Tell me what to open or click and I'll do it.";
         // What she says she wiped: her drawing by any name, it, that or everything, or nothing after the word at all.

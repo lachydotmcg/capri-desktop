@@ -13673,6 +13673,7 @@ namespace CapriDesktop
             speaker.EndAnswer();
             if (CallModeOn) return;
             if (!chatting || !VoiceForHer(text)) return;
+            if (Hands.Insulted(text)) Upset(0, "voice chat");
             WakeRest(!SleepBusy);
             agentComment = false;
             if (StopListening(text)) return;
@@ -13989,6 +13990,7 @@ namespace CapriDesktop
             Job running = job;
             if (callReply == null && MidJob(running) && prompt == "> you: ")
             {
+                if (Hands.Insulted(text)) Upset(0, "job");
                 if (planned.Key != null) AsideTool(text, planned.Key, planned.Value, running);
                 else HeardMidJob(text, running);
                 return;
@@ -16232,34 +16234,80 @@ namespace CapriDesktop
                 if (Clone("stop", 0) != "I don't have any clones out.") throw new Exception("Clearing no clones said the wrong thing.");
                 Func<string> upsetOpenWas = Computer.GameOpen;
                 bool upsetChaosWas = preferences.UpsetChaos;
+                bool upsetChatWas = chatting, upsetLocalWas = local, upsetListenWas = preferences.ListenCapri, upsetStreamWas = Computer.Streaming, upsetHiddenWas = hidden;
+                string upsetWorkWas = working, upsetLogWas = Brain.LogPath;
+                int upsetCountWas = upsets;
+                double upsetNoteWas = upsetNoteAt, upsetAtWas = upsetAt;
+                string upsetLog = Path.Combine(Path.GetDirectoryName(Brain.LogPath), "upset-log.txt");
                 try
                 {
+                    Brain.LogPath = upsetLog;
+                    if (File.Exists(upsetLog)) File.Delete(upsetLog);
                     Computer.GameOpen = delegate { return null; };
-                    preferences.UpsetChaos = false;
-                    bool upsetSwitched = Upset(0);
-                    preferences.UpsetChaos = true;
-                    Computer.GameOpen = delegate { return "Roblox"; };
-                    bool upsetGaming = Upset(0);
-                    Computer.GameOpen = delegate { return null; };
-                    Computer.Streaming = true;
-                    bool upsetStreaming = Upset(0);
-                    Computer.Streaming = false;
-                    working = "Working.";
-                    bool upsetWorking = Upset(0);
+                    chatting = local = preferences.ListenCapri = Computer.Streaming = hidden = false;
                     working = null;
-                    hidden = true;
-                    bool upsetHidden = Upset(0);
-                    hidden = false;
-                    if (upsetSwitched || upsetGaming || upsetStreaming || upsetWorking || upsetHidden || cloneWindow != null) throw new Exception("Her clones came out for an insult they should have sat out: " + upsetSwitched + upsetGaming + upsetStreaming + upsetWorking + upsetHidden);
+                    upsets = 0;
+                    upsetNoteAt = 0;
+                    preferences.UpsetChaos = false;
+                    if (Upset(0) || upsets != 0 || File.Exists(upsetLog)) throw new Exception("An insult counted or logged with Chaos when upset off.");
+                    preferences.UpsetChaos = true;
+                    string[] upsetReasons = { "game", "stream", "job", "hidden", "voice chat", "voice chat" };
+                    for (int upsetBlock = 0; upsetBlock < upsetReasons.Length; upsetBlock++)
+                    {
+                        upsets = 0;
+                        upsetNoteAt = 0;
+                        Computer.GameOpen = delegate { return upsetBlock == 0 ? "Private game title" : null; };
+                        Computer.Streaming = upsetBlock == 1;
+                        working = upsetBlock == 2 ? "Working." : null;
+                        hidden = upsetBlock == 3;
+                        chatting = upsetBlock >= 4;
+                        local = upsetBlock == 5;
+                        int upsetLines = File.Exists(upsetLog) ? File.ReadAllLines(upsetLog).Length : 0;
+                        if (Upset(0) || upsets != 1 || cloneWindow != null) throw new Exception("An upset sit-out lost the tally or spawned clones: " + upsetReasons[upsetBlock]);
+                        string[] upsetLogged = File.ReadAllLines(upsetLog);
+                        if (upsetLogged.Length != upsetLines + 1 || !upsetLogged[upsetLines].EndsWith("Clones held: " + upsetReasons[upsetBlock] + ". Tally 1/3.", StringComparison.Ordinal) || upsetLogged[upsetLines].Contains("Private game title") || !ErrorDetails().Contains(upsetLogged[upsetLines])) throw new Exception("An upset sit-out was missing from her error details: " + upsetReasons[upsetBlock]);
+                        if (Upset(0) || Upset(0) || Upset(0) || upsets != 3 || cloneWindow != null || File.ReadAllLines(upsetLog).Length != upsetLogged.Length) throw new Exception("An upset sit-out spawned, overflowed or logged more than once a minute.");
+                        Computer.GameOpen = delegate { return null; };
+                        Computer.Streaming = hidden = chatting = local = false;
+                        working = null;
+                        if (cloneWindow != null || !Upset(2) || cloneWindow == null || upsets != 0) throw new Exception("An upset sit-out did not keep the third insult for the next try: " + upsetReasons[upsetBlock]);
+                        ClonesOff();
+                    }
+                    upsetNoteAt = 0;
                     bool upsetFirst = Upset(1), upsetSecond = Upset(2), upsetThird = Upset(2);
                     CloneWindow upsetShown = cloneWindow;
-                    if (upsetFirst || upsetSecond || !upsetThird || upsetShown == null || !upsetShown.Swarm.Multiplying || !upsetShown.Swarm.Notes.Exists(delegate(CloneNote pinned) { return pinned.Text == Swarm.Sorry; })) throw new Exception("The third insult didn't set her clones off with a way to stop them: " + upsetFirst + upsetSecond + upsetThird);
-                    if (Upset(0) || cloneWindow != upsetShown) throw new Exception("An insult set off more clones while they were already out.");
+                    if (upsetFirst || upsetSecond || !upsetThird || upsets != 0 || upsetShown == null || !upsetShown.Swarm.Multiplying || !upsetShown.Swarm.Notes.Exists(delegate(CloneNote pinned) { return pinned.Text == Swarm.Sorry; })) throw new Exception("The third insult didn't set her clones off with a way to stop them: " + upsetFirst + upsetSecond + upsetThird);
+                    upsetNoteAt = 0;
+                    if (Upset(0) || Upset(0) || cloneWindow != upsetShown || upsets != 0 || !File.ReadAllText(upsetLog).Contains("Clones held: clones already out. Tally 0/3.")) throw new Exception("An insult replaced her clones, counted or went unnoted while they were out.");
+                    ClonesOff();
+                    if (Upset(2) || Upset(2) || !Upset(2) || cloneWindow == null) throw new Exception("Insults at her clones raised the odds once they were gone.");
+                    ClonesOff();
+                    if (Upset(2) || !Upset(1) || cloneWindow == null) throw new Exception("The second insult did not have two chances in three.");
                     ClonesOff();
                     if (!Upset(0) || cloneWindow == null) throw new Exception("A lucky first insult didn't set her clones off.");
                     ClonesOff();
+                    int upsetBeforeNote = File.ReadAllLines(upsetLog).Length;
+                    upsetNoteAt = 0;
+                    if (Upset(2) || Upset(2) || File.ReadAllLines(upsetLog).Length != upsetBeforeNote + 2 || !File.ReadAllText(upsetLog).Contains("No clones this time: chance. Tally 1/3.") || !File.ReadAllText(upsetLog).Contains("No clones this time: chance. Tally 2/3.")) throw new Exception("A missed chance was not noted each time.");
+                    working = "Working.";
+                    if (Upset(0) || File.ReadAllLines(upsetLog).Length != upsetBeforeNote + 3 || !File.ReadAllText(upsetLog).Contains("Clones held: job. Tally 3/3.")) throw new Exception("A missed chance used up the sit-out note's minute.");
+                    working = null;
+                    upsets = 2;
+                    upsetAt = clock.Elapsed.TotalSeconds - 601;
+                    if (Upset(1) || upsets != 1 || cloneWindow != null) throw new Exception("Insults from over ten minutes ago still raised the odds.");
+                    upsets = 2;
+                    upsetAt = clock.Elapsed.TotalSeconds - 590;
+                    if (!Upset(2) || cloneWindow == null) throw new Exception("The tally was forgotten inside ten minutes.");
+                    ClonesOff();
                 }
-                finally { Computer.GameOpen = upsetOpenWas; preferences.UpsetChaos = upsetChaosWas; Computer.Streaming = false; working = null; hidden = false; ClonesOff(); }
+                finally
+                {
+                    Computer.GameOpen = upsetOpenWas; preferences.UpsetChaos = upsetChaosWas; Computer.Streaming = upsetStreamWas; working = upsetWorkWas; hidden = upsetHiddenWas;
+                    chatting = upsetChatWas; local = upsetLocalWas; preferences.ListenCapri = upsetListenWas; upsets = upsetCountWas; upsetAt = upsetAtWas; upsetNoteAt = upsetNoteWas; Brain.LogPath = upsetLogWas;
+                    ClonesOff();
+                    if (File.Exists(upsetLog)) File.Delete(upsetLog);
+                }
+                checks.Add("PASS upset insults keep their tally through games, streams, jobs, hiding and local and remote voice chat for ten minutes, and don't count while her clones are out; sit-outs appear in error details at most once a minute without window titles and every missed chance is noted; the first, second and third chances fire correctly");
                 checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor; Esc is read in real time, so a tap says to hold it and a 0.7 s hold clears 400 of them on time; an insult sets them off by the third time, never with the switch off or over a job, a game, a stream or while she's hidden");
                 napReset();
                 Play(sleep);
@@ -25987,9 +26035,9 @@ namespace CapriDesktop
                 if (wipeServer != null) wipeServer.Stop();
             }
             checks.Add("PASS every drawing wording reaches her hands, screen references become jobs, clear and bare draw need no brain, \"remove it\", \"get rid of that\" and \"clear my screen\" wipe her ink only while it's up, a brain that says it wiped the ink gets her hands to clear it, and a diagram in any wording is drawn and talked through");
-            foreach (string insultAsk in new[] { "Capri, you're annoying", "you're so annoying", "you are really fucking useless", "you're such an idiot", "ur dumb", "your annoying", "why are you so stupid", "you suck", "I hate you", "fuck you", "screw you capri", "you’re the worst" })
+            foreach (string insultAsk in new[] { "Capri, you're annoying", "you're so annoying", "you are really fucking useless", "you're such an idiot", "ur dumb", "your annoying", "why are you so stupid", "you suck", "I hate you", "fuck you", "screw you capri", "you’re the worst", "shut up", "stfu", "you're a bitch", "fuck off", "you're so bad", "you're a piece of shit", "nobody likes you", "kys", "Capri, shut up!", "shut the fuck up", "STFU, Capri!", "fuck off capri", "no one likes you", "you absolute bitch", "you fucking asshole", "you're a dickhead", "honestly, you're useless", "god you're useless", "are you stupid?", "This is wrong. You're useless.", "ok whatever, you're useless", "dude you suck", "i swear you're dumb", "r u dumb", "I think you're an idiot" })
                 if (!Hands.Insulted(insultAsk)) throw new Exception("An insult didn't count: " + insultAsk);
-            foreach (string insultNot in new[] { "you're not annoying", "this is annoying", "the pop-up is so annoying", "you're the best", "did you really trash my desktop", "what the fuck you doing", "empty your trash", "thank you so much", "don't be annoying", "I hate this game" })
+            foreach (string insultNot in new[] { "you're not annoying", "this is annoying", "the pop-up is so annoying", "you're the best", "did you really trash my desktop", "what the fuck you doing", "empty your trash", "thank you so much", "don't be annoying", "I hate this game", "this game is stupid", "that's annoying", "shut up, really?", "shut up! Really?", "fuck you mean", "what the fuck you mean", "you're not a bitch", "he's a piece of shit", "she's so bad", "nobody likes him", "tell Bob to shut up", "I told him to fuck off", "Bob, you suck", "stfu John", "she said you're annoying", "he told me you suck", "you told him to kys", "\"you're a bitch\"", "what does stfu mean", "what does kys mean", "you're a bad bitch", "you're bad at explaining this", "nobody likes you when you're 23", "do you suck at this game", "is it bad", "not bad" })
                 if (Hands.Insulted(insultNot)) throw new Exception("Something that wasn't an insult counted: " + insultNot);
             if (!Hands.Hurt("[hurt] Wow.") || !Hands.Hurt("[grin] [HURT] Wow.") || Hands.Hurt("Wow.") || Brain.Visible("[hurt] Wow.") != "Wow." || Brain.Clean("[Hurt]  Rude, choom.") != "Rude, choom." || Brain.Visible("<think>[hurt]</think>Hi").Contains("hurt")) throw new Exception("Her hurt tag was read or hidden wrongly.");
             if (Hands.Chat.IndexOf("[hurt]", StringComparison.Ordinal) < 0 || Hands.ChatOnly.IndexOf("[hurt]", StringComparison.Ordinal) < 0 || Hands.Chat.IndexOf(" If they want anything done", StringComparison.Ordinal) <= Hands.Chat.IndexOf("[hurt]", StringComparison.Ordinal)) throw new Exception("Her brain wasn't told about her hurt tag.");
@@ -26024,6 +26072,41 @@ namespace CapriDesktop
                 if (hurtServer != null) hurtServer.Stop();
             }
             checks.Add("PASS an insult counts in plain English or by her brain's tag in any language, the tag is never shown or saved, and she says how to stop her clones in English");
+            foreach (string hurtAnimation in new[] { "idle", "glitch", "grin", "blink", "dance", "stop_dancing" })
+                if (!Hands.UpsetCall("animate", new ToolArguments { Name = hurtAnimation })) throw new Exception("An animation stopped an insult counting: " + hurtAnimation);
+            if (!Hands.UpsetCall("speech", new ToolArguments { Action = "stop" }) || Hands.UpsetCall("animate", null) || Hands.UpsetCall("animate", new ToolArguments { Name = "unknown" }) || Hands.UpsetCall("speech", new ToolArguments { Action = "start" }) || Hands.UpsetCall("open_app", new ToolArguments { Name = "Notepad" }) || Hands.UpsetCall("unknown", new ToolArguments())) throw new Exception("The upset tool list let a job through or dropped speech stop.");
+            string[] hurtTools = { "animate{\"name\":\"grin\"}", "speech{\"action\":\"stop\"}", "animate{\"name\":\"blink\"}", "open_app{\"name\":\"Notepad\"}", "animate{\"name\":\"grin\"}\nopen_app{\"name\":\"Notepad\"}", "animate{\"name\":\"grin\"}\nspeech{\"action\":\"stop\"}", "animate{\"name\":\"grin\"}", "animate{\"name\":\"blink\"}", "animate{\"name\":\"grin\"}" };
+            try
+            {
+                Brain.Language = null;
+                Hands.Upset = delegate { hurtCalls++; return true; };
+                for (int hurtTool = 0; hurtTool < hurtTools.Length; hurtTool++)
+                {
+                    hurtAsked.Clear();
+                    hurtCalls = 0;
+                    string hurtQuestion = hurtTool == 2 || hurtTool >= 7 ? "tu es nulle" : hurtTool == 6 ? "you're not annoying" : hurtTool == 1 ? "you're a bitch" : "you suck";
+                    string hurtAnswer = hurtTool == 2 || hurtTool == 8 ? "[hurt] Rude." : hurtTool == 7 ? "<think>[hurt]</think>Fine." : "Rude.";
+                    string hurtPicked = hurtTool == 8 ? "{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"tool_calls\":[{\"function\":{\"name\":\"animate\",\"arguments\":{\"name\":\"grin\"}}}]},\"done_reason\":\"stop\"}" : diagramSays(hurtTools[hurtTool]);
+                    Brain.Ollama = FakeServer(new[] { diagramSays("act"), hurtPicked, diagramSays(hurtAnswer) }, hurtAsked, out hurtServer);
+                    System.Collections.Generic.List<string> hurtDid = new System.Collections.Generic.List<string>();
+                    Brain reacting = new Brain { Model = "hurt-tool-check", OwnSteps = hurtTool == 8 };
+                    reacting.Act = delegate(string tool, ToolArguments args) { hurtDid.Add(tool); return "Reacted."; };
+                    string hurtReply = reacting.Ask(hurtQuestion);
+                    bool hurtCounts = hurtTool < 3 || hurtTool == 5 || hurtTool == 8;
+                    if (hurtAsked.Count != 3 || hurtDid.Count != (hurtTool == 4 || hurtTool == 5 ? 2 : 1) || hurtCalls != (hurtCounts ? 1 : 0) || hurtReply.Contains(Hands.SorryLine) != hurtCounts || hurtReply.Contains("[hurt]")) throw new Exception("A reply with tools counted an insult wrongly: " + hurtTool + " / " + hurtReply + " / " + hurtCalls);
+                    foreach (ChatMessage hurtKept in reacting.History) if ((hurtKept.Content ?? "").Contains("[hurt]")) throw new Exception("A reply with tools saved her hurt tag.");
+                    hurtServer.Stop();
+                    hurtServer = null;
+                }
+            }
+            finally
+            {
+                Brain.Ollama = hurtOllama;
+                Brain.Language = hurtLanguage;
+                Hands.Upset = hurtUpsetWas;
+                if (hurtServer != null) hurtServer.Stop();
+            }
+            checks.Add("PASS insults count once with animation or speech stop tools, including a hurt tag in the final reply; mixed jobs, other tools, ordinary chat and hurt tags inside thoughts do not count");
             // Her emotion cues (F54): never shown or saved, and kept in front of the same words for a Fish Audio voice.
             string cueShown = Voice.Uncued("[excited] We won! [laughing] Ha ha!") + " | " + Voice.Uncued("It's fine [sighing].") + " | " + Voice.Uncued("(sad)(whispering) I miss you") + " | "
                 + Voice.Uncued("[Google](https://g.co), [1] and (happy to help)") + " | " + Brain.Visible("[hurt] [Sighing] Wow.") + " | " + Brain.Clean("[whispers sweetly] Rude, choom.");
@@ -26570,6 +26653,21 @@ namespace CapriDesktop
                 must(minis.Game.Cells[0] == 1 && dropping && talkState == TalkState.Off, "A voice move didn't play locally or added a reply for every move.");
                 ChatHeard("nice one");
                 must(!dropping && talkState == TalkState.Thinking && miniContext.Contains("X"), "Board chat stayed muted after a voice move.");
+                bool chatUpsetWas = preferences.UpsetChaos;
+                int chatUpsetsWas = upsets;
+                double chatUpsetNoteWas = upsetNoteAt;
+                try
+                {
+                    preferences.UpsetChaos = true;
+                    upsets = 0;
+                    upsetNoteAt = clock.Elapsed.TotalSeconds + 60;
+                    ChatHeard("Capri, you're a bitch");
+                    if (upsets != 1 || cloneWindow != null) throw new Exception("An insult in hosted voice chat lost its tally or spawned clones.");
+                    ChatHeard("Capri, this game is stupid");
+                    if (upsets != 1 || cloneWindow != null) throw new Exception("Ordinary hosted voice chat counted as an insult.");
+                }
+                finally { preferences.UpsetChaos = chatUpsetWas; upsets = chatUpsetsWas; upsetNoteAt = chatUpsetNoteWas; }
+                checks.Add("PASS hosted voice chat keeps a plain insult in the upset tally without spawning clones or counting ordinary chat");
                 Job boardJobWas = job;
                 string boardWorkWas = working;
                 Action<string> boardStopWas = stopTest;
@@ -51494,6 +51592,25 @@ namespace CapriDesktop
                 waitFor(delegate { return asides.Count > 0; });
                 must(asides.Count == 1 && asides[0] == "Because he never reads them." && busy.Heard() == null && busy.Changed() == "" && stops.Count == 0 && job == busy, "Chat mid-job touched the job or went unanswered: " + string.Join(" | ", asides.ToArray()));
                 must(headSystem.Contains(Asides.Head) && headSystem.Contains("clone{") && headSystem.Contains("capri_settings{") && headAsked.IndexOf("send jake the notes", StringComparison.Ordinal) >= 0 && headAsked.IndexOf("why does jake even need these", StringComparison.Ordinal) >= 0, "Her fast head wasn't told about the job: " + headAsked);
+                bool asideUpsetWas = preferences.UpsetChaos;
+                int asideUpsetsWas = upsets;
+                double asideUpsetNoteWas = upsetNoteAt;
+                try
+                {
+                    preferences.UpsetChaos = true;
+                    upsets = 0;
+                    upsetNoteAt = clock.Elapsed.TotalSeconds + 60;
+                    headSays = "SORT: CHAT\nSAY: Rude.";
+                    asides.Clear();
+                    Hear("you're a bitch");
+                    waitFor(delegate { return asides.Count > 0; });
+                    if (upsets != 1 || cloneWindow != null || job != busy) throw new Exception("An insult beside a job lost its tally, spawned clones or stopped the job.");
+                    Hear("this game is stupid");
+                    waitFor(delegate { return asides.Count > 1; });
+                    if (upsets != 1 || cloneWindow != null || job != busy) throw new Exception("Ordinary chat beside a job counted as an insult.");
+                }
+                finally { preferences.UpsetChaos = asideUpsetWas; upsets = asideUpsetsWas; upsetNoteAt = asideUpsetNoteWas; }
+                checks.Add("PASS a plain insult beside a job keeps its upset tally while the job continues, with no clones or count for ordinary chat");
                 headSays = "SORT: ADD\nSAY: Yep, pdf too.";
                 asides.Clear();
                 Hear("attach the pdf as well");

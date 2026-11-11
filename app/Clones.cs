@@ -923,6 +923,8 @@ namespace CapriDesktop
         private string cloneLast;
 
         private int upsets;
+        private double upsetAt;
+        private double upsetNoteAt;
 
         private string CloneTool(string action, int count) { return InvokeRequired ? (string)Invoke(new Func<string, int, string>(Clone), action, count) : Clone(action, count); }
 
@@ -935,16 +937,38 @@ namespace CapriDesktop
         }
 
         // An insult sets her clones off 1 time in 3, then 2 in 3, and always by the third. Never over a job, a game or a stream,
-        // and the note near her tells anyone who's never met them how to stop it.
-        internal bool Upset(int roll)
+        // and the note near her tells anyone who's never met them how to stop it. One she sat out still counts toward the
+        // next for ten minutes. Ones thrown at her clones while they're out don't.
+        internal bool Upset(int roll, string held = null)
         {
-            if (!preferences.UpsetChaos || working != null || hidden || cloneWindow != null || InChat || Computer.Streaming || Computer.GameOpen() != null) return false;
-            upsets++;
-            if (roll >= upsets) return false;
+            if (!preferences.UpsetChaos) return false;
+            if (cloneWindow != null) return UpsetHeld("clones already out");
+            double now = clock.Elapsed.TotalSeconds;
+            if (now - upsetAt > 600) upsets = 0;
+            upsetAt = now;
+            upsets = Math.Min(3, upsets + 1);
+            if (held == null) held = working != null ? "job" : hidden ? "hidden" : InChat ? "voice chat" : Computer.Streaming ? "stream" : Computer.GameOpen() != null ? "game" : null;
+            if (held != null) return UpsetHeld(held);
+            if (roll >= upsets)
+            {
+                Brain.Log("chaos when upset", -1, "No clones this time: chance. Tally " + upsets + "/3.");
+                return false;
+            }
             upsets = 0;
             Clone("spawn", 0);
             if (cloneWindow != null) cloneWindow.Pin(Said.In(Swarm.Sorry), new Point(anchor.X + Width / 2, anchor.Y - 24));
             return true;
+        }
+
+        private bool UpsetHeld(string reason)
+        {
+            double now = clock.Elapsed.TotalSeconds;
+            if (now >= upsetNoteAt)
+            {
+                upsetNoteAt = now + 60;
+                Brain.Log("chaos when upset", -1, "Clones held: " + reason + ". Tally " + upsets + "/3.");
+            }
+            return false;
         }
 
         // A number makes exactly that many. No number makes one that keeps multiplying until they stop it.

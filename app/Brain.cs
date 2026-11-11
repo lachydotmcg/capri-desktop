@@ -2476,10 +2476,9 @@ namespace CapriDesktop
                     }
                 }
             }
-            bool upset = false;
+            bool upset = act != null && !fileChat && unable == null && (Hands.Hurt(Thoughtless(raw)) || Hands.Hurt(Thoughtless(planText)) || Hands.Insulted(request));
             if (calls.Count == 0 && !fileChat && unable == null)
             {
-                upset = act != null && (Hands.Hurt(Thoughtless(raw)) || Hands.Insulted(request));
                 // A brain that hedges on "what time is it?" gets her clock's answer, before anything below takes the hedge for a search to run.
                 if (Hands.ClockDodged(text, Clean(raw))) raw = Hands.ClockLine(DateTime.Now);
                 // Her brain on their PC said it would, asked whether to, said it can't, or hedged on something to look up, with no tool
@@ -2654,7 +2653,7 @@ namespace CapriDesktop
             if (said.Length == 0 && after.Length > 0) { said = after; after = ""; }
             if (said.Length == 0 && done != null) said = done;
             if (said.Length == 0) throw new BrainException(Wordless, true);
-            if (upset && calls.Count == 0)
+            if (act != null && !fileChat && unable == null && (upset || Hands.Hurt(Thoughtless(raw))) && !calls.Exists(call => !Hands.UpsetCall(call.Key, call.Value)))
             {
                 Check(ticket);
                 if (Hands.Upset() && Language == null) said = said + " " + Hands.SorryLine;
