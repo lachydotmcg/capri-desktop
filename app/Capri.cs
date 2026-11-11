@@ -68,6 +68,7 @@ namespace CapriDesktop
                 {
                     string data = smoke || bench ? Path.GetFullPath(args[1]) : Packaged.Home(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
                     Brain.LogPath = Path.Combine(data, "errors.txt");
+                    if (!smoke && !bench) ThreadPool.QueueUserWorkItem(delegate { CableSetup.Clean(); });
                     // Whatever ends her, their own cursor comes back, and a crash goes in errors.txt.
                     AppDomain.CurrentDomain.ProcessExit += delegate { HerCursor.Off(); };
                     AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs crash) { HerCursor.Off(); Crashed(crash.ExceptionObject as Exception); };
@@ -6627,6 +6628,8 @@ namespace CapriDesktop
         private volatile string cableSetupLine;
         // Set up is still starting one, so a second click waits.
         private bool cableStarting;
+        private int cableSetupVersion;
+        private string cableProblem;
 
         internal bool VoiceInMic { get { return preferences.VoiceInMic; } }
 
@@ -6646,8 +6649,10 @@ namespace CapriDesktop
         private sealed class CableSeen
         {
             internal MixDevice Cable;
-            internal bool Vb;
+            internal bool Vb, Ready;
             internal string Far;
+            internal string Problem;
+            internal string Detail;
         }
 
         private void LookCable(double now)
@@ -6658,13 +6663,27 @@ namespace CapriDesktop
             cableLook.Ask(delegate
             {
                 CableSeen seen = new CableSeen();
-                try { seen.Cable = devices.Cable(chosen); }
-                catch (Exception) { }
-                seen.Vb = seen.Cable != null && !MicMix.IsSteam(seen.Cable.Name);
+                try
+                {
+                    seen.Cable = devices.Cable(chosen);
+                    if (seen.Cable == null)
+                    {
+                        seen.Problem = CableSetup.MissingFor(devices, chosen, out seen.Detail);
+                    }
+                    else seen.Problem = seen.Cable.Problem;
+                }
+                catch (Exception error) { seen.Problem = CableSetup.Report(CableSetup.Unlisted, "Couldn't find the selected cable " + (chosen ?? "automatic") + ": " + error); }
+                seen.Vb = seen.Cable != null && MicMix.IsVb(seen.Cable.Name);
+                seen.Ready = seen.Vb && seen.Cable.Far != null;
                 if (seen.Cable != null && !seen.Vb)
                 {
-                    try { seen.Vb = devices.Cables().Exists(delegate(MixDevice each) { return !MicMix.IsSteam(each.Name); }); }
-                    catch (Exception) { }
+                    try
+                    {
+                        List<MixDevice> cables = devices.Cables();
+                        seen.Vb = cables.Exists(delegate(MixDevice each) { return MicMix.IsVb(each.Name); });
+                        seen.Ready |= cables.Exists(delegate(MixDevice each) { return MicMix.IsVb(each.Name) && each.Far != null; });
+                    }
+                    catch (Exception error) { seen.Problem = CableSetup.Report(CableSetup.Unlisted, "Couldn't list cables: " + error); }
                 }
                 seen.Far = MicMix.FarName(seen.Cable);
                 return seen;
@@ -6674,7 +6693,10 @@ namespace CapriDesktop
                 cableThere = seen.Cable;
                 vbCable = seen.Vb;
                 cableFar = seen.Far;
-                if (vbCable && cableSetup == null) cableSetupLine = null;
+                if (seen.Problem != cableProblem && seen.Problem != null) CableSetup.Report(seen.Problem, "Output pick " + (chosen ?? "automatic") + "; " + (seen.Cable == null ? seen.Detail : seen.Cable.Detail ?? CableSetup.Describe(new List<MixDevice> { seen.Cable })));
+                cableProblem = seen.Problem;
+                // Steam's cable working says nothing about VB-CABLE's setup, so its line stays until VB-CABLE itself is there.
+                if (seen.Ready && !CableSetupOpen) cableSetupLine = null;
             }, ShowMixLooked);
         }
 
@@ -6715,21 +6737,22 @@ namespace CapriDesktop
 
         internal bool CableSetupOpen { get { lock (cableSetupGate) return cableSetup != null; } }
 
-        // Settings' Set up: VB-Audio's own setup from the pack she carries, which Windows asks them to let run. When it closes,
-        // with Settings open or not, what it unpacked goes, the device list is read again, and the line says to restart.
+        // Settings' Get VB-CABLE: VB-Audio's own setup from the pack she carries, which Windows asks them to let run. When it
+        // closes, with Settings open or not, what it unpacked goes, the device list is read again, and the line says what she found.
         internal void SetUpCable()
         {
             // A Store copy carries no driver and starts no setup, so it's VB-Audio's own page.
-            if (Packaged.Is) { OpenCablePage(); return; }
+            if (Packaged.Is) { cableSetupLine = CableSetup.Report(CableSetup.MissingPack, "The Store build carries no driver pack; opening " + CableSetup.Page); OpenCablePage(); mainframe.ShowVoiceInMic(); return; }
             if (cableStarting || CableSetupOpen) return;
             cableStarting = true;
+            cableSetupVersion++;
             try
             {
                 string line, file;
                 FileStream kept;
                 Process setup = CableSetup.Run(out line, out file, out kept);
                 cableSetupLine = line;
-                if (setup == null) { CableSetup.Tidy(file, kept); return; }
+                if (setup == null) { CableSetup.Tidy(line == CableSetup.WatchFailed ? null : file, kept); return; }
                 lock (cableSetupGate)
                 {
                     cableSetup = setup;
@@ -6746,17 +6769,20 @@ namespace CapriDesktop
                 {
                     // Windows won't say when it closes, so Settings stops waiting on it. What it unpacked stays, since it may still
                     // be using it; only the hold on it lets go.
-                    Brain.Log("vb-cable", -1, "VB-CABLE's setup can't be watched: " + error.Message);
                     lock (cableSetupGate)
                     {
                         if (cableSetup == setup)
                         {
+                            CableSetup.Report(CableSetup.WatchFailed, "VB-CABLE's setup can't be watched: " + error);
                             cableSetup = null;
                             CableSetup.Tidy(null, cableSetupKept);
                             cableSetupKept = null;
-                            cableSetupLine = CableSetup.Finish;
+                            cableSetupFile = null;
+                            cableSetupLine = CableSetup.WatchFailed;
                         }
                     }
+                    try { setup.Dispose(); }
+                    catch (Exception) { }
                 }
             }
             finally
@@ -6766,23 +6792,41 @@ namespace CapriDesktop
             }
         }
 
-        // VB-CABLE's setup closed, on whatever thread Windows says so: the hold on it lets go, its folder goes, the device list is
-        // read again, and Settings says to restart.
+        // VB-CABLE's setup closed, on whatever thread Windows says so: the hold on it lets go, its folder goes, and she looks
+        // for the cable away from her window's thread before Settings says what she found.
         private void CableSetupClosed(Process setup)
         {
+            int version;
+            int? code = null;
             lock (cableSetupGate)
             {
                 if (cableSetup != setup) return;
+                version = cableSetupVersion;
+                try { code = setup.ExitCode; }
+                catch (Exception error) { CableSetup.Report(CableSetup.WatchFailed, "Couldn't read VB-CABLE setup's exit code: " + error); }
                 CableSetup.Tidy(cableSetupFile, cableSetupKept);
                 cableSetupKept = null;
                 cableSetupFile = null;
                 cableLooked = -10;
-                cableSetupLine = CableSetup.Finish;
+                cableSetupLine = CableSetup.Checking;
                 cableSetup = null;
             }
             try { setup.Dispose(); }
             catch (Exception) { }
             Post(delegate { mainframe.ShowVoiceInMic(); });
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string line = CableSetup.Closed(code);
+                Post(delegate { CableSetupResult(version, line); });
+            });
+        }
+
+        private void CableSetupResult(int version, string line)
+        {
+            if (version != cableSetupVersion || CableSetupOpen || quitting) return;
+            cableSetupLine = line;
+            cableLooked = -10;
+            mainframe.ShowVoiceInMic();
         }
 
         // Settings' credit: VB-CABLE's page, where they can donate.
@@ -6839,6 +6883,7 @@ namespace CapriDesktop
         internal void ChooseMixOutput(string id)
         {
             preferences.MixCable = string.IsNullOrEmpty(id) ? null : id;
+            if (!CableSetupOpen && cableSetupLine != CableSetup.Checking) cableSetupLine = null;
             SavePreferences();
             cableLooked = -10;
             if (micMix != null) micMix.CableChosen = preferences.MixCable;
@@ -10335,7 +10380,7 @@ namespace CapriDesktop
                 case "voice_layers": SetVoiceLayers(VoiceLayers.Turned(on)); mainframe.Sync(); return null;
                 case "show_advanced": ToggleAdvancedSettings(); if (mainframe.SettingsShown) mainframe.ShowSettings(true); return null;
                 case "listen_for_capri": ToggleListenCapri(true, fromAgent); return null;
-                case "voice_in_mic": ToggleVoiceInMic(); return on && !VoiceInMic ? "Open Mainframe > VOICE > Her voice in your mic > Set up, install VB-CABLE, then restart your PC." : null;
+                case "voice_in_mic": ToggleVoiceInMic(); return on && !VoiceInMic ? "Open Mainframe > VOICE > Her voice in your mic > Get VB-CABLE, install it, then restart your PC." : null;
                 default: return null;
             }
         }
@@ -25360,7 +25405,7 @@ namespace CapriDesktop
                 Browse = delegate(string page) { opened = page; };
                 CableSetup.Start = delegate { setups++; return null; };
                 SetUpCable();
-                if (opened != CableSetup.Page || setups != 0 || CableSetupOpen || cableSetupLine != cableLineWas) throw new Exception("A Store copy's Get VB-CABLE reached a setup: " + opened + ", " + setups + " setups.");
+                if (opened != CableSetup.Page || setups != 0 || CableSetupOpen || cableSetupLine != CableSetup.MissingPack) throw new Exception("A Store copy's Get VB-CABLE reached a setup or didn't explain its missing pack: " + opened + ", " + setups + " setups.");
                 opened = null;
                 OpenPage(IssuesPage);
                 if (opened != IssuesPage) throw new Exception("Report a problem didn't open the issues page.");
@@ -25375,6 +25420,7 @@ namespace CapriDesktop
                 Packaged.SetStartup = setStartupWas;
                 Browse = browseWas;
                 CableSetup.Start = setupWas;
+                cableSetupLine = cableLineWas;
                 Startup.RunKey = runKeyWas;
                 Startup.ApprovedKey = approvedKeyWas;
                 Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(startupRoot, false);
@@ -34606,6 +34652,413 @@ namespace CapriDesktop
             public void Dispose() { Disposed = true; }
         }
 
+        private void SmokeCableErrors(List<string> checks, string output)
+        {
+            CableSetup.Unpacker extractWas = CableSetup.Extract;
+            Func<Stream> packWas = CableSetup.Pack;
+            Func<string, Process> startWas = CableSetup.Start;
+            Func<bool?> restartWas = CableSetup.Restart;
+            Func<CableState> inspectWas = CableSetup.Inspect;
+            Action<int> pauseWas = CableSetup.Pause;
+            Func<string, bool> inUseWas = CableSetup.InUse;
+            Func<string, string> nameWas = MicMix.NameOf;
+            IMixDevices devicesWas = MicMix.Devices;
+            MicMix mixWas = micMix;
+            bool voiceWas = preferences.VoiceInMic, windowWas = mainframe.MixShown != null;
+            string choiceWas = preferences.MixCable;
+            Action<string> browseWas = Browse;
+            string packageWas = Packaged.FullName, lineWas = cableSetupLine, problemWas = cableProblem, logWas = Brain.LogPath;
+            string log = Path.Combine(output, "vb-cable-errors.log");
+            bool inPlaceWas = DeviceLook.InPlace;
+            int starts = 0;
+            try
+            {
+                DeviceLook.InPlace = true;
+                CableSetup.Pause = delegate { };
+                Brain.LogPath = log;
+                if (File.Exists(log)) File.Delete(log);
+                Action<string, string> logged = delegate(string message, string detail)
+                {
+                    string text = File.ReadAllText(log);
+                    if (!text.Contains("vb-cable") || !text.Contains(message) || !text.Contains(detail)) throw new Exception("VB-CABLE lost its error: " + message + " / " + detail);
+                };
+                CableSetup.Start = delegate { starts++; throw new Exception("A pack failure reached setup."); };
+                CableSetup.Extract = CableSetup.Unpack;
+                CableSetup.Pack = delegate { return null; };
+                string line, file;
+                FileStream kept;
+                if (CableSetup.Run(out line, out file, out kept) != null || line != CableSetup.MissingPack || starts != 0 || file != null || kept != null) throw new Exception("A missing pack was not reported.");
+                logged(line, CableSetup.Resource);
+                checks.Add("PASS a missing embedded cable pack says to get VB-CABLE from VB-Audio and logs its resource name");
+                CableSetup.Pack = delegate { return new MemoryStream(new byte[] { 1, 2, 3 }); };
+                if (CableSetup.Run(out line, out file, out kept) != null || line != CableSetup.BadPack || starts != 0) throw new Exception("A damaged cable pack reached setup.");
+                logged(line, "SHA256");
+                checks.Add("PASS a damaged cable pack says to get a fresh Capri and logs the failed hash check");
+                Action<Exception, string, string> unpack = delegate(Exception error, string expected, string pass)
+                {
+                    CableSetup.Extract = delegate(out FileStream held) { held = null; throw error; };
+                    int before = starts;
+                    string said, setup;
+                    FileStream hold;
+                    if (CableSetup.Run(out said, out setup, out hold) != null || said != expected || starts != before || setup != null || hold != null) throw new Exception("VB-CABLE unpack failure came out wrong: " + said);
+                    logged(said, error.Message);
+                    checks.Add("PASS " + pass);
+                };
+                unpack(new UnauthorizedAccessException("stand-in temp access denied"), CableSetup.TempDenied, "a denied temp folder names permissions and keeps the real error");
+                unpack(new IOException("stand-in temp drive full", unchecked((int)0x80070070)), CableSetup.TempFull, "a full temp drive says to free space and keeps the real error");
+                unpack(new DirectoryNotFoundException("stand-in temp folder missing"), CableSetup.TempFailed, "a missing temp folder says to check temp access and keeps the real error");
+                unpack(new PathTooLongException("stand-in long temp path"), CableSetup.LongPath, "a long cable setup path says to shorten TEMP and keeps the real error");
+                unpack(new FileNotFoundException("stand-in setup removed by antivirus", "VBCABLE_Setup_x64.exe"), CableSetup.Removed, "a removed cable setup says to check antivirus and keeps the missing filename");
+                unpack(new IOException("stand-in previous unpack locked", unchecked((int)0x80070020)), CableSetup.Locked, "locked cable setup files say to close setup and keep the sharing error");
+                unpack(new IOException("stand-in previous unpack lock violation", unchecked((int)0x80070021)), CableSetup.Locked, "a cable setup lock violation keeps its own error");
+                CableSetup.Extract = delegate(out FileStream held) { held = null; return Path.Combine(output, "stand-in-setup.exe"); };
+                Action<Exception, string, string> start = delegate(Exception error, string expected, string pass)
+                {
+                    CableSetup.Start = delegate { starts++; throw error; };
+                    string said, setup;
+                    FileStream hold;
+                    if (CableSetup.Run(out said, out setup, out hold) != null || said != expected) throw new Exception("VB-CABLE launch failure came out wrong: " + said);
+                    logged(said, error.Message);
+                    checks.Add("PASS " + pass);
+                };
+                start(new System.ComponentModel.Win32Exception(1223, "stand-in UAC declined"), CableSetup.Declined, "declined UAC says to allow the prompt and logs Windows error 1223");
+                logged(CableSetup.Declined, "Windows 1223");
+                start(new System.ComponentModel.Win32Exception(2, "stand-in setup vanished before launch"), CableSetup.Removed, "setup disappearing before launch says to check antivirus and logs Windows error 2");
+                start(new System.ComponentModel.Win32Exception(5, "stand-in elevation denied"), CableSetup.Failed, "other Windows launch failures offer VB-Audio's copy and keep the Windows error");
+                start(new InvalidOperationException("stand-in launch failed"), CableSetup.Failed, "a non-Windows launch exception keeps its real error");
+                CableSetup.Start = delegate { starts++; return null; };
+                if (CableSetup.Run(out line, out file, out kept) != null || line != CableSetup.WatchFailed) throw new Exception("A null setup process was called installed.");
+                logged(line, "returned no setup process");
+                checks.Add("PASS a launch returning no process stays unverified and logs the missing process handle");
+
+                bool? restart = false;
+                int waited = 0;
+                CableSetup.Pause = delegate(int ms) { waited += ms; };
+                List<MixDevice> active = new List<MixDevice>(), all = new List<MixDevice>();
+                CableSetup.Restart = delegate { return restart; };
+                CableSetup.Inspect = delegate { return new CableState(active, all, "stand-in device survey: " + CableSetup.Describe(all)); };
+                Action<int?, string, string> closed = delegate(int? code, string expected, string pass)
+                {
+                    waited = 0;
+                    string said = CableSetup.Closed(code);
+                    if (said != expected) throw new Exception("VB-CABLE setup completion came out wrong: " + said + " / " + expected);
+                    logged(said, "Setup closed");
+                    checks.Add("PASS " + pass);
+                };
+                closed(0, CableSetup.NotInstalled, "setup without cable devices explains restarting after install or pressing Get VB-CABLE again after closing setup");
+                if (waited != 15000) throw new Exception("Missing cable devices were reported before 15 seconds.");
+                active.Add(new MixDevice("steam", "Speakers (Steam Streaming Microphone)", "steam-out"));
+                all.AddRange(active);
+                closed(0, CableSetup.NotInstalled, "Steam's virtual mic does not count as VB-CABLE being installed after setup");
+                active.Clear(); all.Clear();
+                restart = true;
+                closed(0, CableSetup.NotInstalled, "an unrelated pending restart keeps both install and closed-window instructions when the cable is missing");
+                restart = false;
+                closed(3010, CableSetup.RestartNeeded, "setup exit 3010 requests a restart even before a registry flag appears");
+                closed(1641, CableSetup.RestartNeeded, "setup exit 1641 requests a restart");
+                restart = null;
+                closed(0, CableSetup.NotInstalled, "an unknown restart flag keeps the same install and closed-window instructions");
+                CableSetup.Restart = delegate { throw new UnauthorizedAccessException("stand-in restart flags denied"); };
+                closed(0, CableSetup.NotInstalled, "a restart flag read error is logged without changing the missing-device instructions");
+                logged(CableSetup.Checking, "stand-in restart flags denied");
+                CableSetup.Restart = delegate { return restart; };
+                MixDevice vb = new MixDevice("vb", "CABLE Input (VB-Audio Virtual Cable)", "vb-out");
+                all.Add(vb);
+                restart = false;
+                closed(0, CableSetup.NotInstalled, "a cable without active devices gets the install and closed-window instructions after waiting");
+                all[0] = new MixDevice("vb", vb.Name);
+                restart = false;
+                closed(0, CableSetup.NotInstalled, "an incomplete cable waits before showing the install and closed-window instructions");
+                closed(9, CableSetup.ExitFailed, "a nonzero setup exit is reported when its cable is still missing");
+                all[0] = vb; active.Add(vb); restart = false;
+                closed(0, CableSetup.Finish, "setup reports ready only when both active VB-CABLE ends are present");
+                closed(9, CableSetup.Finish, "a working cable wins over a nonzero setup exit");
+                restart = true;
+                closed(0, CableSetup.Finish, "an unrelated pending restart does not call a working cable unfinished");
+                closed(3010, CableSetup.Finish, "a working cable wins over a setup restart request");
+                CableSetup.Inspect = delegate { return waited < 8000 ? new CableState(new List<MixDevice>(), new List<MixDevice>(), "devices not here yet") : new CableState(active, all, "devices arrived after 8 seconds"); };
+                int loggedBefore = File.ReadAllText(log).Length;
+                closed(0, CableSetup.Finish, "cable devices arriving 8 seconds after setup closes are accepted");
+                string lateLog = File.ReadAllText(log).Substring(loggedBefore);
+                if (waited != 8000 || lateLog.Contains(CableSetup.NotInstalled) || lateLog.Contains(CableSetup.RestartNeeded) || lateLog.Contains(CableSetup.ExitFailed)) throw new Exception("Late cable devices were reported missing.");
+                CableSetup.Inspect = delegate { throw new COMException("stand-in device enumeration failed", unchecked((int)0x80004005)); };
+                if (CableSetup.Closed(0) != CableSetup.Unlisted) throw new Exception("A failed cable survey was called installed.");
+                logged(CableSetup.Unlisted, "stand-in device enumeration failed");
+                checks.Add("PASS a cable device enumeration failure keeps its COM error and says to check Windows Sound");
+
+                List<MixDevice> speakers = new List<MixDevice> { new MixDevice("vb", vb.Name), new MixDevice("vb-16ch", "CABLE In 16ch (VB-Audio Virtual Cable)") };
+                List<MixDevice> mics = new List<MixDevice> { new MixDevice("vb-out", "CABLE Output (VB-Audio Virtual Cable)") };
+                MixDevice found = MicMix.CableFor(speakers, mics);
+                if (found == null || found.Id != "vb" || found.Far != "vb-out" || MicMix.FarName(found) != mics[0].Name || MicMix.Cables(speakers, mics).Count != 2) throw new Exception("Standard VB-CABLE's two inputs lost CABLE Output.");
+                StandInDevices pc = new StandInDevices();
+                pc.Mics.Add(new MixDevice("real-mic", "Yeti"));
+                pc.CableRead = delegate { return MicMix.CableFor(speakers, mics); };
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }) { Call = true })
+                {
+                    mix.Step();
+                    if (!mix.Mixing || mix.Problem != null || mix.CableName != vb.Name || mix.MicName != "Yeti") throw new Exception("Standard VB-CABLE did not start with both playback inputs.");
+                }
+                checks.Add("PASS CABLE Input and CABLE In 16ch share CABLE Output and the call mix starts with Yeti unchanged");
+                speakers.Insert(0, new MixDevice("steam", "Speakers (Steam Streaming Microphone)"));
+                mics.Insert(0, new MixDevice("steam-out", "Microphone (Steam Streaming Microphone)"));
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }) { Call = true })
+                {
+                    mix.Step();
+                    if (!mix.Mixing || mix.Problem != null || mix.CableName != vb.Name || pc.Cable(null).Far != "vb-out") throw new Exception("Steam displaced standard VB-CABLE's two-input route.");
+                }
+                checks.Add("PASS standard VB-CABLE's two playback inputs still take CABLE Output with Steam's mic present");
+                foreach (string name in new[] { "CABLE-A Output (VB-Audio Virtual Cable)", "CABLE Output (VB-Audio VoiceMeeter VAIO)", "Friends mic (VB-Audio Virtual Cable)" })
+                {
+                    mics.Insert(1, new MixDevice("first-out", name));
+                    if (MicMix.CableFor(speakers, mics).Far != "first-out" || MicMix.FarFor(vb, mics).Id != "first-out") throw new Exception("The first matching VB output was rejected: " + name);
+                    mics.RemoveAt(1);
+                }
+                if (!MicMix.IsCableIn("CABLE Input (VB-Audio VoiceMeeter VAIO)") || !MicMix.IsCableIn("CABLE Input (VB-Audio Cable A)")) throw new Exception("A previously matching cable name was rejected.");
+                checks.Add("PASS the first matching VB output is used again, including renamed, A+B and VoiceMeeter matches");
+                if (MicMix.CableFor(speakers, mics, "gone").Id != "vb") throw new Exception("A missing Output pick did not fall back.");
+                pc.CableRead = delegate { return MicMix.CableFor(speakers, mics, "gone"); };
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }) { CableChosen = "gone", Call = true })
+                {
+                    mix.Step();
+                    if (!mix.Mixing || mix.Problem != null) throw new Exception("A missing saved Output stopped the call mix.");
+                }
+                checks.Add("PASS a missing saved Output falls back to an available cable and the call mix starts");
+                MicMix.NameOf = delegate(string id) { return id == "old-16ch" ? "CABLE In 16ch (VB-Audio Virtual Cable)" : null; };
+                if (MicMix.CableFor(speakers, mics, "old-16ch").Id != "vb-16ch") throw new Exception("A reinstalled saved Output was not found by name.");
+                checks.Add("PASS a saved Output whose id changed is found by the same kind and name before the automatic fallback");
+                MicMix.NameOf = delegate(string id) { return id == "mic" ? "Yeti" : vb.Name; };
+                Func<int, string> read = delegate(int i) { if (i == 1) throw new COMException("stand-in unreadable endpoint"); return i == 0 ? "mic" : "vb"; };
+                List<MixDevice> readable = Endpoints.ReadListed(3, read), again = Endpoints.ReadListed(3, read);
+                string skippedLog = File.ReadAllText(log);
+                if (readable.Count != 2 || again.Count != 2 || readable[0].Name != "Yeti" || MicMix.Cables(readable, mics).Count != 1 || MicMix.MicFor(readable, null, "mic").Name != "Yeti"
+                    || skippedLog.IndexOf("Skipped an unreadable audio device", StringComparison.Ordinal) != skippedLog.LastIndexOf("Skipped an unreadable audio device", StringComparison.Ordinal)) throw new Exception("An unreadable endpoint broke the list, changed a mic name or logged twice.");
+                logged(MicMix.ListFailed, "stand-in unreadable endpoint");
+                checks.Add("PASS Listed skips an unreadable device, keeps Yeti's name, keeps the other mic and cable choices, and logs once across repeated looks");
+                MicMix.NameOf = nameWas;
+                pc.CableRead = null;
+                pc.Cables.Clear();
+                pc.CableThere = vb; pc.CableBusy = true;
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }))
+                {
+                    mix.Step();
+                    if (mix.Problem != MicMix.Unopened || pc.Cables.Count != 0) throw new Exception("A busy cable was called open.");
+                }
+                logged(MicMix.Unopened, "0x88890008");
+                checks.Add("PASS a cable that is found but cannot open says to close other audio apps and logs its WASAPI error");
+                pc.CableBusy = false;
+                pc.CableThere = new MixDevice("vb", vb.Name);
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }))
+                {
+                    mix.Step();
+                    if (mix.Problem != MicMix.OffLine(MicMix.CableEnd)) throw new Exception("The mix hid a missing far end.");
+                }
+                logged(MicMix.OffLine(MicMix.CableEnd), "vb");
+                checks.Add("PASS a missing live far end says to enable CABLE Output in Sound and logs the input id");
+                pc.CableThere = vb; pc.FarMuted = true;
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }))
+                {
+                    mix.Step();
+                    if (mix.Problem != MicMix.MutedLine(MicMix.CableEnd)) throw new Exception("The mix hid a muted far end.");
+                }
+                logged(MicMix.MutedLine(MicMix.CableEnd), "vb-out");
+                checks.Add("PASS a muted live far end says to unmute it in Sound and logs its device id");
+                pc.FarMuted = false;
+                double later = 0;
+                MixDevice extra = speakers.Find(delegate(MixDevice each) { return each.Id == "vb-16ch"; });
+                speakers.Remove(extra);
+                pc.CableRead = delegate { return MicMix.CableFor(speakers, mics); };
+                using (MicMix mix = new MicMix(pc, delegate { return later; }))
+                {
+                    mix.Step();
+                    speakers.Add(extra); later = 2.1;
+                    mix.Step();
+                    if (mix.Problem != null || !mix.Mixing || mix.CableOpens != 1 || mix.CableName != vb.Name) throw new Exception("A second cable input interrupted a working mix.");
+                }
+                pc.CableRead = null;
+                checks.Add("PASS a running mix stays open when CABLE In 16ch appears on a later look");
+                pc.CableThere = vb; later = 0;
+                using (MicMix mix = new MicMix(pc, delegate { return later; }))
+                {
+                    mix.Step();
+                    pc.CableRead = delegate { throw new COMException("stand-in later enumeration failed"); }; later = 3;
+                    mix.Step();
+                    if (mix.Problem != MicMix.ListFailed) throw new Exception("A running mix hid a device refresh failure.");
+                }
+                logged(MicMix.ListFailed, "stand-in later enumeration failed");
+                checks.Add("PASS a running mix shows and logs a later device enumeration failure");
+                pc.CableRead = null;
+                pc.CableBusy = false; pc.CableThere = null;
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }) { CableChosen = "gone" })
+                {
+                    mix.Step();
+                    if (mix.Problem != MicMix.Missing) throw new Exception("A missing Output with no fallback hid the missing cable.");
+                }
+                logged(MicMix.Missing, "gone");
+                checks.Add("PASS a missing Output with no cable to fall back to shows the usual missing cable line and logs the saved id");
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }))
+                {
+                    mix.Step();
+                    if (mix.Problem != MicMix.Missing) throw new Exception("No cable was not reported.");
+                }
+                logged(MicMix.Missing, "No active cable");
+                checks.Add("PASS no active cable offers VB-CABLE and logs the failed selection");
+                pc.CableRead = delegate { throw new COMException("stand-in live enumeration failed"); };
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }))
+                {
+                    mix.Step();
+                    if (mix.Problem != MicMix.ListFailed) throw new Exception("A live cable enumeration error was hidden.");
+                }
+                logged(MicMix.ListFailed, "stand-in live enumeration failed");
+                checks.Add("PASS live cable enumeration errors keep their real text and a Sound settings action");
+                pc.CableRead = null; pc.CableThere = vb;
+                pc.MicError = new MixLost("stand-in mic access denied");
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }))
+                {
+                    mix.Step();
+                    if (mix.Problem != MicMix.MicGone) throw new Exception("The mix hid a mic open failure.");
+                }
+                logged(MicMix.MicGone, "stand-in mic access denied");
+                checks.Add("PASS a real mic opening failure shows the mic recovery line and keeps its real error");
+
+                pc.CableThere = null; pc.MicError = null;
+                MicMix.Devices = pc;
+                MixDevice steam = new MixDevice("steam", "Speakers (Steam Streaming Microphone)", "steam-out");
+                pc.CableThere = steam;
+                pc.CableChoices = new List<MixDevice> { steam, new MixDevice("vb", vb.Name) };
+                cableSetupLine = CableSetup.NotInstalled;
+                cableLooked = -10;
+                mainframe.ShowVoiceInMic();
+                if (CableSetupLine != CableSetup.NotInstalled) throw new Exception("A working Steam cable hid what VB-CABLE's setup still needs.");
+                checks.Add("PASS a working Steam cable keeps VB-CABLE's setup line until VB-CABLE itself is there");
+                pc.CableChoices[1] = vb;
+                cableLooked = -10;
+                mainframe.ShowVoiceInMic();
+                if (CableSetupLine != null) throw new Exception("A confirmed VB-CABLE pair kept an old missing-device result.");
+                checks.Add("PASS a confirmed standard VB-CABLE pair clears the old post-setup device failure even with Steam selected");
+                preferences.MixCable = null;
+                preferences.VoiceInMic = true;
+                pc.CableThere = vb;
+                pc.CableChoices = null;
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }) { Call = true })
+                {
+                    micMix = mix;
+                    mix.Step();
+                    mainframe.ShowMixWindow();
+                    foreach (string setupLine in CableSetup.Lines)
+                    {
+                        cableSetupLine = setupLine;
+                        cableLooked = -10;
+                        mainframe.ShowVoiceInMic();
+                        if (CableSetupLine != null || !mainframe.MixShown.Contains("On: your mic and her voice are going in.")) throw new Exception("A ready cable kept its setup line: " + setupLine);
+                    }
+                    cableProblem = MicMix.ListFailed;
+                    if (VoiceInMicProblem != null) throw new Exception("An idle list problem covered a working mix.");
+                    mix.Problem = MicMix.NoMic;
+                    if (VoiceInMicProblem != MicMix.NoMic) throw new Exception("The running mix's problem was hidden.");
+                }
+                micMix = null;
+                if (VoiceInMicProblem != null) throw new Exception("A stopped mix kept a problem line.");
+                micMix = mixWas;
+                preferences.VoiceInMic = voiceWas;
+                checks.Add("PASS every setup line clears over a ready cable, the mixer shows its normal On line, and VoiceInMicProblem follows only the running mix");
+                MixDevice hiFi = MicMix.CableFor(new List<MixDevice> { new MixDevice("hi-fi", "Hi-Fi Cable Input (VB-Audio Hi-Fi Cable)") }, new List<MixDevice> { new MixDevice("hi-fi-out", "Hi-Fi Cable Output (VB-Audio Hi-Fi Cable)") });
+                pc.CableThere = hiFi;
+                cableLooked = -10;
+                mainframe.ShowVoiceInMic();
+                if (hiFi == null || hiFi.Far != "hi-fi-out" || !VbCableReady || mainframe.VoiceInMicStatus.Contains("Get VB-CABLE") || mainframe.MixOutputChoices().Contains("Get VB-CABLE") || mainframe.MixShown.Contains(CableSetup.Better)) throw new Exception("Hi-Fi Cable was offered VB-CABLE.");
+                checks.Add("PASS Hi-Fi Cable works and hides the VB-CABLE offer in Settings, Output choices and the mixer");
+                pc.CableThere = null; pc.CableChoices = null;
+                cableLooked = -10;
+                Packaged.FullName = "Capri_1.0.0.0_x64__stand-in";
+                string page = null;
+                Browse = delegate(string url) { page = url; };
+                int started = starts;
+                SetUpCable();
+                if (page != CableSetup.Page || starts != started || CableSetupLine != CableSetup.MissingPack) throw new Exception("The Store cable offer did not explain its missing pack.");
+                logged(CableSetup.MissingPack, "Store build");
+                checks.Add("PASS the Store cable offer explains its missing pack, logs it, and opens VB-Audio without starting setup");
+                pc.CableThere = vb;
+                preferences.VoiceInMic = true;
+                using (MicMix mix = new MicMix(pc, delegate { return 0; }) { Call = true })
+                {
+                    micMix = mix;
+                    mix.Step();
+                    cableLooked = -10;
+                    mainframe.ShowVoiceInMic();
+                    if (CableSetupLine != null || !mainframe.MixShown.Contains("On: your mic and her voice are going in.")) throw new Exception("The Store copy kept its setup offer after an external cable install.");
+                }
+                micMix = mixWas;
+                preferences.VoiceInMic = voiceWas;
+                checks.Add("PASS the Store copy clears the missing-pack line and shows the normal On line after VB-CABLE arrives from its own page");
+                pc.CableThere = null;
+                cableLooked = -10;
+                cableSetupLine = CableSetup.Declined;
+                CableSetupResult(cableSetupVersion - 1, CableSetup.NotInstalled);
+                if (CableSetupLine != CableSetup.Declined) throw new Exception("A stale setup worker result replaced the current line.");
+                checks.Add("PASS a stale setup worker result is dropped");
+                Packaged.FullName = null;
+                CableSetup.Start = delegate { return new Process(); };
+                SetUpCable();
+                if (CableSetupLine != CableSetup.WatchFailed || CableSetupOpen) throw new Exception("An unwatchable setup was called installed.");
+                logged(CableSetup.WatchFailed, "can't be watched");
+                checks.Add("PASS a setup that cannot be watched stays unverified and says to check its window");
+                string untracked = Path.Combine(output, "Capri VB-CABLE " + Guid.NewGuid().ToString("N").Substring(0, 8));
+                string pretend = Path.Combine(untracked, "stand-in-setup.exe");
+                string otherFolder = Path.Combine(output, "Capri VB-CABLE keep");
+                Directory.CreateDirectory(untracked);
+                Directory.CreateDirectory(otherFolder);
+                File.WriteAllText(pretend, "stand-in, never run");
+                CableSetup.Extract = delegate(out FileStream hold) { hold = new FileStream(pretend, FileMode.Open, FileAccess.Read, FileShare.Read); return pretend; };
+                CableSetup.Start = delegate { return null; };
+                bool setupOpen = true;
+                CableSetup.InUse = delegate(string folder) { return setupOpen; };
+                try
+                {
+                    SetUpCable();
+                    if (CableSetupLine != CableSetup.WatchFailed || !File.Exists(pretend)) throw new Exception("An untracked setup lost its files.");
+                    using (new FileStream(pretend, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
+                    CableSetup.Clean(output);
+                    if (!File.Exists(pretend)) throw new Exception("Cleanup removed an open setup's folder.");
+                    setupOpen = false;
+                    using (new FileStream(pretend, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        CableSetup.Clean(output);
+                        if (!File.Exists(pretend)) throw new Exception("A locked setup folder was removed.");
+                        logged(CableSetup.Locked, "Couldn't remove unpacked folder");
+                    }
+                    CableSetup.Clean(output);
+                    if (Directory.Exists(untracked)) throw new Exception("The next-start cleanup left an unused setup folder behind.");
+                    if (!Directory.Exists(otherFolder)) throw new Exception("The cable cleanup removed a folder it did not unpack.");
+                }
+                finally { CableSetup.Tidy(pretend, null); if (Directory.Exists(otherFolder)) Directory.Delete(otherFolder); }
+                if (Directory.Exists(untracked)) throw new Exception("The stand-in setup folder was not tidied.");
+                checks.Add("PASS an untracked setup releases its hold, survives cleanup while open, logs locked cleanup, and is removed by the next-start cleanup when unused");
+                Directory.CreateDirectory(untracked);
+                File.WriteAllText(pretend, "stand-in, never run");
+                CableSetup.Start = delegate { return new Process(); };
+                SetUpCable();
+                if (!File.Exists(pretend)) throw new Exception("The event-watch failure removed setup's files too early.");
+                CableSetup.Clean(output);
+                if (Directory.Exists(untracked)) throw new Exception("The event-watch failure's setup files were not reclaimed.");
+                checks.Add("PASS a setup whose exit event cannot be watched is reclaimed by the next-start cleanup too");
+                cableSetupLine = CableSetup.ExitFailed;
+                ChooseMixOutput(preferences.MixCable);
+                if (CableSetupLine != null) throw new Exception("Picking Output kept an old cable setup error over the new choice.");
+                checks.Add("PASS picking Output clears an old setup result so the current cable problem can be shown");
+            }
+            finally
+            {
+                CableSetup.Extract = extractWas; CableSetup.Pack = packWas; CableSetup.Start = startWas;
+                CableSetup.Restart = restartWas; CableSetup.Inspect = inspectWas;
+                CableSetup.Pause = pauseWas; CableSetup.InUse = inUseWas; MicMix.NameOf = nameWas;
+                MicMix.Devices = devicesWas; Browse = browseWas; Packaged.FullName = packageWas;
+                micMix = mixWas; preferences.VoiceInMic = voiceWas; preferences.MixCable = choiceWas;
+                if (!windowWas) mainframe.CloseMix();
+                cableSetupLine = lineWas; cableProblem = problemWas; cableLooked = -10; Brain.LogPath = logWas;
+                DeviceLook.InPlace = inPlaceWas;
+            }
+        }
+
         private sealed class StandInDevices : IMixDevices
         {
             internal Func<double> Clock;
@@ -34621,6 +35074,7 @@ namespace CapriDesktop
             // Each mic's hum, by id. Any other hums at 440 Hz.
             internal readonly System.Collections.Generic.Dictionary<string, double> Hums = new System.Collections.Generic.Dictionary<string, double>();
             internal bool CableBusy;
+            internal Exception MicError;
             // Windows' volume on the cable's far end, in dB, its mute, and whether Windows won't say.
             internal volatile bool FarMuted, FarUnread;
             internal double FarBoost;
@@ -34663,6 +35117,7 @@ namespace CapriDesktop
 
             public IMixMic OpenMic(MixDevice mic)
             {
+                if (MicError != null) throw MicError;
                 double hum;
                 if (!Hums.TryGetValue(mic.Id, out hum)) hum = 440;
                 StandInMic made = new StandInMic(Clock, MicRate, hum, Level, Fast, Phase, Click, Late);
@@ -36179,8 +36634,6 @@ namespace CapriDesktop
                     || MicMix.CableFor(speakersHere.GetRange(0, 1), heardBy) != null || steamOverOff == null || steamOverOff.Id != "{0.0.0.00000000}.{steam}" || steamOverOff.Far != "{0.0.1.00000000}.{steam}"
                     || bothOff == null || bothOff.Id != "{0.0.0.00000000}.{cable}" || bothOff.Far != null || renamed == null || renamed.Id != "{0.0.1.00000000}.{renamed}" || MicMix.EndOf(steamOnly) != MicMix.SteamEnd || MicMix.EndOf(bothThere) != MicMix.CableEnd)
                     throw new Exception("Her mic mix picked the wrong cable or far end: " + pairOf(steamOnly) + ", " + pairOf(bothThere) + ", " + pairOf(steamOverOff) + ", " + pairOf(bothOff) + ", " + pairOf(renamed));
-                // Settings' Output: the cable they picked while it's there, else the usual one, and every cable for its menu,
-                // VB-CABLE's first, each named as Discord lists its far end.
                 MixDevice pickedSteam = MicMix.CableFor(speakersHere, heardBy, "{0.0.0.00000000}.{steam}"), pickedGone = MicMix.CableFor(speakersHere, heardBy, "{0.0.0.00000000}.{unplugged}");
                 System.Collections.Generic.List<MixDevice> listed = MicMix.Cables(speakersHere, heardBy);
                 if (pickedSteam == null || pickedSteam.Id != "{0.0.0.00000000}.{steam}" || pickedSteam.Far != "{0.0.1.00000000}.{steam}" || pickedGone == null || pickedGone.Id != bothThere.Id
@@ -45913,10 +46366,13 @@ namespace CapriDesktop
                             // says what's wrong, and the rows fit in Advanced and Simple Settings.
                             Section(checks, "SmokeVoiceInMicRows", delegate
                             {
+                                Section(checks, "SmokeCableErrors", delegate { SmokeCableErrors(checks, output); });
                                 Section(checks, "SmokeMicLoudness", delegate { SmokeMicLoudness(checks); });
                                 IMixDevices mixDevicesWas = MicMix.Devices;
                                 Action<string> mixBrowseWas = Browse;
                                 Func<string, Process> setupWas = CableSetup.Start;
+                                Func<bool?> cableRestartWas = CableSetup.Restart;
+                                Action<int> cablePauseWas = CableSetup.Pause;
                                 string mixMicWas = preferences.Mic, mixCableWas = preferences.MixCable, mixBrowsed = null, setupRan = null, setupDeclined = null;
                                 StandInDevices mixPc = new StandInDevices();
                                 MicMix mixRunning = null;
@@ -45927,6 +46383,8 @@ namespace CapriDesktop
                                 bool mixStayedOff, setupUnpacked, setupHeld, setupTidied, mixSaved, mixWired, mixStopped, mixUnsaved;
                                 try
                                 {
+                                    CableSetup.Restart = delegate { return false; };
+                                    CableSetup.Pause = delegate { };
                                     preferences.MixCable = null;
                                     Browse = delegate(string mixPage) { mixBrowsed = mixPage; };
                                     MicMix.Devices = new StandInDevices();
@@ -45958,7 +46416,7 @@ namespace CapriDesktop
                                     }
                                     catch (Exception) { setupHeld = setupRan != null && File.Exists(setupRan); }
                                     setupUnpacked = setupRan != null && Path.GetFileName(setupRan) == (Environment.Is64BitOperatingSystem ? "VBCABLE_Setup_x64.exe" : "VBCABLE_Setup.exe") && File.Exists(setupRan) && File.Exists(Path.Combine(Path.GetDirectoryName(setupRan), "readme.txt"));
-                                    WaitSound(delegate { return CableSetupLine == CableSetup.Finish; }, "Settings didn't notice VB-CABLE's setup close.");
+                                    WaitSound(delegate { return CableSetupLine == CableSetup.NotInstalled; }, "Settings didn't report VB-CABLE's setup closing without a driver.");
                                     mainframe.ShowVoiceInMic();
                                     mixSetupDone = mainframe.VoiceInMicStatus;
                                     setupTidied = setupRan != null && !Directory.Exists(Path.GetDirectoryName(setupRan));
@@ -46003,7 +46461,7 @@ namespace CapriDesktop
                                     mainframe.FlipVoiceInMic();
                                     MicMix upgrading = micMix;
                                     WaitSound(delegate { return upgrading != null && upgrading.Mixing && upgrading.CableName == mixSteamCable.Name && upgrading.Problem == null; }, "Her voice in your mic didn't start on Steam's virtual mic.");
-                                    cableSetupLine = CableSetup.Finish;
+                                    cableSetupLine = CableSetup.NotInstalled;
                                     cableLooked = -10;
                                     mainframe.ShowVoiceInMic();
                                     mixSteamFinish = mainframe.VoiceInMicStatus;
@@ -46085,24 +46543,29 @@ namespace CapriDesktop
                                     MicMix.Devices = mixDevicesWas;
                                     Browse = mixBrowseWas;
                                     CableSetup.Start = setupWas;
+                                    CableSetup.Restart = cableRestartWas;
+                                    CableSetup.Pause = cablePauseWas;
                                     cableSetupLine = null;
                                     cableLooked = -10;
                                     simpleTest = false;
                                     mainframe.ShowSettings(true);
                                 }
                                 if (mixMissing != "off | locked | " + MicMix.Missing + " | Get VB-CABLE" + creditNote || mixMissingFits != null || mixRefused != mixMissing || !mixStayedOff || mixBrowsed != null
-                                    || mixSetupOpen != "off | locked | " + CableSetup.Running + " | -" + creditNote || !setupUnpacked || !setupHeld || mixSetupDone != "off | locked | " + CableSetup.Finish + " | Get VB-CABLE" + creditNote || !setupTidied
+                                    || mixSetupOpen != "off | locked | " + CableSetup.Running + " | -" + creditNote || !setupUnpacked || !setupHeld || mixSetupDone != "off | locked | " + CableSetup.NotInstalled + " | Get VB-CABLE" + creditNote || !setupTidied
                                     || mixDeclined != "off | locked | " + CableSetup.Declined + " | Get VB-CABLE" + creditNote || mixSteam != "off | open | - | Get VB-CABLE | " + MicMix.PickLine(MicMix.SteamEnd) || mixSteamFits != null
                                     || mixSteamOff != "off | open | " + MicMix.OffLine(MicMix.SteamEnd) + " | Get VB-CABLE | " + MicMix.PickLine(MicMix.SteamEnd) || mixSteamOffFits != null || creditOpened != CableSetup.Page
                                     || mixSteamMenu != "Automatic: VB-CABLE, else Steam's | Microphone (Steam Streaming Microphone) | Get VB-CABLE (free)..." || mixSteamSimple != mixSteam || mixSteamSimpleFits != null
                                     || mixSteamDeclined != "off | open | " + CableSetup.Declined + " | Get VB-CABLE | " + MicMix.PickLine(MicMix.SteamEnd) || mixUpgrade != "on | open | - | -" + mixNote
-                                    || mixSteamFinish != "on | open | " + CableSetup.Finish + " | Get VB-CABLE | " + MicMix.PickLine(MicMix.SteamEnd)
+                                    || mixSteamFinish != "on | open | " + CableSetup.NotInstalled + " | Get VB-CABLE | " + MicMix.PickLine(MicMix.SteamEnd)
                                     || mixVbMenu != "Automatic: VB-CABLE, else Steam's | CABLE Output (VB-Audio Virtual Cable) | Microphone (Steam Streaming Microphone)" || mixVbSimple != mixReady || mixVbSimpleFits != null
                                     || mixBoth != "off | open | - | - | " + MicMix.PickLine(MicMix.SteamEnd) || mixBothMenu != mixVbMenu
                                     || mixReady != "off | open | - | -" + mixNote || mixOn != "on | open | - | -" + mixNote || !mixSaved || !mixWired || mixOnFits != null || mixMoved != "Headset Microphone (stand-in)"
                                     || mixAlone != "on | open | " + MicMix.NoMic + " | -" + mixNote || mixGone != "on | open | " + MicMix.Missing + " | Get VB-CABLE" + creditNote || mixOff != mixMissing || !mixStopped || !mixUnsaved || mixSimpleFits != null)
                                     throw new Exception("Her voice in your mic's Settings went wrong: " + string.Join(" / ", new[] { mixMissing, mixMissingFits, mixRefused, mixStayedOff.ToString(), mixBrowsed, creditOpened, mixSetupOpen, setupUnpacked.ToString(), setupHeld.ToString(), mixSetupDone, setupTidied.ToString(), mixDeclined, mixSteam, mixSteamFits, mixSteamMenu, mixSteamSimple, mixSteamSimpleFits, mixSteamOff, mixSteamOffFits, mixSteamDeclined, mixSteamFinish, mixUpgrade, mixVbMenu, mixVbSimple, mixVbSimpleFits, mixBoth, mixBothMenu, mixReady, mixOn, mixSaved.ToString(), mixWired.ToString(), mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixStopped.ToString(), mixUnsaved.ToString(), mixSimpleFits }));
-                                checks.Add("PASS her voice in your mic in Settings: without a cable the switch is locked, the note credits VB-CABLE as donationware from vb-cable.com and opens its page, and the line says it needs VB-CABLE (free); Get VB-CABLE unpacks VB-Audio's pack as she carries it and opens its setup (a stand-in here) with the unpacked setup held so nothing can change it, says to click Install Driver while it's open and to restart once it closes, tidies the unpacked files and says so when Windows' prompt is turned down, with Steam's mic there too; with only Steam's virtual mic the button and Output menu offer VB-CABLE and the note says it usually sounds better, and the line says to turn Steam's mic on when Windows has it off; VB-CABLE arriving moves the running mix by itself and the note says to pick CABLE Output, and hides the offer even with Steam picked; with VB-CABLE the switch starts the mix with the mic picked under VOICE and is saved, a new pick moves it, no mic says only her voice goes in, VB-CABLE going away says it's needed again and the switch still turns off and stops it, and the rows fit in Advanced and Simple Settings");
+                                checks.Add("PASS Settings' cable rows lock without a cable, keep the donationware credit and link, and fit Simple and Advanced layouts");
+                                checks.Add("PASS the setup stand-in stays read-locked, reports no driver after exit, tidies files and reports declined UAC");
+                                checks.Add("PASS Steam's virtual mic offers VB-CABLE, and a running mix upgrades when VB-CABLE arrives");
+                                checks.Add("PASS the mic switch and choices save, a missing mic is reported, and a lost cable leaves the switch able to turn off");
                             });
                             // Her voice in your mic's Input, Output and setup window (Lachy, 3 Nov: "we need to be able to change the input
                             // and output for the mixer as well / And make it clear how to set it up too"), on stand-in devices: the window

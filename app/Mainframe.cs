@@ -719,11 +719,19 @@ namespace CapriDesktop
             voiceInMic.Switch = 68;
             voiceInMic.AccessibleName = "Her voice plays into your mic only in call mode. Pick CABLE Output or Steam Streaming Microphone in your call app.";
             voiceInMicNote = Caption(MicMix.PickLine(MicMix.CableEnd), 28, MixAt + 26, small, Faint);
+            voiceInMicNote.AutoSize = false;
+            voiceInMicNote.AutoEllipsis = true;
+            voiceInMicNote.Size = new Size(328, 22);
+            ((Note)voiceInMicNote).Hovers = true;
             // Without a cable the note credits VB-CABLE, and opens its page, where they can donate.
             voiceInMicNote.Click += delegate { if (voiceInMicNote.Text == CableSetup.Credit) capri.OpenCablePage(); };
             voiceInMicState = Caption("", 28, MixAt + 50, small, Faint);
+            voiceInMicState.AutoSize = false;
+            voiceInMicState.AutoEllipsis = true;
+            voiceInMicState.Size = new Size(328, 22);
+            ((Note)voiceInMicState).Hovers = true;
             cableKey = Make("Get VB-CABLE", 244, MixAt + 76, 112, 22, delegate { capri.SetUpCable(); }, "Her voice in your mic");
-            cableKey.AccessibleName = Packaged.Is ? "Get VB-CABLE: opens VB-Audio's page, where you can get it. VB-CABLE is donationware from vb-cable.com" : "Get VB-CABLE: opens VB-Audio's own setup, which Windows asks you to let run. Click Install Driver in it, then restart your PC. VB-CABLE is donationware from vb-cable.com";
+            cableKey.AccessibleName = Packaged.Is ? "Get VB-CABLE: opens VB-Audio's page, where you can get it. VB-CABLE is donationware from vb-cable.com" : "Get VB-CABLE: opens VB-Audio's own setup, which Windows asks you to let run. Click Install Driver in it, then restart your PC if she asks. VB-CABLE is donationware from vb-cable.com";
             cableKey.Visible = false;
             mixInputMenu = Dropdown();
             mixInputMenu.Closed += delegate { mixInputsWaiting = false; };
@@ -1564,7 +1572,7 @@ namespace CapriDesktop
             syncing = was;
             voiceInMicNote.Text = cable ? MicMix.PickLine(capri.CableEnd) : CableSetup.Credit;
             voiceInMicNote.Cursor = cable ? Cursors.Default : Cursors.Hand;
-            voiceInMicState.Text = !vb && setup != null ? setup : !cable ? MicMix.Missing : on && problem != null ? problem : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
+            voiceInMicState.Text = setup != null ? setup : problem != null ? problem : !cable ? MicMix.Missing : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
             voiceInMicState.ForeColor = cable ? Hot : Faint;
             // Visible reads false while Settings isn't on screen, so the width goes by what it was set to.
             cableOffered = !vb && !capri.CableSetupOpen;
@@ -1649,7 +1657,7 @@ namespace CapriDesktop
             foreach (Companion.MixChoice cable in cables)
             {
                 string id = cable.Cable.Id;
-                vb |= !MicMix.IsSteam(cable.Cable.Name);
+                vb |= MicMix.IsVb(cable.Cable.Name);
                 mixOutputMenu.Items.Add(Choice(cable.Name, id == chosen, delegate { mixOutputsWaiting = false; capri.ChooseMixOutput(id); }));
             }
             if (!vb)
@@ -1725,7 +1733,9 @@ namespace CapriDesktop
             if (voiceInMicNote.Top < voiceInMic.Bottom || voiceInMicState.Top < voiceInMicNote.Bottom) return "the note or the line overlaps the row above it";
             if (cableKey.Visible && (cableKey.Left < mixInput.Right + Scaled(4) || cableKey.Top < voiceInMicState.Bottom || TextRenderer.MeasureText(cableKey.Text, cableKey.Font).Width + Scaled(12) > cableKey.Width)) return "the button covers Input or doesn't fit";
             if (mixInput.Top < voiceInMicState.Bottom || mixOutput.Top < Math.Max(mixInput.Bottom, cableKey.Bottom) || mixHow.Top < mixInput.Bottom || mixHow.Left < mixOutput.Right) return "Input, Output or How to overlaps a row";
-            foreach (string line in new[] { MicMix.Missing, CableSetup.Finish, CableSetup.Declined, CableSetup.Failed, CableSetup.Running, MicMix.Unopened, MicMix.NoMic, MicMix.MicGone, MicMix.MutedLine(MicMix.CableEnd), MicMix.MutedLine(MicMix.SteamEnd), MicMix.OffLine(MicMix.CableEnd), MicMix.OffLine(MicMix.SteamEnd) })
+            List<string> cableLines = new List<string>(CableSetup.Lines);
+            cableLines.AddRange(new[] { MicMix.Missing, MicMix.Unopened, MicMix.ListFailed, MicMix.NoMic, MicMix.MicGone, MicMix.MutedLine(MicMix.CableEnd), MicMix.MutedLine(MicMix.SteamEnd), MicMix.OffLine(MicMix.CableEnd), MicMix.OffLine(MicMix.SteamEnd) });
+            foreach (string line in cableLines)
                 if (voiceInMicState.Left + TextRenderer.MeasureText(line, voiceInMicState.Font).Width > column) return "\"" + line + "\" doesn't fit";
             foreach (string note in new[] { MicMix.PickLine(MicMix.CableEnd), MicMix.PickLine(MicMix.SteamEnd), CableSetup.Credit, CableSetup.Better })
                 if (voiceInMicNote.Left + TextRenderer.MeasureText(note, voiceInMicNote.Font).Width > column) return "\"" + note + "\" doesn't fit";
@@ -7181,17 +7191,28 @@ namespace CapriDesktop
                 output.Chevron = true;
                 output.AccessibleName = "Output: the virtual mic she plays into, which your call app hears";
                 state = Caption("", 28, 174, Font, Faint);
+                state.AutoSize = false;
+                state.AutoEllipsis = true;
+                state.Size = new Size(Z(Wide - 56), Z(22));
+                ((Note)state).Hovers = true;
                 callHead = Heading(this, "IN DISCORD >", new Point(Z(28), Z(208)), head, White, Wide - 28);
                 steps = new Label[5];
                 steps[0] = Caption("", 28, 240, Font, White);
                 pickStep = Caption("2   Input Device:", 28, 266, Font, White);
                 pick = Caption("", 28, 266, Font, Cyan);
+                pick.AutoSize = false;
+                pick.AutoEllipsis = true;
+                ((Note)pick).Hovers = true;
                 steps[1] = Caption("", 28, 292, Font, White);
                 steps[2] = Caption("", 28, 318, Font, White);
                 steps[3] = Caption("", 28, 344, Font, White);
                 steps[4] = Caption("", 28, 370, Font, White);
                 live = Caption("", 28, 404, Font, Faint);
                 elsewhere = Caption("", 28, 438, Font, Faint);
+                elsewhere.AutoSize = false;
+                elsewhere.AutoEllipsis = true;
+                elsewhere.Size = new Size(Z(Wide - 56), Z(22));
+                ((Note)elsewhere).Hovers = true;
                 // Every second it asks again who hears her. Her looks at Windows run in the background, so it never waits (#100).
                 ticks.Interval = 1000;
                 ticks.Tick += delegate { Sync(); };
@@ -7263,14 +7284,15 @@ namespace CapriDesktop
                 Retext(output, cable ? far : NoOutput);
                 Retext(pick, far);
                 pick.Left = pickStep.Right + (int)Math.Round(4 * ScaleOf(this));
+                pick.Size = new Size(Math.Max(1, Z(Wide - 28) - pick.Left), Z(22));
                 Retext(elsewhere, "Roblox or any other app: pick " + far + " as its mic.");
                 string said;
                 Color colour = Hot;
-                if (!vb && setup != null) said = setup;
+                if (setup != null) said = setup;
+                else if (problem != null) said = problem;
                 else if (!cable) said = NoCable;
                 else if (there.Far == null) said = MicMix.OffLine(MicMix.EndOf(there));
                 else if (!on) said = Off;
-                else if (problem != null) said = problem;
                 else { said = "On: your mic and her voice are going in."; colour = Cyan; }
                 Retext(state, said);
                 state.ForeColor = colour;
@@ -7339,7 +7361,9 @@ namespace CapriDesktop
                 string vb = "CABLE Output (VB-Audio Virtual Cable)";
                 foreach (string text in new[] { NoOutput, vb, "Microphone (" + MicMix.SteamEnd + ")" })
                     if (TextRenderer.MeasureText(text, output.Font).Width + (int)Math.Ceiling(28 * s) > output.Width) return "doesn't fit: " + text + " in Output";
-                foreach (string line in new[] { "2   Input Device: " + vb, "Roblox or any other app: pick " + vb + " as its mic.", NoCable,CableSetup.Finish, CableSetup.Declined, CableSetup.Failed, CableSetup.Running, MicMix.Unopened, MicMix.NoMic, MicMix.MicGone, MicMix.MutedLine(MicMix.CableEnd), MicMix.MutedLine(MicMix.SteamEnd), MicMix.OffLine(MicMix.CableEnd), MicMix.OffLine(MicMix.SteamEnd), Off, "Discord, OBS and Roblox hear it now.", "OBS and Roblox hear it now. Discord doesn't yet.", NotYet })
+                List<string> cableLines = new List<string>(CableSetup.Lines);
+                cableLines.AddRange(new[] { "2   Input Device: " + vb, "Roblox or any other app: pick " + vb + " as its mic.", NoCable, MicMix.Missing, MicMix.Unopened, MicMix.ListFailed, MicMix.NoMic, MicMix.MicGone, MicMix.MutedLine(MicMix.CableEnd), MicMix.MutedLine(MicMix.SteamEnd), MicMix.OffLine(MicMix.CableEnd), MicMix.OffLine(MicMix.SteamEnd), Off, "Discord, OBS and Roblox hear it now.", "OBS and Roblox hear it now. Discord doesn't yet.", NotYet });
+                foreach (string line in cableLines)
                     if (state.Left + TextRenderer.MeasureText(line, Font).Width + (int)(24 * s) > ClientSize.Width - (int)(16 * s)) return "doesn't fit: " + line;
                 return null;
             }

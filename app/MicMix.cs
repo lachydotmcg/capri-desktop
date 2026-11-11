@@ -14,14 +14,22 @@ namespace CapriDesktop
         internal readonly string Name;
         // For a cable, the mic it comes out of, which Discord or Roblox hears, or null when Windows doesn't list it.
         internal readonly string Far;
+        internal readonly string End, Problem, Detail;
 
         internal MixDevice(string id, string name) : this(id, name, null) { }
 
-        internal MixDevice(string id, string name, string far)
+        internal MixDevice(string id, string name, string far) : this(id, name, far, null, null) { }
+
+        internal MixDevice(string id, string name, string far, string end, string problem) : this(id, name, far, end, problem, null) { }
+
+        internal MixDevice(string id, string name, string far, string end, string problem, string detail)
         {
             Id = id;
             Name = name;
             Far = far;
+            End = end;
+            Problem = problem;
+            Detail = detail;
         }
     }
 
@@ -140,12 +148,14 @@ namespace CapriDesktop
     {
         internal const string Missing = "Needs VB-CABLE (free).";
         internal const string Unopened = "The virtual mic won't open. Trying again.";
+        internal const string ListFailed = "Windows wouldn't list your sound devices.";
         // What they pick in Discord or Roblox for each cable.
         internal const string CableEnd = "CABLE Output", SteamEnd = "Steam Streaming Microphone";
         internal const string NoMic = "No mic found, so only her voice goes in.";
         internal const string MicGone = "Your mic won't open, so only her voice goes in.";
         // Where she finds the mic and the cable. The smoke test swaps in stand-ins.
         internal static IMixDevices Devices = new Endpoints();
+        internal static Func<string, string> NameOf = Ears.EndpointName;
         // The mix that's on, for her speakers to hand her voice to.
         internal static volatile MicMix Current;
         // How often she checks the devices are still the right ones, how soon one that failed is tried again, and how long a
@@ -268,8 +278,14 @@ namespace CapriDesktop
 
         internal static bool IsSteam(string name) { return !string.IsNullOrEmpty(name) && SteamName.IsMatch(name); }
 
+        internal static bool IsVb(string name) { return IsCableIn(name); }
+
         // The end they pick as their mic in Discord or Roblox for a cable.
-        internal static string EndOf(MixDevice cable) { return cable != null && IsSteam(cable.Name) ? SteamEnd : CableEnd; }
+        internal static string EndOf(MixDevice cable)
+        {
+            if (cable != null && !string.IsNullOrEmpty(cable.End) && cable.End != "CABLE Output (VB-Audio Virtual Cable)" && cable.End != "Microphone (Steam Streaming Microphone)") return cable.End;
+            return cable != null && IsSteam(cable.Name) ? SteamEnd : CableEnd;
+        }
 
         // Settings' note for an end, short enough for its column.
         internal static string PickLine(string end) { return "Calls only. Pick " + end + "."; }
@@ -280,7 +296,14 @@ namespace CapriDesktop
         internal static MixDevice CableFor(List<MixDevice> speakers, List<MixDevice> mics, string chosen = null)
         {
             List<MixDevice> cables = Cables(speakers, mics);
-            if (!string.IsNullOrEmpty(chosen)) foreach (MixDevice cable in cables) if (cable.Id == chosen) return cable;
+            if (!string.IsNullOrEmpty(chosen))
+            {
+                MixDevice picked = cables.Find(delegate(MixDevice cable) { return cable.Id == chosen; });
+                if (picked != null) return picked;
+                string name = NameOf(chosen);
+                picked = cables.Find(delegate(MixDevice cable) { return name != null && cable.Name == name; });
+                if (picked != null) return picked;
+            }
             foreach (MixDevice cable in cables) if (cable.Far != null) return cable;
             return cables.Count > 0 ? cables[0] : null;
         }
@@ -294,7 +317,7 @@ namespace CapriDesktop
                 {
                     if (!(steam ? IsSteam(found.Name) : IsCableIn(found.Name))) continue;
                     MixDevice far = FarFor(found, mics);
-                    cables.Add(new MixDevice(found.Id, found.Name, far == null ? null : far.Id));
+                    cables.Add(new MixDevice(found.Id, found.Name, far == null ? null : far.Id, far == null ? null : Ears.ListedName(far.Id) ?? far.Name, null));
                 }
             return cables;
         }
@@ -303,6 +326,7 @@ namespace CapriDesktop
         // or while Windows has it off, its usual one.
         internal static string FarName(MixDevice cable)
         {
+            if (cable != null && !string.IsNullOrEmpty(cable.End)) return cable.End;
             string named = cable == null || cable.Far == null ? null : Ears.ListedName(cable.Far);
             if (!string.IsNullOrEmpty(named)) return named;
             return cable != null && IsSteam(cable.Name) ? "Microphone (" + SteamEnd + ")" : "CABLE Output (VB-Audio Virtual Cable)";
@@ -319,8 +343,7 @@ namespace CapriDesktop
         internal static MixDevice FarFor(MixDevice cable, List<MixDevice> mics)
         {
             bool steam = IsSteam(cable.Name);
-            foreach (MixDevice found in mics) if (steam ? IsSteam(found.Name) : VbOutput.IsMatch(found.Name)) return found;
-            return null;
+            return mics.Find(delegate(MixDevice found) { return steam ? IsSteam(found.Name) : !IsSteam(found.Name) && VbOutput.IsMatch(found.Name); });
         }
 
         // The mic for a pick from Windows' active mics: the picked one, else Windows' default, else the first, but never a cable's
@@ -470,7 +493,9 @@ namespace CapriDesktop
             }
             if (cable != null && now >= trimAt) Trim(now);
             if (cable != null && mic == null && now >= micAt) OpenMic(now);
-            Problem = cable == null ? cableProblem : cableDevice.Far == null ? OffLine(EndOf(cableDevice)) : farMuted ? MutedLine(EndOf(cableDevice)) : micProblem;
+            Problem = cableProblem ?? (cable == null ? Unopened : cableDevice.Far == null ? OffLine(EndOf(cableDevice)) : farMuted ? MutedLine(EndOf(cableDevice)) : micProblem);
+            if (Problem != null) CableNote(Problem, cableDevice == null ? "No open cable; picked " + (cableChosen ?? "automatic") : CableSetup.Describe(new List<MixDevice> { cableDevice }));
+            else cableLogged = null;
         }
 
         // The cable that's open is still the one to use and the mic is still the one to hear: a new pick, a new Windows default,
@@ -484,7 +509,8 @@ namespace CapriDesktop
                 wantCable = devices.Cable(cableChosen);
                 wantMic = devices.Mic(chosen);
             }
-            catch (Exception) { return; }
+            catch (Exception error) { cableProblem = ListFailed; CableNote(ListFailed, "Couldn't refresh the mix's devices: " + error); return; }
+            cableProblem = null;
             if (wantCable == null || wantCable.Id != cableDevice.Id)
             {
                 LoseCable(now, wantCable == null ? cableDevice.Name + " is gone." : "The cable changed to " + wantCable.Name + ".");
@@ -492,10 +518,10 @@ namespace CapriDesktop
             }
             if (wantCable.Far != cableDevice.Far)
             {
-                cableDevice = wantCable;
                 trimRead = false;
                 trimAt = now;
             }
+            cableDevice = wantCable;
             if (mic != null && (wantMic == null || wantMic.Id != micDevice.Id)) { CloseMic(); micAt = now; }
             else if (mic == null && wantMic != null) micAt = now;
         }
@@ -536,10 +562,17 @@ namespace CapriDesktop
             cableAt = now + RetryGap;
             MixDevice found;
             try { found = devices.Cable(cableChosen); }
-            catch (Exception error) { cableProblem = Unopened; Note("Windows wouldn't list its speakers for her mic mix: " + error.Message); return; }
-            if (found == null) { cableProblem = Missing; Problem = Missing; return; }
+            catch (Exception error) { Problem = cableProblem = ListFailed; CableNote(ListFailed, "Windows wouldn't list its speakers: " + error); return; }
+            if (found == null)
+            {
+                string detail;
+                try { Problem = cableProblem = CableSetup.MissingFor(devices, cableChosen, out detail); }
+                catch (Exception error) { Problem = cableProblem = ListFailed; detail = "Couldn't check missing cable devices: " + error; }
+                CableNote(cableProblem, detail);
+                return;
+            }
             try { cable = devices.OpenCable(found); }
-            catch (Exception error) { cableProblem = Unopened; Problem = Unopened; Note(found.Name + " wouldn't open for her mic mix: " + error.Message); return; }
+            catch (Exception error) { cableProblem = Unopened; Problem = Unopened; CableNote(Unopened, found.Name + " [" + found.Id + "] wouldn't open: " + error); return; }
             cableDevice = found;
             trim = 1;
             trimRead = false;
@@ -567,10 +600,10 @@ namespace CapriDesktop
             micAt = now + RetryGap;
             MixDevice found;
             try { found = devices.Mic(chosen); }
-            catch (Exception) { found = null; }
+            catch (Exception error) { micProblem = MicGone; CableNote(MicGone, "Couldn't list the mix's mic: " + error); return; }
             if (found == null) { micProblem = NoMic; micAt = now + LookGap; return; }
             try { mic = devices.OpenMic(found); }
-            catch (Exception error) { micProblem = MicGone; Note("Her mic mix couldn't open " + found.Name + ": " + error.Message); return; }
+            catch (Exception error) { micProblem = MicGone; CableNote(MicGone, "Couldn't open " + found.Name + " [" + found.Id + "]: " + error); return; }
             micDevice = found;
             micProblem = null;
             heardAt = now;
@@ -597,6 +630,7 @@ namespace CapriDesktop
             micProblem = MicGone;
             MicLosses++;
             Note("Her mic mix lost the mic: " + why);
+            CableNote(MicGone, "Lost mic: " + why);
         }
 
         private void LoseCable(double now, string why)
@@ -608,6 +642,17 @@ namespace CapriDesktop
             CableLosses++;
             farMuted = trimRead = false;
             Note("Her mic mix lost its cable: " + why);
+            CableNote(Unopened, "Lost cable: " + why);
+        }
+
+        private string cableLogged;
+
+        private void CableNote(string line, string detail)
+        {
+            string entry = line + " " + detail;
+            if (entry == cableLogged) return;
+            cableLogged = entry;
+            CableSetup.Report(line, detail);
         }
 
         private void CloseMic()
@@ -1423,6 +1468,7 @@ namespace CapriDesktop
     // Her mix's devices on a real PC, from Windows' list of active endpoints and their names in Windows' own records.
     internal sealed class Endpoints : IMixDevices
     {
+        private static int listNoted;
         // The far end's volume, kept open between reads, since her mix reads it four times a second.
         private readonly object reading = new object();
         private ISpeakerVolume volume;
@@ -1431,6 +1477,13 @@ namespace CapriDesktop
         public MixDevice Cable(string chosen) { return MicMix.CableFor(Active(0), Active(1), chosen); }
 
         public List<MixDevice> Cables() { return MicMix.Cables(Active(0), Active(1)); }
+
+        internal CableState InspectCable()
+        {
+            List<MixDevice> speakers = Active(0), mics = Active(1), allSpeakers = Listed(0, 3), allMics = Listed(1, 3);
+            return new CableState(MicMix.Cables(speakers, mics), MicMix.Cables(allSpeakers, allMics),
+                "active speakers: " + CableSetup.Describe(speakers) + "; active mics: " + CableSetup.Describe(mics) + "; present speakers: " + CableSetup.Describe(allSpeakers) + "; present mics: " + CableSetup.Describe(allMics));
+        }
 
         // Windows' audio sessions on the mic that are hearing it now, by program, like "Discord". Discord opens its mic while
         // it's in a call or testing it.
@@ -1576,36 +1629,61 @@ namespace CapriDesktop
         // Every active endpoint one way: 0 for speakers and cables in, 1 for mics.
         internal static List<MixDevice> Active(int flow)
         {
-            List<MixDevice> found = new List<MixDevice>();
+            return Listed(flow, 1);
+        }
+
+        internal static List<MixDevice> Listed(int flow, int states)
+        {
             ISoundDevices devices = null;
             ISoundDeviceList listed = null;
             try
             {
                 devices = (ISoundDevices)new SoundDevices();
                 IntPtr list;
-                if (devices.EnumAudioEndpoints(flow, 1, out list) != 0 || list == IntPtr.Zero) return found;
+                Wasapi.Check(devices.EnumAudioEndpoints(flow, states, out list), "list endpoints");
+                if (list == IntPtr.Zero) throw new MixLost("Windows returned no endpoint list.");
                 try { listed = (ISoundDeviceList)Marshal.GetObjectForIUnknown(list); }
                 finally { Marshal.Release(list); }
                 int count;
-                if (listed.GetCount(out count) != 0) return found;
-                for (int i = 0; i < count; i++)
+                Wasapi.Check(listed.GetCount(out count), "count endpoints");
+                return ReadListed(count, delegate(int i)
                 {
-                    ISoundDevice device;
-                    if (listed.Item(i, out device) != 0 || device == null) continue;
+                    ISoundDevice device = null;
                     try
                     {
+                        Wasapi.Check(listed.Item(i, out device), "read endpoint");
+                        if (device == null) throw new MixLost("Windows returned an empty endpoint.");
                         string id;
-                        if (device.GetId(out id) == 0 && !string.IsNullOrEmpty(id)) found.Add(new MixDevice(id, Ears.EndpointName(id) ?? id));
+                        Wasapi.Check(device.GetId(out id), "endpoint id");
+                        return id;
                     }
-                    finally { Marshal.ReleaseComObject(device); }
-                }
-                return found;
+                    finally { Wasapi.Release(device); }
+                });
             }
             finally
             {
                 Wasapi.Release(listed);
                 Wasapi.Release(devices);
             }
+        }
+
+        internal static List<MixDevice> ReadListed(int count, Func<int, string> read)
+        {
+            List<MixDevice> found = new List<MixDevice>();
+            for (int i = 0; i < count; i++)
+            {
+                try
+                {
+                    string id = read(i);
+                    if (string.IsNullOrEmpty(id)) throw new MixLost("Windows returned an empty endpoint id.");
+                    found.Add(new MixDevice(id, MicMix.NameOf(id) ?? id));
+                }
+                catch (Exception error)
+                {
+                    if (Interlocked.Exchange(ref listNoted, 1) == 0) CableSetup.Report(MicMix.ListFailed, "Skipped an unreadable audio device: " + error);
+                }
+            }
+            return found;
         }
 
         internal static string Default(int flow)
