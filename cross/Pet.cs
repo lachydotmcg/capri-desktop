@@ -654,7 +654,11 @@ namespace CapriDesktop
             // A copy that moved since they ticked it takes the login entry over, so it doesn't point at the old place.
             if (Program.Smoke == null && File.Exists(LoginFile)) Limbs.SetLogin(LoginFile, Limbs.SelfPath(), true, OperatingSystem.IsMacOS());
             Brain.LogPath = Path.Combine(Program.Smoke ?? folder, "errors.txt");
-            if (OperatingSystem.IsLinux()) X11Desk.Errors.Report();
+            if (OperatingSystem.IsLinux())
+            {
+                X11Desk.Errors.Log = delegate(string line) { return Brain.LogAt(Brain.LogPath, "x11", -1, line); };
+                X11Desk.Errors.Report();
+            }
             StartMods();
             Brain.BrainMenu = "under BRAIN in Capri Mainframe";
             Brain.FreeKeyHow = "Capri Mainframe > BRAIN > Free key";

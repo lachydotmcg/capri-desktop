@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Avalonia;
@@ -23,7 +22,7 @@ namespace CapriDesktop
         internal IntPtr Display;
         internal IntPtr Previous;
         internal long Errors;
-        internal Func<string, bool> Log = Write;
+        internal Func<string, bool> Log;
         private string first;
         private int reported;
 
@@ -55,20 +54,13 @@ namespace CapriDesktop
             try
             {
                 string line = Volatile.Read(ref first);
-                if (line == null || Interlocked.CompareExchange(ref reported, 1, 0) != 0) return;
+                Func<string, bool> log = Log;
+                if (line == null || log == null || Interlocked.CompareExchange(ref reported, 1, 0) != 0) return;
                 bool written = false;
-                try { written = Log(line + " Count " + Interlocked.Read(ref Errors) + "; further X11 errors are counted without more log lines."); }
+                try { written = log(line + " Count " + Interlocked.Read(ref Errors) + "; further X11 errors are counted without more log lines."); }
                 finally { Volatile.Write(ref reported, written ? 2 : 0); }
             }
             catch { }
-        }
-
-        private static bool Write(string line)
-        {
-            string path = Brain.LogPath;
-            if (path == null) return false;
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            return Brain.LogAt(path, "x11", -1, line);
         }
 
         private static string Call(byte request)
