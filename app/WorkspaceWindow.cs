@@ -55,6 +55,7 @@ namespace CapriDesktop
                 {
                     workspace = new Workspace(Path.GetDirectoryName(settingsPath), null);
                     workspace.Finished = delegate(WorkspaceChat chat) { Post(delegate { WorkspaceDone(chat); }); };
+                    workspace.Waiting = delegate(WorkspaceChat chat, WorkspaceApproval ask) { Post(delegate { WorkspaceNeeds(chat, ask); }); };
                 }
                 if (workspaceWindow == null || workspaceWindow.IsDisposed)
                 {
@@ -79,6 +80,24 @@ namespace CapriDesktop
             else Remark("", line, true);
         }
 
+        private void WorkspaceNeeds(WorkspaceChat chat, WorkspaceApproval ask)
+        {
+            if (quitting || chat.Deleted || ask.Choice != null || ask.Announced || (workspaceFront != null ? workspaceFront() : workspaceWindow != null && workspaceWindow.InFront)) return;
+            if (LineBusy && workspaceSaid == null)
+            {
+                if (!ask.Queued)
+                {
+                    ask.Queued = true;
+                    ownLines.Enqueue(delegate { ask.Queued = false; WorkspaceNeeds(chat, ask); });
+                }
+                return;
+            }
+            ask.Announced = true;
+            string line = "Workspace needs your OK in " + chat.Title + ".";
+            if (workspaceSaid != null) workspaceSaid(line, false);
+            else Remark("", line, true);
+        }
+
         private void CloseWorkspace()
         {
             if (workspaceWindow != null && !workspaceWindow.IsDisposed) workspaceWindow.KeepPlace();
@@ -92,8 +111,8 @@ namespace CapriDesktop
         private readonly Workspace workspace;
         private readonly Func<bool> blackwall;
         private readonly bool live;
-        private readonly Label heading, modeLabel, modelLabel, next, empty;
-        private readonly Plate make, send, stop, undo, folder, shut, smaller, bigger;
+        private readonly Label heading, modeLabel, modelLabel, next, empty, trustLabel;
+        private readonly Plate make, send, stop, undo, folder, shut, smaller, bigger, trust, earlier, newer;
         private readonly ListBox chats;
         private readonly TextBox title, input;
         private readonly ComboBox mode, model;
@@ -102,9 +121,12 @@ namespace CapriDesktop
         private readonly Dictionary<WorkspaceChat, int> scrolls = new Dictionary<WorkspaceChat, int>();
         private readonly Dictionary<WorkspaceItem, Card> cards = new Dictionary<WorkspaceItem, Card>();
         private readonly List<Card> order = new List<Card>();
+        private WorkspaceItem pageEnd;
+        internal Func<string, bool> Confirm;
+        internal int ItemCount { get { return order.Count; } }
         private readonly Action<WorkspaceChat, WorkspaceItem> changed;
         private WorkspaceChat chat;
-        private bool filling, arranging, following = true, saving;
+        private bool filling, arranging, following = true, saving, hasEarlier, hasNewer;
         private float zoom;
         private Font mono, small, strong;
         internal float Zoom { get { return zoom; } }
@@ -143,12 +165,32 @@ namespace CapriDesktop
             folder.TextAlign = ContentAlignment.MiddleLeft;
             folder.AccessibleName = "Open chat folder in Explorer";
             folder.Accent = Neon.Cyan;
+            trustLabel = Words("Folder not trusted", Neon.Faint);
+            trust = Key("Trust", delegate { if (chat != null) Try(delegate { workspace.AskTrust(chat); SyncItems(); }); });
+            trust.Accent = Neon.Cyan;
             modeLabel = Words("MODE", Neon.Faint);
             modelLabel = Words("MODEL", Neon.Faint);
             next = Words("Mode and model apply to the next turn.", Neon.Faint);
-            mode = Picker(Workspace.Modes, "Permission mode");
+            mode = new ModePicker { DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Neon.Field, ForeColor = Neon.White, FlatStyle = FlatStyle.Flat, AccessibleName = "Permission mode" };
+            mode.Items.AddRange(Workspace.Modes);
+            Controls.Add(mode);
             model = Picker(Workspace.Models, "Claude model");
-            mode.SelectedIndexChanged += delegate { if (!filling && chat != null) Try(delegate { workspace.Change(chat, null, mode.Text, null); }); };
+            mode.SelectedIndexChanged += delegate
+            {
+                if (filling || chat == null) return;
+                string picked = mode.Text;
+                if (picked == "Everything" && chat.Mode != picked)
+                {
+                    string question = "Everything lets Claude Code run anything without asking. Switch?";
+                    if (!(Confirm != null ? Confirm(question) : MessageBox.Show(this, question, "Workspace", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes))
+                    {
+                        FillHeader();
+                        return;
+                    }
+                }
+                Try(delegate { workspace.Change(chat, null, picked, null); });
+                input.Focus();
+            };
             model.SelectedIndexChanged += delegate { if (!filling && chat != null) Try(delegate { workspace.Change(chat, null, null, model.Text); }); };
             conversation = new Panel { AutoScroll = true, BackColor = Neon.Ground, AccessibleName = "Conversation" };
             conversation.Scroll += delegate(object sender, ScrollEventArgs e) { if (!arranging && e.ScrollOrientation == ScrollOrientation.VerticalScroll) following = e.NewValue + conversation.ClientSize.Height >= conversation.DisplayRectangle.Height - Z(28); };
@@ -156,6 +198,12 @@ namespace CapriDesktop
             Controls.Add(conversation);
             empty = new Label { Text = "Pick a folder to start a chat.", ForeColor = Neon.Faint, BackColor = Neon.Ground, AutoSize = false, UseMnemonic = false };
             conversation.Controls.Add(empty);
+            earlier = new Plate { Text = "Show 150 earlier", Font = Font };
+            earlier.Click += delegate { Page(true); };
+            conversation.Controls.Add(earlier);
+            newer = new Plate { Text = "Show newer", Font = Font };
+            newer.Click += delegate { Page(false); };
+            conversation.Controls.Add(newer);
             input = Field(true);
             input.AcceptsReturn = true;
             input.ScrollBars = ScrollBars.Vertical;
@@ -305,7 +353,8 @@ namespace CapriDesktop
             string name = Path.GetFileName(item.Folder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
             if (name.Length == 0) name = item.Folder;
             TextRenderer.DrawText(e.Graphics, name, small, new Rectangle(first.Left, e.Bounds.Top + Z(35), first.Width, Z(18)), Neon.Faint, TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
-            if (item.Running) using (Brush dot = new SolidBrush(Neon.Cyan)) e.Graphics.FillEllipse(dot, e.Bounds.Right - Z(17), e.Bounds.Top + Z(17), Z(6), Z(6));
+            bool pending = Workspace.Pending(item);
+            if (pending || item.Running) using (Brush dot = new SolidBrush(pending ? Neon.Hot : Neon.Cyan)) e.Graphics.FillEllipse(dot, e.Bounds.Right - Z(17), e.Bounds.Top + Z(17), Z(6), Z(6));
             if ((e.State & DrawItemState.Focus) != 0) e.DrawFocusRectangle();
         }
 
@@ -314,6 +363,7 @@ namespace CapriDesktop
             if (chat == selected && cards.Count > 0) return;
             if (chat != null) { drafts[chat] = input.Text; scrolls[chat] = -conversation.AutoScrollPosition.Y; SaveTitle(); }
             chat = selected;
+            pageEnd = null;
             ClearCards();
             filling = true;
             string draft;
@@ -342,12 +392,13 @@ namespace CapriDesktop
             folder.AccessibleDescription = folder.Text;
             mode.SelectedItem = chat == null ? Workspace.Modes[0] : chat.Mode;
             model.SelectedItem = chat == null ? Workspace.Models[0] : chat.Model;
+            trust.Visible = trustLabel.Visible = chat != null && !workspace.Trusted(chat);
             filling = false;
         }
 
         private void Send()
         {
-            if (chat == null || chat.Running || string.IsNullOrWhiteSpace(input.Text)) return;
+            if (chat == null || chat.Running || chat.PendingText != null || chat.Undoing != null || string.IsNullOrWhiteSpace(input.Text)) return;
             string text = input.Text;
             Try(delegate
             {
@@ -363,9 +414,9 @@ namespace CapriDesktop
 
         private void UpdateKeys()
         {
-            bool picked = chat != null, running = picked && chat.Running;
+            bool picked = chat != null, running = picked && chat.Running, waiting = picked && (chat.PendingText != null || chat.Undoing != null);
             title.Enabled = folder.Enabled = mode.Enabled = model.Enabled = input.Enabled = picked;
-            send.Enabled = picked && !running;
+            send.Enabled = picked && !running && !waiting;
             stop.Visible = running;
             stop.Enabled = running;
             undo.Enabled = picked && !running;
@@ -420,28 +471,64 @@ namespace CapriDesktop
             int at = -conversation.AutoScrollPosition.Y;
             List<WorkspaceItem> items = new List<WorkspaceItem>();
             if (chat != null) lock (chat.Gate) items.AddRange(chat.Items);
+            Dictionary<string, string> results = new Dictionary<string, string>(StringComparer.Ordinal);
+            HashSet<string> tools = new HashSet<string>(StringComparer.Ordinal);
             foreach (WorkspaceItem item in items)
             {
-                if (item.Kind == "result")
-                {
-                    Card tool = order.Find(delegate(Card found) { return found.Item.Kind == "tool" && found.Item.Id == item.Id && found.Item.Turn == item.Turn; });
-                    if (tool != null) { tool.Result(item.Text); continue; }
-                }
+                if (item.Kind == "tool") tools.Add(item.Turn + "/" + item.Id);
+                if (item.Kind == "result") results[item.Turn + "/" + item.Id] = item.Text;
+            }
+            items.RemoveAll(delegate(WorkspaceItem item) { return item.Kind == "result" && tools.Contains(item.Turn + "/" + item.Id); });
+            int end = pageEnd == null ? items.Count : items.IndexOf(pageEnd) + 1;
+            if (end <= 0) { pageEnd = null; end = items.Count; }
+            int start = Math.Max(0, end - 150);
+            List<WorkspaceItem> shown = items.GetRange(start, end - start);
+            HashSet<WorkspaceItem> keep = new HashSet<WorkspaceItem>(shown);
+            foreach (Card old in order)
+            {
+                if (keep.Contains(old.Item)) continue;
+                cards.Remove(old.Item);
+                conversation.Controls.Remove(old);
+                old.Dispose();
+            }
+            order.Clear();
+            foreach (WorkspaceItem item in shown)
+            {
                 Card card;
                 if (!cards.TryGetValue(item, out card))
                 {
                     card = new Card(this, chat, item);
                     cards.Add(item, card);
-                    order.Add(card);
                     conversation.Controls.Add(card);
                 }
+                order.Add(card);
+                string result;
+                if (item.Kind == "tool" && results.TryGetValue(item.Turn + "/" + item.Id, out result)) card.Result(result);
                 card.RefreshItem();
             }
+            earlier.Visible = hasEarlier = start > 0;
+            newer.Visible = hasNewer = end < items.Count;
             empty.Text = chat == null ? (workspace.Problems.Count > 0 ? string.Join("\n", workspace.Problems.ToArray()) : "Pick a folder to start a chat.") : "Write the first message below.";
             empty.Visible = order.Count == 0;
             Reflow();
             conversation.AutoScrollPosition = new Point(0, follow ? Math.Max(0, conversation.DisplayRectangle.Height - conversation.ClientSize.Height) : at);
             following = follow;
+        }
+
+        private void Page(bool back)
+        {
+            if (chat == null) return;
+            List<WorkspaceItem> items;
+            lock (chat.Gate) items = new List<WorkspaceItem>(chat.Items);
+            HashSet<string> tools = new HashSet<string>(StringComparer.Ordinal);
+            foreach (WorkspaceItem item in items) if (item.Kind == "tool") tools.Add(item.Turn + "/" + item.Id);
+            items.RemoveAll(delegate(WorkspaceItem item) { return item.Kind == "result" && tools.Contains(item.Turn + "/" + item.Id); });
+            int end = pageEnd == null ? items.Count : items.IndexOf(pageEnd) + 1;
+            end = back ? Math.Max(1, end - 150) : Math.Min(items.Count, end + 150);
+            pageEnd = end >= items.Count ? null : items[end - 1];
+            following = !back && pageEnd == null;
+            SyncItems();
+            if (back) conversation.AutoScrollPosition = Point.Empty;
         }
 
         private bool AtBottom() { return -conversation.AutoScrollPosition.Y + conversation.ClientSize.Height >= conversation.DisplayRectangle.Height - Z(28); }
@@ -464,6 +551,10 @@ namespace CapriDesktop
             conversation.AutoScrollPosition = Point.Empty;
             int y = Z(12), width = Math.Max(Z(240), conversation.ClientSize.Width - Z(24) - SystemInformation.VerticalScrollBarWidth);
             empty.Bounds = new Rectangle(Z(12), Z(18), width, Z(120));
+            earlier.Font = newer.Font = Font;
+            earlier.Bounds = new Rectangle(Z(12), y, Z(164), Z(30));
+            newer.Bounds = new Rectangle(Z(190), y, Z(116), Z(30));
+            if (hasEarlier || hasNewer) y += Z(42);
             foreach (Card card in order)
             {
                 card.Reflow(width);
@@ -487,7 +578,9 @@ namespace CapriDesktop
             make.Bounds = Box(16, 64, 214, 32);
             chats.Bounds = new Rectangle(Z(16), Z(108), Z(214), Math.Max(Z(80), h - Z(128)));
             title.Bounds = new Rectangle(left, Z(64), width, Z(30));
-            folder.Bounds = new Rectangle(left, Z(100), width, Z(26));
+            folder.Bounds = new Rectangle(left, Z(100), chat != null && !workspace.Trusted(chat) ? Math.Max(Z(80), width - Z(216)) : width, Z(26));
+            trustLabel.Bounds = new Rectangle(right - Z(208), Z(102), Z(140), Z(22));
+            trust.Bounds = new Rectangle(right - Z(62), Z(100), Z(62), Z(26));
             modeLabel.Bounds = new Rectangle(left, Z(136), Z(150), Z(16));
             modelLabel.Bounds = new Rectangle(left + Z(190), Z(136), Z(130), Z(16));
             mode.Bounds = new Rectangle(left, Z(155), Z(174), Z(28));
@@ -638,10 +731,10 @@ namespace CapriDesktop
             internal readonly WorkspaceItem Item;
             private readonly WorkspaceWindow window;
             private readonly WorkspaceChat chat;
-            private readonly Label label, reasonLabel;
-            private readonly ChatText body;
-            private readonly Plate toggle, retry, allow, always, deny;
-            private readonly TextBox reason;
+            private Label label, reasonLabel;
+            private ChatText body;
+            private Plate toggle, retry, allow, always, deny;
+            private TextBox reason;
             private bool opened;
             private string result = "Waiting for a result.", drawn = null;
 
@@ -649,27 +742,30 @@ namespace CapriDesktop
             {
                 this.window = window; this.chat = chat; Item = item;
                 BackColor = item.Kind == "user" ? Neon.Band : Neon.Ground;
-                label = new Label { AutoEllipsis = true, UseMnemonic = false, ForeColor = item.Kind == "error" ? Neon.Hot : item.Kind == "user" ? Neon.Cyan : Neon.Rose, Font = window.strong, BackColor = Color.Transparent };
-                Controls.Add(label);
-                body = new ChatText { ReadOnly = true, DetectUrls = false, BorderStyle = BorderStyle.None, BackColor = BackColor, ForeColor = item.Kind == "error" ? Neon.Hot : item.Kind == "end" ? Neon.Faint : Neon.White,
-                    WordWrap = true, ScrollBars = RichTextBoxScrollBars.None, Font = item.Kind == "end" ? window.small : window.Font, ShortcutsEnabled = true, TabStop = true, AccessibleName = "Chat text" };
+                if (item.Kind == "tool")
+                {
+                    toggle = Button("", delegate { opened = !opened; if (opened) Body(); else Drop(ref body); drawn = null; window.Reflow(); });
+                    toggle.Accent = Neon.Faint;
+                }
+                else Body();
+                RefreshItem();
+            }
+
+            private void Body()
+            {
+                if (body != null) return;
+                body = new ChatText { ReadOnly = true, DetectUrls = false, BorderStyle = BorderStyle.None, BackColor = BackColor, ForeColor = Item.Kind == "error" ? Neon.Hot : Item.Kind == "end" ? Neon.Faint : Neon.White,
+                    WordWrap = true, ScrollBars = RichTextBoxScrollBars.None, Font = Item.Kind == "end" ? window.small : window.Font, ShortcutsEnabled = true, TabStop = true, AccessibleName = "Chat text" };
                 body.Wheel = window.ScrollText;
                 Controls.Add(body);
-                toggle = Button("", delegate { opened = !opened; window.Reflow(); });
-                toggle.Accent = Neon.Faint;
-                retry = Button("Retry", delegate { window.Try(delegate { window.workspace.Retry(chat); window.SyncItems(); window.UpdateKeys(); }); });
-                retry.Accent = Neon.Cyan;
-                allow = Button("Allow", delegate { Answer(true, false); });
-                allow.Accent = Neon.Cyan;
-                always = Button("Always allow (this tool, this chat)", delegate { Answer(true, true); });
-                always.Accent = Neon.Cyan;
-                deny = Button("Deny", delegate { Answer(false, false); });
-                deny.Accent = Neon.Hot;
-                reasonLabel = new Label { Text = "Deny reason (optional)", ForeColor = Neon.Faint, BackColor = Color.Transparent, Font = window.small };
-                Controls.Add(reasonLabel);
-                reason = new TextBox { BorderStyle = BorderStyle.FixedSingle, BackColor = Neon.Field, ForeColor = Neon.White, Font = window.Font, AccessibleName = "Deny reason (optional)" };
-                Controls.Add(reason);
-                RefreshItem();
+            }
+
+            private void Drop<T>(ref T control) where T : Control
+            {
+                if (control == null) return;
+                Controls.Remove(control);
+                control.Dispose();
+                control = null;
             }
 
             private Plate Button(string text, EventHandler click)
@@ -682,11 +778,27 @@ namespace CapriDesktop
 
             private void Answer(bool yes, bool every)
             {
+                if (Item.Kind == "trust")
+                {
+                    window.Try(delegate { window.workspace.Trust(chat, yes); window.RefreshChat(); });
+                    return;
+                }
+                if (Item.Undo != null)
+                {
+                    window.Try(delegate { window.workspace.AnswerUndo(chat, Item.Undo, yes); window.RefreshChat(); });
+                    return;
+                }
                 WorkspaceApproval ask = Item.Ask;
                 if (ask == null) return;
                 window.Try(delegate
                 {
-                    if (window.workspace.Answer(chat, ask, yes, every, reason.Text)) allow.Enabled = always.Enabled = deny.Enabled = reason.Enabled = false;
+                    if (window.workspace.Answer(chat, ask, yes, every, reason == null ? "" : reason.Text))
+                    {
+                        if (allow != null) allow.Enabled = false;
+                        if (always != null) always.Enabled = false;
+                        if (deny != null) deny.Enabled = false;
+                        if (reason != null) reason.Enabled = false;
+                    }
                 });
             }
 
@@ -694,7 +806,42 @@ namespace CapriDesktop
 
             internal void RefreshItem()
             {
-                label.Text = Item.Kind == "user" ? "YOU" : Item.Kind == "text" ? "CLAUDE" : Item.Kind == "error" ? "ERROR" : Item.Kind == "approval" ? Item.Text : Item.Kind == "undo" ? "UNDO" : "";
+                string heading = Item.Kind == "user" ? "YOU" : Item.Kind == "text" ? "CLAUDE" : Item.Kind == "error" ? "ERROR" : Item.Kind == "approval" ? Item.Text : Item.Kind == "undo" || Item.Kind == "undo-ask" ? "UNDO" : "";
+                if (heading.Length > 0 && label == null)
+                {
+                    label = new Label { AutoEllipsis = true, UseMnemonic = false, ForeColor = Item.Kind == "error" ? Neon.Hot : Item.Kind == "user" ? Neon.Cyan : Neon.Rose, Font = window.strong, BackColor = Color.Transparent };
+                    Controls.Add(label);
+                }
+                if (label != null) label.Text = heading;
+                if (Item.Retry && retry == null)
+                {
+                    retry = Button("Retry", delegate { window.Try(delegate { window.workspace.Retry(chat); window.SyncItems(); window.UpdateKeys(); }); });
+                    retry.Accent = Neon.Cyan;
+                }
+                if (!Item.Retry) Drop(ref retry);
+                bool pending = Item.Kind == "approval" && Item.Decision.Length == 0 && Item.Ask != null;
+                bool trust = Item.Kind == "trust" && Item.Decision.Length == 0, undo = Item.Kind == "undo-ask" && Item.Undo != null;
+                if ((pending || trust || undo) && allow == null)
+                {
+                    allow = Button(undo ? "Undo all" : trust ? "Trust" : "Allow", delegate { Answer(true, false); });
+                    allow.Accent = Neon.Cyan;
+                    deny = Button(undo ? "Only the unchanged ones" : trust ? "Not now" : "Deny", delegate { Answer(false, false); });
+                    deny.Accent = pending ? Neon.Hot : Neon.Faint;
+                    if (pending)
+                    {
+                        always = Button("Always allow (this tool, this chat)", delegate { Answer(true, true); });
+                        always.Accent = Neon.Cyan;
+                        reasonLabel = new Label { Text = "Deny reason (optional)", ForeColor = Neon.Faint, BackColor = Color.Transparent, Font = window.small };
+                        Controls.Add(reasonLabel);
+                        reason = new TextBox { BorderStyle = BorderStyle.FixedSingle, BackColor = Neon.Field, ForeColor = Neon.White, Font = window.Font, AccessibleName = "Deny reason (optional)" };
+                        Controls.Add(reason);
+                    }
+                }
+                if (!pending && !trust && !undo)
+                {
+                    Drop(ref allow); Drop(ref always); Drop(ref deny); Drop(ref reasonLabel); Drop(ref reason);
+                }
+                if (body == null) return;
                 string text = Item.Kind == "approval" ? Item.Input : Item.Kind == "tool" ? result : Item.Text;
                 if (drawn == text) return;
                 drawn = text;
@@ -723,12 +870,9 @@ namespace CapriDesktop
                 int pad = window.Z(10), inner = width - pad * 2, y = pad;
                 Width = width;
                 bool tool = Item.Kind == "tool", approval = Item.Kind == "approval", pending = approval && Item.Decision.Length == 0 && Item.Ask != null;
-                label.Visible = !tool && label.Text.Length > 0;
-                if (label.Visible) { label.Bounds = new Rectangle(pad, y, inner, window.Z(24)); y += window.Z(28); }
-                toggle.Visible = tool;
+                if (label != null) { label.Visible = label.Text.Length > 0; if (label.Text.Length > 0) { label.Bounds = new Rectangle(pad, y, inner, window.Z(24)); y += window.Z(28); } }
                 if (tool) { toggle.Text = (opened ? "- " : "+ ") + Item.Text; toggle.Bounds = new Rectangle(pad, y, inner, window.Z(30)); y += window.Z(34); }
-                body.Visible = !tool || opened;
-                if (body.Visible)
+                if (body != null)
                 {
                     int height;
                     body.Width = inner;
@@ -746,9 +890,7 @@ namespace CapriDesktop
                     body.Bounds = new Rectangle(pad, y, inner, height);
                     y += height + window.Z(6);
                 }
-                retry.Visible = Item.Retry;
-                if (retry.Visible) { retry.Enabled = !chat.Running; retry.Bounds = new Rectangle(pad, y, window.Z(86), window.Z(30)); y += window.Z(36); }
-                reasonLabel.Visible = reason.Visible = allow.Visible = always.Visible = deny.Visible = pending;
+                if (retry != null) { retry.Enabled = !chat.Running; retry.Bounds = new Rectangle(pad, y, window.Z(86), window.Z(30)); y += window.Z(36); }
                 if (pending)
                 {
                     reasonLabel.Bounds = new Rectangle(pad, y + window.Z(4), window.Z(156), window.Z(22));
@@ -757,6 +899,13 @@ namespace CapriDesktop
                     allow.Bounds = new Rectangle(pad, y, window.Z(72), window.Z(32));
                     always.Bounds = new Rectangle(pad + window.Z(80), y, window.Z(278), window.Z(32));
                     deny.Bounds = new Rectangle(pad + window.Z(366), y, window.Z(72), window.Z(32));
+                    y += window.Z(38);
+                }
+                else if (allow != null)
+                {
+                    bool undo = Item.Kind == "undo-ask";
+                    allow.Bounds = new Rectangle(pad, y, window.Z(undo ? 90 : 72), window.Z(32));
+                    deny.Bounds = new Rectangle(pad + window.Z(undo ? 102 : 84), y, window.Z(undo ? 226 : 84), window.Z(32));
                     y += window.Z(38);
                 }
                 Height = y + pad;
@@ -775,6 +924,21 @@ namespace CapriDesktop
                     seen.Add(control);
                 }
                 return null;
+            }
+        }
+
+        private sealed class ModePicker : ComboBox
+        {
+            protected override void WndProc(ref Message message)
+            {
+                if (message.Msg == 0x020A || message.Msg == 0x020E || message.Msg == 0x0102) { message.Result = IntPtr.Zero; return; }
+                base.WndProc(ref message);
+            }
+
+            protected override void OnKeyDown(KeyEventArgs e)
+            {
+                if (!DroppedDown && e.KeyCode != Keys.F4 && !(e.Alt && e.KeyCode == Keys.Down)) { e.SuppressKeyPress = true; return; }
+                base.OnKeyDown(e);
             }
         }
 
