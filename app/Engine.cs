@@ -146,20 +146,34 @@ namespace CapriDesktop
         internal volatile bool Cancel;
         internal volatile bool CpuOnly;
         private int loading;
+        private bool retryGpu;
 
         internal bool Loading { get { return Interlocked.CompareExchange(ref loading, 0, 0) > 0; } }
 
         internal Engine(string data)
         {
             root = Path.Combine(data, "brain");
-            CpuOnly = File.Exists(CpuMark);
+            if (!File.Exists(CpuMark)) return;
+            // A marker this version wrote, with its reason, keeps her brain on the CPU. One from an older version, or from before
+            // markers had reasons, gets one more try on the graphics card: up to 0.8.9 a single garbled reply kept a PC on the CPU
+            // for good, and minutes per reply (Mirit0, #226). A marker she can't read keeps the CPU, as it always did.
+            CpuOnly = true;
+            try
+            {
+                string[] lines = File.ReadAllLines(CpuMark);
+                bool reasoned = Array.Exists(lines, line => line.StartsWith("Reason:", StringComparison.Ordinal) && line.Substring(7).Trim().Length > 0);
+                retryGpu = !reasoned || !Array.Exists(lines, line => line == "Version: " + News.Version);
+                CpuOnly = !retryGpu;
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
 
         private string CpuMark { get { return Path.Combine(Folder, "cpu-only.txt"); } }
 
-        internal void KeepCpu()
+        internal void KeepCpu(string reason)
         {
-            try { if (Directory.Exists(Folder)) File.WriteAllText(CpuMark, "The graphics card garbled replies, so the brain runs on the CPU. Delete this file to try the graphics card again.\n"); }
+            try { if (Directory.Exists(Folder)) File.WriteAllText(CpuMark, "Her brain runs on the CPU because the graphics card failed. After an update she tries the graphics card once more. Delete this file to try it now.\nReason: " + reason + "\nVersion: " + News.Version + "\n"); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
@@ -351,6 +365,9 @@ namespace CapriDesktop
                 serverEyes = eyes;
                 serverCpu = CpuOnly;
                 serverWindow = window;
+                // The try is marked before it starts, so a load that takes Capri or the PC down with it leaves her on the CPU for
+                // this version.
+                if (retryGpu && !serverCpu) KeepCpu("trying the graphics card again");
                 server = Spawn(StartInfo(pick, eyes, serverCpu, port, window));
                 Lower(server);
                 Bind(server);
@@ -365,13 +382,14 @@ namespace CapriDesktop
                 {
                     // Its own log is off, so the exit code is the only clue Copy error details can carry. A graphics driver that crashes it while loading gets one try on the CPU, as a crash mid-chat does.
                     bool retry = running != null && onGpu;
-                    Brain.Log("brain", -1, "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? ", restarting it on the CPU" : ""));
+                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? ", restarting it on the CPU" : "");
+                    Brain.Log("brain", -1, reason);
                     if (!retry) throw new BrainException("Brain crashed loading. Close games, press Refresh.");
-                    CpuOnly = true;
+                    lock (gate) { KeepCpu(reason); retryGpu = false; CpuOnly = true; }
                     Ensure(pick);
                     return;
                 }
-                if (Healthy()) return;
+                if (Healthy()) { Proven(); return; }
                 Thread.Sleep(400);
             }
             throw new BrainException("Brain loaded too slowly. Close games, press Refresh.");
@@ -387,6 +405,20 @@ namespace CapriDesktop
                 using (HttpWebResponse response = (HttpWebResponse)request.GetResponse()) return response.StatusCode == HttpStatusCode.OK;
             }
             catch (WebException) { return false; }
+        }
+
+        // The graphics card loaded her brain or answered on the marked try, so the marker goes and later starts use the card.
+        // A load slower than Load's wait still gets here, from Settle or her first reply.
+        internal void Proven()
+        {
+            lock (gate)
+            {
+                if (!retryGpu || server == null || serverCpu || server.HasExited) return;
+                retryGpu = false;
+                try { File.Delete(CpuMark); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
         }
 
         // An ask that reaches her brain while it's still loading gets llama-server's 503 "Loading model": Ensure lets a second ask
@@ -406,7 +438,7 @@ namespace CapriDesktop
                 Process running;
                 lock (gate) running = server;
                 if (running == null || running.HasExited) return false;
-                if (Healthy()) return true;
+                if (Healthy()) { Proven(); return true; }
                 Thread.Sleep(400);
             }
             return false;
