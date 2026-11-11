@@ -51,7 +51,7 @@ namespace CapriDesktop
         internal static readonly string[] Lines = {
             "{0}? I'm right here, you know.",
             "Wow. Okay. I see how it is.",
-            "{0} gets a tab? Fine, I get the good perch.",
+            "{0}, huh? Fine. I get the good perch.",
             "Oh, we're comparing notes with {0} now?",
             "Go on, ask {0}. I'll be over here looking cute.",
             "Another AI? This desktop's getting crowded.",
