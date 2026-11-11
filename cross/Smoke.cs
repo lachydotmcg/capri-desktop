@@ -2729,6 +2729,7 @@ namespace CapriDesktop
                     using (var image = new Bitmap(path)) if (image.PixelSize.Width < 380 || image.PixelSize.Height < 100) throw new Exception("The Mainframe picture is empty: " + name);
                 }
                 checks.Add("PASS Mainframe pictures: main, Simple Settings and Advanced Settings saved at 100%");
+                KeyChecks(frame);
             }
             finally
             {
@@ -2763,6 +2764,160 @@ namespace CapriDesktop
             internal int Reads;
             internal HuskInput(string text) : base(Encoding.UTF8.GetBytes(text)) { }
             public override int Read(byte[] buffer, int offset, int count) { Reads++; return base.Read(buffer, offset, count); }
+        }
+
+        private static string TabWalk(MainframeWindow window, KeyModifiers mods)
+        {
+            var names = new List<string>();
+            Control from = null;
+            for (int i = 0; i < 24; i++)
+            {
+                window.Strike(Avalonia.Input.Key.Tab, mods);
+                if (!window.HeldFirst) throw new Exception("Tab landed past the first option of " + window.HeldSection + ".");
+                if (from != null && window.HeldNow == from) break;
+                if (from == null) from = window.HeldNow;
+                names.Add(window.HeldSection);
+            }
+            return string.Join(" ", names);
+        }
+
+        private void KeyChecks(Mainframe frame)
+        {
+            bool advancedWas = pet.Saved.AdvancedSettings, introWas = pet.Saved.NoIntro;
+            int typingWas = pet.Saved.Typing, bubbleWas = pet.BubbleTime, tierWas = pet.MainframeTier, voiceWas = pet.MainframeVoiceMode;
+            if (frame.Mods != null) frame.Mods.Close();
+            pet.SetAdvancedSettings(true); frame.ShowSettings(false);
+            NeonButton settingsKey = frame.Button("Settings");
+            frame.HoldRow(settingsKey);
+            frame.Strike(Avalonia.Input.Key.S);
+            bool settings = frame.SettingsShown && frame.HeldSection == "YOU" && frame.HeldFirst && frame.HeldMarked;
+            frame.Strike(Avalonia.Input.Key.A);
+            bool simple = frame.SettingsShown && !pet.Saved.AdvancedSettings;
+            frame.Strike(Avalonia.Input.Key.A);
+            bool advanced = frame.SettingsShown && pet.Saved.AdvancedSettings && frame.HeldSection == "YOU";
+            frame.Strike(Avalonia.Input.Key.H);
+            bool home = !frame.SettingsShown && frame.HeldSection == "BRAIN" && frame.HeldFirst;
+            frame.Strike(Avalonia.Input.Key.A);
+            bool offSettings = !frame.SettingsShown && pet.Saved.AdvancedSettings;
+            frame.Strike(Avalonia.Input.Key.S);
+            var nameEntry = (NeonEntry)frame.Row("What should she call you?");
+            frame.HoldRow(nameEntry);
+            foreach (Avalonia.Input.Key letter in new[] { Avalonia.Input.Key.S, Avalonia.Input.Key.M, Avalonia.Input.Key.H, Avalonia.Input.Key.A }) frame.Strike(letter);
+            bool typed = frame.SettingsShown && pet.Saved.AdvancedSettings && frame.Mods == null && frame.HeldNow == nameEntry;
+            frame.Strike(Avalonia.Input.Key.M, KeyModifiers.Control);
+            bool held = frame.SettingsShown && frame.Mods == null;
+            if (!settings || !simple || !advanced || !home || !offSettings || !typed || !held)
+                throw new Exception("Her Mainframe's page keys went wrong: settings " + settings + ", simple " + simple + ", advanced " + advanced + ", home " + home + ", A off Settings " + offSettings + ", in a text box " + typed + ", with Ctrl " + held);
+            checks.Add("PASS Mainframe page keys: S opens Settings, H goes back to her main page and A switches Simple and Advanced Settings; each lands on the page's first option with its mark, and none fires while a text box has the keyboard or with Ctrl held");
+
+            frame.Strike(Avalonia.Input.Key.Up);
+            frame.Strike(Avalonia.Input.Key.H);
+            frame.HoldRow(settingsKey);
+            string main = TabWalk(frame, KeyModifiers.None), mainBack = TabWalk(frame, KeyModifiers.Shift);
+            frame.Strike(Avalonia.Input.Key.S);
+            frame.HoldRow(frame.Button("Back"));
+            string page = TabWalk(frame, KeyModifiers.None), pageBack = TabWalk(frame, KeyModifiers.Shift);
+            string[] pageNames = page.Split(' '), backNames = pageBack.Split(' ');
+            bool reversed = pageNames.Length == backNames.Length && pageNames.Length >= 6 && new HashSet<string>(pageNames).Count >= 5;
+            for (int i = 0; reversed && i < pageNames.Length; i++) reversed = backNames[i] == pageNames[pageNames.Length - 1 - i];
+            frame.HoldRow(frame.Row("Dance to music"));
+            frame.Strike(Avalonia.Input.Key.Tab);
+            bool fromMiddle = frame.HeldSection != "MOVES" && frame.HeldFirst;
+            if (main != "BRAIN VOICE CAPRI" || mainBack != "CAPRI VOICE BRAIN" || !page.StartsWith("YOU VOICE MOVES ", StringComparison.Ordinal) || !page.EndsWith(" CAPRI WATCH BRAIN HABITS", StringComparison.Ordinal) || !reversed || !fromMiddle)
+                throw new Exception("Tab between her Mainframe's sections went wrong: main " + main + " / back " + mainBack + " / Settings " + page + " / back " + pageBack + " / from Dance to music " + frame.HeldSection + ", first " + frame.HeldFirst);
+            checks.Add("PASS Mainframe Tab and Shift+Tab: Tab jumps to the first option of the next section and Shift+Tab to the one before, BRAIN, VOICE, CAPRI on her main page and YOU, VOICE, MOVES and on through both columns of Settings, wrapping at either end");
+
+            frame.Strike(Avalonia.Input.Key.H);
+            frame.HoldRow(settingsKey);
+            frame.Strike(Avalonia.Input.Key.Tab); frame.Strike(Avalonia.Input.Key.Tab);
+            Control voiceFirst = frame.HeldNow;
+            frame.Strike(Avalonia.Input.Key.Up);
+            string before = frame.HeldSection;
+            frame.Strike(Avalonia.Input.Key.Down);
+            bool edge = before == "BRAIN" && frame.HeldNow == voiceFirst && frame.HeldMarked;
+            frame.HoldRow(settingsKey);
+            frame.Strike(Avalonia.Input.Key.Tab);
+            for (int i = 0; i < 14; i++) frame.Strike(Avalonia.Input.Key.Down);
+            bool rows = frame.HeldSection != "BRAIN";
+            for (int i = 0; i < 14; i++) frame.Strike(Avalonia.Input.Key.Up);
+            bool unpicked = pet.MainframeTier == tierWas && pet.MainframeVoiceMode == voiceWas;
+            frame.HoldRow(settingsKey);
+            frame.Strike(Avalonia.Input.Key.Up);
+            string last = frame.HeldSection;
+            Control lastRow = frame.HeldNow;
+            frame.Strike(Avalonia.Input.Key.Down);
+            bool wrapped = last == "CAPRI" && frame.HeldSection == "title";
+            frame.Strike(Avalonia.Input.Key.Up);
+            wrapped = wrapped && frame.HeldNow == lastRow;
+            NeonButton showHide = frame.Button(pet.Away ? "Show Capri" : "Hide Capri");
+            frame.HoldRow(showHide);
+            frame.Strike(Avalonia.Input.Key.Right);
+            bool along = frame.HeldNow == frame.Button("Bring here");
+            frame.Strike(Avalonia.Input.Key.Left); frame.Strike(Avalonia.Input.Key.Left);
+            along = along && frame.HeldNow == showHide;
+            if (!edge || !rows || !unpicked || !wrapped || !along)
+                throw new Exception("Her Mainframe's arrow keys went wrong: section edge " + edge + ", through the rows " + rows + ", nothing picked " + unpicked + ", wrapped " + wrapped + ", along a row " + along);
+            checks.Add("PASS Mainframe arrow keys: Up and Down move through a section's options with the mark on each, Up from VOICE's first goes to BRAIN's last and Down comes back, the BRAIN and VOICE rows are passed without being picked, the last option wraps to her title bar and back, and Left and Right move along a row of buttons");
+
+            frame.Strike(Avalonia.Input.Key.S);
+            frame.HoldRow(frame.Row("Glitch in at startup"));
+            frame.Strike(Avalonia.Input.Key.Enter);
+            bool flipped = pet.Saved.NoIntro != introWas;
+            frame.Strike(Avalonia.Input.Key.Enter);
+            flipped = flipped && pet.Saved.NoIntro == introWas;
+            var typing = (NeonPicker)frame.Row("Typing mode");
+            frame.HoldRow(typing);
+            frame.Strike(Avalonia.Input.Key.Enter);
+            bool opened = typing.MenuOpen;
+            int start = pet.Saved.Typing;
+            frame.Strike(Avalonia.Input.Key.Down);
+            frame.Strike(Avalonia.Input.Key.Enter);
+            bool chose = !typing.MenuOpen && pet.Saved.Typing == (start + 1) % 3 && frame.HeldNow == typing && frame.SettingsShown;
+            frame.Strike(Avalonia.Input.Key.Enter);
+            bool reopened = typing.MenuOpen;
+            frame.Strike(Avalonia.Input.Key.Up);
+            frame.Strike(Avalonia.Input.Key.Escape);
+            bool closed = !typing.MenuOpen && pet.Saved.Typing == (start + 1) % 3 && frame.HeldNow == typing && frame.SettingsShown;
+            if (!flipped || !opened || !chose || !reopened || !closed)
+                throw new Exception("Enter in her Mainframe went wrong: toggle " + flipped + ", dropdown opened " + opened + ", Down and Enter chose " + chose + ", reopened " + reopened + ", Esc closed only it " + closed);
+            checks.Add("PASS Mainframe Enter: it turns a switch on and off, and opens a dropdown; in the open dropdown Up and Down pick, Enter chooses and Esc closes just the dropdown, leaving Settings open");
+
+            var bubble = (NeonSlider)frame.Row("Bubble");
+            int toward = bubbleWas + 1 < bubble.Choices.Length ? 1 : -1;
+            frame.HoldRow(bubble);
+            frame.Strike(toward > 0 ? Avalonia.Input.Key.Right : Avalonia.Input.Key.Left);
+            bool moved = pet.BubbleTime == bubbleWas + toward && frame.HeldNow == bubble && frame.HeldMarked;
+            frame.Strike(toward > 0 ? Avalonia.Input.Key.Left : Avalonia.Input.Key.Right);
+            bool movedBack = pet.BubbleTime == bubbleWas && frame.HeldNow == bubble;
+            frame.Strike(Avalonia.Input.Key.Down);
+            bool leaves = frame.HeldNow != bubble && pet.BubbleTime == bubbleWas;
+            if (!moved || !movedBack || !leaves)
+                throw new Exception("Her Mainframe's slider keys went wrong: moved " + moved + ", moved back " + movedBack + ", Down leaves it " + leaves);
+            checks.Add("PASS Mainframe slider keys: Left and Right move a slider a step each way and save, and Up and Down move on to the next option");
+
+            frame.Strike(Avalonia.Input.Key.H);
+            frame.Strike(Avalonia.Input.Key.M);
+            ModsWindow sheet = frame.Mods;
+            if (sheet == null) throw new Exception("M did not open her Mods window.");
+            sheet.Strike(Avalonia.Input.Key.Tab);
+            bool modsFirst = sheet.HeldSection == "DIRECTORY" && sheet.HeldFirst && sheet.HeldMarked;
+            sheet.Strike(Avalonia.Input.Key.Tab);
+            bool modsNext = sheet.HeldSection != "DIRECTORY" && sheet.HeldFirst;
+            sheet.Strike(Avalonia.Input.Key.Tab, KeyModifiers.Shift);
+            bool modsBack = sheet.HeldSection == "DIRECTORY";
+            sheet.Strike(Avalonia.Input.Key.Escape);
+            bool modsShut = frame.Mods == null;
+            frame.HoldRow(settingsKey);
+            frame.Strike(Avalonia.Input.Key.S);
+            frame.HoldRow(nameEntry);
+            frame.Strike(Avalonia.Input.Key.Escape);
+            bool left = !frame.SettingsShown && frame.HeldNow == settingsKey && pet.Frame == frame;
+            frame.Strike(Avalonia.Input.Key.Escape);
+            bool shut = pet.Frame == null || frame.WindowState == WindowState.Minimized;
+            pet.SetAdvancedSettings(advancedWas); pet.SetTypingMode(typingWas);
+            if (!modsFirst || !modsNext || !modsBack || !modsShut || !left || !shut)
+                throw new Exception("Esc in her Mainframe went wrong: M and Tab in Mods " + modsFirst + ", next " + modsNext + ", back " + modsBack + ", Esc shut Mods " + modsShut + ", Esc left Settings " + left + ", Esc closed her Mainframe " + shut);
+            checks.Add("PASS Mainframe Esc: M opens her Mods window, where Tab jumps between its sections and Esc closes it; in Settings Esc goes back to her main page, a text box included, and from her main page it closes the Mainframe");
         }
 
         private void HuskChecks(Mainframe frame)

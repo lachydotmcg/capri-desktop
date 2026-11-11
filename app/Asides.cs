@@ -801,6 +801,7 @@ namespace CapriDesktop
             int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk, preferences.GameMods, preferences.GameVk };
             for (int i = 0; vk != 0 && i < KeyJobs.Length; i++)
                 if (mods == bound[i * 2] && vk == bound[i * 2 + 1]) return KeyName(mods, vk) + " is already her " + KeyJobs[i] + " key.";
+            if (vk != 0 && mods == preferences.FrameMods && vk == preferences.FrameVk) return KeyName(mods, vk) + " is already her Mainframe key.";
             preferences.PushMods = mods;
             preferences.PushVk = vk;
             SavePreferences();

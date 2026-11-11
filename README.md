@@ -253,6 +253,8 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 | Ctrl + Alt + T | open her typing box from anywhere |
 | Ctrl + Alt + H | hide or show her |
 | Ctrl + Alt + P | Quiet: no comments, pop-ins or check-ins until you press it again. She still answers you |
+| Ctrl + Alt + M | open her Mainframe, or close it when it's in front (Windows) |
+| In the Mainframe | S, M and H open Settings, Mods and the main page; Tab jumps between sections, the arrow keys move through options, Enter picks and Esc goes back |
 | Call mode (beta) | in her typing box: she hears your call, and you say Capri for your requests (Windows) |
 | Esc | stop a job she's doing |
 | Ctrl + Alt + C | get her off your cursor |

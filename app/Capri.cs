@@ -172,6 +172,7 @@ namespace CapriDesktop
             fresh.QuietMods = old.QuietMods; fresh.QuietVk = old.QuietVk;
             fresh.PushMods = old.PushMods; fresh.PushVk = old.PushVk;
             fresh.GameMods = old.GameMods; fresh.GameVk = old.GameVk; fresh.GameSpots = old.GameSpots;
+            fresh.FrameMods = old.FrameMods; fresh.FrameVk = old.FrameVk;
             // Her Remote phones stay paired, with Remote itself off.
             fresh.Remote = old.Remote == null ? null : new RemoteSettings { Host = old.Remote.Host, Sealed = old.Remote.Sealed };
             try { using (FileStream stream = File.Create(settings)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, fresh); }
@@ -900,6 +901,8 @@ namespace CapriDesktop
         // Gaming Mode's key, Ctrl + Alt + G, and where her HUD sits in each game (GameSpots).
         [DataMember] public int GameMods = 3;
         [DataMember] public int GameVk = 0x47;
+        [DataMember] public int FrameMods = 3;
+        [DataMember] public int FrameVk = 0x4D;
         [DataMember] public string GameSpots;
         [DataMember] public int WanderPace = 1;
         // How often she pops in while Check in on me is on: 0 rarely, 1 sometimes (every 8 to 20 minutes, as before), 2 often.
@@ -1072,6 +1075,8 @@ namespace CapriDesktop
             QuietVk = 0x50;
             GameMods = 3;
             GameVk = 0x47;
+            FrameMods = 3;
+            FrameVk = 0x4D;
             WanderPace = 1;
             PopPace = 1;
             PerchFps = 30;
@@ -2249,11 +2254,13 @@ namespace CapriDesktop
         private const int TypeKeyId = 0x4354;
         private const int HideKeyId = 0x4348;
         private const int QuietKeyId = 0x4351;
+        private const int FrameKeyId = 0x4346;
         private bool talkKey;
         private bool muteKey;
         private bool typeKey;
         private bool hideKey;
         private bool quietKey;
+        private bool frameKey;
         // Her quiet key's state: no glances, pop-ins, check-ins, cheers or jokes until it's pressed again. Starting her again ends it.
         private bool shushed;
         // A nap they asked for: asked until she's said her line and is free to doze off, then napping, asleep through their
@@ -2880,10 +2887,12 @@ namespace CapriDesktop
             if (!testing) hideKey = ByMouse(preferences.HideVk) || Native.RegisterHotKey(Handle, HideKeyId, preferences.HideMods | 0x4000, preferences.HideVk);
             if (!testing) quietKey = ByMouse(preferences.QuietVk) || Native.RegisterHotKey(Handle, QuietKeyId, preferences.QuietMods | 0x4000, preferences.QuietVk);
             if (!testing) gameKey = ByMouse(preferences.GameVk) || Native.RegisterHotKey(Handle, GameKeyId, preferences.GameMods | 0x4000, preferences.GameVk);
+            if (!testing) frameKey = ByMouse(preferences.FrameVk) || Native.RegisterHotKey(Handle, FrameKeyId, preferences.FrameMods | 0x4000, preferences.FrameVk);
             mouseKeys.Tick += delegate { WatchMouseKeys(); };
             WatchMouse();
             mainframe.Hotkeys(TalkKeyName, MuteKeyName, TypeKeyName, HideKeyName, QuietKeyName, GameKeyName);
             mainframe.PushKey(PushKeyName);
+            mainframe.FrameKey(FrameKeyName, testing || frameKey);
             mainframe.ShowShortcut(talkKey, muteFree);
             mainframe.ShowKeys(typeKey, hideKey, quietKey, gameKey);
             RefreshIcons();
@@ -4366,6 +4375,7 @@ namespace CapriDesktop
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == HideKeyId) { ToggleHidden(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == QuietKeyId) { ToggleShush(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == GameKeyId) { ToggleGaming(); return; }
+            if (message.Msg == 0x0312 && message.WParam.ToInt32() == FrameKeyId) { ToggleMainframe(); return; }
             if (message.Msg == 0x0312 && ModHotkey(message.WParam.ToInt32())) return;
             if (message.Msg == 0x02E0) { anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
             base.WndProc(ref message);
@@ -7292,6 +7302,7 @@ namespace CapriDesktop
             if (!PushBindable(value.PushMods, value.PushVk)) { value.PushMods = 0; value.PushVk = 0; }
             if (!Bindable(value.GameMods, value.GameVk)) { value.GameMods = 3; value.GameVk = 0x47; }
             Unclash(value);
+            UnclashFrame(value);
         }
 
         // Her keys, in the order the Mainframe shows them: talk, mute mic, type to her, hide or show her, quiet, Gaming Mode.
@@ -7331,12 +7342,14 @@ namespace CapriDesktop
         internal string SetHotkey(int slot, int mods, int vk)
         {
             if (slot == PushSlot) return SetPushKey(mods, vk);
+            if (slot == FrameSlot) return SetFrameKey(mods, vk);
             if (!Bindable(mods, vk)) return "Press a key, alone or with Ctrl, Alt, Shift or Win.";
             string name = KeyName(mods, vk);
             int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk, preferences.GameMods, preferences.GameVk };
             for (int i = 0; i < KeyJobs.Length; i++)
                 if (i != slot && mods == bound[i * 2] && vk == bound[i * 2 + 1]) return name + " is already her " + KeyJobs[i] + " key.";
             if (preferences.PushVk != 0 && mods == preferences.PushMods && vk == preferences.PushVk) return name + " is already her push-to-talk key.";
+            if (mods == preferences.FrameMods && vk == preferences.FrameVk) return name + " is already her Mainframe key.";
             if (!testing && IsHandleCreated)
             {
                 if (slot == 1)
@@ -7376,13 +7389,13 @@ namespace CapriDesktop
 
         // A bound mouse button is checked about 30 times a second, only while one of her keys is a mouse button.
         private readonly System.Windows.Forms.Timer mouseKeys = new System.Windows.Forms.Timer { Interval = 30 };
-        private readonly bool[] mouseHeld = new bool[6];
+        private readonly bool[] mouseHeld = new bool[7];
         // A mouse button also counts when it went down and back up between two checks (the low bit), so a quick tap isn't missed.
         internal static Func<int, bool> KeyHeld = delegate(int vk) { return (Native.GetAsyncKeyState(vk) & (ByMouse(vk) ? 0x8001 : 0x8000)) != 0; };
 
         private void WatchMouse()
         {
-            if (!testing && (preferences.PushVk != 0 || ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk) || ByMouse(preferences.GameVk)))
+            if (!testing && (preferences.PushVk != 0 || ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk) || ByMouse(preferences.GameVk) || ByMouse(preferences.FrameVk)))
             {
                 // A click from before she started watching doesn't count.
                 if (!mouseKeys.Enabled) foreach (int vk in new[] { 0x04, 0x05, 0x06 }) Native.GetAsyncKeyState(vk);
@@ -7395,8 +7408,8 @@ namespace CapriDesktop
         // swallowed, so the button still does its own job in the app under it. While a new key is being picked, nothing fires.
         internal void WatchMouseKeys()
         {
-            int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk, preferences.GameMods, preferences.GameVk };
-            int[] ids = { TalkKeyId, MuteKeyId, TypeKeyId, HideKeyId, QuietKeyId, GameKeyId };
+            int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk, preferences.GameMods, preferences.GameVk, preferences.FrameMods, preferences.FrameVk };
+            int[] ids = { TalkKeyId, MuteKeyId, TypeKeyId, HideKeyId, QuietKeyId, GameKeyId, FrameKeyId };
             int mods = (KeyHeld(0x12) ? 1 : 0) | (KeyHeld(0x11) ? 2 : 0) | (KeyHeld(0x10) ? 4 : 0) | (KeyHeld(0x5B) || KeyHeld(0x5C) ? 8 : 0);
             // Each button is read once a check: reading it clears its quick-tap bit, so a second key on the same button would miss the tap.
             System.Collections.Generic.Dictionary<int, bool> buttons = new System.Collections.Generic.Dictionary<int, bool>();
@@ -15063,7 +15076,8 @@ namespace CapriDesktop
             if (hideKey) Native.UnregisterHotKey(Handle, HideKeyId);
             if (quietKey) Native.UnregisterHotKey(Handle, QuietKeyId);
             if (gameKey) Native.UnregisterHotKey(Handle, GameKeyId);
-            typeKey = hideKey = quietKey = gameKey = false;
+            if (frameKey) Native.UnregisterHotKey(Handle, FrameKeyId);
+            typeKey = hideKey = quietKey = gameKey = frameKey = false;
             GameHud.Close();
             if (feed != null) feed.Close();
             speaker.Close();
@@ -37765,6 +37779,8 @@ namespace CapriDesktop
             Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
             Section(checks, "SmokeMainframeWheel", delegate { mainframe.CheckWheelStaysHere(checks); });
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
+            Section(checks, "SmokeMainframeKeyboard", delegate { mainframe.CheckKeyboard(checks); });
+            Section(checks, "SmokeMainframeKey", delegate { SmokeMainframeKey(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
