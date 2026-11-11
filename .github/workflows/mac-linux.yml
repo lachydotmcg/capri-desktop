@@ -122,7 +122,9 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Native Linux dependencies
-        run: sudo apt-get update -q && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev libxcb1-dev pkg-config
+        run: |
+          if ! getent hosts azure.archive.ubuntu.com > /dev/null; then echo "http://archive.ubuntu.com/ubuntu/" | sudo tee /etc/apt/apt-mirrors.txt; fi
+          sudo apt-get update -q && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev libxcb1-dev pkg-config
       - name: Build
         run: bash ci/build-linux.sh "$PWD/out/Capri"
       - name: Install a test desktop
