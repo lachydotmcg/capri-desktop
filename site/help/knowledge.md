@@ -48,8 +48,8 @@ A mic is only needed for voice chat.
 ### Where do I get it?
 - Website: https://capriai.app/
 - Every download on one page, with the one for your device on top: https://capriai.app/#download
-- Windows, the first pick: the Microsoft Store, listed as CapriAI (signed, version 0.8.6.1, a few versions behind the latest release): https://apps.microsoft.com/detail/9P0KFRB76X0G
-- Windows, the latest release: Capri-Setup.exe (newer, not signed yet)
+- Windows, the first pick: the Microsoft Store, listed as CapriAI (signed, version 0.8.9, Capri Remote included): https://apps.microsoft.com/detail/9P0KFRB76X0G
+- Windows, the latest release: Capri-Setup.exe (updates herself, not signed yet)
 - Mac (Apple Silicon): Capri-mac-apple-silicon.zip
 - Mac (Intel): Capri-mac-intel.zip
 - Linux: Capri-linux-x64.AppImage (one file, from 0.8.4) or Capri-linux-x64.tar.gz
@@ -99,10 +99,10 @@ The latest release (Capri-Setup.exe) is new and not signed yet, so SmartScreen d
 Yes. She's on the Microsoft Store as CapriAI: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's the first pick for Windows on the website.
 
 There are two ways to get her on Windows:
-- The Microsoft Store copy (version 0.8.6.1) is signed and checked by Microsoft, so Windows doesn't warn you. It's a few versions behind: no Capri Remote, ribbon teleport or icon rampage yet. It updates through the Store when a new version is sent there, and says "Update through the Microsoft Store." where the website copy would update itself.
-- The latest release (Capri-Setup.exe from the website or GitHub) has everything new, including Capri Remote, her ribbon teleport and the icon rampage, and she updates herself. It isn't signed yet, so Windows or your antivirus may warn you as if it were a virus.
+- The Microsoft Store copy (version 0.8.9) is signed and checked by Microsoft, so Windows doesn't warn you. It has Capri Remote, her ribbon teleport and the icon rampage. It updates through the Store when a new version is sent there, and says "Update through the Microsoft Store." where the website copy would update itself.
+- The latest release (Capri-Setup.exe from the website or GitHub) updates herself as soon as a new version is out. It isn't signed yet, so Windows or your antivirus may warn you as if it were a virus.
 
-It's the same app from the same code. Get the Store copy, unless you want the newest features first, like Capri Remote. Both are on https://capriai.app/#download
+It's the same app from the same code. Get the Store copy, unless you'd rather have each new version the day it's out. Both are on https://capriai.app/#download
 
 The Store copy can't install VB-CABLE (the virtual cable she uses on calls) for you. Get it from VB-Audio's site yourself.
 
@@ -141,7 +141,7 @@ If you downloaded it from the Capri website or GitHub, it's a false alarm on a n
 
 These are generic, machine-learning or behaviour detections. They often flag new apps that aren't signed yet. Restore the file from quarantine (or allow it in your antivirus), then run it again. If you want to be sure, check the code on GitHub or check the download's SHA256 (below).
 
-If you'd rather not deal with the alert, the Microsoft Store copy is signed and doesn't get it. It's an older version (0.8.6.1) with fewer features: https://apps.microsoft.com/detail/9P0KFRB76X0G
+If you'd rather not deal with the alert, the Microsoft Store copy is signed and doesn't get it: https://apps.microsoft.com/detail/9P0KFRB76X0G
 
 On VirusTotal, a few of about 70 engines flagging Capri.exe or Capri-Setup.exe is the same kind of detection. People have seen Bkav Pro (W32.Malware), SecureAge (Malicious) and Trapmine (Suspicious.low.ml.score). The SHA256 check below tells you whether your file is the one on the release page.
 
@@ -1656,7 +1656,7 @@ The words can have mistakes, especially with music or other sounds over the spee
 Text her, call her and watch your PC's screen from your phone's browser at https://capriai.app/remote.
 
 - Remote connects to Capri on Windows. The Mac and Linux preview has no Remote yet.
-- It needs Capri 0.8.7 or newer on the PC. The Microsoft Store copy is 0.8.6.1 for now, so use the latest release (Capri-Setup.exe from https://capriai.app/#download) for Remote until the Store catches up.
+- It needs Capri 0.8.7 or newer on the PC, from the website or the Microsoft Store (the Store copy has it from 0.8.9).
 - Off by default. She keeps your Remote on or off setting after a restart.
 - Keep Capri open, Remote on and your PC awake and online to use her on the PC. For chat without a PC, see "Use her without a PC" below.
 

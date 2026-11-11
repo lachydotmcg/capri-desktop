@@ -77,7 +77,7 @@ A local brain, her own ears and her local voices stay on your PC. A custom brain
 
 Her Windows builds on GitHub and the website aren't code signed, and each new release starts with no reputation, so you may see **Windows protected your PC**. Press **More info**, then **Run anyway**.
 
-The [Microsoft Store copy](https://apps.microsoft.com/detail/9P0KFRB76X0G) (CapriAI) is signed and checked by Microsoft, so it doesn't get this warning. It's a few versions behind the latest release and updates through the Store.
+The [Microsoft Store copy](https://apps.microsoft.com/detail/9P0KFRB76X0G) (CapriAI) is signed and checked by Microsoft, so it doesn't get this warning. It updates through the Store.
 
 Antivirus apps can flag her too. Taking screenshots, moving the mouse, pressing keys, listening to the mic and starting apps are her job, and they look a lot like what malware does. That usually means a false alarm, but an alert alone can't tell you a file is safe, so check it:
 

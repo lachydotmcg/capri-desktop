@@ -192,7 +192,7 @@ up late again</textarea>
             <!-- Get her: the pick for this device, big, then every way to get her as square tiles. A tile picks; the big
                  button downloads. home.js fills the big card from the picked tile's hidden details. Without scripts the
                  card is the Microsoft Store copy and every download is in "Install her chip" further down.
-                 The Store's version is typed in by hand: change "0.8.6.1" here and in the Windows block below. -->
+                 The Store's version is typed in by hand: change "0.8.9" here and in the Windows block below. -->
             <section class="get-her" id="download" aria-label="Get Capri">
               <svg class="gh-defs" aria-hidden="true" focusable="false" width="0" height="0">
                 <symbol id="i-windows" viewBox="0 0 24 24"><path d="M2.5 2.5h9v9h-9zM12.5 2.5h9v9h-9zM2.5 12.5h9v9h-9zM12.5 12.5h9v9h-9z"/></symbol>
@@ -209,12 +209,12 @@ up late again</textarea>
                 <div class="gh-head" aria-live="polite">
                   <p class="gh-for" id="gh-for">On Windows? Get her from the</p>
                   <p class="gh-name" id="gh-name">Microsoft Store</p>
-                  <p class="gh-tag" id="gh-tag">v0.8.6.1 <span aria-hidden="true">/</span> signed</p>
+                  <p class="gh-tag" id="gh-tag">v0.8.9 <span aria-hidden="true">/</span> signed</p>
                 </div>
                 <ul class="marks" id="gh-marks">
                   <li class="yes">Signed and checked by Microsoft</li>
                   <li class="yes">No warning from Windows, no admin</li>
-                  <li class="no">A few versions behind: no Capri Remote yet</li>
+                  <li class="yes">Capri Remote included</li>
                 </ul>
                 <p class="gh-go" id="gh-go"><a class="btn" data-os="store" href="https://apps.microsoft.com/detail/9P0KFRB76X0G" target="_blank" rel="noopener noreferrer"><span>Get it from Microsoft Store</span></a><a data-os="windows" href="https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe">Or the latest release (.exe)</a></p>
               </div>
@@ -224,8 +224,8 @@ up late again</textarea>
                 <div class="gh-option" data-way="store" data-name="Microsoft Store" data-for="On Windows? Get her from the">
                   <button class="gh-way" type="button" aria-pressed="true"><svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-store"/></svg><span class="gh-way-name">Microsoft Store</span><span class="gh-way-tag">signed</span></button>
                   <div class="gh-more" hidden>
-                    <p class="gh-tag-full">v0.8.6.1 <span aria-hidden="true">/</span> signed</p>
-                    <ul class="marks"><li class="yes">Signed and checked by Microsoft</li><li class="yes">No warning from Windows, no admin</li><li class="no">A few versions behind: no Capri Remote yet</li></ul>
+                    <p class="gh-tag-full">v0.8.9 <span aria-hidden="true">/</span> signed</p>
+                    <ul class="marks"><li class="yes">Signed and checked by Microsoft</li><li class="yes">No warning from Windows, no admin</li><li class="yes">Capri Remote included</li></ul>
                     <p class="os-links"><a data-os="store" data-big="Get it from Microsoft Store" href="https://apps.microsoft.com/detail/9P0KFRB76X0G" target="_blank" rel="noopener noreferrer">Microsoft Store</a><a data-os="windows" href="https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-Setup.exe">Or the latest release (.exe)</a></p>
                   </div>
                 </div>
@@ -540,9 +540,10 @@ up late again</textarea>
               <li>No admin, no warning</li>
               <li>Starts with Windows if you want</li>
             </ul>
-            <!-- Windows gets the signed copy on the Microsoft Store first. Its version is typed in by hand: change "0.8.6.1"
-                 here, in the heads-up below, on the Download and Help pages and in the README each time a new package goes live. -->
-            <a class="btn" data-os="store" href="https://apps.microsoft.com/detail/9P0KFRB76X0G" target="_blank" rel="noopener noreferrer"><span>Get it from Microsoft Store</span> <span class="size">v0.8.6.1</span></a>
+            <!-- Windows gets the signed copy on the Microsoft Store first. Its version is typed in by hand: change "0.8.9"
+                 here, in the heads-up below, in the first section, on the Help page, in knowledge.md and in the README each
+                 time a new package goes live. -->
+            <a class="btn" data-os="store" href="https://apps.microsoft.com/detail/9P0KFRB76X0G" target="_blank" rel="noopener noreferrer"><span>Get it from Microsoft Store</span> <span class="size">v0.8.9</span></a>
             <p class="all-ways"><a data-os="windows" href="https://github.com/lachydotmcg/capri-desktop/releases/download/v0.8.8/Capri-Setup.exe">Or the latest release (.exe)</a> <span aria-hidden="true">/</span> <a href="#download">Every download</a></p>
           </div>
           <div class="stage small chip-desk desk" data-ui role="img" aria-label="Capri on her desktop, offering setup help">
@@ -608,7 +609,7 @@ up late again</textarea>
     <div class="heads-up-body">
       <h2 class="sr-only" id="heads-up-h">Before you install</h2>
       <p data-os="windows">This is a new app, so it's not 'signed' yet, Windows may warn you, and VirusTotal may freak out 😭. The code’s all open source, so you can check it yourself if you're worried: <a href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer">github.com/lachydotmcg/capri-desktop</a>. If you see “Windows protected your PC”, click More info, then Run anyway. :) Need help after that? See the <a href="https://capriai.app/setup/">setup guide</a> or ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
-      <p data-os="windows">Rather skip the warning? She's on the <a href="https://apps.microsoft.com/detail/9P0KFRB76X0G" target="_blank" rel="noopener noreferrer">Microsoft Store</a> too, signed and checked by Microsoft. That copy is older (v0.8.6.1) and has fewer features: no Capri Remote yet.</p>
+      <p data-os="windows">Rather skip the warning? She's on the <a href="https://apps.microsoft.com/detail/9P0KFRB76X0G" target="_blank" rel="noopener noreferrer">Microsoft Store</a> too, signed and checked by Microsoft. That copy is v0.8.9, Capri Remote included.</p>
       <p data-os="mac" hidden>Mac is a preview: she sits on your windows, chats, has her full Mainframe and Mods, and talks through your own speech server or a cloud voice. Apple hasn't approved her yet, so macOS blocks her the first time. Unzip her, drag Capri into Applications, then open Terminal and run <code>xattr -dr com.apple.quarantine /Applications/Capri.app</code> once. That only clears the downloaded-from-the-internet flag on Capri. Her brain runs on <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">Ollama</a>: install it, then run <code>ollama pull gemma4:e4b</code>. Needs macOS 15 or newer. Stuck? Ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
       <p data-os="linux" hidden>Linux is a preview: she sits on your windows, chats, has her full Mainframe and Mods, and talks through your own speech server or a cloud voice. Unpack it and run <code>Capri/Capri</code>. Her brain runs on <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">Ollama</a>: install it, then run <code>ollama pull gemma4:e4b</code>. She sits on windows on X11; on Wayland she sits on the bottom of your screen. Stuck? Ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>
       <p data-os="appimage" hidden>Linux is a preview: she sits on your windows, chats, has her full Mainframe and Mods, and talks through your own speech server or a cloud voice. The AppImage is one file with nothing to unpack: tick "Allow executing file as program" in its Properties, or run <code>chmod +x Capri-linux-x64.AppImage</code>, then open it. Her brain runs on <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">Ollama</a>: install it, then run <code>ollama pull gemma4:e4b</code>. She sits on windows on X11; on Wayland she sits on the bottom of your screen. Stuck? Ask in the <a href="https://discord.gg/capridesktop" target="_blank" rel="noopener noreferrer">Discord</a>.</p>

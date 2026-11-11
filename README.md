@@ -198,7 +198,7 @@ Press **Y** in the headset for her settings. Her brain and voice keys stay on yo
 2. In the Capri Mainframe, press **Set up her brain**, or press **Free key** to use a free NVIDIA key
 3. Optional: pick another voice under **VOICE** (see [Her voice](#her-voice))
 
-**Two ways to get her on Windows.** The [Microsoft Store copy](https://apps.microsoft.com/detail/9P0KFRB76X0G) (CapriAI, 0.8.6.1) is signed and checked by Microsoft, so there's no warning. It's a few versions behind, with no Capri Remote yet, and it updates through the Store. The latest release, Capri-Setup.exe, has everything new and updates herself, but it isn't signed yet, so Windows or your antivirus may warn you as if it were a virus. Both are on [capriai.app](https://capriai.app/#download), with the one for your device on top.
+**Two ways to get her on Windows.** The [Microsoft Store copy](https://apps.microsoft.com/detail/9P0KFRB76X0G) (CapriAI, 0.8.9) is signed and checked by Microsoft, so there's no warning. It has Capri Remote and updates through the Store. The latest release, Capri-Setup.exe, updates herself, but it isn't signed yet, so Windows or your antivirus may warn you as if it were a virus. Both are on [capriai.app](https://capriai.app/#download), with the one for your device on top.
 
 Get Capri only from [capriai.app](https://capriai.app/), [GitHub](https://github.com/lachydotmcg/capri-desktop/releases) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G). Copies on other sites aren't ours.
 
