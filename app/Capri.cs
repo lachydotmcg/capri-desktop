@@ -918,6 +918,7 @@ namespace CapriDesktop
         // Power saver: 0 off, 1 in games (the default), 2 always. While it works she draws herself less often sitting still,
         // runs her background checks less often and listens at a gentler pace (issue #111, 6 Nov).
         [DataMember] public int PowerSaver = 1;
+        [DataMember] public int MusicApp;
         // Her Mainframe's size: 0 for Auto, which grows it on a screen whose desktop is bigger than its panel (Virtual Super
         // Resolution, DSR), or 100 to 200 for that percent of the screen's own scale.
         [DataMember] public int MainframeSize;
@@ -1083,6 +1084,7 @@ namespace CapriDesktop
             PopPace = 1;
             PerchFps = 30;
             PowerSaver = 1;
+            MusicApp = 0;
             MainframeSize = 0;
             CheckIns = true;
             CareWater = CareStretch = CareLate = CareMeal = CareGame = CareBored = true;
@@ -2508,6 +2510,7 @@ namespace CapriDesktop
             preferences.WanderPace = Math.Max(0, Math.Min(3, preferences.WanderPace));
             preferences.PopPace = Math.Max(0, Math.Min(2, preferences.PopPace));
             preferences.PowerSaver = Math.Max(0, Math.Min(2, preferences.PowerSaver));
+            preferences.MusicApp = Math.Max(0, Math.Min(2, preferences.MusicApp));
             clip = idle;
             nextGlitch = 30 + random.NextDouble() * 30;
             Text = "Capri";
@@ -5941,7 +5944,14 @@ namespace CapriDesktop
             if (tool == "play_music" && !string.IsNullOrWhiteSpace(args.Song))
             {
                 string song = args.Song.Trim();
-                bool spotify = args.App == "spotify" || (args.App != "youtube" && Hands.Installed("spotify"));
+                string app = Hands.MusicApp(args.App);
+                if (app == "applemusic")
+                {
+                    InstalledApp apple = Hands.AppleMusicApp();
+                    if (apple != null) return Hands.AppleMusicJob(song, args.Kind, apple.Name, args.SongOnly);
+                    app = null;
+                }
+                bool spotify = app == "spotify" || (app != "youtube" && Hands.Installed("spotify"));
                 if (!spotify) return "Play " + Voice.Quote(song) + " on YouTube: open YouTube, click its search bar, type " + Voice.Quote(song) + " and press Enter, scroll down through the results and look at a few, then click the video that fits best.";
                 return null;
             }
@@ -7497,6 +7507,15 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
+        internal int MusicApp { get { return preferences.MusicApp; } }
+
+        internal void SetMusicApp(int level)
+        {
+            preferences.MusicApp = Math.Max(0, Math.Min(2, level));
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         // Power saver is working now: Always, or In games while a game or anything full screen is in front.
         internal bool Saving { get { return preferences.PowerSaver == 2 || preferences.PowerSaver == 1 && frontBusy; } }
 
@@ -7611,7 +7630,7 @@ namespace CapriDesktop
                     Process[] running = Process.GetProcessesByName("Cyberpunk2077");
                     game = running.Length > 0;
                     foreach (Process process in running) process.Dispose();
-                    foreach (OpenWindow window in Hands.Windows()) if ((string.Equals(window.Program, "Spotify", StringComparison.OrdinalIgnoreCase) || (window.Title ?? "").IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0) && Hands.NightCity(window.Title)) song = true;
+                    foreach (OpenWindow window in Hands.Windows()) if ((string.Equals(window.Program, "Spotify", StringComparison.OrdinalIgnoreCase) || string.Equals(window.Program, "AppleMusic", StringComparison.OrdinalIgnoreCase) || (window.Title ?? "").IndexOf("YouTube", StringComparison.OrdinalIgnoreCase) >= 0 || (window.Title ?? "").IndexOf("Apple Music", StringComparison.OrdinalIgnoreCase) >= 0) && Hands.NightCity(window.Title)) song = true;
                     // A paused YouTube tab keeps its title, so the song has to be playing too.
                     if (song) song = MusicPlaying();
                 }
@@ -10468,6 +10487,7 @@ namespace CapriDesktop
         // Which step one of her sliders is on, read the way her Mainframe shows it.
         private int LevelOf(string name)
         {
+            if (name == "music_app") return Math.Max(0, Math.Min(2, MusicApp));
             if (InvokeRequired) return (int)Invoke(new Func<string, int>(LevelOf), name);
             int careKind = Array.IndexOf(Hands.CareSettings, name);
             if (careKind >= 0) return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), CareTime((CareKind)careKind)));
@@ -10497,6 +10517,7 @@ namespace CapriDesktop
                 case "mainframe_colours": return MainframeColours;
                 case "perch_fps": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), PerchFps));
                 case "power_saver": return Math.Max(0, Math.Min(2, PowerSaver));
+                case "music_app": return Math.Max(0, Math.Min(2, MusicApp));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
                 case "reply_limit": return ReplyLength;
                 case "game_comments": return CommentPaceShown;
@@ -10546,6 +10567,7 @@ namespace CapriDesktop
                 case "mainframe_colours": SetMainframeColours(step); break;
                 case "perch_fps": SetPerchFps(Hands.ValuesFor(name)[step]); break;
                 case "power_saver": SetPowerSaver(step); break;
+                case "music_app": SetMusicApp(step); break;
                 case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
                 case "reply_limit": SetReplyLength(step); break;
                 case "game_comments": SetCommentPace(step); break;
@@ -23688,6 +23710,166 @@ namespace CapriDesktop
         // Power saver (issue #111): HABITS' row saves, syncs and stays in Simple Settings. Only while it works, over a faked game
         // for In games or all the time for Always, she rests at 15 fps, runs her background checks once a second and her ears go
         // at a gentler pace; Off, or In games with nothing in front, leaves every interval as it was.
+        private void SmokeMusicApp(System.Collections.Generic.List<string> checks)
+        {
+            int musicWas = preferences.MusicApp;
+            bool quickWas = preferences.QuickHands, simpleWas = simpleTest, advancedWas = preferences.AdvancedSettings, pageWas = mainframe.SettingsShown;
+            string modelWas = brain.Model;
+            Func<string, string, string> workWas = Hands.Work;
+            Action<string> runWas = Hands.Run;
+            Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<string, bool> existsWas = Hands.Exists;
+            Func<string, string> fetchWas = Hands.Fetch;
+            System.Collections.Generic.List<string> jobs = new System.Collections.Generic.List<string>(), ran = new System.Collections.Generic.List<string>(), fetched = new System.Collections.Generic.List<string>();
+            InstalledApp spotify = new InstalledApp("Spotify", "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify");
+            InstalledApp native = new InstalledApp("Apple Music", "AppleInc.AppleMusicWin_nzyj5cx40ttqa!App");
+            InstalledApp web = new InstalledApp("Apple Music", "music.apple.com-A5F611C_7vh1tm7h3g5s0!App");
+            System.Collections.Generic.List<InstalledApp> installed = new System.Collections.Generic.List<InstalledApp>();
+            try
+            {
+                Hands.Work = delegate(string job, string asked) { jobs.Add(job); return "Did it."; };
+                Hands.Run = delegate(string id) { ran.Add(id); };
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(installed); };
+                Hands.Exists = delegate { return false; };
+                Hands.Fetch = delegate(string address) { fetched.Add(address); return "\"videoId\":\"abcdefghijk\""; };
+                Security.Pick(Security.Trusted);
+                Preferences older = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}")));
+                if (new Preferences().MusicApp != 0 || Preferences.Fresh().MusicApp != 0 || older.MusicApp != 0) throw new Exception("Music app didn't start on Spotify for new and old settings.");
+                SetMusicApp(0);
+                installed.Clear(); installed.Add(spotify); Hands.Forget();
+                bool spotifyKept = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away" }) == null && Hands.MusicApp(null) == null;
+                installed.Clear(); Hands.Forget();
+                string youtubeJob = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away" }) ?? "";
+                if (!spotifyKept || !youtubeJob.StartsWith("Play \"Never Fade Away\" on YouTube:", StringComparison.Ordinal)) throw new Exception("Music app's default changed: Spotify kept " + spotifyKept + ", without Spotify " + youtubeJob);
+                checks.Add("PASS Music app: the default still plays on Spotify, or on YouTube with her cursor when Spotify isn't installed");
+
+                foreach (bool webFirst in new[] { true, false })
+                {
+                    System.Collections.Generic.List<InstalledApp> both = webFirst ? new System.Collections.Generic.List<InstalledApp> { web, native } : new System.Collections.Generic.List<InstalledApp> { native, web };
+                    System.Collections.Generic.List<InstalledApp> matched = Hands.Match(both, "apple music");
+                    if (matched.Count != 1 || matched[0] != native) throw new Exception("The Apple Music web app was picked over the app, web first " + webFirst);
+                }
+                installed.Clear(); installed.Add(spotify); installed.Add(web); installed.Add(native); Hands.Forget();
+                SetMusicApp(2);
+                preferences.QuickHands = false;
+                brain.Model = "smoke-test-model";
+                string tool;
+                ToolArguments heard;
+                if (!Hands.Direct("play Never Fade Away", out tool, out heard) || tool != "play_music" || heard.App != null) throw new Exception("A plain play request wasn't play_music: " + tool);
+                string done = DoTool(tool, heard);
+                if (jobs.Count != 1 || jobs[0] != Hands.AppleMusicJob("Never Fade Away", null) || jobs[0].IndexOf("open the Apple Music app", StringComparison.Ordinal) < 0 || done != "Did it.")
+                    throw new Exception("Apple Music didn't get the cursor job: " + string.Join(" / ", jobs.ToArray()) + " / " + done);
+                checks.Add("PASS Music app: Apple Music sends play X to an Apple Music job with her cursor");
+
+                preferences.QuickHands = true;
+                ran.Clear();
+                fetched.Clear();
+                string opened = Hands.Do("play_music", new ToolArguments { Song = "Never Fade Away" });
+                string openedList = Hands.Do("play_music", new ToolArguments { Song = "my Chill", Kind = "playlist" });
+                string openedNew = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                string openedCall = Hands.Do("play_music", new ToolArguments { Song = "Favourite Songs", SongOnly = true });
+                if (ran.Count != 4 || ran.Exists(id => id != native.Id) || fetched.Count != 0 || !opened.StartsWith("Opened Apple Music.", StringComparison.Ordinal) || openedList.IndexOf("their Chill playlist", StringComparison.Ordinal) < 0
+                    || openedNew.IndexOf("Search for Midnight Drive there", StringComparison.Ordinal) < 0 || openedCall.IndexOf("Search for Favourite Songs there", StringComparison.Ordinal) < 0)
+                    throw new Exception("Without her cursor Apple Music didn't open the app over the web app, or fetched: " + string.Join(" / ", ran.ToArray()) + " / " + fetched.Count + " / " + opened + " / " + openedList + " / " + openedNew + " / " + openedCall);
+                preferences.QuickHands = false;
+                checks.Add("PASS Music app: without her cursor she opens the Apple Music app, not its web app, and fetches nothing");
+
+                string[,] kinds =
+                {
+                    { "Never Fade Away", "song", "Play \"Never Fade Away\" on Apple Music: open the Apple Music app, click its search box, type \"Never Fade Away\" and press Enter, then click the song that fits best" },
+                    { "my Chill", "playlist", "Play their playlist \"Chill\" on Apple Music: open the Apple Music app, go to Library, then Playlists, open \"Chill\"" },
+                    { "my Chill playlist", null, "Play their playlist \"Chill\" on Apple Music:" },
+                    { "the Chill playlist", null, "Play the playlist \"Chill\" on Apple Music:" },
+                    { "Liked Songs", "playlist", "Play their Favourite Songs on Apple Music: open the Apple Music app, go to Library, then Playlists, open Favourite Songs" },
+                    { "Random Access Memories", "album", "Play the album \"Random Access Memories\" on Apple Music:" },
+                    { "Daft Punk", "artist", "Play the artist \"Daft Punk\" on Apple Music:" }
+                };
+                string calledSong = CursorJob("play_music", new ToolArguments { Song = "Favourite Songs", SongOnly = true }) ?? "";
+                if (!calledSong.StartsWith("Play \"Favourite Songs\" on Apple Music: open the Apple Music app, click its search box", StringComparison.Ordinal)) throw new Exception("A call's song became a playlist on Apple Music: " + calledSong);
+                for (int i = 0; i < kinds.GetLength(0); i++)
+                {
+                    string kindJob = CursorJob("play_music", new ToolArguments { Song = kinds[i, 0], Kind = kinds[i, 1] }) ?? "";
+                    if (!kindJob.StartsWith(kinds[i, 2], StringComparison.Ordinal)) throw new Exception("Apple Music's job lost what to play: " + kinds[i, 0] + " / " + kindJob);
+                }
+                checks.Add("PASS Music app: Apple Music's job says song, playlist, album or artist, and opens Favourite Songs and their own playlists from Library");
+
+                string[,] named = { { "play Never Fade Away on apple music", "applemusic" }, { "play Never Fade Away on Apple  Music", "applemusic" }, { "open apple music and play Never Fade Away", "applemusic" },
+                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" } };
+                for (int i = 0; i < named.GetLength(0); i++)
+                    if (!Hands.Direct(named[i, 0], out tool, out heard) || tool != "play_music" || heard.App != named[i, 1] || heard.Song != "Never Fade Away" || !Hands.Valid(tool, heard))
+                        throw new Exception("A named music app wasn't caught: " + named[i, 0] + " / " + tool + " / " + (heard == null ? "" : heard.App));
+                if (!Hands.Valid("play_music", new ToolArguments { Song = "Never Fade Away", App = "applemusic" }) || Hands.Valid("play_music", new ToolArguments { Song = "Never Fade Away", App = "tidal" }))
+                    throw new Exception("play_music took the wrong apps.");
+                checks.Add("PASS Music app: play X on Apple Music, Spotify or YouTube is caught and play_music takes applemusic");
+
+                bool spotifyWins = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away", App = "spotify" }) == null;
+                string youtubeWins = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away", App = "youtube" }) ?? "";
+                SetMusicApp(1);
+                string youtubeSet = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away" }) ?? "";
+                SetMusicApp(2);
+                if (!spotifyWins || !youtubeWins.Contains(" on YouTube:") || !youtubeSet.Contains(" on YouTube:"))
+                    throw new Exception("Spotify or YouTube didn't still work beside Apple Music: " + spotifyWins + " / " + youtubeWins + " / " + youtubeSet);
+                checks.Add("PASS Music app: naming Spotify or YouTube still wins, and YouTube works as the setting");
+
+                installed.Clear(); installed.Add(spotify); Hands.Forget();
+                bool spotifyFallback = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away" }) == null;
+                installed.Clear(); Hands.Forget();
+                string youtubeFallback = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away" }) ?? "";
+                ran.Clear();
+                string playedFallback = Hands.Do("play_music", new ToolArguments { Song = "Never Fade Away" });
+                if (!spotifyFallback || !youtubeFallback.StartsWith("Play \"Never Fade Away\" on YouTube:", StringComparison.Ordinal) || playedFallback != "Apple Music isn't installed, so playing Never Fade Away on YouTube." || ran.Count != 1 || ran[0] != "https://www.youtube.com/watch?v=abcdefghijk")
+                    throw new Exception("Apple Music missing didn't fall back to Spotify, then YouTube: " + spotifyFallback + " / " + youtubeFallback + " / " + playedFallback + " / " + string.Join(" / ", ran.ToArray()));
+                checks.Add("PASS Music app: with Apple Music missing she plays on Spotify, or YouTube without Spotify, and says Apple Music isn't installed");
+
+                InstalledApp preview = new InstalledApp("Apple Music Preview", "AppleInc.AppleMusicWin_nzyj5cx40ttqa!App");
+                installed.Clear(); installed.Add(web); installed.Add(preview); Hands.Forget();
+                InstalledApp previewFound = Hands.AppleMusicApp();
+                string previewJob = CursorJob("play_music", new ToolArguments { Song = "Never Fade Away" }) ?? "";
+                installed.Clear(); installed.Add(new InstalledApp("Apple Devices", "AppleInc.AppleDevices_nzyj5cx40ttqa!App")); Hands.Forget();
+                if (previewFound != preview || previewJob.IndexOf("open the Apple Music Preview app", StringComparison.Ordinal) < 0 || Hands.AppleMusicApp() != null)
+                    throw new Exception("Apple Music Preview wasn't found over the web app, or Apple Devices was taken for it: " + previewJob);
+                checks.Add("PASS Music app: an app named Apple Music Preview counts as Apple Music, before its web app, and Apple Devices doesn't");
+
+                string[] steps = Hands.StepsOf("music_app");
+                for (int level = 0; level < steps.Length; level++)
+                {
+                    string told = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "music_app", Level = steps[level] });
+                    if (preferences.MusicApp != level || LoadPreferences().MusicApp != level || mainframe.MusicAppShown != steps[level] || LevelOf("music_app") != level || told == null || !told.Contains(steps[level]))
+                        throw new Exception("Music app " + steps[level] + " didn't save, load and show: " + preferences.MusicApp + " / " + mainframe.MusicAppShown + " / " + told);
+                }
+                string facts = SelfKnow.Matching("What is the Music app setting in Capri?") ?? "";
+                if (string.Join("|", steps) != "Spotify|YouTube|Apple Music" || !facts.StartsWith("Music app: Mainframe > Settings > HABITS > Music app", StringComparison.Ordinal)) throw new Exception("Music app's steps or self knowledge are wrong: " + facts);
+                simpleTest = true;
+                preferences.AdvancedSettings = false;
+                mainframe.ShowSettings(true);
+                string simpleRow = mainframe.MusicAppRow, simpleOverlap = mainframe.Overlap();
+                simpleTest = false;
+                preferences.AdvancedSettings = true;
+                mainframe.ShowSettings(true);
+                string advancedRow = mainframe.MusicAppRow, advancedOverlap = mainframe.Overlap();
+                if (simpleRow != "shown" || advancedRow != "shown" || simpleOverlap != null || advancedOverlap != null)
+                    throw new Exception("Music app's row didn't fit Simple and Advanced Settings: " + simpleRow + " / " + advancedRow + ", overlap " + simpleOverlap + " / " + advancedOverlap);
+                checks.Add("PASS Music app: HABITS' row and her settings tool save, load and show Spotify, YouTube and Apple Music, in Simple and Advanced Settings");
+            }
+            finally
+            {
+                Hands.Work = workWas;
+                Hands.Run = runWas;
+                Hands.Catalog = catalogWas;
+                Hands.Exists = existsWas;
+                Hands.Fetch = fetchWas;
+                Hands.Forget();
+                Security.Drop();
+                Security.Pick(Security.Trusted);
+                brain.Model = modelWas;
+                preferences.QuickHands = quickWas;
+                preferences.AdvancedSettings = advancedWas;
+                simpleTest = simpleWas;
+                SetMusicApp(musicWas);
+                mainframe.ShowSettings(pageWas);
+            }
+        }
+
         private void SmokePowerSaver(System.Collections.Generic.List<string> checks, string output)
         {
             int saverWas = preferences.PowerSaver, fpsWas = preferences.PerchFps, gapWas = GlanceGap;
@@ -29418,7 +29600,7 @@ namespace CapriDesktop
                     { "explore_after", "exploreAfter", "ExploreAfter" }, { "glance_gap", "gap", "GlanceGap" }, { "watch_memory", "watchMemory", "WatchMemory" },
                     { "voice_pitch", "pitchSlider", "VoicePitch" }, { "voice_robot", "robotSlider", "VoiceRobot" }, { "voice_glitch", "glitchSlider", "VoiceGlitch" },
                     { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "mainframe_colours", "frameColours", "MainframeColours" }, { "perch_fps", "perchFps", "PerchFps" },
-                    { "power_saver", "powerSaver", "PowerSaver" }, { "reply_limit", "replyLength", "ReplyLength" }, { "game_comments", "comments", "CommentPace" },
+                    { "power_saver", "powerSaver", "PowerSaver" }, { "music_app", "musicApp", "MusicApp" }, { "reply_limit", "replyLength", "ReplyLength" }, { "game_comments", "comments", "CommentPace" },
                     { "clip_length", "clipLength", "ClipSeconds" }, { "clip_fps", "clipRate", "ClipFps" }, { "clip_resolution", "clipSize", "ClipResolution" }, { "clip_bitrate", "clipBits", "ClipMbps" },
                     { "pat_stroke", "patStroke", "PatStroke" }
                 };
@@ -38626,6 +38808,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
             Section(checks, "SmokePowerSaver", delegate { SmokePowerSaver(checks, output); });
+            Section(checks, "SmokeMusicApp", delegate { SmokeMusicApp(checks); });
             Section(checks, "SmokeHaul", delegate { SmokeHaul(checks); });
             Section(checks, "SmokeIcons", delegate { SmokeIcons(checks); });
             Section(checks, "SmokeChaosScreen", delegate { SmokeChaosScreen(checks); });
