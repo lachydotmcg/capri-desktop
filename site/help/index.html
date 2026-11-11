@@ -104,6 +104,17 @@
         </dl>
         <p class="note">Windows warns because Capri is new and not signed yet. Got Capri from this site or GitHub? Then antivirus alerts like Wacatac, Zusy or MachineLearning/Anomalous are false alarms on a new app. Restore the file and allow it. The code is open on <a href="https://github.com/lachydotmcg/capri-desktop" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
 
+        <h3 id="av-reports">Antivirus behaviour reports <small>VirusTotal</small></h3>
+        <p class="note">VirusTotal's behaviour tab lists what a sandbox saw <code>Capri-Setup.exe</code> or <code>Capri.exe</code> do. Each flag below is most likely from the thing listed, not from a virus.</p>
+        <dl class="keys">
+          <dt>Memory, CFG, DEP, unhooking</dt><dd>“unbacked” memory, <code>mscoree.dll</code> loads, a vectored exception handler, CFG or DEP policy and “unhooking” are most likely the .NET runtime. Capri is a .NET app, so the runtime compiles her code into memory as she runs, and compiles any code mods you add, and sets up its own handlers. Sandboxes read that as these behaviours. Capri has no code that changes CFG or DEP or unhooks anything</dd>
+          <dt>Starts at logon</dt><dd>most likely her Start with Windows entry, if you turned it on or had it on from an earlier version. The switch is in Settings → HABITS</dd>
+          <dt>Process injection</dt><dd>in 0.8.7 and older, most likely her desktop icon prank, which used a small piece of memory inside Explorer, the program that draws your desktop. Since 0.8.8 she reads and moves icons through Windows' own view of the desktop and doesn't touch Explorer's memory</dd>
+          <dt>Obfuscated</dt><dd>most likely her pictures and sounds, which are packed inside the exe and make it look compressed. In 0.8.7 and older the setup also carried <code>Capri.exe</code> inside it and wrote it out when it installed. Since 0.8.8 the setup is Capri herself under another name, with nothing packed inside</dd>
+          <dt>Names ending in <code>!ml</code>, FileRep, Generic</dt><dd>machine-learning and reputation guesses for a new, unsigned file. Signing is the real fix, tracked in <a href="https://github.com/lachydotmcg/capri-desktop/issues/101" target="_blank" rel="noopener noreferrer">#101</a></dd>
+        </dl>
+        <p class="note">Not sure about your file? <a href="#checksum">Check your download</a> below, or ask in the Discord. Don't turn your antivirus off.</p>
+
         <h3 id="checksum">Check your download</h3>
         <ol class="moves">
           <li>Open PowerShell in Downloads, run <code>Get-FileHash Capri-Setup.exe</code></li>
@@ -625,7 +636,7 @@
         <h3>Install</h3>
         <dl class="stuck">
           <dt>“Item Not Found”, or the installer vanished</dt><dd>Chrome or Edge: <b>Ctrl + J</b> → <b>Keep</b>. Antivirus: restore it from quarantine. Open it from Downloads.</dd>
-          <dt>Antivirus flags it</dt><dd>From this site or GitHub? A false alarm on a new, unsigned app. Restore and allow it, or <a href="#checksum">check the download</a>.</dd>
+          <dt>Antivirus flags it</dt><dd>From this site or GitHub? A false alarm on a new, unsigned app. Restore and allow it, <a href="#av-reports">see what behaviour reports mean</a>, or <a href="#checksum">check the download</a>.</dd>
           <dt>Capri vanished after installing</dt><dd>Your antivirus removed Capri.exe. Restore it, allow it, run the installer again.</dd>
           <dt>Opera: “Insufficient permissions”</dt><dd>Use Chrome or Edge, or download from <a href="https://github.com/lachydotmcg/capri-desktop/releases/latest" target="_blank" rel="noopener noreferrer">GitHub</a>.</dd>
           <dt>“Quit Capri from her tray menu, then install again.”</dt><dd>Right-click her → <b>Quit Capri</b>, then install.</dd>
