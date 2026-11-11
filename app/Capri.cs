@@ -1749,8 +1749,8 @@ namespace CapriDesktop
         private double nextPopIn = -1;
         private Reminders reminders;
         private bool reminderUp;
-        // She came out of Hide in full screen to show a reminder, and hides again once it's gone.
-        private bool reminderOut;
+        private bool reminderText;
+        private int reminderTicket = -1;
         private Care care;
         private CareLines careLines;
         private double careGameAt = -1;
@@ -2761,7 +2761,7 @@ namespace CapriDesktop
                 if (startMarker != null && clock.Elapsed.TotalSeconds >= 15) Settled();
                 ShowCloseNotice();
                 CheckVoiceReady();
-                CheckNextLine();
+                CheckNextLine(!testing);
                 if (!testing) CheckFollowUp(signalNow);
                 if (!testing) CheckWatchAlong(signalNow);
                 if (!testing) CheckIdle(signalIdle);
@@ -2778,7 +2778,6 @@ namespace CapriDesktop
                 if (!testing) CheckInkEsc(signalNow);
                 if (!testing && background) Clip.RestAll(Environment.TickCount);
                 if (!testing) CheckPopIn(signalNow, signalIdle);
-                if (!testing) CheckReminders(DateTime.Now);
                 if (!testing) lookout.Deliver();
                 if (!testing) CheckNudge(signalNow, signalIdle);
                 if (!testing && background) CheckCare(signalNow, signalIdle);
@@ -4671,32 +4670,53 @@ namespace CapriDesktop
             else GlitchOut(arrive, false);
         }
 
-        private void CheckReminders(DateTime now)
+        private bool CheckReminders(DateTime now)
         {
-            if (quitting || dragging || pressed || typer.Visible || menu.Visible || outro != null) return;
-            if (!InChat && working == null && (speech != null || talkState != TalkState.Off)) return;
+            if (quitting || !reminders.Waiting(now)) return false;
+            if (outro != null || dragging || pressed || menu.Visible || typer.Visible) return false;
+            if (Voicing || speech != null || talkState == TalkState.Talking || working == null && talkState == TalkState.Thinking && !InChat) return true;
+            // Taking the bubble starts a new ask, which drops what the last one still owes: a switch waiting for her reply to
+            // end, or a job's result waiting its turn. Both are over in seconds.
+            if (working == null && (asideWaiting == asking || toolEnds.Exists(end => end.Ask == asking && end.Replied))) return true;
             string line;
             try { line = reminders.Take(now); }
-            catch (IOException) { return; }
-            catch (UnauthorizedAccessException) { return; }
-            if (line == null) return;
+            catch (IOException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
+            if (line == null) return false;
+            if (hidden && !fullScreenHidden) SetHidden(false);
             reminderUp = true;
-            bool bubbleOnly = InChat || Hushed || (preferences.Quiet && !preferences.ServerVoice) || FullScreen();
+            reminderText = true;
+            reminderTicket = -1;
+            bool bubbleOnly = InChat || Hushed || (preferences.Quiet && !preferences.ServerVoice);
             if (working != null)
             {
                 asideShown = line;
                 asideUntil = clock.Elapsed.TotalSeconds + BubbleHold(line.Length);
+                if (docked) GameHud.Say(line, LettersPerSecond);
                 UpdateTalk(clock.Elapsed.TotalSeconds);
                 if (!bubbleOnly && job != null) SayAside(line, job);
             }
             else
             {
-                // Hidden over full screen, she comes out to show it (#168). Before, its bubble opened while she stayed hidden
-                // with her frames stopped, so it waited unseen, and held back every reminder after it, until the game closed.
-                if (hidden && !docked && fullScreenHidden && !manualHidden) { reminderOut = true; ApplyHidden(false); }
-                Remark("reminder", line, bubbleOnly);
+                heard = "reminder";
+                box.Prompt = "";
+                reminderTicket = remarkTicket = ++asking;
+                if (bubbleOnly) Begin(remarkTicket, line, TalkState.Talking, null);
+                else
+                {
+                    Answer(remarkTicket, line, TalkState.Talking);
+                    if (reply == null && answerVoice != asking) Begin(remarkTicket, line, TalkState.Talking, null);
+                }
             }
             if (IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            return true;
+        }
+
+        // While she's hidden, a reminder's own words still show: its own line, or its line beside a running job.
+        private bool ReminderShown(double now)
+        {
+            if (!reminderUp || !(reminderText || preferences.Silent || InChat)) return false;
+            return reminderTicket == asking ? reply != null : reminderTicket < 0 && talkState == TalkState.Thinking && AsideNow(now) != null;
         }
 
         private bool popHide;
@@ -8660,14 +8680,6 @@ namespace CapriDesktop
             bool through = full && !docked;
             if (through || fullThrough) { fullThrough = through; PassThrough(); }
             bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked;
-            // Out for a reminder over full screen, she hides again once it's gone and nobody's using her.
-            if (reminderOut && (!shouldHide || hidden || docked)) reminderOut = false;
-            if (reminderOut && fullScreenHidden && !reminderUp && talkState == TalkState.Off && speech == null && !Voicing && !chatting && working == null && !dragging && !pressed && !menu.Visible && !typer.Visible)
-            {
-                reminderOut = false;
-                ApplyHidden(true);
-                return;
-            }
             if (fullScreenHidden == shouldHide) return;
             // Hiding closes her bubble and her voice with it, so she finishes her line first.
             if (shouldHide && Voicing) return;
@@ -10027,7 +10039,8 @@ namespace CapriDesktop
                     playVoiced = voiceUntil;
                     CheckEars(now);
                     Played(wav);
-                    PlayVoice(wav);
+                    bool played = PlayVoice(wav);
+                    if (reminderUp && asideShown == line) reminderText = !played;
                 };
                 Post(play);
             });
@@ -11172,10 +11185,14 @@ namespace CapriDesktop
         }
 
         // Settings go in even while she's hidden; her own lines would bring her back, so they wait.
-        private void CheckNextLine()
+        private void CheckNextLine(bool timers = false)
         {
             if (quitting || IsDisposed) return;
+            // Her frames stop while she's hidden, so a line begun there is moved along here. Left alone it never ends, and
+            // every reminder waits behind it until the game closes (#168).
+            if (hidden && !docked && talkState != TalkState.Off) { MouthCell(clock.Elapsed.TotalSeconds, clip); UpdateTalk(clock.Elapsed.TotalSeconds); }
             while (voiceChanges.Count > 0 && !Voicing) voiceChanges.Dequeue()();
+            if (timers && CheckReminders(reminders.Now())) return;
             if (hidden && !docked) return;
             if (voicePreview != null && !PreviewBusy)
             {
@@ -14280,20 +14297,22 @@ namespace CapriDesktop
             Say(said);
             mouths = Voice.Mouths(wav, MouthRate);
             Played(wav);
-            PlayVoice(wav);
+            bool played = PlayVoice(wav);
+            if (reminderUp && remarkTicket == asking) reminderText = !played;
             ModsSpoke(said);
         }
 
-        private void PlayVoice(byte[] wav)
+        private bool PlayVoice(byte[] wav)
         {
-            if (testing && !voiceInTest) return;
-            try { voice.Play(wav); }
+            if (testing && !voiceInTest) return Voice.Loudness > 0;
+            try { voice.Play(wav); return voice.Busy && Voice.Loudness > 0; }
             catch (Exception error)
             {
                 voiceUntil = 0;
                 voice.Stop();
                 Brain.Log("Voice playback", -1, error.Message);
                 mainframe.VoiceNote(error.Message, true);
+                return false;
             }
         }
 
@@ -14319,6 +14338,8 @@ namespace CapriDesktop
             if (docked) DockQuiet();
             if (reminderUp && !preferences.OnTop && IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
             reminderUp = false;
+            reminderText = false;
+            reminderTicket = -1;
         }
 
         private void UpdateTalk(double now)
@@ -14332,8 +14353,9 @@ namespace CapriDesktop
             }
             bool comment = remarkTicket == asking;
             double hold = reply == null ? 0 : comment ? CommentHold(reply.Length, BubbleTime) : BubbleHold(reply.Length);
-            if (replyDone >= 0 && hdSpeaking != asking && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && !voice.Busy && !speaker.Busy && !chatTail.Enabled && now > replyDone + hold) box.Leaving = now;
+            if (replyDone >= 0 && hdSpeaking != asking && (!reminderUp || answerVoice != asking) && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && !voice.Busy && !speaker.Busy && !chatTail.Enabled && now > replyDone + hold) box.Leaving = now;
             if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(false); return; }
+            if (hidden && !docked && !ReminderShown(now)) { if (box.Visible) box.Hide(); return; }
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
             box.State = talkState;
@@ -18768,7 +18790,7 @@ namespace CapriDesktop
                 calendar.Remind(new ToolArguments { Text = "water the plants", When = "in 3 days" });
                 Reminders overdue = new Reminders(folder, now.AddDays(4));
                 string late = overdue.Take(now.AddDays(4));
-                if (late == null || !late.StartsWith("Late reminder, due ", StringComparison.Ordinal) || !late.EndsWith(": water the plants", StringComparison.Ordinal)) throw new Exception("A calendar reminder missed while closed was not marked late.");
+                if (late != "Reminder: water the plants. That was due " + now.AddDays(3).ToString("f") + "." || Reminders.Overdue(now, now.AddMinutes(89)) != "That was due 89 minutes ago." || Reminders.Overdue(now, now.AddMinutes(90)) != "That was due about 2 hours ago." || Reminders.Overdue(now, now.AddHours(23)) != "That was due about 23 hours ago." || Reminders.Overdue(now, now.AddMinutes(1)) != null || overdue.Take(now.AddDays(4)) != null || new Reminders(folder, now.AddDays(4)).Take(now.AddDays(4)) != null) throw new Exception("A calendar reminder missed while closed was not marked late once.");
                 calendar = new Reminders(folder, now);
                 calendar.Now = delegate { return now; };
                 calendar.Remind(new ToolArguments { Text = "book club", When = "on 2027-01-02 at noon" });
@@ -19061,12 +19083,25 @@ namespace CapriDesktop
             Func<bool> savedReminderScreen = FullScreen;
             bool savedReminderQuiet = preferences.Quiet, savedReminderSilent = preferences.Silent, savedReminderShush = shushed, savedReminderQuick = preferences.QuickHands;
             bool savedReminderChatting = chatting, savedReminderLocal = local;
+            bool savedReminderSignals = signals.Enabled, savedReminderHd = preferences.HdVoice, savedReminderServed = preferences.ServerVoice, savedReminderIns = preferences.CheckIns, savedReminderVoiceTest = voiceInTest;
+            bool savedReminderAsideVoice = asideVoiceTest, savedReminderVoiceDue = voiceCheckDue;
+            int savedReminderVolume = Voice.Loudness;
+            Action savedReminderPreview = voicePreview;
+            Action[] savedReminderLines = ownLines.ToArray();
+            string savedReminderAside = asideShown;
+            double savedReminderAsideUntil = asideUntil;
             Job savedReminderJob = job;
             string savedReminderWorking = working;
             string savedReminderSecurity = Security.Saved;
             string reminderFolder = Path.Combine(Path.GetDirectoryName(settingsPath), "reminders-check-" + Guid.NewGuid().ToString("N"));
             try
             {
+                signals.Stop();
+                ownLines.Clear();
+                voicePreview = null;
+                voiceCheckDue = asideVoiceTest = false;
+                preferences.HdVoice = preferences.ServerVoice = voiceInTest = false;
+                Voice.Loudness = 100;
                 reminders = new Reminders(reminderFolder, reminderNow);
                 reminders.Now = delegate { return reminderNow; };
                 Hands.Plan = reminders.Route;
@@ -19141,7 +19176,7 @@ namespace CapriDesktop
                 reminders.Remind(new ToolArguments { Text = "pay rent", When = "in an hour" });
                 Reminders lateReminders = new Reminders(reminderFolder, reminderNow.AddHours(2));
                 string lateReminder = lateReminders.Take(reminderNow.AddHours(2));
-                if (lateReminder == null || !lateReminder.StartsWith("Late reminder, due ", StringComparison.Ordinal) || !lateReminder.EndsWith(": pay rent", StringComparison.Ordinal) || lateReminders.Take(reminderNow.AddHours(2)) != null || new Reminders(reminderFolder, reminderNow.AddHours(3)).Take(reminderNow.AddHours(3)) != null) throw new Exception("A reminder missed while off was not said once as late.");
+                if (lateReminder != "Reminder: pay rent. That was due 60 minutes ago." || lateReminders.Take(reminderNow.AddHours(2)) != null || new Reminders(reminderFolder, reminderNow.AddHours(3)).Take(reminderNow.AddHours(3)) != null) throw new Exception("A reminder missed while off was not said once as late.");
                 reminders = lateReminders;
                 reminders.Now = delegate { return reminderNow; };
                 Hands.Plan = reminders.Route;
@@ -19149,6 +19184,14 @@ namespace CapriDesktop
                 reminders.Remind(new ToolArguments { Text = "pizza", When = "in 2 hours" });
                 if (!Hands.Heard("what reminders do I have", out reminderTool, out reminderArgs) || !DoTool(reminderTool, reminderArgs).Contains("pizza") || !Hands.Heard("cancel the pizza reminder", out reminderTool, out reminderArgs) || DoTool(reminderTool, reminderArgs) != "Cancelled your reminder: pizza" || new Reminders(reminderFolder, reminderNow.AddHours(4)).Take(reminderNow.AddHours(4)) != null) throw new Exception("Listing or cancelling a reminder failed.");
                 checks.Add("PASS reminders save and reload, fire once and never twice across restarts, mark missed reminders late at startup, and list and cancel through her tools");
+
+                reminders.Remind(new ToolArguments { Text = "one minute", When = "in an hour" });
+                if (reminders.Take(reminderNow.AddMinutes(61)) != "Reminder: one minute") throw new Exception("A reminder at the minute boundary was called late.");
+                reminders.Remind(new ToolArguments { Text = "just late.", When = "in an hour" });
+                if (reminders.Take(reminderNow.AddMinutes(61).AddSeconds(1)) != "Reminder: just late. That was due 1 minute ago.") throw new Exception("A reminder held over a minute lost its delay or punctuation.");
+                reminders.Remind(new ToolArguments { Text = "resume timer", When = "in an hour" });
+                if (reminders.Take(reminderNow.AddMinutes(80)) != "Reminder: resume timer. That was due 20 minutes ago." || new Reminders(reminderFolder, reminderNow.AddHours(2)).Take(reminderNow.AddHours(2)) != null) throw new Exception("A timer missed during suspend did not name its delay once.");
+                checks.Add("PASS reminders name elapsed minutes after a minute, including while running and after a clock jump for suspend, with plain delay text and no repeat after restart");
 
                 reminders.Remind(new ToolArguments { Text = "take the pizza out", When = "in 2 hours" });
                 foreach (string missingReminder in new string[] { "cancel the reminder", "cancel my reminder" })
@@ -19212,32 +19255,226 @@ namespace CapriDesktop
                 if (reminderBrainCalls != 0 || reply == null || !reply.Contains(": stretch")) throw new Exception("A complete reminder went to her brain.");
                 CloseTalk();
                 int reminderVoices = 0;
-                Speak = delegate { reminderVoices++; return null; };
+                byte[] reminderWav = Voice.Wave(new short[8000], 16000);
+                string reminderSpoken = null;
+                Speak = delegate(string words) { reminderSpoken = words; Interlocked.Increment(ref reminderVoices); return reminderWav; };
                 FreeSpeak = Speak;
                 preferences.Silent = false;
                 preferences.Quiet = false;
                 FullScreen = delegate { return true; };
                 shushed = false;
-                CheckReminders(reminderNow.AddHours(1));
+                DateTime reminderClock = reminderNow.AddMinutes(59).AddSeconds(59);
+                reminders.Now = delegate { return reminderClock; };
+                CheckNextLine(true);
+                if (reply != null || reminderVoices != 0 || !reminders.Waiting(reminderNow.AddHours(1))) throw new Exception("A full-screen reminder fired early.");
+                reminderClock = reminderNow.AddHours(1);
+                CheckNextLine(true);
+                WaitVoice(delegate { return reply == "Reminder: stretch" && voiceUntil > 0 && reminderVoices == 1; }, "A full-screen reminder did not speak when due.");
                 UpdateTalk(clock.Elapsed.TotalSeconds);
-                if (reply != "Reminder: stretch" || !box.Visible || reminderVoices != 0) throw new Exception("A full-screen game held back a reminder bubble or spoke over it.");
+                if (!box.Visible || reminders.Waiting(reminderClock)) throw new Exception("A full-screen reminder was not delivered once.");
                 CloseTalk();
+                reminderClock = reminderNow;
                 reminders.Remind(new ToolArguments { Text = "quiet reminder", When = "in an hour" });
                 FullScreen = delegate { return false; };
-                shushed = true;
-                CheckReminders(reminderNow.AddHours(1));
-                UpdateTalk(clock.Elapsed.TotalSeconds);
-                if (reply != "Reminder: quiet reminder" || !box.Visible || reminderVoices != 0) throw new Exception("Quiet mode held back a reminder bubble or spoke over it.");
-                CloseTalk();
-                reminders.Remind(new ToolArguments { Text = "spoken reminder", When = "in an hour" });
                 shushed = false;
-                CheckReminders(reminderNow.AddHours(1));
-                Stopwatch reminderVoiceWait = Stopwatch.StartNew();
-                while (reply == null && reminderVoiceWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
-                if (reply != "Reminder: spoken reminder" || reminderVoices == 0) throw new Exception("A reminder did not use her usual voice path.");
-                checks.Add("PASS complete reminders skip the brain, due reminders use her bubble and usual voice path, and Quiet mode and full-screen games still show the bubble without voice");
+                preferences.Quiet = true;
+                preferences.CheckIns = false;
+                reminderClock = reminderNow.AddHours(1);
+                CheckNextLine(true);
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                if (reply != "Reminder: quiet reminder" || !box.Visible || voiceUntil != 0 || reminderVoices != 1) throw new Exception("Quiet without a server voice spoke or lost a reminder.");
+                CloseTalk();
+                reminderClock = reminderNow;
+                reminders.Remind(new ToolArguments { Text = "muted timer", When = "in an hour" });
+                preferences.Silent = true;
+                reminderClock = reminderNow.AddHours(1);
+                CheckNextLine(true);
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                if (reply != "Reminder: muted timer" || !box.Visible || reminderVoices != 1 || !preferences.Silent || voiceUntil != 0) throw new Exception("Mute lost a reminder bubble or turned her voice on.");
+                checks.Add("PASS full-screen reminders speak at the fake due time, Quiet without a server voice shows their text, and Mute keeps its setting and bubble");
 
                 CloseTalk();
+                reminderClock = reminderNow;
+                reminders.Remind(new ToolArguments { Text = "next timer", When = "in an hour" });
+                preferences.Silent = preferences.Quiet = false;
+                shushed = false;
+                Begin(++asking, "Still finishing this line.", TalkState.Talking, reminderWav);
+                int reminderComments = 0, reminderBeforeLine = reminderVoices;
+                ownLines.Enqueue(delegate { reminderComments++; });
+                reminderClock = reminderNow.AddHours(1);
+                CheckNextLine(true);
+                if (reply != "Still finishing this line." || reminderComments != 0 || reminderVoices != reminderBeforeLine || !new Reminders(reminderFolder, reminderClock).Waiting(reminderClock)) throw new Exception("A timer cut her line off or was saved as said while waiting.");
+                speech = null;
+                voiceUntil = 0;
+                talkState = TalkState.Online;
+                replyDone = clock.Elapsed.TotalSeconds;
+                CheckNextLine(true);
+                WaitVoice(delegate { return reply == "Reminder: next timer" && voiceUntil > 0; }, "A due timer waited for the old bubble to close.");
+                if (reminderComments != 0 || new Reminders(reminderFolder, reminderClock).Waiting(reminderClock)) throw new Exception("Her own comment went before the due timer, or the timer was not saved as said.");
+                CloseTalk();
+                CheckNextLine(true);
+                if (reminderComments != 1) throw new Exception("Her own queued comment was lost after a reminder.");
+                checks.Add("PASS a due timer leaves a fake talking line alone, stays pending on disk, then speaks before her queued comment without waiting for the old bubble");
+
+                reminderClock = reminderNow;
+                reminders.Remind(new ToolArguments { Text = "held timer", When = "in an hour" });
+                preferences.Silent = true;
+                speech = "A line still in progress.";
+                speechStart = clock.Elapsed.TotalSeconds;
+                talkState = TalkState.Talking;
+                reminderClock = reminderNow.AddHours(1);
+                CheckNextLine(true);
+                if (!reminders.Waiting(reminderClock)) throw new Exception("A held timer was taken before the current line ended.");
+                reminderClock = reminderClock.AddMinutes(20);
+                speech = null;
+                talkState = TalkState.Online;
+                CheckNextLine(true);
+                if (reply != "Reminder: held timer. That was due 20 minutes ago." || new Reminders(reminderFolder, reminderClock).Take(reminderClock) != null) throw new Exception("A held timer did not name its delay once.");
+                checks.Add("PASS a timer held with a fake clock names its 20 minute delay and stays said across a restart");
+                CloseTalk();
+                reminders.Now = delegate { return reminderNow; };
+
+                bool reminderDragWas = dragging, reminderPressedWas = pressed, reminderTyperWas = typer.Visible, reminderMenuWas = menu.Visible;
+                Action reminderOutroWas = outro;
+                double reminderOutroAtWas = outroAt;
+                try
+                {
+                    for (int control = 0; control < 4; control++)
+                    {
+                        dragging = control == 0;
+                        pressed = control == 1;
+                        if (control == 2) menu.Show(new Point(20, 20));
+                        if (control == 3) typer.Show();
+                        int controlTicket = asking;
+                        voiceCheckDue = true;
+                        string controlText = "controls timer " + control;
+                        reminders.Remind(new ToolArguments { Text = controlText, When = "in an hour" });
+                        CheckReminders(reminderNow.AddHours(1));
+                        if (reply != null || asking != controlTicket || !voiceCheckDue || !new Reminders(reminderFolder, reminderNow).Waiting(reminderNow.AddHours(1))
+                            || (control == 0 && !dragging) || (control == 1 && !pressed) || (control == 2 && !menu.Visible) || (control == 3 && !typer.Visible)) throw new Exception("A reminder took a reply ticket or voice check while her controls were in use.");
+                        dragging = pressed = false;
+                        menu.Close();
+                        typer.Hide();
+                        voiceCheckDue = false;
+                        CheckReminders(reminderNow.AddMinutes(62));
+                        UpdateTalk(clock.Elapsed.TotalSeconds);
+                        if (reply != "Reminder: " + controlText + ". That was due 2 minutes ago." || !box.Visible || reminders.Waiting(reminderNow.AddMinutes(62))) throw new Exception("A reminder stayed held after her controls closed.");
+                        CloseTalk();
+                    }
+                    reminders.Remind(new ToolArguments { Text = "moving timer", When = "in an hour" });
+                    outro = delegate { };
+                    outroAt = clock.Elapsed.TotalSeconds + 3600;
+                    CheckReminders(reminderNow.AddHours(1));
+                    if (reply != null || !reminders.Waiting(reminderNow.AddHours(1))) throw new Exception("A timer was taken during a hide or move transition.");
+                    outro = null;
+                    CheckReminders(reminderNow.AddMinutes(62));
+                    if (reply != "Reminder: moving timer. That was due 2 minutes ago.") throw new Exception("A timer lost its delay while a transition finished.");
+                    checks.Add("PASS dragging, pressing, the menu and typing each hold reminders and their reply tickets until released; transitions also finish first and the delay is named");
+                }
+                finally
+                {
+                    CloseTalk();
+                    dragging = reminderDragWas;
+                    pressed = reminderPressedWas;
+                    if (!reminderMenuWas) menu.Close();
+                    if (!reminderTyperWas) typer.Hide();
+                    outro = reminderOutroWas;
+                    outroAt = reminderOutroAtWas;
+                    voiceCheckDue = false;
+                }
+
+                bool reminderNapWas = napAsked, reminderNappingWas = napping, reminderOwnNapWas = ownNap, reminderDockedWas = docked;
+                Clip reminderClipWas = clip;
+                try
+                {
+                    preferences.Silent = false;
+                    for (int reminderRest = 0; reminderRest < 5; reminderRest++)
+                    {
+                        CloseTalk();
+                        shushed = reminderRest == 0;
+                        napAsked = reminderRest == 1;
+                        napping = reminderRest == 2;
+                        ownNap = reminderRest == 3;
+                        Play(reminderRest == 4 ? sleep : idle);
+                        string restText = "rest timer " + reminderRest;
+                        int restVoices = reminderVoices;
+                        reminders.Remind(new ToolArguments { Text = restText, When = "in an hour" });
+                        CheckReminders(reminderNow.AddHours(1));
+                        UpdateTalk(clock.Elapsed.TotalSeconds);
+                        if (reply != "Reminder: " + restText || !box.Visible || voiceUntil != 0 || reminderVoices != restVoices || preferences.Silent) throw new Exception("A hush or nap spoke a reminder or lost its bubble.");
+                    }
+                    CloseTalk();
+                    shushed = napAsked = napping = ownNap = false;
+                    Play(idle);
+                    docked = true;
+                    int dockVoices = reminderVoices;
+                    reminders.Remind(new ToolArguments { Text = "docked timer", When = "in an hour" });
+                    CheckReminders(reminderNow.AddHours(1));
+                    WaitVoice(delegate { return reply == "Reminder: docked timer" && voiceUntil > 0 && reminderVoices == dockVoices + 1; }, "The gaming HUD silenced a requested timer.");
+                    if (!docked || reminders.Waiting(reminderNow.AddHours(1))) throw new Exception("A timer left the gaming HUD or stayed pending after delivery.");
+                    checks.Add("PASS hush, asked naps, napping, her own nap and sleeping art keep reminders in the bubble; the gaming HUD still speaks them");
+                }
+                finally
+                {
+                    CloseTalk();
+                    docked = reminderDockedWas;
+                    napAsked = reminderNapWas;
+                    napping = reminderNappingWas;
+                    ownNap = reminderOwnNapWas;
+                    shushed = false;
+                    Play(reminderClipWas);
+                }
+
+                reminderClock = reminderNow;
+                reminders.Now = delegate { return reminderClock; };
+                talkState = TalkState.Thinking;
+                int reminderThinkingTicket = ++asking, reminderThinkingVoices = reminderVoices, reminderOwn = 0;
+                reminders.Remind(new ToolArguments { Text = "thinking timer", When = "in an hour" });
+                ownLines.Enqueue(delegate { reminderOwn++; });
+                reminderClock = reminderNow.AddHours(1);
+                CheckNextLine(true);
+                CheckNextLine(true);
+                if (asking != reminderThinkingTicket || talkState != TalkState.Thinking || reply != null || reminderVoices != reminderThinkingVoices || reminderOwn != 0
+                    || !new Reminders(reminderFolder, reminderClock).Waiting(reminderClock)) throw new Exception("A reminder was taken while she was thinking about a reply.");
+                Answer(reminderThinkingTicket, "This whole reply finishes first.", TalkState.Talking, false, true);
+                WaitVoice(delegate { return reply == "This whole reply finishes first." && voiceUntil > 0 && reminderVoices == reminderThinkingVoices + 1; }, "The reply she was thinking about did not speak.");
+                double thinkingVoiceUntil = voiceUntil;
+                CheckNextLine(true);
+                if (asking != reminderThinkingTicket || voiceUntil != thinkingVoiceUntil || reply != "This whole reply finishes first." || reminderSpoken != reply || reminderOwn != 0
+                    || !reminders.Waiting(reminderClock)) throw new Exception("A due reminder cut off the reply's voice.");
+                speech = null;
+                voiceUntil = 0;
+                talkState = TalkState.Online;
+                replyDone = clock.Elapsed.TotalSeconds;
+                CheckNextLine(true);
+                WaitVoice(delegate { return reply == "Reminder: thinking timer" && voiceUntil > 0 && reminderVoices == reminderThinkingVoices + 2; }, "A reminder did not go next after the reply's voice.");
+                if (reminderOwn != 0 || new Reminders(reminderFolder, reminderClock).Waiting(reminderClock)) throw new Exception("Her own line went before the held reminder, or the reminder was not saved.");
+                CloseTalk();
+                CheckNextLine(true);
+                if (reminderOwn != 1) throw new Exception("The held reminder lost her queued own line.");
+                reminders.Now = delegate { return reminderNow; };
+                checks.Add("PASS thinking holds a due reminder on disk, the whole reply speaks first, and the reminder follows its voice before a queued own line");
+
+                CloseTalk();
+                reminderClock = reminderNow;
+                reminders.Now = delegate { return reminderClock; };
+                reminders.Remind(new ToolArguments { Text = "voice ready timer", When = "in an hour" });
+                reminderClock = reminderNow.AddHours(1);
+                voiceCheckDue = true;
+                CheckVoiceReady();
+                CheckNextLine(true);
+                WaitVoice(delegate { return reply == TestLine && voiceUntil > 0; }, "The ready voice check did not go first in the tick.");
+                if (voiceCheckDue || !reminders.Waiting(reminderClock)) throw new Exception("A due reminder replaced the ready voice check.");
+                speech = null;
+                voiceUntil = 0;
+                talkState = TalkState.Online;
+                replyDone = clock.Elapsed.TotalSeconds;
+                CheckNextLine(true);
+                WaitVoice(delegate { return reply == "Reminder: voice ready timer" && voiceUntil > 0; }, "A reminder did not follow the ready voice check.");
+                CloseTalk();
+                reminders.Now = delegate { return reminderNow; };
+                checks.Add("PASS a tick checks the ready voice preview first and a due reminder follows its voice");
+
                 Job reminderJob = new Job("open notepad");
                 job = reminderJob;
                 working = "On it. Esc stops me.";
@@ -19259,6 +19496,15 @@ namespace CapriDesktop
                 UpdateTalk(clock.Elapsed.TotalSeconds);
                 if (asideShown != "Reminder: check the oven" || box.Reply != asideShown || !box.Visible || job != reminderJob || asking != reminderJobTicket || talkState != TalkState.Thinking
                     || reminders.Take(reminderNow.AddMinutes(20)) != null) throw new Exception("A due reminder waited for the job to end or took over its reply.");
+                preferences.Silent = false;
+                asideVoiceTest = true;
+                int reminderJobVoices = reminderVoices;
+                reminders.Remind(new ToolArguments { Text = "spoken job timer", When = "in an hour" });
+                CheckReminders(reminderNow.AddHours(1));
+                WaitVoice(delegate { CheckNextLine(); return voiceUntil > 0 && reminderVoices == reminderJobVoices + 1; }, "A timer waited for her job to end.");
+                if (job != reminderJob || working == null || asking != reminderJobTicket || talkState != TalkState.Thinking || asideShown != "Reminder: spoken job timer") throw new Exception("A spoken timer replaced the active job.");
+                checks.Add("PASS a due timer speaks beside an active job without replacing its ticket or work");
+                asideVoiceTest = false;
                 job = null;
                 working = null;
                 CloseTalk();
@@ -19279,31 +19525,170 @@ namespace CapriDesktop
                 local = false;
                 checks.Add("PASS due reminders show in the working text during a job and only in her bubble during local or cloud calls, without waiting for either to finish or firing twice");
 
-                // Hide in full screen (#168): a due reminder brings her out to show it, she hides again once it's gone, and the
-                // next one isn't held back until the game closes.
+                reminders.Now = delegate { return reminderClock; };
+                for (int saveMode = 0; saveMode < 2; saveMode++)
+                {
+                    reminderClock = reminderNow;
+                    string saveText = "save timer " + saveMode;
+                    reminders.Remind(new ToolArguments { Text = saveText, When = "in an hour" });
+                    reminderClock = reminderNow.AddHours(1);
+                    string savePath = Path.Combine(reminderFolder, "reminders.json.new");
+                    FileStream saveLock = null;
+                    bool saveDirectory = false;
+                    try
+                    {
+                        if (saveMode == 0) saveLock = new FileStream(savePath, FileMode.Create, FileAccess.Write, FileShare.None);
+                        else { Directory.CreateDirectory(savePath); saveDirectory = true; }
+                        for (int saveTry = 0; saveTry < 2; saveTry++)
+                        {
+                            int saveVoices = reminderVoices;
+                            string ownText = "Her own line still goes.";
+                            ownLines.Enqueue(delegate { Remark("", ownText); });
+                            voicePreview = TestVoice;
+                            CheckNextLine(true);
+                            WaitVoice(delegate { return heard == "voice check" && reply == TestLine && voiceUntil > 0 && reminderVoices == saveVoices + 1; }, "A failed reminder save held a voice preview.");
+                            if (voicePreview != null || ownLines.Count != 1 || !reminders.Waiting(reminderClock)) throw new Exception("A failed reminder save lost a preview, own line or pending reminder.");
+                            CloseTalk();
+                            CheckNextLine(true);
+                            WaitVoice(delegate { return reply == ownText && voiceUntil > 0 && reminderVoices == saveVoices + 2; }, "A failed reminder save held her own line.");
+                            if (ownLines.Count != 0 || !new Reminders(reminderFolder, reminderClock).Waiting(reminderClock)) throw new Exception("A failing save marked a reminder as said.");
+                            CloseTalk();
+                        }
+                    }
+                    finally
+                    {
+                        if (saveLock != null) saveLock.Dispose();
+                        if (saveDirectory) Directory.Delete(savePath);
+                    }
+                    CheckNextLine(true);
+                    WaitVoice(delegate { return reply == "Reminder: " + saveText && voiceUntil > 0; }, "A reminder did not recover after its save became possible.");
+                    if (new Reminders(reminderFolder, reminderClock).Waiting(reminderClock)) throw new Exception("A recovered reminder was not saved as said.");
+                    CloseTalk();
+                }
+                reminders.Now = delegate { return reminderNow; };
+                checks.Add("PASS repeated locked-file and directory save failures leave voice previews and own lines free, keep the reminder pending, and deliver it once saving works");
+
                 bool hideFullWas = preferences.HideFullScreen, fullHiddenWas = fullScreenHidden, manualWas = manualHidden, hiddenWas = hidden;
                 try
                 {
+                    CloseTalk();
+                    preferences.HideFullScreen = false;
+                    CheckFullScreen(false);
+                    manualHidden = true;
+                    ApplyHidden(true);
+                    preferences.Silent = true;
+                    reminders.Remind(new ToolArguments { Text = "user hidden timer", When = "in an hour" });
+                    CheckReminders(reminderNow.AddHours(1));
+                    UpdateTalk(clock.Elapsed.TotalSeconds);
+                    if (hidden || manualHidden || !Visible || !box.Visible || reply != "Reminder: user hidden timer" || !preferences.Silent) throw new Exception("A reminder did not bring her back after a manual hide, or changed Mute.");
+                    checks.Add("PASS a reminder brings her back after the user hides her and keeps Mute on");
                     CloseTalk();
                     manualHidden = false;
                     preferences.HideFullScreen = true;
                     FullScreen = delegate { return true; };
                     CheckFullScreen(true);
                     if (!hidden || !fullScreenHidden) throw new Exception("Hide in full screen did not hide her before the reminder check.");
+                    preferences.Silent = false;
                     int hiddenVoices = reminderVoices;
                     foreach (string hiddenText in new[] { "hidden reminder", "next hidden reminder" })
                     {
                         reminders.Remind(new ToolArguments { Text = hiddenText, When = "in an hour" });
                         CheckReminders(reminderNow.AddHours(1));
+                        hiddenVoices++;
+                        WaitVoice(delegate { return reply == "Reminder: " + hiddenText && voiceUntil > 0 && reminderVoices == hiddenVoices; }, "Hidden in full screen, a reminder did not speak on time.");
                         UpdateTalk(clock.Elapsed.TotalSeconds);
-                        if (hidden || reply != "Reminder: " + hiddenText || !box.Visible || reminderVoices != hiddenVoices) throw new Exception("Hidden in full screen, a due reminder stayed hidden until full screen ended: hidden " + hidden + " / " + reply);
+                        if (!hidden || !fullScreenHidden || Visible || box.Visible) throw new Exception("A spoken reminder showed her over full screen.");
                         CheckFullScreen(true);
-                        if (hidden) throw new Exception("She hid again in the middle of a reminder.");
-                        CloseTalk();
-                        CheckFullScreen(true);
-                        if (!hidden || !fullScreenHidden) throw new Exception("She stayed out over full screen after a reminder.");
+                        voiceUntil = 0;
+                        speechStart = replyStart = clock.Elapsed.TotalSeconds - 60;
+                        CheckNextLine();
+                        if (speech != null || replyDone < 0) throw new Exception("Hidden speech stopped advancing with her frames off.");
+                        replyDone -= 60;
+                        CheckNextLine();
+                        box.Leaving = clock.Elapsed.TotalSeconds - 1;
+                        CheckNextLine();
+                        if (talkState != TalkState.Off || !hidden) throw new Exception("A hidden reminder held the next one until the game ended.");
                     }
-                    checks.Add("PASS hidden in full screen, a due reminder brings her out to show it without her voice, she hides again once it's gone, and the next one isn't held back until the game closes (#168)");
+                    preferences.Silent = true;
+                    reminders.Remind(new ToolArguments { Text = "hidden muted timer", When = "in an hour" });
+                    CheckReminders(reminderNow.AddHours(1));
+                    UpdateTalk(clock.Elapsed.TotalSeconds);
+                    if (!hidden || Visible || !box.Visible || box.Reply != "Reminder: hidden muted timer" || reminderVoices != hiddenVoices || !preferences.Silent) throw new Exception("A hidden muted reminder lost its bubble, spoke, or showed her body.");
+                    checks.Add("PASS hidden full-screen reminders speak without showing her, finish while frames are stopped, leave the next reminder free, and Mute shows only the bubble");
+                    CloseTalk();
+                    preferences.Silent = false;
+                    Speak = FreeSpeak = delegate { Interlocked.Increment(ref reminderVoices); return null; };
+                    reminders.Remind(new ToolArguments { Text = "voice failed timer", When = "in an hour" });
+                    CheckReminders(reminderNow.AddHours(1));
+                    WaitVoice(delegate { return reply == "Reminder: voice failed timer" && answerVoice != asking; }, "A reminder's failed voice did not finish.");
+                    UpdateTalk(clock.Elapsed.TotalSeconds);
+                    if (!hidden || Visible || !box.Visible || box.Reply != reply || reminderVoices != hiddenVoices + 1 || preferences.Silent) throw new Exception("A failed reminder voice hid its text or changed Mute.");
+                    checks.Add("PASS a hidden reminder whose voice fails shows its bubble without showing her body or changing Mute");
+                    CloseTalk();
+                    bool reminderCaptureWas = PcEars.Capturing;
+                    int reminderVolumeWas = Voice.Loudness;
+                    try
+                    {
+                        Speak = FreeSpeak = delegate { Interlocked.Increment(ref reminderVoices); return reminderWav; };
+                        for (int playback = 0; playback < 2; playback++)
+                        {
+                            PcEars.Capturing = playback == 0;
+                            voiceInTest = playback == 0;
+                            Voice.Loudness = playback == 0 ? 100 : 0;
+                            string playbackText = "unheard timer " + playback;
+                            reminders.Remind(new ToolArguments { Text = playbackText, When = "in an hour" });
+                            CheckReminders(reminderNow.AddHours(1));
+                            WaitVoice(delegate { return reply == "Reminder: " + playbackText && answerVoice != asking; }, "A reminder whose playback was skipped did not finish.");
+                            UpdateTalk(clock.Elapsed.TotalSeconds);
+                            if (!hidden || Visible || !box.Visible || !reminderText || preferences.Silent) throw new Exception("Skipped playback or zero volume hid a reminder's bubble.");
+                            CloseTalk();
+                        }
+                    }
+                    finally { PcEars.Capturing = reminderCaptureWas; Voice.Loudness = reminderVolumeWas; voiceInTest = false; }
+                    checks.Add("PASS hidden reminders show their bubble when PC recording skips playback or her voice volume is zero");
+                    Speak = FreeSpeak = null;
+                    reminders.Remind(new ToolArguments { Text = "no voice timer", When = "in an hour" });
+                    CheckReminders(reminderNow.AddHours(1));
+                    UpdateTalk(clock.Elapsed.TotalSeconds);
+                    if (!hidden || Visible || !box.Visible || reply != "Reminder: no voice timer" || voiceUntil != 0 || preferences.Silent) throw new Exception("A hidden reminder without a voice lost its bubble or changed Mute.");
+                    checks.Add("PASS a hidden reminder without a voice shows its bubble and keeps Mute off");
+                    CloseTalk();
+                    using (ModHost reminderMod = new ModHost(this, "reminder-check"))
+                    {
+                        reminderMod.replying = delegate(CapriMessage message) { if (message.Text == "Reminder: mod timer") message.Text = "Reminder: rewritten timer."; };
+                        Speak = FreeSpeak = delegate { Interlocked.Increment(ref reminderVoices); return reminderWav; };
+                        reminders.Remind(new ToolArguments { Text = "mod timer", When = "in an hour" });
+                        CheckReminders(reminderNow.AddHours(1));
+                        if (reply != null || answerVoice != asking) throw new Exception("A reminder started a second bubble while Answer was making its voice.");
+                        WaitVoice(delegate { return reply == "Reminder: rewritten timer." && voiceUntil > 0 && answerVoice != asking; }, "A mod's rewritten reminder did not speak.");
+                        UpdateTalk(clock.Elapsed.TotalSeconds);
+                        if (!hidden || Visible || box.Visible || reminderText) throw new Exception("A mod's spoken reminder showed her over full screen.");
+                        CloseTalk();
+                        ManualResetEvent modVoiceReady = new ManualResetEvent(false), modVoiceGo = new ManualResetEvent(false);
+                        int modVoiceMade = 0;
+                        try
+                        {
+                            Speak = FreeSpeak = delegate
+                            {
+                                Interlocked.Increment(ref reminderVoices);
+                                modVoiceReady.Set();
+                                modVoiceGo.WaitOne(3000);
+                                Interlocked.Exchange(ref modVoiceMade, 1);
+                                return reminderWav;
+                            };
+                            reminders.Remind(new ToolArguments { Text = "mod timer", When = "in an hour" });
+                            CheckReminders(reminderNow.AddHours(1));
+                            WaitVoice(delegate { return modVoiceReady.WaitOne(0); }, "The mod reminder's fake voice did not start.");
+                            CancelAnswerAudio();
+                            modVoiceGo.Set();
+                            WaitVoice(delegate { return modVoiceMade == 1 && reply == "Reminder: rewritten timer." && talkState != TalkState.Thinking; }, "A mod's rewritten reminder did not finish after its audio was skipped.");
+                            UpdateTalk(clock.Elapsed.TotalSeconds);
+                            if (!hidden || Visible || !box.Visible || box.Reply != reply || voiceUntil != 0 || !reminderText || preferences.Silent) throw new Exception("A mod's rewritten reminder was neither heard nor shown when its prepared audio was skipped.");
+                            if (new Reminders(reminderFolder, reminderNow).Take(reminderNow.AddHours(1)) != null) throw new Exception("A mod's reminder fired again after a restart.");
+                        }
+                        finally { modVoiceGo.Set(); if (modVoiceMade == 1) { modVoiceReady.Close(); modVoiceGo.Close(); } }
+                        checks.Add("PASS a mod's rewritten hidden reminder owns its voice once, and skipped prepared audio shows the rewritten bubble without showing her body");
+                    }
                 }
                 finally
                 {
@@ -19343,6 +19728,19 @@ namespace CapriDesktop
                 FullScreen = savedReminderScreen;
                 preferences.Quiet = savedReminderQuiet;
                 preferences.Silent = savedReminderSilent;
+                preferences.HdVoice = savedReminderHd;
+                preferences.ServerVoice = savedReminderServed;
+                preferences.CheckIns = savedReminderIns;
+                voiceInTest = savedReminderVoiceTest;
+                Voice.Loudness = savedReminderVolume;
+                asideVoiceTest = savedReminderAsideVoice;
+                voiceCheckDue = savedReminderVoiceDue;
+                voicePreview = savedReminderPreview;
+                asideShown = savedReminderAside;
+                asideUntil = savedReminderAsideUntil;
+                ownLines.Clear();
+                foreach (Action reminderLine in savedReminderLines) ownLines.Enqueue(reminderLine);
+                if (savedReminderSignals) signals.Start();
                 preferences.QuickHands = savedReminderQuick;
                 shushed = savedReminderShush;
                 Security.Load(savedReminderSecurity);

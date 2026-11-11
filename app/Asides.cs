@@ -476,19 +476,23 @@ namespace CapriDesktop
         }
 
         // The job's own last line goes first, then this one, so neither cuts the other off.
+        private int asideWaiting = -1;
+
         private void AsideAfter(string line, int tries, int toolReply = -1, int ticket = -1)
         {
             if (ticket < 0) ticket = asking;
             if (IsDisposed || ticket != asking) return;
             if (talkState == TalkState.Off && !LineBusy)
             {
+                asideWaiting = -1;
                 int previous = asking;
                 Remark("", line);
                 foreach (ToolEnd end in toolEnds)
                     if (end.Ask == previous && end.Reply == toolReply) { end.Ask = asking; end.Reply = 0; end.Aside = false; end.Replied = true; end.At = clock.Elapsed.TotalSeconds; }
                 return;
             }
-            if (tries >= 40 && !toolEnds.Exists(end => end.Ask == asking && end.Reply == toolReply)) return;
+            if (tries >= 40 && !toolEnds.Exists(end => end.Ask == asking && end.Reply == toolReply)) { asideWaiting = -1; return; }
+            asideWaiting = ticket;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 Thread.Sleep(500);
