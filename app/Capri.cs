@@ -49561,18 +49561,18 @@ namespace CapriDesktop
                             mainframe.Wheel(-1);
                             bool shortRow = mainframe.Scrolled == Math.Min(36, mainframe.ScrollMost) && mainframe.BackTop == backTop - mainframe.Px(mainframe.Scrolled);
                             bool shortHideKey = false;
-                            for (int shortTurn = 0; shortTurn < 40; shortTurn++) { mainframe.Wheel(-1); if (mainframe.HideKeyShows) shortHideKey = true; }
+                            for (int shortTurn = 0; shortTurn < 80; shortTurn++) { mainframe.Wheel(-1); if (mainframe.HideKeyShows) shortHideKey = true; }
                             bool shortBottom = mainframe.Scrolled == mainframe.ScrollMost && shortHideKey && mainframe.BackTop < 0;
                             string shortOverlap = mainframe.Overlap() ?? mainframe.Outside();
                             snap("mainframe-settings-short-bottom.png");
-                            mainframe.Wheel(40);
+                            mainframe.Wheel(80);
                             bool shortTop = mainframe.Scrolled == 0 && mainframe.BackTop == backTop && !mainframe.HideKeyShows;
                             string shortTabLimit;
                             string shortTabs = mainframe.TabShows(out shortTabLimit);
-                            if (shortTabLimit != null) mainframe.Wheel(40);
+                            if (shortTabLimit != null) mainframe.Wheel(80);
                             bool shortTabbed = mainframe.Scrolled == 0 && mainframe.BackTop == backTop;
                             string shortPerch = mainframe.PerchStatus;
-                            mainframe.Wheel(-40);
+                            mainframe.Wheel(-80);
                             mainframe.ShowSettings(false);
                             bool shortLeft = mainframe.Scrolled == 0 && mainframe.BackTop == backTop && mainframe.ClientSize.Height == mainTall && mainframe.ScrollStatus == "whole | -";
                             mainframe.ShortScreen = 0;
