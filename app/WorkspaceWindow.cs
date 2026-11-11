@@ -20,7 +20,7 @@ namespace CapriDesktop
             workspaceKey = Make("WORKSPACE (beta)", 190, 57, 166, 18, delegate { capri.OpenWorkspace(); });
             workspaceKey.Accent = Cyan;
             workspaceKey.AccessibleName = "Workspace: Claude Code chats in your folders";
-            Explain(workspaceKey, "WORKSPACE (beta)", "Mainframe.cs", null, "Workspace");
+            Explain(workspaceKey, "WORKSPACE (beta)", "WorkspaceWindow.cs", null, "Workspace");
         }
 
         internal string WorkspaceKeyFits()
