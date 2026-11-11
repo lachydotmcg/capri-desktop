@@ -224,6 +224,8 @@ namespace CapriDesktop
             internal readonly float Zoom;
             protected readonly Mainframe Frame;
             private readonly int designWide, designTall;
+            // Checks run a sheet's directory work on the calling thread.
+            internal bool Inline;
 
             protected ModSheet(Mainframe owner, float zoom, string title, string heading, int wide, int tall)
             {
@@ -251,6 +253,19 @@ namespace CapriDesktop
                 shut.AccessibleName = "Close";
                 shut.Click += delegate { Close(); };
                 Controls.Add(shut);
+            }
+
+            protected void Run(Action work)
+            {
+                if (Inline) work();
+                else ThreadPool.QueueUserWorkItem(delegate { work(); });
+            }
+
+            protected void Back(Action work)
+            {
+                if (Inline) { work(); return; }
+                try { if (!IsDisposed) BeginInvoke(new MethodInvoker(delegate { if (!IsDisposed) work(); })); }
+                catch (InvalidOperationException) { }
             }
 
             protected int Z(int value) { return (int)Math.Round(value * Zoom); }
@@ -496,7 +511,7 @@ namespace CapriDesktop
             private List<ModListing> listings = new List<ModListing>(), shown = new List<ModListing>();
             private int filter, first, ticket, order;
             private bool installing, statsLive;
-            internal bool Inline;
+            private ReadmeSheet reading;
 
             internal ModsSheet(Mainframe owner, float zoom) : base(owner, zoom, "Mods directory", "MODS DIRECTORY >", Wide, Tall)
             {
@@ -556,19 +571,6 @@ namespace CapriDesktop
                 statusTimer.Tick += delegate { statusTimer.Stop(); status.Text = ""; };
                 Frame.Fit(this);
                 Fill();
-            }
-
-            private void Run(Action work)
-            {
-                if (Inline) work();
-                else ThreadPool.QueueUserWorkItem(delegate { work(); });
-            }
-
-            private void Back(Action work)
-            {
-                if (Inline) { work(); return; }
-                try { if (!IsDisposed) BeginInvoke(new MethodInvoker(delegate { if (!IsDisposed) work(); })); }
-                catch (InvalidOperationException) { }
             }
 
             private void Says(string text, bool problem)
@@ -693,7 +695,7 @@ namespace CapriDesktop
                     installs[i].Enabled = !installing;
                     installs[i].AccessibleName = (update ? "Update " : have ? "Reinstall " : "Install ") + listing.Title;
                     installs[i].Invalidate();
-                    views[i].AccessibleName = "View " + listing.Title + " on GitHub";
+                    views[i].AccessibleName = "View " + listing.Title;
                 }
                 bool pages = shown.Count > Cards;
                 back.Visible = next.Visible = page.Visible = pages;
@@ -773,16 +775,16 @@ namespace CapriDesktop
                 });
             }
 
+            // One mod's README at a time, over the mods window. It isn't a dialog, so she and the cards stay usable while it's
+            // open, and viewing another mod swaps it.
             private void View(int card)
             {
                 ModListing listing = At(card);
                 if (listing == null) return;
-                try { using (Process.Start(ModDirectory.Page + "/tree/HEAD/mods/" + listing.Folder)) { } }
-                catch (Exception error)
-                {
-                    if (!(error is IOException || error is UnauthorizedAccessException || error is System.ComponentModel.Win32Exception)) throw;
-                    Says("Couldn't open that page: " + error.Message, true);
-                }
+                if (reading != null && !reading.IsDisposed) reading.Close();
+                reading = new ReadmeSheet(Frame, Zoom, listing);
+                reading.Inline = Inline;
+                reading.Show(this);
             }
 
             protected override void Dispose(bool disposing)
@@ -823,6 +825,67 @@ namespace CapriDesktop
             internal void Type2(string text) { search.Box.Text = text; }
             internal void PressInstall(int card) { Install(card); }
             internal void PressStars(int card, int picked) { stars[card].Pick(picked); }
+        }
+
+        // View on a mods window card (issue #221): the mod's name, author and kind over the first few useful lines of its
+        // README, or its description when it has none or GitHub doesn't answer in time. Learn more opens its folder on GitHub.
+        private sealed class ReadmeSheet : ModSheet
+        {
+            internal const int Wide = 520, Tall = 376;
+            private readonly ModListing listing;
+            private readonly Label body, status;
+
+            internal ReadmeSheet(Mainframe owner, float zoom, ModListing listing) : base(owner, zoom, "View mod", "VIEW MOD >", Wide, Tall)
+            {
+                this.listing = listing;
+                Words(listing.Title, 28, 52, 464, 22, Type(11.5f * zoom, true), White);
+                Words(string.IsNullOrEmpty(listing.Author) ? "" : "by " + listing.Author, 28, 76, 464, 16, Small(), Cyan);
+                Words(listing.Kind + " " + Math.Max(1, listing.Size / 1024) + " KB.", 28, 94, 464, 16, Small(), Faint);
+                body = Words("", 28, 120, 464, 200, Font, White);
+                Key more = Make("Learn more", 28, 332, 130, 26, delegate { Open(); });
+                more.Accent = Cyan;
+                more.Loud = true;
+                status = Words("", 166, 336, 326, 18, Small(), Rose);
+                Frame.Fit(this);
+            }
+
+            protected override void OnLoad(EventArgs e)
+            {
+                base.OnLoad(e);
+                // A README read earlier this session, or a mod without one, shows straight away.
+                List<string> kept = ModDirectory.ReadmeKept(listing);
+                if (kept != null || listing.ReadmeName == null) { ShowLines(kept); return; }
+                body.Text = "Reading its README...";
+                body.ForeColor = Faint;
+                Run(delegate
+                {
+                    List<string> lines = null;
+                    try { lines = ModDirectory.Readme(listing); }
+                    catch (Exception) { }
+                    Back(delegate { ShowLines(lines); });
+                });
+            }
+
+            private void ShowLines(List<string> lines)
+            {
+                FromReadme = lines != null && lines.Count > 0;
+                body.Text = FromReadme ? string.Join("\n", lines.ToArray()) : string.IsNullOrEmpty(listing.About) ? "This mod has no description yet." : listing.About;
+                body.ForeColor = White;
+            }
+
+            private void Open()
+            {
+                try { using (Process.Start(PageShown)) { } }
+                catch (Exception error)
+                {
+                    if (!(error is IOException || error is UnauthorizedAccessException || error is System.ComponentModel.Win32Exception)) throw;
+                    status.Text = "Couldn't open that page: " + error.Message;
+                }
+            }
+
+            internal string BodyShown { get { return body.Text; } }
+            internal bool FromReadme { get; private set; }
+            internal string PageShown { get { return ModDirectory.Page + "/tree/HEAD/mods/" + listing.Folder; } }
         }
 
         private sealed class PublishSheet : ModSheet
