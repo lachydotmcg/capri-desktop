@@ -40799,7 +40799,7 @@ namespace CapriDesktop
                             window.ShowChat(chat);
                             window.ShowChat(layout);
                             if (editor.Text != "Keep this draft") throw new Exception("Workspace lost a draft while switching chats.");
-                            Native.SendMessage(transcript.Handle, 0x0115, IntPtr.Zero, IntPtr.Zero);
+                            Native.SendMessage(transcript.Handle, 0x0115, new IntPtr(6), IntPtr.Zero);
                             work.Add(layout, new WorkspaceItem { Kind = "text", Text = "Another update while reading above." });
                             window.RefreshChat();
                             if (transcript.AutoScrollPosition.Y != 0) throw new Exception("Workspace followed new text while scrolled up.");
