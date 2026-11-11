@@ -15,28 +15,43 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.8.8";
-        internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
-            + "Nothing changed on Mac and Linux in this version. From 0.8.7:\n"
-            + "Her tools: she runs the tools her brain picks without swapping them for something else. Phrase checks help when her brain can't use tools. With an Ollama model that can use tools, she works jobs out with all of them and keeps plain chat quick.\n"
-            + "Thinking: Mainframe > Settings > Advanced Settings > BRAIN > Thinking has Default, Off, Low, Medium or High for a cloud brain where the model supports them, saved per model; Extra request JSON is beside it.\n"
-            + "Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode adds OpenCode. Turn Verbosity off there to keep her to the big moments.\n"
-            + "Code mods: they run on Mac and Linux too. A code mod lists the permissions it asks for, and one that needs a part Mac and Linux don't have yet is refused with a message naming it.\n"
-            + "Stacking skins: turn several skins on in Mainframe > Mods and each one goes on top, so a skin with just cat ears or a hat sits over the outfit under it.\n"
-            + "Linux TALK: hover over her and press TALK to talk to her once her offline ears are set up.";
-        internal const string Line = "I just updated to " + Version + ": nothing new for me on Mac and Linux this time. Ask me what's new for what 0.8.7 brought.";
+        internal const string Version = "0.8.9";
+        internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
+            + (OperatingSystem.IsLinux()
+                ? "File editor: Mainframe > Settings > YOU > File editor, or File editor in her right-click menu, opens personality.md and me.md. Change the text, then press Save or Ctrl + S. Your drafts stay separate until you save.\n"
+                    + "Play a game: ask her to play and give her an ending, like one round or 10 minutes. Say stop or press Stop to end it sooner.\n"
+                    + "Listen for Capri: select your microphone and set up the local speech decoder under VOICE, then turn on Listen for Capri. After you say her name, she keeps listening for 20 seconds so you can carry on without saying it again.\n"
+                    + "Her clicks: a click effect plays at her pointer's tip when she uses your mouse.\n"
+                    + "Terminal commands: she asks before each command by default. Change Run terminal commands under Security to let her run them when you ask.\n"
+                    + "Asked moves: ask her to lie down, walk around, wander or ride your cursor.\n"
+                    + "More of her tools: her fake crash prank, watching your screen for something you name, her mini player, and stopping her speech, quitting, checking for updates and steering her own jobs when you ask.\n"
+                    + "Chromebooks: she starts on a Chromebook's Linux."
+                : "Mouse and keyboard: she does computer jobs on your Mac, clicking, typing and using the shortcuts a Mac has. Your Mac asks you to allow her the first time.\n"
+                    + "Files: she finds and reads the files you choose, opens a folder you name in one go, and keeps website nicknames and game notes.\n"
+                    + "Arranging apps: she can maximize, restore, snap, move or resize an app, or move it to your other screen.\n"
+                    + "On your screen: she draws on it, makes clones, goes hologram, pulls her fake crash prank and watches for something you name.\n"
+                    + "Asked moves: ask her to lie down, walk around, wander or ride your cursor.\n"
+                    + "Her own tools: she stops talking, quits, checks for updates, steers her own jobs and opens her mini player when you ask. She runs terminal jobs too, asking before each command.\n"
+                    + "Quitting: when she quits, Capri Mainframe closes with her, and its close button closes it.\n"
+                    + "Mainframe: it scrolls the natural way on a trackpad, and long menus like Language scroll, from coiai.");
+        internal static readonly string Line = OperatingSystem.IsLinux()
+            ? "I just updated to " + Version + ": I've got a file editor and Listen for Capri on Linux, and I ask before running terminal commands. Ask me what's new."
+            : "I just updated to " + Version + ": I can use your mouse and keyboard on a Mac now, arrange your apps and draw on your screen. Ask me what's new.";
 #else
-        internal const string Version = "0.8.8";
+        internal const string Version = "0.8.9";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Teleporting: when she teleports somewhere, like to your mouse or your other monitor, she turns into her ribbons, travels as them and forms where she lands.\n"
-            + "Icon rampage: tell her Adam Smasher would beat her and she takes it out on your desktop icons. They form a train, ram the edge of the screen, get thrown around for about ten seconds and go home. Esc stops it early, and your real icons never move.\n"
-            + "Game voice chat: on a call she hears a game's voice chat even when it never pauses. Fifteen seconds of unbroken sound is cut at a quiet moment and heard.\n"
-            + "Bubbles in games: her speech bubble and reaction plate no longer stay torn on screen when a frame can't be drawn.\n"
-            + "Desktop icons: she reads and moves your desktop icons through Windows' own view of the desktop.\n"
-            + "Installer: Capri-Setup.exe is Capri.exe under another name, one program with nothing packed inside, and she no longer starts PowerShell for anything.\n"
-            + "From 0.8.7: Capri Remote at Mainframe > CAPRI > Remote lets you text her, call her, watch your PC's screen and follow JOBS from your phone at capriai.app/remote.\n"
-            + "Mods: every mod in the directory has always been checked for malware before it goes up. That check is not new.";
-        internal const string Line = "I just updated to " + Version + ": I travel as my ribbons when I teleport now. And tell me Adam Smasher would beat me, I dare you. Ask me what's new.";
+            + "Mini games: tic-tac-toe, connect four and rock paper scissors have easy, normal and hard. Add one when you ask, like \"play connect four on easy\", or click it at the top of the board. Right-click her > Play opens the games. From nathanZW.\n"
+            + "Reminders: a timer or reminder goes off when it's due, even over a full-screen game, and she says how late it is if something held it.\n"
+            + "Free and HD voices: after you'd switched voices, her check-ins, reminders and hellos could stay in her bubble on them. She says them out loud now.\n"
+            + "Second song: ask for another song while one plays and she starts it, and she only says it's playing once Spotify shows it.\n"
+            + "Folders and nicknames: \"open the cyberpunk folder\" finds and opens it in one go, and a saved website opens when you say just its nickname.\n"
+            + "Repeats: a point she made in a glance isn't made again as a comment or reaction, her set lines all come round once before any repeats, and in a computer job she doesn't type the same text into a field twice.\n"
+            + "Clips: the sound in her clips is joined with no gaps, for the clicking testers heard, and capture keeps a steady pace at 60 fps.\n"
+            + "Her brain at start: when her brain isn't up yet as she starts, like Ollama after a restart, she keeps looking for it quietly until it's there.\n"
+            + "Chaos when upset: more insults count, like \"shut up\" and \"stfu\", and one she sat out during a game or a job still counts toward the next for ten minutes.\n"
+            + "VB-CABLE: Mainframe > Settings > VOICE > Her voice in your mic says what went wrong when its setup fails and what to do next.\n"
+            + "From 0.8.8: she travels as her ribbons when she teleports, and tell her Adam Smasher would beat her.";
+        internal const string Line = "I just updated to " + Version + ": reminders go off on time now, even mid-game, and our mini games have a hard mode. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 

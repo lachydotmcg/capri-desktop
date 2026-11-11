@@ -34444,15 +34444,18 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
-                    "Teleporting:",
-                    "Icon rampage:",
-                    "Game voice chat:",
-                    "Bubbles in games:",
-                    "Desktop icons:",
-                    "Installer:",
-                    "CAPRI > Remote",
-                    "From 0.8.7:",
-                    "always been checked for malware"
+                    "Mini games:",
+                    "Right-click her > Play",
+                    "Reminders:",
+                    "Free and HD voices:",
+                    "Second song:",
+                    "Folders and nicknames:",
+                    "Repeats:",
+                    "Clips:",
+                    "Her brain at start:",
+                    "Chaos when upset:",
+                    "VOICE > Her voice in your mic",
+                    "From 0.8.8:"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
