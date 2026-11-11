@@ -812,7 +812,7 @@ namespace CapriDesktop
             if (!Hands.Heard(text, out tool, out args) || tool != "mini_game") return false;
             string done = DoTool(tool, args);
             lock (shortcutGate) { toolAsked = true; heardLast = text; toolDone = done; shortcutTool = tool; shortcutAt = Environment.TickCount; shortcutResult = done; }
-            Hush();
+            Hush("mini game");
             dropping = true;
             reply = null;
             replyDone = -1;

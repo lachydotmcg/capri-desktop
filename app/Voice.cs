@@ -121,6 +121,7 @@ namespace CapriDesktop
 
 #if !CROSS
         internal bool Busy { get { return player.Busy; } }
+        internal bool Playing { get { return player.Left > 0 || player.DeviceLeft > 0; } }
 #endif
 
 #if CROSS
@@ -381,8 +382,9 @@ namespace CapriDesktop
             string id = VoiceId;
             string model = Model;
             if (key == null || id == null) throw new VoiceException("No voice picked.");
+            string said = Sayable(text);
             StringBuilder body = new StringBuilder("{\"text\":");
-            body.Append(Quote(Sayable(text)));
+            body.Append(Quote(said));
             string words = body.ToString();
             body.Append(",\"model_id\":").Append(Quote(string.IsNullOrEmpty(model) ? DefaultModel : model));
             string settings = Settings;
@@ -393,20 +395,90 @@ namespace CapriDesktop
             Tuple<string, byte[]> last = lastSaid;
             if (last != null && last.Item1 == asked) return last.Item2;
             string address = "/v1/text-to-speech/" + Uri.EscapeDataString(id) + "?output_format=wav_24000";
+            string paceKey = id + "\n" + (string.IsNullOrEmpty(model) ? DefaultModel : model) + "\n" + settings;
+            byte[] payload = Encoding.UTF8.GetBytes(body.ToString());
             byte[] wav;
-            try { wav = Clean(Send(Open(address, key, "POST"), Encoding.UTF8.GetBytes(body.ToString()))); }
+            try { wav = Clean(Send(Open(address, key, "POST"), payload)); }
             catch (VoiceException error)
             {
                 // A model or setting this account or voice can't use shouldn't cost her her voice.
                 if (error.Status != 400 && error.Status != 404 && error.Status != 422 || (settings == null && !string.IsNullOrEmpty(model))) throw;
                 string plain = words + ",\"model_id\":" + Quote(string.IsNullOrEmpty(model) ? CallModel : model) + "}";
-                wav = Clean(Send(Open(address, key, "POST"), Encoding.UTF8.GetBytes(plain)));
+                payload = Encoding.UTF8.GetBytes(plain);
+                paceKey = id + "\n" + (string.IsNullOrEmpty(model) ? CallModel : model) + "\n";
+                wav = Clean(Send(Open(address, key, "POST"), payload));
+            }
+#if CROSS
+            int letters = 0;
+            foreach (char c in Uncued(said)) if (char.IsLetterOrDigit(c)) letters++;
+#else
+            int letters = VoiceServer.Letters(said);
+#endif
+            // ElevenLabs can hand back a clip that ends early, which sounds like her voice stopping mid-reply while the text goes on
+            // (#158). Against this voice's own pace, one far too quick for its words is asked for once more and the longer one kept,
+            // like Fish Audio's pieces. One only a bit quick isn't, since asking again costs them credits, but it's logged too.
+            double pace = Pace(paceKey), seconds = Seconds(wav);
+            if (Quick(letters, seconds, pace, 1.3, 20))
+            {
+                bool again = Quick(letters, seconds, pace, 1.6, 25);
+                string returned = "not asked";
+                if (again)
+                {
+                    try
+                    {
+                        byte[] retry = Clean(Send(Open(address, key, "POST"), payload));
+                        double more = Seconds(retry);
+                        returned = more.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s";
+                        if (more > seconds) wav = retry;
+                    }
+                    catch (Exception error) { returned = "failed " + error.GetType().Name; }
+                }
+                double speed = seconds > 0 ? letters / seconds : 0;
+                Brain.Log("voice cut", -1, "ElevenLabs: " + seconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s, letters=" + letters
+                    + ", letters/s=" + speed.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + ", pace=" + (pace > 0 ? pace.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) : "none")
+                    + ", asked again=" + again + ", returned=" + returned + ", kept=" + Seconds(wav).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s");
+            }
+            double kept = Seconds(wav);
+            if (letters >= 40 && kept > 0 && !Quick(letters, kept, pace, 1.3, 25))
+            {
+                lock (paces)
+                {
+                    List<double> recent;
+                    if (!paces.TryGetValue(paceKey, out recent)) { recent = new List<double>(); paces.Add(paceKey, recent); }
+                    recent.Add(letters / kept);
+                    if (recent.Count > 8) recent.RemoveAt(0);
+                }
             }
             lastSaid = Tuple.Create(asked, wav);
             return wav;
         }
 
         private volatile Tuple<string, byte[]> lastSaid;
+        // Letters a second of each voice's last eight whole clips, by voice, model and settings, since speed and the model change it.
+        private static readonly Dictionary<string, List<double>> paces = new Dictionary<string, List<double>>();
+
+        // The median of a voice's whole clips, once it has three. None yet is 0.
+        private static double Pace(string key)
+        {
+            lock (paces)
+            {
+                List<double> recent;
+                if (!paces.TryGetValue(key, out recent) || recent.Count < 3) return 0;
+                double[] sorted = recent.ToArray();
+                Array.Sort(sorted);
+                int count = sorted.Length;
+                return count % 2 == 1 ? sorted[count / 2] : (sorted[count / 2 - 1] + sorted[count / 2]) / 2;
+            }
+        }
+
+        // A clip of 40 or more letters said quicker than its voice's pace times the margin, or than a flat rate while its pace
+        // isn't known. Nobody talks 20 letters a second.
+        private static bool Quick(int letters, double seconds, double pace, double margin, double flat)
+        {
+            if (letters < 40) return false;
+            if (seconds <= 0) return true;
+            return letters / seconds > (pace > 0 ? pace * margin : flat);
+        }
 
         internal static string Quote(string value)
         {
@@ -544,24 +616,25 @@ namespace CapriDesktop
 #else
             // A line stopped with sound still to play goes in errors.txt with what stopped it, so a report of her voice stopping
             // mid-reply says which part of her did it (ticket 35).
-            double left = player.Left;
-            if (left > 0.5) Brain.Log("voice cut", -1, left.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s left, stopped by " + Stopper());
-            player.Close();
+            player.Close(true, null);
 #endif
         }
 
 #if !CROSS
-        internal void Finish() { player.EndAnswer(); player.Close(false); }
+        internal void Finish() { player.EndAnswer(); player.Close(false, "finished"); }
 
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-        private static string Stopper()
+        internal static string Stopper()
         {
-            StackTrace trace = new StackTrace(2, false);
+            StackTrace trace = new StackTrace(1, false);
             List<string> names = new List<string>();
             for (int i = 0; i < trace.FrameCount && names.Count < 3; i++)
             {
                 MethodBase method = trace.GetFrame(i).GetMethod();
-                if (method != null) names.Add(method.Name);
+                if (method == null) continue;
+                // The speaker's own clear, and Stop, Finish or Hush handing over to it, don't say which part of her stopped the line.
+                if (method.DeclaringType == typeof(Speaker) || method.DeclaringType == typeof(Voice) && (method.Name == "Stop" || method.Name == "Finish") || method.Name == "Hush") continue;
+                names.Add(method.Name);
             }
             return string.Join(" < ", names.ToArray());
         }

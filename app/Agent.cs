@@ -104,6 +104,7 @@ namespace CapriDesktop
         internal event Action<string> Replied;
         internal event Action<short[]> Audio;
         internal event Action Interrupted;
+        internal event Action ToolReturned;
         internal event Action<string> Closed;
         private readonly object sending = new object();
         private readonly CancellationTokenSource stop = new CancellationTokenSource();
@@ -315,6 +316,8 @@ namespace CapriDesktop
                     {
                         string result = act == null ? "Her tools are off." : act(call.Name, call.Arguments);
                         Send("{\"type\":\"client_tool_result\",\"tool_call_id\":" + Voice.Quote(call.Id) + ",\"result\":" + Voice.Quote(result) + ",\"is_error\":false}");
+                        Action returned = ToolReturned;
+                        if (returned != null) returned();
                     }
                     finally { Interlocked.Decrement(ref toolBusy); }
                 });

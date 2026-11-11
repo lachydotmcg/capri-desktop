@@ -150,9 +150,19 @@ namespace CapriDesktop
         // share learned before her voice reaches the mic is far too small, so her own echo then counts as them talking over
         // her a couple of words in (ticket 35, GHISA with Hey Capri on: "speech stops after two words while text continues").
         private const int Learning = 6;
-        private const int Held = 2;
+        // Off a call it learns until the mic has risen with her instead: three chunks at twice the quietest it's been this turn.
+        // Speakers later than 600 ms learned their share from silence and still cut her off (#158). With headphones nothing
+        // rises, so it stops learning after 1.5 s of her.
+        private const int Rises = 3, LearningMost = 15;
+        private const double RiseFloor = 0.004;
+        // Off a call three loud chunks in a row stop her, so a bang or a cough in two of them doesn't (#158).
+        internal const int Held = 3;
         private const double Margin = 2.5;
         private const double Fading = 0.93;
+        // A soft stretch fades the share 7% a chunk, and the late echo of her next loud word then looked like them. Off a call
+        // the share stays at 60% or more of its highest lately, which fades 1% a chunk, so a cough or a word of theirs it took
+        // for her echo doesn't keep them from stopping her for the rest of her line (#158).
+        private const double Floor = 0.6, HighFading = 0.99;
         private const double Pause = 0.002;
         // A breath or room tone between her words is a gap too: Fish Audio's voices keep them, and over speakers the mic is still
         // ringing with the word before, which counted as them talking over her and cut her voice off mid-reply (Mika, Ashy, 2 Nov).
@@ -163,6 +173,9 @@ namespace CapriDesktop
         private readonly double[] recent = new double[Recent];
         private int slot;
         private double share;
+        private double high;
+        private double quiet = double.MaxValue;
+        private int risen;
         private int chunks;
         private int over;
         // On a call she waits for about a second of them talking, nine of the last twelve chunks, so a laugh or a "yeah" at a
@@ -174,6 +187,9 @@ namespace CapriDesktop
         internal void Reset()
         {
             share = 0;
+            high = 0;
+            quiet = double.MaxValue;
+            risen = 0;
             Array.Clear(recent, 0, Recent);
             slot = 0;
             chunks = 0;
@@ -182,21 +198,31 @@ namespace CapriDesktop
             loudSlot = 0;
         }
 
-        // One chunk of the mic with how loud she is playing right now. True once they've been talking over her for two chunks in a
-        // row, or on a call for nine of the last twelve.
+        // One chunk of the mic with how loud she is playing right now. True once they've been talking over her for three chunks in
+        // a row, or on a call for nine of the last twelve.
         internal bool Heard(double mic, double mine, double wake, bool call = false)
         {
             recent[slot] = mine;
             slot = (slot + 1) % Recent;
+            if (!call) quiet = Math.Min(quiet, mic);
             // Her gaps between words say nothing: a game or a fan is all a mic hears then, so only what's over her voice counts.
             if (mine <= Pause) return false;
             double loudest = 0;
             foreach (double level in recent) loudest = Math.Max(loudest, level);
             double against = mine < loudest * GapShare ? loudest : mine;
-            bool learned = chunks >= Learning;
+            bool learned = call ? chunks >= Learning : risen >= Rises || chunks >= LearningMost;
             chunks++;
+            if (!call && !learned && mic >= RiseFloor && mic >= quiet * 2) risen++;
             bool loud = learned && mic >= wake && mic >= share * against * Margin;
-            if (!loud) share = Math.Max(share * Fading, mic / against);
+            if (!loud)
+            {
+                share = Math.Max(share * Fading, mic / against);
+                if (!call)
+                {
+                    high = Math.Max(high * HighFading, share);
+                    share = Math.Max(share, high * Floor);
+                }
+            }
             over = loud ? over + 1 : 0;
             loudRecent[loudSlot] = loud;
             loudSlot = (loudSlot + 1) % CallWindow;
@@ -538,7 +564,7 @@ namespace CapriDesktop
             Sfx.Untype();
             voiceUntil = 0;
             spokenLevels = null;
-            if (chatting && !local) { Hush(); bargedUntil = now + 1.2; }
+            if (chatting && !local) { Hush(source); bargedUntil = now + 1.2; }
             barging = false;
             Say(null);
             CheckEars(now);
@@ -554,6 +580,9 @@ namespace CapriDesktop
         private void LogVoiceInterruption(string source, int detected, bool ignored)
         {
             double now = clock.Elapsed.TotalSeconds;
+            // Every message they send counts as input, and with nothing of hers playing or on its way that's no interruption. A line
+            // for each pushed her real cuts out of errors.txt within a day (#158).
+            if (!ignored && !voice.Playing && answerVoice < 0 && hdSpeaking < 0 && speaker.Ago >= 1) return;
             Brain.Log("voice interruption", -1, source + " answer=" + answerTurn + " audio=" + audioTurn + " detected=" + detected + " ignored=" + ignored
                 + " played_ms=" + (spokenLevels == null ? -1 : (long)((now - spokenAt) * 1000)) + " remaining_ms=" + (long)(Math.Max(0, voiceUntil - now) * 1000) + " stream_busy=" + speaker.Busy);
         }
@@ -598,25 +627,39 @@ namespace CapriDesktop
         private volatile bool nameOver;
         private double bargedUntil = -1;
         private volatile int micTalked;
+        private bool tailOpen;
+        private long tailSound;
 
         // While she talks voice chat's agent gets silence, or it would hear her and answer itself. Them talking over her is what
         // gets through: she stops, and the agent hears them from the start of what they said.
+        // That lasts until her stream has been quiet for a second, not just while sound is queued: her echo between sentences
+        // and after her last word reached ElevenLabs, which took it as them and cut her off (#158). Her pauses keep what it
+        // learned. Them answering in that second gets through from their first word, with nothing of hers left to stop.
         private short[] OverHer(short[] chunk, Agent open)
         {
             int ticket = asking, audio = audioTurn;
             double level = VoiceLevel(chunk);
             if (level >= WakeLevel) micTalked = Environment.TickCount;
             if (barging && bargingTicket == ticket && bargingAudio == audio) return chunk;
-            if (!speaker.Busy) { talkOver.Reset(); heldBack.Clear(); return chunk; }
+            if (speaker.Ago >= 1) { talkOver.Reset(); heldBack.Clear(); tailOpen = false; return chunk; }
+            if (tailOpen && tailSound == speaker.SoundEnd) return chunk;
+            tailOpen = false;
+            bool playing = speaker.Left > 0;
             heldBack.Add(chunk);
-            if (heldBack.Count > 4) heldBack.RemoveAt(0);
-            if (!talkOver.Heard(level, speaker.Level(), WakeLevel)) return new short[chunk.Length];
-            bargingTicket = ticket;
-            bargingAudio = audio;
-            barging = true;
-            talkOver.Reset();
-            QueueBargeIn(ticket, audio, "voice chat talk-over");
-            for (int i = 0; i + 1 < heldBack.Count; i++) open.Send(heldBack[i]);
+            if (heldBack.Count > TalkOver.Held + 2) heldBack.RemoveAt(0);
+            // Her loudest of the last 600 ms, like free voice chat's and Hey Capri's: against 300 ms, with speakers 900 ms late it
+            // took over 400 ms to hear them over her (#158). In the second after her sound it's her loudest of that second.
+            if (!talkOver.Heard(level, speaker.Level(playing ? 0.6 : 1), WakeLevel)) return new short[chunk.Length];
+            if (playing)
+            {
+                bargingTicket = ticket;
+                bargingAudio = audio;
+                barging = true;
+                talkOver.Reset();
+                QueueBargeIn(ticket, audio, "voice chat talk-over");
+            }
+            else { tailOpen = true; tailSound = speaker.SoundEnd; }
+            for (int i = 0; i + 1 < heldBack.Count; i++) SendMic(open, heldBack[i]);
             heldBack.Clear();
             return chunk;
         }
@@ -846,7 +889,7 @@ namespace CapriDesktop
                 Action<string> test = doneTest;
                 if (test != null) { test(line); return; }
                 stirred = Environment.TickCount;
-                if (told != null && told.Ready) told.Say(line);
+                if (told != null && told.Ready) { told.Say(line); ToolSent(told); }
             });
         }
 
@@ -903,8 +946,8 @@ namespace CapriDesktop
                 foreach (KeyValuePair<string, ToolArguments> call in calls)
                 {
                     string done = AgentAct(told, call.Key, call.Value ?? new ToolArguments());
-                    if (done == StartedLater || done == AlreadyLater || done == FoldedLater) { if (told != null && told.Ready) told.Tell(done); }
-                    else if (Security.IsHold(done)) { if (told != null && told.Ready) told.Say(done); return; }
+                    if (done == StartedLater || done == AlreadyLater || done == FoldedLater) { if (told != null && told.Ready) { told.Tell(done); ToolSent(told); } }
+                    else if (Security.IsHold(done)) { if (told != null && told.Ready) { told.Say(done); ToolSent(told); } return; }
                     else Finished(told, call.Key, done, ticket);
                 }
             }, null, Timeout.Infinite, Timeout.Infinite);
@@ -921,7 +964,7 @@ namespace CapriDesktop
         {
             bool again = lastSaid != null && unchecked(Environment.TickCount - lastSaidAt) < 30000 && Asides.Same(said, lastSaid);
             repeating = again;
-            if (again) { Hush(); return true; }
+            if (again) { Hush("repeated reply"); return true; }
             lastSaid = said;
             lastSaidAt = Environment.TickCount;
             return false;

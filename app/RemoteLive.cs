@@ -170,8 +170,7 @@ namespace CapriDesktop
             bool audible = current && audio == audioTurn && !run.Stopped;
             bool last = index == pieces.Count - 1 || wav == null;
             double seconds = wav == null ? 0 : Voice.Seconds(wav);
-            Brain.Log("voice delivery", ms, "answer=" + turn + " audio=" + audio + " current_answer=" + answerTurn + " current_audio=" + audioTurn + " text_current=" + current + " audio_current=" + audible
-                + " seconds=" + (wav == null ? "none" : seconds.ToString("0.0", CultureInfo.InvariantCulture)) + " letters=" + VoiceServer.Letters(pieces[index]) + " piece=" + (index + 1) + "/" + pieces.Count);
+            VoiceDelivered(turn, audio, current, audible, wav, pieces[index], ms, " piece=" + (index + 1) + "/" + pieces.Count);
             if (!current) return;
             if (audible)
             {
