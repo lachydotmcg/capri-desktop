@@ -1353,7 +1353,7 @@
     [/\b(mac|macos|apple|silicon|intel)\b/i, 'Mac needs macOS 15 or newer, choom. Grab the Apple Silicon or Intel zip. The Help page has the first-open steps.'],
     [/\b(linux|wayland|x11|appimage)\b/i, 'Linux is an early preview, choom. AppImage or tarball, with Ollama for my brain. On Wayland I sit at the bottom of your screen.'],
     [/\b(ram|memory requirements|requirements|specs|graphics|disk space)\b/i, 'Local brain: 8 GB RAM, 16 is better, and 3 to 5 GB space. With a brain key: 4 GB RAM and under 100 MB, choom.'],
-    [/\b(install|download|windows|setup)\b/i, 'On Windows 10 or 11, 64-bit, grab Capri-Setup.exe and open it, choom. The installer has everything.'],
+    [/\b(install|download|windows|setup|microsoft store)\b/i, "On Windows 10 or 11, get me from the Microsoft Store, choom. It's signed, so Windows won't warn you. Want the newest stuff first? Grab Capri-Setup.exe instead."],
     [/\b(cost|price|free|pay|subscription)\b/i, "I'm free, choom. My built-in brain and free voice run on your PC. Some optional cloud keys need paid credits."],
     [/\b(offline|internet|connection)\b/i, 'My built-in brain and free voice run on your PC, choom. A brain from a key needs internet.'],
     [/\b(brain|model|ollama|nvidia)\b/i, 'Open Capri Mainframe, then BRAIN > Set up her brain, choom. On Mac and Linux my brain uses Ollama.'],
@@ -1786,8 +1786,12 @@
   let system = /Android|iPhone|iPad|CrOS/.test(agent) ? 'windows' : /mac/i.test(platform) && navigator.maxTouchPoints < 2 ? 'mac' : /linux|x11/i.test(platform) ? 'linux' : 'windows';
   const urls = {};
   for (const link of $$('a[data-os]')) urls[link.dataset.os] = link.href;
+  // Windows gets the signed copy on the Microsoft Store first; the latest release is a link beside it.
+  const pick = () => system === 'windows' ? 'store' : system;
   const point = () => {
-    install.href = urls[system] || urls.windows;
+    const to = pick();
+    install.href = urls[to] || urls.windows;
+    if (to === 'store') { install.target = '_blank'; install.rel = 'noopener noreferrer'; } else install.removeAttribute('target');
     for (const link of $$('a[data-os]')) if (urls[link.dataset.os]) link.href = urls[link.dataset.os];
     const yours = $('[data-panel="' + (system === 'intel' ? 'mac' : system) + '"] .yours');
     if (yours) yours.hidden = false;
@@ -1806,6 +1810,7 @@
   } else if (system === 'mac' && intelGraphics()) { system = 'intel'; point(); }
   const headsUp = $('#heads-up');
   const warn = os => {
+    if (os === 'store') return;                                                  // the Store copy is signed: no heads-up
     const showing = os === 'intel' ? 'mac' : os;
     for (const note of $$('p[data-os]', headsUp)) note.hidden = note.dataset.os !== showing;
     if (headsUp.showModal && !headsUp.open) headsUp.showModal();
@@ -1813,10 +1818,84 @@
   document.addEventListener('click', event => {
     const link = event.target.closest('a[data-os], #install');
     if (!link) return;
-    warn(link.dataset.os || system);
+    warn(link.dataset.os || pick());
     if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) readCount({ method: 'POST', keepalive: true }).catch(() => {});
   });
   headsUp.addEventListener('click', event => { if (event.target === headsUp) headsUp.close(); });
+
+  // ---------- Get her: the pick for this device, big on her pink, and every way to get her as square tiles ----------
+  // A tile picks; the big button downloads. The big card is a copy of the picked tile's hidden details, which point() and
+  // the release keep up to date like every other download link, so the copy carries the right address and size.
+  const getHer = $('#download');
+  if (getHer) {
+    const card = { box: $('.gh-card', getHer), icon: $('#gh-icon'), label: $('#gh-for'), name: $('#gh-name'), tag: $('#gh-tag'), marks: $('#gh-marks'), go: $('#gh-go') };
+    const options = $$('.gh-option', getHer);
+    const touchMac = /mac/i.test(platform) && navigator.maxTouchPoints > 1;               // an iPad says it is a Mac
+    let mine = /OculusBrowser|Quest/.test(agent) ? 'quest'                                // a Meta Quest's browser says it is Linux
+      : /Android|iPhone|iPad|iPod/.test(agent) || touchMac ? 'phone'
+      : /mac/i.test(platform) ? (system === 'intel' ? 'intel' : 'mac')
+      : /CrOS/.test(agent) ? 'linux'                                                     // a Chromebook runs her Linux build, as a folder
+      : /linux|x11/i.test(platform) ? 'appimage'
+      : 'store';                                                                         // Windows: the signed copy first
+    let picked = false;
+    const choose = way => {
+      const option = options.find(item => item.dataset.way === way);
+      if (!option) return;
+      const more = $('.gh-more', option);
+      for (const item of options) $('.gh-way', item).setAttribute('aria-pressed', String(item === option));
+      card.icon.replaceChildren($('.gh-way .glyph', option).cloneNode(true));
+      card.label.textContent = option.dataset.for;
+      card.name.textContent = option.dataset.name;
+      card.tag.innerHTML = $('.gh-tag-full', more).innerHTML;
+      card.marks.innerHTML = $('.marks', more).innerHTML;
+      // the first link becomes the big button, with the file's size in it; any other link stays a link
+      card.go.replaceChildren(...$$('.os-links a', more).map((link, index) => {
+        const copy = link.cloneNode(true);
+        if (index > 0) return copy;
+        copy.className = 'btn';
+        const words = document.createElement('span');
+        words.textContent = link.dataset.big || link.textContent;
+        copy.replaceChildren(words);
+        const size = $('[data-size]', more);
+        if (size) {
+          const amount = document.createElement('span');
+          amount.className = 'size';
+          amount.dataset.size = size.dataset.size;
+          amount.textContent = size.textContent;
+          copy.append(' ', amount);
+        }
+        return copy;
+      }));
+    };
+    const markMine = () => {
+      for (const tab of $$('.gh-mine', getHer)) tab.remove();
+      const option = options.find(item => item.dataset.way === mine);
+      if (!option) return;
+      const tab = document.createElement('span');
+      tab.className = 'gh-mine';
+      tab.textContent = 'For you';
+      option.append(tab);
+    };
+    markMine();
+    choose(mine);
+    if (mine === 'mac' && navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+      navigator.userAgentData.getHighEntropyValues(['architecture']).then(values => {
+        if (values.architecture !== 'x86') return;
+        mine = 'intel';
+        markMine();
+        if (!picked) choose(mine);
+      }).catch(() => {});
+    }
+    getHer.addEventListener('click', event => {
+      const tile = event.target.closest('.gh-way');
+      if (!tile) return;
+      picked = true;
+      choose(tile.closest('.gh-option').dataset.way);
+      // on a phone her desktop is pinned over the top of the page, and the big card can be under it or above the screen
+      const covered = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+      if (card.box.getBoundingClientRect().top < covered) card.box.scrollIntoView({ block: 'start', behavior: still ? 'instant' : 'smooth' });
+    });
+  }
 
   // ---------- Real numbers. The page keeps its built-in snapshot if these can't be reached. ----------
   const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
