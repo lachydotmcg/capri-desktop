@@ -28147,11 +28147,15 @@ namespace CapriDesktop
                     softWords = true;
                     queuedAsk = asking; queuedAudio = audioTurn; queuedAnswer = answerTurn;
                     slow.Reset();
+                    // The call is quiet before the friend speaks, so her room level settles low and the friend's quiet voice
+                    // wakes her. Begun on that quiet voice, the room took its level and the line never started.
+                    for (int at = 0; at < 4; at++) feed(hush, hush);
                     for (int at = 0; at < 8; at++) feed(hush, at % 2 == 0 ? soft : softer);
                     for (int at = 0; at < 9; at++) feed(hush, hush);
-                    if (beforeWords) { queuedAsk = ++asking; voiceUntil = clock.Elapsed.TotalSeconds + 2; }
+                    // Her voice lasts far longer than a slow runner takes to keep the line, and ends once the keep is checked.
+                    if (beforeWords) { queuedAsk = ++asking; voiceUntil = clock.Elapsed.TotalSeconds + 30; }
                     wait(delegate { return entered.WaitOne(0); });
-                    if (!beforeWords) { queuedAsk = ++asking; voiceUntil = clock.Elapsed.TotalSeconds + 2; }
+                    if (!beforeWords) { queuedAsk = ++asking; voiceUntil = clock.Elapsed.TotalSeconds + 30; }
                     CheckEars(clock.Elapsed.TotalSeconds);
                     slow.Set();
                     wait(delegate { return !transcribing && callBacklog != null; });
@@ -28160,6 +28164,7 @@ namespace CapriDesktop
                     LogEars(clock.Elapsed.TotalSeconds, true);
                     logLines = File.ReadAllLines(Brain.LogPath);
                     if (!logLines[logLines.Length - 1].Contains(", 1 kept for her next turn,")) throw new Exception("Her ears did not count a call line kept over her voice.");
+                    voiceUntil = clock.Elapsed.TotalSeconds + 0.3;
                     wait(delegate { CheckCallLines(); return reply == answered; });
                     if (asking != queuedAsk + 1 || requests.Count != 1 || heard != softSaid || !requests[0].Contains(softSaid) || callBacklog != null) throw new Exception("A call line did not take her next turn after her voice ended.");
                 }
