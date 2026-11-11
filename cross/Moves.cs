@@ -696,7 +696,7 @@ namespace CapriDesktop
             PixelPoint anchor = pet.anchor;
             int walkTo = pet.walkTo;
             double walkStep = pet.walkStep, walkCarry = pet.walkCarry;
-            PixelPoint[] asked = pet.asked.ToArray();
+            MoveReports asked = pet.asked.Copy();
             Ledge seat = pet.seat;
             bool facing = pet.FacingLeft, falling = pet.falling, walking = pet.walking;
             bool pressed = pet.pressed, dragging = pet.dragging, riding = pet.riding, lying = pet.lying;
@@ -707,6 +707,7 @@ namespace CapriDesktop
             try
             {
                 pet.MoveTo = _ => { };
+                pet.asked = new MoveReports();
                 pet.falling = pet.walking = pet.pressed = pet.dragging = pet.riding = pet.lying = false;
                 pet.outro = null;
                 pet.clip = pet.perch;
@@ -796,7 +797,7 @@ namespace CapriDesktop
                 pet.body.FacingLeft = facing;
                 pet.anchor = anchor;
                 pet.walkTo = walkTo; pet.walkStep = walkStep; pet.walkCarry = walkCarry;
-                pet.asked.Clear(); pet.asked.AddRange(asked);
+                pet.asked = asked;
                 pet.seat = seat;
                 pet.falling = falling;
                 pet.walking = walking;
