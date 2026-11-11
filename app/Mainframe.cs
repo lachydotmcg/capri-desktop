@@ -283,8 +283,8 @@ namespace CapriDesktop
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1316, 1368 }, new[] { 1368, 1396 } };
-        // Power saver's row stays in Simple Settings, so the right column's last band starts a row lower, at Perch.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 708, 1202 }, new[] { 1426, 2252 } };
+        // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 708, 1202 }, new[] { 1454, 2280 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -375,6 +375,8 @@ namespace CapriDesktop
         private readonly Readout perchFpsName;
         private readonly Slider powerSaver;
         private readonly Readout powerSaverName;
+        private readonly Slider musicApp;
+        private readonly Readout musicAppName;
         // Her Mainframe size: Auto, or 100% to 200% of the screen's own scale.
         private static readonly int[] FrameSizes = { 0, 100, 125, 150, 175, 200 };
         private static readonly string[] FrameSizeNames = { "Auto", "100%", "125%", "150%", "175%", "200%" };
@@ -953,6 +955,9 @@ namespace CapriDesktop
             powerSaver = Setting("Power saver", SaverNames, c, 840, "Power saver: how lightly she runs in games, or always");
             powerSaverName = new Readout(powerSaver);
             powerSaver.Changed += delegate { if (syncing) return; powerSaverName.Text = SaverNames[powerSaver.Value]; capri.SetPowerSaver(powerSaver.Value); };
+            musicApp = Setting("Music app", Hands.MusicSteps(), c, 868, "Music app: where she plays music when you don't name an app");
+            musicAppName = new Readout(musicApp);
+            musicApp.Changed += delegate { if (syncing) return; musicAppName.Text = Hands.MusicSteps()[musicApp.Value]; capri.SetMusicApp(musicApp.Value); };
             int afterSaver = Controls.Count;
             // Frames a second while she sits on a window. Her sway takes 2 s at every fps; past 30 she draws in-betweens.
             perchFps = Setting("Perch", PerchNames, c, 840, "Her perch frames per second");
@@ -974,9 +979,9 @@ namespace CapriDesktop
             exploreAfter = Setting("Explore after", AwayNames, c, 1000, "How long you are away before she scrolls a browser or reader");
             exploreAfterName = new Readout(exploreAfter);
             exploreAfter.Changed += delegate { if (!syncing) capri.SetExploreAfter(AwayTimes[exploreAfter.Value]); };
-            // Power saver's row moves the rest of HABITS down one.
+            // Power saver's and Music app's rows move the rest of HABITS down two.
             for (int belowSaver = afterSaver; belowSaver < Controls.Count; belowSaver++)
-                if (Controls[belowSaver].Left >= c) Controls[belowSaver].Top += Row;
+                if (Controls[belowSaver].Left >= c) Controls[belowSaver].Top += Row * 2;
             int gamesFrom = Controls.Count;
             Section("GAMES >", 0, 914);
             miniGames = Make("Play...", 140, 911, 96, 20, delegate { ShowMiniGames(); });
@@ -2949,6 +2954,8 @@ namespace CapriDesktop
             ShowPerch();
             powerSaver.Value = Math.Max(0, Math.Min(SaverNames.Length - 1, capri.PowerSaver));
             powerSaverName.Text = SaverNames[powerSaver.Value];
+            musicApp.Value = Math.Max(0, Math.Min(Hands.MusicSteps().Length - 1, capri.MusicApp));
+            musicAppName.Text = Hands.MusicSteps()[musicApp.Value];
             syncing = false;
         }
 
@@ -2972,6 +2979,10 @@ namespace CapriDesktop
         internal string PowerSaverShown { get { return powerSaverName.Text; } }
 
         internal void SlidePowerSaver(int steps) { Press(powerSaver, steps); }
+
+        internal string MusicAppShown { get { return musicAppName.Text; } }
+
+        internal string MusicAppRow { get { return Folded(musicApp) ? "folded" : "shown"; } }
 
         // Simple Settings keeps Power saver on the page and folds Perch away under it; Advanced Settings shows both.
         internal string SaverRows { get { return (Folded(powerSaver) ? "folded" : "shown") + " | " + (Folded(perchFps) ? "folded" : "shown"); } }

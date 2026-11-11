@@ -46,6 +46,7 @@ namespace CapriDesktop
         [DataMember] internal bool NoMemories;
         [DataMember] internal bool NoCheckIns;
         [DataMember] internal int? PopPace;
+        [DataMember] internal int MusicApp;
         [DataMember] internal bool Watch;
         [DataMember] internal int GlanceGap;
         [DataMember] internal bool NoCaughtUp;
@@ -3026,6 +3027,7 @@ namespace CapriDesktop
         // Which step one of her sliders is on, counted from the bottom the way her menus show it, or -1 for one only Windows has.
         internal int LevelOf(string name)
         {
+            if (name == "music_app") return MusicApp;
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.InvokeAsync(delegate { return LevelOf(name); }).GetAwaiter().GetResult();
             int careKind = Array.IndexOf(Hands.CareSettings, name);
             if (careKind >= 0) return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), CareTime((CareKind)careKind)));
@@ -3082,6 +3084,7 @@ namespace CapriDesktop
                 case "size": Resize(Sizes[step]); break;
                 case "wander": SetWander(step); break;
                 case "pop_ins": SetPopPace(step); break;
+                case "music_app": SetMusicApp(step); break;
                 case "sleep": SetSleepAfter(Sleeps[step]); break;
                 case "volume": SetVolume(Volumes[step]); break;
                 case "voice_speed": SetPace(Paces[step]); break;
@@ -4349,6 +4352,7 @@ namespace CapriDesktop
         internal bool CheckIns { get { return !Saved.NoCheckIns; } }
         internal bool CheckInsShown { get { return checkInsItem.IsChecked; } }
         internal int PopPace { get { return Math.Max(0, Math.Min(2, Saved.PopPace ?? 1)); } }
+        internal int MusicApp { get { return Math.Max(0, Math.Min(2, Saved.MusicApp)); } }
         internal double PopGap() { return PopPaces[PopPace, 0] + random.NextDouble() * PopPaces[PopPace, 1]; }
 
         internal string PopsPicked
@@ -4373,6 +4377,13 @@ namespace CapriDesktop
         {
             Saved.PopPace = Math.Max(0, Math.Min(2, pace));
             nextPopIn = -1;
+            Save();
+            Sync();
+        }
+
+        internal void SetMusicApp(int app)
+        {
+            Saved.MusicApp = Math.Max(0, Math.Min(2, app));
             Save();
             Sync();
         }
@@ -5177,6 +5188,7 @@ namespace CapriDesktop
             [DataMember] internal bool NoKeepAwake;
             [DataMember] internal string Vault;
             [DataMember] internal ThinkingPick[] ThinkingPicks;
+            [DataMember] internal int MusicApp;
         }
 
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
@@ -5210,6 +5222,7 @@ namespace CapriDesktop
             saved.HuskMode = newer.HuskMode;
             saved.ThinkingPicks = newer.ThinkingPicks;
             saved.NoHuskVerbosity = newer.NoHuskVerbosity;
+            saved.MusicApp = newer.MusicApp;
             return saved;
         }
 
@@ -5217,7 +5230,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp };
         }
 
         private Settings Load()

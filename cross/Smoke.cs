@@ -2716,6 +2716,7 @@ namespace CapriDesktop
                 ModsChecks(frame);
                 MainframeRows(frame, fields);
                 HuskChecks(frame);
+                MusicAppChecks(frame);
                 CareChecks(frame);
                 FollowChecks();
                 AwakeChecks(fields);
@@ -2763,6 +2764,62 @@ namespace CapriDesktop
             internal int Reads;
             internal HuskInput(string text) : base(Encoding.UTF8.GetBytes(text)) { }
             public override int Read(byte[] buffer, int offset, int count) { Reads++; return base.Read(buffer, offset, count); }
+        }
+
+        private void MusicAppChecks(Mainframe frame)
+        {
+            int musicWas = pet.MusicApp;
+            bool advancedWas = pet.Saved.AdvancedSettings;
+            Action<string> runWas = Hands.Run;
+            Func<ToolArguments, string> nativeWorkWas = Hands.NativeWork;
+            List<string> ran = new List<string>(), jobs = new List<string>();
+            try
+            {
+                if (new Settings().MusicApp != 0) throw new Exception("Music app didn't start on Spotify.");
+                pet.SetMusicApp(0);
+                if (Hands.MusicApp(null) != null || Hands.LevelOf("music_app") != 0 || Hands.MusicApp("spotify") != "spotify") throw new Exception("Music app's default changed: " + Hands.MusicApp(null));
+                checks.Add("PASS cross Music app: the default still plays on Spotify, or YouTube without Spotify");
+                string tool;
+                ToolArguments heard;
+                string[,] named = { { "play Never Fade Away on apple music", "applemusic" }, { "open apple music and play Never Fade Away", "applemusic" },
+                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" } };
+                for (int i = 0; i < named.GetLength(0); i++)
+                    if (!Hands.Direct(named[i, 0], out tool, out heard) || tool != "play_music" || heard.App != named[i, 1] || heard.Song != "Never Fade Away" || !Hands.Valid(tool, heard))
+                        throw new Exception("A named music app wasn't caught on Mac or Linux: " + named[i, 0] + " / " + tool);
+                checks.Add("PASS cross Music app: play X on Apple Music, Spotify or YouTube is caught and play_music takes applemusic");
+                pet.SetMusicApp(2);
+                if (Hands.MusicApp(null) != "applemusic" || Hands.MusicApp("youtube") != "youtube") throw new Exception("Music app's Apple Music didn't reach her hands.");
+                if (Hands.OnMac)
+                {
+                    Hands.Run = ran.Add;
+                    Hands.NativeWork = args => { jobs.Add(args.Task); return "Did it."; };
+                    string done = Hands.Do("play_music", new ToolArguments { Song = "Never Fade Away" });
+                    bool cursor = Hands.KitFor().Has("use_computer") && Security.On(Security.Mouse);
+                    bool worked = cursor ? jobs.Count == 1 && jobs[0] == Hands.AppleMusicJob("Never Fade Away") && jobs[0].Contains("open the Music app") && done == "Did it." && ran.Count == 0
+                        : jobs.Count == 0 && ran.Count == 1 && ran[0] == "music://music.apple.com/search?term=Never%20Fade%20Away" && done.StartsWith("Opened Music", StringComparison.Ordinal);
+                    if (!worked) throw new Exception("Apple Music didn't play on a Mac: " + done + " / " + string.Join(" | ", jobs) + " / " + string.Join(" | ", ran));
+                    checks.Add("PASS cross Music app: on a Mac, play X goes to Apple Music, " + (cursor ? "a job with her mouse and keyboard" : "the Music app on a search"));
+                }
+                string[] steps = Hands.StepsOf("music_app");
+                pet.SetAdvancedSettings(false);
+                frame.ShowSettings(true);
+                for (int choice = 0; choice < steps.Length; choice++)
+                {
+                    frame.Change("Music app", choice);
+                    if (pet.MusicApp != choice || Hands.LevelOf("music_app") != choice || frame.Value("Music app") != steps[choice] || SettingsCopy().MusicApp != choice || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).MusicApp != choice)
+                        throw new Exception("The cross Music app picker did not save, load or show: " + steps[choice]);
+                }
+                if (!frame.Row("Music app").IsVisible || frame.Overlap() != null) throw new Exception("The cross Music app row didn't show in Simple Settings or overlapped: " + frame.Overlap());
+                checks.Add("PASS cross Music app: HABITS' picker saves, loads and shows Spotify, YouTube and Apple Music in Simple Settings");
+            }
+            finally
+            {
+                Hands.Run = runWas;
+                Hands.NativeWork = nativeWorkWas;
+                pet.SetMusicApp(musicWas);
+                pet.SetAdvancedSettings(advancedWas);
+                frame.ShowSettings(true);
+            }
         }
 
         private void HuskChecks(Mainframe frame)
@@ -4504,7 +4561,7 @@ namespace CapriDesktop
                 }
                 string[,] sliders =
                 {
-                    { "size", "", "Size" }, { "wander", "wanderPicks", "Wander" }, { "pop_ins", "popPicks", "PopPace" }, { "sleep", "sleepPicks", "SleepAfter" }, { "volume", "volumePicks", "Volume" },
+                    { "size", "", "Size" }, { "wander", "wanderPicks", "Wander" }, { "pop_ins", "popPicks", "PopPace" }, { "music_app", "", "MusicApp" }, { "sleep", "sleepPicks", "SleepAfter" }, { "volume", "volumePicks", "Volume" },
                     { "voice_speed", "pacePicks", "Pace" }, { "replies", "replyPicks", "Replies" }, { "bubble", "bubblePicks", "Bubble" }, { "glance_gap", "gapPicks", "GlanceGap" },
                     { "voice_pitch", "pitchPicks", "Pitch" }, { "voice_robot", "robotPicks", "Robot" }, { "voice_glitch", "glitchPicks", "Glitch" }, { "sounds", "soundPicks", "Sounds" }, { "language", "languagePicks", "Language" }, { "typing_sound", "", "Typing" }
                 };
