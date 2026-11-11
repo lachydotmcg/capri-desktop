@@ -145,6 +145,9 @@ namespace CapriDesktop
         private int serverWindow;
         internal volatile bool Cancel;
         internal volatile bool CpuOnly;
+        private int loading;
+
+        internal bool Loading { get { return Interlocked.CompareExchange(ref loading, 0, 0) > 0; } }
 
         internal Engine(string data)
         {
@@ -330,6 +333,13 @@ namespace CapriDesktop
 
         internal void Ensure(Pick pick)
         {
+            Interlocked.Increment(ref loading);
+            try { Load(pick); }
+            finally { Interlocked.Decrement(ref loading); }
+        }
+
+        private void Load(Pick pick)
+        {
             lock (gate)
             {
                 bool eyes = HasEyes(pick);
@@ -382,6 +392,13 @@ namespace CapriDesktop
         // An ask that reaches her brain while it's still loading gets llama-server's 503 "Loading model": Ensure lets a second ask
         // through once the server is started, like one sent while another ask restarts it with more memory. It waits for the load.
         internal bool Settle()
+        {
+            Interlocked.Increment(ref loading);
+            try { return Wait(); }
+            finally { Interlocked.Decrement(ref loading); }
+        }
+
+        private bool Wait()
         {
             Stopwatch waited = Stopwatch.StartNew();
             while (waited.Elapsed.TotalSeconds < 180)

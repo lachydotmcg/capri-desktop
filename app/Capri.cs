@@ -9489,37 +9489,56 @@ namespace CapriDesktop
             Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
         }
 
-        // While she can't see a brain, she looks again by herself every 15 seconds, so one that starts after her, like Ollama
-        // after a PC restart, turns up without pressing Refresh a few times (#160). The look is quiet: her Mainframe only
-        // changes once a brain answers.
         internal const double BrainLookGap = 15;
-        private double brainLookAt = -1;
+        private double brainLookAt = -1, brainLostAt = -1;
+        private bool brainLooking;
+        private int brainLook;
+        private const string BrainLoading = "Her built-in brain is still loading.";
 
         private void CheckBrainGone(double now)
         {
-            if (brain.Model != null || brain.Remote != null || brain.Server != null || SettingUp || finding) { brainLookAt = -1; return; }
-            if (brainLookAt < 0) brainLookAt = now + BrainLookGap;
-            if (now < brainLookAt) return;
-            brainLookAt = now + BrainLookGap;
+            ShowBrainLoading();
+            if (brain.Model != null || SettingUp) { brainLookAt = brainLostAt = -1; return; }
+            if (brainLostAt < 0) { brainLostAt = now; brainLookAt = now + BrainLookGap; }
+            if (now < brainLookAt || finding || brainLooking) return;
+            brainLookAt = now + (now - brainLostAt < 300 ? BrainLookGap : 60);
             FindBrain(true);
+        }
+
+        private bool OldBrainLook(int look)
+        {
+            if (look < 0) return false;
+            brainLooking = false;
+            return look != brainLook || SettingUp;
+        }
+
+        private void ShowBrainLoading()
+        {
+            if (brain.Local != engine) return;
+            if (!engine.Loading) { if (mainframe.Status.EndsWith(" | " + BrainLoading, StringComparison.Ordinal)) mainframe.ShowProblem("Running on this PC"); }
+            else if (mainframe.Status.EndsWith(" | Running on this PC", StringComparison.Ordinal)) mainframe.ShowProblem(BrainLoading);
         }
 
         internal void FindBrain(bool quiet = false)
         {
+            if (!quiet) ++brainLook;
+            else if (brain.Model != null || SettingUp || finding || brainLooking) return;
+            int look = quiet ? brainLook : -1;
+            if (quiet) brainLooking = true;
             Cloud remote = brain.Remote;
             if (remote != null && remote.Kind != "local")
             {
                 brain.Local = null;
                 brain.Model = remote.Model;
-                mainframe.ShowCloud(remote, cloudModels);
-                ListCloud(remote.Key, false);
+                if (!quiet || brain.Model != null) mainframe.ShowCloud(remote, cloudModels);
+                ListCloud(remote.Key, false, -1, look);
                 return;
             }
-            if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) { RefreshProvider(); return; }
+            if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) { RefreshProvider(look); return; }
             if (SettingUp) return;
             if (!quiet) mainframe.Searching();
             if (finding) return;
-            finding = true;
+            if (!quiet) finding = true;
             string address = preferences.LocalAddress;
             int port = preferences.BrainPort;
             string selected = preferences.BrainAddress;
@@ -9533,11 +9552,12 @@ namespace CapriDesktop
                 Pick local = engine.Installed();
                 Post(delegate
                 {
-                    finding = false;
-                    if (listing != providerListing) { if (brain.Server == null && brain.Remote == null) FindBrain(); return; }
-                    if (address != preferences.LocalAddress) { FindBrain(quiet); return; }
-                    // A quiet look that finds nothing leaves her Mainframe as it was, a setup problem it shows included.
-                    if (quiet && (installed == null || installed.Length == 0) && local == null && servers.Count == 0) return;
+                    if (!quiet) finding = false;
+                    if (OldBrainLook(look)) return;
+                    if (listing != providerListing) { if (!quiet && brain.Server == null && brain.Remote == null) FindBrain(); return; }
+                    if (address != preferences.LocalAddress) { if (!quiet) FindBrain(quiet); return; }
+                    // A quiet look only goes on when a brain will come out of it. Anything else would redraw the setup card every time.
+                    if (quiet && (installed == null || installed.Length == 0) && local == null && !(servers.Count > 0 && (brain.Remote != null || preferences.Tier == 0))) return;
                     mainframe.ShowServers(servers, installed, local);
                     if (brain.Remote == null && preferences.Tier == 0 && (installed == null || installed.Length == 0) && local == null && servers.Count > 0)
                     {
@@ -9554,6 +9574,7 @@ namespace CapriDesktop
 
         internal string SetLocalAddress(string address)
         {
+            ++brainLook;
             int port = Brain.LocalPort(address);
             if (!string.IsNullOrWhiteSpace(address) && port == 0) return "Use a loopback address, like http://127.0.0.1:1234.";
             preferences.LocalAddress = Brain.LocalAddress(address);
@@ -9566,6 +9587,7 @@ namespace CapriDesktop
 
         internal void ChooseLocalBrain(Cloud server, string model, Pick local)
         {
+            ++brainLook;
             if (AfterLine(delegate { ChooseLocalBrain(server, model, local); })) return;
             ++providerListing;
             preferences.ProviderOn = false;
@@ -9632,6 +9654,7 @@ namespace CapriDesktop
 
         internal void UseProvider(string typed, string key)
         {
+            ++brainLook;
             int listing = ++providerListing;
             string address = Brain.ServerAddress(typed);
             if (address == null) { mainframe.ProviderProblem("That address doesn't work. Try https://... or http://localhost:1234."); return; }
@@ -9695,26 +9718,31 @@ namespace CapriDesktop
             });
         }
 
-        private void RefreshProvider()
+        private void RefreshProvider(int look = -1)
         {
             string address, key;
             brain.GetServer(out address, out key);
-            int listing = ++providerListing;
-            mainframe.ShowProvider(address, key != null, brain.Model, providerModels);
+            int listing = look < 0 ? ++providerListing : providerListing;
+            if (look < 0) mainframe.ShowProvider(address, key != null, brain.Model, providerModels);
             ThreadPool.QueueUserWorkItem(delegate
             {
-                if (listing != providerListing) return;
+                if (look < 0 && listing != providerListing) return;
                 string[] found = null;
                 try { found = Brain.ServerModels(address, key); }
                 catch (Exception) { }
                 Post(delegate
                 {
+                    if (OldBrainLook(look)) return;
                     string currentAddress, currentKey;
                     brain.GetServer(out currentAddress, out currentKey);
                     if (listing != providerListing || preferences.Tier != 0 || brain.Remote != null || currentAddress != address || currentKey != key) return;
-                    if (found == null || found.Length == 0) { mainframe.ProviderProblem(found == null ? "Can't reach your provider. Check the address and key." : "Your server lists no models. Load one in it first."); return; }
+                    if (found == null || found.Length == 0) { if (look < 0) mainframe.ProviderProblem(found == null ? "Can't reach your provider. Check the address and key." : "Your server lists no models. Load one in it first."); return; }
                     providerModels = found;
-                    if (Array.IndexOf(found, brain.Model) < 0) { ChooseProviderModel(address, found[0], found); if (Array.IndexOf(found, brain.Model) < 0) return; }
+                    if (Array.IndexOf(found, brain.Model) < 0)
+                    {
+                        if (look < 0) { ChooseProviderModel(address, found[0], found); if (Array.IndexOf(found, brain.Model) < 0) return; }
+                        else { brain.Model = found[0]; preferences.ProviderModel = brain.Model; SavePreferences(); }
+                    }
                     mainframe.ShowProvider(address, key != null, brain.Model, found);
                 });
             });
@@ -9722,6 +9750,7 @@ namespace CapriDesktop
 
         internal void ChooseProviderModel(string address, string model, string[] listed)
         {
+            ++brainLook;
             if (!preferences.ProviderOn || preferences.Tier != 0 || brain.Remote != null || brain.Server != address || providerModels != listed || Array.IndexOf(listed, model) < 0) return;
             if (AfterLine(delegate { ChooseProviderModel(address, model, listed); })) return;
             ChooseModel(model, false);
@@ -9732,6 +9761,7 @@ namespace CapriDesktop
 
         internal void ForgetProvider()
         {
+            ++brainLook;
             ++providerListing;
             ++cloudListing;
             bool active = brain.Server != null && brain.Remote == null;
@@ -10548,6 +10578,7 @@ namespace CapriDesktop
                 brain.Local = engine;
                 brain.Model = local.Name;
                 mainframe.ShowLocal(local);
+                ShowBrainLoading();
             }
             else
             {
@@ -10559,6 +10590,7 @@ namespace CapriDesktop
 
         internal void SetUpBrain()
         {
+            ++brainLook;
             if (SettingUp || machine == null) return;
             SettingUp = true;
             engine.Cancel = false;
@@ -10610,6 +10642,7 @@ namespace CapriDesktop
 
         internal void ChooseModel(string name, bool keep = true)
         {
+            ++brainLook;
             if (brain.Remote != null && brain.Remote.Code && name != Brain.Fastest) return;
             if (name == brain.Model) return;
             if (keep && AfterLine(delegate { ChooseModel(name, keep); })) return;
@@ -10661,6 +10694,7 @@ namespace CapriDesktop
 
         internal void ChooseCloudModel(Cloud remote, string name)
         {
+            ++brainLook;
             if (remote != brain.Remote || cloudModels == null || !cloudModels.Contains(name)) return;
             ChooseModel(name);
             mainframe.ShowCloud(remote, cloudModels);
@@ -10722,6 +10756,7 @@ namespace CapriDesktop
 
         internal void ChooseTier(int tier)
         {
+            ++brainLook;
             if (tier == preferences.Tier) return;
             if (AfterLine(delegate { ChooseTier(tier); })) return;
             ++cloudListing;
@@ -10755,6 +10790,7 @@ namespace CapriDesktop
 
         private void ConnectText(string key, int targetTier)
         {
+            ++brainLook;
             ++providerListing;
             ++cloudListing;
             key = (key ?? "").Trim();
@@ -10777,6 +10813,7 @@ namespace CapriDesktop
 
         internal void ForgetText()
         {
+            ++brainLook;
             if (AfterLine(ForgetText)) return;
             ++cloudListing;
             ++providerListing;
@@ -10804,9 +10841,9 @@ namespace CapriDesktop
             FindBrain();
         }
 
-        private void ListCloud(string key, bool connecting, int targetTier = -1)
+        private void ListCloud(string key, bool connecting, int targetTier = -1, int look = -1)
         {
-            int listing = cloudListing, refresh = ++cloudRefresh;
+            int listing = cloudListing, refresh = look < 0 ? ++cloudRefresh : cloudRefresh;
             int pickedTier = targetTier < 0 ? preferences.Tier : targetTier;
             Cloud probe = new Cloud(key, null);
             if (connecting) mainframe.ShowProblem(probe.Plan ? "Looking for " + probe.Name + "..." : "Checking key...");
@@ -10823,8 +10860,9 @@ namespace CapriDesktop
                 catch (Exception error) { Brain.Log("https://" + probe.Company.ToLowerInvariant() + "/models", -1, error.Message); problem = brain.Remote != null && brain.Remote.Key == key && brain.Remote.Model != null ? probe.Company + " is slow. Using " + brain.Remote.Model + "." : "Couldn't reach " + probe.Company + ". Check your internet."; }
                 Post(delegate
                 {
+                    if (OldBrainLook(look)) return;
                     if (listing != cloudListing || !connecting && refresh != cloudRefresh) return;
-                    if (problem != null) { if (connecting || brain.Remote != null && brain.Remote.Key == key) TextProblem(problem, connecting); return; }
+                    if (problem != null) { if (look < 0 && (connecting || brain.Remote != null && brain.Remote.Key == key)) TextProblem(problem, connecting); return; }
                     if (connecting)
                     {
                         Cloud remote = new Cloud(key, Brain.DefaultCloudModel(probe.Kind, found));
@@ -30999,18 +31037,104 @@ namespace CapriDesktop
             string modelWas = brain.Model, ollamaWas = Brain.Ollama, addressWas, keyWas;
             brain.GetServer(out addressWas, out keyWas);
             bool findingWas = finding, settingUpWas = SettingUp, runningWas = ollamaRunning;
+            bool signalsWas = signals.Enabled, settingsWas = mainframe.SettingsShown;
+            string openAiWas = Brain.OpenAi;
+            System.Collections.Generic.List<Cloud> serversWas = (System.Collections.Generic.List<Cloud>)typeof(Mainframe).GetField("lastServers", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(mainframe);
+            string[] installedWas = (string[])typeof(Mainframe).GetField("lastInstalled", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(mainframe);
+            Pick menuLocalWas = (Pick)typeof(Mainframe).GetField("lastLocal", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(mainframe);
+            string[] providerWas = providerModels;
+            System.Collections.Generic.List<string> cloudWas = cloudModels;
+            Func<string, string> thinkWas = Think;
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            Func<ProcessStartInfo, Process> spawnWas = Engine.Spawn;
+            byte[] savedWas = File.Exists(settingsPath) ? File.ReadAllBytes(settingsPath) : null;
+            FieldInfo engineField = GetType().GetField("engine", BindingFlags.NonPublic | BindingFlags.Instance);
+            Engine engineWas = engine;
+            string data = Path.Combine(Path.GetDirectoryName(settingsPath), "brain-look-" + Guid.NewGuid().ToString("N"));
+            Engine empty = new Engine(data);
+            System.Collections.Generic.List<System.Net.Sockets.TcpListener> servers = new System.Collections.Generic.List<System.Net.Sockets.TcpListener>();
+            System.Collections.Generic.List<ManualResetEvent> gates = new System.Collections.Generic.List<ManualResetEvent>();
+            Func<string[], System.Collections.Generic.List<string>, ManualResetEvent, string> serve = delegate(string[] replies, System.Collections.Generic.List<string> received, ManualResetEvent release)
+            {
+                System.Net.Sockets.TcpListener server;
+                string address = FakeServer(replies, received, out server, release: release);
+                servers.Add(server);
+                return address;
+            };
+            Func<System.Collections.Generic.List<string>, int> requests = delegate(System.Collections.Generic.List<string> sent) { lock (sent) return sent.Count; };
+            Action reset = delegate
+            {
+                ++brainLook;
+                ++providerListing;
+                ++cloudListing;
+                ++asking;
+                brain.Cancel();
+                CloseTalk();
+                preferences = new Preferences { Tiered = true };
+                brain.Remote = null;
+                brain.Local = null;
+                brain.Model = null;
+                brain.SetServer(null, null);
+                providerModels = null;
+                cloudModels = null;
+                finding = false;
+                SettingUp = false;
+                brainLookAt = brainLostAt = -1;
+                mainframe.ShowSettings(true);
+            };
+            int voices = 0, chats = 0, starts = 0;
+            int quietAsk = 0, quietVoices = 0, quietChats = 0;
+            string quietReply = null, quietSpeech = null;
+            TalkState quietState = talkState;
+            bool quietBox = false, quietHidden = false, quietVisible = false;
+            Control quietFocus = null;
+            IntPtr quietForeground = IntPtr.Zero;
+            Action mark = delegate
+            {
+                quietAsk = asking;
+                quietVoices = voices;
+                quietChats = chats;
+                quietReply = reply;
+                quietSpeech = speech;
+                quietState = talkState;
+                quietBox = box.Visible;
+                quietHidden = hidden;
+                quietVisible = mainframe.Visible;
+                quietFocus = mainframe.ActiveControl;
+                quietForeground = Native.GetForegroundWindow();
+            };
+            Action quiet = delegate
+            {
+                if (voices != quietVoices || chats != quietChats || starts != 0 || asking != quietAsk || reply != quietReply || speech != quietSpeech || talkState != quietState || box.Visible != quietBox || hidden != quietHidden || mainframe.Visible != quietVisible || mainframe.ActiveControl != quietFocus || Native.GetForegroundWindow() != quietForeground || !mainframe.SettingsShown) throw new Exception("A quiet brain look spoke, started a program, opened a bubble, changed the page or took focus.");
+            };
             System.Net.Sockets.TcpListener fake = null;
             System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
             Func<int> count = delegate { lock (asked) return asked.Count; };
             Action<string> settle = delegate(string problem)
             {
                 Stopwatch waited = Stopwatch.StartNew();
-                while (finding && waited.ElapsedMilliseconds < 15000) { Application.DoEvents(); Thread.Sleep(5); }
-                if (finding) throw new Exception(problem);
+                while ((finding || brainLooking) && waited.ElapsedMilliseconds < 15000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (finding || brainLooking) throw new Exception(problem);
                 Application.DoEvents();
             };
             try
             {
+                signals.Stop();
+                CloseTalk();
+                engineField.SetValue(this, empty);
+                Think = delegate { Interlocked.Increment(ref chats); return "Unexpected greeting."; };
+                Speak = FreeSpeak = delegate { Interlocked.Increment(ref voices); return null; };
+                Engine.Spawn = delegate { Interlocked.Increment(ref starts); throw new Exception("A brain look started a program."); };
+                reset();
+                machine = new Machine { Ram = 8L << 30 };
+                fit = Engine.Picks[2];
+                ollamaRunning = true;
+                mainframe.ShowSetup(machine, fit, true, "Keep this setup error.");
+                mainframe.ShowSettings(true);
+                Machine waitingMachine = machine;
+                Pick waitingFit = fit;
+                string waitingStatus = mainframe.Status;
+                mark();
                 preferences = new Preferences { Silent = true, Tiered = true };
                 brain.Remote = null;
                 brain.Local = null;
@@ -31018,30 +31142,317 @@ namespace CapriDesktop
                 brain.Model = null;
                 finding = false;
                 SettingUp = false;
-                brainLookAt = -1;
+                brainLookAt = brainLostAt = -1;
                 // Her Ollama, not up yet the first time she looks, then up with a model.
                 Brain.Ollama = FakeServer(new[] { "!503 {\"error\":\"starting\"}", "{\"models\":[{\"name\":\"fake-brain:latest\"}]}" }, asked, out fake);
-                double now = clock.Elapsed.TotalSeconds;
+                double now = 0;
                 CheckBrainGone(now);
                 CheckBrainGone(now + 5);
-                if (count() != 0 || finding) throw new Exception("She looked for her brain again sooner than every 15 seconds.");
-                CheckBrainGone(now + BrainLookGap + 0.1);
+                if (count() != 0 || finding || brainLooking) throw new Exception("She looked for her brain again sooner than every 15 seconds.");
+                CheckBrainGone(now + BrainLookGap);
                 settle("Her first look for a brain never finished.");
                 if (count() != 1) throw new Exception("With no brain in sight, she didn't look again by herself after 15 seconds.");
-                if (brain.Remote != null) { checks.Add("LIMIT her second look for a missing brain: a local server on this PC answered first"); return; }
-                if (brain.Model != null) throw new Exception("An Ollama that wasn't up yet gave her a brain.");
-                CheckBrainGone(now + BrainLookGap + 5);
-                if (count() != 1 || finding) throw new Exception("She looked again sooner than 15 seconds after her last look.");
-                CheckBrainGone(now + 2 * BrainLookGap + 0.3);
-                settle("Her second look for a brain never finished.");
-                if (count() != 2 || brain.Model != "fake-brain:latest") throw new Exception("Ollama starting after her wasn't found by her own second look: " + (brain.Model ?? "no brain") + " after " + count() + " looks.");
-                CheckBrainGone(now + 4 * BrainLookGap);
-                if (count() != 2 || finding) throw new Exception("She kept looking for a brain after finding one.");
-                checks.Add("PASS with no brain in sight she looks again by herself every 15 seconds, quietly, finds an Ollama that started after her, and stops looking once she has a brain (#160)");
+                if (brain.Remote != null) checks.Add("LIMIT her second look for a missing brain: a local server on this PC answered first");
+                else
+                {
+                    if (machine != waitingMachine || fit != waitingFit || !ollamaRunning || mainframe.Status != waitingStatus) throw new Exception("An empty quiet look changed machine, fit, Ollama state or the setup note.");
+                    if (brain.Model != null) throw new Exception("An Ollama that wasn't up yet gave her a brain.");
+                    CheckBrainGone(now + BrainLookGap + 5);
+                    if (count() != 1 || finding || brainLooking) throw new Exception("She looked again sooner than 15 seconds after her last look.");
+                    CheckBrainGone(now + 2 * BrainLookGap);
+                    settle("Her second look for a brain never finished.");
+                    if (count() != 2 || brain.Model != "fake-brain:latest") throw new Exception("Ollama starting after her wasn't found by her own second look: " + (brain.Model ?? "no brain") + " after " + count() + " looks.");
+                    CheckBrainGone(now + 4 * BrainLookGap);
+                    if (count() != 2 || finding || brainLooking) throw new Exception("She kept looking for a brain after finding one.");
+                    checks.Add("PASS with no brain in sight she looks again by herself every 15 seconds, quietly, finds an Ollama that started after her, and stops looking once she has a brain (#160)");
+                    quiet();
+                    checks.Add("PASS Ollama arriving at 20 seconds is found at 30 seconds with no speech, bubble, page change or focus taken");
+                }
+
+                foreach (bool cloud in new[] { false, true })
+                {
+                    reset();
+                    System.Collections.Generic.List<string> sent = new System.Collections.Generic.List<string>();
+                    string catalog = cloud ? "{\"data\":[{\"id\":\"gpt-90-mini\"}]}" : "{\"data\":[{\"id\":\"vendor/alpha\"}]}";
+                    string address = serve(new[] { "!503 {}", "!503 {}", catalog, "!503 {}", catalog }, sent, null);
+                    if (cloud)
+                    {
+                        Brain.OpenAi = address;
+                        preferences.Tier = 2;
+                        preferences.PaidKey = Voice.Protect("sk-proj-brain-look-test");
+                        brain.Remote = TierCloud();
+                    }
+                    else
+                    {
+                        preferences.ProviderOn = true;
+                        preferences.BrainProvider = Voice.Protect(address + "\n");
+                        LoadProvider();
+                    }
+                    FindBrain();
+                    WaitVoice(delegate { return requests(sent) == 1 && (cloud ? !mainframe.Status.EndsWith("key", StringComparison.Ordinal) : mainframe.Status.Contains("Can't reach your provider.")); }, "The first saved provider list did not fail.");
+                    if (brain.Model != null) throw new Exception("A saved provider without models invented a brain.");
+                    string status = mainframe.Status;
+                    mark();
+                    CheckBrainGone(0);
+                    CheckBrainGone(14.9);
+                    if (brainLooking || requests(sent) != 1) throw new Exception("A saved provider retried before 15 seconds.");
+                    CheckBrainGone(15);
+                    settle("The saved provider retry never finished.");
+                    if (requests(sent) != 2 || brain.Model != null || mainframe.Status != status) throw new Exception("A failed quiet provider retry changed her brain or note.");
+                    CheckBrainGone(20);
+                    if (brainLooking || requests(sent) != 2) throw new Exception("A saved provider retried before its next interval.");
+                    CheckBrainGone(30);
+                    settle("The late saved provider never returned.");
+                    string model = cloud ? "gpt-90-mini" : "vendor/alpha";
+                    if (requests(sent) != 3 || brain.Model != model || !mainframe.Status.Contains(model)) throw new Exception("A saved provider arriving at 20 seconds was not found at 30 seconds.");
+                    quiet();
+                    checks.Add("PASS a saved " + (cloud ? "cloud" : "custom") + " provider whose first list fails is found at 30 seconds without a click or speech");
+                    if (cloud) brain.Remote.Model = "gpt-91-retired";
+                    brain.Model = cloud ? null : "vendor/kept";
+                    FindBrain();
+                    if (cloud && brain.Model != "gpt-91-retired") throw new Exception("Refresh waited for a cloud list before assigning its saved model.");
+                    WaitVoice(delegate { return requests(sent) == 4 && mainframe.Status.Contains(cloud ? Brain.Down : "Can't reach your provider."); }, "The working provider's failed refresh never finished.");
+                    if (brain.Model != (cloud ? "gpt-91-retired" : "vendor/kept")) throw new Exception("A failed provider list lost a working model.");
+                    FindBrain();
+                    WaitVoice(delegate { return requests(sent) == 5 && brain.Model == model; }, "A missing provider model did not fall back.");
+                    checks.Add("PASS failed " + (cloud ? "cloud" : "custom") + " lists keep working models and missing models still fall back");
+                    foreach (string request in sent) if (!request.StartsWith("GET ", StringComparison.Ordinal) || !request.Contains("/models ")) throw new Exception("A provider brain look sent something other than a model list.");
+                }
+
+                reset();
+                System.Collections.Generic.List<string> spaced = new System.Collections.Generic.List<string>();
+                string[] failures = new string[23];
+                for (int i = 0; i < failures.Length; i++) failures[i] = "!503 {}";
+                string unavailable = serve(failures, spaced, null);
+                preferences.ProviderOn = true;
+                brain.SetServer(unavailable, null);
+                mark();
+                CheckBrainGone(0);
+                for (int second = 15; second <= 300; second += 15)
+                {
+                    int before = requests(spaced);
+                    CheckBrainGone(second - 0.01);
+                    if (brainLooking || requests(spaced) != before) throw new Exception("The early brain retry interval was shorter than 15 seconds.");
+                    CheckBrainGone(second);
+                    settle("An early brain retry never finished.");
+                    if (requests(spaced) != before + 1) throw new Exception("The early brain retry interval was longer than 15 seconds.");
+                }
+                CheckBrainGone(359.99);
+                if (brainLooking || requests(spaced) != 20) throw new Exception("She retried before a minute after the five minute mark.");
+                CheckBrainGone(360);
+                settle("The first one minute brain retry never finished.");
+                CheckBrainGone(419.99);
+                if (brainLooking || requests(spaced) != 21) throw new Exception("The later brain retry interval was shorter than a minute.");
+                CheckBrainGone(420);
+                settle("The later one minute brain retry never finished.");
+                if (requests(spaced) != 22) throw new Exception("The later brain retry interval was longer than a minute.");
+                brain.Model = "working-brain";
+                CheckBrainGone(435);
+                CheckBrainGone(1000);
+                if (brainLooking || requests(spaced) != 22) throw new Exception("She retried while she had a brain.");
+                brain.Model = null;
+                CheckBrainGone(1001);
+                CheckBrainGone(1015.99);
+                if (brainLooking || requests(spaced) != 22) throw new Exception("A lost brain retried before a fresh 15 second interval.");
+                CheckBrainGone(1016);
+                settle("Losing a brain did not start retries again.");
+                if (requests(spaced) != 23) throw new Exception("Losing a brain kept the old one minute interval.");
+                quiet();
+                checks.Add("PASS retries use 15 seconds through five minutes, then 60 seconds, stop with a brain and start fresh after losing it");
+
+                foreach (string kind in new[] { "Ollama", "custom", "cloud" })
+                {
+                    reset();
+                    ManualResetEvent release = new ManualResetEvent(false);
+                    gates.Add(release);
+                    System.Collections.Generic.List<string> oldSent = new System.Collections.Generic.List<string>(), newSent = new System.Collections.Generic.List<string>();
+                    string oldCatalog = kind == "Ollama" ? "{\"models\":[{\"name\":\"old-retry\"}]}" : kind == "cloud" ? "{\"data\":[{\"id\":\"gpt-90-old-mini\"}]}" : "{\"data\":[{\"id\":\"old-retry\"}]}";
+                    string address = serve(new[] { oldCatalog }, oldSent, release);
+                    if (kind == "Ollama") Brain.Ollama = address;
+                    else if (kind == "cloud") { Brain.OpenAi = address; preferences.Tier = 2; brain.Remote = new Cloud("sk-proj-held-look", null); }
+                    else { preferences.ProviderOn = true; brain.SetServer(address, null); }
+                    CheckBrainGone(0);
+                    CheckBrainGone(15);
+                    WaitVoice(delegate { return requests(oldSent) == 1; }, "The quiet retry never reached its held list.");
+                    CheckBrainGone(30);
+                    CheckBrainGone(60);
+                    if (!brainLooking || requests(oldSent) != 1 || finding) throw new Exception("Two quiet retries ran at once or a retry blocked manual discovery.");
+                    string fresh = kind == "Ollama" ? "{\"models\":[{\"name\":\"fresh-manual\"}]}" : kind == "cloud" ? "{\"data\":[{\"id\":\"gpt-90-fresh-mini\"}]}" : "{\"data\":[{\"id\":\"fresh-manual\"}]}";
+                    string newAddress = serve(new[] { fresh }, newSent, null);
+                    if (kind == "Ollama") Brain.Ollama = newAddress;
+                    else if (kind == "cloud") Brain.OpenAi = newAddress;
+                    else brain.SetServer(newAddress, null);
+                    FindBrain();
+                    WaitVoice(delegate { return requests(newSent) == 1; }, "Refresh waited for a quiet retry.");
+                    string selected = kind == "cloud" ? "gpt-90-fresh-mini" : "fresh-manual";
+                    WaitVoice(delegate { return brain.Model == selected; }, "Refresh did not use its new list before the retry was released.");
+                    string status = mainframe.Status, choices = string.Join("|", mainframe.BrainChoices);
+                    Machine found = machine;
+                    Pick best = fit;
+                    bool running = ollamaRunning;
+                    mark();
+                    release.Set();
+                    settle("The old quiet retry never returned.");
+                    if (brain.Model != selected || mainframe.Status != status || string.Join("|", mainframe.BrainChoices) != choices || machine != found || fit != best || ollamaRunning != running) throw new Exception("A quiet retry's late result replaced Refresh.");
+                    quiet();
+                    checks.Add("PASS Refresh runs during a held " + kind + " retry, two retries never overlap and the late result changes nothing");
+                }
+
+                foreach (string action in new[] { "key", "provider", "model", "local model", "tier", "same model", "same tier", "setup" })
+                {
+                    reset();
+                    preferences.Tier = 2;
+                    brain.Remote = new Cloud("sk-proj-choice-look", null);
+                    ManualResetEvent release = new ManualResetEvent(false);
+                    gates.Add(release);
+                    System.Collections.Generic.List<string> held = new System.Collections.Generic.List<string>(), fresh = new System.Collections.Generic.List<string>();
+                    Brain.OpenAi = serve(new[] { "{\"data\":[{\"id\":\"gpt-90-late-mini\"}]}" }, held, release);
+                    CheckBrainGone(0);
+                    CheckBrainGone(15);
+                    WaitVoice(delegate { return requests(held) == 1; }, "The retry did not reach the held list before a manual choice.");
+                    if (action == "key")
+                    {
+                        Brain.OpenAi = serve(new[] { "{\"data\":[{\"id\":\"gpt-90-key-mini\"}]}" }, fresh, null);
+                        ConnectText("sk-proj-new-look");
+                        WaitVoice(delegate { return brain.Remote.Key == "sk-proj-new-look" && brain.Model == "gpt-90-key-mini"; }, "Connecting a key waited for a retry.");
+                    }
+                    else if (action == "provider")
+                    {
+                        UseProvider(serve(new[] { "{\"data\":[{\"id\":\"picked-provider\"}]}" }, fresh, null), "");
+                        WaitVoice(delegate { return brain.Model == "picked-provider"; }, "Connecting a provider waited for a retry.");
+                    }
+                    else if (action == "model")
+                    {
+                        cloudModels = new System.Collections.Generic.List<string> { "gpt-90-user-mini" };
+                        ChooseCloudModel(brain.Remote, cloudModels[0]);
+                        if (brain.Model != "gpt-90-user-mini") throw new Exception("Picking a model waited for a retry.");
+                    }
+                    else if (action == "local model")
+                    {
+                        ChooseLocalBrain(null, "picked-local", null);
+                        if (brain.Model != "picked-local") throw new Exception("Picking a local model waited for a retry.");
+                    }
+                    else if (action == "tier")
+                    {
+                        preferences.ProviderOn = true;
+                        preferences.ProviderModel = "tier-provider";
+                        preferences.BrainProvider = Voice.Protect(serve(new[] { "{\"data\":[{\"id\":\"tier-provider\"}]}" }, fresh, null) + "\n");
+                        ChooseTier(0);
+                        WaitVoice(delegate { return requests(fresh) == 1 && providerModels != null; }, "Picking a tier waited for a retry.");
+                        if (brain.Model != "tier-provider") throw new Exception("Picking a tier lost its saved provider.");
+                    }
+                    else if (action == "same model") ChooseModel(null);
+                    else if (action == "same tier") ChooseTier(2);
+                    else { SettingUp = true; SetUpBrain(); SettingUp = false; }
+                    Cloud current = brain.Remote;
+                    string model = brain.Model, address = brain.Server, status = mainframe.Status, choices = string.Join("|", mainframe.BrainChoices);
+                    string[] listed = providerModels;
+                    System.Collections.Generic.List<string> models = cloudModels;
+                    release.Set();
+                    settle("A retry did not finish after a manual choice.");
+                    if (brain.Remote != current || brain.Model != model || brain.Server != address || mainframe.Status != status || string.Join("|", mainframe.BrainChoices) != choices || providerModels != listed || cloudModels != models) throw new Exception("A late retry changed the user's " + action + " choice.");
+                    checks.Add("PASS a held retry cannot overwrite a user's " + action + " choice");
+                }
+
+                reset();
+                System.Collections.Generic.List<string> setupSent = new System.Collections.Generic.List<string>();
+                preferences.ProviderOn = true;
+                brain.SetServer(serve(new[] { "{\"data\":[{\"id\":\"after-setup\"}]}" }, setupSent, null), null);
+                SettingUp = true;
+                mark();
+                CheckBrainGone(0);
+                CheckBrainGone(15);
+                CheckBrainGone(400);
+                if (brainLooking || requests(setupSent) != 0) throw new Exception("She retried during brain setup.");
+                SettingUp = false;
+                CheckBrainGone(401);
+                CheckBrainGone(415.99);
+                if (brainLooking || requests(setupSent) != 0) throw new Exception("Finishing setup skipped the first retry interval.");
+                CheckBrainGone(416);
+                settle("Retries did not resume after setup.");
+                if (brain.Model != "after-setup" || requests(setupSent) != 1) throw new Exception("Retries did not find a brain after setup.");
+                quiet();
+                checks.Add("PASS brain setup suppresses retries and finishing it starts a fresh interval");
+
+                reset();
+                Machine small = new Machine { Ram = 8L << 30 };
+                preferences.Model = "deleted-ollama";
+                UseBrain(new[] { "renamed-ollama" }, small, null);
+                if (brain.Model != "renamed-ollama") throw new Exception("A deleted saved Ollama model stopped falling back.");
+                UseBrain(null, small, Engine.Picks[2]);
+                if (brain.Local != engine || brain.Model != Engine.Picks[2].Name) throw new Exception("A missing Ollama model stopped falling back to the built-in brain.");
+                brain.Remote = new Cloud(1234, "saved-unlisted-local");
+                UseBrain(new string[0], small, null);
+                if (brain.Model != "saved-unlisted-local") throw new Exception("A saved local model had to appear in its list.");
+                checks.Add("PASS deleted Ollama models still fall back and saved local server models are still used as is");
+
+                reset();
+                System.Collections.Generic.List<string> localSent = new System.Collections.Generic.List<string>(), localTags = new System.Collections.Generic.List<string>();
+                string localAddress = serve(new[] { "{\"data\":[{\"id\":\"another-loaded-model\"}]}" }, localSent, null);
+                Brain.Ollama = serve(new[] { "{\"models\":[]}" }, localTags, null);
+                preferences.BrainPort = Brain.LocalPort(localAddress);
+                preferences.BrainAddress = localAddress;
+                preferences.LocalModel = "saved-unlisted-local";
+                brain.Remote = TierCloud();
+                mark();
+                CheckBrainGone(0);
+                CheckBrainGone(15);
+                settle("The saved local server retry never finished.");
+                if (requests(localSent) != 1 || requests(localTags) != 1 || brain.Model != "saved-unlisted-local") throw new Exception("A quiet local retry replaced a saved model with a listed loaded model.");
+                quiet();
+                checks.Add("PASS a quiet retry finds a saved local server and keeps its unlisted selected model");
+
+                reset();
+                ProcessStartInfo files = empty.StartInfo(Engine.Picks[2], false, false, 1);
+                string modelFile = Regex.Match(files.Arguments, "-m \"([^\"]+)\"").Groups[1].Value;
+                Directory.CreateDirectory(Path.GetDirectoryName(files.FileName));
+                Directory.CreateDirectory(Path.GetDirectoryName(modelFile));
+                File.WriteAllText(files.FileName, "");
+                File.WriteAllText(modelFile, "");
+                if (empty.Installed() != Engine.Picks[2]) throw new Exception("The installed built-in brain changed.");
+                FieldInfo loading = typeof(Engine).GetField("loading", BindingFlags.NonPublic | BindingFlags.Instance);
+                loading.SetValue(empty, 1);
+                System.Collections.Generic.List<string> builtInTags = new System.Collections.Generic.List<string>();
+                Brain.Ollama = serve(new[] { "{\"models\":[]}" }, builtInTags, null);
+                mark();
+                CheckBrainGone(0);
+                CheckBrainGone(15);
+                settle("The installed built-in brain retry never finished.");
+                if (brain.Local != empty || brain.Model != Engine.Picks[2].Name || requests(builtInTags) != 1) throw new Exception("A quiet retry missed the installed built-in brain.");
+                if (!empty.Loading || !mainframe.Status.EndsWith(" | Her built-in brain is still loading.", StringComparison.Ordinal) || Array.IndexOf(mainframe.BrainChoices, "Built-in · " + Engine.Picks[2].Name) < 0) throw new Exception("A loading built-in brain lost its loading note or menu entry.");
+                loading.SetValue(empty, 0);
+                CheckBrainGone(1);
+                if (!mainframe.Status.EndsWith(" | Running on this PC", StringComparison.Ordinal)) throw new Exception("The built-in loading note stayed after loading finished.");
+                mainframe.ShowProblem("Keep this setup error.");
+                CheckBrainGone(2);
+                if (!mainframe.Status.EndsWith(" | Keep this setup error.", StringComparison.Ordinal)) throw new Exception("A settled built-in brain erased another note.");
+                quiet();
+                bool sawLoading = false;
+                Engine.Spawn = delegate { sawLoading = empty.Loading; throw new BrainException("Fake load stopped."); };
+                try { empty.Ensure(Engine.Picks[2]); throw new Exception("The fake built-in load did not stop."); }
+                catch (BrainException error) { if (error.Message != "Fake load stopped.") throw; }
+                if (!sawLoading || empty.Loading || empty.Settle() || empty.Loading) throw new Exception("Ensure or Settle left the built-in loading flag set.");
+                checks.Add("PASS the installed built-in brain keeps its menu entry, shows the loading note only while loading and clears loading on failure");
+                foreach (string request in asked) if (!request.StartsWith("GET /api/tags ", StringComparison.Ordinal)) throw new Exception("An Ollama retry sent something other than a model list.");
             }
             finally
             {
+                ++brainLook;
+                foreach (ManualResetEvent release in gates) release.Set();
+                try { settle("A brain look was still running during cleanup."); }
+                catch (Exception) { }
+                ++providerListing;
+                ++cloudListing;
+                foreach (System.Net.Sockets.TcpListener server in servers) server.Stop();
                 if (fake != null) fake.Stop();
+                engineField.SetValue(this, engineWas);
+                Engine.Spawn = spawnWas;
+                Brain.OpenAi = openAiWas;
+                Think = thinkWas;
+                Speak = speakWas;
+                FreeSpeak = freeWas;
+                providerModels = providerWas;
+                cloudModels = cloudWas;
                 Brain.Ollama = ollamaWas;
                 preferences = preferencesWas;
                 brain.Remote = remoteWas;
@@ -31054,7 +31465,12 @@ namespace CapriDesktop
                 ollamaRunning = runningWas;
                 finding = findingWas;
                 SettingUp = settingUpWas;
-                brainLookAt = -1;
+                brainLookAt = brainLostAt = -1;
+                mainframe.ShowServers(serversWas, installedWas, menuLocalWas);
+                mainframe.ShowSettings(settingsWas);
+                signals.Enabled = signalsWas;
+                if (savedWas == null) File.Delete(settingsPath); else File.WriteAllBytes(settingsPath, savedWas);
+                try { Directory.Delete(data, true); } catch (DirectoryNotFoundException) { } catch (IOException) { } catch (UnauthorizedAccessException) { }
             }
         }
 
