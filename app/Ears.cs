@@ -2480,8 +2480,11 @@ namespace CapriDesktop
         private float[] floats = new float[0];
         private short[] shorts = new short[0];
         private int[] ints = new int[0];
+        private bool timed;
+        private long firstAt, firstPosition, nextPosition;
+        private readonly Func<long> clock;
 
-        private SoundTap(string device, ISoundClient client, ISoundCapture capture, int rate, int channels, int bits, bool isFloat)
+        internal SoundTap(string device, ISoundClient client, ISoundCapture capture, int rate, int channels, int bits, bool isFloat, Func<long> time = null)
         {
             Device = device;
             this.client = client;
@@ -2490,6 +2493,7 @@ namespace CapriDesktop
             Channels = channels;
             Bits = bits;
             Float = isFloat;
+            clock = time ?? delegate { return ClipBuffer.Now; };
         }
 
         internal string Format { get { return Rate + " Hz, " + Channels + " channels, " + Bits + "-bit " + (Float ? "float" : "PCM"); } }
@@ -2593,8 +2597,23 @@ namespace CapriDesktop
                             }
                     }
                     long duration = frames * 10000000L / Rate;
-                    if (time <= 0 || (flags & 4) != 0) time = (long)(Stopwatch.GetTimestamp() * (10000000.0 / Stopwatch.Frequency)) - duration;
-                    newest = time + duration;
+                    // Counting samples keeps blocks exactly end to end, but a sound card's clock isn't the PC's: over a long game
+                    // the count walks away from the real time. So the clock is set again from the packet's own time once it is
+                    // 20 ms out, or 3 ms out while the packet is silent, where the join can't be heard.
+                    if (timed && time > 0 && (flags & 4) == 0 && position >= nextPosition)
+                    {
+                        long off = Math.Abs(firstAt + (position - firstPosition) * 10000000 / Rate - time);
+                        if (off > 200000 || (silent && off > 30000)) timed = false;
+                    }
+                    if (!timed || position < nextPosition || ((flags & 1) != 0 && time > 0 && (flags & 4) == 0))
+                    {
+                        firstAt = time <= 0 || (flags & 4) != 0 ? clock() - duration : time;
+                        firstPosition = position;
+                        timed = true;
+                    }
+                    time = firstAt + (position - firstPosition) * 10000000 / Rate;
+                    nextPosition = position + frames;
+                    newest = firstAt + (position - firstPosition + frames) * 10000000 / Rate;
                     if (packet != null) pcm(packet, time, Rate);
                 }
                 finally { capture.ReleaseBuffer(frames); }

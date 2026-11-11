@@ -38,6 +38,7 @@ namespace CapriDesktop
         private Bitmap shared;
         private long sharedAt;
         private ClipSettings settings = new ClipSettings();
+        private ClipPcm sound = new ClipPcm();
         private Task<ClipResult> recent;
         private long recentAt, session, recentSession;
         private int recentSeconds;
@@ -112,10 +113,11 @@ namespace CapriDesktop
             GameSeen front = null;
             Rectangle bounds = Rectangle.Empty;
             long inspectAt = 0, nextAt = 0, soundAt = 0, imageAt = 0;
-            double interval = 10000000.0 / 30;
-            int wide = 1920;
+            int wide = 0;
             bool started = false;
             ClipSettings recording = Settings;
+            double interval = 10000000.0 / recording.Fps;
+            ClipWait wait = null;
             try
             {
                 ClipMedia.Check(ClipMedia.CoInitializeEx(IntPtr.Zero, 0));
@@ -148,6 +150,7 @@ namespace CapriDesktop
                         }
                         if (!Enabled || front == null || Native.GetForegroundWindow() != front.Window)
                         {
+                            if (wait != null) { wait.Dispose(); wait = null; }
                             if (grab != null) { grab.Dispose(); grab = null; }
                             if (tap != null) { tap.Dispose(); tap = null; }
                             soundAt = 0;
@@ -158,6 +161,7 @@ namespace CapriDesktop
                         }
                         Rectangle current = GameFinder.Frame(front.Window);
                         if (current.Width < 2 || current.Height < 2) { changed.WaitOne(50); continue; }
+                        if (wait == null) wait = new ClipWait();
                         if (grab == null || current != bounds)
                         {
                             if (grab != null) grab.Dispose();
@@ -171,14 +175,14 @@ namespace CapriDesktop
                         if (tick >= soundAt)
                         {
                             if (tap != null && SoundTap.DefaultDevice() != tap.Device) { tap.Dispose(); tap = null; }
-                            if (tap == null) tap = SoundTap.Open(true);
+                            if (tap == null) { tap = SoundTap.Open(true); sound = new ClipPcm(); }
                             soundAt = tick + 20000000;
                         }
                         if (tap != null)
                         {
                             long heardAt;
                             bool read = false;
-                            try { read = tap.Read(null, null, out heardAt, Hear); }
+                            try { read = tap.Read(null, null, out heardAt, delegate(byte[] pcm, long at, int rate) { AddSound(pcm, at, rate, true); }); }
                             catch (Exception) { }
                             if (!read) { tap.Dispose(); tap = null; }
                         }
@@ -207,9 +211,9 @@ namespace CapriDesktop
                                 }
                                 if (enabled) through = Now;
                             }
-                            nextAt = Now + (long)Math.Max(1, interval - cost);
+                            nextAt = NextFrame(nextAt, began, Now, interval);
                         }
-                        changed.WaitOne(Math.Max(1, (int)Math.Min(15, (nextAt - Now) / 10000)));
+                        wait.Until(changed, Math.Min(nextAt, Now + 150000));
                     }
                     catch (Exception)
                     {
@@ -224,8 +228,16 @@ namespace CapriDesktop
             {
                 if (grab != null) grab.Dispose();
                 if (tap != null) tap.Dispose();
+                if (wait != null) wait.Dispose();
                 if (started) ClipMedia.CoUninitialize();
             }
+        }
+
+        internal static long NextFrame(long scheduled, long began, long ended, double interval)
+        {
+            long step = Math.Max(1, (long)Math.Ceiling(interval));
+            long next = (scheduled == 0 ? began : scheduled) + step;
+            return next > ended ? next : next + ((ended - next) / step + 1) * step;
         }
 
         internal static bool SameGame(GameSeen left, GameSeen right)
@@ -289,24 +301,11 @@ namespace CapriDesktop
             throw new InvalidOperationException("Windows couldn't open its JPEG encoder.");
         }
 
-        private void Hear(byte[] pcm, long at, int rate)
+        internal void AddSound(byte[] pcm, long at, int rate, bool live = false)
         {
-            if (!Enabled) return;
-            int frames = pcm.Length / 4;
-            long end = at + frames * 10000000L / rate;
-            if (rate != 48000)
-            {
-                long startSample = (long)(at * (48000.0 / 10000000));
-                int count = (int)((long)(end * (48000.0 / 10000000)) - startSample);
-                byte[] resampled = new byte[count * 4];
-                for (int output = 0; output < count; output++)
-                {
-                    int input = Math.Min(frames - 1, (int)((long)output * rate / 48000));
-                    Buffer.BlockCopy(pcm, input * 4, resampled, output * 4, 4);
-                }
-                pcm = resampled;
-            }
-            Keep(pcm, at, end, false, true);
+            if (live && !Enabled) return;
+            ClipPart part = sound.Read(pcm, at, rate);
+            if (part != null) Keep(part.Data, part.At, part.End, false, live);
         }
 
         internal bool Keep(byte[] data, long at, long end, bool video, bool live = false)
@@ -569,6 +568,101 @@ namespace CapriDesktop
         }
     }
 
+    internal sealed class ClipWait : IDisposable
+    {
+        private sealed class Timer : WaitHandle
+        {
+            internal Timer(IntPtr handle) { SafeWaitHandle = new Microsoft.Win32.SafeHandles.SafeWaitHandle(handle, true); }
+        }
+
+        private readonly Timer timer;
+        private bool coarse;
+
+        internal ClipWait()
+        {
+            IntPtr handle = IntPtr.Zero;
+            try { handle = CreateWaitableTimerExW(IntPtr.Zero, null, 2, 0x1F0003); }
+            catch (EntryPointNotFoundException) { }
+            if (handle != IntPtr.Zero) timer = new Timer(handle);
+        }
+
+        internal void Until(AutoResetEvent changed, long at)
+        {
+            long delay = at - ClipBuffer.Now;
+            if (delay <= 0) return;
+            long due = -delay;
+            if (timer != null && SetWaitableTimer(timer.SafeWaitHandle.DangerousGetHandle(), ref due, 0, IntPtr.Zero, IntPtr.Zero, false))
+                WaitHandle.WaitAny(new WaitHandle[] { changed, timer }, 50);
+            else
+            {
+                if (!coarse) coarse = timeBeginPeriod(1) == 0;
+                changed.WaitOne((int)Math.Min(50, Math.Max(1, (delay + 9999) / 10000)));
+            }
+        }
+
+        public void Dispose()
+        {
+            if (timer != null) timer.Dispose();
+            if (coarse) timeEndPeriod(1);
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr CreateWaitableTimerExW(IntPtr attributes, string name, uint flags, uint access);
+        [DllImport("kernel32.dll")] [return: MarshalAs(UnmanagedType.Bool)] private static extern bool SetWaitableTimer(IntPtr timer, ref long due, int period, IntPtr routine, IntPtr argument, [MarshalAs(UnmanagedType.Bool)] bool resume);
+        [DllImport("winmm.dll")] private static extern uint timeBeginPeriod(uint milliseconds);
+        [DllImport("winmm.dll")] private static extern uint timeEndPeriod(uint milliseconds);
+    }
+
+    internal sealed class ClipPcm
+    {
+        private int rate, weight;
+        private long start, input, output, left, right;
+
+        internal ClipPart Read(byte[] pcm, long at, int sourceRate)
+        {
+            int frames = pcm.Length / 4;
+            if (frames == 0) return null;
+            if (rate != sourceRate || Math.Abs(at - start - input * 10000000 / rate) > 10000000 / rate)
+            {
+                rate = sourceRate;
+                start = at;
+                input = output = left = right = 0;
+                weight = 0;
+            }
+            long before = output;
+            int count = (int)(((long)frames * 48000 + weight) / rate);
+            byte[] bytes = rate == 48000 ? pcm : new byte[count * 4];
+            if (rate != 48000)
+            {
+                int written = 0;
+                for (int frame = 0; frame < frames; frame++)
+                {
+                    short l = (short)(pcm[frame * 4] | pcm[frame * 4 + 1] << 8);
+                    short r = (short)(pcm[frame * 4 + 2] | pcm[frame * 4 + 3] << 8);
+                    int remaining = 48000;
+                    while (remaining > 0)
+                    {
+                        int take = Math.Min(rate - weight, remaining);
+                        left += (long)l * take;
+                        right += (long)r * take;
+                        weight += take;
+                        remaining -= take;
+                        if (weight != rate) continue;
+                        short a = (short)Math.Round((double)left / rate), b = (short)Math.Round((double)right / rate);
+                        bytes[written++] = (byte)a;
+                        bytes[written++] = (byte)(a >> 8);
+                        bytes[written++] = (byte)b;
+                        bytes[written++] = (byte)(b >> 8);
+                        left = right = 0;
+                        weight = 0;
+                    }
+                }
+            }
+            input += frames;
+            output += count;
+            return count == 0 ? null : new ClipPart { Data = bytes, At = start + before * 10000000 / 48000, End = start + output * 10000000 / 48000 };
+        }
+    }
+
     internal sealed class ClipPart
     {
         internal byte[] Data;
@@ -801,55 +895,24 @@ namespace CapriDesktop
                     catch (COMException soundError) { throw new ClipSoundException(soundError); }
                 }
                 Check(sink.BeginWriting());
-                // Frames go in at the chosen frame rate, each the newest picture by then. At the capture's own times a clip had the
-                // capture's slower rate whatever was chosen, and the encoder, which shares the bitrate out per frame at the chosen rate,
-                // came in under it: a 60 fps 20 Mbps clip captured at 30 saved at about 10 Mbps (john sandevistan, 3 Nov). Held pictures
-                // add no new motion.
-                long audioAt = 0, videoAt = 0, duration = save.End - save.Start;
-                long videoFrames = (duration * save.Settings.Fps + 9999999) / 10000000;
-                long audioFrames = (save.End - save.Start) * 48000 / 10000000;
                 using (Bitmap canvas = new Bitmap(width, height, PixelFormat.Format32bppRgb))
-                using (IEnumerator<ClipPart> videoParts = save.Pictures.Read().GetEnumerator())
-                using (IEnumerator<ClipPart> soundParts = save.Sounds.Read().GetEnumerator())
+                using (IEnumerator<ClipPart> videoParts = Frames(save).GetEnumerator())
+                using (IEnumerator<ClipPart> soundParts = Samples(save).GetEnumerator())
                 {
                     ClipPart picture = videoParts.MoveNext() ? videoParts.Current : null;
-                    ClipPart following = videoParts.MoveNext() ? videoParts.Current : null;
-                    ClipPart rendered = null;
-                    byte[] frame = null;
+                    byte[] rendered = null, frame = null;
                     ClipPart heard = sound && soundParts.MoveNext() ? soundParts.Current : null;
-                    while (videoAt < videoFrames || (sound && audioAt < audioFrames))
+                    while (picture != null || heard != null)
                     {
-                        long videoTime = videoAt < videoFrames ? videoAt * 10000000 / save.Settings.Fps : long.MaxValue;
-                        long audioTime = audioAt * 10000000 / 48000;
-                        if (sound && audioAt < audioFrames && audioTime < videoTime)
+                        if (heard != null && (picture == null || heard.At < picture.At))
                         {
-                            int amount = (int)Math.Min(4800, audioFrames - audioAt);
-                            byte[] pcm = new byte[amount * 4];
-                            long packetStart = save.Start + audioTime;
-                            long packetEnd = save.Start + (audioAt + amount) * 10000000 / 48000;
-                            while (heard != null && heard.End <= packetStart) heard = soundParts.MoveNext() ? soundParts.Current : null;
-                            while (heard != null && heard.At < packetEnd)
-                            {
-                                long offset = (long)Math.Round((heard.At - save.Start) * (48000.0 / 10000000)) - audioAt;
-                                int source = (int)Math.Max(0, -offset);
-                                int destination = (int)Math.Max(0, offset);
-                                int copied = Math.Min(heard.Data.Length / 4 - source, amount - destination);
-                                if (copied > 0) Buffer.BlockCopy(heard.Data, source * 4, pcm, destination * 4, copied * 4);
-                                if (heard.End > packetEnd) break;
-                                heard = soundParts.MoveNext() ? soundParts.Current : null;
-                            }
-                            try { WriteSample(sink, audioStream, pcm, audioTime, (audioAt + amount) * 10000000 / 48000 - audioTime); }
+                            try { WriteSample(sink, audioStream, heard.Data, heard.At, heard.End - heard.At); }
                             catch (COMException soundError) { throw new ClipSoundException(soundError); }
-                            audioAt += amount;
+                            heard = soundParts.MoveNext() ? soundParts.Current : null;
                         }
                         else
                         {
-                            while (following != null && following.At - save.Start <= videoTime)
-                            {
-                                picture = following;
-                                following = videoParts.MoveNext() ? videoParts.Current : null;
-                            }
-                            if (!object.ReferenceEquals(rendered, picture))
+                            if (!object.ReferenceEquals(rendered, picture.Data))
                             {
                                 using (MemoryStream bytes = new MemoryStream(picture.Data, false))
                                 using (Bitmap decoded = new Bitmap(bytes))
@@ -869,11 +932,10 @@ namespace CapriDesktop
                                         frame = Pixels(canvas);
                                     }
                                 }
-                                rendered = picture;
+                                rendered = picture.Data;
                             }
-                            long end = Math.Min(duration, (videoAt + 1) * 10000000 / save.Settings.Fps);
-                            WriteSample(sink, videoStream, frame, videoTime, Math.Max(1, end - videoTime));
-                            videoAt++;
+                            WriteSample(sink, videoStream, frame, picture.At, Math.Max(1, picture.End - picture.At));
+                            picture = videoParts.MoveNext() ? videoParts.Current : null;
                         }
                     }
                 }
@@ -888,6 +950,69 @@ namespace CapriDesktop
                 Drop(target);
                 Drop(sink);
                 Drop(options);
+            }
+        }
+
+        internal static IEnumerable<ClipPart> Frames(ClipSave save)
+        {
+            long duration = save.End - save.Start;
+            long count = (duration * save.Settings.Fps + 9999999) / 10000000;
+            using (IEnumerator<ClipPart> parts = save.Pictures.Read().GetEnumerator())
+            {
+                ClipPart picture = parts.MoveNext() ? parts.Current : null;
+                ClipPart following = parts.MoveNext() ? parts.Current : null;
+                for (long frame = 0; picture != null && frame < count; frame++)
+                {
+                    long at = frame * 10000000 / save.Settings.Fps;
+                    while (following != null && following.At - save.Start <= at)
+                    {
+                        picture = following;
+                        following = parts.MoveNext() ? parts.Current : null;
+                    }
+                    yield return new ClipPart { Data = picture.Data, At = at, End = Math.Min(duration, (frame + 1) * 10000000 / save.Settings.Fps) };
+                }
+            }
+        }
+
+        internal static IEnumerable<ClipPart> Samples(ClipSave save)
+        {
+            long count = (save.End - save.Start) * 48000 / 10000000;
+            using (IEnumerator<ClipPart> parts = save.Sounds.Read().GetEnumerator())
+            {
+                ClipPart heard = parts.MoveNext() ? parts.Current : null;
+                ClipPart placing = null;
+                long start = 0, placed = 0;
+                bool any = false;
+                for (long at = 0; at < count; )
+                {
+                    int amount = (int)Math.Min(4800, count - at);
+                    byte[] pcm = new byte[amount * 4];
+                    long end = at + amount, filled = at;
+                    while (heard != null)
+                    {
+                        if (placing != heard)
+                        {
+                            start = (long)Math.Round((heard.At - save.Start) * (48000.0 / 10000000));
+                            // Two blocks cut from one stream can round a single sample apart. Butted together they neither click nor repeat.
+                            if (any && Math.Abs(start - placed) == 1) start = placed;
+                            placing = heard;
+                        }
+                        long through = start + heard.Data.Length / 4;
+                        if (start >= end) break;
+                        long from = Math.Max(filled, start), to = Math.Min(end, through);
+                        if (to > from)
+                        {
+                            Buffer.BlockCopy(heard.Data, (int)(from - start) * 4, pcm, (int)(from - at) * 4, (int)(to - from) * 4);
+                            filled = to;
+                        }
+                        if (through > end) break;
+                        placed = through;
+                        any = true;
+                        heard = parts.MoveNext() ? parts.Current : null;
+                    }
+                    yield return new ClipPart { Data = pcm, At = at * 10000000 / 48000, End = end * 10000000 / 48000 };
+                    at = end;
+                }
             }
         }
 
@@ -1040,7 +1165,7 @@ namespace CapriDesktop
             }
         }
 
-        internal static void Inspect(string path, out double seconds, out Bitmap first, out long[] times, out bool sound, out double audioSeconds, out int peak)
+        internal static void Inspect(string path, out double seconds, out Bitmap first, out long[] times, out bool sound, out double audioSeconds, out int peak, Stream samples = null)
         {
             IMFSourceReader reader = null;
             IMFAttributes options = null;
@@ -1141,6 +1266,12 @@ namespace CapriDesktop
                                 try
                                 {
                                     for (int sampleAt = 0; sampleAt + 1 < audioLength; sampleAt += 2) peak = Math.Max(peak, Math.Abs((int)Marshal.ReadInt16(audioData, sampleAt)));
+                                    if (samples != null)
+                                    {
+                                        byte[] pcm = new byte[audioLength];
+                                        Marshal.Copy(audioData, pcm, 0, audioLength);
+                                        samples.Write(pcm, 0, pcm.Length);
+                                    }
                                 }
                                 finally { Check(audioBuffer.Unlock()); }
                             }

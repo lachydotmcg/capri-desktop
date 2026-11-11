@@ -22876,6 +22876,7 @@ namespace CapriDesktop
 
         private static void SmokeClips(System.Collections.Generic.List<string> checks)
         {
+            SmokeClipData(checks);
             using (ClipBuffer aged = new ClipBuffer(2, 8192))
             {
                 for (int age = 0; age <= 4; age++) aged.Keep(new byte[100], age * 10000000L, age * 10000000L, true);
@@ -22992,15 +22993,23 @@ namespace CapriDesktop
                 string clipTool;
                 ToolArguments clipArgs;
                 Computer.GameOpen = delegate { return "Synthetic Game"; };
-                string[] clipWords = { "clip that", "clip it", "save that", "save a clip", "clip the last 2 minutes", "clip that capri", "Capri, clip that.", "clip the last two minutes", "Capri scroll that BD", "capri, scroll that b.d.", "scroll that, bd" };
+                string[] clipWords = { "clip that", "clip it", "save that", "save a clip", "clip the last 2 minutes", "clip that capri", "Capri, clip that.", "clip the last two minutes", "Capri scroll that BD", "capri, scroll that b.d.", "scroll that, bd", "Capri, can you clip that please", "can you clip that", "could you clip that for me", "please clip that", "clip that please" };
+                int clipCalls = 0;
+                Hands.SaveClip = delegate(int requested) { clipCalls++; return "Saved clip"; };
                 foreach (string clipWordsCase in clipWords)
                 {
-                    if (!Hands.Direct(clipWordsCase, out clipTool, out clipArgs) || clipTool != "clip" || !Hands.Heard(clipWordsCase, out clipTool, out clipArgs) || clipTool != "clip")
-                        throw new Exception("A clip phrase missed her local route: " + clipWordsCase);
-                    if (clipArgs.Seconds != (clipWordsCase.Contains("minutes") ? "120" : null)) throw new Exception("A clip phrase lost its duration.");
+                    foreach (bool brainy in new[] { false, true })
+                    {
+                        if (!Hands.Direct(clipWordsCase, out clipTool, out clipArgs, brainy) || clipTool != "clip" || Hands.Do(clipTool, clipArgs) != "Saved clip"
+                            || !Hands.Heard(clipWordsCase, out clipTool, out clipArgs, brainy) || clipTool != "clip" || Hands.Do(clipTool, clipArgs) != "Saved clip")
+                            throw new Exception("A clip phrase missed her local save: " + clipWordsCase);
+                        if (clipArgs.Seconds != (clipWordsCase.Contains("minutes") ? "120" : null)) throw new Exception("A clip phrase lost its duration.");
+                    }
                 }
+                if (clipCalls != clipWords.Length * 4) throw new Exception("A clip request did not call the saver once.");
                 foreach (string ordinary in new[] { "that", "save that file", "save that document", "how do I clip that", "don't clip that", "scroll that", "scroll that page down", "scroll that bd page" })
-                    if (Hands.Heard(ordinary, out clipTool, out clipArgs) && clipTool == "clip") throw new Exception("Clips took an ordinary request: " + ordinary);
+                    foreach (bool brainy in new[] { false, true })
+                        if ((Hands.Direct(ordinary, out clipTool, out clipArgs, brainy) && clipTool == "clip") || (Hands.Heard(ordinary, out clipTool, out clipArgs, brainy) && clipTool == "clip")) throw new Exception("Clips took an ordinary request: " + ordinary);
                 using (ClipBuffer off = new ClipBuffer())
                 {
                     Hands.SaveClip = off.Clip;
@@ -23025,6 +23034,7 @@ namespace CapriDesktop
             }
             finally { Computer.GameOpen = clipGameWas; Hands.SaveClip = clipSaveWas; }
             checks.Add("PASS clips route chat and voice phrases locally with or without a game seen, keep the requested seconds, explain the off switch, and leave document saves alone");
+            SmokeClipRequests(checks);
 
             Preferences clipPreferences = new Preferences();
             if (clipPreferences.ClipGames) throw new Exception("Clip my games started on.");
@@ -23202,6 +23212,277 @@ namespace CapriDesktop
                     Directory.Delete(clipFolder);
                 }
             }).GetAwaiter().GetResult();
+        }
+
+        private static void SmokeClipRequests(System.Collections.Generic.List<string> checks)
+        {
+            string apiWas = Brain.OpenAi;
+            Func<string> gameWas = Computer.GameOpen, handsGameWas = Hands.GameOpen;
+            Func<int, string> saveWas = Hands.SaveClip;
+            System.Net.Sockets.TcpListener server;
+            System.Collections.Generic.List<string> requests = new System.Collections.Generic.List<string>();
+            string path = Path.Combine(Path.GetTempPath(), "Capri-clip-request-" + Guid.NewGuid().ToString("N") + ".mp4");
+            string yes = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Yes, I can.\"}}]}";
+            Brain.OpenAi = FakeServer(new[] { yes, yes, yes, yes, yes, yes }, requests, out server);
+            try
+            {
+                Computer.GameOpen = Hands.GameOpen = delegate { return null; };
+                int saved = 0;
+                string result = "Saved 30 seconds of Fake game: " + path;
+                Hands.SaveClip = delegate(int seconds) { if (seconds != 0) throw new Exception("A polite clip lost its default duration."); File.WriteAllText(path, "fake clip"); saved++; return result; };
+                foreach (bool planning in new[] { false, true })
+                {
+                    Brain direct = new Brain { OwnSteps = planning, Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Model = "gpt-5-mini" };
+                    direct.Act = delegate(string tool, ToolArguments args) { if (tool != "clip") throw new Exception("A polite clip took another tool."); return Hands.Do(tool, args); };
+                    foreach (string phrase in new[] { "Capri, can you clip that please", "can you clip that", "could you clip that for me", "please clip that", "clip that please" })
+                    {
+                        direct.Forget();
+                        File.Delete(path);
+                        int before = saved;
+                        if (direct.Ask(phrase) != result || saved != before + 1 || !File.Exists(path)) throw new Exception("The brain answered a clip request without saving: " + phrase);
+                    }
+                }
+                lock (requests) if (requests.Count != 0) throw new Exception("A polite clip waited for the brain to answer yes.");
+            }
+            finally { Brain.OpenAi = apiWas; Computer.GameOpen = gameWas; Hands.GameOpen = handsGameWas; Hands.SaveClip = saveWas; server.Stop(); File.Delete(path); }
+            checks.Add("PASS polite clip requests save once through Brain.Ask with planning on or off and no game seen; no model reply can replace the save");
+        }
+
+        private static void SmokeClipData(System.Collections.Generic.List<string> checks)
+        {
+            long scheduled = 10000000;
+            for (int frame = 1; frame <= 60; frame++)
+            {
+                scheduled = ClipBuffer.NextFrame(scheduled, scheduled + 2000, scheduled + 30000, 10000000.0 / 60);
+                if (scheduled != 10000000 + frame * 166667L) throw new Exception("Clip pacing accumulated wake-up or capture time.");
+            }
+            if (ClipBuffer.NextFrame(0, 50000000, 50010000, 10000000.0 / 60) != 50166667
+                || ClipBuffer.NextFrame(10000000, 10400000, 10450000, 10000000.0 / 60) != 10500001)
+                throw new Exception("Clip pacing lost its first deadline or tried to catch up missed frames.");
+            using (AutoResetEvent changed = new AutoResetEvent(true))
+            using (ClipWait wait = new ClipWait())
+            {
+                Stopwatch elapsed = Stopwatch.StartNew();
+                wait.Until(changed, ClipBuffer.Now + 10000000);
+                if (elapsed.ElapsedMilliseconds > 500) throw new Exception("The clip timer ignored a settings or stop signal.");
+            }
+            foreach (int rate in new[] { 30, 60 })
+            using (ClipSave save = new ClipSave { Start = 50000000, End = 60000000, Settings = new ClipSettings(null, 30, 60, 1080, 20) })
+            {
+                System.Collections.Generic.List<ClipPart> frames = new System.Collections.Generic.List<ClipPart>();
+                for (int frame = 0; frame < rate; frame++) frames.Add(new ClipPart { At = save.Start + frame * 10000000L / rate, Data = new[] { (byte)frame } });
+                save.Pictures.Merge(frames);
+                int count = 0;
+                foreach (ClipPart part in ClipMedia.Frames(save))
+                {
+                    if (part.At != count * 10000000L / 60 || part.End != (count + 1) * 10000000L / 60 || part.Data[0] != count * rate / 60)
+                        throw new Exception("Saved frame times lost source motion or changed its speed at " + rate + " fps.");
+                    count++;
+                }
+                if (count != 60 || save.Settings.Bits(1920, 1080) != 20000000) throw new Exception("A 60 fps, 1080p, 20 Mbps clip lost its cadence or bitrate.");
+            }
+            using (ClipSave save = new ClipSave { Start = 1250000, End = 2030000, Settings = new ClipSettings(null, 30, 60) })
+            {
+                save.Pictures.Merge(new[] { new ClipPart { At = 1000000, Data = new byte[] { 1 } }, new ClipPart { At = 1700000, Data = new byte[] { 2 } } });
+                long end = 0;
+                foreach (ClipPart part in ClipMedia.Frames(save))
+                {
+                    if (part.At != end || part.Data[0] != (part.At < 450000 ? 1 : 2)) throw new Exception("Uneven clip frames moved on the saved timeline.");
+                    end = part.End;
+                }
+                if (end != save.End - save.Start) throw new Exception("A held clip frame changed the final duration.");
+            }
+            checks.Add("PASS clip deadlines retain 60 fps without accumulating work or wake-up delay, skip missed slots and wake for settings; 30 and 60 source frames keep their timing at 60 fps and 20 Mbps, including a trimmed final frame");
+            System.Threading.Tasks.Task.Factory.StartNew(delegate { SmokeClipSound(checks); }).GetAwaiter().GetResult();
+        }
+
+        private sealed class ClipTapCheck : ISoundCapture, IDisposable
+        {
+            private readonly IntPtr data;
+            private readonly int rate, length;
+            private readonly long origin;
+            private int at, held, packets;
+            internal int Released;
+            internal int Gap;
+            internal bool Pause;
+            internal int Fast;
+
+            internal ClipTapCheck(byte[] pcm, int rate, long origin)
+            {
+                this.rate = rate;
+                this.origin = origin;
+                length = pcm.Length / 4;
+                data = Marshal.AllocHGlobal(pcm.Length);
+                Marshal.Copy(pcm, 0, data, pcm.Length);
+            }
+
+            public int GetNextPacketSize(out int frames)
+            {
+                int end = at < rate / 4 ? rate / 4 : at < rate / 2 ? rate / 2 : length;
+                frames = Math.Min(137 + packets % 5 * 31, end - at);
+                return 0;
+            }
+
+            public int GetBuffer(out IntPtr bytes, out int frames, out int flags, out long position, out long time)
+            {
+                GetNextPacketSize(out frames);
+                held = frames;
+                bool silent = at >= rate / 4 && at < rate / 2;
+                bytes = silent ? IntPtr.Zero : IntPtr.Add(data, at * 4);
+                flags = (silent ? 2 : 0) | (packets % 3 == 1 ? 4 : 0);
+                position = at + (at >= rate / 2 && !Pause ? Gap : 0);
+                time = origin + (long)(at + (at >= rate / 2 ? Gap : 0)) * 10000000 / rate + (long)at * Fast / rate + (packets == 0 ? 0 : packets % 2 == 0 ? 2300 : -1700);
+                if (Pause && at == rate / 2) { flags = 1; time = origin + (long)(at + Gap) * 10000000 / rate; }
+                return 0;
+            }
+
+            public int ReleaseBuffer(int frames)
+            {
+                if (frames != held) throw new Exception("The fake sound tap released the wrong block.");
+                at += frames; Released += frames; packets++; held = 0;
+                return 0;
+            }
+
+            public void Dispose() { Marshal.FreeHGlobal(data); }
+        }
+
+        private static void SmokeClipSound(System.Collections.Generic.List<string> checks)
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "Capri-clip-sound-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                foreach (int rate in new[] { 48000, 44100, 96000 })
+                {
+                    long origin = 500000000000;
+                    byte[] tone = new byte[rate * 4];
+                    for (int frame = 0; frame < rate; frame++)
+                    {
+                        short wave = frame >= rate / 4 && frame < rate / 2 ? (short)0 : (short)(Math.Sin(frame * Math.PI * 880 / rate) * 6000);
+                        for (int side = 0; side < 2; side++)
+                        {
+                            short value = side == 0 ? wave : (short)-wave;
+                            tone[frame * 4 + side * 2] = (byte)value;
+                            tone[frame * 4 + side * 2 + 1] = (byte)(value >> 8);
+                        }
+                    }
+                    string raw = Path.Combine(folder, rate + ".pcm"), path = Path.Combine(folder, rate + ".mp4");
+                    using (ClipBuffer buffer = new ClipBuffer(2, 1024 * 1024, delegate(ClipSave save)
+                    {
+                        using (FileStream file = File.Create(raw))
+                            foreach (ClipPart part in ClipMedia.Samples(save)) file.Write(part.Data, 0, part.Data.Length);
+                        return ClipMedia.Save(save);
+                    }))
+                    using (ClipTapCheck fake = new ClipTapCheck(tone, rate, origin))
+                    using (SoundTap tap = new SoundTap("fake", null, fake, rate, 2, 16, false, delegate { return origin + 50000000; }))
+                    using (Bitmap picture = new Bitmap(64, 48))
+                    {
+                        buffer.AddFrame(picture, origin);
+                        long newest;
+                        if (!tap.Read(null, null, out newest, delegate(byte[] pcm, long at, int hertz) { buffer.AddSound(pcm, at, hertz); })
+                            || fake.Released != rate || newest != origin + 10000000) throw new Exception("The fake sound tap lost blocks or rounded each block's time.");
+                        buffer.Advance(origin + 10000000);
+                        ClipResult made = buffer.Save(path, 1).GetAwaiter().GetResult();
+                        byte[] written = File.ReadAllBytes(raw), whole = new ClipPcm().Read(tone, origin, rate).Data;
+                        if (written.Length != 48000 * 4 || written.Length != whole.Length) throw new Exception("Split sound blocks changed the saved sample count.");
+                        for (int at = 0; at < written.Length; at++) if (written[at] != whole[at]) throw new Exception("A sound block boundary repeated, dropped or changed a saved sample at " + rate + " Hz.");
+                        checks.Add("PASS fake " + rate + " Hz tap writes continuous stereo PCM through the clip writer with jitter, bad packet timestamps and silent blocks; split blocks match one block byte for byte");
+                        if (made.Unavailable) { checks.Add("LIMIT fake tap AAC check: " + made.Problem); continue; }
+                        if (made.Problem != null) throw new Exception("The fake sound clip failed: " + made.Problem);
+                        if (!made.Sound) { checks.Add("LIMIT fake tap AAC check: Windows saved video without AAC"); continue; }
+                        using (MemoryStream samples = new MemoryStream())
+                        {
+                            double seconds, audioSeconds;
+                            Bitmap first;
+                            long[] times;
+                            bool sound;
+                            int peak;
+                            ClipMedia.Inspect(path, out seconds, out first, out times, out sound, out audioSeconds, out peak, samples);
+                            using (first)
+                            {
+                                byte[] decoded = samples.ToArray();
+                                if (!sound || peak < 1000 || decoded.Length < 46000 * 4 || Math.Abs(audioSeconds - 1) > 0.15) throw new Exception("The fake tap's AAC lost sound or time.");
+                                for (int frame = 2049; frame < Math.Min(46000, decoded.Length / 4); frame++)
+                                    for (int side = 0; side < 2; side++)
+                                        if (Math.Abs(BitConverter.ToInt16(decoded, frame * 4 + side * 2) - BitConverter.ToInt16(decoded, (frame - 1) * 4 + side * 2)) > 1800)
+                                            throw new Exception("The decoded fake tap has a sound jump inside the clip at " + rate + " Hz.");
+                            }
+                        }
+                        checks.Add("PASS fake " + rate + " Hz tap saves and decodes AAC without block-sized sound jumps");
+                    }
+                }
+                foreach (bool pause in new[] { false, true })
+                using (ClipTapCheck fake = new ClipTapCheck(new byte[48000 * 4], 48000, 10000000))
+                using (SoundTap tap = new SoundTap("fake gap", null, fake, 48000, 2, 16, false))
+                {
+                    fake.Gap = 480;
+                    fake.Pause = pause;
+                    long newest, previous = 0;
+                    bool gap = false;
+                    if (!tap.Read(null, null, out newest, delegate(byte[] pcm, long at, int rate)
+                    {
+                        if (previous != 0 && Math.Abs(at - previous - 100000) <= 1) gap = true;
+                        previous = at + pcm.Length / 4 * 10000000L / rate;
+                    }) || newest != 20100000 || !gap) throw new Exception("The sound clock closed a real device gap.");
+                }
+                byte[] loud = new byte[48000 * 4];
+                for (int at = 0; at < loud.Length; at++) loud[at] = 1;
+                foreach (int fast in new[] { 200000, 1000000 })
+                using (ClipTapCheck fake = new ClipTapCheck(loud, 48000, 10000000))
+                using (SoundTap tap = new SoundTap("fake drift", null, fake, 48000, 2, 16, false))
+                {
+                    fake.Fast = fast;
+                    long newest, previous = 0;
+                    int moved = 0, movedLoud = 0;
+                    if (!tap.Read(null, null, out newest, delegate(byte[] pcm, long at, int rate)
+                    {
+                        if (previous != 0 && Math.Abs(at - previous) > 1) { moved++; if (pcm[0] != 0) movedLoud++; }
+                        previous = at + pcm.Length / 4 * 10000000L / rate;
+                    })) throw new Exception("The drifting fake sound tap could not be read.");
+                    if (Math.Abs(newest - (20000000 + fast)) > 210000) throw new Exception("The sound clock drifted more than 20 ms from the device's own time: " + (newest - 20000000 - fast) + " ticks at " + fast + ".");
+                    if (fast == 200000 ? moved == 0 || movedLoud != 0 : movedLoud == 0) throw new Exception("The sound clock was set again at the wrong moments: " + moved + " times, " + movedLoud + " in sound, at " + fast + ".");
+                }
+                checks.Add("PASS a sound card clock that runs fast is pulled back within 20 ms, in silence when it can be");
+                using (ClipSave save = new ClipSave { Start = 10000000, End = 10100000 })
+                {
+                    byte[] one = new byte[100 * 4], two = new byte[100 * 4], three = new byte[100 * 4];
+                    for (int at = 0; at < one.Length; at++) { one[at] = 1; two[at] = 2; three[at] = 3; }
+                    long late = save.Start + (long)(100.6 * 10000000 / 48000), early = save.Start + (long)(199.4 * 10000000 / 48000);
+                    save.Sounds.Merge(new[] { new ClipPart { At = save.Start, End = late, Data = one }, new ClipPart { At = late, End = early, Data = two }, new ClipPart { At = early, End = save.End, Data = three } });
+                    using (MemoryStream pcm = new MemoryStream())
+                    {
+                        foreach (ClipPart part in ClipMedia.Samples(save)) pcm.Write(part.Data, 0, part.Data.Length);
+                        byte[] bytes = pcm.ToArray();
+                        for (int at = 0; at < bytes.Length; at++)
+                        {
+                            int frame = at / 4, expected = frame < 100 ? 1 : frame < 200 ? 2 : frame < 300 ? 3 : 0;
+                            if (bytes[at] != expected) throw new Exception("Sound blocks a rounded sample apart left a gap or lost a sample at frame " + frame + ".");
+                        }
+                    }
+                }
+                checks.Add("PASS sound blocks that round one sample apart are butted together with no gap and no lost sample");
+                using (ClipSave save = new ClipSave { Start = 10000000, End = 11200000 })
+                {
+                    byte[] first = new byte[5001 * 4], second = new byte[200 * 4], third = new byte[100 * 4];
+                    for (int at = 0; at < first.Length; at++) first[at] = 1;
+                    for (int at = 0; at < second.Length; at++) second[at] = 2;
+                    for (int at = 0; at < third.Length; at++) third[at] = 3;
+                    save.Sounds.Merge(new[] { new ClipPart { At = save.Start - 10000000L / 48000, End = save.Start + 1000000, Data = first }, new ClipPart { At = save.Start + 4900 * 10000000L / 48000, End = save.End, Data = second }, new ClipPart { At = save.Start + 5500 * 10000000L / 48000, End = save.End, Data = third } });
+                    using (MemoryStream pcm = new MemoryStream())
+                    {
+                        foreach (ClipPart part in ClipMedia.Samples(save)) pcm.Write(part.Data, 0, part.Data.Length);
+                        byte[] bytes = pcm.ToArray();
+                        if (bytes.Length != 5760 * 4) throw new Exception("Sound trimming changed the duration.");
+                        for (int at = 0; at < bytes.Length; at++)
+                        {
+                            int frame = at / 4, expected = frame < 5000 ? 1 : frame < 5100 ? 2 : frame >= 5500 && frame < 5600 ? 3 : 0;
+                            if (bytes[at] != expected) throw new Exception("A sound gap, overlap or trim changed a saved sample.");
+                        }
+                    }
+                }
+                checks.Add("PASS sound trimming and overlap use sample counts, including blocks that cross an encoder packet boundary");
+            }
+            finally { foreach (string file in Directory.GetFiles(folder)) File.Delete(file); Directory.Delete(folder); }
         }
 
         private static void SmokeFrames(System.Collections.Generic.List<string> checks)
