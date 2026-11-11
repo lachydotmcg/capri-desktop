@@ -150,11 +150,16 @@ namespace CapriDesktop
         // share learned before her voice reaches the mic is far too small, so her own echo then counts as them talking over
         // her a couple of words in (ticket 35, GHISA with Hey Capri on: "speech stops after two words while text continues").
         private const int Learning = 6;
-        // Off a call it learns until the mic has risen with her instead: three chunks at twice the quietest it's been this turn.
-        // Speakers later than 600 ms learned their share from silence and still cut her off (#158). With headphones nothing
-        // rises, so it stops learning after 1.5 s of her.
+        // Off a call it learns until the mic has risen with her instead: three chunks at twice the quietest it's been this turn
+        // or in the last second before it. Speakers later than 600 ms learned their share from silence and still cut her off
+        // (#158). With headphones nothing rises, so it stops learning after 1.5 s of her.
         private const int Rises = 3, LearningMost = 15;
         private const double RiseFloor = 0.004;
+        // That last second is the room. Laptop speakers play her echo from her first word, so measured from her line alone it
+        // never rose, and someone talking over her in her first 1.5 s was learned as her echo and couldn't stop her (#158).
+        private const int Rooms = 10;
+        private readonly double[] rooms = new double[Rooms];
+        private int roomSlot, roomsHeard;
         // Off a call three loud chunks in a row stop her, so a bang or a cough in two of them doesn't (#158).
         internal const int Held = 3;
         private const double Margin = 2.5;
@@ -184,11 +189,21 @@ namespace CapriDesktop
         private readonly bool[] loudRecent = new bool[CallWindow];
         private int loudSlot;
 
+        // A chunk of the mic while she isn't talking.
+        internal void Quiet(double mic)
+        {
+            rooms[roomSlot] = mic;
+            roomSlot = (roomSlot + 1) % Rooms;
+            roomsHeard = Math.Min(roomsHeard + 1, Rooms);
+            Reset();
+        }
+
         internal void Reset()
         {
             share = 0;
             high = 0;
             quiet = double.MaxValue;
+            for (int i = 0; i < roomsHeard; i++) quiet = Math.Min(quiet, rooms[i]);
             risen = 0;
             Array.Clear(recent, 0, Recent);
             slot = 0;
@@ -641,7 +656,14 @@ namespace CapriDesktop
             double level = VoiceLevel(chunk);
             if (level >= WakeLevel) micTalked = Environment.TickCount;
             if (barging && bargingTicket == ticket && bargingAudio == audio) return chunk;
-            if (speaker.Ago >= 1) { talkOver.Reset(); heldBack.Clear(); tailOpen = false; return chunk; }
+            if (speaker.Ago >= 1)
+            {
+                if (ears.Muted) talkOver.Reset();
+                else talkOver.Quiet(level);
+                heldBack.Clear();
+                tailOpen = false;
+                return chunk;
+            }
             if (tailOpen && tailSound == speaker.SoundEnd) return chunk;
             tailOpen = false;
             bool playing = speaker.Left > 0;
@@ -673,7 +695,8 @@ namespace CapriDesktop
             if (nameOver && local && earsReady && !ears.Muted && !transcribing) return false;
             if (!local || !earsReady || ears.Muted || transcribing || now >= voiceUntil)
             {
-                talkOver.Reset();
+                if (local && earsReady && !ears.Muted && now >= voiceUntil) talkOver.Quiet(level);
+                else talkOver.Reset();
                 // She finished by herself, so what these chunks hold is her own voice and not the start of their line.
                 if (overHeld) lock (waking) preroll.Clear();
                 overHeld = false;
@@ -684,7 +707,7 @@ namespace CapriDesktop
             {
                 preroll.Add(chunk);
                 // On a call it takes about a second to know they're really talking, so more of their line's start is kept.
-                if (preroll.Count > (CallModeOn ? TalkOver.CallWindow + 2 : 4)) preroll.RemoveAt(0);
+                if (preroll.Count > (CallModeOn ? TalkOver.CallWindow + 2 : TalkOver.Held + 2)) preroll.RemoveAt(0);
                 if (!talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake(), CallModeOn)) return true;
             }
             overHeld = false;
@@ -704,9 +727,9 @@ namespace CapriDesktop
         private void OverHeard(short[] chunk)
         {
             int ticket = asking, audio = audioTurn;
-            double now = clock.Elapsed.TotalSeconds;
-            if (now >= voiceUntil) { wakeOver.Reset(); return; }
-            if (!wakeOver.Heard(VoiceLevel(chunk), SpokenLevel(now), WakeLevel)) return;
+            double now = clock.Elapsed.TotalSeconds, level = VoiceLevel(chunk);
+            if (now >= voiceUntil) { wakeOver.Quiet(level); return; }
+            if (!wakeOver.Heard(level, SpokenLevel(now), WakeLevel)) return;
             wakeOver.Reset();
             QueueBargeIn(ticket, audio, "wake mic talk-over");
         }

@@ -3035,8 +3035,8 @@ namespace CapriDesktop
         // The mic is open: Windows shows its mic-in-use icon.
         internal bool Listening { get { return mic.Listening; } }
 
-        // While she talks the mic stays open but nothing is decoded, so her own voice can't wake her. What it hears then still
-        // goes to Overheard, so she can tell when they talk over her.
+        // While she talks the mic stays open but nothing is decoded, so her own voice can't wake her. All it hears still goes
+        // to Overheard, so she can tell when they talk over her, and how quiet the room was before she started.
         internal bool Held { get { return held; } set { held = value; } }
         internal Action<short[]> Overheard;
 
@@ -3115,11 +3115,11 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (spotter == IntPtr.Zero || stream == IntPtr.Zero) return;
+                Action<short[]> overheard = Overheard;
+                if (overheard != null) overheard(chunk);
                 if (held)
                 {
                     heldWas = true;
-                    Action<short[]> overheard = Overheard;
-                    if (overheard != null) overheard(chunk);
                     return;
                 }
                 // What she half-heard before she spoke is dropped, so the end of her line can't finish a keyword.

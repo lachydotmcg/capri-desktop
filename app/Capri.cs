@@ -27483,7 +27483,7 @@ namespace CapriDesktop
             System.Collections.Generic.List<string> reached = new System.Collections.Generic.List<string>();
             ManualResetEvent slow = new ManualResetEvent(true);
             string decoded = "";
-            int decodedLines = 0, asides = 0;
+            int decodedLines = 0, asides = 0, decodedTheirs = 0;
             Func<double> at = delegate { return clock.Elapsed.TotalSeconds; };
             Func<int> reachedCount = delegate { lock (reached) return reached.Count; };
             Func<int, short[]> wave = delegate(int amplitude)
@@ -27552,7 +27552,20 @@ namespace CapriDesktop
                 headTest = delegate { return "Got it."; };
                 asideTest = delegate { Interlocked.Increment(ref asides); };
                 Think = delegate(string words) { lock (reached) reached.Add(words); return answered; };
-                Hearing.Run = delegate { Interlocked.Increment(ref decodedLines); slow.WaitOne(5000); return decoded; };
+                Hearing.Run = delegate(short[] samples)
+                {
+                    int theirs = 0;
+                    for (int start = 0; start + Ears.Chunk <= samples.Length; start += Ears.Chunk)
+                    {
+                        int peak = 0;
+                        for (int sample = start; sample < start + Ears.Chunk; sample++) peak = Math.Max(peak, Math.Abs((int)samples[sample]));
+                        if (peak >= 13000) theirs++;
+                    }
+                    decodedTheirs = theirs;
+                    Interlocked.Increment(ref decodedLines);
+                    slow.WaitOne(5000);
+                    return decoded;
+                };
                 reopen();
 
                 dropped("what's for dinner");
@@ -27687,13 +27700,16 @@ namespace CapriDesktop
                 decoded = "i love pasta";
                 Action overHer = delegate
                 {
+                    // Her mic hears the room for a second before she talks, and her echo from her first word rises over it.
+                    nameOver = false;
+                    voiceUntil = 0;
+                    sound(40, 10);
                     talkState = TalkState.Talking;
                     voiceUntil = at() + 30;
                     spokenAt = at();
                     spokenLevels = new double[400];
                     for (int level = 0; level < spokenLevels.Length; level++) spokenLevels[level] = 0.1;
                     talkOver.Reset();
-                    nameOver = false;
                     room = -1;
                     lineAt = -100;
                     noiseHold = false;
@@ -27708,9 +27724,10 @@ namespace CapriDesktop
                     if (finishes) CloseTalk();
                     wait(delegate { return decodedLines == decodedBefore + 1 && !transcribing; });
                     if (decodedLines != decodedBefore + 1 || reachedCount() != reachedBefore || bargeIns != bargesBefore) throw new Exception("Talking over her reached her without her name" + (finishes ? ", once she'd finished" : "") + ": decoded " + (decodedLines - decodedBefore) + ", reached " + (reachedCount() - reachedBefore) + ", name over " + nameOver + ".");
+                    if (decodedTheirs != 8) throw new Exception("Talking over her lost the start of their line: " + decodedTheirs + " of their 8 chunks were heard.");
                     CloseTalk();
                 }
-                checks.Add("PASS in her name's chat a line over her voice still needs her name, even if she finishes before its words come back, through a recognised line, Windows speech and real audio; a stop word still stops her with no name");
+                checks.Add("PASS in her name's chat a line over her voice still needs her name, even if she finishes before its words come back, through a recognised line, Windows speech and real audio with all of it from its first chunk; a stop word still stops her with no name");
 
                 reopen();
                 counts("hey capri");
@@ -38861,7 +38878,17 @@ namespace CapriDesktop
             rise.Heard(0.001, 0, WakeLevel);
             for (int i = 0; i < 3; i++) rise.Heard(0.004, 0.1, WakeLevel);
             if (rise.Heard(0.3, 0.1, WakeLevel) || rise.Heard(0.3, 0.1, WakeLevel) || !rise.Heard(0.3, 0.1, WakeLevel)) throw new Exception("Three mic rises above the quiet gap did not finish learning.");
-            checks.Add("PASS off-call learning ends on three mic rises or fifteen sounding chunks, keeps the sixty percent echo floor through two seconds of soft passage, and needs three loud chunks in a row, which her gaps between words don't break");
+            TalkOver roomed = new TalkOver();
+            for (int i = 0; i < 10; i++) roomed.Quiet(0.0005);
+            roomed.Reset();
+            for (int i = 0; i < 6; i++) roomed.Heard(0.03, 0.1, WakeLevel);
+            if (roomed.Heard(0.3, 0.1, WakeLevel) || roomed.Heard(0.3, 0.1, WakeLevel) || !roomed.Heard(0.3, 0.1, WakeLevel)) throw new Exception("Her echo from her first word didn't rise over the room before it.");
+            TalkOver fan = new TalkOver();
+            for (int i = 0; i < 10; i++) fan.Quiet(0.0005);
+            for (int i = 0; i < 10; i++) fan.Quiet(0.03);
+            for (int i = 0; i < 6; i++) fan.Heard(0.03, 0.1, WakeLevel);
+            if (fan.Heard(0.3, 0.1, WakeLevel) | fan.Heard(0.3, 0.1, WakeLevel) | fan.Heard(0.3, 0.1, WakeLevel)) throw new Exception("A fan that came on between her lines counted as her echo rising.");
+            checks.Add("PASS off-call learning ends on three mic rises over her line or the last second of room before it, or on fifteen sounding chunks, keeps the sixty percent echo floor through two seconds of soft passage, and needs three loud chunks in a row, which her gaps between words don't break");
             int otherAt = -1;
             double otherLow = 0, otherHigh = 0;
             for (int i = 0; i + Ears.Chunk * 4 <= other.Length; i += Ears.Chunk)
@@ -54283,13 +54310,15 @@ namespace CapriDesktop
                     {
                         decodedWords = sayStop ? "stop" : "i love pasta";
                         CloseTalk();
+                        nameOver = false;
+                        // The room her mic hears before she talks, which her echo rises over from her first word.
+                        for (int roomAt = 0; roomAt < 10; roomAt++) Gather(nameWave(40));
                         talkState = TalkState.Talking;
                         voiceUntil = clock.Elapsed.TotalSeconds + 30;
                         spokenAt = clock.Elapsed.TotalSeconds;
                         spokenLevels = new double[400];
                         for (int levelAt = 0; levelAt < spokenLevels.Length; levelAt++) spokenLevels[levelAt] = 0.1;
                         talkOver.Reset();
-                        nameOver = false;
                         room = -1;
                         lineAt = -100;
                         noiseHold = false;
