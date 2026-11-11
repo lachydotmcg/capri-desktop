@@ -34460,7 +34460,9 @@ namespace CapriDesktop
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
                 Hear("what's new?");
-                WaitVoice(delegate { return reply == News.Facts; }, "Offline update help did not answer.");
+                // A password she typed shows as dots in everything she says, and SmokeTypingRepeats has her type "hello" into a
+                // password box, so with 0.8.9's "hellos" the answer is the facts as she shows them.
+                WaitVoice(delegate { return reply == Computer.Mask(News.Facts); }, "Offline update help did not answer.");
                 checks.Add("PASS What's new finds this version's Windows facts and menu paths, including without a brain");
             }
             finally
