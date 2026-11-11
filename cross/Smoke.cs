@@ -2772,12 +2772,33 @@ namespace CapriDesktop
             bool advancedWas = pet.Saved.AdvancedSettings;
             Action<string> runWas = Hands.Run;
             Func<ToolArguments, string> nativeWorkWas = Hands.NativeWork;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<string, bool> existsWas = Hands.Exists;
+            Func<string, string> fetchWas = Hands.Fetch;
+            Func<string, bool> pressWas = Hands.PressPlay;
             List<string> ran = new List<string>(), jobs = new List<string>();
+            List<InstalledApp> installed = new List<InstalledApp>();
+            InstalledApp spotify = new InstalledApp("Spotify", Hands.OnMac ? "/Applications/Spotify.app" : "exec:spotify");
+            int presetWas = Security.Preset;
             try
             {
+                Security.Pick(Security.Trusted);
+                Hands.Run = ran.Add;
+                Hands.Catalog = delegate { return new List<InstalledApp>(installed); };
+                Hands.Exists = delegate { return false; };
+                Hands.Fetch = delegate { return "\"videoId\":\"abcdefghijk\""; };
+                Hands.PressPlay = delegate { return true; };
                 if (new Settings().MusicApp != 0) throw new Exception("Music app didn't start on Spotify.");
                 pet.SetMusicApp(0);
                 if (Hands.MusicApp(null) != null || Hands.LevelOf("music_app") != 0 || Hands.MusicApp("spotify") != "spotify") throw new Exception("Music app's default changed: " + Hands.MusicApp(null));
+                installed.Add(spotify); Hands.Forget();
+                string onSpotify = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                bool spotifyRan = ran.Count == 1 && ran[0] == "spotify:search:Midnight%20Drive";
+                installed.Clear(); Hands.Forget(); ran.Clear();
+                string onYouTube = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                bool youtubeRan = ran.Count == 1 && ran[0] == "https://www.youtube.com/watch?v=abcdefghijk";
+                if (onSpotify != "Playing Midnight Drive on Spotify." || !spotifyRan || onYouTube != "Playing Midnight Drive on YouTube." || !youtubeRan)
+                    throw new Exception("Music app's default changed on Mac or Linux: " + onSpotify + " / " + onYouTube + " / " + string.Join(" | ", ran));
                 checks.Add("PASS cross Music app: the default still plays on Spotify, or YouTube without Spotify");
                 string tool;
                 ToolArguments heard;
@@ -2789,14 +2810,28 @@ namespace CapriDesktop
                 checks.Add("PASS cross Music app: play X on Apple Music, Spotify or YouTube is caught and play_music takes applemusic");
                 pet.SetMusicApp(2);
                 if (Hands.MusicApp(null) != "applemusic" || Hands.MusicApp("youtube") != "youtube") throw new Exception("Music app's Apple Music didn't reach her hands.");
+                string loved = Hands.AppleMusicJob("Liked Songs", "playlist"), own = Hands.AppleMusicJob("my Chill", "playlist"), album = Hands.AppleMusicJob("Random Access Memories", "album");
+                if (!loved.StartsWith("Play their Favourite Songs on Apple Music:", StringComparison.Ordinal) || !own.StartsWith("Play their playlist \"Chill\" on Apple Music:", StringComparison.Ordinal) || !album.StartsWith("Play the album \"Random Access Memories\" on Apple Music:", StringComparison.Ordinal))
+                    throw new Exception("Apple Music's job lost what to play: " + loved + " / " + own + " / " + album);
+                checks.Add("PASS cross Music app: Apple Music's job says playlist, album or artist, and finds Favourite Songs and their own playlists");
+                if (!Hands.OnMac)
+                {
+                    installed.Clear(); installed.Add(spotify); Hands.Forget(); ran.Clear();
+                    string withSpotify = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                    installed.Clear(); Hands.Forget();
+                    string withNothing = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                    if (withSpotify != "Apple Music isn't installed, so playing Midnight Drive on Spotify." || withNothing != "Apple Music isn't installed, so playing Midnight Drive on YouTube." || ran.Count != 2 || ran[0] != "spotify:search:Midnight%20Drive")
+                        throw new Exception("Apple Music on Linux didn't fall back to Spotify, then YouTube: " + withSpotify + " / " + withNothing + " / " + string.Join(" | ", ran));
+                    checks.Add("PASS cross Music app: on Linux, where Apple Music never is, she plays on Spotify, or YouTube without Spotify");
+                }
                 if (Hands.OnMac)
                 {
-                    Hands.Run = ran.Add;
+                    ran.Clear();
                     Hands.NativeWork = args => { jobs.Add(args.Task); return "Did it."; };
                     string done = Hands.Do("play_music", new ToolArguments { Song = "Never Fade Away" });
                     bool cursor = Hands.KitFor().Has("use_computer") && Security.On(Security.Mouse);
-                    bool worked = cursor ? jobs.Count == 1 && jobs[0] == Hands.AppleMusicJob("Never Fade Away") && jobs[0].Contains("open the Music app") && done == "Did it." && ran.Count == 0
-                        : jobs.Count == 0 && ran.Count == 1 && ran[0] == "music://music.apple.com/search?term=Never%20Fade%20Away" && done.StartsWith("Opened Music", StringComparison.Ordinal);
+                    bool worked = cursor ? jobs.Count == 1 && jobs[0] == Hands.AppleMusicJob("Never Fade Away SAMURAI Cyberpunk 2077", "song") && jobs[0].Contains("open the Music app") && done == "Did it." && ran.Count == 0
+                        : jobs.Count == 0 && ran.Count == 1 && ran[0] == "music://music.apple.com/search?term=Never%20Fade%20Away%20SAMURAI%20Cyberpunk%202077" && done.StartsWith("Opened Music", StringComparison.Ordinal);
                     if (!worked) throw new Exception("Apple Music didn't play on a Mac: " + done + " / " + string.Join(" | ", jobs) + " / " + string.Join(" | ", ran));
                     checks.Add("PASS cross Music app: on a Mac, play X goes to Apple Music, " + (cursor ? "a job with her mouse and keyboard" : "the Music app on a search"));
                 }
@@ -2816,6 +2851,12 @@ namespace CapriDesktop
             {
                 Hands.Run = runWas;
                 Hands.NativeWork = nativeWorkWas;
+                Hands.Catalog = catalogWas;
+                Hands.Exists = existsWas;
+                Hands.Fetch = fetchWas;
+                Hands.PressPlay = pressWas;
+                Hands.Forget();
+                Security.Pick(presetWas);
                 pet.SetMusicApp(musicWas);
                 pet.SetAdvancedSettings(advancedWas);
                 frame.ShowSettings(true);

@@ -1163,7 +1163,7 @@ namespace CapriDesktop
             { "game_comments", "game comments run on their own; Off stops them outside Gaming Mode" },
             { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
             { "keep_awake", "their PC stays awake for your jobs and watches" }, { "explore_away", "you explore while they're away" },
-            { "cursor", "your visible pointer for YouTube searches and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
+            { "cursor", "your visible pointer for YouTube searches, Apple Music and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
             { "listen_for_capri", "voice chat that starts when they say your name, apart from Hey Capri" },
             { "voice_in_mic", "your voice in their mic for Discord or games; it needs a virtual cable that's set up and never installs one" },
             { "discord_presence", "what you're doing on their Discord profile" }, { "startup", "Capri starts when they log in; off until they ask for it" }, { "show_advanced", "Mainframe's advanced settings" },
@@ -3481,7 +3481,7 @@ namespace CapriDesktop
             action = level = null;
             string text = Regex.Replace((said ?? "").ToLowerInvariant().Replace('\u2019', '\''), @"^(?:(?:i (?:want|need) (?:you|u) to|go ahead and|just|quickly|quick)\s+)+", "");
             spotify = Regex.IsMatch(text, @"\bspotify\b");
-            text = Regex.Replace(text, @"\s+(?:on|in|for)\s+(?:spotify|youtube|my pc|the pc|my computer|the computer|my laptop)$", "");
+            text = Regex.Replace(text, @"\s+(?:on|in|for)\s+(?:spotify|youtube|apple music|my pc|the pc|my computer|the computer|my laptop)$", "");
             text = Regex.Replace(text, @"(?<!all the )\bway (up|down)$", "$1 a lot");
             string step = null;
             Match by = Regex.Match(text, @"\s+(?:(?<small>(?:just )?a (?:bit|little|lil|tad|notch|touch|smidge|hair)(?: more)?|a little bit(?: more)?|slightly)|(?<big>a lot(?: more)?|loads|heaps|tons|(?:a )?(?:bunch|ton)(?: more)?|much more)|by (?<n>\d{1,3})" + Percent + @")$");
@@ -5486,6 +5486,7 @@ namespace CapriDesktop
             bool ownPlaylist = !songOnly && Regex.IsMatch(song, @"^my\s+", RegexOptions.IgnoreCase) && (kind == "playlist" || Regex.IsMatch(song, @"\s+playlist$", RegexOptions.IgnoreCase));
             if (!songOnly && Regex.IsMatch(song, @"^((what('|\u2019)?s|what is)\s+)?((currently|now)\s+)?playing( now)?$|^(this|that|the current) (song|track)$", RegexOptions.IgnoreCase)) return Playing();
             if (!songOnly && Regex.IsMatch(song, @"^(play\s+)?(me\s+)?((some|any|a|random|good)\s+)?(music|songs?|tunes|tracks?|something)(\s+for me)?$", RegexOptions.IgnoreCase)) { song = Pick(); kind = "song"; }
+            string asked = song, askedKind = kind;
             Match tail = Regex.Match(song, @"^(?:(?:the|my|your)\s+)?(.+?)\s+(playlist|album)$", RegexOptions.IgnoreCase);
             if (!songOnly && tail.Success && kind != "artist") { kind = tail.Groups[2].Value.ToLowerInvariant(); song = tail.Groups[1].Value; }
             if (ownPlaylist) song = Regex.Replace(song, @"^my\s+", "", RegexOptions.IgnoreCase);
@@ -5502,10 +5503,12 @@ namespace CapriDesktop
             app = MusicApp(app);
             if (app == "applemusic")
             {
-                string opened = AppleMusic(look, named, current);
+                string opened = AppleMusic(kind == "song" ? song : asked, kind == "song" ? "song" : askedKind, look, songOnly, current);
                 if (opened != null) return opened;
+                string played = PlayMusic(asked, "auto", askedKind, current, songOnly);
+                return played.StartsWith("Playing ", StringComparison.Ordinal) ? "Apple Music isn't installed, so p" + played.Substring(1) : played;
             }
-            if (app != "youtube" && app != "applemusic" && Match(Apps(), "spotify").Count > 0)
+            if (app != "youtube" && Match(Apps(), "spotify").Count > 0)
             {
                 if (liked) named = "their Liked Songs";
                 string spotted = liked || ownPlaylist ? null : known ?? SpotifyLink(Fetch("https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString("site:open.spotify.com/" + (kind == "song" ? "track" : kind) + " " + song)), kind, song);
@@ -5535,7 +5538,7 @@ namespace CapriDesktop
             if (current != null && !current()) return "That call errand has ended.";
             if (!list.Success && video == null) { Run(where); return "Couldn't find " + named + " to play, so YouTube is open on a search for it."; }
             Run(list.Success ? "https://www.youtube.com/watch?v=" + list.Groups[1].Value + "&list=" + list.Groups[2].Value : "https://www.youtube.com/watch?v=" + video);
-            return (app == "spotify" ? "Spotify isn't installed, so playing " : app == "applemusic" ? "Apple Music isn't installed, so playing " : "Playing ") + named + " on YouTube.";
+            return (app == "spotify" ? "Spotify isn't installed, so playing " : "Playing ") + named + " on YouTube.";
         }
 
         internal static string MusicApp(string app)
@@ -5545,37 +5548,74 @@ namespace CapriDesktop
             return step == 1 ? "youtube" : step == 2 ? "applemusic" : null;
         }
 
-        internal static string AppleMusicJob(string song)
+        private static readonly Regex LovedSongs = new Regex(@"^((my|your|the)\s+)?((liked|saved|loved|favou?rite)\s+songs|likes)(\s+playlist)?$", RegexOptions.IgnoreCase);
+
+        private static string AppleMusicKind(ref string song, string kind, bool songOnly, out bool own)
+        {
+            song = song.Trim();
+            own = false;
+            if (songOnly) return "song";
+            own = Regex.IsMatch(song, @"^my\s+", RegexOptions.IgnoreCase) && (kind == "playlist" || Regex.IsMatch(song, @"\s+playlist$", RegexOptions.IgnoreCase));
+            if (LovedSongs.IsMatch(song)) { own = false; return "loved"; }
+            Match tail = Regex.Match(song, @"^(?:(?:the|my|your)\s+)?(.+?)\s+(playlist|album)$", RegexOptions.IgnoreCase);
+            if (tail.Success && kind != "artist") { kind = tail.Groups[2].Value.ToLowerInvariant(); song = tail.Groups[1].Value; }
+            if (own) song = Regex.Replace(song, @"^my\s+", "", RegexOptions.IgnoreCase);
+            return kind == "playlist" || kind == "album" || kind == "artist" ? kind : "song";
+        }
+
+        internal static string AppleMusicJob(string song, string kind, string app = null, bool songOnly = false)
         {
 #if CROSS
-            string app = OnMac ? "Music" : "Apple Music";
+            if (app == null) app = OnMac ? "Music" : "Apple Music";
 #else
-            string app = "Apple Music";
+            if (app == null) app = "Apple Music";
 #endif
-            return "Play " + Voice.Quote(song) + " on Apple Music: open the " + app + " app, click its search box, type " + Voice.Quote(song) + " and press Enter, then click the song that fits best and press play.";
+            bool own;
+            string what = AppleMusicKind(ref song, kind, songOnly, out own);
+            string open = " on Apple Music: open the " + app + " app, ";
+            if (what == "loved") return "Play their Favourite Songs" + open + "go to Library, then Playlists, open Favourite Songs, or Songs if it isn't there, and press play.";
+            if (own) return "Play their playlist " + Voice.Quote(song) + open + "go to Library, then Playlists, open " + Voice.Quote(song) + " and press play.";
+            if (what == "song") return "Play " + Voice.Quote(song) + open + "click its search box, type " + Voice.Quote(song) + " and press Enter, then click the song that fits best and press play.";
+            return "Play the " + what + " " + Voice.Quote(song) + open + "click its search box, type " + Voice.Quote(song) + " and press Enter, then open the " + what + " that fits best and press its play button.";
         }
 
         internal static InstalledApp AppleMusicApp()
         {
-            try { return Match(Apps(), "apple music").Find(app => AppName(app) == "apple music"); }
+            try
+            {
+                InstalledApp chosen = null;
+                foreach (InstalledApp app in Apps())
+                {
+                    string name = AppName(app);
+                    if (name != "apple music" && !name.StartsWith("apple music ", StringComparison.Ordinal)) continue;
+                    if (chosen == null || WebApp(chosen) && !WebApp(app) || WebApp(chosen) == WebApp(app) && name.Length < AppName(chosen).Length) chosen = app;
+                }
+                return chosen;
+            }
             catch (Exception) { return null; }
         }
 
-        private static string AppleMusic(string song, string named, Func<bool> current)
+        private static string AppleMusic(string song, string kind, string look, bool songOnly, Func<bool> current)
         {
+            bool own;
+            string search = song;
+            string what = AppleMusicKind(ref search, kind, songOnly, out own);
+            string named = what == "loved" ? "their Favourite Songs" : own ? "their " + search + " playlist" : what == "song" ? search : "the " + search + " " + what;
+            if (what == "loved") search = "Favourite Songs";
+            if (what == "song") search = look;
 #if CROSS
             if (!OnMac) return null;
             if (current != null && !current()) return "That call errand has ended.";
             if (NativeWork != null && Security.On(Security.Mouse) && KitFor().Has("use_computer"))
-                return NativeWork(new ToolArguments { Task = AppleMusicJob(song), Current = current });
-            Run("music://music.apple.com/search?term=" + Uri.EscapeDataString(song));
+                return NativeWork(new ToolArguments { Task = AppleMusicJob(what == "song" ? look : song, kind, null, songOnly), Current = current });
+            Run("music://music.apple.com/search?term=" + Uri.EscapeDataString(search));
             return "Opened Music on a search for " + named + ". Press play on the one you want.";
 #else
             InstalledApp found = AppleMusicApp();
             if (found == null) return null;
             if (current != null && !current()) return "That call errand has ended.";
             Run(found.Id);
-            return "Opened Apple Music. Search for " + named + " there and press play, since I need my cursor to play it for you.";
+            return "Opened " + found.Name + ". Search for " + named + " there and press play, since I need my cursor to play it for you.";
 #endif
         }
 
