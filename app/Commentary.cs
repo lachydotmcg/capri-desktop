@@ -58,6 +58,7 @@ namespace CapriDesktop
         internal static Action<string, string, GameMood> Speak;
         internal static Func<byte[]> Shot = delegate { return null; };
         internal static Func<bool> Moments = delegate { return false; };
+        internal static Func<bool> Hears = delegate { return true; };
         internal static Func<string> Keep;
         // The time, so the smoke test can move it on.
         internal static Func<int> Clock = delegate { return Environment.TickCount; };
@@ -103,6 +104,7 @@ namespace CapriDesktop
         // as a reaction does, and it goes up in the feed even while she can't talk.
         internal static bool Moment(string kind, string detail, byte[] frameBefore, byte[] frameAfter)
         {
+            if (Reactions.KindOf(kind) == "sound" && !Hears()) return false;
             bool live = Reactions.KindOf(kind) != null && Reactions.Running;
             if (live) Reactions.React(kind, detail);
             return Trigger(kind, detail, frameBefore, frameAfter, live);
@@ -513,6 +515,7 @@ namespace CapriDesktop
             Commentary.Speak = delegate(string line, string kind, GameMood mood) { Post(delegate { CommentSay(line, kind, mood); }); };
             Commentary.Shot = CommentShot;
             Commentary.Moments = delegate { return preferences.ClipMoments && clips.Enabled; };
+            Commentary.Hears = delegate { return GameSoundsOn; };
             WireReactions();
             Commentary.Keep = delegate
             {

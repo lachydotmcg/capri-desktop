@@ -895,8 +895,10 @@ namespace CapriDesktop
         [DataMember] public int PushVk;
         // How much she says about a game they're playing: 0 off, 1 events only, 2 chatty. Off until they turn it on, since it shows her brain their screen.
         [DataMember] public int CommentPace;
+        [DataMember] public bool NoComments;
         // Her live reactions over a game (F67) are on by default, so they're saved as switched off.
         [DataMember] public bool NoReactions;
+        [DataMember] public bool NoGameSounds;
         // Gaming Mode's key, Ctrl + Alt + G, and where her HUD sits in each game (GameSpots).
         [DataMember] public int GameMods = 3;
         [DataMember] public int GameVk = 0x47;
@@ -7239,7 +7241,8 @@ namespace CapriDesktop
         internal void SetCommentPace(int pace)
         {
             preferences.CommentPace = Math.Max(0, Math.Min(2, pace));
-            Commentary.Pace = preferences.CommentPace;
+            preferences.NoComments = preferences.CommentPace == Commentary.Off;
+            Commentary.Pace = GamePace;
             SavePreferences();
         }
 
@@ -10322,7 +10325,7 @@ namespace CapriDesktop
                 case "gaming_mode": return GamingWanted;
                 case "hologram": return preferences.Hologram;
                 case "watch_my_screen": return preferences.Watch;
-                case "game_comments": return CommentPace != Commentary.Off;
+                case "game_comments": return CommentPaceShown != Commentary.Off;
                 case "dance_to_music": return Dancing;
                 case "head_pats": return HeadPats;
                 case "chaos_when_upset": return UpsetChaos;
@@ -10445,7 +10448,7 @@ namespace CapriDesktop
                 case "power_saver": return Math.Max(0, Math.Min(2, PowerSaver));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
                 case "reply_limit": return ReplyLength;
-                case "game_comments": return CommentPace;
+                case "game_comments": return CommentPaceShown;
                 case "clip_length": return Array.IndexOf(ClipSettings.Lengths, ClipOptions.Seconds);
                 case "clip_fps": return Array.IndexOf(ClipSettings.Rates, ClipOptions.Fps);
                 case "clip_resolution": return Array.IndexOf(ClipSettings.Sizes, ClipOptions.Resolution);
@@ -18753,7 +18756,7 @@ namespace CapriDesktop
                 Preferences defaults = Preferences.Fresh();
                 if (defaults.Watch || defaults.CommentPace != Commentary.Off || defaults.NoGaming) throw new Exception("Game watching defaults changed.");
                 string help = SelfKnow.Setting("Mainframe.cs", "Watch my screen").Facts;
-                if (!help.Contains("Comments off and Gaming Mode off") || !help.Contains("Events only and Watch my screen off")) throw new Exception("Her watching help did not explain quiet games.");
+                if (!help.Contains("Comments set to Off keeps her quiet in games, even in Gaming Mode") || !help.Contains("Events only and Watch my screen off")) throw new Exception("Her watching help did not explain quiet games.");
                 checks.Add("PASS game glance gates: Comments off blocks capture and pending lines, calls and user speech still pause comments, on-demand checks still work, game changes drop old lines, defaults stay put and watching help explains quiet games");
             }
             finally
@@ -21173,6 +21176,7 @@ namespace CapriDesktop
                 { "how does Free voice in games work?", "Free voice in games" },
                 { "how do your game comments work?", "Comments" },
                 { "how do your live reactions work?", "Live reactions" },
+                { "how do I stop you reacting to game sounds?", "Game sounds" },
                 { "where is personality.md?", "personality.md" },
                 { "how do I stop a job?", "Stop a job" },
                 { "how do I set a reminder?", "Reminders" },
@@ -22304,12 +22308,12 @@ namespace CapriDesktop
             foreach (string question in new[] { "why are you ignoring my settings", "you're disobeying my settings", "you ignored my settings", "I turned that off", "I already switched it off", "why aren't you respecting my settings", "I disabled that", "I turned this setting off", "I turned that off for game comments" })
             {
                 string facts = SelfKnow.Matching(question) ?? "";
-                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Watch my screen stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("outside Gaming Mode") && facts.Contains("Gaming Mode also runs them") && facts.Contains("Quiet stops her speaking on her own"), "settings help missed the real switches for: " + question);
+                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Watch my screen stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("in Gaming Mode too") && facts.Contains("unless you set Comments to Off") && facts.Contains("Quiet stops her speaking on her own"), "settings help missed the real switches for: " + question);
             }
             for (int careTopic = 0; careTopic < Care.Names.Length; careTopic++)
                 careMust(SelfKnow.Setting("Care.cs", Care.Names[careTopic]).Facts.Contains("CAPRI > Check in on me > " + Care.Names[careTopic]), "a care topic kept its HABITS path.");
             careMust(SelfKnow.Setting("Mainframe.cs", "Edit check-in lines").Facts.Contains("CAPRI > Check in on me > Edit check-in lines"), "Edit check-in lines kept its HABITS path.");
-            careMust(SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("turn Comments and Gaming Mode off"), "Comments help missed Gaming Mode's independent game reactions.");
+            careMust(SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("Off stops game comments and live reactions, in Gaming Mode too"), "Comments help didn't say Off works in Gaming Mode too.");
             foreach (string[,] rows in new[] { Hands.OwnSwitches, Hands.OwnLevels })
                 for (int row = 0; row < rows.GetLength(0); row++)
                     if (Array.IndexOf(Hands.CareSettings, rows[row, 0]) >= 0) careMust(rows[row, 2] == "Capri", "the settings tool kept a care control under Habits.");
@@ -29119,7 +29123,7 @@ namespace CapriDesktop
                     + "Turned Hologram mode on. Hologram mode on. Clicks go through me. Turn it off from my tray icon, or say hologram off. | Turned Hologram mode off. Hologram mode off. You can click me again." + (calling ? "" : " | Couldn't change my voice chat mic: voice chat isn't on.");
                 string joined = string.Join(" | ", said.ToArray());
                 // Her other switches and sliders have their own check (SmokeOwnSliders).
-                if (!listed.StartsWith("How my settings are right now: my voice on; Quiet off; my voice chat mic" + (calling ? (ears.Muted ? " off" : " on") : ": no voice chat on") + "; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode " + (GamingWanted ? "on" : "off") + "; Hologram mode off; Watch my screen " + (preferences.Watch ? "on" : "off") + "; Game comments " + (CommentPace != Commentary.Off ? "on" : "off") + "; ", StringComparison.Ordinal)
+                if (!listed.StartsWith("How my settings are right now: my voice on; Quiet off; my voice chat mic" + (calling ? (ears.Muted ? " off" : " on") : ": no voice chat on") + "; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode " + (GamingWanted ? "on" : "off") + "; Hologram mode off; Watch my screen " + (preferences.Watch ? "on" : "off") + "; Game comments " + (CommentPaceShown != Commentary.Off ? "on" : "off") + "; ", StringComparison.Ordinal)
                     || !listed.Contains("; Wander: Off; ") || !listed.EndsWith(".", StringComparison.Ordinal) || joined != wanted || preferences.ClipGames || preferences.ClipMoments || !preferences.NoReactions || preferences.CheckIns || !preferences.Wander || shushed || preferences.Silent || preferences.Hologram || asking != askingWas)
                     throw new Exception("Her settings tool didn't flip her real switches quietly: " + listed + " / " + joined + " / asking moved " + (asking - askingWas));
                 checks.Add("PASS her settings tool flips Clip my games, Save big moments, live reactions, Check in on me, Wander, Quiet, her voice and hologram mode the way their own switches do, says her voice chat mic needs voice chat, reads each one back, and never cuts off the reply her brain is writing");
@@ -29279,6 +29283,7 @@ namespace CapriDesktop
             Section(checks, "SmokeReactVoice", delegate { ReactCheck(checks, SmokeReactVoice); });
             Section(checks, "SmokeReactMotion", delegate { ReactCheck(checks, SmokeReactMotion); });
             Section(checks, "SmokeReactSwitch", delegate { ReactCheck(checks, SmokeReactSwitch); });
+            Section(checks, "SmokeReactSounds", delegate { ReactCheck(checks, SmokeReactSounds); });
             Section(checks, "SmokeReactBanners", delegate { ReactCheck(checks, SmokeReactBanners); });
         }
 
@@ -29897,6 +29902,47 @@ namespace CapriDesktop
             ReactMust(offPace && offHidden && offNap && offPlaying && shownOn && savedOff && savedOn && oldOn,
                 "Live reactions ran when they shouldn't, or the switch wasn't saved: comments off " + offPace + ", hidden " + offHidden + ", nap " + offNap + ", her game " + offPlaying + ", shown " + shownOn + ", off " + savedOff + ", on " + savedOn + ", old settings " + oldOn);
             checks.Add("PASS Live reactions switch: on by default in new and old settings, saved both ways from Settings > GAMES, and no reactions with Comments off, the switch off, a hide they asked for, a nap or a game she's playing herself");
+        }
+
+        private void SmokeReactSounds(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            bool soundsWas = preferences.NoGameSounds;
+            try
+            {
+                preferences.NoGameSounds = false;
+                mainframe.Sync();
+                bool shownOn = GameSoundsOn && mainframe.GameSoundsShown && !new Preferences().NoGameSounds && !Preferences.Fresh().NoGameSounds;
+                mainframe.FlipGameSounds();
+                bool savedOff = preferences.NoGameSounds && LoadPreferences().NoGameSounds && !GameSoundsOn && !mainframe.GameSoundsShown;
+                int before;
+                lock (rig.Fed) before = rig.Fed.Count;
+                rig.Now += 11000;
+                bool soundOff = !Commentary.Moment("sound", null, rig.Frame, rig.Frame);
+                ReactSettle(0);
+                lock (rig.Fed) soundOff = soundOff && rig.Fed.Count == before;
+                rig.Now += 11000;
+                bool noiseOff = !Commentary.Moment("noise", null, rig.Frame, rig.Frame);
+                ReactSettle(0);
+                lock (rig.Fed) noiseOff = noiseOff && rig.Fed.Count == before;
+                rig.Now += 11000;
+                bool kill = Commentary.Moment("kill", null, rig.Frame, rig.Frame) && ReactFed(rig, before + 1);
+                ReactSettle(0);
+                mainframe.FlipGameSounds();
+                bool savedOn = !preferences.NoGameSounds && !LoadPreferences().NoGameSounds && GameSoundsOn && mainframe.GameSoundsShown;
+                lock (rig.Fed) before = rig.Fed.Count;
+                rig.Now += 11000;
+                bool soundOn = Commentary.Moment("sound", null, rig.Frame, rig.Frame) && ReactFed(rig, before + 1);
+                ReactSettle(0);
+                ReactMust(shownOn && savedOff && soundOff && noiseOff && kill && savedOn && soundOn,
+                    "Game sounds went wrong: default " + shownOn + ", saved off " + savedOff + ", sound off " + soundOff + ", noise off " + noiseOff + ", kill " + kill + ", saved on " + savedOn + ", sound on " + soundOn + ", fed " + ReactShown(rig));
+                checks.Add("PASS Game sounds is on by default, saves both ways from Settings > GAMES, drops sound and noise moments with no reactions when off, keeps kills, and reacts to sound again when on");
+            }
+            finally
+            {
+                preferences.NoGameSounds = soundsWas;
+                SavePreferences();
+                mainframe.Sync();
+            }
         }
 
         // Big words on screen: a win, a loss, a death or a kill she can read, never a sign, a menu or a small line, and a banner that
@@ -31023,7 +31069,9 @@ namespace CapriDesktop
                 // The path everyone's on for now (Lachy, 31 Oct): no HUD, her body stays, and she still reacts to the game.
                 gaming.Hud = delegate { return false; };
                 int plainPaceWas = preferences.CommentPace;
+                bool plainCommentsWas = preferences.NoComments;
                 preferences.CommentPace = 0;
+                preferences.NoComments = false;
                 running = true;
                 exclusive = false;
                 said.Clear();
@@ -31059,6 +31107,27 @@ namespace CapriDesktop
                 front = game;
                 gaming.Notice(9100);
                 bool noticed = gaming.State == GameDock.Stage.Docked && !gaming.Asked && said.Count == 0 && !docked && !hidden && GamePace == Commentary.Events;
+                string commentsOff = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "game_comments" });
+                bool commentsSavedOff = LoadPreferences().NoComments;
+                mainframe.Sync();
+                if (commentsOff != "Turned Game comments off." || GamePace != Commentary.Off || Commentary.Pace != Commentary.Off || Reactions.Running || !preferences.NoComments || !commentsSavedOff || mainframe.CommentsShown != "Off")
+                    throw new Exception("Comments Off from her settings tool went wrong in Gaming Mode: reply " + commentsOff + ", game pace " + GamePace + ", pace " + Commentary.Pace + ", reactions " + Reactions.Running + ", picked off " + preferences.NoComments + ", saved off " + commentsSavedOff + ", shown " + mainframe.CommentsShown);
+                mainframe.SlideComments(1);
+                bool commentsSavedOn = !LoadPreferences().NoComments;
+                if (GamePace != Commentary.Events || Commentary.Pace != Commentary.Events || preferences.NoComments || !commentsSavedOn || mainframe.CommentsShown != "Events only")
+                    throw new Exception("Comments slider didn't restore Events only in Gaming Mode: game pace " + GamePace + ", pace " + Commentary.Pace + ", picked off " + preferences.NoComments + ", saved on " + commentsSavedOn + ", shown " + mainframe.CommentsShown);
+                mainframe.SlideComments(0);
+                commentsSavedOff = LoadPreferences().NoComments;
+                if (GamePace != Commentary.Off || Commentary.Pace != Commentary.Off || Reactions.Running || !preferences.NoComments || !commentsSavedOff || mainframe.CommentsShown != "Off")
+                    throw new Exception("Comments slider didn't stop comments in Gaming Mode: game pace " + GamePace + ", pace " + Commentary.Pace + ", reactions " + Reactions.Running + ", picked off " + preferences.NoComments + ", saved off " + commentsSavedOff + ", shown " + mainframe.CommentsShown);
+                preferences.CommentPace = 0;
+                preferences.NoComments = false;
+                SavePreferences();
+                Commentary.Pace = GamePace;
+                mainframe.Sync();
+                if (GamePace != Commentary.Events || Commentary.Pace != Commentary.Events || preferences.NoComments || mainframe.CommentsShown != "Events only")
+                    throw new Exception("Untouched Comments didn't run at Events only in Gaming Mode: game pace " + GamePace + ", pace " + Commentary.Pace + ", picked off " + preferences.NoComments + ", shown " + mainframe.CommentsShown);
+                checks.Add("PASS Comments Off stops her game comments and live reactions in Gaming Mode, from her settings tool and the slider, and untouched Comments still runs at Events only");
                 string askedWhenOn = GamingMode("on");
                 bool askedRight = askedWhenOn == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game." && gaming.Asked && GamingMode("on") == "Gaming Mode's already on.";
                 running = false;
@@ -31083,6 +31152,7 @@ namespace CapriDesktop
                 checks.Add("PASS Gaming Mode is on by default: a game in front takes her in with nothing said, asking for it still gets its answer, closing the game leaves it on for the next one, and turning it off stays off");
                 gaming.Hud = delegate { return testing; };
                 preferences.CommentPace = plainPaceWas;
+                preferences.NoComments = plainCommentsWas;
                 if (!plainStayed || !plainOff || plainMove != "My HUD isn't up right now.") throw new Exception("Gaming Mode without the HUD went wrong: stayed " + plainStayed + ", off " + plainOff + ", move " + plainMove + ", armed " + plainArmed + ", said " + string.Join(" / ", said.ToArray()) + ", doing " + Doing);
                 checks.Add("PASS Gaming Mode without the HUD, as it is for now: her body stays, no HUD window opens, she reacts at least when something happens with Comments off, her status says Gaming, and turning it off puts comments back to their setting");
                 checks.Add("PASS Gaming Mode: her words reach it and chat about it doesn't; with no game she stays armed and docks when one comes up; docked her body and bubble are gone, the HUD is click-through and never active, and it shows what she says, THINKING, a job's status, LISTENING with live words and her quiet key; the HUD moves per game and starts under Cyberpunk's health bar; turning it off, or the game exiting, puts her back where she was; a launcher's game takes over; exclusive full screen is mentioned once; the hide key and her tray icon end it; and a game job docks her once the game's in front, moves its panel to the HUD, and stays off when it's turned off");
@@ -47602,16 +47672,18 @@ namespace CapriDesktop
                             // A new install has them all off, and steps before this one leave Watch my screen on.
                             int launchWander = WanderLevel;
                             bool launchWatching = preferences.Watch;
+                            bool launchNoComments = preferences.NoComments;
                             if (launchWatching) ToggleWatch();
                             SetWanderLevel(0);
                             FirstLaunch();
                             bool launchRarely = WanderLevel == 1 && mainframe.WanderShown == "Rarely" && nextWander < 0 && LoadPreferences().Wander;
                             string launchCrowd = mainframe.ExtrasCrowded, launchOff = mainframe.ExtrasShown;
                             for (int launchRow = 0; launchRow < 4; launchRow++) mainframe.FlipExtra(launchRow);
-                            bool launchOn = preferences.Watch && preferences.CommentPace == 2 && mainframe.CommentsShown == "Chatty" && preferences.ClipGames && preferences.ListenCapri && mainframe.ExtrasShown == "1111";
+                            bool launchOn = preferences.Watch && preferences.CommentPace == 2 && !preferences.NoComments && mainframe.CommentsShown == "Chatty" && preferences.ClipGames && preferences.ListenCapri && mainframe.ExtrasShown == "1111";
                             for (int launchBack = 0; launchBack < 4; launchBack++) mainframe.FlipExtra(launchBack);
-                            bool launchOffAgain = !preferences.Watch && preferences.CommentPace == 0 && !preferences.ClipGames && !preferences.ListenCapri && mainframe.ExtrasShown == "0000";
+                            bool launchOffAgain = !preferences.Watch && preferences.CommentPace == 0 && preferences.NoComments && !preferences.ClipGames && !preferences.ListenCapri && mainframe.ExtrasShown == "0000";
                             mainframe.CloseExtras();
+                            preferences.NoComments = launchNoComments;
                             bool launchClosed = mainframe.ExtrasShown == null;
                             SetWanderLevel(launchWander);
                             if (launchWatching) ToggleWatch();
@@ -52678,7 +52750,7 @@ namespace CapriDesktop
                 string momentCrowded = mainframe.Overlap() ?? mainframe.Outside();
                 if (momentCrowded != null) throw new Exception("The big moment switch crowded Settings: " + momentCrowded);
                 string momentHelp = SelfKnow.Matching("How does Save big moments work?");
-                if (momentHelp == null || !momentHelp.StartsWith("Save big moments:", StringComparison.Ordinal) || !momentHelp.Contains("Comments off outside Gaming Mode") || !momentHelp.Contains("Videos\\Capri Clips"))
+                if (momentHelp == null || !momentHelp.StartsWith("Save big moments:", StringComparison.Ordinal) || !momentHelp.Contains("unless you set Comments to Off") || !momentHelp.Contains("Videos\\Capri Clips"))
                     throw new Exception("Save big moments did not explain its switch, comments or storage.");
                 checks.Add("PASS Save big moments starts off, saves and shows both switches when enabled, leaves manual clips on when disabled, follows Clip my games off, fits Settings without overlaps, and has its own help topic");
             }

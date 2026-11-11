@@ -969,7 +969,9 @@ namespace CapriDesktop
         }
 
         // Gaming Mode is them asking her to watch, so she reacts at least when something happens, HUD or no HUD.
-        private int GamePace { get { return Math.Max(CommentPace, GamingOn ? Commentary.Events : Commentary.Off); } }
+        private int GamePace { get { return preferences.NoComments && CommentPace == Commentary.Off ? Commentary.Off : Math.Max(CommentPace, GamingOn ? Commentary.Events : Commentary.Off); } }
+
+        internal int CommentPaceShown { get { return preferences.NoComments && CommentPace == Commentary.Off ? Commentary.Off : Math.Max(CommentPace, GamingWanted ? Commentary.Events : Commentary.Off); } }
 
         internal string GameKeyName { get { return KeyName(preferences.GameMods, preferences.GameVk); } }
 

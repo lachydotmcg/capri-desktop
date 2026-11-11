@@ -1004,6 +1004,15 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
+        internal bool GameSoundsOn { get { return !preferences.NoGameSounds; } }
+
+        internal void ToggleGameSounds()
+        {
+            preferences.NoGameSounds = !preferences.NoGameSounds;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         // The game in front, as her game watching last saw it, or empty when there isn't one.
         private Rectangle ReactionGame
         {
