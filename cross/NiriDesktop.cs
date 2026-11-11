@@ -203,6 +203,7 @@ namespace CapriDesktop
             }
             var desktop = new NiriDesktop(ipc);
             Current = desktop;
+            NativeSurface.NiriRegister = desktop.Register; NativeSurface.NiriMove = desktop.TryMove; NativeSurface.NiriCancel = desktop.CancelMoves;
             desktop.events = Task.Run(desktop.ReadEvents);
             desktop.outputReader = Task.Run(desktop.ReadOutputs);
             desktop.WakeOutputs();
@@ -655,7 +656,9 @@ namespace CapriDesktop
         {
             lifetime.Cancel(); transport.Dispose();
             lock (gate) foreach (Surface surface in surfaces) { surface.Showing?.Cancel(); surface.Pending = null; surface.Id = null; }
-            if (Current == this) Current = null;
+            if (Current != this) return;
+            Current = null;
+            NativeSurface.NiriRegister = null; NativeSurface.NiriMove = null; NativeSurface.NiriCancel = null;
         }
 
         private sealed class FakeTransport : INiriTransport

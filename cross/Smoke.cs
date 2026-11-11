@@ -2056,7 +2056,9 @@ namespace CapriDesktop
                 pet.Desk = new BareDesk { HeldAt = delegate { if (broken) throw new Exception("No pointer."); return cursor; } };
                 pet.MouseAt = null;
                 pet.MoveTo = delegate(PixelPoint to) { moves.Add(to); };
-                pet.FollowPosition(reported);
+                // She starts where her window says she is, so the frame worked out below is her real one. FollowPosition can't do
+                // that here: on Linux a report that isn't one of her moves waits until she's been still a moment.
+                typeof(Pet).GetMethod("TakePosition", fields).Invoke(pet, new object[] { reported });
                 PixelPoint start = pet.Anchor;
                 PixelPoint frame = new PixelPoint(reported.X - start.X, reported.Y - start.Y);
                 Point? spot = pet.BodySpot();
