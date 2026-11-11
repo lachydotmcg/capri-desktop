@@ -543,5 +543,71 @@ namespace CapriDesktop
                 MacFingers.Trusted = trusted; MacFingers.Sink = sink; MacFingers.Pause = pause;
             }
         }
+
+        internal static void FaceChecks(Pet pet, List<string> checks)
+        {
+            PixelRect? moveArea = pet.MoveArea;
+            Action<PixelPoint> moveTo = pet.MoveTo;
+            PixelPoint anchor = pet.anchor;
+            PixelPoint[] asked = pet.asked.ToArray();
+            Ledge seat = pet.seat;
+            bool facing = pet.FacingLeft, falling = pet.falling, walking = pet.walking;
+            bool pressed = pet.pressed, dragging = pet.dragging, riding = pet.riding, lying = pet.lying;
+            Action outro = pet.outro;
+            Clip clip = pet.clip;
+            int savedX = pet.Saved.X, savedY = pet.Saved.Y;
+            bool placed = pet.Saved.Placed;
+            try
+            {
+                pet.MoveTo = _ => { };
+                pet.falling = pet.walking = pet.pressed = pet.dragging = pet.riding = pet.lying = false;
+                pet.outro = null;
+                pet.clip = pet.perch;
+                Func<PixelRect, int, bool, bool> sitsLeftAt = (area, eighths, left) =>
+                {
+                    pet.MoveArea = area;
+                    int ledgeY = area.Y + area.Height / 2;
+                    pet.seat = new Ledge { Left = area.X, Right = area.Right, Y = ledgeY };
+                    pet.body.FacingLeft = left;
+                    pet.Move(pet.Seated(area.X + area.Width * eighths / 8, ledgeY));
+                    int hipX = pet.Hip.X;
+                    pet.Face();
+                    if (pet.Hip.X != hipX) throw new Exception("Turning to face the middle moved her off her spot: " + hipX + " to " + pet.Hip.X + ".");
+                    return pet.FacingLeft;
+                };
+                PixelRect main = new PixelRect(0, 0, 1920, 1080), leftMonitor = new PixelRect(-1920, 0, 1920, 1080), rightMonitor = new PixelRect(1920, -200, 2560, 1440);
+                bool mainMiddle = !sitsLeftAt(main, 2, true) && !sitsLeftAt(main, 2, false) && sitsLeftAt(main, 6, false) && sitsLeftAt(main, 6, true);
+                pet.Save();
+                bool savedHip = pet.Saved.X + pet.Px(pet.body.Size * SitX) == pet.Hip.X;
+                pet.lying = true;
+                pet.Save();
+                savedHip = savedHip && pet.Saved.X + pet.Px(pet.body.Size * SitX) == pet.Hip.X;
+                pet.lying = false;
+                bool standsRight = sitsLeftAt(main, 5, false);
+                pet.seat = null;
+                pet.Face();
+                standsRight = standsRight && !pet.FacingLeft;
+                bool otherMiddle = !sitsLeftAt(leftMonitor, 2, true) && sitsLeftAt(leftMonitor, 6, false) && !sitsLeftAt(rightMonitor, 2, true) && sitsLeftAt(rightMonitor, 6, false);
+                PixelRect wide = new PixelRect(0, 0, 3840, 1080);
+                bool keepsWay = !SitsLeft(1940, wide, 240, false) && SitsLeft(1900, wide, 240, true) && !SitsLeft(-500, main, 240, true);
+                if (!mainMiddle || !savedHip || !standsRight || !otherMiddle || !keepsWay) throw new Exception("Facing the middle went wrong: main " + mainMiddle + ", saved hip " + savedHip + ", standing " + standsRight + ", second monitor " + otherMiddle + ", near the middle " + keepsWay + ".");
+                checks.Add("PASS sitting she faces the middle of her screen: right on its left half and left on its right half, without leaving her spot, on a second monitor left or right of the main one, and saving her spot so she comes back with her hip where it was; standing she still only turns at the right edge");
+            }
+            finally
+            {
+                pet.MoveArea = moveArea;
+                pet.MoveTo = moveTo;
+                pet.body.FacingLeft = facing;
+                pet.anchor = anchor;
+                pet.asked.Clear(); pet.asked.AddRange(asked);
+                pet.seat = seat;
+                pet.falling = falling;
+                pet.walking = walking;
+                pet.pressed = pressed; pet.dragging = dragging; pet.riding = riding; pet.lying = lying;
+                pet.outro = outro;
+                pet.clip = clip;
+                pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
+            }
+        }
     }
 }

@@ -1852,6 +1852,7 @@ namespace CapriDesktop
         private Point panelHome;
         private Ledge panelSeat;
         private bool panelHung;
+        private bool panelLeft;
         // Her teleport onto the panel while she's still glitching out, so a second ask doesn't start another one.
         private Action panelTrip;
         // Her teleport back once the panel's gone, so a job that starts on her way back keeps where she was before.
@@ -3040,14 +3041,22 @@ namespace CapriDesktop
             // Lying, she keeps the way she lay down, which had the room.
             if (lying) return;
             Point hip = Hip();
-            int room = Screen.FromPoint(hip).WorkingArea.Right - hip.X;
-            bool left = room < preferences.Size * (facingLeft ? 0.9f : 0.6f);
+            Rectangle area = Screen.FromPoint(new Point(hip.X, hip.Y - 1)).WorkingArea;
+            bool left = seat != null || onPanel ? SitsLeft(hip.X, area, preferences.Size, facingLeft) : area.Right - hip.X < preferences.Size * (facingLeft ? 0.9f : 0.6f);
             if (ink.Moving && Math.Abs(ink.Tip.X - hip.X) < preferences.Size * 4 && Math.Abs(ink.Tip.Y - hip.Y) < preferences.Size * 4) left = ink.Tip.X < hip.X;
             if (left == facingLeft) return;
+            bool aside = asideAt == anchor;
             facingLeft = left;
             anchor = new Point(anchor.X + hip.X - Hip().X, anchor.Y);
+            if (aside) asideAt = anchor;
             Location = anchor;
             Static(false, null);
+        }
+
+        internal static bool SitsLeft(int hipX, Rectangle area, int size, bool left)
+        {
+            int middle = area.Left + area.Width / 2, keep = size / 8;
+            return hipX > (left ? middle - keep : middle + keep);
         }
 
         private void DropSoon()
@@ -10169,6 +10178,7 @@ namespace CapriDesktop
                 panelHome = anchor;
                 panelSeat = seat;
                 panelHung = hanging;
+                panelLeft = facingLeft;
             }
             pressed = false;
             dragging = false;
@@ -10259,6 +10269,7 @@ namespace CapriDesktop
             anchor = panelHome;
             seat = panelSeat;
             hanging = panelHung;
+            facingLeft = panelLeft;
             leanAngle = 0;
             if (hidden || IsDisposed) return;
             Location = anchor;
@@ -15013,12 +15024,20 @@ namespace CapriDesktop
             }
         }
 
+        // On the task panel she's only visiting, so where she sat before is what's kept. She comes back sitting and facing right,
+        // so it's where she'd sit facing right with her hip where it is.
+        private Point SavedSpot()
+        {
+            Point spot = onPanel ? panelHome : anchor;
+            float across = onPanel ? (panelLeft ? 1 - SitRight : SitRight) : SitX;
+            spot.X += (int)(preferences.Size * across) - (int)(preferences.Size * SitRight);
+            if (!onPanel && lying && seat != null && seat.Floor) spot.Y = seat.Y - PaddingSize - (int)(preferences.Size * SitY);
+            return spot;
+        }
+
         private bool SavePreferences()
         {
-            // On the task panel she's only visiting, so where she sat before is what's kept. Lying, it's where she'd sit, since
-            // she comes back sitting.
-            Point spot = onPanel ? panelHome : lying ? new Point(anchor.X + (int)(preferences.Size * SitX) - (int)(preferences.Size * (facingLeft ? 1 - SitRight : SitRight)), anchor.Y) : anchor;
-            if (!onPanel && lying && seat != null && seat.Floor) spot.Y = seat.Y - PaddingSize - (int)(preferences.Size * SitY);
+            Point spot = SavedSpot();
             preferences.X = spot.X;
             preferences.Y = spot.Y;
             preferences.HasPosition = true;
@@ -41824,6 +41843,71 @@ namespace CapriDesktop
                                 Location = anchor;
                                 if (!turned || !mirrored || !turnedBack) throw new Exception("Facing the corner went wrong: turned " + turned + ", mirrored " + mirrored + " (" + faceMiddle[0] + " / " + faceMiddle[1] + ", width " + Width + "), back " + turnedBack);
                                 checks.Add("PASS corner: near the right edge of the screen she turns to face left without leaving her spot, and turns back when she's away from it");
+                            }
+                            {
+                                Point middleAnchor = anchor;
+                                Point? middleAside = asideAt;
+                                Ledge middleSeat = seat;
+                                bool middleFaced = facingLeft, middleFalling = falling, middleWalking = walking, middleLying = lying;
+                                falling = false;
+                                walking = false;
+                                lying = false;
+                                Func<Rectangle, int, bool, bool> sitsLeftAt = delegate(Rectangle area, int eighths, bool left)
+                                {
+                                    int ledgeY = area.Top + area.Height / 2;
+                                    seat = new Ledge { Left = area.Left, Right = area.Right, Y = ledgeY };
+                                    facingLeft = left;
+                                    anchor = Seated(area.Left + area.Width * eighths / 8, ledgeY);
+                                    Location = anchor;
+                                    int hipX = Hip().X;
+                                    Face();
+                                    if (Hip().X != hipX) throw new Exception("Turning to face the middle moved her off her spot: " + hipX + " to " + Hip().X);
+                                    return facingLeft;
+                                };
+                                Rectangle primaryArea = Screen.PrimaryScreen.WorkingArea;
+                                bool primaryMiddle = !sitsLeftAt(primaryArea, 2, true) && !sitsLeftAt(primaryArea, 2, false) && sitsLeftAt(primaryArea, 6, false) && sitsLeftAt(primaryArea, 6, true);
+                                int restartHip = PaddingSize + (int)(preferences.Size * SitRight);
+                                bool savedHip = SavedSpot().X + restartHip == Hip().X;
+                                lying = true;
+                                savedHip = savedHip && SavedSpot().X + restartHip == Hip().X;
+                                lying = false;
+                                Point panelHomeWas = panelHome;
+                                bool panelLeftWas = panelLeft;
+                                panelHome = anchor;
+                                panelLeft = true;
+                                onPanel = true;
+                                savedHip = savedHip && SavedSpot().X + restartHip == Hip().X;
+                                onPanel = false;
+                                panelHome = panelHomeWas;
+                                panelLeft = panelLeftWas;
+                                bool standsRight = sitsLeftAt(primaryArea, 5, false);
+                                seat = null;
+                                Face();
+                                standsRight = (standsRight && !facingLeft) || primaryArea.Width * 3 / 8 < preferences.Size;
+                                int otherScreens = 0;
+                                bool otherMiddle = true;
+                                foreach (Screen other in Screen.AllScreens)
+                                {
+                                    if (other.Primary) continue;
+                                    otherScreens++;
+                                    if (sitsLeftAt(other.WorkingArea, 2, true) || !sitsLeftAt(other.WorkingArea, 6, false)) otherMiddle = false;
+                                }
+                                Rectangle leftMonitor = new Rectangle(-1920, 0, 1920, 1080), rightMonitor = new Rectangle(1920, -200, 2560, 1440);
+                                bool helperMiddle = !SitsLeft(-1500, leftMonitor, 240, true) && SitsLeft(-500, leftMonitor, 240, false)
+                                    && !SitsLeft(2400, rightMonitor, 240, true) && SitsLeft(3800, rightMonitor, 240, false)
+                                    && !SitsLeft(-950, leftMonitor, 240, false) && SitsLeft(-970, leftMonitor, 240, true)
+                                    && !SitsLeft(-500, new Rectangle(0, 0, 1920, 1080), 240, true);
+                                anchor = middleAnchor;
+                                asideAt = middleAside;
+                                seat = middleSeat;
+                                facingLeft = middleFaced;
+                                falling = middleFalling;
+                                walking = middleWalking;
+                                lying = middleLying;
+                                Location = anchor;
+                                if (!primaryMiddle || !savedHip || !standsRight || !otherMiddle || !helperMiddle) throw new Exception("Facing the middle went wrong: primary " + primaryMiddle + ", saved hip " + savedHip + ", standing " + standsRight + ", other screens " + otherMiddle + " of " + otherScreens + ", monitor math " + helperMiddle);
+                                checks.Add("PASS sitting she faces the middle of her screen: right on its left half and left on its right half, without leaving her spot, keeping her way near the middle, on a second monitor left or right of the main one, and saving her spot so she comes back with her hip where it was; standing she still only turns at the right edge");
+                                if (otherScreens == 0) checks.Add("LIMIT facing the middle on a real second monitor: only one monitor is available, so it was checked with made-up monitors");
                             }
                             seat = null;
                             sitItem.PerformClick();

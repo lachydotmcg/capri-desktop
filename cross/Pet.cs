@@ -890,7 +890,14 @@ namespace CapriDesktop
         private void Face()
         {
             if (dragging || pressed || walking || falling || riding || lying || outro != null || clip == arrive || clip == leave) return;
-            SetFacing(WorkAt(Hip).Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
+            PixelRect area = WorkAt(new PixelPoint(Hip.X, Hip.Y - 1));
+            SetFacing(seat != null ? SitsLeft(Hip.X, area, Px(body.Size), FacingLeft) : area.Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
+        }
+
+        internal static bool SitsLeft(int hipX, PixelRect area, int size, bool left)
+        {
+            int middle = area.X + area.Width / 2, keep = size / 8;
+            return hipX > (left ? middle - keep : middle + keep);
         }
         internal int Headroom { get { return (int)Math.Ceiling(body.Size * (SitY - PerchTop) * DesktopScaling); } }
         internal int Feet { get { return anchor.Y + Px(body.Size * 0.99); } }
@@ -5298,7 +5305,7 @@ namespace CapriDesktop
 
         internal void Save()
         {
-            Saved.X = anchor.X;
+            Saved.X = anchor.X + Px(body.Size * SitAcross) - Px(body.Size * SitX);
             Saved.Y = anchor.Y;
             Saved.Placed = true;
             NotifySettings();
