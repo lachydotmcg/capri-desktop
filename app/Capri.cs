@@ -54381,6 +54381,9 @@ namespace CapriDesktop
                     + ",{\"path\":\"mods/far-names/preview.png\",\"type\":\"blob\",\"size\":" + picture.Length + ",\"sha\":\"" + pictureSha + "\"}"
                     + ",{\"path\":\"mods/directory-code/directory-code.capri-code\",\"type\":\"blob\",\"size\":" + code.Length + ",\"sha\":\"" + codeSha + "\"}"
                     + ",{\"path\":\"mods/directory-code/preview.png\",\"type\":\"blob\",\"size\":999999999,\"sha\":\"" + pictureSha + "\"}"
+                    + ",{\"path\":\"mods/far-names/README.md\"," + same + "}"
+                    + ",{\"path\":\"mods/directory-code/README.md\",\"type\":\"blob\",\"size\":999999999,\"sha\":\"" + codeSha + "\"}"
+                    + ",{\"path\":\"mods/no-mod/README.md\"," + same + "}"
                     + ",{\"path\":\"mods/no-mod/preview.png\"," + same + "},{\"path\":\"mods/../../evil/evil.capri-mod\"," + same + "},{\"path\":\"mods/deep/er/evil.capri-mod\"," + same + "},{\"path\":\"mods/a/evil.exe\"," + same + "},{\"path\":\"mods/a/..evil.capri-mod\"," + same + "}"
                     + ",{\"path\":\"mods/huge/huge.capri-skin\",\"type\":\"blob\",\"size\":999999999999,\"sha\":\"" + settingsSha + "\"},{\"path\":\"mods/badsha/badsha.capri-mod\",\"type\":\"blob\",\"size\":10,\"sha\":\"../../x\"}]}";
                 string statsJson = "{\"mods\":[{\"folder\":\"far-names\",\"downloads\":1234,\"rating\":4.5,\"votes\":8},{\"folder\":\"gone\",\"downloads\":9,\"rating\":1,\"votes\":1}]}";
@@ -54454,6 +54457,7 @@ namespace CapriDesktop
                 giant[16] = 1;
                 if (ModDirectory.Picture(giant) != null || ModDirectory.Picture(settings) != null) throw new Exception("A giant or broken picture was drawn.");
                 checks.Add("PASS mods window previews: a preview has to match its listing, is kept so it isn't downloaded twice, and giant or broken pictures aren't drawn");
+                CheckReadme(checks, output, found);
                 ShowMods(true);
                 sheet = new ModsSheet(this, 1f);
                 sheet.Inline = true;
@@ -54615,6 +54619,192 @@ namespace CapriDesktop
                 ModInline = false;
                 ModDirectory.Forget(modUpdates);
                 modUpdates = null;
+            }
+        }
+
+        private void CheckReadme(List<string> checks, string output, List<ModListing> found)
+        {
+            Func<string, long, byte[]> wasGetSoon = ModDirectory.GetSoon;
+            ModDirectory.ForgetReadmes();
+            try
+            {
+                string text = "\uFEFF" + string.Join("\r\n", new[]
+                {
+                    "# Names: Far & Wide",
+                    "",
+                    "[![Downloads](https://img.shields.io/badge/downloads-12-blue.svg)](https://github.com/x) ![Stars](https://img.shields.io/badge/stars-5-cyan.svg)",
+                    "<p align=\"center\"><img src=\"preview.png\" width=\"420\"></p>",
+                    "",
+                    "She answers to **Nova** and keeps her",
+                    "other wake names. See [the guide](https://example.com/guide) &amp; enjoy.",
+                    "",
+                    "- Kind: settings mod",
+                    "- Made by: Vocyn",
+                    "- Version: 1.2.0",
+                    "",
+                    "##",
+                    "## Install",
+                    "## How it works",
+                    "[Website](https://example.com) | [Discord](https://discord.gg/x)",
+                    "https://example.com/raw",
+                    "<!-- a note",
+                    "that spans lines -->",
+                    "```",
+                    "not this",
+                    "```",
+                    "| Say | She says |",
+                    "|---|---|",
+                    "> She listens for `Nova` in every _sentence_.",
+                    "1. [Download](far-names.capri-mod) the file.",
+                    "2. Import it."
+                });
+                string[] expected =
+                {
+                    "She answers to Nova and keeps her other wake names. See the guide & enjoy.",
+                    "\u2022 Version: 1.2.0",
+                    "How it works",
+                    "She listens for Nova in every sentence.",
+                    "1. Download the file."
+                };
+                string shown = string.Join("\n", expected);
+                byte[] answer = Encoding.UTF8.GetBytes(text);
+                int gets = 0;
+                bool down = false;
+                ModDirectory.GetSoon = delegate(string url, long most)
+                {
+                    gets++;
+                    if (url != "https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/mods/far-names/README.md" || most != 256L * 1024) throw new Exception("The README address or size limit was wrong.");
+                    if (down) throw new WebException("stand-in");
+                    return answer;
+                };
+                if (found[1].ReadmeName != "README.md" || found[0].ReadmeName != null) throw new Exception("The directory attached a missing or oversized README.");
+                string entry = "\"type\":\"blob\",\"size\":1,\"sha\":\"" + found[1].Sha + "\"";
+                string start = "{\"tree\":[{\"path\":\"mods/x/x.capri-mod\"," + entry + "}";
+                List<ModListing> lower = ModDirectory.Parse(Encoding.UTF8.GetBytes(start + ",{\"path\":\"mods/x/readme.md\"," + entry + "}]}"));
+                if (lower.Count != 1 || lower[0].ReadmeName != "readme.md") throw new Exception("A lowercase README was missed.");
+                foreach (string first in new[] { "readme.md", "README.md" })
+                {
+                    string other = first == "README.md" ? "Readme.md" : "README.md";
+                    List<ModListing> names = ModDirectory.Parse(Encoding.UTF8.GetBytes(start + ",{\"path\":\"mods/x/" + first + "\"," + entry + "},{\"path\":\"mods/x/" + other + "\"," + entry + "}]}"));
+                    if (names.Count != 1 || names[0].ReadmeName != "README.md") throw new Exception("The exact README name did not win.");
+                }
+                foreach (string bad in new[] { entry.Replace("\"size\":1", "\"size\":0"), entry.Replace("\"size\":1", "\"size\":262145"), entry.Replace(found[1].Sha, "bad"), entry.Replace("\"blob\"", "\"tree\"") })
+                {
+                    List<ModListing> refused = ModDirectory.Parse(Encoding.UTF8.GetBytes(start + ",{\"path\":\"mods/x/README.md\"," + bad + "}]}"));
+                    if (refused.Count != 1 || refused[0].ReadmeName != null) throw new Exception("An invalid README tree entry was kept.");
+                }
+                checks.Add("PASS mod README tree: filenames keep their case, exact README.md wins, and invalid or oversized entries stay out");
+
+                List<string> picked = ModDirectory.ReadmeLines(text);
+                if (picked.Count != 5 || string.Join("\n", picked.ToArray()) != shown) throw new Exception("The README picker kept the wrong lines: " + string.Join(" | ", picked.ToArray()));
+                string plain = ">> * [x] __Done__\rcontinued\r+ [ ] Next\n3) ~~Third~~\n\n## Tags ###\nText <b>here</b><br>and [words][ref], \\! `code` <https://example.com> \u202eend.\t";
+                string plainShown = "\u2022 Done continued\n\u2022 Next\n3. Third\nTags\nText here and words, ! code https://example.com end.";
+                if (string.Join("\n", ModDirectory.ReadmeLines(plain).ToArray()) != plainShown) throw new Exception("README lists, references, HTML or plain text were read wrong.");
+                string skipped = "[id]: https://example.com\n***\n___\n===\n---\n~~~text <!--\nHidden\n~~~\n![alt][id]\n[![badge][id]](https://example.com)\n<https://example.com>\n\U0001F600\n* KIND: code\n+ Made BY: Someone\n## [Only](url)\nKept.";
+                if (string.Join("\n", ModDirectory.ReadmeLines(skipped).ToArray()) != "Kept.") throw new Exception("The README picker kept markup or template metadata.");
+                if (string.Join("\n", ModDirectory.ReadmeLines("## Alone\n## Next\nText.\n\n## Last").ToArray()) != "Next\nText.") throw new Exception("A README heading was shown without text under it.");
+                if (string.Join("\n", ModDirectory.ReadmeLines("## First\n## [Only](url)\nText.").ToArray()) != "Text." || string.Join("\n", ModDirectory.ReadmeLines("## Kept\n```\n# Hidden\n```\nText.").ToArray()) != "Kept\nText.") throw new Exception("A skipped heading or code block changed the next README heading.");
+                checks.Add("PASS mod README picker: useful text, headings and list items stay plain while titles, badges, links, code, comments and template metadata drop out");
+
+                string[] eight = { "Line one.", "Line two.", "Line three.", "Line four.", "Line five.", "Line six.", "Line seven.", "Line eight." };
+                List<string> five = ModDirectory.ReadmeLines(string.Join("\n\n", eight));
+                if (five.Count != 5 || string.Join("\n", five.ToArray()) != "Line one.\nLine two.\nLine three.\nLine four.\nLine five.") throw new Exception("The README picker went past five lines.");
+                string longText = new StringBuilder().Insert(0, "word ", 180).ToString().TrimEnd();
+                List<string> cut = ModDirectory.ReadmeLines(longText);
+                if (cut.Count != 1 || cut[0].Length > 400 || !cut[0].EndsWith("word...", StringComparison.Ordinal)) throw new Exception("A long README was not cut after a whole word.");
+                string near = new StringBuilder().Insert(0, "near ", 76).ToString().TrimEnd();
+                List<string> shortRoom = ModDirectory.ReadmeLines(near + "\n\nThis next paragraph has more than forty characters to read.");
+                if (shortRoom.Count != 1 || shortRoom[0] != near) throw new Exception("The README picker added a line with too little room.");
+                string badges = "[![Badge](badge.png)](https://example.com)\n\n![Preview](preview.png)\n\n<img src=\"preview.png\">\n\n#";
+                if (ModDirectory.ReadmeLines(badges).Count != 0 || ModDirectory.ReadmeLines(new string(' ', 1000) + "Too far.").Count != 0) throw new Exception("An empty or oversized source line was read as useful text.");
+                if (string.Join("\n", ModDirectory.ReadmeLines("One.\n\nTwo.\n\nThree.\n\nFour.\n\n## Tail\nLast.").ToArray()) != "One.\nTwo.\nThree.\nFour.") throw new Exception("The README picker started a heading without room for its text.");
+                if (ModDirectory.ReadmeLines("## " + new string('H', 390) + "\nA line with more than forty characters left to read.").Count != 0) throw new Exception("A heading left no room for its README text.");
+                checks.Add("PASS mod README limits: five lines and 400 characters, whole-word cuts, short remainders and 1000-character source lines are checked");
+
+                for (int pass = 0; pass < 2; pass++)
+                    using (ReadmeSheet sheet = new ReadmeSheet(this, 1f, found[1]))
+                    {
+                        sheet.Inline = true;
+                        sheet.Show(this);
+                        if (!sheet.FromReadme || sheet.BodyShown != shown || sheet.PageShown != ModDirectory.Page + "/tree/HEAD/mods/far-names" || gets != 1) throw new Exception("View mod did not show or keep its README.");
+                        string crowded = sheet.Crowded();
+                        if (crowded != null) throw new Exception("View mod doesn't fit: " + crowded);
+                        sheet.Close();
+                    }
+                if (ModDirectory.ReadmeKept(found[1]) == null || string.Join("\n", ModDirectory.ReadmeKept(found[1]).ToArray()) != shown) throw new Exception("The README was not kept for its folder.");
+                SelfKnow.Topic view = Array.Find(SelfKnow.Topics, delegate(SelfKnow.Topic topic) { return topic.Name == "View mod"; });
+                if (view == null || view.Facts != "View shows the first few lines of that mod's README in Capri, or its description when it has none or GitHub doesn't answer in time. Learn more opens its folder on GitHub in your browser, so you can read the rest and its code before installing it.") throw new Exception("View mod did not explain the README preview.");
+                checks.Add("PASS mod README window: View shows the picked lines, keeps them for the next view and points Learn more at the mod folder");
+
+                ModListing described = new ModListing { Folder = found[0].Folder, FileName = found[0].FileName, Sha = found[0].Sha, Size = found[0].Size, About = "Says hello." };
+                foreach (ModListing listing in new[] { found[0], described })
+                    using (ReadmeSheet sheet = new ReadmeSheet(this, 1f, listing))
+                    {
+                        sheet.Inline = true;
+                        sheet.Show(this);
+                        if (sheet.FromReadme || sheet.BodyShown != (listing == found[0] ? "This mod has no description yet." : "Says hello.") || gets != 1) throw new Exception("A mod without a README did not show its description without a fetch.");
+                        sheet.Close();
+                    }
+                if (ModDirectory.Readme(found[0]) != null || gets != 1) throw new Exception("A missing README was fetched.");
+                ModDirectory.ForgetReadmes();
+                if (ModDirectory.ReadmeKept(found[1]) != null) throw new Exception("The kept README was not cleared.");
+                down = true;
+                using (ReadmeSheet sheet = new ReadmeSheet(this, 1f, found[1]))
+                {
+                    sheet.Inline = true;
+                    sheet.Show(this);
+                    if (sheet.FromReadme || sheet.BodyShown != found[1].About || gets != 2 || ModDirectory.ReadmeKept(found[1]) != null) throw new Exception("A failed README read was kept or did not fall back to the description.");
+                    sheet.Close();
+                }
+                down = false;
+                using (ReadmeSheet sheet = new ReadmeSheet(this, 1f, found[1]))
+                {
+                    sheet.Inline = true;
+                    sheet.Show(this);
+                    if (!sheet.FromReadme || sheet.BodyShown != shown || gets != 3) throw new Exception("A failed README read was not retried.");
+                    sheet.Close();
+                }
+                ModDirectory.ForgetReadmes();
+                answer = Encoding.UTF8.GetBytes(badges);
+                for (int pass = 0; pass < 2; pass++)
+                    using (ReadmeSheet sheet = new ReadmeSheet(this, 1f, found[1]))
+                    {
+                        sheet.Inline = true;
+                        sheet.Show(this);
+                        if (sheet.FromReadme || sheet.BodyShown != found[1].About || gets != 4) throw new Exception("An empty README was not kept with a description fallback.");
+                        sheet.Close();
+                    }
+                List<string> empty = ModDirectory.ReadmeKept(found[1]);
+                if (empty == null || empty.Count != 0) throw new Exception("Empty README lines were not kept.");
+                checks.Add("PASS mod README fallback: missing and empty READMEs show descriptions, empty reads stay kept and failed reads retry on the next view");
+
+                ModDirectory.ForgetReadmes();
+                string fullLine = new StringBuilder().Insert(0, "word ", 16).ToString().TrimEnd() + ".";
+                string[] full = { fullLine, fullLine, fullLine, fullLine, fullLine };
+                answer = Encoding.UTF8.GetBytes(string.Join("\n\n", full));
+                List<string> filled = ModDirectory.ReadmeLines(Encoding.UTF8.GetString(answer));
+                int characters = 0;
+                foreach (string line in filled) characters += line.Length;
+                if (filled.Count != 5 || characters != 400) throw new Exception("The full README fit check did not fill its limits.");
+                ModListing longName = new ModListing { Folder = found[1].Folder, FileName = found[1].FileName, Sha = found[1].Sha, Size = found[1].Size, ReadmeName = found[1].ReadmeName, Name = new string('N', 120), Author = new string('A', 80) };
+                foreach (float size in new[] { 1f, 1.5f, 2f })
+                    using (ReadmeSheet sheet = new ReadmeSheet(this, size, longName))
+                    {
+                        sheet.Inline = true;
+                        sheet.Show(this);
+                        if (!sheet.FromReadme || sheet.BodyShown != string.Join("\n", full) || gets != 5) throw new Exception("View mod lost its full README.");
+                        string crowded = sheet.Crowded();
+                        sheet.Picture(Path.Combine(output, "mod-readme-" + (int)(size * 100) + ".png"));
+                        sheet.Close();
+                        if (crowded != null) throw new Exception("View mod doesn't fit at " + size + ": " + crowded);
+                    }
+                checks.Add("PASS mod README fit: long names, authors and five lines with 400 characters fit at 100%, 150% and 200%");
+                checks.Add("LIMIT mod README: a real README read from GitHub needs a live check");
+            }
+            finally
+            {
+                ModDirectory.GetSoon = wasGetSoon;
+                ModDirectory.ForgetReadmes();
             }
         }
 

@@ -62,7 +62,7 @@ namespace CapriDesktop
             new Topic("Install mod", "install from the directory|download a mod",
                 "Install downloads that mod, checks it matches the directory's listing and imports it. Code mods still ask before they run.", "MainframeModsWindow.cs", "Install mod"),
             new Topic("View mod", "view a mod|read a mod|see a mod on github",
-                "View opens that mod's folder on GitHub in your browser, so you can read about it and its code before installing it.", "MainframeModsWindow.cs", "View mod"),
+                "View shows the first few lines of that mod's README in Capri, or its description when it has none or GitHub doesn't answer in time. Learn more opens its folder on GitHub in your browser, so you can read the rest and its code before installing it.", "MainframeModsWindow.cs", "View mod"),
             new Topic("Rate mod", "rate a mod|mod rating|mod stars",
                 "Once a mod from the mods window is installed, click its stars to rate it from 1 to 5. Rating again replaces your old one.", "MainframeModsWindow.cs", "Rate mod"),
             new Topic("Publish mod", "publish a mod|share my mod|share a mod|upload a mod",

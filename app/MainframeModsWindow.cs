@@ -224,6 +224,7 @@ namespace CapriDesktop
             internal readonly float Zoom;
             protected readonly Mainframe Frame;
             private readonly int designWide, designTall;
+            internal bool Inline;
 
             protected ModSheet(Mainframe owner, float zoom, string title, string heading, int wide, int tall)
             {
@@ -251,6 +252,19 @@ namespace CapriDesktop
                 shut.AccessibleName = "Close";
                 shut.Click += delegate { Close(); };
                 Controls.Add(shut);
+            }
+
+            protected void Run(Action work)
+            {
+                if (Inline) work();
+                else ThreadPool.QueueUserWorkItem(delegate { work(); });
+            }
+
+            protected void Back(Action work)
+            {
+                if (Inline) { work(); return; }
+                try { if (!IsDisposed) BeginInvoke(new MethodInvoker(delegate { if (!IsDisposed) work(); })); }
+                catch (InvalidOperationException) { }
             }
 
             protected int Z(int value) { return (int)Math.Round(value * Zoom); }
@@ -496,7 +510,6 @@ namespace CapriDesktop
             private List<ModListing> listings = new List<ModListing>(), shown = new List<ModListing>();
             private int filter, first, ticket, order;
             private bool installing, statsLive;
-            internal bool Inline;
 
             internal ModsSheet(Mainframe owner, float zoom) : base(owner, zoom, "Mods directory", "MODS DIRECTORY >", Wide, Tall)
             {
@@ -556,19 +569,6 @@ namespace CapriDesktop
                 statusTimer.Tick += delegate { statusTimer.Stop(); status.Text = ""; };
                 Frame.Fit(this);
                 Fill();
-            }
-
-            private void Run(Action work)
-            {
-                if (Inline) work();
-                else ThreadPool.QueueUserWorkItem(delegate { work(); });
-            }
-
-            private void Back(Action work)
-            {
-                if (Inline) { work(); return; }
-                try { if (!IsDisposed) BeginInvoke(new MethodInvoker(delegate { if (!IsDisposed) work(); })); }
-                catch (InvalidOperationException) { }
             }
 
             private void Says(string text, bool problem)
@@ -693,7 +693,7 @@ namespace CapriDesktop
                     installs[i].Enabled = !installing;
                     installs[i].AccessibleName = (update ? "Update " : have ? "Reinstall " : "Install ") + listing.Title;
                     installs[i].Invalidate();
-                    views[i].AccessibleName = "View " + listing.Title + " on GitHub";
+                    views[i].AccessibleName = "View " + listing.Title;
                 }
                 bool pages = shown.Count > Cards;
                 back.Visible = next.Visible = page.Visible = pages;
@@ -777,11 +777,10 @@ namespace CapriDesktop
             {
                 ModListing listing = At(card);
                 if (listing == null) return;
-                try { using (Process.Start(ModDirectory.Page + "/tree/HEAD/mods/" + listing.Folder)) { } }
-                catch (Exception error)
+                using (ReadmeSheet sheet = new ReadmeSheet(Frame, Zoom, listing))
                 {
-                    if (!(error is IOException || error is UnauthorizedAccessException || error is System.ComponentModel.Win32Exception)) throw;
-                    Says("Couldn't open that page: " + error.Message, true);
+                    sheet.Inline = Inline;
+                    sheet.ShowDialog(this);
                 }
             }
 
@@ -823,6 +822,65 @@ namespace CapriDesktop
             internal void Type2(string text) { search.Box.Text = text; }
             internal void PressInstall(int card) { Install(card); }
             internal void PressStars(int card, int picked) { stars[card].Pick(picked); }
+        }
+
+        private sealed class ReadmeSheet : ModSheet
+        {
+            internal const int Wide = 520, Tall = 376;
+            private readonly ModListing listing;
+            private readonly Label body, status;
+
+            internal ReadmeSheet(Mainframe owner, float zoom, ModListing listing) : base(owner, zoom, "View mod", "VIEW MOD >", Wide, Tall)
+            {
+                this.listing = listing;
+                Words(listing.Title, 28, 52, 464, 22, Type(11.5f * zoom, true), White);
+                Words(string.IsNullOrEmpty(listing.Author) ? "" : "by " + listing.Author, 28, 76, 464, 16, Small(), Cyan);
+                Words(listing.Kind + " " + Math.Max(1, listing.Size / 1024) + " KB.", 28, 94, 464, 16, Small(), Faint);
+                body = Words("", 28, 120, 464, 200, Font, White);
+                Key more = Make("Learn more", 28, 332, 130, 26, delegate { Open(); });
+                more.Accent = Cyan;
+                more.Loud = true;
+                status = Words("", 166, 336, 326, 18, Small(), Rose);
+                Frame.Fit(this);
+            }
+
+            protected override void OnLoad(EventArgs e)
+            {
+                base.OnLoad(e);
+                List<string> kept = ModDirectory.ReadmeKept(listing);
+                if (kept != null && kept.Count > 0) { ShowLines(kept); return; }
+                if (listing.ReadmeName == null) { ShowLines(null); return; }
+                body.Text = "Reading its README...";
+                body.ForeColor = Faint;
+                Run(delegate
+                {
+                    List<string> lines = null;
+                    try { lines = ModDirectory.Readme(listing); }
+                    catch (Exception) { }
+                    Back(delegate { ShowLines(lines); });
+                });
+            }
+
+            private void ShowLines(List<string> lines)
+            {
+                FromReadme = lines != null && lines.Count > 0;
+                body.Text = FromReadme ? string.Join("\n", lines.ToArray()) : string.IsNullOrEmpty(listing.About) ? "This mod has no description yet." : listing.About;
+                body.ForeColor = White;
+            }
+
+            private void Open()
+            {
+                try { using (Process.Start(PageShown)) { } }
+                catch (Exception error)
+                {
+                    if (!(error is IOException || error is UnauthorizedAccessException || error is System.ComponentModel.Win32Exception)) throw;
+                    status.Text = "Couldn't open that page: " + error.Message;
+                }
+            }
+
+            internal string BodyShown { get { return body.Text; } }
+            internal bool FromReadme { get; private set; }
+            internal string PageShown { get { return ModDirectory.Page + "/tree/HEAD/mods/" + listing.Folder; } }
         }
 
         private sealed class PublishSheet : ModSheet
