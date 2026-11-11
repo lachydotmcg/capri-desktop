@@ -33,6 +33,13 @@ namespace CapriDesktop
             desktop.Exit += (_, _) => Exited();
         }
 
+        private void Attach(QuitDesktop desktop)
+        {
+            active = this;
+            desktop.ShutdownRequested += Requested;
+            desktop.Exit += Exited;
+        }
+
         internal void Requested(object sender, ShutdownRequestedEventArgs e)
         {
             e.Cancel = false;
@@ -204,35 +211,31 @@ namespace CapriDesktop
             finally { active = before; }
         }
 
-        private sealed class QuitDesktop : IClassicDesktopStyleApplicationLifetime
+        // A stand-in for the app's lifetime in the checks. Avalonia doesn't let app code implement its own lifetime interface.
+        private sealed class QuitDesktop
         {
             internal readonly List<Func<bool>> Close = new List<Func<bool>>();
             internal bool Ended;
             internal int Forced;
-            public string[] Args { get { return Array.Empty<string>(); } }
-            public ShutdownMode ShutdownMode { get; set; }
-            public Window MainWindow { get; set; }
-            public IReadOnlyList<Window> Windows { get { return Array.Empty<Window>(); } }
-            public event EventHandler<ShutdownRequestedEventArgs> ShutdownRequested;
-            public event EventHandler<ControlledApplicationLifetimeExitEventArgs> Exit;
-            public event EventHandler<ControlledApplicationLifetimeStartupEventArgs> Startup { add { } remove { } }
-            public bool TryShutdown(int code = 0)
+            internal event EventHandler<ShutdownRequestedEventArgs> ShutdownRequested;
+            internal event Action Exit;
+            internal bool TryShutdown()
             {
                 var request = new ShutdownRequestedEventArgs();
                 ShutdownRequested?.Invoke(this, request);
                 if (request.Cancel) return false;
                 bool closed = true;
                 foreach (Func<bool> close in Close) if (!close()) closed = false;
-                if (closed) End(code);
+                if (closed) End();
                 return closed;
             }
-            public void Shutdown(int code = 0)
+            internal void Shutdown(int code)
             {
                 Forced++;
                 foreach (Func<bool> close in Close) close();
-                End(code);
+                End();
             }
-            private void End(int code) { Ended = true; Exit?.Invoke(this, new ControlledApplicationLifetimeExitEventArgs(code)); }
+            private void End() { Ended = true; Exit?.Invoke(); }
         }
     }
 
