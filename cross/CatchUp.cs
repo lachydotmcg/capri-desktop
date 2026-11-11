@@ -319,7 +319,9 @@ namespace CapriDesktop
                     Hands.Plan = pet.reminders.Route;
                     Hands.Remind = pet.reminders.Remind;
                     pet.Talk.Dismiss(false);
-                    if (!Hands.Heard("remind me to stretch in 20 minutes", out string tool, out ToolArguments args) || tool != "remind" || !Hands.Do(tool, args).StartsWith("I'll remind you")) throw new Exception("Cross reminder routing failed.");
+                    if (!Hands.Heard("remind me in 20 minutes to stretch", out string tool, out ToolArguments args) || tool != "remind") throw new Exception("Cross reminder routing failed: it heard " + (tool ?? "nothing") + ".");
+                    string set = Hands.Do(tool, args);
+                    if (!set.StartsWith("I'll remind you", StringComparison.Ordinal)) throw new Exception("Cross reminder routing failed: " + set);
                     pet.reminders = new Reminders(folder, now) { Now = () => now };
                     pet.reminderAt = 0;
                     if (pet.CheckReminders()) throw new Exception("Cross reminder fired early.");
