@@ -72,7 +72,10 @@ jobs:
           dotnet-version: 10.0.x
       - name: Native Linux dependencies
         run: |
-          if ! getent hosts azure.archive.ubuntu.com > /dev/null; then echo "http://archive.ubuntu.com/ubuntu/" | sudo tee /etc/apt/apt-mirrors.txt; fi
+          if ! getent hosts azure.archive.ubuntu.com > /dev/null; then
+            sudo resolvectl dns "$(ip route show default | awk '{print $5; exit}')" 1.1.1.1 8.8.8.8 && sudo resolvectl flush-caches
+            getent hosts azure.archive.ubuntu.com || echo "azure.archive.ubuntu.com still has no address"
+          fi
           sudo apt-get update -q && sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev libxcb1-dev pkg-config
       - name: Focused Linux checks
         run: bash ci/check-linux.sh
