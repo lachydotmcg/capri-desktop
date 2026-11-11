@@ -51233,7 +51233,7 @@ namespace CapriDesktop
                             checks.Add("PASS her reply does not hold the talk pill with the cursor off her and the pill, sitting on a window or not; hovering still holds it");
                             pillUntil = clock.Elapsed.TotalSeconds + 30;
                             UpdatePill(clock.Elapsed.TotalSeconds);
-                            if (!pill.Visible || pill.Top < Bottom - 60 || Math.Abs(pill.Left + pill.Width / 2 - (Left + Width / 2)) > Width / 2)
+                            if (!pill.Visible || pill.Top < Math.Min(Bottom - 60, Screen.FromPoint(Feet()).WorkingArea.Bottom - pill.Height - 2) || Math.Abs(pill.Left + pill.Width / 2 - (Left + Width / 2)) > Width / 2)
                                 throw new Exception("Talk pill is not under her. Pill " + (pill.Visible ? pill.Bounds.ToString() : "hidden") + ", her " + Bounds + ", falling " + falling
                                     + ", seat " + (seat == null ? "none" : seat.Window + " " + seat.Left + "-" + seat.Right + " y " + seat.Y + " floor " + seat.Floor + " free " + seat.Free + " aside " + seat.Aside)
                                     + ", standOn " + (standOn == null ? "none" : standOn.Window + " " + standOn.Left + "-" + standOn.Right + " y " + standOn.Y) + ".");
