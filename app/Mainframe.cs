@@ -46,7 +46,7 @@ namespace CapriDesktop
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 1840;
+        private const int PageTall = 1980;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -116,6 +116,10 @@ namespace CapriDesktop
         private readonly Toggle upsetChaos;
         private readonly Toggle hologram;
         private readonly Toggle legacyStand;
+        private readonly Toggle jealousAIs, closeAIs;
+        private readonly Key jealousApps;
+        private readonly Label jealousNote, closeAIsNote;
+        private readonly ContextMenuStrip jealousMenu;
         private readonly Toggle startup;
         private readonly Toggle discord;
         private readonly Toggle cursor;
@@ -286,13 +290,13 @@ namespace CapriDesktop
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1344, 1396 }, new[] { 1396, 1424 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 736, 1230 }, new[] { 1482, 2308 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1622, 2448 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         // The same for Simple Settings, with its hidden rows taken out.
-        private const int SimpleTall = 1058;
+        private const int SimpleTall = 1198;
         private int wheel;
         // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
         private const double GlideMs = 140;
@@ -855,6 +859,27 @@ namespace CapriDesktop
             hologram.AccessibleName = "Hologram. Clicks pass through her body, talk pill and bubble. Turn this off to give her clicks back";
             legacyStand = Switch("Legacy stand", c, 334, delegate { if (!syncing) capri.ToggleLegacyStand(); });
             legacyStand.AccessibleName = "Legacy stand. She goes back to her old stand";
+            jealousAIs = Switch("Jealous of other AIs", c, 362, delegate { if (!syncing) capri.ToggleJealousAIs(); });
+            jealousAIs.AccessibleName = "Jealous of other AIs. Teases when another AI comes to the front";
+            jealousNote = Caption("Teases when another AI comes to the front.", 28 + c, 390, small, Faint);
+            jealousNote.AutoSize = false;
+            jealousNote.Size = new Size(328, 20);
+            closeAIs = Switch("Close other AIs for me", c, 418, delegate { if (!syncing) capri.ToggleCloseAIs(); });
+            closeAIs.AccessibleName = "Close other AIs for me. Asks before closing only the apps you choose";
+            jealousAIs.Switch = closeAIs.Switch = 68;
+            closeAIsNote = Caption("Asks before closing only the apps you choose.", 28 + c, 446, small, Faint);
+            closeAIsNote.AutoSize = false;
+            closeAIsNote.Size = new Size(328, 20);
+            Named("Apps she may close", c, 474);
+            jealousMenu = Dropdown();
+            jealousApps = Make("Choose apps", ValueAt + c, 477, ValueWide, 22, delegate { jealousMenu.Show(jealousApps, new Point(0, jealousApps.Height)); }, "Apps she may close");
+            jealousApps.Chevron = true;
+            jealousApps.AccessibleName = "Choose which other AIs she may ask to close";
+            foreach (JealousApp app in Jealous.Apps)
+            {
+                string id = app.Id;
+                jealousMenu.Items.Add(Choice(app.Name, false, delegate { capri.ChooseJealous(id); }));
+            }
             int afterPats = Controls.Count;
             Section("WATCH >", c, 208);
             watch = Switch("Watch my screen", c, 232, delegate { if (!syncing) capri.ToggleWatch(); });
@@ -1044,9 +1069,9 @@ namespace CapriDesktop
                 if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row * 3;
             for (int belowVerbosity = afterVerbosity; belowVerbosity < Controls.Count; belowVerbosity++)
                 if (Controls[belowVerbosity].Left >= c) Controls[belowVerbosity].Top += Row;
-            // Mainframe colours, Head pats, Pat stroke, Chaos when upset, Hologram and Legacy stand each take a row under Mainframe size.
+            // Mainframe colours, Head pats, Pat stroke, Chaos when upset, Hologram, Legacy stand and the five jealousy rows each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
-                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 6;
+                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 11;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
                 if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
             // The hearing row and Her voice in your mic's rows push GAMES down under KEYS too.
@@ -1775,6 +1800,14 @@ namespace CapriDesktop
         internal bool HeadPatsShown { get { return headPats.Checked; } }
         internal bool UpsetChaosShown { get { return upsetChaos.Checked; } }
         internal bool LegacyStandShown { get { return legacyStand.Checked; } }
+        internal bool JealousShown { get { return jealousAIs.Checked; } }
+        internal bool CloseAIsShown { get { return closeAIs.Checked; } }
+        internal bool JealousChoicesEnabled { get { return closeAIs.Enabled && jealousApps.Enabled; } }
+        internal void FlipJealous() { jealousAIs.Checked = !jealousAIs.Checked; }
+        internal void FlipCloseAIs() { closeAIs.Checked = !closeAIs.Checked; }
+        internal void PickJealousApp(int index) { jealousMenu.Items[index].PerformClick(); }
+        internal bool JealousInPage { get { return !Folded(jealousAIs) && !Folded(closeAIs) && !Folded(jealousApps) && !Hidden(jealousAIs) && !Hidden(closeAIs) && !Hidden(jealousApps); } }
+        internal bool JealousDescriptions { get { return jealousNote.Text.Length > 0 && closeAIsNote.Text.Length > 0 && TextRenderer.MeasureText(jealousAIs.Text, jealousAIs.Font).Width <= jealousAIs.NameRoom && TextRenderer.MeasureText(closeAIs.Text, closeAIs.Font).Width <= closeAIs.NameRoom && TextRenderer.MeasureText(jealousNote.Text, jealousNote.Font).Width <= jealousNote.Width && TextRenderer.MeasureText(closeAIsNote.Text, closeAIsNote.Font).Width <= closeAIsNote.Width && !string.IsNullOrEmpty(jealousAIs.AccessibleDescription) && !string.IsNullOrEmpty(closeAIs.AccessibleDescription); } }
         internal string LegacyStandTip { get { return legacyStand.AccessibleDescription; } }
         internal void FlipLegacyStand() { legacyStand.Checked = !legacyStand.Checked; }
         // How far down each column of the Settings page reaches in the view that's open, against the page's height.
@@ -2941,6 +2974,11 @@ namespace CapriDesktop
             patStroke.Value = capri.PatStroke;
             upsetChaos.Checked = capri.UpsetChaos;
             legacyStand.Checked = capri.LegacyStand;
+            jealousAIs.Checked = capri.JealousAIs;
+            closeAIs.Checked = capri.CloseAIs;
+            closeAIs.Enabled = capri.JealousAIs;
+            jealousApps.Enabled = capri.JealousAIs && capri.CloseAIs;
+            for (int jealousPick = 0; jealousPick < Jealous.Apps.Length; jealousPick++) ((ToolStripMenuItem)jealousMenu.Items[jealousPick]).Checked = capri.JealousChosen(Jealous.Apps[jealousPick].Id);
             hologram.Checked = capri.HologramOn;
             bubble.Value = capri.BubbleTime;
             bubbleName.Text = BubbleNames[bubble.Value];

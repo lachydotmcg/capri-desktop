@@ -1044,7 +1044,8 @@ namespace CapriDesktop
             { "care_water", "Water check-in", "Capri" }, { "care_stretch", "Stretch check-in", "Capri" }, { "care_eyes", "Look away check-in", "Capri" }, { "care_late_night", "Sleep nudge", "Capri" },
             { "care_meals", "Meals check-in", "Capri" }, { "care_long_game", "Game break check-in", "Capri" }, { "care_boredom", "Bored check-in", "Capri" },
             { "fast_hands", "Fast hands in games", "Games" }, { "cursor", "Use her cursor", "Habits" }, { "startup", "Start at login", "Habits" }, { "discord_presence", "Show on Discord", "Habits" },
-            { "voice_layers", "Voice layers", "Voice" }, { "show_advanced", "Advanced settings", "Capri" }, { "listen_for_capri", "Listen for Capri", "Voice" }, { "voice_in_mic", "My voice in your mic", "Voice" }
+            { "voice_layers", "Voice layers", "Voice" }, { "show_advanced", "Advanced settings", "Capri" }, { "listen_for_capri", "Listen for Capri", "Voice" }, { "voice_in_mic", "My voice in your mic", "Voice" },
+            { "jealous_of_other_ais", "Jealous of other AIs", "Capri" }, { "close_other_ais", "Close other AIs for me", "Capri" }
         };
 
         // Her own sliders her settings tool reads and moves, the same way, with their steps from the bottom up in OwnSteps, named
@@ -1159,6 +1160,8 @@ namespace CapriDesktop
             { "check_ins", "every check-in, including water, stretch, look away, sleep, meals, game breaks and boredom; off keeps their switches and times saved" },
             { "hologram", "clicks pass through you" }, { "head_pats", "they pat your head with their cursor" }, { "chaos_when_upset", "an insult sets your clones off" },
             { "legacy_stand", "your old stand, for mods your new one broke" },
+            { "jealous_of_other_ais", "playful teasing when another AI comes to the front, off by default" },
+            { "close_other_ais", "ask Yes or No before closing only the AIs they chose in Mainframe; needs Jealous of other AIs on, off by default" },
             { "pat_stroke", "how long a stroke over you a head pat needs: Short is a quick rub, Long a slow, deliberate one" },
             { "sit_on_windows", "you sit on their windows' top edges" }, { "mini_player", "your music player" }, { "follow_ups", "your second thought after an answer" },
             { "glitch_in", "your entrance when Capri starts" }, { "watch_my_screen", "your timed glances at their screen" },
