@@ -895,9 +895,12 @@ namespace CapriDesktop
         [DataMember] public int PushVk;
         // How much she says about a game they're playing: 0 off, 1 events only, 2 chatty. Off until they turn it on, since it shows her brain their screen.
         [DataMember] public int CommentPace;
+        // An Off they picked, in Settings or by asking her, which Gaming Mode leaves off (#234). An Off nobody picked is the
+        // default, and Gaming Mode runs that at Events only.
         [DataMember] public bool NoComments;
         // Her live reactions over a game (F67) are on by default, so they're saved as switched off.
         [DataMember] public bool NoReactions;
+        // GAMES > Game sounds is on by default too: off, a big burst of a game's sound stops counting as a moment (#234).
         [DataMember] public bool NoGameSounds;
         // Gaming Mode's key, Ctrl + Alt + G, and where her HUD sits in each game (GameSpots).
         [DataMember] public int GameMods = 3;
@@ -7241,6 +7244,7 @@ namespace CapriDesktop
         internal void SetCommentPace(int pace)
         {
             preferences.CommentPace = Math.Max(0, Math.Min(2, pace));
+            // An Off they pick holds in Gaming Mode too. #234: she said her comments were off and kept going.
             preferences.NoComments = preferences.CommentPace == Commentary.Off;
             Commentary.Pace = GamePace;
             SavePreferences();
@@ -29904,6 +29908,8 @@ namespace CapriDesktop
             checks.Add("PASS Live reactions switch: on by default in new and old settings, saved both ways from Settings > GAMES, and no reactions with Comments off, the switch off, a hide they asked for, a nap or a game she's playing herself");
         }
 
+        // GAMES > Game sounds (#234): on by default and saved both ways. Off, a burst of the game's sound gets no reaction and no
+        // look, while a kill still gets its line; back on, a burst reacts again.
         private void SmokeReactSounds(System.Collections.Generic.List<string> checks, ReactRig rig)
         {
             bool soundsWas = preferences.NoGameSounds;
@@ -29925,13 +29931,15 @@ namespace CapriDesktop
                 ReactSettle(0);
                 lock (rig.Fed) noiseOff = noiseOff && rig.Fed.Count == before;
                 rig.Now += 11000;
-                bool kill = Commentary.Moment("kill", null, rig.Frame, rig.Frame) && ReactFed(rig, before + 1);
+                Commentary.Moment("kill", null, rig.Frame, rig.Frame);
+                bool kill = ReactFed(rig, before + 1);
                 ReactSettle(0);
                 mainframe.FlipGameSounds();
                 bool savedOn = !preferences.NoGameSounds && !LoadPreferences().NoGameSounds && GameSoundsOn && mainframe.GameSoundsShown;
                 lock (rig.Fed) before = rig.Fed.Count;
                 rig.Now += 11000;
-                bool soundOn = Commentary.Moment("sound", null, rig.Frame, rig.Frame) && ReactFed(rig, before + 1);
+                Commentary.Moment("sound", null, rig.Frame, rig.Frame);
+                bool soundOn = ReactFed(rig, before + 1);
                 ReactSettle(0);
                 ReactMust(shownOn && savedOff && soundOff && noiseOff && kill && savedOn && soundOn,
                     "Game sounds went wrong: default " + shownOn + ", saved off " + savedOff + ", sound off " + soundOff + ", noise off " + noiseOff + ", kill " + kill + ", saved on " + savedOn + ", sound on " + soundOn + ", fed " + ReactShown(rig));
@@ -31107,6 +31115,7 @@ namespace CapriDesktop
                 front = game;
                 gaming.Notice(9100);
                 bool noticed = gaming.State == GameDock.Stage.Docked && !gaming.Asked && said.Count == 0 && !docked && !hidden && GamePace == Commentary.Events;
+                // #234: Comments set to Off stops her in Gaming Mode too, asked for or slid, and Events only brings her back.
                 string commentsOff = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "game_comments" });
                 bool commentsSavedOff = LoadPreferences().NoComments;
                 mainframe.Sync();

@@ -991,6 +991,8 @@ namespace CapriDesktop
             // Her live reactions (F67), on by default, under Comments since they only run while her comments do.
             liveReactions = Switch("Live reactions", 0, 966, delegate { if (!syncing) capri.ToggleReactions(); });
             liveReactions.AccessibleName = "Live reactions. Quick lines on the right of a full-screen game when something happens, while her game comments run. Mute her keeps them as text";
+            // Game sounds (#234), on by default, under Live reactions: off, big bursts of a game's sound stop counting, and hits,
+            // deaths and kills still count.
             gameSounds = Switch("Game sounds", 0, 994, delegate { if (!syncing) capri.ToggleGameSounds(); });
             gameSounds.AccessibleName = "Game sounds. Big bursts of your game's sound count as moments for her reactions and comments. Off, she ignores them and still reacts to hits, deaths and kills";
             gamingMode = Switch("Gaming Mode", 0, 1022, delegate { if (!syncing) capri.ToggleGaming(); });

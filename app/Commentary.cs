@@ -58,6 +58,7 @@ namespace CapriDesktop
         internal static Action<string, string, GameMood> Speak;
         internal static Func<byte[]> Shot = delegate { return null; };
         internal static Func<bool> Moments = delegate { return false; };
+        // GAMES > Game sounds: whether a big burst of the game's sound counts as a moment (#234).
         internal static Func<bool> Hears = delegate { return true; };
         internal static Func<string> Keep;
         // The time, so the smoke test can move it on.
@@ -104,6 +105,8 @@ namespace CapriDesktop
         // as a reaction does, and it goes up in the feed even while she can't talk.
         internal static bool Moment(string kind, string detail, byte[] frameBefore, byte[] frameAfter)
         {
+            // With Game sounds off a burst is no moment. The banner look GameWatch gave it first still counts, so a kill read
+            // off the screen still gets its reaction.
             if (Reactions.KindOf(kind) == "sound" && !Hears()) return false;
             bool live = Reactions.KindOf(kind) != null && Reactions.Running;
             if (live) Reactions.React(kind, detail);

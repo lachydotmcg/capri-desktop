@@ -968,9 +968,12 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        // Gaming Mode is them asking her to watch, so she reacts at least when something happens, HUD or no HUD.
+        // Gaming Mode is them asking her to watch, so she reacts at least when something happens, HUD or no HUD. Comments set
+        // to Off by them still stops her (#234).
         private int GamePace { get { return preferences.NoComments && CommentPace == Commentary.Off ? Commentary.Off : Math.Max(CommentPace, GamingOn ? Commentary.Events : Commentary.Off); } }
 
+        // Her game comments as Settings and her settings tool show them: the pace they'd run at in a game, where Gaming Mode
+        // lifts an Off nobody picked to Events only.
         internal int CommentPaceShown { get { return preferences.NoComments && CommentPace == Commentary.Off ? Commentary.Off : Math.Max(CommentPace, GamingWanted ? Commentary.Events : Commentary.Off); } }
 
         internal string GameKeyName { get { return KeyName(preferences.GameMods, preferences.GameVk); } }
