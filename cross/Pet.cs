@@ -5316,6 +5316,19 @@ namespace CapriDesktop
         {
             if (quitting) return;
             if (fileEditor != null && !fileEditor.Clear(Quit)) return;
+            if (OperatingSystem.IsMacOS())
+            {
+                macQuit.Request(0, delegate(Action leave)
+                {
+                    if (!frames.IsEnabled) { leave(); return; }
+                    quitting = true;
+                    ClonesOff();
+                    voice.Stop();
+                    Talk.Dismiss();
+                    GlitchOut(leave);
+                });
+                return;
+            }
             quitting = true;
             ClonesOff();
             // Her click guard writes down a bug in any of these, so she still goes after it instead of being left unable to quit.
@@ -5356,6 +5369,7 @@ namespace CapriDesktop
 
         private void FinishNow(int code)
         {
+            if (OperatingSystem.IsMacOS()) { macQuit.Request(code); return; }
             if (husk != null) husk.Dispose();
             StopAwake();
             CloseMainframe();

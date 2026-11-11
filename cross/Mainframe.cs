@@ -444,8 +444,7 @@ namespace CapriDesktop
             heartbeat.Tick += (_, _) => Program.Guard(Heartbeat);
             Opened += (_, _) => { Sync(); status.Start(); heartbeat.Start(); };
             Closed += (_, _) => { closed = true; status.Stop(); heartbeat.Stop(); pet.SettingsChanged -= Sync; foreach (Window sheet in sheets.ToArray()) sheet.Close(); CloseMenus(); };
-            // Linux X closes this window; system quit is never vetoed on any platform.
-            Closing += (_, e) => { if (!finishing && !OperatingSystem.IsLinux() && e.CloseReason == WindowCloseReason.WindowClosing) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };
+            Closing += (_, e) => { if (MacQuit.MinimizeMainframe(OperatingSystem.IsMacOS(), OperatingSystem.IsLinux(), finishing, e.CloseReason)) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };
             Sync();
         }
 

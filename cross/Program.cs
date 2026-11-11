@@ -110,6 +110,7 @@ namespace CapriDesktop
             if (desktop != null)
             {
                 Pet pet = new Pet(desktop);
+                if (OperatingSystem.IsMacOS()) pet.AttachMacQuit();
                 NativeMenu menu = pet.TrayMenu();
                 TrayIcon tray = new TrayIcon();
                 using (Stream chip = typeof(CapriApp).Assembly.GetManifestResourceStream("Capri.Chip.png")) tray.Icon = new WindowIcon(new Bitmap(chip));

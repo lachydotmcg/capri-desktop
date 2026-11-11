@@ -380,6 +380,17 @@ namespace CapriDesktop
             }, _ => { if (result != null) Say(result); }, "Keeping unsaved drafts…");
             return result ?? (kept ? null : "Couldn't keep the unsaved file drafts. The editor remains open.");
         }
+        // A system quit can't wait for the async lane, so unsaved text is written beside its file on the spot and offered back next time.
+        internal void KeepDraftsNow()
+        {
+            if (Over) return;
+            KeepCurrent();
+            foreach (NativeEditorDocument doc in docs)
+            {
+                string error = doc.KeepDraft();
+                if (error != null) Brain.Log("file-editor-draft", -1, error);
+            }
+        }
         internal async Task<string> PrepareShutdownAsync()
         {
             if (Over) return null;
@@ -389,7 +400,7 @@ namespace CapriDesktop
         }
         private void OnClosing(object sender, WindowClosingEventArgs e)
         {
-            if (permitted) return;
+            if (permitted || MacQuit.AllowClose(OperatingSystem.IsMacOS(), MacQuit.Quitting, e.CloseReason)) return;
             // Normal application shutdown is deferred by Pet.Finish until this lane
             // finishes. A compositor/OS shutdown may kill the process regardless;
             // cancel this close while recovery is pending instead of blocking UI.

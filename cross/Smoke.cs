@@ -148,6 +148,7 @@ namespace CapriDesktop
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
                 MacFiles.Checks(checks);
                 X11Safety.Checks(checks);
+                MacQuit.Checks(checks);
                 NewsChecks();
                 GuardChecks();
                 Ink.Check(checks);
@@ -2690,26 +2691,26 @@ namespace CapriDesktop
                 frame.Closed += (_, _) => closed++;
                 frame.Close();
                 if (pet.IsVisible != visible || pet.Leaving != leaving) throw new Exception("Closing Mainframe changed pet lifetime.");
-                if (OperatingSystem.IsLinux())
+                if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
                 {
-                    if (pet.Frame != null || closed != 1) throw new Exception("Linux Mainframe did not close and clear its cached instance.");
+                    if (pet.Frame != null || closed != 1) throw new Exception("Mainframe did not close and clear its cached instance.");
                 }
                 else if (pet.Frame != frame || frame.WindowState != WindowState.Minimized || closed != 0)
-                    throw new Exception("Non-Linux Mainframe did not retain its minimized taskbar window.");
+                    throw new Exception("Windows Mainframe did not retain its minimized taskbar window.");
                 string opened = Hands.Do("mainframe", new ToolArguments { Name = "settings" });
-                if (OperatingSystem.IsLinux())
+                if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())
                 {
-                    if (pet.Frame == null || pet.Frame == frame) throw new Exception("Linux Mainframe did not create a fresh instance.");
+                    if (pet.Frame == null || pet.Frame == frame) throw new Exception("Mainframe did not create a fresh instance.");
                     frame = pet.Frame;
                 }
                 if (opened != "Opened Capri Mainframe." || pet.Frame != frame || !frame.SettingsShown || frame.WindowState != WindowState.Normal || !Hands.KitFor().Tools.Contains("\"name\":\"mainframe\"")) throw new Exception("Her Mainframe tool did not restore the window and open Settings: " + opened);
                 frame.Close(); pet.Hear("Open your Mainframe");
-                if (OperatingSystem.IsLinux()) frame = pet.Frame ?? throw new Exception("Direct Mainframe request did not reopen it.");
+                if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) frame = pet.Frame ?? throw new Exception("Direct Mainframe request did not reopen it.");
                 if (frame.WindowState != WindowState.Normal || frame.SettingsShown) throw new Exception("Asking for her Mainframe did not open the main page.");
                 pet.SetAdvancedSettings(false); Hands.Do("mainframe", new ToolArguments { Name = "moves" });
                 if (!frame.SettingsShown || !pet.Saved.AdvancedSettings || !frame.Row("Wander").IsVisible) throw new Exception("A tool page did not unfold its advanced rows.");
                 pet.Talk.Dismiss();
-                checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps the pet running, closes the Linux window, and retains the non-Linux taskbar window");
+                checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps the pet running and closes the Mac and Linux window");
                 MainframePictures(frame, voice);
                 PlainChecks(frame, fields);
                 ModsChecks(frame);
