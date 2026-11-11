@@ -2832,7 +2832,6 @@ namespace CapriDesktop
         internal static string Pulled(string result)
         {
             if ((result ?? "").StartsWith("Hologram mode ", StringComparison.Ordinal)) return result;
-            if (Regex.IsMatch(result ?? "", @"^(Started your stopwatch|Stopped your stopwatch|Your stopwatch )")) return result;
 #if CROSS
             if (OnMac && (result == Ink.Question || result == "Cleared my drawing." || result == "Drew on your screen." || result == "Added to my drawing.")) return result;
 #else
@@ -2846,6 +2845,8 @@ namespace CapriDesktop
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
             if (Regex.IsMatch(result ?? "", @"^(One of me wasn't|There's (?:two|\d+ more) of me|Got rid of|I don't have any clones|Messing with your icons|Poof\. Your icons|Put your icons back|Your icons are already|I'm already in there|Couldn't get at your desktop|Couldn't put all your icons back|Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.|Gaming Mode|Moved my HUD|Put my HUD|My HUD)")) return result;
+            // So do her stopwatch's lines, or a second brain call could round or reword its time.
+            if (Regex.IsMatch(result ?? "", @"^(Started your stopwatch|Stopped your stopwatch|Your stopwatch )")) return result;
             Match searched = Regex.Match(result ?? "", @"^Searched google\.com for (.+)\.$");
             return searched.Success ? "Pulled up \"" + searched.Groups[1].Value + "\" on Google for you, choom." : null;
         }
@@ -2916,7 +2917,7 @@ namespace CapriDesktop
                 "I haven't saved that to my notes yet, choom. Say remember and what to keep." },
             { "remind", "remind routine", @"\breminder(?:'s| is)? (?:set|saved|added|created|scheduled)\b|\bi(?:'ll| will) remind you\b|(?<!\b(?:you|u|can|could|should|to|please|pls|gonna|wanna|want|how|i'd|i would)\s)\b(?:set|added|created|scheduled|made) (?:a|an|the|your|that) (?:\w+ )?reminder\b",
                 "I haven't set that reminder yet. Say remind me, what and when." },
-            { "stopwatch", "stopwatch", @"(?<!\b(?:not|never|haven't|hasn't|hadn't)\s)\b(?:started|stopped) (?:a|the|your|that) stopwatch\b|\b(?:your|the) stopwatch(?:'s| has been| is| was) (?:started|stopped)\b|^\W*(?:your|the) stopwatch (?:started|stopped)\b",
+            { "stopwatch", "stopwatch", @"(?<!\b(?:not|never|haven't|hasn't|hadn't)\s)\b(?:started|stopped) (?:a|the|your|that) stopwatch\b|\b(?:your|the) stopwatch(?:'s| has been| is| was) (?:now )?(?:started|stopped)\b|^\W*(?:(?:your|the) )?stopwatch (?:started|stopped)\b",
                 "Your stopwatch hasn't changed yet. Say start or stop the stopwatch." },
             { "watch_for", "watch_for", @"\bi(?:'ll| will) (?:tell|let) you know (?:when|as soon as|the moment|the second) (?:it|that|this|the|your|they|he|she|someone|something|a|an)\b|\bi(?:'ll| will) (?:keep|have) an eye (?:on|out)\b|\bi(?:'ll| will) (?:watch|look out) for\b|\bi(?:'m| am) (?:now )?(?:watching|keeping an eye on|keeping watch on) (?:your|the) screen\b",
                 "I'm not watching your screen for that yet. Say tell me when, and what to look for." },
@@ -3684,8 +3685,10 @@ namespace CapriDesktop
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
 #if CROSS
-            ToolArguments watch = Stopwatches.Request(text);
-            if (watch != null) { tool = "stopwatch"; args = watch; return true; }
+            // Mac and Linux have no reminders route to hear her stopwatch's words, so they're heard here. Windows hears them in
+            // Reminders.Route, before any brain, like a timer.
+            ToolArguments timing = Stopwatches.Request(text);
+            if (timing != null) { tool = "stopwatch"; args = timing; return true; }
             ToolArguments drawing = OnMac ? Ink.Request(text) : null;
             if (drawing != null) { tool = drawing.Task == null ? "draw" : "use_computer"; args = drawing; if (drawing.Task != null) args.Task = said; return true; }
 #endif

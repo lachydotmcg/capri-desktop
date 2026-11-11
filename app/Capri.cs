@@ -19367,6 +19367,8 @@ namespace CapriDesktop
                     || new Reminders(reminderFolder, reminderNow).Take(reminderNow.AddHours(3)) != null) throw new Exception("Reminder cancellation did not keep whole word boundaries.");
                 checks.Add("PASS cancelling a reminder rejects the and my alone and partial words, keeps the saved reminder intact, and cancels a whole word phrase");
 
+                // Her stopwatch (#181), on a clock moved by hand. Her set phrases reach it on every brain and nothing longer does, and a
+                // bare "how long has it been" only does while it runs. Timers keep their own words, and a saved routine still wins.
                 if (Stopwatches.Running) Stopwatches.Do(new ToolArguments { Action = "stop" });
                 TimeSpan stopwatchNow = TimeSpan.FromHours(3), stopwatchStart = stopwatchNow;
                 Stopwatches.Clock = delegate { return stopwatchNow; };
@@ -19374,65 +19376,48 @@ namespace CapriDesktop
                 ToolArguments stopwatchArgs;
                 string[,] stopwatchRoutes =
                 {
-                    { "start a stopwatch", "start" }, { "Hey Capri, start the stopwatch please", "start" },
-                    { "start the stopwatch", "start" }, { "start my stopwatch", "start" }, { "start stopwatch", "start" },
-                    { "begin a stopwatch", "start" }, { "set a stopwatch", "start" }, { "put a stopwatch on", "start" },
-                    { "turn on the stopwatch", "start" }, { "stopwatch", "start" }, { "stopwatch start", "start" }, { "stopwatch on", "start" },
-                    { "check the stopwatch", "check" }, { "check my stopwatch", "check" }, { "check stopwatch", "check" },
-                    { "how long has the stopwatch been running", "check" }, { "how long has my stopwatch been running", "check" },
-                    { "how long has the stopwatch been going", "check" }, { "how long has my stopwatch been going", "check" },
-                    { "how long has the stopwatch been on", "check" }, { "how long has my stopwatch been on", "check" },
-                    { "what's the stopwatch at", "check" }, { "what's my stopwatch at", "check" },
-                    { "what's the stopwatch on", "check" }, { "what's my stopwatch on", "check" },
-                    { "what does the stopwatch say", "check" }, { "what does my stopwatch say", "check" },
-                    { "is my stopwatch running", "check" }, { "is the stopwatch running", "check" },
-                    { "is my stopwatch still running", "check" }, { "is the stopwatch still running", "check" },
-                    { "is my stopwatch going", "check" }, { "is the stopwatch going", "check" },
-                    { "stop the stopwatch", "stop" }, { "stop my stopwatch", "stop" }, { "stop stopwatch", "stop" },
-                    { "end the stopwatch", "stop" }, { "kill the stopwatch", "stop" }, { "cancel the stopwatch", "stop" },
-                    { "turn off the stopwatch", "stop" }, { "turn the stopwatch off", "stop" },
-                    { "stopwatch stop", "stop" }, { "stopwatch off", "stop" }
+                    { "start a stopwatch", "start" }, { "Hey Capri, start the stopwatch please", "start" }, { "start stopwatch", "start" }, { "begin a stopwatch", "start" },
+                    { "set up a stopwatch", "start" }, { "put a stopwatch on", "start" }, { "turn on the stopwatch", "start" }, { "stopwatch", "start" }, { "stopwatch on", "start" },
+                    { "check my stopwatch", "check" }, { "check stopwatch", "check" }, { "how long has the stopwatch been running", "check" }, { "how long has my stopwatch been going", "check" },
+                    { "what's my stopwatch at", "check" }, { "whats the stopwatch on", "check" }, { "what does the stopwatch say", "check" }, { "is my stopwatch still running", "check" }, { "is the stopwatch on", "check" },
+                    { "stop the stopwatch", "stop" }, { "stop stopwatch", "stop" }, { "end my stopwatch", "stop" }, { "cancel the stopwatch", "stop" }, { "turn off the stopwatch", "stop" },
+                    { "turn the stopwatch off", "stop" }, { "stopwatch off", "stop" }
                 };
                 for (int i = 0; i < stopwatchRoutes.GetLength(0); i++)
                     if (!Hands.Heard(stopwatchRoutes[i, 0], out stopwatchTool, out stopwatchArgs) || stopwatchTool != "stopwatch" || stopwatchArgs.Action != stopwatchRoutes[i, 1] || !Hands.Valid(stopwatchTool, stopwatchArgs) || !Hands.Instant(stopwatchTool, stopwatchArgs)) throw new Exception("A stopwatch route was wrong: " + stopwatchRoutes[i, 0]);
-                foreach (string stopwatchOther in new[] { "what's a stopwatch", "I lost my stopwatch", "how long has it been since we talked", "pause the stopwatch", "reset the stopwatch", "lap the stopwatch", "new stopwatch", "start a new stopwatch", "start a stopwatch and play music", "check my stopwatch later" })
-                    if (Stopwatches.Request(Hands.Asked(stopwatchOther)) != null || Hands.Heard(stopwatchOther, out stopwatchTool, out stopwatchArgs) && stopwatchTool == "stopwatch") throw new Exception("A longer ask or unsupported action reached the stopwatch: " + stopwatchOther);
-                string[] stopwatchQuestions = { "how long has it been", "how long's it been", "how long has it been running", "how long's it been running", "how long has it been going", "how long's it been going", "how long has it been so far", "how long's it been so far" };
+                foreach (string stopwatchOther in new[] { "what's a stopwatch", "I lost my stopwatch", "how long has it been since we talked", "pause the stopwatch", "reset the stopwatch", "lap the stopwatch", "start a new stopwatch", "start a stopwatch and play music", "check my stopwatch later" })
+                    if (Stopwatches.Request(Hands.Asked(stopwatchOther)) != null || Hands.Heard(stopwatchOther, out stopwatchTool, out stopwatchArgs) && stopwatchTool == "stopwatch") throw new Exception("A longer ask or one her stopwatch doesn't do reached it: " + stopwatchOther);
+                string[] stopwatchQuestions = { "how long has it been", "how long's it been", "how long has it been running", "how long's it been going", "how long has it been so far" };
                 foreach (string stopwatchQuestion in stopwatchQuestions)
-                    if (Hands.Heard(stopwatchQuestion, out stopwatchTool, out stopwatchArgs) && stopwatchTool == "stopwatch") throw new Exception("A stopped stopwatch took a general time question: " + stopwatchQuestion);
-                checks.Add("PASS stopwatch phrases reach a valid instant tool, while longer asks, unsupported actions and general time questions while stopped stay with her brain.");
+                    if (Hands.Heard(stopwatchQuestion, out stopwatchTool, out stopwatchArgs) && stopwatchTool == "stopwatch") throw new Exception("A question went to a stopwatch that isn't running: " + stopwatchQuestion);
+                if (!Hands.Heard("set a timer for 10 minutes", out stopwatchTool, out stopwatchArgs) || stopwatchTool != "remind" || stopwatchArgs.Text != "your 10 minute timer is done" || stopwatchArgs.When != "in 10 minutes" || !DoTool(stopwatchTool, stopwatchArgs).StartsWith("I'll remind you ", StringComparison.Ordinal)) throw new Exception("The stopwatch changed how a timer is set.");
+                foreach (string timerStop in new[] { "cancel my timer", "stop the timer" })
+                    if (!Hands.Heard(timerStop, out stopwatchTool, out stopwatchArgs) || stopwatchTool != "remind" || stopwatchArgs.Action != "cancel" || stopwatchArgs.Text != "timer") throw new Exception("The stopwatch took a timer's cancel: " + timerStop);
+                if (DoTool(stopwatchTool, stopwatchArgs) != "Cancelled your reminder: your 10 minute timer is done") throw new Exception("A timer did not cancel through remind.");
+                reminders.Routine(new ToolArguments { Phrase = "start a stopwatch", Steps = "blink" });
+                if (!Hands.Heard("start a stopwatch", out stopwatchTool, out stopwatchArgs) || stopwatchTool != "routine" || stopwatchArgs.Action != "run") throw new Exception("The stopwatch took a saved routine's phrase.");
+                reminders.Routine(new ToolArguments { Action = "forget", Phrase = "start a stopwatch" });
+                if (!Hands.Heard("start a stopwatch", out stopwatchTool, out stopwatchArgs) || stopwatchTool != "stopwatch") throw new Exception("A forgotten routine kept its stopwatch phrase.");
+                checks.Add("PASS her stopwatch's phrases reach it on every brain, while longer asks, pause, reset, laps and how long has it been with no stopwatch running stay with her brain; set a timer and stop the timer still go to remind, and a saved routine with the same phrase wins");
 
                 if (DoTool("stopwatch", new ToolArguments { Action = "check" }) != "Your stopwatch isn't running." || DoTool("stopwatch", new ToolArguments { Action = "stop" }) != "Your stopwatch isn't running." || Stopwatches.Running) throw new Exception("A stopwatch ran before it started.");
                 if (DoTool("stopwatch", new ToolArguments { Action = "start" }) != "Started your stopwatch." || !Stopwatches.Running) throw new Exception("The stopwatch did not start.");
                 stopwatchNow = stopwatchStart + TimeSpan.FromMilliseconds(252600);
                 foreach (string stopwatchQuestion in stopwatchQuestions)
-                    if (!Hands.Heard(stopwatchQuestion, out stopwatchTool, out stopwatchArgs) || stopwatchTool != "stopwatch" || stopwatchArgs.Action != "check" || !Hands.Valid(stopwatchTool, stopwatchArgs) || DoTool(stopwatchTool, stopwatchArgs) != "Your stopwatch is at 4 minutes 12 seconds.") throw new Exception("A running stopwatch lost its time question: " + stopwatchQuestion);
+                    if (!Hands.Heard(stopwatchQuestion, out stopwatchTool, out stopwatchArgs) || stopwatchTool != "stopwatch" || stopwatchArgs.Action != "check" || DoTool(stopwatchTool, stopwatchArgs) != "Your stopwatch is at 4 minutes 12 seconds.") throw new Exception("A running stopwatch missed a question or its time: " + stopwatchQuestion);
                 stopwatchNow = stopwatchStart + TimeSpan.FromSeconds(303);
-                if (DoTool("stopwatch", new ToolArguments { Action = "start" }) != "Your stopwatch is already running: 5 minutes 3 seconds." || DoTool("stopwatch", new ToolArguments()) != "Your stopwatch is already running: 5 minutes 3 seconds." || !Stopwatches.Running) throw new Exception("Starting a running stopwatch lost its first start.");
+                if (DoTool("stopwatch", new ToolArguments { Action = "start" }) != "Your stopwatch is already running: 5 minutes 3 seconds." || DoTool("stopwatch", new ToolArguments()) != "Your stopwatch is already running: 5 minutes 3 seconds.") throw new Exception("Starting a running stopwatch lost its first start.");
                 stopwatchNow = stopwatchStart + TimeSpan.FromMilliseconds(3725900);
                 if (DoTool("stopwatch", new ToolArguments { Action = "stop" }) != "Stopped your stopwatch at 1 hour 2 minutes 5 seconds." || Stopwatches.Running || DoTool("stopwatch", new ToolArguments { Action = "check" }) != "Your stopwatch isn't running.") throw new Exception("The stopwatch lost its final time or kept running.");
-                if (Hands.Heard("how long has it been", out stopwatchTool, out stopwatchArgs) && stopwatchTool == "stopwatch") throw new Exception("A stopped stopwatch kept taking time questions.");
-                if (!Hands.Valid("stopwatch", new ToolArguments()) || !Hands.Valid("stopwatch", new ToolArguments { Action = "" }) || DoTool("stopwatch", new ToolArguments()) != "Started your stopwatch." || DoTool("stopwatch", new ToolArguments { Action = "check" }) != "Your stopwatch is at 0 seconds." || DoTool("stopwatch", new ToolArguments { Action = "stop" }) != "Stopped your stopwatch at 0 seconds.") throw new Exception("The default stopwatch action did not start a fresh count.");
-                if (Stopwatches.Words(TimeSpan.FromMilliseconds(900)) != "0 seconds" || Stopwatches.Words(TimeSpan.FromSeconds(1)) != "1 second" || Stopwatches.Words(TimeSpan.FromSeconds(61)) != "1 minute 1 second" || Stopwatches.Words(TimeSpan.FromHours(2)) != "2 hours" || Stopwatches.Words(TimeSpan.FromHours(26)) != "26 hours") throw new Exception("Stopwatch words rounded up, lost singular units or counted days.");
-                checks.Add("PASS the stopwatch starts, floors elapsed seconds, keeps its first start, reports its final time, stops and starts a fresh count without laps.");
-
+                if (Hands.Heard("how long has it been", out stopwatchTool, out stopwatchArgs) && stopwatchTool == "stopwatch") throw new Exception("A stopped stopwatch kept taking how long has it been.");
+                if (DoTool("stopwatch", new ToolArguments()) != "Started your stopwatch." || DoTool("stopwatch", new ToolArguments { Action = "stop" }) != "Stopped your stopwatch at 0 seconds.") throw new Exception("A stopwatch started again didn't count from 0.");
+                if (Stopwatches.Words(TimeSpan.FromMilliseconds(900)) != "0 seconds" || Stopwatches.Words(TimeSpan.FromSeconds(1)) != "1 second" || Stopwatches.Words(TimeSpan.FromSeconds(61)) != "1 minute 1 second" || Stopwatches.Words(TimeSpan.FromHours(2)) != "2 hours" || Stopwatches.Words(TimeSpan.FromHours(26)) != "26 hours") throw new Exception("Stopwatch times rounded up, lost singular units or counted days.");
                 if (!Hands.Typed("stopwatch{\"action\":\"stop\"}", out stopwatchTool, out stopwatchArgs) || stopwatchTool != "stopwatch" || stopwatchArgs.Action != "stop"
                     || !Hands.Typed("stopwatch(start)", out stopwatchTool, out stopwatchArgs, true) || stopwatchTool != "stopwatch" || stopwatchArgs.Action != "start"
-                    || Hands.Valid("stopwatch", new ToolArguments { Action = "lap" }) || Hands.Do("stopwatch", new ToolArguments { Action = "lap" }) != "Couldn't find that stopwatch action.") throw new Exception("A brain's stopwatch call lost its action or accepted a lap.");
+                    || Hands.Valid("stopwatch", new ToolArguments { Action = "lap" }) || Hands.Do("stopwatch", new ToolArguments { Action = "lap" }) != "Couldn't find that stopwatch action.") throw new Exception("A brain's stopwatch call lost its action or took a lap.");
                 foreach (string stopwatchLine in new[] { "Started your stopwatch.", "Your stopwatch is at 4 minutes 12 seconds.", "Your stopwatch is already running: 5 minutes 3 seconds.", "Stopped your stopwatch at 1 hour 2 minutes 5 seconds.", "Your stopwatch isn't running." })
-                    if (Hands.Pulled(stopwatchLine) != stopwatchLine) throw new Exception("A stopwatch line was sent back to her brain: " + stopwatchLine);
-                if (RemoteToolWords("stopwatch", new ToolArguments { Action = "check" }) != "Stopwatch") throw new Exception("The phone lost the stopwatch label.");
-                checks.Add("PASS brain calls read stopwatch actions, reject laps and keep stopwatch replies unchanged, and the phone labels the tool Stopwatch.");
-
-                if (!Hands.Heard("set a timer for 10 minutes", out stopwatchTool, out stopwatchArgs) || stopwatchTool != "remind" || stopwatchArgs.Text != "your 10 minute timer is done" || stopwatchArgs.When != "in 10 minutes" || !Hands.Valid(stopwatchTool, stopwatchArgs) || !DoTool(stopwatchTool, stopwatchArgs).StartsWith("I'll remind you ", StringComparison.Ordinal)) throw new Exception("The stopwatch changed timer creation.");
-                foreach (string timerStop in new[] { "cancel my timer", "stop the timer" })
-                    if (!Hands.Heard(timerStop, out stopwatchTool, out stopwatchArgs) || stopwatchTool != "remind" || stopwatchArgs.Action != "cancel" || stopwatchArgs.Text != "timer" || !Hands.Valid(stopwatchTool, stopwatchArgs)) throw new Exception("The stopwatch took a timer cancellation: " + timerStop);
-                if (DoTool(stopwatchTool, stopwatchArgs) != "Cancelled your reminder: your 10 minute timer is done") throw new Exception("A timer did not cancel through remind.");
-                reminders.Routine(new ToolArguments { Phrase = "start a stopwatch", Steps = "blink" });
-                if (!Hands.Heard("start a stopwatch", out stopwatchTool, out stopwatchArgs) || stopwatchTool != "routine" || stopwatchArgs.Action != "run" || Stopwatches.Running) throw new Exception("The stopwatch took a saved routine phrase.");
-                reminders.Routine(new ToolArguments { Action = "forget", Phrase = "start a stopwatch" });
-                if (!Hands.Heard("start a stopwatch", out stopwatchTool, out stopwatchArgs) || stopwatchTool != "stopwatch" || stopwatchArgs.Action != "start") throw new Exception("Forgetting a routine did not release its stopwatch phrase.");
-                checks.Add("PASS timers still use remind to set and cancel, and saved routines win over the same stopwatch phrase.");
+                    if (Hands.Pulled(stopwatchLine) != stopwatchLine) throw new Exception("A stopwatch line would go back to her brain: " + stopwatchLine);
+                checks.Add("PASS her stopwatch on a fake clock: check and stop before a start say it isn't running, how long has it been and stop say its time in whole seconds like 4 minutes 12 seconds, starting it while it runs keeps the first start and says how long it's been, a brain's call reads its action and a lap is refused, and her stopwatch lines go out as they are");
 
                 System.Collections.Generic.List<string> routineRuns = new System.Collections.Generic.List<string>();
                 Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Premiere", "premiere"), new InstalledApp("Spotify", "spotify") }; };
@@ -19485,18 +19470,15 @@ namespace CapriDesktop
                 while (reply == null && reminderWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
                 if (reminderBrainCalls != 0 || reply == null || !reply.Contains(": stretch")) throw new Exception("A complete reminder went to her brain.");
                 CloseTalk();
-                Func<string, string> reminderThink = Think;
-                int stopwatchBrainCalls = 0;
-                Think = delegate { stopwatchBrainCalls++; return "Unexpected brain call."; };
-                if (DoTool("stopwatch", new ToolArguments { Action = "start" }) != "Started your stopwatch.") throw new Exception("The stopwatch did not start before the reply check.");
+                // Like a timer, her stopwatch answers before her brain, so its time can't wait on a reply.
+                DoTool("stopwatch", new ToolArguments { Action = "start" });
                 stopwatchNow += TimeSpan.FromMilliseconds(252600);
                 Hear("how long has it been");
-                Stopwatch stopwatchWait = Stopwatch.StartNew();
-                while (reply == null && stopwatchWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
-                if (stopwatchBrainCalls != 0 || reply != "Your stopwatch is at 4 minutes 12 seconds.") throw new Exception("A stopwatch time question went to her brain or lost its exact reply.");
+                reminderWait.Restart();
+                while (reply == null && reminderWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
                 DoTool("stopwatch", new ToolArguments { Action = "stop" });
-                Think = reminderThink;
-                checks.Add("PASS a running stopwatch answers how long has it been before her brain with its exact elapsed time.");
+                if (reminderBrainCalls != 0 || reply != "Your stopwatch is at 4 minutes 12 seconds.") throw new Exception("How long has it been went to her brain or lost the stopwatch's time: " + (reply ?? "no reply"));
+                checks.Add("PASS how long has it been, asked while her stopwatch runs, is answered before her brain with its time to the second");
                 CloseTalk();
                 int reminderVoices = 0;
                 byte[] reminderWav = Voice.Wave(new short[8000], 16000);
@@ -29234,9 +29216,8 @@ namespace CapriDesktop
             {
                 { "Got it, I'll remember that!", "remember" }, { "Saved that to my notes.", "remember" }, { "I'll remember this day forever.", "" },
                 { "Reminder set for 5pm.", "remind" }, { "I'll remind you at 5.", "remind" }, { "Should I set a reminder?", "" },
-                { "Started your stopwatch!", "stopwatch" }, { "Your stopwatch has been stopped.", "stopwatch" }, { "Want me to start a stopwatch?", "" },
-                { "Your stopwatch is running.", "" }, { "I can start a stopwatch for you.", "" },
-                { "I can get your stopwatch started.", "" }, { "I haven't started your stopwatch.", "" }, { "Your stopwatch started.", "stopwatch" },
+                { "Started your stopwatch!", "stopwatch" }, { "Stopwatch started!", "stopwatch" }, { "Your stopwatch has been stopped.", "stopwatch" }, { "Want me to start a stopwatch?", "" },
+                { "Your stopwatch is running.", "" }, { "I can get your stopwatch started.", "" }, { "I haven't started your stopwatch.", "" },
                 { "I'll let you know when it's done.", "watch_for" }, { "I'll tell you when I think of one.", "" }, { "I'll keep an eye on it.", "watch_for" },
                 { "We're watching it together now.", "watch_along" }, { "Here come my clones!", "clone" }, { "*dances* Let's go!", "animate" }, { "*grins* Nice one.", "" },
                 { "I'm going to sleep, night!", "nap" }, { "Are you going to sleep?", "" }, { "I'm on my way over.", "move_yourself" }, { "Clipped it!", "clip" },
@@ -29251,10 +29232,9 @@ namespace CapriDesktop
                 || Hands.Unclaimed("Blue's elite. I'll remember that, choom.", none) != "Blue's elite." || Hands.Unclaimed("*dances* Let's go!", none) != "Let's go!" || Hands.Unclaimed("Reminder set!", none) != null
                 || Hands.NotYet("remember", Hands.KitFor()) != "I haven't saved that to my notes yet, choom. Say remember and what to keep." || Hands.NotYet("open_app", null) != Hands.Unpromised
                 || Hands.Claimed("Turned off live reactions.", ran("capri_settings")) != null || Hands.NotYet("capri_settings", Hands.KitFor()) != "That setting hasn't changed yet. It's in Capri Mainframe > Settings."
+                || Hands.Claimed("Started your stopwatch!", ran("stopwatch")) != null || Hands.Claimed("Your stopwatch has been stopped.", ran("remind")) != "stopwatch" || Hands.NotYet("stopwatch", null) != "Your stopwatch hasn't changed yet. Say start or stop the stopwatch."
                 || !Hands.Admits("Couldn't open it, choom.") || Hands.Admits("Queued you up, choom."))
                 throw new Exception("Her claims weren't checked against the tools that ran.");
-            if (Hands.Claimed("Started your stopwatch!", ran("stopwatch")) != null || Hands.Claimed("Your stopwatch has been stopped.", ran("remind")) != "stopwatch" || Hands.NotYet("stopwatch", null) != "Your stopwatch hasn't changed yet. Say start or stop the stopwatch.") throw new Exception("A stopwatch claim lost its tool or correction.");
-            checks.Add("PASS stopwatch claims need the stopwatch tool, leave offers and running status alone, and say how to start or stop it when nothing ran.");
             System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
             System.Net.Sockets.TcpListener fake = null;
             Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
@@ -29299,7 +29279,7 @@ namespace CapriDesktop
                 if (saved != "Saved it, choom." || stripped != "Octopuses have three hearts." || opened != "Opened spotify." || discord != "Discord's up, choom." || failed != "No app called Spotify is installed on this PC." || wordless != "Opened Discord."
                     || string.Join(",", did.ToArray()) != "remember,open_app,open_app,open_app,open_app" || sent.Length != 13 || !sent[8].Contains("You said you did something that needs remind"))
                     throw new Exception("A claim with no tool behind it reached them: " + saved + " / " + stripped + " / " + opened + " / " + discord + " / " + failed + " / " + wordless + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
-                checks.Add("PASS claims: \"I'll remember that\", reminders, watches, watching along, clones, dancing, naps, moving, clips, drawing, screenshots, Gaming Mode, routines and switching her own settings count as claims, questions, chat and how a setting starts out don't; a claim with no tool gives her hands a go and comes out of her reply when they find nothing, a claim after other tools ran comes out too, her planner gets one reminder for it, and her planner's last line can't say a failed step worked");
+                checks.Add("PASS claims: \"I'll remember that\", reminders, watches, watching along, clones, dancing, naps, moving, clips, drawing, screenshots, Gaming Mode, routines, her stopwatch and switching her own settings count as claims, questions, chat and how a setting starts out don't; a claim with no tool gives her hands a go and comes out of her reply when they find nothing, a claim after other tools ran comes out too, her planner gets one reminder for it, and her planner's last line can't say a failed step worked");
             }
             finally
             {
