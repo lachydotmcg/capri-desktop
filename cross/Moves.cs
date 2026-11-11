@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Avalonia;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 using Avalonia.Threading;
 
 namespace CapriDesktop
@@ -295,13 +297,15 @@ namespace CapriDesktop
         internal static void MoveChecks(Pet pet, List<string> checks)
         {
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
-            string[] names = { "anchor", "seat", "fallTo", "falling", "fallSpeed", "fallStep", "hanging", "walking", "walkTo", "walkStep", "walkCarry", "dragging", "pressed", "dropAfter", "outro", "outroAt", "clip", "clipStart", "idleCycle", "blinkWith", "nextGlitch", "coveredSince", "seatLost", "napAsked", "napping", "dancing", "lying", "riding", "askedHop", "lieBy", "Arrivals" };
+            string[] names = { "anchor", "seat", "fallTo", "falling", "fallSpeed", "fallStep", "hanging", "walking", "walkTo", "walkStep", "walkCarry", "dragging", "pressed", "dropAfter", "outro", "outroAt", "clip", "clipStart", "idleCycle", "blinkWith", "nextGlitch", "coveredSince", "seatLost", "napAsked", "napping", "dancing", "lying", "riding", "askedHop", "lieBy", "Arrivals", "desktopPress", "desktopDrag", "desktopReleased", "desktopMovedAt", "desktopReported", "dragAt", "dragPending", "downAt", "grab", "grabDip", "pointer", "holder", "clicks" };
             Dictionary<string, object> before = new Dictionary<string, object>();
             foreach (string name in names) before[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
             Desk desk = pet.Desk;
             Func<PixelPoint?> mouse = pet.MouseAt;
             Action<PixelPoint> moveTo = pet.MoveTo;
             Func<double> clock = pet.MoveClock;
+            Func<Point, PixelPoint> toScreen = pet.ToScreen;
+            Action<PointerPressedEventArgs> moveDrag = pet.MoveDrag;
             Func<bool, bool> through = pet.RideThrough;
             Action<Action> post = pet.MovePost;
             Func<string, bool?> setting = Hands.SettingOn;
@@ -315,7 +319,7 @@ namespace CapriDesktop
             var trusted = MacFingers.Trusted;
             var sink = MacFingers.Sink;
             var pause = MacFingers.Pause;
-            PixelPoint[] asked = pet.asked.ToArray();
+            MoveReports asked = pet.asked.Copy();
             PixelRect area = new PixelRect(-800, -100, 1600, 1000);
             double now = 0;
             PixelPoint? cursor = new PixelPoint(0, 400);
@@ -525,11 +529,119 @@ namespace CapriDesktop
                 checks.Add("PASS asked moves on Mac and Linux use her walk, perch and laydown clips, keep her in the work area, land on real seats and stop for dragging, naps and work");
                 checks.Add("PASS sit up and hop off end their moves, losing the cursor drops her safely, Linux finds a named window and Mac keeps its named window gap");
                 checks.Add("PASS non-job tools and Mac shortcuts keep moves running, job input holds stop moves, background stops post without waiting, and rides restore hologram click-through");
+                fake.Shown.Clear();
+                pet.desktopDrag = pet.desktopReleased = false;
+                pet.pressed = pet.dragging = false;
+                foreach (string kind in new[] { "late", "offset", "rounding", "clamping" })
+                {
+                    now += 10;
+                    pet.StandUp();
+                    pet.body.FacingLeft = false;
+                    pet.asked = new MoveReports();
+                    int floor = pet.Seated(0, area.Bottom).Y + pet.Px(pet.FrameY);
+                    var answers = new MoveReports.TestDesk(kind, floor - 40);
+                    pet.MoveTo = at => answers.Ask(at, now);
+                    pet.Move(new PixelPoint(area.X + area.Width / 2, area.Y + 10));
+                    pet.Arrive(true);
+                    for (int i = 0; i < 1320; i++)
+                    {
+                        now += 0.05;
+                        PixelPoint was = pet.anchor;
+                        bool fell = pet.falling;
+                        pet.TickMoveReports(now);
+                        pet.TickMoves(now);
+                        if (pet.falling) pet.Tumble(now);
+                        else if (pet.seat != null) pet.HoldSeat(now);
+                        if (i == 650) pet.SetFacing(true);
+                        pet.Advance(now);
+                        answers.Answer(now, at => { if (OperatingSystem.IsLinux()) pet.FollowPosition(at); });
+                        if (fell && pet.anchor.Y < was.Y) throw new Exception(kind + " moved her fall back up through MoveTo.");
+                        if (i > 120 && i != 650 && pet.anchor != was) throw new Exception(kind + " moved her at idle through MoveTo.");
+                    }
+                    if (pet.falling || pet.asked.Takes > 1) throw new Exception(kind + " did not settle her pop-in fall.");
+                    checks.Add("PASS " + kind + " reports through MoveTo keep a pop-in fall and 60 seconds idle still");
+                }
+                pet.MoveTo = _ => { };
+                pet.asked = new MoveReports();
+                if (OperatingSystem.IsLinux())
+                {
+                    now += 10;
+                    for (int i = 0; i < 3; i++) pet.asked.Asked(new PixelPoint(100 + i * 20, 100), now + i * 0.05, true);
+                    now += 1.2;
+                    pet.TickMoveReports(now);
+                    if (!pet.MoveStuck) throw new Exception("Dropped window moves did not leave her stuck.");
+                    int count = 0;
+                    pet.MoveTo = _ => count++;
+                    PixelPoint at = pet.anchor;
+                    pet.Fall();
+                    pet.Hop(new Ledge { Left = area.X, Right = area.Right, Y = area.Bottom, Floor = true }, 0);
+                    bool wandered = pet.Wander(), strolled = pet.Stroll();
+                    pet.Drop();
+                    if (count != 0 || pet.anchor != at || pet.falling || wandered || strolled) throw new Exception("A stuck window tried to fall, hop, wander or stroll.");
+                    checks.Add("PASS a stuck Linux window stays standing through Fall, Hop, Wander, Stroll and a drop");
+                }
+                pet.StandUp();
+                pet.pressed = pet.dragging = pet.desktopDrag = pet.desktopReleased = false;
+                pet.MouseAt = () => null;
+                pet.ToScreen = at => new PixelPoint((int)Math.Round(at.X * pet.DesktopScaling), (int)Math.Round(at.Y * pet.DesktopScaling));
+                int moved = 0, began = 0;
+                pet.MoveTo = _ => moved++;
+                using (var mousePointer = new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true))
+                {
+                    pet.MoveDrag = args => { began++; if (args != pet.desktopPress) throw new Exception("The compositor drag lost its press event."); mousePointer.Capture(null); };
+                    Point local = pet.BodySpot() ?? throw new Exception("No body spot for the compositor drag check.");
+                    pet.RaiseEvent(new PointerPressedEventArgs(pet, mousePointer, pet, local, 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+                    Point pulled = new Point(local.X + 10 / pet.DesktopScaling, local.Y);
+                    pet.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, pet, mousePointer, pet, pulled, 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other), KeyModifiers.None));
+                    pet.DragFrame();
+                    if (OperatingSystem.IsLinux())
+                    {
+                        if (began != 1 || moved != 0 || !pet.desktopDrag || !pet.pressed || !pet.dragging) throw new Exception("A Linux compositor drag moved her itself or let go on capture loss.");
+                        PixelPoint report = new PixelPoint(pet.WindowAt.X + 40, pet.WindowAt.Y + 20);
+                        pet.DesktopPosition(report);
+                        if (pet.WindowAt != report) throw new Exception("A compositor drag did not take its position immediately.");
+                        for (int i = 0; i < 4; i++)
+                        {
+                            now += 0.6;
+                            report = new PixelPoint(report.X + 1, report.Y);
+                            pet.DesktopPosition(report);
+                            pet.TickMoveReports(now);
+                            if (!pet.desktopDrag) throw new Exception("A slow compositor drag timed out while moving.");
+                        }
+                        now += 5.1; pet.TickMoveReports(now);
+                        if (pet.desktopDrag || pet.pressed || pet.dragging || pet.falling || pet.WindowAt != report) throw new Exception("A quiet stuck compositor drag did not end in place.");
+                        report = new PixelPoint(report.X + 20, report.Y);
+                        pet.DesktopPosition(report);
+                        if (!pet.desktopDrag || pet.WindowAt != report) throw new Exception("A resumed compositor drag was not held again.");
+                    }
+                    else if (began != 0 || moved != 1 || !pet.dragging) throw new Exception("Mac dragging changed to a compositor drag.");
+                    pet.RaiseEvent(new PointerReleasedEventArgs(pet, mousePointer, pet, pulled, 0, new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+                    if (pet.dragging || pet.pressed || pet.desktopDrag) throw new Exception("A left-up event did not end the drag.");
+                }
+                checks.Add(OperatingSystem.IsLinux() ? "PASS a Linux drag past five pixels uses BeginMoveDrag, survives lost capture, follows reports, ends when quiet and resumes if moved again" : "PASS Mac dragging still moves her once per frame without BeginMoveDrag");
+                if (OperatingSystem.IsLinux())
+                {
+                    pet.asked = new MoveReports();
+                    pet.desktopDrag = pet.desktopReleased = false;
+                    pet.StandUp();
+                    pet.Move(new PixelPoint(0, area.Y + 10));
+                    pet.StartDesktopHold();
+                    pet.EndDesktopDrag();
+                    if (!pet.falling) throw new Exception("A compositor drag without stuck movement did not drop.");
+                    now += 0.05;
+                    pet.Tumble(now);
+                    PixelPoint target = pet.WindowAt;
+                    pet.DesktopPosition(new PixelPoint(target.X, target.Y - 1), true);
+                    pet.DesktopPosition(target, true);
+                    if (pet.desktopDrag || pet.dragging || pet.pressed || !pet.falling) throw new Exception("Her own post-drag fall was held again.");
+                    checks.Add("PASS her own niri drop reports do not resume an interactive drag");
+                }
             }
             finally
             {
                 pet.Talk.Dismiss();
                 pet.MoveClock = clock; pet.MoveArea = moveArea;
+                pet.ToScreen = toScreen; pet.MoveDrag = moveDrag;
                 pet.RideThrough = through; Hands.SettingOn = setting; InControl.Changed = control;
                 pet.MovePost = post;
                 pet.Desk = desk; pet.MouseAt = mouse; pet.MoveTo = moveTo;
@@ -537,7 +649,7 @@ namespace CapriDesktop
                 foreach (string name in names) typeof(Pet).GetField(name, fields).SetValue(pet, before[name]);
                 pet.body.FacingLeft = facing;
                 pet.Fit();
-                pet.asked.Clear(); pet.asked.AddRange(asked);
+                pet.asked = asked;
                 pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
                 pet.Saved.Hologram = hologram;
                 MacFingers.Trusted = trusted; MacFingers.Sink = sink; MacFingers.Pause = pause;

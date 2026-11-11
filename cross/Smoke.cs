@@ -148,6 +148,8 @@ namespace CapriDesktop
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
                 MacFiles.Checks(checks);
                 X11Safety.Checks(checks);
+                MoveReports.Checks(checks);
+                NiriDesktop.Checks(checks);
                 MacQuit.Checks(checks);
                 NewsChecks();
                 GuardChecks();
@@ -2037,8 +2039,9 @@ namespace CapriDesktop
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
             Dictionary<string, object> before = new Dictionary<string, object>();
             foreach (string name in new[] { "anchor", "pressed", "dragging", "dragAt", "dragPending", "downAt", "grab", "pointer", "clicks", "seat", "walking", "hanging", "dropAfter", "falling", "fallTo", "fallSpeed", "fallStep", "clip", "clipStart", "idleCycle", "blinkWith", "coveredSince", "seatLost", "napAsked" }) before[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
-            List<PixelPoint> asked = (List<PixelPoint>)typeof(Pet).GetField("asked", fields).GetValue(pet);
-            PixelPoint[] askedWas = asked.ToArray();
+            MoveReports asked = (MoveReports)typeof(Pet).GetField("asked", fields).GetValue(pet);
+            MoveReports askedWas = asked.Copy();
+            Func<double> moveClock = (Func<double>)typeof(Pet).GetField("MoveClock", fields).GetValue(pet);
             Desk desk = pet.Desk;
             Func<PixelPoint?> mouseAt = pet.MouseAt;
             Action<PixelPoint> moveTo = pet.MoveTo;
@@ -2232,12 +2235,20 @@ namespace CapriDesktop
 
                 if (linux)
                 {
+                    double now = pet.Now;
+                    typeof(Pet).GetField("MoveClock", fields).SetValue(pet, new Func<double>(() => now));
+                    asked.Clear();
                     pet.StandUp();
                     pet.Move(start);
                     moves.Clear();
                     typeof(Pet).GetField("walking", fields).SetValue(pet, true);
                     typeof(Pet).GetField("seat", fields).SetValue(pet, new Ledge { Floor = true, Left = start.X, Right = start.X + Px(800), Y = start.Y + Px(pet.BodySize * 0.99) });
                     pet.FollowPosition(new PixelPoint(reported.X + 20, reported.Y - 40));
+                    if (pet.Anchor != start || moves.Count != 0) throw new Exception("A position correction interrupted her walk.");
+                    now += 0.35;
+                    typeof(Pet).GetField("walking", fields).SetValue(pet, false);
+                    typeof(Pet).GetMethod("TickMoveReports", fields).Invoke(pet, new object[] { now });
+                    typeof(Pet).GetField("walking", fields).SetValue(pet, true);
                     if (pet.Anchor != new PixelPoint(start.X + 20, start.Y - 40) || pet.Feet != start.Y - 40 + Px(pet.BodySize * 0.99) || pet.Hip.Y != pet.Feet || moves.Count != 0) throw new Exception("Her walking anchor didn't follow a corrected window position.");
                     // Late news of moves she asked for never steps her back: two steps, then the first one confirmed.
                     PixelPoint one = new PixelPoint(start.X + 30, start.Y - 40), two = new PixelPoint(start.X + 40, start.Y - 40);
@@ -2247,8 +2258,12 @@ namespace CapriDesktop
                     if (pet.Anchor != two || moves.Count != 2) throw new Exception("A late confirmation of an earlier move stepped her back.");
                     pet.Move(new PixelPoint(start.X + 90, start.Y + 90));
                     pet.FollowPosition(pet.Position);
+                    if (pet.Anchor != new PixelPoint(start.X + 90, start.Y + 90)) throw new Exception("A refused move interrupted her walk.");
+                    now += 0.35;
+                    typeof(Pet).GetField("walking", fields).SetValue(pet, false);
+                    typeof(Pet).GetMethod("TickMoveReports", fields).Invoke(pet, new object[] { now });
                     if (pet.Anchor != start || moves.Count != 3) throw new Exception("A refused window move left her anchor behind.");
-                    checks.Add("PASS on Linux walking follows the desktop's position corrections, including a refused move, and late confirmations of her own moves never step her back");
+                    checks.Add("PASS on Linux position corrections wait until she is still, including a refused move, and late confirmations of her own moves never step her back");
                 }
             }
             finally
@@ -2258,8 +2273,8 @@ namespace CapriDesktop
                 pet.MouseAt = mouseAt;
                 pet.MoveTo = moveTo;
                 foreach (KeyValuePair<string, object> item in before) typeof(Pet).GetField(item.Key, fields).SetValue(pet, item.Value);
-                asked.Clear();
-                asked.AddRange(askedWas);
+                typeof(Pet).GetField("asked", fields).SetValue(pet, askedWas);
+                typeof(Pet).GetField("MoveClock", fields).SetValue(pet, moveClock);
                 pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
             }
         }
