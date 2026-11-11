@@ -2195,6 +2195,9 @@ namespace CapriDesktop
         private double heldWake;
         // What her ears did since their last line in her log. Counts only, never a line's words.
         private int earsWords, earsEmpty, earsCuts, earsWaits, earsLogCall;
+        // The lines they lost and why: a newer turn began, she was thinking or talking, her ears closed on a line she was taking
+        // in, or a voiced reaction closed them. And the call lines kept for her next turn (#171).
+        private int earsStale, earsBusy, earsCutOff, earsReaction, earsQueued;
         private long earsDropped;
         private double earsLogAt;
         private double voiceUntil;
@@ -2809,6 +2812,7 @@ namespace CapriDesktop
                 if (!testing) CheckHearing(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckSoundNotice();
                 CheckEars(clock.Elapsed.TotalSeconds);
+                CheckCallLines();
                 CheckWake(clock.Elapsed.TotalSeconds);
                 if (background) CheckSlow(clock.Elapsed.TotalSeconds);
                 CheckVoiceInMic(signalNow);
@@ -11531,18 +11535,21 @@ namespace CapriDesktop
         // Her log never holds a line's words, so this is how a game's voice chat can be read back afterwards: at most once a
         // minute, how many lines gave words and how many gave none, how often sound ran 15 seconds without a pause, and how much
         // of a call's sound her ears let go to keep up with the mic (Lachy, 10 Nov: she couldn't follow Fortnite's voice chat, and
-        // nothing in her log said what her ears had done with it).
+        // nothing in her log said what her ears had done with it). Since #171 it also says how many lines they lost and why, and
+        // how many call lines waited for her next turn.
         private void LogEars(double now, bool closing)
         {
             if (!closing && (!chatting || !local || !earsReady || dictation != null || now - earsLogAt < 60)) return;
             earsDropped += callEars.TakeDropped();
             int words = Interlocked.Exchange(ref earsWords, 0), empty = Interlocked.Exchange(ref earsEmpty, 0);
             int cuts = Interlocked.Exchange(ref earsCuts, 0), waits = Interlocked.Exchange(ref earsWaits, 0);
+            int stale = Interlocked.Exchange(ref earsStale, 0), busy = Interlocked.Exchange(ref earsBusy, 0), cutOff = Interlocked.Exchange(ref earsCutOff, 0);
+            int reaction = Interlocked.Exchange(ref earsReaction, 0), queued = Interlocked.Exchange(ref earsQueued, 0);
             bool onCall = Interlocked.Exchange(ref earsLogCall, 0) != 0;
             // Her log keeps its last 200 lines, and a mic and a call that drift apart drop a little sound every minute. Alone that
             // earns a line only once it adds up to a second. Under that it goes out with the next line, or is forgotten when her
             // ears close.
-            if (words == 0 && empty == 0 && cuts == 0 && waits == 0 && earsDropped < Ears.Rate)
+            if (words == 0 && empty == 0 && cuts == 0 && waits == 0 && stale == 0 && busy == 0 && cutOff == 0 && reaction == 0 && queued == 0 && earsDropped < Ears.Rate)
             {
                 if (closing) earsDropped = 0;
                 return;
@@ -11554,6 +11561,11 @@ namespace CapriDesktop
             string counts = "Her ears" + (onCall ? " on a call" : "") + ": " + words + (words == 1 ? " line" : " lines") + " with words, " + empty + " with none";
             if (cuts > 0) counts += ", " + cuts + " cut after 15 s without a pause";
             if (waits > 0) counts += ", " + waits + (waits == 1 ? " wait" : " waits") + " for a pause after 15 s of sound";
+            if (stale > 0) counts += ", " + stale + " dropped as stale";
+            if (busy > 0) counts += ", " + busy + " dropped while she was busy";
+            if (cutOff > 0) counts += ", " + cutOff + " cut off when her ears closed";
+            if (reaction > 0) counts += ", " + reaction + " cut off by her voiced reactions";
+            if (queued > 0) counts += ", " + queued + " kept for her next turn";
             if (onCall) counts += ", " + (dropped / (double)Ears.Rate).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s of the call's sound dropped";
             Brain.Log("ears", -1, counts + ".");
         }
@@ -12742,7 +12754,7 @@ namespace CapriDesktop
             hearingOffline = false;
             hearingSpeechProblem = null;
             nameOver = false;
-            lock (waking) { utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
+            lock (waking) { utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; callWaiting = callBacklog = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsAwaited = false;
             if (HearingStatus.Own(HearingChoice, OwnEars)) { ListenOwn(); return; }
             if (HearingChoice == 1) { if (parakeet.Fits) AwaitEars(null); else HearingNote(); return; }
@@ -12819,7 +12831,7 @@ namespace CapriDesktop
         // No Windows speech and her own ears aren't in yet: they type until the ears land, then she switches on her own.
         private void AwaitEars(string why)
         {
-            lock (waking) { utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
+            lock (waking) { utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; callWaiting = callBacklog = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsReady = false;
             earsAwaited = true;
             Hearing.Own = null;
@@ -12874,7 +12886,7 @@ namespace CapriDesktop
         {
             hearingOffline = false;
             hearingSpeechProblem = null;
-            lock (waking) { utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
+            lock (waking) { utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; callWaiting = callBacklog = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             bool promised = earsAwaited;
             earsAwaited = false;
             Hearing.Own = parakeet;
@@ -12896,7 +12908,7 @@ namespace CapriDesktop
             hearingOffline = true;
             hearingSpeechProblem = why;
             Hearing.Own = null;
-            lock (waking) { utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
+            lock (waking) { utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; callWaiting = callBacklog = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsAwaited = false;
             try { if (!testing && !ears.Listening) ears.Start(); }
             catch (VoiceException error)
@@ -13120,15 +13132,22 @@ namespace CapriDesktop
         // On a call too: mid-job, the call's lines get her answer beside the job instead of a new turn.
         private bool EarsBesideJob { get { return MidJob(job); } }
 
-        private void CheckEars(double now)
+        private void CheckEars(double now, bool reaction = false)
         {
             // A job leaves her thinking until it ends, but her ears stay open through it so they can tell her more. A line carried
             // on from sound that never pauses stays open too while its last piece turns into words, or what's said right after
-            // the cut is lost.
+            // the cut is lost. On a call they stay open while she thinks and while a line turns into words, and what she hears waits
+            // for her next turn (#171: on a call she went quiet, then stopped answering). Her voice still shuts them, as the call's
+            // talk-over expects.
             lock (waking)
             {
-                earsShut = local && (!earsReady || transcribing && !EarsBesideJob && !carrying || ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || now < voiceUntil && !nameOver);
+                earsShut = local && (!earsReady || transcribing && !CallModeOn && !EarsBesideJob && !carrying || ears.Muted || (talkState == TalkState.Thinking && !CallModeOn && working == null && !PcEars.Active) || now < voiceUntil && !nameOver);
                 if (!earsShut) return;
+                if (utterance != null && earsReady && !ears.Muted && dictation == null)
+                {
+                    if (reaction) Interlocked.Increment(ref earsReaction);
+                    else Interlocked.Increment(ref earsCutOff);
+                }
                 utterance = null; carrying = false; preroll.Clear(); loudRun = 0; quietRun = 0;
             }
             pill.SetLevel(0);
@@ -13161,7 +13180,7 @@ namespace CapriDesktop
             }
             lock (waking)
             {
-                if (!local || !earsReady || dictation != null || ears.Muted || earsShut && !nameOver || transcribing && !EarsBesideJob && !carrying) { utterance = null; carrying = false; preroll.Clear(); loudRun = 0; quietRun = 0; return; }
+                if (!local || !earsReady || dictation != null || ears.Muted || earsShut && !nameOver || transcribing && !CallModeOn && !EarsBesideJob && !carrying) { utterance = null; carrying = false; preroll.Clear(); loudRun = 0; quietRun = 0; return; }
                 // The room's level is its quietest moment: it drops straight to anything quieter and creeps up 2% a chunk between lines, never mid-line. It starts no higher than the old fixed level allows.
                 if (room < 0) room = Math.Min(Math.Max(level, 0.0003), WakeLevel / RoomMargin);
                 else if (level < room) room = Math.Max(level, 0.0003);
@@ -13352,10 +13371,13 @@ namespace CapriDesktop
         {
             if (callVersion >= 0 && !callSession.Current(callVersion)) { OldCallLine(ticket); return; }
             if (ticket != chatTicket || !local || !chatting) return;
-            if (request != asking && !EarsBesideJob) { nameOver = false; NextLine(); CheckEars(clock.Elapsed.TotalSeconds); return; }
-            // Mid-job a line was heard with her ears open, so her voice starting since doesn't make it hers.
-            if (ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || clock.Elapsed.TotalSeconds < voiceUntil && !nameOver && !EarsBesideJob || !Speech(taken, wake))
+            if (request != asking && !EarsBesideJob && !CallModeOn) { Interlocked.Increment(ref earsStale); nameOver = false; NextLine(); CheckEars(clock.Elapsed.TotalSeconds); return; }
+            // Mid-job a line was heard with her ears open, so her voice starting since doesn't make it hers. On a call a line heard
+            // before her newest turn, or while she thinks or talks, still counts: it takes her next turn.
+            bool busy = !CallModeOn && ((talkState == TalkState.Thinking && working == null && !PcEars.Active) || clock.Elapsed.TotalSeconds < voiceUntil && !nameOver && !EarsBesideJob);
+            if (ears.Muted || busy || !Speech(taken, wake))
             {
+                if (busy && !ears.Muted && Speech(taken, wake)) Interlocked.Increment(ref earsBusy);
                 nameOver = false;
                 NextLine();
                 CheckEars(clock.Elapsed.TotalSeconds);
@@ -13438,7 +13460,14 @@ namespace CapriDesktop
             nameOver = false;
             NextLine();
             CheckEars(clock.Elapsed.TotalSeconds);
-            if (request != asking && !EarsBesideJob || ears.Muted) { if (!NameOnly) mainframe.VoiceNote(LocalListening, false); return; }
+            // On a call words from before her newest turn still take her next one. Without words they end quietly, as before.
+            bool stale = request != asking && !EarsBesideJob;
+            if (stale && (!CallModeOn || string.IsNullOrEmpty(text) || problem != null) || ears.Muted)
+            {
+                if (stale && !CallModeOn && !ears.Muted) Interlocked.Increment(ref earsStale);
+                if (!NameOnly) mainframe.VoiceNote(LocalListening, false);
+                return;
+            }
             if (problem != null)
             {
                 HearingResult(problem, false);
@@ -13458,7 +13487,7 @@ namespace CapriDesktop
                 return;
             }
             HearingResult(null, true);
-            if (CallModeOn) { if (line != null) HearCall(line); return; }
+            if (CallModeOn) { if (line != null) CallHeard(line); return; }
             if (!VoiceForHer(text, chatLine))
             {
                 if (!NameOnly) mainframe.VoiceNote(LocalListening, false);
@@ -13950,7 +13979,7 @@ namespace CapriDesktop
             checkedIn = false;
             quietSince = -1;
             wokeAt = -1;
-            lock (waking) { resting = false; backlog = null; preroll.Clear(); loudRun = 0; utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; quietRun = 0; noiseHold = false; }
+            lock (waking) { resting = false; backlog = null; preroll.Clear(); loudRun = 0; utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; callWaiting = callBacklog = null; quietRun = 0; noiseHold = false; }
             if (wasLocal) LogEars(clock.Elapsed.TotalSeconds, true);
             earsShut = false;
             transcribing = false;
@@ -27812,6 +27841,9 @@ namespace CapriDesktop
             int askWas = asking, escWas = escAsk, ticketWas = chatTicket, noticeWas = earsNotice, typingWas = preferences.Typing, missesWas = hearingMisses, transcribeAtWas = transcribingAt;
             int answerWas = callAnswer, userWas = callUser, userVersionWas = callUserVersion, heardVersionWas = callHeardVersion, answersWas = callAnswers, countedWas = callCounted;
             int wordsWas = Volatile.Read(ref earsWords), emptyWas = Volatile.Read(ref earsEmpty), cutsWas = Volatile.Read(ref earsCuts), waitsWas = Volatile.Read(ref earsWaits), logCallWas = Volatile.Read(ref earsLogCall);
+            int staleWas = Volatile.Read(ref earsStale), busyWas = Volatile.Read(ref earsBusy), cutOffWas = Volatile.Read(ref earsCutOff), reactionWas = Volatile.Read(ref earsReaction), queuedWas = Volatile.Read(ref earsQueued);
+            CallTranscript waitingWas = callWaiting, backlogWas = callBacklog;
+            int waitingVersionWas = callWaitingVersion, backlogVersionWas = callBacklogVersion;
             long droppedWas = earsDropped;
             double logAtWas = earsLogAt, untilWas = voiceUntil, warnedWas = earsWarned, nameUntilWas = nameChatUntil, beganWas = lineBegan;
             string logWas = Brain.LogPath, transcriptWas = Brain.TranscriptPath, memoryWas = Brain.MemoryPath, modelWas = brain.Model, workWas = working, replyWas = reply, heardWas = heard, speechWas = speech, resultWas = hearingResultProblem;
@@ -27845,9 +27877,10 @@ namespace CapriDesktop
                 roomWas = room; lineAtWas = lineAt; lineLevelWas = lineLevel; heldWakeWas = heldWake; heldTicketWas = heldTicket; heldRequestWas = heldRequest; heldVersionWas = heldCallVersion;
             }
             callEars.TakeDropped();
-            TcpListener fake = null;
+            TcpListener fake = null, delayed = null;
             List<string> requests = new List<string>();
             ManualResetEvent slow = new ManualResetEvent(true), entered = new ManualResetEvent(false);
+            ManualResetEvent brainGo = new ManualResetEvent(false);
             const string said = "stay behind the blue wall", softSaid = "take the left path", loudSaid = "the user spoke loudly", answered = "Got it.";
             bool softWords = false, loudWords = false;
             int decoded = 0, whole = 0, nameReached = 0;
@@ -27893,13 +27926,14 @@ namespace CapriDesktop
                 callEars.Stop(); callEars.TakeDropped(); callOver.Reset();
                 lock (waking)
                 {
-                    utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false;
+                    utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; callWaiting = callBacklog = null;
                     preroll.Clear(); callAudio.Clear(); loudRun = quietRun = 0; noiseHold = false; room = -1; lineAt = -100; lineLevel = 0;
                 }
                 callCaptions.Clear(); callCaptionRun = false;
                 nameChatUntil = lineBegan = -1;
                 hearingLoud = true; hearingMisses = 2; hearingResultProblem = null;
                 Interlocked.Exchange(ref earsWords, 0); Interlocked.Exchange(ref earsEmpty, 0); Interlocked.Exchange(ref earsCuts, 0); Interlocked.Exchange(ref earsWaits, 0); Interlocked.Exchange(ref earsLogCall, 0);
+                Interlocked.Exchange(ref earsStale, 0); Interlocked.Exchange(ref earsBusy, 0); Interlocked.Exchange(ref earsCutOff, 0); Interlocked.Exchange(ref earsReaction, 0); Interlocked.Exchange(ref earsQueued, 0);
                 earsDropped = 0;
                 earsLogAt = clock.Elapsed.TotalSeconds;
                 requests.Clear(); decoded = whole = 0; softWords = loudWords = false;
@@ -27924,7 +27958,9 @@ namespace CapriDesktop
                 Think = null;
                 Speak = FreeSpeak = delegate { return null; };
                 brain.Model = "call-noise-check"; brain.OwnSteps = false;
-                brain.Remote = new Cloud(0, "call-noise-check", FakeServer(new[] { LocalReply(answered), LocalReply(answered), LocalReply(answered), LocalReply(answered) }, requests, out fake));
+                string[] replies = new string[16];
+                for (int i = 0; i < replies.Length; i++) replies[i] = LocalReply(answered);
+                brain.Remote = new Cloud(0, "call-noise-check", FakeServer(replies, requests, out fake));
                 Hearing.Run = delegate(short[] samples)
                 {
                     entered.Set();
@@ -28116,23 +28152,254 @@ namespace CapriDesktop
                 open(true, false);
                 Transcribe(new[] { hit, hit, hit, hit, hit, hit, hit, hit }, chatTicket, asking, WakeLevel, null, -1, true);
                 if (reply != null || earsNotice != namedNotice) throw new Exception("An unbroken piece rejected before transcription said it had no words.");
-                transcribing = true;
-                lock (waking) { utterance = new List<short[]> { hit, bang }; carrying = true; }
-                CheckEars(clock.Elapsed.TotalSeconds);
-                lock (waking) if (earsShut || utterance == null || !carrying) throw new Exception("Transcribing alone shut a carried line.");
-                for (int reason = 0; reason < 6; reason++)
+                foreach (bool onCall in new[] { false, true })
                 {
-                    local = reason != 5; earsReady = reason != 0; ears.Muted = reason == 1;
-                    talkState = reason == 2 ? TalkState.Thinking : TalkState.Off;
-                    voiceUntil = reason == 3 ? clock.Elapsed.TotalSeconds + 10 : 0;
-                    dictation = reason == 4 ? new StandInDictation() : null;
+                    open(onCall, true);
+                    transcribing = true;
                     lock (waking) { utterance = new List<short[]> { hit, bang }; carrying = true; }
                     CheckEars(clock.Elapsed.TotalSeconds);
-                    Gather(hush);
-                    lock (waking) if (utterance != null || carrying) throw new Exception("A carried line survived shut ears: " + reason + ".");
+                    lock (waking) if (earsShut || utterance == null || !carrying) throw new Exception("Transcribing alone shut a carried line.");
+                    for (int reason = 0; reason < 6; reason++)
+                    {
+                        local = reason != 5; earsReady = reason != 0; ears.Muted = reason == 1;
+                        talkState = reason == 2 ? TalkState.Thinking : TalkState.Off;
+                        voiceUntil = reason == 3 ? clock.Elapsed.TotalSeconds + 10 : 0;
+                        dictation = reason == 4 ? new StandInDictation() : null;
+                        lock (waking) { utterance = new List<short[]> { hit, bang }; carrying = true; }
+                        CheckEars(clock.Elapsed.TotalSeconds);
+                        Gather(hush);
+                        lock (waking)
+                        {
+                            if (onCall && reason == 2)
+                            {
+                                if (earsShut || utterance == null || !carrying) throw new Exception("Thinking on a call discarded a carried line.");
+                            }
+                            else if (utterance != null || carrying) throw new Exception("A carried line survived shut ears: " + reason + ".");
+                        }
+                    }
+                    local = earsReady = true; ears.Muted = transcribing = false; talkState = TalkState.Off; voiceUntil = 0; dictation = null;
                 }
-                local = earsReady = true; ears.Muted = transcribing = false; talkState = TalkState.Off; voiceUntil = 0; dictation = null;
-                checks.Add("PASS transcribing alone keeps a carried line, while not ready, mute, thinking, her voice, Windows speech and closed chat still discard it; an unbroken piece rejected before transcription says nothing");
+                checks.Add("PASS transcribing alone keeps a carried line on and off a call; thinking keeps it on a call and discards it off one, while not ready, mute, her voice, Windows speech and closed chat still discard it; an unbroken piece rejected before transcription says nothing");
+
+                Think = null;
+                Func<short[], string> noiseHearing = Hearing.Run;
+                Cloud noiseBrain = brain.Remote;
+                foreach (bool tailWords in new[] { true, false })
+                {
+                    open(true, false);
+                    int mergeAsk = asking;
+                    slow.Reset();
+                    Hearing.Run = delegate(short[] samples)
+                    {
+                        int piece = Interlocked.Increment(ref decoded);
+                        entered.Set();
+                        slow.WaitOne(5000);
+                        return piece == 1 ? said : tailWords ? softSaid : "";
+                    };
+                    for (int at = 0; at < 150; at++) feed(hush, game(at));
+                    wait(delegate { return entered.WaitOne(0); });
+                    for (int at = 150; at < 180; at++) feed(hush, game(at));
+                    for (int at = 0; at < 9; at++) feed(hush, hush);
+                    lock (waking) if (heldLine == null || heldCall == null || !heldUnbroken) throw new Exception("The merge check had no waiting call piece.");
+                    slow.Set();
+                    wait(delegate { CheckCallLines(); return !transcribing && reply == answered; });
+                    string merged = tailWords ? said + " " + softSaid : said;
+                    if (decoded != 2 || requests.Count != 1 || !requests[0].Contains(merged) || heard != merged || asking != mergeAsk + 1 || callWaiting != null || callBacklog != null) throw new Exception("Call words across a cut did not reach one turn in order.");
+                }
+                Hearing.Run = noiseHearing;
+                checks.Add("PASS words on both sides of a call's 15 second cut reach her brain in order as one turn, and a wordless second piece releases the first piece's words");
+
+                CallTranscript firstJoin = new CallTranscript { CallSound = true }, thenJoin = new CallTranscript();
+                firstJoin.Parts.Add(new CallPart { Words = said, FromCall = true, Who = "friend", At = 3, Echo = true, Chunks = 3, Echoes = 1 });
+                thenJoin.Parts.Add(new CallPart { Words = softSaid, FromCall = true, Chunks = 2 });
+                CallTranscript joinedCall = CallTranscript.Join(firstJoin, thenJoin);
+                if (!joinedCall.CallSound || joinedCall.Parts.Count != 1 || joinedCall.Parts[0].Words != said + " " + softSaid || !joinedCall.Parts[0].Echo || joinedCall.Parts[0].Chunks != 5 || joinedCall.Parts[0].Echoes != 1 || joinedCall.Parts[0].Who != "friend" || joinedCall.Parts[0].At != 3 || firstJoin.Parts[0].Words != said || thenJoin.Parts[0].Words != softSaid) throw new Exception("Joining call transcripts lost sound, parts or their copies.");
+                foreach (CallTranscript copy in new[] { CallTranscript.Join(firstJoin, null), CallTranscript.Join(null, firstJoin) })
+                    if (!copy.CallSound || copy.Parts[0] == firstJoin.Parts[0] || copy.Text != firstJoin.Text) throw new Exception("Joining a null call transcript lost its copy.");
+                if (CallTranscript.Join(null, null) != null) throw new Exception("Joining no call transcripts made a line.");
+                CallTranscript ownJoin = new CallTranscript(loudSaid, false), echoJoin = new CallTranscript(softSaid, false);
+                ownJoin.Parts[0].Chunks = 2;
+                echoJoin.Parts[0].Echo = true; echoJoin.Parts[0].Chunks = echoJoin.Parts[0].Echoes = 2;
+                joinedCall = CallTranscript.Join(ownJoin, echoJoin);
+                if (joinedCall.Parts.Count != 2 || !joinedCall.Parts[0].Echo || !joinedCall.Parts[1].Leaked || joinedCall.Sure.Length != 0 || ownJoin.Parts[0].Echo) throw new Exception("Joining call transcripts changed the echo boundary or the original.");
+                joinedCall = CallTranscript.Join(ownJoin, firstJoin);
+                if (joinedCall.Parts.Count != 2 || joinedCall.Parts[0].Words != loudSaid || joinedCall.Parts[1].Words != said || joinedCall.Sure != loudSaid) throw new Exception("Joining call transcripts changed speaker order.");
+                checks.Add("PASS joined call transcripts copy their parts, keep call sound and speaker order, and use the same echo boundaries as reading a line");
+
+                open(true, false);
+                List<string> queuedRequests = new List<string>();
+                brain.Remote = new Cloud(0, "call-noise-check", FakeServer(new[] { LocalReply("First answer."), LocalReply(answered) }, queuedRequests, out delayed, delay: 250, release: brainGo));
+                softWords = loudWords = true;
+                for (int at = 0; at < 8; at++) feed(marker[at % 2], hush);
+                for (int at = 0; at < 9; at++) feed(hush, hush);
+                wait(delegate { return queuedRequests.Count == 1 && talkState == TalkState.Thinking && !transcribing; });
+                int queuedAsk = asking, queuedAudio = audioTurn, queuedAnswer = answerTurn;
+                CheckEars(clock.Elapsed.TotalSeconds);
+                if (earsShut || !queuedRequests[0].Contains(loudSaid)) throw new Exception("The user's call turn did not leave her ears open while thinking.");
+                for (int at = 0; at < 8; at++) feed(hush, at % 2 == 0 ? soft : softer);
+                for (int at = 0; at < 9; at++) feed(hush, hush);
+                wait(delegate { return !transcribing && callBacklog != null; });
+                CheckCallLines();
+                if (asking != queuedAsk || audioTurn != queuedAudio || answerTurn != queuedAnswer || queuedRequests.Count != 1 || callBacklog.Text != CallSession.Others + softSaid || Volatile.Read(ref earsQueued) != 1) throw new Exception("A friend's line replaced or cancelled the call turn she was thinking about.");
+                LogEars(clock.Elapsed.TotalSeconds, true);
+                logLines = File.ReadAllLines(Brain.LogPath);
+                if (!logLines[logLines.Length - 1].Contains(", 1 kept for her next turn,")) throw new Exception("Her ears did not count the friend's queued call line.");
+                brainGo.Set();
+                wait(delegate { CheckCallLines(); return queuedRequests.Count == 2 && reply == answered; });
+                if (asking != queuedAsk + 1 || heard != softSaid || !queuedRequests[1].Contains(softSaid) || callBacklog != null || callWaiting != null) throw new Exception("The friend's queued words did not take the next call turn.");
+                brain.Remote = noiseBrain;
+                checks.Add("PASS a friend's line ending while she thinks leaves the user's turn, answer and brain request alone, is counted as kept, and takes her next turn once the answer arrives");
+
+                foreach (bool beforeWords in new[] { false, true })
+                {
+                    open(true, false);
+                    softWords = true;
+                    queuedAsk = asking; queuedAudio = audioTurn; queuedAnswer = answerTurn;
+                    slow.Reset();
+                    for (int at = 0; at < 8; at++) feed(hush, at % 2 == 0 ? soft : softer);
+                    for (int at = 0; at < 9; at++) feed(hush, hush);
+                    if (beforeWords) { queuedAsk = ++asking; voiceUntil = clock.Elapsed.TotalSeconds + 2; }
+                    wait(delegate { return entered.WaitOne(0); });
+                    if (!beforeWords) { queuedAsk = ++asking; voiceUntil = clock.Elapsed.TotalSeconds + 2; }
+                    CheckEars(clock.Elapsed.TotalSeconds);
+                    slow.Set();
+                    wait(delegate { return !transcribing && callBacklog != null; });
+                    CheckCallLines();
+                    if (clock.Elapsed.TotalSeconds >= voiceUntil || asking != queuedAsk || audioTurn != queuedAudio || answerTurn != queuedAnswer || requests.Count != 0 || callBacklog.Text != CallSession.Others + softSaid || Volatile.Read(ref earsQueued) != 1) throw new Exception("A call line turning into words over her voice did not wait for her next turn.");
+                    LogEars(clock.Elapsed.TotalSeconds, true);
+                    logLines = File.ReadAllLines(Brain.LogPath);
+                    if (!logLines[logLines.Length - 1].Contains(", 1 kept for her next turn,")) throw new Exception("Her ears did not count a call line kept over her voice.");
+                    wait(delegate { CheckCallLines(); return reply == answered; });
+                    if (asking != queuedAsk + 1 || requests.Count != 1 || heard != softSaid || !requests[0].Contains(softSaid) || callBacklog != null) throw new Exception("A call line did not take her next turn after her voice ended.");
+                }
+                checks.Add("PASS a stale call line whose words start or finish after her voice starts is kept without cancelling her, is counted once, and takes her next turn after voiceUntil passes");
+
+                open(true, false);
+                int staleAsk = asking, staleNotice = earsNotice, staleMisses = hearingMisses;
+                HeardLocally(chatTicket, asking - 1, "", null, new CallTranscript());
+                HeardLocally(chatTicket, asking - 1, "", "A hearing problem.", new CallTranscript());
+                ears.Muted = true;
+                HeardLocally(chatTicket, asking, softSaid, null, new CallTranscript(softSaid, true));
+                ears.Muted = false;
+                if (asking != staleAsk || requests.Count != 0 || reply != null || earsNotice != staleNotice || hearingMisses != staleMisses || hearingResultProblem != null || callWaiting != null || callBacklog != null || Volatile.Read(ref earsStale) != 0 || Volatile.Read(ref earsQueued) != 0) throw new Exception("A stale wordless or failed call line, or muted words, did not end quietly.");
+                talkState = TalkState.Thinking;
+                CallHeard(new CallTranscript(loudSaid, false));
+                talkState = TalkState.Off;
+                CallHeard(new CallTranscript(softSaid, true));
+                wait(delegate { return reply == answered; });
+                if (asking != staleAsk + 1 || requests.Count != 1 || callBacklog != null || !requests[0].Contains(loudSaid) || requests[0].IndexOf(loudSaid, StringComparison.Ordinal) >= requests[0].IndexOf(softSaid, StringComparison.Ordinal)) throw new Exception("An idle call line did not take the backlog in front of its own words.");
+                checks.Add("PASS stale call lines without words or with a hearing problem and muted words end quietly, while an idle call line takes queued words in front of its own");
+
+                open(true, false);
+                StringBuilder olderWords = new StringBuilder();
+                for (int at = 0; at < 160; at++) olderWords.Append("word").Append(at).Append(' ');
+                CallTranscript olderLine = new CallTranscript(olderWords.ToString(), false);
+                queuedAsk = asking; queuedAudio = audioTurn;
+                talkState = TalkState.Thinking; transcribing = true;
+                CallHeard(olderLine);
+                if (callWaiting != olderLine || callBacklog != null || Volatile.Read(ref earsQueued) != 0) throw new Exception("A call piece did not wait for the next transcription.");
+                CallHeard(new CallTranscript(softSaid, true));
+                if (callWaiting != null || callBacklog == null || Volatile.Read(ref earsQueued) != 1) throw new Exception("Joined call words waited for another transcription.");
+                transcribing = false;
+                CallHeard(new CallTranscript(said, true));
+                int keptWords = 0;
+                foreach (CallPart part in callBacklog.Parts) keptWords += Regex.Matches(part.Words, @"\S+").Count;
+                if (keptWords != 150 || callBacklog.Parts.Count != 2 || !callBacklog.Parts[0].Words.StartsWith("word19 ", StringComparison.Ordinal) || callBacklog.Parts[1].Words != softSaid + " " + said || Regex.Matches(olderLine.Parts[0].Words, @"\S+").Count != 160 || Volatile.Read(ref earsQueued) != 2 || asking != queuedAsk || audioTurn != queuedAudio || requests.Count != 0) throw new Exception("Queued call lines did not keep their newest 150 words in order.");
+                talkState = TalkState.Off; pushing = true;
+                CheckCallLines();
+                if (callBacklog == null || requests.Count != 0) throw new Exception("A queued call line took a push-to-talk turn.");
+                pushing = false; transcribing = true;
+                CheckCallLines();
+                if (callBacklog == null || requests.Count != 0) throw new Exception("A queued call line took a turn while words were still coming.");
+                callWaiting = olderLine; callWaitingVersion = callSession.Generation;
+                callSession.Change(true);
+                CheckCallLines();
+                if (callWaiting != null || callBacklog != null || requests.Count != 0 || asking != queuedAsk) throw new Exception("Old call transcripts survived a generation change.");
+                transcribing = false;
+                foreach (int closed in new[] { 0, 1, 2 })
+                {
+                    callWaiting = callBacklog = olderLine;
+                    callWaitingVersion = callBacklogVersion = callSession.Generation;
+                    if (closed == 0) callSession.Change(false);
+                    chatting = closed != 1; local = closed != 2;
+                    CheckCallLines();
+                    if (callWaiting != null || callBacklog != null || requests.Count != 0 || asking != queuedAsk) throw new Exception("A closed call kept pending transcripts.");
+                    callSession.Change(true); chatting = local = true;
+                }
+                checks.Add("PASS joined call words wait for one piece only; queued lines keep the newest 150 words with their speakers, wait through push to talk and transcription, and both buffers clear when the call changes or her ears close");
+
+                Action<string> counted = delegate(string expected)
+                {
+                    int before = File.ReadAllLines(Brain.LogPath).Length;
+                    LogEars(clock.Elapsed.TotalSeconds, true);
+                    string[] lines = File.ReadAllLines(Brain.LogPath);
+                    if (lines.Length != before + 1 || !lines[lines.Length - 1].Contains(expected)) throw new Exception("Her ears log lost a dropped line: " + expected);
+                };
+                short[][] speechLine = { hit, bang, hit, bang };
+                open(false, true);
+                Transcribe(speechLine, chatTicket, asking - 1);
+                counted("Her ears: 0 lines with words, 0 with none, 1 dropped as stale.");
+                open(false, true);
+                HeardLocally(chatTicket, asking - 1, loudSaid, null);
+                counted("Her ears: 1 line with words, 0 with none, 1 dropped as stale.");
+                foreach (bool thinking in new[] { true, false })
+                {
+                    open(false, true);
+                    talkState = thinking ? TalkState.Thinking : TalkState.Off;
+                    voiceUntil = thinking ? 0 : clock.Elapsed.TotalSeconds + 10;
+                    Transcribe(speechLine, chatTicket, asking);
+                    counted("Her ears: 0 lines with words, 0 with none, 1 dropped while she was busy.");
+                    talkState = TalkState.Off;
+                }
+                foreach (bool reaction in new[] { false, true })
+                {
+                    open(false, true);
+                    feed(hit, hush); feed(bang, hush);
+                    lock (waking) if (utterance == null) throw new Exception("The cut count check had no gathered line.");
+                    voiceUntil = clock.Elapsed.TotalSeconds + 10;
+                    CheckEars(clock.Elapsed.TotalSeconds, reaction);
+                    CheckEars(clock.Elapsed.TotalSeconds, reaction);
+                    counted(reaction ? "Her ears: 0 lines with words, 0 with none, 1 cut off by her voiced reactions." : "Her ears: 0 lines with words, 0 with none, 1 cut off when her ears closed.");
+                }
+                open(false, true);
+                talkState = TalkState.Thinking; ears.Muted = true;
+                Transcribe(speechLine, chatTicket, asking);
+                ears.Muted = false;
+                Transcribe(new[] { hush, hush }, chatTicket, asking, WakeLevel, null, -1, true);
+                talkState = TalkState.Off;
+                if (Volatile.Read(ref earsBusy) != 0) throw new Exception("Mute or sound without speech counted as a busy drop.");
+                foreach (int closed in new[] { 0, 1, 2 })
+                {
+                    earsReady = closed != 0; ears.Muted = closed == 1; dictation = closed == 2 ? new StandInDictation() : null;
+                    voiceUntil = clock.Elapsed.TotalSeconds + 10;
+                    lock (waking) utterance = new List<short[]> { hit, bang };
+                    CheckEars(clock.Elapsed.TotalSeconds);
+                }
+                if (Volatile.Read(ref earsCutOff) != 0 || Volatile.Read(ref earsReaction) != 0) throw new Exception("Unready, muted or Windows ears counted a cut line.");
+                earsReady = true; ears.Muted = false; dictation = null;
+                checks.Add("PASS her ears count stale drops before and after words, busy drops from thinking and voice, and gathered lines cut by closed ears or voiced reactions; mute, no speech, unready ears and Windows speech add no loss counts");
+
+                open(true, false);
+                bool reactionSilent = preferences.Silent, reactionHidden = hidden, reactionShush = shushed, reactionNap = napAsked, reactionNapping = napping, reactionOwnNap = ownNap, reactionTyper = typer.Visible;
+                Clip reactionClip = clip;
+                int reactionMic = micTalked;
+                try
+                {
+                    preferences.Silent = hidden = shushed = napAsked = napping = ownNap = false;
+                    clip = idle;
+                    typer.Hide();
+                    micTalked = unchecked(Environment.TickCount - 2000);
+                    if (ReactionVoiceFree()) throw new Exception("A voiced reaction was free on a call.");
+                    callSession.Change(false);
+                    if (!ReactionVoiceFree()) throw new Exception("A voiced reaction stayed held off the call.");
+                }
+                finally
+                {
+                    preferences.Silent = reactionSilent; hidden = reactionHidden; shushed = reactionShush; napAsked = reactionNap; napping = reactionNapping; ownNap = reactionOwnNap;
+                    clip = reactionClip; micTalked = reactionMic;
+                    if (reactionTyper) typer.Show();
+                }
+                checks.Add("PASS a voiced reaction stays held on a call and is free off it with everything else the same");
 
                 open(false, false);
                 int heldAsked = asking, heldNotice = earsNotice;
@@ -28159,10 +28426,13 @@ namespace CapriDesktop
             finally
             {
                 slow.Set();
+                brainGo.Set();
+                callWaiting = callBacklog = null;
                 Stopwatch waited = Stopwatch.StartNew();
-                while (transcribing && waited.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                while ((transcribing || talkState == TalkState.Thinking) && waited.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
                 CloseTalk();
                 if (fake != null) fake.Stop();
+                if (delayed != null) delayed.Stop();
                 callEars.Stop();
                 callEars.TakeDropped();
                 callSession.Change(callWas);
@@ -28180,6 +28450,7 @@ namespace CapriDesktop
                 voiceUntil = untilWas; nameChatUntil = nameUntilWas; lineBegan = beganWas; talkState = talkWas; reply = replyWas; heard = heardWas; speech = speechWas;
                 hearingLoud = loudWas; hearingMisses = missesWas; hearingResultProblem = resultWas;
                 callAnswer = answerWas; callUser = userWas; callUserVersion = userVersionWas; callHeardVersion = heardVersionWas; callAnswers = answersWas; callCounted = countedWas;
+                callWaiting = waitingWas; callBacklog = backlogWas; callWaitingVersion = waitingVersionWas; callBacklogVersion = backlogVersionWas;
                 callWho = whoWas; callSaid = saidWas; callSaidAt = saidAtWas; callCaptionAt = captionAtWas; callCaptionRun = captionWas;
                 callCaptions.Clear(); foreach (CallPart part in captionsWas) callCaptions.Enqueue(part);
                 pushed = pushLineWas; pushedCall = pushCallWas; pill.ListenForName = pillNameWas;
@@ -28191,6 +28462,7 @@ namespace CapriDesktop
                     heldWake = heldWakeWas; heldTicket = heldTicketWas; heldRequest = heldRequestWas; heldCallVersion = heldVersionWas;
                 }
                 Interlocked.Exchange(ref earsWords, wordsWas); Interlocked.Exchange(ref earsEmpty, emptyWas); Interlocked.Exchange(ref earsCuts, cutsWas); Interlocked.Exchange(ref earsWaits, waitsWas); Interlocked.Exchange(ref earsLogCall, logCallWas); earsDropped = droppedWas; earsLogAt = logAtWas;
+                Interlocked.Exchange(ref earsStale, staleWas); Interlocked.Exchange(ref earsBusy, busyWas); Interlocked.Exchange(ref earsCutOff, cutOffWas); Interlocked.Exchange(ref earsReaction, reactionWas); Interlocked.Exchange(ref earsQueued, queuedWas);
                 SavePreferences(); mainframe.ShowCallApp();
                 mainframe.VoiceNote(noteWas, noteWarningWas);
             }

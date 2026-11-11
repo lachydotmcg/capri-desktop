@@ -304,7 +304,7 @@ namespace CapriDesktop
             preferences.CallAppName = label;
             CallApps.Choose(chosen, label);
             callSession.Change(CallModeOn);
-            lock (waking) { callAudio.Clear(); utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; preroll.Clear(); pushedCall = null; }
+            lock (waking) { callAudio.Clear(); utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; callWaiting = callBacklog = null; preroll.Clear(); pushedCall = null; }
             callCaptions.Clear();
             callCaptionRun = false;
             callWho = callSaid = null;
@@ -327,6 +327,10 @@ namespace CapriDesktop
         private double callYou;
         private readonly List<CallChunk> callAudio = new List<CallChunk>();
         private int callHeardVersion = -1;
+        // A call line whose turn waits for the piece after it, so a line cut in two reaches her as one turn, and the call lines she
+        // heard while thinking or talking, for her next turn. Each keeps the call's generation (#171).
+        private CallTranscript callWaiting, callBacklog;
+        private int callWaitingVersion, callBacklogVersion;
         private readonly Queue<CallPart> callCaptions = new Queue<CallPart>();
         private DateTime callCaptionAt;
         private bool callCaptionRun;
@@ -356,7 +360,7 @@ namespace CapriDesktop
             if (on) ResetCall(); else EndCallView();
             callSession.Change(on);
             if (micMix != null) micMix.Call = on;
-            lock (waking) { callAudio.Clear(); utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; preroll.Clear(); }
+            lock (waking) { callAudio.Clear(); utterance = null; carrying = false; heldLine = null; heldCall = null; heldUnbroken = false; callWaiting = callBacklog = null; preroll.Clear(); }
             callCaptions.Clear();
             callCaptionRun = false;
             preferences.CallMode = on;
@@ -939,6 +943,71 @@ namespace CapriDesktop
                 }
                 return line;
             }
+        }
+
+        // A call line's words. When the piece after it is already turning into words, it waits once to join that piece.
+        private void CallHeard(CallTranscript line)
+        {
+            if (callWaiting != null && !callSession.Current(callWaitingVersion)) callWaiting = null;
+            if (callWaiting != null)
+            {
+                line = CallTranscript.Join(callWaiting, line);
+                callWaiting = null;
+            }
+            else if (transcribing)
+            {
+                callWaiting = line;
+                callWaitingVersion = callSession.Generation;
+                return;
+            }
+            CallTurn(line);
+        }
+
+        // While she thinks or talks, a call line waits for her next turn behind any already waiting, keeping the newest 150 words,
+        // and nothing of hers is cut off. Otherwise she hears it now, with what was waiting in front of it.
+        private void CallTurn(CallTranscript line)
+        {
+            if (!CallModeOn || !chatting || !local) { callWaiting = callBacklog = null; return; }
+            if (callBacklog != null && !callSession.Current(callBacklogVersion)) callBacklog = null;
+            if (!EarsBesideJob && (talkState == TalkState.Thinking || Voicing))
+            {
+                callBacklog = CallTranscript.Join(callBacklog, line);
+                callBacklogVersion = callSession.Generation;
+                int left = 150;
+                for (int i = callBacklog.Parts.Count - 1; i >= 0; i--)
+                {
+                    CallPart part = callBacklog.Parts[i];
+                    MatchCollection words = Regex.Matches(part.Words, @"\S+");
+                    if (words.Count <= left) { left -= words.Count; continue; }
+                    if (left > 0) part.Words = part.Words.Substring(words[words.Count - left].Index);
+                    callBacklog.Parts.RemoveRange(0, i + (left == 0 ? 1 : 0));
+                    break;
+                }
+                Interlocked.Increment(ref earsQueued);
+                return;
+            }
+            line = CallTranscript.Join(callBacklog, line);
+            callBacklog = null;
+            HearCall(line);
+        }
+
+        // Every tick: a waiting piece takes its turn once nothing is turning into words, and the lines she kept take her next turn
+        // once she's done thinking and talking. A call that ended or changed, or ears that closed, drop both.
+        private void CheckCallLines()
+        {
+            if (!CallModeOn || !chatting || !local) { callWaiting = callBacklog = null; return; }
+            if (callWaiting != null && !callSession.Current(callWaitingVersion)) callWaiting = null;
+            if (callBacklog != null && !callSession.Current(callBacklogVersion)) callBacklog = null;
+            if (callWaiting != null && !transcribing)
+            {
+                CallTranscript line = callWaiting;
+                callWaiting = null;
+                CallTurn(line);
+            }
+            if (callBacklog == null || talkState == TalkState.Thinking || Voicing || transcribing || pushing || callWaiting != null) return;
+            CallTranscript next = callBacklog;
+            callBacklog = null;
+            HearCall(next);
         }
 
         private void HearCall(string text, bool pushedLine = false, bool fromCall = false)

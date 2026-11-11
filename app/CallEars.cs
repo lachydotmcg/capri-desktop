@@ -1166,6 +1166,31 @@ namespace CapriDesktop
             if (words.Length > 0) Parts.Add(new CallPart { Words = words, FromCall = fromCall });
         }
 
+        // Two call lines as one: the pieces of a line cut in two, or lines kept for her next turn. Copies of their parts in order,
+        // with neighbours joined by the same echo rule as Read, so a friend's echo next to their words still can't wake her.
+        internal static CallTranscript Join(CallTranscript first, CallTranscript then)
+        {
+            if (first == null && then == null) return null;
+            CallTranscript line = new CallTranscript();
+            foreach (CallTranscript each in new[] { first, then })
+            {
+                if (each == null) continue;
+                line.CallSound |= each.CallSound;
+                foreach (CallPart part in each.Parts) line.Parts.Add(new CallPart { FromCall = part.FromCall, Who = part.Who, Words = part.Words, At = part.At, Echo = part.Echo, Chunks = part.Chunks, Echoes = part.Echoes });
+            }
+            for (int i = line.Parts.Count - 1; i > 0; i--)
+            {
+                if (line.Parts[i - 1].FromCall != line.Parts[i].FromCall) continue;
+                if (line.Parts[i - 1].Leaked != line.Parts[i].Leaked) { line.Parts[i - 1].Echo = line.Parts[i].Echo = true; continue; }
+                line.Parts[i - 1].Words += " " + line.Parts[i].Words;
+                line.Parts[i - 1].Echo |= line.Parts[i].Echo;
+                line.Parts[i - 1].Chunks += line.Parts[i].Chunks;
+                line.Parts[i - 1].Echoes += line.Parts[i].Echoes;
+                line.Parts.RemoveAt(i);
+            }
+            return line;
+        }
+
         internal void Words(out string user, out string discord)
         {
             StringBuilder own = new StringBuilder(), call = new StringBuilder();

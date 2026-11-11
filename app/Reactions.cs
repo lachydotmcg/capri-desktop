@@ -1056,7 +1056,8 @@ namespace CapriDesktop
         }
 
         // Out loud only now and then: at most one every 8 s, never over her own voice or theirs. Mute her, her quiet key, a hide,
-        // her voice off or ElevenLabs voice chat keep reactions as text, and a voice that comes back late stays unsaid.
+        // her voice off or ElevenLabs voice chat keep reactions as text, and a voice that comes back late stays unsaid. So does a
+        // call, where saying one would close her ears on a line she's hearing (#171).
         private void ReactionVoice(string line)
         {
             if (!ReactionVoiceFree() || !Reactions.Voice(Reactions.Clock())) return;
@@ -1080,7 +1081,7 @@ namespace CapriDesktop
                     if (preferences.NoReactions || !Reactions.Running || ReactionGame != game) return;
                     double now = clock.Elapsed.TotalSeconds;
                     voiceUntil = now + Voice.Seconds(wav) + 0.6;
-                    CheckEars(now);
+                    CheckEars(now, true);
                     Played(wav);
                     PlayVoice(wav);
                 });
@@ -1089,7 +1090,7 @@ namespace CapriDesktop
 
         private bool ReactionVoiceFree()
         {
-            if (Hushed || preferences.Silent || quitting || (hidden && !docked) || (chatting && !local)) return false;
+            if (CallModeOn || Hushed || preferences.Silent || quitting || (hidden && !docked) || (chatting && !local)) return false;
             if (pushing || transcribing || typer.Visible || Voicing || (speech != null && working == null)) return false;
             if (unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);
