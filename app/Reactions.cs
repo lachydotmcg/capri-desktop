@@ -1069,7 +1069,7 @@ namespace CapriDesktop
                     if (preferences.NoReactions || !Reactions.Running || ReactionGame != game) return;
                     double now = clock.Elapsed.TotalSeconds;
                     voiceUntil = now + Voice.Seconds(wav) + 0.6;
-                    CheckEars(now);
+                    CheckEars(now, true);
                     Played(wav);
                     PlayVoice(wav);
                 });
@@ -1078,7 +1078,7 @@ namespace CapriDesktop
 
         private bool ReactionVoiceFree()
         {
-            if (Hushed || preferences.Silent || quitting || (hidden && !docked) || (chatting && !local)) return false;
+            if (CallModeOn || Hushed || preferences.Silent || quitting || (hidden && !docked) || (chatting && !local)) return false;
             if (pushing || transcribing || typer.Visible || Voicing || (speech != null && working == null)) return false;
             if (unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);
