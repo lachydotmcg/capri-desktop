@@ -425,6 +425,7 @@ namespace CapriDesktop
             int header = Controls.Count;
             for (int i = 0; i < header; i++) Scrolls(Controls[i]);
             Section("BRAIN >", 0, 58);
+            MakeWorkspaceKey();
             brainName = Caption("", 28, 79, Type(11f, true), White);
             brainName.AutoSize = false;
             brainName.AutoEllipsis = true;
