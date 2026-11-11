@@ -315,6 +315,8 @@ namespace CapriDesktop
         private double callYou;
         private readonly List<CallChunk> callAudio = new List<CallChunk>();
         private int callHeardVersion = -1;
+        // A call line whose turn waits for the piece after it, so a line cut in two reaches her as one turn, and the call lines she
+        // heard while thinking or talking, for her next turn. Each keeps the call's generation (#171).
         private CallTranscript callWaiting, callBacklog;
         private int callWaitingVersion, callBacklogVersion;
         private readonly Queue<CallPart> callCaptions = new Queue<CallPart>();
@@ -931,6 +933,7 @@ namespace CapriDesktop
             }
         }
 
+        // A call line's words. When the piece after it is already turning into words, it waits once to join that piece.
         private void CallHeard(CallTranscript line)
         {
             if (callWaiting != null && !callSession.Current(callWaitingVersion)) callWaiting = null;
@@ -948,6 +951,8 @@ namespace CapriDesktop
             CallTurn(line);
         }
 
+        // While she thinks or talks, a call line waits for her next turn behind any already waiting, keeping the newest 150 words,
+        // and nothing of hers is cut off. Otherwise she hears it now, with what was waiting in front of it.
         private void CallTurn(CallTranscript line)
         {
             if (!CallModeOn || !chatting || !local) { callWaiting = callBacklog = null; return; }
@@ -974,6 +979,8 @@ namespace CapriDesktop
             HearCall(line);
         }
 
+        // Every tick: a waiting piece takes its turn once nothing is turning into words, and the lines she kept take her next turn
+        // once she's done thinking and talking. A call that ended or changed, or ears that closed, drop both.
         private void CheckCallLines()
         {
             if (!CallModeOn || !chatting || !local) { callWaiting = callBacklog = null; return; }

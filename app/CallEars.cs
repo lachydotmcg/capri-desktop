@@ -1166,6 +1166,8 @@ namespace CapriDesktop
             if (words.Length > 0) Parts.Add(new CallPart { Words = words, FromCall = fromCall });
         }
 
+        // Two call lines as one: the pieces of a line cut in two, or lines kept for her next turn. Copies of their parts in order,
+        // with neighbours joined by the same echo rule as Read, so a friend's echo next to their words still can't wake her.
         internal static CallTranscript Join(CallTranscript first, CallTranscript then)
         {
             if (first == null && then == null) return null;

@@ -2183,6 +2183,8 @@ namespace CapriDesktop
         private double heldWake;
         // What her ears did since their last line in her log. Counts only, never a line's words.
         private int earsWords, earsEmpty, earsCuts, earsWaits, earsLogCall;
+        // The lines they lost and why: a newer turn began, she was thinking or talking, her ears closed on a line she was taking
+        // in, or a voiced reaction closed them. And the call lines kept for her next turn (#171).
         private int earsStale, earsBusy, earsCutOff, earsReaction, earsQueued;
         private long earsDropped;
         private double earsLogAt;
@@ -11505,7 +11507,8 @@ namespace CapriDesktop
         // Her log never holds a line's words, so this is how a game's voice chat can be read back afterwards: at most once a
         // minute, how many lines gave words and how many gave none, how often sound ran 15 seconds without a pause, and how much
         // of a call's sound her ears let go to keep up with the mic (Lachy, 10 Nov: she couldn't follow Fortnite's voice chat, and
-        // nothing in her log said what her ears had done with it).
+        // nothing in her log said what her ears had done with it). Since #171 it also says how many lines they lost and why, and
+        // how many call lines waited for her next turn.
         private void LogEars(double now, bool closing)
         {
             if (!closing && (!chatting || !local || !earsReady || dictation != null || now - earsLogAt < 60)) return;
@@ -13093,7 +13096,9 @@ namespace CapriDesktop
         {
             // A job leaves her thinking until it ends, but her ears stay open through it so they can tell her more. A line carried
             // on from sound that never pauses stays open too while its last piece turns into words, or what's said right after
-            // the cut is lost.
+            // the cut is lost. On a call they stay open while she thinks and while a line turns into words, and what she hears waits
+            // for her next turn (#171: on a call she went quiet, then stopped answering). Her voice still shuts them, as the call's
+            // talk-over expects.
             lock (waking)
             {
                 earsShut = local && (!earsReady || transcribing && !CallModeOn && !EarsBesideJob && !carrying || ears.Muted || (talkState == TalkState.Thinking && !CallModeOn && working == null && !PcEars.Active) || now < voiceUntil && !nameOver);
@@ -13327,7 +13332,8 @@ namespace CapriDesktop
             if (callVersion >= 0 && !callSession.Current(callVersion)) { OldCallLine(ticket); return; }
             if (ticket != chatTicket || !local || !chatting) return;
             if (request != asking && !EarsBesideJob && !CallModeOn) { Interlocked.Increment(ref earsStale); nameOver = false; NextLine(); CheckEars(clock.Elapsed.TotalSeconds); return; }
-            // Mid-job a line was heard with her ears open, so her voice starting since doesn't make it hers.
+            // Mid-job a line was heard with her ears open, so her voice starting since doesn't make it hers. On a call a line heard
+            // before her newest turn, or while she thinks or talks, still counts: it takes her next turn.
             bool busy = !CallModeOn && ((talkState == TalkState.Thinking && working == null && !PcEars.Active) || clock.Elapsed.TotalSeconds < voiceUntil && !nameOver && !EarsBesideJob);
             if (ears.Muted || busy || !Speech(taken, wake))
             {
@@ -13414,10 +13420,11 @@ namespace CapriDesktop
             nameOver = false;
             NextLine();
             CheckEars(clock.Elapsed.TotalSeconds);
+            // On a call words from before her newest turn still take her next one. Without words they end quietly, as before.
             bool stale = request != asking && !EarsBesideJob;
             if (stale && (!CallModeOn || string.IsNullOrEmpty(text) || problem != null) || ears.Muted)
             {
-                if (stale && !CallModeOn) Interlocked.Increment(ref earsStale);
+                if (stale && !CallModeOn && !ears.Muted) Interlocked.Increment(ref earsStale);
                 if (!NameOnly) mainframe.VoiceNote(LocalListening, false);
                 return;
             }
