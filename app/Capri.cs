@@ -3115,6 +3115,16 @@ namespace CapriDesktop
 
         private void Play(Clip next)
         {
+            if (next == perchArrive && !lying)
+            {
+                Point hip = Hip();
+                Rectangle area = Screen.FromPoint(new Point(hip.X, hip.Y - 1)).WorkingArea;
+                bool aside = asideAt == anchor;
+                facingLeft = SitsLeft(hip.X, area, preferences.Size, facingLeft);
+                anchor = new Point(anchor.X + hip.X - Hip().X, anchor.Y);
+                if (aside) asideAt = anchor;
+                Location = anchor;
+            }
             clip = next;
             clipStart = clock.Elapsed.TotalSeconds;
             idleCycle = 0;
@@ -31008,6 +31018,7 @@ namespace CapriDesktop
         private void SmokePanelTeleport(System.Collections.Generic.List<string> checks)
         {
             if (hidden || !preferences.Motion) { checks.Add("LIMIT panel teleport: she's hidden or Motion is off here, so a job doesn't send her to the panel"); return; }
+            if (seat != null) Face();
             bool instantWas = instant;
             Point home = anchor;
             Ledge homeSeat = seat;
@@ -31024,12 +31035,15 @@ namespace CapriDesktop
                 Action tripWas = outro;
                 bool once = SitOnPanel() && outro == tripWas && !onPanel;
                 finish();
-                bool landed = onPanel && panelTrip == null && clip == perchArrive && Hip().Y == taskPanel.Plate.Top && PointerHome() == pointerAt;
+                Point panelAt = anchor;
+                panelAt.X += (int)(preferences.Size * SitX) - (int)(preferences.Size * (homeLeft ? 1 - SitRight : SitRight));
+                bool landed = onPanel && panelTrip == null && clip == perchArrive && Hip().Y == taskPanel.Plate.Top && PointerHome(panelAt) == pointerAt;
                 if (!leaving || !once || !landed) throw new Exception("A job didn't teleport her onto the panel: leaving " + leaving + ", one trip " + once + ", landed " + landed + (clip == perchArrive ? " with her perched arrival." : " without her perched arrival."));
                 Rectangle panelArea = Screen.FromPoint(new Point(Hip().X, Hip().Y - 1)).WorkingArea;
                 int panelMiddle = panelArea.Left + panelArea.Width / 2;
-                Face();
                 bool panelFaced = Math.Abs(Hip().X - panelMiddle) <= preferences.Size / 8 || facingLeft == Hip().X > panelMiddle;
+                Face();
+                panelFaced = panelFaced && (Math.Abs(Hip().X - panelMiddle) <= preferences.Size / 8 || facingLeft == Hip().X > panelMiddle);
                 if (!panelFaced) throw new Exception("On the task panel she didn't face the middle of its screen: hip " + Hip().X + ", middle " + panelMiddle + ", facing left " + facingLeft);
                 if (facingLeft == homeLeft) { facingLeft = !homeLeft; HoldPanel(); }
                 JobOff(first, "done", "Opened Notepad and typed hi.");
@@ -44026,6 +44040,7 @@ namespace CapriDesktop
                                 Func<bool> comesBack = delegate
                                 {
                                     Point hipNow = Hip(), spotNow = anchor;
+                                    if (onPanel) hipNow = new Point(panelHome.X + PaddingSize + (int)(preferences.Size * (panelLeft ? 1 - SitRight : SitRight)), panelHome.Y + PaddingSize + (int)(preferences.Size * SitY));
                                     bool leftNow = facingLeft, lyingNow = lying, panelNow = onPanel;
                                     bool saved = false;
                                     for (int attempt = 0; attempt < 3 && !saved; attempt++) saved = SavePreferences();
@@ -44048,12 +44063,35 @@ namespace CapriDesktop
                                 Point panelHomeWas = panelHome;
                                 bool panelLeftWas = panelLeft;
                                 panelHome = anchor;
-                                panelLeft = true;
+                                panelLeft = !facingLeft;
                                 onPanel = true;
                                 savedHip = savedHip && comesBack();
                                 onPanel = false;
                                 panelHome = panelHomeWas;
                                 panelLeft = panelLeftWas;
+                                bool arrivalMotion = preferences.Motion, arrivalInstant = instant;
+                                try
+                                {
+                                    preferences.Motion = true;
+                                    instant = false;
+                                    foreach (int eighths in new[] { 6, 2 })
+                                    {
+                                        sitsLeftAt(primaryArea, 8 - eighths, eighths == 2);
+                                        int x = primaryArea.Left + primaryArea.Width * eighths / 8, y = primaryArea.Top + primaryArea.Height / 2;
+                                        Ledge landing = new Ledge { Left = primaryArea.Left, Right = primaryArea.Right, Y = y, Floor = true, Free = true };
+                                        Point hip = new Point(x, y);
+                                        Hop(landing, x);
+                                        if (seat != landing || clip != perchArrive || facingLeft != (eighths == 6) || Hip() != hip || Advance(clipStart) != 0 || !comesBack()) throw new Exception("A hop started her arrival facing the wrong way or moved her saved hip.");
+                                        Face();
+                                        if (facingLeft != (eighths == 6) || Hip() != hip) throw new Exception("Her arrival turned or moved on the next facing check.");
+                                    }
+                                }
+                                finally
+                                {
+                                    preferences.Motion = arrivalMotion;
+                                    instant = arrivalInstant;
+                                }
+                                checks.Add("PASS hops across the screen start her perched arrival facing the middle. Her landing hip and saved spot stay put both ways.");
                                 bool walkKept = true;
                                 foreach (int eighths in new[] { 6, 2 })
                                 {

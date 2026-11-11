@@ -1361,6 +1361,11 @@ namespace CapriDesktop
 
         private void Play(Clip next)
         {
+            if (next == perchArrive && !lying)
+            {
+                PixelPoint hip = Hip;
+                SetFacing(SitsLeft(hip.X, WorkAt(new PixelPoint(hip.X, hip.Y - 1)), Px(body.Size), FacingLeft));
+            }
             clip = next;
             clipStart = Now;
             idleCycle = 0;
