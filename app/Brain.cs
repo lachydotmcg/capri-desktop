@@ -1470,7 +1470,8 @@ namespace CapriDesktop
             string before = MemoriesBody(), after = null;
             if (shared.Count > 0)
             {
-                // A brain of its own, so talking to her doesn't cancel the fold.
+                // A brain of its own, so cancelling one of her replies doesn't cancel the fold. A new message still calls it off on a
+                // brain on their PC, in Ask.
                 Brain folder = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick, unhurried = true };
 #if CROSS
                 folder.Provider = Provider;
