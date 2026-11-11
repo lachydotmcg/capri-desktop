@@ -60,6 +60,7 @@ namespace CapriDesktop
 
         internal static void Register(Window window, NativeSurfaceRole role, bool acceptsInput = true)
         {
+            if (OperatingSystem.IsLinux() && NiriDesktop.Current != null) { NiriDesktop.Current.Register(window); return; }
             if (HyprlandDesktop.Current != null) bindings.Add(window, new NativeSurface(window, role, acceptsInput));
         }
 
@@ -71,6 +72,7 @@ namespace CapriDesktop
 
         internal static bool TryMove(Window window, PixelPoint position, HyprlandDisplayMap target = null, long sequence = 0, long sourceAt = 0, PixelSize? replySize = null)
         {
+            if (OperatingSystem.IsLinux() && NiriDesktop.Current?.TryMove(window, position) == true) return true;
             if (!bindings.TryGetValue(window, out NativeSurface binding)) return false;
             var state = binding.desktop.VisualSnapshot;
             if (state == null || state.Locked) return true; // No unbound intent may cross an unknown layout.
@@ -101,6 +103,7 @@ namespace CapriDesktop
 
         internal static void CancelMoves(Window window)
         {
+            if (OperatingSystem.IsLinux()) NiriDesktop.Current?.CancelMoves(window);
             if (!bindings.TryGetValue(window, out NativeSurface binding)) return;
             Interlocked.Increment(ref binding.moveGeneration);
             Interlocked.Exchange(ref binding.pendingMove, null);

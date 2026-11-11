@@ -621,7 +621,7 @@ namespace CapriDesktop
         // The mouse pressing her, so letting go of her without a release can give its capture back.
         private IPointer holder;
         // Window positions she asked for that the desktop hasn't confirmed yet, oldest first.
-        private readonly List<PixelPoint> asked = new List<PixelPoint>();
+        private MoveReports asked = new MoveReports();
         private Point pointer = new Point(-1, -1);
         private double fallSpeed;
         private double fallStep;
@@ -791,7 +791,7 @@ namespace CapriDesktop
             Fit();
             // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
             // so she follows where it really went. A Mac moves her window right away, as asked.
-            if (OperatingSystem.IsLinux()) PositionChanged += delegate(object sender, PixelPointEventArgs e) { FollowPosition(e.Point); };
+            if (OperatingSystem.IsLinux()) PositionChanged += delegate(object sender, PixelPointEventArgs e) { if (NiriDesktop.Current?.Owns(this) != true) { if (desktopDrag || desktopReleased) DesktopPosition(e.Point); else FollowPosition(e.Point); } };
             Play(idle);
             nextGlitch = 30 + random.NextDouble() * 30;
             ContextMenu = Menu();
@@ -809,7 +809,7 @@ namespace CapriDesktop
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
             Closed += delegate { StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
-            Deactivated += delegate { if (!(Desk is HyprlandDesk)) Program.Guard(Unhold); };
+            Deactivated += delegate { if (!(Desk is HyprlandDesk) && !desktopDrag) Program.Guard(Unhold); };
             Opened += delegate
             {
                 if (opened) return;
@@ -889,6 +889,7 @@ namespace CapriDesktop
         // Like the released app, leave room at a screen edge without oscillating around one threshold.
         private void Face()
         {
+            if (MoveStuck) return;
             if (dragging || pressed || walking || falling || riding || lying || outro != null || clip == arrive || clip == leave) return;
             SetFacing(WorkAt(Hip).Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
         }
@@ -911,10 +912,10 @@ namespace CapriDesktop
 
         internal void Move(PixelPoint to, HyprlandDisplayMap target = null, long sequence = 0, long sourceAt = 0)
         {
+            if (MoveStuck) return;
             anchor = to;
             PixelPoint at = new PixelPoint(to.X + Px(FrameX), to.Y + Px(FrameY));
-            if (asked.Count >= 8) asked.RemoveAt(0);
-            asked.Add(at);
+            RecordMove(at);
             if (MoveTo != null) MoveTo(at);
             else Look.Position(this, at, target, sequence, sourceAt);
         }
@@ -923,6 +924,7 @@ namespace CapriDesktop
         // never step back to an older spot; anywhere else means the desktop put her there, and she carries on from it.
         internal void FollowPosition(PixelPoint at)
         {
+            if (LinuxMoves) { TakePosition(asked.Report(at, WindowAt, Now, MoveBusy)); return; }
             int was = asked.IndexOf(at);
             if (was >= 0) { asked.RemoveRange(0, was + 1); return; }
             asked.Clear();
@@ -1077,6 +1079,7 @@ namespace CapriDesktop
                 if (smoke != null) smoke.Tick(now);
                 return;
             }
+            TickMoveReports(now);
             if (!pressed && !dragging)
             {
                 TickMoves(now);
@@ -1497,6 +1500,7 @@ namespace CapriDesktop
 
         internal void Fall()
         {
+            if (MoveStuck) { StayPut(); return; }
             ClearMoves();
             walking = false;
             seat = null;
@@ -1510,6 +1514,7 @@ namespace CapriDesktop
 
         private void Tumble(double now)
         {
+            if (MoveStuck) { StayPut(); return; }
             double step = Math.Max(0, Math.Min(0.05, now - fallStep));
             fallStep = now;
             PixelPoint hip = Hip;
@@ -1551,6 +1556,7 @@ namespace CapriDesktop
 
         internal void HoldSeat(double now)
         {
+            if (MoveStuck) return;
             if (seat == null || seat.Window == 0) return;
             Spot spot = Find(seat.Window);
             if (spot == null || !spot.Seat)
@@ -1648,6 +1654,7 @@ namespace CapriDesktop
             base.OnPointerPressed(e);
             Program.Guard(() =>
             {
+                if (DesktopPointer(e)) return;
                 if (body.HologramOn || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || outro != null) return;
                 Point at = e.GetPosition(this);
                 if (!Opaque(at)) return;
@@ -1658,6 +1665,7 @@ namespace CapriDesktop
                 e.Pointer.Capture(this);
                 holder = e.Pointer;
                 pressed = true;
+                if (DesktopDrags) desktopPress = e;
                 Desk.TrackDrag(true);
                 grabDip = new Point(at.X + FrameX, at.Y + FrameY);
                 clicks++;
@@ -1673,6 +1681,7 @@ namespace CapriDesktop
             base.OnPointerMoved(e);
             Program.Guard(() =>
             {
+                if (DesktopPointer(e)) return;
                 pointer = e.GetPosition(this);
                 if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
                 if (Desk is HyprlandDesk) return;
@@ -1680,6 +1689,7 @@ namespace CapriDesktop
                 int dx = at.X - downAt.X;
                 int dy = at.Y - downAt.Y;
                 if (!dragging && dx * dx + dy * dy < 25) return;
+                if (DesktopDrags) { StartDesktopDrag(); return; }
                 if (!dragging) Grab();
                 dragAt = at;
                 dragPending = true;
@@ -1702,6 +1712,7 @@ namespace CapriDesktop
 
         internal void DragFrame()
         {
+            if (desktopDrag) return;
             if (!pressed) return;
             if (Desk is HyprlandDesk nativeDesk)
             {
@@ -1731,6 +1742,7 @@ namespace CapriDesktop
             base.OnPointerReleased(e);
             Program.Guard(() =>
             {
+                if (DesktopPointer(e)) return;
                 if (!pressed || e.InitialPressMouseButton != MouseButton.Left) return;
                 if (Desk is HyprlandDesk native) ApplyNativeDrag(native.Desktop.SamplePointer());
                 if (dragging && Desk is not HyprlandDesk)
@@ -1752,6 +1764,7 @@ namespace CapriDesktop
         protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
         {
             base.OnPointerCaptureLost(e);
+            if (desktopDrag) return;
             Program.Guard(Unhold);
         }
 
@@ -1766,6 +1779,8 @@ namespace CapriDesktop
         // focus or being hidden lets go of her the same way.
         private void Unhold()
         {
+            if (!IsVisible || quitting) desktopReleased = false;
+            if (desktopDrag) { if (IsVisible && !quitting) return; desktopDrag = desktopReleased = false; }
             if (!pressed) return;
             pressed = false;
             dragGesture++;
@@ -2083,6 +2098,7 @@ namespace CapriDesktop
 
         internal bool Drop()
         {
+            if (MoveStuck) { dragging = false; StayPut(); Save(); return true; }
             // Her ledges are found before the drag ends, and a bug there still ends it, with a fall that looks again, so it
             // can't leave her floating where she was let go.
             Ledge target;
@@ -3815,6 +3831,7 @@ namespace CapriDesktop
 
         internal bool Stroll()
         {
+            if (MoveStuck) return false;
             if (walking || falling || dragging || outro != null || seat == null || seat.Free) return false;
             PixelPoint hip = Hip;
             PixelRect area = WorkAt(hip);
@@ -3836,6 +3853,7 @@ namespace CapriDesktop
 
         private void Walk(double now)
         {
+            if (MoveStuck) { StayPut(); return; }
             double step = Math.Max(0, Math.Min(0.05, now - walkStep));
             walkStep = now;
             int gap = walkTo - anchor.X;
@@ -3870,6 +3888,7 @@ namespace CapriDesktop
 
         internal bool Blink()
         {
+            if (MoveStuck) return false;
             if (walking || falling || dragging || outro != null || quitting || seat == null || seat.Free) return false;
             PixelPoint hip = Hip;
             PixelRect area = WorkAt(hip);
@@ -3884,6 +3903,7 @@ namespace CapriDesktop
 
         internal bool Wander(bool asked = false)
         {
+            if (MoveStuck) return false;
             if (outro != null || quitting) return false;
             List<Ledge> spots = new List<Ledge>();
             foreach (Ledge ledge in Ledges())
@@ -3904,6 +3924,7 @@ namespace CapriDesktop
 
         private void Hop(Ledge spot, int x)
         {
+            if (MoveStuck) { StayPut(); return; }
             if (askedHop && !MovePlace(ref spot, ref x))
             {
                 Fall();
@@ -3971,7 +3992,7 @@ namespace CapriDesktop
             bool hidden = away;
             string line = PopLines[random.Next(PopLines.Length)];
             // With Stay put, or on a Sit here spot, she says hi from where she is.
-            if (!hidden && (Saved.Wander <= 0 || (seat != null && seat.Free)))
+            if (!hidden && (MoveStuck || Saved.Wander <= 0 || (seat != null && seat.Free)))
             {
                 Blurt(PopHeard, line);
                 popAsked = asking;
