@@ -841,6 +841,47 @@ namespace CapriDesktop
             }
         }
 
+        // A Store app, like Windows 11's Notepad, opens through Windows' app activation and never through Explorer, and Windows saying
+        // no is said instead of "Opened" (the Saac fan, 11 Nov: with 360 Total Security, "open notepad" opened Documents).
+        private static void SmokeStoreLaunch(List<string> checks)
+        {
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<string, int> activationWas = Hands.Activation;
+            Func<string, string> openedWas = Hands.Opened;
+            Action<string> runWas = Hands.Run;
+            try
+            {
+                const string notepad = "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App";
+                const string notepadPlus = @"{6D809377-6AF0-444B-8957-A3773F02200E}\Notepad++\notepad++.exe";
+                if (!Hands.Packaged(notepad) || !Hands.Packaged("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic") || Hands.Packaged(notepadPlus)
+                    || Hands.Packaged(@"C:\Games\game.exe") || Hands.Packaged("spotify:") || Hands.Packaged("https://example.com/a!b") || Hands.Packaged("fake-calculator"))
+                    throw new Exception("A Store app's id was read wrong.");
+                List<string> activated = new List<string>();
+                int answer = 0;
+                Hands.Activation = delegate(string id) { activated.Add(id); return answer; };
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Notepad", notepad), new InstalledApp("Notepad++", notepadPlus) }; };
+                Hands.Opened = delegate { return ""; };
+                Hands.Run = Hands.Start;
+                Hands.Forget();
+                string opened = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                answer = unchecked((int)0x80270254);
+                string refused = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                if (opened != "Opened Notepad." || string.Join(",", activated.ToArray()) != notepad + "," + notepad
+                    || refused != "Couldn't open Notepad: Windows wouldn't start it. Try opening it from the Start menu." || !Hands.Failed(refused))
+                    throw new Exception("A Store app didn't open through Windows' activation, or a refusal still said it opened: " + opened + " / " + refused + " / " + string.Join(",", activated.ToArray()));
+                if (Hands.Launch(notepad).FileName != "explorer.exe") throw new Exception("A Store app's fallback launch lost Explorer.");
+                checks.Add("PASS a Store app like Notepad opens through Windows' app activation instead of Explorer, so nothing in between can turn it into a File Explorer window on Documents, and when Windows won't start it she says so instead of \"Opened\"; Store ids are told apart from program paths, launch links and addresses");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Activation = activationWas;
+                Hands.Opened = openedWas;
+                Hands.Run = runWas;
+                Hands.Forget();
+            }
+        }
+
         // An ask opens each app, site or song once, however many times her brain repeats the call (a tester saw YouTube or Spotify
         // open about 20 times in a row on 0.7.10): her one-shot hands writing the same call over and over, and a planner calling it
         // twenty times at once and again a round later. Media still goes twice, like skipping two songs.

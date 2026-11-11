@@ -37806,6 +37806,7 @@ namespace CapriDesktop
             Section(checks, "SmokePcStatus", delegate { SmokePcStatus(checks); });
             Section(checks, "SmokeInternetStatus", delegate { SmokeInternetStatus(checks); });
             Section(checks, "SmokeOpensOnce", delegate { SmokeOpensOnce(checks); });
+            Section(checks, "SmokeStoreLaunch", delegate { SmokeStoreLaunch(checks); });
             Section(checks, "SmokeHelpForTools", delegate { SmokeHelpForTools(checks); });
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
