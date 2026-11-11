@@ -34,6 +34,7 @@ namespace CapriDesktop
         {
             if (args.Length > 0 && args[0] == "--smoke-child") return SmokeRun.Child(args);
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
+            if (args.Length > 0 && args[0] == "--workspace-hook") return WorkspaceHook.Run(args);
             if (args.Length == 4 && args[0] == "--release-input") return InputRelease.Watch(args[1], args[2], args[3]);
             if (!Packaged.Is && CapriSetup.Program.Wanted(Application.ExecutablePath, args)) return CapriSetup.Program.Run(args);
             try { Native.SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) { Native.SetProcessDPIAware(); }
@@ -14161,6 +14162,7 @@ namespace CapriDesktop
             followUp.Drop();
             if (StopWatchAlong(text)) return;
             if (StopListening(text)) return;
+            if (callReply == null && prompt == "> you: " && WorkspaceAsked(text)) { OpenWorkspace(); return; }
             // Sorry, typed or said while she sulks over being thrown, makes up with her, and a plain sorry gets her forgiving line
             // back. Mid-job it still goes to the job (Zr4, F44).
             bool sorry = Sulking && prompt == "> you: " && Apology(text);
@@ -15207,6 +15209,7 @@ namespace CapriDesktop
             if (disposing)
             {
                 quitting = true;
+                CloseWorkspace();
                 if (afterToolTimer != null) afterToolTimer.Dispose();
                 toolEnds.Clear();
                 if (iconRampage != null) ClearIcons();
@@ -38589,6 +38592,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
+            Section(checks, "SmokeWorkspace", delegate { SmokeWorkspace(checks, Path.Combine(output, "workspace")); });
             Section(checks, "SmokeRedaction", delegate { SmokeRedaction(checks); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
             Section(checks, "SmokeCallJob", delegate { SmokeCallJob(checks); });
@@ -39721,6 +39725,402 @@ namespace CapriDesktop
             public override void SetLength(long value) { throw new NotSupportedException(); }
             public override void Write(byte[] buffer, int offset, int count) { throw new NotSupportedException(); }
             protected override void Dispose(bool disposing) { if (disposing) { Release.Dispose(); ReadDone.Dispose(); } base.Dispose(disposing); }
+        }
+
+        private static void WorkspaceWait(Func<bool> ready, string problem)
+        {
+            Stopwatch wait = Stopwatch.StartNew();
+            while (!ready())
+            {
+                if (wait.ElapsedMilliseconds > 8000) throw new Exception(problem);
+                Thread.Sleep(10);
+            }
+        }
+
+        private static List<WorkspaceItem> WorkspaceItems(WorkspaceChat chat)
+        {
+            lock (chat.Gate) return new List<WorkspaceItem>(chat.Items);
+        }
+
+        private static string WorkspaceChoice(Dictionary<string, object> answer)
+        {
+            return HuskJson.Text(HuskJson.Get(answer, "hookSpecificOutput") as Dictionary<string, object>, "permissionDecision");
+        }
+
+        private void SmokeWorkspace(List<string> checks, string folder)
+        {
+            folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            string project = Path.Combine(folder, "project"), standin = Path.Combine(folder, "claude.cmd"), finish = Path.Combine(folder, "finish"), session = Guid.NewGuid().ToString();
+            Directory.CreateDirectory(project);
+            string pipe = "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-" + Guid.NewGuid().ToString("N");
+            Func<bool> frontWas = workspaceFront;
+            Action<string, bool> saidWas = workspaceSaid;
+            try
+            {
+                foreach (string permission in Workspace.Modes)
+                {
+                    string expected = permission == "Edits only" ? "acceptEdits" : permission == "Plan only" ? "plan" : permission == "Everything" ? "bypassPermissions" : "default";
+                    for (int flags = 0; flags < 8; flags++)
+                    {
+                        string resume = (flags & 1) != 0 ? session : "", modelName = (flags & 2) != 0 ? "Opus" : "Default", settings = (flags & 4) != 0 ? Path.Combine(folder, "turn settings.json") : "";
+                        List<string> asked = Workspace.Arguments(permission, resume, modelName, settings);
+                        List<string> wanted = new List<string> { "-p", "--verbose", "--input-format", "stream-json", "--output-format", "stream-json", "--permission-mode", expected };
+                        if (resume.Length > 0) wanted.AddRange(new[] { "--resume", resume });
+                        if (modelName != "Default") wanted.AddRange(new[] { "--model", "opus" });
+                        if (settings.Length > 0) wanted.AddRange(new[] { "--settings", settings });
+                        if (string.Join("|", asked.ToArray()) != string.Join("|", wanted.ToArray())) throw new Exception("Workspace arguments changed for " + permission + " / " + flags + ".");
+                    }
+                }
+                foreach (string modelName in new[] { "Opus", "Sonnet", "Haiku" })
+                {
+                    List<string> asked = Workspace.Arguments("Ask me", "", modelName, "");
+                    if (asked[asked.Count - 1] != modelName.ToLowerInvariant()) throw new Exception("Workspace sent the wrong model.");
+                }
+                checks.Add("PASS Workspace arguments: all four modes, every resume/model/settings combination, and Default, Opus, Sonnet and Haiku; Claude Code keeps its tools, sessions and settings");
+
+                using (Workspace work = new Workspace(folder, pipe))
+                {
+                    WorkspaceChat chat = work.NewChat(project, false), black = work.NewChat(project, true);
+                    if (chat.Mode != "Ask me" || black.Mode != "Everything" || chat.Title != "project") throw new Exception("Workspace new-chat defaults changed.");
+                    work.Delete(black);
+                    work.Executable = standin;
+                    string prefix = "@echo off\r\nsetlocal\r\necho %* > \"%~dp0args.txt\"\r\ncd > \"%~dp0cwd.txt\"\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\n";
+                    string text = "Hello.\n```cs\nint count = 1;\n```";
+                    List<string> rows = new List<string> {
+                        HuskJson.Write(HuskJson.Map("type", "system", "subtype", "init", "session_id", session)),
+                        HuskJson.Write(HuskJson.Map("type", "assistant", "message", HuskJson.Map("content", new List<object> { HuskJson.Map("type", "text", "text", text) }))),
+                        HuskJson.Write(HuskJson.Map("type", "assistant", "message", HuskJson.Map("content", new List<object> { HuskJson.Map("type", "tool_use", "id", "edit-one", "name", "Edit", "input", HuskJson.Map("file_path", "app/Capri.cs")) }))),
+                        HuskJson.Write(HuskJson.Map("type", "user", "message", HuskJson.Map("content", new List<object> { HuskJson.Map("type", "tool_result", "tool_use_id", "edit-one", "content", new string('x', 2300)) })))
+                    };
+                    string result = HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "session_id", session, "duration_ms", 1250, "total_cost_usd", 0.02, "result", text));
+                    File.WriteAllLines(Path.Combine(folder, "rows.txt"), rows.ToArray(), new UTF8Encoding(false));
+                    File.WriteAllText(Path.Combine(folder, "result.txt"), result + "\n", new UTF8Encoding(false));
+                    File.WriteAllText(standin, prefix + "type \"%~dp0rows.txt\"\r\n:wait\r\nif exist \"%~dp0finish\" goto done\r\nping -n 2 127.0.0.1 > nul\r\ngoto wait\r\n:done\r\ntype \"%~dp0result.txt\"\r\n", Encoding.ASCII);
+                    string askedText = "Read this folder.\nKeep % & quotes \" here.";
+                    WorkspaceTurn first;
+                    lock (chat.Gate)
+                    {
+                        if (!work.Send(chat, askedText, false)) throw new Exception("Workspace didn't start its stand-in.");
+                        first = chat.Live;
+                    }
+                    WorkspaceWait(delegate { return WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "result"; }); }, "Workspace waited for exit before showing streamed tools.");
+                    if (!chat.Running || WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "end"; })) throw new Exception("Workspace ended a streaming turn too soon.");
+                    if (work.Send(chat, "A second turn", false)) throw new Exception("Workspace ran two turns in one chat.");
+                    work.Change(chat, "My project", "Edits only", "Sonnet");
+                    if (first.Mode != "Ask me" || first.Model != "Default") throw new Exception("Workspace changed a mode during a turn.");
+                    File.WriteAllText(finish, "go");
+                    if (!first.Done.WaitOne(8000)) throw new Exception("Workspace didn't finish its streamed turn.");
+                    List<WorkspaceItem> items = WorkspaceItems(chat);
+                    if (items.Count != 5 || items[0].Kind != "user" || items[1].Kind != "text" || items[2].Kind != "tool" || items[3].Kind != "result" || items[4].Kind != "end") throw new Exception("Workspace parsed its stream into the wrong items.");
+                    if (items[1].Text != text || items[2].Name != "Edit" || items[2].Text != "Edit app/Capri.cs" || items[3].Id != "edit-one" || items[3].Text.Length != 2000 || Math.Abs(items[4].Seconds - 1.25) > 0.001 || items[4].Cost != "0.02") throw new Exception("Workspace lost text, tool data, time or cost.");
+                    if (chat.Session != session || File.ReadAllText(Path.Combine(folder, "cwd.txt")).Trim() != project) throw new Exception("Workspace lost its session or working folder.");
+                    Dictionary<string, object> sent = HuskJson.Read(File.ReadAllText(Path.Combine(folder, "stdin.txt")).Trim()) as Dictionary<string, object>;
+                    Dictionary<string, object> message = HuskJson.Get(sent, "message") as Dictionary<string, object>;
+                    List<object> blocks = HuskJson.List(HuskJson.Get(message, "content"));
+                    if (HuskJson.Text(sent, "type") != "user" || HuskJson.Text(message, "role") != "user" || blocks == null || blocks.Count != 1 || HuskJson.Text(blocks[0] as Dictionary<string, object>, "text") != askedText) throw new Exception("Workspace changed the message on stdin.");
+                    WorkspaceTurn second;
+                    lock (chat.Gate)
+                    {
+                        if (!work.Send(chat, "Next", false)) throw new Exception("Workspace couldn't resume.");
+                        second = chat.Live;
+                    }
+                    if (!second.Done.WaitOne(8000)) throw new Exception("Workspace resume didn't end.");
+                    string args = File.ReadAllText(Path.Combine(folder, "args.txt"));
+                    if (!args.Contains(session) || !args.Contains("--resume") || !args.Contains("--model") || !args.Contains("sonnet") || !args.Contains("acceptEdits") || !args.Contains("--settings")) throw new Exception("Workspace didn't reuse its session with the new mode and model.");
+                    Dictionary<string, object> setting = HuskJson.Read(work.Settings(chat, second.Id, Path.Combine(folder, "Capri.exe"))) as Dictionary<string, object>;
+                    Dictionary<string, object> hooks = HuskJson.Get(setting, "hooks") as Dictionary<string, object>;
+                    List<object> groups = HuskJson.List(HuskJson.Get(hooks, "PreToolUse"));
+                    List<object> commands = HuskJson.List(HuskJson.Get(groups[0] as Dictionary<string, object>, "hooks"));
+                    Dictionary<string, object> command = commands[0] as Dictionary<string, object>;
+                    if (groups.Count != 1 || commands.Count != 1 || HuskJson.Text(groups[0] as Dictionary<string, object>, "matcher") != "*" || !HuskJson.Text(command, "command").Contains("--workspace-hook " + pipe + " " + chat.Id + " " + second.Id) || Workspace.Number(command, "timeout") <= 600) throw new Exception("Workspace's turn hook or timeout is wrong.");
+                    checks.Add("PASS Workspace streams init, text, tools and results before exit, caps tool results at 2,000 characters, saves and resumes the session, and changes mode/model on the next turn");
+
+                    for (int fault = 0; fault < 2; fault++)
+                    {
+                        File.WriteAllText(Path.Combine(folder, "fault.txt"), HuskJson.Write(HuskJson.Map("type", "result", "is_error", fault == 1, "result", fault == 1 ? "Please sign in to Claude Code." : "Finished.")) + "\n", new UTF8Encoding(false));
+                        File.WriteAllText(standin, prefix + "type \"%~dp0fault.txt\"\r\necho Claude Code stderr: sign in first. 1>&2\r\nexit /b " + (fault == 0 ? "7" : "0") + "\r\n", Encoding.ASCII);
+                        int before = WorkspaceItems(chat).Count;
+                        WorkspaceTurn failed;
+                        lock (chat.Gate) { work.Send(chat, "Try", false); failed = chat.Live; }
+                        if (failed == null || !failed.Done.WaitOne(8000)) throw new Exception("Workspace's error stand-in didn't end.");
+                        List<WorkspaceItem> errors = WorkspaceItems(chat).GetRange(before, WorkspaceItems(chat).Count - before);
+                        WorkspaceItem error = errors.Find(delegate(WorkspaceItem item) { return item.Kind == "error"; });
+                        if (error == null || !error.Text.Contains("Claude Code stderr: sign in first.") || fault == 1 && !error.Text.Contains("Please sign in to Claude Code.")) throw new Exception("Workspace hid Claude Code's sign-in error or stderr.");
+                    }
+                    work.Executable = Path.Combine(folder, "missing.cmd");
+                    if (work.Send(chat, "Retry this", false)) throw new Exception("A missing Claude Code ran.");
+                    WorkspaceItem missing = WorkspaceItems(chat)[WorkspaceItems(chat).Count - 1];
+                    if (missing.Text != Workspace.Missing || !missing.Retry) throw new Exception("Workspace's missing-Claude message or Retry disappeared.");
+                    int users = WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "user"; }).Count;
+                    File.WriteAllText(standin, prefix + "type \"%~dp0result.txt\"\r\n", Encoding.ASCII);
+                    work.Executable = standin;
+                    WorkspaceTurn retry;
+                    lock (chat.Gate) { work.Retry(chat); retry = chat.Live; }
+                    if (retry == null || !retry.Done.WaitOne(8000) || WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "user"; }).Count != users) throw new Exception("Workspace Retry changed their message or failed to rerun it.");
+                    checks.Add("PASS Workspace keeps Claude Code's sign-in errors and stderr, and a missing installation has Retry without duplicating their message");
+
+                    File.WriteAllText(standin, prefix + "set \"CAPRI_WORKSPACE_CHILD=%~dp0child.txt\"\r\npowershell -NoProfile -Command \"$wsChild = Start-Process -FilePath ping.exe -ArgumentList '-t 127.0.0.1' -WindowStyle Hidden -PassThru; [IO.File]::WriteAllText($env:CAPRI_WORKSPACE_CHILD, [string]$wsChild.Id)\"\r\n:forever\r\nping -n 2 127.0.0.1 > nul\r\ngoto forever\r\n", Encoding.ASCII);
+                    WorkspaceTurn stopped;
+                    lock (chat.Gate) { work.Send(chat, "Wait", false); stopped = chat.Live; }
+                    int childId = 0;
+                    WorkspaceWait(delegate { try { return int.TryParse(File.ReadAllText(Path.Combine(folder, "child.txt")), out childId) && childId > 0; } catch (IOException) { return false; } }, "Workspace's long-running stand-in didn't start its child.");
+                    WorkspaceChat parallel = work.NewChat(project, false);
+                    string shortApp = Path.Combine(folder, "short.cmd");
+                    File.WriteAllText(shortApp, prefix + "type \"%~dp0result.txt\"\r\n", Encoding.ASCII);
+                    work.Executable = shortApp;
+                    WorkspaceTurn other;
+                    lock (parallel.Gate)
+                    {
+                        if (!work.Send(parallel, "Another chat", false)) throw new Exception("Workspace blocked another chat's turn.");
+                        other = parallel.Live;
+                    }
+                    if (other == null || !other.Done.WaitOne(8000) || !chat.Running) throw new Exception("Workspace didn't run different chats together.");
+                    Stopwatch stopClock;
+                    using (ManualResetEvent held = new ManualResetEvent(false))
+                    using (ManualResetEvent release = new ManualResetEvent(false))
+                    {
+                        Thread holder = new Thread(delegate() { lock (chat.Gate) { held.Set(); release.WaitOne(5000); } }) { IsBackground = true };
+                        holder.Start();
+                        if (!held.WaitOne(1000)) throw new Exception("Workspace's lock stand-in didn't start.");
+                        stopClock = Stopwatch.StartNew();
+                        try
+                        {
+                            work.Stop(chat);
+                            WorkspaceWait(delegate { try { return stopped.Process == null || stopped.Process.HasExited; } catch (InvalidOperationException) { return true; } }, "Workspace Stop didn't kill its process.");
+                            if (stopClock.ElapsedMilliseconds >= 2000) throw new Exception("Workspace Stop waited behind the chat lock.");
+                        }
+                        finally { release.Set(); holder.Join(6000); }
+                    }
+                    if (!stopped.Done.WaitOne(2000) || stopClock.ElapsedMilliseconds >= 2000) throw new Exception("Workspace Stop took two seconds.");
+                    try { using (Process child = Process.GetProcessById(childId)) if (!child.HasExited) throw new Exception("Workspace Stop left a child running."); }
+                    catch (ArgumentException) { }
+                    if (!WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "stopped" && item.Text == "Stopped."; })) throw new Exception("Workspace Stop left no item.");
+                    checks.Add("PASS Workspace runs separate chats together, and Stop ends its stand-in and child within 2 seconds even while the chat lock is held");
+
+                    WorkspaceChat approvals = work.NewChat(project, false);
+                    WorkspaceTurn turn = new WorkspaceTurn { Chat = approvals, Mode = "Ask me", Model = "Default" };
+                    approvals.Live = turn;
+                    work.BeginUndo(approvals, turn.Id);
+                    int choice = 1, asked = 0;
+                    string fullInput = null;
+                    work.Changed = delegate(WorkspaceChat changed, WorkspaceItem item)
+                    {
+                        if (changed != approvals || item == null || item.Kind != "approval" || item.Ask == null) return;
+                        asked++;
+                        fullInput = item.Input;
+                        if (choice != 0) work.Answer(approvals, item.Ask, choice != 2, choice == 3, "Keep it.");
+                    };
+                    Func<string, Dictionary<string, object>, Dictionary<string, object>> hook = delegate(string tool, Dictionary<string, object> toolInput)
+                    {
+                        byte[] bytes = Encoding.UTF8.GetBytes(HuskJson.Write(HuskJson.Map("tool_name", tool, "tool_input", toolInput, "cwd", project)));
+                        using (MemoryStream input = new MemoryStream(bytes))
+                        using (StringWriter output = new StringWriter())
+                        {
+                            if (WorkspaceHook.Run(new[] { "--workspace-hook", pipe, approvals.Id, turn.Id }, input, output) != 0) throw new Exception("Workspace hook didn't exit zero.");
+                            return HuskJson.Read(output.ToString()) as Dictionary<string, object>;
+                        }
+                    };
+                    foreach (string tool in new[] { "Read", "Glob", "Grep", "LS", "TodoWrite", "WebSearch", "TaskList" }) if (WorkspaceChoice(hook(tool, HuskJson.Map("pattern", "test"))) != "allow") throw new Exception("Workspace asked before " + tool + ".");
+                    if (asked != 0) throw new Exception("A read tool created an approval card.");
+                    Dictionary<string, object> longInput = HuskJson.Map("query", new string('q', 5000), "other", "whole input");
+                    if (WorkspaceChoice(hook("CustomTool", longInput)) != "allow" || fullInput != HuskJson.Write(longInput) || asked != 1) throw new Exception("Workspace Allow or full approval input failed.");
+                    choice = 2;
+                    Dictionary<string, object> denied = hook("CustomTool", HuskJson.Map());
+                    if (WorkspaceChoice(denied) != "deny" || HuskJson.Text(HuskJson.Get(denied, "hookSpecificOutput") as Dictionary<string, object>, "permissionDecisionReason") != "Keep it.") throw new Exception("Workspace Deny lost its reason.");
+                    choice = 3;
+                    if (WorkspaceChoice(hook("Bash", HuskJson.Map("command", "npm test"))) != "allow") throw new Exception("Workspace Always allow failed.");
+                    int count = asked;
+                    choice = 0;
+                    if (WorkspaceChoice(hook("Bash", HuskJson.Map("command", "npm test"))) != "allow" || asked != count || !approvals.Allowed.Contains("Bash")) throw new Exception("Workspace didn't remember Always allow in this chat.");
+                    work.ApprovalWait = 40;
+                    Dictionary<string, object> timed = hook("AnotherTool", HuskJson.Map());
+                    if (WorkspaceChoice(timed) != "deny" || !HuskJson.Text(HuskJson.Get(timed, "hookSpecificOutput") as Dictionary<string, object>, "permissionDecisionReason").Contains("ten minutes")) throw new Exception("Workspace didn't deny an unanswered approval.");
+                    foreach (string permission in new[] { "Edits only", "Plan only", "Everything" })
+                    {
+                        turn.Mode = permission;
+                        count = asked;
+                        if (WorkspaceChoice(hook("AnotherTool", HuskJson.Map())) != "allow" || asked != count) throw new Exception("Workspace asked in " + permission + ".");
+                    }
+                    turn.Mode = "Ask me";
+                    work.Change(approvals, null, "Everything", null);
+                    if (WorkspaceChoice(hook("ChangedMidTurn", HuskJson.Map())) != "deny") throw new Exception("Workspace changed its running approval mode.");
+                    Dictionary<string, object> stale = WorkspaceHook.Exchange(pipe, approvals.Id, Guid.NewGuid().ToString("N"), HuskJson.Map("tool_name", "Read", "tool_input", HuskJson.Map(), "cwd", project), 1000);
+                    if (WorkspaceChoice(stale) != "deny" || WorkspaceChoice(WorkspaceHook.Exchange("", approvals.Id, turn.Id, HuskJson.Map(), 100)) != "deny") throw new Exception("Workspace allowed a missing pipe or stale turn.");
+                    using (MemoryStream emptyInput = new MemoryStream())
+                    using (StringWriter output = new StringWriter())
+                    {
+                        WorkspaceHook.Run(new[] { "--workspace-hook" }, emptyInput, output);
+                        if (WorkspaceChoice(HuskJson.Read(output.ToString()) as Dictionary<string, object>) != "deny") throw new Exception("Workspace hook opened without its route.");
+                    }
+                    if (parallel.Allowed.Contains("Bash")) throw new Exception("Workspace shared Always allow with another chat.");
+                    checks.Add("PASS Workspace hook uses the real pipe in-process: allow, deny with a reason, full input, per-chat Always allow, read tools, other modes, stale turns, missing pipe and a shortened ten-minute timeout");
+
+                    turn.Mode = "Everything";
+                    string edited = Path.Combine(project, "edited.txt"), created = Path.Combine(project, "created.txt"), notebook = Path.Combine(project, "notes.ipynb"), multi = Path.Combine(project, "multi.txt"), commandFile = Path.Combine(project, "command.txt");
+                    File.WriteAllText(edited, "Before"); File.WriteAllText(notebook, "Notebook before"); File.WriteAllText(multi, "Multi before");
+                    if (WorkspaceChoice(hook("Edit", HuskJson.Map("file_path", "edited.txt"))) != "allow") throw new Exception("Workspace denied its edit snapshot.");
+                    File.WriteAllText(edited, "After");
+                    if (WorkspaceChoice(hook("Edit", HuskJson.Map("file_path", edited))) != "allow") throw new Exception("Workspace denied its second edit.");
+                    File.WriteAllText(edited, "After twice");
+                    if (WorkspaceChoice(hook("Write", HuskJson.Map("file_path", "created.txt"))) != "allow") throw new Exception("Workspace denied its new file snapshot.");
+                    File.WriteAllText(created, "Created");
+                    hook("NotebookEdit", HuskJson.Map("notebook_path", "notes.ipynb")); File.WriteAllText(notebook, "Notebook after");
+                    hook("MultiEdit", HuskJson.Map("file_path", "multi.txt", "edits", new List<object> { HuskJson.Map("old_string", "Multi before", "new_string", "Multi after") })); File.WriteAllText(multi, "Multi after");
+                    hook("Bash", HuskJson.Map("command", "write command.txt")); File.WriteAllText(commandFile, "From a command");
+                    if (WorkspaceChoice(hook("Write", HuskJson.Map())) != "deny") throw new Exception("Workspace allowed an edit it couldn't back up.");
+                    if (work.CanUndo(approvals) || work.Undo(approvals) != "Stop the turn before undoing it.") throw new Exception("Workspace undid a running turn.");
+                    approvals.Live = null;
+                    string undone = work.Undo(approvals);
+                    if (File.ReadAllText(edited) != "Before" || File.Exists(created) || File.ReadAllText(notebook) != "Notebook before" || File.ReadAllText(multi) != "Multi before" || File.ReadAllText(commandFile) != "From a command" || !undone.Contains(edited) || !undone.Contains(created) || !undone.Contains("Commands aren't undone.")) throw new Exception("Workspace undo didn't restore the original files or left out its command limit.");
+                    if (work.CanUndo(approvals)) throw new Exception("Workspace offered the same undo twice.");
+                    string oldest = null;
+                    for (int i = 0; i < 21; i++) { string key = Guid.NewGuid().ToString("N"); if (i == 0) oldest = key; work.BeginUndo(approvals, key); }
+                    if (approvals.Turns.Count != 20 || Directory.Exists(Path.Combine(work.Root, "undo", approvals.Id, oldest))) throw new Exception("Workspace kept more than twenty undo turns.");
+                    work.Save(approvals);
+                    checks.Add("PASS Workspace undo snapshots Write, Edit, MultiEdit and NotebookEdit before allow, keeps the first version, removes created files, leaves command changes, and retains twenty turns");
+
+                    work.Save(chat);
+                    using (Workspace loaded = new Workspace(folder, "CapriWorkspace-load-" + Guid.NewGuid().ToString("N")))
+                    {
+                        WorkspaceChat kept = loaded.Chats().Find(delegate(WorkspaceChat found) { return found.Id == chat.Id; });
+                        WorkspaceChat keptApproval = loaded.Chats().Find(delegate(WorkspaceChat found) { return found.Id == approvals.Id; });
+                        if (kept == null || kept.Title != "My project" || kept.Session != session || kept.Folder != project || kept.Mode != "Edits only" || kept.Model != "Sonnet" || kept.Items.Count != WorkspaceItems(chat).Count || keptApproval == null || !keptApproval.Allowed.Contains("Bash") || keptApproval.Turns.Count != 20) throw new Exception("Workspace save/load lost a chat field or its ordered items.");
+                        for (int i = 0; i < kept.Items.Count; i++) if (HuskJson.Write(kept.Items[i].Json()) != HuskJson.Write(WorkspaceItems(chat)[i].Json())) throw new Exception("Workspace reordered or changed saved items.");
+                    }
+                    if (Directory.GetFiles(Path.Combine(work.Root, "chats"), "*.tmp").Length != 0) throw new Exception("Workspace left a partial chat save.");
+                    checks.Add("PASS Workspace chats survive atomic save/load with titles, folders, sessions, modes, models, ordered items, Always allow and undo history");
+
+                    WorkspaceChat layout = work.NewChat(project, false);
+                    work.Add(layout, new WorkspaceItem { Kind = "user", Text = "Check this project." });
+                    work.Add(layout, new WorkspaceItem { Kind = "text", Text = "I found the file.\n```cs\nint total = 3;\n```\nHere is what changed." });
+                    work.Add(layout, new WorkspaceItem { Kind = "tool", Id = "layout-tool", Name = "Edit", Text = "Edit app/Capri.cs" });
+                    work.Add(layout, new WorkspaceItem { Kind = "result", Id = "layout-tool", Text = "Saved the edit." });
+                    WorkspaceItem approval = new WorkspaceItem { Kind = "approval", Name = "Bash", Text = "Bash: npm test", Input = HuskJson.Write(HuskJson.Map("command", "npm test", "description", "Run the tests")) };
+                    approval.Ask = new WorkspaceApproval { Item = approval };
+                    work.Add(layout, approval);
+                    work.Add(layout, new WorkspaceItem { Kind = "error", Text = Workspace.Missing, Retry = true });
+                    work.Add(layout, new WorkspaceItem { Kind = "end", Text = "1.3s | $0.02" });
+                    foreach (int scale in new[] { 100, 150, 200 })
+                    {
+                        float z = scale / 100f;
+                        using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
+                        {
+                            window.Show(this);
+                            window.ClientSize = new Size((int)Math.Round(900 * z), (int)Math.Round(600 * z));
+                            window.ShowChat(layout);
+                            Panel transcript = null;
+                            TextBox editor = null, heading = null;
+                            ComboBox modeBox = null, modelBox = null;
+                            foreach (Control control in window.Controls)
+                            {
+                                if (control.AccessibleName == "Conversation") transcript = control as Panel;
+                                if (control.AccessibleName == "Chat title") heading = control as TextBox;
+                                if (control.AccessibleName == "Permission mode") modeBox = control as ComboBox;
+                                if (control.AccessibleName == "Claude model") modelBox = control as ComboBox;
+                                if (control is TextBox && ((TextBox)control).Multiline) editor = control as TextBox;
+                            }
+                            if (transcript == null || editor == null || heading == null || modeBox == null || modelBox == null) throw new Exception("Workspace lost a chat control.");
+                            bool codeShown = false, toolOpened = false;
+                            foreach (Control card in transcript.Controls)
+                                foreach (Control control in card.Controls)
+                                {
+                                    RichTextBox body = control as RichTextBox;
+                                    if (body != null && body.Text.Contains("int total = 3;"))
+                                    {
+                                        body.Select(body.Text.IndexOf("int total = 3;", StringComparison.Ordinal), "int total = 3;".Length);
+                                        using (Font codeFont = Look.Mono(13 * z, FontStyle.Regular, GraphicsUnit.Pixel)) if (body.SelectionFont == null || body.SelectionFont.Name != codeFont.Name || body.SelectedText != "int total = 3;") throw new Exception("Workspace code or text selection changed.");
+                                        codeShown = true;
+                                    }
+                                    Plate key = control as Plate;
+                                    if (key != null && key.Text == "+ Edit app/Capri.cs") { key.PerformClick(); toolOpened = key.Text == "- Edit app/Capri.cs"; }
+                                }
+                            if (!codeShown || !toolOpened) throw new Exception("Workspace didn't show code or expand its tool result.");
+                            string crowded = window.Crowded();
+                            window.Picture(Path.Combine(folder, "workspace-" + scale + ".png"));
+                            if (crowded != null) throw new Exception("Workspace at " + scale + "%: " + crowded);
+                            heading.Focus();
+                            heading.Text = "Layout " + scale;
+                            editor.Focus();
+                            if (layout.Title != "Layout " + scale) throw new Exception("Workspace didn't save an edited title.");
+                            modeBox.SelectedItem = "Plan only";
+                            modelBox.SelectedItem = "Haiku";
+                            if (layout.Mode != "Plan only" || layout.Model != "Haiku") throw new Exception("Workspace's pickers didn't save.");
+                            editor.Text = "Keep this draft";
+                            window.ShowChat(chat);
+                            window.ShowChat(layout);
+                            if (editor.Text != "Keep this draft") throw new Exception("Workspace lost a draft while switching chats.");
+                            Native.SendMessage(transcript.Handle, 0x0115, IntPtr.Zero, IntPtr.Zero);
+                            work.Add(layout, new WorkspaceItem { Kind = "text", Text = "Another update while reading above." });
+                            window.RefreshChat();
+                            if (transcript.AutoScrollPosition.Y != 0) throw new Exception("Workspace followed new text while scrolled up.");
+                            Native.SendMessage(transcript.Handle, 0x0115, new IntPtr(7), IntPtr.Zero);
+                            work.Add(layout, new WorkspaceItem { Kind = "text", Text = "An update at the end." });
+                            window.RefreshChat();
+                            if (-transcript.AutoScrollPosition.Y + transcript.ClientSize.Height < transcript.DisplayRectangle.Height - (int)(28 * z)) throw new Exception("Workspace stopped following the end.");
+                            MethodInfo keyDown = typeof(Control).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic);
+                            KeyEventArgs shifted = new KeyEventArgs(Keys.Enter | Keys.Shift);
+                            keyDown.Invoke(editor, new object[] { shifted });
+                            if (shifted.SuppressKeyPress || layout.Running || !editor.AcceptsReturn) throw new Exception("Workspace sent on Shift+Enter.");
+                            editor.SelectionStart = editor.TextLength;
+                            Native.SendMessage(editor.Handle, 0x0102, new IntPtr(13), IntPtr.Zero);
+                            if (!editor.Text.Contains("\n")) throw new Exception("Workspace's message box didn't accept a new line.");
+                            KeyEventArgs enter = new KeyEventArgs(Keys.Enter);
+                            WorkspaceTurn sentTurn;
+                            lock (layout.Gate) { keyDown.Invoke(editor, new object[] { enter }); sentTurn = layout.Live; }
+                            if (!enter.SuppressKeyPress || sentTurn == null || editor.Text.Length != 0 || !sentTurn.Done.WaitOne(8000)) throw new Exception("Workspace Enter didn't send and clear the message.");
+                            window.Close();
+                        }
+                        mainframe.LayoutScale(96, scale);
+                        string keyFit = mainframe.WorkspaceKeyFits();
+                        if (keyFit != null) throw new Exception(keyFit);
+                    }
+                    approval.Ask.Answered.Dispose();
+                    approval.Ask = null;
+                    checks.Add("PASS Workspace window and Mainframe BRAIN button fit at 100%, 150% and 200%; code is selectable, tool results expand, drafts and pickers save, scrolling follows only at the end, Enter sends and Shift+Enter adds a line");
+                    Rectangle place;
+                    using (WorkspaceWindow kept = new WorkspaceWindow(work, delegate { return false; }, 1f, true))
+                    {
+                        kept.Show(this);
+                        kept.ShowChat(layout);
+                        kept.ClientSize = new Size(940, 640);
+                        kept.Location = Screen.FromControl(this).WorkingArea.Location;
+                        place = kept.Bounds;
+                        kept.KeepPlace();
+                        kept.Close();
+                        if (kept.Visible) throw new Exception("Workspace close didn't hide the window.");
+                    }
+                    using (WorkspaceWindow kept = new WorkspaceWindow(work, delegate { return false; }, 1f, true))
+                    {
+                        if (kept.Bounds != place) throw new Exception("Workspace forgot its size or place.");
+                    }
+                    checks.Add("PASS Workspace remembers its window's size and place when closed or kept before app shutdown");
+
+                    foreach (string phrase in new[] { "open workspace", "open your workspace", "open the workspace", "Open Workspace." }) if (!WorkspaceAsked(phrase)) throw new Exception("Workspace missed " + phrase + ".");
+                    if (WorkspaceAsked("Don't open workspace") || WorkspaceAsked("what is workspace")) throw new Exception("Workspace treated a question as an open command.");
+                    SelfKnow.Topic topic = Array.Find(SelfKnow.Topics, delegate(SelfKnow.Topic found) { return found.Name == "Workspace"; });
+                    if (topic == null || !topic.Facts.Contains("beta") || !topic.Facts.Contains("plan or key") || !topic.Facts.Contains("Ask me") || !topic.Facts.Contains("Edits only") || !topic.Facts.Contains("Plan only") || !topic.Facts.Contains("Everything") || !topic.Facts.Contains("cannot undo commands")) throw new Exception("Workspace help lost its modes, billing source or undo limit.");
+                    List<string> said = new List<string>();
+                    List<bool> voiced = new List<bool>();
+                    workspaceSaid = delegate(string line, bool voiceOn) { said.Add(line); voiced.Add(voiceOn); };
+                    workspaceFront = delegate { return true; };
+                    WorkspaceDone(chat);
+                    if (said.Count != 0) throw new Exception("Workspace announced completion in front.");
+                    workspaceFront = delegate { return false; };
+                    WorkspaceDone(chat);
+                    if (said.Count != 1 || said[0] != "Done in My project." || voiced[0]) throw new Exception("Workspace completion wasn't text only.");
+                    string deletedId = parallel.Id;
+                    work.Delete(parallel);
+                    if (File.Exists(Path.Combine(work.Root, "chats", deletedId + ".json")) || !Directory.Exists(project) || !File.Exists(commandFile)) throw new Exception("Workspace delete touched project files or kept its chat.");
+                    checks.Add("PASS Workspace opening phrases and help, foreground-aware text-only completion, Trusted/Blackwall defaults, editable titles and chat deletion that keeps project files");
+                }
+            }
+            finally
+            {
+                workspaceFront = frontWas;
+                workspaceSaid = saidWas;
+                mainframe.LayoutScale(96, 100);
+            }
         }
 
         private void SmokeHusk(List<string> checks, string folder)
