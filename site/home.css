@@ -73,7 +73,7 @@ button, input { font: inherit; color: inherit; }
 .download { min-height: 48px; padding: 0 18px 0 24px; }
 .download .download-count { font-weight: 800; }
 
-.pitch { position: relative; z-index: 1; max-width: 470px; margin-top: clamp(64px, calc(34svh - 96px), 240px); }
+.pitch { position: relative; z-index: 1; max-width: 640px; margin-top: clamp(64px, calc(34svh - 96px), 240px); }
 .lead { margin: 0; font-size: var(--lead); line-height: 1.32; }
 .hero .lead { font-size: 30px; line-height: 1.25; font-weight: 600; }
 .pitch:has(> .launch) { margin-top: clamp(80px, calc(34svh - 240px), 120px); }
@@ -90,12 +90,53 @@ button, input { font: inherit; color: inherit; }
   .launch-note { font-size: 14px; }
   .launch-go { font-size: 17px; }
 }
-.systems { display: flex; flex-wrap: wrap; gap: 6px 26px; margin: 26px 0 0; }
-.systems a { font: 800 30px/1.1 var(--display); letter-spacing: .02em; text-transform: uppercase; text-decoration: underline 3px; text-underline-offset: 7px; transition: text-decoration-color .15s, transform .12s; display: inline-block; }
-.systems a:hover { text-decoration-color: var(--ink-0); text-decoration-thickness: 6px; }
-.systems a:active { transform: translateY(1px); }
-.systems a:focus-visible, .hero .fan a:focus-visible { outline-color: var(--ink-0); }
+.hero .fan a:focus-visible { outline-color: var(--ink-0); }
 .sys { margin: 22px 0 0; font: 800 var(--hud)/1.2 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+
+/* ---------- Get her: the pick for this device, big on her pink, and every way to get her as square tiles ---------- */
+.get-her { margin: 30px 0 0; }
+@media (min-width: 901px) {
+  .get-her { scroll-margin-top: 100px; }                                         /* a jump to #download stops under the nav */
+}
+.gh-defs { position: absolute; }
+.get-her .glyph { display: block; fill: currentColor; }
+.get-her :focus-visible { outline-color: var(--ink-0); }
+.gh-card { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 18px 22px; }
+.gh-icon { display: grid; place-items: center; width: clamp(96px, 7.6vw, 132px); aspect-ratio: 1; background: var(--ink-0); color: var(--text); --cut: 14px; clip-path: var(--plate); }
+.gh-icon .glyph { width: 56%; height: 56%; }
+.gh-head p { margin: 0; }
+.gh-for, .gh-tag, .gh-every { font: 800 var(--hud)/1.2 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.gh-head .gh-name { margin-top: 6px; font: 800 clamp(44px, 4.3vw, 76px)/.84 var(--display); letter-spacing: .005em; text-transform: uppercase; }
+.gh-head .gh-tag { margin-top: 10px; }
+.gh-card .marks { grid-column: 1 / -1; font-size: 18px; font-weight: 600; }
+.gh-go { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; margin: 2px 0 0; }
+.gh-go .btn { background: var(--ink-0); color: var(--text); }
+.gh-go .btn:hover { background: var(--green); color: var(--ink-0); }
+.gh-go .btn .size { opacity: .7; white-space: nowrap; }
+.gh-go .btn .size:empty { display: none; }
+.gh-go a:not(.btn) { font: 800 18px/1.2 var(--display); letter-spacing: .03em; text-transform: uppercase; text-decoration: underline 2px; text-underline-offset: 5px; }
+.gh-go a:not(.btn):hover { text-decoration-thickness: 4px; }
+/* What you get and what you give up, one short line each. */
+.marks { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.marks li { position: relative; padding-left: 28px; line-height: 1.35; }
+.marks li::before { content: ""; position: absolute; left: 0; top: .12em; width: 18px; height: 18px; background: var(--ink-0); -webkit-mask: var(--shape) center / contain no-repeat; mask: var(--shape) center / contain no-repeat; }
+.marks .yes { --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M3 10.5l4.5 4.5L17 5.5' fill='none' stroke='black' stroke-width='3' stroke-linecap='square'/%3E%3C/svg%3E"); }
+.marks .no { --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M4.5 4.5l11 11M15.5 4.5l-11 11' fill='none' stroke='black' stroke-width='3' stroke-linecap='square'/%3E%3C/svg%3E"); }
+/* Every way to get her: a tile picks, the big button above downloads. */
+.gh-every { margin: 32px 0 14px; }
+.gh-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.gh-option { position: relative; min-width: 0; }
+.gh-way { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; width: 100%; aspect-ratio: 1; padding: 12px 8px; border: 0; background: var(--ink-0); color: var(--text); --cut: 12px; clip-path: var(--plate); font: inherit; text-align: center; cursor: pointer; transition: background-color .15s, color .15s; }
+.gh-way .glyph { flex: none; width: 38%; height: auto; aspect-ratio: 1; margin-bottom: 8px; }
+.gh-way-name { font: 800 clamp(16px, 1.45vw, 24px)/.95 var(--display); letter-spacing: .03em; text-transform: uppercase; }
+.gh-way-tag { color: var(--green); font: 800 clamp(11px, .9vw, 14px)/1.1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.gh-way:hover { background: var(--ink-3); }
+.gh-way[aria-pressed="true"] { background: var(--green); color: var(--ink-0); }
+.gh-way[aria-pressed="true"] .gh-way-tag { color: var(--ink-0); }
+.gh-way:focus-visible { clip-path: none; outline: 3px solid var(--ink-0); outline-offset: 3px; }
+/* The tile for this device: a small tab on its top edge. */
+.gh-mine { position: absolute; top: -9px; left: 50%; z-index: 1; translate: -50% 0; padding: 4px 9px 3px; background: var(--ink-0); color: var(--green); font: 800 12px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; pointer-events: none; }
+.no-js .gh-every, .no-js .gh-grid { display: none; }
 .fan { margin: 14px 0 0; max-width: 58ch; font-size: var(--small); line-height: 1.5; color: var(--muted); }
 .hero .fan { color: var(--on-pink); max-width: 46ch; }
 
@@ -213,6 +254,11 @@ button, input { font: inherit; color: inherit; }
 .os-win .btn { align-self: flex-start; margin-top: auto; background: var(--ink-0); color: var(--text); }
 .os-win .btn:hover { background: var(--green); color: var(--ink-0); }
 .os-win .btn .size { opacity: .7; }
+/* The latest release, and the way back up to every download in the first section. */
+.all-ways a { text-decoration: underline 2px; text-underline-offset: 5px; }
+.all-ways a:hover { text-decoration-thickness: 4px; }
+.all-ways a:focus-visible { outline-color: var(--ink-0); }
+.os-win .all-ways { margin: 18px 0 0; font: 800 var(--hud)/1.2 var(--display); letter-spacing: .06em; text-transform: uppercase; }
 .os-win :focus-visible { outline-color: var(--ink-0); }
 .yours { align-self: center; padding: 6px 10px; white-space: nowrap; background: var(--green); color: var(--ink-0); font: 800 var(--hud)/1 var(--display); letter-spacing: .06em; text-transform: uppercase; }
 
@@ -500,8 +546,15 @@ button, input { font: inherit; color: inherit; }
   .wordmark { margin: 0; padding: 0; font-size: 37vw; line-height: .78; }
   .pitch { max-width: none; margin-top: 26px; }
   .hero .lead { font-size: 24px; }
-  .systems { gap: 6px 20px; }
-  .systems a { font-size: 24px; }
+  .get-her { margin-top: 24px; }
+  .gh-card { gap: 14px 18px; }
+  .gh-icon { width: 92px; --cut: 12px; }
+  .gh-head .gh-name { font-size: clamp(36px, 10.5vw, 60px); }
+  .gh-card .marks { font-size: 17px; }
+  .gh-go .btn { width: 100%; justify-content: space-between; padding: 0 18px 0 22px; }
+  .gh-every { margin-top: 28px; }
+  .gh-grid { gap: 8px; }
+  .gh-way { --cut: 10px; padding: 8px 6px; }
   .hero { display: flex; flex-direction: column; }
   .hero .wordmark { order: -1; }
   .chapter { min-height: 0; padding: 92px 0 64px; }
@@ -573,7 +626,7 @@ button, input { font: inherit; color: inherit; }
   .js .reveal { opacity: 1; transform: none; transition: none; }
   [data-ui] .caret { animation: none; }
   .glitching .wm-cut, .stage.hop::after { animation: none; visibility: hidden; }
-  [data-ui] .win, #her-cursor, .btn, .download, .systems a, #her.falling { transition: none; }
+  [data-ui] .win, #her-cursor, .btn, .download, .gh-way, #her.falling { transition: none; }
 }
 .still .js .reveal, .still .reveal { opacity: 1; transform: none; transition: none; }
 .still [data-ui] .caret { animation: none; }
