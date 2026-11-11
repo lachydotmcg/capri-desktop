@@ -40760,7 +40760,7 @@ namespace CapriDesktop
                                     if (body != null && body.Text.Contains("int total = 3;"))
                                     {
                                         body.Select(body.Text.IndexOf("int total = 3;", StringComparison.Ordinal), "int total = 3;".Length);
-                                        using (Font codeFont = Look.Mono(13 * z, FontStyle.Regular, GraphicsUnit.Pixel)) if (body.SelectionFont == null || body.SelectionFont.Name != codeFont.Name || body.SelectedText != "int total = 3;") throw new Exception("Workspace code or text selection changed.");
+                                        using (Font codeFont = Look.FallbackMono(13 * z, FontStyle.Regular, GraphicsUnit.Pixel)) if (body.SelectionFont == null || body.SelectionFont.Name != codeFont.Name || body.SelectedText != "int total = 3;") throw new Exception("Workspace code or text selection changed.");
                                         codeShown = true;
                                     }
                                     Plate key = control as Plate;

@@ -286,7 +286,7 @@ namespace CapriDesktop
         {
             Font old = Font, oldMono = mono, oldSmall = small, oldStrong = strong;
             Font = Neon.Type(14 * zoom, false, GraphicsUnit.Pixel);
-            mono = Look.Mono(13 * zoom, FontStyle.Regular, GraphicsUnit.Pixel);
+            mono = Look.FallbackMono(13 * zoom, FontStyle.Regular, GraphicsUnit.Pixel);
             small = Neon.Type(12 * zoom, false, GraphicsUnit.Pixel);
             strong = Neon.Type(14 * zoom, true, GraphicsUnit.Pixel);
             foreach (Control control in Controls) control.Font = Font;
