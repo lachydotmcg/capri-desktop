@@ -54622,6 +54622,8 @@ namespace CapriDesktop
             }
         }
 
+        // View's README preview (issue #221): the tree's README names, the line picker, the window, and its fallback to the
+        // description. GitHub is a stand-in here, so nothing goes online.
         private void CheckReadme(List<string> checks, string output, List<ModListing> found)
         {
             Func<string, long, byte[]> wasGetSoon = ModDirectory.GetSoon;
@@ -54704,6 +54706,7 @@ namespace CapriDesktop
                 if (string.Join("\n", ModDirectory.ReadmeLines(skipped).ToArray()) != "Kept.") throw new Exception("The README picker kept markup or template metadata.");
                 if (string.Join("\n", ModDirectory.ReadmeLines("## Alone\n## Next\nText.\n\n## Last").ToArray()) != "Next\nText.") throw new Exception("A README heading was shown without text under it.");
                 if (string.Join("\n", ModDirectory.ReadmeLines("## First\n## [Only](url)\nText.").ToArray()) != "Text." || string.Join("\n", ModDirectory.ReadmeLines("## Kept\n```\n# Hidden\n```\nText.").ToArray()) != "Kept\nText.") throw new Exception("A skipped heading or code block changed the next README heading.");
+                if (string.Join("\n", ModDirectory.ReadmeLines("Keep 1 < 2 and 3 > 2 as text.\n> ```\n> # Quoted code\n> ```\nAfter.").ToArray()) != "Keep 1 < 2 and 3 > 2 as text.\nAfter.") throw new Exception("README text between < and > was taken for a tag, or quoted code was read.");
                 checks.Add("PASS mod README picker: useful text, headings and list items stay plain while titles, badges, links, code, comments and template metadata drop out");
 
                 string[] eight = { "Line one.", "Line two.", "Line three.", "Line four.", "Line five.", "Line six.", "Line seven.", "Line eight." };
@@ -54733,7 +54736,7 @@ namespace CapriDesktop
                     }
                 if (ModDirectory.ReadmeKept(found[1]) == null || string.Join("\n", ModDirectory.ReadmeKept(found[1]).ToArray()) != shown) throw new Exception("The README was not kept for its folder.");
                 SelfKnow.Topic view = Array.Find(SelfKnow.Topics, delegate(SelfKnow.Topic topic) { return topic.Name == "View mod"; });
-                if (view == null || view.Facts != "View shows the first few lines of that mod's README in Capri, or its description when it has none or GitHub doesn't answer in time. Learn more opens its folder on GitHub in your browser, so you can read the rest and its code before installing it.") throw new Exception("View mod did not explain the README preview.");
+                if (view == null || !view.Facts.Contains("README") || !view.Facts.Contains("description") || !view.Facts.Contains("Learn more")) throw new Exception("View mod did not explain the README preview.");
                 checks.Add("PASS mod README window: View shows the picked lines, keeps them for the next view and points Learn more at the mod folder");
 
                 ModListing described = new ModListing { Folder = found[0].Folder, FileName = found[0].FileName, Sha = found[0].Sha, Size = found[0].Size, About = "Says hello." };

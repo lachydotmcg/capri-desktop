@@ -224,6 +224,7 @@ namespace CapriDesktop
             internal readonly float Zoom;
             protected readonly Mainframe Frame;
             private readonly int designWide, designTall;
+            // Checks run a sheet's directory work on the calling thread.
             internal bool Inline;
 
             protected ModSheet(Mainframe owner, float zoom, string title, string heading, int wide, int tall)
@@ -510,6 +511,7 @@ namespace CapriDesktop
             private List<ModListing> listings = new List<ModListing>(), shown = new List<ModListing>();
             private int filter, first, ticket, order;
             private bool installing, statsLive;
+            private ReadmeSheet reading;
 
             internal ModsSheet(Mainframe owner, float zoom) : base(owner, zoom, "Mods directory", "MODS DIRECTORY >", Wide, Tall)
             {
@@ -773,15 +775,16 @@ namespace CapriDesktop
                 });
             }
 
+            // One mod's README at a time, over the mods window. It isn't a dialog, so she and the cards stay usable while it's
+            // open, and viewing another mod swaps it.
             private void View(int card)
             {
                 ModListing listing = At(card);
                 if (listing == null) return;
-                using (ReadmeSheet sheet = new ReadmeSheet(Frame, Zoom, listing))
-                {
-                    sheet.Inline = Inline;
-                    sheet.ShowDialog(this);
-                }
+                if (reading != null && !reading.IsDisposed) reading.Close();
+                reading = new ReadmeSheet(Frame, Zoom, listing);
+                reading.Inline = Inline;
+                reading.Show(this);
             }
 
             protected override void Dispose(bool disposing)
@@ -824,6 +827,8 @@ namespace CapriDesktop
             internal void PressStars(int card, int picked) { stars[card].Pick(picked); }
         }
 
+        // View on a mods window card (issue #221): the mod's name, author and kind over the first few useful lines of its
+        // README, or its description when it has none or GitHub doesn't answer in time. Learn more opens its folder on GitHub.
         private sealed class ReadmeSheet : ModSheet
         {
             internal const int Wide = 520, Tall = 376;
@@ -847,9 +852,9 @@ namespace CapriDesktop
             protected override void OnLoad(EventArgs e)
             {
                 base.OnLoad(e);
+                // A README read earlier this session, or a mod without one, shows straight away.
                 List<string> kept = ModDirectory.ReadmeKept(listing);
-                if (kept != null && kept.Count > 0) { ShowLines(kept); return; }
-                if (listing.ReadmeName == null) { ShowLines(null); return; }
+                if (kept != null || listing.ReadmeName == null) { ShowLines(kept); return; }
                 body.Text = "Reading its README...";
                 body.ForeColor = Faint;
                 Run(delegate
