@@ -617,7 +617,7 @@ namespace CapriDesktop
             var buttons = new List<NeonButton>();
             double wide = Math.Max(Width, 150);
             var top = TopLevel.GetTopLevel(target);
-            double screen = top is Window window ? (window.Screens.ScreenFromWindow(window)?.WorkingArea.Width ?? 1280) / window.RenderScaling : 1280;
+            double screen = top is Window window ? (window.Screens.ScreenFromWindow(window) is Avalonia.Platform.Screen shown ? X11Safety.Work(shown).Width : 1280) / window.RenderScaling : 1280;
             foreach (string choice in choices) wide = Math.Max(wide, MainframeTheme.Words(choice).Width + 46);
             wide = Math.Min(wide, screen - 32);
             for (int i = 0; i < choices.Length; i++)

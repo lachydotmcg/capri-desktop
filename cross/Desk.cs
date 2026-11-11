@@ -294,7 +294,7 @@ namespace CapriDesktop
     internal sealed class X11Desk : Desk
     {
         private const string Library = "libX11.so.6";
-        private delegate int Handler(IntPtr display, IntPtr error);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int Handler(IntPtr display, IntPtr error);
         [DllImport(Library)] private static extern IntPtr XOpenDisplay(IntPtr name);
         [DllImport(Library)] private static extern IntPtr XDefaultRootWindow(IntPtr display);
         [DllImport(Library)] private static extern IntPtr XInternAtom(IntPtr display, string name, bool onlyIfExists);
@@ -307,24 +307,29 @@ namespace CapriDesktop
         [DllImport(Library)] private static extern bool XQueryPointer(IntPtr display, IntPtr window, out IntPtr root, out IntPtr child, out int rootX, out int rootY, out int x, out int y, out uint mask);
         [DllImport(Library)] private static extern int XChangeProperty(IntPtr display, IntPtr window, IntPtr property, IntPtr type, int format, int mode, IntPtr[] data, int elements);
         [DllImport(Library)] private static extern int XFlush(IntPtr display);
-        private static Handler handler;
-        private static IntPtr previous;
-        private static IntPtr ours;
+        internal static readonly X11Safety Errors = new X11Safety();
+        private static readonly Handler handler = Errors.Handle;
+        private static bool installed;
         private readonly IntPtr display;
         private readonly IntPtr root;
         private readonly Dictionary<string, IntPtr> atoms = new Dictionary<string, IntPtr>();
+        private readonly Func<IntPtr, string, long[]> read;
+
+        internal X11Desk(Func<IntPtr, string, long[]> read) { this.read = read; }
 
         internal X11Desk()
         {
             display = XOpenDisplay(IntPtr.Zero);
             if (display == IntPtr.Zero) throw new InvalidOperationException("No X display.");
-            ours = display;
-            handler = delegate(IntPtr where, IntPtr error)
+            lock (Errors)
             {
-                if (where == ours || previous == IntPtr.Zero) return 0;
-                return Marshal.GetDelegateForFunctionPointer<Handler>(previous)(where, error);
-            };
-            previous = XSetErrorHandler(Marshal.GetFunctionPointerForDelegate(handler));
+                Errors.Display = display;
+                if (!installed)
+                {
+                    Errors.Previous = XSetErrorHandler(Marshal.GetFunctionPointerForDelegate(handler));
+                    installed = true;
+                }
+            }
             root = XDefaultRootWindow(display);
         }
 
@@ -360,20 +365,18 @@ namespace CapriDesktop
 
         private long[] Property(IntPtr window, string name)
         {
+            if (read != null) return read(window, name);
             IntPtr type;
             int format;
             IntPtr items;
             IntPtr after;
             IntPtr data;
-            if (XGetWindowProperty(display, window, Atom(name), IntPtr.Zero, new IntPtr(4096), false, IntPtr.Zero, out type, out format, out items, out after, out data) != 0 || data == IntPtr.Zero) return null;
+            int status = XGetWindowProperty(display, window, Atom(name), IntPtr.Zero, new IntPtr(4096), false, IntPtr.Zero, out type, out format, out items, out after, out data);
             try
             {
-                if (format != 32) return null;
-                long[] values = new long[items.ToInt64()];
-                for (int i = 0; i < values.Length; i++) values[i] = Marshal.ReadIntPtr(data, i * IntPtr.Size).ToInt64();
-                return values;
+                return X11Safety.Property(status, type, format, items, data);
             }
-            finally { XFree(data); }
+            finally { if (data != IntPtr.Zero) XFree(data); }
         }
 
         internal override List<Spot> Windows(ICollection<long> skip)
@@ -393,8 +396,8 @@ namespace CapriDesktop
 
         internal override Spot Find(long window)
         {
-            long[] clients = Property(root, "_NET_CLIENT_LIST");
-            if (clients != null && Array.IndexOf(clients, window) < 0) return null;
+            long[] clients = Property(root, "_NET_CLIENT_LIST") ?? Property(root, "_NET_CLIENT_LIST_STACKING");
+            if (clients == null || Array.IndexOf(clients, window) < 0) return null;
             long[] current = Property(root, "_NET_CURRENT_DESKTOP");
             return Look(new IntPtr(window), current != null && current.Length > 0 ? current[0] : -1);
         }

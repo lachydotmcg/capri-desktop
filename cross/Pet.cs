@@ -654,6 +654,7 @@ namespace CapriDesktop
             // A copy that moved since they ticked it takes the login entry over, so it doesn't point at the old place.
             if (Program.Smoke == null && File.Exists(LoginFile)) Limbs.SetLogin(LoginFile, Limbs.SelfPath(), true, OperatingSystem.IsMacOS());
             Brain.LogPath = Path.Combine(Program.Smoke ?? folder, "errors.txt");
+            if (OperatingSystem.IsLinux()) X11Desk.Errors.Report();
             StartMods();
             Brain.BrainMenu = "under BRAIN in Capri Mainframe";
             Brain.FreeKeyHow = "Capri Mainframe > BRAIN > Free key";
@@ -892,7 +893,7 @@ namespace CapriDesktop
         internal PixelPoint FeetPoint { get { return new PixelPoint(anchor.X + Px(body.Size * 0.58), Feet); } }
         internal PixelPoint Head { get { return new PixelPoint(anchor.X + Px(body.Size * 0.52), anchor.Y - Px(4)); } }
         internal PixelPoint Middle { get { return new PixelPoint(anchor.X + Px(body.Size / 2), anchor.Y + Px(body.Size / 2)); } }
-        internal PixelRect Area { get { Screen screen = ScreenHere(); return screen == null ? new PixelRect(0, 0, 1920, 1080) : screen.WorkingArea; } }
+        internal PixelRect Area { get { Screen screen = ScreenHere(); return screen == null ? new PixelRect(0, 0, 1920, 1080) : X11Safety.Work(screen); } }
         internal bool Busy { get { return dragging || pressed || falling; } }
         internal bool Hovered { get { return body.IsPointerOver && Opaque(pointer); } }
         private double FrameX { get { return lying ? -8 : body.Size * 0.08 - 8; } }
@@ -950,7 +951,7 @@ namespace CapriDesktop
         {
             if (MoveArea != null) return MoveArea.Value;
             Screen screen = Screens.ScreenFromPoint(point) ?? ScreenHere();
-            return screen == null ? new PixelRect(0, 0, 1920, 1080) : screen.WorkingArea;
+            return screen == null ? new PixelRect(0, 0, 1920, 1080) : X11Safety.Work(screen);
         }
 
         private void Place()
@@ -965,7 +966,7 @@ namespace CapriDesktop
                 Reappear();
                 return;
             }
-            PixelRect area = screen.WorkingArea;
+            PixelRect area = X11Safety.Work(screen);
             Move(new PixelPoint(area.X + (area.Width - Px(body.Size)) / 2, area.Y + (area.Height - Px(body.Size)) / 2));
             Arrive();
         }
@@ -992,7 +993,7 @@ namespace CapriDesktop
             seat = null;
             falling = false;
             hanging = false;
-            PixelRect area = screen.WorkingArea;
+            PixelRect area = X11Safety.Work(screen);
             Move(new PixelPoint(area.X + area.Width / 2 - Px(body.Size / 2), area.Y));
             Arrive();
             Raise(Now + 6);
@@ -1478,7 +1479,7 @@ namespace CapriDesktop
             Desk.Screens.Clear();
             foreach (Screen screen in Screens.All)
             {
-                floors.Add(screen.WorkingArea);
+                floors.Add(X11Safety.Work(screen));
                 Desk.Screens.Add(screen.Bounds);
             }
             if (MoveArea != null) { floors.Clear(); floors.Add(MoveArea.Value); }
@@ -1823,7 +1824,7 @@ namespace CapriDesktop
         {
             Screen screen = ScreenHere() ?? (Screens.All.Count > 0 ? Screens.All[0] : null);
             if (screen == null) return;
-            PixelRect area = screen.WorkingArea;
+            PixelRect area = X11Safety.Work(screen);
             int size = Px(body.Size);
             Move(new PixelPoint(Math.Max(area.X, Math.Min(anchor.X, area.Right - size)), Math.Max(area.Y, Math.Min(anchor.Y, area.Bottom - size))));
         }
@@ -2789,7 +2790,7 @@ namespace CapriDesktop
                 int to = PickScreen(all, from, screen);
                 if (to < 0) return all.Count < 2 ? "There's no other screen to go to." : "There's no screen like that to go to.";
                 if (from != null && all[to].Bounds == from.Bounds) return "I'm already on " + ScreenName(all, to) + ".";
-                Teleport(Across(Hip, from != null ? from.WorkingArea : Area, all[to].WorkingArea));
+                Teleport(Across(Hip, from != null ? X11Safety.Work(from) : Area, X11Safety.Work(all[to])));
                 return "Moving to " + ScreenName(all, to) + ".";
             }
             ComeBack();
@@ -3986,7 +3987,7 @@ namespace CapriDesktop
                 walking = false;
                 seat = null;
                 falling = false;
-                PixelRect area = screen.WorkingArea;
+                PixelRect area = X11Safety.Work(screen);
                 Move(new PixelPoint(area.X + random.Next(Math.Max(1, area.Width - Px(body.Size))), area.Y));
                 Arrive();
                 Blurt(PopHeard, line);
