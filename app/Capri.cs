@@ -46416,7 +46416,7 @@ namespace CapriDesktop
                                     }
                                     catch (Exception) { setupHeld = setupRan != null && File.Exists(setupRan); }
                                     setupUnpacked = setupRan != null && Path.GetFileName(setupRan) == (Environment.Is64BitOperatingSystem ? "VBCABLE_Setup_x64.exe" : "VBCABLE_Setup.exe") && File.Exists(setupRan) && File.Exists(Path.Combine(Path.GetDirectoryName(setupRan), "readme.txt"));
-                                    WaitSound(delegate { return CableSetupLine == CableSetup.NotInstalled; }, "Settings didn't report VB-CABLE's setup closing without a driver.");
+                                    WaitVoice(delegate { return CableSetupLine == CableSetup.NotInstalled; }, "Settings didn't report VB-CABLE's setup closing without a driver.");
                                     mainframe.ShowVoiceInMic();
                                     mixSetupDone = mainframe.VoiceInMicStatus;
                                     setupTidied = setupRan != null && !Directory.Exists(Path.GetDirectoryName(setupRan));

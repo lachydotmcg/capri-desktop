@@ -235,16 +235,16 @@ namespace CapriDesktop
         // belongs to a setup that's opening now.
         internal static void Clean()
         {
-            try { Clean(Path.GetTempPath()); }
+            try { lock (folders) CleanAt(Path.GetTempPath(), began); }
             catch (Exception error) { Report(Locked, "Couldn't check old VB-CABLE setup folders: " + error); }
         }
 
         internal static void Clean(string root)
         {
-            lock (folders) CleanAt(root);
+            lock (folders) CleanAt(root, DateTime.MaxValue);
         }
 
-        private static void CleanAt(string root)
+        private static void CleanAt(string root, DateTime before)
         {
             try
             {
@@ -253,7 +253,7 @@ namespace CapriDesktop
                 {
                     string full = Path.GetFullPath(folder);
                     if (!string.Equals(Path.GetDirectoryName(full), parent, StringComparison.OrdinalIgnoreCase)) continue;
-                    try { if (OwnFolder(full) && Directory.GetCreationTimeUtc(full) < began && !InUse(full)) Remove(full); }
+                    try { if (OwnFolder(full) && Directory.GetCreationTimeUtc(full) < before && !InUse(full)) Remove(full); }
                     catch (Exception error) { Report(Locked, "Couldn't check whether setup still uses " + full + ": " + error); }
                 }
             }
