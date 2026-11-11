@@ -15491,7 +15491,7 @@ namespace CapriDesktop
             foreach (Note note in notes)
             {
                 double age = now - note.Born, t = age / NoteLife;
-                if (t < 0 || t >= 1) continue;
+                if (t <= 0 || t >= 1) continue;
                 float pop = t < 0.08 ? (float)(t / 0.08 * 1.3) : t < 0.18 ? (float)(1.3 - (t - 0.08) / 0.1 * 0.3) : 1;
                 int alpha = (int)(255 * (t < 0.65 ? 1 : (1 - t) / 0.35));
                 float x = note.Side * (outX + (float)(0.05 * t + 0.035 * Math.Sin(t * 5 + note.Seed)) * size);
