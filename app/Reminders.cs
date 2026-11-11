@@ -277,6 +277,8 @@ namespace CapriDesktop
                 return Call("routine", new ToolArguments { Phrase = routine.Groups[1].Value, Steps = routine.Groups[2].Value });
             string steps = running != null && running.Contains(Key(said)) ? null : Steps(said);
             if (steps != null) return Call("routine", new ToolArguments { Action = "run", Phrase = said });
+            ToolArguments timing = Stopwatches.Request(text);
+            if (timing != null) return Call("stopwatch", timing);
             string[] starters =
             {
                 @"^remind me\s+(.+)$", @"^recu[eé]rdame\s+(.+)$", @"^rappelle[- ]moi\s+(.+)$",
@@ -456,6 +458,63 @@ namespace CapriDesktop
             }
             if (nextHour) hour = (hour + 23) % 24;
             return true;
+        }
+    }
+
+    // Her one stopwatch, with no laps (#181). It counts on a clock that doesn't jump when the PC's time changes, and it isn't
+    // saved, so it ends when she closes. Mac and Linux share it.
+    internal static class Stopwatches
+    {
+        private static readonly object gate = new object();
+        private static readonly System.Diagnostics.Stopwatch ticking = System.Diagnostics.Stopwatch.StartNew();
+        internal static Func<TimeSpan> Clock = delegate { return ticking.Elapsed; };
+        private static TimeSpan? started;
+
+        internal static bool Running { get { lock (gate) return started != null; } }
+
+        // Starting it again while it runs only says how long it's been, so asking twice never loses the time.
+        internal static string Do(ToolArguments args)
+        {
+            lock (gate)
+            {
+                TimeSpan now = Clock();
+                if (string.IsNullOrEmpty(args.Action) || args.Action == "start")
+                {
+                    if (started != null) return "Your stopwatch is already running: " + Words(now - started.Value) + ".";
+                    started = now;
+                    return "Started your stopwatch.";
+                }
+                if (started == null) return "Your stopwatch isn't running.";
+                string time = Words(now - started.Value);
+                if (args.Action != "stop") return "Your stopwatch is at " + time + ".";
+                started = null;
+                return "Stopped your stopwatch at " + time + ".";
+            }
+        }
+
+        // Whole seconds, the way a stopwatch shows them, with no part that's 0: "4 minutes 12 seconds", "2 hours", "0 seconds".
+        internal static string Words(TimeSpan span)
+        {
+            long seconds = Math.Max(0, span.Ticks / TimeSpan.TicksPerSecond);
+            List<string> parts = new List<string>();
+            if (seconds >= 3600) parts.Add(Count(seconds / 3600, "hour"));
+            if (seconds / 60 % 60 > 0) parts.Add(Count(seconds / 60 % 60, "minute"));
+            if (seconds % 60 > 0 || parts.Count == 0) parts.Add(Count(seconds % 60, "second"));
+            return string.Join(" ", parts.ToArray());
+        }
+
+        private static string Count(long count, string unit) { return count.ToString(CultureInfo.InvariantCulture) + " " + unit + (count == 1 ? "" : "s"); }
+
+        // Her set phrases, from text Hands.Asked has cleaned up. A bare "how long has it been" only means the stopwatch while it
+        // runs; otherwise it's a question for her brain.
+        internal static ToolArguments Request(string text)
+        {
+            string asked = text ?? "";
+            if (Regex.IsMatch(asked, @"^(?:(?:start|begin|set|run)(?: up)? (?:(?:a|the|my) )?stopwatch|(?:put|turn) (?:a|the|my) stopwatch on|(?:put|turn) on (?:a|the|my) stopwatch|stopwatch(?: (?:start|on))?)$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "start" };
+            if (Regex.IsMatch(asked, @"^(?:check (?:(?:the|my) )?stopwatch|how long has (?:the|my) stopwatch been (?:running|going|on)|what(?:'?s| is| does) (?:the|my) stopwatch (?:at|on|say|show)|is (?:the|my) stopwatch (?:still )?(?:running|going|on))$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "check" };
+            if (Regex.IsMatch(asked, @"^(?:(?:stop|end|kill|cancel) (?:(?:the|my) )?stopwatch|turn (?:off (?:the|my) stopwatch|(?:the|my) stopwatch off)|stopwatch (?:stop|off))$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "stop" };
+            if (Running && Regex.IsMatch(asked, @"^how long(?: has|'s) it been(?: (?:running|going|so far))?$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "check" };
+            return null;
         }
     }
 }
