@@ -246,7 +246,7 @@ namespace CapriDesktop
 
         private string SitOn(string wanted, bool lie)
         {
-            if (Hands.OnMac) return lie ? "Lying down on a window you name is only on Windows so far." : "Sitting on a window you name is only on Windows so far.";
+            if (Hands.OnMac && lie) return "Lying down on a window you name is only on Windows so far.";
             string name = Regex.Replace((wanted ?? "").Trim(), @"^(?:the|my|your|ur|our|that|this) | (?:window|app|application|game|tab)$", "", RegexOptions.IgnoreCase).Trim();
             if (name.Length == 0) return "Which window?";
             List<Ledge> ledges = Ledges();
@@ -257,6 +257,19 @@ namespace CapriDesktop
                 PixelRect area = WorkAt(Hip);
                 spots = ledges.FindAll(ledge => ledge.Floor && ledge.Y == area.Bottom && ledge.Left == area.X);
                 shown = "the taskbar";
+            }
+            else if (Hands.OnMac)
+            {
+                string problem;
+                long window = CatchUp.Seat(name, Windows(), Desk.Scale, out problem);
+                if (problem != null) return problem;
+                spots = ledges.FindAll(ledge => ledge.Window == window);
+            }
+            else if (!lie && (Desk is KWinDesk || Desk is NiriDesk))
+            {
+                List<long> windows = CatchUp.LinuxSeats(name, Windows());
+                if (windows.Count == 0) return "I can't see " + name + " open.";
+                spots = ledges.FindAll(ledge => windows.Contains(ledge.Window));
             }
             else
             {
@@ -319,6 +332,7 @@ namespace CapriDesktop
             var trusted = MacFingers.Trusted;
             var sink = MacFingers.Sink;
             var pause = MacFingers.Pause;
+            var macRead = MacWindows.Run;
             MoveReports asked = pet.asked.Copy();
             PixelRect area = new PixelRect(-800, -100, 1600, 1000);
             double now = 0;
@@ -362,6 +376,13 @@ namespace CapriDesktop
             try
             {
                 pet.Desk = fake;
+                MacWindows.Run = (start, timeout) =>
+                {
+                    Spot window = fake.Shown[0];
+                    window.Pid = 123;
+                    PixelRect bounds = window.Bounds;
+                    return "123\t" + bounds.X + "\t" + bounds.Y + "\t" + bounds.Width + "\t" + bounds.Height + "\tfalse\t1\tRoblox";
+                };
                 pet.Saved.Hologram = false;
                 MacFingers.Trusted = () => true;
                 MacFingers.Sink = _ => { };
@@ -387,8 +408,7 @@ namespace CapriDesktop
                 {
                     Hands.OnMac = platform;
                     foreach (string action in new[] { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off" })
-                        if (Hands.KitFor().Has("move_yourself:" + action) != (!platform || action != "sit_on")) throw new Exception("The moves list was wrong for " + action + ".");
-                    if (platform && tool("sit_on", "Roblox") != "Sitting on a window you name is only on Windows so far.") throw new Exception("Mac lost its named window gap.");
+                        if (!Hands.KitFor().Has("move_yourself:" + action)) throw new Exception("The moves list was wrong for " + action + ".");
                     if (platform && tool("lie_down", "Roblox") != "Lying down on a window you name is only on Windows so far.") throw new Exception("Mac named lying answered about sitting.");
                     if (tool("walk_around", null) != "Going for a little walk." || !pet.walking || pet.clip != pet.walk) throw new Exception("Walk did not start from her tool.");
                     settle();
@@ -417,6 +437,18 @@ namespace CapriDesktop
                     if (tool("hop_off", null) != "Hopped off your cursor." || pet.riding || clicksThrough || clicks.Count != clickCount + 2 || clicks[clickCount + 1] || !pet.falling || pet.clip != pet.grin) throw new Exception("Hop off did not restore clicks.");
                     settle();
                     if (tool("hop_off", null) != "I'm not riding your cursor.") throw new Exception("Hop off claimed a second ride.");
+                    if (platform)
+                    {
+                        if (tool("sit_on", "my Roblox window") != "Sitting on your Roblox window.") throw new Exception("Mac named seating did not reach her move tool.");
+                        settle();
+                        if (pet.seat.Window != 71) throw new Exception("Mac named seating picked the wrong window.");
+                        PixelRect beforeMove = fake.Shown[0].Bounds;
+                        fake.Shown[0].Bounds = new PixelRect(beforeMove.X + 20, beforeMove.Y + 20, beforeMove.Width, beforeMove.Height);
+                        pet.HoldSeat(now);
+                        if (pet.seat.Y != beforeMove.Y + 20) throw new Exception("Mac named seating did not follow its window.");
+                        fake.Shown[0].Bounds = beforeMove;
+                        pet.HoldSeat(now);
+                    }
                     if (platform)
                     {
                         pet.Saved.Hologram = true;
@@ -653,6 +685,7 @@ namespace CapriDesktop
                 pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
                 pet.Saved.Hologram = hologram;
                 MacFingers.Trusted = trusted; MacFingers.Sink = sink; MacFingers.Pause = pause;
+                MacWindows.Run = macRead;
             }
         }
     }
