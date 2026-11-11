@@ -2543,6 +2543,7 @@ namespace CapriDesktop
             if (calls.Count == 0 && unable != null) raw = unable;
             string done = null, spoken = null;
             bool namedWebsite = false;
+            string playFailed = null;
             if (calls.Count > 0)
             {
                 // The same app, site or song twice in one ask opens once: a small brain stuck repeating itself can write the same call
@@ -2579,6 +2580,8 @@ namespace CapriDesktop
                 // SECURITY held a call to ask them first: they get what did run and her question word for word, with no second brain call.
                 // What she did leaves out the checks her brain made to find out where things stand.
                 List<string> deeds = Deeds(calls, results);
+                for (int i = 0; i < calls.Count && i < results.Count; i++)
+                    if (calls[i].Key == "play_music" && Hands.Failed(results[i])) playFailed = results[i];
                 // So does a job that stopped to ask first: what ran, then its question.
                 string held = Security.Reply(results) ?? (results.Exists(Hands.Holds) ? Hands.Shown(string.Join(" ", deeds.ToArray())) : null);
                 done = held ?? Hands.Shown(string.Join(" ", deeds.ToArray()));
@@ -2628,6 +2631,7 @@ namespace CapriDesktop
                 }
                 // What can't work here of a mixed ask, like the drawing in "draw a star and open Spotify" on a Mac, goes after what she
                 // did. A brain that worked the job out says that in its own words, unless they were dropped for the plain results.
+                if (playFailed != null && PlayBlame(Clean(raw))) { raw = done; spoken = null; }
                 if (rest != null && held == null && (!planned || raw == done)) raw = (raw ?? "").TrimEnd() + " " + rest;
             }
             bool lately = false;
@@ -2736,6 +2740,7 @@ namespace CapriDesktop
                     continue;
                 }
                 List<string> did = new List<string>(), saw = new List<string>();
+                bool playFailed = false;
                 foreach (KeyValuePair<string, ToolArguments> call in picked)
                 {
                     Check(ticket);
@@ -2784,16 +2789,23 @@ namespace CapriDesktop
                     did.Add(Written(call.Key, args));
                     saw.Add(facts[facts.Count - 1]);
                     if (Security.IsHold(result)) return null;
+                    if (call.Key == "play_music" && Hands.Failed(result)) playFailed = true;
                     // A job that stopped to ask first ends the turn on its question too.
                     if (call.Key == "use_computer" && Hands.Holds(result)) return null;
 #if !CROSS
                     if (Computer.Stopped(result)) return null;
 #endif
                 }
+                if (playFailed) return "";
                 asking.Add(new ChatMessage("assistant", (said.Length == 0 ? "" : said + "\n") + "(You called " + string.Join(", then ", did.ToArray()) + ")"));
                 asking.Add(new ChatMessage("user", Hands.Worked + string.Join("\n", saw.ToArray()) + Hands.WorkNext));
             }
             return null;
+        }
+
+        private static bool PlayBlame(string text)
+        {
+            return Regex.IsMatch(text ?? "", @"\bspotify\b[^.!?\r\n]*\b(won['’]?t|wouldn['’]?t|refus\w*|block\w*|den\w*|doesn['’]?t (let|allow)|isn['’]?t (letting|allowing)|not (let|allow))\b|\b(not allowed|not permitted|don['’]?t have permission|do not have permission|can['’]?t get permission)\b", RegexOptions.IgnoreCase);
         }
 
         // Her tools' results without the checks her brain made only to find out where things stand, or all of them when that's all

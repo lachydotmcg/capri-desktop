@@ -19882,7 +19882,9 @@ namespace CapriDesktop
         {
             Func<System.Collections.Generic.List<InstalledApp>> requestCatalog = Hands.Catalog;
             Func<System.Collections.Generic.List<OpenWindow>> requestWindows = Hands.Windows;
-            Func<string, bool> requestExists = Hands.Exists, requestPlaying = Hands.SongPlaying, requestPress = Hands.PressPlay;
+            Func<string, bool> requestExists = Hands.Exists, requestPlaying = Hands.SongPlaying;
+            Func<OpenWindow, ToolArguments, string> requestPress = Hands.PressPlay;
+            Func<OpenWindow, string, bool> requestSteer = Hands.Steer;
             Func<string, string> requestFetch = Hands.Fetch, requestBrowser = Hands.BrowserPath, requestOpened = Hands.Opened;
             Func<string> requestGame = Hands.GameOpen;
             Func<string, System.Collections.Generic.KeyValuePair<string, ToolArguments>> requestPlan = Hands.Plan;
@@ -19954,10 +19956,15 @@ namespace CapriDesktop
 
                 System.Collections.Generic.List<string> launches = new System.Collections.Generic.List<string>();
                 int playClicks = 0, musicFetches = 0;
-                Hands.Run = delegate(string launched) { launches.Add(launched); };
+                Tune musicTune = null;
+                bool autoMusic = true;
+                Tunes.Spotify = delegate { return musicTune; };
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow> { new OpenWindow(new IntPtr(21), "Spotify", "Spotify") }; };
+                Hands.Steer = delegate { return true; };
+                Hands.Run = delegate(string launched) { launches.Add(launched); if (launched.StartsWith("spotify:track:", StringComparison.Ordinal)) musicTune = new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "Spotify.exe", Playing = autoMusic }; };
                 Hands.Fetch = delegate { musicFetches++; return "<a href=\"https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b\">Blinding Lights by The Weeknd</a>"; };
-                Hands.SongPlaying = delegate { return true; };
-                Hands.PressPlay = delegate { playClicks++; return true; };
+                Hands.SongPlaying = delegate(string song) { return Hands.Started(new ToolArguments { Song = song, Kind = "song" }, null, musicTune); };
+                Hands.PressPlay = delegate(OpenWindow window, ToolArguments song) { playClicks++; musicTune = new Tune { Title = song.Song, Artist = "The Weeknd", App = "Spotify.exe", Playing = true }; return ""; };
                 System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> picked = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
                 picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = "open spotify and play Blinding Lights" }));
                 Hands.Rescue("open spotify and play Blinding Lights", picked);
@@ -20025,12 +20032,13 @@ namespace CapriDesktop
                 if (!Hands.Started(desired, requestedTune, requestedTune) || Hands.Started(desired, null, new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "Spotify.exe", Playing = false }) || Hands.Started(desired, null, new Tune { Title = "Blinding Lights", Artist = "Someone Else", App = "Spotify.exe", Playing = true }) || Hands.Started(desired, null, new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "chrome", Playing = true })) throw new Exception("Playback used a title without its playing state, artist or app.");
                 if (!Hands.Started(new ToolArguments { Song = "blinding lights the weeknd", Kind = "song" }, null, requestedTune)) throw new Exception("A song named with its artist never counted as playing.");
                 int quietClicks = playClicks;
-                Hands.SongPlaying = delegate { return false; };
+                autoMusic = false;
                 string unstarted = Hands.Do("play_music", new ToolArguments { Song = "Blinding Lights", Kind = "song", App = "spotify" });
                 if (playClicks != quietClicks + 1 || !unstarted.StartsWith("Playing ", StringComparison.Ordinal)) throw new Exception("A track that didn't start by itself never got its Play pressed: " + unstarted);
-                Hands.SongPlaying = delegate { return true; };
+                autoMusic = true;
                 checks.Add("PASS Spotify: direct and brain-picked music stays play_music, a track that's playing is left alone, a track that didn't start gets one Play, own playlists search Spotify once, and playing means Spotify's own session with the title and artist; paused, wrong-artist and other-app sessions don't count");
                 checks.Add("LIMIT live Spotify playback and personal playlist controls: URI launches, Play and Windows media sessions use stand-ins here");
+                SmokeMusic(checks);
 
                 string fixture = Path.Combine(folder, Guid.NewGuid().ToString("N"));
                 try { Directory.CreateDirectory(fixture); File.WriteAllText(Path.Combine(fixture, "writable.txt"), "names only"); }
@@ -20334,8 +20342,380 @@ namespace CapriDesktop
             {
                 Hands.Catalog = requestCatalog; Hands.Windows = requestWindows; Hands.Exists = requestExists; Hands.SongPlaying = requestPlaying; Hands.PressPlay = requestPress;
                 Hands.Fetch = requestFetch; Hands.BrowserPath = requestBrowser; Hands.Opened = requestOpened; Hands.GameOpen = requestGame; Hands.Plan = requestPlan;
-                Hands.Run = requestRun; Hands.Browse = requestBrowse; Hands.Websites = requestWebsites; Hands.Finder = requestFinder; Tunes.Spotify = requestTune;
+                Hands.Run = requestRun; Hands.Browse = requestBrowse; Hands.Websites = requestWebsites; Hands.Finder = requestFinder; Tunes.Spotify = requestTune; Hands.Steer = requestSteer;
                 Hands.Forget();
+            }
+        }
+
+        private static void SmokeMusic(System.Collections.Generic.List<string> checks)
+        {
+            Action<string> runWas = Hands.Run;
+            Func<string, string> fetchWas = Hands.Fetch;
+            Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<OpenWindow, string, bool> steerWas = Hands.Steer;
+            Func<OpenWindow, ToolArguments, string> playWas = Hands.PressPlay;
+            Func<string, bool> playingWas = Hands.SongPlaying;
+            Func<Tune> tuneWas = Tunes.Spotify;
+            Func<long> timeWas = Hands.MusicNow;
+            Action<int> waitWas = Hands.MusicWait;
+            Func<OpenWindow, bool> minimizedWas = Hands.Minimized;
+            Func<IntPtr> frontWas = Hands.Foreground;
+            string nvidiaWas = Brain.Nvidia, openAiWas = Brain.OpenAi;
+            System.Net.Sockets.TcpListener musicFake = null, replyFake = null, recoverFake = null;
+            try
+            {
+                long now = 0, readyAt = long.MaxValue, windowAt = 0, controlsAt = 0, lastPress = -1;
+                int presses = 0, opened = 0, searches = 0, restored = 0, attempts = 0, polls = 0;
+                bool minimized = false, tray = false, noWindow = false, missing = false, blocked = false, stuck = false, noButton = false, direct = false, restoreBlocked = false, playMinimized = false, twoWindows = false;
+                string wanted = "", page = "Old search", playedTitle = null;
+                string[] buttons = null;
+                System.Collections.Generic.List<string> steering = new System.Collections.Generic.List<string>();
+                System.Collections.Generic.List<IntPtr> tried = new System.Collections.Generic.List<IntPtr>();
+                IntPtr front = new IntPtr(32);
+                OpenWindow spotify = new OpenWindow(new IntPtr(31), "Spotify", "Spotify");
+                OpenWindow spare = new OpenWindow(new IntPtr(33), "Spotify", "Spotify");
+                OpenWindow game = new OpenWindow(new IntPtr(32), "Full-screen game", "eldenring");
+                Tune tune = null;
+                Hands.MusicNow = delegate { return now; };
+                Hands.MusicWait = delegate(int milliseconds)
+                {
+                    now += milliseconds;
+                    if (now >= readyAt) { tune = new Tune { Title = wanted, Artist = "Test Artist", App = "Spotify.exe", Playing = true }; readyAt = long.MaxValue; }
+                };
+                Hands.Fetch = delegate { return direct ? "<a href=\"https://open.spotify.com/track/1111111111111111111111\">Copper Echoes</a><a href=\"https://open.spotify.com/track/2222222222222222222222\">Paper Moons</a><a href=\"https://open.spotify.com/playlist/3333333333333333333333\">Night Mix</a><a href=\"https://open.spotify.com/album/4444444444444444444444\">Night Record</a><a href=\"https://open.spotify.com/artist/5555555555555555555555\">Test Artist</a>" : ""; };
+                Tunes.Spotify = delegate { polls++; return tune; };
+                Hands.SongPlaying = delegate(string song) { return Hands.Started(new ToolArguments { Song = song, Kind = "song" }, null, Tunes.Spotify()); };
+                Hands.Windows = delegate { return tray || noWindow || now < windowAt ? new System.Collections.Generic.List<OpenWindow> { game } : twoWindows ? new System.Collections.Generic.List<OpenWindow> { game, spare, spotify } : new System.Collections.Generic.List<OpenWindow> { game, spotify }; };
+                Hands.Minimized = delegate { return minimized; };
+                Hands.Foreground = delegate { return front; };
+                Hands.Run = delegate(string uri)
+                {
+                    if (uri == "spotify:") { opened++; return; }
+                    if (!uri.StartsWith("spotify:", StringComparison.Ordinal)) throw new Exception("The fake music request used an unexpected URI: " + uri);
+                    searches++;
+                    wanted = uri.StartsWith("spotify:track:", StringComparison.Ordinal) ? uri.EndsWith("1111111111111111111111", StringComparison.Ordinal) ? "Copper Echoes" : "Paper Moons"
+                        : uri == "spotify:collection:tracks" ? "Liked Songs" : uri.StartsWith("spotify:playlist:", StringComparison.Ordinal) ? "Night Mix"
+                        : uri.StartsWith("spotify:album:", StringComparison.Ordinal) ? "Night Record" : uri.StartsWith("spotify:artist:", StringComparison.Ordinal) ? "Test Artist" : Uri.UnescapeDataString(uri.Substring("spotify:search:".Length));
+                };
+                Hands.Steer = delegate(OpenWindow window, string action)
+                {
+                    steering.Add(action + " " + window.Handle);
+                    if (window.Handle != spotify.Handle || action != "restore_no_activate" || !minimized) throw new Exception("Music tried to take focus or restore a window that was not minimized.");
+                    restored++;
+                    if (!restoreBlocked) minimized = false;
+                    return !restoreBlocked;
+                };
+                Hands.PressPlay = delegate(OpenWindow window, ToolArguments song)
+                {
+                    attempts++;
+                    tried.Add(window.Handle);
+                    if (window.Handle == spare.Handle) return null;
+                    if (window.Handle != spotify.Handle || tray || wanted != song.Song) throw new Exception("Music pressed Play before its window and search were ready.");
+                    if (minimized && !playMinimized) return null;
+                    if (page != wanted) { page = wanted; return null; }
+                    if (missing || blocked) return "Opened " + song.Song + " in Spotify, but couldn't press play. Hit the green Play button.";
+                    if (noButton || now < controlsAt) return null;
+                    if (buttons != null)
+                    {
+                        song.PlaySeen = Array.Exists(buttons, label => Hands.PlayScore(label, song.Song) > 0);
+                        if (Hands.PlayChoice(buttons, song.Song, now - song.PlayAt) < 0) return null;
+                    }
+                    presses++;
+                    lastPress = now;
+                    if (!stuck) tune = new Tune { Title = playedTitle ?? song.Song, Artist = "Test Artist", App = "Spotify.exe", Playing = true };
+                    return "";
+                };
+                ToolArguments first = new ToolArguments { Song = "Copper Echoes", Kind = "song", App = "spotify" };
+                ToolArguments second = new ToolArguments { Song = "Paper Moons", Kind = "song", App = "spotify" };
+                for (int state = 0; state < 6; state++)
+                {
+                    direct = state >= 3;
+                    tune = null; page = "Old search"; tray = false; minimized = false; front = new IntPtr(32);
+                    int before = presses, opens = opened, runs = searches;
+                    if (Hands.Do("play_music", first) != "Playing Copper Echoes on Spotify." || tune == null || tune.Title != first.Song) throw new Exception("The first fake song never started.");
+                    Tune old = tune;
+                    minimized = state % 3 == 1; tray = state % 3 == 2; front = new IntPtr(32);
+                    if (Hands.Started(second, old, tune)) throw new Exception("The old song counted as the second song.");
+                    long began = now;
+                    string result = Hands.Do("play_music", second);
+                    bool hidden = state % 3 == 2;
+                    if (result != (hidden ? "Couldn't reach Spotify's window to press Play. Hit the green Play button." : "Playing Paper Moons on Spotify.") || tune.Title != (hidden ? first.Song : second.Song)
+                        || presses != before + (hidden ? 1 : 2) || now - began < (direct ? 12000 : 0) || now - began > 27000 || !hidden && !direct && now - began >= 12000
+                        || searches != runs + 2 || opened != opens || minimized || Hands.Foreground() != new IntPtr(32)) throw new Exception("The second fake song failed in Spotify state " + state + ": " + result);
+                }
+                direct = tray = false;
+                if (restored != 2) throw new Exception("The minimized Spotify window was never restored.");
+                checks.Add("PASS second play: search and track URIs start Y while X plays with another search showing or Spotify minimized; a missing tray window gets the Play hint after twenty-seven seconds without reopening Spotify");
+                Tune oldTune = new Tune { Title = "Copper Echoes", Artist = "Paper Moons", App = "Spotify.exe", Playing = true };
+                tune = oldTune; page = second.Song;
+                long searchAt = now;
+                int searchPresses = presses;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || lastPress != searchAt || presses != searchPresses + 1) throw new Exception("A search waited before pressing its ready Play control.");
+                direct = true; tune = oldTune; page = second.Song;
+                long trackAt = now;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || lastPress - trackAt != 12000 || presses != searchPresses + 2) throw new Exception("A track link lost its twelve-second auto-play wait.");
+                foreach (ToolArguments collection in new[]
+                {
+                    new ToolArguments { Song = "Night Mix", Kind = "playlist", App = "spotify" }, new ToolArguments { Song = "Night Record", Kind = "album", App = "spotify" },
+                    new ToolArguments { Song = "Test Artist", Kind = "artist", App = "spotify" }, new ToolArguments { Song = "Liked Songs", Kind = "playlist", App = "spotify" }
+                })
+                {
+                    tune = oldTune; page = collection.Song;
+                    long collectionAt = now;
+                    int collectionPresses = presses;
+                    if (!Hands.Do("play_music", collection).StartsWith("Playing ", StringComparison.Ordinal) || lastPress != collectionAt || presses != collectionPresses + 1) throw new Exception("A collection waited before pressing Play: " + collection.Song);
+                }
+                direct = false;
+                checks.Add("PASS search, playlist, album, artist and Liked Songs press a ready control at once; only a track URI waits twelve seconds before pressing");
+                tune = oldTune; page = second.Song; twoWindows = true;
+                int triedAt = tried.Count, windowPresses = presses;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || presses != windowPresses + 1 || tried.Count != triedAt + 2
+                    || tried[triedAt] != spare.Handle || tried[triedAt + 1] != spotify.Handle) throw new Exception("Play never reached the second Spotify window.");
+                twoWindows = false;
+                checks.Add("PASS every Spotify window is tried when the Play control is in the second one");
+                string[] roughNames = { "dont stop", "Paper Moons please", "\u7d19\u306e\u6708" };
+                string[] roughTitles = { "Don't Stop", "Paper Moons", "Paper Moon" };
+                for (int rough = 0; rough < roughNames.Length; rough++)
+                {
+                    tune = oldTune; page = roughNames[rough]; playedTitle = roughTitles[rough];
+                    int roughPresses = presses;
+                    if (!Hands.Do("play_music", new ToolArguments { Song = roughNames[rough], App = "spotify" }).StartsWith("Playing ", StringComparison.Ordinal)
+                        || tune.Title != roughTitles[rough] || presses != roughPresses + 1) throw new Exception("A changed track after Play needed matching request words.");
+                }
+                playedTitle = null;
+                if (Hands.Started(second, oldTune, oldTune, true) || Hands.Started(second, oldTune, new Tune { Title = "New Track", App = "Spotify.exe", Playing = false }, true)
+                    || Hands.Started(second, oldTune, new Tune { Title = "New Track", App = "chrome", Playing = true }, true)
+                    || Hands.Started(second, oldTune, new Tune { Title = "New Track", App = "Spotify.exe", Playing = true, Changing = true }, true)) throw new Exception("Play alone or an unready track counted as playback.");
+                checks.Add("PASS a playing track change after Play confirms requests with punctuation, extra words or another script; an unchanged, paused, other-app or changing track does not");
+                Func<Tune> pollTune = Tunes.Spotify;
+                for (int missed = 0; missed < 2; missed++)
+                {
+                    int reads = 0, missedPresses = presses;
+                    tune = oldTune; page = second.Song; noButton = true;
+                    Tunes.Spotify = delegate { return ++reads == 1 ? missed == 0 ? null : new Tune { App = "Spotify.exe", Playing = true } : oldTune; };
+                    long missedAt = now;
+                    if (Hands.Do("play_music", second) != "Couldn't find Paper Moons to play, so Spotify is open on a search for it." || now - missedAt != 27000 || presses != missedPresses) throw new Exception("A failed before read let the old artist count as the new song.");
+                }
+                Tunes.Spotify = pollTune;
+                noButton = false;
+                if (Hands.Started(second, null, oldTune) || Hands.Started(second, new Tune { App = "Spotify.exe" }, oldTune)
+                    || Hands.Started(new ToolArguments { Song = "Paper Moons", Kind = "artist" }, null, oldTune)
+                    || !Hands.Started(first, null, oldTune)) throw new Exception("A missing before read used the artist alone or rejected a matching title.");
+                checks.Add("PASS a missing or timed-out before read requires the title; the old artist alone never confirms the new song");
+                Tune trackOfList = new Tune { Title = "Some Track", Artist = "Someone Else", App = "Spotify.exe", Playing = true };
+                foreach (string listKind in new[] { "playlist", "album", "artist" })
+                {
+                    ToolArguments listAsk = new ToolArguments { Song = listKind == "playlist" ? "Liked Songs" : "Night Record", Kind = listKind };
+                    if (!Hands.Started(listAsk, null, trackOfList, true)) throw new Exception("A " + listKind + " she started with Spotify closed was called failed while it played.");
+                    if (Hands.Started(listAsk, null, trackOfList) || Hands.Started(listAsk, oldTune, trackOfList)) throw new Exception("A " + listKind + " counted as started without her press.");
+                    if (!Hands.Started(listAsk, oldTune, trackOfList, true) || Hands.Started(listAsk, oldTune, oldTune, true)) throw new Exception("A " + listKind + " didn't go by the track changing after her press.");
+                }
+                if (!Hands.Started(new ToolArguments { Song = "blindng lights", Kind = "song" }, null, trackOfList, true) || Hands.Started(new ToolArguments { Song = "blindng lights", Kind = "song" }, null, trackOfList)) throw new Exception("A song she started with Spotify closed went by its spelling, or counted without her press.");
+                checks.Add("PASS a playlist, album or artist counts once her press starts a track, never by its own name and never without her press; with Spotify closed before, her press and a playing track are enough");
+                if (Hands.Started(second, oldTune, oldTune) || Hands.Started(new ToolArguments { Song = "Echoes", Kind = "song" }, oldTune, oldTune)
+                    || Hands.Started(new ToolArguments { Song = "Paper Moons", Kind = "artist" }, oldTune, oldTune)
+                    || Hands.Started(new ToolArguments { Song = "Copper Echoes", Kind = "song" }, null, new Tune { Title = "Copper Echoes", App = "Spotify.exe", Playing = true, Changing = true })) throw new Exception("An old title, artist, partial title or changing session counted as the requested song.");
+                if (!Hands.Started(first, null, new Tune { Title = "Copper Echoes", Artist = "Echoes", App = "Spotify.exe", Playing = true })) throw new Exception("An artist name at the end of a matching title hid the song.");
+                checks.Add("PASS playback confirmation rejects the old song, an artist mistaken for a title, a partial old title and changing metadata");
+                foreach (string title in new[] { "Yesterday - Remastered 2009", "Yesterday (feat. X)", "Yesterday (with X)" })
+                {
+                    Tune yesterday = new Tune { Title = title, Artist = "The Beatles", App = "Spotify.exe", Playing = true };
+                    ToolArguments asked = new ToolArguments { Song = "Yesterday", Kind = "song" };
+                    if (!Hands.Started(asked, oldTune, yesterday) || !Hands.Started(asked, yesterday, yesterday)) throw new Exception("A remaster or guest credit hid Yesterday.");
+                }
+                Tune lights = new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "Spotify.exe", Playing = true };
+                if (!Hands.Started(new ToolArguments { Song = "the weeknd blinding lights", Kind = "song" }, oldTune, lights)
+                    || !Hands.Started(new ToolArguments { Song = "blinding lights the weeknd", Kind = "song" }, lights, lights)
+                    || !Hands.Started(new ToolArguments { Song = "Echoes", Kind = "song" }, oldTune, new Tune { Title = oldTune.Title, Artist = "New Artist", App = "Spotify.exe", Playing = true })) throw new Exception("A changed artist or artist-first request never counted as playback.");
+                Tune stand = new Tune { Title = "Stand By Me", Artist = "Ben E. King", App = "Spotify.exe", Playing = true };
+                if (!Hands.Started(new ToolArguments { Song = "Stand By Me", Kind = "song" }, oldTune, stand) || Hands.Started(new ToolArguments { Song = "Stand", Kind = "song" }, stand, stand)) throw new Exception("A by inside the song's title was lost.");
+                tune = oldTune;
+                long alreadyAt = now;
+                int alreadyPresses = presses;
+                if (Hands.Do("play_music", first) != "Playing Copper Echoes on Spotify." || now != alreadyAt || presses != alreadyPresses) throw new Exception("The requested track was already playing but still waited or pressed Play.");
+                checks.Add("PASS playback matches remasters, feat and with credits, either artist order and a changed artist; the exact song already playing counts at once while an unchanged partial title or artist does not");
+
+                tune = null; noWindow = true; readyAt = now + 10000;
+                long coldAt = now;
+                int coldPresses = presses, coldOpened = opened, coldPolls = polls;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || now - coldAt != 10000 || presses != coldPresses || opened != coldOpened || polls - coldPolls < 50) throw new Exception("A ten-second cold start was cut short or stopped polling.");
+                noWindow = false; noButton = true; tune = oldTune; readyAt = now + 25000;
+                long controlAt = now;
+                int controlAttempts = attempts;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || now - controlAt != 25000 || attempts == controlAttempts || presses != coldPresses) throw new Exception("No Play control stopped the Windows playback wait.");
+                tune = oldTune; windowAt = now + 15000; readyAt = now + 16000;
+                long lateAt = now;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || now - lateAt != 16000) throw new Exception("A Spotify window arriving after fifteen seconds was cut short.");
+                windowAt = 0; noButton = false;
+                tune = oldTune; blocked = true; readyAt = now + 18000;
+                long loadingAt = now;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || now - loadingAt != 18000) throw new Exception("Play access failed before Spotify could start the link itself.");
+                blocked = false;
+                tune = oldTune; page = second.Song; stuck = true; controlsAt = now + 26800; readyAt = now + 29000;
+                long latePressAt = now;
+                int latePresses = presses;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || now - latePressAt != 29000 || presses != latePresses + 1) throw new Exception("A late Play press had no time to confirm playback.");
+                controlsAt = 0; stuck = false;
+                checks.Add("PASS Windows cold starts keep polling: no window at ten seconds can still play, a window can arrive at fifteen seconds, and no Play control can still auto-play at twenty-five seconds");
+
+                string[][] playButtons = { new[] { "Pause", "Play Blinding Lights by The Weeknd" }, new[] { "Pause", "Play Today's Top Hits" } };
+                string[] playNames = { "blinding lights the weeknd", "top hits" };
+                for (int button = 0; button < playNames.Length; button++)
+                {
+                    buttons = playButtons[button];
+                    if (Hands.PlayChoice(buttons, playNames[button], button == 0 ? 0 : 2999) != (button == 0 ? 1 : -1)
+                        || Hands.PlayChoice(buttons, playNames[button], 3000) != 1) throw new Exception("The old Play button score thresholds changed.");
+                    tune = oldTune; page = playNames[button];
+                    long buttonAt = now;
+                    int buttonPresses = presses;
+                    string result = Hands.Do("play_music", new ToolArguments { Song = playNames[button], App = "spotify" });
+                    if (!result.StartsWith("Playing ", StringComparison.Ordinal) || presses != buttonPresses + 1 || lastPress - buttonAt != (button == 0 ? 0 : 3000)) throw new Exception("A scored Play button was never pressed and confirmed: " + result);
+                }
+                buttons = null;
+                if (Hands.PlayChoice(new[] { "Play Lights", "Play Blinding Lights", "Play Blinding Lights live" }, "Blinding Lights", 0) != 1) throw new Exception("Play did not take the best score.");
+                checks.Add("PASS scored Play controls: the title before by scores two and presses at once; Today's Top Hits scores one and presses after three seconds; the highest score wins and playback is confirmed");
+
+                minimized = true; playMinimized = true; tune = oldTune; page = second.Song;
+                int focusRestores = restored;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || restored != focusRestores || !minimized || Hands.Foreground() != new IntPtr(32)) throw new Exception("An accessible Play control restored Spotify or took the game's focus.");
+                buttons = playButtons[1]; tune = oldTune; page = playNames[1];
+                if (!Hands.Do("play_music", new ToolArguments { Song = playNames[1], App = "spotify" }).StartsWith("Playing ", StringComparison.Ordinal) || restored != focusRestores || !minimized) throw new Exception("Waiting for a score-one Play control restored Spotify.");
+                buttons = null;
+                playMinimized = false; restoreBlocked = true; noButton = true; tune = oldTune; readyAt = now + 18000;
+                if (Hands.Do("play_music", second) != "Playing Paper Moons on Spotify." || restored != focusRestores + 1 || Hands.Foreground() != new IntPtr(32)) throw new Exception("A full-screen foreground or a failed restore stopped playback.");
+                minimized = restoreBlocked = noButton = false;
+                if (steering.Exists(action => action != "restore_no_activate 31")) throw new Exception("Music took focus from the full-screen app.");
+                checks.Add("PASS a full-screen app stays in front: Play is tried without focus, an accessible minimized control needs no restore, and a missing control restores only without activation; a failed restore still allows playback");
+                if (!Hands.MusicMissing("No results found for \"Paper Moons\"", second.Song) || !Hands.MusicMissing("Aucun r\u00e9sultat pour Paper Moons", second.Song)
+                    || Hands.MusicMissing("No results found for Copper Echoes", second.Song) || Hands.MusicMissing("No results found for Paper Moons live", second.Song) || Hands.MusicMissing("No results found", second.Song)
+                    || Hands.MusicMissing("No results found for Paper Moons by Someone Else", "Paper Moons by Test Artist")) throw new Exception("An old or unnamed empty search was blamed for the new request.");
+                string namedTool;
+                ToolArguments namedArgs;
+                if (!Hands.Direct("play Paper Moons on spotify", out namedTool, out namedArgs) || namedTool != "play_music" || namedArgs.Song != second.Song) throw new Exception("A second named play became a media resume.");
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> rescued = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
+                Hands.Rescue("play Paper Moons", rescued);
+                if (rescued.Count != 1 || rescued[0].Key != "play_music" || rescued[0].Value.Song != second.Song) throw new Exception("An empty music pick reused the previous playback.");
+                checks.Add("PASS a missing-song line names the current query, and Direct and an empty-pick Rescue still choose the new song while the old one plays");
+                for (int failure = 0; failure < 5; failure++)
+                {
+                    tune = oldTune; page = first.Song; wanted = first.Song; front = new IntPtr(32);
+                    missing = failure == 0; blocked = failure == 1; noWindow = failure == 2; stuck = failure == 3; noButton = failure == 4;
+                    string[] expected = { "Couldn't find Paper Moons to play, so Spotify is open on a search for it.", "Couldn't find Paper Moons to play, so Spotify is open on a search for it.", "Couldn't reach Spotify's window to press Play. Hit the green Play button.", "Couldn't confirm Paper Moons started in Spotify. Hit the green Play button.", "Couldn't find Paper Moons to play, so Spotify is open on a search for it." };
+                    long began = now;
+                    int clicked = presses;
+                    string result = Hands.Do("play_music", second);
+                    if (result != expected[failure] || !Hands.Failed(result) || tune != oldTune || now - began != 27000
+                        || presses != clicked + (failure == 3 ? 1 : 0)) throw new Exception("Spotify failure " + failure + " waited or changed its story: " + result + " / " + (now - began));
+                }
+                missing = blocked = noWindow = stuck = noButton = false;
+                direct = blocked = true;
+                foreach (ToolArguments unplayed in new[]
+                {
+                    second, new ToolArguments { Song = "Night Mix", Kind = "playlist", App = "spotify" }, new ToolArguments { Song = "Liked Songs", Kind = "playlist", App = "spotify" }
+                })
+                {
+                    tune = oldTune; page = unplayed.Song;
+                    string named = unplayed.Song == "Night Mix" ? "the Night Mix playlist" : unplayed.Song == "Liked Songs" ? "their Liked Songs" : unplayed.Song;
+                    if (Hands.Do("play_music", unplayed) != "Opened " + named + " in Spotify, but couldn't press play. Hit the green Play button.") throw new Exception("An unplayed link lost the shipped Spotify line.");
+                }
+                direct = blocked = false;
+                checks.Add("PASS failed track, playlist and Liked Songs links keep the shipped Opened line and green Play hint");
+                int beforeCancel = searches;
+                second.Current = delegate { return false; };
+                if (Hands.Do("play_music", second) != "That call errand has ended." || searches != beforeCancel) throw new Exception("A cancelled song request still navigated Spotify.");
+                second.Current = null;
+                checks.Add("PASS Spotify failures name song lookup, window or Play access, or playback confirmation; a missing window or button gets the full twenty-seven seconds, Play alone never proves playback, and the search and green Play hints stay when true");
+
+                System.Collections.Generic.List<string> musicAsked = new System.Collections.Generic.List<string>();
+                Brain.Nvidia = FakeServer(new[]
+                {
+                    LocalReply("play_music{\"song\":\"Copper Echoes\",\"app\":\"spotify\"}"), LocalReply("Copper Echoes is playing."),
+                    LocalReply("play_music{\"song\":\"Paper Moons\",\"app\":\"spotify\"}"), LocalReply("Paper Moons is playing."),
+                    LocalReply("play_music{\"song\":\"Paper Moons\",\"app\":\"spotify\"}"), LocalReply("Spotify won't let me.")
+                }, musicAsked, out musicFake);
+                Brain musicBrain = new Brain { OwnSteps = true, Remote = new Cloud("nvapi-test", "nvidia/nemotron-3.5-super-vl-120b-a12b"), Model = "nvidia/nemotron-3.5-super-vl-120b-a12b", Act = Hands.Do };
+                tune = null; page = "Old search";
+                musicBrain.Ask("play Copper Echoes");
+                if (tune == null || tune.Title != first.Song) throw new Exception("The NVIDIA brain missed its first music tool.");
+                minimized = true; front = new IntPtr(32);
+                musicBrain.Ask("play Paper Moons");
+                if (tune.Title != second.Song || minimized || musicAsked.Count != 4) throw new Exception("The NVIDIA brain reused its first song instead of playing the second.");
+                tune = oldTune; page = second.Song; missing = true;
+                long failedAt = now;
+                string failed = musicBrain.Ask("play Paper Moons");
+                if (failed != "Couldn't find Paper Moons to play, so Spotify is open on a search for it." || musicAsked.Count != 5 || now - failedAt != 27000 || musicBrain.History[musicBrain.History.Count - 1].Content != failed) throw new Exception("A failed NVIDIA song request waited for a rewritten excuse: " + failed);
+                checks.Add("PASS NVIDIA second play runs a fresh play_music for Y with X playing and Spotify minimized; a failed play ends on its exact tool line without another brain call");
+
+                System.Collections.Generic.List<string> replyAsked = new System.Collections.Generic.List<string>();
+                Brain.OpenAi = FakeServer(new[] { LocalReply("Playing it now!") }, replyAsked, out replyFake);
+                Brain replyBrain = new Brain { Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Model = "gpt-5-mini" };
+                const string playFailure = "Opened Paper Moons in Spotify, but couldn't press play. Hit the green Play button.";
+                replyBrain.Act = delegate { return playFailure; };
+                for (int excuse = 0; excuse < 3; excuse++)
+                {
+                    string reply = excuse == 0 ? "Spotify won't let me." : excuse == 1 ? "I'm not allowed to play that." : "I couldn't reach Play. Try its green button.";
+                    string afterReply;
+                    string plain = replyBrain.Ask("play Paper Moons on spotify", false, out afterReply, null, delegate { return reply; });
+                    string expected = excuse < 2 ? playFailure : reply;
+                    if (plain != expected || replyAsked.Count != 0 || replyBrain.History[replyBrain.History.Count - 1].Content != plain) throw new Exception("A failed play lost its reason or a truthful summary: " + plain);
+                }
+                string callAfter;
+                if (replyBrain.Ask("play Paper Moons on spotify", false, out callAfter, null, delegate { return "I couldn't reach Play. I'm still on the call."; }) != "I couldn't reach Play. I'm still on the call." || replyAsked.Count != 0) throw new Exception("A failed play hid the call-mode reply.");
+                if (replyBrain.Ask("play Paper Moons on spotify") != playFailure || replyAsked.Count != 0) throw new Exception("A failed play asked another brain round for a success line.");
+                replyBrain.Act = delegate { return "No app called Spotify is installed on this PC."; };
+                if (replyBrain.Ask("open Spotify") != "No app called Spotify is installed on this PC." || replyAsked.Count != 0) throw new Exception("A failed open_app asked another brain round for a success line.");
+                checks.Add("PASS shipped failure replies skip another brain round for play_music and open_app; PlayBlame still replaces Spotify blame and permission claims while truthful call replies keep their words and history");
+
+                System.Collections.Generic.List<string> recoverAsked = new System.Collections.Generic.List<string>();
+                Brain.OpenAi = FakeServer(new[]
+                {
+                    "{\"choices\":[{\"message\":{\"content\":\"Playing it now!\",\"tool_calls\":[{\"function\":{\"name\":\"play_music\",\"arguments\":\"{\\\"song\\\":\\\"Paper Moons\\\",\\\"app\\\":\\\"spotify\\\"}\"}},{\"function\":{\"name\":\"open_app\",\"arguments\":\"{\\\"name\\\":\\\"Discord\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}]}",
+                    LocalReply("open_app{\"name\":\"X\"}"), LocalReply("open_website{\"site\":\"example.com\"}"), LocalReply("I opened its website instead."),
+                    LocalReply("open_app{\"name\":\"X\"}"), LocalReply("Its app isn't installed. The website is still available."),
+                    "{\"choices\":[{\"message\":{\"content\":\"\",\"tool_calls\":[{\"function\":{\"name\":\"open_app\",\"arguments\":\"{\\\"name\\\":\\\"X\\\"}\"}},{\"function\":{\"name\":\"read_file\",\"arguments\":\"{\\\"path\\\":\\\"missing-smoke-file.txt\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}]}",
+                    LocalReply("The file isn't available, and X isn't installed."), LocalReply("The file isn't available, and X isn't installed."),
+                    LocalReply("open_app{\"name\":\"X\"}"), LocalReply("It's open!"),
+                    "{\"choices\":[{\"message\":{\"content\":\"\",\"tool_calls\":[{\"function\":{\"name\":\"check_app\",\"arguments\":\"{\\\"name\\\":\\\"X\\\"}\"}},{\"function\":{\"name\":\"open_website\",\"arguments\":\"{\\\"site\\\":\\\"example.com\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}]}",
+                    LocalReply("Its website is open.")
+                }, recoverAsked, out recoverFake);
+                System.Collections.Generic.List<string> pickedTools = new System.Collections.Generic.List<string>();
+                Brain recoverBrain = new Brain { OwnSteps = true, Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Model = "gpt-5-mini" };
+                recoverBrain.Act = delegate(string tool, ToolArguments args)
+                {
+                    pickedTools.Add(tool);
+                    if (tool == "play_music") return "Couldn't find Paper Moons in Spotify.";
+                    if (tool == "open_app") return args.Name == "Discord" ? "Opened Discord." : "No app called X is installed on this PC.";
+                    if (tool == "check_app") return "Couldn't read the app list.";
+                    if (tool == "open_website") return "Opened example.com.";
+                    throw new Exception("The recovery check picked an unexpected tool: " + tool);
+                };
+                string mixed = recoverBrain.Ask("play Paper Moons and open Discord");
+                if (mixed != "Couldn't find Paper Moons in Spotify. Opened Discord." || string.Join(",", pickedTools.ToArray()) != "play_music,open_app" || recoverAsked.Count != 1
+                    || recoverBrain.History[recoverBrain.History.Count - 1].Content != mixed) throw new Exception("A failed play kept Playing it now, skipped Discord or asked for another brain round: " + mixed);
+                checks.Add("PASS a planner saying Playing it now after a failed play gets the tool failure instead, and the other picked tool still runs");
+                if (recoverBrain.Ask("get X going") != "I opened its website instead." || string.Join(",", pickedTools.ToArray()) != "play_music,open_app,open_app,open_website" || recoverAsked.Count != 4) throw new Exception("A failed app lookup hid the planner's website recovery.");
+                if (recoverBrain.Ask("get X going") != "Its app isn't installed. The website is still available." || recoverAsked.Count != 6) throw new Exception("A non-play failure replaced the planner's answer.");
+                if (recoverBrain.Ask("check X and read the file") != "The file isn't available, and X isn't installed." || recoverAsked.Count != 9) throw new Exception("An app or file failure bypassed the file answer.");
+                string falseOpened = recoverBrain.Ask("get X going");
+                if (falseOpened != "No app called X is installed on this PC." || recoverAsked.Count != 11 || recoverBrain.History[recoverBrain.History.Count - 1].Content != falseOpened) throw new Exception("A failed open_app kept a planner's false success line.");
+                checks.Add("PASS the shipped guard replaces a planner's false open_app success with the tool failure");
+                if (recoverBrain.Ask("check X and open its website") != "Its website is open." || recoverAsked.Count != 13) throw new Exception("A failed check was added to the shipped deeds list.");
+                checks.Add("PASS the shipped deeds list leaves checking results out when an action ran");
+                recoverBrain.OwnSteps = false;
+                Hands.Kit missingDraw = Hands.KitWithout(new System.Collections.Generic.List<string[]> { new[] { "draw", "only on Windows for now" } });
+                recoverBrain.Kit = delegate { return missingDraw; };
+                string unsupported = recoverBrain.Ask("draw a star and open Spotify");
+                if (unsupported != "No app called X is installed on this PC. Drawing on your screen is only on Windows for now, choom." || recoverAsked.Count != 13) throw new Exception("A tool failure dropped the part that cannot work here: " + unsupported);
+                checks.Add("PASS a failed play still runs the remaining picked tools and skips only the next brain round; a failed open_app can recover through open_website, keep its planner answer, reach the read_file answer, or keep the text about what cannot work here");
+            }
+            finally
+            {
+                if (musicFake != null) musicFake.Stop();
+                if (replyFake != null) replyFake.Stop();
+                if (recoverFake != null) recoverFake.Stop();
+                Hands.Run = runWas; Hands.Fetch = fetchWas; Hands.Windows = windowsWas; Hands.Steer = steerWas; Hands.PressPlay = playWas; Hands.SongPlaying = playingWas;
+                Tunes.Spotify = tuneWas; Hands.MusicNow = timeWas; Hands.MusicWait = waitWas; Brain.Nvidia = nvidiaWas; Brain.OpenAi = openAiWas;
+                Hands.Minimized = minimizedWas; Hands.Foreground = frontWas;
             }
         }
 
@@ -44054,10 +44434,29 @@ namespace CapriDesktop
                                 Func<string, string> realFetch = Hands.Fetch;
                                 Func<System.Collections.Generic.List<OpenWindow>> realWindows = Hands.Windows;
                                 Func<OpenWindow, string, bool> realSteer = Hands.Steer;
-                                Func<string, bool> realPressPlay = Hands.PressPlay;
+                                Func<OpenWindow, ToolArguments, string> realPressPlay = Hands.PressPlay;
                                 Func<string> realNowPlaying = Hands.NowPlaying;
                                 Func<string, bool> realSongPlaying = Hands.SongPlaying;
-                                Hands.SongPlaying = delegate { return true; };
+                                Func<Tune> realSpotifyTune = Tunes.Spotify;
+                                Func<long> realMusicNow = Hands.MusicNow;
+                                Action<int> realMusicWait = Hands.MusicWait;
+                                long harnessMusicNow = 0;
+                                Tune harnessTune = null;
+                                Tunes.Spotify = delegate { return harnessTune; };
+                                Hands.MusicNow = delegate { return harnessMusicNow; };
+                                Hands.MusicWait = delegate(int milliseconds) { harnessMusicNow += milliseconds; };
+                                Action<string> harnessPlay = delegate(string uri)
+                                {
+                                    ran.Add(uri);
+                                    if (!uri.StartsWith("spotify:track:", StringComparison.Ordinal)) return;
+                                    string title = uri.EndsWith("4onvDep8OyHKT85RBO3b4V", StringComparison.Ordinal) ? "Resist and Disorder"
+                                        : uri.EndsWith("2iyaHQlYrR8Eyr4wOmOT5D", StringComparison.Ordinal) ? "In Love With Myself"
+                                        : uri.EndsWith("42W7fJXB7razFefTxMSyYp", StringComparison.Ordinal) ? "I Really Want to Stay at Your House"
+                                        : uri.EndsWith("6pV1lc8lIc8ARNB6KsZukt", StringComparison.Ordinal) ? "Never Fade Away"
+                                        : uri.EndsWith("5Ln8eNkYC9to99zsPEZbS2", StringComparison.Ordinal) ? "Black Dog" : "Blinding Lights";
+                                    harnessTune = new Tune { Title = title, Artist = "The Weeknd", App = "Spotify.exe", Playing = true };
+                                };
+                                Hands.Run = harnessPlay;
                                 Func<System.Collections.Generic.List<InstalledApp>> fakeCatalog = Hands.Catalog;
                                 System.Collections.Generic.List<string> lookups = new System.Collections.Generic.List<string>();
                                 System.Collections.Generic.List<string> steered = new System.Collections.Generic.List<string>();
@@ -44078,12 +44477,20 @@ namespace CapriDesktop
                                         {
                                             new OpenWindow(new IntPtr(1), "#general | Friends - Discord", "Discord"), new OpenWindow(new IntPtr(2), "YouTube - Google Chrome", "chrome"),
                                             new OpenWindow(new IntPtr(3), "Untitled - Notepad", "notepad"), new OpenWindow(new IntPtr(4), "Roblox", "RobloxPlayerBeta"), new OpenWindow(new IntPtr(5), "Roblox Studio", "RobloxStudioBeta"),
-                                            new OpenWindow(new IntPtr(6), "Document1 - Word", "WINWORD"), new OpenWindow(new IntPtr(7), "Minecraft Launcher", "MinecraftLauncher"), new OpenWindow(new IntPtr(8), "Minecraft 1.21", "javaw")
+                                            new OpenWindow(new IntPtr(6), "Document1 - Word", "WINWORD"), new OpenWindow(new IntPtr(7), "Minecraft Launcher", "MinecraftLauncher"), new OpenWindow(new IntPtr(8), "Minecraft 1.21", "javaw"), new OpenWindow(new IntPtr(9), "Spotify", "Spotify")
                                         };
                                     };
                                     Hands.Steer = delegate(OpenWindow window, string action) { steered.Add(action + " " + window.Handle); return window.Program != "notepad"; };
                                     System.Collections.Generic.List<string> playPresses = new System.Collections.Generic.List<string>();
-                                    Hands.PressPlay = delegate(string name) { playPresses.Add(name); return name != "Liked Songs" && name != "nothing at all"; };
+                                    Hands.PressPlay = delegate(OpenWindow window, ToolArguments song)
+                                    {
+                                        string name = song.Song;
+                                        playPresses.Add(name);
+                                        if (name == "nothing at all") return "Couldn't find nothing at all in Spotify.";
+                                        if (name == "Liked Songs") return "Opened their Liked Songs in Spotify, but couldn't press play. Hit the green Play button.";
+                                        harnessTune = new Tune { Title = name, App = "Spotify.exe", Playing = true };
+                                        return "";
+                                    };
                                     Hands.NowPlaying = delegate { return ran.Count > 0 && ran[ran.Count - 1].StartsWith("spotify:track:", StringComparison.Ordinal) ? "The Weeknd - Blinding Lights" : "Spotify Free"; };
                                     int ranBefore = ran.Count;
                                     string[] handled =
@@ -44133,9 +44540,14 @@ namespace CapriDesktop
                                     for (int i = 0; i < handledWanted.Length; i++) if (handled[i] != handledWanted[i]) throw new Exception("Hands answered '" + handled[i] + "', expected '" + handledWanted[i] + "'.");
                                     if (noSpotify != "Spotify isn't installed, so playing Blinding Lights on YouTube.") throw new Exception("Without Spotify the song did not go to YouTube: " + noSpotify);
                                     string played = string.Join(" | ", ran.GetRange(ranBefore, ran.Count - ranBefore).ToArray());
-                                    if (played != "spotify:track:0VjIjW4GlUZAMYd2vXMi3b | https://www.youtube.com/watch?v=4NRXx6U8ABQ | spotify:search:nothing%20at%20all | spotify:playlist:37i9dQZF1DWWQRwui0ExPn | spotify:collection:tracks | https://www.youtube.com/watch?v=qboQlr7lAAk&list=RDCLAK5uy_kb7EBi6y3GrtJri4_ZH56Ms786DFEimbM | spotify:track:4onvDep8OyHKT85RBO3b4V | https://www.youtube.com/watch?v=4NRXx6U8ABQ" || string.Join(",", playPresses.ToArray()) != "nothing at all,lofi beats,Liked Songs") throw new Exception("Songs were played wrong: " + played + " / pressed " + string.Join(",", playPresses.ToArray()));
+                                    int missingTries = playPresses.FindAll(name => name == "nothing at all").Count, likedTries = playPresses.FindAll(name => name == "Liked Songs").Count;
+                                    if (played != "spotify:track:0VjIjW4GlUZAMYd2vXMi3b | https://www.youtube.com/watch?v=4NRXx6U8ABQ | spotify:search:nothing%20at%20all | spotify:playlist:37i9dQZF1DWWQRwui0ExPn | spotify:collection:tracks | https://www.youtube.com/watch?v=qboQlr7lAAk&list=RDCLAK5uy_kb7EBi6y3GrtJri4_ZH56Ms786DFEimbM | spotify:track:4onvDep8OyHKT85RBO3b4V | https://www.youtube.com/watch?v=4NRXx6U8ABQ" || missingTries == 0 || likedTries == 0 || playPresses.Count != missingTries + likedTries + 1 || playPresses[missingTries] != "lofi beats") throw new Exception("Songs were played wrong: " + played + " / pressed " + string.Join(",", playPresses.ToArray()));
                                     if (lookups.Count != 6 || lookups[0] != "https://html.duckduckgo.com/html/?q=site%3Aopen.spotify.com%2Ftrack%20Blinding%20Lights%20by%20The%20Weeknd" || lookups[1] != "https://www.youtube.com/results?search_query=lofi%20beats") throw new Exception("Songs were looked up wrong: " + string.Join(" | ", lookups.ToArray()));
                                     if (string.Join(" | ", steered.ToArray()) != "close 1 | close_tab 2 | close 3 | switch_to 4 | minimize 6 | close 7") throw new Exception("Windows were steered wrong: " + string.Join(" | ", steered.ToArray()));
+                                    int spotifySteer = steered.Count;
+                                    Hands.Steer(new OpenWindow(new IntPtr(9), "Spotify", "Spotify"), "restore_no_activate");
+                                    if (steered.Count != spotifySteer + 1 || steered[spotifySteer] != "restore_no_activate 9") throw new Exception("The Steer recorder hid Spotify.");
+                                    checks.Add("PASS the Steer recorder includes Spotify windows, and failed searches and Play access keep the search and green Play hints");
                                     string spotifyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"Spotify\Spotify.exe");
                                     const string spotifyId = "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify";
                                     const string frenchTitle = "Myl\u00e8ne Farmer - D\u00e9senchant\u00e9e";
@@ -44145,7 +44557,11 @@ namespace CapriDesktop
                                     Hands.Run = delegate(string id)
                                     {
                                         ran.Add(id);
-                                        if (id.StartsWith("spotify:track:", StringComparison.Ordinal)) spotifyWindows.Add(new OpenWindow(new IntPtr(10), frenchTitle, "SPOTIFY"));
+                                        if (id.StartsWith("spotify:track:", StringComparison.Ordinal))
+                                        {
+                                            spotifyWindows.Add(new OpenWindow(new IntPtr(10), frenchTitle, "SPOTIFY"));
+                                            harnessTune = new Tune { Title = "D\u00e9senchant\u00e9e", Artist = "Myl\u00e8ne Farmer", App = "Spotify.exe", Playing = true };
+                                        }
                                     };
                                     InstalledApp[] installs =
                                     {
@@ -44157,6 +44573,7 @@ namespace CapriDesktop
                                     foreach (InstalledApp install in installs)
                                     {
                                         spotifyWindows.Clear();
+                                        harnessTune = null;
                                         Hands.Catalog = delegate { return install == null ? new System.Collections.Generic.List<InstalledApp>() : new System.Collections.Generic.List<InstalledApp> { install }; };
                                         Hands.Exists = delegate(string path) { return install == null && path == spotifyPath; };
                                         Hands.Forget();
@@ -44173,6 +44590,7 @@ namespace CapriDesktop
                                         if (Hands.Do("play_music", new ToolArguments { Song = "D\u00e9senchant\u00e9e" }) != "Playing D\u00e9senchant\u00e9e on Spotify." || ran.Count != opening + 2 || ran[opening + 1] != "spotify:track:0VjIjW4GlUZAMYd2vXMi3b") throw new Exception("A stopped Spotify install fell back to YouTube.");
                                     }
                                     spotifyWindows.Clear();
+                                    Hands.Run = harnessPlay;
                                     Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Spotify", spotifyId) }; };
                                     Hands.Exists = delegate { return false; };
                                     Hands.Forget();
@@ -44181,10 +44599,10 @@ namespace CapriDesktop
                                     string loved = Hands.Do("play_music", new ToolArguments { Song = "in love with myself" });
                                     string lovedRun = ran[ran.Count - 1];
                                     Func<string> nowWas = Hands.NowPlaying;
-                                    Func<string, bool> pressWas = Hands.PressPlay;
+                                    Func<OpenWindow, ToolArguments, string> pressWas = Hands.PressPlay;
                                     int nowAsked = 0;
                                     Hands.NowPlaying = delegate { nowAsked++; return "Artist - Track " + nowAsked; };
-                                    Hands.PressPlay = delegate { return true; };
+                                    Hands.PressPlay = delegate { return ""; };
                                     string stay = Hands.Do("play_music", new ToolArguments { Song = "I Really Want to Stay at Your House by Rosa Walton" });
                                     string stayRun = ran[ran.Count - 1];
                                     string stayShort = Hands.Do("play_music", new ToolArguments { Song = "irwtsayh" });
@@ -44266,7 +44684,14 @@ namespace CapriDesktop
                                     Hands.Forget();
                                     Func<string, string> musicFetch = Hands.Fetch;
                                     Hands.Fetch = delegate { return ""; };
-                                    Hands.PressPlay = delegate(string name) { return Hands.PlayScore(name == "Liked Songs" ? "Lire Titres lik\u00e9s" : "Lire D\u00e9senchant\u00e9e par Myl\u00e8ne Farmer", name) == 3; };
+                                    spotifyWindows.Add(new OpenWindow(new IntPtr(10), "Spotify", "Spotify"));
+                                    Hands.PressPlay = delegate(OpenWindow window, ToolArguments song)
+                                    {
+                                        string name = song.Song;
+                                        if (Hands.PlayScore(name == "Liked Songs" ? "Lire Titres lik\u00e9s" : "Lire D\u00e9senchant\u00e9e par Myl\u00e8ne Farmer", name) != 3) return "Couldn't reach the Play button.";
+                                        harnessTune = new Tune { Title = name, App = "Spotify.exe", Playing = true };
+                                        return "";
+                                    };
                                     int frenchRun = ran.Count;
                                     if (Hands.Do("play_music", new ToolArguments { Song = "D\u00e9senchant\u00e9e", App = "spotify" }) != "Playing D\u00e9senchant\u00e9e on Spotify." || Hands.Do("play_music", new ToolArguments { Song = "Liked Songs", App = "spotify" }) != "Playing their Liked Songs on Spotify."
                                         || ran.Count != frenchRun + 2 || ran[frenchRun] != "spotify:search:D%C3%A9senchant%C3%A9e" || ran[frenchRun + 1] != "spotify:collection:tracks") throw new Exception("French playback lost its search text or liked songs.");
@@ -45296,6 +45721,9 @@ namespace CapriDesktop
                                     Hands.PressPlay = realPressPlay;
                                     Hands.NowPlaying = realNowPlaying;
                                     Hands.SongPlaying = realSongPlaying;
+                                    Tunes.Spotify = realSpotifyTune;
+                                    Hands.MusicNow = realMusicNow;
+                                    Hands.MusicWait = realMusicWait;
                                     Hands.Catalog = fakeCatalog;
                                     Hands.Forget();
                                 }

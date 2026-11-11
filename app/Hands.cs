@@ -41,6 +41,8 @@ namespace CapriDesktop
         internal Func<bool> Current;
         internal Action Finished;
         internal bool SongOnly;
+        internal long PlayAt;
+        internal bool PlaySeen, PlayMissing;
         internal bool FromFriend;
         // Voice chat called it, so a change that would end the call waits until her reply is out.
         internal bool FromAgent;
@@ -1606,9 +1608,16 @@ namespace CapriDesktop
         internal static bool Presses = true;
         // A shortcut done another way, like a screenshot tool on Mac and Linux, returns what she did; null presses the keys.
         internal static Func<string, string> Instead = delegate { return null; };
+#if CROSS
         internal static Func<string, bool> PressPlay = ClickPlay;
+#else
+        internal static Func<OpenWindow, ToolArguments, string> PressPlay = ClickPlay;
+#endif
         internal static Func<string> NowPlaying = SpotifyTitle;
         internal static Func<string, bool> SongPlaying = PlayingSong;
+        private static readonly Stopwatch musicClock = Stopwatch.StartNew();
+        internal static Func<long> MusicNow = delegate { return musicClock.ElapsedMilliseconds; };
+        internal static Action<int> MusicWait = Thread.Sleep;
         internal static Func<string, string, string> Work = delegate { return "Using the mouse and keyboard isn't ready on this PC yet."; };
         // The question her last job stopped on to ask first. Her reply is then what ran and that question, word for word: a
         // wrap-up from her brain after it made her sound like she'd given up (Lachy, 6 Nov).
@@ -5487,6 +5496,7 @@ namespace CapriDesktop
                 if (liked) named = "their Liked Songs";
                 string spotted = liked || ownPlaylist ? null : known ?? SpotifyLink(Fetch("https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString("site:open.spotify.com/" + (kind == "song" ? "track" : kind) + " " + song)), kind, song);
                 if (current != null && !current()) return "That call errand has ended.";
+#if CROSS
                 if (kind == "song" && spotted != null)
                 {
                     Run("spotify:track:" + spotted);
@@ -5499,6 +5509,11 @@ namespace CapriDesktop
                 }
                 Run("spotify:search:" + Uri.EscapeDataString(song));
                 return (current == null ? PressPlay(song) : ClickPlay(song, current)) ? "Playing " + named + " on Spotify." : "Couldn't find " + named + " to play, so Spotify is open on a search for it.";
+#else
+                string uri = liked ? "spotify:collection:tracks" : spotted != null ? "spotify:" + (kind == "song" ? "track" : kind) + ":" + spotted : "spotify:search:" + Uri.EscapeDataString(song);
+                string failed = SpotifyPlay(liked ? "Liked Songs" : song, named, kind, uri, current);
+                return failed ?? "Playing " + named + " on Spotify.";
+#endif
             }
             string where = Searches[0, 1] + Uri.EscapeDataString(look);
             System.Text.RegularExpressions.Match list = Regex.Match(kind == "song" ? "" : Fetch(where + "&sp=EgIQAw%253D%253D") ?? "", @"""watchEndpoint"":\{""videoId"":""([A-Za-z0-9_-]{11})"",""playlistId"":""([A-Za-z0-9_-]+)""");
@@ -5509,6 +5524,7 @@ namespace CapriDesktop
             return (app == "spotify" ? "Spotify isn't installed, so playing " : "Playing ") + named + " on YouTube.";
         }
 
+#if CROSS
         private static bool ClickPlay(string name)
         {
             return ClickPlay(name, null);
@@ -5516,37 +5532,95 @@ namespace CapriDesktop
 
         private static bool ClickPlay(string name, Func<bool> current)
         {
-#if CROSS
             return false;
-#else
-            for (int i = 0; i < 30; i++)
-            {
-                Thread.Sleep(500);
-                if (current != null && !current()) return false;
-                if (SongPlaying(name)) return true;
-                foreach (OpenWindow window in Windows())
-                {
-                    if (!string.Equals(window.Program, "Spotify", StringComparison.OrdinalIgnoreCase) || window.Handle == IntPtr.Zero) continue;
-                    AutomationElement close = null;
-                    int best = 0;
-                    foreach (AutomationElement button in AutomationElement.FromHandle(window.Handle).FindAll(TreeScope.Descendants, new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button)))
-                    {
-                        int score = PlayScore(button.Current.Name, name);
-                        if (score <= best) continue;
-                        close = button;
-                        best = score;
-                        if (best == 3) break;
-                    }
-                    object pattern;
-                    if (close == null || (i < 6 && best == 1) || PlayScore(close.Current.Name, name) == 0 || !close.TryGetCurrentPattern(InvokePattern.Pattern, out pattern)) continue;
-                    if (current != null && !current()) return false;
-                    ((InvokePattern)pattern).Invoke();
-                    return true;
-                }
-            }
-            return false;
-#endif
         }
+#else
+        private static string SpotifyPlay(string song, string named, string kind, string uri, Func<bool> current)
+        {
+            ToolArguments requested = new ToolArguments { Song = song, Kind = kind, Current = current };
+            Tune before = Tunes.Spotify();
+            if (current != null && !current()) return "That call errand has ended.";
+            Run(uri);
+            long began = MusicNow(), pressedAt = 0;
+            requested.PlayAt = began + (uri.StartsWith("spotify:track:", StringComparison.Ordinal) ? 12000 : 0);
+            bool pressed = false, restored = false;
+            string failure = uri.StartsWith("spotify:search:", StringComparison.Ordinal) ? "Couldn't find " + named + " to play, so Spotify is open on a search for it." : NoPlay(named);
+            OpenWindow window = null;
+            while (true)
+            {
+                if (current != null && !current()) return "That call errand has ended.";
+                if (Started(requested, before, Tunes.Spotify(), pressed)) return null;
+                long left = Math.Max(began + 27000, pressed ? pressedAt + 2500 : 0) - MusicNow();
+                if (left <= 0) break;
+                if (!pressed && MusicNow() >= requested.PlayAt)
+                {
+                    window = null;
+                    OpenWindow restore = null;
+                    bool seen = false;
+                    foreach (OpenWindow candidate in Windows())
+                    {
+                        if (!string.Equals(candidate.Program, "Spotify", StringComparison.OrdinalIgnoreCase) || candidate.Handle == IntPtr.Zero) continue;
+                        window = candidate;
+                        requested.PlaySeen = false;
+                        string result = PressPlay(window, requested);
+                        seen = seen || requested.PlaySeen;
+                        if (requested.PlayMissing) return failure;
+                        if (result != null)
+                        {
+                            if (result == "That call errand has ended.") return result;
+                            if (result.Length == 0) { pressed = true; pressedAt = MusicNow(); break; }
+                        }
+                        else if (!requested.PlaySeen && !restored && restore == null && Minimized(window)) restore = window;
+                    }
+                    if (!pressed && !seen && restore != null)
+                    {
+                        Steer(restore, "restore_no_activate");
+                        restored = true;
+                    }
+                }
+                MusicWait((int)Math.Min(200, Math.Max(1, left)));
+            }
+            return pressed ? "Couldn't confirm " + named + " started in Spotify. Hit the green Play button." : window == null ? "Couldn't reach Spotify's window to press Play. Hit the green Play button." : failure;
+        }
+
+        private static string NoPlay(string name) { return "Opened " + name + " in Spotify, but couldn't press play. Hit the green Play button."; }
+#endif
+
+        internal static bool MusicMissing(string label, string song)
+        {
+            Match missing = Regex.Match(label ?? "", @"^(?:No results(?: found)? for|Aucun r[e\u00e9]sultat pour)\s+(.+)$", RegexOptions.IgnoreCase);
+            return missing.Success && Plain(missing.Groups[1].Value) == Plain(song);
+        }
+
+#if !CROSS
+        private static string ClickPlay(OpenWindow window, ToolArguments requested)
+        {
+            try
+            {
+                AutomationElement root = AutomationElement.FromHandle(window.Handle);
+                List<AutomationElement> buttons = new List<AutomationElement>();
+                List<string> labels = new List<string>();
+                foreach (AutomationElement element in root.FindAll(TreeScope.Descendants, new OrCondition(new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button), new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text))))
+                {
+                    string label = element.Current.Name;
+                    if (MusicMissing(label, requested.Song)) { requested.PlayMissing = true; return NoPlay(requested.Song); }
+                    if (element.Current.ControlType == ControlType.Button && element.Current.IsEnabled && !element.Current.IsOffscreen) { buttons.Add(element); labels.Add(label); }
+                }
+                requested.PlaySeen = labels.Exists(label => PlayScore(label, requested.Song) > 0);
+                int choice = PlayChoice(labels.ToArray(), requested.Song, MusicNow() - requested.PlayAt);
+                if (choice < 0) return null;
+                AutomationElement chosen = buttons[choice];
+                object pattern;
+                if (!chosen.TryGetCurrentPattern(InvokePattern.Pattern, out pattern)) return NoPlay(requested.Song);
+                if (requested.Current != null && !requested.Current()) return "That call errand has ended.";
+                ((InvokePattern)pattern).Invoke();
+                return "";
+            }
+            catch (ElementNotAvailableException) { return null; }
+            catch (InvalidOperationException) { return NoPlay(requested.Song); }
+            catch (COMException) { return NoPlay(requested.Song); }
+        }
+#endif
 
         // A site: lookup that matches nothing still lists popular pages from the site, so only a result whose title has
         // the words they asked for counts (one may be missing from three or more). Otherwise she searches Spotify instead.
@@ -5582,6 +5656,17 @@ namespace CapriDesktop
             bool shorter = Within(shown, want);
             bool longer = Within(want, shown);
             return shorter && longer ? 3 : shorter ? 2 : longer ? 1 : 0;
+        }
+
+        internal static int PlayChoice(string[] labels, string name, long waited)
+        {
+            int chosen = -1, best = 0;
+            for (int i = 0; i < labels.Length; i++)
+            {
+                int score = PlayScore(labels[i], name);
+                if (score > best) { chosen = i; best = score; }
+            }
+            return best >= (waited >= 3000 ? 1 : 2) ? chosen : -1;
         }
 
         private static string[] Words(string text)
@@ -5620,17 +5705,40 @@ namespace CapriDesktop
 #endif
         }
 
-#if !CROSS
-        internal static bool Started(ToolArguments requested, Tune before, Tune after)
+        private static bool SongStarted(string song, string shown, string artist, bool changed)
         {
-            if (after == null || !after.Spotify || !after.Playing || string.IsNullOrWhiteSpace(after.Title)) return false;
-            if (requested.Kind == "playlist" || requested.Kind == "album") return before == null || before.Key != after.Key || !before.Playing;
-            if (requested.Kind == "artist") return Within(Words(requested.Song), Words(after.Artist));
-            Match artist = Regex.Match(requested.Song ?? "", @"\s+by\s+(.+)$", RegexOptions.IgnoreCase);
-            return Within(Words(requested.Song), Words(after.Title + " " + after.Artist)) && (!artist.Success || Within(Words(artist.Groups[1].Value), Words(after.Artist)));
+            string[] want = Plain(song).Split(' '), title = Plain(shown).Split(' ');
+            if (!Within(want, title))
+            {
+                Match by = Regex.Match(song ?? "", @"\s+(?:by|par)\s+(.+)$", RegexOptions.IgnoreCase);
+                if (by.Success)
+                {
+                    if (!Within(Plain(by.Groups[1].Value).Split(' '), Plain(artist).Split(' '))) return false;
+                    want = Plain(song.Substring(0, by.Index)).Split(' ');
+                }
+                if (!Within(want, Plain(shown + " " + artist).Split(' '))) return false;
+            }
+            string original = Regex.Replace(shown, @"\s*(?:[-–—]\s*(?:remaster(?:ed)?|\d{4}\s+remaster(?:ed)?)\b.*|\((?:feat\.?|ft\.?|with)\s+.*\))$", "", RegexOptions.IgnoreCase);
+            return changed || Within(Plain(original).Split(' '), want);
         }
-#endif
 
+#if !CROSS
+        internal static bool Started(ToolArguments requested, Tune before, Tune after, bool pressed = false)
+        {
+            if (after == null || !after.Spotify || !after.Playing || after.Changing || string.IsNullOrWhiteSpace(after.Title)) return false;
+            bool known = before != null && before.Spotify && !before.Changing && !string.IsNullOrWhiteSpace(before.Title);
+            bool changed = known && (Plain(before.Title) != Plain(after.Title) || Plain(before.Artist) != Plain(after.Artist));
+            bool list = requested.Kind == "playlist" || requested.Kind == "album" || requested.Kind == "artist";
+            // After her press, a different track, or any track where Spotify had none, is the one she started. A playlist, album
+            // or artist shows a track's title, never its own name, so only her press starts one.
+            if (pressed && (before == null || known && before.Key != after.Key)) return true;
+            if (list && !pressed) return false;
+            if (!known) return list || SongStarted(requested.Song, after.Title, after.Artist, false);
+            if (requested.Kind == "artist") return Within(Words(requested.Song), Words(after.Artist)) && !before.Playing;
+            if (list) return !before.Playing;
+            return SongStarted(requested.Song, after.Title, after.Artist, changed || !before.Playing);
+        }
+#else
         private static bool Started(string song)
         {
             for (int i = 0; i < 24; i++)
@@ -5640,6 +5748,7 @@ namespace CapriDesktop
             }
             return false;
         }
+#endif
 
         private static string Find(string page, string pattern)
         {
@@ -6376,6 +6485,7 @@ namespace CapriDesktop
         private static bool Apply(OpenWindow window, string action)
         {
             IntPtr handle = window.Handle;
+            if (action == "restore_no_activate") return ShowWindowAsync(handle, 4);
             // Minimizing says whether the window really went down, the way closing says whether it really closed.
             if (action == "minimize")
             {
