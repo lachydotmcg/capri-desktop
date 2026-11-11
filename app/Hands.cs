@@ -1060,7 +1060,8 @@ namespace CapriDesktop
             { "layer_1_pitch", "Layer 1 pitch", "Voice" }, { "layer_1_delay", "Layer 1 delay", "Voice" }, { "layer_2_pitch", "Layer 2 pitch", "Voice" }, { "layer_2_delay", "Layer 2 delay", "Voice" },
             { "sounds", "Sound effects", "Voice" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
             { "game_comments", "Game comments pace", "Games" }, { "clip_length", "Default clip length", "Clips" }, { "clip_fps", "Clip frame rate", "Clips" }, { "clip_resolution", "Clip resolution", "Clips" }, { "clip_bitrate", "Clip bitrate", "Clips" },
-            { "typing_sound", "Typing sound mode", "Voice" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" }
+            { "typing_sound", "Typing sound mode", "Voice" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" },
+            { "pat_stroke", "Pat stroke", "Capri" }
         };
         internal static readonly string[][] OwnSteps =
         {
@@ -1087,7 +1088,7 @@ namespace CapriDesktop
             new[] { "Auto", "100%", "125%", "150%", "175%", "200%" }, new[] { "10 fps", "15 fps", "20 fps", "30 fps", "40 fps", "50 fps", "60 fps" }, LanguageSteps(), new[] { "Auto", "256", "2K", "8K" },
             new[] { "Off", "Events only", "Chatty" }, new[] { "15 s", "30 s", "45 s", "1 min", "1.5 min", "2 min" }, new[] { "Up to 15 fps", "Up to 24 fps", "Up to 30 fps", "Up to 60 fps" },
             new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }, new[] { "Night City", "Black", "White", "Grey" },
-            new[] { "Off", "In games", "Always" }
+            new[] { "Off", "In games", "Always" }, new[] { "Short", "Medium", "Long" }
         };
         // What each step of a slider stands for, where its steps are times, rates or percents, so set takes 45 s or 720p as well.
         private static readonly Dictionary<string, int[]> OwnValues = new Dictionary<string, int[]>
@@ -1157,6 +1158,7 @@ namespace CapriDesktop
             { "check_ins", "every check-in, including water, stretch, look away, sleep, meals, game breaks and boredom; off keeps their switches and times saved" },
             { "hologram", "clicks pass through you" }, { "head_pats", "they pat your head with their cursor" }, { "chaos_when_upset", "an insult sets your clones off" },
             { "legacy_stand", "your old stand, for mods your new one broke" },
+            { "pat_stroke", "how long a stroke your head pats need" },
             { "sit_on_windows", "you sit on their windows' top edges" }, { "mini_player", "your music player" }, { "follow_ups", "your second thought after an answer" },
             { "glitch_in", "your entrance when Capri starts" }, { "watch_my_screen", "your timed glances at their screen" },
             { "game_comments", "game comments run on their own; Off stops them outside Gaming Mode" },

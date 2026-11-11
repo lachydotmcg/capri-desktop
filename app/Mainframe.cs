@@ -112,6 +112,7 @@ namespace CapriDesktop
         private readonly Toggle checkIns;
         private readonly Toggle onTop;
         private readonly Toggle headPats;
+        private readonly Slider patStroke;
         private readonly Toggle upsetChaos;
         private readonly Toggle hologram;
         private readonly Toggle legacyStand;
@@ -284,7 +285,7 @@ namespace CapriDesktop
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1316, 1368 }, new[] { 1368, 1396 } };
         // Power saver's row stays in Simple Settings, so the right column's last band starts a row lower, at Perch.
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 708, 1202 }, new[] { 1426, 2252 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 736, 1230 }, new[] { 1454, 2280 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -840,12 +841,14 @@ namespace CapriDesktop
             frameColours.Changed += delegate { if (!syncing) capri.SetMainframeColours(frameColours.Value); };
             headPats = Switch("Head pats", c, 222, delegate { if (!syncing) capri.ToggleHeadPats(); });
             headPats.AccessibleName = "Head pats. Rubbing the cursor over her gets a grin and a line";
-            upsetChaos = Switch("Chaos when upset", c, 250, delegate { if (!syncing) capri.ToggleUpsetChaos(); });
+            patStroke = Setting("Pat stroke", Lengths, c, 250, "How long a stroke over her a head pat needs");
+            patStroke.Changed += delegate { if (!syncing) capri.SetPatStroke(patStroke.Value); };
+            upsetChaos = Switch("Chaos when upset", c, 278, delegate { if (!syncing) capri.ToggleUpsetChaos(); });
             upsetChaos.AccessibleName = "Chaos when upset. Insulting her can set her clones off until you hold Esc";
             // Hologram stays reversible here even while clicks pass through her body (Lachy, 2 Nov).
-            hologram = Switch("Hologram", c, 278, delegate { if (!syncing) capri.ToggleHologram(); });
+            hologram = Switch("Hologram", c, 306, delegate { if (!syncing) capri.ToggleHologram(); });
             hologram.AccessibleName = "Hologram. Clicks pass through her body, talk pill and bubble. Turn this off to give her clicks back";
-            legacyStand = Switch("Legacy stand", c, 306, delegate { if (!syncing) capri.ToggleLegacyStand(); });
+            legacyStand = Switch("Legacy stand", c, 334, delegate { if (!syncing) capri.ToggleLegacyStand(); });
             legacyStand.AccessibleName = "Legacy stand. She goes back to her old stand";
             int afterPats = Controls.Count;
             Section("WATCH >", c, 208);
@@ -1031,7 +1034,7 @@ namespace CapriDesktop
                 if (Controls[belowVerbosity].Left >= c) Controls[belowVerbosity].Top += Row;
             // Mainframe colours, Head pats, Chaos when upset, Hologram and Legacy stand each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
-                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 5;
+                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 6;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
                 if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
             // The hearing row and Her voice in your mic's rows push GAMES down under KEYS too.
@@ -2922,6 +2925,7 @@ namespace CapriDesktop
             popsName.Text = capri.PopRange ? capri.PopMin + " to " + capri.PopMax + " min" : PopNames[pops.Value];
             dance.Checked = capri.Dancing;
             headPats.Checked = capri.HeadPats;
+            patStroke.Value = capri.PatStroke;
             upsetChaos.Checked = capri.UpsetChaos;
             legacyStand.Checked = capri.LegacyStand;
             hologram.Checked = capri.HologramOn;
@@ -3041,7 +3045,7 @@ namespace CapriDesktop
                 if (!simple && above != null && Math.Abs(row.Top - above.Top - Scaled(Row)) > 1) return "a BRAIN row is out of place";
                 above = row;
             }
-            if (Hidden(watchMemory) != simple || Hidden(frameColours) || Hidden(headPats)) return "Settings folds the wrong rows above BRAIN";
+            if (Hidden(watchMemory) != simple || Hidden(frameColours) || Hidden(headPats) || Hidden(patStroke)) return "Settings folds the wrong rows above BRAIN";
             return null;
         }
 
