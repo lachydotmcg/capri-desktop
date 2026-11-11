@@ -277,6 +277,8 @@ namespace CapriDesktop
                 return Call("routine", new ToolArguments { Phrase = routine.Groups[1].Value, Steps = routine.Groups[2].Value });
             string steps = running != null && running.Contains(Key(said)) ? null : Steps(said);
             if (steps != null) return Call("routine", new ToolArguments { Action = "run", Phrase = said });
+            ToolArguments watch = Stopwatches.Request(text);
+            if (watch != null) return Call("stopwatch", watch);
             string[] starters =
             {
                 @"^remind me\s+(.+)$", @"^recu[eé]rdame\s+(.+)$", @"^rappelle[- ]moi\s+(.+)$",
@@ -456,6 +458,66 @@ namespace CapriDesktop
             }
             if (nextHour) hour = (hour + 23) % 24;
             return true;
+        }
+    }
+
+    internal static class Stopwatches
+    {
+        private static readonly object gate = new object();
+        private static readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+        private static Func<TimeSpan> clock = delegate { return watch.Elapsed; };
+        private static TimeSpan started;
+        private static bool running;
+
+        internal static Func<TimeSpan> Clock
+        {
+            get { lock (gate) return clock; }
+            set { lock (gate) clock = value; }
+        }
+
+        internal static bool Running { get { lock (gate) return running; } }
+
+        internal static string Words(TimeSpan span)
+        {
+            long seconds = Math.Max(0, span.Ticks / TimeSpan.TicksPerSecond);
+            long hours = seconds / 3600, minutes = seconds / 60 % 60;
+            seconds %= 60;
+            List<string> parts = new List<string>();
+            if (hours > 0) parts.Add(hours.ToString(CultureInfo.InvariantCulture) + (hours == 1 ? " hour" : " hours"));
+            if (minutes > 0) parts.Add(minutes.ToString(CultureInfo.InvariantCulture) + (minutes == 1 ? " minute" : " minutes"));
+            if (seconds > 0) parts.Add(seconds.ToString(CultureInfo.InvariantCulture) + (seconds == 1 ? " second" : " seconds"));
+            return parts.Count == 0 ? "0 seconds" : string.Join(" ", parts.ToArray());
+        }
+
+        internal static string Do(ToolArguments args)
+        {
+            lock (gate)
+            {
+                if (string.IsNullOrEmpty(args.Action) || args.Action == "start")
+                {
+                    if (running) return "Your stopwatch is already running: " + Words(clock() - started) + ".";
+                    started = clock();
+                    running = true;
+                    return "Started your stopwatch.";
+                }
+                if (!running) return "Your stopwatch isn't running.";
+                string elapsed = Words(clock() - started);
+                if (args.Action == "stop")
+                {
+                    running = false;
+                    return "Stopped your stopwatch at " + elapsed + ".";
+                }
+                return "Your stopwatch is at " + elapsed + ".";
+            }
+        }
+
+        internal static ToolArguments Request(string text)
+        {
+            if (Regex.IsMatch(text ?? "", @"^(?:start (?:(?:a|the|my) )?stopwatch|(?:begin|set) a stopwatch|put a stopwatch on|turn on the stopwatch|stopwatch(?: (?:start|on))?)$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "start" };
+            if (Regex.IsMatch(text ?? "", @"^(?:check (?:(?:the|my) )?stopwatch|how long has (?:the|my) stopwatch been (?:running|going|on)|what's (?:the|my) stopwatch (?:at|on)|what does (?:the|my) stopwatch say|is (?:my|the) stopwatch (?:running|still running|going))$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "check" };
+            if (Regex.IsMatch(text ?? "", @"^(?:stop (?:(?:the|my) )?stopwatch|(?:end|kill|cancel) the stopwatch|turn off the stopwatch|turn the stopwatch off|stopwatch (?:stop|off))$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "stop" };
+            if (Running && Regex.IsMatch(text ?? "", @"^how long(?: has|'s) it been(?: (?:running|going|so far))?$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "check" };
+            return null;
         }
     }
 }

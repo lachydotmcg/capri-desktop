@@ -988,7 +988,7 @@ namespace CapriDesktop
         {
             // Known websites and file names need no planner to reinterpret them (john_sandevistan, B88).
             if (tool == "website_nickname" || tool == "find_file" || tool == "open_website" && args != null && string.IsNullOrWhiteSpace(args.Search) && Websites != null && Websites.Nickname(args.Site) != null) return true;
-            return tool == "media" || tool == "nap" || tool == "clip" || tool == "animate" || tool == "move_yourself" || tool == "remember";
+            return tool == "media" || tool == "nap" || tool == "clip" || tool == "animate" || tool == "move_yourself" || tool == "remember" || tool == "stopwatch";
         }
 
         // What her hands get told about a game that's open, so "click deathmatch" or "keep going" land in it. Only a brain on their
@@ -1334,6 +1334,8 @@ namespace CapriDesktop
 #endif
             { "remind", "Save a reminder on their PC, list their reminders, or cancel a reminder. Times use their local clock. Give the reminder in their words; the PC works out when it is due.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to remind them about, or which reminder to cancel\"},\"when\":{\"type\":\"string\",\"description\":\"Local time, like in 20 minutes, in 3 days, at 5pm, tomorrow at 9, on 2026-12-05 at 9am or on 5 December at noon. Use YYYY-MM-DD for dates in any language\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; save by default\",\"enum\":[\"save\",\"list\",\"cancel\"]}}}", "set reminders", "set reminders" },
+            { "stopwatch", "Start, check or stop their stopwatch, which counts up from when it starts. There's one stopwatch, with no laps. Starting it while it runs says how long it's been. A timer that counts down is a reminder: use remind.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do; start by default\",\"enum\":[\"start\",\"check\",\"stop\"]}}}", "run a stopwatch", "start, check or stop a stopwatch" },
             { "game_notes",
 #if CROSS
               "Keep controls or instructions the user teaches you for a game, or read them back. Keep their actual controls in text.",
@@ -1897,6 +1899,7 @@ namespace CapriDesktop
                 if (tool == "watch_for") return WatchFor(args);
                 if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
                 if (tool == "remind") return Remind(args);
+                if (tool == "stopwatch") return Valid(tool, args) ? Stopwatches.Do(args) : "Couldn't find that stopwatch action.";
                 if (tool == "routine") return Routine(args);
                 if (tool == "power") return Turn(args.Action, args.Minutes);
                 if (tool == "nap") return Nap(args.Action != "wake");
@@ -2829,6 +2832,7 @@ namespace CapriDesktop
         internal static string Pulled(string result)
         {
             if ((result ?? "").StartsWith("Hologram mode ", StringComparison.Ordinal)) return result;
+            if (Regex.IsMatch(result ?? "", @"^(Started your stopwatch|Stopped your stopwatch|Your stopwatch )")) return result;
 #if CROSS
             if (OnMac && (result == Ink.Question || result == "Cleared my drawing." || result == "Drew on your screen." || result == "Added to my drawing.")) return result;
 #else
@@ -2912,6 +2916,8 @@ namespace CapriDesktop
                 "I haven't saved that to my notes yet, choom. Say remember and what to keep." },
             { "remind", "remind routine", @"\breminder(?:'s| is)? (?:set|saved|added|created|scheduled)\b|\bi(?:'ll| will) remind you\b|(?<!\b(?:you|u|can|could|should|to|please|pls|gonna|wanna|want|how|i'd|i would)\s)\b(?:set|added|created|scheduled|made) (?:a|an|the|your|that) (?:\w+ )?reminder\b",
                 "I haven't set that reminder yet. Say remind me, what and when." },
+            { "stopwatch", "stopwatch", @"(?<!\b(?:not|never|haven't|hasn't|hadn't)\s)\b(?:started|stopped) (?:a|the|your|that) stopwatch\b|\b(?:your|the) stopwatch(?:'s| has been| is| was) (?:started|stopped)\b|^\W*(?:your|the) stopwatch (?:started|stopped)\b",
+                "Your stopwatch hasn't changed yet. Say start or stop the stopwatch." },
             { "watch_for", "watch_for", @"\bi(?:'ll| will) (?:tell|let) you know (?:when|as soon as|the moment|the second) (?:it|that|this|the|your|they|he|she|someone|something|a|an)\b|\bi(?:'ll| will) (?:keep|have) an eye (?:on|out)\b|\bi(?:'ll| will) (?:watch|look out) for\b|\bi(?:'m| am) (?:now )?(?:watching|keeping an eye on|keeping watch on) (?:your|the) screen\b",
                 "I'm not watching your screen for that yet. Say tell me when, and what to look for." },
             { "watch_along", "watch_along", @"\b(?:i'm|i am|we're|we are) (?:now )?watching (?:it|this|that|the (?:video|stream|movie|show|episode)) (?:with you|together)\b|\bwatching along (?:with you)?\b",
@@ -3678,6 +3684,8 @@ namespace CapriDesktop
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
 #if CROSS
+            ToolArguments watch = Stopwatches.Request(text);
+            if (watch != null) { tool = "stopwatch"; args = watch; return true; }
             ToolArguments drawing = OnMac ? Ink.Request(text) : null;
             if (drawing != null) { tool = drawing.Task == null ? "draw" : "use_computer"; args = drawing; if (drawing.Task != null) args.Task = said; return true; }
 #endif
@@ -3955,7 +3963,7 @@ namespace CapriDesktop
             }
             string lone = inside.Trim().Trim('"', '\'');
             if (!paired && lone.Length > 0 && tool == "watch_for") { args.Text = lone; return args; }
-            if (!paired && lone.Length > 0) Set(args, tool == "find_file" ? "description" : tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" || tool == "hologram" || tool == "move_yourself" || tool == "capri_settings" ? "action" : tool == "look_at_screen" || tool == "listen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : tool == "read_file" ? "path" : "name", lone);
+            if (!paired && lone.Length > 0) Set(args, tool == "find_file" ? "description" : tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" || tool == "stopwatch" || tool == "hologram" || tool == "move_yourself" || tool == "capri_settings" ? "action" : tool == "look_at_screen" || tool == "listen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : tool == "read_file" ? "path" : "name", lone);
             return args;
         }
 
@@ -4240,6 +4248,7 @@ namespace CapriDesktop
             if (tool == "watch_for") return (string.IsNullOrEmpty(args.Often) || args.Often == "once" || args.Often == "every_time") && (args.Action == "list" || args.Action == "stop" || ((string.IsNullOrEmpty(args.Action) || args.Action == "watch") && Named(args.Text)));
             if (tool == "game_notes") return args != null && (args.Action == "read" || (string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Text));
             if (tool == "remind") return args.Action == "list" || (args.Action == "cancel" ? Named(args.Text) : (string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Text) && Named(args.When));
+            if (tool == "stopwatch") return string.IsNullOrEmpty(args.Action) || args.Action == "start" || args.Action == "check" || args.Action == "stop";
             if (tool == "routine") return args.Action == "list" || (Named(args.Phrase) && (args.Action == "forget" || args.Action == "run" || ((string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Steps))));
             if (tool == "power") return Regex.IsMatch(args.Action ?? "", @"\A(shut_down|restart|sleep|lock|sign_out|cancel)\z") && (string.IsNullOrEmpty(args.Minutes) || Regex.IsMatch(args.Minutes.Trim(), @"\A\d{1,4}\z"));
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
