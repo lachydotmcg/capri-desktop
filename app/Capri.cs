@@ -1736,6 +1736,7 @@ namespace CapriDesktop
         private bool ownRest, ownNap, ownLie;
         private double restUntil = -1, nextNap = -1;
         private Func<System.Collections.Generic.List<Ledge>> napLedges;
+        private Func<Screen, Rectangle> landArea;
         // Told to lie down where she couldn't yet, like mid-air or on her way to a window they named: until then she lies down
         // as soon as she's sitting on a ledge.
         private double lieBy = -1;
@@ -1897,7 +1898,11 @@ namespace CapriDesktop
         private long pendingTime;
         private bool hotkey;
         private double leanAngle;
-        private Ledge seat;
+        private Ledge seat, standOn;
+        private bool settleAfter, placed, modPlacing, wasAway;
+        private System.Collections.Generic.List<Ledge> landLedges;
+        private Ledge landSeat;
+        private double landAt;
         // Where she was stood up beside something full screen, like to doze or by a display change, until she moves.
         private Point? asideAt;
         private bool falling;
@@ -3050,8 +3055,15 @@ namespace CapriDesktop
             Static(false, null);
         }
 
-        private void DropSoon()
+        private void DropSoon(bool standing = false)
         {
+            settleAfter = true;
+            if (standing && seat == null && !hanging)
+            {
+                Point foot = StandFoot();
+                Ledge floor = Support(new System.Collections.Generic.List<Ledge>(), foot, true);
+                if (floor != null) { anchor = Standing(foot.X, floor.Y); Location = anchor; return; }
+            }
             if (clip == arrive) dropAfter = true;
             else if (!Drop()) SavePreferences();
         }
@@ -3132,6 +3144,7 @@ namespace CapriDesktop
 
         private int Advance(double now)
         {
+            SettleSeat();
             bool lain = clip == laydown || clip == laydownGlitch || clip == laydownSleep || clip == laydownLeave;
             bool seated = clip == perch || clip == perchGlitch || clip == perchDance || clip == perchArrive || clip == perchLeave || clip == perchSleep || lain;
             bool perched = riding || onPanel || seat != null;
@@ -3163,6 +3176,9 @@ namespace CapriDesktop
                 dropAfter = false;
                 if (!riding && !dragging && !hanging && !hidden && seat == null && !Drop()) SavePreferences();
             }
+            Clip beforeSettle = clip;
+            SettleSeat();
+            if (clip != beforeSettle) return 0;
             if (clip == dance || clip == perchDance) { Jam(now, FollowBeat(now)); return index % clip.Count; }
             if (clip != idle && clip != perch && clip != laydown) return index % clip.Count;
             if (!preferences.Motion) { perchMix = 0; return 0; }
@@ -3412,6 +3428,8 @@ namespace CapriDesktop
 
         private void CheckIdle(double now, long quiet)
         {
+            if (quiet >= 60000) wasAway = true;
+            else if (quiet < 1000 && wasAway) { wasAway = false; settleAfter = true; }
             // A hide they asked for waits until she's said her line.
             if (hideAsked && !hidden && !dragging && !pressed && speech == null && talkState != TalkState.Thinking && talkState != TalkState.Talking && clock.Elapsed.TotalSeconds >= voiceUntil && !speaker.Busy) { hideAsked = false; SetHidden(true); return; }
             if (napping && !Asleep) napping = false;
@@ -3507,7 +3525,7 @@ namespace CapriDesktop
                     Location = anchor;
                     perchSleep.Load(facingLeft);
                 }
-                else StandUp();
+                else StandUp(false);
             }
             if (!doze) return;
             bool asked = napAsked;
@@ -3522,6 +3540,7 @@ namespace CapriDesktop
             }
             notes.Clear();
             Play(lying ? laydownSleep : seat != null ? perchSleep : sleep);
+            settleAfter = true;
             frames.Start();
         }
 
@@ -3537,17 +3556,16 @@ namespace CapriDesktop
             {
                 if (seat != null && seat.Floor)
                 {
-                    Point floorHip = Hip();
                     int floorY = seat.Y;
                     SitUp(false);
                     seat = null;
-                    anchor = Standing(floorHip.X, floorY);
+                    anchor.Y = floorY - PaddingSize - (int)(preferences.Size * StandY);
                     Location = anchor;
                     Play(slept ? wake : glitch);
                 }
                 else SitUp();
             }
-            if ((slept || stood) && !hidden) frames.Start();
+            if (slept || stood) { settleAfter = true; if (!hidden) frames.Start(); }
             return slept || stood;
         }
 
@@ -3604,7 +3622,7 @@ namespace CapriDesktop
             {
                 if (!hidden) return "I'm right here.";
                 ShowHidden(false);
-                DropSoon();
+                DropSoon(true);
                 return "Back.";
             }
             WakeRest(true);
@@ -3656,7 +3674,7 @@ namespace CapriDesktop
                 if (riding) { StopRide(); return "Hopped off your cursor."; }
                 if (hanging) { LetGo(); return "Let go."; }
                 if (seat == null) return "Already standing.";
-                StandUp();
+                StandUp(false);
                 return "Standing up.";
             }
             if (action == "hang")
@@ -3728,7 +3746,7 @@ namespace CapriDesktop
                 }
             }
             int room = Headroom();
-            spots.RemoveAll(ledge => !ledge.Icon.IsEmpty || ledge.Right - ledge.Left < 24 || ledge.Y - room < Screen.FromPoint(new Point(ledge.Left, ledge.Y)).Bounds.Top);
+            spots.RemoveAll(ledge => !ledge.Icon.IsEmpty || ledge.Right - ledge.Left < 24 || ledge.Y - room < Screen.FromPoint(new Point(ledge.Left, ledge.Y - 1)).Bounds.Top);
             if (spots.Count == 0) return why ?? "There's no room for me on top of " + shown + ".";
             Ledge spot = spots[0];
             foreach (Ledge each in spots) if (each.Right - each.Left > spot.Right - spot.Left) spot = each;
@@ -3751,6 +3769,7 @@ namespace CapriDesktop
         {
             string done = shown == null ? "Lying down." : "Lying down on " + shown + ".";
             if (lying) return "Already lying down.";
+            if (Aside) return "There's no room to lie down here.";
             StopRide();
             LeavePanel(false);
             EndWalk();
@@ -3762,7 +3781,7 @@ namespace CapriDesktop
                 if (clip != perch) { lieBy = clock.Elapsed.TotalSeconds + 10; return done; }
                 return LieDown() ? done : "There's no room to lie down here. Try \"lie down on the taskbar\".";
             }
-            if (seat != null) StandUp();
+            if (seat != null) StandUp(false);
             hanging = false;
             Ledge under = Ledges.Below(Around(), Hip(), 0, int.MaxValue, 0, Headroom());
             if (under == null) return "There's nothing under me to lie on.";
@@ -3797,6 +3816,7 @@ namespace CapriDesktop
         // She glitches out and back in with her hip on the point, kept on its screen, then drops onto a window close under her.
         private void Teleport(Point to)
         {
+            placed = false;
             Rectangle area = Screen.FromPoint(to).WorkingArea;
             Action arrive = delegate
             {
@@ -3939,7 +3959,7 @@ namespace CapriDesktop
                 {
                     LeavePanel(false);
                     if (hanging) LetGo();
-                    else if (seat != null) StandUp();
+                    else if (seat != null) StandUp(false);
                     Play(grin);
                 }
             }
@@ -3971,11 +3991,36 @@ namespace CapriDesktop
         {
             size = Math.Max(MinSize, Math.Min(MaxSize, size));
             EndWalk();
+            Point foot = StandFoot();
+            Ledge floor = seat == null && !falling && !riding && !onPanel && !hanging ? Support(new System.Collections.Generic.List<Ledge>(), foot, true) : null;
+            Ledge held = seat == null && !placed && !modPlacing && !preferences.NoSitting && !falling && !riding && !onPanel && !hanging && !dragging && !pressed && !hidden && !docked && !Aside && clip != sleep ? standOn : null;
+            System.Collections.Generic.List<Ledge> ledges = held == null ? null : Around(true);
             Point center = new Point(anchor.X + Width / 2, anchor.Y + Height / 2);
             int hipX = Hip().X;
             preferences.Size = size;
             Size = CanvasSize(size);
-            anchor = seat != null ? Seated(hipX, seat.Y) : KeepOnScreen(new Point(center.X - Width / 2, center.Y - Height / 2));
+            anchor = seat != null ? Seated(hipX, seat.Y) : KeepOnScreen(floor != null ? Standing(foot.X, floor.Y) : new Point(center.X - Width / 2, center.Y - Height / 2));
+            if (floor != null) anchor.Y = floor.Y - PaddingSize - (int)(preferences.Size * StandY);
+            if (held != null)
+            {
+                Point at = Standing(foot.X, held.Y);
+                Ledge top = null;
+                int near = int.MaxValue, across = at.X;
+                foreach (Ledge each in ledges)
+                {
+                    if (each.Window != held.Window) continue;
+                    int left = each.Left - PaddingSize - (int)(size * Body.Left), right = each.Right - PaddingSize - (int)Math.Ceiling(size * Body.Right);
+                    if (right < left) continue;
+                    int x = Math.Max(left, Math.Min(at.X, right));
+                    if (Math.Abs(x - at.X) >= near) continue;
+                    near = Math.Abs(x - at.X);
+                    across = x;
+                    top = each;
+                }
+                anchor = new Point(across, (top == null ? held.Y : top.Y) - PaddingSize - (int)(size * StandY));
+                standOn = top;
+                if (top == null) FallFrom(ledges, new Point(Hip().X, StandFoot().Y), held);
+            }
             Location = anchor;
             foreach (ToolStripItem entry in menu.Items)
             {
@@ -3983,6 +4028,7 @@ namespace CapriDesktop
                 if (group == null || group.Text != "Size") continue;
                 foreach (ToolStripMenuItem option in group.DropDownItems) option.Checked = (int)option.Tag == size;
             }
+            settleAfter = held == null;
             RenderFrame();
             SavePreferences();
             mainframe.Sync();
@@ -4027,6 +4073,7 @@ namespace CapriDesktop
                 if (aside) asideAt = anchor;
             }
             Location = anchor;
+            settleAfter = true;
             RenderFrame();
         }
 
@@ -4093,7 +4140,7 @@ namespace CapriDesktop
             }
             // Picked up lying, she sits up first, so she hangs from the cursor where her hip was.
             if (!dragging && lying) { int was = anchor.X; SitUp(false); anchorStart.X += anchor.X - was; }
-            if (!dragging) { seat = null; falling = false; hanging = false; walking = false; dropAfter = false; leanAngle = 0; dizzyUntil = -1; Play(dangle); frames.Start(); RefreshIcons(); }
+            if (!dragging) { placed = true; settleAfter = false; seat = null; falling = false; hanging = false; walking = false; dropAfter = false; leanAngle = 0; dizzyUntil = -1; Play(dangle); frames.Start(); RefreshIcons(); }
             dragging = true;
             pendingClick = false;
             clickDelay.Stop();
@@ -4367,7 +4414,7 @@ namespace CapriDesktop
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == QuietKeyId) { ToggleShush(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == GameKeyId) { ToggleGaming(); return; }
             if (message.Msg == 0x0312 && ModHotkey(message.WParam.ToInt32())) return;
-            if (message.Msg == 0x02E0) { anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
+            if (message.Msg == 0x02E0) { if (!Refloor()) anchor = KeepOnScreen(anchor); settleAfter = true; Location = anchor; RenderFrame(); }
             base.WndProc(ref message);
         }
 
@@ -4419,6 +4466,8 @@ namespace CapriDesktop
                 if (Native.RegisterHotKey(Handle, DismountId, HopKeys[i, 0] | 0x4000, HopKeys[i, 1])) hopName = HopNames[i];
             hotkey = hopName != null;
             riding = true;
+            placed = true;
+            settleAfter = false;
             PassThrough();
             rideItem.Text = "Hop off";
             tray.Text = hotkey ? "Capri · " + hopName + " to hop off" : "Capri · Hop off from this menu";
@@ -4475,6 +4524,8 @@ namespace CapriDesktop
 
         private Point Standing(int x, int y) { return new Point(x - PaddingSize - (int)(preferences.Size * (StandX - StandShift)), y - PaddingSize - (int)(preferences.Size * StandY)); }
 
+        private Point StandFoot() { return new Point(anchor.X + PaddingSize + (int)(preferences.Size * (StandX - StandShift)), anchor.Y + PaddingSize + (int)(preferences.Size * StandY)); }
+
         private Ledge Perch(System.Collections.Generic.IEnumerable<Ledge> ledges, Point hip) { return Ledges.Below(ledges, hip, Math.Max(32, (int)(preferences.Size * 0.45f)), Math.Max(160, preferences.Size), 24, Headroom()); }
 
         private int Headroom() { return (int)Math.Ceiling(preferences.Size * (SitY - PerchedBody.Top)); }
@@ -4494,17 +4545,104 @@ namespace CapriDesktop
             return skip;
         }
 
-        private System.Collections.Generic.List<Ledge> Around()
+        private System.Collections.Generic.List<Ledge> Around(bool fresh = false)
         {
             if (napLedges != null) return napLedges();
+            if (fresh) Ledges.Invalidate();
             System.Collections.Generic.List<IntPtr> skip = Skip();
             IntPtr own = mainframe.IsHandleCreated ? mainframe.Handle : IntPtr.Zero;
             skip.Remove(own);
             return Ledges.Find(skip, icons, own);
         }
 
+        private Ledge Support(System.Collections.Generic.List<Ledge> ledges, Point foot, bool standing = false)
+        {
+            int slack = standing ? (int)Math.Ceiling(preferences.Size * 0.01) + 2 : 2;
+            Ledge live = Ledges.At(ledges, foot, slack);
+            if (live != null) return live;
+            foreach (Screen screen in Screen.AllScreens)
+            {
+                Rectangle area = screen.WorkingArea;
+                if (foot.X >= area.Left && foot.X < area.Right && Math.Abs(foot.Y - area.Bottom) <= slack)
+                    return new Ledge { Floor = true, Left = area.Left, Right = area.Right, Y = area.Bottom };
+            }
+            return null;
+        }
+
+        private static void SeatFrom(Ledge to, Ledge from)
+        {
+            to.Window = from.Window;
+            to.Bounds = from.Bounds;
+            to.Icon = from.Icon;
+            to.Floor = from.Floor;
+            to.Left = from.Left;
+            to.Right = from.Right;
+            to.Y = from.Y;
+        }
+
+        private void SettleSeat()
+        {
+            if (!settleAfter) return;
+            if (placed || modPlacing || preferences.NoSitting || Aside || (seat != null && seat.Free) || (seat == null && clip == sleep)) { standOn = null; settleAfter = false; return; }
+            if (dragging || pressed || falling || thrown || riding || onPanel || hanging || walking || hidden || docked || outro != null || quitting) return;
+            if (clip != idle && clip != perch && clip != laydown && clip != sleep && clip != perchSleep && clip != laydownSleep && clip != dance && clip != perchDance) return;
+            settleAfter = false;
+            Point foot = seat != null ? Hip() : new Point(Hip().X, StandFoot().Y);
+            System.Collections.Generic.List<Ledge> ledges = seat != null && seat == landSeat && landLedges != null && clock.Elapsed.TotalSeconds - landAt < 0.5 ? landLedges : Around(true);
+            landLedges = null;
+            landSeat = null;
+            Ledge live = Support(ledges, foot, seat == null);
+            if (live != null)
+            {
+                if (seat != null) { standOn = null; SeatFrom(seat, live); anchor = Seated(foot.X, live.Y); }
+                else { anchor.Y = live.Y - PaddingSize - (int)(preferences.Size * StandY); standOn = live.Window == IntPtr.Zero ? null : live; }
+                return;
+            }
+            FallFrom(ledges, foot);
+        }
+
+        private void FallFrom(System.Collections.Generic.List<Ledge> ledges, Point foot, Ledge skip = null)
+        {
+            bool slept = Asleep, asked = napping;
+            SitUp(false);
+            Ledge under = Ledges.Below(ledges, foot, 0, int.MaxValue, 0, Headroom(), skip);
+            if (under == null)
+            {
+                Rectangle area = Screen.FromPoint(foot).WorkingArea;
+                under = new Ledge { Floor = true, Left = area.Left, Right = area.Right, Y = area.Bottom };
+            }
+            if (slept && asked) { napAsked = true; napping = false; }
+            seat = null;
+            standOn = null;
+            fallTo = under;
+            falling = true;
+            thrown = false;
+            fallSpeed = 0;
+            fallStep = clock.Elapsed.TotalSeconds;
+            settleAfter = false;
+            Play(dangle);
+            frames.Start();
+        }
+
+        private void PlaceByMod(Action move)
+        {
+            bool was = modPlacing;
+            modPlacing = placed = true;
+            settleAfter = false;
+            try { move(); }
+            finally { modPlacing = was; placed = true; settleAfter = false; }
+        }
+
+        private string ModMove(string action, string screen)
+        {
+            string said = null;
+            PlaceByMod(delegate { said = MoveSelf(action, screen); });
+            return said;
+        }
+
         private void SpawnInMiddle()
         {
+            placed = false;
             Rectangle area = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
             seat = null;
             anchor = KeepOnScreen(new Point(area.Left + (area.Width - Width) / 2, area.Top + (area.Height - Height) / 2));
@@ -4662,6 +4800,7 @@ namespace CapriDesktop
                 seat = null;
                 falling = false;
                 walking = false;
+                placed = false;
                 anchor = spot;
                 ShowHidden(false);
                 DropSoon();
@@ -4840,6 +4979,7 @@ namespace CapriDesktop
                 seat = null;
                 falling = false;
                 walking = false;
+                placed = false;
                 anchor = spot;
                 ShowHidden(false);
                 DropSoon();
@@ -6004,6 +6144,7 @@ namespace CapriDesktop
             leanAngle = 0;
             if (seat != null) { anchor = Seated(hip.X, seat.Y); Play(perchGlitch); }
             else Play(idle);
+            settleAfter = true;
             SavePreferences();
         }
 
@@ -6012,6 +6153,7 @@ namespace CapriDesktop
             // While Quit's way out is under way, nothing else takes it over. A hop, a move or hiding mid-leave used to replace the
             // close, and Quit did nothing (Mika, 1 Nov: "QUITTING DOESNT WORK").
             if (quitting && outro != null && outro == quitClose) return;
+            if (modPlacing) { Action move = then; then = delegate { PlaceByMod(move); }; }
             if (instant || hidden || !IsHandleCreated || !preferences.Motion) { then(); return; }
             EndWalk();
             falling = false;
@@ -7743,7 +7885,7 @@ namespace CapriDesktop
             heartRead = null;
             if (!player.Visible) return;
             // Off its edge before it goes: she stands up and falls to whatever's below it.
-            if (seat != null && seat.Window == player.Handle) { StandUp(); Fall(); }
+            if (seat != null && seat.Window == player.Handle) { StandUp(false); Fall(); }
             player.Hide();
         }
 
@@ -7845,7 +7987,7 @@ namespace CapriDesktop
             {
                 if (!ledge.Icon.IsEmpty || ledge.Right - ledge.Left < preferences.Size / 2) continue;
                 if (seat != null && ledge.Window == seat.Window && ledge.Floor == seat.Floor) continue;
-                if (ledge.Y - room < Screen.FromPoint(new Point(ledge.Left, ledge.Y)).Bounds.Top) continue;
+                if (ledge.Y - room < Screen.FromPoint(new Point(ledge.Left, ledge.Y - 1)).Bounds.Top) continue;
                 spots.Add(ledge);
             }
             return spots;
@@ -7901,13 +8043,16 @@ namespace CapriDesktop
 
         private void Hop(Ledge spot, int x)
         {
+            placed = false;
             lying = false;
             hanging = false;
             walking = false;
             seat = null;
             anchor = Seated(x, spot.Y);
             Land(spot, true);
-            if (seat != spot) { anchor = KeepOnScreen(anchor); Play(arrive); dropAfter = true; }
+            if (seat != spot && !falling) { Point hip = Hip(); anchor = KeepOnScreen(Standing(hip.X, hip.Y)); Play(instant || !preferences.Motion ? idle : arrive); }
+            settleAfter = true;
+            SettleSeat();
             Static(false, null);
             frames.Start();
         }
@@ -7917,6 +8062,8 @@ namespace CapriDesktop
             if (hidden || riding || onPanel) return;
             Halt();
             hanging = false;
+            placed = true;
+            settleAfter = false;
             Point hip = Hip();
             Land(new Ledge { Left = hip.X - 8, Right = hip.X + 8, Y = hip.Y, Floor = true, Free = true });
             frames.Start();
@@ -7933,6 +8080,8 @@ namespace CapriDesktop
             falling = false;
             fallTo = null;
             hanging = true;
+            placed = true;
+            settleAfter = false;
             Play(dangle);
             frames.Start();
             SavePreferences();
@@ -7946,10 +8095,13 @@ namespace CapriDesktop
             if (!Drop()) SavePreferences();
         }
 
-        private void StandUp()
+        private void StandUp(bool keep = true)
         {
             SitUp(false);
             Halt();
+            if (keep || (seat != null && seat.Free)) placed = true;
+            if (seat != null && !seat.Free) anchor.Y = seat.Y - PaddingSize - (int)(preferences.Size * StandY);
+            standOn = seat != null && !seat.Free && seat.Window != IntPtr.Zero ? seat : null;
             hanging = false;
             walking = false;
             if (seat != null) asideAt = seat.Aside ? anchor : (Point?)null;
@@ -7960,6 +8112,7 @@ namespace CapriDesktop
             fallTo = null;
             leanAngle = 0;
             Play(glitch);
+            settleAfter = true;
             frames.Start();
         }
 
@@ -7968,7 +8121,7 @@ namespace CapriDesktop
         private void LoseSeat()
         {
             bool sleeping = napping && Asleep, sat = clip == perchSleep;
-            StandUp();
+            StandUp(false);
             // Asleep sitting up on a window that closes, minimises or gets covered, she sleeps on standing where she is.
             if (sat) { Play(sleep); return; }
             if (sleeping) { napping = false; napAsked = true; }
@@ -8045,6 +8198,7 @@ namespace CapriDesktop
             laydownGlitch.Load(facingLeft);
             WarmLie();
             Play(preferences.Motion ? laydownGlitch : laydown);
+            settleAfter = true;
             Static(false, null);
             frames.Start();
             return true;
@@ -8057,11 +8211,11 @@ namespace CapriDesktop
             Point hip = Hip();
             lying = false;
             nextLie = -1;
-            anchor = new Point(anchor.X + hip.X - Hip().X, anchor.Y);
-            if (seat != null && seat.Floor) anchor = Seated(hip.X, seat.Y);
+            anchor = Seated(hip.X, seat != null ? seat.Y : hip.Y);
             Location = anchor;
             if (!glitched || seat == null) return;
             Play(preferences.Motion ? perchGlitch : perch);
+            settleAfter = true;
             frames.Start();
         }
 
@@ -8134,28 +8288,62 @@ namespace CapriDesktop
 
         private void Land(Ledge ledge, bool arriving = false)
         {
+            landLedges = null;
+            landSeat = null;
             SitUp(false);
             fallTo = null;
             walking = false;
-            if (ledge.Window != IntPtr.Zero)
+            Point hip = Hip();
+            int left = ledge.Left, right = ledge.Right, y = ledge.Y, across = hip.X;
+            double foundAt = clock.Elapsed.TotalSeconds;
+            System.Collections.Generic.List<Ledge> ledges = ledge.Free || ledge.Floor ? null : Around(true);
+            if (!ledge.Free && ledge.Window != IntPtr.Zero)
             {
-                Rectangle bounds;
-                if (!Ledges.Showing(ledge.Window, out bounds) || !Ledges.Seatable(ledge.Window, bounds)) return;
-                if (bounds != ledge.Bounds) { ledge.Left = bounds.Left; ledge.Right = bounds.Right; ledge.Y = bounds.Top; ledge.Bounds = bounds; }
+                Ledge top = ledges.Find(each => each.Window == ledge.Window);
+                if (top == null) right = left;
+                else
+                {
+                    int dx = top.Bounds.Left - ledge.Bounds.Left;
+                    left = Math.Max(top.Bounds.Left, left + dx);
+                    right = Math.Min(top.Bounds.Right, right + dx);
+                    across += dx;
+                    y = top.Y;
+                }
+            }
+            int x = ledge.Icon.IsEmpty ? Math.Max(left + 8, Math.Min(across, right - 8)) : ledge.Icon.Left + ledge.Icon.Width / 2;
+            Screen screen = Screen.FromPoint(new Point(x, y - 1));
+            Rectangle area = landArea == null ? screen.WorkingArea : landArea(screen);
+            int rightmost = area.Right - (int)Math.Ceiling(preferences.Size * (PerchedBody.Right - SitX));
+            if (ledge.Icon.IsEmpty && right >= area.Right - 8 && BodyOnScreen(anchor, Body).Right >= area.Right - 2) x = rightmost;
+            x = Math.Max(area.Left + (int)Math.Ceiling(preferences.Size * (SitX - PerchedBody.Left)), Math.Min(x, rightmost));
+            if (!ledge.Free)
+            {
+                left = Math.Max(left, screen.Bounds.Left);
+                right = Math.Min(right, screen.Bounds.Right);
+                x = ledge.Floor ? Math.Max(area.Left, Math.Min(x, area.Right - 1)) : Math.Max(left + 8, Math.Min(x, right - 8));
+                Ledge live = ledge.Floor ? new Ledge { Floor = true, Left = area.Left, Right = area.Right, Y = area.Bottom } : right - left < 24 ? null : Support(ledges, new Point(x, y));
+                if (live == null || (!live.Floor && live.Y - Headroom() < screen.Bounds.Top))
+                {
+                    seat = null;
+                    if (!thrown) FallFrom(ledges, hip, ledge);
+                    return;
+                }
+                SeatFrom(ledge, live);
+                placed = false;
             }
             falling = false;
             thrown = false;
             coveredSince = -1;
             seatLost = -1;
-            int x = ledge.Icon.IsEmpty ? Math.Max(ledge.Left + 8, Math.Min(Hip().X, ledge.Right - 8)) : ledge.Icon.Left + ledge.Icon.Width / 2;
-            Rectangle area = Screen.FromPoint(new Point(x, ledge.Y - 1)).WorkingArea;
-            int rightmost = area.Right - (int)Math.Ceiling(preferences.Size * (PerchedBody.Right - SitX));
-            if (ledge.Icon.IsEmpty && ledge.Right >= area.Right - 8 && BodyOnScreen(anchor, Body).Right >= area.Right - 2) x = rightmost;
-            x = Math.Max(area.Left + (int)Math.Ceiling(preferences.Size * (SitX - PerchedBody.Left)), Math.Min(x, rightmost));
             seat = ledge;
+            landLedges = ledges;
+            landSeat = ledge;
+            landAt = foundAt;
+            standOn = null;
             leanAngle = 0;
             anchor = Seated(x, ledge.Y);
             Play(arriving && preferences.Motion && !instant ? perchArrive : perchGlitch);
+            settleAfter = true;
             SavePreferences();
         }
 
@@ -8214,6 +8402,7 @@ namespace CapriDesktop
             fallTo = null;
             falling = true;
             thrown = true;
+            settleAfter = false;
             fallSpeed = 0;
             fallStep = now;
             flyX = anchor.X;
@@ -8279,7 +8468,7 @@ namespace CapriDesktop
                     foreach (Ledge ledge in flyLedges)
                     {
                         if (ledge.Floor || ledge.Y < hipWas || ledge.Y > hipNow || ledge.Right - ledge.Left < 24 || hipX < ledge.Left || hipX > ledge.Right) continue;
-                        if (ledge.Y - Headroom() < Screen.FromPoint(new Point(hipX, ledge.Y)).Bounds.Top) continue;
+                        if (ledge.Y - Headroom() < Screen.FromPoint(new Point(hipX, ledge.Y - 1)).Bounds.Top) continue;
                         if (onto == null || ledge.Y < onto.Y) onto = ledge;
                     }
                     if (onto != null)
@@ -8550,9 +8739,10 @@ namespace CapriDesktop
             seatMovedAt = now;
             int dx = bounds.Width == seat.Bounds.Width ? bounds.Left - seat.Bounds.Left : 0;
             int x = Math.Max(bounds.Left + 8, Math.Min(Hip().X + dx, bounds.Right - 8));
+            int cutLeft = seat.Left - seat.Bounds.Left, cutRight = seat.Bounds.Right - seat.Right;
+            seat.Left = bounds.Left + cutLeft;
+            seat.Right = bounds.Right - cutRight;
             seat.Bounds = bounds;
-            seat.Left = bounds.Left;
-            seat.Right = bounds.Right;
             seat.Y = bounds.Top;
             if (lying)
             {
@@ -8572,11 +8762,24 @@ namespace CapriDesktop
 
         private void CheckSeat(double now)
         {
-            if (seat == null || falling || seat.Floor || docked) return;
+            if (seat == null)
+            {
+                if (standOn == null || placed || modPlacing || preferences.NoSitting || Aside || falling || riding || onPanel || hanging || dragging || pressed || hidden || docked) return;
+                Point foot = new Point(Hip().X, StandFoot().Y);
+                if (foot.Y != standOn.Y || foot.X < standOn.Left || foot.X >= standOn.Right) { standOn = null; return; }
+                Rectangle bounds;
+                if (!Ledges.Showing(standOn.Window, out bounds) || bounds != standOn.Bounds) settleAfter = true;
+                return;
+            }
+            if (falling || seat.Floor || docked) return;
             if (!seat.Icon.IsEmpty && now - iconsAt > 2) RefreshIcons();
             if (!Ledges.Covered(seat, Hip().X, Skip())) { coveredSince = -1; return; }
             if (coveredSince < 0) coveredSince = now;
-            if (now - coveredSince >= 0.7) LoseSeat();
+            if (now - coveredSince >= 0.7)
+            {
+                if (Asleep) LoseSeat();
+                else FallFrom(Around(true), Hip(), seat);
+            }
         }
 
         private void RefreshIcons()
@@ -8592,7 +8795,7 @@ namespace CapriDesktop
                     iconsBusy = false;
                     icons = found;
                     iconsAt = clock.Elapsed.TotalSeconds;
-                    if (seat != null && !seat.Icon.IsEmpty && !falling && !found.Contains(seat.Icon)) StandUp();
+                    if (seat != null && !seat.Icon.IsEmpty && !falling && !found.Contains(seat.Icon)) StandUp(false);
                 });
             });
         }
@@ -8603,7 +8806,8 @@ namespace CapriDesktop
         {
             preferences.NoSitting = !preferences.NoSitting;
             sitItem.Checked = !preferences.NoSitting;
-            if (preferences.NoSitting && (seat != null || falling)) { SitUp(false); seat = null; falling = false; walking = false; Play(idle); UpdateAnimation(); }
+            if (preferences.NoSitting && (seat != null || falling)) { StandUp(false); Play(idle); UpdateAnimation(); }
+            settleAfter = true;
             SavePreferences();
         }
 
@@ -8863,12 +9067,13 @@ namespace CapriDesktop
             hidden = value;
             visibilityItem.Text = value ? "Show Capri" : "Hide Capri";
             if (value) { SitUp(false); StopRide(); LeavePanel(true); seat = null; falling = false; hanging = false; walking = false; dropAfter = false; pendingClick = false; clickDelay.Stop(); frames.Stop(); ribbons.Stop(); Hide(); pill.Hide(); typer.Hide(); CloseTalk(); StopChat(); }
-            else { anchor = KeepOnScreen(anchor); Location = anchor; Play(instant || !preferences.Motion ? grin : arrive); Show(); RenderFrame(); UpdateAnimation(); Static(true, Cue.Arrive); }
+            else { anchor = KeepOnScreen(anchor); settleAfter = true; Location = anchor; Play(instant || !preferences.Motion ? grin : arrive); Show(); RenderFrame(); UpdateAnimation(); Static(true, Cue.Arrive); }
             mainframe.Sync();
         }
 
         private void RestoreAtCursor()
         {
+            placed = false;
             WakeRest(true);
             StopRide();
             LeavePanel(false);
@@ -10249,6 +10454,7 @@ namespace CapriDesktop
         {
             anchor = panelHome;
             seat = panelSeat;
+            settleAfter = true;
             hanging = panelHung;
             leanAngle = 0;
             if (hidden || IsDisposed) return;
@@ -15983,15 +16189,697 @@ namespace CapriDesktop
             }
         }
 
+        private void SupportChecks(System.Collections.Generic.List<string> checks)
+        {
+            Point home = anchor, panelHomeWas = panelHome, startWas = anchorStart, pointerWas = pointerStart;
+            Point? asideWas = asideAt;
+            Ledge seatWas = seat, fallWas = fallTo, panelWas = panelSeat, standWas = standOn;
+            Clip clipWas = clip;
+            Size sizeWas = Size;
+            int scaleWas = preferences.Size, sleepWas = preferences.SleepAfter;
+            bool motionWas = preferences.Motion, sittingWas = preferences.NoSitting, instantWas = instant;
+            bool leftWas = facingLeft, lyingWas = lying, fallingWas = falling, thrownWas = thrown, walkingWas = walking, hangingWas = hanging;
+            bool pressedWas = pressed, draggingWas = dragging, ridingWas = riding, panelOnWas = onPanel, panelHungWas = panelHung;
+            bool hiddenWas = hidden, dockedWas = docked, placedWas = placed, settleWas = settleAfter, modWas = modPlacing, awayWas = wasAway;
+            bool dockHideWas = dockHid, manualWas = manualHidden, fullHideWas = fullScreenHidden, hideAskedWas = hideAsked;
+            bool askedWas = napAsked, nappingWas = napping, ownWas = ownRest, ownNapWas = ownNap, ownLieWas = ownLie, dropWas = dropAfter, spawnWas = spawnFall;
+            bool veilWas = veiled, danceWas = danceAsked;
+            double clipAtWas = clipStart, stepWas = fallStep, speedWas = fallSpeed, lieWas = nextLie, napWas = nextNap, restWas = restUntil, leanWas = leanAngle;
+            double veilAtWas = veilUntil, outroAtWas = outroAt;
+            double coverWas = coveredSince, lostWas = seatLost, movedWas = seatMovedAt, lieByWas = lieBy;
+            Action outroWas = outro;
+            Func<System.Collections.Generic.List<Ledge>> aroundWas = napLedges;
+            Func<Screen, Rectangle> areaWas = landArea;
+            System.Collections.Generic.List<Ledge> landWas = landLedges;
+            Ledge landedWas = landSeat;
+            double landAtWas = landAt;
+            System.Collections.Generic.List<Rectangle> iconsWas = icons;
+            Func<System.Collections.Generic.List<Ledges.Shown>> readWas = Ledges.Read;
+            Func<IntPtr, Ledges.Shown> lookWas = Ledges.Look;
+            Func<Sight> glimpseWas = Computer.Glimpse;
+            Func<bool> fullWas = FullScreen;
+            Rectangle area = Screen.FromPoint(Hip()).WorkingArea;
+            int x = area.Left + area.Width / 2, y = area.Top + area.Height / 3;
+            Ledge floor = new Ledge { Floor = true, Left = area.Left, Right = area.Right, Y = area.Bottom };
+            Ledge shelf = new Ledge { Window = new IntPtr(71), Bounds = new Rectangle(area.Left, y, area.Width, 120), Left = area.Left, Right = area.Right, Y = y };
+            Ledge lower = new Ledge { Window = new IntPtr(72), Bounds = new Rectangle(area.Left, y + 80, area.Width, 120), Left = area.Left, Right = area.Right, Y = y + 80 };
+            System.Collections.Generic.List<Ledge> ledges = new System.Collections.Generic.List<Ledge>();
+            System.Collections.Generic.List<Ledges.Shown> shown = new System.Collections.Generic.List<Ledges.Shown>();
+            int scans = 0;
+            Action fake = delegate
+            {
+                napLedges = null;
+                icons = new System.Collections.Generic.List<Rectangle>();
+                Ledges.Read = delegate { scans++; return new System.Collections.Generic.List<Ledges.Shown>(shown); };
+                Ledges.Look = delegate(IntPtr window) { return shown.Find(each => each.Window == window); };
+            };
+            Func<Ledge, Ledges.Shown> show = delegate(Ledge ledge) { return new Ledges.Shown { Window = ledge.Window, Bounds = ledge.Bounds, Seat = true, Solid = true }; };
+            Action reset = delegate
+            {
+                lying = falling = thrown = walking = hanging = pressed = dragging = riding = onPanel = hidden = docked = false;
+                settleAfter = modPlacing = wasAway = dropAfter = spawnFall = false;
+                napAsked = napping = ownRest = ownNap = ownLie = false;
+                manualHidden = fullScreenHidden = dockHid = hideAsked = false;
+                asideAt = null;
+                seat = fallTo = standOn = null;
+                landArea = null;
+                landLedges = null;
+                landSeat = null;
+                outro = null;
+                facingLeft = false;
+                nextLie = nextNap = restUntil = lieBy = -1;
+                preferences.Size = 140;
+                Size = CanvasSize(preferences.Size);
+                preferences.Motion = preferences.NoSitting = false;
+                preferences.SleepAfter = 0;
+                instant = true;
+                shelf = new Ledge { Window = new IntPtr(71), Bounds = new Rectangle(area.Left, y, area.Width, 120), Left = area.Left, Right = area.Right, Y = y };
+                lower = new Ledge { Window = new IntPtr(72), Bounds = new Rectangle(area.Left, y + 80, area.Width, 120), Left = area.Left, Right = area.Right, Y = y + 80 };
+                ledges = new System.Collections.Generic.List<Ledge> { shelf, lower, floor };
+                napLedges = delegate { return ledges; };
+                icons = iconsWas;
+                Ledges.Read = null;
+                Ledges.Look = null;
+                shown.Clear();
+                scans = 0;
+                Land(floor);
+                seat = null;
+                settleAfter = false;
+                anchor = Standing(x, y);
+                Play(idle);
+            };
+            Action land = delegate
+            {
+                for (int i = 0; i < 400 && falling; i++) Tumble(fallStep + 0.05);
+                if (falling || seat == null || Hip().Y != seat.Y) throw new Exception("Her support fall did not land on a ledge.");
+            };
+            try
+            {
+                reset();
+                napLedges = delegate { return ledges; };
+                Rectangle[] screens = { new Rectangle(-1600, -200, 1600, 900), new Rectangle(200, 0, 1920, 1080) };
+                System.Collections.Generic.List<int[]> spans = Ledges.Across(-1800, 2300, 100, screens);
+                if (spans.Count != 2 || spans[0][0] != -1600 || spans[0][1] != 0 || spans[1][0] != 200 || spans[1][1] != 2120
+                    || Ledges.Across(-1500, -200, 800, screens).Count != 0 || Ledges.Across(2200, 2400, 100, screens).Count != 0
+                    || Ledges.Across(-100, 100, -250, screens).Count != 0) throw new Exception("A ledge crossed a monitor gap or an off-screen edge.");
+                if (Ledges.At(new[] { shelf }, new Point(x, y)) != shelf || Ledges.At(new[] { shelf }, new Point(shelf.Right, y)) != null
+                    || Ledges.At(new[] { shelf }, new Point(x, y - 3)) != null || Ledges.At(new[] { new Ledge { Free = true, Left = area.Left, Right = area.Right, Y = y } }, new Point(x, y)) != null)
+                    throw new Exception("The support check accepted empty space.");
+                checks.Add("PASS ledges stay on physical monitor spans, including negative coordinates and gaps; support needs a real edge under her");
+                reset();
+                fake();
+                shown.Add(show(shelf));
+                anchor = Seated(x, y);
+                Land(shelf);
+                Play(perch);
+                SettleSeat();
+                if (scans != 1 || falling || seat != shelf) throw new Exception("A landing and its settle listed windows twice.");
+                reset();
+                fake();
+                shown.Add(show(shelf));
+                anchor = Seated(x, y);
+                Land(shelf);
+                landAt -= 0.5;
+                Play(perch);
+                SettleSeat();
+                if (scans != 2 || falling || seat != shelf) throw new Exception("Settling reused a landing list half a second old.");
+                settleAfter = true;
+                SettleSeat();
+                if (scans != 3) throw new Exception("A later settle reused the landing list again.");
+                checks.Add("PASS a landing and its immediate settle list windows once; a list half a second old or already used is refreshed");
+                reset();
+                Rectangle tinyArea = new Rectangle(x - 10, area.Top, 20, y + 80 - area.Top);
+                Ledge tiny = new Ledge { Floor = true, Left = tinyArea.Left, Right = tinyArea.Right, Y = tinyArea.Bottom };
+                landArea = delegate(Screen screen) { return tinyArea; };
+                napLedges = delegate { scans++; return new System.Collections.Generic.List<Ledge> { tiny }; };
+                if (Ledges.At(new[] { tiny }, new Point(x, tiny.Y)) != tiny) throw new Exception("A floor under 24 px wide was not support.");
+                anchor = Seated(x, tiny.Y - 12);
+                falling = true;
+                fallTo = tiny;
+                fallSpeed = 0;
+                fallStep = clock.Elapsed.TotalSeconds;
+                int narrowTicks = 0;
+                for (; narrowTicks < 400; narrowTicks++)
+                {
+                    if (falling) Tumble(fallStep + 0.05);
+                    if (!falling) { clipStart -= 10; Advance(clock.Elapsed.TotalSeconds); }
+                    if (!falling && seat != null && !settleAfter) break;
+                }
+                if (narrowTicks == 400 || falling || seat == null || !seat.Floor || seat.Right - seat.Left != 20 || Hip().Y != tiny.Y || scans > 2)
+                    throw new Exception("A 20 px working area kept falling or listed windows more than twice.");
+                checks.Add("PASS a landing on a 20 px working area settles within 400 ticks and lists windows at most twice");
+                for (int changed = 0; changed < 3; changed++)
+                {
+                    reset();
+                    Ledge picked = Perch(Around(), new Point(x, y - 12));
+                    if (picked != shelf) throw new Exception("The fake window was not picked.");
+                    ledges = new System.Collections.Generic.List<Ledge> { lower, floor };
+                    if (changed == 1) ledges.Add(new Ledge { Window = shelf.Window, Bounds = new Rectangle(area.Left + 40, y - 40, area.Width - 40, 120), Left = area.Left + 40, Right = area.Right, Y = y - 40 });
+                    if (changed == 2) ledges.Add(new Ledge { Window = shelf.Window, Bounds = shelf.Bounds, Left = x + 40, Right = area.Right, Y = y });
+                    Hop(picked, x);
+                    if (changed == 1)
+                    {
+                        if (falling || seat != picked || Hip().Y != y - 40 || Hip().X < seat.Left || Hip().X >= seat.Right) throw new Exception("A moving window lost her hop.");
+                        continue;
+                    }
+                    if (!falling || seat != null || fallTo != lower) throw new Exception("A changed window caught her in empty space: " + changed);
+                    land();
+                    if (seat != lower) throw new Exception("She skipped the nearest ledge below a changed window.");
+                }
+                reset();
+                Ledge close = new Ledge { Left = area.Left, Right = area.Right, Y = y + 12 };
+                ledges = new System.Collections.Generic.List<Ledge> { close, floor };
+                Hop(shelf, x);
+                if (!falling || fallTo != close) throw new Exception("A failed hop skipped the ledge just below its seat line.");
+                land();
+                reset();
+                anchor = Seated(x, y - 12);
+                if (!Drop() || fallTo != shelf) throw new Exception("The fake fall did not pick its window.");
+                ledges = new System.Collections.Generic.List<Ledge> { lower, floor };
+                land();
+                if (seat != lower) throw new Exception("A window that vanished during a fall caught her.");
+                reset();
+                Hop(shelf, x);
+                ledges = new System.Collections.Generic.List<Ledge> { lower, floor };
+                landAt -= 10;
+                clipStart -= 10;
+                Advance(clock.Elapsed.TotalSeconds);
+                if (!falling || fallTo != lower) throw new Exception("A ledge that vanished during arrival left her sitting in the air.");
+                land();
+                checks.Add("PASS fresh landings follow a moved window and reject vanished or covered ledges, falling to the nearest one below");
+                reset();
+                fake();
+                FullScreen = delegate { return true; };
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(73), Bounds = Screen.FromPoint(new Point(x, y)).Bounds }; };
+                shown.Add(new Ledges.Shown { Window = new IntPtr(73), Bounds = Screen.FromPoint(new Point(x, y)).Bounds, Solid = true });
+                shown.Add(show(shelf));
+                shown.Add(show(lower));
+                if (Around(true).Exists(each => each.Window == shelf.Window || each.Window == lower.Window)) throw new Exception("The fake full-screen app left an exposed window top.");
+                if (!Wander() || seat == null || !seat.Free || !seat.Aside || Hip().Y >= area.Top + area.Height * 3 / 4) throw new Exception("A full-screen side hop covered the bottom of the game.");
+                Point side = anchor;
+                Play(perch);
+                settleAfter = true;
+                SettleSeat();
+                SettleRest(clock.Elapsed.TotalSeconds, false);
+                LieHere();
+                if (falling || lying || anchor != side || seat == null || !Aside || LieDown()) throw new Exception("Her full-screen side seat fell or lay down.");
+                FullScreen = delegate { return false; };
+                shown.Clear();
+                LeaveAside(clock.Elapsed.TotalSeconds);
+                land();
+                if (seat == null || !seat.Floor || seat.Free || seat.Aside) throw new Exception("She kept the side seat after full screen ended.");
+                checks.Add("PASS full screen keeps her on a free side seat, clear of the bottom, without a fall or a lie-down; she gets down once it ends");
+                foreach (int scale in new[] { 140, 240, 560 })
+                    for (int anywhere = 0; anywhere < 2; anywhere++)
+                        for (int pose = 0; pose < 2; pose++)
+                        {
+                            reset();
+                            ledges = new System.Collections.Generic.List<Ledge> { floor };
+                            preferences.Size = scale;
+                            Size = CanvasSize(scale);
+                            preferences.NoSitting = anywhere != 0;
+                            facingLeft = pose != 0;
+                            seat = floor;
+                            anchor = Seated(x, floor.Y);
+                            Play(perch);
+                            if (!LieDown() || Hip().Y != floor.Y) throw new Exception("Lying down left the ledge at size " + scale);
+                            ownRest = ownLie = true;
+                            if (pose != 0) { ownNap = true; Play(laydownSleep); }
+                            if (!WakeRest(false) || lying || seat != null || StandFoot().Y != floor.Y) throw new Exception("Getting up floated at size " + scale + ", anywhere " + anywhere);
+                            Play(idle);
+                            SettleSeat();
+                            if (falling || StandFoot().Y != floor.Y) throw new Exception("The support check moved feet already on the taskbar.");
+                            seat = floor;
+                            anchor = Seated(x, floor.Y);
+                            Point feet = StandFoot();
+                            StandUp(false);
+                            if (StandFoot().X != feet.X || StandFoot().Y != floor.Y) throw new Exception("Standing moved her feet sideways or kept the sitting height at size " + scale);
+                            Play(idle);
+                            SettleSeat();
+                            if (falling || StandFoot().X != feet.X || StandFoot().Y != floor.Y) throw new Exception("Settling moved her standing feet at size " + scale);
+                            seat = floor;
+                            anchor = Within(Seated(x, floor.Y), area, Body);
+                            if (!Refloor() || Hip().Y != floor.Y) throw new Exception("A display clamp lifted her off the taskbar at size " + scale);
+                            preferences.NoSitting = false;
+                            ToggleSitting();
+                            if (!preferences.NoSitting || StandFoot().Y != floor.Y) throw new Exception("Place me anywhere kept the sitting height at size " + scale);
+                        }
+                checks.Add("PASS lying, waking, standing, display clamping and Place me anywhere keep the support line at sizes 140, 240 and 560, facing both ways, with automatic sitting on and off");
+                foreach (int scale in new[] { 140, 240, 560 })
+                    for (int pose = 0; pose < 2; pose++)
+                    {
+                        reset();
+                        fake();
+                        preferences.Size = scale;
+                        Size = CanvasSize(scale);
+                        facingLeft = pose != 0;
+                        int high = Math.Max(y, Screen.FromPoint(new Point(x, y)).Bounds.Top + Headroom() + 20);
+                        shelf.Bounds = new Rectangle(pose == 0 ? area.Left : x - 10, high, pose == 0 ? x + 10 - area.Left : area.Right - x + 10, 120);
+                        shelf.Y = high;
+                        shelf.Left = shelf.Bounds.Left;
+                        shelf.Right = shelf.Bounds.Right;
+                        lower.Bounds = new Rectangle(lower.Bounds.Left, high + 80, lower.Bounds.Width, lower.Bounds.Height);
+                        lower.Y = high + 80;
+                        shown.Add(show(shelf));
+                        shown.Add(show(lower));
+                        Hop(shelf, x);
+                        Play(perch);
+                        int stoodX = anchor.X;
+                        StandUp(false);
+                        Play(idle);
+                        SettleSeat();
+                        if (falling || seat != null || standOn == null || standOn.Window != shelf.Window || anchor.X != stoodX)
+                            throw new Exception("Standing at a window end moved or dropped her at size " + scale + ", facing " + pose);
+                        Point stood = anchor;
+                        shown.RemoveAll(each => each.Window == shelf.Window);
+                        CheckSeat(clock.Elapsed.TotalSeconds);
+                        SettleSeat();
+                        if (!falling || seat != null || anchor != stood || fallTo == null || fallTo.Window != lower.Window)
+                            throw new Exception("Losing standing support jumped before falling at size " + scale + ", facing " + pose);
+                        land();
+                    }
+                checks.Add("PASS standing with a window end 10 px past her hip keeps her anchor x at sizes 140, 240 and 560 facing both ways; closing it starts a fall from the same anchor");
+                reset();
+                ledges = new System.Collections.Generic.List<Ledge> { floor };
+                foreach (int scale in new[] { 240, 560, 140 })
+                {
+                    seat = null;
+                    anchor = Standing(x, floor.Y);
+                    Play(idle);
+                    SetCharacterSize(scale);
+                    if (falling || seat != null || StandFoot() != new Point(x, floor.Y)) throw new Exception("Resizing after waking left her sitting or off the taskbar at size " + scale);
+                }
+                checks.Add("PASS resizing a standing pose after waking keeps her on the taskbar");
+                for (int pose = 0; pose < 2; pose++)
+                {
+                    reset();
+                    fake();
+                    preferences.Size = 240;
+                    Size = CanvasSize(240);
+                    facingLeft = pose != 0;
+                    Ledges.Shown top = show(shelf);
+                    shown.Add(top);
+                    shown.Add(show(lower));
+                    Hop(shelf, x);
+                    Play(perch);
+                    StandUp(false);
+                    if (standOn == null || standOn.Window != top.Window) throw new Exception("Standing up forgot the window before settling.");
+                    Play(idle);
+                    SettleSeat();
+                    top.Bounds = new Rectangle(top.Bounds.Left + 20, top.Bounds.Top + 15, top.Bounds.Width - 40, top.Bounds.Height);
+                    int heldScans = scans;
+                    CheckSeat(clock.Elapsed.TotalSeconds);
+                    if (scans != heldScans || standOn == null || !settleAfter) throw new Exception("The standing handle check forgot a moved window or listed windows.");
+                    foreach (int scale in new[] { 560, 240 })
+                    {
+                        int before = scans;
+                        SetCharacterSize(scale);
+                        if (scans != before + 1 || falling || seat != null || clip != idle || standOn == null || standOn.Window != top.Window || standOn.Bounds != top.Bounds || StandFoot().Y != top.Bounds.Top)
+                            throw new Exception("Resizing lost the live window top at size " + scale + ", facing " + pose);
+                    }
+                    shown.Remove(top);
+                    SetCharacterSize(560);
+                    if (!falling || seat != null || standOn != null) throw new Exception("Resizing trusted a closed window.");
+                    land();
+                }
+                reset();
+                fake();
+                preferences.Size = 240;
+                Size = CanvasSize(240);
+                shown.Add(new Ledges.Shown { Window = new IntPtr(77), Bounds = new Rectangle(area.Left, y - 20, x - 90 - area.Left, 60) });
+                shown.Add(new Ledges.Shown { Window = new IntPtr(78), Bounds = new Rectangle(x + 90, y - 20, area.Right - x - 90, 60) });
+                shown.Add(show(shelf));
+                Hop(shelf, x);
+                Play(perch);
+                StandUp(false);
+                Play(idle);
+                SettleSeat();
+                if (falling || standOn == null || standOn.Right - standOn.Left != 180) throw new Exception("The resize fixture did not stand on its exposed strip.");
+                SetCharacterSize(560);
+                if (!falling || seat != null || standOn != null) throw new Exception("Resizing stood on a strip narrower than her body.");
+                land();
+                checks.Add("PASS standing on a window survives resizing 240 to 560 and back, following its handle and live top; a missing window or a strip too narrow for her new body starts a fall");
+                foreach (int scale in new[] { 240, 560 })
+                    for (int motion = 0; motion < 2; motion++)
+                    {
+                        reset();
+                        preferences.Size = scale;
+                        Size = CanvasSize(scale);
+                        preferences.Motion = motion != 0;
+                        instant = motion == 0;
+                        ledges = new System.Collections.Generic.List<Ledge> { floor };
+                        Hop(floor, x);
+                        StandUp(false);
+                        Play(idle);
+                        SettleSeat();
+                        Point feet = StandFoot();
+                        int slack = (int)Math.Ceiling(scale * 0.01) + 2;
+                        if (Support(ledges, new Point(feet.X, floor.Y - slack), true) == null || Support(ledges, new Point(feet.X, floor.Y - slack - 1), true) != null)
+                            throw new Exception("Standing floor tolerance was wrong at size " + scale);
+                        ApplyHidden(true);
+                        MoveSelf("show", null);
+                        clipStart -= 10;
+                        Advance(clock.Elapsed.TotalSeconds);
+                        if (falling || seat != null || StandFoot() != feet) throw new Exception("Hide and show sat her down at size " + scale);
+                        Rescreen();
+                        clipStart -= 10;
+                        Advance(clock.Elapsed.TotalSeconds);
+                        if (falling || seat != null || StandFoot() != feet) throw new Exception("A display change sat her down at size " + scale);
+                        docked = hidden = true;
+                        dockHid = false;
+                        LeaveDock();
+                        clipStart -= 10;
+                        Advance(clock.Elapsed.TotalSeconds);
+                        if (falling || seat != null || StandFoot() != feet) throw new Exception("Leaving Gaming Mode sat her down at size " + scale);
+                    }
+                checks.Add("PASS standing on the taskbar survives hide and show, display changes and leaving Gaming Mode at sizes 240 and 560, with motion on and off");
+                for (int hop = 0; hop < 2; hop++)
+                {
+                    reset();
+                    preferences.Size = 560;
+                    Size = CanvasSize(preferences.Size);
+                    Screen edge = Screen.AllScreens[0];
+                    foreach (Screen screen in Screen.AllScreens) if (screen.Bounds.Right > edge.Bounds.Right) edge = screen;
+                    int high = Math.Min(edge.WorkingArea.Bottom - 20, edge.Bounds.Top + Headroom() + 40);
+                    Ledges.Shown window = new Ledges.Shown { Window = shelf.Window, Bounds = new Rectangle(edge.Bounds.Right - 100, high, 1000, 120), Seat = true, Solid = true };
+                    fake();
+                    shown.Add(window);
+                    Ledge strip = Around(true).Find(each => each.Window == window.Window);
+                    if (strip == null || strip.Right - strip.Left != 100) throw new Exception("The off-screen window did not leave a 100 px strip.");
+                    if (hop != 0) Hop(strip, strip.Right - 50);
+                    else
+                    {
+                        anchor = Seated(strip.Right - 50, strip.Y - 20);
+                        SitHere();
+                        StandUp();
+                        falling = true;
+                        fallTo = strip;
+                        fallSpeed = 0;
+                        fallStep = clock.Elapsed.TotalSeconds;
+                    }
+                    land();
+                    if (placed || (!seat.Floor && (seat.Window != window.Window || Hip().X < seat.Left || Hip().X >= seat.Right))) throw new Exception("The narrow landing ended without support.");
+                    Play(perch);
+                    settleAfter = true;
+                    SettleSeat();
+                    if (falling) throw new Exception("The narrow landing started another fall.");
+                }
+                checks.Add("PASS a fall and a hop onto a 100 px strip at the right edge finish within 400 ticks on the strip or the floor");
+                reset();
+                fake();
+                Ledges.Shown moved = show(shelf);
+                shown.Add(moved);
+                shown.Add(show(lower));
+                anchor = Seated(x, y - 12);
+                if (!Drop() || fallTo.Window != moved.Window) throw new Exception("The moving-window fall did not start.");
+                moved.Bounds = new Rectangle(moved.Bounds.Left + 90, moved.Bounds.Top - 40, moved.Bounds.Width, moved.Bounds.Height);
+                land();
+                if (seat.Window != moved.Window || Hip().Y != moved.Bounds.Top || Hip().X < seat.Left || Hip().X >= seat.Right) throw new Exception("She fell past a window that moved up and sideways.");
+                if (Ledges.Below(new[] { shelf, lower, floor }, new Point(x, shelf.Y), 0, int.MaxValue, 0, Headroom(), shelf) != lower)
+                    throw new Exception("A rejected window was offered again below her.");
+                checks.Add("PASS a falling target follows its window's live top after an upward and sideways move; a rejected window is left out of Below");
+                reset();
+                fake();
+                shown.Add(new Ledges.Shown { Window = new IntPtr(76), Bounds = new Rectangle(x - 30, y - 10, 60, 40) });
+                shown.Add(show(shelf));
+                System.Collections.Generic.List<Ledge> cut = Around(true);
+                if (!cut.Exists(each => each.Window == shelf.Window) || cut.Exists(each => each.Window == shelf.Window && x >= each.Left && x < each.Right))
+                    throw new Exception("A taskbar left the window top behind it exposed.");
+                reset();
+                fake();
+                shown.Add(show(shelf));
+                Hop(shelf, x);
+                Play(perch);
+                SettleSeat();
+                Point sitting = anchor;
+                for (int cover = 0; cover < 2; cover++)
+                {
+                    Ledges.Shown overlay = new Ledges.Shown { Window = cover == 0 ? new IntPtr(74) : mainframe.Handle, Bounds = new Rectangle(x - 80, y - 20, 160, 60), Solid = cover != 0 };
+                    shown.Insert(0, overlay);
+                    double tipAt = clock.Elapsed.TotalSeconds;
+                    CheckSeat(tipAt);
+                    CheckSeat(tipAt + 2);
+                    if (falling || seat == null || anchor != sitting || coveredSince >= 0) throw new Exception("A tooltip or her own panel covered her seat for two seconds.");
+                    shown.Remove(overlay);
+                }
+                checks.Add("PASS taskbars cut window tops in Find; a tooltip or her own panel over her seat for two seconds leaves her seated");
+                reset();
+                fake();
+                Ledges.Shown dragged = show(shelf);
+                Ledges.Shown popup = new Ledges.Shown { Window = new IntPtr(74), Bounds = new Rectangle(x - 80, y - 20, 160, 60) };
+                shown.Add(dragged);
+                Hop(shelf, x);
+                Play(perch);
+                SettleSeat();
+                shown.Insert(0, popup);
+                for (int tick = 0; tick < 12; tick++)
+                {
+                    dragged.Bounds = new Rectangle(dragged.Bounds.Left, dragged.Bounds.Top + 2, dragged.Bounds.Width, dragged.Bounds.Height);
+                    popup.Bounds = new Rectangle(x - 80, dragged.Bounds.Top - 20, 160, 60);
+                    int before = scans;
+                    HoldSeat(clock.Elapsed.TotalSeconds + tick * 0.1);
+                    if (scans != before || seat == null || Hip().Y != dragged.Bounds.Top || clip != perch) throw new Exception("A vertical window drag listed windows or dropped her.");
+                    CheckSeat(clock.Elapsed.TotalSeconds + tick * 0.1);
+                    if (falling || seat == null) throw new Exception("A popup or tool window covered her support.");
+                }
+                popup.Solid = true;
+                double passing = clock.Elapsed.TotalSeconds + 3;
+                CheckSeat(passing);
+                CheckSeat(passing + 0.4);
+                if (seat == null || falling) throw new Exception("A passing window skipped the cover grace period.");
+                shown.Remove(popup);
+                CheckSeat(passing + 0.5);
+                if (seat == null || falling || coveredSince >= 0) throw new Exception("A passing window left her cover timer set.");
+                checks.Add("PASS vertical window drags keep her seated without listing windows per tick; untitled popups and tool windows pass over support, and other passing windows keep their grace period");
+                for (int action = 0; action < 4; action++)
+                {
+                    reset();
+                    fake();
+                    shown.Add(show(shelf));
+                    shown.Add(show(lower));
+                    if (action == 1)
+                    {
+                        anchor = Seated(x, y - 12);
+                        SitHere();
+                        LieHere();
+                        if (!falling) throw new Exception("Lie down did not leave the chosen air seat.");
+                        land();
+                        clipStart -= 10;
+                        Advance(clock.Elapsed.TotalSeconds);
+                        CheckLie(clock.Elapsed.TotalSeconds, 0);
+                    }
+                    else
+                    {
+                        Hop(shelf, x);
+                        Play(perch);
+                        if (action == 0) Animate("grin");
+                        else if (action == 2)
+                        {
+                            ToggleSitting();
+                            SettleSeat();
+                            ToggleSitting();
+                        }
+                        else MoveTool("stand_up", null);
+                    }
+                    clipStart -= 10;
+                    Advance(clock.Elapsed.TotalSeconds);
+                    if (placed || falling) throw new Exception("An automatic stand or landing kept the placed flag: " + action);
+                    if (action == 0)
+                    {
+                        int before = scans;
+                        for (int tick = 0; tick < 20; tick++) { CheckSeat(clock.Elapsed.TotalSeconds); SettleSeat(); }
+                        if (scans != before) throw new Exception("Standing idle listed every window.");
+                    }
+                    shown.RemoveAll(each => each.Window == shelf.Window);
+                    if (seat != null) HoldSeat(clock.Elapsed.TotalSeconds);
+                    else CheckSeat(clock.Elapsed.TotalSeconds);
+                    clipStart -= 10;
+                    Advance(clock.Elapsed.TotalSeconds);
+                    if (!falling || seat != null || fallTo == null || fallTo.Window != lower.Window) throw new Exception("A closed window left her in the air after action " + action);
+                    land();
+                    if (placed || seat.Window != lower.Window) throw new Exception("The fall after an automatic move did not land: " + action);
+                }
+                checks.Add("PASS a window closing after her grin, lie down, sitting toggle or stand_up tool drops her to the ledge below; real landings clear placed, and standing idle does not list windows");
+                reset();
+                fake();
+                Ledges.Shown covered = show(shelf);
+                covered.Bounds = new Rectangle(covered.Bounds.Left, covered.Bounds.Top, covered.Bounds.Width, 60);
+                shown.Add(covered);
+                shown.Add(show(lower));
+                Hop(shelf, x);
+                Play(perch);
+                Point parked = anchor;
+                shown.Insert(0, new Ledges.Shown { Window = new IntPtr(75), Bounds = new Rectangle(area.Left, y - 40, area.Width, 60), Seat = true, Solid = true });
+                double over = clock.Elapsed.TotalSeconds;
+                CheckSeat(over);
+                CheckSeat(over + 0.4);
+                if (anchor != parked || seat == null || falling) throw new Exception("A parked window moved her before the grace period.");
+                CheckSeat(over + 0.8);
+                if (!falling || seat != null || clip != dangle || anchor != parked || fallTo == null || fallTo.Window != lower.Window)
+                    throw new Exception("A parked window stood her up before dropping her.");
+                land();
+                clipStart -= 10;
+                Advance(clock.Elapsed.TotalSeconds);
+                if (falling || seat == null || seat.Window != lower.Window || Support(Around(true), Hip()) == null) throw new Exception("A parked window needed a second move to find support.");
+                checks.Add("PASS a parked window gets one fall onto real support after the grace period, with no standing move first");
+                reset();
+                ledges = new System.Collections.Generic.List<Ledge> { floor };
+                preferences.NoSitting = true;
+                Point chosen = anchor;
+                settleAfter = true;
+                SettleSeat();
+                CheckIdle(clock.Elapsed.TotalSeconds, 60000);
+                CheckIdle(clock.Elapsed.TotalSeconds, 0);
+                SettleSeat();
+                if (anchor != chosen || falling || seat != null) throw new Exception("Place me anywhere lost a chosen spot on return.");
+                preferences.NoSitting = false;
+                SitHere();
+                chosen = anchor;
+                Play(perch);
+                settleAfter = true;
+                SettleSeat();
+                if (anchor != chosen || falling || seat == null || !seat.Free) throw new Exception("The support check moved a Sit here spot.");
+                StandUp();
+                Play(idle);
+                settleAfter = true;
+                SettleSeat();
+                if (anchor != chosen || falling) throw new Exception("The support check moved a chosen standing spot.");
+                reset();
+                SitHere();
+                Ledge chosenSeat = seat;
+                Hop(chosenSeat, Hip().X);
+                Play(perch);
+                chosen = anchor;
+                Animate("grin");
+                clipStart -= 10;
+                Advance(clock.Elapsed.TotalSeconds);
+                if (!placed || falling || seat != null || clip != idle || anchor != chosen) throw new Exception("A grin dropped her from a Sit here spot.");
+                checks.Add("PASS a grin after a hop to a Sit here spot leaves her standing where she chose");
+                reset();
+                ledges = new System.Collections.Generic.List<Ledge> { floor };
+                pressed = true;
+                anchorStart = anchor;
+                pointerStart = new Point(x, y);
+                MovePointer(new Point(x + 8, y), clock.Elapsed.TotalSeconds);
+                chosen = anchor;
+                settleAfter = true;
+                SettleSeat();
+                if (anchor != chosen || falling || !dragging) throw new Exception("The support check fought a drag.");
+                pressed = dragging = false;
+                Play(idle);
+                settleAfter = true;
+                SettleSeat();
+                if (anchor != chosen || falling) throw new Exception("The support check moved a dragged spot.");
+                reset();
+                ledges = new System.Collections.Generic.List<Ledge> { floor };
+                falling = thrown = true;
+                settleAfter = true;
+                chosen = anchor;
+                SettleSeat();
+                if (!falling || !thrown || anchor != chosen) throw new Exception("The support check fought a throw.");
+                checks.Add("PASS Place me anywhere, Sit here, chosen standing spots, dragging and throws keep control of her position");
+                for (int trip = 0; trip < 2; trip++)
+                {
+                    reset();
+                    ledges = new System.Collections.Generic.List<Ledge> { floor };
+                    preferences.Motion = trip != 0;
+                    instant = trip == 0;
+                    PlaceByMod(delegate { Teleport(new Point(x, area.Top + 120)); });
+                    if (trip != 0)
+                    {
+                        Action arrive = outro;
+                        if (arrive == null) throw new Exception("The mod trip did not wait for its arrival.");
+                        outro = null;
+                        arrive();
+                    }
+                    chosen = anchor;
+                    Play(idle);
+                    settleAfter = true;
+                    SettleSeat();
+                    if (!placed || modPlacing || anchor != chosen || falling) throw new Exception("The support check moved a mod's spot.");
+                    ribbons.Stop();
+                    shatter.Stop();
+                }
+                checks.Add("PASS mod placements keep their spot through immediate and ribbon arrivals");
+                reset();
+                fake();
+                shown.Add(show(shelf));
+                Hop(shelf, x);
+                Play(perch);
+                ModMove("stand_up", null);
+                clipStart -= 10;
+                Advance(clock.Elapsed.TotalSeconds);
+                Point modSpot = anchor;
+                shown.Clear();
+                CheckSeat(clock.Elapsed.TotalSeconds);
+                settleAfter = true;
+                SettleSeat();
+                if (!placed || falling || seat != null || anchor != modSpot) throw new Exception("The support check fought a mod's stand_up move.");
+                checks.Add("PASS a mod's stand_up move keeps its placement when the window closes");
+                reset();
+                seat = shelf;
+                anchor = Seated(x, y);
+                Play(perch);
+                ledges = new System.Collections.Generic.List<Ledge> { lower, floor };
+                CheckIdle(clock.Elapsed.TotalSeconds, 60000);
+                CheckIdle(clock.Elapsed.TotalSeconds, 0);
+                SettleSeat();
+                if (!falling || fallTo != lower) throw new Exception("Coming back left her sitting on a missing ledge.");
+                land();
+                reset();
+                panelHome = Seated(x, y);
+                panelSeat = shelf;
+                panelHung = false;
+                ledges = new System.Collections.Generic.List<Ledge> { lower, floor };
+                BackHome(true);
+                clipStart -= 10;
+                Advance(clock.Elapsed.TotalSeconds);
+                if (!falling || fallTo != lower) throw new Exception("Coming home from the panel trusted an old ledge.");
+                land();
+                reset();
+                seat = shelf;
+                anchor = Seated(x, y);
+                ledges = new System.Collections.Generic.List<Ledge> { lower, floor };
+                docked = hidden = true;
+                dockHid = false;
+                LeaveDock();
+                clipStart -= 10;
+                Advance(clock.Elapsed.TotalSeconds);
+                if (!falling || fallTo != lower) throw new Exception("Coming back from Gaming Mode trusted an old ledge.");
+                land();
+                checks.Add("PASS returning from idle, the task panel and Gaming Mode rechecks support and gets down from a missing ledge");
+            }
+            finally
+            {
+                napLedges = aroundWas; icons = iconsWas; Ledges.Read = readWas; Ledges.Look = lookWas; Computer.Glimpse = glimpseWas; FullScreen = fullWas;
+                landArea = areaWas; landLedges = landWas; landSeat = landedWas; landAt = landAtWas;
+                preferences.Size = scaleWas; Size = sizeWas; preferences.SleepAfter = sleepWas; preferences.Motion = motionWas; preferences.NoSitting = sittingWas; instant = instantWas;
+                sitItem.Checked = !sittingWas;
+                anchor = home; asideAt = asideWas; seat = seatWas; fallTo = fallWas; standOn = standWas; panelHome = panelHomeWas; panelSeat = panelWas; panelHung = panelHungWas;
+                anchorStart = startWas; pointerStart = pointerWas; clip = clipWas; clipStart = clipAtWas; fallStep = stepWas; fallSpeed = speedWas; nextLie = lieWas; nextNap = napWas; restUntil = restWas; leanAngle = leanWas;
+                facingLeft = leftWas; lying = lyingWas; falling = fallingWas; thrown = thrownWas; walking = walkingWas; hanging = hangingWas;
+                pressed = pressedWas; dragging = draggingWas; riding = ridingWas; onPanel = panelOnWas; hidden = hiddenWas; docked = dockedWas;
+                dockHid = dockHideWas; manualHidden = manualWas; fullScreenHidden = fullHideWas; hideAsked = hideAskedWas;
+                visibilityItem.Text = hidden ? "Show Capri" : "Hide Capri";
+                placed = placedWas; settleAfter = settleWas; modPlacing = modWas; wasAway = awayWas;
+                napAsked = askedWas; napping = nappingWas; ownRest = ownWas; ownNap = ownNapWas; ownLie = ownLieWas; dropAfter = dropWas; spawnFall = spawnWas;
+                veiled = veilWas; veilUntil = veilAtWas; outro = outroWas; outroAt = outroAtWas; danceAsked = danceWas;
+                coveredSince = coverWas; seatLost = lostWas; seatMovedAt = movedWas; lieBy = lieByWas;
+                Location = anchor;
+                SavePreferences();
+            }
+        }
+
         private void NapChecks(System.Collections.Generic.List<string> checks)
         {
             NapScaleChecks(checks);
             Point napHome = anchor;
             Point? napAsideWas = asideAt;
-            Ledge napSeatWas = seat, napFallWas = fallTo;
+            Ledge napSeatWas = seat, napFallWas = fallTo, napStandWas = standOn;
             Clip napClipWas = clip;
             double napClipStartWas = clipStart, napNextWas = nextNap, napLieWas = nextLie, napUntilWas = restUntil, napVoiceWas = voiceUntil, napMeetWas = meetAt;
             bool napMotionWas = preferences.Motion, napSittingWas = preferences.NoSitting, napSilentWas = preferences.Silent;
+            bool napPlacedWas = placed, napSettleWas = settleAfter, napAwayWas = wasAway;
             bool napLeftWas = facingLeft, napFallingWas = falling, napHangingWas = hanging, napWalkingWas = walking, napLyingWas = lying;
             bool napAskedWas = napAsked, napNappingWas = napping, napOwnWas = ownRest, napOwnNapWas = ownNap, napOwnLieWas = ownLie;
             bool napChatWas = chatting, napMusicWas = musicOn, napDanceWas = danceAsked, napShushWas = shushed, napTypeWas = typer.Visible;
@@ -16016,12 +16904,14 @@ namespace CapriDesktop
                 napAsked = napping = ownRest = ownNap = ownLie = lying = falling = walking = hanging = pressed = dragging = false;
                 chatting = pushing = transcribing = musicOn = danceAsked = shushed = false;
                 dropAfter = false;
+                Land(napFloor);
+                settleAfter = wasAway = false;
                 job = null;
                 working = speech = null;
                 talkState = TalkState.Off;
                 voiceUntil = 0;
                 meetAt = lieBy = nextNap = nextLie = restUntil = -1;
-                seat = fallTo = null;
+                seat = fallTo = standOn = null;
                 asideAt = null;
                 facingLeft = false;
                 anchor = Seated(napArea.Left + napArea.Width / 2, napShelf.Y - 30);
@@ -16160,6 +17050,7 @@ namespace CapriDesktop
                 checks.Add("PASS beside something full screen she sits on nothing only while it lasts and naps there standing; once it's gone she gets down onto the taskbar with no window or nothing at all under her, after a display change stood her up there, and mid-nap, which carries on there until the mouse stands her up on it; a spot chosen with Sit here stays put; a display change keeps her asleep on the taskbar as it is now");
                 napReset();
                 Ledge napNarrow = new Ledge { Left = napArea.Left + napArea.Width / 2 - 12, Right = napArea.Left + napArea.Width / 2 + 12, Y = napShelf.Y - 10 };
+                napLedges = delegate { return new System.Collections.Generic.List<Ledge> { napFloor, napShelf, napNarrow }; };
                 Point napSat = new Point(napArea.Left + napArea.Width / 2, napNarrow.Y);
                 seat = napNarrow;
                 anchor = Seated(napSat.X, napSat.Y);
@@ -16186,6 +17077,7 @@ namespace CapriDesktop
                 napTicks(0, 1);
                 if (Asleep || clip != perch || seat != napNarrow) throw new Exception("The mouse didn't wake her from dozing sitting up, still sitting.");
                 napReset();
+                napLedges = napBoth;
                 seat = napShelf;
                 anchor = Seated(napSat.X, napShelf.Y);
                 Play(perch);
@@ -16497,7 +17389,8 @@ namespace CapriDesktop
                 gaming.Find = napGameWas; gaming.Changed = napGameChangedWas; gaming.Dock = napGameDockWas; gaming.Undock = napGameUndockWas;
                 napLedges = napPlacesWas; Think = napThinkWas; stopTest = napStopWas;
                 preferences.Motion = napMotionWas; preferences.NoSitting = napSittingWas; preferences.SleepAfter = napAfterWas; preferences.Silent = napSilentWas;
-                anchor = napHome; asideAt = napAsideWas; seat = napSeatWas; fallTo = napFallWas; clip = napClipWas; clipStart = napClipStartWas;
+                placed = napPlacedWas; settleAfter = napSettleWas; wasAway = napAwayWas;
+                anchor = napHome; asideAt = napAsideWas; seat = napSeatWas; fallTo = napFallWas; standOn = napStandWas; clip = napClipWas; clipStart = napClipStartWas;
                 facingLeft = napLeftWas; falling = napFallingWas; hanging = napHangingWas; walking = napWalkingWas; lying = napLyingWas;
                 napAsked = napAskedWas; napping = napNappingWas; ownRest = napOwnWas; ownNap = napOwnNapWas; ownLie = napOwnLieWas;
                 nextNap = napNextWas; nextLie = napLieWas; restUntil = napUntilWas; voiceUntil = napVoiceWas; meetAt = napMeetWas;
@@ -41427,7 +42320,9 @@ namespace CapriDesktop
                                     CheckSeat(over + 0.4);
                                     if (seat == null || falling) throw new Exception("A window passing over her knocked her off straight away.");
                                     CheckSeat(over + 0.8);
-                                    if (falling || seat != null || anchor != sat || clip != glitch) throw new Exception("A window parked over her seat did not stand her up where she sat.");
+                                    if (!falling || seat != null || anchor != sat || clip != dangle) throw new Exception("A window parked over her seat did not drop her in one move.");
+                                    for (int i = 0; i < 400 && falling; i++) Tumble(fallStep + 0.05);
+                                    if (falling || seat == null || Support(Around(true), Hip()) == null) throw new Exception("A parked window left her without support.");
                                 }
                                 Land(held);
                                 clipStart -= 1;
@@ -41758,11 +42653,13 @@ namespace CapriDesktop
                                 HoldSeat(gone);
                                 if (falling || seat == null) throw new Exception("A window blinking out for a moment knocked her off.");
                                 HoldSeat(gone + 0.4);
-                                if (falling || seat != null || anchor != sat || clip != glitch) throw new Exception("She did not stand up where she sat when the window went away.");
+                                if (falling || seat != null || StandFoot().Y != held.Y || clip != glitch) throw new Exception("She did not stand up on the old seat line when the window went away.");
                                 clipStart -= 1;
                                 RenderFrame();
-                                if (clip != idle || anchor != sat) throw new Exception("Standing up did not settle into idle in place.");
-                                checks.Add("PASS dropped above a window she fell, sat on its top edge, rode along when it moved, ignored popups and windows passing over, stood up where she sat when a window parked over her or it closed, and can sit on top of her own Mainframe without it knocking her off anything else");
+                                if (!falling || seat != null || clip != dangle) throw new Exception("Losing a window left her standing in the air.");
+                                for (int i = 0; i < 400 && falling; i++) Tumble(fallStep + 0.05);
+                                if (falling || seat == null || Hip().Y != seat.Y) throw new Exception("She did not reach a ledge below the closed window.");
+                                checks.Add("PASS dropped above a window she fell, sat on its top edge, rode along when it moved, ignored popups and windows passing over, and got down after losing her seat; she can sit on her own Mainframe without it knocking her off anything else");
                             }
                             checks.Add("PASS ledge covering math; desktop icons read: " + Ledges.Icons().Count);
                             {
@@ -41843,6 +42740,7 @@ namespace CapriDesktop
                             if (!Visible || hidden || clip != grin) throw new Exception("Second-launch restore signal did not show Capri grinning.");
                             checks.Add("PASS restore signal");
                             if (!mainframe.ShowInTaskbar || !mainframe.Visible) throw new Exception("Mainframe is not in the taskbar.");
+                            SupportChecks(checks);
                             NapChecks(checks);
                             // Her own moves: "teleport here" wakes her and puts her hip on their mouse, she sits, stands, hangs, lets go, rides
                             // their cursor and hops off where she is, a hide waits for her line, and she goes to another screen when there is one.

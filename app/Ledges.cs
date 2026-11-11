@@ -74,7 +74,10 @@ namespace CapriDesktop
             }
         }
 
-        private sealed class Shown
+        internal static Func<List<Shown>> Read;
+        internal static Func<IntPtr, Shown> Look;
+
+        internal sealed class Shown
         {
             internal IntPtr Window;
             internal Rectangle Bounds;
@@ -92,6 +95,13 @@ namespace CapriDesktop
         internal static bool Showing(IntPtr window, out Rectangle bounds)
         {
             bounds = Rectangle.Empty;
+            if (Look != null)
+            {
+                Shown shown = Look(window);
+                if (shown == null) return false;
+                bounds = shown.Bounds;
+                return bounds.Width > 0 && bounds.Height > 0;
+            }
             if (!IsWindow(window) || !IsWindowVisible(window) || IsIconic(window)) return false;
             Rectangle own;
             if (Own(window, out own)) { bounds = own; return true; }
@@ -106,7 +116,7 @@ namespace CapriDesktop
             return bounds.Width > 0 && bounds.Height > 0;
         }
 
-        internal static bool Alive(IntPtr window) { return IsWindow(window); }
+        internal static bool Alive(IntPtr window) { return Look != null ? Look(window) != null : IsWindow(window); }
 
         // A window her clones may grab and drag off: an app's own main window on screen, not full size, snapped or filling the
         // screen, not always on top, and not frozen, since a frozen one would never answer the move.
@@ -213,16 +223,21 @@ namespace CapriDesktop
 
         internal static bool Seatable(IntPtr window, Rectangle bounds)
         {
+            if (Look != null) { Shown shown = Look(window); return shown != null && shown.Seat; }
             Rectangle own;
             if (Own(window, out own)) return true;
             int extended = Native.GetWindowLong(window, -20);
             if ((extended & 0x80) != 0 && (extended & 0x40000) == 0) return false;
             if (IsZoomed(window) || bounds.Width < 120 || bounds.Height < 60) return false;
-            return !bounds.Contains(Screen.FromRectangle(bounds).Bounds);
+            if (bounds.Contains(Screen.FromRectangle(bounds).Bounds)) return false;
+            foreach (Screen screen in Screen.AllScreens)
+                if (Across(bounds.Left, bounds.Right, bounds.Top, new[] { screen.Bounds }).Count > 0) return true;
+            return false;
         }
 
         private static List<Shown> Windows(ICollection<IntPtr> skip)
         {
+            if (Read != null) return Read().FindAll(shown => !skip.Contains(shown.Window));
             lock (windowLock)
             {
                 int now = Environment.TickCount;
@@ -262,34 +277,65 @@ namespace CapriDesktop
             return spans;
         }
 
+        internal static List<int[]> Across(int left, int right, int y, IEnumerable<Rectangle> screens)
+        {
+            List<int[]> spans = new List<int[]>();
+            foreach (Rectangle screen in screens)
+            {
+                int from = Math.Max(left, screen.Left), to = Math.Min(right, screen.Right);
+                if (y >= screen.Top && y < screen.Bottom && to > from) spans.Add(new[] { from, to });
+            }
+            return spans;
+        }
+
+        private static void Add(List<Ledge> found, Ledge ledge, IEnumerable<Rectangle> screens, IEnumerable<Rectangle> above)
+        {
+            foreach (int[] part in Across(ledge.Left, ledge.Right, ledge.Y, screens))
+                foreach (int[] span in Open(part[0], part[1], ledge.Y, above))
+                    found.Add(new Ledge { Window = ledge.Window, Bounds = ledge.Bounds, Icon = ledge.Icon, Left = span[0], Right = span[1], Y = ledge.Y });
+        }
+
         internal static List<Ledge> Find(ICollection<IntPtr> skip, IEnumerable<Rectangle> icons, IntPtr under = default(IntPtr))
         {
             List<Ledge> found = new List<Ledge>();
             List<Rectangle> above = new List<Rectangle>();
+            List<Rectangle> screens = new List<Rectangle>();
+            foreach (Screen screen in Screen.AllScreens) screens.Add(screen.Bounds);
             foreach (Shown window in Windows(skip))
             {
                 if (window.Seat)
-                    foreach (int[] span in Open(window.Bounds.Left, window.Bounds.Right, window.Bounds.Top, above))
-                        found.Add(new Ledge { Window = window.Window, Bounds = window.Bounds, Left = span[0], Right = span[1], Y = window.Bounds.Top });
+                    Add(found, new Ledge { Window = window.Window, Bounds = window.Bounds, Left = window.Bounds.Left, Right = window.Bounds.Right, Y = window.Bounds.Top }, screens, above);
                 if (window.Window != under) above.Add(window.Bounds);
             }
             foreach (Rectangle icon in icons)
-                foreach (int[] span in Open(icon.Left, icon.Right, icon.Top + IconInset, above))
-                    found.Add(new Ledge { Icon = icon, Left = span[0], Right = span[1], Y = icon.Top + IconInset });
+                Add(found, new Ledge { Icon = icon, Left = icon.Left, Right = icon.Right, Y = icon.Top + IconInset }, screens, above);
             foreach (Screen screen in Screen.AllScreens)
                 found.Add(new Ledge { Floor = true, Left = screen.WorkingArea.Left, Right = screen.WorkingArea.Right, Y = screen.WorkingArea.Bottom });
             return found;
         }
 
-        internal static Ledge Below(IEnumerable<Ledge> ledges, Point hip, int over, int reach, int slack, int room)
+        internal static Ledge At(IEnumerable<Ledge> ledges, Point foot, int floorSlack = 2)
         {
             Ledge best = null;
             foreach (Ledge ledge in ledges)
             {
+                if (ledge.Free || (!ledge.Floor && ledge.Right - ledge.Left < 24) || foot.X < ledge.Left || foot.X >= ledge.Right || Math.Abs(ledge.Y - foot.Y) > (ledge.Floor ? floorSlack : 2)) continue;
+                if (best == null || Math.Abs(ledge.Y - foot.Y) < Math.Abs(best.Y - foot.Y)) best = ledge;
+            }
+            return best;
+        }
+
+        internal static Ledge Below(IEnumerable<Ledge> ledges, Point hip, int over, int reach, int slack, int room, Ledge skip = null)
+        {
+            Ledge best = null;
+            foreach (Ledge ledge in ledges)
+            {
+                if (skip != null && !ledge.Floor && (ledge == skip || (skip.Window != IntPtr.Zero && ledge.Window == skip.Window) || (!skip.Icon.IsEmpty && ledge.Icon == skip.Icon))) continue;
                 int drop = ledge.Y - hip.Y;
                 if (drop < -over || drop > reach || ledge.Right - ledge.Left < 24) continue;
                 if (hip.X < ledge.Left - slack || hip.X > ledge.Right + slack) continue;
-                if (ledge.Y - room < Screen.FromPoint(new Point(hip.X, ledge.Y)).Bounds.Top) continue;
+                int x = Math.Max(ledge.Left, Math.Min(hip.X, ledge.Right - 1));
+                if (ledge.Y - room < Screen.FromPoint(new Point(x, ledge.Y - 1)).Bounds.Top) continue;
                 if (best == null || Math.Abs(drop) < Math.Abs(best.Y - hip.Y)) best = ledge;
             }
             return best;

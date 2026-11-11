@@ -1116,11 +1116,12 @@ namespace CapriDesktop
                 if (seat == null && !hanging) anchor = KeepOnScreen(anchor);
                 Location = anchor;
                 Play(hanging ? dangle : lying ? laydownGlitch : seat != null ? perchGlitch : instant || !preferences.Motion ? grin : arrive);
+                settleAfter = true;
                 Show();
                 RenderFrame();
                 UpdateAnimation();
                 Static(true, Cue.Arrive);
-                if (seat == null && !hanging) DropSoon();
+                if (seat == null && !hanging) DropSoon(true);
             }
             mainframe.Sync();
         }

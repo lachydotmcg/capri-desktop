@@ -1478,7 +1478,7 @@ namespace CapriDesktop
             Rectangle ICapriBody.Screen { get { return capri.FromWindow(() => Screen.FromPoint(capri.Hip()).WorkingArea); } }
 
             // She glitches over with her hip on the point, kept on its screen, and drops onto whatever's under her.
-            void ICapriBody.MoveTo(Point hip) { if (!over) capri.OnWindow(delegate { capri.Teleport(hip); }); }
+            void ICapriBody.MoveTo(Point hip) { if (!over) capri.OnWindow(delegate { capri.PlaceByMod(delegate { capri.Teleport(hip); }); }); }
 
             // Her move_yourself moves that only move her, by the same names her brain uses.
             private static readonly string[] Moves = { "come_here", "other_screen", "sit", "stand_up", "lie_down", "sit_up", "walk_around", "wander", "hang", "ride_cursor", "hop_off", "hide", "show" };
@@ -1487,14 +1487,14 @@ namespace CapriDesktop
             {
                 string move = (action ?? "").Trim().ToLowerInvariant().Replace(' ', '_');
                 if (Array.IndexOf(Moves, move) < 0) return "A mod can move her with " + string.Join(", ", Moves) + ".";
-                return over ? "" : capri.FromWindow(() => capri.MoveSelf(move, null));
+                return over ? "" : capri.FromWindow(() => capri.ModMove(move, null));
             }
 
             string ICapriBody.SitOn(string window)
             {
                 string named = Clean(window, 80);
                 if (named.Length == 0) return "Which window?";
-                return over ? "" : capri.FromWindow(() => capri.MoveSelf("sit_on", named));
+                return over ? "" : capri.FromWindow(() => capri.ModMove("sit_on", named));
             }
 
             bool ICapriBrain.Ready { get { Need("brain"); return capri.brain.Model != null; } }
