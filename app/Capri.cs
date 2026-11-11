@@ -2504,7 +2504,7 @@ namespace CapriDesktop
             menu.Font = Neon.Type(10f);
             menu.ShowImageMargin = false;
             menu.ShowCheckMargin = true;
-            ToolStripMenuItem title = new ToolStripMenuItem("CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
+            ToolStripMenuItem title = new ToolStripMenuItem("CAPRI  /  " + ShownVersion(Packaged.Is, true));
             title.Enabled = false;
             title.Font = Neon.Display(12f);
             title.Tag = Mainframe.MenuLook.Title;
@@ -2613,7 +2613,7 @@ namespace CapriDesktop
             ModList.SkinChanged = Reskinned;
             ArtAtStart();
             Shown += delegate { ModList.StartCode(Post); };
-            mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
+            mainframe = new Mainframe(this, tray.Icon, ShownVersion(Packaged.Is, false));
             Shown += delegate { StartRemote(); };
             playItem.DropDown = mainframe.MiniChoices();
             playItem.DropDown.Font = menu.Font;
@@ -4541,7 +4541,7 @@ namespace CapriDesktop
         internal string ErrorDetails()
         {
             Cloud remote = brain.Remote;
-            string head = "Capri v" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + " | brain: " + (remote != null ? remote.Name + " " + remote.Model : brain.Local != null ? "built-in " + brain.Model : brain.Model != null ? "Ollama " + brain.Model : "none") + " | watch: " + (preferences.Watch ? GlanceGap + " s" : "off") + " | voice: " + (Silent ? "off" : Speaking && voice.Key != null ? ElevenLabs : HdVoiceOn ? "HD" : ServerPicked ? ServerInCloud ? ServerCloudName : "CUSTOM LOCAL" : "PREBUILT LOCAL") + " | hey capri: " + (preferences.HeyCapri ? "on" : "off");
+            string head = "Capri " + ShownVersion(Packaged.Is, Packaged.Is) + " | brain: " + (remote != null ? remote.Name + " " + remote.Model : brain.Local != null ? "built-in " + brain.Model : brain.Model != null ? "Ollama " + brain.Model : "none") + " | watch: " + (preferences.Watch ? GlanceGap + " s" : "off") + " | voice: " + (Silent ? "off" : Speaking && voice.Key != null ? ElevenLabs : HdVoiceOn ? "HD" : ServerPicked ? ServerInCloud ? ServerCloudName : "CUSTOM LOCAL" : "PREBUILT LOCAL") + " | hey capri: " + (preferences.HeyCapri ? "on" : "off");
             string[] lines = new string[0];
             try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
             int from = Math.Max(0, lines.Length - 25);
@@ -4849,6 +4849,15 @@ namespace CapriDesktop
 
         // Start with Windows is off until they turn it on (#199): nothing writes her Run entry but this switch, not her first
         // run, which is the one the setup starts when it finishes, and not an update. An entry an older Capri made stays as it is.
+        // Her version as she shows it. The Store copy names the Store, since it updates on the Store's schedule and can be
+        // behind the website's. Mainframe only has room for "Store".
+        internal static string ShownVersion(bool store, bool full)
+        {
+            string version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
+            if (store) return (full ? "Microsoft Store " : "Store ") + version;
+            return full ? version : "v" + version;
+        }
+
         internal bool StartsWithWindows { get { return Packaged.Is ? Packaged.StartupOn() : Startup.On(Application.ExecutablePath); } }
 
         internal void ToggleStartup()
@@ -25746,6 +25755,12 @@ namespace CapriDesktop
 
                 Packaged.FullName = standIn;
                 if (!Packaged.Is || Packaged.Family != family) throw new Exception("The package family read wrong: " + Packaged.Family);
+                string mine = Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
+                if (ShownVersion(true, true) != "Microsoft Store " + mine || ShownVersion(true, false) != "Store " + mine || ShownVersion(false, true) != mine || ShownVersion(false, false) != "v" + mine)
+                    throw new Exception("Her version reads wrong: " + ShownVersion(true, true) + " | " + ShownVersion(true, false) + " | " + ShownVersion(false, true) + " | " + ShownVersion(false, false));
+                using (Font caption = Look.Mono(8.5f, FontStyle.Regular, GraphicsUnit.Point))
+                    if (TextRenderer.MeasureText(ShownVersion(true, false), caption).Width > 76) throw new Exception("Mainframe's Store caption is wider than its 76 px: " + ShownVersion(true, false));
+                checks.Add("PASS a Store copy reads Microsoft Store " + mine + " at the top of her menu and Store " + mine + " in Mainframe; the website copy keeps " + mine + " and v" + mine);
                 string alias = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft", "WindowsApps", "Capri.exe");
                 if (Packaged.Launcher(exe) != alias || !Ears.MicSwitch.EndsWith("\\microphone\\" + family, StringComparison.Ordinal) || Dictation.MicBlocked.IndexOf("Let desktop apps", StringComparison.Ordinal) >= 0)
                     throw new Exception("A Store copy's alias, mic switch or mic line is wrong: " + Packaged.Launcher(exe) + " | " + Ears.MicSwitch + " | " + Dictation.MicBlocked);

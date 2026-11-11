@@ -609,10 +609,11 @@ namespace CapriDesktop
             support.AccessibleName = "Support Capri: opens Lachy's Ko-fi in your browser";
             MakeRemoteKey(183 + v);
             // Her version sits where Mods was, beside Support, now Mods is up by Settings.
-            build = Lower(Caption("v" + version, 196, 183 + v, small, Faint));
+            build = Lower(Caption(version, 196, 183 + v, small, Faint));
             build.AutoSize = false;
             build.TextAlign = ContentAlignment.MiddleRight;
-            build.Bounds = new Rectangle(196, 183 + v, 66, 18);
+            // The Store copy's "Store 0.8.9" is wider, so it takes the gap up to Remote.
+            build.Bounds = Packaged.Is ? new Rectangle(190, 183 + v, 76, 18) : new Rectangle(196, 183 + v, 66, 18);
             showHide = Lower(Make("Hide Capri", 28, 206 + v, 104, 28, delegate { capri.ToggleHidden(); }));
             Lower(Make("Bring here", 140, 206 + v, 104, 28, delegate { capri.BringHere(); }));
             perch = Lower(Make("Ride cursor", 252, 206 + v, 104, 28, delegate { capri.TogglePerch(); }));
