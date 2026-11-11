@@ -121,6 +121,13 @@ namespace CapriDesktop
             Match explicitSite = Regex.Match(text, @"^remember\s+(.+?)\s+(?:is|as)\s+(\S+)$", RegexOptions.IgnoreCase);
             // "Remember my score is 12.5" is a note about them, so an address has to look like one.
             if (explicitSite.Success && Regex.IsMatch(explicitSite.Groups[2].Value, @"[a-z]{2}(?:[/:?#]\S*)?$|^(?:https?://)?\d+\.\d+\.\d+\.\d+", RegexOptions.IgnoreCase) && Address(explicitSite.Groups[2].Value) != null) return new ToolArguments { Action = "save", Name = Key(explicitSite.Groups[1].Value), Site = Address(explicitSite.Groups[2].Value) };
+            Match addressFirst = Regex.Match(text, @"^remember\s+(\S+)\s+as\s+(.+?)(?:\s+(?:and open it (?:the )?next time i say|so i can just say)\s+(.+))?$", RegexOptions.IgnoreCase);
+            if (addressFirst.Success && Regex.IsMatch(addressFirst.Groups[1].Value, @"[a-z]{2}(?:[/:?#]\S*)?$|^(?:https?://)?\d+\.\d+\.\d+\.\d+", RegexOptions.IgnoreCase) && Address(addressFirst.Groups[1].Value) != null)
+            {
+                string name = Key(addressFirst.Groups[2].Value);
+                if (addressFirst.Groups[3].Success && Key(addressFirst.Groups[3].Value) != name) return null;
+                return new ToolArguments { Action = "save", Name = name, Site = Address(addressFirst.Groups[1].Value) };
+            }
             Match forgotten = Regex.Match(text, @"^forget (?:the )?(.+?) (?:web)?site$", RegexOptions.IgnoreCase);
             return forgotten.Success ? new ToolArguments { Action = "forget", Name = Key(forgotten.Groups[1].Value) } : null;
         }

@@ -216,16 +216,12 @@ namespace CapriDesktop
         internal static string Find(ToolArguments args, Func<bool> stopped)
         {
             if (args.Action == "stop") { Stop(); return "Stopped looking for files."; }
-            if (args.Action == "show")
+            bool showing = args.Action == "show" || args.Action == "open";
+            if (showing && string.IsNullOrWhiteSpace(args.Description))
             {
                 string first;
                 lock (gate) first = Found ? last[0] : null;
-                if (first == null) return "Find a file or folder first, then I can show it to you.";
-                if (!File.Exists(first) && !Directory.Exists(first)) return "That path is no longer there: " + first;
-                Reply shown = Run(Hands.OnMac ? Start("/usr/bin/open", "-R", first) : Start("xdg-open", Path.GetDirectoryName(first)), Milliseconds, 0, null);
-                string where = Hands.OnMac ? "Finder" : "your file manager";
-                if (shown.Code != 0 || shown.TimedOut) return "Couldn't show that in " + where + ". Here's the path:\n" + first;
-                return Hands.OnMac ? "Selected " + first + " in Finder." : "Opened the folder in your file manager. Here's the path:\n" + first;
+                return first == null ? "Find a file or folder first, then I can show it to you." : Shown(first);
             }
             if (string.IsNullOrWhiteSpace(args.Description) || FileFinder.Wanted(args.Description).Length == 0) return "What file or folder should I find?";
             var request = new CancellationTokenSource();
@@ -264,9 +260,19 @@ namespace CapriDesktop
                     if (searching == request) { last = found; foundAt = DateTime.UtcNow; }
                 }
                 if (found.Count == 0) return bounded ? "The search reached its limit without a match. Try a more specific name." : "I didn't find a name matching " + args.Description + " in the folders I could read.";
+                if (showing) return Shown(found[0]);
                 return "The closest match is " + Path.GetFileName(found[0]) + ". Here are the paths you can copy:\n" + string.Join("\n", found) + "\nSay show it to me to " + (Hands.OnMac ? "select the first one in Finder." : "open its folder.") + (bounded ? " The search reached its limit." : "");
             }
             finally { lock (gate) if (searching == request) searching = null; request.Dispose(); }
+        }
+
+        private static string Shown(string first)
+        {
+            if (!File.Exists(first) && !Directory.Exists(first)) return "That path is no longer there: " + first;
+            Reply shown = Run(Hands.OnMac ? Start("/usr/bin/open", "-R", first) : Start("xdg-open", Path.GetDirectoryName(first)), Milliseconds, 0, null);
+            string where = Hands.OnMac ? "Finder" : "your file manager";
+            if (shown.Code != 0 || shown.TimedOut) return "Couldn't show that in " + where + ". Here's the path:\n" + first;
+            return Hands.OnMac ? "Selected " + first + " in Finder." : "Opened the folder in your file manager. Here's the path:\n" + first;
         }
 
         internal static string Full(string path)

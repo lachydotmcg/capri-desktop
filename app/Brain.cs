@@ -2543,6 +2543,7 @@ namespace CapriDesktop
             if (calls.Count == 0 && rest != null && !planned) unable = unable == null ? rest : unable + " " + rest;
             if (calls.Count == 0 && unable != null) raw = unable;
             string done = null, spoken = null;
+            bool namedWebsite = false;
             if (calls.Count > 0)
             {
                 // The same app, site or song twice in one ask opens once: a small brain stuck repeating itself can write the same call
@@ -2582,8 +2583,9 @@ namespace CapriDesktop
                 // So does a job that stopped to ask first: what ran, then its question.
                 string held = Security.Reply(results) ?? (results.Exists(Hands.Holds) ? Hands.Shown(string.Join(" ", deeds.ToArray())) : null);
                 done = held ?? Hands.Shown(string.Join(" ", deeds.ToArray()));
+                namedWebsite = calls.Count == 1 && calls[0].Key == "open_website" && calls[0].Value != null && string.IsNullOrWhiteSpace(calls[0].Value.Search) && Hands.Websites != null && Hands.Websites.Nickname(calls[0].Value.Site) != null;
                 Cloud remote = Remote;
-                string pulled = held ?? (results.Count == 1 ? Hands.Pulled(results[0]) : null);
+                string pulled = held ?? (namedWebsite ? done : results.Count == 1 ? Hands.Pulled(results[0]) : null);
                 bool teaching = results.Exists(Hands.Diagrammed);
                 bool stopped = false;
 #if !CROSS
@@ -2646,7 +2648,7 @@ namespace CapriDesktop
             string after;
             string firstPart = Replies.Split(Visible(raw), out after);
             if (!followUps || calls.Count > 0) { firstPart = firstPart + (after.Length == 0 ? "" : "\n" + after); after = ""; }
-            string said = spoken ?? (done != null && calls.Exists(pathCall => pathCall.Key == "find_file" || pathCall.Key == "website_nickname") ? done : Unclosed(Fresh(Unpraised(Sparing(Clean(firstPart), lately, name), praised), request, saidLately)));
+            string said = spoken ?? (done != null && (namedWebsite || calls.Exists(pathCall => pathCall.Key == "find_file" || pathCall.Key == "website_nickname")) ? done : Unclosed(Fresh(Unpraised(Sparing(Clean(firstPart), lately, name), praised), request, saidLately)));
             after = Unclosed(Sparing(Clean(after), lately || Regex.IsMatch(said, called, RegexOptions.IgnoreCase), name));
             if (spoken == null && (Regex.IsMatch(said, @"\A[`'""\s]*chat[.!`'""\s]*\z", RegexOptions.IgnoreCase) || Hands.Typed(raw, out written, out writtenArgs))) { said = ""; after = ""; }
             if (said.Length == 0 && after.Length > 0) { said = after; after = ""; }

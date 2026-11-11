@@ -19391,6 +19391,8 @@ namespace CapriDesktop
                     { "do this quiz for me", "use_computer" }, { "answer this quiz", "use_computer" },
                     { "fill in this quiz", "use_computer" }, { "answer these questions", "use_computer" },
                     { "Hey, Capri. Can you please show me the path to the cyberpunk game folder", "find_file" },
+                    { "open the cyberpunk folder", "find_file" }, { "can you open the cyberpunk folder please", "find_file" },
+                    { "show me my cyberpunk folder", "find_file" }, { "open cyberpunk folder", "find_file" },
                     { "find my holiday photos", "find_file" }, { "find budget.xlsx", "find_file" }
                 };
                 string[] conversations = { "let's talk", "let's see", "let's go", "let's be honest", "we should talk", "how about you", "time for bed", "i watched youtube yesterday", "what's a quiz", "i have a quiz tomorrow" };
@@ -19412,6 +19414,11 @@ namespace CapriDesktop
                     if (Hands.Heard(webSearch, out heardTool, out heardArgs) && heardTool == "find_file") throw new Exception("A web search became a file search: " + webSearch);
                 foreach (string pcSearch in new[] { "where's my homework folder", "look for tax return on my pc", "find my videos folder" })
                     if (!Hands.Heard(pcSearch, out heardTool, out heardArgs) || heardTool != "find_file") throw new Exception("A search of this PC went elsewhere: " + pcSearch);
+                foreach (string folderRequest in new[] { "open the cyberpunk folder", "can you open the cyberpunk folder please", "show me my cyberpunk folder", "open cyberpunk folder" })
+                    if (!Hands.Direct(folderRequest, out heardTool, out heardArgs, true) || heardTool != "find_file" || heardArgs.Action != "show" || FileFinder.Wanted(heardArgs.Description) != "cyberpunk" || !Hands.Heard(folderRequest, out heardTool, out heardArgs, true) || heardTool != "find_file" || !Hands.Instant(heardTool, heardArgs)) throw new Exception("Opening a named folder needed a brain: " + folderRequest);
+                foreach (string notFolder in new[] { "open spotify", "show me how to find my cyberpunk folder", "don't open the cyberpunk folder", "I opened the cyberpunk folder", "open spotify and open the cyberpunk folder" })
+                    if (Hands.Heard(notFolder, out heardTool, out heardArgs) && heardTool == "find_file") throw new Exception("A different request became a folder open: " + notFolder);
+                checks.Add("PASS named folder opens and shows go straight to file search, including polite requests; conversation and other actions stay separate");
                 if (Hands.Heard("wanna play something", out heardTool, out heardArgs)) throw new Exception("Wanna play something picked a song: " + heardTool);
                 if (Hands.Heard("remember my score is 12.5", out heardTool, out heardArgs) && heardTool == "website_nickname") throw new Exception("A note became a website nickname.");
                 checks.Add("PASS suggestions and screen questions: every reported ask routes through Heard, Wants and Direct; ordinary conversation stays chat, quizzes use a normal job, and opening apps, sites and music works without a brain");
@@ -19550,6 +19557,34 @@ namespace CapriDesktop
                     if (Hands.Websites.Find(savedSites[siteIndex, 0].ToUpperInvariant()) != savedSites[siteIndex, 1]) throw new Exception("A spaced or non-English nickname lost its address on reload.");
                 checks.Add("PASS remember X as an address saves a website instead of a note, including quoted names, extra spaces, capitals and non-English names, and reload keeps the address");
 
+                foreach (string quote in new[] { "", "\"", "'", "\u201c" })
+                foreach (string lead in new[] { "", "Please " })
+                foreach (string ending in new[] { "", " and open it the next time I say ", " so I can just say " })
+                {
+                    string close = quote == "\u201c" ? "\u201d" : quote;
+                    string saving = lead + "remember https://example.com/page as " + quote + "ps" + close + (ending.Length == 0 ? "" : ending + quote + "ps" + close);
+                    int beforeSave = launches.Count;
+                    if (!Hands.Direct(saving, out heardTool, out heardArgs, true) || heardTool != "website_nickname" || heardArgs.Name != "ps" || heardArgs.Site != "https://example.com/page" || heardArgs.Action != "save" || !Hands.Valid(heardTool, heardArgs) || !Hands.Instant(heardTool, heardArgs) || !WithoutBrain(heardTool) || !Hands.Wants(saving)) throw new Exception("An address-first nickname kept the wrong name or needed a brain: " + saving);
+                    if (!Hands.Heard(saving, out heardTool, out heardArgs, true) || heardTool != "website_nickname" || heardArgs.Name != "ps") throw new Exception("A nickname save was split before it reached her hands: " + saving);
+                    Hands.Do(heardTool, heardArgs);
+                    if (new Websites(fixture).Find("ps") != "https://example.com/page" || launches.Count != beforeSave) throw new Exception("A nickname did not save for later: " + saving);
+                }
+                foreach (string notNickname in new[] { "remember my score is 12.5", "remember 12.5 as my score", "remember https://example.com/page as ps so I can just say other", "what does ps stand for" })
+                    if (Hands.Heard(notNickname, out heardTool, out heardArgs) && heardTool == "website_nickname") throw new Exception("A different sentence saved a website nickname: " + notNickname);
+                Hands.Websites = new Websites(fixture);
+                Hands.Websites.Do(new ToolArguments { Action = "save", Name = "p", Site = "https://example.com/one" });
+                foreach (string opening in new[] { "ps", "ps please", "open ps", "go to ps", "PS", "\"ps\"", "p", "p please", "open p", "go to p" })
+                {
+                    int beforeOpen = launches.Count;
+                    if (!Hands.Direct(opening, out heardTool, out heardArgs, true) || heardTool != "open_website" || !Hands.Heard(opening, out heardTool, out heardArgs, true) || heardTool != "open_website" || !Hands.Valid(heardTool, heardArgs) || !Hands.Instant(heardTool, heardArgs) || !WithoutBrain(heardTool) || !Hands.Wants(opening)) throw new Exception("A saved nickname went to chat or needed a brain: " + opening);
+                    string address = Hands.Websites.Find(heardArgs.Site);
+                    string opened = Hands.Do(heardTool, heardArgs);
+                    if (address == null || launches.Count != beforeOpen + 1 || launches[beforeOpen] != address || opened != "Opened example.com." || opened.Contains(address)) throw new Exception("A nickname was echoed instead of opened: " + opening);
+                }
+                foreach (string notOpening in new[] { "what does ps stand for", "what does p stand for", "apps", "caps", "oops", "open apps", "open pss", "ps is an abbreviation", "I use ps for work", "say ps", "type ps", "go to ps and open spotify", "I said Capri, ps", "what does that mean. ps" })
+                    if (Hands.Direct(notOpening, out heardTool, out heardArgs) && heardTool == "open_website" || Hands.Heard(notOpening, out heardTool, out heardArgs) && heardTool == "open_website") throw new Exception("A short nickname matched inside something else: " + notOpening);
+                checks.Add("PASS address-first website saves keep only the quoted or unquoted nickname, with please and either future-open ending; reload keeps it, bare and polite names open once, and short names stay out of other words and conversation");
+
                 string[,] siteRequests =
                 {
                     { "open my school website", "school", "https://example.com/School" },
@@ -19657,6 +19692,29 @@ namespace CapriDesktop
                 File.WriteAllText(Path.Combine(epicFixture, "game.item"), "{\"InstallLocation\":" + Voice.Quote(otherFolder) + "}");
                 if (!new System.Collections.Generic.List<string>(FileFinder.Steam(steamFixture)).Contains(Path.Combine(extraLibrary, @"steamapps\common")) || !new System.Collections.Generic.List<string>(FileFinder.Epic(epicFixture)).Contains(otherFolder)) throw new Exception("A game store's custom folder was lost.");
                 string selectedFile = null, workerResult = null;
+                foreach (string action in new[] { "show", "open" })
+                {
+                    int scans = 0;
+                    string firstSelected = null;
+                    FileFinder firstFinder = new FileFinder();
+                    firstFinder.Roots = delegate { scans++; return new[] { fixture }; };
+                    firstFinder.Wider = delegate { return new string[0]; };
+                    firstFinder.Reveal = delegate(string path) { firstSelected = path; return true; };
+                    if (!Hands.Valid("find_file", new ToolArguments { Action = action }) || firstFinder.Do(new ToolArguments { Action = action }, null) != "Find a file or folder first, then I can show it to you." || scans != 0) throw new Exception("Showing without a description changed: " + action);
+                    if (firstFinder.Do(new ToolArguments { Action = action, Description = "cyberpunk folder" }, null) != "Selected " + gameFolder + " in File Explorer." || firstSelected != gameFolder || scans != 1 || !firstFinder.Found || firstFinder.Busy) throw new Exception("Showing before searching did not find and select the folder: " + action);
+                    firstSelected = null;
+                    if (firstFinder.Do(new ToolArguments { Action = action }, null) != "Selected " + gameFolder + " in File Explorer." || firstSelected != gameFolder || scans != 1) throw new Exception("Showing a saved result searched again: " + action);
+                    if (firstFinder.Do(new ToolArguments { Action = action, Description = "cyberpunk 2077 folder" }, null) != "Selected " + otherFolder + " in File Explorer." || firstSelected != otherFolder || scans != 2) throw new Exception("A named folder reused a different search result: " + action);
+                    firstFinder = new FileFinder();
+                    firstFinder.Roots = delegate { return new[] { fixture }; };
+                    firstFinder.Wider = delegate { return new string[0]; };
+                    firstSelected = null;
+                    firstFinder.Reveal = delegate(string path) { firstSelected = path; return false; };
+                    if (!firstFinder.Do(new ToolArguments { Action = action, Description = "missing folder" }, null).StartsWith("I didn't find a name matching ", StringComparison.Ordinal) || firstSelected != null || firstFinder.Found || firstFinder.Busy) throw new Exception("A failed search selected something: " + action);
+                    if (firstFinder.Do(new ToolArguments { Action = action, Description = "cyberpunk folder" }, delegate { return true; }) != "Stopped looking for files." || firstSelected != null || firstFinder.Found || firstFinder.Busy) throw new Exception("A cancelled search selected something: " + action);
+                    if (firstFinder.Do(new ToolArguments { Action = action, Description = "cyberpunk folder" }, null) != "Couldn't select that in File Explorer. Here's the path:\n" + gameFolder || firstSelected != gameFolder || !firstFinder.Found) throw new Exception("Showing before searching lost a failed selection's path: " + action);
+                }
+                checks.Add("PASS show and open search a description before their first selection, reuse saved results, keep the old answer without a description, and preserve missing, cancelled and failed-selection results");
                 bool searchedOnWorker = false;
                 Hands.Finder.Roots = delegate { searchedOnWorker = Thread.CurrentThread.IsThreadPoolThread; return new[] { fixture }; };
                 Hands.Finder.Reveal = delegate(string selectedPath) { selectedFile = selectedPath; return true; };
@@ -19708,9 +19766,23 @@ namespace CapriDesktop
                     }
                     if (string.Join(",", plannerTools.ToArray()) != "website_nickname:save,open_website:school,find_file:search,find_file:stop") throw new Exception("The planning brain reinterpreted a known website or file request.");
                     lock (plannerHttp) if (plannerHttp.Count != 0) throw new Exception("A known website or file request waited for a cloud planner.");
+                    foreach (bool ownSteps in new[] { false, true })
+                    {
+                        Brain nicknameBrain = new Brain { OwnSteps = ownSteps, Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Model = "gpt-5-mini" };
+                        nicknameBrain.Act = delegate(string name, ToolArguments callArgs) { if (name != "open_website") throw new Exception("A nickname reached typing or another tool: " + name); return Hands.Do(name, callArgs); };
+                        foreach (string opening in new[] { "ps", "ps please", "open ps", "go to ps" })
+                        {
+                            nicknameBrain.Forget();
+                            int beforeOpen = launches.Count;
+                            string reply = nicknameBrain.Ask(opening);
+                            if (reply != "Opened example.com." || reply.Contains("https://example.com/page") || launches.Count != beforeOpen + 1 || launches[beforeOpen] != "https://example.com/page") throw new Exception("A brain replied with a link instead of opening the nickname: " + opening);
+                        }
+                    }
+                    lock (plannerHttp) if (plannerHttp.Count != 0) throw new Exception("A nickname reached the brain for typing or reply wording.");
                 }
                 finally { Brain.OpenAi = plannerApiWas; plannerFake.Stop(); }
                 checks.Add("PASS known website and file routes stay direct on planning brains, including save, open, find and stop, while unknown website targets still reach the planner");
+                checks.Add("PASS bare and polite saved nicknames open once on chat and planning brains, use the plain tool reply, and make no model request that could type or echo their links");
                 using (ManualResetEvent scanEntered = new ManualResetEvent(false))
                 using (ManualResetEvent scanRelease = new ManualResetEvent(false))
                 using (ManualResetEvent scanFinished = new ManualResetEvent(false))
