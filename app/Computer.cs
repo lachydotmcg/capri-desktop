@@ -17,6 +17,8 @@ namespace CapriDesktop
         internal string Role;
         internal string Name;
         internal string Value;
+        internal string Text;
+        internal string Id;
         internal Rectangle Box;
         internal bool Secret;
         internal bool Focused;
@@ -1304,11 +1306,21 @@ namespace CapriDesktop
                 if (name.Length > 0 || focused || kind == ControlType.Edit || kind == ControlType.ComboBox || kind == ControlType.Document)
                 {
                     System.Windows.Rect rect = info.BoundingRectangle;
-                    return new Target { Number = 1, Role = Role(kind), Name = name.Length > 60 ? name.Substring(0, 57) + "..." : name, Secret = info.IsPassword, Focused = focused || info.HasKeyboardFocus, Line = kind == ControlType.Edit || kind == ControlType.ComboBox, Box = rect.IsEmpty ? Rectangle.Empty : Rectangle.FromLTRB((int)rect.Left, (int)rect.Top, (int)rect.Right, (int)rect.Bottom) };
+                    return new Target { Number = 1, Id = FieldId(element), Role = Role(kind), Name = name.Length > 60 ? name.Substring(0, 57) + "..." : name, Secret = info.IsPassword, Focused = focused || info.HasKeyboardFocus, Line = kind == ControlType.Edit || kind == ControlType.ComboBox, Box = rect.IsEmpty ? Rectangle.Empty : Rectangle.FromLTRB((int)rect.Left, (int)rect.Top, (int)rect.Right, (int)rect.Bottom) };
                 }
                 element = TreeWalker.ControlViewWalker.GetParent(element);
             }
             return null;
+        }
+
+        private static string FieldId(AutomationElement element)
+        {
+            try
+            {
+                int[] id = element.GetRuntimeId();
+                return id == null || id.Length == 0 ? null : string.Join(".", Array.ConvertAll(id, part => part.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            }
+            catch (Exception) { return null; }
         }
 
         // Where one of Claude's actions lands on screen: its coordinate, or her pointer when it gives none.
@@ -1638,14 +1650,14 @@ namespace CapriDesktop
                 if (name.Length > 60) name = name.Substring(0, 57) + "...";
                 string key = kind.ProgrammaticName + "|" + name + "|" + shown.X / 4 + "|" + shown.Y / 4;
                 if (!seen.Add(key)) continue;
-                string value = null;
+                string value = null, text = null;
                 if (typable && !info.IsPassword)
                 {
                     object read = element.GetCachedPropertyValue(ValuePattern.ValueProperty, true);
-                    if (read is string) value = Regex.Replace((string)read, @"\s+", " ").Trim();
+                    if (read is string) { text = (string)read; value = Regex.Replace(text, @"\s+", " ").Trim(); }
                     if (value != null && value.Length > 60) value = value.Substring(0, 57) + "...";
                 }
-                targets.Add(new Target { Role = Role(kind), Name = name, Value = value, Box = shown, Secret = info.IsPassword, Focused = info.HasKeyboardFocus, Line = kind == ControlType.Edit || kind == ControlType.ComboBox, Page = kind == ControlType.Document });
+                targets.Add(new Target { Id = FieldId(element), Role = Role(kind), Name = name, Value = value, Text = info.HasKeyboardFocus ? text : null, Box = shown, Secret = info.IsPassword, Focused = info.HasKeyboardFocus, Line = kind == ControlType.Edit || kind == ControlType.ComboBox, Page = kind == ControlType.Document });
             }
             Comparison<Target> reading = delegate(Target a, Target b) { int row = (a.Box.Top / 12).CompareTo(b.Box.Top / 12); return row != 0 ? row : a.Box.Left.CompareTo(b.Box.Left); };
             targets.Sort(reading);
@@ -1744,6 +1756,7 @@ namespace CapriDesktop
         internal static string Why { get { return why ?? "I stopped."; } }
 
         internal const string Escaped = "You pressed Esc, so I stopped.";
+        internal const string TypeAgain = "That text is already in the field, so I didn't type it again.";
 
         // Whether this is what a job stopped on, by Esc or by their word: either ends the whole ask.
         internal static bool Stopped(string said) { return said == Escaped || (interrupted && said == why); }
@@ -2510,6 +2523,14 @@ namespace CapriDesktop
         private bool doubted;
         private string lastPrint;
         private string lastTool;
+        private TypeStamp lastType;
+
+        private sealed class TypeStamp
+        {
+            internal string Text, Id;
+            internal IntPtr Window;
+            internal bool Sent;
+        }
         private int still;
         // What they said to her while it ran, for its next turn, and (for brains without the computer tools) everything they've
         // said so far, since each of those turns is written fresh.
@@ -3121,7 +3142,12 @@ namespace CapriDesktop
                         return End("waiting", question);
                     }
                     string result = Step(tool, args, member, target);
-                    if (tool == "type" && args.Enter == "yes" && !Computer.Failed(result)) result = Step("key", new ToolArguments { Text = "Return" }, true, null);
+                    if (tool == "type" && args.Enter == "yes" && !Computer.Failed(result) && !Computer.Interrupted)
+                    {
+                        bool skipped = result == Computer.TypeAgain;
+                        result = Step("key", new ToolArguments { Text = "Return" }, true, null);
+                        if (skipped && !Computer.Failed(result) && !Computer.Interrupted) result = Computer.TypeAgain + " Pressed Enter.";
+                    }
                     if (trace != null) trace("  " + tool + " -> " + result);
                     results += "\n" + move.Key + ": " + result;
                     if (Computer.Interrupted) return End("stopped", Computer.Why);
@@ -3169,11 +3195,12 @@ namespace CapriDesktop
                 Answered answer = new Answered { Call = call };
                 if (member && call.Name == "screenshot")
                 {
+                    lastType = null;
                     bool seen = Look();
                     answer.Text = seen ? "This is the screen now." : "Couldn't capture the screen.";
                     answer.Picture = seen ? Latest() : "";
                 }
-                else if (member && call.Name == "zoom") answer.Text = Zoom(args, answer);
+                else if (member && call.Name == "zoom") { lastType = null; answer.Text = Zoom(args, answer); }
                 else
                 {
                     Target target;
@@ -3370,6 +3397,10 @@ namespace CapriDesktop
 
         private string Step(string name, ToolArguments args, bool member, Target target)
         {
+            Sight sight = shown != null && shown.Sight != null ? shown.Sight : Computer.Glimpse();
+            string repeated = CheckType(name, args, sight, member);
+            if (repeated != null) return SkippedType(repeated);
+            TypeStamp stamp = Typing(name, args, sight, member);
             if (name == "draw") args.Drawing = shown;
             if (name == "say")
             {
@@ -3386,7 +3417,7 @@ namespace CapriDesktop
             if (progress != null && doing != null) progress(doing + ".");
             if (doing != null) Mark(new JobStep { Tool = name, Label = doing });
             string result;
-            try { result = name == "learn" ? GameNotes.Learn(Game(), args.Text) : member ? Computer.Use(name, args, shown) : Computer.Act(name, args, shown != null && shown.Sight != null ? shown.Sight : Computer.Glimpse()); }
+            try { result = name == "learn" ? GameNotes.Learn(Game(), args.Text) : member ? Computer.Use(name, args, shown) : Computer.Act(name, args, sight); }
             catch (Exception error) { result = Hands.Problem(error); }
             if (result != null && result.StartsWith(Computer.OffScreen, StringComparison.Ordinal))
             {
@@ -3397,6 +3428,7 @@ namespace CapriDesktop
             if (secret) result = Hush(result, args.Text);
             if (Playing && !secret) played.Add(name + " " + Computer.Traced(args) + ": " + result);
             bool failed = Computer.Failed(result) || Computer.Interrupted;
+            lastType = failed ? null : stamp;
             string done = member ? Computer.Moving(name, masked, target, true) : Computer.Did(name, masked, null);
             if (doing != null)
             {
@@ -3459,6 +3491,18 @@ namespace CapriDesktop
 
         private string Perform(string tool, ToolArguments args, Sight sight)
         {
+            if (tool == "type") args.Text = Filled(Computer.Unechoed(args.Text, Task.IndexOf(Computer.Exact, StringComparison.Ordinal) >= 0 ? Words : null));
+            string repeated = CheckType(tool, args, sight, false);
+            if (repeated != null)
+            {
+                if (repeated == Computer.TypeAgain && args.Enter == "yes")
+                {
+                    string pressed = Perform("press", new ToolArguments { Keys = "enter" }, sight);
+                    repeated = !Computer.Failed(pressed) && !Computer.Interrupted ? Computer.TypeAgain + " Pressed Enter." : pressed;
+                }
+                return SkippedType(repeated);
+            }
+            TypeStamp stamp = Typing(tool, args, sight, false);
             if (tool == "say")
             {
                 string spoken = Spoken(args.Text, clock.Elapsed.TotalSeconds);
@@ -3466,7 +3510,6 @@ namespace CapriDesktop
                 return spoken;
             }
             Computer.KeysOk = approved.Contains("keys");
-            if (tool == "type") args.Text = Filled(Computer.Unechoed(args.Text, Task.IndexOf(Computer.Exact, StringComparison.Ordinal) >= 0 ? Words : null));
             // The window in front changed after she looked, so she looks again instead of acting on old buttons. Keys that need no
             // spot on the screen still go, as they bring back the window she looked at first. Only Esc stops her.
             if (!Computer.KeysOnly(tool, args) && tool != "find_file" && tool != "open_app" && tool != "open_website" && tool != "wait" && tool != "wait_for" && tool != "note" && sight != null && sight.Window != IntPtr.Zero && Computer.Front() != sight.Window)
@@ -3520,12 +3563,72 @@ namespace CapriDesktop
             if (secret) { result = Hush(result, args.Text); if (shown != null) shown = Hush(shown, args.Text); }
             Steps.Add(Computer.Describe(tool, masked, sight) + ": " + result);
             bool failed = Computer.Failed(result) || Computer.Interrupted;
+            lastType = failed ? null : stamp;
             Mark(new JobStep { Tool = tool, Label = failed ? Clean(shown ?? Hands.Shown(result), "That didn't work.").TrimEnd('.') : Computer.Did(tool, masked, sight), Finished = true, Failed = failed });
             return result;
         }
 
         // What she was told or saw: their job, her notes, the screen she just left and this one.
         private string Known(Sight sight) { return Task + "\n" + string.Join("\n", new List<string>(notes.Values).ToArray()) + "\n" + earlier + "\n" + (sight == null ? "" : sight.Text); }
+
+        private string CheckType(string tool, ToolArguments args, Sight sight, bool member)
+        {
+            if (tool != "type") { lastType = null; return null; }
+            if ((args.Text ?? "").Length < 4) return null;
+            TypeStamp before = lastType;
+            if (before == null || before.Sent || before.Id == null || !string.Equals(before.Text, args.Text, StringComparison.Ordinal) || before.Window == IntPtr.Zero
+                || sight == null || sight.Window != before.Window) return null;
+            if (!member && !string.IsNullOrEmpty(args.Target))
+            {
+                Target target = sight.Find(args.Target);
+                if (target == null || target.Id != before.Id) return null;
+            }
+            bool present = false;
+            try
+            {
+                Computer.Pause(300);
+                Sight fresh = Computer.Look();
+                if (fresh != null && fresh.Window == before.Window && fresh.Problem == null && Computer.Front() == before.Window)
+                {
+                    Action<Sight> reader = Reader;
+                    if (reader != null) reader(fresh);
+                    Target box = fresh.Targets.Find(found => found.Focused);
+                    Target focused = Computer.Focus();
+                    present = box != null && focused != null && box.Id == before.Id && focused.Id == before.Id
+                        && box.Line && focused.Line && focused.Focused && !box.Secret && !focused.Secret && !Computer.SecretFocus() && box.Text != null
+                        && string.Equals(box.Text, args.Text, StringComparison.Ordinal);
+                    if (Computer.Front() != before.Window) present = false;
+                }
+            }
+            catch (Exception) { present = false; }
+            // Skipped once. If her brain asks for the same text again, it means it, so the next one types.
+            if (present) lastType = null;
+            return Computer.Interrupted ? Computer.Why : present ? Computer.TypeAgain : null;
+        }
+
+        private string SkippedType(string result)
+        {
+            Steps.Add("type: " + result);
+            Mark(new JobStep { Tool = "type", Label = result.TrimEnd('.'), Finished = true, Failed = Computer.Failed(result) || Computer.Interrupted });
+            return result;
+        }
+
+        private TypeStamp Typing(string tool, ToolArguments args, Sight sight, bool member)
+        {
+            if (tool != "type" || string.IsNullOrEmpty(args.Text)) return null;
+            try
+            {
+                Target box = member ? Computer.Focus() : sight == null ? null : sight.Find(args.Target) ?? sight.Targets.Find(found => found.Focused);
+                if (box == null || !box.Line || box.Secret || string.IsNullOrEmpty(box.Id) || Computer.SecretFocus()) return null;
+                return new TypeStamp
+                {
+                    Text = args.Text, Window = sight == null ? Computer.Front() : sight.Window,
+                    Sent = args.Enter == "yes" || args.Text.IndexOf('\n') >= 0 || args.Text.IndexOf('\r') >= 0,
+                    Id = box.Id
+                };
+            }
+            catch (Exception) { return null; }
+        }
 
         private string Note(ToolArguments args)
         {

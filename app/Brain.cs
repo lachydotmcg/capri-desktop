@@ -5404,6 +5404,103 @@ namespace CapriDesktop
         }
     }
 
+    internal sealed class OwnSpeech
+    {
+        internal sealed class Entry
+        {
+            internal string Kind, Text, Game;
+            internal DateTime At;
+        }
+
+        private readonly List<Entry> said = new List<Entry>();
+        private readonly object gate = new object();
+        private readonly Func<DateTime> clock;
+        private static readonly HashSet<string> Plain = new HashSet<string>(("about again all also and any are around back been being but can choom cool could damn did does doing done down even ever every for from get gets getting going gonna good got great gremlin guess had has have hello hey how here job just know like little look looks maybe more most much nice now okay one only other out preem really right say see should some something still sure than that the their them then there these they thing things think this those through time today too very wanna want was well were what when where which who why will with work would wow yeah yes yet you your yours capri").Split(' '));
+
+        internal OwnSpeech(Func<DateTime> now = null) { clock = now ?? delegate { return DateTime.UtcNow; }; }
+
+        private void Trim()
+        {
+            DateTime now = clock();
+            said.RemoveAll(line => now - line.At >= TimeSpan.FromMinutes(30));
+        }
+
+        internal Entry[] Recent { get { lock (gate) { Trim(); return said.ToArray(); } } }
+
+        internal string Avoid(string kind, string game)
+        {
+            lock (gate)
+            {
+                Trim();
+                if (string.IsNullOrWhiteSpace(game)) return "";
+                List<string> kept = new List<string>();
+                foreach (Entry line in said)
+                    if (line.Kind != kind && Words(line.Game) == Words(game)) kept.Add(Short(line.Text));
+                if (kept.Count == 0) return "";
+                StringBuilder text = new StringBuilder("\nYou already said these about it, so don't say them again:");
+                for (int i = Math.Max(0, kept.Count - 4); i < kept.Count; i++) text.Append("\n- " + kept[i]);
+                return text.ToString();
+            }
+        }
+
+        private static string Short(string line)
+        {
+            string text = Regex.Replace(line ?? "", @"\s+", " ").Trim();
+            return text.Length > 80 ? text.Substring(0, 80) : text;
+        }
+
+        internal bool Repeats(string kind, string line, string game = null)
+        {
+            lock (gate) { Trim(); return Repeated(kind, line, game); }
+        }
+
+        private bool Repeated(string kind, string line, string game)
+        {
+            string text = Words(line);
+            HashSet<string> words = Content(line, game);
+            string language = Brain.Language;
+            bool english = string.IsNullOrEmpty(language) || language == "English";
+            foreach (Entry old in said)
+            {
+                if (old.Kind == kind) continue;
+                if (text == Words(old.Text)) return true;
+                if (!english) continue;
+                HashSet<string> before = Content(old.Text, old.Game);
+                int shared = 0;
+                foreach (string word in words) if (before.Contains(word)) shared++;
+                if (shared >= 3 && shared * 5 >= Math.Min(words.Count, before.Count) * 3) return true;
+            }
+            return false;
+        }
+
+        private static string Words(string line) { return Regex.Replace(Regex.Replace(line ?? "", @"\[[^\]]*\]", " ").ToLowerInvariant(), @"[^\p{L}\p{Nd}]+", " ").Trim(); }
+
+        private static HashSet<string> Content(string line, string game)
+        {
+            HashSet<string> words = new HashSet<string>();
+            string names = " " + Words(Brain.Nickname) + " " + Words(game) + " ";
+            foreach (string token in Words(line).Split(' '))
+            {
+                if (token.Length < 4 || Plain.Contains(token) || names.Contains(" " + token + " ")) continue;
+                words.Add(token);
+            }
+            return words;
+        }
+
+        internal bool Take(string kind, string line, string game = null)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return false;
+            lock (gate)
+            {
+                Trim();
+                if (Repeated(kind, line, game)) return false;
+                said.Add(new Entry { Kind = kind, Text = line, Game = game, At = clock() });
+                if (said.Count > 12) said.RemoveAt(0);
+                return true;
+            }
+        }
+    }
+
     internal static class Lines
     {
         internal static readonly string[] OnIt = { "On it. Esc stops me.", "Hands on. Esc if you change your mind.", "Mine now. Esc pulls me off.", "Okay, driving. Esc to bail.", "Watch this. Esc if I get weird.", "Going in. Esc stops me any time.", "Leave it with me. Esc if it goes sideways.", "Say less. Esc takes it back." };
@@ -5411,21 +5508,39 @@ namespace CapriDesktop
         internal static readonly string[] Changed = { "Okay, changing course.", "Switching it up.", "Sure, new plan.", "Yep, doing it that way.", "Fine, your way.", "Got it, scrapping that bit." };
         internal static readonly string[] Stopped = { "Stopped.", "Okay, hands off.", "Dropped it.", "Done, I've let go.", "Fine, leaving it there.", "Stopped where I was." };
         internal static readonly string[] Busy = { "Hands are full, tell me again in a sec.", "Hang on, finishing this bit first.", "Missed that, I'm mid-click. Say it again?", "One sec, brain's on the job." };
-        private static readonly Dictionary<string[], List<string>> said = new Dictionary<string[], List<string>>();
+        private sealed class Pool
+        {
+            internal readonly List<string> Left = new List<string>();
+            internal string Last;
+        }
+        private static readonly Dictionary<string[], Pool> said = new Dictionary<string[], Pool>();
         private static readonly Random Dice = new Random();
 
-        // A line she hasn't said lately: the last half of a set stays out of the draw, so no two in a row ever match.
+        // A line she hasn't said lately: a set goes round in a new order each time, every line once, and a new round never
+        // starts with the line the last one ended on.
         internal static string Pick(string[] set)
         {
             lock (said)
             {
-                List<string> lately;
-                if (!said.TryGetValue(set, out lately)) said[set] = lately = new List<string>();
-                List<string> fresh = new List<string>(set);
-                fresh.RemoveAll(line => lately.Contains(line));
-                string picked = fresh[Dice.Next(fresh.Count)];
-                lately.Add(picked);
-                if (lately.Count > set.Length / 2) lately.RemoveAt(0);
+                Pool pool;
+                if (!said.TryGetValue(set, out pool)) said[set] = pool = new Pool();
+                if (pool.Left.Count == 0)
+                {
+                    pool.Left.AddRange(set);
+                    for (int i = pool.Left.Count - 1; i > 0; i--)
+                    {
+                        int j = Dice.Next(i + 1);
+                        string swap = pool.Left[i]; pool.Left[i] = pool.Left[j]; pool.Left[j] = swap;
+                    }
+                    if (pool.Left.Count > 1 && pool.Left[0] == pool.Last)
+                    {
+                        int j = Dice.Next(1, pool.Left.Count);
+                        string swap = pool.Left[0]; pool.Left[0] = pool.Left[j]; pool.Left[j] = swap;
+                    }
+                }
+                string picked = pool.Left[0];
+                pool.Left.RemoveAt(0);
+                pool.Last = picked;
                 return picked;
             }
         }

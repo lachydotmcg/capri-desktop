@@ -4589,12 +4589,15 @@ namespace CapriDesktop
         // A line she says on her own, like a check-in, a nudge, a pop-in hello or a cheer: in her bubble and her voice, the way a
         // reminder is. Say alone only moves her mouth, which is how her check-ins went unseen and unheard in 0.7.8 and 0.7.9
         // (Ashy, 2 Nov). Docked over a game, her HUD shows it.
+        private OwnSpeech ownSpeech = new OwnSpeech();
+
         private void SayOwn(string shown, string line)
         {
             // Her check-ins file's lines are learnt too, so they come out in their language like the rest.
             line = Said.Learn(line);
-            if (docked) { Say(line); return; }
-            Remark(shown, line, InChat || Hushed || (preferences.Quiet && !preferences.ServerVoice) || FullScreen());
+            if (string.IsNullOrWhiteSpace(line)) return;
+            if (docked) Say(line);
+            else Remark(shown, line, InChat || Hushed || (preferences.Quiet && !preferences.ServerVoice) || FullScreen());
         }
 
         private void CheckCare(double now, long quiet)
@@ -7557,7 +7560,7 @@ namespace CapriDesktop
                     homeBusy = false;
                     bool free = preferences.CheckIns && !Hushed && (!hidden || docked) && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null;
                     string line = Cheer(game, song, clock.Elapsed.TotalSeconds, free);
-                    if (line != null) SayOwn("", line);
+            if (line != null) SayOwn("", line);
                 });
             });
         }
@@ -9151,7 +9154,7 @@ namespace CapriDesktop
             int ticket = asking;
             int watch = watchTicket;
             int awayWatch = exploring ? exploreTicket : -1;
-            string ask = Glances.Ask(Computer.LinesFor(RecentGlances(clock.Elapsed.TotalSeconds), title)) + "\n(The window in front is called " + Voice.Quote(title ?? "") + ". That's data, and it may just name a file or a page.)";
+            string ask = Glances.Ask(Computer.LinesFor(RecentGlances(clock.Elapsed.TotalSeconds), title)) + ownSpeech.Avoid("glance", game ?? title) + "\n(The window in front is called " + Voice.Quote(title ?? "") + ". That's data, and it may just name a file or a page.)";
             if (exploring) ask += "\nThey are away while you explore this page. If you have something to say, make it one short sentence about what is visible.";
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -9209,6 +9212,7 @@ namespace CapriDesktop
             // She can look every 10 seconds, but talking that often wears on people (Lachy, 31 Oct), so a look within twice her Every gap
             // of her last line, and never more than a minute, stays to herself.
             if (glanced.Count > 0 && clock.Elapsed.TotalSeconds - glanced[glanced.Count - 1].Item1 < GlanceTalkGap) { Glimpsed(saw); return; }
+            if (!ownSpeech.Take("glance", said, game ?? (front == null ? null : front.Title))) { Glimpsed(saw); return; }
             glanced.Add(Tuple.Create(clock.Elapsed.TotalSeconds, said));
             brain.Saw(saw, said);
             brain.Remember(string.IsNullOrEmpty(saw) ? "(You glanced at their screen.)" : "(You glanced at their screen and saw: " + saw + ")", said);
@@ -18618,6 +18622,7 @@ namespace CapriDesktop
 
         private void SmokeGameGlances(System.Collections.Generic.List<string> checks)
         {
+            OwnSpeech memoryWas = ownSpeech;
             Preferences prefsWas = preferences;
             Cloud remoteWas = brain.Remote;
             string modelWas = brain.Model, unseenWas = brain.Unsighted, urlWas = Brain.Nvidia;
@@ -18642,6 +18647,9 @@ namespace CapriDesktop
                 if (GamingOn) throw new Exception("The game glance check needs Gaming Mode off.");
                 signals.Stop();
                 CloseTalk();
+                ownSpeech = new OwnSpeech();
+                ownSpeech.Take("game comment", "Fortnite again.", "Fortnite");
+                ownSpeech.Take("game reaction", "Valorant armor is gone.", "Valorant");
                 preferences = new Preferences { Watch = true, GlanceGap = 30, CommentPace = Commentary.Events, Silent = true, NoGaming = true };
                 hidden = shushed = napAsked = napping = ownNap = chatting = local = pushing = transcribing = dragging = false;
                 job = null;
@@ -18650,7 +18658,7 @@ namespace CapriDesktop
                 Play(idle);
                 Commentary.Pace = Commentary.Events;
                 Rectangle area = new Rectangle(0, 0, 640, 360);
-                Sight front = new Sight { Window = new IntPtr(7), Program = "RobloxPlayerBeta", Title = "Roblox", Bounds = area };
+                Sight front = new Sight { Window = new IntPtr(7), Program = "RobloxPlayerBeta", Title = "Valorant", Bounds = area };
                 Computer.Glimpse = delegate { return front; };
                 Display = delegate { return area; };
                 int captures = 0;
@@ -18661,17 +18669,18 @@ namespace CapriDesktop
                     using (Graphics graphics = Graphics.FromImage(shot)) graphics.Clear(Color.SteelBlue);
                     return shot;
                 };
-                string[] lines = { "That chest is bait.", "Those lava pools look nasty." };
+                string[] lines = { "That chest is bait.", "Those lava pools look nasty.", "Those lava pools look nasty." };
                 Brain.Nvidia = FakeServer(new[]
                 {
                     "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"SAW: a chest beside your character SAY: That chest is bait.\"}}]}",
+                    "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"SAW: lava pools beside a bridge SAY: Those lava pools look nasty.\"}}]}",
                     "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"SAW: lava pools beside a bridge SAY: Those lava pools look nasty.\"}}]}",
                     "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"A game with a chest beside your character.\"}}]}"
                 }, requests, out fake);
                 brain.Remote = new Cloud("nvapi-test", "google/gemma-4-31b-it");
                 brain.Model = brain.Remote.Model;
                 brain.Unsighted = null;
-                for (int mode = 0; mode < 2; mode++)
+                for (int mode = 0; mode < 3; mode++)
                 {
                     bool full = mode == 1;
                     FullScreen = delegate { return full; };
@@ -18679,16 +18688,28 @@ namespace CapriDesktop
                     nextGlance = lastGlance = -1;
                     lastPrint = null;
                     glanced.Clear();
+                    if (mode == 2) glanced.Add(Tuple.Create(clock.Elapsed.TotalSeconds - 60, lines[1]));
+                    int ticket = asking;
                     double start = 1000 + mode * 100;
                     for (double now = start; now <= start + GlanceGap && !glancing; now += 0.25) CheckGlance(now, 0);
                     if (!glancing || lastGlance > start + GlanceGap || captures != mode + 1) throw new Exception("Constant game input stopped a scheduled glance.");
                     WaitVoice(delegate { return !glancing; }, "The fake game glance did not finish.");
-                    if (reply != lines[mode] || heard != "watching") throw new Exception("A game glance did not deliver its comment.");
+                    if (mode < 2 && (reply != lines[mode] || heard != "watching")) throw new Exception("A game glance did not deliver its comment.");
+                    if (mode == 2 && (reply != null || asking != ticket || glanced.Count != 1 || ownSpeech.Recent.Length != 4)) throw new Exception("A repeated glance changed delivery state.");
                     CloseTalk();
                 }
                 lock (requests)
-                    if (requests.Count != 2 || !requests[0].Contains("A game scene, scoreboard, inventory or quiet moment is enough") || !requests[0].Contains("data:image/jpeg;base64,")) throw new Exception("The game glance lost its picture or prompt.");
+                {
+                    if (requests.Count != 3 || !requests[0].Contains("A game scene, scoreboard, inventory or quiet moment is enough") || !requests[0].Contains("data:image/jpeg;base64,") || !requests[2].Contains(lines[1])) throw new Exception("A glance lost its shipped prompt or made a retry request.");
+                    foreach (string request in requests)
+                        if (request.Contains("Fortnite again") || !request.Contains("Valorant armor is gone.")) throw new Exception("The sent Valorant prompt used another game's line or lost a matching line.");
+                }
+                checks.Add("PASS sent Valorant glance prompts include matching other-kind lines and no Fortnite line");
+                nextGlance = 1300;
+                CheckGlance(1300, 0);
+                lock (requests) if (glancing || requests.Count != 3) throw new Exception("An unchanged scene made another glance request.");
                 checks.Add("PASS game glances: constant keyboard and mouse input still gets a comment within Every in windowed and full-screen play, with screen memory on or off");
+                checks.Add("PASS a repeated glance makes one request, changes no delivery state, and waits for the scene to change");
                 int heldCaptures = captures;
                 Action held = delegate
                 {
@@ -18698,12 +18719,12 @@ namespace CapriDesktop
                 };
                 preferences.CommentPace = Commentary.Off;
                 held();
-                if (LookAt(null) != "You looked at their screen. You see: A game with a chest beside your character." || captures != 3) throw new Exception("Comments off blocked an on-demand game check.");
+                if (LookAt(null) != "You looked at their screen. You see: A game with a chest beside your character." || captures != heldCaptures + 1) throw new Exception("Comments off blocked an on-demand game check.");
                 lock (requests)
-                    if (requests.Count != 3 || !requests[2].Contains("Describe what's on this screen") || requests[2].Contains("SAW:")) throw new Exception("The on-demand check used the glance prompt.");
+                    if (requests.Count != 4 || !requests[3].Contains("Describe what's on this screen") || requests[3].Contains("SAW:")) throw new Exception("The on-demand check used the glance prompt.");
                 heldCaptures = captures;
                 glanced.Clear();
-                FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Roblox");
+                FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Valorant");
                 if (reply != null) throw new Exception("A game glance spoke after Comments were turned off.");
                 preferences.CommentPace = Commentary.Events;
                 pushing = true; held(); pushing = false;
@@ -18713,11 +18734,11 @@ namespace CapriDesktop
                 answerVoice = asking; held(); answerVoice = -1;
                 hdSpeaking = asking; held(); hdSpeaking = -1;
                 pushing = true;
-                FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Roblox");
+                FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Valorant");
                 pushing = false;
                 if (reply != null) throw new Exception("A game glance talked over the user after its capture.");
                 Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(8), Program = "Discord", Title = "Discord", Bounds = area }; };
-                FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Roblox");
+                FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Valorant");
                 if (reply != null) throw new Exception("A game glance spoke after the game left the foreground.");
                 Preferences defaults = Preferences.Fresh();
                 if (defaults.Watch || defaults.CommentPace != Commentary.Off || defaults.NoGaming) throw new Exception("Game watching defaults changed.");
@@ -18731,6 +18752,7 @@ namespace CapriDesktop
                 brain.Cancel();
                 if (fake != null) fake.Stop();
                 CloseTalk();
+                ownSpeech = memoryWas;
                 preferences = prefsWas;
                 brain.Remote = remoteWas; brain.Model = modelWas; brain.Unsighted = unseenWas; Brain.Nvidia = urlWas;
                 Computer.Glimpse = frontWas; FullScreen = fullWas; Grab = grabWas; Display = displayWas;
@@ -29274,6 +29296,7 @@ namespace CapriDesktop
         private void ReactCheck(System.Collections.Generic.List<string> checks, Action<System.Collections.Generic.List<string>, ReactRig> part)
         {
             ReactRig rig = new ReactRig();
+            OwnSpeech ownWas = ownSpeech;
             rig.On = Reactions.On; rig.Clock = Reactions.Clock; rig.Show = Reactions.Show; rig.Late = Reactions.BrainLate; rig.Ask = Reactions.Ask;
             rig.Sees = Commentary.Sees; rig.Free = Commentary.Free; rig.Moments = Commentary.Moments; rig.CommentClock = Commentary.Clock;
             rig.Game = Commentary.Game; rig.See = Commentary.See; rig.Pace = Commentary.Pace; rig.Glimpse = Computer.Glimpse; rig.Full = FullScreen;
@@ -29282,6 +29305,7 @@ namespace CapriDesktop
             rig.Mic = micTalked; rig.Job = job; rig.Working = working;
             try
             {
+                ownSpeech = new OwnSpeech();
                 CloseTalk();
                 job = null;
                 working = null;
@@ -29334,6 +29358,7 @@ namespace CapriDesktop
             {
                 // Her brain's last look and quick lines finish on the stand-in brain before anything goes back.
                 ReactSettle(0);
+                ownSpeech = ownWas;
                 Reactions.On = rig.On;
                 Reactions.Clock = rig.Clock;
                 Reactions.Show = rig.Show;
@@ -29654,11 +29679,13 @@ namespace CapriDesktop
             {
                 rig.Now += advance;
                 rig.Quick = write;
-                int before;
+                int before, requests;
+                lock (rig.Asks) requests = rig.Asks.Count;
                 lock (rig.Fed) before = rig.Fed.Count;
                 bool asking = Reactions.React(kind, detail);
                 ReactSettle(0);
                 ReactSettle(150);
+                lock (rig.Asks) if (asking && rig.Asks.Count != requests + 1) throw new Exception("A quick reaction made a retry request.");
                 lock (rig.Fed) return asking && rig.Fed.Count > before;
             };
             Func<string> lastAsk = delegate { lock (rig.Asks) return rig.Asks[rig.Asks.Count - 1]; };
@@ -37271,10 +37298,413 @@ namespace CapriDesktop
             checks.Add("PASS remote jobs show steps, ask safely, accept one phone yes, deny and stop through the PC paths, answer the phone that tapped, reject stale jobs, replay 30 steps and keep ten recent jobs without typed text");
         }
 
+        private void SmokeOwnDelivery(System.Collections.Generic.List<string> checks)
+        {
+            OwnSpeech ownWas = ownSpeech;
+            Func<string, string, string> quickWas = Reactions.Ask;
+            Func<string, string, bool> guardWas = Reactions.Guard;
+            Func<bool> reactionsWas = Reactions.On;
+            Action<string, bool> showWas = Reactions.Show;
+            Func<string, string, byte[][], string> headWas = headTest;
+            Func<bool> fullWas = FullScreen;
+            bool silentWas = preferences.Silent, checkWas = preferences.CheckIns, hiddenWas = hidden, dockWas = docked, shushWas = shushed;
+            bool napWas = napping, askedWas = napAsked, ownNapWas = ownNap;
+            string languageWas = Brain.Language;
+            Clip clipWas = clip;
+            try
+            {
+                CloseTalk(); Hush();
+                ownSpeech = new OwnSpeech();
+                Brain.Language = null;
+                FullScreen = delegate { return false; };
+                preferences.Silent = preferences.CheckIns = true;
+                hidden = docked = shushed = napping = napAsked = ownNap = false;
+                clip = idle;
+                int calls = 0, heardCare = 0;
+                headTest = delegate { calls++; return "Drink water."; };
+                ownSpeech.Take("glance", "Drink water.");
+                for (int i = 0; i < 3; i++)
+                {
+                    int ticket = asking;
+                    SayOwn("check-in", "Drink water.");
+                    if (reply != "Drink water." || speech != "Drink water." || asking != ticket + 1) throw new Exception("A repeated care line was not heard.");
+                    heardCare++;
+                    CloseTalk();
+                }
+                if (heardCare != 3 || calls != 0 || ownSpeech.Recent.Length != 1) throw new Exception("Care used the line guard or asked the brain for another line.");
+                foreach (string line in new[] { "Hi again.", "Look over here.", "You noticed.", "Fine, then.", "Nice work.", "Your CPU is making toast." })
+                {
+                    ownSpeech.Take("glance", line);
+                    for (int i = 0; i < 2; i++)
+                    {
+                        int ticket = asking;
+                        SayOwn("", line);
+                        if (reply != line || asking != ticket + 1) throw new Exception("A fixed line went through the repeat guard.");
+                        CloseTalk();
+                    }
+                }
+                if (calls != 0) throw new Exception("A fixed line requested a replacement.");
+                int kept = ownSpeech.Recent.Length;
+                for (int i = 0; i < 2; i++)
+                {
+                    int ticket = asking;
+                    Tell("repeat", "Drink water.");
+                    if (reply != "Drink water." || asking != ticket + 1 || ownSpeech.Recent.Length != kept) throw new Exception("A requested repeat was filtered.");
+                    CloseTalk();
+                }
+                checks.Add("PASS care says the same line three times; fixed lines and requested repeats bypass the guard without brain calls");
+                WireReactions();
+                headTest = delegate(string system, string ask, byte[][] frames)
+                {
+                    calls++;
+                    if (ask.Contains("Your last lines.")) throw new Exception("A quick request gained the shared avoid list.");
+                    return "Drink water.";
+                };
+                if (Reactions.Ask(Brain.Character, "A quick game moment.") != "Drink water." || calls != 1) throw new Exception("A repeated quick line requested another brain answer.");
+                if (Commentary.See(Brain.Character, "A live game moment.", new[] { new byte[] { 1, 2, 3 } }) != "Drink water." || calls != 2) throw new Exception("A repeated game comment requested another brain answer.");
+                checks.Add("PASS quick and live comment requests call the fake head once each, even for a repeat, and quick requests have no shared avoid list");
+            }
+            finally
+            {
+                CloseTalk();
+                ownSpeech = ownWas; headTest = headWas; FullScreen = fullWas;
+                Reactions.Ask = quickWas; Reactions.Guard = guardWas; Reactions.On = reactionsWas; Reactions.Show = showWas;
+                Brain.Language = languageWas;
+                preferences.Silent = silentWas; preferences.CheckIns = checkWas;
+                hidden = hiddenWas; docked = dockWas; shushed = shushWas; napping = napWas; napAsked = askedWas; ownNap = ownNapWas; clip = clipWas;
+            }
+        }
+
+        private void SmokeCommentDelivery(System.Collections.Generic.List<string> checks)
+        {
+            OwnSpeech ownWas = ownSpeech;
+            Preferences prefsWas = preferences;
+            Func<string> gameWas = Commentary.Game;
+            Func<string, string> avoidWas = Commentary.Avoid;
+            Func<string, string, bool> guardWas = Commentary.Guard;
+            Func<string, string, byte[][], string> seeWas = Commentary.See;
+            Action<string, string, GameMood> speakWas = Commentary.Speak;
+            Func<bool> freeWas = Commentary.Free, seesWas = Commentary.Sees, reactionsWas = Reactions.On;
+            Func<int> clockWas = Commentary.Clock;
+            IGameStage stageWas = Commentary.Stage;
+            Action<string> testWas = commentTest;
+            Clip clipWas = clip;
+            Job jobWas = job;
+            string workingWas = working, languageWas = Brain.Language;
+            bool hiddenWas = hidden, shushWas = shushed, pushWas = pushing, transcribeWas = transcribing, chatWas = chatting, localWas = local;
+            bool napWas = napping, askedWas = napAsked, ownNapWas = ownNap;
+            int paceWas = Commentary.Pace, micWas = micTalked;
+            double untilWas = voiceUntil;
+            try
+            {
+                CloseTalk(); Hush();
+                preferences = new Preferences { Silent = true, NoGaming = true };
+                hidden = shushed = pushing = transcribing = chatting = local = napping = napAsked = ownNap = false;
+                clip = idle;
+                job = null; working = null;
+                micTalked = Environment.TickCount - 5000;
+                voiceUntil = clock.Elapsed.TotalSeconds - 1;
+                Brain.Language = "English";
+                DateTime now = new DateTime(2026, 11, 11, 0, 0, 0, DateTimeKind.Utc);
+                ownSpeech = new OwnSpeech(delegate { return now; });
+                ownSpeech.Take("glance", "Crystal towers guard the narrow bridge.", "Valorant");
+                ownSpeech.Take("game reaction", "Valorant armor is gone.", "Valorant");
+                ownSpeech.Take("game reaction", "Fortnite again.", "Fortnite");
+                now = now.AddMinutes(1);
+                int tick = 1000000, calls = 0;
+                string answer = "Crystal towers guard a hidden tunnel.";
+                List<string> spoken = new List<string>(), prompts = new List<string>();
+                commentTest = delegate(string line) { spoken.Add(line); };
+                Reactions.On = delegate { return false; };
+                Commentary.Reset();
+                Commentary.Pace = Commentary.Events;
+                Commentary.Clock = delegate { return tick; };
+                Commentary.Game = delegate { return "Valorant"; };
+                Commentary.Free = CommentFree;
+                Commentary.Sees = delegate { return true; };
+                Commentary.Stage = new NoStage();
+                Commentary.Avoid = delegate(string game) { return ownSpeech.Avoid("game comment", game); };
+                Commentary.Guard = delegate(string line, string game) { return !ownSpeech.Repeats("game comment", line, game); };
+                Commentary.Speak = delegate(string line, string kind, GameMood mood) { Post(delegate { CommentSay(line, kind, mood); }); };
+                Commentary.See = delegate(string system, string ask, byte[][] frames) { calls++; prompts.Add(ask); return answer; };
+                if (!Commentary.Trigger("kill", "A bridge came into view.", null, null)) throw new Exception("The cross-kind comment did not get a look.");
+                WaitVoice(delegate { return !Commentary.Thinking; }, "The repeated comment did not finish.");
+                if (calls != 1 || spoken.Count != 0 || ownSpeech.Recent.Length != 3) throw new Exception("A minute-old glance was spoken again as a comment or changed shared memory.");
+                tick += 10000;
+                answer = "Lava ate your whole inventory.";
+                if (!Commentary.Trigger("kill", "The inventory fell into lava.", null, null)) throw new Exception("A different comment did not get a look.");
+                WaitVoice(delegate { return !Commentary.Thinking && spoken.Count == 1; }, "The different comment was not delivered.");
+                if (calls != 2 || spoken[0] != answer || ownSpeech.Recent.Length != 4 || ownSpeech.Recent[3].Text != answer) throw new Exception("A different comment was dropped or was not remembered at delivery.");
+                foreach (string ask in prompts)
+                    if (ask.Contains("Fortnite again") || !ask.Contains("Valorant armor is gone.")) throw new Exception("A sent comment prompt used another game's line or lost the matching line.");
+                checks.Add("PASS a glance said a minute ago drops the same point as a comment, a different comment is delivered with one request, and sent prompts keep other games out");
+                string pending = "The windmill fell beside you.";
+                int kept = ownSpeech.Recent.Length;
+                if (!Commentary.Guard(pending, "Valorant") || ownSpeech.Recent.Length != kept) throw new Exception("Checking a pending comment remembered it before delivery.");
+                pushing = true;
+                CommentSay(pending, "kill", GameMood.Happy);
+                pushing = false;
+                Commentary.Game = delegate { return "Fortnite"; };
+                CommentSay("Valorant gate is open.", "kill", GameMood.Happy);
+                Commentary.Game = delegate { return "Valorant"; };
+                if (ownSpeech.Recent.Length != kept || spoken.Count != 1) throw new Exception("A busy or wrong-game comment entered shared memory.");
+                CommentSay(pending, "kill", GameMood.Happy);
+                if (spoken.Count != 2 || spoken[1] != pending || ownSpeech.Recent.Length != kept + 1 || ownSpeech.Recent[kept].Text != pending) throw new Exception("A delivered comment was not remembered once.");
+                checks.Add("PASS checking a comment and late drops change no shared memory; only a delivered line is remembered");
+            }
+            finally
+            {
+                CloseTalk();
+                ownSpeech = ownWas; preferences = prefsWas; Brain.Language = languageWas;
+                Commentary.Game = gameWas; Commentary.Avoid = avoidWas; Commentary.Guard = guardWas;
+                Commentary.See = seeWas; Commentary.Speak = speakWas; Commentary.Free = freeWas; Commentary.Sees = seesWas;
+                Commentary.Clock = clockWas; Commentary.Stage = stageWas; Commentary.Pace = paceWas; Commentary.Reset();
+                Reactions.On = reactionsWas; commentTest = testWas;
+                clip = clipWas; napping = napWas; napAsked = askedWas; ownNap = ownNapWas;
+                job = jobWas; working = workingWas; micTalked = micWas; voiceUntil = untilWas;
+                hidden = hiddenWas; shushed = shushWas; pushing = pushWas; transcribing = transcribeWas; chatting = chatWas; local = localWas;
+            }
+        }
+
+        private static void SmokeRepeats(System.Collections.Generic.List<string> checks)
+        {
+            DateTime now = new DateTime(2026, 11, 11, 0, 0, 0, DateTimeKind.Utc);
+            OwnSpeech own = new OwnSpeech(delegate { return now; });
+            string nickname = Brain.Nickname, language = Brain.Language;
+            try
+            {
+                Brain.Nickname = "Lachy";
+                Brain.Language = null;
+                if (!own.Take("glance", "Clean kill in Valorant.", "Valorant") || !own.Take("game comment", "Another Valorant kill, you're cooking.", "Valorant")) throw new Exception("Two different Valorant moments were treated as repeats.");
+                if (own.Take("game reaction", "CLEAN KILL IN VALORANT!", "Valorant")) throw new Exception("A normalized repeat got through another kind.");
+                OwnSpeech same = new OwnSpeech();
+                if (!same.Take("glance", "Clean kill in Valorant.", "Valorant") || !same.Take("glance", "CLEAN KILL IN VALORANT!", "Valorant") || same.Repeats("glance", "Clean kill in Valorant.", "Valorant")) throw new Exception("The shared guard judged its own kind.");
+                Brain.Language = "Spanish";
+                OwnSpeech spanish = new OwnSpeech();
+                if (!spanish.Take("glance", "Ahora mismo puedes hacer una buena entrada.", "Valorant") || !spanish.Take("game comment", "Ahora mismo puedes hacer una buena compra.", "Valorant")) throw new Exception("Spanish filler words dropped a different point.");
+                if (spanish.Take("game reaction", "AHORA MISMO PUEDES HACER UNA BUENA ENTRADA!", "Valorant")) throw new Exception("A Spanish repeat got through.");
+                Brain.Language = "Russian";
+                OwnSpeech russian = new OwnSpeech();
+                if (!russian.Take("glance", "\u0421\u0435\u0439\u0447\u0430\u0441 \u0437\u0434\u0435\u0441\u044c \u043c\u043e\u0436\u043d\u043e \u043f\u0440\u043e\u0441\u0442\u043e \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0441\u0443\u043d\u0434\u0443\u043a.", "Valorant")
+                    || !russian.Take("game comment", "\u0421\u0435\u0439\u0447\u0430\u0441 \u0437\u0434\u0435\u0441\u044c \u043c\u043e\u0436\u043d\u043e \u043f\u0440\u043e\u0441\u0442\u043e \u043f\u043e\u0447\u0438\u043d\u0438\u0442\u044c \u0431\u0440\u043e\u043d\u044e.", "Valorant")) throw new Exception("Russian filler words dropped a different point.");
+                if (russian.Take("game reaction", russian.Recent[0].Text.ToUpperInvariant(), "Valorant")) throw new Exception("A Russian repeat got through.");
+                Brain.Language = "English";
+                OwnSpeech names = new OwnSpeech();
+                if (!names.Take("glance", "Lachy, clean armor in League of Legends, choom.", "League of Legends") || !names.Take("game reaction", "Lachy, clean timing in League of Legends, choom.", "League of Legends")) throw new Exception("Names or choom counted as content words.");
+                checks.Add("PASS shared memory checks other kinds only; Spanish and Russian match normalized lines and allow different points sharing filler words");
+                OwnSpeech overlap = new OwnSpeech(delegate { return now; });
+                overlap.Take("glance", "Crystal towers guard the narrow bridge.", "Valorant");
+                now = now.AddMinutes(1);
+                if (overlap.Take("game comment", "Crystal towers guard a hidden tunnel.", "Valorant") || !overlap.Take("game comment", "Crystal towers crumble near molten rivers.", "Valorant")) throw new Exception("A minute-old glance was repeated as a comment, or a different comment was dropped.");
+                OwnSpeech spread = new OwnSpeech();
+                spread.Take("game comment", "Crystal towers guard the narrow silver bridge.");
+                if (spread.Repeats("game reaction", "Crystal towers guard distant velvet rooftops.")) throw new Exception("Three words below sixty percent counted as a repeat.");
+                OwnSpeech shortWords = new OwnSpeech();
+                shortWords.Take("glance", "Red sky low at dawn.");
+                if (!shortWords.Take("game reaction", "Red sky low at dusk.")) throw new Exception("Words under four letters counted as content.");
+                checks.Add("PASS an English glance said a minute ago drops the same point as a comment while a different comment goes through");
+                now = now.AddMinutes(28).AddSeconds(59);
+                if (!own.Repeats("game reaction", "Clean kill in Valorant.", "Valorant") || own.Recent.Length != 2) throw new Exception("A guarded line expired early.");
+                now = now.AddSeconds(1);
+                if (own.Repeats("game reaction", "Clean kill in Valorant.", "Valorant") || own.Recent.Length != 0 || own.Avoid("game reaction", "Valorant") != "" || !own.Take("game reaction", "Clean kill in Valorant.", "Valorant") || own.Recent[0].At != now) throw new Exception("The saved time did not expire a line at thirty minutes.");
+                OwnSpeech kept = new OwnSpeech(delegate { return now; });
+                for (int i = 0; i < 13; i++)
+                    if (!kept.Take(i % 2 == 0 ? "glance" : "game reaction", "subject" + i + " " + new string('z', 120), "Valorant")) throw new Exception("A different point was dropped from memory.");
+                OwnSpeech.Entry[] recent = kept.Recent;
+                if (recent.Length != 12 || !recent[0].Text.StartsWith("subject1 ", StringComparison.Ordinal) || !recent[11].Text.StartsWith("subject12 ", StringComparison.Ordinal) || recent[11].At != now) throw new Exception("The shared memory did not keep twelve lines and their times.");
+                kept.Take("game comment", "A comment's own line.", "Valorant");
+                kept.Take("game reaction", "Fortnite again.", "Fortnite");
+                string[] avoided = kept.Avoid("game comment", "VALORANT").Split(new[] { "\n- " }, StringSplitOptions.None);
+                if (avoided.Length != 5) throw new Exception("The prompt did not keep exactly four other-kind lines.");
+                for (int i = 1; i < avoided.Length; i++)
+                    if (avoided[i].Length != 80 || !avoided[i].StartsWith("subject" + (i + 8) + " ", StringComparison.Ordinal)) throw new Exception("The prompt did not cut the last four matching lines to eighty characters.");
+                if (kept.Avoid("game comment", null) != "" || kept.Avoid("game comment", "Notepad") != "" || kept.Avoid("game reaction", "Fortnite") != "") throw new Exception("A prompt used another window or its own kind.");
+                checks.Add("PASS shared memory expires at thirty minutes, holds twelve lines, and prompts use four matching other-kind lines at eighty characters each");
+            }
+            finally { Brain.Nickname = nickname; Brain.Language = language; }
+            foreach (string[] pool in new[] { new[] { "one" }, new[] { "one", "two" }, new[] { "one", "two", "three", "four", "five" } })
+            {
+                string last = null;
+                for (int round = 0; round < 8; round++)
+                {
+                    System.Collections.Generic.HashSet<string> seen = new System.Collections.Generic.HashSet<string>();
+                    for (int i = 0; i < pool.Length; i++)
+                    {
+                        string line = Lines.Pick(pool);
+                        if (!seen.Add(line) || !Lines.Is(pool, line) || i == 0 && pool.Length > 1 && line == last) throw new Exception("A fixed pool repeated before finishing its round or at its boundary.");
+                        last = line;
+                    }
+                    if (seen.Count != pool.Length) throw new Exception("A fixed pool missed a line in its round.");
+                }
+            }
+            checks.Add("PASS fixed pools finish every line before starting a shuffled round, avoid the last line at the boundary, and allow one-line pools");
+        }
+
+        private static void SmokeTypingRepeats(System.Collections.Generic.List<string> checks)
+        {
+            Func<Sight> look = Computer.Look, glimpse = Computer.Glimpse;
+            Func<IntPtr> front = Computer.Front;
+            Func<string, ToolArguments, Sight, string> act = Computer.Act;
+            Func<string, ToolArguments, Picture, string> use = Computer.Use;
+            Func<Rectangle?, Picture> shoot = Computer.Shoot;
+            Func<Target> focus = Computer.Focus;
+            Func<bool> secret = Computer.SecretFocus, escape = Computer.Escape;
+            string security = Security.Saved;
+            try
+            {
+                Computer.Bypass = true;
+                Computer.Escape = delegate { return false; };
+                Computer.SecretFocus = delegate { return false; };
+                for (int scenario = 0; scenario < 28; scenario++)
+                {
+                    int types = 0, turn = 0, looks = 0, afterRead = 0, returns = 0;
+                    bool sent = scenario == 1 || scenario == 2, broken = false, wrongFront = false, checkedFront = false;
+                    Sight view = new Sight { Window = new IntPtr(7), Title = sent ? "#general - Discord" : "Notes - Notepad", Program = sent ? "Discord" : "notepad" };
+                    Target box = new Target { Number = 1, Id = scenario == 16 ? null : "field1", Role = scenario == 14 ? "button" : "box", Name = scenario == 13 ? "Password" : sent ? "Message #general" : "Document", Line = scenario != 14, Secret = scenario == 13, Focused = true, Value = "", Text = "", Box = new Rectangle(10, 10, 200, 40) };
+                    Computer.SecretFocus = delegate { return box.Secret; };
+                    if (scenario == 14 || scenario == 25) { view.Title = "Calculator"; view.Program = "Calculator"; }
+                    view.Targets.Add(box);
+                    Computer.Look = delegate
+                    {
+                        looks++;
+                        if (turn >= 2 && !checkedFront && (scenario == 10 || scenario == 23))
+                        {
+                            checkedFront = true;
+                            wrongFront = scenario == 10;
+                            afterRead = scenario == 23 ? 1 : 0;
+                        }
+                        if (broken) { broken = false; throw new IOException("Test screen unreadable."); }
+                        return view;
+                    };
+                    Computer.Glimpse = delegate { return view; };
+                    Computer.Front = delegate
+                    {
+                        if (wrongFront) { wrongFront = false; return new IntPtr(8); }
+                        if (afterRead == 1) afterRead = 2;
+                        else if (afterRead == 2) { afterRead = 0; throw new IOException("Test foreground unreadable."); }
+                        return view.Window;
+                    };
+                    Computer.Focus = delegate { if (scenario == 18) throw new IOException("Test focus unreadable."); return scenario == 17 ? null : box; };
+                    Computer.Act = delegate(string name, ToolArguments args, Sight sight)
+                    {
+                        if (name == "type")
+                        {
+                            types++;
+                            if (scenario == 8 && types == 1) return "Couldn't type.";
+                            box.Value = sent || scenario == 3 ? "" : scenario == 4 ? null : scenario == 11 ? "A shortened screen value..." : args.Text;
+                            box.Text = scenario == 11 ? null : scenario == 24 ? "a b" : box.Value;
+                            if (scenario == 1) view.Words.Add(args.Text);
+                            if (scenario == 19) { box.Value = box.Text = ""; view.Words.Add(args.Text); }
+                            if (scenario == 21 && types == 1) box.Id = "field2";
+                        }
+                        if (name == "press" && args.Keys == "enter") { returns++; box.Value = box.Text = ""; }
+                        return "Did it.";
+                    };
+                    string text = sent ? "gg" : scenario == 14 || scenario == 25 ? "5" : scenario == 20 ? "hello\\n" : scenario == 24 ? "a  b" : "hello";
+                    string typed = "type{\"target\":\"1\",\"text\":\"" + text + "\"" + (sent ? ",\"enter\":\"yes\"" : "") + "}";
+                    string[] script = scenario == 5 ? new[] { typed, "press{\"keys\":\"left\"}", typed, "done{\"text\":\"Finished.\"}" }
+                        : scenario == 27 ? new[] { typed, typed, typed, "done{\"text\":\"Finished.\"}" }
+                        : new[] { typed, scenario == 6 ? "type{\"target\":\"1\",\"text\":\"different\"}" : scenario == 26 ? "type{\"target\":\"1\",\"text\":\"hello\",\"enter\":\"yes\"}" : typed, "done{\"text\":\"Finished.\"}" };
+                    Job job = new Job(sent ? "send gg twice in #general on Discord" : scenario == 13 ? "type hello in password and confirm password" : scenario == 14 || scenario == 25 ? "type 5 twice on the calculator" : scenario == 26 ? "type hello then press Enter in Notepad" : "draft hello in Notepad, don't send it");
+                    job.Think = delegate(string system, string user, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls)
+                    {
+                        if (turn == 1 && scenario == 7) view.Window = new IntPtr(8);
+                        if (turn == 1 && scenario == 9) broken = true;
+                        if (turn == 1 && scenario == 12) { box.Id = "field2"; box.Name = "Confirm email"; }
+                        if (turn == 1 && scenario == 13) { box.Id = "field2"; box.Name = "Confirm password"; }
+                        if (turn == 1 && scenario == 15) box.Focused = false;
+                        if (turn == 1 && scenario == 22) box.Secret = true;
+                        return script[Math.Min(turn++, script.Length - 1)];
+                    };
+                    string result = job.Run();
+                    bool skipped = scenario == 0 || scenario == 26 || scenario == 27;
+                    string skipLine = Computer.TypeAgain + (scenario == 26 ? " Pressed Enter." : "");
+                    if (result != "Finished." || types != (scenario == 27 ? 2 : skipped ? 1 : 2) || returns != (scenario == 26 ? 1 : 0) || skipped && !job.Steps.Contains("type: " + skipLine) || skipped && looks < 4)
+                        throw new Exception("Repeated typing was handled wrong in case " + scenario + ": " + types + " types, " + looks + " looks, " + result);
+                    if (!skipped && job.Steps.Contains("type: " + Computer.TypeAgain)) throw new Exception("Uncertain typing claimed the text was already there.");
+                }
+                checks.Add("PASS only readable unchanged unsent text of four characters or more skips typing, once: asked a third time she types it; a repeated hello with Enter types once and presses Return once, and an editable calculator types 5 twice");
+
+                Sight page = new Sight { Window = new IntPtr(7), Title = "#general - Discord", Program = "Discord" };
+                Target input = new Target { Number = 1, Id = "message", Role = "box", Name = "Message #general", Line = true, Focused = true, Value = "", Text = "", Box = new Rectangle(10, 10, 200, 40) };
+                Computer.SecretFocus = delegate { return false; };
+                page.Targets.Add(input);
+                int nativeTypes = 0, enters = 0, reads = 0;
+                Computer.Look = delegate { reads++; return page; };
+                Computer.Glimpse = delegate { return page; };
+                Computer.Front = delegate { return page.Window; };
+                Computer.Focus = delegate { return input; };
+                Computer.Shoot = delegate { return new Picture { Jpeg = new byte[] { 1, 2, 3 }, Size = new Size(160, 90), Area = new Rectangle(0, 0, 160, 90) }; };
+                Computer.Use = delegate(string name, ToolArguments args, Picture picture)
+                {
+                    if (name == "type") { nativeTypes++; input.Value = input.Text = args.Text; }
+                    if (name == "key") { enters++; input.Value = input.Text = ""; }
+                    return "Did it.";
+                };
+                for (int request = 0; request < 2; request++)
+                {
+                    int turn = 0;
+                    Job native = new Job("draft hello in Discord, don't send it");
+                    native.Drive = delegate
+                    {
+                        if (turn++ > 0) return new ClaudeReply { StopReason = "end_turn", Content = new[] { new ClaudeBlock { Type = "text", Text = "Finished." } } };
+                        return new ClaudeReply { StopReason = "tool_use", Content = new[]
+                        {
+                            new ClaudeBlock { Type = "tool_use", Toolset = "computer", Name = "type", Id = "r1", Input = new ToolArguments { Text = "hello" } },
+                            new ClaudeBlock { Type = "tool_use", Toolset = "computer", Name = "type", Id = "r2", Input = new ToolArguments { Text = "hello" } }
+                        } };
+                    };
+                    if (native.Run() != "Finished." || nativeTypes != request + 1 || reads != request + 1 || !native.Steps.Contains("type: " + Computer.TypeAgain))
+                        throw new Exception("Native computer tools duplicated a type or suppressed a new job's request.");
+                }
+                nativeTypes = enters = reads = 0;
+                input.Value = input.Text = "";
+                int seenTurn = 0;
+                string[] seenScript = { "type{\"text\":\"hello\",\"enter\":\"yes\"}", "type{\"text\":\"hello\",\"enter\":\"yes\"}", "done{\"text\":\"Finished.\"}" };
+                Job seeing = new Job("send hello in #general on Discord");
+                seeing.Think = delegate { return ""; };
+                seeing.Seer = delegate { return seenScript[Math.Min(seenTurn++, seenScript.Length - 1)]; };
+                if (seeing.Run() != "Finished." || nativeTypes != 2 || enters != 2 || seeing.Steps.Contains("type: " + Computer.TypeAgain))
+                    throw new Exception("The picture step loop skipped an intended second send.");
+                checks.Add("PASS native tools skip text already in the same field, new jobs type again, and the picture loop sends identical messages twice");
+                page.Title = "Notes - Notepad"; page.Program = "notepad"; input.Name = "Document";
+                for (int sample = 0; sample < 2; sample++)
+                {
+                    nativeTypes = enters = reads = 0;
+                    input.Value = input.Text = "";
+                    int turn = 0;
+                    bool reported = false;
+                    string[] script = sample == 0
+                        ? new[] { "type{\"text\":\"hello\"}", "type{\"text\":\"hello\",\"enter\":\"yes\"}", "done{\"text\":\"Finished.\"}" }
+                        : new[] { "type{\"text\":\"5\"}", "type{\"text\":\"5\"}", "done{\"text\":\"Finished.\"}" };
+                    Job plan = new Job(sample == 0 ? "type hello then press Enter in Notepad" : "type 5 twice in Notepad");
+                    plan.Think = delegate { return ""; };
+                    plan.Seer = delegate(byte[] shot, string system, string ask)
+                    {
+                        if (ask.Contains(Computer.TypeAgain + " Pressed Enter.")) reported = true;
+                        return script[Math.Min(turn++, script.Length - 1)];
+                    };
+                    if (plan.Run() != "Finished." || nativeTypes != (sample == 0 ? 1 : 2) || enters != (sample == 0 ? 1 : 0) || sample == 0 && !reported)
+                        throw new Exception("The picture plan lost Enter, typed hello again or dropped a repeated digit.");
+                }
+                checks.Add("PASS picture plans type hello once and press Return once when a retype asks for Enter, report it, and type a repeated 5 twice");
+            }
+            finally
+            {
+                Computer.Look = look; Computer.Glimpse = glimpse; Computer.Front = front; Computer.Act = act; Computer.Use = use;
+                Computer.Shoot = shoot; Computer.Focus = focus; Computer.SecretFocus = secret; Computer.Escape = escape;
+                Security.Load(security); Computer.Arm();
+            }
+        }
+
         private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)
         {
             Section(checks, "HologramChecks", delegate { HologramChecks(checks, output); });
             Section(checks, "SmokeReportedLogic", delegate { SmokeReportedLogic(checks); });
+            Section(checks, "SmokeRepeats", delegate { SmokeRepeats(checks); });
+            Section(checks, "SmokeOwnDelivery", delegate { SmokeOwnDelivery(checks); });
+            Section(checks, "SmokeCommentDelivery", delegate { SmokeCommentDelivery(checks); });
+            Section(checks, "SmokeTypingRepeats", delegate { SmokeTypingRepeats(checks); });
             Section(checks, "SmokeComments", delegate { SmokeComments(checks); });
             Section(checks, "SmokeOpening", delegate { SmokeOpening(checks); });
             Section(checks, "SmokeVoiceWaits", delegate { SmokeVoiceWaits(checks); });
@@ -51532,6 +51962,17 @@ namespace CapriDesktop
                             if (!preferences.CaughtUp || !mainframe.CaughtUpShown || !LoadPreferences().CaughtUp) throw new Exception("Remember what she sees didn't turn back on and save.");
                             FinishGlance(asking, watchTicket, "", null, "a world map with three quest markers");
                             if (Brain.Seen().IndexOf("a world map with three quest markers. You stayed quiet.", StringComparison.Ordinal) < 0) throw new Exception("With Remember what she sees on, a silent glance wasn't kept: " + Brain.Seen());
+                            double repeatNext = nextGlance;
+                            int repeatTicket = asking, repeatCount = glanced.Count;
+                            glanceProblem = "The last look failed.";
+                            mainframe.ShowProblem(glanceProblem);
+                            nextGlance = -1;
+                            glanceStart = clock.Elapsed.TotalSeconds - 30;
+                            FinishGlance(asking, watchTicket, "Don't skip that chest.", null, "a bridge with two stone arches");
+                            double repeatWait = nextGlance - clock.Elapsed.TotalSeconds;
+                            if (repeatWait < 59 || repeatWait > 61 || glanceProblem != null || mainframe.Status.Contains("The last look failed.") || asking != repeatTicket || glanced.Count != repeatCount || reply != "Don't skip that chest." || !Brain.Seen().Contains("a bridge with two stone arches. You stayed quiet.")) throw new Exception("A repeated slow glance skipped its backoff, status cleanup or screen memory.");
+                            nextGlance = repeatNext;
+                            checks.Add("PASS a repeated slow glance waits twice its duration, clears the old problem and remembers what she saw without speaking");
                             DataContractJsonSerializer caughtJson = new DataContractJsonSerializer(typeof(Preferences));
                             Preferences caughtOld = (Preferences)caughtJson.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}")));
                             Preferences caughtOff = (Preferences)caughtJson.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"CaughtUp\":false,\"Size\":240}")));
@@ -52007,6 +52448,8 @@ namespace CapriDesktop
 
         private static void SmokeMomentComments(System.Collections.Generic.List<string> checks)
         {
+            Func<string, string> momentAvoidWas = Commentary.Avoid;
+            Func<string, string, bool> momentGuardWas = Commentary.Guard;
             Func<bool> momentSettingWas = Commentary.Moments, momentFreeWas = Commentary.Free, momentSeesWas = Commentary.Sees;
             Func<string> momentKeepWas = Commentary.Keep, momentGameWas = Commentary.Game;
             Func<int> momentClockWas = Commentary.Clock;
@@ -52026,6 +52469,9 @@ namespace CapriDesktop
             };
             try
             {
+                OwnSpeech momentMemory = new OwnSpeech();
+                Commentary.Avoid = delegate(string game) { return momentMemory.Avoid("game comment", game); };
+                Commentary.Guard = delegate(string line, string game) { return !momentMemory.Repeats("game comment", line, game); };
                 bool momentFlag;
                 string momentLine = "Skeleton got you from across the ravine.";
                 foreach (string momentTagged in new[] { "[clip] " + momentLine, "Skeleton got you [clip] from across the ravine.", momentLine + " [CLIP] [clip]" })
@@ -52070,7 +52516,7 @@ namespace CapriDesktop
                     momentSystem = momentPrompt;
                     return momentAnswer;
                 };
-                Commentary.Speak = delegate(string momentSaying, string momentKind, GameMood momentMood) { lock (momentSpoken) momentSpoken.Add(momentSaying); };
+                Commentary.Speak = delegate(string momentSaying, string momentKind, GameMood momentMood) { momentMemory.Take("game comment", momentSaying, "Minecraft"); lock (momentSpoken) momentSpoken.Add(momentSaying); };
                 Commentary.Keep = delegate
                 {
                     momentWorker = Thread.CurrentThread.IsBackground && Thread.CurrentThread.ManagedThreadId != momentUi && Thread.CurrentThread.ManagedThreadId != momentDeciding;
@@ -52096,14 +52542,22 @@ namespace CapriDesktop
                 momentMust(momentCalls == 1 && momentShown() == 0, "A nearby flag extended a pending save, or an unflagged line saved.");
                 momentGo.Set();
                 momentWait(delegate { return momentShown() == 1; });
-                momentReact("[clip]", 10000);
+                momentReact("[clip] That creeper waited for you specifically!", 10000);
                 momentWait(delegate { return momentShown() == 2; });
-                momentMust(momentCalls == 2 && momentSaid() == 3, "A tag alone spoke, or a new moment at 30 seconds did not save.");
+                momentMust(momentCalls == 2 && momentSaid() == 3 && momentMemory.Recent.Length == 3, "A repeated comment spoke, lost its clip or changed speech memory.");
+                momentReact("[clip]", 10000);
+                momentMust(momentCalls == 2 && momentSaid() == 3, "A tag alone spoke or moved the clip timer.");
+                checks.Add("PASS a repeated comment saves its flagged moment at thirty seconds without speech or new speech memory");
+                momentMemory.Take("glance", "Crystal towers guard a hidden tunnel.", "Minecraft");
+                momentReact("[clip] Crystal towers guard a hidden tunnel.", 20000);
+                momentWait(delegate { return momentShown() == 3; });
+                momentMust(momentCalls == 3 && momentSaid() == 3 && momentMemory.Recent.Length == 4, "The shared guard lost a flagged clip or spoke its repeated line.");
+                checks.Add("PASS the shared guard drops a glance repeated as a flagged comment while its clip is saved");
                 lock (momentStage.Shown)
                     foreach (string momentNotice in momentStage.Shown) momentMust(momentNotice == "say > sys: clipped", "A saved moment had more than a quiet HUD notice.");
                 lock (momentSpoken)
                     foreach (string momentVoice in momentSpoken) momentMust(!momentVoice.Contains("[clip]") && !momentVoice.Contains("sys:"), "A tag or clip notice was spoken.");
-                checks.Add("PASS big moment saves: a flag calls Keep once on a separate worker, flags ten seconds apart save once without extending, an unflagged line does not save, pending saves let comments continue, and a tag alone saves at 30 seconds with only a quiet HUD notice after success");
+                checks.Add("PASS big moment saves: a flag calls Keep once on a separate worker, flags ten seconds apart save once without extending, an unflagged line does not save, pending saves let comments continue, and a repeated line saves at 30 seconds with only a quiet HUD notice after success");
 
                 bool momentCanLog = true;
                 try { File.WriteAllText(momentLog, ""); }
@@ -52123,14 +52577,14 @@ namespace CapriDesktop
                             try { return File.ReadAllText(momentLog).Contains(momentExpected); }
                             catch (IOException) { return false; }
                         });
-                        momentMust(momentShown() == 2 && momentSaid() == 3, "A failed automatic save interrupted them.");
+                        momentMust(momentShown() == 3 && momentSaid() == 3, "A failed automatic save interrupted them.");
                     }
                     momentReact("Obsidian saved your last heart.", 10000);
                     momentWait(delegate { return momentSaid() == 4; });
                     momentFailure = 0;
                     momentReact("[clip]", 20000);
-                    momentWait(delegate { return momentShown() == 3; });
-                    momentMust(momentCalls == 5 && momentSaid() == 4, "A failed save stopped the next comment or clip.");
+                    momentWait(delegate { return momentShown() == 4; });
+                    momentMust(momentCalls == 6 && momentSaid() == 4, "A failed save stopped the next comment or clip.");
                     checks.Add("PASS big moment failures: returned errors and thrown exceptions are logged without a HUD or spoken notice, and the next comment and save still run");
                 }
                 int momentBeforeOff = momentCalls;
@@ -52149,6 +52603,8 @@ namespace CapriDesktop
             finally
             {
                 momentGo.Set();
+                Commentary.Avoid = momentAvoidWas;
+                Commentary.Guard = momentGuardWas;
                 Commentary.Moments = momentSettingWas;
                 Commentary.Keep = momentKeepWas;
                 Commentary.Free = momentFreeWas;

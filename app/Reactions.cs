@@ -40,6 +40,7 @@ namespace CapriDesktop
         internal static Func<int> Clock = delegate { return Environment.TickCount; };
         internal static Action<string, bool> Show = delegate { };
         internal static Func<string, string, string> Ask;
+        internal static Func<string, string, bool> Guard = delegate { return true; };
 
         // Lines in her style for each kind of moment, shown to her brain as examples. None of them ever goes up itself.
         internal static readonly string[] Kills = { "did you SEE that??", "GET DOWN", "deleted.", "clean!!", "sit DOWN", "who's next??", "bodied, choom", "too easy", "no way you hit that", "oh that was filthy" };
@@ -255,10 +256,12 @@ namespace CapriDesktop
         {
             line = (line ?? "").Trim();
             if (line.Length == 0) return false;
+            string game = fresh ? Commentary.Game() : null;
             lock (gate)
             {
                 if (said.Count > 0 && string.Equals(said[said.Count - 1], line, StringComparison.OrdinalIgnoreCase)) return false;
                 if (fresh && Repeats(line, said)) return false;
+                if (fresh && !Guard(line, game)) return false;
                 said.Add(line);
                 if (said.Count > Recent) said.RemoveAt(0);
                 shown = true;
@@ -1014,6 +1017,7 @@ namespace CapriDesktop
             Reactions.On = ReactionsWatch;
             Reactions.Show = delegate(string line, bool brain) { Post(delegate { ReactionShow(line, brain); }); };
             Reactions.Ask = delegate(string system, string ask) { return AskHead(system, ask, 60); };
+            Reactions.Guard = delegate(string line, string game) { return ownSpeech.Take("game reaction", line, game); };
         }
 
         // She reacts while the switch is on and she's awake and watching: not napping, not put away by a hide they asked for, and
