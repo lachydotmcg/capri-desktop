@@ -370,7 +370,7 @@ All the changes are in the [release notes](https://github.com/lachydotmcg/capri-
 **Jobs on your PC**
 
 - [x] Opening apps, games and websites
-- [x] Playing music on Spotify, YouTube or Apple Music (pick one in Settings): pause, skip, volume and "what's playing?"
+- [x] Playing music on Spotify, YouTube or Apple Music (pick one in Settings; she plays Apple Music with her cursor on Windows and a Mac): pause, skip, volume and "what's playing?"
 - [x] Switching to, minimizing or closing your apps and tabs
 - [x] Pressing Discord and Windows shortcuts, like mute, deafen and screenshot
 - [x] Jobs that take a few steps: clicking, typing and scrolling in your apps

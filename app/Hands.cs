@@ -5586,11 +5586,11 @@ namespace CapriDesktop
 #endif
             bool own;
             string what = AppleMusicKind(ref song, kind, songOnly, out own);
-            string open = " on Apple Music: open the " + app + " app, ";
-            if (what == "loved") return "Play their Favourite Songs" + open + "go to Library, then Playlists, open Favourite Songs, or Songs if it isn't there, and press play.";
-            if (own) return "Play their playlist " + Voice.Quote(song) + open + "go to Library, then Playlists, open " + Voice.Quote(song) + " and press play.";
-            if (what == "song") return "Play " + Voice.Quote(song) + open + "click its search box, type " + Voice.Quote(song) + " and press Enter, then click the song that fits best and press play.";
-            return "Play the " + what + " " + Voice.Quote(song) + open + "click its search box, type " + Voice.Quote(song) + " and press Enter, then open the " + what + " that fits best and press its play button.";
+            string open = " on Apple Music: open the " + app + " app, ", stop = " If " + app + " asks them to sign in, subscribe or start a trial, stop there and tell them.";
+            if (what == "loved") return "Play their Favourite Songs" + open + "go to Library, then Playlists, open Favourite Songs, or Songs if it isn't there, and press play." + stop;
+            if (own) return "Play their playlist " + Voice.Quote(song) + open + "go to Library, then Playlists, open " + Voice.Quote(song) + " and press play." + stop;
+            if (what == "song") return "Play " + Voice.Quote(song) + open + "click its search box, type " + Voice.Quote(song) + " and press Enter, then click the song that fits best and press play." + stop;
+            return "Play the " + what + " " + Voice.Quote(song) + open + "click its search box, type " + Voice.Quote(song) + " and press Enter, then open the " + what + " that fits best and press its play button." + stop;
         }
 
         internal static InstalledApp AppleMusicApp()
@@ -5622,6 +5622,11 @@ namespace CapriDesktop
             if (current != null && !current()) return "That call errand has ended.";
             if (NativeWork != null && Security.On(Security.Mouse) && KitFor().Has("use_computer"))
                 return NativeWork(new ToolArguments { Task = AppleMusicJob(what == "song" ? look : song, kind, null, songOnly), Current = current });
+            if (what == "loved" || own)
+            {
+                Run("music://");
+                return "Opened Music. " + (what == "loved" ? "Your Favourite Songs are" : "Your " + search + " playlist is") + " under Library, then Playlists.";
+            }
             Run("music://music.apple.com/search?term=" + Uri.EscapeDataString(search));
             return "Opened Music on a search for " + named + ". Press play on the one you want.";
 #else

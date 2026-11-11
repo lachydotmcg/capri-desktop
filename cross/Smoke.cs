@@ -2857,7 +2857,7 @@ namespace CapriDesktop
                 string[] steps = Hands.StepsOf("music_app");
                 pet.SetAdvancedSettings(false);
                 frame.ShowSettings(true);
-                for (int choice = 0; choice < steps.Length; choice++)
+                for (int choice = 0; choice < (OperatingSystem.IsLinux() ? 2 : steps.Length); choice++)
                 {
                     frame.Change("Music app", choice);
                     if (pet.MusicApp != choice || Hands.LevelOf("music_app") != choice || frame.Value("Music app") != steps[choice] || SettingsCopy().MusicApp != choice || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).MusicApp != choice)

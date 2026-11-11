@@ -422,7 +422,7 @@ namespace CapriDesktop
             Toggle("Start at login", 380, 820, () => pet.StartsAtLogin, on => pet.SetLogin(on, false));
             Toggle("Show on Discord", 380, 848, () => !pet.Saved.NoDiscord, pet.SetDiscord);
             Named("Music app", 380, 876);
-            var musicApp = Picker("Music app", 564, 879, 172, () => pet.MusicApp, pet.SetMusicApp); musicApp.Height = 22; musicApp.Options(Hands.MusicSteps());
+            var musicApp = Picker("Music app", 564, 879, 172, () => OperatingSystem.IsLinux() && pet.MusicApp == 2 ? 0 : pet.MusicApp, pet.SetMusicApp); musicApp.Height = 22; musicApp.Options(OperatingSystem.IsLinux() ? new[] { "Spotify", "YouTube" } : Hands.MusicSteps());
             Toggle("Remember our chats", 380, 904, () => !pet.Saved.NoMemories, pet.SetRemembering);
             var security = Key("Security: " + Security.PresetName, 408, 935, 328, 22, OpenSecurity);
             var securityNote = Caption(Security.Short, 408, 959, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;
