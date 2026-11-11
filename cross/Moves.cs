@@ -744,6 +744,18 @@ namespace CapriDesktop
                 pet.lying = true;
                 savedHip = savedHip && comesBack();
                 pet.lying = false;
+                foreach (int eighths in new[] { 6, 2 })
+                {
+                    sitsLeftAt(main, 8 - eighths, eighths == 2);
+                    int x = main.X + main.Width * eighths / 8, y = main.Y + main.Height / 2;
+                    Ledge landing = new Ledge { Left = main.X, Right = main.Right, Y = y, Floor = true, Free = true };
+                    PixelPoint hip = new PixelPoint(x, y);
+                    pet.Hop(landing, x);
+                    if (pet.seat != landing || pet.clip != pet.perchArrive || pet.FacingLeft != (eighths == 6) || pet.Hip != hip || !comesBack()) throw new Exception("A hop started her arrival facing the wrong way or moved her saved hip.");
+                    pet.Face();
+                    if (pet.FacingLeft != (eighths == 6) || pet.Hip != hip) throw new Exception("Her arrival turned or moved on the next facing check.");
+                }
+                checks.Add("PASS hops across the screen start her perched arrival facing the middle. Her landing hip and saved spot stay put both ways.");
                 bool walkKept = true;
                 foreach (int eighths in new[] { 6, 2 })
                 {
