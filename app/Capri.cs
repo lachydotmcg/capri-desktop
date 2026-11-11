@@ -4596,8 +4596,9 @@ namespace CapriDesktop
             // Her check-ins file's lines are learnt too, so they come out in their language like the rest.
             line = Said.Learn(line);
             if (string.IsNullOrWhiteSpace(line)) return;
+            // Quiet only turns ElevenLabs off, so her free and HD voices say these out loud too, like her replies (#238).
             if (docked) Say(line);
-            else Remark(shown, line, InChat || Hushed || (preferences.Quiet && !preferences.ServerVoice) || FullScreen());
+            else Remark(shown, line, InChat || Hushed || FullScreen());
         }
 
         private void CheckCare(double now, long quiet)
@@ -4691,7 +4692,7 @@ namespace CapriDesktop
             reminderUp = true;
             reminderText = true;
             reminderTicket = -1;
-            bool bubbleOnly = InChat || Hushed || (preferences.Quiet && !preferences.ServerVoice);
+            bool bubbleOnly = InChat || Hushed;
             if (working != null)
             {
                 asideShown = line;
@@ -19434,8 +19435,13 @@ namespace CapriDesktop
                 preferences.CheckIns = false;
                 reminderClock = reminderNow.AddHours(1);
                 CheckNextLine(true);
+                WaitVoice(delegate { return reply == "Reminder: quiet reminder" && voiceUntil > 0 && reminderVoices == 2; }, "Quiet without a server voice didn't say a reminder in her free voice.");
                 UpdateTalk(clock.Elapsed.TotalSeconds);
-                if (reply != "Reminder: quiet reminder" || !box.Visible || voiceUntil != 0 || reminderVoices != 1) throw new Exception("Quiet without a server voice spoke or lost a reminder.");
+                if (!box.Visible || reminders.Waiting(reminderClock)) throw new Exception("Quiet lost a reminder.");
+                CloseTalk();
+                SayOwn("check-in", "Time for some water.");
+                CheckNextLine(true);
+                WaitVoice(delegate { return reply == "Time for some water." && voiceUntil > 0 && reminderVoices == 3; }, "Quiet without a server voice didn't say a check-in in her free voice.");
                 CloseTalk();
                 reminderClock = reminderNow;
                 reminders.Remind(new ToolArguments { Text = "muted timer", When = "in an hour" });
@@ -19443,8 +19449,8 @@ namespace CapriDesktop
                 reminderClock = reminderNow.AddHours(1);
                 CheckNextLine(true);
                 UpdateTalk(clock.Elapsed.TotalSeconds);
-                if (reply != "Reminder: muted timer" || !box.Visible || reminderVoices != 1 || !preferences.Silent || voiceUntil != 0) throw new Exception("Mute lost a reminder bubble or turned her voice on.");
-                checks.Add("PASS full-screen reminders speak at the fake due time, Quiet without a server voice shows their text, and Mute keeps its setting and bubble");
+                if (reply != "Reminder: muted timer" || !box.Visible || reminderVoices != 3 || !preferences.Silent || voiceUntil != 0) throw new Exception("Mute lost a reminder bubble or turned her voice on.");
+                checks.Add("PASS full-screen reminders speak at the fake due time, Quiet says reminders and check-ins in her free voice, and Mute keeps its setting and bubble");
 
                 CloseTalk();
                 reminderClock = reminderNow;
