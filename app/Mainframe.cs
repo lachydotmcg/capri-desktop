@@ -46,7 +46,7 @@ namespace CapriDesktop
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 1812;
+        private const int PageTall = 1840;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -168,6 +168,7 @@ namespace CapriDesktop
         private readonly Key careEdit;
         private readonly ContextMenuStrip careMenu;
         private readonly Toggle liveReactions;
+        private readonly Toggle gameSounds;
         private readonly Toggle clipGames;
         private readonly Toggle clipMoments;
         private readonly Toggle fastHands;
@@ -283,7 +284,7 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1316, 1368 }, new[] { 1368, 1396 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1344, 1396 }, new[] { 1396, 1424 } };
         // Power saver's row stays in Simple Settings, so the right column's last band starts a row lower, at Perch.
         private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 736, 1230 }, new[] { 1454, 2280 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
@@ -291,7 +292,7 @@ namespace CapriDesktop
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         // The same for Simple Settings, with its hidden rows taken out.
-        private const int SimpleTall = 1030;
+        private const int SimpleTall = 1058;
         private int wheel;
         // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
         private const double GlideMs = 140;
@@ -988,44 +989,48 @@ namespace CapriDesktop
             gameNotes = Make("Controls", 244, 911, 112, 20, delegate { ShowGameNotes(); });
             gameNotes.AccessibleName = "Game controls: teach her the keys before she plays";
             // What she says about a game they're playing, from what happens in it rather than on a timer.
-            comments = Setting("Comments", Commentary.PaceNames, 0, 938, "Game comments run separately from Watch my screen and Gaming Mode. Off stops them; Events only and Chatty let her watch your game");
+            comments = Setting("Comments", Commentary.PaceNames, 0, 938, "Game comments run separately from Watch my screen. Off stops them, in Gaming Mode too; Events only and Chatty let her watch your game");
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
             // Her live reactions (F67), on by default, under Comments since they only run while her comments do.
             liveReactions = Switch("Live reactions", 0, 966, delegate { if (!syncing) capri.ToggleReactions(); });
             liveReactions.AccessibleName = "Live reactions. Quick lines on the right of a full-screen game when something happens, while her game comments run. Mute her keeps them as text";
-            gamingMode = Switch("Gaming Mode", 0, 994, delegate { if (!syncing) capri.ToggleGaming(); });
+            // Game sounds (#234), on by default, under Live reactions: off, big bursts of a game's sound stop counting, and hits,
+            // deaths and kills still count.
+            gameSounds = Switch("Game sounds", 0, 994, delegate { if (!syncing) capri.ToggleGameSounds(); });
+            gameSounds.AccessibleName = "Game sounds. Big bursts of your game's sound count as moments for her reactions and comments. Off, she ignores them and still reacts to hits, deaths and kills";
+            gamingMode = Switch("Gaming Mode", 0, 1022, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She reacts to your game until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
-            Caption("She reacts to your game until you close it.", 28, 1020, small, Faint);
-            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28, 1036, small, Faint);
-            Caption("Works best on MAX INTELLIGENCE.", 28, 1052, small, Faint);
-            fastHands = Switch("Fast hands in games", 0, 1074, delegate { if (!syncing) capri.ToggleFastHands(); });
+            Caption("She reacts to your game until you close it.", 28, 1048, small, Faint);
+            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28, 1064, small, Faint);
+            Caption("Works best on MAX INTELLIGENCE.", 28, 1080, small, Faint);
+            fastHands = Switch("Fast hands in games", 0, 1102, delegate { if (!syncing) capri.ToggleFastHands(); });
             hdGames.Switch = intro.Switch = caughtUp.Switch = fastHands.Switch = 68;
-            gameMute = Switch("Mute her", 0, 1102, delegate { if (!syncing) capri.ToggleShush(); });
+            gameMute = Switch("Mute her", 0, 1130, delegate { if (!syncing) capri.ToggleShush(); });
             gameMute.AccessibleName = "Mute her. She stops talking on her own and only answers when you talk to her, the same as her Quiet key";
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
-            clipHead = Section("CLIPS >", 0, 1158);
-            clipGames = Switch("Clip my games", 0, 1182, delegate { if (!syncing) capri.ToggleClips(); });
+            clipHead = Section("CLIPS >", 0, 1186);
+            clipGames = Switch("Clip my games", 0, 1210, delegate { if (!syncing) capri.ToggleClips(); });
             clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory while the game is in front";
-            clipMoments = Switch("Save big moments", 0, 1210, delegate { if (!syncing) capri.ToggleClipMoments(); });
+            clipMoments = Switch("Save big moments", 0, 1238, delegate { if (!syncing) capri.ToggleClipMoments(); });
             clipMoments.AccessibleName = "Save big moments. Turns on Clip my games; her game comments can save a clip using your default length";
-            Caption("Save folder", 28, 1242, Type(9.5f), Rose);
-            clipChoose = Make("Choose folder...", ValueAt, 1238, ValueWide, 22, delegate { PickClipFolder(); });
+            Caption("Save folder", 28, 1270, Type(9.5f), Rose);
+            clipChoose = Make("Choose folder...", ValueAt, 1266, ValueWide, 22, delegate { PickClipFolder(); });
             clipChoose.AccessibleName = "Choose the folder for future clips";
-            clipPath = Caption("", 28, 1266, small, Faint);
+            clipPath = Caption("", 28, 1294, small, Faint);
             clipPath.AutoSize = false;
             clipPath.AutoEllipsis = true;
-            clipPath.Bounds = new Rectangle(28, 1266, 328, 20);
-            clipsFolder = Make("Open clips folder", 28, 1294, 328, 22, delegate { capri.OpenClips(); });
+            clipPath.Bounds = new Rectangle(28, 1294, 328, 20);
+            clipsFolder = Make("Open clips folder", 28, 1322, 328, 22, delegate { capri.OpenClips(); });
             clipsFolder.AccessibleName = "Open your selected clips folder";
-            clipLength = Setting("Default length", new[] { "15 s", "30 s", "45 s", "1 min", "1.5 min", "2 min" }, 0, 1322, "Default duration for clip that and automatic clips");
-            clipRate = Setting("Frame rate", new[] { "Up to 15 fps", "Up to 24 fps", "Up to 30 fps", "Up to 60 fps" }, 0, 1350, "Target capture frame rate; may drop under load or the memory budget");
-            clipSize = Setting("Resolution", new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, 0, 1378, "Maximum clip resolution, keeping the game's shape without upscaling");
-            clipBits = Setting("Video bitrate", new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, 0, 1406, "H.264 video bitrate target; higher values make larger files");
+            clipLength = Setting("Default length", new[] { "15 s", "30 s", "45 s", "1 min", "1.5 min", "2 min" }, 0, 1350, "Default duration for clip that and automatic clips");
+            clipRate = Setting("Frame rate", new[] { "Up to 15 fps", "Up to 24 fps", "Up to 30 fps", "Up to 60 fps" }, 0, 1378, "Target capture frame rate; may drop under load or the memory budget");
+            clipSize = Setting("Resolution", new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, 0, 1406, "Maximum clip resolution, keeping the game's shape without upscaling");
+            clipBits = Setting("Video bitrate", new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, 0, 1434, "H.264 video bitrate target; higher values make larger files");
             foreach (Slider recording in new[] { clipLength, clipRate, clipSize, clipBits }) recording.Changed += delegate { SaveClipOptions(); };
-            Label clipHint = Caption("FPS can drop under load or for longer clips.\nFolder changes apply to future clips.", 28, 1438, small, Faint);
+            Label clipHint = Caption("FPS can drop under load or for longer clips.\nFolder changes apply to future clips.", 28, 1466, small, Faint);
             clipHint.AutoSize = false;
-            clipHint.Bounds = new Rectangle(28, 1438, 328, 36);
+            clipHint.Bounds = new Rectangle(28, 1466, 328, 36);
             int gamesTo = Controls.Count;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
@@ -2885,6 +2890,7 @@ namespace CapriDesktop
             careEdit.Dimmed = !capri.CheckIns;
             ShowPersonality();
             liveReactions.Checked = capri.ReactionsOn;
+            gameSounds.Checked = capri.GameSoundsOn;
             clipGames.Checked = capri.ClipsOn;
             clipMoments.Checked = capri.ClipMomentsOn;
             ClipSettings recording = capri.ClipOptions;
@@ -2932,7 +2938,7 @@ namespace CapriDesktop
             hologram.Checked = capri.HologramOn;
             bubble.Value = capri.BubbleTime;
             bubbleName.Text = BubbleNames[bubble.Value];
-            comments.Value = capri.CommentPace;
+            comments.Value = capri.CommentPaceShown;
             commentsName.Text = Commentary.PaceNames[comments.Value];
             intro.Checked = capri.Intro;
             typing.Checked = capri.TypingSound;
@@ -2971,6 +2977,8 @@ namespace CapriDesktop
         internal void SlideMemorySize(int index) { memorySize.Slide(index); }
 
         internal void SlideReplyLength(int index) { replyLength.Slide(index); }
+
+        internal void SlideComments(int index) { comments.Slide(index); }
 
         internal void SlidePerch(int steps) { Press(perchFps, steps); }
 
@@ -3110,6 +3118,10 @@ namespace CapriDesktop
         internal bool ReactionsShown { get { return liveReactions.Checked; } }
 
         internal void FlipReactions() { liveReactions.Checked = !liveReactions.Checked; }
+
+        internal bool GameSoundsShown { get { return gameSounds.Checked; } }
+
+        internal void FlipGameSounds() { gameSounds.Checked = !gameSounds.Checked; }
 
         internal bool ClipMomentsShown { get { return clipMoments.Checked; } }
 

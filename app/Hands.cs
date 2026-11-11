@@ -1161,7 +1161,7 @@ namespace CapriDesktop
             { "pat_stroke", "how long a stroke over you a head pat needs: Short is a quick rub, Long a slow, deliberate one" },
             { "sit_on_windows", "you sit on their windows' top edges" }, { "mini_player", "your music player" }, { "follow_ups", "your second thought after an answer" },
             { "glitch_in", "your entrance when Capri starts" }, { "watch_my_screen", "your timed glances at their screen" },
-            { "game_comments", "game comments run on their own; Off stops them outside Gaming Mode" },
+            { "game_comments", "game comments run on their own; Off stops them, in Gaming Mode too" },
             { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
             { "keep_awake", "their PC stays awake for your jobs and watches" }, { "explore_away", "you explore while they're away" },
             { "cursor", "your visible pointer for YouTube searches and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },

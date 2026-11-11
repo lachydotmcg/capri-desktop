@@ -1004,6 +1004,17 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
+        // GAMES > Game sounds (#234), on by default. Off, her reactions and comments let bursts of the game's sound go, and
+        // everything else still counts.
+        internal bool GameSoundsOn { get { return !preferences.NoGameSounds; } }
+
+        internal void ToggleGameSounds()
+        {
+            preferences.NoGameSounds = !preferences.NoGameSounds;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         // The game in front, as her game watching last saw it, or empty when there isn't one.
         private Rectangle ReactionGame
         {
