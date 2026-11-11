@@ -983,6 +983,12 @@ namespace CapriDesktop
 
         internal static string KeepAsk(string words, string said) { return "They said: " + Voice.Quote(words) + "\nYou said: " + Voice.Quote(said); }
 
+        // Plain asks her hands read for sure, which they still do when a brain that works jobs out answers one with only words.
+        internal static bool PlainAsk(string tool)
+        {
+            return tool == "app_window" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "media" || tool == "play_music" || tool == "find_file" || Instant(tool);
+        }
+
         // Set phrases a strong brain still lets her take straight away, because there's nothing to work out.
         internal static bool Instant(string tool, ToolArguments args = null)
         {

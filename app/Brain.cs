@@ -2459,6 +2459,16 @@ namespace CapriDesktop
                 }
             }
             if (planned && calls.Count == 0) raw = planText;
+            // A small brain that works jobs out can answer a plain "close Spotify" with words and no tool, even an old remark of its
+            // own (Gale, 11 Nov, on nemotron-3.5-bolt-e4b: Spotify stayed open and she said "that hill looked too peaceful"). What her
+            // hands would have done straight away for any other brain, they do now, and the words are dropped.
+            if (planned && calls.Count == 0 && act != null && !fileChat && unable == null && rest == null && Hands.Heard(request, out direct, out directArgs, true) && Hands.PlainAsk(direct) && kit.Unable(direct, directArgs) == null)
+            {
+                calls.Add(new KeyValuePair<string, ToolArguments>(direct, directArgs));
+                planned = false;
+                planText = null;
+                raw = "";
+            }
             if (calls.Count == 0 && !planned && unable == null)
             {
                 raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
