@@ -21,7 +21,7 @@ In the website's **help chat**, what you type, your last few messages and any pi
 
 Cloudflare logging is on for the worker. If no model can answer, the worker logs the errors they gave back. Those errors aren't scrubbed, so one could repeat part of what you asked.
 
-GitHub hosts the website and the downloads. Cloudflare runs the counters, help chat and Remote relay. They keep their own logs under their own privacy policies, and so does Anthropic for help chat requests. The site's fonts, scripts and pictures come from the site itself, with no third-party analytics. When you visit, your browser asks GitHub for the latest release and the changelog.
+GitHub hosts the website and the downloads, and Microsoft hosts the Store copy. Cloudflare runs the counters, help chat and Remote relay. They keep their own logs under their own privacy policies, and so does Anthropic for help chat requests. The site's fonts, scripts and pictures come from the site itself, with no third-party analytics. When you visit, your browser asks GitHub for the latest release and the changelog.
 
 ## What the app connects to
 
@@ -75,11 +75,13 @@ A local brain, her own ears and her local voices stay on your PC. A custom brain
 
 ## Windows or your antivirus warned me
 
-Her Windows builds aren't code signed, and each new release starts with no reputation, so you may see **Windows protected your PC**. Press **More info**, then **Run anyway**.
+Her Windows builds on GitHub and the website aren't code signed, and each new release starts with no reputation, so you may see **Windows protected your PC**. Press **More info**, then **Run anyway**.
+
+The [Microsoft Store copy](https://apps.microsoft.com/detail/9P0KFRB76X0G) (CapriAI) is signed and checked by Microsoft, so it doesn't get this warning. It's a few versions behind the latest release and updates through the Store.
 
 Antivirus apps can flag her too. Taking screenshots, moving the mouse, pressing keys, listening to the mic and starting apps are her job, and they look a lot like what malware does. That usually means a false alarm, but an alert alone can't tell you a file is safe, so check it:
 
-1. Only download her from the [official release page](https://github.com/lachydotmcg/capri-desktop/releases/latest) or the [official website](https://capriai.app/).
+1. Only download her from the [official release page](https://github.com/lachydotmcg/capri-desktop/releases/latest), the [official website](https://capriai.app/) or the [Microsoft Store](https://apps.microsoft.com/detail/9P0KFRB76X0G).
 2. In PowerShell, from your download folder, run:
 
    ```powershell
