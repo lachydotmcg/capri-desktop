@@ -24,7 +24,7 @@ jobs:
         run: ./ci/wide-screen.ps1
       - name: Build and smoke test
         shell: pwsh
-        run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 900
+        run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 1200
       - name: Package marker
         if: always()
         shell: pwsh
