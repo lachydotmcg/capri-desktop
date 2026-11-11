@@ -437,9 +437,48 @@
     dirty = true;
   };
 
-  // She leaves on her own glitch frames and arrives the same way, and the chapter's windows glide while she's gone.
+  // Where the ball of ribbon she forms from goes, on the screen. Sitting, the animation is drawn on this very pose, so it
+  // lines up with her perch cell; lying or standing it forms around her middle.
+  const spot = () => {
+    place();
+    const box = her.el.getBoundingClientRect();
+    if (pose === 'perch') return { x: box.left + size * (0.4323 + 5.97 / 384), y: box.top + size * (0.5938 + 12.34 / 384) };
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  };
+  // Her picture as she is right now: which cell of which strip, and where it is on the screen (it stays with her desktop if the page scrolls).
+  const portrait = () => {
+    const [name, cell] = her.shown.split(':'), image = strips.get(name), clip = table[name];
+    if (!image || !clip) return null;
+    const box = $('.sprite', her.el).getBoundingClientRect(), base = stage.getBoundingClientRect();
+    const sw = image.naturalWidth / clip.across, sh = image.naturalHeight / clip.rows, left = box.left - base.left, top = box.top - base.top;
+    return { image, sx: cell % clip.across * sw, sy: Math.floor(cell / clip.across) * sh, sw, sh, width: box.width, height: box.height,
+      at: () => { const now = stage.getBoundingClientRect(); return { x: now.left + left, y: now.top + top }; } };
+  };
+  // Her own picture takes over under the last of the drawings she forms from, with her arrival at its end, where she's whole.
+  const land = then => {
+    her.el.classList.remove('gone');
+    her.hold(restClip());
+    const name = pose === 'perch' ? 'perch_arrive' : pose === 'stand' ? 'arrive' : '';
+    if (!name || still || !ready.has(name)) { if (then) then(); return; }
+    her.once(name, then);
+    her.from = time - Math.round(table[name].count * 0.7) / table[name].fps * 1000;
+  };
+  // She travels as her ribbons, as she does in the app (city/ribbons.js), and the chapter's windows glide while she's on her way.
+  // Without them (her desktop off screen, or the drawings not loaded) she leaves on her own glitch frames and arrives the same way.
   const teleport = (move, then) => {
     if (still) { move(); if (then) then(); return; }
+    const ribbons = window.CapriRibbons;
+    if (ribbons && ribbons.ready && live.has(stage)) {
+      const base = stage.getBoundingClientRect(), was = spot(), picture = portrait();
+      her.el.classList.add('gone');
+      move();
+      const going = ribbons.trip({
+        from: () => { const now = stage.getBoundingClientRect(); return { x: was.x - base.left + now.left, y: was.y - base.top + now.top }; },
+        to: spot, size, picture, mirrored: true, onShown: () => land(then)
+      });
+      if (!going) land(then);
+      return;
+    }
     her.once(pose === 'lie' ? 'laydown_leave' : pose === 'perch' ? 'perch_leave' : 'leave', () => {
       if (still) { move(); if (then) then(); return; }
       her.el.classList.add('gone');
@@ -1617,6 +1656,39 @@
   fetchStrips(['idle', 'perch', 'perch_music', 'laydown', 'laydown_talk', 'laydown_blink', 'laydown_sleep', 'laydown_glitch', 'laydown_leave']);
   perform('hero');
   requestAnimationFrame(tick);
+
+  // ---------- One Capri. She is up on the city's edge or down here on her desktop, and city/city.js sends her between them. ----------
+  let upTop = false;
+  window.CapriStage = {
+    get size() { return size; },
+    // free to leave: not in the middle of a hop, on a cursor, in a hand or in the air
+    get free() { return upTop || !(hopping || riding || drag || flight); },
+    spot,
+    portrait,
+    // She leaves her desktop: her bubble and her pill go with her, and her chapters wait for her.
+    away() {
+      if (asleep) wake(true);
+      upTop = hopping = true;
+      pillUntil = 0;
+      pink.classList.remove('on');
+      stopTalk();
+      talkbox.classList.add('off');
+      her.el.classList.add('gone');
+    },
+    // Before she comes down, her desktop goes to the chapter the page is on, so she lands where that chapter has her.
+    settle() {
+      if (!upTop || scene === shownScene) return;
+      arrange(scene);
+      shownScene = scene;
+      cut();
+    },
+    // She is back: she says the chapter's line, and catches up with wherever the page has been scrolled to.
+    back() {
+      if (!upTop) return;
+      upTop = false;
+      land(() => { hopping = false; perform(shownScene); if (scene !== shownScene) go(scene); });
+    }
+  };
 
   if ('IntersectionObserver' in window) {
     const chapters = new IntersectionObserver(entries => {

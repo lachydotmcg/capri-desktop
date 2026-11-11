@@ -78,6 +78,7 @@
 
   let still = null;
   let wispImg = null;
+  let perchImg = null, perchCell = 0;                    // her sitting strip, and the cell of it that is showing
   let W = 0, H = 0, dpr = 1, zoom = 1, dx = 0, dy = 0;   // the still is drawn at (dx, dy), scaled by zoom
   let hit = { x: 0, y: 0, size: 0 };                      // where her ribbons meet the glass: the middle of her seat
   let cell = { x: 0, y: 0, w: 0, h: 0 };                  // her sprite cell, in hero pixels
@@ -649,7 +650,7 @@
 
   function perch(t) {
     const p = A.perch;
-    const frame = (A.wisp.perchFrame + Math.max(0, Math.floor((t - T.sit) * p.fps))) % p.frames;
+    const frame = perchCell = (A.wisp.perchFrame + Math.max(0, Math.floor((t - T.sit) * p.fps))) % p.frames;
     sprite.style.backgroundPosition = `${(frame % p.cols) / (p.cols - 1) * 100}% ${Math.floor(frame / p.cols) / (p.rows - 1) * 100}%`;
   }
 
@@ -680,6 +681,7 @@
     if (mode === 'play') frames++;
     if (mode === 'play' && time >= T.end) { mode = 'end'; lastRun = (now - startedAt) / 1000; }
     demo();
+    travel();
     // once she is sitting, nothing is drawn while the first screen is scrolled away
     if (mode === 'play' || inView) render(clock());
   }
@@ -716,7 +718,7 @@
   addEventListener('keydown', event => { if (!['Shift', 'Control', 'Alt', 'Meta'].includes(event.key)) skip(event); });
   for (const type of ['pointerup', 'pointercancel', 'touchend', 'touchcancel', 'keyup']) addEventListener(type, release, { passive: true });
   // Clicking her plays it again. Her billboard is a link to the Remote chapter, once the phone demo is steady on it.
-  her.addEventListener('click', () => { if (mode === 'end' && !held) play(); });
+  her.addEventListener('click', () => { if (mode === 'end' && !held && where === 'top') play(); });
   billboard.addEventListener('click', event => { if (held || clock() < T.lit) event.preventDefault(); });
 
   function settle() {                     // pick the state this visit should be in
@@ -729,6 +731,55 @@
     else rest();
   }
   calm.addEventListener('change', () => { if (still) settle(); });
+
+  // ---------- One Capri: she rides her ribbons between the city's edge and her desktop ----------
+  /* She is in one place at a time. Up here she sits on the panel's edge. Once most of this screen
+     has scrolled away she leaves as her ribbons and forms on her desktop below, and she comes back
+     the same way when the page is scrolled up again. home.js owns her desktop (CapriStage) and
+     city/ribbons.js the trip, which is the one she makes in the app. With motion paused or reduced
+     she is simply in the other place. */
+  let where = 'top';                                       // top, desk, or going between them
+  const desk = () => window.CapriStage, trips = () => window.CapriRibbons;
+  const upHere = () => { const box = hero.getBoundingClientRect(); return clamp(box.bottom / box.height, 0, 1); };   // how much of this screen is still showing
+  const seatNow = () => { const box = hero.getBoundingClientRect(); return { x: box.left + hit.x, y: box.top + hit.y }; };
+  // Her picture on the panel's edge right now, for the slices she leaves in.
+  function seatPicture() {
+    if (!perchImg) return null;
+    const p = A.perch, sw = perchImg.naturalWidth / p.cols, sh = perchImg.naturalHeight / p.rows;
+    const box = sprite.getBoundingClientRect(), base = hero.getBoundingClientRect(), left = box.left - base.left, top = box.top - base.top;
+    return { image: perchImg, sx: (perchCell % p.cols) * sw, sy: Math.floor(perchCell / p.cols) * sh, sw, sh, width: box.width, height: box.height,
+      at: () => { const now = hero.getBoundingClientRect(); return { x: now.left + left, y: now.top + top }; } };
+  }
+  function goDown() {
+    const stage = desk(), picture = seatPicture();
+    where = 'going';
+    hero.classList.add('fo-away');
+    stage.settle();
+    const going = trips() && trips().trip({ from: seatNow, to: stage.spot, size: cell.h, toSize: stage.size, picture, mirrored: true,
+      onShown: () => stage.back(), onDone: () => { where = 'desk'; } });
+    if (!going) { stage.back(); where = 'desk'; }
+  }
+  function goUp() {
+    const stage = desk(), picture = stage.portrait();
+    where = 'going';
+    stage.away();
+    const going = trips() && trips().trip({ from: stage.spot, to: seatNow, size: stage.size, toSize: cell.h, picture, mirrored: false,
+      onShown: () => hero.classList.remove('fo-away'), onDone: () => { where = 'top'; } });
+    if (!going) { hero.classList.remove('fo-away'); where = 'top'; }
+  }
+  /* She goes while both ends of the trip are on the screen: on the way down once half of this screen
+     has gone, and on the way back up as soon as her seat is in view again. Those two overlap, so which
+     way the page is moving decides; the wider pair is for a page that jumped (a link, the Home key). */
+  let lastY = scrollY, heading = 0;
+  function travel() {
+    const y = scrollY;
+    if (Math.abs(y - lastY) > 1) { heading = Math.sign(y - lastY); lastY = y; }
+    if (!desk() || where === 'going' || mode === 'wait' || mode === 'play' || mode === 'freeze') return;
+    const showing = upHere();
+    if (where === 'top' && (showing < 0.3 || (showing < 0.5 && heading > 0))) goDown();
+    else if (where === 'desk' && (showing > 0.75 || (showing > 0.42 && heading < 0)) && desk().free) goUp();
+  }
+  addEventListener('scroll', travel, { passive: true });   // the clock doesn't run with reduced motion, so scrolling asks too
 
   let resizing = 0;
   addEventListener('resize', () => {
@@ -745,11 +796,23 @@
   (async () => {
     // her strip is whichever size the stylesheet picked for this screen
     const strip = /url\("?([^")]+)"?\)/.exec(getComputedStyle(sprite).backgroundImage);
-    [still, wispImg, , poster] = await Promise.all([loadStill(wantedStill()), load(A.wisp.src), load(strip ? strip[1] : A.perch.src), load('city/remote-demo.webp').catch(() => null)]);
+    [still, wispImg, perchImg, poster] = await Promise.all([loadStill(wantedStill()), load(A.wisp.src), load(strip ? strip[1] : A.perch.src), load('city/remote-demo.webp').catch(() => null)]);
     layout();
     buildTracks();
     document.documentElement.classList.remove('pre');   // the tracks hold those parts back from here on
     settle();
+    // Qewiw's drawings, for every trip she makes on the page: one of them, around the middle of its ball of ribbon.
+    if (trips()) trips().painter = (c, name, x, y, size, mirrored) => {
+      c.save();
+      if (mirrored) { c.translate(x, 0); c.scale(-1, 1); c.translate(-x, 0); }
+      drawWisp(c, name, x, y, size, 0, 1);
+      c.restore();
+    };
+    // She starts up here when this screen is what the visitor is looking at, and on her desktop when the page opens further down.
+    if (desk()) {
+      if (mode === 'play' || upHere() >= 0.5) desk().away();
+      else { where = 'desk'; hero.classList.add('fo-away'); }
+    }
     // The first screen stops drawing once it is scrolled away, and the help chat keeps out of her way while it is up.
     new IntersectionObserver(([entry]) => {
       inView = entry.isIntersecting;
@@ -757,7 +820,7 @@
       if (inView) drawnKey = '';
     }, { threshold: [0, 0.4] }).observe(hero);
     if (video) new IntersectionObserver(([entry]) => { chapterInView = entry.isIntersecting; }, { threshold: 0.2 }).observe(video);
-    window.__flyout = { T, get mode() { return mode; }, get t() { return clock(); }, get lastRun() { return lastRun; }, get frames() { return frames; }, get ad() { return adLevel(clock()); }, get inView() { return inView; }, video, skip, play };
+    window.__flyout = { T, get mode() { return mode; }, get t() { return clock(); }, get lastRun() { return lastRun; }, get frames() { return frames; }, get ad() { return adLevel(clock()); }, get inView() { return inView; }, get where() { return where; }, video, skip, play };
   })().catch(error => {
     // Without the pictures the plain page still stands: the still city, the headline, and the whole site under it.
     document.documentElement.classList.remove('pre');
