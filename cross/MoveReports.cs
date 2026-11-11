@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Input;
+using Avalonia.Platform;
 
 namespace CapriDesktop
 {
@@ -312,9 +313,18 @@ namespace CapriDesktop
                 if (stuck) { TakePosition(Position); StayPut(); }
                 else if (seat == null && !pressed && !dragging && !desktopDrag) Fall();
             };
-            bool real = MoveTo == null && opened && IsVisible && (Desk is not NiriDesk niri || niri.Desktop.Failed(this));
+            bool real = MoveTo == null && opened && IsVisible && (Desk is not NiriDesk niri || niri.Desktop.Failed(this)) && InsideWork(at);
             if (real) asked.Observe(Position);
             asked.Asked(at, Now, real);
+        }
+
+        // A desktop can quietly keep a window off its panels and past a screen's edge, and a refused move that leaves her where
+        // she was sends no report. So only a move that keeps her whole window inside a work area counts towards stuck.
+        private bool InsideWork(PixelPoint at)
+        {
+            PixelRect box = new PixelRect(at, PixelSize.FromSize(Bounds.Size, DesktopScaling));
+            foreach (Screen screen in Screens.All) if (X11Safety.Work(screen).Contains(box)) return true;
+            return false;
         }
 
         private void TakePosition(PixelPoint? at)
