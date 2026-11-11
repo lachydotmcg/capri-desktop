@@ -42,6 +42,7 @@ namespace CapriDesktop
             Func<string, string, string> lookOnWas = Hands.LookOn;
             bool windowsOn = Security.On(Security.Windows);
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            string nvidiaWas = Brain.Nvidia;
             bool keepingWas = Brain.Keeping;
             TcpListener fake = null;
             try
@@ -312,7 +313,21 @@ namespace CapriDesktop
                 string smallReply = small.Ask("close discord");
                 if (string.Join(",", skipped.ToArray()) != "app_window:discord:close" || smallReply.IndexOf("hill", StringComparison.OrdinalIgnoreCase) >= 0)
                     throw new Exception("A planner's words without a tool left a plain close undone: " + smallReply + " / " + string.Join(",", skipped.ToArray()));
-                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she keeps a window on top of the others and lets it go, like \"keep discord on top\"; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up; a planner that answers a plain \"close discord\" with only words still gets it closed");
+                // On Gale's own model the same goes for a call written out as words and for reasoning cut off before its call (11 Nov).
+                string[] wordy = { "app_window: close discord", "Okay, let's break this down. The user is asking me to close discord. Looking at the tools, the correct tool call would be app_window with name: \"discord\", action:" };
+                foreach (string words in wordy)
+                {
+                    fake.Stop();
+                    asked.Clear();
+                    skipped.Clear();
+                    Brain.Nvidia = FakeServer(new[] { says(words), says(words), says(words) }, asked, out fake);
+                    Brain bolt = new Brain { Model = "nvidia/nemotron-3.5-bolt-e4b", Remote = new Cloud("nvapi-test", "nvidia/nemotron-3.5-bolt-e4b"), OwnSteps = true };
+                    bolt.Act = small.Act;
+                    string boltReply = bolt.Ask("close discord");
+                    if (string.Join(",", skipped.ToArray()) != "app_window:discord:close" || boltReply != "Closed discord.")
+                        throw new Exception("Her brain's words for a call didn't close discord: " + words + " / " + boltReply + " / " + string.Join(",", skipped.ToArray()));
+                }
+                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she keeps a window on top of the others and lets it go, like \"keep discord on top\"; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up; a planner that answers a plain \"close discord\" with only words, the call written as words or its reasoning cut off still gets it closed");
             }
             finally
             {
@@ -338,6 +353,7 @@ namespace CapriDesktop
                 Security.Drop();
                 Security.Set(Security.Windows, windowsOn);
                 Brain.OpenAi = openAiWas;
+                Brain.Nvidia = nvidiaWas;
                 Brain.MemoryPath = notesWas;
                 Brain.MemoriesPath = memoriesWas;
                 Brain.TranscriptPath = transcriptsWas;

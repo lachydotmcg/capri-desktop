@@ -2459,16 +2459,6 @@ namespace CapriDesktop
                 }
             }
             if (planned && calls.Count == 0) raw = planText;
-            // A small brain that works jobs out can answer a plain "close Spotify" with words and no tool, even an old remark of its
-            // own (Gale, 11 Nov, on nemotron-3.5-bolt-e4b: Spotify stayed open and she said "that hill looked too peaceful"). What her
-            // hands would have done straight away for any other brain, they do now, and the words are dropped.
-            if (planned && calls.Count == 0 && act != null && !fileChat && unable == null && rest == null && Hands.Heard(request, out direct, out directArgs, true) && Hands.PlainAsk(direct) && kit.Unable(direct, directArgs) == null)
-            {
-                calls.Add(new KeyValuePair<string, ToolArguments>(direct, directArgs));
-                planned = false;
-                planText = null;
-                raw = "";
-            }
             if (calls.Count == 0 && !planned && unable == null)
             {
                 raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
@@ -2561,6 +2551,17 @@ namespace CapriDesktop
                     catch (BrainException) { calls.Clear(); }
                     if (calls.Count == 0 && unable == null && lookup != null) calls.Add(new KeyValuePair<string, ToolArguments>("open_website", lookup));
                 }
+            }
+            // A brain that takes her tools can answer a plain ask with only words and no tool: an old remark of its own (Gale, 11 Nov, on
+            // nemotron-3.5-bolt-e4b: "close Spotify" got "that hill looked too peaceful"), the call written out as words ("use_computer:
+            // open notepad") or its reasoning cut off before the call. What her hands would have done straight away for any other brain,
+            // they do now, and the words are dropped.
+            if (planning && calls.Count == 0 && !fileChat && unable == null && rest == null && Hands.Heard(request, out direct, out directArgs, true) && Hands.PlainAsk(direct) && kit.Unable(direct, directArgs) == null)
+            {
+                calls.Add(new KeyValuePair<string, ToolArguments>(direct, directArgs));
+                planned = false;
+                planText = null;
+                raw = "";
             }
             // Asked for something that can't work here: she says so and why, after anything she could do. When none of a mixed ask
             // ran, that's the part that can't work here, unless a brain that worked the job out had its say.
