@@ -109,21 +109,30 @@ namespace CapriDesktop
             graphics.SmoothingMode = was;
         }
 
-        // Her thin scroll thumb: a dim rail and a cyan thumb, sized to how much of the content is in view.
-        internal static RectangleF Thumb(Rectangle rail, int view, int content, int offset)
+        // The Mainframe's own scroll thumb, drawn the same way: a 2 px dim track 8 px in from the right edge and 18 px in from
+        // the top and bottom, with a cyan thumb sized to how much of the content is in view. Area is the scrolling part.
+        internal static RectangleF Track(Rectangle area, float s)
+        {
+            return new RectangleF(area.Right - 8 * s, area.Top + 18 * s, 2 * s, Math.Max(1, area.Height - 36 * s));
+        }
+
+        internal static RectangleF Thumb(RectangleF rail, int view, int content, int offset)
         {
             if (content <= view || view <= 0) return RectangleF.Empty;
-            float tall = Math.Max(rail.Height * (float)view / content, Math.Min(rail.Height, 24 * (rail.Width / 3f)));
+            float tall = rail.Height * view / content;
             float at = rail.Top + (rail.Height - tall) * offset / (float)(content - view);
             return new RectangleF(rail.Left, at, rail.Width, tall);
         }
 
-        internal static void Rail(Graphics graphics, Rectangle rail, int view, int content, int offset, bool lit)
+        internal static void Rail(Graphics graphics, RectangleF rail, int view, int content, int offset)
         {
             RectangleF thumb = Thumb(rail, view, content, offset);
             if (thumb.IsEmpty) return;
+            SmoothingMode was = graphics.SmoothingMode;
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
             using (Brush track = new SolidBrush(Neon.Dash)) graphics.FillRectangle(track, rail);
-            using (Brush fill = new SolidBrush(lit ? Neon.Tone(160, 248, 251) : Neon.Cyan)) graphics.FillRectangle(fill, thumb);
+            using (Brush lit = new SolidBrush(Neon.Cyan)) graphics.FillRectangle(lit, thumb);
+            graphics.SmoothingMode = was;
         }
 
         internal const TextFormatFlags Line = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.VerticalCenter | Kept;
@@ -216,7 +225,7 @@ namespace CapriDesktop
             if (!Enabled) { face = Neon.Field; rim = Neon.Tone(52, 22, 32); ink2 = Neon.Tone(112, 94, 104); }
             else if (Solid) { face = down ? ControlPaint.Dark(Accent, 0.1f) : hot ? ControlPaint.Light(Accent, 0.35f) : Accent; rim = face; ink2 = Neon.OnInk; }
             else if (Accent == Neon.Cyan) { face = down ? Neon.Tone(18, 62, 67) : hot ? Neon.Tone(13, 45, 49) : Neon.Deep; rim = lit ? Neon.Cyan : Neon.Tone(28, 84, 92); ink2 = Neon.Cyan; }
-            else if (Accent == Neon.Hot) { face = down ? Neon.Tone(72, 18, 30) : hot ? Neon.Tone(54, 16, 28) : Neon.Tone(34, 12, 22); rim = lit ? Neon.Tone(255, 124, 122) : Neon.Hot; ink2 = Neon.Tone(255, 166, 162); }
+            else if (Accent == Neon.Hot) { face = down ? Neon.Tone(72, 18, 30) : hot ? Neon.Tone(54, 16, 28) : Neon.Tone(34, 12, 22); rim = lit ? Neon.Hot : Neon.Tone(104, 34, 48); ink2 = Neon.Tone(255, 166, 162); }
             else { face = down ? Neon.Pressed : hot ? Neon.Hover : Neon.Field; rim = lit ? Neon.Hot : Neon.Edge; ink2 = Chevron ? Neon.Cyan : Accent; }
             WorkPaint.Plate(graphics, box, 5 * s, face, rim, line);
             if (Chevron)
@@ -235,6 +244,81 @@ namespace CapriDesktop
             if (Solid && Enabled && Focused && ShowFocusCues)
                 WorkPaint.Plate(graphics, RectangleF.Inflate(box, -3 * s, -3 * s), 4 * s, Color.Empty, Neon.OnInk, line);
             TextRenderer.DrawText(graphics, Text, Font, ClientRectangle, ink2, TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis);
+        }
+    }
+
+    // A row in the Workspace's own menus, drawn like the Mainframe's BRAIN choices: a diamond (filled for the one in use),
+    // or a folder or file mark, the name, and a short note in a column of its own. The menu around it keeps her menu look.
+    internal sealed class WorkChoice : ToolStripMenuItem
+    {
+        internal int Mark = 1;
+        internal bool On;
+        internal string Note = "";
+        internal int Column;
+        internal float Unit = 1;
+        internal Font LabelFont, NoteFont;
+
+        internal WorkChoice(string text, EventHandler click) : base(text, null, click)
+        {
+            AutoSize = false;
+            Margin = Padding.Empty;
+            Padding = Padding.Empty;
+        }
+
+        internal int NameWide { get { return WorkPaint.Wide(Text, LabelFont); } }
+        internal int NoteWide { get { return Note.Length == 0 ? 0 : WorkPaint.Wide(Note, NoteFont); } }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics graphics = e.Graphics;
+            float s = Unit, line = Math.Max(1f, s);
+            bool lit = Enabled && (Selected || Pressed);
+            SmoothingMode was = graphics.SmoothingMode;
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            if (lit)
+                using (GraphicsPath plate = Neon.Cut(new RectangleF(line / 2, line / 2, Width - line, Height - line), 0, 0, 5 * s, 0))
+                {
+                    using (Brush wash = new SolidBrush(Color.FromArgb(24, Neon.Cyan))) graphics.FillPath(wash, plate);
+                    using (Pen pen = new Pen(Color.FromArgb(190, Neon.Cyan), line)) graphics.DrawPath(pen, plate);
+                }
+            float x = 12 * s, y = Height / 2f, size = 4.5f * s;
+            Color ink = !Enabled ? Neon.Tone(112, 94, 104) : lit || On ? Neon.Cyan : Neon.Faint;
+            if (Mark == 1)
+            {
+                PointF[] diamond = { new PointF(x, y - size), new PointF(x + size, y), new PointF(x, y + size), new PointF(x - size, y) };
+                if (On) using (Brush mark = new SolidBrush(Neon.Cyan)) graphics.FillPolygon(mark, diamond);
+                else using (Pen pen = new Pen(ink, 1.2f * s)) graphics.DrawPolygon(pen, diamond);
+            }
+            graphics.SmoothingMode = was;
+            if (Mark == 2) WorkPaint.FolderMark(graphics, new RectangleF(x - 6.5f * s, y - 5.5f * s, 13 * s, 11 * s), Enabled ? Neon.Cyan : ink, s);
+            if (Mark == 3) WorkPaint.FileMark(graphics, new RectangleF(x - 4.5f * s, y - 6.5f * s, 9 * s, 13 * s), Enabled ? Neon.Cyan : ink, s);
+            int left = (int)(24 * s);
+            TextFormatFlags flags = WorkPaint.Line | TextFormatFlags.Left;
+            Color words = !Enabled ? Neon.Tone(112, 94, 104) : On || lit ? Neon.Cyan : Neon.White;
+            TextRenderer.DrawText(graphics, Text, LabelFont, new Rectangle(left, 0, Math.Max(1, Column - left), Height), words, flags);
+            if (Note.Length > 0) TextRenderer.DrawText(graphics, Note, NoteFont, new Rectangle(Column, 0, Math.Max(1, Width - Column), Height), Enabled ? Neon.Faint : words, flags);
+        }
+
+        // Lays the rows out alike: one name column as wide as the widest name, one note column after it, even padding around.
+        internal static void Arrange(ToolStripDropDown drop, float s)
+        {
+            int names = 0, notes = 0;
+            foreach (ToolStripItem item in drop.Items)
+            {
+                WorkChoice choice = item as WorkChoice;
+                if (choice == null) continue;
+                names = Math.Max(names, choice.NameWide);
+                notes = Math.Max(notes, choice.NoteWide);
+            }
+            int column = (int)(24 * s) + names + (notes > 0 ? (int)(18 * s) : 0);
+            int wide = column + notes + (int)(14 * s), tall = (int)Math.Round(30 * s);
+            foreach (ToolStripItem item in drop.Items)
+            {
+                WorkChoice choice = item as WorkChoice;
+                if (choice == null) continue;
+                choice.Column = column;
+                choice.Size = new Size(wide, tall);
+            }
         }
     }
 

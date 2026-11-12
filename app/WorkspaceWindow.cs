@@ -135,6 +135,7 @@ namespace CapriDesktop
         private ToolStripDropDown openMenu;
         internal Func<string, bool> Confirm;
         internal Func<string[]> PickFolders, PickFiles;
+        internal Func<string, string> PathAlias;
         internal float Zoom { get { return zoom; } }
         internal int ItemCount { get { return transcript.Blocks.Count; } }
         internal WorkspaceChat Chat { get { return chat; } }
@@ -171,12 +172,12 @@ namespace CapriDesktop
             make = Key("+ New chat", delegate { NewChat(); });
             make.Accent = Neon.Cyan;
             make.AccessibleName = "New chat";
-            choose = Key("Choose folder", delegate { ChooseFolders(); });
+            choose = Key("Choose folders", delegate { ChooseFolders(); });
             choose.Accent = Neon.Cyan;
             choose.Solid = true;
-            choose.AccessibleName = "Choose a folder to start a chat";
-            undo = Key("Undo last turn", delegate { if (chat != null) Try(delegate { workspace.Undo(chat); SyncItems(); UpdateKeys(); }); });
-            undo.Accent = Neon.Faint;
+            choose.AccessibleName = "Choose folders to start a chat";
+            undo = Key("Undo last edits", delegate { if (chat != null) Try(delegate { workspace.Undo(chat); SyncItems(); UpdateKeys(); }); });
+            undo.Accent = Neon.Rose;
             undo.AccessibleName = "Undo Claude Code's file edits from the last turn";
             trust = Key("Trust folder", delegate { if (chat != null) Try(delegate { workspace.AskTrust(chat); SyncItems(); }); });
             trust.Accent = Neon.Cyan;
@@ -367,6 +368,27 @@ namespace CapriDesktop
 
         private void FillChats() { list.Fill(workspace.Chats(), chat); }
 
+        // A path as it's shown: whole, or as the smoke test's pictures show their stand-in folders.
+        internal string Display(string path) { return PathAlias != null && !string.IsNullOrEmpty(path) ? PathAlias(path) : path; }
+
+        // Paths as the chat sees them: inside the folder Claude Code runs in they're relative, inside another of the chat's
+        // folders they lead with that folder's name, and anywhere else they stay whole.
+        internal string Shorten(string text)
+        {
+            if (string.IsNullOrEmpty(text) || chat == null) return Display(text);
+            List<string> folders = Workspace.AllFolders(chat);
+            List<string> longest = new List<string>(folders);
+            longest.Sort(delegate(string a, string b) { return b.Length.CompareTo(a.Length); });
+            foreach (string folder in longest)
+            {
+                string root = folder.TrimEnd('\\', '/');
+                string name = Path.GetFileName(root);
+                string lead = folder == folders[0] ? "" : (name.Length > 0 ? name : root) + "\\";
+                text = Regex.Replace(text, Regex.Escape(root + "\\"), delegate(Match found) { return lead; }, RegexOptions.IgnoreCase);
+            }
+            return Display(text);
+        }
+
         private void SelectChat(WorkspaceChat selected)
         {
             if (chat == selected && selected != null && transcript.Blocks.Count > 0) return;
@@ -419,7 +441,7 @@ namespace CapriDesktop
             composer.Fill(chat);
             bool untrusted = chat != null && !workspace.Trusted(chat);
             trust.Text = chat != null && Workspace.AllFolders(chat).Count > 1 ? "Trust folders" : "Trust folder";
-            trust.Visible = untrusted;
+            trust.Visible = untrusted && chat.TrustItem == null;
             Invalidate();
         }
 
@@ -470,44 +492,50 @@ namespace CapriDesktop
         }
 
         private static readonly string[] ModeNotes = { "Asks before anything past reading", "Edits files here without asking", "Plans, changes nothing", "Runs anything without asking" };
+        private static readonly string[] ModelNotes = { "Claude Code's own pick", "Strongest, slowest", "Quick and strong", "Fastest, lightest" };
 
-        // Her menus: the + menu, MODE and MODEL. Returned open, so the smoke test can picture them.
+        // Her menus: the + menu, MODE and MODEL, with rows like the Mainframe's BRAIN choices. Returned open, so the smoke test
+        // can picture them.
         internal ToolStripDropDown OpenMenu(string which)
         {
             if (openMenu != null && !openMenu.IsDisposed) openMenu.Close();
-            ContextMenuStrip menu = new ContextMenuStrip { Renderer = new Mainframe.MenuLook(), BackColor = Neon.Ground, ForeColor = Neon.White, ShowImageMargin = false };
-            Font own = new Font(Font, FontStyle.Regular);
-            menu.Font = own;
+            ToolStripDropDown menu = new ToolStripDropDown { Renderer = new Mainframe.MenuLook(), BackColor = Neon.Ground, ForeColor = Neon.White, LayoutStyle = ToolStripLayoutStyle.VerticalStackWithOverflow, Padding = new Padding(Z(7)) };
             Control anchor;
             if (which == "add")
             {
                 anchor = composer.Plus;
-                menu.ShowCheckMargin = false;
-                menu.Items.Add(new ToolStripMenuItem(chat == null ? "Choose folders..." : "Add folders...", null, delegate { Post(ChooseFolders); }) { AccessibleName = "Add folders" });
-                ToolStripMenuItem files = new ToolStripMenuItem("Add files...", null, delegate { Post(ChooseFiles); }) { AccessibleName = "Add files" };
+                WorkChoice folders = Choice(chat == null ? "Choose folders..." : "Add folders...", "Claude Code can work in them too", 2, false, delegate { Post(ChooseFolders); });
+                folders.AccessibleName = "Add folders";
+                WorkChoice files = Choice("Add files...", "Goes with your next message", 3, false, delegate { Post(ChooseFiles); });
+                files.AccessibleName = "Add files";
                 files.Enabled = chat != null;
+                menu.Items.Add(folders);
                 menu.Items.Add(files);
             }
             else
             {
                 bool modes = which == "mode";
                 anchor = modes ? composer.Mode : composer.Model;
-                menu.ShowCheckMargin = true;
                 string[] choices = modes ? Workspace.Modes : Workspace.Models;
                 for (int i = 0; i < choices.Length; i++)
                 {
                     string choice = choices[i];
-                    ToolStripMenuItem item = new ToolStripMenuItem(choice, null, delegate { if (modes) PickMode(choice); else PickModel(choice); });
-                    if (modes) item.ShortcutKeyDisplayString = ModeNotes[i];
-                    item.Checked = chat != null && (modes ? chat.Mode : chat.Model) == choice;
+                    WorkChoice item = Choice(choice, modes ? ModeNotes[i] : ModelNotes[i], 1, chat != null && (modes ? chat.Mode : chat.Model) == choice, delegate { if (modes) PickMode(choice); else PickModel(choice); });
+                    item.Checked = item.On;
                     item.AccessibleName = choice;
                     menu.Items.Add(item);
                 }
             }
-            menu.Closed += delegate { Post(delegate { menu.Dispose(); own.Dispose(); }); };
+            WorkChoice.Arrange(menu, zoom);
+            menu.Closed += delegate { Post(delegate { menu.Dispose(); }); };
             openMenu = menu;
             menu.Show(anchor, new Point(0, -menu.PreferredSize.Height - Z(4)));
             return menu;
+        }
+
+        private WorkChoice Choice(string text, string note, int mark, bool on, EventHandler click)
+        {
+            return new WorkChoice(text, click) { Note = note, Mark = mark, On = on, Unit = zoom, LabelFont = keys, NoteFont = small };
         }
 
         private void ChatMenu(WorkspaceChat picked, Point at)
@@ -599,8 +627,8 @@ namespace CapriDesktop
                 shut.Bounds = new Rectangle(w - Z(48), Z(13), Z(28), Z(24));
                 bigger.Bounds = new Rectangle(w - Z(80), Z(13), Z(28), Z(24));
                 smaller.Bounds = new Rectangle(w - Z(112), Z(13), Z(28), Z(24));
-                make.Bounds = new Rectangle(Z(16), Z(64), Z(214), Z(32));
-                list.Bounds = new Rectangle(Z(16), Z(106), Z(214), Math.Max(Z(60), h - Z(126)));
+                make.Bounds = new Rectangle(Z(26), Z(64), Z(206), Z(32));
+                list.Bounds = new Rectangle(Z(26), Z(106), Z(220), Math.Max(Z(60), h - Z(126)));
                 bool open = chat != null;
                 transcript.Visible = composer.Visible = undo.Visible = open;
                 choose.Visible = !open;
@@ -643,7 +671,7 @@ namespace CapriDesktop
         public void PaintGround(Graphics graphics, Rectangle area)
         {
             Neon.Backdrop(graphics, ClientSize, Z(210));
-            using (Brush band = new SolidBrush(Neon.Band)) graphics.FillRectangle(band, Z(10), Z(56), Z(226), ClientSize.Height - Z(70));
+            using (Brush band = new SolidBrush(Neon.Band)) graphics.FillRectangle(band, Z(16), Z(56), Z(232), ClientSize.Height - Z(70));
         }
 
         protected override void OnPaintBackground(PaintEventArgs e) { PaintGround(e.Graphics, ClientRectangle); }
@@ -686,7 +714,7 @@ namespace CapriDesktop
             }
             if (!rename.Visible) TextRenderer.DrawText(graphics, chat.Title, heading, titleBox, Neon.White, WorkPaint.Line | TextFormatFlags.EndEllipsis);
             List<string> folders = Workspace.AllFolders(chat);
-            string where = folders.Count > 1 ? folders[0] + "  +" + (folders.Count - 1) + (folders.Count == 2 ? " folder" : " folders") : folders[0];
+            string where = folders.Count > 1 ? Display(folders[0]) + "  +" + (folders.Count - 1) + (folders.Count == 2 ? " folder" : " folders") : Display(folders[0]);
             TextRenderer.DrawText(graphics, where, note, folderBox, Neon.Faint, WorkPaint.Line | TextFormatFlags.PathEllipsis);
             if (trust.Visible)
             {
@@ -813,7 +841,7 @@ namespace CapriDesktop
             List<Control> shown = new List<Control>();
             foreach (Control control in Controls)
             {
-                if (!control.Visible || control == ask) continue;
+                if (!control.Visible || control == ask || ask.Shading(control)) continue;
                 if (!ClientRectangle.Contains(control.Bounds)) return "Outside Workspace: " + (control.AccessibleName ?? control.Text) + " " + control.Bounds;
                 string cut = Clipped(control);
                 if (cut != null) return cut;
@@ -931,7 +959,7 @@ namespace CapriDesktop
             {
                 Graphics graphics = e.Graphics;
                 float s = window.zoom;
-                int rail = window.Z(10);
+                int rail = window.Z(14);
                 if (chats.Count == 0)
                 {
                     TextRenderer.DrawText(graphics, "Your chats show up here.", window.note, new Rectangle(window.Z(8), window.Z(6), Width - window.Z(16), window.Z(40)), Neon.Faint, WorkPaint.Wrap);
@@ -962,12 +990,12 @@ namespace CapriDesktop
                         graphics.SmoothingMode = was;
                     }
                 }
-                WorkPaint.Rail(graphics, new Rectangle(Width - window.Z(4), window.Z(2), Math.Max(2, window.Z(3)), Height - window.Z(4)), Height, Content, offset, dragging);
+                WorkPaint.Rail(graphics, WorkPaint.Track(ClientRectangle, s), Height, Content, offset);
             }
 
             private int At(Point point)
             {
-                if (point.X >= Width - window.Z(10)) return -1;
+                if (point.X >= Width - window.Z(14)) return -1;
                 int index = (point.Y + offset) / (Row + window.Z(4));
                 return index >= 0 && index < chats.Count && (point.Y + offset) % (Row + window.Z(4)) < Row ? index : -1;
             }
@@ -977,8 +1005,8 @@ namespace CapriDesktop
                 base.OnMouseMove(e);
                 if (dragging)
                 {
-                    RectangleF thumb = WorkPaint.Thumb(new Rectangle(0, window.Z(2), 1, Height - window.Z(4)), Height, Content, offset);
-                    float room = Height - window.Z(4) - thumb.Height;
+                    RectangleF track = WorkPaint.Track(ClientRectangle, window.zoom), thumb = WorkPaint.Thumb(track, Height, Content, offset);
+                    float room = track.Height - thumb.Height;
                     if (room > 0) Scroll(dragOffset + (int)((e.Y - dragFrom) * (Content - Height) / room));
                     return;
                 }
@@ -993,7 +1021,7 @@ namespace CapriDesktop
             {
                 base.OnMouseDown(e);
                 Focus();
-                if (e.Button == MouseButtons.Left && e.X >= Width - window.Z(10) && Content > Height) { dragging = true; dragFrom = e.Y; dragOffset = offset; Capture = true; return; }
+                if (e.Button == MouseButtons.Left && e.X >= Width - window.Z(14) && Content > Height) { dragging = true; dragFrom = e.Y; dragOffset = offset; Capture = true; return; }
                 int index = At(e.Location);
                 if (index < 0) return;
                 if (e.Button == MouseButtons.Left) window.SelectChat(chats[index]);
@@ -1211,8 +1239,8 @@ namespace CapriDesktop
                 }
                 if (Input.Overflows)
                 {
-                    Rectangle rail = new Rectangle(Width - Pad - window.Z(2), Input.Top, Math.Max(2, window.Z(3)), Input.Height);
-                    WorkPaint.Rail(graphics, rail, Input.Visible_Lines, Input.Line_Count, Input.First_Line, false);
+                    RectangleF rail = new RectangleF(Width - Pad - window.Z(2), Input.Top, 2 * s, Input.Height);
+                    WorkPaint.Rail(graphics, rail, Input.Visible_Lines, Input.Line_Count, Input.First_Line);
                 }
                 if (hintShown) TextRenderer.DrawText(graphics, Hint, window.note, new Rectangle(Model.Right + window.Z(12), Model.Top, Stop.Left - Model.Right - window.Z(20), Model.Height), Neon.Faint, WorkPaint.Line | TextFormatFlags.Right);
             }
@@ -1299,8 +1327,38 @@ namespace CapriDesktop
         {
             private readonly WorkspaceWindow window;
             private readonly WorkKey yes, no;
+            private readonly Shade shade;
             private Action<bool> answered;
             internal string Question = "";
+
+            // Everything behind a question, dimmed, and deaf to clicks until it's answered.
+            private sealed class Shade : Control
+            {
+                internal Bitmap Picture;
+
+                internal Shade()
+                {
+                    SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
+                    SetStyle(ControlStyles.Selectable, false);
+                    Visible = false;
+                    AccessibleRole = AccessibleRole.None;
+                }
+
+                protected override void OnPaintBackground(PaintEventArgs e) { }
+
+                protected override void OnPaint(PaintEventArgs e)
+                {
+                    if (Picture != null) e.Graphics.DrawImageUnscaled(Picture, 0, 0);
+                    else e.Graphics.Clear(Neon.Ground);
+                    using (Brush dim = new SolidBrush(Color.FromArgb(170, 4, 2, 8))) e.Graphics.FillRectangle(dim, ClientRectangle);
+                }
+
+                protected override void Dispose(bool disposing)
+                {
+                    if (disposing && Picture != null) { Picture.Dispose(); Picture = null; }
+                    base.Dispose(disposing);
+                }
+            }
 
             internal AskCard(WorkspaceWindow window)
             {
@@ -1310,10 +1368,31 @@ namespace CapriDesktop
                 AccessibleRole = AccessibleRole.Dialog;
                 yes = new WorkKey();
                 yes.Click += delegate { Answer(true); };
-                no = new WorkKey { Accent = Neon.Faint };
+                no = new WorkKey { Accent = Neon.Rose };
                 no.Click += delegate { Answer(false); };
                 Controls.Add(yes);
                 Controls.Add(no);
+                shade = new Shade();
+                window.Controls.Add(shade);
+            }
+
+            internal bool Shading(Control control) { return control == shade; }
+
+            // A still of the window as it is, laid under the card and dimmed.
+            private void Cover()
+            {
+                Size size = window.ClientSize;
+                if (size.Width <= 0 || size.Height <= 0) return;
+                shade.Visible = false;
+                Bitmap still = new Bitmap(size.Width, size.Height);
+                try { window.DrawToBitmap(still, new Rectangle(Point.Empty, size)); }
+                catch (Exception) { using (Graphics graphics = Graphics.FromImage(still)) graphics.Clear(Neon.Ground); }
+                if (shade.Picture != null) shade.Picture.Dispose();
+                shade.Picture = still;
+                shade.Bounds = new Rectangle(Point.Empty, size);
+                shade.Visible = true;
+                shade.BringToFront();
+                BringToFront();
             }
 
             internal void Ask(string question, string step, Color accent, string back, Action<bool> then)
@@ -1324,6 +1403,7 @@ namespace CapriDesktop
                 yes.Text = step;
                 yes.Accent = accent;
                 no.Text = back;
+                Cover();
                 Visible = true;
                 Place();
                 BringToFront();
@@ -1335,6 +1415,8 @@ namespace CapriDesktop
                 Action<bool> then = answered;
                 answered = null;
                 Visible = false;
+                shade.Visible = false;
+                if (shade.Picture != null) { shade.Picture.Dispose(); shade.Picture = null; }
                 window.Invalidate(true);
                 if (then != null) then(choice);
             }
@@ -1342,6 +1424,7 @@ namespace CapriDesktop
             internal void Place()
             {
                 if (!Visible) return;
+                if (shade.Visible && shade.Size != window.ClientSize) Cover();
                 yes.Font = no.Font = window.keys;
                 int wide = Math.Min(window.ClientSize.Width - window.Z(80), window.Z(460));
                 int words = WorkPaint.Tall(Question, window.Font, wide - window.Z(48));
@@ -1365,7 +1448,7 @@ namespace CapriDesktop
                 float s = window.zoom;
                 Neon.Backdrop(graphics, Size, window.Z(120), Neon.MenuBack, Neon.Glow);
                 Neon.Frame(graphics, Size, s, window.Z(12), window.Z(4), window.Z(40), window.Z(22), Neon.Brim, yes.Accent == Neon.Hot ? Neon.Hot : Neon.Cyan);
-                TextRenderer.DrawText(graphics, "ARE YOU SURE?", window.caption, new Rectangle(window.Z(24), window.Z(18), Width - window.Z(48), window.Z(16)), yes.Accent == Neon.Hot ? Neon.Hot : Neon.Cyan, WorkPaint.Line);
+                TextRenderer.DrawText(graphics, yes.Text.ToUpperInvariant(), window.caption, new Rectangle(window.Z(24), window.Z(18), Width - window.Z(48), window.Z(16)), yes.Accent == Neon.Hot ? Neon.Hot : Neon.Cyan, WorkPaint.Line);
                 TextRenderer.DrawText(graphics, Question, window.Font, new Rectangle(window.Z(24), window.Z(42), Width - window.Z(48), Height - window.Z(96)), Neon.White, WorkPaint.Wrap);
             }
 
@@ -1384,7 +1467,7 @@ namespace CapriDesktop
                 internal string Result = "Waiting for a result.";
                 internal bool Open, All;
                 internal string Shape = "";
-                internal Rectangle Box, Toggle;
+                internal Rectangle Box, Toggle, More;
                 internal readonly List<Piece> Pieces = new List<Piece>();
                 internal readonly List<Control> Keys = new List<Control>();
                 internal WorkField Reason;
@@ -1402,6 +1485,9 @@ namespace CapriDesktop
                 internal Rectangle Box;
                 internal bool Code, Line, Right;
                 internal string Tag;
+                internal List<string> Rows;
+                internal List<Color> Inks;
+                internal int RowTall;
             }
 
             private readonly WorkspaceWindow window;
@@ -1529,12 +1615,12 @@ namespace CapriDesktop
                 else if (item.Kind == "trust")
                 {
                     Key(block, item.Text.StartsWith("Claude Code will run these", StringComparison.Ordinal) ? "Trust them" : "Trust", Neon.Cyan, delegate { window.Try(delegate { window.workspace.Trust(chat, true); window.RefreshChat(); }); });
-                    Key(block, "Not now", Neon.Faint, delegate { window.Try(delegate { window.workspace.Trust(chat, false); window.RefreshChat(); }); });
+                    Key(block, "Not now", Neon.Rose, delegate { window.Try(delegate { window.workspace.Trust(chat, false); window.RefreshChat(); }); });
                 }
                 else
                 {
                     Key(block, "Undo all", Neon.Cyan, delegate { window.Try(delegate { window.workspace.AnswerUndo(chat, item.Undo, true); window.RefreshChat(); }); });
-                    Key(block, "Only the unchanged ones", Neon.Faint, delegate { window.Try(delegate { window.workspace.AnswerUndo(chat, item.Undo, false); window.RefreshChat(); }); });
+                    Key(block, "Only the unchanged ones", Neon.Rose, delegate { window.Try(delegate { window.workspace.AnswerUndo(chat, item.Undo, false); window.RefreshChat(); }); });
                 }
             }
 
@@ -1621,13 +1707,103 @@ namespace CapriDesktop
             // A code well: her mono font (or Windows' own when the code has letters hers lacks) on a dark well with a cut corner.
             private int Code(Block block, string text, string tag, int x, int y, int width)
             {
-                Font font = Look.Drawable(text) ? window.mono : window.monoPlain;
+                List<string> lines = new List<string>(text.Replace("\r", "").Split('\n'));
+                return Well(block, text, lines, Inks(lines.Count, Neon.White), tag, x, y, width, 0);
+            }
+
+            private static List<Color> Inks(int count, Color ink)
+            {
+                List<Color> inks = new List<Color>();
+                for (int i = 0; i < count; i++) inks.Add(ink);
+                return inks;
+            }
+
+            // Her mono rows in a well, each source line in its own ink (red for removed lines, green for added ones), wrapped at
+            // a path separator or a space so a path never breaks mid-word. With most above 0 a long well stops after that many
+            // rows and offers the rest as "N more lines".
+            private int Well(Block block, string text, List<string> lines, List<Color> inks, string tag, int x, int y, int width, int most)
+            {
+                Font font = Look.Drawable(string.Join("\n", lines.ToArray())) ? window.mono : window.monoPlain;
                 int pad = Z(10), top = tag.Length > 0 ? Z(16) : 0;
-                int tall = WorkPaint.Tall(text.Length == 0 ? " " : text, font, width - pad * 2);
-                Piece piece = Add(block, text, font, Neon.White, new Rectangle(x, y, width, tall + pad * 2 + top));
+                int columns = Columns(font, width - pad * 2);
+                List<string> rows = new List<string>();
+                List<Color> rowInks = new List<Color>();
+                for (int i = 0; i < lines.Count; i++) foreach (string row in Fold(lines[i], columns)) { rows.Add(row); rowInks.Add(inks[i]); }
+                if (rows.Count == 0) { rows.Add(""); rowInks.Add(Neon.White); }
+                int total = rows.Count, hidden = 0;
+                if (most > 0 && total > most && !block.All) { hidden = total - most; rows.RemoveRange(most, hidden); rowInks.RemoveRange(most, hidden); }
+                int rowTall = Math.Max(font.Height, TextRenderer.MeasureText("Mgjp|", font).Height) + Z(1);
+                Piece piece = Add(block, text, font, Neon.White, new Rectangle(x, y, width, rows.Count * rowTall + pad * 2 + top));
                 piece.Code = true;
                 piece.Tag = tag;
-                return piece.Box.Bottom;
+                piece.Rows = rows;
+                piece.Inks = rowInks;
+                piece.RowTall = rowTall;
+                int bottom = piece.Box.Bottom;
+                if (most > 0 && total > most)
+                {
+                    string words = hidden > 0 ? hidden + (hidden == 1 ? " more line" : " more lines") : "Show fewer lines";
+                    block.More = new Rectangle(x, bottom + Z(4), WorkPaint.Wide(words, window.small) + Z(4), Z(18));
+                    Add(block, words, window.small, Neon.Cyan, block.More).Line = true;
+                    bottom = block.More.Bottom;
+                }
+                return bottom;
+            }
+
+            private static int Columns(Font font, int width)
+            {
+                float each = WorkPaint.Wide(new string('M', 40), font) / 40f;
+                return Math.Max(8, (int)(width / Math.Max(1f, each)));
+            }
+
+            // One line cut into rows that fit: after the last \, / or space that fits, and only mid-word when a word is longer
+            // than a whole row.
+            private static List<string> Fold(string line, int columns)
+            {
+                List<string> rows = new List<string>();
+                string rest = line.Replace("\t", "    ");
+                while (rest.Length > columns)
+                {
+                    int cut = -1;
+                    for (int i = columns - 1; i >= columns / 3; i--) { char c = rest[i]; if (c == '\\' || c == '/' || c == ' ') { cut = i + 1; break; } }
+                    if (cut < 0) cut = columns;
+                    rows.Add(rest.Substring(0, cut));
+                    rest = rest.Substring(cut);
+                }
+                rows.Add(rest);
+                return rows;
+            }
+
+            // What an edit changed, from the tool's own input: removed lines in her red, added lines in her green.
+            private static bool Diff(string name, string input, List<string> lines, List<Color> inks)
+            {
+                if (string.IsNullOrEmpty(input) || (name != "Edit" && name != "MultiEdit" && name != "Write" && name != "NotebookEdit")) return false;
+                Dictionary<string, object> map = null;
+                try { map = HuskJson.Read(input) as Dictionary<string, object>; } catch (FormatException) { }
+                if (map == null) return false;
+                List<Dictionary<string, object>> edits = new List<Dictionary<string, object>>();
+                List<object> many = HuskJson.List(map.ContainsKey("edits") ? map["edits"] : null);
+                if (many != null) foreach (object one in many) { Dictionary<string, object> edit = one as Dictionary<string, object>; if (edit != null) edits.Add(edit); }
+                else edits.Add(map);
+                foreach (Dictionary<string, object> edit in edits)
+                {
+                    string old = Text(edit, "old_string"), added = Text(edit, "new_string");
+                    if (added == null) added = Text(edit, "content") ?? Text(edit, "new_source");
+                    if (old == null && added == null) continue;
+                    if (lines.Count > 0) { lines.Add("..."); inks.Add(Neon.Faint); }
+                    if (!string.IsNullOrEmpty(old)) foreach (string row in old.Replace("\r", "").TrimEnd('\n').Split('\n')) { lines.Add("- " + row); inks.Add(Removed); }
+                    if (!string.IsNullOrEmpty(added)) foreach (string row in added.Replace("\r", "").TrimEnd('\n').Split('\n')) { lines.Add("+ " + row); inks.Add(Added); }
+                }
+                return lines.Count > 0;
+            }
+
+            private static readonly Color Added = Color.FromArgb(30, 240, 138);
+            private static Color Removed { get { return Neon.Hot; } }
+
+            private static string Text(Dictionary<string, object> map, string key)
+            {
+                object value;
+                return map.TryGetValue(key, out value) ? value as string : null;
             }
 
             // Claude's words: paragraphs, headings and lists in Bahnschrift, fenced code in wells.
@@ -1713,10 +1889,68 @@ namespace CapriDesktop
                 return y + Z(30);
             }
 
+            // What an approval card shows: for Bash and PowerShell the command, with its description above it; for an edit what
+            // it changes; for anything else its input, without plumbing like timeouts. Paths read from the chat's folders.
+            private void Asked(WorkspaceItem item, out string about, List<string> lines, List<Color> inks)
+            {
+                about = "";
+                Dictionary<string, object> map = null;
+                try { map = HuskJson.Read(item.Input) as Dictionary<string, object>; } catch (FormatException) { }
+                if (map == null)
+                {
+                    string shown = item.Input.Length > 0 ? item.Input : item.Text;
+                    lines.AddRange(window.Shorten(shown).Replace("\r", "").Split('\n'));
+                    inks.AddRange(Inks(lines.Count, Neon.White));
+                    return;
+                }
+                string command = Text(map, "command");
+                if ((item.Name == "Bash" || item.Name == "PowerShell") && command != null)
+                {
+                    about = Text(map, "description") ?? "";
+                    lines.AddRange(window.Display(command).Replace("\r", "").Split('\n'));
+                    inks.AddRange(Inks(lines.Count, Neon.White));
+                    return;
+                }
+                string file = Text(map, "file_path") ?? Text(map, "notebook_path");
+                if (file != null && Diff(item.Name, item.Input, lines, inks)) { about = window.Shorten(file); return; }
+                foreach (KeyValuePair<string, object> pair in map)
+                {
+                    if (pair.Key == "timeout" || pair.Key == "run_in_background" || pair.Key == "dangerouslyDisableSandbox") continue;
+                    string value = pair.Value as string ?? HuskJson.Write(pair.Value);
+                    foreach (string row in window.Shorten(pair.Key + ": " + value).Replace("\r", "").Split('\n')) { lines.Add(row); inks.Add(Neon.White); }
+                }
+                if (lines.Count == 0) { lines.Add(item.Text); inks.Add(Neon.White); }
+            }
+
+            // The trust card in plain words: which folders, what trusting them lets in, and where they are.
+            private int Trusting(Block block, int x, int y, int width)
+            {
+                List<string> folders;
+                try { folders = window.chat == null ? new List<string>() : window.workspace.Untrusted(window.chat); }
+                catch (Exception) { folders = new List<string>(); }
+                if (folders.Count == 0) return Words(block, block.Item.Text, window.Font, Neon.White, x, y, width);
+                List<string> names = new List<string>();
+                foreach (string folder in folders) { string name = Path.GetFileName(folder.TrimEnd('\\', '/')); names.Add(name.Length > 0 ? name : folder); }
+                string named = names.Count == 1 ? names[0] : string.Join(", ", names.GetRange(0, names.Count - 1).ToArray()) + " and " + names[names.Count - 1];
+                y = Words(block, "Trust " + named + "?", window.strong, Neon.White, x, y, width) + Z(4);
+                string words = folders.Count == 1
+                    ? "A folder can carry its own Claude Code set-up, including commands that run by themselves. Trust it if it's yours or you know where it came from."
+                    : "Folders can carry their own Claude Code set-up, including commands that run by themselves. Trust them if they're yours or you know where they came from.";
+                y = Words(block, words, window.Font, Neon.White, x, y, width) + Z(6);
+                foreach (string folder in folders)
+                {
+                    Piece path = Add(block, window.Display(folder), window.note, Neon.Faint, new Rectangle(x, y, width, Z(16)));
+                    path.Line = true;
+                    path.Tag = "path";
+                    y = path.Box.Bottom + Z(2);
+                }
+                return y;
+            }
+
             private void Measure(Block block, int y)
             {
                 block.Pieces.Clear();
-                block.Toggle = Rectangle.Empty;
+                block.Toggle = block.More = Rectangle.Empty;
                 WorkspaceItem item = block.Item;
                 int left = Inset, right = Edge, width = right - left, pad = Z(14);
                 string kind = item.Kind;
@@ -1753,7 +1987,15 @@ namespace CapriDesktop
                 {
                     block.Toggle = new Rectangle(left, y, width, Z(28));
                     int bottom = block.Toggle.Bottom;
-                    if (block.Open) bottom = Code(block, block.Result, "", left + pad, bottom + Z(4), width - pad);
+                    if (block.Open)
+                    {
+                        List<string> lines = new List<string>();
+                        List<Color> inks = new List<Color>();
+                        string copy = block.Result;
+                        if (Diff(item.Name, item.Input, lines, inks)) copy = string.Join("\n", lines.ToArray());
+                        else { lines.AddRange(window.Shorten(block.Result).Replace("\r", "").Split('\n')); inks = Inks(lines.Count, Neon.White); }
+                        bottom = Well(block, copy, lines, inks, "", left + pad, bottom + Z(4), width - pad, 14);
+                    }
                     block.Box = new Rectangle(left, y, width, bottom - y);
                     return;
                 }
@@ -1779,28 +2021,16 @@ namespace CapriDesktop
                 if (kind == "approval")
                 {
                     at = Words(block, "Claude Code wants to use " + item.Name, window.strong, Neon.White, left + pad, at, inner) + Z(4);
-                    if (item.Text.Length > 0 && item.Text != item.Name) at = Words(block, item.Text, window.small, Neon.Faint, left + pad, at, inner) + Z(8);
-                    string shown = Lines(item.Input);
-                    string[] rows = shown.Split('\n');
-                    bool longer = rows.Length > 12 || shown.Length > 900;
-                    if (longer && !block.All)
-                    {
-                        shown = string.Join("\n", rows, 0, Math.Min(rows.Length, 12));
-                        if (shown.Length > 900) shown = shown.Substring(0, 900);
-                        shown += "\n...";
-                    }
-                    at = Code(block, shown, "", left + pad, at, inner);
-                    if (longer)
-                    {
-                        string toggle = block.All ? "Show less" : "Show all of it";
-                        block.Toggle = new Rectangle(left + pad, at + Z(4), WorkPaint.Wide(toggle, window.small) + Z(4), Z(18));
-                        Piece link = Add(block, toggle, window.small, Neon.Cyan, block.Toggle);
-                        link.Line = true;
-                        at = block.Toggle.Bottom;
-                    }
+                    string about;
+                    List<string> lines = new List<string>();
+                    List<Color> inks = new List<Color>();
+                    Asked(item, out about, lines, inks);
+                    if (about.Length > 0) at = Words(block, about, window.small, Neon.Faint, left + pad, at, inner) + Z(8);
+                    at = Well(block, string.Join("\n", lines.ToArray()), lines, inks, "", left + pad, at, inner, 12);
                     at += Z(10);
                     if (block.Reason != null) { block.Reason.Tag = new Rectangle(left + pad, at, inner, Z(30)); at += Z(38); }
                 }
+                else if (kind == "trust") at = Trusting(block, left + pad, at, inner) + Z(10);
                 else at = Words(block, item.Text, window.Font, Neon.White, left + pad, at, inner) + Z(10);
                 if (block.Keys.Count > 0) at = KeysRow(block, left + pad, at, inner) + Z(2);
                 block.Box = new Rectangle(left, y, width, at + pad - Z(4) - y);
@@ -1845,7 +2075,7 @@ namespace CapriDesktop
                 Draw(e.Graphics, e.ClipRectangle);
                 if (Blocks.Count == 0 && Empty.Length > 0)
                     TextRenderer.DrawText(e.Graphics, Empty, window.note, new Rectangle(Inset + Z(14), Z(14), Edge - Inset - Z(14), Z(60)), Neon.Faint, WorkPaint.Wrap | TextFormatFlags.PathEllipsis);
-                WorkPaint.Rail(e.Graphics, new Rectangle(Width - Z(5), Z(4), Math.Max(2, Z(3)), Height - Z(8)), Height, Content, Offset, dragging);
+                WorkPaint.Rail(e.Graphics, WorkPaint.Track(ClientRectangle, window.zoom), Height, Content, Offset);
             }
 
             private void Draw(Graphics graphics, Rectangle area)
@@ -1879,6 +2109,7 @@ namespace CapriDesktop
                     int nameWide = WorkPaint.Wide(item.Name, window.keys);
                     TextRenderer.DrawText(graphics, item.Name, window.keys, new Rectangle(block.Toggle.Left + Z(26), block.Toggle.Top, nameWide + Z(2), block.Toggle.Height), Neon.Cyan, WorkPaint.Line);
                     string detail = item.Text.StartsWith(item.Name, StringComparison.Ordinal) ? item.Text.Substring(item.Name.Length).TrimStart(':', ' ') : item.Text;
+                    detail = item.Name == "Bash" || item.Name == "PowerShell" ? window.Display(detail) : window.Shorten(detail);
                     int detailLeft = block.Toggle.Left + Z(34) + nameWide;
                     TextRenderer.DrawText(graphics, detail, window.note, new Rectangle(detailLeft, block.Toggle.Top, Math.Max(1, block.Toggle.Right - detailLeft - Z(8)), block.Toggle.Height), Neon.Faint, WorkPaint.Line | (item.Name == "Bash" || item.Name == "PowerShell" ? TextFormatFlags.EndEllipsis : TextFormatFlags.PathEllipsis));
                 }
@@ -1904,12 +2135,13 @@ namespace CapriDesktop
                         WorkPaint.Plate(graphics, piece.Box, 6 * s, Neon.Well, Neon.WellEdge, line);
                         int pad = Z(10), top = 0;
                         if (!string.IsNullOrEmpty(piece.Tag)) { TextRenderer.DrawText(graphics, piece.Tag.ToUpperInvariant(), window.caption, new Rectangle(piece.Box.Left + pad, piece.Box.Top + Z(6), piece.Box.Width - pad * 2, Z(14)), Neon.Faint, WorkPaint.Line); top = Z(16); }
-                        TextRenderer.DrawText(graphics, piece.Text, piece.Font, new Rectangle(piece.Box.Left + pad, piece.Box.Top + pad + top, piece.Box.Width - pad * 2, piece.Box.Height - pad * 2 - top), piece.Ink, WorkPaint.Wrap);
+                        for (int i = 0; i < piece.Rows.Count; i++)
+                            TextRenderer.DrawText(graphics, piece.Rows[i], piece.Font, new Rectangle(piece.Box.Left + pad, piece.Box.Top + pad + top + i * piece.RowTall, piece.Box.Width - pad * 2, piece.RowTall), piece.Inks[i], WorkPaint.Line | TextFormatFlags.EndEllipsis);
                         continue;
                     }
                     if (piece.Tag == "file") WorkPaint.FileMark(graphics, new RectangleF(piece.Box.Left, piece.Box.Top + Z(2), Z(12), piece.Box.Height - Z(4)), Neon.Cyan, s);
                     Rectangle box = piece.Tag == "file" ? new Rectangle(piece.Box.Left + Z(18), piece.Box.Top, piece.Box.Width - Z(18), piece.Box.Height) : piece.Box;
-                    TextFormatFlags flags = piece.Line ? WorkPaint.Line | TextFormatFlags.EndEllipsis | (piece.Right ? TextFormatFlags.Right : TextFormatFlags.Left) : WorkPaint.Wrap;
+                    TextFormatFlags flags = piece.Line ? WorkPaint.Line | (piece.Tag == "path" ? TextFormatFlags.PathEllipsis : TextFormatFlags.EndEllipsis) | (piece.Right ? TextFormatFlags.Right : TextFormatFlags.Left) : WorkPaint.Wrap;
                     TextRenderer.DrawText(graphics, piece.Text, piece.Font, box, piece.Ink, flags);
                 }
             }
@@ -1932,15 +2164,16 @@ namespace CapriDesktop
                 base.OnMouseMove(e);
                 if (dragging)
                 {
-                    RectangleF thumb = WorkPaint.Thumb(new Rectangle(0, Z(4), 1, Height - Z(8)), Height, Content, Offset);
-                    float room = Height - Z(8) - thumb.Height;
+                    RectangleF track = WorkPaint.Track(ClientRectangle, window.zoom), thumb = WorkPaint.Thumb(track, Height, Content, Offset);
+                    float room = track.Height - thumb.Height;
                     if (room > 0) ScrollTo(dragOffset + (int)((e.Y - dragFrom) * (Content - Height) / room));
                     return;
                 }
                 Piece code;
                 Block over = At(e.Location, out code);
                 bool link = over != null && !over.Toggle.IsEmpty && over.Toggle.Contains(new Point(e.X, e.Y + Offset));
-                Cursor = link ? Cursors.Hand : Cursors.Default;
+                bool more = over != null && !over.More.IsEmpty && over.More.Contains(new Point(e.X, e.Y + Offset));
+                Cursor = link || more ? Cursors.Hand : Cursors.Default;
                 Block hot = link && over.Item.Kind == "tool" ? over : null;
                 if (hot != hovered) { hovered = hot; Invalidate(); }
             }
@@ -1954,6 +2187,14 @@ namespace CapriDesktop
                 if (e.Button == MouseButtons.Left && e.X >= Width - Z(12) && Content > Height) { dragging = true; dragFrom = e.Y; dragOffset = Offset; Capture = true; Invalidate(); return; }
                 Piece code;
                 Block block = At(e.Location, out code);
+                if (block != null && e.Button == MouseButtons.Left && !block.More.IsEmpty && block.More.Contains(new Point(e.X, e.Y + Offset)))
+                {
+                    block.All = !block.All;
+                    int kept = Offset;
+                    Arrange(true);
+                    ScrollTo(kept);
+                    return;
+                }
                 if (block != null && e.Button == MouseButtons.Left && !block.Toggle.IsEmpty && block.Toggle.Contains(new Point(e.X, e.Y + Offset)))
                 {
                     if (block.Item.Kind == "tool") block.Open = !block.Open; else block.All = !block.All;
@@ -2027,8 +2268,7 @@ namespace CapriDesktop
                     if (block.Item.Kind != "tool" || block.Item.Id != id) continue;
                     block.Open = !block.Open;
                     Arrange(true);
-                    foreach (Piece piece in block.Pieces) if (piece.Code) return piece.Text;
-                    return "";
+                    return block.Open ? block.Result : "";
                 }
                 return null;
             }
