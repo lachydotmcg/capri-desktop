@@ -36112,6 +36112,293 @@ namespace CapriDesktop
             finally { simpleTest = wasSimple; preferences.AdvancedSettings = wasAdvanced; preferences.CheckIns = wasCheckIns; mainframe.LayoutScale(0, 0); mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); SavePreferences(); }
         }
 
+        // The code mod question in her look. Keys reach it as posted window messages, so they go through the same handling a
+        // real key press does; Ask itself is never called here, so nothing sounds and nothing waits for a person.
+        private void SmokeModAsk(System.Collections.Generic.List<string> checks, string output)
+        {
+            const string caption = "Run this code mod?";
+            const int KeyDown = 0x0100, KeyUp = 0x0101, Char = 0x0102, SysKeyDown = 0x0104, SysKeyUp = 0x0105, SysChar = 0x0106;
+            const int Fresh = 1, Held = 0x40000001, AltFresh = 0x20000001, AltHeld = 0x60000001;
+            int up = unchecked((int)0xC0000001), altUp = unchecked((int)0xE0000001);
+            string hash = "";
+            for (int i = 0; i < 64; i++) hash += "0123456789abcdef"[i * 7 % 16];
+            ModFile mod = new ModFile { Name = new string('W', 60), Author = new string('W', 40), Version = "1.0.12", Permissions = new[] { "chat", "screen", "memory" } };
+            string consent = Mods.Consent(mod, hash);
+            List<string> every = new List<string>();
+            for (int i = 0; i < Mods.PermissionWords.GetLength(0); i++) every.Add(Mods.PermissionWords[i, 0]);
+            string longConsent = Mods.Consent(new ModFile { Name = mod.Name, Author = mod.Author, Version = mod.Version, Permissions = every.ToArray() }, hash);
+            Rectangle area = Screen.PrimaryScreen.WorkingArea;
+            Directory.CreateDirectory(output);
+            Action<Form, string> snap = delegate(Form form, string name)
+            {
+                using (Bitmap bitmap = new Bitmap(form.Width, form.Height))
+                using (Bitmap sheet = new Bitmap(form.Width + 48, form.Height + 48))
+                {
+                    form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, bitmap.Size));
+                    using (Graphics graphics = Graphics.FromImage(sheet))
+                    {
+                        graphics.Clear(Color.FromArgb(44, 47, 56));
+                        if (form.Region != null) using (Region shape = form.Region.Clone()) { shape.Translate(24, 24); graphics.SetClip(shape, CombineMode.Replace); }
+                        graphics.DrawImageUnscaled(bitmap, 24, 24);
+                    }
+                    sheet.Save(Path.Combine(output, name), ImageFormat.Png);
+                }
+                if (!File.Exists(Path.Combine(output, name))) throw new Exception("A mod question picture was not saved: " + name);
+            };
+            // Her OK notice, drawn the same way in this build and the one before the question existed, to compare them.
+            using (Notice told = new Notice("Capri has been removed.\n\nYour position and size settings were kept.", "Capri", false))
+            using (Notice failed = new Notice("There's a Capri.exe in that folder that isn't this Capri. Move it out of that folder, then install again.", "Capri couldn't install", true))
+            {
+                told.Opacity = 0;
+                failed.Opacity = 0;
+                told.Show();
+                failed.Show();
+                Application.DoEvents();
+                if (!told.Fits || !failed.Fits || told.Said != "CAPRI\nCapri has been removed.\n\nYour position and size settings were kept." || told.AcceptButton != told.CancelButton) throw new Exception("Her OK notice changed: " + told.Said);
+                snap(told, "notice-100.png");
+                snap(failed, "notice-error-100.png");
+                told.Close();
+                failed.Close();
+            }
+            // The smoke's own filter keeps queued input away from her windows, so a key is fed the way her message loop would:
+            // the focused control's key processing first, then the window itself, then the character Windows would make of it.
+            Action<Question, int, Keys, int> post = null;
+            post = delegate(Question q, int message, Keys code, int flags)
+            {
+                Control to = q.ActiveControl ?? (Control)q;
+                Message m = Message.Create(to.Handle, message, new IntPtr((int)code), new IntPtr(flags));
+                if (to.PreProcessControlMessage(ref m) == PreProcessControlState.MessageProcessed) return;
+                Native.SendMessage(to.Handle, message, m.WParam, m.LParam);
+                if ((message == KeyDown || message == SysKeyDown) && (code == Keys.Y || code == Keys.N || code == Keys.Space))
+                    post(q, message == KeyDown ? Char : SysChar, (Keys)(code == Keys.Space ? ' ' : char.ToLowerInvariant((char)code)), flags);
+            };
+            Action<Question, Keys> press = delegate(Question q, Keys code) { post(q, KeyDown, code, Fresh); post(q, KeyUp, code, up); };
+            Action<Question, Button> focused = delegate(Question q, Button key) { if (!key.Focused || q.ActiveControl != key) throw new Exception("The mod question's focus is not on " + key.Text + "."); };
+            using (Form owner = new Form())
+            {
+                owner.Opacity = 0;
+                owner.ShowInTaskbar = false;
+                owner.FormBorderStyle = FormBorderStyle.None;
+                owner.StartPosition = FormStartPosition.Manual;
+                owner.Bounds = new Rectangle(area.Left + 40, area.Top + 20, 380, Math.Min(734, area.Height - 40));
+                owner.Show();
+                // Shows the question modal to `on` and runs each step after the messages the step before posted were handled.
+                // A question still open after four seconds is closed and counts as not answered.
+                Func<Question, IWin32Window, Action<Question>[], DialogResult> ask = delegate(Question q, IWin32Window on, Action<Question>[] steps)
+                {
+                    using (System.Windows.Forms.Timer limit = new System.Windows.Forms.Timer())
+                    {
+                        q.Opacity = 0;
+                        bool late = false;
+                        Exception broke = null;
+                        int at = 0;
+                        Action next = null;
+                        next = delegate
+                        {
+                            if (q.IsDisposed || !q.Visible || at >= steps.Length) return;
+                            try { steps[at++](q); q.BeginInvoke(next); }
+                            catch (Exception problem) { broke = problem; q.Close(); }
+                        };
+                        limit.Interval = 4000;
+                        limit.Tick += delegate { limit.Stop(); late = true; q.Close(); };
+                        q.Shown += delegate { limit.Start(); q.BeginInvoke(next); };
+                        DialogResult result = q.ShowDialog(on);
+                        limit.Stop();
+                        if (broke != null) throw broke;
+                        return late ? DialogResult.None : result;
+                    }
+                };
+                Func<Action<Question>[], DialogResult> answer = delegate(Action<Question>[] steps)
+                {
+                    using (Question q = new Question(consent, caption, 0))
+                    {
+                        q.Place(owner);
+                        return ask(q, owner, steps);
+                    }
+                };
+                Action<string, DialogResult, Action<Question>[]> expect = delegate(string what, DialogResult wanted, Action<Question>[] steps)
+                {
+                    DialogResult got = answer(steps);
+                    if (got != wanted) throw new Exception("Mod question, " + what + ": wanted " + wanted + ", got " + (got == DialogResult.None ? "no answer" : got.ToString()) + ".");
+                };
+                expect("Enter on a fresh box", DialogResult.No, new Action<Question>[] { delegate(Question q) { if (q.AcceptButton != q.NoKey || q.CancelButton != q.NoKey) throw new Exception("No is not the mod question's default key."); focused(q, q.NoKey); press(q, Keys.Enter); } });
+                expect("Esc with Yes focused", DialogResult.No, new Action<Question>[] { delegate(Question q) { press(q, Keys.Tab); }, delegate(Question q) { focused(q, q.YesKey); press(q, Keys.Escape); } });
+                expect("the close key", DialogResult.No, new Action<Question>[] { delegate(Question q) { press(q, Keys.Tab); }, delegate(Question q) { q.CloseKey.PerformClick(); } });
+                expect("Alt+F4", DialogResult.No, new Action<Question>[] { delegate(Question q) { press(q, Keys.Tab); }, delegate(Question q) { focused(q, q.YesKey); post(q, SysKeyDown, Keys.F4, AltFresh); post(q, SysKeyUp, Keys.F4, altUp); } });
+                expect("Windows closing it", DialogResult.No, new Action<Question>[] { delegate(Question q) { press(q, Keys.Tab); }, delegate(Question q) { Native.PostMessage(q.Handle, 0x0112, new IntPtr(0xF060), IntPtr.Zero); } });
+                expect("clicking Yes", DialogResult.Yes, new Action<Question>[] { delegate(Question q) { q.YesKey.PerformClick(); } });
+                expect("Tab round both keys, then Enter on No", DialogResult.No, new Action<Question>[]
+                {
+                    delegate(Question q) { press(q, Keys.Tab); },
+                    delegate(Question q) { focused(q, q.YesKey); press(q, Keys.Tab); },
+                    delegate(Question q) { focused(q, q.NoKey); typeof(Question).GetMethod("ProcessDialogKey", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(q, new object[] { Keys.Shift | Keys.Tab }); },
+                    delegate(Question q) { focused(q, q.YesKey); typeof(Question).GetMethod("ProcessDialogKey", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(q, new object[] { Keys.Shift | Keys.Tab }); },
+                    delegate(Question q) { focused(q, q.NoKey); press(q, Keys.Enter); }
+                });
+                expect("Enter on Yes", DialogResult.Yes, new Action<Question>[] { delegate(Question q) { press(q, Keys.Tab); }, delegate(Question q) { focused(q, q.YesKey); press(q, Keys.Enter); } });
+                expect("Space on No", DialogResult.No, new Action<Question>[] { delegate(Question q) { press(q, Keys.Space); } });
+                expect("Space on Yes", DialogResult.Yes, new Action<Question>[] { delegate(Question q) { press(q, Keys.Tab); }, delegate(Question q) { focused(q, q.YesKey); press(q, Keys.Space); } });
+                expect("Y", DialogResult.Yes, new Action<Question>[] { delegate(Question q) { press(q, Keys.Y); } });
+                expect("a typed capital Y", DialogResult.Yes, new Action<Question>[] { delegate(Question q) { post(q, Char, (Keys)'Y', Fresh); } });
+                expect("N with Yes focused", DialogResult.No, new Action<Question>[] { delegate(Question q) { press(q, Keys.Tab); }, delegate(Question q) { focused(q, q.YesKey); press(q, Keys.N); } });
+                expect("Alt+Y", DialogResult.Yes, new Action<Question>[] { delegate(Question q) { post(q, SysKeyDown, Keys.Y, AltFresh); post(q, SysKeyUp, Keys.Y, altUp); } });
+                expect("Alt+N with Yes focused", DialogResult.No, new Action<Question>[] { delegate(Question q) { press(q, Keys.Tab); }, delegate(Question q) { focused(q, q.YesKey); post(q, SysKeyDown, Keys.N, AltFresh); post(q, SysKeyUp, Keys.N, altUp); } });
+                checks.Add("PASS mod question answers: No is the default and has focus; Enter on a fresh box, Esc, the close key, Alt+F4 and Windows closing it answer No; clicking Yes, Enter or Space on a focused Yes, Y and Alt+Y answer Yes; Tab and Shift+Tab move between the two keys; N and Alt+N answer No");
+                // A key held down from before she asked repeats into the box: Enter, Space, Y and Alt+Y repeats on a focused Yes do
+                // nothing, and the box is still open for Esc afterwards.
+                expect("keys held from before it opened", DialogResult.No, new Action<Question>[]
+                {
+                    delegate(Question q) { press(q, Keys.Tab); },
+                    delegate(Question q)
+                    {
+                        focused(q, q.YesKey);
+                        post(q, KeyDown, Keys.Enter, Held); post(q, KeyDown, Keys.Enter, Held); post(q, KeyUp, Keys.Enter, up);
+                        post(q, KeyDown, Keys.Space, Held); post(q, KeyUp, Keys.Space, up);
+                        post(q, KeyDown, Keys.Y, Held); post(q, KeyUp, Keys.Y, up);
+                        post(q, SysKeyDown, Keys.Y, AltHeld); post(q, SysKeyUp, Keys.Y, altUp);
+                    },
+                    delegate(Question q) { if (q.DialogResult != DialogResult.None) throw new Exception("A held key answered the mod question."); focused(q, q.YesKey); press(q, Keys.Escape); }
+                });
+                checks.Add("PASS mod question: a held Enter, Space, Y or Alt+Y repeating into it from before it opened presses nothing, even with Yes focused");
+                foreach (bool top in new[] { false, true })
+                {
+                    owner.TopMost = top;
+                    using (Question q = new Question(consent, caption, 0))
+                    {
+                        q.Place(owner);
+                        Rectangle screen = Screen.FromHandle(owner.Handle).WorkingArea;
+                        Point centre = new Point(Math.Max(screen.Left, Math.Min(screen.Right - q.Width, owner.Left + (owner.Width - q.Width) / 2)), Math.Max(screen.Top, Math.Min(screen.Bottom - q.Height, owner.Top + (owner.Height - q.Height) / 2)));
+                        if (q.TopMost != top || q.Location != centre || !screen.Contains(q.Bounds) || q.ShowInTaskbar) throw new Exception("The mod question is not centred on its owner inside its screen with the owner's top-most state: " + q.Bounds + " in " + screen + ", top-most " + q.TopMost);
+                        DialogResult placed = ask(q, owner, new Action<Question>[]
+                        {
+                            delegate(Question shown)
+                            {
+                                if (shown.Owner != owner || (Native.GetWindowLong(owner.Handle, -16) & 0x08000000) == 0 || !shown.Modal) throw new Exception("The mod question is not modal to its owner: owner " + (shown.Owner == owner) + ", owner disabled " + ((Native.GetWindowLong(owner.Handle, -16) & 0x08000000) != 0) + ", modal " + shown.Modal + ".");
+                                if (((Native.GetWindowLong(shown.Handle, -20) & 8) != 0) != top) throw new Exception("The mod question's top-most state doesn't match its owner's.");
+                                bool above = false;
+                                for (IntPtr below = Native.GetWindow(shown.Handle, 2); below != IntPtr.Zero; below = Native.GetWindow(below, 2)) if (below == owner.Handle) { above = true; break; }
+                                if (!above) throw new Exception("The mod question is behind its owner.");
+                                owner.TopMost = !top;
+                            },
+                            delegate(Question shown)
+                            {
+                                if (((Native.GetWindowLong(shown.Handle, -20) & 8) != 0) != !top) throw new Exception("The mod question did not follow its owner's top-most change.");
+                                press(shown, Keys.Escape);
+                            }
+                        });
+                        if (placed != DialogResult.No) throw new Exception("The mod question over " + (top ? "a top-most owner" : "an owner that isn't top-most") + " answered " + (placed == DialogResult.None ? "nothing" : placed.ToString()) + ".");
+                    }
+                }
+                owner.TopMost = false;
+                using (Question q = new Question(consent, caption, 0))
+                {
+                    q.Place(null);
+                    if (!q.ShowInTaskbar || q.TopMost || !Screen.FromPoint(Cursor.Position).WorkingArea.Contains(q.Bounds)) throw new Exception("The mod question with no owner is off its screen or out of the taskbar.");
+                    DialogResult alone = ask(q, null, new Action<Question>[] { delegate(Question shown) { if (!shown.Visible) throw new Exception("The mod question with no owner didn't show."); press(shown, Keys.Escape); } });
+                    if (alone != DialogResult.No) throw new Exception("The mod question with no owner answered " + alone + ".");
+                }
+                checks.Add("PASS mod question: modal to its owner, centred on it inside its screen's working area, above it, top-most exactly when it is and following it both ways; with no owner it shows in the taskbar on the screen under the mouse");
+                Rectangle small = new Rectangle(-1024, 120, 800, 560), shortArea = new Rectangle(area.Left, area.Top, 640, 360);
+                foreach (int percent in new[] { 100, 125, 150 })
+                {
+                    float scale = percent / 100f;
+                    foreach (string text in new[] { consent, longConsent })
+                        using (Question q = new Question(text, caption, scale))
+                        {
+                            if (q.Text != caption || q.AccessibleName != caption || q.Said != caption.ToUpperInvariant() + "\n" + text || q.YesKey.AccessibleName != "Yes" || q.NoKey.AccessibleName != "No" || q.CloseKey.AccessibleName != "Close") throw new Exception("The mod question changed its title, its message or a key's name.");
+                            foreach (Rectangle where in new[] { area, small })
+                            {
+                                q.Lay(where, new Rectangle(where.Right - 100, where.Bottom - 200, 380, 734));
+                                if (!q.Fits || !where.Contains(q.Bounds)) throw new Exception("The mod question clips or leaves its screen at " + percent + "% (" + (text == consent ? "short" : "long") + " message): " + q.Bounds + " in " + where);
+                            }
+                            q.Lay(area, owner.Bounds);
+                            if (text == consent && q.Scrolls) throw new Exception("The mod question scrolls a message that fits at " + percent + "%.");
+                            if (text == consent)
+                            {
+                                q.Opacity = 0;
+                                q.Show(owner);
+                                q.Lay(area, owner.Bounds);
+                                Application.DoEvents();
+                                snap(q, "mod-ask-" + percent + ".png");
+                                q.Close();
+                            }
+                        }
+                    using (Question q = new Question(longConsent, caption, scale))
+                    {
+                        q.Lay(shortArea, Rectangle.Empty);
+                        if (!q.Scrolls || !q.Fits || !shortArea.Contains(q.Bounds)) throw new Exception("A long mod question on a short screen doesn't scroll inside it with its keys showing at " + percent + "%: " + q.Bounds);
+                        int wheel = -1;
+                        DialogResult read = ask(q, owner, new Action<Question>[]
+                        {
+                            delegate(Question shown) { shown.Lay(shortArea, Rectangle.Empty); press(shown, Keys.End); },
+                            delegate(Question shown) { if (shown.ScrolledTo != shown.Unseen || shown.Unseen <= 0) throw new Exception("End didn't reach the last line of a long mod question."); press(shown, Keys.Home); },
+                            delegate(Question shown)
+                            {
+                                if (shown.ScrolledTo != 0) throw new Exception("Home didn't go back to the start of a long mod question.");
+                                Point middle = shown.PointToScreen(new Point(shown.ClientSize.Width / 2, shown.ClientSize.Height / 2));
+                                Native.SendMessage(shown.Handle, 0x020A, new IntPtr(unchecked(-120 << 16)), new IntPtr(middle.Y << 16 | (middle.X & 0xFFFF)));
+                            },
+                            delegate(Question shown) { wheel = shown.ScrolledTo; focused(shown, shown.NoKey); press(shown, Keys.Enter); }
+                        });
+                        if (read != DialogResult.No) throw new Exception("Reading a long mod question changed its answer.");
+                        if (SystemInformation.MouseWheelScrollLines != 0 && wheel <= 0) throw new Exception("The wheel didn't scroll a long mod question.");
+                    }
+                }
+                using (Question q = new Question(longConsent, caption, 1f))
+                {
+                    q.Opacity = 0;
+                    q.Show(owner);
+                    q.Lay(shortArea, Rectangle.Empty);
+                    Application.DoEvents();
+                    snap(q, "mod-ask-long-100.png");
+                    q.Lay(area, Rectangle.Empty);
+                    Application.DoEvents();
+                    snap(q, "mod-ask-long-full-100.png");
+                    q.Close();
+                }
+                // A mod like most people's: a plain name, a short author and a few permissions.
+                using (Question q = new Question(Mods.Consent(new ModFile { Name = "Neon Clock", Version = "1.2.0", Author = "pixel-smith", Permissions = new[] { "chat", "settings", "system" } }, hash), caption, 1f))
+                {
+                    q.Opacity = 0;
+                    q.Show(owner);
+                    q.Lay(area, Rectangle.Empty);
+                    Application.DoEvents();
+                    if (!q.Fits || q.Scrolls) throw new Exception("An everyday mod question doesn't fit.");
+                    snap(q, "mod-ask-real-100.png");
+                    q.Close();
+                }
+                checks.Add("PASS mod question: exact title and consent text and named keys; a 60-letter name, 40-letter author and every permission fit with nothing clipped at 100%, 125% and 150%, on this screen and on a small one left of it; a long one on a short screen scrolls to its last line and back by End, Home and the wheel with both keys showing and No still focused; saved mod-ask-100, -125, -150, -long-100 and, for an everyday mod, -real-100");
+                owner.Close();
+            }
+            // The question cut to its own shape on a clear ground, to lay over a picture of her Mainframe.
+            using (Question q = new Question(consent, caption, 1f))
+            {
+                q.Opacity = 0;
+                q.Show();
+                q.Lay(area, Rectangle.Empty);
+                Application.DoEvents();
+                using (Bitmap asked = new Bitmap(q.Width, q.Height))
+                using (Bitmap cut = new Bitmap(q.Width, q.Height))
+                {
+                    q.DrawToBitmap(asked, new Rectangle(Point.Empty, asked.Size));
+                    using (Graphics graphics = Graphics.FromImage(cut))
+                    {
+                        graphics.Clear(Color.Transparent);
+                        using (Region shape = q.Region.Clone()) graphics.SetClip(shape, CombineMode.Replace);
+                        graphics.DrawImageUnscaled(asked, 0, 0);
+                    }
+                    cut.Save(Path.Combine(output, "mod-ask-cut-100.png"), ImageFormat.Png);
+                }
+                q.Close();
+            }
+            byte[] il = typeof(Mainframe).GetMethod("AskToRun", BindingFlags.Instance | BindingFlags.NonPublic).GetMethodBody().GetILAsByteArray();
+            int token = typeof(Question).GetMethod("Ask", BindingFlags.Static | BindingFlags.NonPublic).MetadataToken;
+            bool routed = false;
+            for (int i = 0; i + 4 < il.Length; i++) if (il[i] == 0x28 && BitConverter.ToInt32(il, i + 1) == token) routed = true;
+            if (!routed || mainframe.ModAsk == null || mainframe.ModAsk.Method.Name != "AskToRun") throw new Exception("Her code mod question doesn't go through Question.Ask.");
+            checks.Add("PASS AskToRun asks through Question.Ask, and it's the Mainframe's question for code mods; saved mod-ask-cut-100.png and her OK notices as notice-100.png and notice-error-100.png");
+        }
+
         private void SmokeMainframePictures(System.Collections.Generic.List<string> checks)
         {
             bool wasPage = mainframe.SettingsShown, wasAdvanced = preferences.AdvancedSettings, wasSimple = simpleTest;
@@ -41106,6 +41393,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMainframeWheel", delegate { mainframe.CheckWheelStaysHere(checks); });
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
+            Section(checks, "SmokeModAsk", delegate { SmokeModAsk(checks, output); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
             Section(checks, "SmokeGlitchUnder", delegate { SmokeGlitchUnder(checks, Path.Combine(output, "glitch-under")); });
