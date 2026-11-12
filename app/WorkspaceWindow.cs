@@ -3147,9 +3147,8 @@ namespace CapriDesktop
                 if (block == null) return null;
                 if (head)
                 {
-                    List<string> names = new List<string>();
-                    foreach (Block one in block.Group) if (!names.Contains(one.Item.Name)) names.Add(one.Item.Name);
-                    return block.Group.Count + (block.Group.Count == 1 ? " tool call: " : " tool calls: ") + string.Join(", ", names.ToArray());
+                    string what = block.Words + (block.Words.Length > 0 && block.Trouble.Length > 0 ? ", " : "") + block.Trouble;
+                    return block.Group.Count + (block.Group.Count == 1 ? " step: " : " steps: ") + what;
                 }
                 string status = Status(block), how = block.Running ? " \u00b7 running" : status == "failed" ? " \u00b7 failed" : status == "denied" ? " \u00b7 denied" : status == "asked" ? " \u00b7 you allowed it" : "";
                 string detail = Detail(block, true);
