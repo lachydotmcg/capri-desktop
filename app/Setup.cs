@@ -562,7 +562,7 @@ namespace CapriSetup
             chip.BackColor = Color.Transparent;
             using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Chip.png")) if (image != null) using (Bitmap loaded = new Bitmap(image)) chip.Image = new Bitmap(loaded);
             Controls.Add(chip);
-            LabelAt(removing ? "Remove the app and its shortcuts for this Windows user.\nQuit Capri from the tray before continuing." : "She'll show you around when she opens.", 34, 198, 610, 50, Neon.Type(11f), Neon.Faint);
+            LabelAt(removing ? "Remove the app and its shortcuts for this Windows user.\nQuit Capri from the tray before continuing." : File.Exists(Path.Combine(Program.InstallPath, "settings.json")) ? "Right-click for her menu." : "She'll show you around when she opens.", 34, 198, 610, 50, Neon.Type(11f), Neon.Faint);
             section = LabelAt("OPTIONS", 34, 254, 400, 20, Neon.Type(10f, true), Neon.White);
             section.Visible = !removing;
             desktop = new Tick();
