@@ -686,6 +686,9 @@ namespace CapriDesktop
                 settle();
                 Func<int, bool> overHer = delegate(int barged)
                 {
+                    // Her voice here is a new turn of hers. The stand-in brain's reply to a line above can still be on its way on a
+                    // busy PC, and landing in the pump below it reset her voice as if the echo had stopped her; now it lands stale.
+                    asking++;
                     talkState = TalkState.Talking;
                     voiceUntil = clock.Elapsed.TotalSeconds + 30;
                     spokenAt = clock.Elapsed.TotalSeconds;
@@ -702,11 +705,12 @@ namespace CapriDesktop
                     return kept;
                 };
                 later();
-                Chimes.Play(Chime.Heard);
+                bool heardChimed = Chimes.Play(Chime.Heard);
                 bool herVoiceKept = overHer(bargeIns);
                 later(); later();
                 bool unmaskedKept = overHer(bargeIns);
                 CloseTalk();
+                if (!heardChimed) throw new Exception("The heard chime didn't play for the check over her voice.");
                 if (!roomQuiet || !herVoiceKept) throw new Exception("Her ears heard a chime: room " + roomQuiet + ", her voice kept " + herVoiceKept);
                 checks.Add("PASS her ears never take a chime for you: a chime's echo, at full volume and twelve times louder again, starts no line in a quiet room and doesn't talk over her voice; with no chime playing, the same sound " + (unmaskedStarts ? "starts a line" : "doesn't start a line either") + " and " + (unmaskedKept ? "doesn't stop her either" : "stops her voice") + (unmaskedStarts || !unmaskedKept ? ", so her ears were open" : ""));
                 CloseTalk();
