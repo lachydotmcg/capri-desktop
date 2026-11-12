@@ -2073,7 +2073,7 @@ namespace CapriDesktop
                     else if (text.StartsWith("Denied: ", StringComparison.Ordinal)) return text;
                 }
                 string detail = text.StartsWith(item.Name, StringComparison.Ordinal) ? text.Substring(item.Name.Length).TrimStart(':', ' ') : text;
-                if (!Command(item.Name)) return whole ? window.Display(detail) : window.Shorten(detail);
+                if (!Command(item.Name)) return window.Shorten(detail);
                 detail = window.Display(detail);
                 int cut = detail.IndexOf('\n');
                 return whole || cut < 0 ? detail : detail.Substring(0, cut).TrimEnd() + " \u2026";
