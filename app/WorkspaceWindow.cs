@@ -1910,11 +1910,7 @@ namespace CapriDesktop
                 {
                     Key(block, "Allow", Neon.Cyan, delegate { Answer(block, true, false); });
                     Key(block, "Always allow " + item.Name + " in this chat", Neon.Rose, delegate { Answer(block, true, true); });
-                    Key(block, "Deny", Neon.Hot, delegate { Answer(block, false, false); });
-                    block.Reason = new WorkField { Font = window.Font, Cue = "Why not? (optional, Claude Code sees it)" };
-                    block.Reason.Box.AccessibleName = "Deny reason (optional)";
-                    block.Reason.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == System.Windows.Forms.Keys.Enter) { e.SuppressKeyPress = true; Answer(block, false, false); } };
-                    Controls.Add(block.Reason);
+                    Key(block, "Deny", Neon.Rose, delegate { Deny(block); });
                 }
                 else if (item.Kind == "trust")
                 {
@@ -1926,6 +1922,46 @@ namespace CapriDesktop
                     Key(block, "Undo all", Neon.Cyan, delegate { window.Try(delegate { window.workspace.AnswerUndo(chat, item.Undo, true); window.RefreshChat(); }); });
                     Key(block, "Only the unchanged ones", Neon.Rose, delegate { window.Try(delegate { window.workspace.AnswerUndo(chat, item.Undo, false); window.RefreshChat(); }); });
                 }
+            }
+
+            // Deny first opens a box for why, focused; Deny again or Enter sends it, and an empty box sends a plain no.
+            private void Deny(Block block)
+            {
+                if (block.Reason != null) { Answer(block, false, false); return; }
+                block.Reason = new WorkField { Font = window.Font, Cue = "Why not? (optional) Deny or Enter sends it" };
+                block.Reason.Box.AccessibleName = "Deny reason (optional)";
+                block.Reason.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == System.Windows.Forms.Keys.Enter) { e.SuppressKeyPress = true; Answer(block, false, false); } };
+                Controls.Add(block.Reason);
+                block.LaidWidth = -1;
+                int kept = Offset;
+                bool follow = Following;
+                Arrange(true);
+                ScrollTo(follow ? int.MaxValue : kept);
+                block.Reason.Box.Focus();
+            }
+
+            internal bool ReasonShown(WorkspaceItem item) { Block block; return known.TryGetValue(item, out block) && block.Reason != null; }
+
+            internal void ForgetReason(WorkspaceItem item)
+            {
+                Block block;
+                if (!known.TryGetValue(item, out block) || block.Reason == null) return;
+                Controls.Remove(block.Reason);
+                block.Reason.Dispose();
+                block.Reason = null;
+                block.LaidWidth = -1;
+                Arrange(true);
+            }
+
+            internal bool DenyOpens(WorkspaceItem item, out bool boxShown)
+            {
+                boxShown = false;
+                Block block;
+                if (!known.TryGetValue(item, out block)) return false;
+                bool before = block.Reason != null;
+                Deny(block);
+                boxShown = block.Reason != null;
+                return !before;
             }
 
             private void Key(Block block, string text, Color accent, EventHandler click)
@@ -2792,11 +2828,12 @@ namespace CapriDesktop
                     }
                     else at = Well(block, string.Join("\n", lines.ToArray()), lines, inks, "", left + pad, at, inner, 12);
                     at += Z(10);
-                    if (block.Reason != null) { block.Reason.Tag = new Rectangle(left + pad, at, inner, Z(30)); at += Z(38); }
+
                 }
                 else if (kind == "trust") at = Trusting(block, left + pad, at, inner) + Z(10);
                 else at = Words(block, window.Shorten(item.Text), window.Font, Neon.White, left + pad, at, inner) + Z(10);
                 if (block.Keys.Count > 0) at = KeysRow(block, left + pad, at, inner) + Z(2);
+                if (block.Reason != null) { at += Z(8); block.Reason.Tag = new Rectangle(left + pad, at, inner, Z(30)); at += Z(30); }
                 block.Box = new Rectangle(left, y, width, at + pad - Z(4) - y);
             }
 
