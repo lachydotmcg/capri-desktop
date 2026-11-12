@@ -962,6 +962,11 @@ namespace CapriDesktop
         // For the smoke and its pictures: the tool groups' summary lines, opening them, the shine's clock and where it draws.
         internal List<string> ToolGroups { get { return transcript.Summaries(); } }
         internal Font TipFont { get { return small; } }
+        internal bool Thinking { get { return transcript.Thinking; } }
+        internal int TopOf(WorkspaceItem item) { return transcript.TopOf(item); }
+        internal List<string> CardWords(out Point details) { return transcript.CardWords(out details); }
+        internal void PressTranscript(Point at) { transcript.PressAt(at); }
+        internal static string EndText(string text) { return Transcript.EndShown(text); }
         // A fold line's middle (index-th line, in the window's own space) or the MODE key's, with the tooltip each shows.
         internal string TipOn(int fold, out Point at)
         {
@@ -1664,6 +1669,8 @@ namespace CapriDesktop
                 internal bool Open, All;
                 internal string Shape = "";
                 internal Rectangle Box, Toggle, More;
+                // A waiting approval's tool picture, beside its plain sentence.
+                internal RectangleF Mark;
                 internal readonly List<Piece> Pieces = new List<Piece>();
                 internal readonly List<Control> Keys = new List<Control>();
                 internal WorkField Reason;
@@ -1699,6 +1706,11 @@ namespace CapriDesktop
             internal readonly WorkKey Earlier, Newer;
             internal int Offset, Content;
             internal bool Following = true;
+            // Empty room kept under the end so the view didn't have to move when something at the bottom shrank.
+            private int slack;
+            // Claude thinking between calls, and where its line sits.
+            private bool thinking;
+            private Rectangle thinkLine;
             internal string Empty = "";
             private Block picked, hovered;
             private bool dragging, earlier, newer, hoveredHead;
@@ -1768,7 +1780,11 @@ namespace CapriDesktop
             internal void Fill(List<WorkspaceItem> shown, Dictionary<string, string> results, HashSet<string> failed, Dictionary<WorkspaceItem, WorkspaceItem> asked, string live, bool hasEarlier, bool hasNewer)
             {
                 bool follow = Following;
-                int was = Offset;
+                int was = Offset, tall = Content;
+                // What he's reading: each thing on screen and where it sits, so the view can stay on it when something changes size.
+                List<KeyValuePair<WorkspaceItem, int>> anchors = new List<KeyValuePair<WorkspaceItem, int>>();
+                foreach (Block old in Blocks)
+                    if (!old.Hidden && old.Box.Bottom > Offset && old.Box.Top < Offset + Height) anchors.Add(new KeyValuePair<WorkspaceItem, int>(old.Item, old.Box.Top - Offset));
                 HashSet<WorkspaceItem> keep = new HashSet<WorkspaceItem>(shown);
                 foreach (Block old in Blocks)
                 {
@@ -1797,7 +1813,32 @@ namespace CapriDesktop
                 newer = hasNewer;
                 Earlier.Visible = earlier;
                 Newer.Visible = newer;
+                bool busy = false;
+                foreach (Block block in Blocks) if (block.Running || Waiting(block.Item)) busy = true;
+                thinking = live != null && !busy && !hasNewer;
+                slack = 0;
                 Arrange(true);
+                Hold(follow, tall, anchors, was);
+            }
+
+            // Keeps his place. At the end while the conversation grows, it follows, as Metis does. Otherwise the first thing he
+            // could see stays where it was, even when what shrank was at the bottom (an answered card folding away): the room it
+            // leaves stays under the end until he scrolls or more arrives.
+            private void Hold(bool follow, int tall, List<KeyValuePair<WorkspaceItem, int>> anchors, int was)
+            {
+                if (follow && Content >= tall) { Following = true; ScrollTo(int.MaxValue); Following = true; return; }
+                foreach (KeyValuePair<WorkspaceItem, int> anchor in anchors)
+                {
+                    Block block;
+                    if (!known.TryGetValue(anchor.Key, out block) || block.Hidden || !Blocks.Contains(block)) continue;
+                    int target = Math.Max(0, block.Box.Top - anchor.Value);
+                    int room = target + Height - Content;
+                    if (room > 0 && target > 0) { slack = room; Content += room; }
+                    Offset = Math.Max(0, Math.Min(target, Content - Height));
+                    Place();
+                    Following = follow;
+                    return;
+                }
                 Following = follow;
                 ScrollTo(follow ? int.MaxValue : was);
                 Following = follow;
@@ -1864,6 +1905,8 @@ namespace CapriDesktop
                         foreach (Control key in block.Keys) key.Enabled = false;
                         if (block.Reason != null) block.Reason.Enabled = false;
                     }
+                    // Already settled (its turn ended, stopped or timed out): show what it is now, never a card that won't answer.
+                    else window.RefreshChat();
                 });
             }
 
@@ -1911,7 +1954,14 @@ namespace CapriDesktop
                     for (int k = i + 1; k < Blocks.Count && next == null; k++) if (!Blocks[k].Hidden) next = Blocks[k];
                     y = block.Box.Bottom + Gap(block, next);
                 }
-                Content = y + Z(6);
+                thinkLine = Rectangle.Empty;
+                if (thinking)
+                {
+                    if (Blocks.Count > 0) y += Z(18);
+                    thinkLine = new Rectangle(Inset, y, Edge - Inset, Z(26));
+                    y = thinkLine.Bottom;
+                }
+                Content = y + Z(6) + slack;
                 Place();
             }
 
@@ -1997,6 +2047,15 @@ namespace CapriDesktop
                 if (reason.Length == 0 || reason == "Denied in Workspace.") return "You said no.";
                 if (reason == "No answer after ten minutes." || reason == "That Workspace turn ended." || reason.StartsWith("Couldn't save an undo copy", StringComparison.Ordinal)) return "Not allowed: " + reason;
                 return "You said no: " + reason;
+            }
+
+            // The time and cost line as he reads it. Older chats saved the cost as it came ("$1.8235778"), so it's put to the
+            // cent here as well as when a turn ends.
+            internal static string EndShown(string text)
+            {
+                string shown = Regex.Replace(text ?? "", @"\A([0-9]+(?:\.[0-9]+)?)s(?= |\z)", delegate(Match m) { return Workspace.Took(double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)); });
+                shown = Regex.Replace(shown, @"\$([0-9.]+(?:[eE][-+]?[0-9]+)?)", delegate(Match m) { return Workspace.Money(m.Groups[1].Value); });
+                return shown.Replace(" | ", "  \u00b7  ");
             }
 
             private static string Leaf(string path)
@@ -2128,6 +2187,27 @@ namespace CapriDesktop
                 return Point.Empty;
             }
 
+            // Where a thing sits on screen (its top, in this control's space), or int.MinValue when it isn't shown.
+            internal int TopOf(WorkspaceItem item)
+            {
+                Block block;
+                return known.TryGetValue(item, out block) && Blocks.Contains(block) && !block.Hidden ? block.Box.Top - Offset : int.MinValue;
+            }
+
+            // A waiting card's words and the middle of its "Show the details" link.
+            internal List<string> CardWords(out Point details)
+            {
+                details = Point.Empty;
+                List<string> words = new List<string>();
+                foreach (Block block in Blocks)
+                {
+                    if (block.Item.Kind != "approval" || !Waiting(block.Item)) continue;
+                    foreach (Piece piece in block.Pieces) if (!piece.Code) words.Add(piece.Text);
+                    if (!block.Toggle.IsEmpty) details = new Point(block.Toggle.Left + block.Toggle.Width / 2, block.Toggle.Top + block.Toggle.Height / 2 - Offset);
+                }
+                return words;
+            }
+
             internal void MoveTo(Point at) { OnMouseMove(new MouseEventArgs(MouseButtons.None, 0, at.X, at.Y, 0)); }
 
             internal void PressAt(Point at)
@@ -2157,6 +2237,7 @@ namespace CapriDesktop
                 if (!block.Head.IsEmpty) block.Head.Offset(0, by);
                 if (!block.Toggle.IsEmpty) block.Toggle.Offset(0, by);
                 if (!block.More.IsEmpty) block.More.Offset(0, by);
+                if (!block.Mark.IsEmpty) block.Mark.Offset(0, by);
                 foreach (Piece piece in block.Pieces) piece.Box.Offset(0, by);
                 foreach (Control key in block.Keys) if (key.Tag is Rectangle) { Rectangle at = (Rectangle)key.Tag; at.Offset(0, by); key.Tag = at; }
                 if (block.Reason != null && block.Reason.Tag is Rectangle) { Rectangle at = (Rectangle)block.Reason.Tag; at.Offset(0, by); block.Reason.Tag = at; }
@@ -2403,7 +2484,7 @@ namespace CapriDesktop
 
             // What an approval card shows: for Bash and PowerShell the command, with its description above it; for an edit what
             // it changes; for anything else its input, without plumbing like timeouts. Paths read from the chat's folders.
-            private void Asked(WorkspaceItem item, out string about, List<string> lines, List<Color> inks)
+            private bool Asked(WorkspaceItem item, out string about, List<string> lines, List<Color> inks)
             {
                 about = "";
                 Dictionary<string, object> map = null;
@@ -2413,7 +2494,7 @@ namespace CapriDesktop
                     string shown = item.Input.Length > 0 ? item.Input : item.Text;
                     lines.AddRange(window.Shorten(shown).Replace("\r", "").Split('\n'));
                     inks.AddRange(Inks(lines.Count, Neon.White));
-                    return;
+                    return false;
                 }
                 string command = Text(map, "command");
                 if ((item.Name == "Bash" || item.Name == "PowerShell") && command != null)
@@ -2421,10 +2502,10 @@ namespace CapriDesktop
                     about = Text(map, "description") ?? "";
                     lines.AddRange(window.Display(command).Replace("\r", "").Split('\n'));
                     inks.AddRange(Inks(lines.Count, Neon.White));
-                    return;
+                    return false;
                 }
                 string file = Text(map, "file_path") ?? Text(map, "notebook_path");
-                if (file != null && Diff(item.Name, item.Input, lines, inks)) { about = window.Shorten(file); return; }
+                if (file != null && Diff(item.Name, item.Input, lines, inks)) { about = window.Shorten(file); return false; }
                 foreach (KeyValuePair<string, object> pair in map)
                 {
                     if (pair.Key == "timeout" || pair.Key == "run_in_background" || pair.Key == "dangerouslyDisableSandbox") continue;
@@ -2432,6 +2513,36 @@ namespace CapriDesktop
                     foreach (string row in window.Shorten(pair.Key + ": " + value).Replace("\r", "").Split('\n')) { lines.Add(row); inks.Add(Neon.White); }
                 }
                 if (lines.Count == 0) { lines.Add(item.Text); inks.Add(Neon.White); }
+                return true;
+            }
+
+            // What a waiting call will do, as one plain sentence: "Search MODDING.md for “menu”", "Read Mods.cs", or a
+            // command's own description.
+            private string Plainly(WorkspaceItem item)
+            {
+                string name = item.Name, kind = WorkPaint.ToolKind(name);
+                Dictionary<string, object> map = null;
+                try { map = HuskJson.Read(item.Input) as Dictionary<string, object>; } catch (FormatException) { }
+                if (map == null) return "Use " + name;
+                string path = Text(map, "file_path") ?? Text(map, "notebook_path") ?? Text(map, "path");
+                string where = path == null ? "" : window.Shorten(path), pattern = Text(map, "pattern");
+                if (name == "Grep") return "Search " + (where.Length > 0 ? where : "the files") + (pattern != null ? " for \u201c" + pattern + "\u201d" : "");
+                if (name == "Glob") return "Find files matching \u201c" + (pattern ?? "") + "\u201d" + (where.Length > 0 ? " in " + where : "");
+                if (name == "LS") return "List what's in " + (where.Length > 0 ? where : "the folder");
+                if (kind == "page") return "Read " + where;
+                if (name == "Write") return "Write " + where;
+                if (kind == "pencil") return "Edit " + where;
+                if (kind == "terminal")
+                {
+                    string about = (Text(map, "description") ?? "").Trim();
+                    return about.Length > 0 ? about : name == "PowerShell" ? "Run a PowerShell command" : "Run a command";
+                }
+                if (name == "WebFetch") return "Open " + (Text(map, "url") ?? "a web page");
+                if (name == "WebSearch") return "Search the web for \u201c" + (Text(map, "query") ?? "") + "\u201d";
+                if (kind == "branch") { string about = (Text(map, "description") ?? "").Trim(); return "Start a helper agent" + (about.Length > 0 ? ": " + about : ""); }
+                if (kind == "list") return "Update the to-do list";
+                if (kind == "plug") { string[] bits = name.Split(new[] { "__" }, StringSplitOptions.None); return "Use a " + Noun(name) + ": " + bits[bits.Length - 1].Replace('_', ' '); }
+                return "Use " + name;
             }
 
             // The trust card in plain words: which folders, what trusting them lets in, and where they are.
@@ -2463,6 +2574,7 @@ namespace CapriDesktop
             {
                 block.Pieces.Clear();
                 block.Toggle = block.More = Rectangle.Empty;
+                block.Mark = RectangleF.Empty;
                 WorkspaceItem item = block.Item;
                 int left = Inset, right = Edge, width = right - left, pad = Z(14);
                 string kind = item.Kind;
@@ -2530,7 +2642,7 @@ namespace CapriDesktop
                 }
                 if (kind == "end")
                 {
-                    Piece piece = Add(block, item.Text.Replace(" | ", "  ·  "), window.note, Neon.Faint, new Rectangle(left, y, width, Z(16)));
+                    Piece piece = Add(block, EndShown(item.Text), window.note, Neon.Faint, new Rectangle(left, y, width, Z(16)));
                     piece.Line = true;
                     piece.Right = true;
                     block.Box = new Rectangle(left, y, width, Z(16));
@@ -2549,13 +2661,26 @@ namespace CapriDesktop
                 at += Z(20);
                 if (kind == "approval")
                 {
-                    at = Words(block, "Claude Code wants to use " + item.Name, window.strong, Neon.White, left + pad, at, inner) + Z(4);
+                    string sentence = Plainly(item);
+                    block.Mark = new RectangleF(left + pad, at + Z(2), Z(16), Z(16));
+                    at = Words(block, sentence, window.strong, Neon.White, left + pad + Z(26), at, inner - Z(26)) + Z(4);
                     string about;
                     List<string> lines = new List<string>();
                     List<Color> inks = new List<Color>();
-                    Asked(item, out about, lines, inks);
-                    if (about.Length > 0) at = Words(block, about, window.small, Neon.Faint, left + pad, at, inner) + Z(8);
-                    at = Well(block, string.Join("\n", lines.ToArray()), lines, inks, "", left + pad, at, inner, 12);
+                    bool raw = Asked(item, out about, lines, inks);
+                    if (about.Length > 0 && about != sentence) at = Words(block, about, window.small, Neon.Faint, left + pad, at, inner) + Z(8);
+                    else at += Z(4);
+                    // A command or a change is what he's agreeing to, so it shows; anything else is its raw input, one click away.
+                    if (raw)
+                    {
+                        string shownAs = block.All ? "Hide the details" : "Show the details";
+                        Piece link = Add(block, shownAs, window.small, Neon.Cyan, new Rectangle(left + pad, at, WorkPaint.Wide(shownAs, window.small) + Z(4), Z(20)));
+                        link.Line = true;
+                        block.Toggle = link.Box;
+                        at = link.Box.Bottom + Z(6);
+                        if (block.All) at = Well(block, string.Join("\n", lines.ToArray()), lines, inks, "", left + pad, at, inner, 0);
+                    }
+                    else at = Well(block, string.Join("\n", lines.ToArray()), lines, inks, "", left + pad, at, inner, 12);
                     at += Z(10);
                     if (block.Reason != null) { block.Reason.Tag = new Rectangle(left + pad, at, inner, Z(30)); at += Z(38); }
                 }
@@ -2584,6 +2709,8 @@ namespace CapriDesktop
             {
                 int target = Math.Max(0, Math.Min(to, Content - Height));
                 if (target != Offset) { Offset = target; Place(); }
+                // Once the kept room is out of sight it goes, so the scroll bar is true again.
+                if (slack > 0 && Offset + Height <= Content - slack) { Content -= slack; slack = 0; Invalidate(); }
                 Following = AtBottom;
             }
 
@@ -2615,6 +2742,7 @@ namespace CapriDesktop
                 graphics.TranslateTransform(0, -Offset);
                 Rectangle view = new Rectangle(area.Left, area.Top + Offset, area.Width, area.Height);
                 foreach (Block block in Blocks) if (block.Box.IntersectsWith(Rectangle.Inflate(view, 0, Z(8)))) PaintBlock(graphics, block);
+                if (!thinkLine.IsEmpty && thinkLine.IntersectsWith(view)) PaintThinking(graphics);
                 graphics.Restore(state);
             }
 
@@ -2643,6 +2771,7 @@ namespace CapriDesktop
                     Color rim = kind == "approval" || kind == "error" ? Neon.Hot : kind == "trust" ? Neon.Cyan : Neon.Tone(120, 96, 40);
                     Color fill = kind == "trust" ? Neon.Deep : kind == "error" ? Neon.Tone(30, 12, 20) : Neon.Field;
                     WorkPaint.Plate(graphics, block.Box, 9 * s, fill, rim, line);
+                    if (!block.Mark.IsEmpty) WorkPaint.ToolMark(graphics, item.Name, block.Mark, Neon.White, s);
                 }
                 if (block == picked) WorkPaint.Plate(graphics, Rectangle.Inflate(block.Box, Z(4), Z(4)), 10 * s, Color.Empty, Color.FromArgb(150, Neon.Cyan), line);
                 foreach (Piece piece in block.Pieces)
@@ -2728,6 +2857,22 @@ namespace CapriDesktop
                 if (block.HeadMark.Length > 0 && x + Z(14) < right) WorkPaint.StatusMark(graphics, "failed", new PointF(x + Z(9), mid), Z(4), Pink, s);
             }
 
+            // Claude thinking between calls: a quiet line at the end with the same shine as a running call, so a long think
+            // never looks like nothing is happening.
+            private void PaintThinking(Graphics graphics)
+            {
+                Rectangle line = thinkLine;
+                float mid = line.Top + line.Height / 2f;
+                RectangleF icon = new RectangleF(line.Left + Z(22), mid - Z(7), Z(14), Z(14));
+                WorkPaint.ToolMark(graphics, WorkPaint.Thinking, icon, Live, window.zoom);
+                const string words = "Thinking";
+                Rectangle box = new Rectangle(line.Left + Z(44), line.Top, Math.Max(1, Math.Min(line.Width - Z(52), WorkPaint.Wide(words, window.small) + Z(2))), line.Height);
+                TextRenderer.DrawText(graphics, words, window.small, box, Live, WorkPaint.Line | TextFormatFlags.EndEllipsis);
+                Shine(graphics, line, icon, WorkPaint.Thinking, box, words, window.small, WorkPaint.Line | TextFormatFlags.EndEllipsis, Live, Color.Empty);
+            }
+
+            internal bool Thinking { get { return !thinkLine.IsEmpty; } }
+
             // One call inside an open group: its picture, its command or path on one line, and its mark.
             private void PaintRow(Graphics graphics, Block block)
             {
@@ -2790,6 +2935,7 @@ namespace CapriDesktop
                     if (block.Group != null && block.Doing != null && !block.Head.IsEmpty) boxes.Add(block.Head);
                     if (block.Running && !block.Toggle.IsEmpty) boxes.Add(block.Toggle);
                 }
+                if (!thinkLine.IsEmpty) boxes.Add(thinkLine);
                 List<Rectangle> seen = new List<Rectangle>();
                 foreach (Rectangle box in boxes) { Rectangle at = box; at.Offset(0, -Offset); if (at.IntersectsWith(ClientRectangle)) seen.Add(at); }
                 return seen;

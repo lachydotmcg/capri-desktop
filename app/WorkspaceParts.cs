@@ -113,9 +113,13 @@ namespace CapriDesktop
         // Which picture a tool's row gets: a prompt for commands, a magnifier for searches, a page for reads, a pencil for
         // edits, a globe for the web, a checklist for to-dos and tasks, a branch for agents, a plug for MCP tools, and a plain
         // dot for anything else.
+        // Not a tool: the name the "Thinking" line draws its mark with. The space keeps it from ever matching a real tool.
+        internal const string Thinking = " thinking";
+
         internal static string ToolKind(string name)
         {
             if (string.IsNullOrEmpty(name)) return "dot";
+            if (name == Thinking) return "think";
             if (name == "Bash" || name == "PowerShell" || name == "BashOutput" || name == "KillShell" || name == "KillBash") return "terminal";
             if (name == "Grep" || name == "Glob" || name == "LS" || name == "ToolSearch") return "search";
             if (name == "Read" || name == "NotebookRead") return "page";
@@ -189,6 +193,9 @@ namespace CapriDesktop
                         graphics.DrawLine(pen, x + w * 0.4f, y + h * 0.08f, x + w * 0.4f, y + h * 0.3f);
                         graphics.DrawLine(pen, x + w * 0.6f, y + h * 0.08f, x + w * 0.6f, y + h * 0.3f);
                         graphics.DrawLine(pen, x + w * 0.5f, y + h * 0.66f, x + w * 0.5f, y + h * 0.94f);
+                        break;
+                    case "think":
+                        for (int k = 0; k < 3; k++) graphics.FillEllipse(fill, x + w * (0.06f + k * 0.33f), y + h * 0.4f, w * 0.2f, h * 0.2f);
                         break;
                     default:
                         graphics.FillEllipse(fill, x + w * 0.34f, y + h * 0.34f, w * 0.32f, h * 0.32f);
