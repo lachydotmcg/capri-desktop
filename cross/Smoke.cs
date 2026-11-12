@@ -160,6 +160,7 @@ namespace CapriDesktop
                 MacWindows.Checks(checks);
                 Pet.CatchUpChecks(pet, checks);
                 UpdateCheckChecks();
+                LinuxAppImageUpdater.Checks(checks);
                 OfflineChecks();
                 FakeCrash.Checks(checks);
                 FakeCrash.WindowChecks(checks);
@@ -1842,7 +1843,9 @@ namespace CapriDesktop
         private void UpdateCheckChecks()
         {
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-            string[] names = { "updateChecking", "updateAsked", "updateNote", "updatePage", "updateItem" };
+            string[] names = { "updateChecking", "updateInstalling", "updateReady", "updateAsked", "updateNote", "updatePage", "updateItem" };
+            Func<string, LinuxUpdateReady> prepareWas = pet.PrepareUpdate;
+            Action<LinuxUpdateReady, int, string> installWas = pet.InstallUpdate;
             Dictionary<string, object> state = new Dictionary<string, object>();
             foreach (string name in names) state[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
             Func<string> read = pet.ReadUpdate;
@@ -1914,6 +1917,34 @@ namespace CapriDesktop
                 pet.ShowUpdate("{\"tag_name\":\"v99.1.0\"}", true);
                 if (pet.UpdateNews != "Capri 99.1.0 is out. Right-click me > Get Capri 99.1.0." || pet.MainframeUpdate != pet.UpdateNews) throw new Exception("An asked check hid a newer release that was already seen.");
                 checks.Add("PASS asked update checks: Mainframe and the tray report failures and the current version, background failures stay quiet, and a click during a running check gets its answer");
+
+                string asked = null;
+                pet.ReadUpdate = () => "{\"tag_name\":\"v99.5.0\"}";
+                pet.PrepareUpdate = json => { asked = json; return new LinuxUpdateReady { Version = "99.5.0", Path = "/nowhere/Capri-99.5.0.AppImage", AppImage = "/nowhere/Capri.AppImage", Hash = new string('0', 64), Size = 1 }; };
+                pet.UpdateNews = null;
+                pet.CheckUpdate();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a background AppImage download");
+                string ready = "Capri 99.5.0 is downloaded. Right-click me > Restart Capri to update to 99.5.0.";
+                if (asked != "{\"tag_name\":\"v99.5.0\"}" || pet.UpdateChoice != "Restart Capri to update to 99.5.0" || pet.UpdateNews != ready) throw new Exception("A downloaded AppImage didn't offer its restart once: " + pet.UpdateChoice + " / " + pet.UpdateNews);
+                pet.UpdateNews = null;
+                pet.CheckUpdate();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a second background AppImage download");
+                if (pet.UpdateNews != null || pet.UpdateChoice != "Restart Capri to update to 99.5.0") throw new Exception("A ready AppImage was announced twice or lost its restart.");
+                string said = null;
+                pet.InstallUpdate = (update, parent, log) => { said = update.Version + "|" + (parent == Environment.ProcessId) + "|" + log.EndsWith("update.log", StringComparison.Ordinal); throw new AppImageUpdateException("I can't write to /nowhere, where the AppImage is."); };
+                var restart = (MenuItem)typeof(Pet).GetField("updateItem", fields).GetValue(pet);
+                restart.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                MainframeWait(() => pet.UpdateNews != null, "a refused AppImage restart");
+                if (said != "99.5.0|True|True" || !pet.UpdateNews.StartsWith("I couldn't update: I can't write to /nowhere", StringComparison.Ordinal) || (bool)typeof(Pet).GetField("updateInstalling", fields).GetValue(pet))
+                    throw new Exception("A failed AppImage restart didn't say why or stayed stuck: " + said + " / " + pet.UpdateNews);
+                pet.UpdateNews = null;
+                pet.PrepareUpdate = json => { throw new AppImageUpdateException("Capri 99.6.0 has no Linux AppImage."); };
+                pet.ReadUpdate = () => "{\"tag_name\":\"v99.6.0\"}";
+                pet.MainframeUpdateCheck();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a failed AppImage download");
+                string missed = "Capri 99.6.0 is out, but I couldn't download it: Capri 99.6.0 has no Linux AppImage. Right-click me > Get Capri 99.6.0.";
+                if (pet.UpdateChoice != "Get Capri 99.6.0" || pet.UpdateNews != missed || pet.MainframeUpdate != missed) throw new Exception("A failed AppImage download hid the release page: " + pet.UpdateChoice + " / " + pet.UpdateNews);
+                checks.Add("PASS appimage update flow: a background download offers Restart Capri once, a refused restart says why and keeps her running, a failed download still offers the page and says why when asked");
             }
             finally
             {
@@ -1925,6 +1956,7 @@ namespace CapriDesktop
                     if (item != oldItem && item != null) pet.ContextMenu.Items.Remove(item);
                     if (oldAt >= 0 && !pet.ContextMenu.Items.Contains(oldItem)) pet.ContextMenu.Items.Insert(Math.Min(oldAt, pet.ContextMenu.Items.Count), oldItem);
                     pet.ReadUpdate = read; pet.UpdateNews = news; pet.Saved = saved;
+                    pet.PrepareUpdate = prepareWas; pet.InstallUpdate = installWas;
                     foreach (KeyValuePair<string, object> pair in state) typeof(Pet).GetField(pair.Key, fields).SetValue(pet, pair.Value);
                     if (ticking) timer.Start();
                 }

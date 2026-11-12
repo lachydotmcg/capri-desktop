@@ -337,7 +337,8 @@ namespace CapriDesktop
         internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under BRAIN in Capri Mainframe.";
         internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
-        // Mac and Linux don't update themselves yet, so she checks GitHub's latest release now and then and offers its page.
+        // She checks GitHub's latest release now and then. Started from the Linux AppImage she downloads it and offers a
+        // restart (LinuxAppImageUpdater); a Mac, a tarball or a package gets its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
         private const string ReleasesPage = "https://github.com/lachydotmcg/capri-desktop/releases/latest";
         internal static readonly double[] Sizes = { 140, 170, 240, 320, 440, 560 };
@@ -454,6 +455,10 @@ namespace CapriDesktop
         private string updatePage;
         private double nextUpdate = 60;
         private bool updateChecking;
+        private bool updateInstalling;
+        private LinuxUpdateReady updateReady;
+        // Downloads a newer AppImage when she runs from one; null means the real one. Smoke swaps in a fake.
+        internal Func<string, LinuxUpdateReady> PrepareUpdate;
         // A check someone asked for says how it went; the one every 6 hours only speaks up for a new version.
         private bool updateAsked;
         private string updateNote;
@@ -1161,17 +1166,34 @@ namespace CapriDesktop
             updateChecking = true;
             NotifySettings();
             Func<string> read = ReadUpdate;
+            string data = folder;
+            Func<string, LinuxUpdateReady> prepare = PrepareUpdate ?? (Program.Smoke != null ? null : (Func<string, LinuxUpdateReady>)(json => LinuxAppImageUpdater.Prepare(json, data, typeof(Pet).Assembly.GetName().Version)));
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string latest = null;
                 try { latest = read(); }
                 catch (Exception) { }
+                LinuxUpdateReady ready = null;
+                string problem = null;
+                if (latest != null && prepare != null && !updateInstalling)
+                {
+                    try { ready = prepare(latest); }
+                    catch (AppImageUpdateException error) { problem = error.Message; }
+                    catch (Exception) { problem = "The download didn't come through. I'll try again later."; }
+                }
                 Dispatcher.UIThread.Post(delegate
                 {
                     updateChecking = false;
                     bool tell = updateAsked;
                     updateAsked = false;
-                    if (latest != null || tell) ShowUpdate(latest, tell);
+                    if (!updateInstalling) updateReady = ready;
+                    string version = latest != null || tell ? ShowUpdate(latest, tell) : null;
+                    // The page stays in her menu when the AppImage couldn't be fetched; Mainframe says why.
+                    if (problem != null && version != null && updateReady == null)
+                    {
+                        updateNote = "Capri " + version + " is out, but I couldn't download it: " + problem + " Right-click me > Get Capri " + version + ".";
+                        if (tell) UpdateNews = updateNote;
+                    }
                     NotifySettings();
                 });
             });
@@ -1187,8 +1209,9 @@ namespace CapriDesktop
             }
         }
 
-        // A newer finished release puts "Get Capri X" in her menu, and she mentions it once per version.
-        internal void ShowUpdate(string latest, bool asked = false)
+        // A newer finished release puts "Get Capri X" in her menu, or "Restart Capri to update to X" once a Linux AppImage
+        // has it downloaded, and she mentions each once per version. Returns the newer version, or null.
+        internal string ShowUpdate(string latest, bool asked = false)
         {
             Release found = null;
             try { using (MemoryStream body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(latest ?? ""))) found = (Release)new DataContractJsonSerializer(typeof(Release)).ReadObject(body); }
@@ -1196,14 +1219,15 @@ namespace CapriDesktop
             Version current = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             Version released = found == null || found.Draft || found.Prerelease ? null : ReleaseVersion(found.Tag);
             string version = released == null ? null : Newer(found.Tag, current);
-            if (ContextMenu == null) return;
+            if (ContextMenu == null) return null;
             if (asked && released == null)
             {
                 updateNote = "Couldn't check for updates. Check your connection and try again.";
                 UpdateNews = updateNote;
-                return;
+                return null;
             }
             if (released != null) updateNote = null;
+            if (updateReady != null && updateReady.Version != version && !updateInstalling) updateReady = null;
             if (version == null)
             {
                 if (updateItem != null) ContextMenu.Items.Remove(updateItem);
@@ -1213,28 +1237,70 @@ namespace CapriDesktop
                     updateNote = "You're on the latest version (" + current.ToString() + ").";
                     UpdateNews = updateNote;
                 }
-                return;
+                return null;
             }
             updatePage = found.Page != null && found.Page.StartsWith("https://github.com/lachydotmcg/capri-desktop/releases/", StringComparison.Ordinal) ? found.Page : ReleasesPage;
             if (updateItem == null)
             {
                 updateItem = new MenuItem();
-                updateItem.Click += Guarded(delegate { Browse(updatePage); });
+                updateItem.Click += Guarded(delegate { if (updateReady != null) RestartUpdate(); else Browse(updatePage); });
             }
-            updateItem.Header = "Get Capri " + version;
+            string choice = updateReady != null ? "Restart Capri to update to " + version : "Get Capri " + version;
+            updateItem.Header = choice;
             if (!ContextMenu.Items.Contains(updateItem))
             {
                 int at = ContextMenu.Items.Count;
                 for (int i = ContextMenu.Items.Count - 1; i >= 0; i--) if (ContextMenu.Items[i] is Separator) { at = i; break; }
                 ContextMenu.Items.Insert(at, updateItem);
             }
-            string line = "Capri " + version + " is out. Right-click me > Get Capri " + version + ".";
+            string line = updateReady != null ? "Capri " + version + " is downloaded. Right-click me > " + choice + "." : "Capri " + version + " is out. Right-click me > " + choice + ".";
             if (asked) { updateNote = line; UpdateNews = line; }
-            if (Saved.UpdateSeen == version) return;
-            Saved.UpdateSeen = version;
+            string seen = updateReady != null ? version + " ready" : version;
+            if (Saved.UpdateSeen == seen) return version;
+            Saved.UpdateSeen = seen;
             Save();
             UpdateNews = line;
+            return version;
         }
+
+        // Her AppImage swaps itself for the downloaded one: the copy goes in beside it while she's still here, so a problem
+        // is said out loud, then she closes and a small script swaps them and starts her again.
+        private void RestartUpdate()
+        {
+            if (updateReady == null || updateInstalling) return;
+            if (fileEditor != null && !fileEditor.Clear(RestartUpdate)) return;
+            updateInstalling = true;
+            LinuxUpdateReady ready = updateReady;
+            updateNote = "Getting Capri " + ready.Version + " ready...";
+            NotifySettings();
+            int parent = Environment.ProcessId;
+            string log = Path.Combine(folder, "updates", "update.log");
+            Action<LinuxUpdateReady, int, string> install = InstallUpdate;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string problem = null;
+                try { install(ready, parent, log); }
+                catch (AppImageUpdateException error) { problem = error.Message; }
+                catch (Exception) { problem = "Something went wrong getting it ready."; }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    if (problem != null)
+                    {
+                        updateInstalling = false;
+                        updateNote = "I couldn't update: " + problem + " I'm still on " + typeof(Pet).Assembly.GetName().Version.ToString(3) + ".";
+                        UpdateNews = updateNote;
+                        NotifySettings();
+                        return;
+                    }
+                    updateNote = "Restarting to update to Capri " + ready.Version + ".";
+                    NotifySettings();
+                    Quit();
+                });
+            });
+        }
+
+        // Smoke swaps this so a test never starts the helper or closes her.
+        internal Action<LinuxUpdateReady, int, string> InstallUpdate = LinuxAppImageUpdater.Install;
 
         // The release's version when it's newer than hers, like "0.7.6". Null for older, odd or missing tags.
         internal static string Newer(string tag, Version mine)
@@ -1243,7 +1309,7 @@ namespace CapriDesktop
             return found != null && found > new Version(mine.Major, mine.Minor, Math.Max(0, mine.Build), Math.Max(0, mine.Revision)) ? found.ToString(found.Revision > 0 ? 4 : 3) : null;
         }
 
-        private static Version ReleaseVersion(string tag)
+        internal static Version ReleaseVersion(string tag)
         {
             Version found;
             if (tag == null || !System.Text.RegularExpressions.Regex.IsMatch(tag, @"^[vV]?\d+\.\d+(\.\d+){0,2}$") || !Version.TryParse(tag.TrimStart('v', 'V'), out found)) return null;
