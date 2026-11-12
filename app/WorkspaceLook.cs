@@ -981,7 +981,7 @@ namespace CapriDesktop
                         Control mode = window.Named("Permission mode"), model = window.Named("Claude model");
                         if (mode == null || model == null || window.Input == null || window.Find("Allow") == null || window.Find("Deny") == null || window.Find("Retry") == null) throw new Exception("Workspace lost a control at " + scale + "%.");
                         using (Font her = Look.Mono(12, FontStyle.Regular)) if (window.CodeFont != her.Name) throw new Exception("Workspace code isn't in her mono font: " + window.CodeFont);
-                        if (window.CopyText(said) != said.Text || window.ToggleTool("layout-tool") != "Saved the edit.") throw new Exception("Workspace didn't copy a message or open a tool result.");
+                        if (window.CopyText(said) != "I found the file.\n\n" + code + "\n\nHere is what changed." || window.ToggleTool("layout-tool") != "Saved the edit.") throw new Exception("Workspace didn't copy a message or open a tool result.");
                         window.Rename("Layout " + scale);
                         if (layout.Title != "Layout " + scale) throw new Exception("Workspace didn't save an edited title.");
                         string before = layout.Mode;
@@ -1536,6 +1536,7 @@ namespace CapriDesktop
                     if (window.Thinking || window.Shining) failures.Add(scale + "%: Thinking stayed after the snake turn ended.");
                     shoot(window, "v4-cost-" + scale, null);
                     WorkspaceWindow.ShineAt = -1;
+                    WorkspaceCopy(window, work, release, longer, say, failures, scale, shoot);
                     window.Close();
                 }
             }
@@ -1622,6 +1623,120 @@ namespace CapriDesktop
                     if (text.IndexOf("workspace-pickers", StringComparison.OrdinalIgnoreCase) >= 0) left++;
                 }
                 return left;
+            }
+        }
+
+        // Copying out of the conversation, with a stand-in for Windows' clipboard so his is never touched: a selection from
+        // his message through her reply into a code well copies as it shows; double click takes a word and triple click the
+        // paragraph or code line; Shift+click carries a selection on; Ctrl+A and Ctrl+C take everything; dragging past the
+        // bottom scrolls; the copy key on a message or a well copies it and ticks for a second; the right-click menu offers
+        // Copy only with a selection; the message box keeps Windows' own cut, copy and paste. Pictures h (the selection) and
+        // i (the copy key resting, hovered and ticked).
+        private static void WorkspaceCopy(WorkspaceWindow window, Workspace work, string folder, WorkspaceChat longer, Action<WorkspaceChat, string, string> say, List<string> failures, int scale, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            List<string> clipped = new List<string>();
+            Action<string> real = WorkspaceWindow.ClipboardWrite;
+            WorkspaceWindow.ClipboardWrite = delegate(string text) { clipped.Add(text); };
+            bool shift = false;
+            window.ShiftHeld = delegate { return shift; };
+            try
+            {
+                WorkspaceChat chat = work.NewChat(folder, false);
+                work.Trust(chat, true);
+                chat.TrustAsked = true;
+                string ask = "Make the clock show seconds too, please.";
+                string reply = "Here's the **change**, in Clock.cs:\n\n- it reads the time once a second\n- it pads the seconds\n\n```csharp\nlabel.Text = now.ToString(\"HH:mm:ss\");\n```\n\nThat's all.";
+                string replyShown = "Here's the change, in Clock.cs:\n\n\u2022 it reads the time once a second\n\u2022 it pads the seconds\n\nlabel.Text = now.ToString(\"HH:mm:ss\");\n\nThat's all.";
+                string code = "label.Text = now.ToString(\"HH:mm:ss\");";
+                say(chat, "user", ask);
+                say(chat, "text", reply);
+                WorkspaceItem asked, answered;
+                lock (chat.Gate) { asked = chat.Items[0]; answered = chat.Items[1]; }
+                window.ShowChat(chat);
+                window.RefreshChat();
+                window.ScrollToEnd();
+
+                // Everything, by keys.
+                window.TranscriptKey(Keys.Control | Keys.A);
+                window.TranscriptKey(Keys.Control | Keys.C);
+                string all = ask + "\n\n" + replyShown;
+                if (clipped.Count != 1 || clipped[0] != all) failures.Add(scale + "%: Ctrl+A then Ctrl+C copied " + (clipped.Count > 0 ? clipped[clipped.Count - 1] : "nothing"));
+
+                // From the middle of his message into the code well: by place, then by dragging the same span.
+                string span = ask.Substring(5) + "\n\nHere's the change, in Clock.cs:\n\n\u2022 it reads the time once a second\n\u2022 it pads the seconds\n\nlabel";
+                window.SelectText(asked, 0, 5, answered, 2, 5);
+                if (window.SelectedText != span) failures.Add(scale + "%: a selection into the code well reads " + window.SelectedText);
+                shoot(window, "h-select-" + scale, null);
+                window.ClearSelection();
+                Point from = window.TextPoint(asked, 0, 5), to = window.TextPoint(answered, 2, 5);
+                window.DragText(from, to);
+                if (window.SelectedText != span) failures.Add(scale + "%: dragging from his message into the code well selected " + window.SelectedText);
+                window.TranscriptKey(Keys.Control | Keys.C);
+                if (clipped[clipped.Count - 1] != span) failures.Add(scale + "%: Ctrl+C after a drag copied " + clipped[clipped.Count - 1]);
+
+                // A word, a paragraph, a code line, and Shift+click carrying a selection on.
+                Point word = window.TextPoint(answered, 0, 13);
+                window.ClickText(word, 2);
+                if (window.SelectedText != "change") failures.Add(scale + "%: a double click selected " + window.SelectedText);
+                window.ClickText(word, 3);
+                if (window.SelectedText != "Here's the change, in Clock.cs:") failures.Add(scale + "%: a triple click selected " + window.SelectedText);
+                window.ClickText(window.TextPoint(answered, 2, 8), 3);
+                if (window.SelectedText != code) failures.Add(scale + "%: a triple click in the code well selected " + window.SelectedText);
+                window.ClickText(window.TextPoint(answered, 0, 0), 1);
+                shift = true;
+                window.ClickText(window.TextPoint(answered, 0, 6), 1);
+                shift = false;
+                if (window.SelectedText != "Here's") failures.Add(scale + "%: Shift+click selected " + window.SelectedText);
+
+                // The right-click menu: Copy only with a selection.
+                List<string> names = window.MenuNames(answered);
+                if (string.Join("|", names.ToArray()) != "Copy|Copy message|Copy code") failures.Add(scale + "%: with a selection the menu reads " + string.Join(", ", names.ToArray()));
+                window.ClearSelection();
+                names = window.MenuNames(answered);
+                if (string.Join("|", names.ToArray()) != "Copy message|Copy code") failures.Add(scale + "%: with no selection the menu reads " + string.Join(", ", names.ToArray()));
+
+                // The copy key: resting where the pointer is on her words, hovered, then ticked after it copies.
+                Point on = window.TextPoint(answered, 3, 2);
+                Rectangle key = window.CopyKeyOn(on);
+                if (key.IsEmpty) failures.Add(scale + "%: her reply showed no copy key.");
+                window.MoveOver(on);
+                shoot(window, "i-copy-rest-" + scale, null);
+                Point middle = new Point(key.Left + key.Width / 2, key.Top + key.Height / 2);
+                window.MoveOver(middle);
+                if (window.TranscriptPointer != Cursors.Hand) failures.Add(scale + "%: the copy key's pointer isn't a hand.");
+                shoot(window, "i-copy-hover-" + scale, null);
+                Stopwatch tick = Stopwatch.StartNew();
+                window.PressCopyKey();
+                if (clipped[clipped.Count - 1] != replyShown || !window.CopyTicked) failures.Add(scale + "%: the copy key copied " + clipped[clipped.Count - 1] + " and ticked " + window.CopyTicked);
+                shoot(window, "i-copy-ticked-" + scale, null);
+                while (window.CopyTicked && tick.ElapsedMilliseconds < 3000) { Application.DoEvents(); System.Threading.Thread.Sleep(20); }
+                if (window.CopyTicked || tick.ElapsedMilliseconds < 900) failures.Add(scale + "%: the tick lasted " + tick.ElapsedMilliseconds + " ms.");
+                Rectangle well = window.CopyKeyOn(window.TextPoint(answered, 2, 3));
+                window.MoveOver(new Point(well.Left + well.Width / 2, well.Top + well.Height / 2));
+                window.PressCopyKey();
+                if (clipped[clipped.Count - 1] != code) failures.Add(scale + "%: the code well's copy key copied " + clipped[clipped.Count - 1]);
+                Rectangle his = window.CopyKeyOn(window.TextPoint(asked, 0, 3));
+                window.MoveOver(new Point(his.Left + his.Width / 2, his.Top + his.Height / 2));
+                window.PressCopyKey();
+                if (clipped[clipped.Count - 1] != ask) failures.Add(scale + "%: his message's copy key copied " + clipped[clipped.Count - 1]);
+                window.MoveOver(new Point(-1, -1));
+
+                // Dragging past the bottom of a long conversation scrolls it and keeps selecting.
+                window.ShowChat(longer);
+                window.RefreshChat();
+                window.ConversationTop = 0;
+                int moved = window.DragPastEnd(new Point(window.Z(200), window.Z(60)), 12);
+                if (moved <= 0 || window.SelectedText.Length == 0) failures.Add(scale + "%: dragging past the bottom moved " + moved + " and selected " + window.SelectedText.Length + " letters.");
+                window.ClearSelection();
+
+                // The message box keeps Windows' own Ctrl+C, Ctrl+V, Shift+Insert and right-click menu; it isn't driven here,
+                // since that would use his clipboard.
+                if (!window.Input.ShortcutsEnabled || window.Input.ContextMenuStrip != null || window.Input.ContextMenu != null) failures.Add(scale + "%: the message box lost Windows' own cut, copy and paste.");
+            }
+            finally
+            {
+                WorkspaceWindow.ClipboardWrite = real;
+                window.ShiftHeld = delegate { return (Control.ModifierKeys & Keys.Shift) != 0; };
             }
         }
 
