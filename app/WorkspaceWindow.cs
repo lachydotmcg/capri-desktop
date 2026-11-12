@@ -982,6 +982,14 @@ namespace CapriDesktop
         internal void MoveOver(Point at) { transcript.MoveTo(at); }
         internal Func<bool> ShiftHeld { set { transcript.ShiftDown = value; } }
         internal Cursor TranscriptPointer { get { return transcript.Cursor; } }
+        internal bool DenyOpens(WorkspaceItem item, out bool boxShown) { return transcript.DenyOpens(item, out boxShown); }
+        internal bool ReasonShown(WorkspaceItem item) { return transcript.ReasonShown(item); }
+        internal void ForgetReason(WorkspaceItem item) { transcript.ForgetReason(item); }
+        internal List<KeyValuePair<Point, string>> LinksOf(WorkspaceItem item) { return transcript.LinksOf(item); }
+        internal void PressAtText(Point at) { transcript.PressAt(at); }
+        internal string TipNow { get { return transcript.TipShown; } }
+        internal static void OpenLink(string page) { Transcript.OpenLink(page); }
+        internal static Action<string> OpenPage { get { return Transcript.OpenPage; } set { Transcript.OpenPage = value; } }
         // A fold line's middle (index-th line, in the window's own space) or the MODE key's, with the tooltip each shows.
         internal string TipOn(int fold, out Point at)
         {
@@ -1706,6 +1714,8 @@ namespace CapriDesktop
                 // each stretch of it is drawn.
                 internal readonly List<WordBlock> Parts = new List<WordBlock>();
                 internal readonly List<Seg> Segs = new List<Seg>();
+                // Links in her words: where each is drawn and where it goes.
+                internal readonly List<KeyValuePair<Rectangle, string>> Links = new List<KeyValuePair<Rectangle, string>>();
             }
 
             // One drawn stretch of selectable text: its part, where it starts in that part's characters, and its box. A code
@@ -1739,6 +1749,11 @@ namespace CapriDesktop
                 internal List<string> Rows;
                 internal List<Color> Inks;
                 internal int RowTall;
+                // A styled run's extras: struck through, underlined as a link, on a code plate, and a task box's tick.
+                internal bool Strike, Under, Checked;
+                internal Color Back;
+                // A table's lines: where each row and column starts, inside its box.
+                internal List<int> Across, Down;
             }
 
             private readonly WorkspaceWindow window;
@@ -1792,6 +1807,7 @@ namespace CapriDesktop
 
             internal void ApplyFonts()
             {
+                DropFaces();
                 Earlier.Font = Newer.Font = window.keys;
                 foreach (Block block in Blocks)
                 {
@@ -2337,6 +2353,7 @@ namespace CapriDesktop
                 if (!block.Mark.IsEmpty) block.Mark.Offset(0, by);
                 foreach (Piece piece in block.Pieces) piece.Box.Offset(0, by);
                 foreach (Seg seg in block.Segs) seg.Box.Offset(0, by);
+                for (int i = 0; i < block.Links.Count; i++) { Rectangle at = block.Links[i].Key; at.Offset(0, by); block.Links[i] = new KeyValuePair<Rectangle, string>(at, block.Links[i].Value); }
                 foreach (Control key in block.Keys) if (key.Tag is Rectangle) { Rectangle at = (Rectangle)key.Tag; at.Offset(0, by); key.Tag = at; }
                 if (block.Reason != null && block.Reason.Tag is Rectangle) { Rectangle at = (Rectangle)block.Reason.Tag; at.Offset(0, by); block.Reason.Tag = at; }
             }
@@ -2431,7 +2448,7 @@ namespace CapriDesktop
             // Her mono rows in a well, each source line in its own ink (red for removed lines, green for added ones), wrapped at
             // a path separator or a space so a path never breaks mid-word. With most above 0 a long well stops after that many
             // rows and offers the rest as "N more lines".
-            private int Well(Block block, string text, List<string> lines, List<Color> inks, string tag, int x, int y, int width, int most)
+            private int Well(Block block, string text, List<string> lines, List<Color> inks, string tag, int x, int y, int width, int most, int made = -1)
             {
                 Font font = Look.Drawable(string.Join("\n", lines.ToArray())) ? window.mono : window.monoPlain;
                 int pad = Z(10), top = tag.Length > 0 ? Z(16) : 0;
@@ -2480,7 +2497,7 @@ namespace CapriDesktop
                 piece.Rows = rows;
                 piece.Inks = rowInks;
                 piece.RowTall = rowTall;
-                int part = Part(block, WordKind.Code, string.Join("\n", lines.ToArray()));
+                int part = made >= 0 ? made : Part(block, WordKind.Code, string.Join("\n", lines.ToArray()));
                 for (int i = 0; i < rows.Count; i++)
                     block.Segs.Add(new Seg { Part = part, Start = starts[i], Map = maps[i], Text = rows[i], Font = font, Box = new Rectangle(x + pad, y + pad + top + i * rowTall, Math.Max(Z(2), WorkPaint.Wide(rows[i], font)), rowTall) });
                 int bottom = piece.Box.Bottom;
@@ -2552,7 +2569,343 @@ namespace CapriDesktop
                 return map.TryGetValue(key, out value) ? value as string : null;
             }
 
-            // Claude's words: paragraphs, headings and lists in Bahnschrift, fenced code in wells.
+            // ---- Her replies, drawn from the Markdown reader's blocks as lines of styled runs ----
+
+            private readonly Dictionary<string, Font> faces = new Dictionary<string, Font>();
+
+            // A font in another style or size, made once and kept until the window's size changes. Bold is her heavy face
+            // (Neon.Type's bold), never Windows' made-up bold, which measures wider than it draws.
+            private Font Face(Font font, FontStyle style, float size)
+            {
+                if (style == FontStyle.Regular && size <= 0) return font;
+                float px = size > 0 ? size : font.Size;
+                bool bold = (style & FontStyle.Bold) != 0, italic = (style & FontStyle.Italic) != 0;
+                string key = font.Name + "|" + px + "|" + (bold ? "b" : "") + (italic ? "i" : "") + "|" + (int)font.Unit;
+                Font made;
+                if (faces.TryGetValue(key, out made)) return made;
+                Font basis = font;
+                if (bold)
+                {
+                    string heavy = "heavy|" + px + "|" + (int)font.Unit;
+                    if (!faces.TryGetValue(heavy, out basis)) { basis = Neon.Type(px, true, font.Unit); faces.Add(heavy, basis); }
+                    if (!italic && key != heavy) { faces.Add(key, basis); return basis; }
+                    if (!italic) return basis;
+                }
+                made = new Font(basis.FontFamily, px, italic ? basis.Style | FontStyle.Italic : basis.Style, font.Unit);
+                faces.Add(key, made);
+                return made;
+            }
+
+            internal void DropFaces()
+            {
+                HashSet<Font> once = new HashSet<Font>(faces.Values);
+                foreach (Font font in once) font.Dispose();
+                faces.Clear();
+            }
+
+            private static Color CodeInk { get { return Neon.Tone(255, 196, 206); } }
+            private static Color QuoteInk { get { return Neon.Tone(196, 188, 206); } }
+            private int Step { get { return Z(20); } }
+            private int Pitch(Font font) { return font.Height + Z(5); }
+
+            // Her whole reply: each block at its depth, a list item's marker in a column one step wide with its words a step
+            // in, quotes behind a bar per level (one bar for quotes in a row), rules, code in wells and tables that wrap.
+            private int Reply(Block block, string text, int x, int y, int width)
+            {
+                List<WordBlock> words = WorkWords.Read(text);
+                WordBlock before = null;
+                int beforeBottom = y;
+                foreach (WordBlock word in words)
+                {
+                    if (before != null) y += Space(before, word);
+                    int indent = Math.Min(word.Depth * Step, Math.Max(0, width - Z(120)));
+                    int left = x + indent, room = width - indent;
+                    block.Parts.Add(word);
+                    int part = block.Parts.Count - 1, top = y;
+                    switch (word.Kind)
+                    {
+                        case WordKind.Heading:
+                            {
+                                Font face = word.Level <= 1 ? window.heading : word.Level == 2 ? Face(window.strong, FontStyle.Regular, 16f * window.zoom) : window.strong;
+                                y = Runs(block, part, 0, word.Runs, face, Neon.White, left, y, room, Pitch(face), WordAlign.Left);
+                                break;
+                            }
+                        case WordKind.Bullet:
+                        case WordKind.Number:
+                        case WordKind.Task:
+                            {
+                                int pitch = Pitch(window.Font);
+                                if (word.Kind == WordKind.Task)
+                                {
+                                    int side = Z(12);
+                                    Piece box = Add(block, "", window.Font, Neon.Faint, new Rectangle(left + Step - side - Z(6), y + (pitch - side) / 2, side, side));
+                                    box.Tag = "task";
+                                    box.Checked = word.Checked;
+                                }
+                                else
+                                {
+                                    Piece mark = Add(block, word.Marker ?? WorkWords.Dot, window.Font, Neon.Faint, new Rectangle(left - Z(10), y, Step + Z(10) - Z(6), pitch));
+                                    mark.Line = true;
+                                    mark.Right = true;
+                                }
+                                y = Runs(block, part, 0, word.Runs, window.Font, word.Kind == WordKind.Task && word.Checked ? Neon.Faint : Neon.White, left + Step, y, room - Step, pitch, WordAlign.Left);
+                                break;
+                            }
+                        case WordKind.Quote:
+                            {
+                                int level = Math.Max(1, word.Level), inset = level * Z(12);
+                                y = Runs(block, part, 0, word.Runs, window.Font, QuoteInk, left + inset, y, room - inset, Pitch(window.Font), WordAlign.Left);
+                                bool joined = before != null && before.Kind == WordKind.Quote;
+                                for (int k = 0; k < level; k++)
+                                {
+                                    int from = joined && k < Math.Max(1, before.Level) ? beforeBottom : top;
+                                    Add(block, "", window.Font, Neon.Faint, new Rectangle(left + k * Z(12), from + Z(2), Math.Max(2, Z(2)), y - from - Z(2))).Tag = "bar";
+                                }
+                                break;
+                            }
+                        case WordKind.Rule:
+                            Add(block, "", window.Font, Neon.Rule, new Rectangle(left, y + Z(8), room, 1)).Tag = "rule";
+                            y += Z(16);
+                            break;
+                        case WordKind.Code:
+                            {
+                                string code = WorkWords.Shown(word);
+                                List<string> lines = new List<string>(code.Split('\n'));
+                                y = Well(block, code, lines, Inks(lines.Count, Neon.White), word.Lang ?? "", left, y, room, 0, part);
+                                break;
+                            }
+                        case WordKind.Table:
+                            y = Table(block, part, word, left, y, room);
+                            break;
+                        default:
+                            y = Runs(block, part, 0, word.Runs, window.Font, Neon.White, left, y, room, Pitch(window.Font), WordAlign.Left);
+                            break;
+                    }
+                    before = word;
+                    beforeBottom = y;
+                }
+                if (words.Count == 0) y = Words(block, " ", window.Font, Neon.White, x, y, width);
+                return y;
+            }
+
+            private static bool Listed(WordBlock word) { return word.Kind == WordKind.Bullet || word.Kind == WordKind.Number || word.Kind == WordKind.Task; }
+
+            // Room between two of her blocks: tight between items of a list and lines of a quote, more around headings, code,
+            // tables and rules.
+            private int Space(WordBlock before, WordBlock next)
+            {
+                if (next.Kind == WordKind.Heading) return Z(16);
+                if (before.Kind == WordKind.Heading) return Z(6);
+                if (next.Kind == WordKind.Code || next.Kind == WordKind.Table || next.Kind == WordKind.Rule || before.Kind == WordKind.Code || before.Kind == WordKind.Table || before.Kind == WordKind.Rule) return Z(12);
+                if (before.Kind == WordKind.Quote && next.Kind == WordKind.Quote) return Z(6);
+                if ((Listed(before) || before.Depth > 0) && (Listed(next) || next.Depth > 0)) return Z(5);
+                return Z(10);
+            }
+
+            // One word or run of spaces from a styled run, waiting for its line.
+            private sealed class Bit
+            {
+                internal string Text;
+                internal int At, Wide;
+                internal Font Font, Fit;
+                internal Color Ink;
+                internal WordRun Run;
+                internal bool Space, Break;
+            }
+
+            // Styled runs as lines of runs: each run in its own font, a line breaking at a space (inside a word only when the
+            // word is wider than a whole line) or at a line break in the text. Each stretch of one run on one line is drawn
+            // as a piece and selectable as a Seg counted from start along the part's shown characters. Returns the bottom.
+            private int Runs(Block block, int part, int start, List<WordRun> runs, Font font, Color ink, int x, int y, int width, int pitch, WordAlign align)
+            {
+                width = Math.Max(Z(24), width);
+                List<Bit> bits = new List<Bit>();
+                int at = start;
+                foreach (WordRun run in runs)
+                {
+                    string text = run.Text ?? "";
+                    Font face = run.Code ? window.mono : Face(font, (run.Bold ? FontStyle.Bold : FontStyle.Regular) | (run.Italic ? FontStyle.Italic : FontStyle.Regular), 0);
+                    // Slanted words are spaced by the upright face: Windows' made-up slant measures wider than it draws.
+                    Font fit = run.Italic && !run.Code ? Face(font, run.Bold ? FontStyle.Bold : FontStyle.Regular, 0) : face;
+                    Color tone = run.Link != null ? Neon.Cyan : run.Code ? CodeInk : ink;
+                    int i = 0;
+                    while (i < text.Length)
+                    {
+                        if (text[i] == '\n') { bits.Add(new Bit { Break = true, At = at + i, Text = "", Font = face, Fit = fit, Run = run }); i++; continue; }
+                        bool space = text[i] == ' ';
+                        int j = i + 1;
+                        while (j < text.Length && text[j] != '\n' && (text[j] == ' ') == space) j++;
+                        string piece = text.Substring(i, j - i);
+                        bits.Add(new Bit { Text = piece, At = at + i, Font = face, Fit = fit, Ink = tone, Run = run, Space = space, Wide = WorkPaint.Wide(piece, fit) });
+                        i = j;
+                    }
+                    at += text.Length;
+                }
+                List<List<Bit>> lines = new List<List<Bit>>();
+                List<Bit> line = new List<Bit>();
+                int used = 0;
+                bool wrapped = false;
+                foreach (Bit bit in bits)
+                {
+                    if (bit.Break) { lines.Add(line); line = new List<Bit>(); used = 0; wrapped = false; continue; }
+                    if (bit.Space) { if (line.Count == 0 && wrapped) continue; line.Add(bit); used += bit.Wide; continue; }
+                    if (used + bit.Wide > width && line.Count > 0) { lines.Add(line); line = new List<Bit>(); used = 0; wrapped = true; }
+                    Bit rest = bit;
+                    while (used + rest.Wide > width && rest.Text.Length > 1)
+                    {
+                        int low = 1, high = rest.Text.Length - 1;
+                        while (low < high) { int mid = (low + high + 1) / 2; if (used + WorkPaint.Wide(rest.Text.Substring(0, mid), rest.Fit) <= width) low = mid; else high = mid - 1; }
+                        string head = rest.Text.Substring(0, low), tail = rest.Text.Substring(low);
+                        line.Add(new Bit { Text = head, At = rest.At, Font = rest.Font, Fit = rest.Fit, Ink = rest.Ink, Run = rest.Run, Wide = WorkPaint.Wide(head, rest.Fit) });
+                        lines.Add(line);
+                        line = new List<Bit>();
+                        used = 0;
+                        wrapped = true;
+                        rest = new Bit { Text = tail, At = rest.At + low, Font = rest.Font, Fit = rest.Fit, Ink = rest.Ink, Run = rest.Run, Wide = WorkPaint.Wide(tail, rest.Fit) };
+                    }
+                    line.Add(rest);
+                    used += rest.Wide;
+                }
+                lines.Add(line);
+                for (int li = 0; li < lines.Count; li++)
+                {
+                    // Stretches of one run, measured whole so they draw the width they're placed at.
+                    List<Bit> stretches = new List<Bit>();
+                    foreach (Bit bit in lines[li])
+                    {
+                        Bit last = stretches.Count > 0 ? stretches[stretches.Count - 1] : null;
+                        if (last != null && last.Run == bit.Run && last.At + last.Text.Length == bit.At) { last.Text += bit.Text; last.Space = last.Space && bit.Space; }
+                        else stretches.Add(new Bit { Text = bit.Text, At = bit.At, Font = bit.Font, Fit = bit.Fit, Ink = bit.Ink, Run = bit.Run, Space = bit.Space });
+                    }
+                    int wide = 0, shown = 0;
+                    foreach (Bit stretch in stretches) { stretch.Wide = WorkPaint.Wide(stretch.Text, stretch.Fit); wide += stretch.Wide; if (!stretch.Space) shown = wide - (stretch.Wide - WorkPaint.Wide(stretch.Text.TrimEnd(' '), stretch.Fit)); }
+                    int cx = x + (align == WordAlign.Right ? Math.Max(0, width - shown) : align == WordAlign.Center ? Math.Max(0, (width - shown) / 2) : 0);
+                    int top = y + li * pitch;
+                    foreach (Bit stretch in stretches)
+                    {
+                        Rectangle box = new Rectangle(cx, top, Math.Max(1, stretch.Wide), pitch);
+                        Piece piece = Add(block, stretch.Text, stretch.Font, stretch.Ink, box);
+                        piece.Tag = "run";
+                        piece.Strike = stretch.Run.Strike;
+                        piece.Under = stretch.Run.Link != null;
+                        piece.Back = stretch.Run.Code ? Neon.Well : Color.Empty;
+                        block.Segs.Add(new Seg { Part = part, Start = stretch.At, Text = stretch.Text, Font = stretch.Fit, Box = box });
+                        if (stretch.Run.Link != null && !stretch.Space) block.Links.Add(new KeyValuePair<Rectangle, string>(box, stretch.Run.Link));
+                        cx += stretch.Wide;
+                    }
+                }
+                return y + lines.Count * pitch;
+            }
+
+            // A table that always fits: columns as wide as their words when there's room, otherwise shared out by how much
+            // each wants, never narrower than its longest word allows, and cells wrap inside them. Header row in bold.
+            private int Table(Block block, int part, WordBlock word, int x, int y, int width)
+            {
+                List<List<List<WordRun>>> rows = word.Rows ?? new List<List<List<WordRun>>>();
+                int columns = word.Align != null ? word.Align.Count : 0;
+                if (rows.Count == 0 || columns == 0) return y;
+                int pad = Z(8), line = 1;
+                int[] natural = new int[columns], least = new int[columns];
+                for (int r = 0; r < rows.Count; r++)
+                    for (int c = 0; c < columns && c < rows[r].Count; c++)
+                    {
+                        Font font = r == 0 ? window.strong : window.Font;
+                        foreach (WordRun run in rows[r][c])
+                        {
+                            Font face = run.Code ? window.mono : Face(font, (run.Bold ? FontStyle.Bold : FontStyle.Regular) | (run.Italic ? FontStyle.Italic : FontStyle.Regular), 0);
+                            natural[c] += WorkPaint.Wide(run.Text ?? "", face);
+                            foreach (string bit in (run.Text ?? "").Split(' ')) least[c] = Math.Max(least[c], Math.Min(Z(90), WorkPaint.Wide(bit, face)));
+                        }
+                    }
+                int room = width - columns * pad * 2 - (columns + 1) * line;
+                int[] wide = new int[columns];
+                int sumNatural = 0, sumLeast = 0;
+                for (int c = 0; c < columns; c++) { natural[c] = Math.Max(natural[c], Z(16)); least[c] = Math.Max(Math.Min(least[c], natural[c]), Z(16)); sumNatural += natural[c]; sumLeast += least[c]; }
+                if (sumNatural <= room) for (int c = 0; c < columns; c++) wide[c] = natural[c];
+                else if (sumLeast >= room) for (int c = 0; c < columns; c++) wide[c] = Math.Max(Z(12), room * least[c] / Math.Max(1, sumLeast));
+                else
+                {
+                    int extra = room - sumLeast, want = sumNatural - sumLeast;
+                    for (int c = 0; c < columns; c++) wide[c] = least[c] + (int)((long)extra * (natural[c] - least[c]) / Math.Max(1, want));
+                }
+                Piece grid = Add(block, "", window.Font, Neon.White, Rectangle.Empty);
+                grid.Tag = "table";
+                grid.Across = new List<int>();
+                grid.Down = new List<int>();
+                int total = line;
+                for (int c = 0; c < columns; c++) { grid.Down.Add(total); total += wide[c] + pad * 2 + line; }
+                int at = 0, rowTop = y + line;
+                for (int r = 0; r < rows.Count; r++)
+                {
+                    grid.Across.Add(rowTop - y);
+                    int bottom = rowTop + pad;
+                    for (int c = 0; c < columns; c++)
+                    {
+                        List<WordRun> cell = c < rows[r].Count ? rows[r][c] : new List<WordRun>();
+                        Font font = r == 0 ? window.strong : window.Font;
+                        WordAlign align = word.Align[c] == WordAlign.None ? WordAlign.Left : word.Align[c];
+                        int cellBottom = Runs(block, part, at, cell, font, Neon.White, x + grid.Down[c] + pad, rowTop + pad, wide[c], Pitch(font), align);
+                        bottom = Math.Max(bottom, cellBottom);
+                        foreach (WordRun run in cell) at += (run.Text ?? "").Length;
+                        at++;
+                    }
+                    rowTop = bottom + pad + line;
+                }
+                grid.Box = new Rectangle(x, y, total, rowTop - y);
+                return grid.Box.Bottom;
+            }
+
+            private void PaintTable(Graphics graphics, Piece grid)
+            {
+                float s = window.zoom;
+                Rectangle box = grid.Box;
+                WorkPaint.Plate(graphics, box, 5 * s, Neon.Field, Neon.WellEdge, Math.Max(1f, s));
+                if (grid.Across.Count > 1) using (Brush head = new SolidBrush(Neon.Band)) graphics.FillRectangle(head, box.Left + 1, box.Top + grid.Across[0], box.Width - 2, grid.Across[1] - grid.Across[0] - 1);
+                using (Pen pen = new Pen(Neon.Rule, 1f))
+                {
+                    for (int r = 1; r < grid.Across.Count; r++) graphics.DrawLine(pen, box.Left + 1, box.Top + grid.Across[r] - 1, box.Right - 2, box.Top + grid.Across[r] - 1);
+                    for (int c = 1; c < grid.Down.Count; c++) graphics.DrawLine(pen, box.Left + grid.Down[c] - 1, box.Top + 1, box.Left + grid.Down[c] - 1, box.Bottom - 2);
+                }
+            }
+
+            private void PaintTask(Graphics graphics, Piece box)
+            {
+                float s = window.zoom;
+                WorkPaint.Plate(graphics, box.Box, 2.5f * s, box.Checked ? Neon.Tone(10, 46, 30) : Color.Empty, box.Checked ? Green : Neon.Faint, Math.Max(1f, 1.2f * s));
+                if (!box.Checked) return;
+                SmoothingMode was = graphics.SmoothingMode;
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (Pen pen = new Pen(Green, Math.Max(1f, 1.5f * s)))
+                {
+                    pen.StartCap = pen.EndCap = LineCap.Round;
+                    RectangleF r = box.Box;
+                    graphics.DrawLines(pen, new[] { new PointF(r.Left + r.Width * 0.24f, r.Top + r.Height * 0.52f), new PointF(r.Left + r.Width * 0.44f, r.Top + r.Height * 0.72f), new PointF(r.Left + r.Width * 0.78f, r.Top + r.Height * 0.3f) });
+                }
+                graphics.SmoothingMode = was;
+            }
+
+            private string LinkAt(Point inside)
+            {
+                foreach (Block block in Blocks)
+                {
+                    if (block.Hidden || block.Links.Count == 0 || !block.Box.Contains(inside)) continue;
+                    foreach (KeyValuePair<Rectangle, string> link in block.Links) if (link.Key.Contains(inside)) return link.Value;
+                }
+                return null;
+            }
+
+            // Only web pages open, in his own browser, the way her other links do.
+            internal static Action<string> OpenPage = delegate(string page) { Companion.Browse(page); };
+
+            private static void Open(string page)
+            {
+                Uri uri;
+                if (!Uri.TryCreate(page, UriKind.Absolute, out uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)) return;
+                OpenPage(uri.AbsoluteUri);
+            }
+
+            // Claude's words: paragraphs, headings and lists in Bahnschrift, fenced code in wells. Kept for anything still
+            // drawn the old way; her replies go through Reply.
             private int Markdown(Block block, string text, int x, int y, int width)
             {
                 List<string> lines = new List<string>(text.Replace("\r", "").Split('\n'));
@@ -2728,6 +3081,7 @@ namespace CapriDesktop
                 block.Pieces.Clear();
                 block.Parts.Clear();
                 block.Segs.Clear();
+                block.Links.Clear();
                 block.Toggle = block.More = Rectangle.Empty;
                 block.Mark = RectangleF.Empty;
                 WorkspaceItem item = block.Item;
@@ -2757,7 +3111,7 @@ namespace CapriDesktop
                 }
                 if (kind == "text")
                 {
-                    int bottom = Markdown(block, item.Text, left + pad, y, width - pad);
+                    int bottom = Reply(block, item.Text, left + pad, y, width - pad);
                     block.Box = new Rectangle(left, y, width, bottom - y);
                     return;
                 }
@@ -2936,7 +3290,12 @@ namespace CapriDesktop
                     if (!block.Mark.IsEmpty) WorkPaint.ToolMark(graphics, item.Name, block.Mark, Neon.White, s);
                 }
                 // Grounds first (a well's plate), then the selection over them, then the words over that.
-                foreach (Piece piece in block.Pieces) if (piece.Code) WorkPaint.Plate(graphics, piece.Box, 6 * s, Neon.Well, Neon.WellEdge, line);
+                foreach (Piece piece in block.Pieces)
+                {
+                    if (piece.Code) WorkPaint.Plate(graphics, piece.Box, 6 * s, Neon.Well, Neon.WellEdge, line);
+                    else if (piece.Tag == "run" && piece.Back.A > 0) WorkPaint.Plate(graphics, new Rectangle(piece.Box.Left - Z(3), piece.Box.Top + Z(2), piece.Box.Width + Z(6), piece.Box.Height - Z(4)), 3 * s, piece.Back, Color.Empty, 0);
+                    else if (piece.Tag == "table") PaintTable(graphics, piece);
+                }
                 PaintSelection(graphics, block);
                 foreach (Piece piece in block.Pieces)
                 {
@@ -2954,6 +3313,21 @@ namespace CapriDesktop
                             TextRenderer.DrawText(graphics, piece.Rows[i], piece.Font, new Rectangle(piece.Box.Left, piece.Box.Top + i * piece.RowTall, piece.Box.Width, piece.RowTall), piece.Ink, WorkPaint.Line | TextFormatFlags.NoClipping);
                         continue;
                     }
+                    if (piece.Tag == "run")
+                    {
+                        TextRenderer.DrawText(graphics, piece.Text, piece.Font, piece.Box, piece.Ink, WorkPaint.Line | TextFormatFlags.NoClipping);
+                        using (Pen pen = new Pen(piece.Ink, Math.Max(1f, s)))
+                        {
+                            int wide = WorkPaint.Wide(piece.Text.TrimEnd(' '), piece.Font);
+                            if (piece.Strike) graphics.DrawLine(pen, piece.Box.Left, piece.Box.Top + piece.Box.Height / 2 + Z(1), piece.Box.Left + wide, piece.Box.Top + piece.Box.Height / 2 + Z(1));
+                            if (piece.Under && wide > 0) graphics.DrawLine(pen, piece.Box.Left, piece.Box.Top + piece.Box.Height / 2 + piece.Font.Height / 2, piece.Box.Left + wide, piece.Box.Top + piece.Box.Height / 2 + piece.Font.Height / 2);
+                        }
+                        continue;
+                    }
+                    if (piece.Tag == "table") continue;
+                    if (piece.Tag == "bar") { using (Brush bar = new SolidBrush(Neon.Faint)) graphics.FillRectangle(bar, piece.Box); continue; }
+                    if (piece.Tag == "rule") { using (Pen pen = new Pen(Neon.Rule, Math.Max(1f, s))) graphics.DrawLine(pen, piece.Box.Left, piece.Box.Top, piece.Box.Right, piece.Box.Top); continue; }
+                    if (piece.Tag == "task") { PaintTask(graphics, piece); continue; }
                     if (piece.Tag == "file") WorkPaint.FileMark(graphics, new RectangleF(piece.Box.Left, piece.Box.Top + Z(2), Z(12), piece.Box.Height - Z(4)), Neon.Cyan, s);
                     Rectangle box = piece.Tag == "file" ? new Rectangle(piece.Box.Left + Z(18), piece.Box.Top, piece.Box.Width - Z(18), piece.Box.Height) : piece.Box;
                     TextFormatFlags flags = piece.Line ? WorkPaint.Line | (piece.Tag == "path" ? TextFormatFlags.PathEllipsis : TextFormatFlags.EndEllipsis) | (piece.Right ? TextFormatFlags.Right : TextFormatFlags.Left) : WorkPaint.Wrap;
@@ -3142,7 +3516,7 @@ namespace CapriDesktop
 
             protected override void Dispose(bool disposing)
             {
-                if (disposing) { shineClock.Stop(); shineClock.Dispose(); edgeClock.Dispose(); tickClock.Dispose(); tips.Dispose(); }
+                if (disposing) { shineClock.Stop(); shineClock.Dispose(); edgeClock.Dispose(); tickClock.Dispose(); tips.Dispose(); DropFaces(); }
                 base.Dispose(disposing);
             }
 
@@ -3195,7 +3569,9 @@ namespace CapriDesktop
                 bool more = over != null && !over.More.IsEmpty && over.More.Contains(new Point(e.X, e.Y + Offset));
                 CopyHover(e.Location);
                 bool key = !copyKey.IsEmpty && copyKey.Contains(new Point(e.X, e.Y + Offset));
-                Cursor = head || link || more || key ? Cursors.Hand : OnText(new Point(e.X, e.Y + Offset)) ? Cursors.IBeam : Cursors.Default;
+                string page = LinkAt(new Point(e.X, e.Y + Offset));
+                Cursor = head || link || more || key || page != null ? Cursors.Hand : OnText(new Point(e.X, e.Y + Offset)) ? Cursors.IBeam : Cursors.Default;
+                if (page != null) { if (page != tipShown) { tipShown = page; tips.SetToolTip(this, page); } return; }
                 Block hot = head || link && Row(over) ? over : null;
                 if (hot != hovered || head != hoveredHead)
                 {
@@ -3248,6 +3624,8 @@ namespace CapriDesktop
                     return;
                 }
                 if (e.Button == MouseButtons.Left && !copyKey.IsEmpty && copyKey.Contains(new Point(e.X, e.Y + Offset))) { CopyKey(); return; }
+                string page = e.Button == MouseButtons.Left ? LinkAt(new Point(e.X, e.Y + Offset)) : null;
+                if (page != null) { Open(page); return; }
                 picked = block;
                 if (e.Button == MouseButtons.Left) Press(e.Location);
                 if (block != null && e.Button == MouseButtons.Right) CopyMenu(block, code, e.Location);
@@ -3662,6 +4040,19 @@ namespace CapriDesktop
             }
 
             internal void Key(Keys keys) { OnKeyDown(new KeyEventArgs(keys)); }
+
+            // Each link in a message: its middle in this control's space and where it goes.
+            internal List<KeyValuePair<Point, string>> LinksOf(WorkspaceItem item)
+            {
+                List<KeyValuePair<Point, string>> links = new List<KeyValuePair<Point, string>>();
+                Block block;
+                if (!known.TryGetValue(item, out block)) return links;
+                foreach (KeyValuePair<Rectangle, string> link in block.Links)
+                    links.Add(new KeyValuePair<Point, string>(new Point(link.Key.Left + link.Key.Width / 2, link.Key.Top + link.Key.Height / 2 - Offset), link.Value));
+                return links;
+            }
+
+            internal static void OpenLink(string page) { Open(page); }
 
             // Where a part's character is drawn, in this control's space, for the smoke's drags.
             internal Point PointOf(WorkspaceItem item, int part, int at)
