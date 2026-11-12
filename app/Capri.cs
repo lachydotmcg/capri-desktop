@@ -4303,6 +4303,7 @@ namespace CapriDesktop
             }
             WakeRest(true);
             if (hidden) ShowHidden(false);
+            if (EmoteName(name)) return PlayEmote(name);
             if (name == "dance")
             {
                 StopRide();
@@ -14664,7 +14665,7 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (callReply == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || quick == "desktop_icons" && quickArgs.Action == "rampage" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Hands.Shown(Security.Said(DoTool(quick, quickArgs))); }; }
+            if (callReply == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || quick == "desktop_icons" && quickArgs.Action == "rampage" || quick == "animate" && EmoteName(quickArgs.Name) || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Hands.Shown(Security.Said(DoTool(quick, quickArgs))); }; }
             if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, question); }, callLines); };
             if (think == null && brain.Model == null && News.Matching(text) != null) think = delegate { return News.Facts; };
             if (think == null)
@@ -14672,6 +14673,7 @@ namespace CapriDesktop
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
                 think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext, delegate { return CallReply(ticket, question); }, callLines); };
             }
+            if (switches == 0 && prompt == "> you: ") EmoteOnMention(text);
             reply = null;
             replyDone = -1;
             Say(null);
@@ -40320,6 +40322,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallApps", delegate { SmokeCallApps(checks); });
             Section(checks, "SmokeCapriCodes", delegate { SmokeCapriCodes(checks); });
             Section(checks, "SmokeRibbons", delegate { SmokeRibbons(checks, output); });
+            Section(checks, "SmokeEmotes", delegate { SmokeEmotes(checks, output); });
             Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });

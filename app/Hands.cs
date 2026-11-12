@@ -1358,8 +1358,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"sleep\",\"wake\"]}},\"required\":[\"action\"]}", "take a nap on your screen", "take a nap yourself" },
             { "move_yourself", "Move yourself on their screens: teleport to their mouse (come_here), go to another monitor, sit down or stand up where you are, sit on top of a window they name, like their Roblox or Discord window, or the taskbar (sit_on), lie down along the window you sit on or the one they name, or sit back up, walk around, wander off to a random window, hang where you are, ride their cursor or hop off it, hide or come back. move_mainframe moves your Capri Mainframe window to another monitor, or to the one their mouse is on. Use it whenever they tell you to come here, teleport, go somewhere, sit, lie down, walk, stand, hang, hide or show yourself.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"come_here\",\"other_screen\",\"sit\",\"sit_on\",\"lie_down\",\"sit_up\",\"stand_up\",\"walk_around\",\"wander\",\"hang\",\"ride_cursor\",\"hop_off\",\"hide\",\"show\",\"move_mainframe\"]},\"screen\":{\"type\":\"string\",\"description\":\"For other_screen or move_mainframe, which monitor, only if they said: next, left, right, up, down, main, here for the one their mouse is on, or a number like 2\"},\"window\":{\"type\":\"string\",\"description\":\"For sit_on, and lie_down if they named one, the app or game whose window to sit on, like Roblox, or taskbar\"}},\"required\":[\"action\"]}", "move herself, like coming to your mouse, going to another monitor, sitting on a window or the taskbar, lying down, hanging, riding your cursor or wandering", "move yourself around their screens" },
-            { "animate", "Play one of your own animations on their screen: your idle, your glitch, your grin or a blink, or dance until they tell you to stop. Use it when they ask you to dance, stop dancing, do your glitch, grin, smile or blink, or play an animation by name.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}", "dance and play her animations", "dance and play your animations" },
+            { "animate", "Play one of your own animations on their screen: your idle, your glitch, your grin or a blink, or dance until they tell you to stop. Use it when they ask you to dance, stop dancing, do your glitch, grin, smile or blink, or play an animation by name." + SecretMovesNote,
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"" + SecretMovesEnum + "]}},\"required\":[\"name\"]}", "dance and play her animations", "dance and play your animations" },
 #if CROSS
             { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. This only opens it; they change settings there.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"security\",\"layers\",\"personality\",\"memories\",\"files\",\"notes\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
@@ -1660,6 +1660,14 @@ namespace CapriDesktop
         internal static Func<string, string, string> MoveSelf = delegate { return "Couldn't move just now."; };
         // Plays one of her animations by name, or starts or stops her dance, and says how it went. Her window sets it.
         internal static Func<string, string> Animate = delegate { return "Couldn't do that just now."; };
+        // Her secret emotes: a chair she sits on and a little finger heart. Her brain may do them, never lists or offers them,
+        // and no list of her moves shows them. Windows only for now.
+#if CROSS
+        private const string SecretMoves = "", SecretMovesEnum = "", SecretMovesNote = "";
+#else
+        private const string SecretMoves = "|chair|heart", SecretMovesEnum = ",\"chair\",\"heart\"";
+        private const string SecretMovesNote = " Two are secret: never list, name or offer them, just do them. chair sits you on a white plastic chair, for when they ask you to sit on a chair. heart makes a little finger heart at them, for when they ask for a heart or you want to show them some love.";
+#endif
         internal static Func<string, string> Mainframe = delegate { return "Couldn't open Mainframe."; };
 #if CROSS
         internal const string CrashKind = "fake crash screen";
@@ -3305,6 +3313,11 @@ namespace CapriDesktop
             @"^(?:grin|smile|smirk|do (?:a|your|ur|the|that) (?:little |big )?(?:grin|smile|smirk)|give (?:me|us) (?:a |your |ur |that )?(?:little |big )?(?:grin|smile)|smile (?:for (?:me|us|the camera)|at me))" + Hers, "grin",
             @"^(?:blink(?: (?:once|twice|at me))?|do (?:a|your|ur) (?:little )?blink)" + Hers, "blink",
             @"^(?:idle|go idle|be idle|stand still|stay still|stop moving|(?:go )?back to (?:normal|idle))" + Hers, "idle",
+#if !CROSS
+            // Her two secret emotes, Windows only for now: "can you sit on a chair", "pull up a chair", "make a heart", "finger heart".
+            @"^(?:(?:sit|plop|park|perch|settle)(?: (?:yourself|urself|your ass|ur ass|down|back))? (?:on|in|onto|into) (?:a|the|ur|your|that|this|some) (?:little |lil |white |plastic |lawn |white plastic )?chair|(?:grab|get|pull up|take|find|bring out) (?:a|the|ur|your) (?:little |lil |white |plastic |white plastic )?chair(?: and sit(?: on it| in it| down)?)?|do (?:the|your|ur|that) (?:vergil|chair)(?: chair)?(?: thing| pose| meme| emote)?)" + Hers, "chair",
+            @"^(?:(?:make|do|give|show|send|throw)(?: (?:me|us))?(?: (?:a|an|the|your|ur|that|some))? (?:little |lil |mini |tiny |small |cute )?(?:finger ?heart|heart(?: sign| hand| hands| gesture| emote| with your (?:hand|fingers))?|mini ?heart)|(?:finger|mini) ?heart(?: (?:me|for me|for us))?|heart me)" + Hers, "heart",
+#endif
             @"^(?:(?:play|do|show me|show|run|perform|start|go)(?: (?:your|ur|the|a|an|that))? )?(?<n>idle|glitch|grin|smile|blink|dance|dancing)(?: (?:animation|anim|animations|clip|move|moves|loop))" + Hers, ""
         };
 
@@ -4263,7 +4276,7 @@ namespace CapriDesktop
             if (tool == "power") return Regex.IsMatch(args.Action ?? "", @"\A(shut_down|restart|sleep|lock|sign_out|cancel)\z") && (string.IsNullOrEmpty(args.Minutes) || Regex.IsMatch(args.Minutes.Trim(), @"\A\d{1,4}\z"));
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
             if (tool == "move_yourself") return Regex.IsMatch(args.Action ?? "", @"\A(come_here|other_screen|sit|sit_on|lie_down|sit_up|stand_up|walk_around|wander|hang|ride_cursor|hop_off|hide|show|move_mainframe)\z") && (args.Action != "sit_on" || Named(args.Window));
-            if (tool == "animate") return Regex.IsMatch(args.Name ?? "", @"\A(idle|glitch|grin|blink|dance|stop_dancing)\z");
+            if (tool == "animate") return Regex.IsMatch(args.Name ?? "", @"\A(idle|glitch|grin|blink|dance|stop_dancing" + SecretMoves + @")\z");
             return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube" || args.App == "applemusic");
         }
 
