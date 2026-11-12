@@ -392,8 +392,9 @@ namespace CapriDesktop
             Directory.CreateDirectory(notes);
             if (!File.Exists(markup)) File.WriteAllText(markup, "x");
             string standin = WorkspaceRawStandin(box, Guid.NewGuid().ToString(), false);
+            WorkspaceTimed(box);
             string longOne = "Make the download band on the home page match the new city look, with both buttons";
-            string[] expected = { "Make the download band on the home page", "Fix the header spacing", "attempt-1-lachys-markup.png" };
+            string[] expected = { "Make the download band on the home page\u2026", "Fix the header spacing", "attempt-1-lachys-markup.png" };
             if (Workspace.TitleFrom(longOne, null) != expected[0] || Workspace.TitleFrom("Fix the header spacing.", null) != expected[1] || Workspace.TitleFrom("  ", new List<string> { markup }) != expected[2] || Workspace.TitleFrom("Why?!", null) != "Why")
                 throw new Exception("Titles from first messages came out wrong: " + Workspace.TitleFrom(longOne, null));
             foreach (float z in new[] { 1f, 1.25f, 1.5f })
@@ -452,7 +453,7 @@ namespace CapriDesktop
                 window.Show(this);
                 window.ClientSize = new Size(WorkspaceWindow.Wide, WorkspaceWindow.Tall);
                 string[] said = { "Speed up the chat list when there are hundreds of chats", "Why does the tray icon blink twice?", "Tidy the settings page" };
-                string[] wanted = { "Speed up the chat list when there are", "Why does the tray icon blink twice", "My settings notes" };
+                string[] wanted = { "Speed up the chat list when there are\u2026", "Why does the tray icon blink twice", "My settings notes" };
                 for (int i = 0; i < said.Length; i++)
                 {
                     WorkspaceChat chat = work.NewChat(picked, false);
@@ -472,7 +473,9 @@ namespace CapriDesktop
                 shoot(window, "25-picked-titles-100", null);
                 window.Close();
             }
-            checks.Add("PASS Workspace chats take their title from their first message while it's still the one they were given (her folder's New chat, or a picked folder's name): the first words cut at a word near 40 letters with no trailing punctuation, or the first file's name; two chats in one picked folder end up told apart, and a typed title is never replaced");
+            string narrow = WorkPaint.Fit("Read these and tell me what's still missing", SystemFonts.MessageBoxFont, WorkPaint.Wide("Read these and tell me…", SystemFonts.MessageBoxFont) + 2);
+            if (narrow != "Read these and tell me\u2026") throw new Exception("A title cut for width didn't end at a word with the dots tight against it: " + narrow);
+            checks.Add("PASS Workspace chats take their title from their first message while it's still the one they were given (her folder's New chat, or a picked folder's name): the first words cut at a word near 40 letters ending in a tight \u2026, or the first file's name; titles cut for width end at a word the same way; two chats in one picked folder end up told apart, and a typed title is never replaced");
         }
 
         // Her own folder and files as attachments, through the real send path with a stand-in claude.cmd: "+ New chat" opens a
@@ -492,6 +495,7 @@ namespace CapriDesktop
             foreach (string made in new[] { plan, shot, spare }) if (!File.Exists(made)) File.WriteAllText(made, "x");
             Func<string, string> shown = alias;
             string standin = WorkspaceRawStandin(box, Guid.NewGuid().ToString(), false), stdin = Path.Combine(box, "stdin.txt");
+            WorkspaceTimed(box);
             Func<WorkspaceChat, WorkspaceItem> lastAsk = delegate(WorkspaceChat chat) { return WorkspaceItems(chat).FindLast(delegate(WorkspaceItem item) { return item.Kind == "user"; }); };
             Action<WorkspaceWindow, WorkspaceChat> send = delegate(WorkspaceWindow window, WorkspaceChat chat)
             {
@@ -502,14 +506,14 @@ namespace CapriDesktop
             };
             Func<WorkspaceWindow, int> fileChips = delegate(WorkspaceWindow window) { return window.Chips.FindAll(delegate(string chip) { return chip.StartsWith("file ", StringComparison.Ordinal); }).Count; };
             string chatId = null;
-            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+            if (Directory.Exists(home)) throw new Exception("Her folder was there before any chat needed it.");
+            foreach (float z in new[] { 1f, 1.25f, 1.5f })
             {
-                work.Executable = standin;
-                work.Home = home;
-                if (Directory.Exists(home)) throw new Exception("Her folder was there before any chat needed it.");
-                foreach (float z in new[] { 1f, 1.25f, 1.5f })
+                int scale = (int)Math.Round(z * 100);
+                using (Workspace work = new Workspace(z == 1f ? data : data + scale, pipe + Guid.NewGuid().ToString("N")))
                 {
-                    int scale = (int)Math.Round(z * 100);
+                    work.Executable = standin;
+                    work.Home = home;
                     using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
                     {
                         window.PathAlias = shown;
@@ -538,6 +542,7 @@ namespace CapriDesktop
                         if (heard.IndexOf("Attached files:", StringComparison.Ordinal) < 0 || heard.IndexOf(plan.Replace("\\", "\\\\"), StringComparison.Ordinal) < 0 && heard.IndexOf(plan, StringComparison.Ordinal) < 0) throw new Exception("Claude Code wasn't told about the attached files.");
                         window.ScrollToEnd();
                         shoot(window, "22-chips-after-send-" + scale, null);
+                        if (work.Chats().Count != 1) throw new Exception("A clean " + scale + "% run had " + work.Chats().Count + " chats.");
                         if (z != 1f) { window.Close(); continue; }
                         chatId = chat.Id;
 
@@ -667,7 +672,15 @@ namespace CapriDesktop
                         using (Graphics graphics = Graphics.FromImage(blank)) graphics.Clear(Neon.Field);
                         if (!window.CueMissing(blank)) throw new Exception("The cue check didn't notice a message box with no cue.");
                     }
-                    using (Bitmap copy = LookShots.Copy(window)) if (window.CueMissing(copy)) throw new Exception("The empty message box has no cue in a new chat.");
+                    // Like the pictures, a miss is looked at again a frame later, since the copy can be a frame behind.
+                    if (LookShots.CueMissing(window))
+                    {
+                        LookShots.Flush();
+                        window.Refresh();
+                        Application.DoEvents();
+                        LookShots.Flush();
+                        if (LookShots.CueMissing(window)) throw new Exception("The empty message box has no cue in a new chat.");
+                    }
                     turnOf(window, work, chat, "Shape the window on every resize.", "Edit", HuskJson.Map("file_path", file, "old_string", oldText, "new_string", newText), file, before.Replace(oldText, newText));
                     WorkspaceItem tool = WorkspaceItems(chat).Find(delegate(WorkspaceItem item) { return item.Kind == "tool" && item.Name == "Edit"; });
                     if (tool == null || tool.Input.Length == 0) throw new Exception("The Edit card didn't keep the tool's input.");
@@ -1153,6 +1166,12 @@ namespace CapriDesktop
             File.WriteAllText(standin, "@echo off\r\nsetlocal\r\nif \"%~1\"==\"--version\" (\r\necho 2.1.295 ^(Claude Code^)\r\necho version>>\"%~dp0version.txt\"\r\nexit /b 0\r\n)\r\n> \"%~dp0raw.txt\" echo %*\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\n"
                 + (wait ? ":wait\r\nif exist \"%~dp0finish\" goto done\r\nping -n 2 127.0.0.1 > nul\r\ngoto wait\r\n:done\r\n" : "") + "type \"%~dp0result.txt\"\r\n", Encoding.ASCII);
             return standin;
+        }
+
+        // The pictures' stand-in answers in a believable few seconds, at a believable cost, instead of the 40 ms it takes.
+        private static void WorkspaceTimed(string folder)
+        {
+            File.WriteAllText(Path.Combine(folder, "result.txt"), HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "session_id", Guid.NewGuid().ToString(), "duration_ms", 4200, "total_cost_usd", 0.04, "result", "Done.")) + "\n", new UTF8Encoding(false));
         }
 
         private static List<string> WorkspaceRawArgs(string folder)
