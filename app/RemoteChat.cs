@@ -1069,9 +1069,37 @@ namespace CapriDesktop
             if (band != null) throw new Exception("CAPRI's band: " + band + ".");
             mainframe.RemoteKeyFor(views[3]);
             mainframe.RemoteBand(Path.Combine(output, "remote-key-off.png"));
+            SmokeRemoteMark(checks, output);
             mainframe.RemoteChanged();
             checks.Add("PASS all 16 phones have a reachable Revoke key across pages; Sure? follows the device after reordering; Remove all phones needs a second press; connected link phones keep BY LINK; the QR starts hidden on stream and a fresh code hides again; phone input strips control and format characters (remote-16-phones-*.png and remote-qr-streaming-*.png)");
             checks.Add("PASS Remote is off by default and in tests; a pairing URL makes a version 8 QR; tool summaries carry no arguments and keys stay out of replies; the REMOTE sheet fits at 100%, 150% and 200% with a QR, an Allow prompt, paired phones (one added by a phone's pairing link, whose open link shows as words, never a QR) and Remote off (remote-*.png)");
+        }
+
+        private void SmokeRemoteMark(List<string> checks, string output)
+        {
+            bool wasPage = mainframe.SettingsShown;
+            int wasSize = preferences.MainframeSize;
+            List<string> seen = new List<string>();
+            try
+            {
+                mainframe.LayoutScale(96, 100);
+                mainframe.ShowSettings(false);
+                foreach (int size in new[] { 100, 125, 150 })
+                {
+                    mainframe.SizeMainframe(size);
+                    mainframe.Settle();
+                    mainframe.Update();
+                    string problem = mainframe.RemoteMark(output, size, seen);
+                    if (problem != null) throw new Exception("Remote's phone at " + size + "%: " + problem + ".");
+                }
+            }
+            finally
+            {
+                mainframe.LayoutScale(0, 0);
+                mainframe.SizeMainframe(wasSize);
+                mainframe.ShowSettings(wasPage);
+            }
+            checks.Add("PASS Remote's key draws its phone left of its label and keeps Support's size and row at 100%, 125% and 150% (" + string.Join("; ", seen.ToArray()) + "; remote-mark-*.png)");
         }
 
         private void SmokeRemoteRooms(List<string> checks)

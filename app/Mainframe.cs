@@ -5068,6 +5068,8 @@ namespace CapriDesktop
             // Heart puts a beating heart before its text, like Support's; Swell is the heart's size and Beat how lit its rim is.
             internal bool Heart;
             internal float Swell = 1, Beat;
+            // Phone puts a little phone before its text, like Remote's, in the text's own colour (Lachy, 12 Nov).
+            internal bool Phone;
             private bool hot;
             private bool down;
 
@@ -5150,6 +5152,14 @@ namespace CapriDesktop
                     area = new Rectangle((int)(left + 17 * s), 0, Width - (int)(left + 17 * s), Height);
                     flags = (flags & ~TextFormatFlags.HorizontalCenter) | TextFormatFlags.Left;
                 }
+                else if (Phone)
+                {
+                    int wide = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width;
+                    float left = (Width - (PhoneRoom * s + wide)) / 2;
+                    DrawPhone(graphics, left + 4 * s, y, s, ink, face);
+                    area = new Rectangle((int)(left + PhoneRoom * s), 0, Width - (int)(left + PhoneRoom * s), Height);
+                    flags = (flags & ~TextFormatFlags.HorizontalCenter) | TextFormatFlags.Left;
+                }
                 TextRenderer.DrawText(graphics, Text, Font, area, ink, flags);
                 if (Meter >= 0) using (Brush meter = new SolidBrush(Cyan)) graphics.FillRectangle(meter, 3 * s, Height - 4 * s, (float)((Width - 6 * s) * Math.Max(0, Math.Min(1, Meter))), 2 * s);
             }
@@ -5178,6 +5188,27 @@ namespace CapriDesktop
                     heart.AddBeziers(points);
                     heart.CloseFigure();
                     graphics.FillPath(fill, heart);
+                }
+            }
+
+            // The phone and its text are centred together: an 8 px phone, then 6 px to the text, as wide a gap as the heart's.
+            internal const float PhoneRoom = 14;
+
+            // An 8 by 12 px phone, centred on middle: a solid body in the text's colour with its screen cut out in the key's face
+            // and a home button in its chin. An outline alone read as a 0 at 100%. Snapped to whole pixels so it stays sharp.
+            private static void DrawPhone(Graphics graphics, float middleX, float middleY, float s, Color ink, Color face)
+            {
+                int wide = (int)Math.Round(8 * s), tall = (int)Math.Round(12 * s);
+                int left = (int)Math.Round(middleX - wide / 2f), top = (int)Math.Round(middleY - tall / 2f);
+                int side = Math.Max(1, (int)Math.Round(1.2f * s)), brow = Math.Max(1, (int)Math.Round(1.5f * s)), chin = (int)Math.Round(3 * s);
+                int button = Math.Max(2, (int)Math.Round(2 * s)), buttonTall = Math.Max(1, (int)Math.Round(1 * s));
+                using (GraphicsPath body = Cut(new RectangleF(left, top, wide, tall), 1.5f * s, 1.5f * s, 1.5f * s, 1.5f * s))
+                using (Brush fill = new SolidBrush(ink))
+                    graphics.FillPath(fill, body);
+                using (Brush screen = new SolidBrush(face))
+                {
+                    graphics.FillRectangle(screen, left + side, top + brow, wide - 2 * side, tall - brow - chin);
+                    graphics.FillRectangle(screen, left + (wide - button) / 2, top + tall - chin + (chin - buttonTall) / 2, button, buttonTall);
                 }
             }
         }
