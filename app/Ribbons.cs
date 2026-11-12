@@ -576,6 +576,194 @@ namespace CapriDesktop
             }
         }
 
+        // Stand-ins for whatever kept her window's thread busy on 12 Nov, for the review of her beat. One is a window on her
+        // thread that never gets painted, so Windows hands it WM_PAINT for ever; the other is a posted message that posts the
+        // next. Both starve her window timers while posted work still runs. A window timer of the check's own counts its ticks
+        // too, so a stand-in that didn't really starve anything fails rather than passing for the wrong reason.
+        private void SmokeStarved(List<string> checks, bool paint)
+        {
+            Func<bool> fullWas = FullScreen;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Picture shownWas = Computer.Shown;
+            string name = paint ? "a window that's never painted" : "a posted-message flood";
+            ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
+            {
+                Rectangle work = Screen.PrimaryScreen.WorkingArea;
+                StandForThrow(new Point(work.Left + work.Width / 3, work.Top + work.Height / 2));
+                RenderFrame();
+                instant = false;
+                FullScreen = delegate { return true; };
+                Computer.Use = delegate { System.Threading.Thread.Sleep(200); return "Waited."; };
+                int turn = 0;
+                driveTest = delegate(string system, string tools, string messages)
+                {
+                    System.Threading.Thread.Sleep(300);
+                    turn++;
+                    return Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t" + turn + "\",\"name\":\"wait\",\"toolset_name\":\"computer\",\"input\":{\"duration\":1}}]}");
+                };
+                Job game = new Job("play Five Nights at Freddy's");
+                string ended = null;
+                System.Threading.Thread hands = new System.Threading.Thread(delegate() { try { ended = Work(game); } catch (Exception error) { ended = error.Message; } }) { IsBackground = true, Name = "Smoke job" };
+                System.Diagnostics.Stopwatch busy = System.Diagnostics.Stopwatch.StartNew();
+                double began = -1, landed = -1, lastFrame = -1, worstGap = 0;
+                int drawn = 0, probed = 0;
+                string state = null;
+                Starver keeper = new Starver(paint);
+                EventHandler counted = delegate
+                {
+                    if (keeper.Done) return;
+                    double at = busy.Elapsed.TotalSeconds;
+                    drawn++;
+                    if (lastFrame >= 0) worstGap = Math.Max(worstGap, at - lastFrame);
+                    lastFrame = at;
+                };
+                System.Windows.Forms.Timer probe = new System.Windows.Forms.Timer { Interval = 33 };
+                probe.Tick += delegate { if (!keeper.Done) probed++; };
+                keeper.Work = delegate
+                {
+                    System.Threading.Thread.Sleep(2);
+                    double now = busy.Elapsed.TotalSeconds;
+                    if (began < 0 && job == game && taskPanel.Showing) began = now;
+                    if (began >= 0 && landed < 0 && onPanel && outro == null && !ribbons.Waiting && !ribbons.Going && !ribbons.Visible && !tear.Visible) landed = now;
+                    if (began >= 0 && state == null && now - began >= 1.5)
+                        state = "on the panel " + onPanel + ", teleport still on " + (outro != null) + ", ribbons " + (ribbons.Waiting ? "waiting" : ribbons.Going ? "going" : ribbons.Visible ? "showing" : "gone") + ", glitch bars " + (tear.Visible ? "up" : "gone");
+                    if (now >= 6 || (landed >= 0 && now - landed >= 1)) keeper.Done = true;
+                };
+                frames.Tick += counted;
+                try
+                {
+                    probe.Start();
+                    keeper.Kick();
+                    hands.Start();
+                    while (!keeper.Done) Starver.Pump(50);
+                    string said = name + ": " + keeper.Count + " busy messages, " + probed + " window-timer ticks while it ran, " + drawn + " body frames, worst frame gap " + worstGap.ToString("0.000") + " s, panel at " + began.ToString("0.000") + " s, landed " + (landed < 0 ? "never" : (landed - began).ToString("0.000") + " s after the panel") + (state == null ? "" : ", at 1.5 s: " + state);
+                    if (keeper.Count < 50 || probed > 3) list.Add("FAIL the stand-in didn't starve her window timers, so it proves nothing: " + said);
+                    else if (began < 0) list.Add("FAIL the stand-in game job never showed its task panel: " + said);
+                    else if (landed < 0 || landed - began > 1.5) list.Add("FAIL her teleport onto the task panel stalled while her window timers were starved by " + said);
+                    else list.Add("PASS her teleport onto the task panel lands while her window timers are starved by " + said);
+                }
+                finally
+                {
+                    keeper.Done = true;
+                    frames.Tick -= counted;
+                    probe.Stop();
+                    probe.Dispose();
+                    Computer.Interrupt("The smoke job is over.");
+                    System.Diagnostics.Stopwatch ending = System.Diagnostics.Stopwatch.StartNew();
+                    while (hands.IsAlive && ending.ElapsedMilliseconds < 8000) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                    Application.DoEvents();
+                    keeper.DestroyHandle();
+                    driveTest = null;
+                    FullScreen = fullWas;
+                    Computer.Use = useWas;
+                    Computer.Shown = shownWas;
+                    Computer.Finish();
+                    Computer.Arm();
+                    taskPanel.Stop();
+                    LeavePanel(false);
+                    Halt();
+                    ribbons.Stop();
+                    tear.Hide();
+                    if (hands.IsAlive) list.Add("FAIL the stand-in game job didn't stop when told to: " + ended);
+                }
+            });
+        }
+
+        // What her clock costs while she only stands there: how even her frames are, her process's CPU, and the same once
+        // her frames have stopped.
+        private void SmokeBeatCost(List<string> checks)
+        {
+            ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
+            {
+                Rectangle work = Screen.PrimaryScreen.WorkingArea;
+                StandForThrow(new Point(work.Left + work.Width / 3, work.Top + work.Height / 2));
+                instant = false;
+                RenderFrame();
+                System.Diagnostics.Process self = System.Diagnostics.Process.GetCurrentProcess();
+                System.Diagnostics.Stopwatch cost = System.Diagnostics.Stopwatch.StartNew();
+                for (int i = 0; i < 60; i++) RenderFrame();
+                double render = cost.Elapsed.TotalMilliseconds / 60;
+                List<double> at = new List<double>();
+                System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+                EventHandler mark = delegate { at.Add(watch.Elapsed.TotalMilliseconds); };
+                frames.Tick += mark;
+                frames.Start();
+                Starver.Pump(200);
+                at.Clear();
+                self.Refresh();
+                TimeSpan cpuFrom = self.TotalProcessorTime;
+                watch.Restart();
+                while (watch.ElapsedMilliseconds < 6000) Starver.Pump(100);
+                self.Refresh();
+                double standing = (self.TotalProcessorTime - cpuFrom).TotalMilliseconds / watch.Elapsed.TotalSeconds;
+                double span = watch.Elapsed.TotalMilliseconds;
+                frames.Tick -= mark;
+                int interval = frames.Interval;
+                frames.Stop();
+                List<double> gaps = new List<double>();
+                for (int i = 1; i < at.Count; i++) gaps.Add(at[i] - at[i - 1]);
+                double mean = 0, spread = 0, least = double.MaxValue, most = 0;
+                foreach (double gap in gaps) { mean += gap; least = Math.Min(least, gap); most = Math.Max(most, gap); }
+                if (gaps.Count > 0) mean /= gaps.Count;
+                foreach (double gap in gaps) spread += (gap - mean) * (gap - mean);
+                if (gaps.Count > 1) spread = Math.Sqrt(spread / (gaps.Count - 1));
+                Dictionary<int, int> shape = new Dictionary<int, int>();
+                foreach (double gap in gaps) { int key = (int)Math.Round(gap); int seen; shape.TryGetValue(key, out seen); shape[key] = seen + 1; }
+                List<int> keys = new List<int>(shape.Keys);
+                keys.Sort();
+                string spreadOut = "";
+                foreach (int key in keys) if (shape[key] * 50 >= gaps.Count) spreadOut += (spreadOut.Length == 0 ? "" : " ") + key + "ms x" + shape[key];
+                Starver.Pump(300);
+                self.Refresh();
+                cpuFrom = self.TotalProcessorTime;
+                watch.Restart();
+                while (watch.ElapsedMilliseconds < 4000) Starver.Pump(100);
+                self.Refresh();
+                double rest = (self.TotalProcessorTime - cpuFrom).TotalMilliseconds / watch.Elapsed.TotalSeconds;
+                list.Add("PASS her standing loop at interval " + interval + " ms: " + at.Count + " frames in " + (span / 1000).ToString("0.0") + " s (" + (at.Count * 1000 / span).ToString("0.0") + " a second), gaps mean " + mean.ToString("0.0") + " sd " + spread.ToString("0.0") + " min " + least.ToString("0.0") + " max " + most.ToString("0.0") + " ms [" + spreadOut + "], a frame costs " + render.ToString("0.00") + " ms to draw, process CPU " + standing.ToString("0.0") + " ms a second standing and " + rest.ToString("0.0") + " ms a second with her frames stopped");
+            });
+        }
+
+        private sealed class Starver : NativeWindow
+        {
+            internal Action Work;
+            internal volatile bool Done;
+            internal int Count;
+            private readonly bool paint;
+
+            [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool InvalidateRect(IntPtr window, IntPtr area, bool erase);
+            [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern uint MsgWaitForMultipleObjectsEx(uint count, IntPtr handles, uint milliseconds, uint wake, uint flags);
+
+            internal Starver(bool paint)
+            {
+                this.paint = paint;
+                CreateParams made = new CreateParams();
+                if (paint) { made.Style = unchecked((int)0x90000000); made.ExStyle = 0x08000080; made.X = 0; made.Y = 0; made.Width = 48; made.Height = 48; }
+                else made.Parent = new IntPtr(-3);
+                CreateHandle(made);
+            }
+
+            internal void Kick()
+            {
+                if (paint) InvalidateRect(Handle, IntPtr.Zero, false);
+                else Native.PostMessage(Handle, 0x8000 + 0x1B6, IntPtr.Zero, IntPtr.Zero);
+            }
+
+            // Waits for anything at all on this thread, the way her message loop does, then handles it.
+            internal static void Pump(int most)
+            {
+                MsgWaitForMultipleObjectsEx(0, IntPtr.Zero, (uint)most, 0x04FF, 0x0004);
+                Application.DoEvents();
+            }
+
+            protected override void WndProc(ref Message message)
+            {
+                if (paint && message.Msg == 0x000F && !Done) { Count++; if (Work != null) Work(); return; }
+                if (!paint && message.Msg == 0x8000 + 0x1B6) { if (Done) return; Count++; if (Work != null) Work(); if (!Done) Kick(); return; }
+                base.WndProc(ref message);
+            }
+        }
+
         private void SmokeRibbons(List<string> checks, string output)
         {
             Color hairColour = ArtColour(ArtColors.Usual[ArtColors.Hair]), accentColour = ArtColour(ArtColors.Usual[ArtColors.Accent]);

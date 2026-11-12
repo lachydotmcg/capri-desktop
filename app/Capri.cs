@@ -40354,6 +40354,9 @@ namespace CapriDesktop
             Section(checks, "SmokeEmotes", delegate { SmokeEmotes(checks, output); });
             Section(checks, "SmokeEmoteFilms", delegate { SmokeEmoteFilms(checks, output); });
             Section(checks, "SmokeJobTeleport", delegate { SmokeJobTeleport(checks); });
+            Section(checks, "SmokeStarvedPaint", delegate { SmokeStarved(checks, true); });
+            Section(checks, "SmokeStarvedFlood", delegate { SmokeStarved(checks, false); });
+            Section(checks, "SmokeBeatCost", delegate { SmokeBeatCost(checks); });
             Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
