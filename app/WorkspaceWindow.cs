@@ -891,6 +891,22 @@ namespace CapriDesktop
         internal void ScrollToEnd() { transcript.ScrollTo(int.MaxValue); }
         internal int ConversationTall { get { return transcript.Content; } }
         internal string ToggleTool(string id) { return transcript.Toggle(id); }
+        internal List<string> ToolWell(string id) { return transcript.Well(id); }
+        internal bool CueMissing(Bitmap shot)
+        {
+            if (!composer.Visible || composer.Input.TextLength > 0 || ask.Visible) return false;
+            Rectangle box = RectangleToClient(composer.Input.RectangleToScreen(new Rectangle(0, 0, composer.Input.ClientSize.Width, composer.Input.Font.Height + 2)));
+            box.Intersect(new Rectangle(Point.Empty, shot.Size));
+            int inked = 0;
+            Color want = Neon.Faint;
+            for (int y = box.Top; y < box.Bottom; y++)
+                for (int x = box.Left; x < box.Right; x++)
+                {
+                    Color seen = shot.GetPixel(x, y);
+                    if (Math.Abs(seen.R - want.R) + Math.Abs(seen.G - want.G) + Math.Abs(seen.B - want.B) < 30) inked++;
+                }
+            return inked < 20;
+        }
         internal string CopyText(WorkspaceItem item) { return transcript.CopyOf(item); }
         internal string CodeFont { get { return mono.Name; } }
         internal string ProseFont { get { return Font.Name; } }
@@ -1321,14 +1337,27 @@ namespace CapriDesktop
             internal int First_Line { get { return IsHandleCreated ? Native.SendMessage(Handle, 0x00CE, IntPtr.Zero, IntPtr.Zero).ToInt32() : 0; } }
             internal int Visible_Lines { get { return Math.Max(1, ClientSize.Height / Math.Max(1, Font.Height)); } }
 
+            // The cue is drawn over the box's own painting whenever it's empty, focused or not: after each paint, into each
+            // print (WM_PRINTCLIENT, which is how Windows copies the box), and the box repaints whenever it gains or loses focus
+            // or empties, since the edit control draws those changes straight to the screen without a paint.
             protected override void WndProc(ref Message message)
             {
                 base.WndProc(ref message);
-                if (message.Msg == 0x000F && TextLength == 0 && Cue.Length > 0 && CueFont != null)
-                    using (Graphics graphics = CreateGraphics())
-                        TextRenderer.DrawText(graphics, Cue, CueFont, new Rectangle(1, 0, ClientSize.Width, Font.Height + 2), Neon.Faint, TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
-                if ((message.Msg == 0x020A || message.Msg == 0x0115 || message.Msg == 0x0100) && Scrolled != null) Scrolled();
+                int kind = message.Msg;
+                if (kind == 0x000F && CueWanted) using (Graphics graphics = CreateGraphics()) DrawCue(graphics);
+                if (kind == 0x0318 && CueWanted && message.WParam != IntPtr.Zero) using (Graphics graphics = Graphics.FromHdc(message.WParam)) DrawCue(graphics);
+                if ((kind == 0x0007 || kind == 0x0008) && TextLength == 0) Invalidate();
+                if ((kind == 0x020A || kind == 0x0115 || kind == 0x0100) && Scrolled != null) Scrolled();
             }
+
+            private bool CueWanted { get { return TextLength == 0 && Cue.Length > 0 && CueFont != null; } }
+
+            private void DrawCue(Graphics graphics)
+            {
+                TextRenderer.DrawText(graphics, Cue, CueFont, new Rectangle(1, 0, ClientSize.Width, Font.Height + 2), Neon.Faint, TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis);
+            }
+
+            protected override void OnTextChanged(EventArgs e) { base.OnTextChanged(e); if (TextLength == 0) Invalidate(); }
         }
 
         // A question asked inside the window, in her look: the words, the step in red or cyan, and the way back out.
@@ -1806,7 +1835,9 @@ namespace CapriDesktop
                     if (lines.Count > 0) { lines.Add("..."); inks.Add(Neon.Faint); }
                     if (!string.IsNullOrEmpty(old)) foreach (string row in old.Replace("\r", "").TrimEnd('\n').Split('\n')) { lines.Add("- " + row); inks.Add(Removed); }
                     if (!string.IsNullOrEmpty(added)) foreach (string row in added.Replace("\r", "").TrimEnd('\n').Split('\n')) { lines.Add("+ " + row); inks.Add(Added); }
+                    if (lines.Count > 400) { lines.RemoveRange(400, lines.Count - 400); inks.RemoveRange(400, inks.Count - 400); map["cut"] = true; break; }
                 }
+                if (lines.Count > 0 && true.Equals(HuskJson.Get(map, "cut"))) { lines.Add("... the rest of this change isn't kept here"); inks.Add(Neon.Faint); }
                 return lines.Count > 0;
             }
 
@@ -2022,7 +2053,7 @@ namespace CapriDesktop
                 }
                 if (kind == "note" || kind == "stopped" || (kind == "approval" || kind == "trust") && !Waiting(item))
                 {
-                    int bottom = Words(block, item.Text, window.note, kind == "approval" && item.Decision == "deny" ? Neon.Tone(255, 166, 162) : Neon.Faint, left + Z(22), y, width - Z(22));
+                    int bottom = Words(block, window.Shorten(item.Text), window.note, kind == "approval" && item.Decision == "deny" ? Neon.Tone(255, 166, 162) : Neon.Faint, left + Z(22), y, width - Z(22));
                     block.Box = new Rectangle(left, y, width, Math.Max(Z(16), bottom - y));
                     return;
                 }
@@ -2044,7 +2075,7 @@ namespace CapriDesktop
                     if (block.Reason != null) { block.Reason.Tag = new Rectangle(left + pad, at, inner, Z(30)); at += Z(38); }
                 }
                 else if (kind == "trust") at = Trusting(block, left + pad, at, inner) + Z(10);
-                else at = Words(block, item.Text, window.Font, Neon.White, left + pad, at, inner) + Z(10);
+                else at = Words(block, window.Shorten(item.Text), window.Font, Neon.White, left + pad, at, inner) + Z(10);
                 if (block.Keys.Count > 0) at = KeysRow(block, left + pad, at, inner) + Z(2);
                 block.Box = new Rectangle(left, y, width, at + pad - Z(4) - y);
             }
@@ -2272,6 +2303,20 @@ namespace CapriDesktop
                 if (item.Kind == "tool") return item.Text + "\n" + block.Result;
                 if (item.Kind == "approval" && item.Input.Length > 0) return item.Text + "\n" + Lines(item.Input);
                 return item.Text;
+            }
+
+            // A tool card's well as drawn: each row, led by R when it's in her red, G in her green, and a space otherwise.
+            internal List<string> Well(string id)
+            {
+                List<string> rows = new List<string>();
+                foreach (Block block in Blocks)
+                {
+                    if (block.Item.Kind != "tool" || block.Item.Id != id) continue;
+                    foreach (Piece piece in block.Pieces)
+                        if (piece.Code && piece.Rows != null)
+                            for (int i = 0; i < piece.Rows.Count; i++) rows.Add((piece.Inks[i] == Added ? "G" : piece.Inks[i] == Removed ? "R" : " ") + piece.Rows[i]);
+                }
+                return rows;
             }
 
             internal string Toggle(string id)

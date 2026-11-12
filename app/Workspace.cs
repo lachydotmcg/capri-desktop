@@ -26,14 +26,14 @@ namespace CapriDesktop
         internal Dictionary<string, object> Json()
         {
             string text = Kind == "result" && Text.Length > 2000 ? Text.Substring(0, 2000) : Text;
-            return HuskJson.Map("kind", Kind, "text", text, "name", Name, "id", Id, "turn", Turn, "input", "",
+            return HuskJson.Map("kind", Kind, "text", text, "name", Name, "id", Id, "turn", Turn, "input", Kind == "tool" ? Input : "",
                 "decision", Decision, "seconds", Seconds, "cost", Cost, "retry", Retry, "files", Files);
         }
 
         internal static WorkspaceItem Read(Dictionary<string, object> row)
         {
             return new WorkspaceItem { Kind = HuskJson.Text(row, "kind"), Text = HuskJson.Text(row, "text"), Name = HuskJson.Text(row, "name"),
-                Id = HuskJson.Text(row, "id"), Turn = HuskJson.Text(row, "turn"), Decision = HuskJson.Text(row, "decision"),
+                Id = HuskJson.Text(row, "id"), Turn = HuskJson.Text(row, "turn"), Decision = HuskJson.Text(row, "decision"), Input = HuskJson.Text(row, "input"),
                 Seconds = Workspace.Number(row, "seconds"), Cost = HuskJson.Text(row, "cost"), Retry = true.Equals(HuskJson.Get(row, "retry")), Files = HuskJson.Text(row, "files") };
         }
     }
@@ -866,7 +866,7 @@ namespace CapriDesktop
                         if (id.Length > 0 && !turn.Tools.Add(id)) continue;
                         Dictionary<string, object> input = HuskJson.Get(content, "input") as Dictionary<string, object>;
                         if (EditTool(tool)) turn.Edits[id] = HuskJson.Map("tool", tool, "input", input);
-                        Add(chat, new WorkspaceItem { Kind = "tool", Name = tool, Id = id, Text = Summary(tool, input), Turn = turn.Id });
+                        Add(chat, new WorkspaceItem { Kind = "tool", Name = tool, Id = id, Text = Summary(tool, input), Turn = turn.Id, Input = Shown(tool, input) });
                     }
                     else if (kind == "tool_result")
                     {
@@ -1003,6 +1003,52 @@ namespace CapriDesktop
         }
 
         internal static bool EditTool(string tool) { return tool == "Write" || tool == "Edit" || tool == "MultiEdit" || tool == "NotebookEdit"; }
+
+        // What an edit's card keeps of its input to show the change: the file and the changed text, each text cut to
+        // ShownLines lines and ShownChars letters, and no more than ShownAll letters in all, so a 5,000-line Write doesn't
+        // fill the saved chat. "cut" says something was left out. Other tools keep nothing.
+        internal const int ShownLines = 200, ShownChars = 20000, ShownAll = 40000;
+
+        internal static string Shown(string tool, Dictionary<string, object> input)
+        {
+            if (!EditTool(tool) || input == null) return "";
+            bool cut = false;
+            int left = ShownAll;
+            Dictionary<string, object> kept = Kept(input, ref cut, ref left);
+            List<object> edits = HuskJson.List(HuskJson.Get(input, "edits"));
+            if (edits != null)
+            {
+                List<object> shown = new List<object>();
+                foreach (object edit in edits)
+                {
+                    Dictionary<string, object> one = edit as Dictionary<string, object>;
+                    if (one == null) continue;
+                    if (left <= 0) { cut = true; break; }
+                    shown.Add(Kept(one, ref cut, ref left));
+                }
+                kept["edits"] = shown;
+            }
+            if (cut) kept["cut"] = true;
+            return HuskJson.Write(kept);
+        }
+
+        private static Dictionary<string, object> Kept(Dictionary<string, object> input, ref bool cut, ref int left)
+        {
+            Dictionary<string, object> kept = new Dictionary<string, object>();
+            foreach (string key in new[] { "file_path", "notebook_path" }) { string path = HuskJson.Text(input, key); if (path.Length > 0) kept[key] = path; }
+            foreach (string key in new[] { "old_string", "new_string", "content", "new_source" })
+            {
+                string text = HuskJson.Get(input, key) as string;
+                if (text == null) continue;
+                int most = Math.Max(0, Math.Min(ShownChars, left));
+                if (text.Length > most) { text = text.Substring(0, most); cut = true; }
+                int lines = 0, at = 0;
+                while (at < text.Length && (at = text.IndexOf('\n', at)) >= 0) { if (++lines >= ShownLines) { text = text.Substring(0, at); cut = true; break; } at++; }
+                left -= text.Length;
+                kept[key] = text;
+            }
+            return kept;
+        }
         private static bool ReadTool(string tool) { return tool == "Read" || tool == "Glob" || tool == "Grep" || tool == "LS"; }
 
         private static void Paths(object value, List<string> paths, bool path)
