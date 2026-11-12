@@ -294,7 +294,9 @@ namespace CapriDesktop
                 FirstRunPaste = delegate { return "  AIza-firstrun-test  "; };
                 FirstRunUsePlan = delegate(string kind) { planned = kind; };
                 fit = Engine.Picks[1];
-                FirstRunSetUp = delegate { setups++; SettingUp = true; mainframe.ShowProgress(1, "Downloading " + fit.Name, 0, fit.Size); };
+                // Her brain's download as SetUpBrain shows it: FindBrain has already put up the setup steps, then the progress.
+                Machine setupMachine = Machine.Read();
+                FirstRunSetUp = delegate { setups++; SettingUp = true; mainframe.ShowSetup(setupMachine, fit, false, null); mainframe.ShowProgress(1, "Downloading " + fit.Name, 0, fit.Size); };
                 reset();
 
                 // An update never sees the card; a brand new install and one that quit halfway do.
