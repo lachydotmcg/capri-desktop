@@ -103,8 +103,9 @@ namespace CapriDesktop
         internal static readonly string[] Models = { "Default", "Opus", "Sonnet", "Haiku" };
         internal readonly string Root, Pipe;
         internal string Executable;
-        // Her own folder for chats started without picking one: Capri\Workspace in their Documents, wherever Windows keeps
-        // Documents (OneDrive too). Only made when a chat first needs it, and never emptied or deleted by her.
+        // Her own folder for chats started without picking one: Capri\Workspace in their profile folder, the same on every PC.
+        // Not Documents, which is often inside OneDrive, where Claude Code's fast small writes (.git, node_modules) would be
+        // uploaded and fought over. Only made when a chat first needs it, and never emptied or deleted by her.
         internal string Home = HomeFolder();
         internal int ApprovalWait = 600000;
         internal Action<WorkspaceChat, WorkspaceItem> Changed;
@@ -317,11 +318,13 @@ namespace CapriDesktop
 
         internal static string HomeFolder()
         {
-            string documents = "";
-            try { documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments); } catch (Exception) { }
-            if (string.IsNullOrEmpty(documents) || !Path.IsPathRooted(documents)) documents = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            return Path.Combine(documents, "Capri", "Workspace");
+            string profile = "";
+            try { profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile); } catch (Exception) { }
+            if (string.IsNullOrEmpty(profile) || !Path.IsPathRooted(profile)) return Spare();
+            return Path.Combine(profile, "Capri", "Workspace");
         }
+
+        private static string Spare() { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri", "Workspace"); }
 
         internal bool IsHome(string folder)
         {
@@ -329,16 +332,30 @@ namespace CapriDesktop
             catch (Exception) { return false; }
         }
 
-        // Makes her folder the first time a chat needs it. If Documents can't take it, it goes in their profile folder.
+        // Makes her folder the first time a chat needs it. If the profile folder can't take it, it goes in local app data.
         internal string MakeHome()
         {
             try { Directory.CreateDirectory(Home); }
             catch (Exception)
             {
-                Home = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Capri", "Workspace");
+                Home = Spare();
                 Directory.CreateDirectory(Home);
             }
             return Home;
+        }
+
+        // A chat in her folder is named from its first message: the first words, up to about 40 letters, cut at a word, on
+        // one line, without trailing punctuation. Files with no words take the first file's name.
+        internal static string TitleFrom(string text, List<string> files)
+        {
+            string words = Regex.Replace(text ?? "", @"\s+", " ").Trim();
+            if (words.Length == 0) return files != null && files.Count > 0 ? Path.GetFileName(files[0]) : "New chat";
+            if (words.Length > 40)
+            {
+                int cut = words.LastIndexOf(' ', 40);
+                words = cut >= 12 ? words.Substring(0, cut) : words.Substring(0, 40);
+            }
+            return words.TrimEnd(' ', '.', ',', ';', ':', '!', '?', '-', '\u2013', '\u2014', '(', '"', '\'');
         }
 
         // A chat in her own folder, ready to type in. Nothing has been asked yet, so its folder can still change.
@@ -687,6 +704,9 @@ namespace CapriDesktop
                 {
                     List<string> riding = chat.Files.FindAll(delegate(string file) { return !chat.Sent.Contains(file); });
                     foreach (string file in riding) chat.Sent.Add(file);
+                    // A title they typed is never replaced: only her folder's untouched "New chat" takes the first message's words.
+                    bool first = !chat.Items.Exists(delegate(WorkspaceItem item) { return item.Kind == "user"; });
+                    if (first && chat.Title == "New chat" && IsHome(chat.Folder)) chat.Title = TitleFrom(text, riding);
                     Add(chat, new WorkspaceItem { Kind = "user", Text = text, Files = string.Join("\n", riding.ToArray()) });
                 }
                 if (!Trusted(chat) && !chat.TrustAsked)

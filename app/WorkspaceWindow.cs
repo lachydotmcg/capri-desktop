@@ -2099,7 +2099,8 @@ namespace CapriDesktop
                     int wide = Math.Min(most, Math.Max(Z(120), textWide + pad * 2 + Z(4)));
                     int x = right - wide, top = y + Z(10);
                     Add(block, "YOU", window.caption, Neon.Cyan, new Rectangle(x + pad, top, wide - pad * 2, Z(14))).Line = true;
-                    int bottom = Words(block, item.Text, window.Font, Neon.White, x + pad, top + Z(20), wide - pad * 2);
+                    // A message of only files has no line of words above them.
+                    int bottom = item.Text.Length == 0 && files.Count > 0 ? top + Z(14) : Words(block, item.Text, window.Font, Neon.White, x + pad, top + Z(20), wide - pad * 2);
                     foreach (string file in files)
                     {
                         Piece chip = Add(block, Path.GetFileName(file), window.note, Neon.Faint, new Rectangle(x + pad, bottom + Z(6), wide - pad * 2, Z(16)));
