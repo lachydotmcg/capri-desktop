@@ -1107,6 +1107,21 @@ namespace CapriDesktop
             foreach (WorkspaceApproval ask in turn.Asks) if (ask.Choice == null) { ask.Choice = "deny"; ask.Reason = reason; ask.Answered.Set(); }
         }
 
+        // A line in workspace\clicks.log for each press of a card's key and what came of it, so a click that seems lost can
+        // be told apart from one that arrived and was refused. Only the key, the outcome and the time: no words, paths or
+        // commands. The file starts again past 64 KB.
+        internal void Clicked(string key, string outcome)
+        {
+            try
+            {
+                string log = Path.Combine(Root, "clicks.log");
+                FileInfo file = new FileInfo(log);
+                if (file.Exists && file.Length > 64 * 1024) file.Delete();
+                File.AppendAllText(log, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture) + " " + key + ": " + outcome + Environment.NewLine);
+            }
+            catch (Exception) { }
+        }
+
         internal bool Answer(WorkspaceChat chat, WorkspaceApproval ask, bool allow, bool always, string reason)
         {
             if (ask == null || ask.Turn == null) return false;

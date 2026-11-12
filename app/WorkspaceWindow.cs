@@ -1943,7 +1943,9 @@ namespace CapriDesktop
                 string reason = block.Reason == null ? "" : block.Reason.Box.Text;
                 window.Try(delegate
                 {
-                    if (window.workspace.Answer(window.chat, ask, yes, always, reason))
+                    bool taken = window.workspace.Answer(window.chat, ask, yes, always, reason);
+                    window.workspace.Clicked(yes ? always ? "Always allow" : "Allow" : "Deny", taken ? "answered" : ask.Choice != null ? "already answered" : "turn not running");
+                    if (taken)
                     {
                         foreach (Control key in block.Keys) key.Enabled = false;
                         if (block.Reason != null) block.Reason.Enabled = false;
