@@ -951,6 +951,9 @@ namespace CapriDesktop
         [DataMember] public bool ProviderOn;
         [DataMember] public string LocalModel;
         [DataMember] public bool Welcomed;
+        // Her first launch card's screen while it's open, so quitting halfway picks up there next time, and the brain they picked.
+        [DataMember] public int FirstRunStep;
+        [DataMember] public int FirstRunPick;
         // She's asked to get to know them, after setup or from Settings, so setting up a new brain doesn't ask again.
         [DataMember] public bool Met;
         [DataMember] public bool NoSitting;
@@ -2847,6 +2850,7 @@ namespace CapriDesktop
             shown = shownSignal;
             settingsPath = Path.Combine(data, "settings.json");
             bool hadSettings = File.Exists(settingsPath) || Program.StartedFresh;
+            freshInstall = !hadSettings;
             HerCursor.Marker = Path.Combine(data, "her-cursor.on");
             // Smoke tests never touch the real Windows cursor.
             if (smoke) HerCursor.Apply = delegate(bool on) { cursorSwaps.Add(on); };
@@ -3308,7 +3312,8 @@ namespace CapriDesktop
         }
 
         // A new install only (Lachy, 31 Oct): she wanders now and then, after her usual wait rather than as soon as she arrives,
-        // and EXTRAS offers what costs something or uses the mic.
+        // and EXTRAS offers what costs something or uses the mic. A brand new install gets her first launch card instead
+        // (FirstRun.cs), and skipping that card lands here.
         private void FirstLaunch()
         {
             SetWanderLevel(1);
@@ -3333,7 +3338,8 @@ namespace CapriDesktop
             };
             if (!HoldForIntro(arrival, spawn)) arrival();
             UpdateAnimation();
-            if (testing || preferences.Welcomed)
+            bool card = !testing && WantsFirstRun();
+            if (testing || preferences.Welcomed || card)
             {
                 mainframe.WindowState = FormWindowState.Minimized;
                 mainframe.Show();
@@ -3346,8 +3352,10 @@ namespace CapriDesktop
                 FirstLaunch();
             }
             if (!testing) StartHeartbeat();
+            if (card) StartFirstRun();
             if (!testing) FindBrain();
-            if (!testing) GreetSoon();
+            // The card's first line stands in for her hello.
+            if (!testing && !card) GreetSoon();
             listenAt = clock.Elapsed.TotalSeconds + (GreetPause + 500) / 1000.0;
             if (!testing) AgentVoice();
             if (!testing && FreeChatOn) { GetFreeVoice(); GetFreeEars(); }
@@ -3940,7 +3948,7 @@ namespace CapriDesktop
                 return;
             }
             // After setup, once she's said hi and her bubble's gone, she gets to know them.
-            if (meetAt >= 0 && clock.Elapsed.TotalSeconds >= meetAt && !hidden && !dragging && !pressed && !chatting && !typer.Visible && !Asleep && !napAsked && !napping
+            if (meetAt >= 0 && clock.Elapsed.TotalSeconds >= meetAt && !FirstRunShowing && !hidden && !dragging && !pressed && !chatting && !typer.Visible && !Asleep && !napAsked && !napping
                 && speech == null && talkState == TalkState.Off && clock.Elapsed.TotalSeconds >= voiceUntil && !speaker.Busy)
             {
                 meetAt = -1;
@@ -11319,6 +11327,7 @@ namespace CapriDesktop
 
         private void Greet()
         {
+            FirstRunBrainOnline();
             // After setup, once she's said hi with her new brain, she gets to know them. Only the first time.
             if (!preferences.Met && !testing) meetAt = clock.Elapsed.TotalSeconds + 1;
             // They got in first, so her hello doesn't cancel what they asked.
@@ -40684,6 +40693,7 @@ namespace CapriDesktop
             Section(checks, "SmokeSheetScale", delegate { SmokeSheetScale(checks); });
             Section(checks, "SmokeLogTimeouts", delegate { SmokeLogTimeouts(checks); });
             Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
+            Section(checks, "SmokeFirstRun", delegate { SmokeFirstRun(checks, Path.Combine(output, "firstrun")); });
             Section(checks, "SmokeMainframeWheel", delegate { mainframe.CheckWheelStaysHere(checks); });
             Section(checks, "SmokeMainframeSlide", delegate { mainframe.CheckPageSlide(checks); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
