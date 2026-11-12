@@ -995,7 +995,7 @@ namespace CapriDesktop
                     else if (kind == "tool_result")
                     {
                         string value = Content(HuskJson.Get(content, "content"));
-                        Add(chat, new WorkspaceItem { Kind = "result", Id = HuskJson.Text(content, "tool_use_id"), Text = value.Length > 2000 ? value.Substring(0, 2000) : value, Turn = turn.Id });
+                        Add(chat, new WorkspaceItem { Kind = "result", Id = HuskJson.Text(content, "tool_use_id"), Text = value.Length > 2000 ? value.Substring(0, 2000) : value, Turn = turn.Id, Decision = true.Equals(HuskJson.Get(content, "is_error")) ? "error" : "" });
                         CheckUndo(turn, HuskJson.Text(content, "tool_use_id"));
                     }
                 }
