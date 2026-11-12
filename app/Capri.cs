@@ -22857,6 +22857,281 @@ namespace CapriDesktop
             }
         }
 
+        // Her side head during a game job, with only stand-ins behind it: where what they say goes, a game's skill riding only on
+        // questions, a picture taken for each screen question, honest ADD lines and her own words for job control. The last part
+        // replays the asks from a real night of a horror game and writes what her side head was sent for each line to aside-replay.txt.
+        // Set CAPRI_SKILL_CHECK to a .capri-skill for that replay to use a real skill; it's imported into the smoke's own mods folder.
+        private void SmokeAsideGame(List<string> checks, string output)
+        {
+            Func<string, string, byte[][], string> headWas = headTest;
+            Action<string> asideWas = asideTest, stopWas = stopTest;
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<string> gameWas = Computer.GameOpen;
+            Func<string, string> skillWas = Computer.SkillGame, skillsWas = GameNotes.Skills;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<ToolArguments, string> controlWas = Hands.JobControl;
+            Cloud remoteWas = brain.Remote;
+            string modelWas = brain.Model, saved = Security.Saved, workWas = working;
+            bool keepingWas = Brain.Keeping, chattingWas = chatting, callWas = CallModeOn, wakeWas = Security.On(Security.Wake);
+            Job jobWas = job;
+            Mod skill = null, real = null;
+            string file = Path.Combine(output, "smoke-aside-game" + Mods.SkillExtension);
+            try
+            {
+                Brain.Keeping = false;
+                chatting = false;
+                callSession.Change(false);
+                Security.Drop();
+                Security.Load("1111111111");
+                brain.Remote = new Cloud("", "gpt-5-mini");
+                brain.Model = "gpt-5-mini";
+                Hands.JobControl = JobTool;
+                List<OpenWindow> windows = new List<OpenWindow>();
+                Hands.Windows = delegate { return windows; };
+                string native = null;
+                Computer.GameOpen = delegate { return native; };
+                Computer.SkillGame = ModList.GameFor;
+                GameNotes.Skills = ModList.SkillsFor;
+
+                // Where twenty-odd real things go: the asks from a real night first, then more someone might say mid-game.
+                string[,] routes =
+                {
+                    { "Hey, Capri. What the hell is the bite of 87?", "head" },
+                    { "Hey Capri, anything down those halls yet?", "screen" },
+                    { "Oh, come on. Hey, Capri, what happened?", "screen" },
+                    { "Oh no, hey Capri, what the hell is that?", "screen" },
+                    { "Hey Capri, you might want to shine one of those lights.", "head" },
+                    { "Hey Capri, do you see that?", "screen" },
+                    { "Hey Capri, can you check Cam 2B?", "head" },
+                    { "Hey Capri, shine that light.", "head" },
+                    { "Hey Capri, that's the camera, not the light.", "head" },
+                    { "Hey, Capri, uh, we lost.", "head" },
+                    { "did you see that", "screen" }, { "see that?", "screen" }, { "what's that", "screen" }, { "what was that", "screen" },
+                    { "what just happened", "screen" }, { "who's that", "screen" }, { "look at that", "screen" }, { "is that Bonnie in the doorway?", "screen" },
+                    { "is that the right light?", "screen" }, { "what do you see", "screen" }, { "what's on the screen", "screen" },
+                    { "how's it going", "status" }, { "how long have you been at it", "status" },
+                    { "what is that song called", "head" }, { "what happened to your voice", "head" }, { "did you see that movie", "head" },
+                    { "is that a good idea?", "head" }, { "is that what you mean?", "head" }, { "close the left door", "head" }, { "lower the camera", "head" },
+                    { "nice one", "head" }, { "stop", "stop" }
+                };
+                StringBuilder routed = new StringBuilder();
+                List<string> misrouted = new List<string>();
+                for (int i = 0; i < routes.GetLength(0); i++)
+                {
+                    string tool;
+                    ToolArguments args;
+                    AsideKind? kind = Asides.Plain(routes[i, 0], out tool, out args, true);
+                    string got = kind == AsideKind.Screen ? "screen" : kind == AsideKind.Status ? "status" : kind == AsideKind.Stop ? "stop" : kind == AsideKind.Tool ? "tool " + tool : "head";
+                    routed.AppendLine(routes[i, 0] + " -> " + got + (Asides.Question(routes[i, 0]) ? " (a question)" : ""));
+                    if (got != routes[i, 1]) misrouted.Add(routes[i, 0] + " went to " + got);
+                }
+                File.WriteAllText(Path.Combine(output, "aside-routes.txt"), routed.ToString());
+                if (misrouted.Count > 0) throw new Exception("Mid-game words went the wrong way: " + string.Join(" / ", misrouted.ToArray()));
+                checks.Add("PASS aside game routing: " + routes.GetLength(0) + " things someone might say mid-game go where they should, the real night's screen questions reach her eyes, and song, movie and voice questions stay chat");
+
+                JobReport report = new JobReport { Words = "play Lantern Quest", Seconds = 12, Done = 1, Doing = "Checking the gate" };
+                report.Recent.Add("Opened the map");
+                List<ChatMessage> recent = new List<ChatMessage> { new ChatMessage("user", "Hi"), new ChatMessage("assistant", "Hey.") };
+                string before = "Their job: \"play Lantern Quest\"\nLatest steps, oldest first:\n- Opened the map\nSteps finished: 1\nDoing now: Checking the gate\nOn it for: 12 seconds\nThe chat just before this:\nThem: Hi\nYou: Hey.\nThey just said: \"Tell me about the lantern\"";
+                if (Asides.Facts(report, "Tell me about the lantern", recent) != before || Asides.Facts(report, "Tell me about the lantern", recent, "") != before) throw new Exception("Without a skill her facts changed.");
+                File.WriteAllText(file, "---\ncapri-skill: 1\nid: smoke-aside-game\nname: Lantern know-how\nauthor: Smoke\ngames: Lantern Quest\n---\nThe blue lantern opens the north gate.\n", new UTF8Encoding(false));
+                skill = ModList.Import(file, null);
+                windows.Add(new OpenWindow(new IntPtr(-1), "Play Lantern Quest Online | Test - Google Chrome", "chrome"));
+                Job playing = new Job("play Lantern Quest"), plain = new Job("summarise this page");
+                System.Reflection.FieldInfo watch = typeof(Job).GetField("clock", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                ((Stopwatch)watch.GetValue(playing)).Stop();
+                ((Stopwatch)watch.GetValue(plain)).Stop();
+                List<string> lines = new List<string>();
+                string headSystem = null, headFacts = null, reply = "SORT: CHAT\nSAY: Still here.";
+                byte[][] headFrames = null;
+                headTest = delegate(string system, string facts, byte[][] frames) { headSystem = system; headFacts = facts; headFrames = frames; return reply; };
+                asideTest = delegate(string line) { lines.Add(line); };
+                int stops = 0;
+                stopTest = delegate { stops++; };
+                Action wait = delegate
+                {
+                    Stopwatch waited = Stopwatch.StartNew();
+                    while (lines.Count == 0 && waited.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                    if (lines.Count != 1) throw new Exception("Her stand-in head didn't send one line.");
+                };
+                const string asked = "what does the blue lantern do?", told = "Check the north gate next";
+                working = "Playing.";
+                job = playing;
+                string know = ModList.SkillsFor("Lantern Quest"), expected = Asides.Facts(playing.Report(), asked, brain.History, know);
+                if (know.Length == 0 || !GameNotes.Brief("Lantern Quest").Contains(know)) throw new Exception("Her hands didn't get the skill wrapper used by this check.");
+                AsideHead(asked, playing);
+                wait();
+                if (headFacts != expected || !headSystem.Contains(Asides.Knowing) || !headFacts.Contains("The blue lantern opens the north gate.")) throw new Exception("A question in a game job missed the hands' wrapped skill.");
+                string withSkill = headSystem + headFacts;
+                lines.Clear();
+                reply = "SORT: ADD\nSAY: Ooh, on it next.";
+                // Her aside lands in her history once she says it, so each request is worked out before the call.
+                expected = Asides.Facts(playing.Report(), told, brain.History);
+                AsideHead(told, playing);
+                wait();
+                if (headFacts != expected || headSystem.Contains(Asides.Knowing)) throw new Exception("An instruction carried the skill to her fast head.");
+                string withoutSkill = headSystem + headFacts;
+                playing.Heard();
+                reply = "SORT: CHAT\nSAY: Still here.";
+                lines.Clear();
+                job = plain;
+                expected = Asides.Facts(plain.Report(), asked, brain.History);
+                AsideHead(asked, plain);
+                wait();
+                if (headFacts != expected || headSystem.Contains(Asides.Knowing)) throw new Exception("A plain job borrowed the game's skill.");
+                lines.Clear();
+                ModList.Set(ModList.All.Find(mod => mod.File.Id == "smoke-aside-game"), false, null);
+                job = playing;
+                expected = Asides.Facts(playing.Report(), asked, brain.History);
+                AsideHead(asked, playing);
+                wait();
+                if (headFacts != expected || headSystem.Contains(Asides.Knowing)) throw new Exception("A switched-off skill changed her request.");
+                lines.Clear();
+                ModList.Set(ModList.All.Find(mod => mod.File.Id == "smoke-aside-game"), true, null);
+                native = "Another Side Game";
+                expected = Asides.Facts(playing.Report(), asked, brain.History);
+                AsideHead(asked, playing);
+                wait();
+                if (headFacts != expected || headSystem.Contains(Asides.Knowing)) throw new Exception("A game without a skill changed her request.");
+                native = null;
+                checks.Add("PASS aside game knowledge: a question in a game job gets the hands' wrapped skill (" + withSkill.Length + " letters sent against " + withoutSkill.Length + " without), while instructions, plain jobs, other games and switched-off skills keep the old request");
+
+                if (!Asides.Head.Contains("Your hands only get to it on their next move") || !Asides.Head.Contains("never that it's done or happening this second, and never what it showed")) throw new Exception("Her head lost the instruction to wait for her hands.");
+                lines.Clear();
+                reply = "SORT: ADD\nSAY: Ooh, good call, that's my next move.";
+                AsideHead(told, playing);
+                wait();
+                if (lines[0] != "Ooh, good call, that's my next move." || playing.Heard() != Voice.Quote(told)) throw new Exception("An ADD rewrote her own line or missed her hands.");
+                lines.Clear();
+                reply = "SORT: CHANGE\nSAY: Fine, south gate it is, next move.";
+                AsideHead("Try the south gate instead", playing);
+                wait();
+                if (lines[0] != "Fine, south gate it is, next move." || !playing.Changed().Contains("Try the south gate instead")) throw new Exception("A CHANGE rewrote her own line or missed her hands.");
+                checks.Add("PASS aside game honesty: her head is told her hands only act on their next move, and her own ADD and CHANGE lines reach speech unchanged");
+
+                lines.Clear();
+                byte[] oldFrame = { 1 }, freshFrame = { 2 };
+                playing.Frame = oldFrame;
+                Picture shown = Computer.Shown;
+                int captures = 0, uiCaptures = 0;
+                int ui = Thread.CurrentThread.ManagedThreadId;
+                Computer.Shoot = delegate { captures++; if (Thread.CurrentThread.ManagedThreadId == ui) uiCaptures++; return new Picture { Jpeg = freshFrame }; };
+                reply = "A blue lantern by the gate.";
+                AsideScreen("what is that", new ToolArguments(), playing);
+                wait();
+                if (captures != 1 || uiCaptures != 0 || headFrames == null || headFrames.Length != 1 || headFrames[0] != freshFrame || playing.Frame != oldFrame || Computer.Shown != shown || !headSystem.Contains(Asides.Seen) || !headFacts.Contains(know)) throw new Exception("Her screen answer reused an old frame, ran on her window's thread, missed the skill, or changed her hands' picture.");
+                lines.Clear();
+                Computer.Shoot = delegate { captures++; return null; };
+                headFrames = null;
+                AsideScreen("what just happened", new ToolArguments(), playing);
+                wait();
+                if (lines[0] != BlackScreen || headFrames != null || playing.Frame != oldFrame) throw new Exception("A failed capture answered from an old frame.");
+                lines.Clear();
+                Computer.Shoot = delegate { throw new InvalidOperationException("Stand-in capture failed."); };
+                AsideScreen("what was that", new ToolArguments(), playing);
+                wait();
+                if (lines[0] != "Couldn't grab the screen just now." || headFrames != null) throw new Exception("A capture error reached her head with an old frame.");
+                checks.Add("PASS aside game pictures: every screen question takes its own picture off her window's thread, keeps the hands' picture and the skill, and a failed capture never sends an old frame");
+
+                lines.Clear();
+                reply = "job_control{\"action\":\"change\",\"task\":\"Check the south gate\"}";
+                AsideHead("Check the south gate", playing);
+                wait();
+                if (!Lines.Is(Lines.Changed, lines[0]) || lines[0] == JobChanged || !playing.Changed().Contains("Check the south gate")) throw new Exception("Job control spoke its raw change result or lost the change.");
+                lines.Clear();
+                job = plain;
+                AsideHead("Check the south gate", playing);
+                wait();
+                if (lines[0] != "That job has ended.") throw new Exception("A stale job control call claimed a change.");
+                lines.Clear();
+                job = playing;
+                Security.Load("0000000000");
+                string held = Security.Gate("job_control", new ToolArguments { Action = "change", Task = "Check the south gate" });
+                string heldLine = Security.Reply(new List<string> { held });
+                AsideHead("Check the south gate", playing);
+                wait();
+                if (!Security.IsHold(held) || Security.Holding != "job_control" || lines[0] != heldLine || playing.Changed() != "") throw new Exception("A SECURITY hold was rewritten or changed the job.");
+                lines.Clear();
+                HeardMidJob("yes", playing);
+                wait();
+                if (!Lines.Is(Lines.Changed, lines[0]) || Security.Holding != null || !playing.Changed().Contains("Check the south gate")) throw new Exception("An approved job change spoke its raw result or missed the job.");
+                Security.Drop();
+                Security.Load("1111111111");
+                lines.Clear();
+                reply = "job_control{\"action\":\"status\"}";
+                AsideHead("where are you up to", playing);
+                wait();
+                if (Lines.Is(Lines.Changed, lines[0]) || Lines.Is(Lines.Stopped, lines[0])) throw new Exception("A job status became a stock line.");
+                lines.Clear();
+                reply = "job_control{\"action\":\"stop\"}";
+                AsideHead("End this run", playing);
+                wait();
+                if (!Lines.Is(Lines.Stopped, lines[0]) || stops != 1) throw new Exception("Job control spoke its raw stop result or missed the stop.");
+                checks.Add("PASS aside game tools: job control's change and stop are said in her words, status keeps its answer, stale jobs keep their error, and SECURITY keeps its exact question");
+
+                // A real night, replayed: the asks, a camera feed on screen now and the office in her hands' last picture.
+                string from = Environment.GetEnvironmentVariable("CAPRI_SKILL_CHECK");
+                if (string.IsNullOrEmpty(from) || !File.Exists(from)) { checks.Add("SKIP a real night's asks replayed through her side head: CAPRI_SKILL_CHECK names no .capri-skill"); return; }
+                real = ModList.Import(from, null);
+                windows.Clear();
+                windows.Add(new OpenWindow(new IntPtr(-1), "Five Nights at Freddy's - Play Online Free | Some Games Site - Google Chrome", "chrome"));
+                Job take = new Job("Okay Capri, let's play Five Nights at Freddy's. Use computer to play Five Nights at Freddy's");
+                ((Stopwatch)watch.GetValue(take)).Stop();
+                job = take;
+                byte[] office = { 7, 1 }, camera = { 7, 2 };
+                take.Frame = office;
+                Computer.Shoot = delegate { return new Picture { Jpeg = camera, Size = new Size(1920, 1080) }; };
+                string fnafKnow = ModList.SkillsFor("Five Nights at Freddy's");
+                string[,] said =
+                {
+                    { "2:53", "Hey, Capri. What the hell is the bite of 87?", "SORT: CHAT\nSAY: Phone Guy brings it up on night one, and nobody knows who bit who, choom." },
+                    { "3:20", "Hey Capri, anything down those halls yet?", "Nothing in the hall on this cam yet." },
+                    { "4:13", "Oh, come on. Hey, Capri, what happened?", "The camera cut to static, choom." },
+                    { "4:36", "Oh no, hey Capri, what the hell is that?", "That's Bonnie in the dining area, and he's looking at us." },
+                    { "5:24", "Hey Capri, you might want to shine one of those lights.", "SORT: ADD\nSAY: Ooh, good call, light's my next move." },
+                    { "6:04", "Hey Capri, do you see that?", "Yeah, something's right up on the Dining Area cam." },
+                    { "6:26", "Hey Capri, can you check Cam 2B?", "job_control{\"action\":\"change\",\"task\":\"Check CAM 2B next\"}" },
+                    { "7:49", "Hey Capri, shine that light.", "SORT: ADD\nSAY: On it, left light next, choom." },
+                    { "8:04", "Hey Capri, that's the camera, not the light.", "SORT: CHANGE\nSAY: Ugh, my bad, the light it is." },
+                    { "9:10", "Hey, Capri, uh, we lost.", "SORT: CHAT\nSAY: Aw, choom. Run it back?" }
+                };
+                StringBuilder replay = new StringBuilder("time | asked | path | picture sent | skill sent | her line\n");
+                for (int i = 0; i < said.GetLength(0); i++)
+                {
+                    lines.Clear();
+                    headSystem = headFacts = null;
+                    headFrames = null;
+                    reply = said[i, 2];
+                    HeardMidJob(said[i, 1], take);
+                    wait();
+                    string path = headSystem == null ? "none" : headSystem.Contains(Asides.Seen) ? "screen" : headSystem.Contains(Asides.Asked) ? "status" : headSystem.Contains("SORT:") ? "side head" : "other";
+                    string picture = headFrames == null || headFrames.Length == 0 ? "none" : headFrames[0] == camera ? "taken now (the camera on screen)" : headFrames[0] == office ? "her hands' last (the office)" : "other";
+                    bool knew = headFacts != null && fnafKnow.Length > 0 && headFacts.Contains(fnafKnow);
+                    replay.AppendLine(said[i, 0] + " | " + said[i, 1] + " | " + path + " | " + picture + " | " + (knew ? "yes" : "no") + " | " + lines[0]);
+                    take.Heard();
+                    take.Changed();
+                    if (path == "screen" && picture != "taken now (the camera on screen)") throw new Exception("A screen question in the replay got an old picture: " + said[i, 1]);
+                }
+                File.WriteAllText(Path.Combine(output, "aside-replay.txt"), replay.ToString());
+                string table = replay.ToString();
+                if (table.Contains("her hands' last") || table.Contains(JobChanged) || !table.Contains("2:53 | Hey, Capri. What the hell is the bite of 87? | side head | none | yes"))
+                    throw new Exception("The night's replay went wrong:\n" + table);
+                checks.Add("PASS a real night's asks replayed through her side head with " + real.File.Name + ": screen questions get a picture taken now, game questions get the skill, and Cam 2B is said in her words (table in aside-replay.txt)");
+            }
+            finally
+            {
+                if (real != null) ModList.Remove(real);
+                if (skill != null) ModList.Remove(ModList.All.Find(mod => mod.File.Id == "smoke-aside-game") ?? skill);
+                if (File.Exists(file)) File.Delete(file);
+                headTest = headWas; asideTest = asideWas; stopTest = stopWas;
+                Hands.Windows = windowsWas; Hands.JobControl = controlWas;
+                Computer.GameOpen = gameWas; Computer.SkillGame = skillWas; GameNotes.Skills = skillsWas; Computer.Shoot = shootWas;
+                brain.Remote = remoteWas; brain.Model = modelWas; Brain.Keeping = keepingWas;
+                chatting = chattingWas; job = jobWas; working = workWas;
+                Security.Drop(); Security.Load(saved, wakeWas); callSession.Change(callWas);
+            }
+        }
+
         // 0.8.0: she knows which of her tools work here. On this PC with a brain that can see, her tool lists and prompts are what
         // they always were. A brain that can't see pictures has no look_at_screen, is told why, and says so instead of looking,
         // and her help lists what she can do from the tools she has, mini games and chess included.
@@ -40857,6 +41132,7 @@ namespace CapriDesktop
             Section(checks, "SmokeActionEnds", delegate { SmokeActionEnds(checks, output); });
             Section(checks, "SmokeChoiceGates", delegate { SmokeChoiceGates(checks); });
             Section(checks, "SmokeAsideTools", delegate { SmokeAsideTools(checks); });
+            Section(checks, "SmokeAsideGame", delegate { SmokeAsideGame(checks, output); });
             Section(checks, "SmokeMixedAsks", delegate { SmokeMixedAsks(checks); });
             Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
@@ -58011,15 +58287,16 @@ namespace CapriDesktop
                 headGo.Set();
                 settle(120);
                 must(asides.Count == 1, "A late head talked over her status line: " + string.Join(" | ", asides.ToArray()));
-                byte[] newestFrame = { 1, 2, 3 };
+                byte[] newestFrame = { 1 }, asideFrame = { 1, 2, 3 };
                 byte[][] headFrames = null;
                 busy.Frame = newestFrame;
+                Computer.Shoot = delegate { return new Picture { Jpeg = asideFrame, Size = new Size(100, 100) }; };
                 headTest = delegate(string system, string ask, byte[][] frames) { headSystem = system; headFrames = frames; return "An unread email from Jake."; };
                 asides.Clear();
                 Hear("what do you see");
                 waitFor(delegate { return asides.Count > 0; });
-                must(asides.Count == 1 && asides[0] == "An unread email from Jake." && headFrames != null && headFrames.Length == 1 && headFrames[0] == newestFrame && headSystem.EndsWith(Asides.Seen, StringComparison.Ordinal), "A screen question didn't get the job's newest frame: " + (headFrames == null ? "no frames" : headFrames.Length + " frames"));
-                checks.Add("PASS status mid-job: \"how's it going\" and \"how long\" come straight from the job's own steps, her fast head words it if it's quick, the plain line goes out if it isn't, only one ever lands, and a screen question gets the job's newest frame");
+                must(asides.Count == 1 && asides[0] == "An unread email from Jake." && headFrames != null && headFrames.Length == 1 && headFrames[0] == asideFrame && busy.Frame == newestFrame && headSystem.EndsWith(Asides.Seen, StringComparison.Ordinal), "A screen question didn't get a fresh frame: " + (headFrames == null ? "no frames" : headFrames.Length + " frames"));
+                checks.Add("PASS status mid-job: \"how's it going\" and \"how long\" come straight from the job's own steps, her fast head words it if it's quick, the plain line goes out if it isn't, only one ever lands, and a screen question gets its own fresh frame");
 
                 TalkOver over = new TalkOver();
                 bool echoed = false;
