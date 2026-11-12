@@ -1068,6 +1068,9 @@ namespace CapriDesktop
                     Cloud remoteWas = brain.Remote;
                     string modelWas = brain.Model, addressWas = Brain.OpenAi, savedSecurity = Security.Saved;
                     bool ownStepsWas = brain.OwnSteps, keepingWas = Brain.Keeping, wakeWas = Security.On(Security.Wake), followWas = preferences.FollowUps, callWas = CallModeOn;
+                    // Her call-mode turn makes its ask the call user's. Left that way after call mode goes off, every tool on that
+                    // same ask says the call request has ended, so whoever comes next (SmokeInk's draw) finds her hands refused.
+                    int callUserWas = callUser, callUserVersionWas = callUserVersion, callAnswerWas = callAnswer;
                     System.Net.Sockets.TcpListener fake = null;
                     try
                     {
@@ -1113,6 +1116,7 @@ namespace CapriDesktop
                     {
                         if (fake != null) fake.Stop();
                         callSession.Change(callWas);
+                        callUser = callUserWas; callUserVersion = callUserVersionWas; callAnswer = callAnswerWas;
                         brain.Remote = remoteWas; brain.Model = modelWas; brain.OwnSteps = ownStepsWas; Brain.OpenAi = addressWas;
                         Brain.Keeping = keepingWas; preferences.FollowUps = followWas;
                         Security.Drop(); Security.Load(savedSecurity, wakeWas);
@@ -1121,6 +1125,18 @@ namespace CapriDesktop
                     }
                     emote.Stop();
                     RenderFrame();
+                    // And after it all, her hands still work: a plain draw goes through.
+                    {
+                        Func<ToolArguments, string> drawWas = Hands.Draw;
+                        ToolArguments drew = null;
+                        try
+                        {
+                            Hands.Draw = delegate(ToolArguments given) { drew = given; return "Drew on your screen."; };
+                            string drawResult = DoTool("draw", new ToolArguments { Shapes = "line 10 20 30 40" });
+                            if (drawResult != "Drew on your screen." || drew == null) throw new Exception("After her hearts and chair a plain draw didn't go through: \"" + drawResult + "\"");
+                        }
+                        finally { Hands.Draw = drawWas; }
+                    }
                     // With Motion off she says so and stays put.
                     preferences.Motion = false;
                     string still = Animate("chair");
