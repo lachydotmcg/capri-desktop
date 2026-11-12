@@ -16,7 +16,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-2025
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - name: Full size screen
@@ -24,7 +24,7 @@ jobs:
         run: ./ci/wide-screen.ps1
       - name: Build and smoke test
         shell: pwsh
-        run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 1200
+        run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 2100
       - name: Package marker
         if: always()
         shell: pwsh
