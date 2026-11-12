@@ -21,7 +21,6 @@ internal static class Program
             calls++;
             if (messages[0].Content.Contains(Chores.StreamRules)) streamPrompt = true;
             if (calls == 1) return "{\"do\":\"click\",\"x\":5,\"y\":5}";
-            Hands.Streaming = false;
             return "{\"do\":\"done\",\"said\":\"Finished fixture.\"}";
         }
     }
@@ -94,6 +93,40 @@ internal static class Program
         Hands.Work = (task, asked) => { fallback++; return "fallback fixture"; };
         result = Hands.Do("use_computer", new ToolArguments { Task = "open a folder" });
         Check("native-dispatch-control", result, result == "native fixture" && native == 1 && fallback == 0 && captures == 0 && actions == 0);
+        foreach (string game in new[] { (string)null, "chess" })
+        {
+            b = Prepare(true);
+            int nativeStreams = 0;
+            string taskSeen = null, askedSeen = null;
+            bool streamSeen = false;
+            Hands.NativeWork = args => "unexpected native-work call";
+            Hands.Work = (task, asked) => {
+                nativeStreams++; taskSeen = task; askedSeen = asked; streamSeen = Hands.Streaming;
+                Hands.Streaming = false;
+                return "native stream fixture";
+            };
+            result = Stream(new ToolArguments { Action = "start", Name = game, Asked = "wanna go live" });
+            string expected = game == null
+                ? "Stream the game that's open: play it yourself, live for their stream, and talk to their chat."
+                : "Stream chess: open it if it isn't open, then play it yourself, live for their stream, and talk to their chat.";
+            Check(game == null ? "native-stream-unnamed" : "native-stream-named", result,
+                result == "native stream fixture" && nativeStreams == 1 && streamSeen && taskSeen == expected && askedSeen == "wanna go live" && captures == 0 && actions == 0);
+        }
+        foreach (string job in new[] { "open the stream settings", "pause the streaming" })
+        {
+            b = Prepare(true);
+            result = Chores.Run(b, job, null);
+            Check("classifier-boundary-" + (job.IndexOf("streaming", StringComparison.Ordinal) >= 0 ? "streaming" : "stream"), result,
+                result == "Did it. Finished fixture." && captures == 2 && actions == 1 && calls == 2);
+        }
+        b = Prepare(true);
+        Hands.OnMac = true;
+        int macStreams = 0;
+        Hands.NativeWork = args => "unexpected native-work call";
+        Hands.Work = (task, asked) => { macStreams++; Hands.Streaming = false; return "mac native stream"; };
+        result = Stream(new ToolArguments { Action = "start", Asked = "wanna go live" });
+        Check("mac-stream-unavailable", result, result == "Live stream chat and timing aren't connected to Mac screen jobs yet." && macStreams == 0 && captures == 0 && actions == 0);
+        Hands.OnMac = false;
         b = Prepare(true);
         SelfJobs.Run(new ToolArguments { Task = "held" }, args => {
             Hands.Streaming = true;
