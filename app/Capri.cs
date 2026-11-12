@@ -22287,7 +22287,15 @@ namespace CapriDesktop
                     string selfSource;
                     if (!selfSources.TryGetValue(selfEntry.File, out selfSource))
                     {
-                        try { selfSource = File.ReadAllText(Path.Combine(selfRoot, "app", selfEntry.File)); }
+                        try
+                        {
+                            selfSource = File.ReadAllText(Path.Combine(selfRoot, "app", selfEntry.File));
+                            // SOUNDS is drawn by ChimeSettings.cs, another part of Mainframe, so its controls count as Mainframe's. Only
+                            // the calls that make a control are taken, never any other string in that file.
+                            if (selfEntry.File == "Mainframe.cs")
+                                foreach (Match selfPart in Regex.Matches(File.ReadAllText(Path.Combine(selfRoot, "app", "ChimeSettings.cs")), "(?<![\\w.])(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
+                                    selfSource += "\n" + selfPart.Value;
+                        }
                         catch (IOException) { selfReadable = false; break; }
                         catch (UnauthorizedAccessException) { selfReadable = false; break; }
                         selfSources.Add(selfEntry.File, selfSource);
