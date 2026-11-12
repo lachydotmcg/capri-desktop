@@ -1239,7 +1239,9 @@ namespace CapriDesktop
             Directory.CreateDirectory(box);
             Directory.CreateDirectory(project);
             string pictures = Path.Combine(folder, "look");
-            string app = @"C:\Users\you\Projects\release-089\app", mods = @"C:\Users\you\Projects\release-089\mods";
+            // The photo's chat ran in a release copy; here that's a stand-in folder, so its paths read from the chat's folder.
+            string release = Path.Combine(projects, "release-089"), app = Path.Combine(release, "app"), mods = Path.Combine(release, "mods");
+            foreach (string made in new[] { app, mods }) Directory.CreateDirectory(made);
             string bash1 = "cd /c/Users/you/Projects/capri-desktop/app; sed -n 1,40p Workspace.cs | grep -v \"^using\"; sed -n 315,332p Workspace.cs; sed -n 1295,1330p Workspace.cs; grep -n \"localhost\\|127.0.0.1\" *.cs";
             string bash2 = "cd /c/Users/you/Projects/release-089/app; grep -n \"ModList.Load()\\|mods.Load()\\|ModList = \\|new Mods(\" *.cs | grep -v \"throw\\|Smoke\\|Check\" | head; grep -n \"folder = \\|\\\"mods\\\"\" Mods.cs";
             Action<WorkspaceChat, string, string, string, string, string, string> call = delegate(WorkspaceChat chat, string turn, string id, string name, string about, string result, string how)
@@ -1253,7 +1255,26 @@ namespace CapriDesktop
                     if (result != null) chat.Items.Add(new WorkspaceItem { Kind = "result", Id = id, Text = result, Turn = turn, Decision = how == "fail" || how == "deny" ? "error" : "" });
                 }
             };
-            Action<WorkspaceChat, string, string> say = delegate(WorkspaceChat chat, string kind, string text) { lock (chat.Gate) chat.Items.Add(new WorkspaceItem { Kind = kind, Text = text }); };
+            // His first message names the chat, as sending it would.
+            Action<WorkspaceChat, string, string> say = delegate(WorkspaceChat chat, string kind, string text)
+            {
+                lock (chat.Gate)
+                {
+                    chat.Items.Add(new WorkspaceItem { Kind = kind, Text = text });
+                    if (kind == "user" && chat.Title == new DirectoryInfo(chat.Folder).Name) chat.Title = Workspace.TitleFrom(text, null);
+                }
+            };
+            // The parts of a summary line add up to its calls when no file is touched twice.
+            Func<string, int> sum = delegate(string line)
+            {
+                int total = 0;
+                foreach (string part in line.Split(new[] { ", ", " | " }, StringSplitOptions.None))
+                {
+                    int count;
+                    if (int.TryParse(part.Split(' ')[0], out count)) total += count;
+                }
+                return total;
+            };
             // The photo's turn, finished.
             Action<WorkspaceChat> photo = delegate(WorkspaceChat chat)
             {
@@ -1287,7 +1308,7 @@ namespace CapriDesktop
                     // The first open's empty chat in her folder isn't part of these pictures.
                     if (window.Chat != null) work.Delete(window.Chat);
 
-                    WorkspaceChat chat = work.NewChat(project, false);
+                    WorkspaceChat chat = work.NewChat(release, false);
                     work.Trust(chat, true);
                     chat.TrustAsked = true;
                     photo(chat);
@@ -1296,7 +1317,14 @@ namespace CapriDesktop
                     window.ScrollToEnd();
                     List<string> groups = window.ToolGroups;
                     string[] wanted = { "2 commands ran, 1 file read, 2 searches", "1 command ran, 1 file edited, 1 file written" };
-                    if (groups.Count != 2 || groups[0] != wanted[0] || groups[1] != wanted[1]) failures.Add(scale + "%: the photo's groups read " + string.Join(" / ", groups.ToArray()));
+                    if (groups.Count != 2 || groups[0] != wanted[0] || groups[1] != wanted[1] || sum(groups[0]) != 5 || sum(groups[1]) != 3) failures.Add(scale + "%: the photo's groups read " + string.Join(" / ", groups.ToArray()));
+                    Point tipAt;
+                    string tip = window.TipOn(0, out tipAt);
+                    if (window.PointerOn(0) != Cursors.Hand || tip == null || !tip.StartsWith("5 tool calls: Bash, Grep, Read", StringComparison.Ordinal)) failures.Add(scale + "%: a fold line's pointer or tooltip is wrong: " + tip);
+                    TipPicture(window, tip, tipAt, Path.Combine(pictures, "t-tip-fold-" + scale + ".png"), false);
+                    tip = window.TipOn(-1, out tipAt);
+                    if (tip != "Mode and model changes apply to your next message.") failures.Add(scale + "%: the MODE key's tooltip is " + tip);
+                    TipPicture(window, tip, tipAt, Path.Combine(pictures, "t-tip-mode-" + scale + ".png"), true);
                     if (window.Shining) failures.Add(scale + "%: the shine's clock ran with nothing running.");
                     shoot(window, "t-a-new-" + scale, null);
                     window.ToggleTool("p2");
@@ -1306,7 +1334,7 @@ namespace CapriDesktop
                     window.OpenToolGroups(false);
 
                     // A running turn: two calls done, a third running; the line says what's running and shines.
-                    WorkspaceChat live = work.NewChat(project, false);
+                    WorkspaceChat live = work.NewChat(release, false);
                     work.Trust(live, true);
                     live.TrustAsked = true;
                     WorkspaceTurn turn = new WorkspaceTurn { Chat = live };
@@ -1359,7 +1387,7 @@ namespace CapriDesktop
                     window.RefreshChat();
                     window.ScrollToEnd();
                     groups = window.ToolGroups;
-                    if (groups.Count != 1 || groups[0] != "1 command ran, 1 file edited | 1 failed, 1 denied") failures.Add(scale + "%: the rough group reads " + string.Join(" / ", groups.ToArray()));
+                    if (groups.Count != 1 || groups[0] != "1 file edited | 1 command failed, 1 read denied" || sum(groups[0]) != 3) failures.Add(scale + "%: the rough group reads " + string.Join(" / ", groups.ToArray()));
                     shoot(window, "t-d-closed-" + scale, null);
                     window.ToggleTool("d1");
                     window.ScrollToEnd();
@@ -1392,9 +1420,36 @@ namespace CapriDesktop
                     window.RefreshChat();
                     window.ScrollToEnd();
                     groups = window.ToolGroups;
-                    string[] longWanted = { "3 searches", "3 files read", "2 web lookups", "1 command ran, 2 files edited", "to-do list updated, 1 agent ran", "2 MCP calls" };
+                    string[] longWanted = { "3 searches", "3 files read", "2 web lookups", "1 command ran, 2 files edited", "to-do list updated, 1 agent ran", "2 GitHub calls" };
                     if (string.Join(" / ", groups.ToArray()) != string.Join(" / ", longWanted)) failures.Add(scale + "%: the long turn reads " + string.Join(" / ", groups.ToArray()));
                     shoot(window, "t-e-long-" + scale, null);
+                    // Opening a group in the middle of the conversation leaves the conversation where it was.
+                    window.ConversationTop = window.FoldTop(2) - (int)Math.Round(150 * z);
+                    int before = window.ConversationTop;
+                    window.ClickFold(2);
+                    if (window.ConversationTop != before) failures.Add(scale + "%: opening a group moved the conversation from " + before + " to " + window.ConversationTop);
+                    window.ClickFold(2);
+
+                    // Forty calls in one group, and one command 2,000 letters long.
+                    WorkspaceChat forty = work.NewChat(project, false);
+                    work.Trust(forty, true);
+                    forty.TrustAsked = true;
+                    say(forty, "user", "Check every mod still builds.");
+                    for (int i = 0; i < 40; i++) call(forty, "f", "f" + i, "Bash", "powershell -File tools\\build-mod.ps1 -Mod mod" + i, "ok", "");
+                    call(forty, "f", "f-long", "Bash", "echo " + new string('x', 1995), "ok", "");
+                    say(forty, "text", "They all build.");
+                    window.ShowChat(forty);
+                    window.RefreshChat();
+                    groups = window.ToolGroups;
+                    if (groups.Count != 1 || groups[0] != "41 commands ran") failures.Add(scale + "%: forty-one commands read " + string.Join(" / ", groups.ToArray()));
+                    Stopwatch opening = Stopwatch.StartNew();
+                    window.OpenToolGroups(true);
+                    window.ToggleTool("f-long");
+                    window.Refresh();
+                    long took = opening.ElapsedMilliseconds;
+                    string crowded = window.Crowded();
+                    if (took > 600 || crowded != null) failures.Add(scale + "%: opening 41 calls with a 2,000-letter command took " + took + " ms: " + crowded);
+                    window.OpenToolGroups(false);
 
                     // The narrowest window, with the photo's turn.
                     window.ShowChat(chat);
@@ -1406,8 +1461,32 @@ namespace CapriDesktop
                 }
             }
             File.WriteAllLines(Path.Combine(pictures, "t-c-rows.txt"), rows.ToArray());
+            // Every picture above came from these sections; the 41-call check is in the failures too.
             if (failures.Count > 0) throw new Exception(string.Join(" | ", failures.ToArray()));
             checks.Add("PASS Workspace puts each run of tool calls behind one closed line worded by what finished (commands ran, files read, edited and written, searches, web lookups, agents, MCP calls), marks a failed or denied call on that line and names what's running while it shines; the shine's clock runs only while a running call is seen and stops when it finishes or the window is minimised");
+        }
+
+        // A tooltip as it shows, laid on the window's own picture where it would appear: the window copy doesn't take Windows'
+        // separate tooltip window, so it's drawn here with the tooltip's own drawing.
+        private static void TipPicture(WorkspaceWindow window, string text, Point at, string path, bool above)
+        {
+            // Same settling as the other pictures, or the first copy at 100% can catch the Send key before it paints.
+            window.Refresh();
+            Application.DoEvents();
+            LookShots.Flush();
+            using (Bitmap shot = LookShots.Copy(window))
+            using (Graphics graphics = Graphics.FromImage(shot))
+            {
+                Size size = WorkPaint.TipSize(text, window.TipFont);
+                int x = Math.Max(4, Math.Min(at.X, shot.Width - size.Width - 4));
+                int y = above ? at.Y - size.Height - window.Z(6) : at.Y + window.Z(16);
+                WorkPaint.DrawTip(graphics, new Rectangle(x, y, size.Width, size.Height), text, window.TipFont);
+                using (Bitmap sheet = new Bitmap(shot.Width + 56, shot.Height + 56))
+                {
+                    using (Graphics paper = Graphics.FromImage(sheet)) { paper.Clear(LookShots.Paper); paper.DrawImage(shot, 28, 28); }
+                    sheet.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+                }
+            }
         }
 
         private static string WorkspaceHeaderOf(Func<string, string> alias, string folder) { return alias != null ? alias(folder) : folder; }
