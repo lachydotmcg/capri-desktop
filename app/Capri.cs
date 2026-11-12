@@ -36260,6 +36260,31 @@ namespace CapriDesktop
                     delegate(Question q) { if (q.DialogResult != DialogResult.None) throw new Exception("A held key answered the mod question."); focused(q, q.YesKey); press(q, Keys.Escape); }
                 });
                 checks.Add("PASS mod question: a held Enter, Space, Y or Alt+Y repeating into it from before it opened presses nothing, even with Yes focused");
+                // The default key shows: a focused key's rim is lit brighter than the same key's unfocused rim, on No as the box
+                // opens and on Yes after Tab.
+                Func<Button, int> rim = delegate(Button key)
+                {
+                    using (Bitmap face = new Bitmap(key.Width, key.Height))
+                    {
+                        key.DrawToBitmap(face, new Rectangle(Point.Empty, face.Size));
+                        int lit = 0;
+                        for (int y = 0; y < 3; y++) { Color c = face.GetPixel(key.Width / 2, y); lit = Math.Max(lit, c.R + c.G + c.B); }
+                        return lit;
+                    }
+                };
+                int noOpen = 0, yesOpen = 0;
+                expect("its default key showing", DialogResult.No, new Action<Question>[]
+                {
+                    delegate(Question q) { focused(q, q.NoKey); noOpen = rim(q.NoKey); yesOpen = rim(q.YesKey); press(q, Keys.Tab); },
+                    delegate(Question q)
+                    {
+                        focused(q, q.YesKey);
+                        int noAfter = rim(q.NoKey), yesAfter = rim(q.YesKey);
+                        if (noOpen <= noAfter || yesAfter <= yesOpen) throw new Exception("The mod question's focused key doesn't show: No rim " + noOpen + " focused, " + noAfter + " not; Yes rim " + yesAfter + " focused, " + yesOpen + " not.");
+                        press(q, Keys.Escape);
+                    }
+                });
+                checks.Add("PASS mod question: the focused key's rim is lit, on No as it opens and on Yes after Tab, so the default shows");
                 foreach (bool top in new[] { false, true })
                 {
                     owner.TopMost = top;
@@ -36370,33 +36395,12 @@ namespace CapriDesktop
                 checks.Add("PASS mod question: exact title and consent text and named keys; a 60-letter name, 40-letter author and every permission fit with nothing clipped at 100%, 125% and 150%, on this screen and on a small one left of it; a long one on a short screen scrolls to its last line and back by End, Home and the wheel with both keys showing and No still focused; saved mod-ask-100, -125, -150, -long-100 and, for an everyday mod, -real-100");
                 owner.Close();
             }
-            // The question cut to its own shape on a clear ground, to lay over a picture of her Mainframe.
-            using (Question q = new Question(consent, caption, 1f))
-            {
-                q.Opacity = 0;
-                q.Show();
-                q.Lay(area, Rectangle.Empty);
-                Application.DoEvents();
-                using (Bitmap asked = new Bitmap(q.Width, q.Height))
-                using (Bitmap cut = new Bitmap(q.Width, q.Height))
-                {
-                    q.DrawToBitmap(asked, new Rectangle(Point.Empty, asked.Size));
-                    using (Graphics graphics = Graphics.FromImage(cut))
-                    {
-                        graphics.Clear(Color.Transparent);
-                        using (Region shape = q.Region.Clone()) graphics.SetClip(shape, CombineMode.Replace);
-                        graphics.DrawImageUnscaled(asked, 0, 0);
-                    }
-                    cut.Save(Path.Combine(output, "mod-ask-cut-100.png"), ImageFormat.Png);
-                }
-                q.Close();
-            }
             byte[] il = typeof(Mainframe).GetMethod("AskToRun", BindingFlags.Instance | BindingFlags.NonPublic).GetMethodBody().GetILAsByteArray();
             int token = typeof(Question).GetMethod("Ask", BindingFlags.Static | BindingFlags.NonPublic).MetadataToken;
             bool routed = false;
             for (int i = 0; i + 4 < il.Length; i++) if (il[i] == 0x28 && BitConverter.ToInt32(il, i + 1) == token) routed = true;
             if (!routed || mainframe.ModAsk == null || mainframe.ModAsk.Method.Name != "AskToRun") throw new Exception("Her code mod question doesn't go through Question.Ask.");
-            checks.Add("PASS AskToRun asks through Question.Ask, and it's the Mainframe's question for code mods; saved mod-ask-cut-100.png and her OK notices as notice-100.png and notice-error-100.png");
+            checks.Add("PASS AskToRun asks through Question.Ask, and it's the Mainframe's question for code mods; saved her OK notices as notice-100.png and notice-error-100.png");
         }
 
         private void SmokeMainframePictures(System.Collections.Generic.List<string> checks)

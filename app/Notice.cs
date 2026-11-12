@@ -308,9 +308,12 @@ namespace CapriDesktop
             }
         }
 
+        // Windows hides focus marks on a window opened with the mouse, which hid that No is picked. Her keys light their rim
+        // when focused, so the marks are turned on: the default shows from the start and moves with Tab.
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
+            Native.SendMessage(Handle, 0x0127, new IntPtr(0x10002), IntPtr.Zero);
             no.Focus();
         }
 
