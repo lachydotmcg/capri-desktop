@@ -1368,10 +1368,16 @@ namespace CapriDesktop
                     if (!window.Shining) failures.Add(scale + "%: the shine didn't come back after the window was restored.");
                     lock (live.Gate) live.Items.Add(new WorkspaceItem { Kind = "result", Id = "r3", Text = "     1\t// Hello, from a code mod.", Turn = turn.Id });
                     window.RefreshChat();
-                    if (window.Shining) failures.Add(scale + "%: the shine kept running after the call finished.");
+                    // The call finished and the turn goes on: Claude is thinking, and the Thinking line shines where the call did.
+                    if (!window.Thinking || !window.Shining) failures.Add(scale + "%: no shining Thinking line while Claude thinks between calls.");
+                    WorkspaceWindow.ShineAt = 0.45;
+                    shoot(window, "v3-thinking-" + scale, null);
+                    WorkspaceWindow.ShineAt = -1;
                     groups = window.ToolGroups;
                     if (groups.Count != 1 || groups[0] != "1 command ran, 1 file read, 1 search") failures.Add(scale + "%: the count didn't take the finished call: " + string.Join(" / ", groups.ToArray()));
                     live.Live = null;
+                    window.RefreshChat();
+                    if (window.Shining || window.Thinking) failures.Add(scale + "%: the shine or the Thinking line stayed after the turn ended.");
 
                     // A group with a failed call, a denied one and one he was asked about and allowed.
                     WorkspaceChat rough = work.NewChat(project, false);
@@ -1457,6 +1463,74 @@ namespace CapriDesktop
                     window.RefreshChat();
                     window.ScrollToEnd();
                     shoot(window, "t-f-narrow-" + scale, null);
+                    window.ClientSize = full;
+
+                    // His snake video: a Grep card at the end of a long turn reads as one plain sentence with its raw input behind a
+                    // link; answering it leaves what he was reading where it was; the time and cost read to the cent.
+                    WorkspaceChat snake = work.NewChat(release, false);
+                    work.Trust(snake, true);
+                    snake.TrustAsked = true;
+                    WorkspaceTurn snakeTurn = new WorkspaceTurn { Chat = snake };
+                    say(snake, "user", "Hey Capri, code me a Cyberpunk style Snake Game connected to Capri-desktop that I can pull up and play without having to restart Capri.");
+                    WorkspaceItem reading = null;
+                    for (int k = 0; k < 4; k++)
+                    {
+                        say(snake, "text", k == 3 ? "Found it: Capri loads code mods live via Mainframe \u2192 Mods \u2192 Import. Checking permission rules, then writing the game." : "Looking at how code mods load, step " + (k + 1) + ".");
+                        if (k == 3) lock (snake.Gate) reading = snake.Items[snake.Items.Count - 1];
+                        call(snake, snakeTurn.Id, "v" + k + "a", "Grep", app, "Found 3 files", "allow");
+                        call(snake, snakeTurn.Id, "v" + k + "b", "Read", app + @"\ModApi.cs", "     1\t// The API code mods draw with.", "allow");
+                    }
+                    string grepInput = HuskJson.Write(HuskJson.Map("pattern", "permission|Store|AddMenuItem|menu", "path", mods + @"\MODDING.md", "output_mode", "content", "-i", true));
+                    WorkspaceItem grepCall = new WorkspaceItem { Kind = "tool", Id = "v9", Name = "Grep", Text = "Grep " + mods + @"\MODDING.md", Input = grepInput, Turn = snakeTurn.Id };
+                    WorkspaceItem grepAsk = new WorkspaceItem { Kind = "approval", Name = "Grep", Text = "Grep: " + mods + @"\MODDING.md", Input = grepInput, Turn = snakeTurn.Id };
+                    grepAsk.Ask = new WorkspaceApproval { Item = grepAsk };
+                    lock (snake.Gate) { snake.Items.Add(grepCall); snake.Items.Add(grepAsk); }
+                    snake.Live = snakeTurn;
+                    // The Grep's line shines while the card waits; its pass is held still so the pictures don't catch it mid-frame.
+                    WorkspaceWindow.ShineAt = 0.45;
+                    window.ShowChat(snake);
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    Point details;
+                    List<string> card = window.CardWords(out details);
+                    string plain = "Search mods\\MODDING.md for \u201cpermission|Store|AddMenuItem|menu\u201d";
+                    if (!card.Contains(plain) || !card.Contains("Show the details") || details == Point.Empty || card.Exists(delegate(string words) { return words.StartsWith("Claude Code wants", StringComparison.Ordinal); }))
+                        failures.Add(scale + "%: the Grep card reads " + string.Join(" / ", card.ToArray()));
+                    shoot(window, "v5-card-" + scale, null);
+                    window.PressTranscript(details);
+                    card = window.CardWords(out details);
+                    if (!card.Contains("Hide the details")) failures.Add(scale + "%: the card's details didn't open: " + string.Join(" / ", card.ToArray()));
+                    window.ScrollToEnd();
+                    shoot(window, "v5-card-open-" + scale, null);
+                    window.PressTranscript(details);
+                    window.ScrollToEnd();
+                    shoot(window, "v2-before-allow-" + scale, null);
+                    int readTop = window.TopOf(reading);
+                    lock (snake.Gate)
+                    {
+                        grepAsk.Decision = "allow";
+                        grepAsk.Text = "Allowed: Grep: " + mods + @"\MODDING.md";
+                        grepAsk.Ask.Answered.Dispose();
+                        grepAsk.Ask = null;
+                    }
+                    window.RefreshChat();
+                    if (readTop == int.MinValue || window.TopOf(reading) != readTop) failures.Add(scale + "%: answering the card moved what he was reading from " + readTop + " to " + window.TopOf(reading));
+                    shoot(window, "v2-after-allow-" + scale, null);
+                    lock (snake.Gate) snake.Items.Add(new WorkspaceItem { Kind = "result", Id = "v9", Text = "MODDING.md:12: Import a mod from Mainframe \u2192 Mods.", Turn = snakeTurn.Id });
+                    window.RefreshChat();
+                    if (!window.Thinking || window.TopOf(reading) != readTop) failures.Add(scale + "%: after the result, Thinking is " + window.Thinking + " and what he was reading sits at " + window.TopOf(reading));
+                    // The turn ends with a summary while he's at the end: the view follows it, as Metis does.
+                    say(snake, "text", "Cyber Snake is built, compiled and tested.\n\nTo play it:\n1. Open Mainframe \u2192 Mods \u2192 Import mod.\n2. Pick cyber-snake.capri-code.\n3. Say \"play snake\".");
+                    lock (snake.Gate) snake.Items.Add(new WorkspaceItem { Kind = "end", Text = "1174.7s | $1.8235778" });
+                    snake.Live = null;
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    string ended = WorkspaceWindow.EndText("1174.7s | $1.8235778");
+                    if (ended != "19m 35s  \u00b7  $1.82" || Workspace.Ended(1174.7, "1.8235778") != "19m 35s | $1.82" || Workspace.Ended(4.2, "0.04") != "4.2s | $0.04" || Workspace.Money("0.0004") != "under $0.01")
+                        failures.Add(scale + "%: the time and cost line reads " + ended);
+                    if (window.Thinking || window.Shining) failures.Add(scale + "%: Thinking stayed after the snake turn ended.");
+                    shoot(window, "v4-cost-" + scale, null);
+                    WorkspaceWindow.ShineAt = -1;
                     window.Close();
                 }
             }
@@ -1464,6 +1538,86 @@ namespace CapriDesktop
             // Every picture above came from these sections; the 41-call check is in the failures too.
             if (failures.Count > 0) throw new Exception(string.Join(" | ", failures.ToArray()));
             checks.Add("PASS Workspace puts each run of tool calls behind one closed line worded by what finished (commands ran, files read, edited and written, searches, web lookups, agents, MCP calls), marks a failed or denied call on that line and names what's running while it shines; the shine's clock runs only while a running call is seen and stops when it finishes or the window is minimised");
+        }
+
+        // The user's open and save dialog history (HKCU ...\Explorer\ComDlg32: the last folder per program, and recent files
+        // per file type), read before a smoke opens real dialogs and put back after: values the run added go, values it changed
+        // get their old contents back. Nothing outside that key is touched.
+        private sealed class DialogMemory
+        {
+            private const string Root = @"Software\Microsoft\Windows\CurrentVersion\Explorer\ComDlg32";
+            private readonly Dictionary<string, KeyValuePair<object, Microsoft.Win32.RegistryValueKind>> kept = Read();
+
+            private static Dictionary<string, KeyValuePair<object, Microsoft.Win32.RegistryValueKind>> Read()
+            {
+                Dictionary<string, KeyValuePair<object, Microsoft.Win32.RegistryValueKind>> values = new Dictionary<string, KeyValuePair<object, Microsoft.Win32.RegistryValueKind>>();
+                try { Walk(Microsoft.Win32.Registry.CurrentUser.OpenSubKey(Root), "", values); } catch (Exception) { }
+                return values;
+            }
+
+            private static void Walk(Microsoft.Win32.RegistryKey key, string path, Dictionary<string, KeyValuePair<object, Microsoft.Win32.RegistryValueKind>> into)
+            {
+                if (key == null) return;
+                using (key)
+                {
+                    foreach (string name in key.GetValueNames())
+                        into[path + "\u0001" + name] = new KeyValuePair<object, Microsoft.Win32.RegistryValueKind>(key.GetValue(name, null, Microsoft.Win32.RegistryValueOptions.DoNotExpandEnvironmentNames), key.GetValueKind(name));
+                    foreach (string sub in key.GetSubKeyNames()) Walk(key.OpenSubKey(sub), path.Length == 0 ? sub : path + "\\" + sub, into);
+                }
+            }
+
+            private static bool Same(object a, object b)
+            {
+                byte[] x = a as byte[], y = b as byte[];
+                if (x != null && y != null)
+                {
+                    if (x.Length != y.Length) return false;
+                    for (int i = 0; i < x.Length; i++) if (x[i] != y[i]) return false;
+                    return true;
+                }
+                string[] p = a as string[], q = b as string[];
+                if (p != null && q != null) return string.Join("\u0000", p) == string.Join("\u0000", q);
+                return Equals(a, b);
+            }
+
+            // How many values were put back, or -1 when the key couldn't be written.
+            internal int Restore()
+            {
+                try
+                {
+                    int put = 0;
+                    Dictionary<string, KeyValuePair<object, Microsoft.Win32.RegistryValueKind>> now = Read();
+                    foreach (KeyValuePair<string, KeyValuePair<object, Microsoft.Win32.RegistryValueKind>> value in now)
+                    {
+                        KeyValuePair<object, Microsoft.Win32.RegistryValueKind> was;
+                        if (kept.TryGetValue(value.Key, out was) && Same(was.Key, value.Value.Key)) continue;
+                        string[] at = value.Key.Split('\u0001');
+                        using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(at[0].Length == 0 ? Root : Root + "\\" + at[0], true))
+                        {
+                            if (key == null) continue;
+                            if (kept.ContainsKey(value.Key)) key.SetValue(at[1], was.Key, was.Value);
+                            else key.DeleteValue(at[1], false);
+                            put++;
+                        }
+                    }
+                    return put;
+                }
+                catch (Exception) { return -1; }
+            }
+
+            // Values that name a smoke's picker folder after Restore: none unless another program wrote them meanwhile.
+            internal int Leftover()
+            {
+                int left = 0;
+                foreach (KeyValuePair<string, KeyValuePair<object, Microsoft.Win32.RegistryValueKind>> value in Read())
+                {
+                    if (kept.ContainsKey(value.Key)) continue;
+                    byte[] bytes = value.Value.Key as byte[];
+                    string text = bytes != null ? Encoding.Unicode.GetString(bytes) : Convert.ToString(value.Value.Key);
+                    if (text.IndexOf("workspace-pickers", StringComparison.OrdinalIgnoreCase) >= 0) left++;
+                }
+                return left;
+            }
         }
 
         // A tooltip as it shows, laid on the window's own picture where it would appear: the window copy doesn't take Windows'
@@ -1636,6 +1790,20 @@ namespace CapriDesktop
         // Explorer's own pickers, opened for real on the smoke's hidden desktop and driven by messages from another thread:
         // pictured, read back, cancelled, and accepted with known folders and files.
         private void SmokeWorkspacePickers(List<string> checks, string folder)
+        {
+            // Windows remembers where a program's open dialogs went, by program name, so this run's picks would be where his own
+            // Capri's dialogs open next (the Import mod dialog opened in one on 12 Nov). The history goes back as it was found.
+            DialogMemory memory = new DialogMemory();
+            try { PickersOnce(checks, folder); }
+            finally
+            {
+                int put = memory.Restore();
+                if (put < 0) checks.Add("LIMIT Workspace pickers: Windows' dialog history couldn't be put back after the picks.");
+                else if (memory.Leftover() > 0) checks.Add("LIMIT Workspace pickers: Windows' dialog history still names this run's folders after " + put + " values were put back.");
+            }
+        }
+
+        private void PickersOnce(List<string> checks, string folder)
         {
             folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
             string pictures = Path.Combine(folder, "pictures"), project = Path.Combine(folder, "project");
