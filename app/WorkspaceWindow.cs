@@ -2584,6 +2584,8 @@ namespace CapriDesktop
             private static Color Green { get { return Neon.Tone(1, 247, 109); } }
             private static Color Pink { get { return Neon.Tone(253, 0, 79); } }
             private static Color Quiet(Color ink) { return Mix(Neon.Field, ink, 0.62f); }
+            // A running line sits a step below full green so the shine passing over it reads.
+            private static Color Live { get { return Mix(Neon.Field, Green, 0.8f); } }
 
             private static Color Mix(Color from, Color to, float t)
             {
@@ -2606,7 +2608,7 @@ namespace CapriDesktop
                 using (Brush fill = new SolidBrush(Neon.Faint)) graphics.FillPolygon(fill, caret);
                 graphics.SmoothingMode = was;
                 bool running = block.Doing != null;
-                Color ink = running ? Green : block.HeadMark.Length > 0 ? Pink : Quiet(Green);
+                Color ink = running ? Live : block.HeadMark.Length > 0 ? Pink : Quiet(Green);
                 RectangleF icon = new RectangleF(head.Left + Z(22), mid - Z(7), Z(14), Z(14));
                 WorkPaint.ToolMark(graphics, block.HeadTool, icon, ink, s);
                 int x = head.Left + Z(44), right = head.Right - Z(8);
@@ -2615,8 +2617,8 @@ namespace CapriDesktop
                 {
                     int wide = Math.Min(right - x, WorkPaint.Wide(block.Doing, font) + Z(2));
                     Rectangle doing = new Rectangle(x, head.Top, Math.Max(1, wide), head.Height);
-                    TextRenderer.DrawText(graphics, block.Doing, font, doing, Green, WorkPaint.Line | TextFormatFlags.EndEllipsis);
-                    Shine(graphics, head, icon, block.HeadTool, doing, block.Doing, font, WorkPaint.Line | TextFormatFlags.EndEllipsis, Green);
+                    TextRenderer.DrawText(graphics, block.Doing, font, doing, Live, WorkPaint.Line | TextFormatFlags.EndEllipsis);
+                    Shine(graphics, head, icon, block.HeadTool, doing, block.Doing, font, WorkPaint.Line | TextFormatFlags.EndEllipsis, Live, block == hovered && hoveredHead ? Neon.Hover : Color.Empty);
                     x = doing.Right + Z(10);
                 }
                 string words = block.Words + (block.Words.Length > 0 && block.Trouble.Length > 0 ? "," : "");
@@ -2646,8 +2648,8 @@ namespace CapriDesktop
                 if (block == hovered && !hoveredHead || block.Open) WorkPaint.Plate(graphics, row, 5 * s, block == hovered && !hoveredHead ? Neon.Hover : Neon.Band, Color.Empty, 0);
                 using (Pen rule = new Pen(Neon.Rule, Math.Max(1f, s))) graphics.DrawLine(rule, block.Box.Left + Z(9), row.Top - Z(2), block.Box.Left + Z(9), block.Box.Bottom);
                 string status = Status(block);
-                Color ink = block.Running ? Green : status == "failed" || status == "denied" ? Pink : Quiet(Green);
-                Color words = block.Running ? Green : status == "failed" ? Pink : status == "denied" ? Neon.Faint : Quiet(Green);
+                Color ink = block.Running ? Live : status == "failed" || status == "denied" ? Pink : Quiet(Green);
+                Color words = block.Running ? Live : status == "failed" ? Pink : status == "denied" ? Neon.Faint : Quiet(Green);
                 RectangleF icon = new RectangleF(row.Left + Z(6), row.Top + (row.Height - Z(13)) / 2f, Z(13), Z(13));
                 WorkPaint.ToolMark(graphics, item.Name, icon, ink, s);
                 string text = Detail(block, false);
@@ -2655,24 +2657,34 @@ namespace CapriDesktop
                 Rectangle at = new Rectangle(row.Left + Z(26), row.Top, Math.Max(1, row.Width - Z(26) - Z(26)), row.Height);
                 TextRenderer.DrawText(graphics, text, window.note, at, words, flags);
                 if (status.Length > 0) WorkPaint.StatusMark(graphics, status, new PointF(row.Right - Z(12), row.Top + row.Height / 2f), Z(4), status == "asked" ? Quiet(Green) : Pink, s);
-                if (block.Running) Shine(graphics, row, icon, item.Name, at, text, window.note, flags, Green);
+                if (block.Running) Shine(graphics, row, icon, item.Name, at, text, window.note, flags, Live, block == hovered && !hoveredHead ? Neon.Hover : block.Open ? Neon.Band : Color.Empty);
             }
 
             // A soft highlight sweeping left to right over a running line's picture and words, about 1.5 s a pass: the line is
-            // drawn again in thin slices, each a step brighter towards the middle of the band.
-            private void Shine(Graphics graphics, Rectangle area, RectangleF icon, string tool, Rectangle box, string text, Font font, TextFormatFlags flags, Color ink)
+            // drawn again in thin slices, each on its own ground and a step brighter towards the middle of the band, so the
+            // letters never pile up over themselves.
+            private void Shine(Graphics graphics, Rectangle area, RectangleF icon, string tool, Rectangle box, string text, Font font, TextFormatFlags flags, Color ink, Color plate)
             {
                 double phase = ShineFixed >= 0 ? ShineFixed : (shineTime.ElapsedMilliseconds % 1500) / 1500.0;
-                int from = (int)icon.Left, to = box.Left + Math.Min(box.Width, WorkPaint.Wide(text, font));
-                int band = Z(64);
-                float centre = (float)(from - band + phase * (to - from + band * 2));
-                const int slices = 12;
+                int from = (int)icon.Left - Z(2), to = box.Left + Math.Min(box.Width, WorkPaint.Wide(text, font)) + Z(2);
+                int band = Z(84);
+                float centre = (float)(from - band / 2f + phase * (to - from + band));
+                const int slices = 14;
+                float step = band / (float)slices;
                 GraphicsState state = graphics.Save();
                 for (int k = 0; k < slices; k++)
                 {
-                    float a = centre - band / 2f + k * band / (float)slices, t = 1f - Math.Abs((k + 0.5f) / slices * 2f - 1f);
-                    Color lit = Mix(ink, Neon.White, 0.85f * t * t);
-                    graphics.SetClip(new RectangleF(a, area.Top, band / (float)slices + 0.5f, area.Height));
+                    float a = (float)Math.Floor(centre - band / 2f + k * step), b = (float)Math.Floor(centre - band / 2f + (k + 1) * step);
+                    float left = Math.Max(a, from), right = Math.Min(b, to);
+                    if (right <= left) continue;
+                    float t = 1f - Math.Abs((k + 0.5f) / slices * 2f - 1f);
+                    Color lit = Mix(ink, Mix(Green, Neon.White, 0.7f), t * t * (3 - 2 * t));
+                    graphics.SetClip(new RectangleF(left, area.Top, right - left, area.Height));
+                    GraphicsState inner = graphics.Save();
+                    graphics.ResetTransform();
+                    WorkPaint.Behind(graphics, this);
+                    graphics.Restore(inner);
+                    if (plate.A > 0) WorkPaint.Plate(graphics, area, 5 * window.zoom, plate, Color.Empty, 0);
                     WorkPaint.ToolMark(graphics, tool, icon, lit, window.zoom);
                     TextRenderer.DrawText(graphics, text, font, box, lit, flags);
                 }
