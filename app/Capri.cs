@@ -32580,7 +32580,7 @@ namespace CapriDesktop
             Func<List<OpenWindow>> windowsWas = Hands.Windows;
             Func<string> gameWas = Computer.GameOpen;
             Func<string, string> skillWas = Computer.SkillGame;
-            Func<Sight> glimpseWas = Computer.Glimpse;
+            Func<Sight> lookWas = Computer.Look, glimpseWas = Computer.Glimpse;
             Func<Rectangle?, Picture> shootWas = Computer.Shoot;
             string folderWas = GameNotes.Folder;
             string folder = Path.Combine(output, "browser-notes-" + Guid.NewGuid().ToString("N"));
@@ -32602,7 +32602,8 @@ namespace CapriDesktop
                 Hands.Windows = delegate { return windows; };
                 Computer.GameOpen = find;
                 Sight view = null;
-                Computer.Glimpse = delegate { return view; };
+                // Her text brain looks with Look and the others with Glimpse; both see the tab, never whatever window is really in front.
+                Computer.Look = Computer.Glimpse = delegate { return view; };
                 byte[] frame;
                 using (Bitmap blank = new Bitmap(240, 160)) frame = Jpeg(blank, 240);
                 Computer.Shoot = delegate { return new Picture { Jpeg = frame, Size = new Size(240, 160), Area = new Rectangle(0, 0, 240, 160), Sight = view }; };
@@ -32703,7 +32704,7 @@ namespace CapriDesktop
                 if (shorter != null) ModList.Remove(shorter);
                 if (skill != null) ModList.Remove(skill);
                 Hands.Windows = windowsWas; Computer.GameOpen = gameWas; Computer.SkillGame = skillWas;
-                Computer.Glimpse = glimpseWas; Computer.Shoot = shootWas; GameNotes.Folder = folderWas;
+                Computer.Look = lookWas; Computer.Glimpse = glimpseWas; Computer.Shoot = shootWas; GameNotes.Folder = folderWas;
                 if (Directory.Exists(folder)) Directory.Delete(folder, true);
             }
         }
