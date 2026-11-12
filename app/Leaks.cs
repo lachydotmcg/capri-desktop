@@ -41,7 +41,7 @@ namespace CapriDesktop
         private static readonly Regex ThinkOpen = new Regex(@"<(?:think|thinking|thoughts?|reasoning|seed:think)(?:\s[^<>]*)?>|\[THINK\]|◁think▷|<\|begin_of_thought\|>|<\|channel>thought\b|<\|thinking\|>", RegexOptions.IgnoreCase);
         private static readonly Regex ThinkClose = new Regex(@"</(?:think|thinking|thoughts?|reasoning|seed:think)\s*>|\[/THINK\]|◁/think▷|<\|end_of_thought\|>|<channel\|>|<\|/thinking\|>", RegexOptions.IgnoreCase);
         // The start of a tag a reply was cut off in: "...<thi".
-        private static readonly Regex HalfThink = new Regex(@"</?th(?:i(?:n(?:k(?:i(?:n(?:g)?)?)?)?)?)?\s*\z", RegexOptions.IgnoreCase);
+        private static readonly Regex HalfThink = new Regex(@"</?thi(?:n(?:k(?:i(?:n(?:g)?)?)?)?)?\s*\z", RegexOptions.IgnoreCase);
         // gpt-oss writes its thinking on an analysis channel and its answer on a final one. Some hosts send the channels as words,
         // with the special tokens gone: "analysisThe user says hi...assistantfinalHey!".
         private static readonly Regex HarmonyFinal = new Regex(@"<\|channel\|>\s*final\s*(?:<\|constrain\|>\s*[\w.-]+\s*)?<\|message\|>(.*?)(?=<\|end\|>|<\|return\|>|<\|call\|>|<\|start\|>|\z)", Loose);
@@ -58,14 +58,28 @@ namespace CapriDesktop
         private static readonly Regex CallFence = new Regex(@"\A\s*(?:tool_code|tool_calls?|tool_use|function_calls?|functions?)\s*\z", RegexOptions.IgnoreCase);
 
         // Thinking with no tags, in plain words: a brain talking about "the user" or its tools to itself, never to them (PR 245:
-        // "The user is asking me to close discord ... the correct tool call would be app_window").
+        // "The user is asking me to close discord ... the correct tool call would be app_window"). Plenty of honest answers talk
+        // about "the user" too (a sign-up page, an error, a game's rules), so a paragraph only counts when it also talks to itself
+        // about its own reply. After one that does, the paragraphs that carry on about the user or its tools go with it.
         private static readonly Regex Musing = new Regex(
-            @"\bthe user(?:'s)?\s+(?:is|was|has|had|just|now|seems|might|may|probably|likely|clearly|wants?|wanted|asks?|asked|asking|says?|said|mentions?|mentioned|requests?|requested|types?|typed|wrote|writes|greets?|greeted|sent|message|request|question|input|query)\b" +
+            @"\bthe user(?:['’]s)?\s+(?:is|was|has|had|just|now|seems|might|may|probably|likely|clearly|wants?|wanted|asks?|asked|asking|says?|said|mentions?|mentioned|requests?|requested|types?|typed|wrote|writes|greets?|greeted|sent|message|request|question|input|query)\b" +
             @"|\b(?:correct|right|appropriate|best|proper) (?:tool|function)(?: call)? (?:would be|is|here is|to (?:use|call))\b" +
-            @"|\bi (?:should|need to|will|must|can|'ll) (?:call|use|invoke) (?:the )?[\w.]+ (?:tool|function)\b" +
             @"|\blooking at (?:the |my )?(?:available )?(?:tools|functions)\b" +
+            @"|\b(?:respond|reply|answer)(?:ing)? (?:as|in character as|in the voice of) capri\b", RegexOptions.IgnoreCase);
+        private static readonly Regex ToItself = new Regex(
+            @"\b(?:asking|asked|asks|wants|wanted|told|tells|telling|needs|expects?) me\b" +
+            @"|\bi(?: (?:should|need to|have to|must|will|can|am going to|want to)|['’]ll|['’]m going to) (?:respond|reply|answer|greet|say|tell|ask|acknowledge|keep|stay|be|call|use|invoke|output|comply|refuse|check|mention|make sure|figure|think|consider|start|play|open|run|pick|choose|go with)\b" +
+            @"|\bmy (?:reply|response|answer|tools|instructions|system prompt|persona)\b" +
+            @"|\blet me (?:think|check|see|figure|look|recall|consider|break)\b" +
+            @"|\blet['’]?s (?:break|think|figure) (?:this|it|about)\b" +
             @"|\b(?:respond|reply|answer)(?:ing)? (?:as|in character as|in the voice of) capri\b" +
-            @"|\A\W*(?:thinking|reasoning|thought process|internal monologue|analysis)\s*[:：]", RegexOptions.IgnoreCase);
+            @"|\b(?:the )?(?:system prompt|instructions) (?:says?|tells?|wants?)\b" +
+            @"|\bin character\b" +
+            @"|\b(?:respond|reply) to (?:them|the user|him|her)\b" +
+            @"|\bgreet (?:them|him|her) back\b", RegexOptions.IgnoreCase);
+        // "Thinking:" before a paragraph is a brain's note to itself only when its answer comes after under "Answer:". "Analysis:"
+        // or "Reasoning:" on its own is a normal way to answer.
+        private static readonly Regex ThinkingLabel = new Regex(@"\A\W*(?:thinking|reasoning|thought process|internal monologue|analysis)\s*[:：]", RegexOptions.IgnoreCase);
         private static readonly Regex Labelled = new Regex(@"\A\W*(?:final )?(?:answer|response|reply)\s*[:：]\W*", RegexOptions.IgnoreCase);
 
         // The reason her brain gives when a reply's words were all its own thinking, so that one gets asked again.
@@ -96,6 +110,23 @@ namespace CapriDesktop
             return code;
         }
 
+        // A tag written inside a sentence, like "wrap it in <think> and </think>", is them being told about it. A brain's own tags
+        // start a line or touch its words.
+        private static bool Mentioned(string text, Match tag)
+        {
+            char before = tag.Index > 0 ? text[tag.Index - 1] : '\n';
+            int after = tag.Index + tag.Length;
+            char next = after < text.Length ? text[after] : ' ';
+            return (before == ' ' || before == '\t') && (next == ' ' || next == '\t' || char.IsPunctuation(next));
+        }
+
+        // A space where something was taken out, so the words either side don't run together. None at the start or after a space,
+        // so a tag left after it still reads as starting a line, not as one mentioned in a sentence.
+        private static void Gap(StringBuilder kept)
+        {
+            if (kept.Length > 0 && !char.IsWhiteSpace(kept[kept.Length - 1])) kept.Append(' ');
+        }
+
         // Each block from an opener outside code to its closer, or to the end when it never closes.
         private static string Cut(string text, Regex open, Regex close, string kind, string unclosed, List<string> found)
         {
@@ -105,13 +136,13 @@ namespace CapriDesktop
             int at = 0;
             for (Match start = open.Match(text); start.Success; start = open.Match(text, at))
             {
-                if (code[start.Index]) { kept.Append(text, at, start.Index + start.Length - at); at = start.Index + start.Length; continue; }
+                if (code[start.Index] || Mentioned(text, start)) { kept.Append(text, at, start.Index + start.Length - at); at = start.Index + start.Length; continue; }
                 Match stop = close.Match(text, start.Index + start.Length), first = null;
-                while (stop.Success && code[stop.Index]) { if (first == null) first = stop; stop = stop.NextMatch(); }
+                while (stop.Success && (code[stop.Index] || Mentioned(text, stop))) { if (first == null) first = stop; stop = stop.NextMatch(); }
                 if (!stop.Success) stop = first;
                 int end = stop != null ? stop.Index + stop.Length : text.Length;
                 found.Add(stop != null ? kind : unclosed);
-                kept.Append(text, at, start.Index - at).Append(' ');
+                Gap(kept.Append(text, at, start.Index - at));
                 at = end;
                 if (at >= text.Length) break;
             }
@@ -126,7 +157,7 @@ namespace CapriDesktop
             if (!close.IsMatch(text)) return text;
             bool[] code = Coded(text);
             Match last = null;
-            foreach (Match stop in close.Matches(text)) if (!code[stop.Index]) { last = stop; if (!before) break; }
+            foreach (Match stop in close.Matches(text)) if (!code[stop.Index] && !Mentioned(text, stop)) { last = stop; if (!before) break; }
             if (last == null) return text;
             found.Add(kind);
             if (before) return text.Substring(last.Index + last.Length);
@@ -134,8 +165,8 @@ namespace CapriDesktop
             int at = 0;
             foreach (Match stop in close.Matches(text))
             {
-                if (code[stop.Index]) continue;
-                kept.Append(text, at, stop.Index - at).Append(' ');
+                if (code[stop.Index] || Mentioned(text, stop)) continue;
+                Gap(kept.Append(text, at, stop.Index - at));
                 at = stop.Index + stop.Length;
             }
             return kept.Append(text, at, text.Length - at).ToString();
@@ -191,7 +222,9 @@ namespace CapriDesktop
             if (Template.IsMatch(text))
             {
                 bool[] code = Coded(text);
-                text = Template.Replace(text, delegate(Match token) { return code[token.Index] ? token.Value : " "; });
+                string source = text;
+                // An end-of-text </s> is HTML's strikethrough when an <s> opened before it.
+                text = Template.Replace(text, delegate(Match token) { return code[token.Index] || token.Value.StartsWith("</s>", StringComparison.OrdinalIgnoreCase) && source.LastIndexOf("<s>", token.Index, StringComparison.OrdinalIgnoreCase) >= 0 ? token.Value : " "; });
                 if (text != was) found.Add("chat template tokens");
             }
             if (into == null) foreach (string kind in found) Note(kind);
@@ -201,18 +234,22 @@ namespace CapriDesktop
         // Mistral's [TOOL_CALLS] and the JSON after it.
         private static string Mistraled(string text, List<string> found)
         {
-            Match mark = Mistral.Match(text);
-            while (mark.Success)
+            if (!Mistral.IsMatch(text)) return text;
+            bool[] code = Coded(text);
+            Dictionary<int, int> closings = new Dictionary<int, int>();
+            StringBuilder kept = new StringBuilder();
+            int done = 0;
+            foreach (Match mark in Mistral.Matches(text))
             {
-                if (Coded(text)[mark.Index]) { mark = Mistral.Match(text, mark.Index + mark.Length); continue; }
+                if (mark.Index < done || code[mark.Index]) continue;
                 int at = mark.Index + mark.Length, end = at;
-                if (at < text.Length && (text[at] == '[' || text[at] == '{')) end = Closing(text, at) + 1;
+                if (at < text.Length && (text[at] == '[' || text[at] == '{')) end = Closing(text, at, closings) + 1;
                 if (end <= at) { int line = text.IndexOfAny(new[] { '\r', '\n' }, at); end = line < 0 ? text.Length : line; }
-                text = text.Substring(0, mark.Index) + " " + text.Substring(end);
+                kept.Append(text, done, mark.Index - done).Append(' ');
+                done = end;
                 found.Add("tool call tags");
-                mark = Mistral.Match(text, mark.Index);
             }
-            return text;
+            return kept.Append(text, done, text.Length - done).ToString();
         }
 
         // A fenced block that holds only calls to her own tools, or that's marked as a call, like Gemini's ```tool_code.
@@ -233,18 +270,26 @@ namespace CapriDesktop
         private static readonly Regex Owner = new Regex(@"""(?:name|tool|tool_name|function|recipient_name)""\s*:\s*""(?:functions\.)?(?<tool>[\w.]+)""", RegexOptions.IgnoreCase);
         private static readonly Regex Given = new Regex(@"""(?:arguments|parameters|args|input)""\s*:", RegexOptions.IgnoreCase);
         private static Regex named, said, python;
-        private static Regex NamedBefore { get { return named ?? (named = new Regex(@"(?:\bcall\s*:\s*|\bfunctions\.)?(?<![\p{L}\p{N}_])(?:" + Names + @")(?::\d+)?\s*\z")); } }
-        // Only names like use_computer, so "Remember: you've got this" stays hers.
-        private static Regex SaidAsWords { get { return said ?? (said = new Regex(@"\A\s*(?:call\s*:\s*)?(?<tool>" + Names + @")\s*:\s*[^\r\n]+\s*\z")); } }
+        // Not after . # @ or -, so CSS like .clip { overflow: hidden; } stays theirs.
+        private static Regex NamedBefore { get { return named ?? (named = new Regex(@"(?:(?<prefix>\bcall\s*:\s*|\bfunctions\.)|(?<![\p{L}\p{N}_.#@-]))(?<tool>" + Names + @")(?::\d+)?\s*\z")); } }
+        // Only names like use_computer, so "Remember: you've got this" stays hers, and never a sentence that ends like one, so
+        // "pc_status: CPU 12%, RAM 40%." does too.
+        private static Regex SaidAsWords { get { return said ?? (said = new Regex(@"\A\s*(?:call\s*:\s*)?(?<tool>" + Names + @")\s*:\s*[^\r\n]*[^\s.!?…]\s*\z")); } }
+        private static readonly Regex Quoted = new Regex(@"\A\{\s*(?:\}|""[^""]*""\s*:|<\|""\|>)");
         private static Regex Python { get { return python ?? (python = new Regex(@"(?<![\p{L}\p{N}_.])(?<prefix>print\(\s*)?(?<prefix>default_api\.|functions\.)?(?<tool>" + Names + @")\(")); } }
         private static readonly Regex OpenAiWrap = new Regex(@"\{\s*(?:""type""\s*:\s*""function""\s*,\s*)?""function""\s*:\s*\{");
         private static readonly Regex Jsonish = new Regex(@"\A\{\s*(?:\}|""[^""]*""\s*:|[\w-]+\s*:|<\|""\|>)");
         private static readonly Regex Arguments = new Regex(@"\A\s*(?:[\w-]+\s*=|(?:""[^""]*""|'[^']*')\s*\z)");
 
+        private static Regex ours;
         private static bool Ours(string tool)
         {
-            return Regex.IsMatch(tool ?? "", @"\A(?:functions\.)?(?:" + Names + @")\z");
+            return (ours ?? (ours = new Regex(@"\A(?:functions\.)?(?:" + Names + @")\z"))).IsMatch(tool ?? "");
         }
+
+        // A one-word name like clip, draw or power is an everyday word in code too, so written bare it needs JSON with a quoted
+        // key after it, or a prefix that says it's a call.
+        private static bool Plain(string tool) { return tool.IndexOf('_') < 0; }
 
         // Calls written outside any code: {"name": "open_app", "arguments": {...}}, open_app{...}, Gemma's call:open_app{...},
         // Kimi's functions.open_app:0 {...}, default_api.open_app(name="Discord"), or a whole reply like "use_computer: open notepad".
@@ -256,20 +301,24 @@ namespace CapriDesktop
             Dictionary<int, Match> pythons = new Dictionary<int, Match>();
             foreach (Match py in Python.Matches(text)) pythons[py.Index] = py;
             StringBuilder kept = new StringBuilder();
+            Dictionary<int, int> closings = new Dictionary<int, int>();
             int at = 0;
             for (int i = 0; i < text.Length; i++)
             {
                 if (code[i]) continue;
                 if (text[i] == '{')
                 {
-                    int close = Closing(text, i);
+                    int close = Closing(text, i, closings);
                     if (close < 0) continue;
                     string body = text.Substring(i, close - i + 1);
-                    Match before = NamedBefore.Match(text.Substring(at, i - at));
+                    // A name sits right before its {, so only the last few words before it are read.
+                    int near = Math.Max(at, i - 64);
+                    Match before = NamedBefore.Match(text, near, i - near);
                     Match owner = Owner.Match(body);
-                    bool call = (before.Success && Jsonish.IsMatch(body)) || (owner.Success && Ours(owner.Groups["tool"].Value) && (Given.IsMatch(body) || text.Trim() == body.Trim()));
+                    bool call = (before.Success && Jsonish.IsMatch(body) && (before.Groups["prefix"].Success || !Plain(before.Groups["tool"].Value) || Quoted.IsMatch(body)))
+                        || (owner.Success && Ours(owner.Groups["tool"].Value) && (Given.IsMatch(body) || text.Trim() == body.Trim()));
                     if (!call) { i = close; continue; }
-                    int from = before.Success ? at + before.Index : i;
+                    int from = before.Success ? before.Index : i;
                     kept.Append(text, at, from - at).Append(' ');
                     at = close + 1;
                     i = close;
@@ -279,10 +328,10 @@ namespace CapriDesktop
                 Match py;
                 if (pythons.TryGetValue(i, out py))
                 {
-                    int open = py.Index + py.Length - 1, close = Closing(text, open);
+                    int open = py.Index + py.Length - 1, close = Closing(text, open, closings);
                     string inside = close > open ? text.Substring(open + 1, close - open - 1) : "";
                     bool prefixed = py.Groups["prefix"].Success;
-                    if (close > open && (prefixed || Arguments.IsMatch(inside)))
+                    if (close > open && (prefixed || !Plain(py.Groups["tool"].Value) && Arguments.IsMatch(inside)))
                     {
                         if (py.Value.StartsWith("print(", StringComparison.Ordinal) && close + 1 < text.Length && text[close + 1] == ')') close++;
                         kept.Append(text, at, i - at).Append(' ');
@@ -298,19 +347,32 @@ namespace CapriDesktop
         }
 
         // Where the bracket at open closes, skipping brackets in quotes, or -1 when it never does.
-        private static int Closing(string text, int open)
+        private static int Closing(string text, int open) { return Closing(text, open, new Dictionary<int, int>()); }
+
+        // The same, keeping where every bracket it passed closes, so a reply of thousands of { is read through once, not once per {.
+        // A bracket passed outside quotes reads the same from there as from its own start, so what's kept is what it would find.
+        private static int Closing(string text, int open, Dictionary<int, int> known)
         {
+            int found;
+            if (known.TryGetValue(open, out found)) return found;
             char opening = text[open], closing = opening == '{' ? '}' : opening == '[' ? ']' : ')';
-            int depth = 0;
+            List<int> opened = new List<int>();
             char quote = '\0';
             for (int i = open; i < text.Length; i++)
             {
                 char c = text[i];
                 if (quote != '\0') { if (c == '\\') i++; else if (c == quote) quote = '\0'; }
                 else if (c == '"' || (c == '\'' && opening == '(')) quote = c;
-                else if (c == opening) depth++;
-                else if (c == closing && --depth == 0) return i;
+                else if (c == opening) opened.Add(i);
+                else if (c == closing)
+                {
+                    int last = opened[opened.Count - 1];
+                    opened.RemoveAt(opened.Count - 1);
+                    known[last] = i;
+                    if (opened.Count == 0) return i;
+                }
             }
+            foreach (int left in opened) known[left] = -1;
             return -1;
         }
 
@@ -318,17 +380,45 @@ namespace CapriDesktop
         // the first one that talks to them. Only her chat reply gets this. A glance's notes on the screen often say "the user".
         internal static string Unmused(string text) { return Unmused(text, null); }
 
+        // This is a guess from words, so it never leaves her with nothing: a reply that reads as thinking all the way through is
+        // kept whole. Her chat asks such a reply once more for just her answer (Mused), and shows what comes back.
         private static string Unmused(string text, List<string> into)
         {
-            if (string.IsNullOrEmpty(text) || !Musing.IsMatch(text)) return text ?? "";
-            string[] parts = Regex.Split(text.Trim(), @"\r?\n\s*\r?\n");
-            int skip = 0;
-            while (skip < parts.Length && Musing.IsMatch(parts[skip])) skip++;
-            if (skip == 0) return text;
+            string[] parts;
+            int skip = Musings(text, out parts);
+            if (skip == 0) return text ?? "";
             if (into != null) into.Add("thinking in plain words");
-            else Note("thinking in plain words");
+            if (skip == parts.Length) return text;
+            if (into == null) Note("thinking in plain words");
             string rest = string.Join("\n\n", parts, skip, parts.Length - skip);
             return Labelled.Replace(rest, "");
+        }
+
+        // Whether every paragraph of a reply reads as its own thinking in plain words.
+        internal static bool Mused(string text)
+        {
+            string[] parts;
+            int skip = Musings(text, out parts);
+            return skip > 0 && skip == parts.Length;
+        }
+
+        // How many paragraphs at the start of a reply are a brain thinking to itself.
+        private static int Musings(string text, out string[] parts)
+        {
+            parts = null;
+            if (string.IsNullOrEmpty(text) || !(Musing.IsMatch(text) || ThinkingLabel.IsMatch(text.TrimStart()))) return 0;
+            parts = Regex.Split(text.Trim(), @"\r?\n\s*\r?\n");
+            if (ThinkingLabel.IsMatch(parts[0]))
+                for (int i = 1; i < parts.Length; i++) if (Labelled.IsMatch(parts[i])) return i;
+            int skip = 0;
+            while (skip < parts.Length)
+            {
+                string part = parts[skip];
+                bool about = Musing.IsMatch(part), itself = ToItself.IsMatch(part);
+                if (!(skip == 0 ? about && itself : about || itself || ThinkingLabel.IsMatch(part))) break;
+                skip++;
+            }
+            return skip;
         }
 
         // Every kind of leak in a reply, without changing it.
@@ -350,37 +440,83 @@ namespace CapriDesktop
         internal static List<KeyValuePair<string, ToolArguments>> Calls(string reply)
         {
             string text = Brain.Visible(reply ?? "");
-            string tools = Names;
-            text = Regex.Replace(text, @"<function=(" + tools + @")>\s*(\{.*?\})\s*</function>", "$1$2", Loose);
-            text = Regex.Replace(text, @"<function=(" + tools + @")>(.*?)</function>", delegate(Match call) { return Paired(call.Groups[1].Value, call.Groups[2].Value, @"<parameter=([\w-]+)>\s*(.*?)\s*</parameter>"); }, Loose);
-            text = Regex.Replace(text, @"<invoke\s+name=""(" + tools + @")""\s*>(.*?)</invoke>", delegate(Match call) { return Paired(call.Groups[1].Value, call.Groups[2].Value, @"<parameter\s+name=""([\w-]+)""\s*>\s*(.*?)\s*</parameter>"); }, Loose);
-            text = Regex.Replace(text, @"<｜tool▁call▁begin｜>\s*function\s*<｜tool▁sep｜>\s*(" + tools + @")\s*(?:```(?:json)?)?\s*(\{.*?\})\s*(?:```)?\s*<｜tool▁call▁end｜>", "$1$2", Loose);
-            text = Regex.Replace(text, @"\bfunctions\.(" + tools + @")(?::\d+)?\s*(?:<\|tool_call_argument_begin\|>)?\s*(?=\{)", "$1");
+            Shapes shapes = Shaped;
+            text = shapes.FunctionJson.Replace(text, "$1$2");
+            text = shapes.FunctionPairs.Replace(text, delegate(Match call) { return Paired(call.Groups[1].Value, call.Groups[2].Value, @"<parameter=([\w-]+)>\s*(.*?)\s*</parameter>"); });
+            text = shapes.Invoke.Replace(text, delegate(Match call) { return Paired(call.Groups[1].Value, call.Groups[2].Value, @"<parameter\s+name=""([\w-]+)""\s*>\s*(.*?)\s*</parameter>"); });
+            text = shapes.DeepSeek.Replace(text, "$1$2");
+            text = shapes.Kimi.Replace(text, "$1");
             // OpenAI's own shape copied as text: {"type": "function", "function": {"name": ..., "arguments": "{...}"}}.
+            Dictionary<int, int> closings = new Dictionary<int, int>();
             for (Match wrap = OpenAiWrap.Match(text); wrap.Success; wrap = OpenAiWrap.Match(text, wrap.Index + 1))
             {
-                int start = wrap.Index + wrap.Length - 1, end = Closing(text, start), after = end + 1;
+                int start = wrap.Index + wrap.Length - 1, end = Closing(text, start, closings), after = end + 1;
                 while (after > 0 && after < text.Length && char.IsWhiteSpace(text[after])) after++;
                 if (end < 0 || after >= text.Length || text[after] != '}') continue;
                 text = text.Substring(0, wrap.Index) + text.Substring(start, end - start + 1) + text.Substring(after + 1);
+                closings.Clear();
             }
-            text = Regex.Replace(text, @"\{\s*""name""\s*:\s*""(" + tools + @")""\s*,\s*""arguments""\s*:\s*""((?:[^""\\]|\\.)*)""\s*\}", delegate(Match call) { string args = Unquoted(call.Groups[2].Value); return args != null && args.TrimStart().StartsWith("{", StringComparison.Ordinal) ? call.Groups[1].Value + args : call.Value; });
-            text = Regex.Replace(text, @"(?:\bprint\(\s*)?(?:\bdefault_api\.|\bfunctions\.)?(?<![\p{L}\p{N}_])(" + tools + @")\(((?:\s*[\w-]+\s*=\s*(?:""(?:[^""\\]|\\.)*""|'[^']*'|[\w.+-]+)\s*,?)*)\s*\)\)?", delegate(Match call)
+            text = shapes.StringArguments.Replace(text, delegate(Match call) { string args = Unquoted(call.Groups[2].Value); return args != null && args.TrimStart().StartsWith("{", StringComparison.Ordinal) ? call.Groups[1].Value + args : call.Value; });
+            text = shapes.Python.Replace(text, delegate(Match call)
             {
+                if (!call.Groups["prefix"].Success && Plain(call.Groups["tool"].Value)) return call.Value;
                 StringBuilder json = new StringBuilder("{");
-                foreach (Match pair in Regex.Matches(call.Groups[2].Value, @"([\w-]+)\s*=\s*(?:""((?:[^""\\]|\\.)*)""|'([^']*)'|([\w.+-]+))"))
+                foreach (Match pair in Regex.Matches(call.Groups["args"].Value, @"([\w-]+)\s*=\s*(?:""((?:[^""\\]|\\.)*)""|'([^']*)'|([\w.+-]+))"))
                 {
                     if (json.Length > 1) json.Append(',');
                     string value = pair.Groups[2].Success ? Unquoted(pair.Groups[2].Value) ?? pair.Groups[2].Value : pair.Groups[3].Success ? pair.Groups[3].Value : pair.Groups[4].Value;
                     json.Append(Voice.Quote(pair.Groups[1].Value)).Append(':').Append(Voice.Quote(value));
                 }
-                return json.Length == 1 ? call.Value : call.Groups[1].Value + json.Append('}');
+                return json.Length == 1 ? call.Value : call.Groups["tool"].Value + json.Append('}');
             });
             List<KeyValuePair<string, ToolArguments>> found = Hands.Written(text);
             string tool;
             ToolArguments given;
             if (found.Count == 0 && Hands.Typed(text, out tool, out given)) found.Add(new KeyValuePair<string, ToolArguments>(tool, given));
             return found;
+        }
+
+        // The calls she took out of her words, for her chat to run. One still in what she shows, like np.clip(a=x) in a Python
+        // example or .clip { } in CSS, is theirs to read and never runs.
+        internal static List<KeyValuePair<string, ToolArguments>> Taken(string reply)
+        {
+            List<KeyValuePair<string, ToolArguments>> all = Calls(reply);
+            if (all.Count == 0) return all;
+            List<string> shown = new List<string>();
+            foreach (KeyValuePair<string, ToolArguments> call in Calls(Spoken(Brain.Visible(reply ?? ""), new List<string>()))) shown.Add(Hands.CallKey(call.Key, call.Value));
+            List<KeyValuePair<string, ToolArguments>> taken = new List<KeyValuePair<string, ToolArguments>>();
+            foreach (KeyValuePair<string, ToolArguments> call in all)
+                if (!shown.Remove(Hands.CallKey(call.Key, call.Value))) taken.Add(call);
+            return taken;
+        }
+
+        // Her tools' call shapes, built once from their names.
+        private sealed class Shapes
+        {
+            internal Regex FunctionJson, FunctionPairs, Invoke, DeepSeek, Kimi, StringArguments, Python;
+        }
+
+        private static Shapes shaped;
+        private static Shapes Shaped
+        {
+            get
+            {
+                if (shaped != null) return shaped;
+                string tools = Names;
+                return shaped = new Shapes
+                {
+                    // Each stops at the next call's opener, so a reply of openers that never close is read through once.
+                    FunctionJson = new Regex(@"<function=(" + tools + @")>\s*(\{(?:(?!<function=).)*?\})\s*</function>", Loose),
+                    FunctionPairs = new Regex(@"<function=(" + tools + @")>((?:(?!<function=).)*?)</function>", Loose),
+                    Invoke = new Regex(@"<invoke\s+name=""(" + tools + @")""\s*>((?:(?!<invoke\b).)*?)</invoke>", Loose),
+                    DeepSeek = new Regex(@"<｜tool▁call▁begin｜>\s*function\s*<｜tool▁sep｜>\s*(" + tools + @")\s*(?:```(?:json)?)?\s*(\{(?:(?!<｜tool▁call▁begin｜>).)*?\})\s*(?:```)?\s*<｜tool▁call▁end｜>", Loose),
+                    Kimi = new Regex(@"\bfunctions\.(" + tools + @")(?::\d+)?\s*(?:<\|tool_call_argument_begin\|>)?\s*(?=\{)"),
+                    StringArguments = new Regex(@"\{\s*""name""\s*:\s*""(" + tools + @")""\s*,\s*""arguments""\s*:\s*""((?:[^""\\]|\\.)*)""\s*\}"),
+                    // Each name=value is taken whole, so a call left open like open_app(a=bbb=bbb... fails at once instead of trying
+                    // every way to split it. Not after a dot, so np.clip(a=x) is numpy's.
+                    Python = new Regex(@"(?:(?<prefix>\bprint\(\s*(?:default_api\.|functions\.)?|\bdefault_api\.|\bfunctions\.)|(?<![\p{L}\p{N}_.]))(?<tool>" + tools + @")\((?<args>(?>\s*[\w-]+\s*=\s*(?:""(?:[^""\\]|\\.)*""|'[^']*'|[\w.+-]+)\s*,?)*)\s*\)\)?"),
+                };
+            }
         }
 
         // <parameter=name>Discord</parameter> pairs as the JSON her hands read.
