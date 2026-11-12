@@ -86,6 +86,30 @@ namespace CapriDesktop
             graphics.SmoothingMode = was;
         }
 
+        // A tooltip in her look: her ground and edge, her type in her text colour, wrapped to a sensible width.
+        internal static ToolTip Tips(Func<Font> font)
+        {
+            ToolTip tips = new ToolTip { OwnerDraw = true, InitialDelay = 400, ReshowDelay = 100, AutoPopDelay = 20000, UseAnimation = false, UseFading = false };
+            tips.Popup += delegate(object sender, PopupEventArgs e) { e.ToolTipSize = TipSize(tips.GetToolTip(e.AssociatedControl), font()); };
+            tips.Draw += delegate(object sender, DrawToolTipEventArgs e) { DrawTip(e.Graphics, e.Bounds, e.ToolTipText, font()); };
+            return tips;
+        }
+
+        internal static Size TipSize(string text, Font font)
+        {
+            int pad = Math.Max(8, font.Height / 2);
+            Size need = TextRenderer.MeasureText(text ?? "", font, new Size(font.Height * 26, int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+            return new Size(need.Width + pad * 2, need.Height + pad * 2 - 4);
+        }
+
+        internal static void DrawTip(Graphics graphics, Rectangle bounds, string text, Font font)
+        {
+            int pad = Math.Max(8, font.Height / 2);
+            using (Brush ground = new SolidBrush(Neon.Ground)) graphics.FillRectangle(ground, bounds);
+            using (Pen edge = new Pen(Neon.Rule)) graphics.DrawRectangle(edge, bounds.Left, bounds.Top, bounds.Width - 1, bounds.Height - 1);
+            TextRenderer.DrawText(graphics, text ?? "", font, new Rectangle(bounds.Left + pad, bounds.Top + pad - 2, bounds.Width - pad * 2, bounds.Height - pad * 2 + 4), Neon.White, TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+        }
+
         // Which picture a tool's row gets: a prompt for commands, a magnifier for searches, a page for reads, a pencil for
         // edits, a globe for the web, a checklist for to-dos and tasks, a branch for agents, a plug for MCP tools, and a plain
         // dot for anything else.

@@ -118,7 +118,7 @@ namespace CapriDesktop
         private readonly Func<bool> blackwall;
         private readonly bool live;
         private readonly WorkKey shut, smaller, bigger, make, undo, trust;
-        private readonly ToolTip tips = new ToolTip();
+        private readonly ToolTip tips;
         // Which tool groups are open, by their first call, for as long as the window lives.
         private readonly HashSet<WorkspaceItem> openGroups = new HashSet<WorkspaceItem>();
         private readonly ChatList list;
@@ -163,6 +163,7 @@ namespace CapriDesktop
             KeyPreview = true;
             AllowDrop = true;
             SetFonts();
+            tips = WorkPaint.Tips(delegate { return small; });
             shut = Key("", delegate { Close(); });
             shut.Glyph = 2;
             shut.AccessibleName = "Close Workspace";
@@ -960,6 +961,24 @@ namespace CapriDesktop
         internal List<string> ToolWell(string id) { return transcript.Well(id); }
         // For the smoke and its pictures: the tool groups' summary lines, opening them, the shine's clock and where it draws.
         internal List<string> ToolGroups { get { return transcript.Summaries(); } }
+        internal Font TipFont { get { return small; } }
+        // A fold line's middle (index-th line, in the window's own space) or the MODE key's, with the tooltip each shows.
+        internal string TipOn(int fold, out Point at)
+        {
+            if (fold < 0)
+            {
+                at = PointToClient(composer.PointToScreen(new Point(composer.Mode.Left + Z(20), composer.Mode.Top)));
+                return tips.GetToolTip(composer.Mode);
+            }
+            Point inside = transcript.HeadPoint(fold);
+            at = PointToClient(transcript.PointToScreen(inside));
+            transcript.MoveTo(inside);
+            return transcript.TipShown;
+        }
+        internal Cursor PointerOn(int fold) { Point at; TipOn(fold, out at); return transcript.Cursor; }
+        internal int ConversationTop { get { return transcript.Offset; } set { transcript.ScrollTo(value); } }
+        internal int FoldTop(int fold) { return transcript.HeadPoint(fold).Y + transcript.Offset; }
+        internal void ClickFold(int fold) { transcript.PressAt(transcript.HeadPoint(fold)); }
         internal void OpenToolGroups(bool open) { transcript.OpenAll(open); }
         internal bool Shining { get { return transcript.Shining; } }
         internal static double ShineAt { set { Transcript.ShineFixed = value; } }
@@ -1098,7 +1117,8 @@ namespace CapriDesktop
                     string name = Path.GetFileName(folders[0].TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
                     if (name.Length == 0) name = folders[0];
                     if (folders.Count > 1) name += "  +" + (folders.Count - 1);
-                    TextRenderer.DrawText(graphics, name, window.note, new Rectangle(row.Left + window.Z(12), row.Top + window.Z(31), row.Width - window.Z(20), window.Z(16)), Neon.Faint, WorkPaint.Line | TextFormatFlags.EndEllipsis);
+                    else if (string.Equals(item.Title, name, StringComparison.OrdinalIgnoreCase)) name = "";
+                    if (name.Length > 0) TextRenderer.DrawText(graphics, name, window.note, new Rectangle(row.Left + window.Z(12), row.Top + window.Z(31), row.Width - window.Z(20), window.Z(16)), Neon.Faint, WorkPaint.Line | TextFormatFlags.EndEllipsis);
                     if (dot > 0)
                     {
                         SmoothingMode was = graphics.SmoothingMode;
@@ -1684,7 +1704,7 @@ namespace CapriDesktop
             private bool dragging, earlier, newer, hoveredHead;
             private int dragFrom, dragOffset, laid = -1, round;
             private readonly HashSet<WorkspaceItem> opened;
-            private readonly ToolTip tips = new ToolTip();
+            private readonly ToolTip tips;
             private string tipShown;
             // The shine's clock, the one seam its frames hang on. On tryout-090 this line becomes:
             //     private readonly Beat shineClock = new Beat { Interval = 33 };
@@ -1697,6 +1717,7 @@ namespace CapriDesktop
             {
                 this.window = window;
                 this.opened = opened;
+                tips = WorkPaint.Tips(delegate { return window.small; });
                 shineClock.Tick += delegate { ShineTick(); };
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
                 TabStop = true;
@@ -1961,30 +1982,52 @@ namespace CapriDesktop
                 return whole || cut < 0 ? detail : detail.Substring(0, cut).TrimEnd() + " \u2026";
             }
 
+            // Whether a row's one line had to cut its command or path short.
+            private bool Cut(Block block)
+            {
+                string whole = Detail(block, true), shown = Detail(block, false);
+                return whole != shown || WorkPaint.Wide(shown, window.note) > block.Toggle.Width - Z(52);
+            }
+
+            // A denied call in words: his own no, with the reason he gave, or why Workspace said no for him.
+            private static string Refusal(Block block)
+            {
+                string text = block.Asked != null ? block.Asked.Text : block.Item.Text;
+                string reason = text.StartsWith("Denied: ", StringComparison.Ordinal) ? text.Substring(8).Trim() : "";
+                if (reason.Length == 0 || reason == "Denied in Workspace.") return "You said no.";
+                if (reason == "No answer after ten minutes." || reason == "That Workspace turn ended." || reason.StartsWith("Couldn't save an undo copy", StringComparison.Ordinal)) return "Not allowed: " + reason;
+                return "You said no: " + reason;
+            }
+
             private static string Leaf(string path)
             {
                 string name = Path.GetFileName(path.TrimEnd('\\', '/'));
                 return name.Length > 0 ? name : path;
             }
 
-            // The summary line's words, Metis's way: what happened, counted by kind, with failures and denials after them.
+            // The summary line's words, Metis's way: what happened, counted by kind. A call that failed, was denied or was stopped
+            // counts only there, named by what it was ("1 command failed", "1 read denied"), so the parts add up to the calls.
             // Only finished calls count; a call that's running says what it's doing instead.
             private void Summarise(Block lead, List<Block> run)
             {
-                int commands = 0, searches = 0, web = 0, todos = 0, agents = 0, mcp = 0, failed = 0, denied = 0, stopped = 0;
+                int commands = 0, searches = 0, web = 0, todos = 0, agents = 0;
                 HashSet<string> read = new HashSet<string>(StringComparer.OrdinalIgnoreCase), edited = new HashSet<string>(StringComparer.OrdinalIgnoreCase), written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                List<string> otherNames = new List<string>();
-                Dictionary<string, int> others = new Dictionary<string, int>(StringComparer.Ordinal);
+                List<string> otherNames = new List<string>(), troubleNames = new List<string>();
+                Dictionary<string, int> others = new Dictionary<string, int>(StringComparer.Ordinal), trouble = new Dictionary<string, int>(StringComparer.Ordinal);
                 Dictionary<string, int> kinds = new Dictionary<string, int>(StringComparer.Ordinal);
                 Block running = null;
                 foreach (Block block in run)
                 {
                     WorkspaceItem item = block.Item;
                     if (block.Running) { running = block; continue; }
-                    string status = Status(block);
-                    if (status == "failed") failed++;
-                    if (status == "denied") { denied++; continue; }
-                    if (item.Kind == "tool" && !block.Done) { stopped++; continue; }
+                    string status = Status(block), outcome = status == "failed" ? "failed" : status == "denied" ? "denied" : item.Kind == "tool" && !block.Done ? "stopped" : null;
+                    if (outcome != null)
+                    {
+                        string key = Noun(item.Name) + "|" + outcome;
+                        if (!trouble.ContainsKey(key)) { trouble[key] = 0; troubleNames.Add(key); }
+                        trouble[key]++;
+                        continue;
+                    }
                     string kind = WorkPaint.ToolKind(item.Name), target = Detail(block, true);
                     int had;
                     kinds[item.Name] = kinds.TryGetValue(item.Name, out had) ? had + 1 : 1;
@@ -1995,8 +2038,7 @@ namespace CapriDesktop
                     else if (kind == "globe") web++;
                     else if (kind == "list") todos++;
                     else if (kind == "branch") agents++;
-                    else if (kind == "plug") mcp++;
-                    else { if (!others.ContainsKey(item.Name)) { others[item.Name] = 0; otherNames.Add(item.Name); } others[item.Name]++; }
+                    else { string noun = Noun(item.Name); if (!others.ContainsKey(noun)) { others[noun] = 0; otherNames.Add(noun); } others[noun]++; }
                 }
                 List<string> parts = new List<string>();
                 if (commands > 0) parts.Add(commands + (commands == 1 ? " command ran" : " commands ran"));
@@ -2007,20 +2049,52 @@ namespace CapriDesktop
                 if (web > 0) parts.Add(web + (web == 1 ? " web lookup" : " web lookups"));
                 if (todos > 0) parts.Add("to-do list updated");
                 if (agents > 0) parts.Add(agents + (agents == 1 ? " agent ran" : " agents ran"));
-                if (mcp > 0) parts.Add(mcp + (mcp == 1 ? " MCP call" : " MCP calls"));
-                foreach (string name in otherNames) parts.Add(others[name] > 1 ? name + " \u00d7" + others[name] : name);
-                List<string> trouble = new List<string>();
-                if (failed > 0) trouble.Add(failed + " failed");
-                if (denied > 0) trouble.Add(denied + " denied");
-                if (stopped > 0) trouble.Add(stopped + " stopped");
+                foreach (string noun in otherNames) parts.Add(others[noun] + " " + Plural(noun, others[noun]));
+                List<string> troubles = new List<string>();
+                foreach (string key in troubleNames)
+                {
+                    string[] bits = key.Split('|');
+                    troubles.Add(trouble[key] + " " + Plural(bits[0], trouble[key]) + " " + bits[1]);
+                }
                 lead.Words = string.Join(", ", parts.ToArray());
-                lead.Trouble = string.Join(", ", trouble.ToArray());
-                lead.HeadMark = denied > 0 ? "denied" : failed > 0 ? "failed" : "";
+                lead.Trouble = string.Join(", ", troubles.ToArray());
+                lead.HeadMark = troubles.Count > 0 ? "failed" : "";
                 lead.Doing = running == null ? null : Doing(running);
                 string most = null;
                 int best = 0;
                 foreach (KeyValuePair<string, int> pair in kinds) if (pair.Value > best) { best = pair.Value; most = pair.Key; }
                 lead.HeadTool = running != null ? running.Item.Name : most ?? run[0].Item.Name;
+            }
+
+            // What one call is called in a summary: a command, a read, an edit, or a call to a connector by the server's name.
+            private static string Noun(string name)
+            {
+                switch (WorkPaint.ToolKind(name))
+                {
+                    case "terminal": return "command";
+                    case "page": return "read";
+                    case "pencil": return name == "Write" ? "write" : "edit";
+                    case "search": return "search";
+                    case "globe": return "web lookup";
+                    case "list": return "to-do update";
+                    case "branch": return "agent";
+                    case "plug":
+                        {
+                            string[] bits = name.Split(new[] { "__" }, StringSplitOptions.None);
+                            string server = bits.Length > 2 ? bits[1] : "";
+                            if (server.Length == 0) return "connector call";
+                            if (string.Equals(server, "github", StringComparison.OrdinalIgnoreCase)) server = "GitHub";
+                            else server = char.ToUpperInvariant(server[0]) + server.Substring(1);
+                            return server + " call";
+                        }
+                    default: return name + " call";
+                }
+            }
+
+            private static string Plural(string noun, int count)
+            {
+                if (count == 1) return noun;
+                return noun.EndsWith("ch", StringComparison.Ordinal) || noun.EndsWith("sh", StringComparison.Ordinal) ? noun + "es" : noun + "s";
             }
 
             // What a running call is doing, in a few words.
@@ -2042,6 +2116,24 @@ namespace CapriDesktop
                 if (kind == "branch") return "Running an agent";
                 if (kind == "plug") { string[] bits = name.Split(new[] { "__" }, StringSplitOptions.None); return "Calling " + bits[bits.Length - 1]; }
                 return "Running " + name;
+            }
+
+            internal string TipShown { get { return tipShown; } }
+
+            internal Point HeadPoint(int index)
+            {
+                int k = 0;
+                foreach (Block block in Blocks)
+                    if (block.Group != null && !block.Head.IsEmpty && k++ == index) return new Point(block.Head.Left + Z(80), block.Head.Top + block.Head.Height / 2 - Offset);
+                return Point.Empty;
+            }
+
+            internal void MoveTo(Point at) { OnMouseMove(new MouseEventArgs(MouseButtons.None, 0, at.X, at.Y, 0)); }
+
+            internal void PressAt(Point at)
+            {
+                OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, at.X, at.Y, 0));
+                OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, at.X, at.Y, 0));
             }
 
             internal List<string> Summaries()
@@ -2384,9 +2476,8 @@ namespace CapriDesktop
                     foreach (string file in files) textWide = Math.Max(textWide, Z(20) + WorkPaint.Wide(Path.GetFileName(file), window.note));
                     int wide = Math.Min(most, Math.Max(Z(120), textWide + pad * 2 + Z(4)));
                     int x = right - wide, top = y + Z(10);
-                    Add(block, "YOU", window.caption, Neon.Cyan, new Rectangle(x + pad, top, wide - pad * 2, Z(14))).Line = true;
                     // A message of only files has no line of words above them.
-                    int bottom = item.Text.Length == 0 && files.Count > 0 ? top + Z(14) : Prose(block, item.Text, window.Font, Neon.White, x + pad, top + Z(20), wide - pad * 2);
+                    int bottom = item.Text.Length == 0 && files.Count > 0 ? top - Z(6) : Prose(block, item.Text, window.Font, Neon.White, x + pad, top, wide - pad * 2);
                     foreach (string file in files)
                     {
                         Piece chip = Add(block, Path.GetFileName(file), window.note, Neon.Faint, new Rectangle(x + pad, bottom + Z(6), wide - pad * 2, Z(16)));
@@ -2399,8 +2490,7 @@ namespace CapriDesktop
                 }
                 if (kind == "text")
                 {
-                    Add(block, "CLAUDE", window.caption, Neon.Rose, new Rectangle(left + pad, y, width - pad, Z(14))).Line = true;
-                    int bottom = Markdown(block, item.Text, left + pad, y + Z(20), width - pad);
+                    int bottom = Markdown(block, item.Text, left + pad, y, width - pad);
                     block.Box = new Rectangle(left, y, width, bottom - y);
                     return;
                 }
@@ -2420,11 +2510,10 @@ namespace CapriDesktop
                     if (block.Open)
                     {
                         int x = block.Toggle.Left + Z(26), wide = block.Toggle.Right - x;
-                        // The whole command or path, when the row had to cut it.
-                        string whole = Detail(block, true), shown = Detail(block, false);
-                        if (whole != shown || WorkPaint.Wide(shown, window.note) > block.Toggle.Width - Z(52)) bottom = Words(block, whole, window.note, Neon.Faint, x, bottom + Z(4), wide);
-                        string status = Status(block), said = status == "asked" ? "You allowed this." : status == "denied" ? (block.Asked != null ? block.Asked.Text : item.Text) : status == "failed" ? "It failed." : "";
-                        if (said.Length > 0) bottom = Words(block, said, window.small, status == "asked" ? Neon.Faint : Pink, x, bottom + Z(4), wide);
+                        // The whole command or path, once, when the row had to cut it; the row itself then shows only the tool.
+                        if (Cut(block)) bottom = Words(block, Detail(block, true), window.note, Neon.Faint, x, bottom + Z(4), wide);
+                        string status = Status(block), said = status == "denied" ? Refusal(block) : status == "failed" ? "It failed." : "";
+                        if (said.Length > 0) bottom = Words(block, said, window.small, Pink, x, bottom + Z(4), wide);
                         if (item.Kind == "tool")
                         {
                             List<string> lines = new List<string>();
@@ -2636,7 +2725,7 @@ namespace CapriDesktop
                     TextRenderer.DrawText(graphics, trouble, font, new Rectangle(x, head.Top, Math.Max(1, wide), head.Height), Pink, WorkPaint.Line | TextFormatFlags.EndEllipsis);
                     x += wide;
                 }
-                if (block.HeadMark.Length > 0 && x + Z(14) < right) WorkPaint.StatusMark(graphics, block.HeadMark, new PointF(x + Z(9), mid), Z(4), Pink, s);
+                if (block.HeadMark.Length > 0 && x + Z(14) < right) WorkPaint.StatusMark(graphics, "failed", new PointF(x + Z(9), mid), Z(4), Pink, s);
             }
 
             // One call inside an open group: its picture, its command or path on one line, and its mark.
@@ -2652,7 +2741,7 @@ namespace CapriDesktop
                 Color words = block.Running ? Live : status == "failed" ? Pink : status == "denied" ? Neon.Faint : Quiet(Green);
                 RectangleF icon = new RectangleF(row.Left + Z(6), row.Top + (row.Height - Z(13)) / 2f, Z(13), Z(13));
                 WorkPaint.ToolMark(graphics, item.Name, icon, ink, s);
-                string text = Detail(block, false);
+                string text = block.Open && Cut(block) ? item.Name : Detail(block, false);
                 TextFormatFlags flags = WorkPaint.Line | (Command(item.Name) || item.Kind == "approval" ? TextFormatFlags.EndEllipsis : TextFormatFlags.PathEllipsis);
                 Rectangle at = new Rectangle(row.Left + Z(26), row.Top, Math.Max(1, row.Width - Z(26) - Z(26)), row.Height);
                 TextRenderer.DrawText(graphics, text, window.note, at, words, flags);
