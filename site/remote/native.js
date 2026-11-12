@@ -174,14 +174,14 @@
   const FREE_WORDS = "Capri's developers provide this AI usage for free, however it is limited because it costs real money.";
   const FREE_KOFI = 'https://ko-fi.com/lachysdev';
   let freeAllowance = null, freeAsked = 0, freeKept = 0, freeFailed = false, freeChecking = null;
-  // The next midnight UTC in the phone's own time: "at 11:00 am AEDT tomorrow".
+  // The next midnight UTC in the phone's own time: "at 11:00 am tomorrow".
   const resetTime = resets => {
     const at = Date.parse(resets);
     if (!Number.isFinite(at)) return 'at midnight UTC';
     const when = new Date(at), today = new Date(), tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
     const day = when.toDateString() === today.toDateString() ? 'today' : when.toDateString() === tomorrow.toDateString() ? 'tomorrow' : 'on ' + when.toLocaleDateString([], { weekday: 'long' });
-    return 'at ' + when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }) + ' ' + day;
+    return 'at ' + when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + ' ' + day;
   };
   // Google's free daily counts reset at midnight US Pacific time. The next one, as an ISO time for resetTime.
   const pacificMidnight = () => {
@@ -253,21 +253,23 @@
   const failure = (code, detail, extra) => Object.assign(new Error(code), { code, detail: String(detail || '').slice(0, 300) }, extra || {});
   const sentence = (code, kind, allowance, wait) => {
     if (kind === 'free') return ({
-      used: "That's all your free messages for today, choom. They're back " + resetTime(allowance && allowance.resets) + ". Your own key in SETTINGS skips the limit.",
-      pool: "Everyone's free messages for today are gone. They're back " + resetTime(allowance && allowance.resets) + ". Your own key in SETTINGS skips the limit.",
+      used: "That's all your free messages for today. They're back " + resetTime(allowance && allowance.resets) + '. Add your own AI key in SETTINGS for no limit.',
+      pool: "Everyone's free messages for today are gone. They're back " + resetTime(allowance && allowance.resets) + '. Add your own AI key in SETTINGS for no limit.',
       down: 'My free brain is glitching. Try again soon.',
       net: "Couldn't reach my free brain. Check your internet.",
       empty: 'My free brain sent back nothing. Try again.'
     })[code] || 'Something went wrong. Try again.';
     const company = PROVIDERS[kind] ? PROVIDERS[kind].company : 'That provider';
-    const soon = wait ? 'Try again in ' + (wait === 1 ? '1 second.' : wait < 90 ? wait + ' seconds.' : Math.ceil(wait / 60) + ' minutes.') : 'Give it a minute, then try again.';
+    // The words never count down while someone reads them; the real wait is kept in ask().
+    const soon = !wait ? 'Give it a minute, then try again.' : wait < 10 ? 'Try again in a few seconds.' : 'Try again in ' + (wait < 90 ? wait + ' seconds.' : Math.ceil(wait / 60) + ' minutes.');
+    const owner = company.replace(/ AI$/, '');
     return ({
       key: company + ' rejected the key. Paste it again in SETTINGS.',
       credits: 'No credits on this key. Add credits on ' + company + '\'s site.',
       limit: company + ' says that\'s too many messages for one minute. ' + soon,
-      daily: 'This ' + company + ' key has used up its free messages for today. They come back ' + (kind === 'google' && pacificMidnight() ? resetTime(pacificMidnight()) : 'within a day') + ', or pick another model in SETTINGS.',
+      daily: 'Your ' + company + ' key has hit ' + owner + '\'s daily free limit. It comes back ' + (kind === 'google' && pacificMidnight() ? resetTime(pacificMidnight()) : 'within a day') + ', or pick another model in SETTINGS.',
       unfree: 'This ' + company + ' key can\'t use that model for free. Pick another model in SETTINGS.',
-      busy: company + '\'s free model is full for everyone right now. ' + soon + ' Or pick another model in SETTINGS.',
+      busy: company + '\'s free model is full for everyone right now. Try again in a moment, or pick another model in SETTINGS.',
       model: 'That model isn\'t on your key. Pick another one.',
       down: 'The service failed on its end. Pick another model or retry.',
       net: 'Couldn\'t reach ' + company + '. Check your internet.',

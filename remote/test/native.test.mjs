@@ -323,9 +323,9 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     // Midnight UTC in Sydney in November is 11:00 am daylight time, today or tomorrow there.
     const sydneyDay = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
     const plain = words => words.replace(/\s/g, ' ');
-    // The time is in the phone's own locale and zone: 11:00 or 11:00 AM, as this browser writes it.
-    const elevenLocal = plain(await page.run(`new Date(${JSON.stringify(provider.state.free.resets)}).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })`));
-    assert.match(elevenLocal, /^11:00( AM)? GMT\+11$/);
+    // The time is the phone's own, with no zone code: 11:00 or 11:00 AM, as this browser writes it.
+    const elevenLocal = plain(await page.run(`new Date(${JSON.stringify(provider.state.free.resets)}).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })`));
+    assert.match(elevenLocal, /^11:00( AM)?$/);
     const localReset = 'at ' + elevenLocal + ' ' + (sydneyDay(new Date(provider.state.free.resets)) === sydneyDay(new Date()) ? 'today' : 'tomorrow');
     assert.equal(plain(await text('.native-free-reset')), 'Resets ' + localReset + '.');
     // His words, then the Ko-fi line straight after them, under the allowance, with a plain link to his page.
@@ -356,7 +356,7 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     provider.state.free.left = 0;
     await say('used up');
     await page.until(`(() => { const node = document.querySelector('.native-notice'); return !!node && !node.hidden && /That's all your free messages/.test(node.textContent); })()`, 'her used-up notice');
-    assert.equal(plain(await text('.native-notice-words')), "That's all your free messages for today, choom. They're back " + localReset + '. Your own key in SETTINGS skips the limit.');
+    assert.equal(plain(await text('.native-notice-words')), "That's all your free messages for today. They're back " + localReset + '. Add your own AI key in SETTINGS for no limit.');
     assert.equal(await page.run(`document.querySelector('.native-notice-free').hidden`), true);
     await shot('free-4-used');
     provider.state.free.left = 9;
@@ -470,12 +470,12 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     // Too many this minute, with the wait the service asked for: one call, then no call until the wait is over.
     provider.state.fail = google(429, 'Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 5, model: gemini-3.5-flash-lite. Please retry in 2.4s.', 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', { value: '5' });
     await say('one');
-    assert.equal(await noticeSays('/one minute/', 'the per-minute notice'), "Google AI says that's too many messages for one minute. Try again in 3 seconds.");
+    assert.equal(await noticeSays('/one minute/', 'the per-minute notice'), "Google AI says that's too many messages for one minute. Try again in a few seconds.");
     assert.equal(await page.run(`document.querySelector('.native-notice-free').hidden`), false);
     await shot('limit-minute');
     assert.equal(chats().length, 2);
     await say('two');
-    await noticeSays('/Try again in [123] seconds/', 'the wait kept');
+    await noticeSays('/Try again in a few seconds/', 'the wait kept');
     assert.equal(chats().length, 2, 'no call while the service asked her to wait');
     // Nothing went in the chat as hers, and nothing is sent again by itself.
     assert.equal(await page.run(`document.querySelectorAll('.msg.capri').length`), herReplies);
@@ -501,10 +501,10 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     const pacificDay = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(date);
     let midnight = new Date(Math.ceil(Date.now() / 3600000) * 3600000);
     while (pacificDay(new Date(midnight - 1)) === pacificDay(midnight)) midnight = new Date(+midnight + 3600000);
-    const sevenLocal = (await page.run(`new Date(${+midnight}).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })`)).replace(/\s/g, ' ');
-    assert.match(sevenLocal, /^(7:00 PM|19:00) GMT\+11$/);
+    const sevenLocal = (await page.run(`new Date(${+midnight}).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })`)).replace(/\s/g, ' ');
+    assert.match(sevenLocal, /^(7:00 PM|19:00)$/);
     const backAt = 'at ' + sevenLocal + ' ' + (sydneyDay(midnight) === sydneyDay(new Date()) ? 'today' : 'tomorrow');
-    assert.equal((await noticeSays('/for today/', 'the daily notice')).replace(/\s/g, ' '), 'This Google AI key has used up its free messages for today. They come back ' + backAt + ', or pick another model in SETTINGS.');
+    assert.equal((await noticeSays('/daily free limit/', 'the daily notice')).replace(/\s/g, ' '), "Your Google AI key has hit Google's daily free limit. It comes back " + backAt + ', or pick another model in SETTINGS.');
     await click('.native-notice-more');
     const raw = await text('.native-notice-raw');
     assert.match(raw, /^429 /);
@@ -528,7 +528,7 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     // A free model full upstream for everyone, with a Retry-After the page may read.
     provider.state.fail = { status: 429, body: { error: { code: 429, message: 'free/model:free is temporarily rate-limited upstream. Please retry shortly.', metadata: { provider_name: 'Chutes', raw: 'busy' } } }, headers: { 'retry-after': '1', 'access-control-expose-headers': 'retry-after' } };
     await say('busy');
-    assert.equal(await noticeSays('/full for everyone/', 'the busy notice'), "Google AI's free model is full for everyone right now. Try again in 1 second. Or pick another model in SETTINGS.");
+    assert.equal(await noticeSays('/full for everyone/', 'the busy notice'), "Google AI's free model is full for everyone right now. Try again in a moment, or pick another model in SETTINGS.");
     await shot('limit-busy');
     await new Promise(resolve => setTimeout(resolve, 1200));
 
