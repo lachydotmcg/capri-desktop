@@ -296,7 +296,53 @@ namespace CapriDesktop
         internal const TextFormatFlags Kept = TextFormatFlags.PreserveGraphicsTranslateTransform | TextFormatFlags.PreserveGraphicsClipping;
         internal const TextFormatFlags Wrap = TextFormatFlags.WordBreak | TextFormatFlags.TextBoxControl | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.ExpandTabs | Kept;
 
-        internal static int Wide(string text, Font font) { return TextRenderer.MeasureText(text, font, Size.Empty, Line).Width; }
+        // Measured on a drawing surface like the ones the words are drawn on. Measured against the screen, Capri's process got
+        // her 13.5 px face 5% wider than it draws (153 px against 145 for one line), which left gaps between styled words and
+        // wrapped lines early.
+        // One memory surface a thread, kept for the life of the app: a Graphics there costs a lock and release on every
+        // measure, which made a long reply take minutes.
+        [ThreadStatic] private static Surface measurer;
+
+        private sealed class Surface : IDeviceContext
+        {
+            private readonly IntPtr hdc = CreateCompatibleDC(IntPtr.Zero);
+            public IntPtr GetHdc() { return hdc; }
+            public void ReleaseHdc() { }
+            public void Dispose() { }
+        }
+
+        [DllImport("gdi32.dll")]
+        private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
+
+        // Widths already measured, by font: a streaming reply is laid out again with every piece that arrives, and its
+        // words are the same each time. Dropped whole when it grows past 40,000 or 64 fonts.
+        [ThreadStatic] private static Dictionary<Font, Dictionary<string, int>> widths;
+        [ThreadStatic] private static int widthCount;
+
+        // Fonts told apart by which object they are: one closed and made again is a new font here.
+        private sealed class Same : IEqualityComparer<Font>
+        {
+            public bool Equals(Font a, Font b) { return ReferenceEquals(a, b); }
+            public int GetHashCode(Font font) { return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(font); }
+        }
+
+        internal static int Wide(string text, Font font)
+        {
+            if (measurer == null) { measurer = new Surface(); widths = new Dictionary<Font, Dictionary<string, int>>(new Same()); }
+            Dictionary<string, int> known;
+            if (!widths.TryGetValue(font, out known))
+            {
+                if (widths.Count >= 64) { widths.Clear(); widthCount = 0; }
+                known = new Dictionary<string, int>(StringComparer.Ordinal);
+                widths.Add(font, known);
+            }
+            int wide;
+            if (known.TryGetValue(text, out wide)) return wide;
+            wide = TextRenderer.MeasureText(measurer, text, font, Size.Empty, Line & ~Kept).Width;
+            if (++widthCount > 40000) { widths.Clear(); widthCount = 1; widths.Add(font, known = new Dictionary<string, int>(StringComparer.Ordinal)); }
+            known[text] = wide;
+            return wide;
+        }
 
         // A title cut to a width the one way everywhere: at a word, with the dots tight against it, and mid-word only when
         // the first word alone is too wide.
