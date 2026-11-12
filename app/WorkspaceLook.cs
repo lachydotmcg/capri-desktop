@@ -192,7 +192,7 @@ namespace CapriDesktop
                 window.Show(this);
                 window.ClientSize = new Size(1080, 740);
                 shoot(window, "01-no-chats", null);
-                if (!window.ChooseShown) throw new Exception("The empty Workspace doesn't show Choose folder.");
+                if (window.Chat == null || !empty.IsHome(window.Chat.Folder) || empty.Chats().Count != 1) throw new Exception("An empty Workspace didn't open straight into a chat in her folder.");
                 window.Close();
             }
             using (Workspace work = new Workspace(Path.Combine(folder, "data"), pipe + Guid.NewGuid().ToString("N")))
@@ -387,6 +387,7 @@ namespace CapriDesktop
         private void SmokeWorkspaceTitles(List<string> checks, string folder, string projects, string pipe, Func<string, string> alias, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
         {
             string box = Path.Combine(folder, "titles"), home = Path.Combine(folder, "profile", "Capri", "Workspace");
+            bool realHome = Directory.Exists(Workspace.HomeFolder());
             string notes = Path.Combine(projects, "notes for the workspace window rebuild"), markup = Path.Combine(notes, "attempt-1-lachys-markup.png");
             Directory.CreateDirectory(box);
             Directory.CreateDirectory(notes);
@@ -409,11 +410,11 @@ namespace CapriDesktop
                     window.Location = new Point(z == 1f ? 40 : 0, z == 1f ? 40 : 0);
                     window.Show(this);
                     window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Wide * z), Math.Min((int)Math.Round(WorkspaceWindow.Tall * z), 1032));
-                    if (!window.HomeShown) throw new Exception("The empty Workspace doesn't offer her folder.");
-                    List<string> said0 = window.EmptyLines;
-                    if (said0.Count > 1 && window.EmptyLineWide(said0[said0.Count - 1]) * 2 < window.EmptyLineWide(said0[0]))
-                        throw new Exception("The empty page's last line is less than half as wide as its first at " + scale + "%: " + string.Join(" / ", said0.ToArray()));
-                    shoot(window, "23-empty-state-" + scale, null);
+                    WorkspaceChat opened = window.Chat;
+                    if (opened == null || !work.IsHome(opened.Folder) || opened.Title != "New chat" || work.Chats().Count != 1 || !work.Trusted(opened) || opened.TrustItem != null || !window.CanRehome || window.Asking != null)
+                        throw new Exception("An empty Workspace didn't open straight into a trusted chat in her folder at " + scale + "%.");
+                    if (window.Header != WorkspaceHeaderOf(alias, home)) throw new Exception("Her folder's chat header says more than its path: " + window.Header);
+                    shoot(window, "23-first-open-" + scale, null);
                     string[] said = { longOne, "Fix the header spacing.", "" };
                     for (int i = 0; i < said.Length; i++)
                     {
@@ -476,6 +477,7 @@ namespace CapriDesktop
                 shoot(window, "25-picked-titles-100", null);
                 window.Close();
             }
+            if (!realHome && Directory.Exists(Workspace.HomeFolder())) throw new Exception("A smoke run made the real folder for her chats.");
             string narrow = WorkPaint.Fit("Read these and tell me what's still missing", SystemFonts.MessageBoxFont, WorkPaint.Wide("Read these and tell me…", SystemFonts.MessageBoxFont) + 2);
             if (narrow != "Read these and tell me\u2026") throw new Exception("A title cut for width didn't end at a word with the dots tight against it: " + narrow);
             checks.Add("PASS Workspace chats take their title from their first message while it's still the one they were given (her folder's New chat, or a picked folder's name): the first words cut at a word near 40 letters ending in a tight \u2026, or the first file's name; titles cut for width end at a word the same way; two chats in one picked folder end up told apart, and a typed title is never replaced");
@@ -524,9 +526,11 @@ namespace CapriDesktop
                         window.Show(this);
                         window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Wide * z), Math.Min((int)Math.Round(WorkspaceWindow.Tall * z), 1032));
                         if (z == 1f && Directory.Exists(home)) throw new Exception("Opening Workspace made her folder.");
+                        WorkspaceChat opened = window.Chat;
                         window.NewChat();
                         WorkspaceChat chat = window.Chat;
-                        if (chat == null || !work.IsHome(chat.Folder) || !Directory.Exists(home) || !work.Trusted(chat) || chat.TrustItem != null || !window.CanRehome || !window.Chips[0].EndsWith("(runs here)", StringComparison.Ordinal))
+                        if (chat != opened) throw new Exception("+ New chat made another chat beside the one Workspace opened into.");
+                        if (chat == null || !work.IsHome(chat.Folder) || z == 1f && Directory.Exists(home) || !work.Trusted(chat) || chat.TrustItem != null || !window.CanRehome || !window.Chips[0].EndsWith("(runs here)", StringComparison.Ordinal))
                             throw new Exception("+ New chat didn't open a trusted chat in her folder, ready to type in.");
                         window.NewChat();
                         if (window.Chat != chat) throw new Exception("+ New chat made a second unused chat in her folder.");
@@ -541,6 +545,7 @@ namespace CapriDesktop
                         if (fileChips(window) != 0 || Workspace.Attached(chat).Count != 0 || !Workspace.AllFiles(chat).Contains(plan) || !Workspace.AllFiles(chat).Contains(shot) || asked == null || asked.Files != plan + "\n" + shot)
                             throw new Exception("After sending, the files didn't leave the composer while staying with the chat and its message: " + string.Join(", ", window.Chips.ToArray()));
                         if (window.CanRehome || window.Input.Text.Length != 0) throw new Exception("The chat's folder could still change after a message, or the box kept the words.");
+                        if (!Directory.Exists(home)) throw new Exception("Her folder wasn't made when the first message went.");
                         string heard = File.ReadAllText(stdin);
                         if (heard.IndexOf("Attached files:", StringComparison.Ordinal) < 0 || heard.IndexOf(plan.Replace("\\", "\\\\"), StringComparison.Ordinal) < 0 && heard.IndexOf(plan, StringComparison.Ordinal) < 0) throw new Exception("Claude Code wasn't told about the attached files.");
                         window.ScrollToEnd();
@@ -579,7 +584,7 @@ namespace CapriDesktop
                     }
                 }
             }
-            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(box, "her-folder") })
             {
                 work.Executable = standin;
                 work.Home = home;
@@ -600,7 +605,32 @@ namespace CapriDesktop
                     window.Close();
                 }
             }
-            checks.Add("PASS Workspace + New chat opens a trusted chat in her own folder (made only then), ready to type in and reused while unused, whose folder the runs-here chip can change until the first message; files ride with one message then leave the composer but stay part of the chat across a restart; a chip taken off before sending is un-attached, a sent file added again rides again, files can go with no words, and a failed start keeps the message and its files for Retry");
+            foreach (float z in new[] { 1f, 1.25f, 1.5f })
+            {
+                int scale = (int)Math.Round(z * 100);
+                foreach (bool dropped in new[] { false, true })
+                {
+                    using (Workspace work = new Workspace(Path.Combine(box, (dropped ? "drop" : "change") + scale), pipe + Guid.NewGuid().ToString("N")) { Home = home })
+                    using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
+                    {
+                        work.Executable = standin;
+                        window.PathAlias = shown;
+                        window.Location = new Point(z == 1f ? 40 : 0, z == 1f ? 40 : 0);
+                        window.Show(this);
+                        window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Wide * z), Math.Min((int)Math.Round(WorkspaceWindow.Tall * z), 1032));
+                        WorkspaceChat chat = window.Chat;
+                        if (chat == null || !work.IsHome(chat.Folder)) throw new Exception("Workspace didn't open into a chat in her folder.");
+                        if (dropped) window.DropOn(new[] { other });
+                        else { window.PickFolders = delegate { return new[] { other }; }; window.ChooseMain(); }
+                        Application.DoEvents();
+                        if (window.Chat != chat || chat.Folder != Workspace.Tidy(other) || chat.Folders.Count != 0 || chat.Title != "metis-orchestrator" || work.Chats().Count != 1 || work.Trusted(chat) || !window.CanRehome)
+                            throw new Exception((dropped ? "A folder dropped on" : "Changing the folder of") + " the first open didn't move its chat there, untrusted until asked: " + chat.Folder + " / " + string.Join(", ", window.Chips.ToArray()));
+                        shoot(window, (dropped ? "28-dropped-folder-" : "27-changed-folder-") + scale, null);
+                        window.Close();
+                    }
+                }
+            }
+            checks.Add("PASS Workspace opens straight into a chat in her folder when it has none, and a folder picked with change or dropped on it before the first message takes its place; + New chat opens a trusted chat in her own folder (made when its first message goes), ready to type in and reused while unused, whose folder the runs-here chip can change until the first message; files ride with one message then leave the composer but stay part of the chat across a restart; a chip taken off before sending is un-attached, a sent file added again rides again, files can go with no words, and a failed start keeps the message and its files for Retry");
         }
 
         // An Edit through the real path: a stand-in claude.cmd streams a real-shaped Edit call and its result, Capri's approval
@@ -653,7 +683,7 @@ namespace CapriDesktop
                 return rows.Contains("R- " + oldText) && rows.Contains("G+ " + oldText.Replace("Place();", "Shape(); Place();")) && rows.Contains("G+     void Shape() { Neon.Clip(this, Z(16), Z(6)); }");
             };
             string chatId;
-            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(box, "her-folder") })
             {
                 work.Executable = standin;
                 WorkspaceChat chat = work.NewChat(project, false);
@@ -700,7 +730,7 @@ namespace CapriDesktop
             foreach (float z in new[] { 1f, 1.25f, 1.5f })
             {
                 int scale = (int)Math.Round(z * 100);
-                using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+                using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(box, "her-folder") })
                 {
                     work.Executable = standin;
                     WorkspaceChat chat = work.Chats().Find(delegate(WorkspaceChat found) { return found.Id == chatId; });
@@ -722,7 +752,7 @@ namespace CapriDesktop
                     }
                 }
             }
-            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(box, "her-folder") })
             {
                 work.Executable = standin;
                 WorkspaceChat chat = work.Chats().Find(delegate(WorkspaceChat found) { return found.Id == chatId; });
@@ -802,7 +832,7 @@ namespace CapriDesktop
             string joined = string.Join("|", args.ToArray());
             if (!joined.Contains("|--add-dir|" + extra + "|--add-dir|" + later + "|--setting-sources|user|--strict-mcp-config")) throw new Exception("Workspace's --add-dir arguments are wrong: " + joined);
             if (string.Join("|", Workspace.Arguments("Ask me", "", "Default", "", true, null).ToArray()) != string.Join("|", Workspace.Arguments("Ask me", "", "Default", "", true).ToArray())) throw new Exception("A one-folder chat's arguments changed.");
-            using (Workspace work = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-folders-" + Guid.NewGuid().ToString("N")))
+            using (Workspace work = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-folders-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(folder, "her-folder") })
             {
                 work.Executable = WorkspaceStandin(folder, session);
                 work.ApprovalWait = 100;
@@ -863,7 +893,7 @@ namespace CapriDesktop
                 checks.Add("PASS Workspace hook rules treat added folders like the first and added files as exactly those files, in Ask me and Edits only, until they're removed");
 
                 work.Flush(chat);
-                using (Workspace loaded = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-folders-load-" + Guid.NewGuid().ToString("N")))
+                using (Workspace loaded = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-folders-load-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(folder, "her-folder") })
                 {
                     WorkspaceChat kept = loaded.Chats().Find(delegate(WorkspaceChat found) { return found.Id == chat.Id; });
                     if (kept == null || kept.Folders.Count != 2 || kept.Folders[0] != extra || kept.Folders[1] != later || kept.Files.Count != 1 || kept.Files[0] != log || !kept.Sent.Contains(log)) throw new Exception("Workspace didn't keep a chat's folders and files.");
@@ -886,17 +916,17 @@ namespace CapriDesktop
             foreach (string made in new[] { project, second, third }) Directory.CreateDirectory(made);
             string fileOne = Path.Combine(second, "one.txt"), fileTwo = Path.Combine(third, "two.txt");
             File.WriteAllText(fileOne, "1"); File.WriteAllText(fileTwo, "2");
-            using (Workspace work = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-window-" + Guid.NewGuid().ToString("N")))
+            using (Workspace work = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-window-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(folder, "her-folder") })
             {
                 work.Executable = WorkspaceStandin(folder, Guid.NewGuid().ToString());
                 using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
                 {
                     window.Show(this);
-                    if (!window.ChooseShown || window.Crowded() != null) throw new Exception("The empty Workspace doesn't offer Choose folder: " + window.Crowded());
+                    if (window.Chat == null || !work.IsHome(window.Chat.Folder) || window.Crowded() != null) throw new Exception("The empty Workspace didn't open into a chat in her folder: " + window.Crowded());
                     window.PickFolders = delegate { return new[] { project, second }; };
                     window.ChooseFolders();
                     WorkspaceChat made = window.Chat;
-                    if (made == null || made.Folder != project || made.Folders.Count != 1 || made.Folders[0] != second || made.Title != "project" || window.ChooseShown) throw new Exception("Choose folder didn't start a chat in the first folder with the second added.");
+                    if (made == null || made.Folder != project || made.Folders.Count != 1 || made.Folders[0] != second || made.Title != "project") throw new Exception("Choose folder didn't start a chat in the first folder with the second added.");
                     window.PickFiles = delegate { return new[] { fileOne, fileTwo }; };
                     window.ChooseFiles();
                     window.AddPaths(new[] { third }, new string[0]);
@@ -1198,6 +1228,8 @@ namespace CapriDesktop
         }
 
         // The pictures' stand-in answers in a believable few seconds, at a believable cost, instead of the 40 ms it takes.
+        private static string WorkspaceHeaderOf(Func<string, string> alias, string folder) { return alias != null ? alias(folder) : folder; }
+
         private static void WorkspaceTimed(string folder)
         {
             File.WriteAllText(Path.Combine(folder, "result.txt"), HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "session_id", Guid.NewGuid().ToString(), "duration_ms", 4200, "total_cost_usd", 0.04, "result", "Done.")) + "\n", new UTF8Encoding(false));
@@ -1254,7 +1286,7 @@ namespace CapriDesktop
             }
             checks.Add("PASS Workspace hands Claude Code 1, 2, 5 and 13 --add-dir folders exactly, through claude.cmd and as an exe: spaces, a trailing backslash, a drive root, UNC paths, & ^ ! % ( ) ', accents, a 150-letter name, a gone folder, a repeat and a folder inside another, and the safe flags after them stay whole");
 
-            using (Workspace work = new Workspace(box, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-args-" + Guid.NewGuid().ToString("N")))
+            using (Workspace work = new Workspace(box, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-args-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(box, "her-folder") })
             {
                 string main = Path.Combine(box, "main"), other = Path.Combine(box, "Other Folder"), inner = Path.Combine(main, "inner");
                 foreach (string made in new[] { main, other, inner }) Directory.CreateDirectory(made);
@@ -1352,7 +1384,7 @@ namespace CapriDesktop
             File.WriteAllText(fileOne, "1");
             File.WriteAllText(fileTwo, "2");
             List<string> notes = new List<string>();
-            using (Workspace work = new Workspace(Path.Combine(folder, "data"), "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-pickers-" + Guid.NewGuid().ToString("N")))
+            using (Workspace work = new Workspace(Path.Combine(folder, "data"), "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-pickers-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(folder, "her-folder") })
             using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
             {
                 window.Location = new Point(40, 40);
@@ -1424,7 +1456,7 @@ namespace CapriDesktop
                 fail(drive("folders-cancel", delegate { window.ChooseFolders(); }, cancel));
                 uint options = WorkPickers.Opened;
                 if ((options & WorkPickers.PickFolders) == 0 || (options & WorkPickers.AllowMultiSelect) == 0 || (options & WorkPickers.ForceFileSystem) == 0) failed.Add("The folder picker's options came back as 0x" + options.ToString("X"));
-                if (window.Chat != null || work.Chats().Count != 0 || !window.ChooseShown || window.Picking) failed.Add("Cancelling the folder picker changed something.");
+                if (window.Chat == null || !work.IsHome(window.Chat.Folder) || work.Chats().Count != 1 || window.Picking) failed.Add("Cancelling the folder picker changed something.");
 
                 fail(drive("folders-accept-one", delegate { window.ChooseFolders(); }, accept(started)));
                 if (window.Chat == null || !Workspace.Same(window.Chat.Folder, started) || window.Chat.Folders.Count != 0) failed.Add("Accepting a typed folder didn't start a chat there: " + (window.Chat == null ? "no chat" : window.Chat.Folder));
@@ -1462,7 +1494,7 @@ namespace CapriDesktop
             List<string> dropped = new List<string>();
             for (int i = 0; i < 30; i++) { string file = Path.Combine(project, "dropped file number " + i + ".txt"); File.WriteAllText(file, "x"); dropped.Add(file); }
             MethodInfo dragDrop = typeof(Control).GetMethod("OnDragDrop", BindingFlags.Instance | BindingFlags.NonPublic), dragEnter = typeof(Control).GetMethod("OnDragEnter", BindingFlags.Instance | BindingFlags.NonPublic);
-            using (Workspace work = new Workspace(box, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-minute-" + Guid.NewGuid().ToString("N")))
+            using (Workspace work = new Workspace(box, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-minute-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(box, "her-folder") })
             {
                 work.Executable = WorkspaceRawStandin(box, Guid.NewGuid().ToString(), true);
                 WorkspaceChat chat = work.NewChat(project, false);
@@ -1588,7 +1620,7 @@ namespace CapriDesktop
         {
             string box = Path.Combine(folder, "cost"), project = Path.Combine(box, "project");
             Directory.CreateDirectory(project);
-            using (Workspace work = new Workspace(box, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-cost-" + Guid.NewGuid().ToString("N")))
+            using (Workspace work = new Workspace(box, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-cost-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(box, "her-folder") })
             {
                 WorkspaceChat chat = work.NewChat(project, false);
                 work.Trust(chat, true);
