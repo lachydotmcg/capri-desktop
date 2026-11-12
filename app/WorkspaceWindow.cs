@@ -830,6 +830,11 @@ namespace CapriDesktop
             foreach (Control control in Every(this)) { WorkKey key = control as WorkKey; if (key != null && key.Visible && key.Text == text) return key; }
             return null;
         }
+        internal Control Named(string name)
+        {
+            foreach (Control control in Every(this)) if (control.AccessibleName == name) return control;
+            return null;
+        }
         internal int Scrolled { get { return transcript.Offset; } }
         internal bool AtEnd { get { return transcript.AtBottom; } }
         internal void ScrollConversation(int offset) { transcript.ScrollTo(offset); }
@@ -1062,6 +1067,7 @@ namespace CapriDesktop
                 Input.Font = window.Font;
                 foreach (WorkKey key in new[] { Plus, Mode, Model, Send, Stop }) { key.Font = window.keys; key.CaptionFont = window.caption; }
                 Input.CueFont = window.Font;
+                inputTall = 0;
             }
 
             internal void Fill(WorkspaceChat chat)
