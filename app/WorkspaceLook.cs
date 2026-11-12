@@ -756,6 +756,8 @@ namespace CapriDesktop
                         shoot(window, "26-undo-ready-" + scale, null);
                         window.Close();
                     }
+                    // Saved before the next copy reads the folder: a save still being swapped in can hide the chat from it.
+                    work.Flush(chat);
                 }
             }
             using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(box, "her-folder") })
