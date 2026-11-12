@@ -1010,7 +1010,7 @@ namespace CapriDesktop
                     if (price != null) cost = price is HuskNumber ? ((HuskNumber)price).Text : Convert.ToString(price, CultureInfo.InvariantCulture);
                     double seconds = HuskJson.Get(row, "duration_ms") == null ? turn.Clock.Elapsed.TotalSeconds : Number(row, "duration_ms") / 1000;
                     if (!(turn.Failed && turn.Session.Length > 0 && Expired(turn.ResultText)))
-                        Add(chat, new WorkspaceItem { Kind = "end", Text = seconds.ToString("0.0", CultureInfo.InvariantCulture) + "s" + (cost.Length > 0 ? " | $" + cost : ""), Seconds = seconds, Cost = cost, Turn = turn.Id });
+                        Add(chat, new WorkspaceItem { Kind = "end", Text = Ended(seconds, cost), Seconds = seconds, Cost = cost, Turn = turn.Id });
                     turn.ResultAt = turn.Clock.ElapsedMilliseconds;
                     turn.Result = true;
                 }
@@ -1124,6 +1124,26 @@ namespace CapriDesktop
         private static bool QuietTool(string tool)
         {
             return ReadTool(tool) || Regex.IsMatch(tool ?? "", @"\A(?:TodoRead|TodoWrite|TaskList|TaskGet|TaskCreate|TaskUpdate|TaskOutput)\z", RegexOptions.CultureInvariant);
+        }
+
+        // The time and cost line: seconds under a minute, minutes and seconds after that, and dollars to the cent. The exact
+        // cost stays in the item's Cost.
+        internal static string Ended(double seconds, string cost) { return Took(seconds) + (cost.Length > 0 ? " | " + Money(cost) : ""); }
+
+        internal static string Took(double seconds)
+        {
+            if (seconds < 59.95) return seconds.ToString("0.0", CultureInfo.InvariantCulture) + "s";
+            int whole = (int)Math.Round(seconds);
+            if (whole < 3600) return whole / 60 + "m " + whole % 60 + "s";
+            return whole / 3600 + "h " + whole % 3600 / 60 + "m";
+        }
+
+        internal static string Money(string cost)
+        {
+            double dollars;
+            if (!double.TryParse(cost, NumberStyles.Float, CultureInfo.InvariantCulture, out dollars)) return "$" + cost;
+            if (dollars > 0 && dollars < 0.005) return "under $0.01";
+            return "$" + dollars.ToString("0.00", CultureInfo.InvariantCulture);
         }
 
         internal static bool EditTool(string tool) { return tool == "Write" || tool == "Edit" || tool == "MultiEdit" || tool == "NotebookEdit"; }
