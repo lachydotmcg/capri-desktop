@@ -58,7 +58,7 @@ namespace CapriDesktop
             }
         }
 
-        // An open list item: the column of its marker, the column a line has to reach to belong to it, and its number.
+        // An open list item: the column a line has to reach to belong to it, and its number and stop for counting on.
         private sealed class Item
         {
             internal int Inside, Number;
