@@ -485,6 +485,9 @@ namespace CapriDesktop
         // Fewer readable buttons than this and the window isn't telling her anything, so she looks at it instead.
         internal const int FewTargets = 4;
 
+        // Her grid brain's written move for reading a skill, added to its prompt only while a skill is on.
+        internal const string SkillMove = "\nread_skill{\"name\": \"...\"} reads one of those skills in full, by its title or id.";
+
         // For brains without Claude's computer tools, on any key or their own PC.
         internal const string Sees =
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You do their job with their mouse and keyboard, looking at the screen like a person would.\n" +
@@ -514,7 +517,7 @@ namespace CapriDesktop
             "Do whatever their job asks without asking first. They already asked, and asking again annoys them. Capri stops you herself before any step that needs their OK.\n" +
             "If a cookie banner or popup covers the page, deal with it first, then carry on. If a move didn't work, try something else rather than the same thing again.";
 
-        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|find_file|draw|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
+        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|find_file|read_skill|draw|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex PlainClick = new Regex(@"\b(click|double_click|right_click)\W+(\d{1,3}(?:\.\d+)?)\W+(\d{1,3}(?:\.\d+)?)\b", RegexOptions.IgnoreCase);
 
         // The moves written in a brain's reply, in order.

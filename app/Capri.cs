@@ -3093,6 +3093,8 @@ namespace CapriDesktop
             tray.Visible = !testing;
             ModList = new Mods(data);
             GameNotes.Skills = ModList.SkillsFor;
+            Hands.SkillNote = delegate { return ModList.SkillNote; };
+            Hands.ReadSkill = ModList.SkillText;
             Computer.SkillGame = ModList.GameFor;
             ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
             ModList.HeardSpeech = ModsHeard;
@@ -22407,7 +22409,7 @@ namespace CapriDesktop
                 { "mini_player", "{\"action\":\"hide\"}" }, { "list_windows", "{}" }, { "check_app", "{\"name\":\"Spotify\"}" },
                 { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" },
                 { "call_errand", "{\"action\":\"open_app\"}" }, { "call_say", "{\"text\":\"Lachy's on in 15.\"}" },
-                { "game_notes", "{\"action\":\"read\",\"name\":\"The Binding of Isaac\"}" }
+                { "game_notes", "{\"action\":\"read\",\"name\":\"The Binding of Isaac\"}" }, { "read_skill", "{\"name\":\"BTD6 strategy\"}" }
             };
             for (int i = 0; i < Hands.Count; i++)
             {
@@ -22852,8 +22854,11 @@ namespace CapriDesktop
         {
             System.Collections.Generic.List<string> openAiTools = new System.Collections.Generic.List<string>(), claudeTools = new System.Collections.Generic.List<string>();
             System.Text.StringBuilder listing = new System.Text.StringBuilder("\nYour tools:");
+            // read_skill is only in her tools while a skill is on.
+            bool skilled = Hands.Skilled;
             for (int i = 0; i < Hands.Count; i++)
             {
+                if (Hands.Name(i) == "read_skill" && !skilled) continue;
                 openAiTools.Add("{\"type\":\"function\",\"function\":{\"name\":\"" + Hands.Name(i) + "\",\"description\":" + Voice.Quote(Hands.Description(i)) + ",\"parameters\":" + Hands.Schema(i) + "}}");
                 claudeTools.Add("{\"name\":\"" + Hands.Name(i) + "\",\"description\":" + Voice.Quote(Hands.Description(i)) + ",\"input_schema\":" + Hands.Schema(i) + "}");
                 System.Collections.Generic.List<string> keys = new System.Collections.Generic.List<string>();
@@ -22892,6 +22897,7 @@ namespace CapriDesktop
             for (int i = 0; i < Hands.Count; i++)
             {
                 string tool = Hands.Name(i);
+                if (tool == "read_skill" && !skilled) { if (kit.Brief.Contains("\n- read_skill: ")) throw new Exception("Her chat brain was told about read_skill with no skill on."); continue; }
                 if (kit.Brief.IndexOf("\n- " + tool + ": ", StringComparison.Ordinal) < 0 || (tool == "look_at_screen" || tool == "watch_for") == blind.Brief.Contains("\n- " + tool + ": "))
                     throw new Exception("Her chat brain's list of what she can do missed or kept a tool: " + tool);
             }

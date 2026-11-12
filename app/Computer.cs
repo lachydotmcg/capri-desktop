@@ -251,6 +251,7 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"A short name, like code\"},\"text\":{\"type\":\"string\",\"description\":\"What to remember\"}},\"required\":[\"name\",\"text\"]}" },
             { "wait_for", "Wait until words that aren't on screen yet show up, like a code in an email or a page that's still loading. Checks every 2 seconds.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The words to wait for\"},\"seconds\":{\"type\":\"string\",\"description\":\"How long at most, in seconds\"}},\"required\":[\"text\"]}" },
+            { "read_skill", Hands.SkillDescription, Hands.SkillSchema },
             { "ask", "Ask them only before a step that buys or pays, before sending, posting, deleting or installing something their job didn't ask for, or for something only they know, like who to message when they didn't say. When they leave a choice to you, pick it yourself. Never ask about a step their job already asked for.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The question\"}},\"required\":[\"text\"]}" },
             { "done", "Finish: say what you did, or what went wrong.",
@@ -284,7 +285,9 @@ namespace CapriDesktop
             lock (rendered)
             {
                 string[] made;
-                if (!rendered.TryGetValue(ask, out made)) rendered[ask] = made = new[] { Render(false, ask), Render(true, ask), Written(ask) };
+                bool skilled = Hands.Skilled;
+                string key = (skilled ? "skills|" : "") + ask;
+                if (!rendered.TryGetValue(key, out made)) rendered[key] = made = new[] { Render(false, ask, skilled), Render(true, ask, skilled), Written(ask, skilled) };
                 return made;
             }
         }
@@ -292,9 +295,11 @@ namespace CapriDesktop
         internal static string Tools { get { return Rendering()[0]; } }
         internal static string ClaudeTools { get { return Rendering()[1]; } }
         // Her own hold_and_press rides beside Claude's computer tools, so she can hold w while she presses space.
-        internal static readonly string Toolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("find_file") + "," + Render("draw") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("say") + "," + Render("learn") + "]";
+        internal static string Toolset { get { return Hands.Skilled ? SkilledToolset : PlainToolset; } }
+        private static readonly string PlainToolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("find_file") + "," + Render("draw") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("say") + "," + Render("learn") + "]";
+        private static readonly string SkilledToolset = PlainToolset.Substring(0, PlainToolset.Length - 1) + "," + Render("read_skill") + "]";
         internal static string Listing { get { return Rendering()[2]; } }
-        private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|find_file|draw|wait_for|wait|note|look|walk|mouse_hold|say|learn|ask|done)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
+        private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|find_file|read_skill|draw|wait_for|wait|note|look|walk|mouse_hold|say|learn|ask|done)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex BareClick = new Regex(@"^\W*click\W*(\d{1,3})\W*$", RegexOptions.IgnoreCase);
         private static readonly Regex Risky = new Regex(@"\b(send|post|publish|tweet|reply|comment|buy|purchase|pay|checkout|check out|place order|order now|book now|book it|complete booking|reserve|reserve now|subscribe|donate|delete|remove|uninstall|install|format|transfer|confirm|sign out|log out|unfriend|block|report)\b", RegexOptions.IgnoreCase);
         private static readonly Regex Told = new Regex(@"\b(send|message|text|dm|tell|say|write|type|put|paste|share|answer|respond|ask|let|post|publish|tweet|reply|comment|delete|remove|erase|trash|uninstall|install|format|confirm|sign\s+out|log\s+out|unfriend|block|report)\b", RegexOptions.IgnoreCase);
@@ -428,11 +433,11 @@ namespace CapriDesktop
 
         private static string Describe(int i, string ask) { return Specs[i, 0] == "ask" ? ask : Specs[i, 1]; }
 
-        private static string Render(bool claude, string ask)
+        private static string Render(bool claude, string ask, bool skilled)
         {
             List<string> tools = new List<string>();
             for (int i = 0; i < Specs.GetLength(0); i++)
-                tools.Add(claude
+                if (skilled || Specs[i, 0] != "read_skill") tools.Add(claude
                     ? "{\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Describe(i, ask)) + ",\"input_schema\":" + Specs[i, 2] + "}"
                     : "{\"type\":\"function\",\"function\":{\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Describe(i, ask)) + ",\"parameters\":" + Specs[i, 2] + "}}");
             for (int gameIndex = 0; gameIndex < GameSpecs.GetLength(0); gameIndex++)
@@ -449,11 +454,12 @@ namespace CapriDesktop
             throw new ArgumentException("There's no tool called " + tool + ".");
         }
 
-        private static string Written(string ask)
+        private static string Written(string ask, bool skilled)
         {
             StringBuilder text = new StringBuilder("\nYour tools:");
             for (int i = 0; i < Specs.GetLength(0); i++)
             {
+                if (!skilled && Specs[i, 0] == "read_skill") continue;
                 List<string> keys = new List<string>();
                 foreach (Match key in Regex.Matches(Specs[i, 2], @"""(\w+)"":\{""type"":""string"",""description"":""[^""]*""(?:,""enum"":\[([^\]]*)\])?"))
                     keys.Add("\"" + key.Groups[1].Value + "\": \"" + (key.Groups[2].Success ? key.Groups[2].Value.Replace("\"", "").Replace(",", "|") : "...") + "\"");
@@ -700,6 +706,7 @@ namespace CapriDesktop
             if (tool == "press") return "press " + (args.Keys ?? "");
             if (tool == "hold_and_press") return "hold " + (args.Hold ?? "") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and press " + args.Press);
             if (tool == "learn") return "learn " + Voice.Quote(args.Text ?? "");
+            if (tool == "read_skill") return "read_skill " + Voice.Quote(args.Name ?? "");
             if (tool == "look") return "look";
             if (tool == "walk") return "walk " + (args.Keys ?? "w") + " " + (args.Seconds ?? "2") + " s";
             if (tool == "mouse_hold") return "hold " + (args.Button ?? "left") + " click " + (args.Seconds ?? "1") + " s";
@@ -749,6 +756,7 @@ namespace CapriDesktop
             if (tool == "press") return "Pressing " + (args.Keys ?? "") + ".";
             if (tool == "hold_and_press") return "Holding " + (args.Hold ?? "keys") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and pressing " + args.Press) + ".";
             if (tool == "learn") return "Noting that for next time.";
+            if (tool == "read_skill") return "Reading " + Voice.Quote(args.Name ?? "") + ".";
             if (tool == "look") return "Looking around.";
             if (tool == "walk") return "Moving.";
             if (tool == "mouse_hold") return "Holding " + (args.Button ?? "left") + " click.";
@@ -775,6 +783,7 @@ namespace CapriDesktop
             if (tool == "press") return "Pressed " + (args.Keys ?? "");
             if (tool == "hold_and_press") return "Held " + (args.Hold ?? "keys") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and pressed " + args.Press);
             if (tool == "learn") return "Noted that for next time";
+            if (tool == "read_skill") return "Read " + Voice.Quote(args.Name ?? "");
             if (tool == "look") return "Looked around";
             if (tool == "walk") return "Moved";
             if (tool == "mouse_hold") return "Held " + (args.Button ?? "left") + " click";
@@ -1819,6 +1828,7 @@ namespace CapriDesktop
         internal static string Do(string tool, ToolArguments args, Sight sight)
         {
             if (args == null) args = new ToolArguments();
+            if (tool == "read_skill") return Hands.Do(tool, args);
             MenuWait();
             if (tool == "draw")
             {
@@ -2551,6 +2561,9 @@ namespace CapriDesktop
         private string carried;
         private string lastMoves;
         private readonly List<string> played = new List<string>();
+        // The skills she read in this job. On her text and grid brains they stay in her prompt till the job ends, since only her
+        // last few steps are shown back to her; Claude's own computer brain keeps them in its talk.
+        private readonly List<string> readSkills = new List<string>();
         internal Action Blind;
         // A game job thinks harder on every turn and gets her game lines. Their words make it one, or a game's window in front
         // partway through, and it stays one.
@@ -2698,7 +2711,22 @@ namespace CapriDesktop
         private string Briefed() { return Playing ? Computer.PlayingNow + (Consults ? Computer.Consulting : "") + GameNotes.Brief(Game()) : ""; }
 
         // Her hands' prompt for a turn. A stream gets its note on every brain, so she talks to chat whichever one she's on (Lachy, 1 Nov).
-        internal string Prompted(string hands) { return Computer.Allowing(hands) + (Computer.Streaming ? Computer.StreamNote : "") + Briefed(); }
+        internal string Prompted(string hands)
+        {
+            string skills = Hands.SkillNote(), read;
+            lock (readSkills) read = hands == Computer.Seeing || readSkills.Count == 0 ? "" : "\nSkills you read for this job:\n" + string.Join("\n", readSkills.ToArray());
+            return Computer.Allowing(hands) + skills + (skills.Length > 0 && hands == Computer.Sees ? Computer.SkillMove : "") + (Computer.Streaming ? Computer.StreamNote : "") + Briefed() + read;
+        }
+
+        // read_skill in a job: the skill in full, kept for the rest of the job. On her text and grid brains the step itself says only
+        // that it's read, so the know-how isn't in her prompt twice.
+        private string ReadSkill(ToolArguments args, bool full)
+        {
+            string text = Hands.Do("read_skill", args);
+            if (Computer.Failed(text) || !text.StartsWith("Skill \"", StringComparison.Ordinal)) return text;
+            lock (readSkills) if (!readSkills.Contains(text)) readSkills.Add(text);
+            return full ? text : Computer.Did("read_skill", args, null) + ". It's with your instructions now, for the rest of this job.";
+        }
 
         // A game job that ran a while thinks over how it went, off to the side, and keeps what it found out for next time.
         private void Reflect(string outcome, string said)
@@ -3224,7 +3252,7 @@ namespace CapriDesktop
         private string Batch(bool resumed)
         {
             bool broken = false, hit = false;
-            bool acts = Array.Exists(batch, call => call.Toolset != "computer" || (call.Name != "screenshot" && call.Name != "zoom"));
+            bool acts = Array.Exists(batch, call => call.Name != "read_skill" && (call.Toolset != "computer" || (call.Name != "screenshot" && call.Name != "zoom")));
             // The window in front changed while it was thinking, so its coordinates are stale. Keys that need no spot on the screen
             // still go ahead, as they bring back the window in its screenshot first; next to anything else they don't, since a click
             // that's skipped might be what the keys after it were for.
@@ -3234,7 +3262,7 @@ namespace CapriDesktop
             {
                 ClaudeBlock call = batch[next];
                 ToolArguments args = call.Input;
-                if (moved)
+                if (moved && call.Name != "read_skill")
                 {
                     answers.Add(new Answered { Call = call, Text = "Not executed: the window in front changed before this ran. A fresh screenshot follows.", Error = true });
                     continue;
@@ -3458,6 +3486,14 @@ namespace CapriDesktop
 
         private string Step(string name, ToolArguments args, bool member, Target target)
         {
+            if (name == "read_skill")
+            {
+                string read = ReadSkill(args, talk.Count > 0);
+                bool unread = Computer.Failed(read);
+                Steps.Add(name + ": " + (unread ? read : Computer.Did(name, args, null) + "."));
+                Mark(new JobStep { Tool = name, Label = unread ? Clean(Hands.Shown(read), "That didn't work.").TrimEnd('.') : Computer.Did(name, args, null), Finished = true, Failed = unread });
+                return read;
+            }
             Sight sight = shown != null && shown.Sight != null ? shown.Sight : Computer.Glimpse();
             string repeated = CheckType(name, args, sight, member);
             if (repeated != null) return SkippedType(repeated);
@@ -3573,7 +3609,7 @@ namespace CapriDesktop
             Computer.KeysOk = approved.Contains("keys");
             // The window in front changed after she looked, so she looks again instead of acting on old buttons. Keys that need no
             // spot on the screen still go, as they bring back the window she looked at first. Only Esc stops her.
-            if (!Computer.KeysOnly(tool, args) && tool != "find_file" && tool != "open_app" && tool != "open_website" && tool != "wait" && tool != "wait_for" && tool != "note" && sight != null && sight.Window != IntPtr.Zero && Computer.Front() != sight.Window)
+            if (!Computer.KeysOnly(tool, args) && tool != "find_file" && tool != "read_skill" && tool != "open_app" && tool != "open_website" && tool != "wait" && tool != "wait_for" && tool != "note" && sight != null && sight.Window != IntPtr.Zero && Computer.Front() != sight.Window)
                 return "Couldn't do that: the window in front changed.";
             bool secret = tool == "type" && Computer.Secret(args, sight);
             if (secret) Computer.Keep(args.Text);
@@ -3585,6 +3621,7 @@ namespace CapriDesktop
             string result, shown = null;
             Match unknown = tool == "type" ? Regex.Match(args.Text ?? "", @"\$([a-z][a-z0-9_]*)") : Match.Empty;
             if (tool == "learn") result = GameNotes.Learn(Game(), args.Text);
+            else if (tool == "read_skill") result = ReadSkill(args, false);
             else if (tool == "note") result = Note(args);
             else if (tool == "type" && Computer.Placeholder(args.Text))
             {

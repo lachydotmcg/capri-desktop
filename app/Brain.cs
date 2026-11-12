@@ -2420,7 +2420,7 @@ namespace CapriDesktop
             string turn = ForYou(Now() + Seen() + Gap() + heard);
             // A brain on their PC chats without her tools, so it's told it can write her heart into a reply (Lachy, 12 Nov).
             string heartNote = act != null && !fileChat && OnThisPc ? Hands.LocalHeart : "";
-            messages.Add(new ChatMessage("system", steady + (act != null ? fileChat ? kit.ChatOnly : kit.Chat + Hands.MiniBoard() : "") + heartNote + selfGuide + callContext) { Steady = steady.Length });
+            messages.Add(new ChatMessage("system", steady + (act != null ? fileChat ? kit.ChatOnly : kit.Chat + Hands.MiniBoard() : "") + heartNote + Hands.SkillNote() + selfGuide + callContext) { Steady = steady.Length });
             if (HuskFacts != null) messages[0].Content += HuskFacts();
             List<ChatMessage> recent;
             List<string> chat;
@@ -2568,7 +2568,7 @@ namespace CapriDesktop
                         if (calls.Count == 0 && unable == null && (playing != null || Hands.Wants(request))) Force(calls, request, kit, ref unable);
                         if (calls.Count == 0 && unable == null)
                         {
-                            messages[0] = new ChatMessage("system", steady + kit.ChatOnly + Hands.MiniBoard() + heartNote + selfGuide + callContext) { Steady = steady.Length };
+                            messages[0] = new ChatMessage("system", steady + kit.ChatOnly + Hands.MiniBoard() + heartNote + Hands.SkillNote() + selfGuide + callContext) { Steady = steady.Length };
                             raw = Chat(model, messages, answerBudget, ticket, typed => false);
                             if (heartNote.Length > 0) raw = SendHearts(raw, act, ticket);
                             if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;

@@ -14,6 +14,9 @@
       "text": {
         "type": "string"
       },
+      "name": {
+        "type": "string"
+      },
       "keys": {
         "type": "string"
       },
@@ -29,6 +32,7 @@
           "scroll",
           "type",
           "press",
+          "read_skill",
           "wait",
           "done",
           "ask"
@@ -97,6 +101,7 @@
       "frame",
       "label",
       "text",
+      "name",
       "keys",
       "button",
       "action",

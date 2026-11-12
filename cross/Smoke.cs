@@ -3936,6 +3936,26 @@ namespace CapriDesktop
 
         private const string LegacySha = "ed63f8c677afa9c2be8b76e850547882b88fa76ea9206e3d20f758cce65ed2a0";
 
+        private sealed class SkillDesk : IComputerDesktop
+        {
+            private readonly ComputerSnapshot source;
+            internal ComputerFrame Frame;
+
+            internal SkillDesk()
+            {
+                ComputerRect area = new ComputerRect(0, 0, 100, 100);
+                source = new ComputerSnapshot("skill-session", "skill-layout", new ComputerTarget("skill-window", 1, "skill-birth", "skill-app", area, 0, 0), new ComputerOutput("skill-output", area, 1, 0, 100, 100), 0, 0, true);
+            }
+
+            public ComputerSnapshot Snapshot(string output = null, bool focus = false) { return source; }
+            public ComputerFrame Capture(ComputerSnapshot snapshot, bool crop, CancellationToken token)
+            {
+                Frame = new ComputerFrame { Source = source, Area = source.Output.Area, Width = 100, Height = 100, Jpeg = new byte[] { 1 } };
+                return Frame;
+            }
+            public void Move(int x, int y, CancellationToken token) { throw new Exception("A skill read moved the pointer."); }
+        }
+
         private void ModsChecks(Mainframe frame)
         {
             Mods mods = pet.ModList;
@@ -4061,10 +4081,64 @@ namespace CapriDesktop
                     if (!Chores.Skilled().Contains("Only dig straight down with a ladder.")) throw new Exception("A skill didn't reach her jobs while its game was open.");
                     Hands.GameOpen = delegate { return "Terraria"; };
                     if (Chores.Skilled() != "") throw new Exception("A skill reached a job for another game.");
+                    string generalFile = Path.Combine(input, "skill-general" + Mods.SkillExtension), hiddenFile = Path.Combine(input, "skill-off" + Mods.SkillExtension);
+                    File.WriteAllText(generalFile, "---\ncapri-skill: 1\nid: skill-general\nname: General workflow\n---\nKeep the steps in order.");
+                    File.WriteAllText(hiddenFile, "---\ncapri-skill: 1\nid: skill-off\nname: Hidden skill\n---\nHidden know-how.");
+                    if (!sheet.ImportMod(generalFile)) throw new Exception("The Mac or Linux Mods window couldn't import a general skill.");
+                    Mod general = mods.All.Find(mod => mod.File.Id == "skill-general"), hidden = mods.Import(hiddenFile, null);
+                    mods.Set(hidden, false, null);
+                    string line = mods.SkillNote;
+                    foreach (string prompt in new[] { Hands.Note, Hands.Prompt + Hands.Listing, Chores.Allowed })
+                        if (!prompt.Contains(line) || !line.Contains("\"General workflow\", \"Smoke skill\"") || prompt.Contains("Hidden skill") || prompt.Contains("Hidden know-how.")) throw new Exception("A Mac or Linux tool prompt lost enabled skill titles or listed an off skill.");
+                    string know = "Only dig straight down with a ladder.";
+                    string read = Hands.Do("read_skill", new ToolArguments { Name = "SMOKE... SKILL!" });
+                    if (!read.EndsWith("<skill_know_how>\n" + know + "\n</skill_know_how>", StringComparison.Ordinal) || !Hands.Do("read_skill", new ToolArguments { Name = "skill-general" }).Contains("Keep the steps in order.") || Hands.Do("read_skill", new ToolArguments { Name = "skill-off" }) != "Couldn't read \"Hidden skill\": it's off under Mods.") throw new Exception("Mac or Linux chat couldn't read an enabled skill or refused an off one incorrectly.");
+                    string readTool;
+                    ToolArguments readArgs;
+                    if (!Hands.Tools.Contains("\"name\":\"read_skill\"") || !Hands.ClaudeTools.Contains("\"name\":\"read_skill\"") || !Hands.Typed("read_skill{\"name\": \"Smoke skill\"}", out readTool, out readArgs) || readTool != "read_skill" || Hands.Do(readTool, readArgs) != read) throw new Exception("A Mac or Linux native or written tool list left read_skill out.");
+                    using (System.Text.Json.JsonDocument format = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "bridge", "computer-action-format.json"))))
+                    {
+                        System.Text.Json.JsonElement properties = format.RootElement.GetProperty("schema").GetProperty("properties");
+                        if (properties.GetProperty("name").GetProperty("type").GetString() != "string" || !properties.GetProperty("action").GetProperty("enum").GetRawText().Contains("\"read_skill\"")) throw new Exception("A Mac or Linux plan's structured job format left read_skill out.");
+                    }
+                    System.Text.Json.JsonElement order;
+                    if (!Chores.Read("{\"do\":\"read_skill\",\"name\":\"Smoke skill\"}", out order) || Chores.Act("read_skill", order, 100, 100) != read) throw new Exception("A screenshot job couldn't read a skill.");
+                    string saved = Security.Saved;
+                    bool wake = Security.On(Security.Wake);
+                    try
+                    {
+                        Security.Pick(Security.Lockdown);
+                        SkillDesk desk = new SkillDesk();
+                        int turns = 0;
+                        ComputerJob job = new ComputerJob { Task = "Check the skill", Asked = "Check the skill", Approved = "keep" };
+                        ComputerRunner runner = new ComputerRunner { Desktop = desk, MostSteps = 0, Account = delegate { return "skill-account"; } };
+                        runner.Think = delegate(byte[] picture, string system, string instruction)
+                        {
+                            if (!system.Contains(line) || !system.Contains("read_skill (name")) throw new Exception("A native Mac or Linux job wasn't told about skill titles and read_skill.");
+                            if (turns++ == 0) return System.Text.Json.JsonSerializer.Serialize(new { action = "read_skill", frame = desk.Frame.Id, previous_effect = "none", label = "Read the skill", risk = "none", secret = false, name = "smoke-skill" });
+                            using (System.Text.Json.JsonDocument result = System.Text.Json.JsonDocument.Parse(instruction))
+                                if (result.RootElement.GetProperty("skills")[0].GetString() != read) throw new Exception("A native Mac or Linux job didn't get the skill it read.");
+                            return System.Text.Json.JsonSerializer.Serialize(new { action = "done", frame = desk.Frame.Id, previous_effect = "none", label = "Read it.", risk = "none", secret = false });
+                        };
+                        if (runner.Run(job, CancellationToken.None) != "Screen assessment: Read it." || turns != 2 || job.Skills.Count != 1 || job.Steps.Count != 0 || job.TotalSteps != 0 || job.Approved != "keep") throw new Exception("A skill read changed native job input or approvals.");
+                        try
+                        {
+                            ComputerAction.Parse(System.Text.Json.JsonSerializer.Serialize(new { action = "read_skill", frame = desk.Frame.Id, previous_effect = "none", label = "Read a skill", risk = "none", secret = false }), desk.Frame);
+                            throw new Exception("A native skill read accepted no name.");
+                        }
+                        catch (InvalidOperationException error) { if (error.Message != "Which skill should I read?") throw; }
+                    }
+                    finally { Security.Load(saved, wake); }
+                    if (general.File.Games.Length != 0 || mods.SkillsFor("General workflow") != "" || mods.GameFor("General workflow") != null) throw new Exception("A general skill matched a game on Mac or Linux.");
+                    mods.Remove(general);
+                    mods.Remove(hidden);
+                    checks.Add("PASS mods skills: Mac and Linux chat and jobs list enabled titles, read full skills by title or id, accept general skills and keep reads out of input and approvals");
                 }
                 finally { Hands.GameOpen = openWas; }
                 sheet.RemoveMod(0);
                 if (mods.All.Count != 0 || Chores.Skilled() != "") throw new Exception("Removing a skill left it behind.");
+                foreach (string prompt in new[] { Hands.Note, Hands.Prompt + Hands.Listing, Hands.Tools, Hands.ClaudeTools, Chores.Allowed })
+                    if (prompt.Contains("Skills on in Mods") || prompt.Contains("read_skill")) throw new Exception("A Mac or Linux prompt or tool list told her about skills with none on.");
                 checks.Add("PASS mods skills: a .capri-skill imports, reaches her jobs only while its game is open, and removing it takes it out");
 
                 ModDirectoryChecks(sheet, input, blue, skin);

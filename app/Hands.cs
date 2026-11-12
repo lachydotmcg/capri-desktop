@@ -808,7 +808,15 @@ namespace CapriDesktop
         // toggles is off.
         internal static string Note { get { return NoteFor(KitFor()); } }
 
-        internal static string NoteFor(Kit kit) { return Here(kit.Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote + AlsoCalled(); }
+        internal static string NoteFor(Kit kit) { return Here(kit.Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote + AlsoCalled() + SkillNote(); }
+
+        // The titles of the skills that are on, and one skill in full by its title or id. Her mods list fills these in.
+        internal static Func<string> SkillNote = delegate { return ""; };
+        internal static Func<string, string> ReadSkill = delegate { return "Couldn't read that skill."; };
+        // read_skill is only in her tools while a skill is on, so a brain with none is told nothing more than before.
+        internal static bool Skilled { get { return SkillNote().Length > 0; } }
+        internal const string SkillDescription = "Read one of your skills in full, by its title or id: know-how someone wrote that they turned on in Mods. Read one when it fits what they ask or what you're doing.";
+        internal const string SkillSchema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The skill's title or id\"}},\"required\":[\"name\"]}";
 
 #if CROSS
         private const string MiniNote = "";
@@ -863,7 +871,7 @@ namespace CapriDesktop
         // still calls it and Capri asks them.
         internal static string Prompt { get { return PromptFor(KitFor()); } }
 
-        internal static string PromptFor(Kit kit) { string note = Security.Note; return Here(note.Length == 0 ? kit.Handing : kit.Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote; }
+        internal static string PromptFor(Kit kit) { string note = Security.Note; return Here(note.Length == 0 ? kit.Handing : kit.Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote + SkillNote(); }
 
         // The shortcuts she can press, in her chat and hands prompts. Where only some work, these are rebuilt from those.
         private const string PressNote = "You can press shortcuts: mute or deafen them in Discord, screenshots, clips, recording, Game Bar, show desktop, Task Manager, clipboard history, emoji, voice typing, Live Captions, Narrator, Magnifier, colour filters and Quick Settings. ";
@@ -1351,6 +1359,7 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to remind them about, or which reminder to cancel\"},\"when\":{\"type\":\"string\",\"description\":\"Local time, like in 20 minutes, in 3 days, at 5pm, tomorrow at 9, on 2026-12-05 at 9am or on 5 December at noon. Use YYYY-MM-DD for dates in any language\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; save by default\",\"enum\":[\"save\",\"list\",\"cancel\"]}}}", "set reminders", "set reminders" },
             { "stopwatch", "Start, check or stop their stopwatch, which counts up from when it starts. There's one stopwatch, with no laps. Starting it while it runs says how long it's been. A timer that counts down is a reminder: use remind.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do; start by default\",\"enum\":[\"start\",\"check\",\"stop\"]}}}", "run a stopwatch", "start, check or stop a stopwatch" },
+            { "read_skill", SkillDescription, SkillSchema, "read the skills you turned on in Mods", "read one of your skills in full" },
             { "game_notes",
 #if CROSS
               "Keep controls or instructions the user teaches you for a game, or read them back. Keep their actual controls in text.",
@@ -1446,7 +1455,7 @@ namespace CapriDesktop
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status"; }
+        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "read_skill" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status"; }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1948,6 +1957,7 @@ namespace CapriDesktop
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
                 if (tool == "watch_for") return WatchFor(args);
                 if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
+                if (tool == "read_skill") return Valid(tool, args) ? ReadSkill(args.Name) : "Couldn't read a skill: name one by its title or id.";
                 if (tool == "remind") return Remind(args);
                 if (tool == "stopwatch") return Valid(tool, args) ? Stopwatches.Do(args) : "Couldn't find that stopwatch action.";
                 if (tool == "routine") return Routine(args);
@@ -2166,6 +2176,8 @@ namespace CapriDesktop
             foreach (string[] gap in missing) key.Append('|').Append(gap[0]).Append('=').Append(gap[1]);
             foreach (string[] gap in off) key.Append("|off ").Append(gap[0]).Append('=').Append(gap[1]);
             foreach (string[] tool in modTools) key.Append("|mod ").Append(tool[0]).Append('=').Append(tool[1]).Append('=').Append(tool[2]);
+            bool skilled = Skilled;
+            if (skilled) key.Append("|skills");
             lock (kits)
             {
                 Kit kit;
@@ -2173,7 +2185,7 @@ namespace CapriDesktop
                 {
                     // Mods come and go, so a kit made for tools no mod has any more isn't kept forever.
                     if (modTools.Length > 0 && kits.Count > 200) kits.Clear();
-                    kits.Add(key.ToString(), kit = Made(missing, off, modTools));
+                    kits.Add(key.ToString(), kit = Made(missing, off, modTools, skilled));
                 }
                 return kit;
             }
@@ -2479,9 +2491,9 @@ namespace CapriDesktop
         // with what she'd say about them taken out and her lines about what isn't here and what's off put in, and the short list
         // of what she can do right now that the brain she chats with always gets, so even a small local model knows (Lachy, 2 Nov:
         // "For 0.8.0 I especially want them to be aware of their tools").
-        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools); }
+        private static Kit Made(List<string[]> missing, List<string[]> off) { return Made(missing, off, NoModTools, Skilled); }
 
-        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools)
+        private static Kit Made(List<string[]> missing, List<string[]> off, string[][] modTools, bool skilled)
         {
             Kit kit = new Kit();
             foreach (string[] gap in missing) kit.Missing[gap[0]] = gap[1];
@@ -2500,7 +2512,7 @@ namespace CapriDesktop
             for (int i = 0; i < Specs.GetLength(0); i++)
             {
                 string tool = Specs[i, 0], how;
-                if (!kit.Has(tool)) continue;
+                if (!kit.Has(tool) || tool == "read_skill" && !skilled) continue;
                 string description = Unsaying(kit, tool == "shortcut" && someKeys ? "Press a keyboard shortcut for them: " + Joined(doing, "or") + "." : Specs[i, 1]), schema = Unsaying(kit, Specs[i, 2]);
                 if (tool == "capri_settings") { description = Unsaying(kit, SettingsDescription(kit)); schema = SettingsSchema(kit); }
                 foreach (string gap in kit.Missing.Keys)
@@ -4252,6 +4264,7 @@ namespace CapriDesktop
                     && (args.Action == "open_folder" || args.Action == "open_last" || string.IsNullOrEmpty(args.Seconds) || int.TryParse(args.Seconds, out duration) && duration > 0);
             }
             if (args == null) return false;
+            if (tool == "read_skill") return Named(args.Name);
             if (tool == "mod") return Named(args.Name);
             if (tool == "mini_game")
             {

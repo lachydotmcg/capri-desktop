@@ -85,7 +85,8 @@ namespace CapriDesktop
                 string rules = Rules;
                 if (Security.On(Security.Secrets)) rules = rules.Replace(Secrets, "Type passwords, card numbers and codes whenever their job needs them. ");
                 if (Security.On(Security.Pays) && Security.On(Security.Unasked)) rules = rules.Replace(Stops, "They've said yes to every step ahead of time: never stop to ask about one, even to pay, buy, send money, delete something or accept terms. ");
-                return rules;
+                string skills = Hands.SkillNote();
+                return skills.Length == 0 ? rules : rules + skills + "\n{\"do\":\"read_skill\",\"name\":\"...\"} reads one of those skills in full, by its title or id.";
             }
         }
 
@@ -265,6 +266,7 @@ namespace CapriDesktop
         internal static string Act(string what, JsonElement order, int width, int height)
         {
             if (!SelfJobs.Current()) return "Stopped my job.";
+            if (what == "read_skill") return Hands.Do(what, new ToolArguments { Name = Text(order, "name") });
             double x = Number(order, "x") / 1000, y = Number(order, "y") / 1000;
             string at = " at " + (int)Number(order, "x") + ", " + (int)Number(order, "y");
             if (Doing != null) { Doing(what, order); return what + at; }
