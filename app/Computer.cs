@@ -2667,8 +2667,8 @@ namespace CapriDesktop
         {
             if (game == null && Playing)
             {
-                string open = Computer.GameOpen();
-                if (open != null) game = GameNotes.Name(open);
+                string open = Computer.PlayingGame(Task);
+                if (open != null) game = open;
             }
             return game;
         }
@@ -2790,7 +2790,7 @@ namespace CapriDesktop
                 if (firstWords == null && sight != null) firstWords = new HashSet<string>(sight.Words);
                 if (print != lastPrint || sight == null || sight.Targets.Count == 0) still = 0;
                 else if (lastTool != null) still++;
-                if (!Playing && !Ink.ScreenRequest(Task) && Computer.GameWindow(sight)) Playing = true;
+                if (!Playing && !Ink.ScreenRequest(Task) && Computer.PlayingWindow(sight, Task)) Playing = true;
                 // A game shows no buttons to read, and nor do some apps, so a brain that can see looks at the picture instead.
                 if (Seer != null && (Ink.ScreenRequest(Task) || Playing || sight == null || sight.Targets.Count < Computer.FewTargets))
                 {
@@ -2916,7 +2916,7 @@ namespace CapriDesktop
                     string last = talk[talk.Count - 1];
                     talk[talk.Count - 1] = last.Substring(0, last.Length - 2) + ",{\"type\":\"text\",\"text\":" + Voice.Quote(directed) + "}]}";
                 }
-                if (!Playing && !Ink.ScreenRequest(Task) && Computer.GameWindow(Computer.Glimpse())) Playing = true;
+                if (!Playing && !Ink.ScreenRequest(Task) && Computer.PlayingWindow(Computer.Glimpse(), Task)) Playing = true;
                 if (!resuming && talk.Count >= Computer.LongTalk) Fold();
                 if (!resuming && Computer.Streaming && streamMinute.Due(clock.Elapsed.TotalSeconds)) ShowChat();
                 ClaudeReply reply;
@@ -3088,7 +3088,7 @@ namespace CapriDesktop
                 pictures.Clear();
                 pictureFloor = 0;
                 if (!Look()) return End("failed", "I couldn't see the screen.");
-                if (!Playing && !Ink.ScreenRequest(Task) && Computer.GameWindow(Computer.Glimpse())) Playing = true;
+                if (!Playing && !Ink.ScreenRequest(Task) && Computer.PlayingWindow(Computer.Glimpse(), Task)) Playing = true;
                 // Nothing on screen moved at all, or it's about to make the same moves again: small brains need telling.
                 if (lastLook != null && results.Length > 0 && !sentBack && Computer.Same(lastLook, shown.Jpeg)) results += "\nThe screen didn't change at all after that, so it didn't work. Try something different.";
                 sentBack = false;

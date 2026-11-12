@@ -3086,6 +3086,7 @@ namespace CapriDesktop
             tray.Visible = !testing;
             ModList = new Mods(data);
             GameNotes.Skills = ModList.SkillsFor;
+            Computer.SkillGame = ModList.GameFor;
             ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
             ModList.HeardSpeech = ModsHeard;
             ModList.SkinChanged = Reskinned;
@@ -32182,6 +32183,139 @@ namespace CapriDesktop
             Action<bool> lendWas = Computer.Lending, signWas = InControl.Changed;
             Func<bool> hiddenWas = Computer.CursorHidden, underEscapeWas = Computer.Escape;
             Func<Point, bool> underWas = Computer.GameUnder;
+        private void SmokeBrowserGame(List<string> checks, string output, Func<string> find)
+        {
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<string> gameWas = Computer.GameOpen;
+            Func<string, string> skillWas = Computer.SkillGame;
+            Func<Sight> glimpseWas = Computer.Glimpse;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            string folderWas = GameNotes.Folder;
+            string folder = Path.Combine(output, "browser-notes-" + Guid.NewGuid().ToString("N"));
+            Mod skill = null, shorter = null;
+            try
+            {
+                string file = Path.Combine(output, "smoke-fnaf" + Mods.SkillExtension);
+                File.WriteAllText(file, "---\ncapri-skill: 1\nid: smoke-fnaf\nname: Office doors\ngames: Five Nights at Freddy's, FNAF\n---\nCheck the doors before the cameras.\n", new UTF8Encoding(false));
+                skill = ModList.Import(file, null);
+                string small = Path.Combine(output, "smoke-fnaf-short" + Mods.SkillExtension);
+                File.WriteAllText(small, "---\ncapri-skill: 1\nid: smoke-fnaf-short\nname: Shorter name\ngames: Nights at Freddy's, Lights Out: Night 2\n---\nKeep watching.\n", new UTF8Encoding(false));
+                shorter = ModList.Import(small, null);
+                // Each import loads her mods list afresh, so the first one's handle is stale by now.
+                skill = ModList.All.Find(mod => mod.File.Id == "smoke-fnaf");
+                GameNotes.Folder = folder;
+                string name = "Five Nights at Freddy's";
+                if (GameNotes.Learn(name, "Bonnie comes from the left.") != "Learned that for next time." || !GameNotes.Do(new ToolArguments { Name = name, Text = "Use the mouse for doors.", Action = "save" }).StartsWith("Saved controls", StringComparison.Ordinal)) throw new Exception("The browser game's saved notes or controls weren't set up.");
+                List<OpenWindow> windows = new List<OpenWindow>();
+                Hands.Windows = delegate { return windows; };
+                Computer.GameOpen = find;
+                Sight view = null;
+                Computer.Glimpse = delegate { return view; };
+                byte[] frame;
+                using (Bitmap blank = new Bitmap(240, 160)) frame = Jpeg(blank, 240);
+                Computer.Shoot = delegate { return new Picture { Jpeg = frame, Size = new Size(240, 160), Area = new Rectangle(0, 0, 240, 160), Sight = view }; };
+                string[] titles =
+                {
+                    "Five Nights at Freddy's - Some Game Site - Google Chrome",
+                    "Play Five Nights at Freddy's Online | Some Site - Google Chrome"
+                };
+                foreach (string title in titles)
+                {
+                    OpenWindow window = new OpenWindow(new IntPtr(-1), title, "chrome");
+                    windows.Clear();
+                    windows.Add(window);
+                    view = new Sight { Window = window.Handle, Title = title, Program = "chrome" };
+                    if (Computer.PlayingGame("play it") != name || !Computer.PlayingWindow(view, "play it")) throw new Exception("An enabled skill didn't name the browser game: " + title);
+                    if (Computer.GameOpen() != null || Computer.IsGame(window) || Hands.Gamey(window) || GameFinder.IsGame(view, @"C:\Browser\chrome.exe", true)) throw new Exception("A browser game changed native game, HUD or clip detection.");
+                    for (int mode = 0; mode < 3; mode++)
+                    {
+                        string prompt = null;
+                        // No play words, but it names the game, so the tab in front makes it a game job on every brain.
+                        Job playing = new Job("do night one of " + name);
+                        if (playing.Playing) throw new Exception("A job that only names a game was a game job before it looked.");
+                        playing.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { prompt = system; return "done{\"text\":\"Handled.\"}"; };
+                        if (mode == 1) playing.Seer = delegate(byte[] picture, string system, string user) { prompt = system; return "done{\"text\":\"Handled.\"}"; };
+                        if (mode == 2) playing.Drive = delegate(string system, string tools, string messages) { prompt = system; return new ClaudeReply { StopReason = "end_turn", Raw = "[]", Content = new[] { new ClaudeBlock { Type = "text", Text = "Handled." } } }; };
+                        if (playing.Run() != "Handled." || !playing.Playing || prompt == null || !prompt.Contains("The game open now is " + name + ".") || !prompt.Contains("Check the doors before the cameras.") || !prompt.Contains("Bonnie comes from the left.") || !prompt.Contains("Use the mouse for doors.") || prompt.Contains(title)) throw new Exception("A browser game's brief, notes or controls didn't reach a job: " + mode);
+                    }
+                    // The same tab with a job that isn't about playing stays a plain job: summing up a page about the game isn't playing it.
+                    foreach (string reading in new[] { "summarise this page", "what does this page say about the doors?" })
+                    {
+                        string readPrompt = null;
+                        Job read = new Job(reading);
+                        read.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { readPrompt = system; return "done{\"text\":\"Handled.\"}"; };
+                        if (Computer.PlayingWindow(view, reading) || read.Run() != "Handled." || read.Playing || readPrompt == null || readPrompt.Contains("Check the doors before the cameras.")) throw new Exception("A skill's game in a browser made a job that isn't about playing a game job: " + reading);
+                    }
+                    string playPrompt = null;
+                    Job play = new Job("play " + name);
+                    play.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { playPrompt = system; return "done{\"text\":\"Handled.\"}"; };
+                    if (play.Run() != "Handled." || !play.Playing || playPrompt == null || !playPrompt.Contains("Check the doors before the cameras.")) throw new Exception("Playing a skill's game in a browser tab didn't get the skill.");
+                    // A job for a game she knows waits for that game instead of taking a tab of another one.
+                    if (Computer.PlayingGame("play minecraft") != null || Computer.PlayingGame("play minecraft, then " + name) != name) throw new Exception("A job for another game took the browser game's brief.");
+                }
+                windows.Clear();
+                windows.Add(new OpenWindow(new IntPtr(-1), "Play Lights Out: Night 2 Online | Some Site - Google Chrome", "chrome"));
+                string subtitle = "Lights Out: Night 2";
+                if (Computer.PlayingGame("play that game") != subtitle || !new Job("play that game").Prompted(Computer.Prompt).Contains("Skill on for " + subtitle + ": Shorter name")) throw new Exception("A skill's game name was trimmed again before its brief.");
+                string[,] tails =
+                {
+                    { "chrome", " - Google Chrome" }, { "chrome", " - Lachy-Work - Google Chrome" }, { "msedge", " - Personal - Microsoft Edge" }, { "firefox", " \u2014 Mozilla Firefox" },
+                    { "brave", " - Brave" }, { "opera", " - Opera" }, { "vivaldi", " - Vivaldi" }, { "arc", " - Arc" }, { "msedge", " - Personal - Microsoft\u200b Edge" },
+                    { "chrome", " - Audio playing - Google Chrome" }, { "msedge", " and 2 more pages - Personal - Microsoft Edge" }
+                };
+                for (int i = 0; i < tails.GetLength(0); i++)
+                {
+                    string page = null;
+                    Computer.SkillGame = delegate(string title) { page = title; return ModList.GameFor(title); };
+                    windows.Clear();
+                    windows.Add(new OpenWindow(new IntPtr(-1), "FNAF" + tails[i, 1], tails[i, 0]));
+                    if (Computer.PlayingGame("play it") != "FNAF" || page != "FNAF") throw new Exception("A browser or profile tail stayed in the game title: " + tails[i, 1]);
+                }
+                windows.Clear();
+                windows.Add(new OpenWindow(new IntPtr(-1), "(1) FNAF - Google Chrome", "chrome"));
+                if (Computer.PlayingGame("play it") != "FNAF") throw new Exception("Chrome's unread count stayed in the game title.");
+                Computer.SkillGame = skillWas;
+                foreach (string title in new[] { "FNAF lore explained - Some Wiki - Google Chrome", "Five Nights at Freddy's gameplay video - YouTube - Google Chrome", "New Tab - Google Chrome" })
+                {
+                    windows.Clear();
+                    windows.Add(new OpenWindow(new IntPtr(-1), title, "chrome"));
+                    view = new Sight { Window = new IntPtr(-1), Title = title, Program = "chrome" };
+                    if (Computer.PlayingGame("play it") != null || Computer.PlayingWindow(view, "play it")) throw new Exception("A wiki, video or plain browser became a game: " + title);
+                    Job browsing = new Job("handle this window");
+                    browsing.Think = delegate { return "done{\"text\":\"Handled.\"}"; };
+                    if (browsing.Run() != "Handled." || browsing.Playing) throw new Exception("A browser without a matching game skill made the job play.");
+                }
+                ModList.Set(shorter, false, null);
+                ModList.Set(skill, false, null);
+                foreach (string title in new[] { titles[0], titles[1], "FNAF - Google Chrome" })
+                {
+                    windows.Clear();
+                    windows.Add(new OpenWindow(new IntPtr(-1), title, "chrome"));
+                    if (Computer.PlayingGame("play it") != null || Computer.PlayingWindow(new Sight { Window = new IntPtr(-1), Title = title, Program = "chrome" }, "play it")) throw new Exception("A skill that was off still named a browser game.");
+                }
+                ModList.Set(skill, true, null);
+                windows.Clear();
+                windows.Add(new OpenWindow(new IntPtr(-1), "Minecraft 26.3 - Singleplayer", "javaw"));
+                windows.Add(new OpenWindow(new IntPtr(-1), titles[0], "chrome"));
+                if (Computer.PlayingGame("play it") != "Minecraft") throw new Exception("A browser behind a real game took its brief.");
+                windows.Reverse();
+                if (Computer.PlayingGame("play it") != "Minecraft") throw new Exception("A browser hid a real game from its brief.");
+                Computer.SkillGame = null;
+                windows.RemoveAt(1);
+                if (Computer.PlayingGame("play it") != null) throw new Exception("A browser became a game without the skill hook.");
+                checks.Add("PASS browser game jobs use enabled skills and the longest game name, trim browser and profile tails, get skills, notes and controls on every brain, skip wikis and videos, and keep native game detection for Gaming Mode, HUD and clips");
+                checks.Add("PASS a skill's game in a browser tab makes a job a game job only when the job is about playing it, and a job for another game doesn't take its brief");
+            }
+            finally
+            {
+                if (shorter != null) ModList.Remove(shorter);
+                if (skill != null) ModList.Remove(skill);
+                Hands.Windows = windowsWas; Computer.GameOpen = gameWas; Computer.SkillGame = skillWas;
+                Computer.Glimpse = glimpseWas; Computer.Shoot = shootWas; GameNotes.Folder = folderWas;
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            }
+        }
+
             Action haltWas = Computer.Halted;
             Action<string> runWas = Hands.Run;
             bool flinchedWas = Computer.Flinched, streamWas = Computer.Streaming;
@@ -40588,6 +40722,7 @@ namespace CapriDesktop
             {
                 Brain.Secrets = delegate { return new[] { shapeless, escapedKey, "local-key", null, "" }; };
                 if (Brain.Redacted("said " + shapeless + " back") != "said " + shapeless + " back") throw new Exception("The scrub check's key has a shape Redacted already knows.");
+            Section(checks, "SmokeBrowserGame", delegate { SmokeBrowserGame(checks, output, findGame); });
                 Brain.LogAt(log, "https://api.example.com/v1/" + shapeless + "/models", -1, "Bad key " + shapeless + " for /v1?key=" + Uri.EscapeDataString(escapedKey) + ", the local-key placeholder");
                 string written = File.ReadAllText(log);
                 if (written.Contains(shapeless) || written.Contains(Uri.EscapeDataString(escapedKey)) || !written.Contains("Bad key [redacted] for /v1?key=[redacted], the local-key placeholder") || !written.Contains("api.example.com/v1/[redacted]/models"))

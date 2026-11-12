@@ -99,15 +99,36 @@ namespace CapriDesktop
         }
 
         // What a game job is told from the skills that are on for this game. "BloonsTD6" is Bloons TD 6, since only letters and numbers count.
+        // A skill's own name with a subtitle, like Lights Out: Night 2 from a browser tab, matches whole too.
         internal string SkillsFor(string game)
         {
-            string playing = Plain(GameName(game));
+            string playing = Plain(GameName(game)), named = Plain(game);
             if (playing.Length == 0) return "";
             StringBuilder told = new StringBuilder();
             foreach (Mod skill in skills)
-                if (Array.Exists(skill.File.Games, name => Plain(name) == playing))
+                if (Array.Exists(skill.File.Games, name => Plain(name) == playing || Plain(name) == named))
                     told.Append("\nSkill on for " + game + ": " + skill.File.Name + (string.IsNullOrEmpty(skill.File.Author) ? "" : " by " + skill.File.Author) + ". It's know-how from someone who plays it, so follow it over the general advice above:\n" + skill.File.Know);
             return told.ToString();
+        }
+
+        // The game a page title is for, from the skills that are on, as the skill writes it, or null. "Play Five Nights at Freddy's
+        // Online | Some Site" is Five Nights at Freddy's, but a name under 6 letters and numbers has to be the whole title, so
+        // "FNAF lore explained" isn't FNAF. When two skills match, the longest name wins: Five Nights at Freddy's 2 over the first.
+        internal string GameFor(string title)
+        {
+            string named = Plain(GameName(title)), whole = Plain(title), found = null;
+            int longest = 0;
+            foreach (Mod skill in skills)
+                foreach (string game in skill.File.Games)
+                {
+                    string plain = Plain(game);
+                    if (plain.Length > longest && (named == plain || plain.Length >= 6 && whole.Contains(plain)))
+                    {
+                        found = game;
+                        longest = plain.Length;
+                    }
+                }
+            return found;
         }
 
         private static string Plain(string name) { return Regex.Replace((name ?? "").ToLowerInvariant(), @"[^\p{L}\p{N}]+", ""); }

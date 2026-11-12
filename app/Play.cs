@@ -423,6 +423,57 @@ namespace CapriDesktop
             return null;
         };
 
+        // The game a skill that's on is for, by a page's title, or null. Set beside GameNotes.Skills, so this file needs no mods list.
+        internal static Func<string, string> SkillGame;
+
+        // A browser tab is a game only when a skill that's on names it, like a web port of Five Nights at Freddy's. The browser's own
+        // tail, a profile or "Audio playing" before it, Edge's "and 2 more pages" and Chrome's "(1)" come off first, and a video never counts.
+        internal static string BrowserGame(string title)
+        {
+            Func<string, string> skill = SkillGame;
+            if (skill == null || Watching.IsMatch(title ?? "")) return null;
+            string page = Regex.Replace(title ?? "", @"\s+[-\u2013\u2014]\s+(?:(?:(?!\s+[-\u2013\u2014]\s+)[^\r\n])+\s+[-\u2013\u2014]\s+){0,2}(?:Google Chrome|Microsoft\u200b?\s*Edge|Mozilla Firefox|Brave|Opera|Vivaldi|Arc)\s*$", "", RegexOptions.IgnoreCase);
+            page = Regex.Replace(Regex.Replace(page, @"\s+and\s+\d+\s+more\s+pages?$", "", RegexOptions.IgnoreCase), @"^\(\d+\)\s+", "").Trim();
+            return page.Length == 0 ? null : skill(page);
+        }
+
+        // Whether a job's own words name a game, only letters and numbers counting, so "play fnaf" names FNAF.
+        internal static bool JobNames(string task, string game)
+        {
+            string named = Regex.Replace((game ?? "").ToLowerInvariant(), @"[^\p{L}\p{N}]+", "");
+            return named.Length > 0 && Regex.Replace((task ?? "").ToLowerInvariant(), @"[^\p{L}\p{N}]+", "").Contains(named);
+        }
+
+        // The game a job is playing, for its brief: a real game window first, wherever it is, then a browser tab a skill names. A tab
+        // the job names wins over one nearer the front, and a job that names a game she knows, like "play minecraft", never takes a
+        // tab of another game, so it waits for that one to open.
+        internal static string PlayingGame(string task)
+        {
+            string open = GameOpen();
+            if (open != null) return GameNotes.Name(open);
+            bool known = GameTitles.IsMatch(task ?? "");
+            string first = null;
+            foreach (OpenWindow window in Hands.Windows())
+                if (Browsers.IsMatch(window.Program ?? ""))
+                {
+                    string game = BrowserGame(window.Title);
+                    if (game == null) continue;
+                    if (JobNames(task, game)) return game;
+                    if (first == null && !known) first = game;
+                }
+            return first;
+        }
+
+        // A window in front that makes a job a game job. A skill's game in a browser only does when the job is about playing, since a
+        // wiki page about Five Nights at Freddy's isn't a game, and summing one up shouldn't get her game brief and say lines.
+        internal static bool PlayingWindow(Sight sight, string task)
+        {
+            if (GameWindow(sight)) return true;
+            if (sight == null || sight.Window == IntPtr.Zero || !Browsers.IsMatch(sight.Program ?? "")) return false;
+            string game = BrowserGame(sight.Title);
+            return game != null && (Gaming(task) || JobNames(task, game));
+        }
+
         // A window that's a game: a known game's title or program, or a program in a game library's folder, but not a browser, an
         // office app or a video.
         internal static bool IsGame(OpenWindow window)
