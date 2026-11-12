@@ -81,6 +81,22 @@ namespace CapriDesktop
         }
 
         // The window and its open menus over the light backdrop, saved as a PNG.
+        // One of her menus on its own over the light backdrop.
+        internal static void SaveMenu(ToolStripDropDown menu, string path)
+        {
+            menu.Refresh();
+            using (Bitmap sheet = new Bitmap(menu.Width + Margin * 2, menu.Height + Margin * 2, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics graphics = Graphics.FromImage(sheet))
+                {
+                    graphics.Clear(Paper);
+                    Lay(graphics, menu, new Point(Margin, Margin));
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                sheet.Save(path, ImageFormat.Png);
+            }
+        }
+
         internal static void Save(Form window, string path, params ToolStripDropDown[] menus)
         {
             window.Refresh();
@@ -126,6 +142,17 @@ namespace CapriDesktop
             File.WriteAllText(plan, "plan");
             File.WriteAllText(markup, "picture");
             List<string> saved = new List<string>(), crowded = new List<string>();
+            // The pictures show the stand-in folders where a person's projects would be, never the test's own temp path.
+            Func<string, string> alias = delegate(string path)
+            {
+                int at = path.IndexOf(projects, StringComparison.OrdinalIgnoreCase);
+                while (at >= 0)
+                {
+                    path = path.Substring(0, at) + @"C:\Users\you\Projects" + path.Substring(at + projects.Length);
+                    at = path.IndexOf(projects, at + 1, StringComparison.OrdinalIgnoreCase);
+                }
+                return path;
+            };
             string pipe = "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-look-";
             Action<WorkspaceWindow, string, ToolStripDropDown> shoot = delegate(WorkspaceWindow window, string name, ToolStripDropDown menu)
             {
@@ -140,6 +167,7 @@ namespace CapriDesktop
             using (Workspace empty = new Workspace(Path.Combine(folder, "empty"), pipe + Guid.NewGuid().ToString("N")))
             using (WorkspaceWindow window = new WorkspaceWindow(empty, delegate { return false; }, 1f, false))
             {
+                window.PathAlias = alias;
                 window.Location = new Point(40, 40);
                 window.Show(this);
                 window.ClientSize = new Size(1080, 740);
@@ -150,12 +178,6 @@ namespace CapriDesktop
             using (Workspace work = new Workspace(Path.Combine(folder, "data"), pipe + Guid.NewGuid().ToString("N")))
             {
                 work.Executable = Path.Combine(folder, "no-claude-here.cmd");
-                WorkspaceChat chat = work.NewChat(project, false);
-                work.AddFolders(chat, new[] { other, deep });
-                work.AskTrust(chat);
-                work.Trust(chat, true);
-                lock (chat.Gate) chat.Items.Clear();
-                work.AddFiles(chat, new[] { plan, markup });
                 WorkspaceChat second = work.NewChat(other, false);
                 work.Trust(second, true);
                 work.Change(second, "Metis composer notes", null, null);
@@ -163,8 +185,16 @@ namespace CapriDesktop
                 Directory.CreateDirectory(website);
                 WorkspaceChat third = work.NewChat(website, false);
                 work.Change(third, "Website download band", null, "Sonnet");
+                System.Threading.Thread.Sleep(20);
+                WorkspaceChat chat = work.NewChat(project, false);
+                work.AddFolders(chat, new[] { other, deep });
+                work.AskTrust(chat);
+                work.Trust(chat, true);
+                lock (chat.Gate) chat.Items.Clear();
+                work.AddFiles(chat, new[] { plan, markup });
                 using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
                 {
+                    window.PathAlias = alias;
                     window.Location = new Point(40, 40);
                     window.Show(this);
                     window.ClientSize = new Size(1080, 740);
@@ -180,7 +210,10 @@ namespace CapriDesktop
                     work.Add(chat, new WorkspaceItem { Kind = "text", Text = "Here's what's left, in the order I'd do it.\n\n## Frame\nThe window paints a cut frame but never shapes itself to it, so the corners show slivers.\n```cs\nprivate void Shape() { Neon.Clip(this, Z(16), Z(6)); }\n```\n- Shape it on every resize, like the Mainframe.\n- Draw the title with room for the W." });
                     work.Add(chat, new WorkspaceItem { Kind = "tool", Id = "t1", Name = "Read", Text = "Read " + Path.Combine(project, "app", "WorkspaceWindow.cs"), Turn = "x" });
                     work.Add(chat, new WorkspaceItem { Kind = "result", Id = "t1", Text = "962 lines", Turn = "x" });
-                    work.Add(chat, new WorkspaceItem { Kind = "tool", Id = "t2", Name = "Edit", Text = "Edit " + Path.Combine(project, "app", "WorkspaceWindow.cs"), Turn = "x" });
+                    string shapeInput = HuskJson.Write(HuskJson.Map("file_path", Path.Combine(project, "app", "WorkspaceWindow.cs"),
+                        "old_string", "        protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Place(); }",
+                        "new_string", "        protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Shape(); Place(); }\n\n        // Cuts the window to her frame's corners, like the Mainframe.\n        private void Shape() { if (Width > 0 && Height > 0) Neon.Clip(this, Z(16), Z(6)); }"));
+                    work.Add(chat, new WorkspaceItem { Kind = "tool", Id = "t2", Name = "Edit", Text = "Edit " + Path.Combine(project, "app", "WorkspaceWindow.cs"), Turn = "x", Input = shapeInput });
                     work.Add(chat, new WorkspaceItem { Kind = "result", Id = "t2", Text = "The file " + Path.Combine(project, "app", "WorkspaceWindow.cs") + " has been updated.\n  604 |         protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Shape(); Place(); }", Turn = "x" });
                     work.Add(chat, new WorkspaceItem { Kind = "tool", Id = "t3", Name = "Bash", Text = "Bash: powershell -File ci\\build-windows.ps1 -OutputDirectory out", Turn = "x" });
                     work.Add(chat, new WorkspaceItem { Kind = "result", Id = "t3", Text = "Built out\\Capri.exe", Turn = "x" });
@@ -214,12 +247,28 @@ namespace CapriDesktop
                     window.RefreshChat();
                     shoot(window, "06-trust", null);
 
+                    work.Add(third, new WorkspaceItem { Kind = "tool", Id = "w1", Name = "Grep", Text = "Grep download", Turn = "w" });
+                    StringBuilder found = new StringBuilder();
+                    for (int i = 0; i < 24; i++) found.Append(Path.Combine(deep, "src", "sections", "download-band-" + i + ".html")).Append(':').Append(40 + i).Append(":  <a class=\"download\" href=\"/releases/latest\">Download for Windows</a>\n");
+                    work.Add(third, new WorkspaceItem { Kind = "result", Id = "w1", Text = found.ToString().TrimEnd('\n'), Turn = "w" });
+                    work.Trust(third, true);
+                    window.RefreshChat();
+                    window.ToggleTool("w1");
+                    window.ScrollToEnd();
+                    shoot(window, "16-long-result", null);
+
                     window.ShowChat(chat);
                     window.ScrollToEnd();
                     window.PickMode("Everything");
                     if (window.Asking != null || chat.Mode != "Everything") throw new Exception("Everything asked first or didn't switch.");
                     shoot(window, "07-everything", null);
                     window.PickMode("Ask me");
+
+                    window.DeleteChat(second);
+                    if (window.Asking == null) throw new Exception("Delete chat didn't ask in its card.");
+                    shoot(window, "17-delete-confirm", null);
+                    window.Pending(window.Asking, false);
+                    if (!work.Chats().Contains(second)) throw new Exception("Keep it didn't keep the chat.");
 
                     shoot(window, "08-plus-menu", window.OpenMenu("add"));
                     shoot(window, "09-mode-menu", window.OpenMenu("mode"));
@@ -254,6 +303,7 @@ namespace CapriDesktop
                     float z = scale / 100f;
                     using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
                     {
+                        window.PathAlias = alias;
                         window.Location = new Point(0, 0);
                         window.Show(this);
                         window.ShowChat(chat);
@@ -278,9 +328,25 @@ namespace CapriDesktop
                 string path = Path.Combine(pictures, "mainframe.png");
                 LookShots.Save(mainframe, path);
                 saved.Add(path);
+                mainframe.ShowSettings(true);
+                mainframe.Wheel(-4);
+                mainframe.Settle();
+                path = Path.Combine(pictures, "mainframe-scrolled.png");
+                LookShots.Save(mainframe, path);
+                saved.Add(path);
+                mainframe.ShowSettings(false);
+                menu.Show(new Point(80, 80));
+                Application.DoEvents();
+                path = Path.Combine(pictures, "mainframe-menu.png");
+                LookShots.SaveMenu(menu, path);
+                saved.Add(path);
+                menu.Close();
+                Application.DoEvents();
             }
             finally
             {
+                if (menu.Visible) menu.Close();
+                mainframe.ShowSettings(false);
                 if (mainframe.WindowState != state) mainframe.WindowState = state;
                 if (!shown) mainframe.Hide();
             }
@@ -1075,7 +1141,7 @@ namespace CapriDesktop
                     WorkspaceChat fresh = work.NewChat(project, false);
                     window.ShowChat(fresh);
                     if (window.UndoOffered) throw new Exception("Undo was offered with nothing to undo.");
-                    if (work.Undo(fresh) != "No turn to undo.") throw new Exception("Undo with nothing to undo said something else.");
+                    if (work.Undo(fresh) != "No edits to undo.") throw new Exception("Undo with nothing to undo said something else.");
                     int confirmed = 0;
                     window.Confirm = delegate { confirmed++; return true; };
                     File.Delete(finish);

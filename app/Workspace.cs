@@ -154,7 +154,7 @@ namespace CapriDesktop
                         WorkspaceItem found = WorkspaceItem.Read(map);
                         if (found.Kind == "approval" && found.Decision.Length == 0) { found.Decision = "deny"; found.Text = "Denied. Workspace closed before an answer."; }
                         if (found.Kind == "trust" && found.Decision.Length == 0) { found.Decision = "deny"; found.Text = "Folder not trusted."; }
-                        if (found.Kind == "undo-ask") { found.Kind = "undo"; found.Text = "Undo paused. Use Undo last turn to choose again."; }
+                        if (found.Kind == "undo-ask") { found.Kind = "undo"; found.Text = "Undo paused. Use Undo last edits to choose again."; }
                         chat.Items.Add(found);
                     }
                     if (turns != null) foreach (object turn in turns) if (turn is string && Key((string)turn)) chat.Turns.Add((string)turn);
@@ -1355,7 +1355,7 @@ namespace CapriDesktop
                     if (chat.Undoing != null) return chat.Undoing.Item.Text;
                 }
                 string turn = LastUndo(chat);
-                if (turn == null) return "No turn to undo.";
+                if (turn == null) return "No edits to undo.";
                 string file = UndoFile(chat, turn);
                 Dictionary<string, object> row = HuskJson.Read(File.ReadAllText(file, Encoding.UTF8)) as Dictionary<string, object>;
                 List<object> files = HuskJson.List(HuskJson.Get(row, "files"));
