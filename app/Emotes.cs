@@ -277,6 +277,8 @@ namespace CapriDesktop
         // Where her thread's time goes, for her checks: picking the decoded pictures, the surface, painting, and showing it.
         internal double PickTotal, MakeTotal, PaintTotal, ShowTotal;
         internal int Plays;
+        // When the last one started and when it ran out, in Stopwatch ticks, for her checks.
+        internal long LastPlayed, LastRanOut;
         // Why the last one stopped early, if something went wrong drawing it.
         internal string Ended, StoppedEarly;
 
@@ -340,6 +342,8 @@ namespace CapriDesktop
             DrawTotal = DrawWorst = 0;
             PickTotal = MakeTotal = PaintTotal = ShowTotal = 0;
             Plays++;
+            LastPlayed = System.Diagnostics.Stopwatch.GetTimestamp();
+            LastRanOut = 0;
             Ended = StoppedEarly = null;
             clip.Ahead(0, Ahead + 1);
             watch.Reset();
@@ -378,7 +382,7 @@ namespace CapriDesktop
                 if (now < 0) return;
                 int frame = clock.Advance(now - last, busy != null && busy());
                 last = now;
-                if (frame >= clip.Count) { Stop(); return; }
+                if (frame >= clip.Count) { LastRanOut = System.Diagnostics.Stopwatch.GetTimestamp(); Stop(); return; }
                 if (leave != null && leaveFrame >= 0 && frame >= leaveFrame) { Action going = leave; leave = null; going(); }
                 if (frame == shown) return;
                 shown = frame;
@@ -973,14 +977,43 @@ namespace CapriDesktop
                     if (reply != "Pulling up a chair." || !emote.Playing) throw new Exception("Asking for a chair got \"" + reply + "\".");
                     CloseTalk();
                     emote.Stop();
+                    double chairEnded = clock.Elapsed.TotalSeconds;
                     RenderFrame();
                     // Her heart: over her screen, with her own window still showing.
                     Think = delegate { return "A brain was asked for a heart."; };
+                    int heartPlays = emote.Plays;
                     Hear("make a heart");
                     WaitVoice(delegate { return reply != null; }, "Asking for a heart got no answer.");
-                    if (reply != "Here, a little heart for you." || !emote.Playing || emote.Name != "heart" || veilUntil != -1) throw new Exception("Asking for a heart got \"" + reply + "\".");
+                    // Her line can come after the heart's 3.5 s on a first run (her bubble's first draw in a new process), so the heart
+                    // has to have started, and to be playing or to have played through; no veil may be over her.
+                    bool heartWent = emote.Plays == heartPlays + 1 && (emote.Playing ? emote.Name == "heart" : emote.Ended == null && emote.StoppedEarly == null && emote.FramesShown > 0);
+                    if (reply != "Here, a little heart for you." || !heartWent || veilUntil > clock.Elapsed.TotalSeconds)
+                    {
+                        double heartNow = clock.Elapsed.TotalSeconds;
+                        throw new Exception("Asking for a heart got \"" + reply + "\": started " + (emote.Plays - heartPlays) + ", " + emote.FramesShown + " frames shown, " + (emote.LastPlayed > 0 ? "started " + (System.Diagnostics.Stopwatch.GetTimestamp() - emote.LastPlayed) * 1.0 / System.Diagnostics.Stopwatch.Frequency + " s before the check, " : "") + "playing " + emote.Playing + ", name " + emote.Name + ", at frame " + emote.At + ", plays " + emote.Plays
+                            + (emote.Ended == null ? "" : ", ended by " + emote.Ended) + (emote.StoppedEarly == null ? "" : ", stopped " + emote.StoppedEarly)
+                            + ", veiled until " + veilUntil.ToString("0.000") + " (emote veil " + emoteVeil.ToString("0.000") + "), now " + heartNow.ToString("0.000") + ", chair ended " + (heartNow - chairEnded).ToString("0.000") + " s before, clip " + (clip == null ? "none" : clip.Title)
+                            + ", ribbons " + (ribbons.Waiting ? "waiting" : ribbons.Going ? "going" : "off") + ", instant " + instant + ", process up " + (DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalSeconds.ToString("0.0") + " s");
+                    }
                     CloseTalk();
                     emote.Stop();
+                    // A heart asked for on her way to her chair, or while she sits in it, plays at once: the chair gives way, she's
+                    // back where she stood, and no veil stays over her.
+                    foreach (double wait in new[] { 0.15, 2.5 })
+                    {
+                        Point chairFrom = anchor;
+                        Animate("chair");
+                        Pump(wait);
+                        Animate("heart");
+                        if (!emote.Playing || emote.Name != "heart") throw new Exception("A heart asked for " + wait + " s into her chair didn't play.");
+                        System.Diagnostics.Stopwatch settle = System.Diagnostics.Stopwatch.StartNew();
+                        while ((veiled || clock.Elapsed.TotalSeconds < veilUntil || ribbons.Waiting) && settle.Elapsed.TotalSeconds < 2) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                        if (veiled || clock.Elapsed.TotalSeconds < veilUntil || emoteVeil != -1 || anchor != chairFrom || !emote.Playing || emote.Name != "heart")
+                            throw new Exception("After a heart " + wait + " s into her chair: veiled " + veiled + ", veiled until " + veilUntil.ToString("0.000") + " at " + clock.Elapsed.TotalSeconds.ToString("0.000") + ", emote veil " + emoteVeil + ", at " + anchor + " from " + chairFrom + ", heart playing " + emote.Playing);
+                        emote.Stop();
+                        RenderFrame();
+                        Pump(0.6);
+                    }
                     // Said out loud, speech to text's "Virgil" is him; typed, it isn't.
                     if (!Mentions("what do you think of Virgil", true) || Mentions("what do you think of Virgil", false) || Mentions("she may cry", true)) throw new Exception("Heard and typed Virgil weren't told apart.");
                     Think = delegate { return "Motivated."; };
@@ -1036,7 +1069,14 @@ namespace CapriDesktop
                         if (which == "chair")
                         {
                             // As the clip fades her out of her chair her ribbons take her back, and she forms where she stood.
-                            while (clock.Elapsed.TotalSeconds < veilUntil + 0.05 && playing.Elapsed.TotalSeconds < 22) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                            // In a check she has no arrival of her own (instant), so her waiting ribbons are sent home on her next frame,
+                            // which can come just after the clip's last one: keep watching until they've landed and her veil is over.
+                            while ((ribbons.Waiting || clock.Elapsed.TotalSeconds < veilUntil + 0.05) && playing.Elapsed.TotalSeconds < 22)
+                            {
+                                Application.DoEvents();
+                                System.Threading.Thread.Sleep(1);
+                                if (ribbons.Going) ribbonsBack = true;
+                            }
                             if (!ribbonsBack || veilUntil > clock.Elapsed.TotalSeconds || anchor != standingAt || emoteVeil != -1) throw new Exception("Her ribbons didn't bring her back from her chair: " + ribbonsBack + ", veiled until " + veilUntil + ", at " + anchor + " from " + standingAt);
                         }
                         RenderFrame();
@@ -1050,22 +1090,28 @@ namespace CapriDesktop
                     CloseTalk();
                     Think = delegate { return "A brain was asked for a heart."; };
                     int playsBefore = emote.Plays;
+                    long lastAsk = 0;
                     for (int ask = 0; ask < 10; ask++)
                     {
+                        lastAsk = System.Diagnostics.Stopwatch.GetTimestamp();
                         Hear("make me a heart");
                         System.Diagnostics.Stopwatch asked = System.Diagnostics.Stopwatch.StartNew();
                         while (emote.Plays < playsBefore + ask + 1 && asked.Elapsed.TotalSeconds < 0.9) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
                         if (emote.Plays != playsBefore + ask + 1 || !emote.Playing || emote.Name != "heart") throw new Exception("Heart ask " + (ask + 1) + " of 10 didn't start a heart: " + (emote.Plays - playsBefore) + " started.");
-                        int startedAt = emote.At;
+                        // Started over: this play began after this ask (every play starts at its first frame). Reading its frame here
+                        // instead raced her window thread, which a loaded PC can hold up for a second or two.
+                        bool fresh = emote.LastPlayed >= lastAsk;
                         while (asked.Elapsed.TotalSeconds < 1) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
-                        if (startedAt > 6) throw new Exception("Heart ask " + (ask + 1) + " carried on from frame " + startedAt + " instead of starting over.");
+                        if (!fresh) throw new Exception("Heart ask " + (ask + 1) + " carried on from an earlier heart instead of starting over.");
                     }
                     System.Diagnostics.Stopwatch tail = System.Diagnostics.Stopwatch.StartNew();
                     while (emote.Playing && tail.Elapsed.TotalSeconds < 6) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
                     double lastEnded = tail.Elapsed.TotalSeconds;
                     while (tail.Elapsed.TotalSeconds < lastEnded + 2) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
-                    if (emote.Playing || emote.Plays != playsBefore + 10 || lastEnded > 3.6 || lastEnded < 2.2 || emote.Ended != null) throw new Exception("After ten hearts something played on: " + (emote.Plays - playsBefore) + " started, the last ended " + lastEnded.ToString("0.00") + " s after the tenth ask's first second, " + emote.FramesShown + " frames shown" + (emote.Ended == null ? "" : ", stopped by " + emote.Ended) + (emote.StoppedEarly == null ? "" : ", stopped " + emote.StoppedEarly) + ".");
-                    heartRun = "ten asks one second apart started ten hearts, each from its first frames, and the last played through, ending " + (1 + lastEnded).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s after the tenth ask, " + emote.FramesShown + " of 105 frames shown, with nothing after it";
+                    // The tenth heart's own run, from its first frame to running out, is its 3.5 s; and it started after the tenth ask.
+                    double ownRun = emote.LastRanOut == 0 ? -1 : (emote.LastRanOut - emote.LastPlayed) * 1.0 / System.Diagnostics.Stopwatch.Frequency, afterAsk = (emote.LastPlayed - lastAsk) * 1.0 / System.Diagnostics.Stopwatch.Frequency;
+                    if (emote.Playing || emote.Plays != playsBefore + 10 || ownRun < 3.3 || ownRun > 4.2 || afterAsk < 0 || afterAsk > 1 || emote.Ended != null) throw new Exception("After ten hearts something played on or ran short: ran " + ownRun.ToString("0.00") + " s from " + afterAsk.ToString("0.00") + " s after the tenth ask; " + (emote.Plays - playsBefore) + " started, the last ended " + lastEnded.ToString("0.00") + " s after the tenth ask's first second, " + emote.FramesShown + " frames shown" + (emote.Ended == null ? "" : ", stopped by " + emote.Ended) + (emote.StoppedEarly == null ? "" : ", stopped " + emote.StoppedEarly) + ".");
+                    heartRun = "ten asks one second apart started ten hearts, each from its first frames, and the last played through in " + ownRun.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s, ending " + (afterAsk + ownRun).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s after the tenth ask, " + emote.FramesShown + " of 105 frames shown, with nothing after it";
                     CloseTalk();
                     // Her own brain sends one when she feels like it, with her words: in chat, mid-conversation after another tool,
                     // and with call mode on.
@@ -1134,6 +1180,7 @@ namespace CapriDesktop
                     {
                         Cloud localWas = brain.Remote;
                         string localModelWas = brain.Model, localSaved = Security.Saved;
+                        Func<ToolArguments, string> localDrawWas = Hands.Draw;
                         int localUserWas = callUser, localUserVersionWas = callUserVersion, localAnswerWas = callAnswer;
                         bool localKeepingWas = Brain.Keeping, localWakeWas = Security.On(Security.Wake), localFollowWas = preferences.FollowUps, localCallWas = CallModeOn;
                         System.Net.Sockets.TcpListener local = null;
@@ -1143,6 +1190,8 @@ namespace CapriDesktop
                             Brain.Keeping = false;
                             preferences.FollowUps = false;
                             Think = null;
+                            int draws = 0;
+                            Hands.Draw = delegate { draws++; return "Drew on your screen."; };
                             Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
                             string[,] cases =
                             {
@@ -1154,6 +1203,7 @@ namespace CapriDesktop
                                 { "Here you go animate{\"name\":\"hearts\"}", "Here you go", "1", "hearts" },
                                 { "Thanks! animate{\"name\":\"hea", "Thanks!", "0", "cut off" },
                                 { "animate{\"name\":\"heart\"}", "Here, a little heart for you.", "1", "only the call" },
+                                { "Sure! animate{\"name\":\"heart\"} draw{\"shapes\":\"line 10 20 30 40\"}", "*", "1", "beside a drawing" },
                                 { "Night! animate{\"name\":\"heart\"}", "Night!", "1", "call mode" }
                             };
                             string[] replies = new string[cases.GetLength(0) + 2];
@@ -1167,14 +1217,14 @@ namespace CapriDesktop
                             {
                                 if (cases[i, 3] == "call mode") callSession.Change(true);
                                 emote.Stop();
-                                int before = emote.Plays, want = int.Parse(cases[i, 2]);
+                                int before = emote.Plays, want = int.Parse(cases[i, 2]), drawsBefore = draws, wantDraws = cases[i, 3] == "beside a drawing" ? 1 : 0;
                                 Hear("you're great");
                                 System.Diagnostics.Stopwatch answered = System.Diagnostics.Stopwatch.StartNew();
                                 while ((reply == null || emote.Plays < before + want) && answered.Elapsed.TotalSeconds < 15) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
                                 Pump(0.3);
                                 string shown = reply ?? "";
-                                if (emote.Plays - before != want || shown != cases[i, 1] || shown.IndexOf("animate", StringComparison.OrdinalIgnoreCase) >= 0 || shown.IndexOf('{') >= 0 || shown.IndexOf('}') >= 0)
-                                    throw new Exception("A small brain's heart " + cases[i, 3] + ": " + (emote.Plays - before) + " of " + want + " played and she said \"" + shown + "\".");
+                                if (emote.Plays - before != want || draws - drawsBefore != wantDraws || cases[i, 1] != "*" && shown != cases[i, 1] || shown.Length == 0 || shown.IndexOf("animate", StringComparison.OrdinalIgnoreCase) >= 0 || shown.IndexOf('{') >= 0 || shown.IndexOf('}') >= 0)
+                                    throw new Exception("A small brain's heart " + cases[i, 3] + ": " + (emote.Plays - before) + " of " + want + " played, " + (draws - drawsBefore) + " drawings ran, and she said \"" + shown + "\".");
                                 heartsSeen.Add(cases[i, 3] + " " + (emote.Plays - before));
                                 CloseTalk();
                                 brain.Forget();
@@ -1182,11 +1232,30 @@ namespace CapriDesktop
                             string first;
                             lock (localAsked) first = localAsked.Count > 0 ? localAsked[0] : "";
                             if (first.IndexOf("end your reply with animate", StringComparison.Ordinal) < 0) throw new Exception("A brain on this PC wasn't told it can write her heart.");
-                            localHearts = "a brain on this PC writing her heart played it (" + string.Join(", ", heartsSeen.ToArray()) + ") with no call text shown or said; only the call says her heart line";
+                            // A reply that's only her heart, when it's her chat-only answer after "act" found no job: the heart is sent and
+                            // she says its line, never asked again for words.
+                            local.Stop();
+                            local = null;
+                            List<string> onlyAsked = new List<string>();
+                            brain.Remote = new Cloud(0, "stand-in-local", FakeServer(new[] { says("act"), says("none"), says("none"), says("animate{\"name\":\"heart\"}"), says("spare"), says("spare") }, onlyAsked, out local));
+                            callSession.Change(false);
+                            emote.Stop();
+                            int onlyBefore = emote.Plays;
+                            Hear("you're great");
+                            System.Diagnostics.Stopwatch onlyAnswered = System.Diagnostics.Stopwatch.StartNew();
+                            while ((reply == null || emote.Plays == onlyBefore) && onlyAnswered.Elapsed.TotalSeconds < 15) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                            Pump(0.3);
+                            int onlyRequests;
+                            lock (onlyAsked) onlyRequests = onlyAsked.Count;
+                            if (emote.Plays - onlyBefore != 1 || reply != "Here, a little heart for you.") throw new Exception("A chat-only answer that was only her heart: " + (emote.Plays - onlyBefore) + " played and she said \"" + reply + "\" after " + onlyRequests + " requests.");
+                            heartsSeen.Add("only the call after act " + (emote.Plays - onlyBefore) + " in " + onlyRequests + " requests");
+                            CloseTalk();
+                            localHearts = "a brain on this PC writing her heart played it (" + string.Join(", ", heartsSeen.ToArray()) + ") with no call text shown or said; a drawing beside it ran once; only the call says her heart line";
                         }
                         finally
                         {
                             if (local != null) local.Stop();
+                            Hands.Draw = localDrawWas;
                             callSession.Change(localCallWas);
                             callUser = localUserWas; callUserVersion = localUserVersionWas; callAnswer = localAnswerWas;
                             brain.Remote = localWas; brain.Model = localModelWas;
