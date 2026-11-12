@@ -464,6 +464,9 @@ namespace CapriDesktop
             return first;
         }
 
+        // A side head uses the hands' game lookup, and a plain job never borrows a game's skill.
+        internal static string PlayingGame(Job running) { return running.Playing ? PlayingGame(running.Task) : null; }
+
         // A window in front that makes a job a game job. A skill's game in a browser only does when the job is about playing, since a
         // wiki page about Five Nights at Freddy's isn't a game, and summing one up shouldn't get her game brief and say lines.
         internal static bool PlayingWindow(Sight sight, string task)

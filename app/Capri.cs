@@ -6346,11 +6346,14 @@ namespace CapriDesktop
             if (args.Job != null && args.Job != job) return "That job has ended.";
             if (!MidJob(running)) return "I'm not on a job right now.";
             if (args.Action == "status") return Asides.Status(running.Report(), "status");
-            if (args.Action == "stop") { StopJob("You asked me to stop."); return "Stopped my job."; }
+            if (args.Action == "stop") { StopJob("You asked me to stop."); return JobStopped; }
             if (args.Sequence.HasValue) running.Change(args.Task, args.Sequence.Value);
             else running.Change(args.Task);
-            return "Changed what my job should do.";
+            return JobChanged;
         }
+
+        // What job_control tells her brain it did. Beside a job she says these in her own words instead (AsideRun).
+        private const string JobChanged = "Changed what my job should do.", JobStopped = "Stopped my job.";
 
         // quit: closes Capri once this reply is over.
         private string QuitTool(ToolArguments args)
@@ -9950,14 +9953,21 @@ namespace CapriDesktop
         // Her own screenshots look straight through the task panel. It leaves capture only for that moment, so their recordings show it.
         private Bitmap OwnGrab(Rectangle area)
         {
-            bool showing = PanelUnseen(true);
-            try
+            // One at a time: her side head can look while her hands do, and one finishing mustn't bring the panel back into the
+            // other's picture.
+            lock (grabGate)
             {
-                if (showing) Thread.Sleep(PanelGap);
-                return Grab(area);
+                bool showing = PanelUnseen(true);
+                try
+                {
+                    if (showing) Thread.Sleep(PanelGap);
+                    return Grab(area);
+                }
+                finally { PanelUnseen(false); }
             }
-            finally { PanelUnseen(false); }
         }
+
+        private readonly object grabGate = new object();
 
         private bool PanelUnseen(bool unseen)
         {
