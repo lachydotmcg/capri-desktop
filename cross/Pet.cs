@@ -457,6 +457,8 @@ namespace CapriDesktop
         private bool updateChecking;
         private bool updateInstalling;
         private LinuxUpdateReady updateReady;
+        // Her AppImage sits somewhere she can't write, so this session only offers the release page.
+        private bool appImageReadOnly;
         // Downloads a newer AppImage when she runs from one; null means the real one. Smoke swaps in a fake.
         internal Func<string, LinuxUpdateReady> PrepareUpdate;
         // A check someone asked for says how it went; the one every 6 hours only speaks up for a new version.
@@ -1175,12 +1177,16 @@ namespace CapriDesktop
                 catch (Exception) { }
                 LinuxUpdateReady ready = null;
                 string problem = null;
-                if (latest != null && prepare != null && !updateInstalling)
+                if (latest != null && prepare != null && !updateInstalling && !appImageReadOnly)
                 {
                     try { ready = prepare(latest); }
                     catch (AppImageUpdateException error) { problem = error.Message; }
                     catch (Exception) { problem = "The download didn't come through. I'll try again later."; }
                 }
+                string rolledBack = null;
+                if (ready != null)
+                    try { string log = Path.Combine(data, "updates", "update.log"); if (File.Exists(log) && LinuxAppImageUpdater.RolledBack(File.ReadAllText(log), ready.Version)) { rolledBack = log; File.AppendAllText(log, LinuxAppImageUpdater.ToldLine(ready.Version)); } }
+                    catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
                     updateChecking = false;
@@ -1193,6 +1199,12 @@ namespace CapriDesktop
                     {
                         updateNote = "Capri " + version + " is out, but I couldn't download it: " + problem + " Right-click me > Get Capri " + version + ".";
                         if (tell) UpdateNews = updateNote;
+                    }
+                    // The last restart put the old version back; that was silent, so she says it once.
+                    if (rolledBack != null && version != null && updateReady != null)
+                    {
+                        updateNote = "Capri " + version + " didn't take when I restarted, so I'm back on the old version. What happened is in " + rolledBack + ".";
+                        UpdateNews = updateNote;
                     }
                     NotifySettings();
                 });
@@ -1275,32 +1287,50 @@ namespace CapriDesktop
             NotifySettings();
             int parent = Environment.ProcessId;
             string log = Path.Combine(folder, "updates", "update.log");
-            Action<LinuxUpdateReady, int, string> install = InstallUpdate;
+            Func<LinuxUpdateReady, int, string, Process> install = InstallUpdate;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem = null;
-                try { install(ready, parent, log); }
-                catch (AppImageUpdateException error) { problem = error.Message; }
+                bool readOnly = false;
+                Process helper = null;
+                try { helper = install(ready, parent, log); }
+                catch (AppImageUpdateException error) { problem = error.Message; readOnly = error.ReadOnly; }
                 catch (Exception) { problem = "Something went wrong getting it ready."; }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (problem != null)
                     {
                         updateInstalling = false;
-                        updateNote = "I couldn't update: " + problem + " I'm still on " + typeof(Pet).Assembly.GetName().Version.ToString(3) + ".";
+                        if (readOnly)
+                        {
+                            // A restart can't ever work from there, so the release page comes back for the rest of the session.
+                            appImageReadOnly = true;
+                            updateReady = null;
+                            if (updateItem != null) updateItem.Header = "Get Capri " + ready.Version;
+                            updateNote = problem + " Right-click me > Get Capri " + ready.Version + " to download it yourself.";
+                        }
+                        else updateNote = "I couldn't update: " + problem + " I'm still on " + typeof(Pet).Assembly.GetName().Version.ToString(3) + ".";
                         UpdateNews = updateNote;
                         NotifySettings();
                         return;
                     }
                     updateNote = "Restarting to update to Capri " + ready.Version + ".";
                     NotifySettings();
-                    Quit();
+                    (RestartQuit ?? Quit)();
+                    if (quitting) return;
+                    // The quit was called off, so the helper must not swap her on some later, ordinary quit.
+                    try { if (helper != null && !helper.HasExited) helper.Kill(true); } catch (Exception) { }
+                    LinuxAppImageUpdater.Drop(ready.AppImage + ".capri-new");
+                    updateInstalling = false;
+                    updateNote = "I didn't close, so Capri " + ready.Version + " isn't in yet. Right-click me > Restart Capri to update to " + ready.Version + " when you're ready.";
+                    NotifySettings();
                 });
             });
         }
 
-        // Smoke swaps this so a test never starts the helper or closes her.
-        internal Action<LinuxUpdateReady, int, string> InstallUpdate = LinuxAppImageUpdater.Install;
+        // Smoke swaps these so a test never starts the helper or closes her.
+        internal Func<LinuxUpdateReady, int, string, Process> InstallUpdate = LinuxAppImageUpdater.Install;
+        internal Action RestartQuit;
 
         // The release's version when it's newer than hers, like "0.7.6". Null for older, odd or missing tags.
         internal static string Newer(string tag, Version mine)

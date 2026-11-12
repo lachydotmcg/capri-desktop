@@ -15,7 +15,9 @@ namespace CapriDesktop
     // A reason she can say out loud. Anything else that goes wrong is told as a plain connection problem.
     internal sealed class AppImageUpdateException : Exception
     {
-        internal AppImageUpdateException(string message) : base(message) { }
+        internal AppImageUpdateException(string message, bool readOnly = false) : base(message) { ReadOnly = readOnly; }
+        // The AppImage's folder can't be written at all, so a restart can never work this session.
+        internal readonly bool ReadOnly;
     }
 
     internal sealed class LinuxUpdateReady
@@ -238,7 +240,7 @@ namespace CapriDesktop
         // Copies the checked AppImage beside the old one while she's still running, so a folder she can't write to or a full
         // disk is said out loud instead of after she's gone. Then a small sh script waits for her to close, swaps the two
         // files, and starts the new one.
-        internal static void Install(LinuxUpdateReady update, int parent, string log)
+        internal static Process Install(LinuxUpdateReady update, int parent, string log)
         {
             if (update == null || parent <= 0 || !File.Exists(update.Path)) throw new AppImageUpdateException("The download is gone. Check for updates again.");
             if (!Matches(update.Path, update.Size, update.Hash)) throw new AppImageUpdateException("The download didn't match its checksum, so I won't install it. Check for updates again.");
@@ -255,13 +257,18 @@ namespace CapriDesktop
                     source.CopyTo(target);
                     target.Flush(true);
                 }
-                File.SetUnixFileMode(next, File.GetUnixFileMode(app) | UnixFileMode.UserRead | UnixFileMode.UserExecute);
+                File.SetUnixFileMode(next, CopyMode(File.GetUnixFileMode(app)));
             }
-            catch (UnauthorizedAccessException) { Drop(next); throw new AppImageUpdateException("I can't write to " + folder + ", where the AppImage is."); }
-            catch (IOException) { Drop(next); throw new AppImageUpdateException("I couldn't copy the update next to the AppImage. The disk might be full."); }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+            {
+                Drop(next);
+                if (ReadOnlyError(error)) throw new AppImageUpdateException(folder + " is read-only for me, so I can't swap the AppImage there.", true);
+                if (FullError(error)) throw new AppImageUpdateException("The disk with the AppImage is full, so I couldn't copy the update next to it.");
+                throw new AppImageUpdateException("I couldn't copy the update next to the AppImage.");
+            }
             if (!Matches(next, update.Size, update.Hash)) { Drop(next); throw new AppImageUpdateException("The copy next to the AppImage didn't match its checksum, so I left the old one alone."); }
             ProcessStartInfo start = new ProcessStartInfo("/bin/sh") { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = folder };
-            foreach (string part in new[] { "-c", Script, "capri-update", app, next, parent.ToString(System.Globalization.CultureInfo.InvariantCulture), log ?? "/dev/null" })
+            foreach (string part in new[] { "-c", Script, "capri-update", app, next, parent.ToString(System.Globalization.CultureInfo.InvariantCulture), log ?? "/dev/null", update.Version })
                 start.ArgumentList.Add(part);
             string appDir = Environment.GetEnvironmentVariable("APPDIR");
             Clean(start.Environment, appDir, appDir != null && appDir.Contains("/appimage_extracted_", StringComparison.Ordinal));
@@ -269,12 +276,43 @@ namespace CapriDesktop
             try { helper = Process.Start(start); }
             catch (Exception) { }
             if (helper == null) { Drop(next); throw new AppImageUpdateException("The update helper didn't start, so nothing changed."); }
-            helper.Dispose();
+            return helper;
         }
 
-        private static void Drop(string path)
+        internal static void Drop(string path)
         {
             try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+
+        // .NET on Linux gives EACCES and EPERM as UnauthorizedAccessException and other errors as an IOException whose
+        // HResult is the errno: 30 is EROFS, 28 ENOSPC, 122 EDQUOT.
+        internal static bool ReadOnlyError(Exception error)
+        {
+            return error is UnauthorizedAccessException || (error is IOException && (error.HResult == 30 || (error.Message ?? "").Contains("Read-only file system", StringComparison.Ordinal)));
+        }
+
+        internal static bool FullError(Exception error)
+        {
+            return error is IOException && (error.HResult == 28 || error.HResult == 122 || (error.Message ?? "").Contains("No space left", StringComparison.Ordinal) || (error.Message ?? "").Contains("quota", StringComparison.OrdinalIgnoreCase));
+        }
+
+        // The copy is about to be run, so nobody but its owner may write to it, whatever the AppImage's own mode was.
+        internal static UnixFileMode CopyMode(UnixFileMode app)
+        {
+            return (app | UnixFileMode.UserRead | UnixFileMode.UserExecute) & ~(UnixFileMode.GroupWrite | UnixFileMode.OtherWrite | UnixFileMode.SetUser | UnixFileMode.SetGroup);
+        }
+
+        // The last line the swap script wrote says this version was tried and the old one put back, and nobody has been told.
+        internal static bool RolledBack(string log, string version)
+        {
+            string last = null;
+            foreach (string line in (log ?? "").Split('\n')) if (line.Trim().Length > 0) last = line.Trim();
+            return last != null && version != null && last.Contains("Capri " + version + " didn't take", StringComparison.Ordinal) && last.EndsWith("so the old one is back.", StringComparison.Ordinal);
+        }
+
+        internal static string ToldLine(string version)
+        {
+            return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " Told them Capri " + version + " didn't take.\n";
         }
 
         // The new AppImage starts clean: none of the old one's runtime variables, and nothing that points into its mount,
@@ -302,12 +340,14 @@ namespace CapriDesktop
             if (extracted) environment["APPIMAGE_EXTRACT_AND_RUN"] = "1";
         }
 
-        // $1 the AppImage, $2 the checked copy beside it, $3 her process id, $4 the log. Every path is quoted and every
-        // file command takes --, so spaces and odd characters stay part of the name.
+        // $1 the AppImage, $2 the checked copy beside it, $3 her process id, $4 the log, $5 the new version. Every path is
+        // quoted and every file command takes --, so spaces and odd characters stay part of the name. A line ending
+        // "so the old one is back." is what RolledBack looks for.
         internal const string Script = @"app=$1
 next=$2
 parent=$3
 log=$4
+version=$5
 backup=""$app.capri-backup.$$""
 note() { printf '%s %s\n' ""$(date '+%Y-%m-%d %H:%M:%S')"" ""$*"" >>""$log"" 2>/dev/null || :; }
 launch() { nohup ""$1"" >/dev/null 2>&1 & child=$!; }
@@ -330,7 +370,7 @@ fi
 if ! mv -f -- ""$next"" ""$app""; then
     mv -f -- ""$backup"" ""$app""
     rm -f -- ""$next""
-    note ""Couldn't put the new AppImage in place, so the old one is back.""
+    note ""Capri $version didn't take: it couldn't be put in place, so the old one is back.""
     launch ""$app""
     exit 1
 fi
@@ -338,13 +378,13 @@ launch ""$app""
 sleep 4
 if kill -0 ""$child"" 2>/dev/null; then
     rm -f -- ""$backup""
-    note ""Updated $app.""
+    note ""Updated $app to Capri $version.""
     exit 0
 fi
 if mv -f -- ""$backup"" ""$app""; then
-    note ""The new version closed within 4 seconds, so the old one is back.""
+    note ""Capri $version didn't take: it closed within 4 seconds, so the old one is back.""
 else
-    note ""The new version closed within 4 seconds. The old one is at $backup.""
+    note ""Capri $version closed within 4 seconds. The old one is at $backup.""
 fi
 launch ""$app""
 exit 1
@@ -461,6 +501,34 @@ exit 1
                 if (plain["PATH"] != "/usr/bin:/bin" || plain["APPIMAGE_EXTRACT_AND_RUN"] != "1") throw new Exception("A root APPDIR emptied PATH, or extract-and-run was lost.");
                 checks.Add("PASS appimage restart environment: the runtime's variables and anything inside the old mount go, PATH keeps the rest, extract-and-run carries over");
 
+                var modes = new Dictionary<UnixFileMode, UnixFileMode>
+                {
+                    { (UnixFileMode)Convert.ToInt32("755", 8), (UnixFileMode)Convert.ToInt32("755", 8) },
+                    { (UnixFileMode)Convert.ToInt32("777", 8), (UnixFileMode)Convert.ToInt32("755", 8) },
+                    { (UnixFileMode)Convert.ToInt32("664", 8), (UnixFileMode)Convert.ToInt32("744", 8) },
+                    { (UnixFileMode)Convert.ToInt32("4777", 8), (UnixFileMode)Convert.ToInt32("755", 8) },
+                    { (UnixFileMode)Convert.ToInt32("600", 8), (UnixFileMode)Convert.ToInt32("700", 8) },
+                };
+                foreach (KeyValuePair<UnixFileMode, UnixFileMode> pair in modes)
+                    if (CopyMode(pair.Key) != pair.Value) throw new Exception("The copy's mode from " + Convert.ToString((int)pair.Key, 8) + " was " + Convert.ToString((int)CopyMode(pair.Key), 8));
+                checks.Add("PASS appimage copy mode: owner can read and run it, group and others never write to it, setuid and setgid go");
+
+                if (!ReadOnlyError(new UnauthorizedAccessException("denied")) || !ReadOnlyError(new IOException("x", 30)) || !ReadOnlyError(new IOException("Read-only file system : '/opt/x'"))
+                    || ReadOnlyError(new IOException("x", 28)) || ReadOnlyError(new IOException("No space left on device")) || ReadOnlyError(new IOException("x", 5))
+                    || !FullError(new IOException("x", 28)) || !FullError(new IOException("x", 122)) || !FullError(new IOException("No space left on device : '/x'"))
+                    || FullError(new IOException("x", 30)) || FullError(new UnauthorizedAccessException("denied")) || FullError(new IOException("x", 5)))
+                    throw new Exception("A read-only folder and a full disk were told apart wrongly.");
+                if (!new AppImageUpdateException("x", true).ReadOnly || new AppImageUpdateException("x").ReadOnly) throw new Exception("The read-only mark was lost.");
+                checks.Add("PASS appimage copy errors: no write access and a read-only filesystem count as read-only, a full disk or quota as full, anything else as neither");
+
+                string rolled = "2026-11-13 09:00:00 Capri 9.9.9 didn't take: it closed within 4 seconds, so the old one is back.\n";
+                if (!RolledBack(rolled, "9.9.9") || !RolledBack(rolled + "\n\n", "9.9.9") || RolledBack(rolled, "9.9.10") || RolledBack(rolled, null) || RolledBack("", "9.9.9") || RolledBack(null, "9.9.9")
+                    || RolledBack(rolled + "2026-11-13 09:01:00 Updated /x to Capri 9.9.9.\n", "9.9.9") || RolledBack(rolled + ToldLine("9.9.9"), "9.9.9")
+                    || !RolledBack("2026-11-13 09:00:00 Capri 9.9.9 didn't take: it couldn't be put in place, so the old one is back.", "9.9.9")
+                    || RolledBack("2026-11-13 09:00:00 Capri 9.9.9 closed within 4 seconds. The old one is at /x.capri-backup.1.", "9.9.9"))
+                    throw new Exception("The update log was read back wrongly.");
+                checks.Add("PASS appimage rollback notice: a last log line saying this version didn't take is told once; another version, a later success or a told line is not");
+
                 if (OperatingSystem.IsWindows()) { checks.Add("LIMIT appimage swap script runs only on Linux and Mac"); return; }
                 Process syntax = Process.Start(new ProcessStartInfo("/bin/sh") { ArgumentList = { "-n", "-c", Script }, UseShellExecute = false });
                 if (!syntax.WaitForExit(10000) || syntax.ExitCode != 0) throw new Exception("sh -n rejected the swap script.");
@@ -475,19 +543,19 @@ exit 1
                     File.SetUnixFileMode(app + ".capri-new", UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
                     Process parent = Process.Start(new ProcessStartInfo("/bin/sh") { ArgumentList = { "-c", "sleep 1" }, UseShellExecute = false });
                     var start = new ProcessStartInfo("/bin/sh") { UseShellExecute = false };
-                    foreach (string part in new[] { "-c", Script, "capri-update", app, app + ".capri-new", parent.Id.ToString(), log }) start.ArgumentList.Add(part);
+                    foreach (string part in new[] { "-c", Script, "capri-update", app, app + ".capri-new", parent.Id.ToString(), log, "9.9.9" }) start.ArgumentList.Add(part);
                     Process helper = Process.Start(start);
                     if (!helper.WaitForExit(30000)) { helper.Kill(); throw new Exception("The swap script didn't finish (" + version + ")."); }
                     parent.WaitForExit(1000);
                     return helper.ExitCode;
                 };
                 string working = "#!/bin/sh\n# new\nsleep 6\n";
-                if (swap(working, "working") != 0 || File.ReadAllText(app) != working || File.Exists(app + ".capri-new") || Directory.GetFiles(odd, "*capri-backup*").Length != 0 || !File.ReadAllText(log).Contains("Updated "))
+                if (swap(working, "working") != 0 || File.ReadAllText(app) != working || File.Exists(app + ".capri-new") || Directory.GetFiles(odd, "*capri-backup*").Length != 0 || !File.ReadAllText(log).Contains("to Capri 9.9.9.") || RolledBack(File.ReadAllText(log), "9.9.9"))
                     throw new Exception("The swap script didn't put a working AppImage in place cleanly: " + File.ReadAllText(log));
                 string broken = "#!/bin/sh\nexit 3\n";
-                if (swap(broken, "broken") != 1 || File.ReadAllText(app) != "#!/bin/sh\nsleep 6\n" || File.Exists(app + ".capri-new") || Directory.GetFiles(odd, "*capri-backup*").Length != 0 || !File.ReadAllText(log).Contains("old one is back"))
-                    throw new Exception("The swap script didn't roll a broken AppImage back: " + File.ReadAllText(log));
-                checks.Add("PASS appimage swap script: sh -n passes; with spaces, quotes and a leading dash in the path it waits for her, swaps, starts the new one and keeps it, or puts the old one back when the new one dies");
+                if (swap(broken, "broken") != 1 || File.ReadAllText(app) != "#!/bin/sh\nsleep 6\n" || File.Exists(app + ".capri-new") || Directory.GetFiles(odd, "*capri-backup*").Length != 0 || !RolledBack(File.ReadAllText(log), "9.9.9"))
+                    throw new Exception("The swap script didn't roll a broken AppImage back, or its log line can't be read back: " + File.ReadAllText(log));
+                checks.Add("PASS appimage swap script: sh -n passes; with spaces, quotes and a leading dash in the path it waits for her, swaps, starts the new one and keeps it, or puts the old one back when the new one dies and logs it so she can tell them");
             }
             finally { try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
         }

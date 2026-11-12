@@ -1843,9 +1843,11 @@ namespace CapriDesktop
         private void UpdateCheckChecks()
         {
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-            string[] names = { "updateChecking", "updateInstalling", "updateReady", "updateAsked", "updateNote", "updatePage", "updateItem" };
+            string[] names = { "updateChecking", "updateInstalling", "updateReady", "appImageReadOnly", "updateAsked", "updateNote", "updatePage", "updateItem" };
             Func<string, LinuxUpdateReady> prepareWas = pet.PrepareUpdate;
-            Action<LinuxUpdateReady, int, string> installWas = pet.InstallUpdate;
+            Func<LinuxUpdateReady, int, string, System.Diagnostics.Process> installWas = pet.InstallUpdate;
+            Action quitWas = pet.RestartQuit;
+            string spare = Path.Combine(Path.GetTempPath(), "capri-restart-check-" + Guid.NewGuid().ToString("N"));
             Dictionary<string, object> state = new Dictionary<string, object>();
             foreach (string name in names) state[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
             Func<string> read = pet.ReadUpdate;
@@ -1937,6 +1939,35 @@ namespace CapriDesktop
                 MainframeWait(() => pet.UpdateNews != null, "a refused AppImage restart");
                 if (said != "99.5.0|True|True" || !pet.UpdateNews.StartsWith("I couldn't update: I can't write to /nowhere", StringComparison.Ordinal) || (bool)typeof(Pet).GetField("updateInstalling", fields).GetValue(pet))
                     throw new Exception("A failed AppImage restart didn't say why or stayed stuck: " + said + " / " + pet.UpdateNews);
+
+                Directory.CreateDirectory(spare);
+                ((LinuxUpdateReady)typeof(Pet).GetField("updateReady", fields).GetValue(pet)).AppImage = Path.Combine(spare, "Capri.AppImage");
+                int installs = 0;
+                pet.InstallUpdate = (update, parent, log) => { installs++; File.WriteAllText(update.AppImage + ".capri-new", "copy"); return null; };
+                pet.RestartQuit = () => { };
+                pet.UpdateNews = null;
+                restart.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                MainframeWait(() => pet.MainframeUpdate.StartsWith("I didn't close", StringComparison.Ordinal), "a called-off restart");
+                if (installs != 1 || File.Exists(Path.Combine(spare, "Capri.AppImage.capri-new")) || (bool)typeof(Pet).GetField("updateInstalling", fields).GetValue(pet) || pet.UpdateChoice != "Restart Capri to update to 99.5.0")
+                    throw new Exception("A called-off quit left the copy behind or Restart stuck.");
+                restart.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                MainframeWait(() => installs == 2 && !(bool)typeof(Pet).GetField("updateInstalling", fields).GetValue(pet), "a second restart after a called-off quit");
+                checks.Add("PASS appimage called-off restart: the copy goes, the helper is stopped, and Restart works again");
+
+                int prepares = 0;
+                pet.InstallUpdate = (update, parent, log) => { throw new AppImageUpdateException("/opt/Capri is read-only for me, so I can't swap the AppImage there.", true); };
+                pet.UpdateNews = null;
+                restart.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                MainframeWait(() => pet.UpdateNews != null, "a read-only AppImage folder");
+                if (pet.UpdateChoice != "Get Capri 99.5.0" || !pet.UpdateNews.Contains("read-only", StringComparison.Ordinal) || !pet.UpdateNews.Contains("Get Capri 99.5.0", StringComparison.Ordinal) || pet.UpdateNews.Contains("full", StringComparison.Ordinal))
+                    throw new Exception("A read-only AppImage folder kept the dead restart: " + pet.UpdateChoice + " / " + pet.UpdateNews);
+                pet.PrepareUpdate = json => { prepares++; return new LinuxUpdateReady { Version = "99.5.0", Path = "/nowhere/x", AppImage = "/nowhere/y", Hash = new string('0', 64), Size = 1 }; };
+                pet.CheckUpdate();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a check after a read-only folder");
+                if (prepares != 0 || pet.UpdateChoice != "Get Capri 99.5.0") throw new Exception("After a read-only folder she offered the restart again.");
+                typeof(Pet).GetField("appImageReadOnly", fields).SetValue(pet, false);
+                checks.Add("PASS appimage read-only folder: the restart goes, Get Capri comes back for the session, and she says the folder is read-only");
+
                 pet.UpdateNews = null;
                 pet.PrepareUpdate = json => { throw new AppImageUpdateException("Capri 99.6.0 has no Linux AppImage."); };
                 pet.ReadUpdate = () => "{\"tag_name\":\"v99.6.0\"}";
@@ -1956,7 +1987,8 @@ namespace CapriDesktop
                     if (item != oldItem && item != null) pet.ContextMenu.Items.Remove(item);
                     if (oldAt >= 0 && !pet.ContextMenu.Items.Contains(oldItem)) pet.ContextMenu.Items.Insert(Math.Min(oldAt, pet.ContextMenu.Items.Count), oldItem);
                     pet.ReadUpdate = read; pet.UpdateNews = news; pet.Saved = saved;
-                    pet.PrepareUpdate = prepareWas; pet.InstallUpdate = installWas;
+                    pet.PrepareUpdate = prepareWas; pet.InstallUpdate = installWas; pet.RestartQuit = quitWas;
+                    try { if (Directory.Exists(spare)) Directory.Delete(spare, true); } catch (IOException) { }
                     foreach (KeyValuePair<string, object> pair in state) typeof(Pet).GetField(pair.Key, fields).SetValue(pet, pair.Value);
                     if (ticking) timer.Start();
                 }
