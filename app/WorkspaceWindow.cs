@@ -117,7 +117,7 @@ namespace CapriDesktop
         private readonly Workspace workspace;
         private readonly Func<bool> blackwall;
         private readonly bool live;
-        private readonly WorkKey shut, smaller, bigger, make, choose, undo, trust;
+        private readonly WorkKey shut, smaller, bigger, make, home, choose, undo, trust;
         private readonly ChatList list;
         private readonly Transcript transcript;
         private readonly Composer composer;
@@ -172,9 +172,12 @@ namespace CapriDesktop
             make = Key("+ New chat", delegate { NewChat(); });
             make.Accent = Neon.Cyan;
             make.AccessibleName = "New chat";
+            home = Key("Start in Capri's folder", delegate { NewChat(); });
+            home.Accent = Neon.Cyan;
+            home.Solid = true;
+            home.AccessibleName = "Start a chat in Capri's own folder";
             choose = Key("Choose folders", delegate { ChooseFolders(); });
             choose.Accent = Neon.Cyan;
-            choose.Solid = true;
             choose.AccessibleName = "Choose folders to start a chat";
             undo = Key("Undo last edits", delegate { if (chat != null) Try(delegate { workspace.Undo(chat); SyncItems(); UpdateKeys(); }); });
             undo.Accent = Neon.Rose;
@@ -281,11 +284,48 @@ namespace CapriDesktop
             }
         }
 
-        // A new chat starts with its folder: until one is chosen the window asks for exactly that.
-        private void NewChat()
+        // A new chat starts straight away in her own folder, ready to type in. A new chat there that hasn't been used yet is
+        // opened again rather than making another. Its folder can still be changed from the "runs here" chip.
+        internal void NewChat()
         {
-            SelectChat(null);
-            choose.Focus();
+            Try(delegate
+            {
+                WorkspaceChat unused = workspace.Chats().Find(delegate(WorkspaceChat found)
+                {
+                    lock (found.Gate) return found.Items.Count == 0 && found.Folders.Count == 0 && found.Files.Count == 0 && found.Live == null && workspace.IsHome(found.Folder);
+                });
+                WorkspaceChat made = unused ?? workspace.HomeChat(blackwall != null && blackwall());
+                FillChats();
+                SelectChat(made);
+                composer.Input.Focus();
+            });
+        }
+
+        // Nothing sent yet, so the folder Claude Code runs in can still change.
+        internal bool CanRehome
+        {
+            get
+            {
+                if (chat == null) return false;
+                lock (chat.Gate) return chat.Live == null && !chat.Items.Exists(delegate(WorkspaceItem item) { return item.Kind == "user"; });
+            }
+        }
+
+        internal void ChooseMain()
+        {
+            if (!CanRehome || picking) return;
+            picking = true;
+            WorkspaceChat target = chat;
+            string[] picked;
+            try { picked = PickFolders != null ? PickFolders() : WorkPickers.Folders(this, "Choose the folder for this chat", StartFolder()); }
+            catch (Exception error) { picked = null; Notice.Tell(this, "Couldn't open the folder picker: " + error.Message, "Workspace", true); }
+            finally { picking = false; }
+            if (picked == null || picked.Length == 0 || IsDisposed || chat != target) return;
+            Try(delegate { workspace.Rehome(target, picked); });
+            FillChats();
+            FillHeader();
+            Place();
+            composer.Input.Focus();
         }
 
         private string StartFolder()
@@ -456,11 +496,15 @@ namespace CapriDesktop
 
         private void Send()
         {
-            if (chat == null || chat.Running || chat.PendingText != null || chat.Undoing != null || string.IsNullOrWhiteSpace(composer.Input.Text)) return;
-            string text = composer.Input.Text;
+            if (chat == null || chat.Running || chat.PendingText != null || chat.Undoing != null) return;
+            if (string.IsNullOrWhiteSpace(composer.Input.Text) && Workspace.Attached(chat).Count == 0) return;
+            string text = composer.Input.Text.Trim().Length == 0 ? "" : composer.Input.Text;
             Try(delegate
             {
-                workspace.Send(chat, text, false);
+                // Turned away before it became a message (the chat was busy or closing): the words and the attached files stay
+                // where they were. Once it's a message it keeps its files, and a failed start offers Retry with them.
+                int before = Asked(chat);
+                if (!workspace.Send(chat, text, false) && Asked(chat) == before) { FillHeader(); UpdateKeys(); return; }
                 composer.Input.Clear();
                 transcript.Following = true;
                 FillHeader();
@@ -471,6 +515,8 @@ namespace CapriDesktop
         }
 
         private void Stop() { if (chat != null) Try(delegate { workspace.Stop(chat); }); }
+
+        private static int Asked(WorkspaceChat target) { lock (target.Gate) return target.Items.FindAll(delegate(WorkspaceItem item) { return item.Kind == "user"; }).Count; }
 
         private void UpdateKeys()
         {
@@ -640,12 +686,14 @@ namespace CapriDesktop
                 list.Bounds = new Rectangle(Z(26), Z(106), Z(220), Math.Max(Z(60), h - Z(126)));
                 bool open = chat != null;
                 transcript.Visible = composer.Visible = undo.Visible = open;
-                choose.Visible = !open;
+                choose.Visible = home.Visible = !open;
                 if (!open)
                 {
                     trust.Visible = rename.Visible = false;
-                    int middle = left + width / 2, wide = Math.Max(Z(170), choose.Needs + Z(24));
-                    choose.Bounds = new Rectangle(middle - wide / 2, EmptyTop() + Z(150), wide, Z(38));
+                    int middle = left + width / 2, wideHome = Math.Max(Z(200), home.Needs + Z(24)), wideChoose = Math.Max(Z(150), choose.Needs + Z(24)), gap = Z(12);
+                    int start = middle - (wideHome + gap + wideChoose) / 2;
+                    home.Bounds = new Rectangle(start, EmptyTop() + Z(150), wideHome, Z(38));
+                    choose.Bounds = new Rectangle(home.Right + gap, EmptyTop() + Z(150), wideChoose, Z(38));
                     titleBox = folderBox = Rectangle.Empty;
                 }
                 else
@@ -711,9 +759,12 @@ namespace CapriDesktop
                 Rectangle line = new Rectangle(left + Z(20), top + Z(54), right - left - Z(40), Z(28));
                 TextRenderer.DrawText(graphics, workspace.Chats().Count == 0 ? "Start your first chat" : "Start a new chat", heading, line, Neon.White, WorkPaint.Line | TextFormatFlags.HorizontalCenter);
                 Rectangle words = new Rectangle(left + Z(40), top + Z(88), right - left - Z(80), Z(50));
-                TextRenderer.DrawText(graphics, "Choose the folder Claude Code works in. You can pick several, and add more folders and files once you're in.", Font, words, Neon.Faint, WorkPaint.Wrap | TextFormatFlags.HorizontalCenter);
+                TextRenderer.DrawText(graphics, "Start in Capri's own folder, or choose the folders Claude Code works in. You can add more folders and files once you're in.", Font, words, Neon.Faint, WorkPaint.Wrap | TextFormatFlags.HorizontalCenter);
                 Rectangle hint = new Rectangle(left + Z(20), choose.Bottom + Z(14), right - left - Z(40), Z(20));
-                TextRenderer.DrawText(graphics, "or drop folders here", note, hint, Neon.Faint, WorkPaint.Line | TextFormatFlags.HorizontalCenter);
+                TextRenderer.DrawText(graphics, "Capri's folder: " + Display(workspace.Home) + "  ·  chats started there share it", note, hint, Neon.Faint, WorkPaint.Line | TextFormatFlags.HorizontalCenter | TextFormatFlags.PathEllipsis);
+                Rectangle drop = new Rectangle(left + Z(20), hint.Bottom + Z(6), right - left - Z(40), Z(20));
+                TextRenderer.DrawText(graphics, "or drop folders here", note, drop, Neon.Faint, WorkPaint.Line | TextFormatFlags.HorizontalCenter);
+                hint = drop;
                 if (workspace.Problems.Count > 0)
                 {
                     Rectangle problems = new Rectangle(left + Z(20), hint.Bottom + Z(18), right - left - Z(40), Math.Max(0, h - hint.Bottom - Z(40)));
@@ -724,6 +775,7 @@ namespace CapriDesktop
             if (!rename.Visible) TextRenderer.DrawText(graphics, chat.Title, heading, titleBox, Neon.White, WorkPaint.Line | TextFormatFlags.EndEllipsis);
             List<string> folders = Workspace.AllFolders(chat);
             string where = folders.Count > 1 ? Display(folders[0]) + "  +" + (folders.Count - 1) + (folders.Count == 2 ? " folder" : " folders") : Display(folders[0]);
+            if (workspace.IsHome(folders[0])) where += "  ·  Capri's folder, shared by chats started here";
             TextRenderer.DrawText(graphics, where, note, folderBox, Neon.Faint, WorkPaint.Line | TextFormatFlags.PathEllipsis);
             if (trust.Visible)
             {
@@ -911,6 +963,7 @@ namespace CapriDesktop
         internal string CodeFont { get { return mono.Name; } }
         internal string ProseFont { get { return Font.Name; } }
         internal bool ChooseShown { get { return choose.Visible && chat == null; } }
+        internal bool HomeShown { get { return home.Visible && chat == null; } }
         internal bool UndoOffered { get { return undo.Visible && undo.Enabled; } }
         internal List<string> Chips { get { return composer.ChipNames(); } }
         internal void ClickChipCross(string path) { composer.Cross(path); }
@@ -1144,7 +1197,7 @@ namespace CapriDesktop
                 {
                     List<string> folders = Workspace.AllFolders(chat);
                     for (int i = 0; i < folders.Count; i++) chips.Add(new Chip { Path = folders[i], Name = Named(folders[i]), Folder = true, Main = i == 0 });
-                    lock (chat.Gate) foreach (string file in chat.Files) chips.Add(new Chip { Path = file, Name = Named(file), Sent = chat.Sent.Contains(file) });
+                    foreach (string file in Workspace.Attached(chat)) chips.Add(new Chip { Path = file, Name = Named(file) });
                     Mode.Text = chat.Mode;
                     Model.Text = chat.Model;
                 }
@@ -1200,7 +1253,7 @@ namespace CapriDesktop
                     rows = chips.Count > 0 ? 1 : 0;
                     foreach (Chip chip in chips)
                     {
-                        int wide = Math.Min(Math.Max(window.Z(60), right - pad), window.Z(30) + WorkPaint.Wide(chip.Name, window.small) + (chip.Main ? WorkPaint.Wide("runs here", window.caption) + window.Z(10) : window.Z(20)));
+                        int wide = Math.Min(Math.Max(window.Z(60), right - pad), window.Z(30) + WorkPaint.Wide(chip.Name, window.small) + (chip.Main ? WorkPaint.Wide(MainCaption, window.caption) + window.Z(10) : window.Z(20)));
                         wide = Math.Min(wide, window.Z(260));
                         if (x + wide > (rows == 3 ? last : right) && x > pad) { x = pad; y += rowTall + gap; rows++; }
                         chip.Box = rows > 3 ? Rectangle.Empty : new Rectangle(x, y, wide, rowTall);
@@ -1220,6 +1273,9 @@ namespace CapriDesktop
                 hintShown = window.chat != null && window.chat.Running && WorkPaint.Wide(Hint, window.note) <= Stop.Left - Model.Right - window.Z(32);
                 Wanted = keyTop + keyTall + pad;
             }
+
+            // Until the first message the folder it runs in can change, and the chip says so.
+            private string MainCaption { get { return window.CanRehome ? "runs here · change" : "runs here"; } }
 
             internal void Cross(string path)
             {
@@ -1251,9 +1307,9 @@ namespace CapriDesktop
                     Color ink = chip.Sent ? Neon.Faint : chip.Main ? Neon.Cyan : Neon.White;
                     if (chip.Folder) WorkPaint.FolderMark(graphics, mark, chip.Main ? Neon.Cyan : Neon.Faint, s); else WorkPaint.FileMark(graphics, mark, chip.Sent ? Neon.Faint : Neon.Cyan, s);
                     int textLeft = chip.Box.Left + window.Z(26);
-                    int textRight = chip.Main ? chip.Box.Right - WorkPaint.Wide("runs here", window.caption) - window.Z(12) : chip.Cross.Left;
+                    int textRight = chip.Main ? chip.Box.Right - WorkPaint.Wide(MainCaption, window.caption) - window.Z(12) : chip.Cross.Left;
                     TextRenderer.DrawText(graphics, chip.Name, window.small, new Rectangle(textLeft, chip.Box.Top, Math.Max(1, textRight - textLeft), chip.Box.Height), ink, WorkPaint.Line | TextFormatFlags.EndEllipsis);
-                    if (chip.Main) TextRenderer.DrawText(graphics, "runs here", window.caption, new Rectangle(textRight + window.Z(4), chip.Box.Top, chip.Box.Right - textRight - window.Z(4), chip.Box.Height), Neon.Faint, WorkPaint.Line);
+                    if (chip.Main) TextRenderer.DrawText(graphics, MainCaption, window.caption, new Rectangle(textRight + window.Z(4), chip.Box.Top, chip.Box.Right - textRight - window.Z(4), chip.Box.Height), Neon.Faint, WorkPaint.Line);
                     else WorkPaint.Cross(graphics, new PointF(chip.Cross.Left + chip.Cross.Width / 2f - window.Z(1), chip.Cross.Top + chip.Cross.Height / 2f), window.Z(3.5f), over ? Neon.Hot : Neon.Faint, s);
                 }
                 if (extra > 0)
@@ -1293,6 +1349,7 @@ namespace CapriDesktop
                 if (at < 0) { Input.Focus(); return; }
                 Chip chip = chips[at];
                 if (chip.Cross.Contains(e.Location)) window.RemovePath(chip.Path);
+                else if (chip.Main && window.CanRehome) window.Post(window.ChooseMain);
                 else if (chip.Folder) window.OpenFolder(chip.Path, null);
                 else window.OpenFolder(null, chip.Path);
             }

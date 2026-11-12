@@ -103,6 +103,9 @@ namespace CapriDesktop
         internal static readonly string[] Models = { "Default", "Opus", "Sonnet", "Haiku" };
         internal readonly string Root, Pipe;
         internal string Executable;
+        // Her own folder for chats started without picking one: Capri\Workspace in their Documents, wherever Windows keeps
+        // Documents (OneDrive too). Only made when a chat first needs it, and never emptied or deleted by her.
+        internal string Home = HomeFolder();
         internal int ApprovalWait = 600000;
         internal Action<WorkspaceChat, WorkspaceItem> Changed;
         internal Action<WorkspaceChat> Finished;
@@ -308,10 +311,82 @@ namespace CapriDesktop
 
         internal static List<string> AllFiles(WorkspaceChat chat) { lock (chat.Gate) return new List<string>(chat.Files); }
 
+        // The files waiting to go with the next message. Once a message takes them they stay part of the chat (Claude Code
+        // may keep reading and editing them) but they're no longer waiting.
+        internal static List<string> Attached(WorkspaceChat chat) { lock (chat.Gate) return chat.Files.FindAll(delegate(string file) { return !chat.Sent.Contains(file); }); }
+
+        internal static string HomeFolder()
+        {
+            string documents = "";
+            try { documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments); } catch (Exception) { }
+            if (string.IsNullOrEmpty(documents) || !Path.IsPathRooted(documents)) documents = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return Path.Combine(documents, "Capri", "Workspace");
+        }
+
+        internal bool IsHome(string folder)
+        {
+            try { return Home != null && folder != null && Same(Tidy(folder), Tidy(Home)); }
+            catch (Exception) { return false; }
+        }
+
+        // Makes her folder the first time a chat needs it. If Documents can't take it, it goes in their profile folder.
+        internal string MakeHome()
+        {
+            try { Directory.CreateDirectory(Home); }
+            catch (Exception)
+            {
+                Home = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Capri", "Workspace");
+                Directory.CreateDirectory(Home);
+            }
+            return Home;
+        }
+
+        // A chat in her own folder, ready to type in. Nothing has been asked yet, so its folder can still change.
+        internal WorkspaceChat HomeChat(bool blackwall)
+        {
+            WorkspaceChat chat = NewChat(MakeHome(), blackwall);
+            lock (chat.Gate) chat.Title = "New chat";
+            Save(chat);
+            Notify(chat, null);
+            return chat;
+        }
+
+        // Until the first message the folder Claude Code runs in can change: the first picked folder takes its place and the
+        // rest join it. After that it's fixed, since the conversation lives in that folder.
+        internal void Rehome(WorkspaceChat chat, IList<string> picked)
+        {
+            List<string> folders = new List<string>();
+            foreach (string raw in picked)
+            {
+                string folder = Tidy(raw);
+                if (!Directory.Exists(folder)) throw new IOException("That folder isn't here: " + folder);
+                if (!folders.Exists(delegate(string had) { return Same(had, folder); })) folders.Add(folder);
+            }
+            if (folders.Count == 0) return;
+            lock (chat.Gate)
+            {
+                if (chat.Deleted) return;
+                if (chat.Live != null || chat.Items.Exists(delegate(WorkspaceItem item) { return item.Kind == "user"; })) throw new IOException("The folder Claude Code runs in is fixed once a message is sent.");
+                string old = chat.Folder, oldName = new DirectoryInfo(old).Name;
+                List<string> rest = new List<string>(chat.Folders);
+                chat.Folder = folders[0];
+                chat.Folders.Clear();
+                List<string> joining = folders.GetRange(1, folders.Count - 1);
+                joining.AddRange(rest);
+                foreach (string folder in joining)
+                    if (!Same(folder, chat.Folder) && !chat.Folders.Exists(delegate(string had) { return Same(had, folder); })) chat.Folders.Add(folder);
+                if (chat.Title == oldName || chat.Title == "New chat") chat.Title = new DirectoryInfo(chat.Folder).Name.Length > 0 ? new DirectoryInfo(chat.Folder).Name : chat.Folder;
+                chat.TrustAsked = false;
+                Save(chat);
+            }
+            Notify(chat, null);
+        }
+
         internal bool Trusted(WorkspaceChat chat) { return Untrusted(chat).Count == 0; }
 
         internal bool Trusted(string folder)
         {
+            if (IsHome(folder)) return true;
             try { string final = WorkspacePaths.Final(folder); lock (trustGate) return trusted.Contains(final); }
             catch (Exception) { return false; }
         }
@@ -424,7 +499,12 @@ namespace CapriDesktop
                 if (chat.Deleted) return 0;
                 foreach (string file in picked)
                 {
-                    if (chat.Files.Exists(delegate(string had) { return Same(had, file); })) continue;
+                    string kept = chat.Files.Find(delegate(string had) { return Same(had, file); });
+                    if (kept != null)
+                    {
+                        if (chat.Sent.Remove(kept)) added++;
+                        continue;
+                    }
                     chat.Files.Add(file);
                     chat.Sent.Remove(file);
                     added++;
@@ -466,7 +546,9 @@ namespace CapriDesktop
         internal static string Compose(string text, List<string> files)
         {
             if (files == null || files.Count == 0) return text;
-            StringBuilder message = new StringBuilder(text).Append("\n\nAttached files:");
+            StringBuilder message = new StringBuilder(text);
+            if (text.Trim().Length > 0) message.Append("\n\n");
+            message.Append("Attached files:");
             foreach (string file in files) message.Append("\n- ").Append(file);
             return message.ToString();
         }
@@ -594,10 +676,12 @@ namespace CapriDesktop
 
         internal bool Send(WorkspaceChat chat, string text, bool retry)
         {
-            if (string.IsNullOrWhiteSpace(text) || closed) return false;
+            if (text == null || closed) return false;
             WorkspaceTurn turn;
             lock (chat.Gate)
             {
+                bool files = retry ? LastFiles(chat).Count > 0 : chat.Files.Exists(delegate(string file) { return !chat.Sent.Contains(file); });
+                if (string.IsNullOrWhiteSpace(text) && !files) return false;
                 if (chat.Live != null || chat.Deleted || chat.PendingText != null || chat.Undoing != null) return false;
                 if (!retry)
                 {
@@ -640,6 +724,14 @@ namespace CapriDesktop
             }
             Notify(chat, null);
             return true;
+        }
+
+        private static List<string> LastFiles(WorkspaceChat chat)
+        {
+            List<string> files = new List<string>();
+            for (int i = chat.Items.Count - 1; i >= 0; i--)
+                if (chat.Items[i].Kind == "user") { foreach (string file in chat.Items[i].Files.Split('\n')) if (file.Length > 0) files.Add(file); break; }
+            return files;
         }
 
         internal void Retry(WorkspaceChat chat)
@@ -1385,7 +1477,11 @@ namespace CapriDesktop
                 string file = UndoFile(chat, chat.Turns[i]);
                 if (!File.Exists(file)) continue;
                 Dictionary<string, object> row = HuskJson.Read(File.ReadAllText(file, Encoding.UTF8)) as Dictionary<string, object>;
-                if (!true.Equals(HuskJson.Get(row, "restored"))) return chat.Turns[i];
+                if (true.Equals(HuskJson.Get(row, "restored"))) continue;
+                // A turn that changed no files and ran no commands has nothing to undo.
+                List<object> files = HuskJson.List(HuskJson.Get(row, "files"));
+                if ((files == null || files.Count == 0) && !true.Equals(HuskJson.Get(row, "commands"))) continue;
+                return chat.Turns[i];
             }
             return null;
         }
