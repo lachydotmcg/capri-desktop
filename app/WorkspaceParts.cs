@@ -272,7 +272,9 @@ namespace CapriDesktop
         internal static RectangleF Thumb(RectangleF rail, int view, int content, int offset)
         {
             if (content <= view || view <= 0) return RectangleF.Empty;
-            float tall = rail.Height * view / content;
+            // Never shorter than four times its width (24 px at 100%), so a very long chat's thumb is still a bar to grab
+            // and not a dot; dragging maps over the room left, so the whole conversation is still in reach.
+            float tall = Math.Min(rail.Height, Math.Max(rail.Width * 4, rail.Height * view / content));
             float at = rail.Top + (rail.Height - tall) * offset / (float)(content - view);
             return new RectangleF(rail.Left, at, rail.Width, tall);
         }

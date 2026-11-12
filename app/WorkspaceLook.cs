@@ -1921,6 +1921,12 @@ namespace CapriDesktop
                 if (took > 2500) failures.Add(scale + "%: a 40-part formatted reply took " + took + " ms to lay out and draw.");
                 window.ConversationTop = window.ConversationTall / 2;
                 shoot(window, "g-long-" + scale, null);
+                // Its scroll thumb stays a bar to grab, and dragging it all the way down reaches the end.
+                float least = 24f * scale / 100f - 1;
+                if (window.ConversationThumb.Height < least) failures.Add(scale + "%: the long chat's scroll thumb is " + window.ConversationThumb.Height + " px tall, under " + least + ".");
+                window.ConversationTop = 0;
+                window.DragConversationThumb(window.ClientSize.Height * 2);
+                if (!window.AtEnd) failures.Add(scale + "%: dragging the long chat's thumb to the bottom stopped at " + window.ConversationTop + " of " + window.ConversationTall + ".");
 
                 // The same forty arriving as a stream, 600 letters at a time, each step laid out and drawn at the end of the chat.
                 // Once, at 100%: the steps are the same work at every size.

@@ -1005,6 +1005,8 @@ namespace CapriDesktop
         }
         internal Cursor PointerOn(int fold) { Point at; TipOn(fold, out at); return transcript.Cursor; }
         internal int ConversationTop { get { return transcript.Offset; } set { transcript.ScrollTo(value); } }
+        internal RectangleF ConversationThumb { get { return transcript.ThumbNow; } }
+        internal void DragConversationThumb(int by) { transcript.DragThumbBy(by); }
         internal int FoldTop(int fold) { return transcript.HeadPoint(fold).Y + transcript.Offset; }
         internal void ClickFold(int fold) { transcript.PressAt(transcript.HeadPoint(fold)); }
         internal void OpenToolGroups(bool open) { transcript.OpenAll(open); }
@@ -4053,6 +4055,19 @@ namespace CapriDesktop
             }
 
             internal static void OpenLink(string page) { Open(page); }
+
+            internal RectangleF ThumbNow { get { return WorkPaint.Thumb(WorkPaint.Track(ClientRectangle, window.zoom), Height, Content, Offset); } }
+
+            // Takes the scroll thumb by its middle and drags it down by so many pixels, then lets go.
+            internal void DragThumbBy(int by)
+            {
+                RectangleF thumb = ThumbNow;
+                if (thumb.IsEmpty) return;
+                Point at = new Point((int)(thumb.Left + thumb.Width / 2), (int)(thumb.Top + thumb.Height / 2));
+                OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, at.X, at.Y, 0));
+                OnMouseMove(new MouseEventArgs(MouseButtons.Left, 0, at.X, at.Y + by, 0));
+                OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, at.X, at.Y + by, 0));
+            }
 
             // Where a part's character is drawn, in this control's space, for the smoke's drags.
             internal Point PointOf(WorkspaceItem item, int part, int at)
