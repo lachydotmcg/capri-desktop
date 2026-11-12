@@ -1217,7 +1217,7 @@ namespace CapriDesktop
                             {
                                 if (cases[i, 3] == "call mode") callSession.Change(true);
                                 emote.Stop();
-                                int before = emote.Plays, want = int.Parse(cases[i, 2]), drawsBefore = draws, wantDraws = cases[i, 3] == "beside a drawing" ? 1 : 0;
+                                int before = emote.Plays, want = int.Parse(cases[i, 2]), drawsBefore = draws, wantDraws = 0;
                                 Hear("you're great");
                                 System.Diagnostics.Stopwatch answered = System.Diagnostics.Stopwatch.StartNew();
                                 while ((reply == null || emote.Plays < before + want) && answered.Elapsed.TotalSeconds < 15) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
@@ -1250,7 +1250,7 @@ namespace CapriDesktop
                             if (emote.Plays - onlyBefore != 1 || reply != "Here, a little heart for you.") throw new Exception("A chat-only answer that was only her heart: " + (emote.Plays - onlyBefore) + " played and she said \"" + reply + "\" after " + onlyRequests + " requests.");
                             heartsSeen.Add("only the call after act " + (emote.Plays - onlyBefore) + " in " + onlyRequests + " requests");
                             CloseTalk();
-                            localHearts = "a brain on this PC writing her heart played it (" + string.Join(", ", heartsSeen.ToArray()) + ") with no call text shown or said; a drawing beside it ran once; only the call says her heart line";
+                            localHearts = "a brain on this PC writing her heart played it (" + string.Join(", ", heartsSeen.ToArray()) + ") with no call text shown or said; a drawing written beside it in chat never ran; only the call says her heart line";
                         }
                         finally
                         {

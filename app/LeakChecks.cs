@@ -204,6 +204,8 @@ namespace CapriDesktop
                     says("The user is asking me to pick. I should pick the blue one."),
                     says("The user is asking me to pick. I should pick the blue one, it's calmer."),
                     says("Here's how:\n```python\nx = np.clip(a=x, a_min=0, a_max=1)\n```"),
+                    says("<tool_call>\n{\"name\": \"open_app\", \"arguments\": {\"name\": \"Steam\"}}\n</tool_call>"),
+                    says("Opened it for you."),
                 }, asked, out fake);
                 List<string> did = new List<string>();
                 Brain brain = new Brain { Model = "qwen/qwen3-next-80b-a3b-thinking", Remote = new Cloud("nvapi-test", "qwen/qwen3-next-80b-a3b-thinking") };
@@ -213,7 +215,7 @@ namespace CapriDesktop
                 List<ChatMessage> history = brain.History;
                 if (history.Count != 2 || history[1].Content != "Hey choom!") throw new Exception("Her history kept the thinking: " + (history.Count > 1 ? history[1].Content : "nothing"));
                 string bored = brain.Ask("honestly i'm kinda bored rn");
-                if (string.Join(",", did.ToArray()) != "open_app:Steam" || bored != "Opened Steam.") throw new Exception("A call written as text in her chat didn't run as a real one: " + bored + " / " + string.Join(",", did.ToArray()));
+                if (did.Count != 0 || bored != "Let's fix that.") throw new Exception("A call written as text in her chat ran, or her words around it were lost: " + bored + " / " + string.Join(",", did.ToArray()));
                 string again = brain.Ask("hello again");
                 if (again != "Hello again.") throw new Exception("A reply that was all thinking wasn't asked again for her answer: " + again);
                 string[] sent;
@@ -240,6 +242,15 @@ namespace CapriDesktop
                 did.Clear();
                 string clamped = brain.Ask("how do i clamp values in numpy");
                 if (did.Count != 0 || clamped.IndexOf("np.clip(a=x, a_min=0, a_max=1)", StringComparison.Ordinal) < 0) throw new Exception("Code in an honest reply ran one of her tools or lost words: " + clamped + " / " + string.Join(",", did.ToArray()));
+                // A chat reply that's only a call, like one copied from a persona, says nothing and runs nothing, and she isn't asked
+                // again to put words to a call that never ran.
+                lock (asked) asks = asked.Count;
+                string onlyCall = null;
+                bool stopped = false;
+                try { onlyCall = brain.Ask("what does that code mean?"); }
+                catch (BrainException) { stopped = true; }
+                lock (asked) asks = asked.Count - asks;
+                if (!stopped || did.Count != 0 || asks != 1) throw new Exception("A chat reply of only a written call ran, was shown or was asked about again: " + onlyCall + " / " + string.Join(",", did.ToArray()) + " after " + asks + " asks");
                 fake.Stop();
 
                 // Her own brain on their PC streams: a tag split across pieces, and one that never closes.
@@ -266,7 +277,7 @@ namespace CapriDesktop
                 string late = local.Ask("how was your day");
                 if (late != "Pretty chill day.") throw new Exception("An unclosed thinking tag in a stream wasn't asked again: " + late);
                 string steamed = local.Ask("ugh nothing to do");
-                if (string.Join(",", did.ToArray()) != "open_app:Steam" || steamed != "Steam's up." || steamed.IndexOf("tool_call", StringComparison.Ordinal) >= 0 || steamed.IndexOf("{", StringComparison.Ordinal) >= 0) throw new Exception("A streamed written call didn't run or showed: " + steamed + " / " + string.Join(",", did.ToArray()));
+                if (did.Count != 0 || steamed != "Sure.") throw new Exception("A streamed written call ran or showed: " + steamed + " / " + string.Join(",", did.ToArray()));
                 fake.Stop();
 
                 // Ollama's reply comes back as it was written, and gets the same cleaning.
@@ -283,7 +294,7 @@ namespace CapriDesktop
                 if (!Array.Exists(lines, line => line.EndsWith(wanted, StringComparison.Ordinal))) throw new Exception("Her log didn't name the brain, model and kind of leak: " + string.Join(" / ", lines));
                 if (!Array.Exists(lines, line => line.IndexOf("ollama gpt-oss:20b: gpt-oss analysis channel", StringComparison.Ordinal) >= 0) || !Array.Exists(lines, line => line.IndexOf("local qwen3-4b: tool call tags", StringComparison.Ordinal) >= 0)) throw new Exception("Her log missed a brain's leak: " + string.Join(" / ", lines));
                 foreach (string line in lines) if (line.IndexOf("greet them", StringComparison.OrdinalIgnoreCase) >= 0 || line.IndexOf("Steam", StringComparison.Ordinal) >= 0 || line.IndexOf("netrunner", StringComparison.Ordinal) >= 0) throw new Exception("Her log kept what a leak said: " + line);
-                checks.Add("PASS leaks through her real chat with stand-in brains: NVIDIA, a streamed brain on their PC and Ollama never show thinking (no opening tag, split across a stream, unclosed, plain words or gpt-oss channels) in her bubble, voice or history, or feed it back to her brain; a call written as text runs as the real call; a reply that was all thinking is asked once more for her answer, and twice says the model only thought; an honest JSON reply keeps its words; an honest reply about \"the user\" is asked once and keeps every word, one that reads as thinking twice is shown as it came, and numpy code in a reply never runs her clip tool; her log names the brain, model and kind of each leak and never its words");
+                checks.Add("PASS leaks through her real chat with stand-in brains: NVIDIA, a streamed brain on their PC and Ollama never show thinking (no opening tag, split across a stream, unclosed, plain words or gpt-oss channels) in her bubble, voice or history, or feed it back to her brain; a call written as text in a chat reply is never shown, said or run, and the words around it stay, and a reply of only a call stops with no second ask; a reply that was all thinking is asked once more for her answer, and twice says the model only thought; an honest JSON reply keeps its words; an honest reply about \"the user\" is asked once and keeps every word, one that reads as thinking twice is shown as it came, and numpy code in a reply never runs her clip tool; her log names the brain, model and kind of each leak and never its words");
                 checks.Add("LIMIT leak checks use stand-in brains only: no real reasoning model, Claude Code, Codex or Ollama was asked");
             }
             finally

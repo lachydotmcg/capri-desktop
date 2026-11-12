@@ -2541,11 +2541,11 @@ namespace CapriDesktop
             if (planned && calls.Count == 0) raw = planText;
             if (calls.Count == 0 && !planned && unable == null)
             {
-                Predicate<KeyValuePair<string, ToolArguments>> runs = typed => act != null && !fileChat && kit.Unable(typed.Key, typed.Value) == null;
-                raw = Chat(model, messages, answerBudget, ticket, runs, heartNote.Length > 0);
+                raw = Chat(model, messages, answerBudget, ticket, heartNote.Length > 0);
                 if (heartNote.Length > 0) raw = SendHearts(raw, act, ticket);
-                // A call it wrote out as text, like <tool_call>{"name":"open_app",...}</tool_call>, runs as a real one.
-                calls.AddRange(Leaks.Taken(raw).FindAll(runs));
+                // A call it wrote out as text in a chat reply, like <tool_call>{"name":"open_app",...}</tool_call>, is left out of what
+                // she shows and says but never runs. This ask went out with no tools, so a call in it can be copied from text someone
+                // else wrote, like a persona or a pasted page; jobs run from her hands or a brain working the job out.
                 // Her brain says "act" when this is a job, in whatever language they said it. A brain that holds her tools then works it
                 // out with every one of them. Otherwise her hands find what to do, with a second look at every tool when the first finds
                 // nothing, and if that finds nothing too she just answers, unless they're in a game or plainly asked.
@@ -2569,7 +2569,7 @@ namespace CapriDesktop
                         if (calls.Count == 0 && unable == null)
                         {
                             messages[0] = new ChatMessage("system", steady + kit.ChatOnly + Hands.MiniBoard() + heartNote + Hands.SkillNote() + selfGuide + callContext) { Steady = steady.Length };
-                            raw = Chat(model, messages, answerBudget, ticket, typed => false, heartNote.Length > 0);
+                            raw = Chat(model, messages, answerBudget, ticket, heartNote.Length > 0);
                             if (heartNote.Length > 0) raw = SendHearts(raw, act, ticket);
                             if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;
                         }
@@ -3439,10 +3439,11 @@ namespace CapriDesktop
             return (Server != null ? "server " : Local != null ? "built-in " : "ollama ") + model;
         }
 
-        // Her chat reply. One that was only its thinking, or a call she has no tool for, is asked once more for just her answer, so
-        // she never shows an empty bubble for it. If that's empty too she says the model only thought. Thinking in plain words is a
-        // guess, so a second reply that still reads like it is shown as it came.
-        private string Chat(string model, List<ChatMessage> messages, int budget, int ticket, Predicate<KeyValuePair<string, ToolArguments>> runs, bool hearts = false)
+        // Her chat reply. One that was only its thinking is asked once more for just her answer, so she never shows an empty bubble
+        // for it. If that's empty too she says the model only thought. Thinking in plain words is a guess, so a second reply that
+        // still reads like it is shown as it came. A call written into a chat reply never runs and is never shown, and isn't asked
+        // about again: a reply that was only that call is a reply with nothing to say.
+        private string Chat(string model, List<ChatMessage> messages, int budget, int ticket, bool hearts = false)
         {
             string raw = null;
             try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, budget, ticket); }
@@ -3451,7 +3452,7 @@ namespace CapriDesktop
             // line, so it isn't asked again (and the heart lost) for words it never meant to add.
             int sent;
             if (raw != null && hearts && Hands.TakeHearts(Visible(raw), out sent).Length == 0 && sent > 0) return raw;
-            if (raw != null && ((!Leaks.Mused(Visible(raw)) && Clean(Leaks.Unmused(Visible(raw))).Length > 0) || Leaks.Kinds(raw).Count == 0 || Leaks.Taken(raw).Exists(runs))) return raw;
+            if (raw != null && ((!Leaks.Mused(Visible(raw)) && Clean(Leaks.Unmused(Visible(raw))).Length > 0) || Leaks.Kinds(raw).Count == 0 || Leaks.Taken(raw).Count > 0)) return raw;
             Log("leak", -1, Leaks.Who + ": nothing left to say, asking again for just the answer");
             List<ChatMessage> again = new List<ChatMessage>(messages);
             again[0] = new ChatMessage("system", messages[0].Content + Leaks.JustAnswer) { Steady = messages[0].Steady };
