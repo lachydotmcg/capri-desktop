@@ -2711,7 +2711,7 @@ namespace CapriDesktop
             private sealed class Bit
             {
                 internal string Text;
-                internal int At, Wide;
+                internal int At, Wide, Lead;
                 internal Font Font, Fit;
                 internal Color Ink;
                 internal WordRun Run;
@@ -2726,6 +2726,7 @@ namespace CapriDesktop
                 width = Math.Max(Z(24), width);
                 List<Bit> bits = new List<Bit>();
                 int at = start;
+                bool slanted = false;
                 foreach (WordRun run in runs)
                 {
                     string text = run.Text ?? "";
@@ -2733,6 +2734,8 @@ namespace CapriDesktop
                     // Slanted words are spaced by the upright face: Windows' made-up slant measures wider than it draws.
                     Font fit = run.Italic && !run.Code ? Face(font, run.Bold ? FontStyle.Bold : FontStyle.Regular, 0) : face;
                     Color tone = run.Link != null ? Neon.Cyan : run.Code ? CodeInk : ink;
+                    // Punctuation straight after slanted words gets a sliver of room, or the slant leans into it.
+                    bool afterSlant = slanted && !(run.Italic && !run.Code);
                     int i = 0;
                     while (i < text.Length)
                     {
@@ -2741,10 +2744,12 @@ namespace CapriDesktop
                         int j = i + 1;
                         while (j < text.Length && text[j] != '\n' && (text[j] == ' ') == space) j++;
                         string piece = text.Substring(i, j - i);
-                        bits.Add(new Bit { Text = piece, At = at + i, Font = face, Fit = fit, Ink = tone, Run = run, Space = space, Wide = WorkPaint.Wide(piece, fit) });
+                        int lead = i == 0 && !space && afterSlant && ",.;:!?)".IndexOf(piece[0]) >= 0 ? Z(2) : 0;
+                        bits.Add(new Bit { Text = piece, At = at + i, Font = face, Fit = fit, Ink = tone, Run = run, Space = space, Lead = lead, Wide = WorkPaint.Wide(piece, fit) + lead });
                         i = j;
                     }
                     at += text.Length;
+                    if (text.Length > 0) slanted = run.Italic && !run.Code;
                 }
                 List<List<Bit>> lines = new List<List<Bit>>();
                 List<Bit> line = new List<Bit>();
@@ -2759,9 +2764,9 @@ namespace CapriDesktop
                     while (used + rest.Wide > width && rest.Text.Length > 1)
                     {
                         int low = 1, high = rest.Text.Length - 1;
-                        while (low < high) { int mid = (low + high + 1) / 2; if (used + WorkPaint.Wide(rest.Text.Substring(0, mid), rest.Fit) <= width) low = mid; else high = mid - 1; }
+                        while (low < high) { int mid = (low + high + 1) / 2; if (used + rest.Lead + WorkPaint.Wide(rest.Text.Substring(0, mid), rest.Fit) <= width) low = mid; else high = mid - 1; }
                         string head = rest.Text.Substring(0, low), tail = rest.Text.Substring(low);
-                        line.Add(new Bit { Text = head, At = rest.At, Font = rest.Font, Fit = rest.Fit, Ink = rest.Ink, Run = rest.Run, Wide = WorkPaint.Wide(head, rest.Fit) });
+                        line.Add(new Bit { Text = head, At = rest.At, Font = rest.Font, Fit = rest.Fit, Ink = rest.Ink, Run = rest.Run, Lead = rest.Lead, Wide = WorkPaint.Wide(head, rest.Fit) + rest.Lead });
                         lines.Add(line);
                         line = new List<Bit>();
                         used = 0;
@@ -2780,14 +2785,15 @@ namespace CapriDesktop
                     {
                         Bit last = stretches.Count > 0 ? stretches[stretches.Count - 1] : null;
                         if (last != null && last.Run == bit.Run && last.At + last.Text.Length == bit.At) { last.Text += bit.Text; last.Space = last.Space && bit.Space; }
-                        else stretches.Add(new Bit { Text = bit.Text, At = bit.At, Font = bit.Font, Fit = bit.Fit, Ink = bit.Ink, Run = bit.Run, Space = bit.Space });
+                        else stretches.Add(new Bit { Text = bit.Text, At = bit.At, Font = bit.Font, Fit = bit.Fit, Ink = bit.Ink, Run = bit.Run, Space = bit.Space, Lead = bit.Lead });
                     }
                     int wide = 0, shown = 0;
-                    foreach (Bit stretch in stretches) { stretch.Wide = WorkPaint.Wide(stretch.Text, stretch.Fit); wide += stretch.Wide; if (!stretch.Space) shown = wide - (stretch.Wide - WorkPaint.Wide(stretch.Text.TrimEnd(' '), stretch.Fit)); }
+                    foreach (Bit stretch in stretches) { stretch.Wide = WorkPaint.Wide(stretch.Text, stretch.Fit); wide += stretch.Lead + stretch.Wide; if (!stretch.Space) shown = wide - (stretch.Wide - WorkPaint.Wide(stretch.Text.TrimEnd(' '), stretch.Fit)); }
                     int cx = x + (align == WordAlign.Right ? Math.Max(0, width - shown) : align == WordAlign.Center ? Math.Max(0, (width - shown) / 2) : 0);
                     int top = y + li * pitch;
                     foreach (Bit stretch in stretches)
                     {
+                        cx += stretch.Lead;
                         Rectangle box = new Rectangle(cx, top, Math.Max(1, stretch.Wide), pitch);
                         Piece piece = Add(block, stretch.Text, stretch.Font, stretch.Ink, box);
                         piece.Tag = "run";
