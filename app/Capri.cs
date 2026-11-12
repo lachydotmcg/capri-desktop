@@ -36103,14 +36103,18 @@ namespace CapriDesktop
                                         // Brain and Voice drawn at ordinary and at large text, to compare by eye across a layout change.
                                         if (pictures != null && !frameFallback && frameDpi == 96 && !framePage && !frameSimple && (frameText == 100 && framePercent == 100 || frameText == 225 && framePercent == 175))
                                         {
-                                            FormWindowState stateWas = mainframe.WindowState;
-                                            mainframe.WindowState = FormWindowState.Normal;
-                                            using (Bitmap page = new Bitmap(mainframe.Width, mainframe.Height))
+                                            // Drawn the way SmokeMainframePictures draws it; a picture that can't be made never hides the check.
+                                            try
                                             {
-                                                mainframe.DrawToBitmap(page, new Rectangle(Point.Empty, mainframe.Size));
-                                                page.Save(Path.Combine(pictures, "brain-voice-text-" + frameText + "-size-" + framePercent + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                                                mainframe.Settle();
+                                                mainframe.Update();
+                                                using (Bitmap page = new Bitmap(Math.Max(1, mainframe.ClientSize.Width), Math.Max(1, mainframe.ClientSize.Height)))
+                                                {
+                                                    mainframe.DrawToBitmap(page, new Rectangle(Point.Empty, page.Size));
+                                                    page.Save(Path.Combine(pictures, "brain-voice-text-" + frameText + "-size-" + framePercent + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                                                }
                                             }
-                                            mainframe.WindowState = stateWas;
+                                            catch (System.Runtime.InteropServices.ExternalException) { }
                                         }
                                         if (frameProblem != null || !frameWidthFits) frameProblems.Add(frameDpi + " DPI, text " + frameText + "%, size " + framePercent + "%, " + (framePage ? frameSimple ? "Simple Settings" : "Advanced Settings" : "Brain and Voice") + (frameFallback ? ", fallback font" : "") + ": " + (frameProblem ?? "width scaled twice"));
                                     }
