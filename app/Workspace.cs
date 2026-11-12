@@ -197,10 +197,12 @@ namespace CapriDesktop
             }
         }
 
-        internal WorkspaceChat NewChat(string folder, bool blackwall)
+        internal WorkspaceChat NewChat(string folder, bool blackwall) { return NewChat(folder, blackwall, true); }
+
+        private WorkspaceChat NewChat(string folder, bool blackwall, bool there)
         {
             folder = Path.GetFullPath(folder);
-            if (!Directory.Exists(folder)) throw new IOException("That folder isn't here.");
+            if (there && !Directory.Exists(folder)) throw new IOException("That folder isn't here.");
             WorkspaceChat chat = new WorkspaceChat { Folder = folder, Title = new DirectoryInfo(folder).Name, Mode = blackwall ? "Everything" : "Ask me" };
             if (chat.Title.Length == 0) chat.Title = folder;
             lock (gate)
@@ -332,7 +334,7 @@ namespace CapriDesktop
             catch (Exception) { return false; }
         }
 
-        // Makes her folder the first time a chat needs it. If the profile folder can't take it, it goes in local app data.
+        // Makes her folder when the first message in it goes. If the profile folder can't take it, it goes in local app data.
         internal string MakeHome()
         {
             try { Directory.CreateDirectory(Home); }
@@ -361,10 +363,11 @@ namespace CapriDesktop
             return cut ? words + "\u2026" : words;
         }
 
-        // A chat in her own folder, ready to type in. Nothing has been asked yet, so its folder can still change.
+        // A chat in her own folder, ready to type in. Nothing has been asked yet, so its folder can still change, and the
+        // folder itself isn't made until a message goes: opening Workspace leaves nothing behind on the PC.
         internal WorkspaceChat HomeChat(bool blackwall)
         {
-            WorkspaceChat chat = NewChat(MakeHome(), blackwall);
+            WorkspaceChat chat = NewChat(Home, blackwall, false);
             lock (chat.Gate) chat.Title = "New chat";
             Save(chat);
             Notify(chat, null);
@@ -730,6 +733,7 @@ namespace CapriDesktop
                 chat.Live = turn;
                 try
                 {
+                    if (IsHome(chat.Folder) && !Directory.Exists(chat.Folder)) chat.Folder = MakeHome();
                     if (!Directory.Exists(chat.Folder)) throw new IOException("That folder isn't here.");
                     foreach (string extra in turn.Extra) if (!Directory.Exists(extra)) throw new IOException("That folder isn't here: " + extra);
                     BeginUndo(chat, turn.Id);

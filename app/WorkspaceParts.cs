@@ -160,35 +160,6 @@ namespace CapriDesktop
             return kept + "\u2026";
         }
 
-        // Words wrapped greedily to a width, the way they're drawn line by line.
-        internal static List<string> Lines(string text, Font font, int width)
-        {
-            List<string> lines = new List<string>();
-            string at = "";
-            foreach (string word in text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-                string next = at.Length == 0 ? word : at + " " + word;
-                if (at.Length > 0 && Wide(next, font) > width) { lines.Add(at); at = word; } else at = next;
-            }
-            if (at.Length > 0) lines.Add(at);
-            return lines;
-        }
-
-        // A centred paragraph that needs more than one line is wrapped to the narrowest width that still takes the same
-        // number of lines, so the last line never sits alone with a word or two.
-        internal static List<string> Balanced(string text, Font font, int width)
-        {
-            List<string> lines = Lines(text, font, width);
-            if (lines.Count < 2) return lines;
-            int low = 1, high = width;
-            while (low < high)
-            {
-                int mid = (low + high) / 2;
-                if (Lines(text, font, mid).Count <= lines.Count) high = mid; else low = mid + 1;
-            }
-            return Lines(text, font, low);
-        }
-
         internal static int Tall(string text, Font font, int width)
         {
             if (string.IsNullOrEmpty(text)) return font.Height;
