@@ -192,10 +192,13 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
     assert.equal(routed[0].body.max_tokens, 2000);
     assert.deepEqual(routed[0].body.messages.slice(-1), [{ role: 'user', content: 'hi router' }]);
 
-    // A provider's refusal shows on her reply, in her words.
+    // A provider's refusal shows in the notice at the end of the chat, never as a reply from her.
+    const capriBubbles = await page.run(`document.querySelectorAll('.msg.capri').length`);
     await say('make it fail');
-    await page.until(`(() => { const cut = [...document.querySelectorAll('.msg.capri .cut')].pop(); return cut && /TOO MANY REQUESTS/.test(cut.textContent); })()`, 'the rate limit on her reply');
-    assert.equal(await text('.native-toast'), 'Too many requests. Wait a minute, then try again.');
+    await page.until(`(() => { const node = document.querySelector('.native-notice'); return !!node && !node.hidden; })()`, 'the rate limit notice');
+    assert.equal(await text('.native-notice-words'), "OpenRouter says that's too many messages for one minute. Give it a minute, then try again.");
+    assert.equal(await page.run(`document.querySelectorAll('.msg.capri').length`), capriBubbles);
+    assert.equal(await page.run(`[...document.querySelectorAll('.msg.capri .cut')].filter(node => node.textContent).length`), 0);
     // Seeing the screen needs her PC.
     await click('#f-screen');
     assert.equal(await text('.native-toast'), 'Seeing your screen needs Capri on your PC. Switch in SETTINGS.');
@@ -346,18 +349,23 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     await page.go(url);
     await page.until(`CapriRemote.info.native === true && document.querySelectorAll('.msg.you').length === 2`, 'free chat kept after reload');
 
-    // Limit lines are her reply, rather than a cut or a toast, and never count as a successful phone reply.
+    // Limit lines show in the notice in her words, never as a saved reply sent back as chat, and never count as a
+    // successful phone reply.
     await page.run(`localStorage.setItem('capri-remote-counted', JSON.stringify({ day: Math.floor(Date.now() / 86400000) - 1, sent: true }))`);
+    const herReplies = await page.run(`document.querySelectorAll('.msg.capri').length`);
     provider.state.free.left = 0;
     await say('used up');
-    await page.until(`${lastReply}.includes("That's all your free messages for today")`, 'her used-up line');
-    assert.equal(plain(await page.run(lastReply)), "Capri: That's all your free messages for today, choom. They're back " + localReset + '. Your own key in SETTINGS skips the limit.');
+    await page.until(`(() => { const node = document.querySelector('.native-notice'); return !!node && !node.hidden && /That's all your free messages/.test(node.textContent); })()`, 'her used-up notice');
+    assert.equal(plain(await text('.native-notice-words')), "That's all your free messages for today, choom. They're back " + localReset + '. Your own key in SETTINGS skips the limit.');
+    assert.equal(await page.run(`document.querySelector('.native-notice-free').hidden`), true);
     await shot('free-4-used');
     provider.state.free.left = 9;
     provider.state.free.open = false;
     await say('pool used up');
-    await page.until(`${lastReply}.includes("Everyone's free messages for today are gone.")`, 'her shared pool line');
-    assert.ok(plain(await page.run(lastReply)).includes(localReset));
+    await page.until(`/Everyone's free messages for today are gone\./.test(document.querySelector('.native-notice-words').textContent)`, 'her shared pool notice');
+    assert.ok(plain(await text('.native-notice-words')).includes(localReset));
+    assert.equal(await page.run(`document.querySelectorAll('.msg.capri').length`), herReplies);
+    assert.deepEqual(requests('POST').at(-1).body.messages.slice(-1), [{ role: 'user', content: 'used up\n\npool used up' }]);
     assert.equal(counts().length, 1);
     assert.equal(await page.run(`[...document.querySelectorAll('.msg.capri .cut')].filter(node => node.textContent).length`), 0);
     assert.equal(await page.run(`!!document.querySelector('.native-toast:not([hidden])')`), false);
@@ -375,7 +383,8 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     assert.equal(JSON.parse(await page.run(`localStorage.getItem('capri-remote-brain')`)).model, 'claude-haiku-5-5');
     const freePosts = requests('POST').length;
     await say('back with a key');
-    await page.until(`${lastReply} === 'Capri: Got it: back with a key'`, 'her keyed reply');
+    // The two messages the free brain turned away were never answered, so they go with this one.
+    await page.until(`${lastReply} === 'Capri: Got it: used up\\n\\npool used up\\n\\nback with a key'`, 'her keyed reply');
     assert.equal(requests('POST').length, freePosts);
     const freeGets = requests('GET').length;
     await click('#f-settings');
@@ -411,6 +420,125 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     assert.equal(await page.run(`document.querySelector('#brain').hidden`), false);
     for (const request of requests('GET').concat(requests('POST'))) for (const name of ['x-api-key', 'authorization', 'cookie', 'referer']) assert.equal(request.headers[name], undefined, name);
     for (const address of seen.concat(site.asked)) assert.ok(/^(data:|about:|http:\/\/127\.0\.0\.1:(8792|8793)\/|\/)/.test(address), 'the page reached ' + address);
+  } finally {
+    await page.close();
+    await site.close();
+    await provider.close();
+  }
+});
+
+// Real users on free keys got nothing but "[TOO MANY REQUESTS]" (12 Nov). Each kind of refusal now says what it is, in
+// the notice, with the service's answer behind Details and no key in it; nothing is saved as her reply or sent back as
+// chat; a wait the service asks for is kept with no call; nothing is sent again by itself; and the free brain is one tap.
+test('phone-only mode: a refused key says which limit it hit, and offers free messages', { skip: !chromePath() && 'Chrome is not installed', timeout: 120000 }, async () => {
+  const provider = await startProvider(PROVIDER_PORT);
+  const site = await startSite(SITE_PORT);
+  const page = await launch({ port: CHROME_PORT });
+  const url = `http://127.0.0.1:${SITE_PORT}/?provider=http://127.0.0.1:${PROVIDER_PORT}&free=http://127.0.0.1:${PROVIDER_PORT}&count=http://127.0.0.1:${PROVIDER_PORT}/count`;
+  const click = selector => page.run(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  const type = (selector, text) => page.run(`(() => { const node = document.querySelector(${JSON.stringify(selector)}); node.value = ${JSON.stringify(text)}; node.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  const text = selector => page.run(`document.querySelector(${JSON.stringify(selector)}).textContent`);
+  const say = async words => { await type('#msg', words); await click('#send'); };
+  const shot = async name => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.shot(join(SHOTS, name + '.png')); } };
+  const lastReply = `(() => { const all = [...document.querySelectorAll('.msg.capri.done')]; return all.length ? all[all.length - 1].textContent : ''; })()`;
+  const chats = () => provider.got.filter(item => item.path === '/google/chat/completions');
+  const shown = `(() => { const node = document.querySelector('.native-notice'); return !!node && !node.hidden; })()`;
+  const noticeSays = async (pattern, what) => { await page.until(`${shown} && ${pattern}.test(document.querySelector('.native-notice-words').textContent)`, what); return text('.native-notice-words'); };
+  const saved = () => page.run(`JSON.parse(localStorage.getItem('capri-remote-chats') || 'null')`);
+  const google = (status, message, quotaId, more = {}) => ({ status, body: [{ error: { code: status, message, status: 'RESOURCE_EXHAUSTED', details: quotaId ? [{ '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaMetric: 'generativelanguage.googleapis.com/generate_content_free_tier_requests', quotaId, quotaValue: more.value || '20' }] }] : [] } }], headers: more.headers || {} });
+  try {
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() });
+    await page.go(url);
+    await page.until(`document.querySelector('#app').dataset.screen === 'pair'`, 'the pair screen');
+
+    // New free keys start where the free allowance is: Gemini's newest stable Flash-Lite, OpenRouter's free router.
+    assert.equal(await page.run(`CapriNative.pickModel('google', ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.6-flash-lite-preview', 'gemini-2.5-flash-lite', 'gemini-3.1-pro-preview'].map(id => ({ id })))`), 'gemini-3.5-flash-lite');
+    assert.equal(await page.run(`CapriNative.pickModel('openrouter', [{ id: 'big/sees:free', images: true, tools: true }, { id: 'openrouter/free', images: true, tools: true }])`), 'openrouter/free');
+    assert.equal(await page.run(`CapriNative.pickModel('openrouter', [{ id: 'paid/x', images: true, tools: true }, { id: 'big/sees:free', images: true, tools: true }])`), 'big/sees:free');
+    await click('#native-start');
+    await page.until(`!document.querySelector('#brain').hidden`, 'SETTINGS');
+    await click('#brain .native-own-key');
+    await type('#brain-key', GOOD.google);
+    await click('.native-row .nbtn.solid');
+    await page.until(`document.querySelector('#brain').hidden && JSON.parse(localStorage.getItem('capri-remote-brain') || '{}').provider === 'google'`, 'the Gemini key');
+    assert.equal(JSON.parse(await page.run(`localStorage.getItem('capri-remote-brain')`)).model, 'gemini-3.5-flash-lite');
+    await say('hello gemini');
+    await page.until(`${lastReply} === 'Capri: Gemini says: hello gemini'`, 'a good reply');
+    const herReplies = await page.run(`document.querySelectorAll('.msg.capri').length`);
+
+    // Too many this minute, with the wait the service asked for: one call, then no call until the wait is over.
+    provider.state.fail = google(429, 'Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 5, model: gemini-3.5-flash-lite. Please retry in 2.4s.', 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', { value: '5' });
+    await say('one');
+    assert.equal(await noticeSays('/one minute/', 'the per-minute notice'), "Google AI says that's too many messages for one minute. Try again in 3 seconds.");
+    assert.equal(await page.run(`document.querySelector('.native-notice-free').hidden`), false);
+    await shot('limit-minute');
+    assert.equal(chats().length, 2);
+    await say('two');
+    await noticeSays('/Try again in [123] seconds/', 'the wait kept');
+    assert.equal(chats().length, 2, 'no call while the service asked her to wait');
+    // Nothing went in the chat as hers, and nothing is sent again by itself.
+    assert.equal(await page.run(`document.querySelectorAll('.msg.capri').length`), herReplies);
+    await page.until(`!!localStorage.getItem('capri-remote-chats')`, 'the chat saved');
+    await new Promise(resolve => setTimeout(resolve, 300));
+    assert.ok(!(await saved()).chats.some(chat => chat.msgs.some(msg => msg.role === 'capri' && (msg.cut || !msg.text))));
+    await new Promise(resolve => setTimeout(resolve, 3200));
+    assert.equal(chats().length, 2, 'never retried by itself');
+    provider.state.fail = null;
+    await say('three');
+    await page.until(`${lastReply} === 'Capri: Gemini says: one\\n\\ntwo\\n\\nthree'`, 'the next good reply');
+    assert.equal(await page.run(shown), false, 'a good reply clears the notice');
+    assert.deepEqual(chats().at(-1).body.messages.slice(1), [
+      { role: 'user', content: 'hello gemini' }, { role: 'assistant', content: 'Gemini says: hello gemini' }, { role: 'user', content: 'one\n\ntwo\n\nthree' }
+    ]);
+
+    // Today's free messages on this key are gone: waiting a minute won't help, and it says so. The service's own answer
+    // is behind Details, with the key taken out.
+    provider.state.fail = google(429, `You exceeded your current quota. Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.5-flash-lite. key=${GOOD.google} Please retry in 41.3s.`, 'GenerateRequestsPerDayPerProjectPerModel-FreeTier');
+    await say('daily');
+    assert.equal(await noticeSays('/for today/', 'the daily notice'), 'This Google AI key has used up its free messages for today. They come back tomorrow, or pick another model in SETTINGS.');
+    await click('.native-notice-more');
+    const raw = await text('.native-notice-raw');
+    assert.match(raw, /^429 /);
+    assert.match(raw, /GenerateRequestsPerDayPerProjectPerModel-FreeTier/);
+    assert.ok(!raw.includes(GOOD.google), 'no key in Details');
+    assert.equal(await page.run(`document.querySelector('.native-notice-more').getAttribute('aria-expanded')`), 'true');
+    await shot('limit-daily');
+    // A daily limit has no wait to keep: the next message is tried again, once.
+    const beforeDaily = chats().length;
+    await say('daily again');
+    for (const end = Date.now() + 8000; chats().length === beforeDaily && Date.now() < end;) await new Promise(resolve => setTimeout(resolve, 60));
+    await page.until(`document.querySelector('.native-notice-raw').hidden`, 'a fresh notice');
+    assert.equal(chats().length, beforeDaily + 1);
+
+    // A model with no free allowance at all.
+    provider.state.fail = google(429, 'Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-3.1-pro', 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', { value: '0' });
+    await say('pro please');
+    assert.equal(await noticeSays('/for free/', 'the no-free notice'), "This Google AI key can't use that model for free. Pick another model in SETTINGS.");
+    await shot('limit-unfree');
+
+    // A free model full upstream for everyone, with a Retry-After the page may read.
+    provider.state.fail = { status: 429, body: { error: { code: 429, message: 'free/model:free is temporarily rate-limited upstream. Please retry shortly.', metadata: { provider_name: 'Chutes', raw: 'busy' } } }, headers: { 'retry-after': '1', 'access-control-expose-headers': 'retry-after' } };
+    await say('busy');
+    assert.equal(await noticeSays('/full for everyone/', 'the busy notice'), "Google AI's free model is full for everyone right now. Try again in 1 second. Or pick another model in SETTINGS.");
+    await shot('limit-busy');
+    await new Promise(resolve => setTimeout(resolve, 1200));
+
+    // OpenAI's insufficient_quota comes as a 429 but means no credits.
+    provider.state.fail = { status: 429, body: { error: { message: 'You exceeded your current quota, please check your plan and billing details.', type: 'insufficient_quota', code: 'insufficient_quota' } } };
+    await say('credits');
+    assert.equal(await noticeSays('/No credits/', 'the credits notice'), "No credits on this key. Add credits on Google AI's site.");
+    assert.equal(await page.run(`document.querySelectorAll('.msg.capri').length`), herReplies + 1);
+    assert.equal(await page.run(`[...document.querySelectorAll('.msg.capri .cut')].filter(node => node.textContent).length`), 0);
+
+    // One tap to the free brain for now. The key stays saved, and the next message goes to the free brain.
+    await click('.native-notice-free');
+    await page.until(`localStorage.getItem('capri-remote-free') === '1' && !${shown}`, 'free messages for now');
+    assert.equal(JSON.parse(await page.run(`localStorage.getItem('capri-remote-brain')`)).key, GOOD.google);
+    await page.until(`CapriRemote.info.native === true && document.querySelector('#app').dataset.link === 'connected'`, 'the free brain connected');
+    const googleCalls = chats().length;
+    await say('free now');
+    await page.until(`${lastReply}.startsWith('Capri: Free says: ')`, 'a free reply');
+    assert.equal(chats().length, googleCalls);
   } finally {
     await page.close();
     await site.close();

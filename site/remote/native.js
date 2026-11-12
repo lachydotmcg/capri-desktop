@@ -95,7 +95,9 @@
         : kind === 'anthropic' ? /^claude-/.test(id)
           : kind === 'deepseek' ? /^deepseek-/.test(id) : true);
   const FASTEST = 'claude-haiku-5-5';
-  const flashPick = id => !/flash/i.test(id) ? 4 : (/preview|experimental|\bexp\b/i.test(id) ? 2 : 0) + (/lite/i.test(id) ? 1 : 0);
+  // Google's free tier gives Flash-Lite about 500 requests a day and Flash about 20 (AI Studio, Oct 2026), so a new
+  // Gemini key starts on the newest stable Flash-Lite. A model someone already picked stays theirs.
+  const flashPick = id => !/flash/i.test(id) ? 4 : (/preview|experimental|\bexp\b/i.test(id) ? 2 : 0) + (/lite/i.test(id) ? 0 : 1);
   const geminiVersion = id => { const found = /^gemini-(\d+)(?:\.(\d+))?/.exec(id); return found ? Number(found[1]) * 1000 + Number(found[2] || 0) : 0; };
   const routerPick = model => (model.id.endsWith(':free') ? 0 : 4) + (model.images ? 0 : 2) + (model.tools ? 0 : 1);
   const pickModel = (kind, list) => {
@@ -104,6 +106,8 @@
     if (kind === 'anthropic') return ids.includes(FASTEST) ? FASTEST : ids[0];
     if (kind === 'deepseek') return ids.includes('deepseek-flash') ? 'deepseek-flash' : ids[0];
     if (kind === 'google') return ids.reduce((best, id) => flashPick(id) < flashPick(best) || (flashPick(id) === flashPick(best) && geminiVersion(id) > geminiVersion(best)) ? id : best);
+    // OpenRouter's free router sends each message to whichever free model is up, so one full free model doesn't stop her.
+    if (kind === 'openrouter' && ids.includes('openrouter/free')) return 'openrouter/free';
     if (kind === 'openrouter') return list.reduce((best, model) => routerPick(model) < routerPick(best) ? model : best).id;
     return ids.find(id => /^gpt-.*-mini$/.test(id)) || ids[0];
   };
@@ -224,8 +228,15 @@
   };
 
   // ---------- Calling the provider ----------
-  const failure = (code, detail) => Object.assign(new Error(code), { code, detail: String(detail || '').slice(0, 300) });
-  const sentence = (code, kind, allowance) => {
+  // A failure keeps the service's own message (detail) and its whole answer (raw) for the notice's Details, with
+  // anything that looks like a key taken out, and how long the service asked her to wait, when it said.
+  const hideKeys = (text, key) => {
+    let clean = String(text || '');
+    if (key) clean = clean.split(key).join('[your key]');
+    return clean.replace(/\b(sk-[\w-]{8,}|AIza[\w-]{20,}|AQ\.[\w.-]{10,}|nvapi-[\w-]{10,}|CAPRI(-[0-9A-Z]{4}){4})/gi, '[a key]');
+  };
+  const failure = (code, detail, extra) => Object.assign(new Error(code), { code, detail: String(detail || '').slice(0, 300) }, extra || {});
+  const sentence = (code, kind, allowance, wait) => {
     if (kind === 'free') return ({
       used: "That's all your free messages for today, choom. They're back " + resetTime(allowance && allowance.resets) + ". Your own key in SETTINGS skips the limit.",
       pool: "Everyone's free messages for today are gone. They're back " + resetTime(allowance && allowance.resets) + ". Your own key in SETTINGS skips the limit.",
@@ -234,20 +245,43 @@
       empty: 'My free brain sent back nothing. Try again.'
     })[code] || 'Something went wrong. Try again.';
     const company = PROVIDERS[kind] ? PROVIDERS[kind].company : 'That provider';
+    const soon = wait ? 'Try again in ' + (wait === 1 ? '1 second.' : wait < 90 ? wait + ' seconds.' : Math.ceil(wait / 60) + ' minutes.') : 'Give it a minute, then try again.';
     return ({
       key: company + ' rejected the key. Paste it again in SETTINGS.',
       credits: 'No credits on this key. Add credits on ' + company + '\'s site.',
-      limit: 'Too many requests. Wait a minute, then try again.',
+      limit: company + ' says that\'s too many messages for one minute. ' + soon,
+      daily: 'This ' + company + ' key has used up its free messages for today. They come back tomorrow, or pick another model in SETTINGS.',
+      unfree: 'This ' + company + ' key can\'t use that model for free. Pick another model in SETTINGS.',
+      busy: company + '\'s free model is full for everyone right now. ' + soon + ' Or pick another model in SETTINGS.',
       model: 'That model isn\'t on your key. Pick another one.',
       down: 'The service failed on its end. Pick another model or retry.',
       net: 'Couldn\'t reach ' + company + '. Check your internet.',
       empty: 'Her brain sent back nothing. Try again.'
     })[code] || 'Something went wrong. Try again.';
   };
-  const codeFor = (status, detail) => status === 401 || status === 403 ? 'key' : status === 402 ? 'credits' : status === 429 ? 'limit' : status === 404 ? 'model'
+  // A 429 says which limit it hit, in words or in the quota's name. Google's free tier names the counter
+  // (GenerateRequestsPerDay...-FreeTier, or limit: 0 for a model with no free allowance), OpenRouter says
+  // free-models-per-day or that a free model is rate-limited upstream, and OpenAI's insufficient_quota means no credits.
+  const limitOf = said => /insufficient_quota/i.test(said) ? 'credits'
+    : /limit:\s*0\b|"quotaValue"\s*:\s*"0"|not (available|supported) (on|in) the free tier|no free (tier|allowance)/i.test(said) ? 'unfree'
+      : /per[ _-]?day|PerDay|daily|requests per day|\bRPD\b/i.test(said) ? 'daily'
+        : /upstream|provider_name|at capacity|overloaded/i.test(said) ? 'busy' : 'limit';
+  const codeFor = (status, detail, raw) => status === 401 || status === 403 ? 'key' : status === 402 ? 'credits' : status === 429 ? limitOf(detail + ' ' + (raw || '')) : status === 404 ? 'model'
     : status === 400 && /api[ _-]?key|credential|authenticat|unauthori[sz]ed/i.test(detail) ? 'key'
       : status === 400 && /credit|balance|billing|quota|payment/i.test(detail) ? 'credits'
         : status === 400 && /model/i.test(detail) && /not (found|exist|available|supported)|invalid model|unknown model/i.test(detail) ? 'model' : 'down';
+  // Seconds the service asked her to wait: Retry-After when the browser may read it, else "retry in 41.3s" or a
+  // retryDelay in the answer. Capped at an hour; a daily limit has no useful wait.
+  const waitOf = (response, raw) => {
+    let seconds = NaN;
+    const header = response.headers.get('retry-after');
+    if (header) seconds = /^\d+(\.\d+)?$/.test(header.trim()) ? Number(header) : (Date.parse(header) - Date.now()) / 1000;
+    if (!(seconds > 0)) {
+      const found = /retry in (\d+(?:\.\d+)?)\s*s|"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/i.exec(raw);
+      if (found) seconds = Number(found[1] || found[2]);
+    }
+    return seconds > 0 ? Math.min(3600, Math.ceil(seconds)) : 0;
+  };
   const headersFor = brain => {
     if (brain.provider === 'anthropic') return { 'x-api-key': brain.key, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };
     // Some of Google's AQ. keys are only let in by x-goog-api-key (Brain.OtherDoor).
@@ -258,13 +292,14 @@
   const detailOf = async response => {
     let text = '';
     try { text = await response.text(); } catch (error) {}
+    let said = '';
     try {
       const parsed = JSON.parse(text);
       const body = Array.isArray(parsed) ? parsed[0] : parsed;
-      const said = body && body.error ? (typeof body.error === 'string' ? body.error : body.error.message) : body && body.message;
-      if (typeof said === 'string' && said) return said;
+      const found = body && body.error ? (typeof body.error === 'string' ? body.error : body.error.message) : body && body.message;
+      if (typeof found === 'string') said = found;
     } catch (error) {}
-    return text.slice(0, 300);
+    return { detail: said || text.slice(0, 300), raw: text.slice(0, 4000) };
   };
   const call = async (brain, path, body, signal) => {
     for (let tries = 0; ; tries++) {
@@ -281,7 +316,7 @@
         throw failure('net', String(error && error.message || ''));
       }
       if (response.ok) return response;
-      const detail = await detailOf(response);
+      const { detail, raw } = await detailOf(response);
       if (tries === 0 && brain.provider === 'google' && !brain.door && brain.key.startsWith('AQ.') && [400, 401, 403].includes(response.status) && /credential|authenticat|ACCESS_TOKEN|API key/i.test(detail)) {
         brain.door = true;
         continue;
@@ -293,7 +328,11 @@
         delete body.output_config;
         continue;
       }
-      throw failure(codeFor(response.status, detail), detail);
+      const code = codeFor(response.status, detail, raw);
+      throw failure(code, hideKeys(detail, brain.key), {
+        raw: hideKeys(response.status + ' ' + (raw || detail), brain.key).slice(0, 2000),
+        wait: ['limit', 'busy'].includes(code) ? waitOf(response, raw) : 0
+      });
     }
   };
   const listModels = async (brain, signal) => {
@@ -333,8 +372,9 @@
   const reply = async (brain, turns, heard, signal) => {
     if (brain.provider === 'free') {
       const sent = await freeRequest(turns, signal);
-      heard(sent.error ? sentence(sent.error, 'free', sent) : sent.reply);
-      return sent.error ? false : sent.reply;
+      if (sent.error) throw failure(sent.error, '', { allowance: sent });
+      heard(sent.reply);
+      return sent.reply;
     }
     const kind = brain.provider, claude = kind === 'anthropic';
     const body = claude ? { model: brain.model, max_tokens: 16000, stream: true, system: persona(), messages: turns }
@@ -400,9 +440,22 @@
     let open = false;
     const jobs = new Set();
     const tell = message => { if (open && hooks) hooks.message(message); };
+    // What went wrong goes in the notice at the end of the chat. The error tells app.js to drop her empty reply, so it is
+    // never saved as something she said or sent back as chat. A wait the service asked for is kept: until it's over, a
+    // message gets the notice again with no call. Nothing is ever sent again by itself.
+    const stop = (re, brain, code, error) => {
+      tell({ type: 'error', code, re, quiet: true });
+      const words = sentence(code, brain.provider, error && error.allowance, error && error.wait);
+      const offer = !!FREE && brain.provider !== 'free' && ['limit', 'daily', 'unfree', 'busy', 'credits'].includes(code);
+      notice(words, error && (error.raw || error.detail) || '', offer);
+    };
     const ask = async (re, text) => {
       const brain = readBrain();
       if (!brain) { tell({ type: 'error', code: 'key', re }); toast('Paste your key in SETTINGS.'); return; }
+      if (waiting.provider === brain.provider && waiting.until > Date.now()) {
+        stop(re, brain, waiting.code, { raw: waiting.raw, wait: Math.ceil((waiting.until - Date.now()) / 1000) });
+        return;
+      }
       const job = new AbortController();
       jobs.add(job);
       const timer = setTimeout(() => job.abort(), 120000);
@@ -412,12 +465,14 @@
         const spoke = await reply(brain, history(text), words => tell({ type: 'chat.reply', id, text: words, done: false, re }), job.signal);
         tell({ type: 'chat.reply', id, text: '', done: true, re });
         if (brain.door) writeKeyed(Object.assign(readKeyed() || brain, { door: true }));
+        notice(null);
+        waiting.until = 0;
         if (spoke !== false) count();
       } catch (error) {
         if (!open) return;
         const code = error && error.code ? error.code : 'down';
-        tell({ type: 'error', code, re });
-        toast(sentence(code, brain.provider));
+        if (error && error.wait) Object.assign(waiting, { provider: brain.provider, until: Date.now() + error.wait * 1000, code, raw: error.raw || '' });
+        stop(re, brain, code, error);
       } finally {
         clearTimeout(timer);
         jobs.delete(job);
@@ -462,6 +517,54 @@
       svg.append(line);
       card.append(svg);
     }
+  };
+  // The notice: at the end of the chat until her next good reply, with the service's own answer behind Details and, when
+  // the free brain is here, one tap to use it for now. The saved key stays.
+  const waiting = { provider: '', until: 0, code: '', raw: '' };
+  let noticeNode = null;
+  const notice = (words, answer, offer) => {
+    if (!words) { if (noticeNode) noticeNode.hidden = true; return; }
+    if (!noticeNode) {
+      noticeNode = make('div', 'native-notice');
+      noticeNode.setAttribute('role', 'status');
+      const row = make('div', 'native-notice-row');
+      const more = button('Details', 'nbtn native-notice-more');
+      const freeNow = button('Use free messages for now', 'nbtn cyan native-notice-free');
+      const okay = button('OK', 'nbtn native-notice-ok');
+      const raw = make('pre', 'native-notice-raw');
+      raw.hidden = true;
+      row.append(more, freeNow, okay);
+      noticeNode.append(make('p', 'native-notice-words'), row, raw);
+      more.addEventListener('click', () => {
+        raw.hidden = !raw.hidden;
+        more.setAttribute('aria-expanded', String(!raw.hidden));
+        const log = $('#log');
+        if (log && !raw.hidden) log.scrollTop = log.scrollHeight;
+      });
+      okay.addEventListener('click', () => { noticeNode.hidden = true; });
+      freeNow.addEventListener('click', () => {
+        writeBrain({ provider: 'free' });
+        if (!readBrain() || readBrain().provider !== 'free') { toast("This browser won't save settings, so she can't switch here."); return; }
+        noticeNode.hidden = true;
+        toast('Free messages for now. Your key is still saved in SETTINGS.');
+        remote().use('phone');
+      });
+    }
+    // At the end of the chat, above the room she sits in over the message bar, so she never covers it. It is never
+    // part of the saved chat.
+    const end = $('#log-in .log-end');
+    if (end) end.parentNode.insertBefore(noticeNode, end);
+    else if (!noticeNode.isConnected) document.body.append(noticeNode);
+    noticeNode.querySelector('.native-notice-words').textContent = words;
+    const more = noticeNode.querySelector('.native-notice-more'), raw = noticeNode.querySelector('.native-notice-raw');
+    raw.textContent = answer || '';
+    raw.hidden = true;
+    more.hidden = !raw.textContent;
+    more.setAttribute('aria-expanded', 'false');
+    noticeNode.querySelector('.native-notice-free').hidden = !offer;
+    noticeNode.hidden = false;
+    const log = $('#log');
+    if (log) log.scrollTop = log.scrollHeight;
   };
   let toastNode = null, toastTimer = 0;
   const toast = text => {

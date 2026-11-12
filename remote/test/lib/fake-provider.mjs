@@ -1,10 +1,12 @@
 // A stand-in for her brain's providers, for phone-only mode's page test (site/remote/native.js). It answers as Anthropic
 // under /anthropic and as OpenRouter (OpenAI's chat format) under /openrouter, with CORS like the real ones, and keeps
-// every request it got. /free stands in for the worker's free phone brain. No real key or provider is ever involved.
+// every request it got. /google answers as Google AI's OpenAI-style endpoint. /free stands in for the worker's free phone
+// brain. state.fail makes the next chat calls answer with that status, body and headers, the way a real service refuses.
+// No real key or provider is ever involved.
 
 import { createServer } from 'node:http';
 
-export const GOOD = { anthropic: 'sk-ant-test-good-0000000000000000', openrouter: 'sk-or-test-good-0000000000000000' };
+export const GOOD = { anthropic: 'sk-ant-test-good-0000000000000000', openrouter: 'sk-or-test-good-0000000000000000', google: 'AIzaTestGoodKey000000000000000000000' };
 export const BAD = 'sk-ant-test-bad-00000000000000000';
 
 const cors = (request, response) => {
@@ -14,8 +16,8 @@ const cors = (request, response) => {
   response.setHeader('access-control-max-age', '600');
 };
 
-const json = (response, status, body) => {
-  response.writeHead(status, { 'content-type': 'application/json' });
+const json = (response, status, body, headers = {}) => {
+  response.writeHead(status, { 'content-type': 'application/json', ...headers });
   response.end(JSON.stringify(body));
 };
 
@@ -82,6 +84,16 @@ export const startProvider = port =>
             if (state.free.wait) await new Promise(done => setTimeout(done, state.free.wait));
             return json(response, 200, { reply: 'Free says: ' + heard, left: state.free.left, each, resets });
           }
+        }
+        // A refusal set by the test, for any chat call.
+        if (state.fail && /\/(messages|chat\/completions)$/.test(url.pathname) && request.method === 'POST') return json(response, state.fail.status, state.fail.body, state.fail.headers);
+        if (url.pathname.startsWith('/google/')) {
+          if (request.headers.authorization !== 'Bearer ' + GOOD.google) return json(response, 401, [{ error: { code: 401, message: 'API key not valid.', status: 'UNAUTHENTICATED' } }]);
+          if (url.pathname === '/google/models') return json(response, 200, { object: 'list', data: [
+            { id: 'models/gemini-3.8-flash' }, { id: 'models/gemini-3.5-flash-lite' }, { id: 'models/gemini-3.6-flash-lite-preview' },
+            { id: 'models/gemini-2.5-flash-lite' }, { id: 'models/gemini-3.1-pro-preview' }, { id: 'models/gemini-embedding-2' }
+          ] });
+          if (url.pathname === '/google/chat/completions' && request.method === 'POST') return stream(response, ['Gemini', ' says: ', heard], chatFrame);
         }
         if (url.pathname.startsWith('/anthropic/')) {
           // The real API turns a browser away without this header.
