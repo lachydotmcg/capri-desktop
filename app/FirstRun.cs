@@ -76,6 +76,7 @@ namespace CapriDesktop
             private int returnTo = FirstRun.Voice;
             private string checking, problem;
             private bool waitingOllama, pendingLocal, wasTesting, quiet;
+            private int shownBrain;
 
             private Pickable[] picks;
             private Pickable voiceFree, voiceText;
@@ -166,6 +167,7 @@ namespace CapriDesktop
             internal void Go(int screen)
             {
                 if (Finished) return;
+                shownBrain = Brain;
                 bool leavingVoice = Screen == FirstRun.Voice && screen != FirstRun.Voice;
                 if (leavingVoice && owner.MicTesting) capri.TestMic();
                 Screen = screen;
@@ -401,6 +403,15 @@ namespace CapriDesktop
                 heard.Text = text ?? "";
             }
 
+            // A key or plan that didn't connect: what went wrong stays on the screen, and they can try again.
+            internal void KeyProblem(string text)
+            {
+                if (Brain != FirstRun.Connecting) return;
+                Brain = FirstRun.NoBrain;
+                checking = null;
+                Problem(text);
+            }
+
             internal string Told { get { return heard == null ? null : heard.Text; } }
 
             private int BuildPlan()
@@ -452,7 +463,7 @@ namespace CapriDesktop
                 bool silent = capri.Silent;
                 voiceFree = Option(80, 62, "HER FREE VOICE", "Runs on your PC, no key, no credits.", capri.FreeVoiceAside, null, !silent, delegate { Voice(true); });
                 voiceText = Option(146, 62, "TEXT ONLY", "She types her replies and stays quiet.", null, null, silent, delegate { Voice(false); });
-                Caption("Fish Audio, ElevenLabs or your own voice: VOICE in the Mainframe, later.", 58, 212, Wide - 86, 24, Body(18), Faint);
+                Caption("Fish Audio, ElevenLabs or your own voice: VOICE in the Mainframe, later.", 58, 212, Wide - 58 - 18, 24, Body(17), Faint);
                 Caption("YOUR MIC", 28, 254, 200, 20, Mono(15), Faint);
                 micPick = MakeKey("Mic: " + capri.FirstRunMicName, 28, 278, Wide - 56 - 112, 40, Body(18, true), Rose, delegate { owner.FirstRunMics(micPick); });
                 micPick.Chevron = true;
@@ -540,6 +551,11 @@ namespace CapriDesktop
                 Controls.Add(gauge);
                 Gauged();
                 y += 62;
+                if (Brain == FirstRun.Stopped)
+                {
+                    Linked("Try again", 28, y + 4, Body(17, true), Rose, delegate { StartLocal(); Go(Screen); });
+                    y += 30;
+                }
                 if (brain && Screen != FirstRun.Key && Screen != FirstRun.Plan)
                 {
                     faster = Linked(FirstRun.Faster, 28, y + 4, Body(17, true), Cyan, delegate { Faster(); });
@@ -706,12 +722,8 @@ namespace CapriDesktop
                     if (gauge != null) { gauge.Label = "HER BRAIN"; }
                 }
                 else if (Brain == FirstRun.Stopped && capri.SettingUp) Brain = FirstRun.Coming;
-                if (Brain == FirstRun.Connecting && checking != null && owner.brainNote.Text != checking)
-                {
-                    Brain = FirstRun.NoBrain;
-                    Problem(owner.brainNote.Text);
-                    checking = null;
-                }
+                // Her download stopping, or starting again, changes what's along the bottom.
+                if (Brain != shownBrain && (Brain == FirstRun.Stopped || shownBrain == FirstRun.Stopped) && Screen != FirstRun.Online) { quiet = true; Go(Screen); quiet = false; }
                 if (Screen == FirstRun.Pick && Brain == FirstRun.NoBrain && capri.BrainModel != null && !capri.SettingUp) { Brain = FirstRun.Coming; capri.FirstRunGreet(); }
                 if (waitingOllama && capri.BrainModel != null) { waitingOllama = false; capri.FirstRunGreet(); }
                 Gauged();
@@ -1215,6 +1227,8 @@ namespace CapriDesktop
                 if (!extrasSeen) mainframe.ShowExtras();
             }
         }
+
+        private void FirstRunKeyProblem(string problem) { if (FirstRunShowing) firstRun.KeyProblem(problem); }
 
         internal void FirstRunGone(Mainframe.FirstRunCard card) { if (firstRun == card) firstRun = null; }
 

@@ -11505,6 +11505,7 @@ namespace CapriDesktop
             if (connecting && remote != null && remote.Kind != "local") problem = (remote.Plan ? "Still using your " + Plans.Plan(remote.Kind) + ". " : "Still using your " + remote.Company + " key. ") + problem;
             RemoteKeyProblem(problem, connecting);
             mainframe.ShowProblem(problem);
+            if (connecting) FirstRunKeyProblem(problem);
         }
 
         internal void ForgetText()
