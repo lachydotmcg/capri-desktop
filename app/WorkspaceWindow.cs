@@ -2842,7 +2842,7 @@ namespace CapriDesktop
                 Draw(e.Graphics, e.ClipRectangle);
                 if (Blocks.Count == 0 && Empty.Length > 0)
                     TextRenderer.DrawText(e.Graphics, Empty, window.note, new Rectangle(Inset + Z(14), Z(14), Edge - Inset - Z(14), Math.Max(Z(60), Height - Z(28))), Neon.Faint, WorkPaint.Wrap | TextFormatFlags.PathEllipsis);
-                WorkPaint.Rail(e.Graphics, WorkPaint.Track(ClientRectangle, window.zoom), Height, Content, Offset);
+                WorkPaint.Rail(e.Graphics, WorkPaint.Track(ClientRectangle, window.zoom), Height, Content, Offset, dragging || railHot);
             }
 
             private void Draw(Graphics graphics, Rectangle area)
@@ -3136,6 +3136,8 @@ namespace CapriDesktop
                     return;
                 }
                 if (selecting) { Drag(e.Location); return; }
+                bool onRail = e.X >= Width - Z(12) && Content > Height;
+                if (onRail != railHot) { railHot = onRail; Invalidate(new Rectangle(Width - Z(14), 0, Z(14), Height)); }
                 Piece code;
                 Block over = At(e.Location, out code);
                 bool head = over != null && !over.Head.IsEmpty && over.Head.Contains(new Point(e.X, e.Y + Offset));
@@ -3159,6 +3161,7 @@ namespace CapriDesktop
             {
                 base.OnMouseLeave(e);
                 if (hovered != null) { hovered = null; Invalidate(); }
+                if (railHot) { railHot = false; Invalidate(); }
                 if (!selecting) CopyHover(new Point(-1, -1));
             }
 
@@ -3278,7 +3281,7 @@ namespace CapriDesktop
             // ---- Selecting text: press, drag, double and triple click, Shift+click, Ctrl+A, and scrolling past an edge ----
 
             private Spot anchor, caret;
-            private bool selecting;
+            private bool selecting, railHot;
             // Whether Shift is held, from the keyboard, or from the smoke.
             internal Func<bool> ShiftDown = delegate { return (ModifierKeys & System.Windows.Forms.Keys.Shift) != 0; };
             private int clicks;

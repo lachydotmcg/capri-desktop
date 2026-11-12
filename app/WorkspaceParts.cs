@@ -266,7 +266,7 @@ namespace CapriDesktop
         // the top and bottom, with a cyan thumb sized to how much of the content is in view. Area is the scrolling part.
         internal static RectangleF Track(Rectangle area, float s)
         {
-            return new RectangleF(area.Right - 8 * s, area.Top + 18 * s, 2 * s, Math.Max(1, area.Height - 36 * s));
+            return new RectangleF(area.Right - 9 * s, area.Top + 18 * s, 6 * s, Math.Max(1, area.Height - 36 * s));
         }
 
         internal static RectangleF Thumb(RectangleF rail, int view, int content, int offset)
@@ -277,14 +277,17 @@ namespace CapriDesktop
             return new RectangleF(rail.Left, at, rail.Width, tall);
         }
 
-        internal static void Rail(Graphics graphics, RectangleF rail, int view, int content, int offset)
+        // The scroll bar: a dim track and a thumb halfway from her field to her cyan, full cyan while it's hovered or dragged.
+        internal static void Rail(Graphics graphics, RectangleF rail, int view, int content, int offset, bool hot = false)
         {
             RectangleF thumb = Thumb(rail, view, content, offset);
             if (thumb.IsEmpty) return;
             SmoothingMode was = graphics.SmoothingMode;
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            using (Brush track = new SolidBrush(Neon.Dash)) graphics.FillRectangle(track, rail);
-            using (Brush lit = new SolidBrush(Neon.Cyan)) graphics.FillRectangle(lit, thumb);
+            float round = Math.Min(rail.Width, thumb.Height) / 2f;
+            using (Brush track = new SolidBrush(Neon.Dash)) using (GraphicsPath path = Rounded(rail, round)) graphics.FillPath(track, path);
+            Color quiet = Color.FromArgb((Neon.Field.R + Neon.Cyan.R) / 2, (Neon.Field.G + Neon.Cyan.G) / 2, (Neon.Field.B + Neon.Cyan.B) / 2);
+            using (Brush lit = new SolidBrush(hot ? Neon.Cyan : quiet)) using (GraphicsPath path = Rounded(thumb, round)) graphics.FillPath(lit, path);
             graphics.SmoothingMode = was;
         }
 
