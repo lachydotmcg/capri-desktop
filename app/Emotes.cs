@@ -257,7 +257,7 @@ namespace CapriDesktop
         internal static readonly Rectangle ChairBody = Rectangle.FromLTRB(534, 205, 692, 416);
         internal const int SweepFrom = 4, ChairLeave = 280;
 
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private EmoteClip clip;
         private EmoteClock clock;
@@ -278,12 +278,14 @@ namespace CapriDesktop
         internal double PickTotal, MakeTotal, PaintTotal, ShowTotal;
         internal int Plays;
         // Why the last one stopped early, if something went wrong drawing it.
-        internal string Ended;
+        internal string Ended, StoppedEarly;
 
         internal EmoteWindow() : base("Capri emote")
         {
             ClickThrough = true;
-            ticks.Interval = 15;
+            // Her own clock, so a busy window thread can't hold her emotes up. Its wait wakes on Windows' 15.6 ms tick, so asking
+            // for 15 ms often waits two of them and a 30-a-second clip loses frames; asking for 8 wakes on every one.
+            ticks.Interval = 8;
             ticks.Tick += delegate { Step(); };
         }
 
@@ -338,7 +340,7 @@ namespace CapriDesktop
             DrawTotal = DrawWorst = 0;
             PickTotal = MakeTotal = PaintTotal = ShowTotal = 0;
             Plays++;
-            Ended = null;
+            Ended = StoppedEarly = null;
             clip.Ahead(0, Ahead + 1);
             watch.Reset();
             watch.Start();
@@ -348,6 +350,8 @@ namespace CapriDesktop
 
         internal void Stop()
         {
+            // For her checks: what stopped one partway, when nothing went wrong drawing it.
+            if (clip != null && clock != null && clock.Frame < clip.Count - 1 && Ended == null) StoppedEarly = "at frame " + clock.Frame + " by " + System.Text.RegularExpressions.Regex.Replace(Environment.StackTrace, @"\s+at System\..*", "").Replace(Environment.NewLine, " | ");
             ticks.Stop();
             watch.Stop();
             if (Visible) Hide();
@@ -1060,7 +1064,7 @@ namespace CapriDesktop
                     while (emote.Playing && tail.Elapsed.TotalSeconds < 6) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
                     double lastEnded = tail.Elapsed.TotalSeconds;
                     while (tail.Elapsed.TotalSeconds < lastEnded + 2) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
-                    if (emote.Playing || emote.Plays != playsBefore + 10 || lastEnded > 3.6 || lastEnded < 2.2 || emote.Ended != null) throw new Exception("After ten hearts something played on: " + (emote.Plays - playsBefore) + " started, the last ended " + lastEnded.ToString("0.00") + " s after the tenth ask's first second, " + emote.FramesShown + " frames shown" + (emote.Ended == null ? "" : ", stopped by " + emote.Ended) + ".");
+                    if (emote.Playing || emote.Plays != playsBefore + 10 || lastEnded > 3.6 || lastEnded < 2.2 || emote.Ended != null) throw new Exception("After ten hearts something played on: " + (emote.Plays - playsBefore) + " started, the last ended " + lastEnded.ToString("0.00") + " s after the tenth ask's first second, " + emote.FramesShown + " frames shown" + (emote.Ended == null ? "" : ", stopped by " + emote.Ended) + (emote.StoppedEarly == null ? "" : ", stopped " + emote.StoppedEarly) + ".");
                     heartRun = "ten asks one second apart started ten hearts, each from its first frames, and the last played through, ending " + (1 + lastEnded).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s after the tenth ask, " + emote.FramesShown + " of 105 frames shown, with nothing after it";
                     CloseTalk();
                     // Her own brain sends one when she feels like it, with her words: in chat, mid-conversation after another tool,
@@ -1235,6 +1239,55 @@ namespace CapriDesktop
         {
             System.Diagnostics.Stopwatch waited = System.Diagnostics.Stopwatch.StartNew();
             while (waited.Elapsed.TotalSeconds < seconds) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+        }
+        // A heart started while a game job's busy messages starve her window's timers still plays through: her emote window
+        // steps on her own clock, not on a window timer.
+        private void SmokeEmoteStarved(List<string> checks)
+        {
+            ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
+            {
+                Rectangle work = Screen.PrimaryScreen.WorkingArea;
+                StandForThrow(new Point(work.Left + work.Width * 2 / 3, work.Top + work.Height / 2));
+                RenderFrame();
+                bool motionWas = preferences.Motion;
+                preferences.Motion = true;
+                Starver keeper = new Starver(true);
+                System.Windows.Forms.Timer probe = new System.Windows.Forms.Timer { Interval = 33 };
+                int probed = 0;
+                probe.Tick += delegate { if (!keeper.Done) probed++; };
+                System.Diagnostics.Stopwatch busy = System.Diagnostics.Stopwatch.StartNew();
+                double started = -1, ended = -1;
+                keeper.Work = delegate
+                {
+                    System.Threading.Thread.Sleep(2);
+                    double now = busy.Elapsed.TotalSeconds;
+                    if (started < 0 && now >= 0.5) { Animate("heart"); started = now; }
+                    if (started >= 0 && ended < 0 && emote != null && !emote.Playing) ended = now;
+                    if (now >= 7 || ended >= 0 && now - ended >= 0.3) keeper.Done = true;
+                };
+                try
+                {
+                    probe.Start();
+                    keeper.Kick();
+                    while (!keeper.Done) Starver.Pump(50);
+                    string said = keeper.Count + " busy messages, " + probed + " window-timer ticks while it ran; the heart started "
+                        + started.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s in and " + (ended < 0 ? "was still going at 7 s" : "ended " + (ended - started).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s later")
+                        + ", " + (emote == null ? 0 : emote.FramesShown) + " of 105 frames shown" + (emote == null || emote.Ended == null ? "" : ", stopped by " + emote.Ended);
+                    if (keeper.Count < 50 || probed > 3) list.Add("FAIL the stand-in didn't starve her window timers, so it proves nothing: " + said);
+                    else if (emote == null || ended < 0 || ended - started > 4.2 || emote.FramesShown < 90 || emote.Ended != null) list.Add("FAIL her heart didn't play through while her window timers were starved: " + said);
+                    else list.Add("PASS her heart plays through while her window timers are starved: " + said);
+                }
+                finally
+                {
+                    keeper.Done = true;
+                    probe.Stop();
+                    probe.Dispose();
+                    Application.DoEvents();
+                    keeper.DestroyHandle();
+                    if (emote != null) emote.Stop();
+                    preferences.Motion = motionWas;
+                }
+            });
         }
     }
 }

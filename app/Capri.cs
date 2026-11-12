@@ -40860,6 +40860,7 @@ namespace CapriDesktop
             Section(checks, "SmokeEmoteFilms", delegate { SmokeEmoteFilms(checks, output); });
             Section(checks, "SmokeJobTeleport", delegate { SmokeJobTeleport(checks); });
             Section(checks, "SmokeStarvedPaint", delegate { SmokeStarved(checks, true); });
+            Section(checks, "SmokeEmoteStarved", delegate { SmokeEmoteStarved(checks); });
             Section(checks, "SmokeStarvedFlood", delegate { SmokeStarved(checks, false); });
             Section(checks, "SmokeBeatCost", delegate { SmokeBeatCost(checks); });
             Section(checks, "SmokeTimerStarve", delegate { SmokeTimerStarve(checks); });
