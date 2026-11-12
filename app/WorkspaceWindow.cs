@@ -2795,6 +2795,13 @@ namespace CapriDesktop
                     {
                         cx += stretch.Lead;
                         Rectangle box = new Rectangle(cx, top, Math.Max(1, stretch.Wide), pitch);
+                        // Spaces left at a line's end may run past it; the box stops at the edge, since they show nothing there.
+                        if (box.Right > x + width)
+                        {
+                            int inked = stretch.Space ? 0 : WorkPaint.Wide(stretch.Text.TrimEnd(' '), stretch.Fit);
+                            box.X = Math.Min(box.X, x + width - 1);
+                            box.Width = Math.Max(Math.Max(1, inked), x + width - box.X);
+                        }
                         Piece piece = Add(block, stretch.Text, stretch.Font, stretch.Ink, box);
                         piece.Tag = "run";
                         piece.Strike = stretch.Run.Strike;
