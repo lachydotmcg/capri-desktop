@@ -881,6 +881,8 @@ namespace CapriDesktop
 
         private int RunProcess(WorkspaceTurn turn, string exe, string text)
         {
+            // No AI is on: Workspace's Claude Code is a brain too, so the turn ends saying why.
+            if (Brain.Off) { Brain.TurnAway("Workspace"); throw new BrainException(Brain.OffLine, true); }
             int attempt;
             lock (turn.Chat.Gate)
             {

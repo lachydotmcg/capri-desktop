@@ -686,6 +686,20 @@ namespace CapriDesktop
         internal const string Unserved = "Google doesn't serve Gemini where you are. Press Free key for a free NVIDIA key.";
         internal const string NoCredits = "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.";
         internal const string PlusRejected = "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com.";
+        // No AI (Lachy, 12 Nov): with it on, nothing at all is asked of a model, a provider, Ollama, her own engine, Claude Code
+        // or Codex. Every request to one is made in Create or PlanBrain's Start, and both turn it away here.
+        internal static volatile bool Off;
+        internal const string OffLine = "My brain's switched off, so that one's beyond me. Turn one on under BRAIN in Capri Mainframe.";
+        // The smoke test's stand-in: told about anything No AI turned away, which means something still tried to ask.
+        internal static Action<string> TurnedAway;
+
+        // Each caller then fails the way its own callers already handle: a cancelled request, or a BrainException for an app.
+        internal static void TurnAway(string what)
+        {
+            Action<string> told = TurnedAway;
+            if (told != null) told(what);
+        }
+
         internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.";
         internal const string NoFreeModels = "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.";
         // HTTP 451, or a block page where the API's answer should be: the service turns away their country or network, so every key
@@ -4830,6 +4844,8 @@ namespace CapriDesktop
         {
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            // Cancelled before it's sent: nothing goes out, and its caller gets the usual cancelled request it already handles.
+            if (Off) { TurnAway(url); request.Abort(); }
             if (request.RequestUri.IsLoopback) request.AllowAutoRedirect = false;
             request.ServicePoint.ConnectionLimit = Math.Max(request.ServicePoint.ConnectionLimit, 16);
             request.ServicePoint.Expect100Continue = false;

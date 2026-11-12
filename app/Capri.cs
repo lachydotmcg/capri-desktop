@@ -954,6 +954,9 @@ namespace CapriDesktop
         // Her first launch card's screen while it's open, so quitting halfway picks up there next time, and the brain they picked.
         [DataMember] public int FirstRunStep;
         [DataMember] public int FirstRunPick;
+        // No AI (Lachy, 12 Nov): she lives on their desktop with no brain at all. Left out of the file while it's off, so settings
+        // from before it read and save the same.
+        [DataMember(EmitDefaultValue = false)] public bool NoAi;
         // She's asked to get to know them, after setup or from Settings, so setting up a new brain doesn't ask again.
         [DataMember] public bool Met;
         [DataMember] public bool NoSitting;
@@ -3184,7 +3187,8 @@ namespace CapriDesktop
             }
             SplitKeys();
             LoadProvider();
-            brain.Remote = TierCloud();
+            Brain.Off = preferences.NoAi;
+            brain.Remote = preferences.NoAi ? null : TierCloud();
             ShowTiers();
             voice.VoiceId = string.IsNullOrEmpty(preferences.VoiceId) ? null : preferences.VoiceId;
             voice.Model = string.IsNullOrEmpty(preferences.VoiceModel) ? null : preferences.VoiceModel;
@@ -3358,7 +3362,8 @@ namespace CapriDesktop
             if (!testing && !card) GreetSoon();
             listenAt = clock.Elapsed.TotalSeconds + (GreetPause + 500) / 1000.0;
             if (!testing) AgentVoice();
-            if (!testing && FreeChatOn) { GetFreeVoice(); GetFreeEars(); }
+            // With No AI picked she doesn't fetch her voice or ears by herself; picking a voice under VOICE still does.
+            if (!testing && FreeChatOn && !preferences.NoAi) { GetFreeVoice(); GetFreeEars(); }
             UpdateCallEars();
             ShowCallPanel();
             // An update can move her HD voice to a new engine: the old pack goes, and with HD on, the new one comes down.
@@ -7609,7 +7614,7 @@ namespace CapriDesktop
                 PopLines, NudgeLines, NoticedLines, SnubbedLines, HomeGameLines, HomeSongLines, LagLines, WakeLines, Swarm.HaulLines, Swarm.NoteLines, Swarm.FakeLines,
                 Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy,
                 new[] { FirstDodgeLine, ElevenOffLine, ElevenOnLine, FreeOnLine, VoiceOffLine, VoiceOnLine, NoVoiceCredits, HdWaking, Brain.Offline, Brain.Wordless,
-                    Brain.ResetKept, Brain.ResetDone, Meeting.AskName, Meeting.AskCalled, Meeting.AskPronouns, Meeting.AskInto, Meeting.Again, Swarm.Owned, Swarm.Sorry });
+                    Brain.ResetKept, Brain.ResetDone, Brain.OffLine, Meeting.AskName, Meeting.AskCalled, Meeting.AskPronouns, Meeting.AskInto, Meeting.Again, Swarm.Owned, Swarm.Sorry });
             Said.Labels("startup", "pets you", "throws you", "reaches for you", "settings", "voice check", "get to know me", "updated", "brain online", "her clones", "holds Esc", "holiday");
         }
 
@@ -10176,6 +10181,8 @@ namespace CapriDesktop
 
         internal void FindBrain(bool quiet = false)
         {
+            // No AI: she never looks for a brain or says she's looking.
+            if (preferences.NoAi) { mainframe.ShowNoAi(true); return; }
             if (!quiet) ++brainLook;
             else if (brain.Model != null || SettingUp || finding || brainLooking) return;
             int look = quiet ? brainLook : -1;
@@ -11287,6 +11294,7 @@ namespace CapriDesktop
         internal void SetUpBrain()
         {
             ++brainLook;
+            if (preferences.NoAi) SetNoAi(false);
             if (SettingUp || machine == null) return;
             SettingUp = true;
             engine.Cancel = false;
@@ -11439,6 +11447,7 @@ namespace CapriDesktop
         {
             string nvidia = Voice.Unprotect(preferences.NvidiaKey), paid = Voice.Unprotect(preferences.PaidKey), plan = Plans.KindOf(paid);
             mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : plan != null ? Plans.Plan(plan) : Voice.Tail(paid), Cloud.KindOf(nvidia), plan != null);
+            mainframe.ShowNoAi(preferences.NoAi);
             RemoteBrainsShown();
         }
 
@@ -11454,8 +11463,11 @@ namespace CapriDesktop
         internal void ChooseTier(int tier)
         {
             ++brainLook;
-            if (tier == preferences.Tier) return;
+            if (tier == preferences.Tier && !preferences.NoAi) return;
             if (AfterLine(delegate { ChooseTier(tier); })) return;
+            // Picking any brain switches No AI off.
+            preferences.NoAi = false;
+            Brain.Off = false;
             ++cloudListing;
             ++providerListing;
             brain.Cancel();
@@ -11477,6 +11489,48 @@ namespace CapriDesktop
             ConnectText(key, preferences.Tier);
         }
 
+        // No AI on (Lachy, 12 Nov): she stays on their desktop with no brain at all, and their downloaded brain and keys stay where
+        // they are. Off: the brain they had before comes back, the way picking its tier does.
+        internal void SetNoAi(bool on)
+        {
+            ++brainLook;
+            ++cloudListing;
+            ++providerListing;
+            if (preferences.NoAi == on) { ShowTiers(); return; }
+            preferences.NoAi = on;
+            Brain.Off = on;
+            SavePreferences();
+            if (on)
+            {
+                brain.Cancel();
+                if (SettingUp) CancelSetup();
+                ++asking;
+                CloseTalk();
+                brain.Remote = null;
+                brain.Model = null;
+                cloudModels = null;
+                ShowTiers();
+                return;
+            }
+            brain.Remote = TierCloud();
+            brain.Model = brain.Remote == null ? brain.Server == null ? null : preferences.ProviderModel : brain.Remote.Model;
+            cloudModels = null;
+            ShowTiers();
+            FindBrain();
+        }
+
+        private double noAiSaid = -1;
+        internal const double NoAiGap = 600;
+
+        // Something that needs a brain, with No AI on: her line the first time, then at most once in ten minutes, never a nag.
+        private void NoAiLine(int ticket)
+        {
+            double now = clock.Elapsed.TotalSeconds;
+            if (noAiSaid >= 0 && now - noAiSaid < NoAiGap) { CloseTalk(); return; }
+            noAiSaid = now;
+            Answer(ticket, Brain.OffLine, TalkState.Talking);
+        }
+
         internal void ConnectPaidText(string key)
         {
             ConnectText(key, 2);
@@ -11487,6 +11541,7 @@ namespace CapriDesktop
 
         private void ConnectText(string key, int targetTier)
         {
+            if (preferences.NoAi) SetNoAi(false);
             ++brainLook;
             ++providerListing;
             ++cloudListing;
@@ -14837,6 +14892,7 @@ namespace CapriDesktop
             string followLine = "";
             Func<string, string> think = callReply == null ? Think : delegate { return callReply(ticket); };
             if (callReply == null && planned.Key != null) think = delegate { return Security.Said(DoTool(planned.Key, planned.Value, ticket)); };
+            Func<string, string> firstThink = think;
             string quick;
             ToolArguments quickArgs;
             // Their yes or no to her asking first (SECURITY) works before she has a brain too; anything else drops what she held.
@@ -14847,6 +14903,12 @@ namespace CapriDesktop
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
             if (callReply == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || quick == "desktop_icons" && quickArgs.Action == "rampage" || quick == "animate" && EmoteName(quickArgs.Name) || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Hands.Shown(Security.Said(DoTool(quick, quickArgs))); }; }
+            // No AI: what her hands do by phrase ran above, and the news needs no brain; anything else gets her short line now and then.
+            if (preferences.NoAi && (think == null || think == firstThink && planned.Key == null))
+            {
+                if (callReply == null && News.Matching(text) != null) think = delegate { return News.Facts; };
+                else { NoAiLine(ticket); return; }
+            }
             if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, question); }, callLines); };
             if (think == null && brain.Model == null && News.Matching(text) != null) think = delegate { return News.Facts; };
             if (think == null)

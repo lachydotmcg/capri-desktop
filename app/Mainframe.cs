@@ -103,6 +103,10 @@ namespace CapriDesktop
         private readonly Label hint;
         private readonly Label tierNote;
         private readonly Rung[] rungs = new Rung[3];
+        // BRAIN's OFF row, No AI. The smoke test hides it to compare BRAIN with and without it.
+        private Rung offRung;
+        private bool noAi;
+        internal bool NoAiRowShown = true;
         private int tier;
         private readonly Entry nickname;
         private readonly Key showHide;
@@ -466,6 +470,18 @@ namespace CapriDesktop
             }
             rungs[0].Flag = "Start with this!";
             rungs[0].FlagFont = Type(9f);
+            // No AI (Lachy, 12 Nov), drawn like VOICE's OFF row: no brain at all. Picking any brain under it switches one back on.
+            offRung = new Rung();
+            offRung.AutoCheck = false;
+            offRung.TabStop = true;
+            offRung.Text = "OFF";
+            offRung.Hint = "No AI · no brain at all";
+            offRung.Font = Type(9.5f, true);
+            offRung.HintFont = Type(9f);
+            offRung.AccessibleName = "OFF, No AI · no brain at all";
+            offRung.Bounds = new Rectangle(28, 184, 328, 24);
+            offRung.Click += delegate { if (!syncing) capri.SetNoAi(true); };
+            Controls.Add(offRung);
             freeKeyMenu = Dropdown();
             freeKeyMenu.AccessibleName = "Free key providers";
             ToolStripMenuItem nvidiaKey = Choice("NVIDIA · free · often slow at busy times", false, delegate { capri.OpenFreeKeyPage(); });
@@ -2771,19 +2787,23 @@ namespace CapriDesktop
         {
             expanded = setupShown;
             int top = setupShown ? SetupHeight : 0, shift = top + KeyRow;
-            tierNote.Top = Scaled(168 + top);
+            int off = NoAiRowShown ? 24 : 0;
+            top += off;
+            tierNote.Top = Scaled(168 + top - off);
+            offRung.Top = Scaled(184 + top - off);
+            offRung.Visible = NoAiRowShown;
             for (int i = 0; i < rungs.Length; i++) rungs[i].Top = Scaled(184 + 24 * i + top);
             freeKey.Top = Scaled(209 + top);
             planKey.Top = Scaled(233 + top);
             textEntry.Top = Scaled(262 + top);
             textConnect.Top = textEntry.Top;
-            textEntry.Visible = textConnect.Visible = tier > 0;
+            textEntry.Visible = textConnect.Visible = tier > 0 && !noAi;
             freeWarning.Top = Scaled(294 + top);
-            freeWarning.Visible = tier == 1;
+            freeWarning.Visible = tier == 1 && !noAi;
             paidNote.Top = Scaled(315 + top);
             paidNote.MaximumSize = new Size(Scaled(328), 0);
             movePaid.Top = Scaled(350 + top);
-            paidNote.Visible = movePaid.Visible = tier == 1 && paidTextKey != null;
+            paidNote.Visible = movePaid.Visible = tier == 1 && paidTextKey != null && !noAi;
             int below = voiceFilled >= 0 ? InstallRow : 0;
             int fold = arrangedFold = Fold;
             hearingFold = hearingActions.Length == 0 ? HearingFixRow : 0;
@@ -3725,7 +3745,7 @@ namespace CapriDesktop
             Arrange(false);
         }
 
-        private int KeyRow { get { return tier > 0 ? 128 + (tier != 1 ? 0 : paidTextKey != null ? 86 : 20) : 94; } }
+        private int KeyRow { get { return (NoAiRowShown ? 24 : 0) + (tier > 0 && !noAi ? 128 + (tier != 1 ? 0 : paidTextKey != null ? 86 : 20) : 94); } }
 
         // paidPlan: MAX INTELLIGENCE runs on their plan, and paidTail names it.
         internal void ShowTiers(int pick, string nvidiaTail, string paidTail, string mediumKind = null, bool paidPlan = false)
@@ -3740,7 +3760,8 @@ namespace CapriDesktop
             if (old != tier) textEntry.Box.Clear();
             ClearPaidText();
             syncing = true;
-            for (int i = 0; i < rungs.Length; i++) rungs[i].Checked = i == tier;
+            for (int i = 0; i < rungs.Length; i++) rungs[i].Checked = !noAi && i == tier;
+            offRung.Checked = noAi;
             syncing = false;
             string tail = tier == 1 ? nvidiaTail : tier == 2 ? paidTail : null;
             textSaved = tail != null;
@@ -3751,6 +3772,32 @@ namespace CapriDesktop
             RelabelText();
             Arrange(expanded);
         }
+
+        // No AI on or off: OFF picked with no tier or key box beside it, and BRAIN saying so in place of a brain's name.
+        internal void ShowNoAi(bool on)
+        {
+            bool was = noAi;
+            noAi = on;
+            syncing = true;
+            offRung.Checked = on;
+            for (int i = 0; i < rungs.Length; i++) rungs[i].Checked = !on && i == tier;
+            syncing = false;
+            if (!on) { if (was) Arrange(expanded); return; }
+            brainName.Text = "No AI";
+            brainNote.ForeColor = Faint;
+            brainNote.Text = "No brain runs, and nothing is sent anywhere.";
+            tierNote.Text = "Pick one. Only one brain runs at a time.";
+            Arrange(false);
+        }
+
+        // A click on BRAIN's OFF row (-1) or one of its tiers, as a mouse gives it, for the smoke test.
+        internal void ClickBrainRow(int row)
+        {
+            if (row < 0) offRung.PerformClick();
+            else rungs[row].PerformClick();
+        }
+
+        internal bool NoAiShown { get { return offRung.Checked && Array.TrueForAll(rungs, delegate(Rung rung) { return !rung.Checked; }); } }
 
         internal bool TiersFit { get { return TiersProblem == null; } }
 
@@ -3777,6 +3824,7 @@ namespace CapriDesktop
                 foreach (Rung brainRung in rungs) if (!brainRung.Fits) return brainRung.Text + " doesn't fit its rung (" + brainRung.Bounds + ")";
                 if (tierNote.Right > ClientSize.Width) return "the tier note (right " + tierNote.Right + ") runs past the Mainframe (" + ClientSize.Width + ")";
                 if (rungs[0].Top < tierNote.Bottom || rungs[1].Top < rungs[0].Bottom || rungs[2].Top < rungs[1].Bottom) return "the rungs overlap the tier note or each other";
+                if (NoAiRowShown && (offRung.Top < tierNote.Bottom || rungs[0].Top < offRung.Bottom || !offRung.Fits || offRung.Right > ClientSize.Width)) return "OFF (" + offRung.Bounds + ") overlaps the tier note or NORMAL, or doesn't fit";
                 if (freeKey.Left < rungs[1].Right || freeKey.Top < rungs[1].Top || freeKey.Bottom > rungs[1].Bottom) return "Free key (" + freeKey.Bounds + ") overlaps or leaves its rung (" + rungs[1].Bounds + ")";
                 if (planKey.Left < rungs[2].Right || planKey.Top < rungs[2].Top || planKey.Bottom > rungs[2].Bottom || planKey.Right > Scaled(356)) return "My plan (" + planKey.Bounds + ") overlaps or leaves its rung (" + rungs[2].Bounds + ")";
                 if (end > voiceHead.Top) return "BRAIN (bottom " + end + ") runs into VOICE (top " + voiceHead.Top + ")";

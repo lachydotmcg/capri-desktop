@@ -118,6 +118,7 @@ namespace CapriDesktop
             Explain(planKey, "My plan", "Mainframe.cs", null, "My plan");
             Explain(setup, "Set up her brain", "Mainframe.cs", hint, "Set up her brain");
             for (int i = 0; i < rungs.Length; i++) Explain(rungs[i], i == 2 ? "MAX INTELLIGENCE" : i == 1 ? "MEDIUM INTELLIGENCE" : "NORMAL");
+            Explain(offRung, "No AI");
             Explain(textEntry, "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key", "Mainframe.cs", null, "Brain API key");
             Explain(textConnect, "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key", "Mainframe.cs", null, "Connect / Forget brain key");
             Explain(movePaid, "Move key to MAX INTELLIGENCE");

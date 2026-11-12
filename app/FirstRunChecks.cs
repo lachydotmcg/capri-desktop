@@ -166,6 +166,7 @@ namespace CapriDesktop
                 brain.Model = null;
                 cloudModels = null;
                 preferences = new Preferences { Tiered = true, Silent = true, Welcomed = true, Met = true };
+                Brain.Off = false;
                 greetTried = false;
             };
             Action putBack = delegate
@@ -457,6 +458,109 @@ namespace CapriDesktop
                 putBack();
                 checks.Add("PASS MY PLAN OR KEY asks for a Claude or ChatGPT plan through her own plan hookup (a stand-in) and a paid key goes under MAX INTELLIGENCE with no Move to MAX step; Skip on BRAIN ONLINE moves on and Skip all with a brain ends the card with no Mainframe and no EXTRAS");
 
+                // NO AI, the fourth pick: Next finishes on JUST ME with no voice, mic or EXTRAS and no Mainframe, and the choice is
+                // kept. From then on nothing is asked of any brain from any path (a stand-in hears about anything turned away), what
+                // needs no brain still works, and what needs one gets her line once, then not again for a while.
+                reset();
+                int setupsAt = setups;
+                List<string> refused = new List<string>();
+                Brain.TurnedAway = delegate(string what) { lock (refused) refused.Add(what); };
+                Func<string, string> thinkWas = Think;
+                Think = null;
+                bool voiceWasOn = SettingUpVoice;
+                SettingUpVoice = true;
+                voiceGot = 96L << 20;
+                voiceTotal = LocalVoice.PackSize;
+                card = open(FirstRun.Pick, FirstRun.Local);
+                if (card.Picked != FirstRun.Local) throw new Exception("NO AI was picked first.");
+                card.PickBrain(FirstRun.NoAi);
+                card.Redraw();
+                pump();
+                picture(card, "1-pick-no-ai");
+                card.Next();
+                pump();
+                SettingUpVoice = voiceWasOn;
+                voiceGot = voiceTotal = 0;
+                if (card.Screen != FirstRun.Alone || card.Count != "2 OF 2" || reply != FirstRun.AloneLine || !preferences.NoAi || !Brain.Off || setups != setupsAt || !LoadPreferences().NoAi)
+                    throw new Exception("Next on NO AI didn't finish on JUST ME with No AI kept: " + card.Screen + " / " + card.Count + " / " + reply + " / " + preferences.NoAi + " / " + setups);
+                picture(card, "6-just-me");
+                card.Back();
+                pump();
+                if (card.Screen != FirstRun.Pick || preferences.NoAi || Brain.Off) throw new Exception("Back on JUST ME didn't take No AI off again.");
+                // Back looked for a brain again; that look finishes before No AI goes back on, so what's counted below is only what
+                // asked with No AI already on.
+                wait(delegate { return !finding && !brainLooking; }, "Her look for a brain after Back never finished.");
+                refused.Clear();
+                card.PickBrain(FirstRun.NoAi);
+                card.Next();
+                card.Next();
+                pump();
+                if (FirstRunShowing || preferences.FirstRunStep != FirstRun.None || mainframe.Visible && mainframe.WindowState == FormWindowState.Normal || mainframe.ExtrasShown != null || !mainframe.NoAiShown)
+                    throw new Exception("Done on JUST ME didn't just end the card with OFF picked under BRAIN.");
+                ++asking;
+                CloseTalk();
+                FindBrain();
+                FindBrain(true);
+                Hear("what's the capital of France?");
+                pump();
+                bool toldOnce = reply == Brain.OffLine && talkState != TalkState.Dormant;
+                ++asking;
+                CloseTalk();
+                Hear("tell me a joke");
+                pump();
+                bool quietAfter = talkState == TalkState.Off;
+                List<byte> pressed = new List<byte>();
+                Action<byte> pressWas = Hands.Press;
+                Hands.Press = delegate(byte key) { lock (pressed) pressed.Add(key); };
+                try
+                {
+                    Hear("can you turn the volume up?");
+                    wait(delegate { return talkState != TalkState.Thinking && reply != null; }, "Volume never answered with No AI on.");
+                }
+                finally { Hands.Press = pressWas; }
+                bool volumeWorks = reply == "Turned the volume up." && pressed.Count > 0;
+                ++asking;
+                CloseTalk();
+                // The gate itself: a model list asked for straight is turned away, and the stand-in hears it.
+                bool gated = false;
+                try { Brain.CloudModels("AIza-firstrun-test", true); }
+                catch (Exception) { gated = true; }
+                string turned = string.Join(", ", refused.ToArray());
+                bool heardGate = refused.Count == 1;
+                refused.Clear();
+                if (!toldOnce || !quietAfter || !volumeWorks || !gated || !heardGate || brain.Model != null || SettingUp)
+                    throw new Exception("No AI went wrong: told once " + toldOnce + ", quiet after " + quietAfter + ", volume " + volumeWorks + " (" + reply + "), gate " + gated + "/" + heardGate + " (" + turned + "), model " + (brain.Model ?? "none"));
+                // Picking a brain under BRAIN switches No AI off; picking OFF leaves their keys in place.
+                preferences.NvidiaKey = Voice.Protect("AIza-firstrun-test");
+                mainframe.ClickBrainRow(0);
+                pump();
+                bool tierOn = !preferences.NoAi && !Brain.Off && !mainframe.NoAiShown;
+                // NORMAL's own look for a brain finishes first, or OFF would turn its last questions away.
+                wait(delegate { return !finding && !brainLooking; }, "NORMAL's look for a brain never finished.");
+                refused.Clear();
+                mainframe.ClickBrainRow(-1);
+                pump();
+                bool offAgain = preferences.NoAi && Brain.Off && mainframe.NoAiShown && preferences.NvidiaKey != null && brain.Model == null;
+                Brain.TurnedAway = null;
+                Think = thinkWas;
+                if (!tierOn || !offAgain) throw new Exception("BRAIN's rows didn't switch No AI: picking NORMAL " + tierOn + ", picking OFF " + offAgain);
+                if (refused.Count > 0) throw new Exception("With No AI on, something still asked a brain: " + string.Join(", ", refused.ToArray()));
+                Preferences oldFile;
+                using (MemoryStream saved = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Welcomed\":true}")))
+                    oldFile = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(saved);
+                string written;
+                using (MemoryStream again = new MemoryStream())
+                {
+                    new DataContractJsonSerializer(typeof(Preferences)).WriteObject(again, oldFile);
+                    written = System.Text.Encoding.UTF8.GetString(again.ToArray());
+                }
+                if (oldFile.NoAi || written.Contains("NoAi")) throw new Exception("Settings from before No AI read it as on, or gained it when saved.");
+                SetNoAi(false);
+                // Its look for a brain ends before the next checks, which start with none.
+                wait(delegate { return !finding && !brainLooking; }, "Her look for a brain after No AI never finished.");
+                reset();
+                checks.Add("PASS NO AI is the fourth pick on WAKE ME UP, never the default: Next ends on JUST ME (2 OF 2) with her line about the Mainframe, no voice, mic or EXTRAS and no Mainframe, Back undoes it, and the choice is kept; with it on she never looks for a brain, chat gets her short line once and then stays quiet, volume still works by phrase, a direct model request is turned away and nothing else asked a brain; BRAIN's OFF row and NORMAL switch it; older settings files read and save without it");
+
                 // Skip on every screen moves past that step.
                 reset();
                 card = open(FirstRun.Pick, FirstRun.Local);
@@ -732,6 +836,8 @@ namespace CapriDesktop
                 Brain.Google = wasGoogle;
                 Brain.OpenAi = wasOpenAi;
                 FirstRunSetUp = null;
+                Brain.Off = false;
+                Brain.TurnedAway = null;
                 FirstRunPaste = wasPaste;
                 FirstRunUsePlan = null;
                 FirstRunLanding = null;

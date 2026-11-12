@@ -354,7 +354,8 @@ Her right-click menu, the Type box, the installer and her pop-up notes (like "Ca
   - "Best fit for this PC: <name>"
 - Set up her brain: starts the download. It changes to Cancel while it runs, and Try again if it fails.
 - "Have Ollama? Open it, then press Refresh."
-- "Pick one. Only one brain runs at a time." with NORMAL. MEDIUM INTELLIGENCE lists "NVIDIA, Gemini, OpenRouter", or says "Most NVIDIA models can't see your screen." with NVIDIA on that row. Three rows:
+- "Pick one. Only one brain runs at a time." with NORMAL. MEDIUM INTELLIGENCE lists "NVIDIA, Gemini, OpenRouter", or says "Most NVIDIA models can't see your screen." with NVIDIA on that row. Four rows:
+  - OFF (0.9.0): "No AI · no brain at all". She stays on your desktop with no brain: nothing is downloaded for it and nothing is sent to any model or service. She still walks, sits on windows, dances to your music, reacts to clicks, naps and does what she knows by phrase, like volume, music and her moves. A question gets one short line saying her brain is off, and not again for a while. Picking any other row switches a brain back on; your keys and downloaded brain stay. Her first launch card offers it as NO AI.
   - NORMAL: "Free · local model", marked "Start with this!". Use her built-in brain, Ollama, LM Studio, Jan, KoboldCpp or llama.cpp on your PC. New installs start here.
   - MEDIUM INTELLIGENCE: "Free". Accepts NVIDIA, Google AI Studio (Gemini) or OpenRouter keys. OpenRouter only lists models ending :free.
   - MAX INTELLIGENCE: "Key or plan". Accepts Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek keys, or your own Claude or ChatGPT plan through My plan. Full model list, including paid models.
