@@ -1036,7 +1036,7 @@ namespace CapriDesktop
             return inked < 20;
         }
         internal string CopyText(WorkspaceItem item) { return transcript.CopyOf(item); }
-        // Where copied text goes: Windows' clipboard, or the smoke's stand-in so a run never touches his.
+        // Where copied text goes: Windows' clipboard, or the smoke's stand-in so a run never touches theirs.
         internal static Action<string> ClipboardWrite = delegate(string text) { Clipboard.SetText(text); };
         internal string CodeFont { get { return mono.Name; } }
         internal string ProseFont { get { return Font.Name; } }
@@ -1712,7 +1712,7 @@ namespace CapriDesktop
                 internal List<Block> Group;
                 internal Rectangle Head;
                 internal string Words = "", Trouble = "", Doing, HeadTool = "", HeadMark = "";
-                // Its text as parts a selection counts along (his words, her paragraphs, a well's code, a row's line), and where
+                // Its text as parts a selection counts along (their words, her paragraphs, a well's code, a row's line), and where
                 // each stretch of it is drawn.
                 internal readonly List<WordBlock> Parts = new List<WordBlock>();
                 internal readonly List<Seg> Segs = new List<Seg>();
@@ -1847,7 +1847,7 @@ namespace CapriDesktop
             {
                 bool follow = Following;
                 int was = Offset, tall = Content;
-                // What he's reading: each thing on screen and where it sits, so the view can stay on it when something changes size.
+                // What they're reading: each thing on screen and where it sits, so the view can stay on it when something changes size.
                 List<KeyValuePair<WorkspaceItem, int>> anchors = new List<KeyValuePair<WorkspaceItem, int>>();
                 foreach (Block old in Blocks)
                     if (!old.Hidden && old.Box.Bottom > Offset && old.Box.Top < Offset + Height) anchors.Add(new KeyValuePair<WorkspaceItem, int>(old.Item, old.Box.Top - Offset));
@@ -1887,9 +1887,9 @@ namespace CapriDesktop
                 Hold(follow, tall, anchors, was);
             }
 
-            // Keeps his place. At the end while the conversation grows, it follows, as Metis does. Otherwise the first thing he
+            // Keeps their place. At the end while the conversation grows, it follows, as Metis does. Otherwise the first thing they
             // could see stays where it was, even when what shrank was at the bottom (an answered card folding away): the room it
-            // leaves stays under the end until he scrolls or more arrives.
+            // leaves stays under the end until they scroll or more arrives.
             private void Hold(bool follow, int tall, List<KeyValuePair<WorkspaceItem, int>> anchors, int was)
             {
                 if (follow && Content >= tall) { Following = true; ScrollTo(int.MaxValue); Following = true; return; }
@@ -2072,7 +2072,7 @@ namespace CapriDesktop
             }
 
             // Room between things: tight inside an open group, a little above the time and cost line, and clear space between
-            // his message, her words and each group of tool calls.
+            // their message, her words and each group of tool calls.
             private int Gap(Block block, Block next)
             {
                 if (next == null) return 0;
@@ -2139,7 +2139,7 @@ namespace CapriDesktop
             }
 
             // A row's one line: what it ran or touched, the tool's name when it's open and its whole line shows below, and on a
-            // closed denied row his no (with his reason) before it.
+            // closed denied row their no (with their reason) before it.
             private string RowText(Block block)
             {
                 if (block.Open && Cut(block)) return block.Item.Name;
@@ -2154,7 +2154,7 @@ namespace CapriDesktop
                 return whole != shown || WorkPaint.Wide(shown, window.note) > block.Toggle.Width - Z(52);
             }
 
-            // A denied call in words: his own no, with the reason he gave, or why Workspace said no for him.
+            // A denied call in words: their own no, with the reason they gave, or why Workspace said no for them.
             private static string Refusal(Block block)
             {
                 string text = block.Asked != null ? block.Asked.Text : block.Item.Text;
@@ -2164,7 +2164,7 @@ namespace CapriDesktop
                 return "You said no: " + reason;
             }
 
-            // The time and cost line as he reads it. Older chats saved the cost as it came ("$1.8235778"), so it's put to the
+            // The time and cost line as they read it. Older chats saved the cost as it came ("$1.8235778"), so it's put to the
             // cent here as well as when a turn ends.
             internal static string EndShown(string text)
             {
@@ -2912,7 +2912,7 @@ namespace CapriDesktop
                 return null;
             }
 
-            // Only web pages open, in his own browser, the way her other links do.
+            // Only web pages open, in their own browser, the way her other links do.
             internal static Action<string> OpenPage = delegate(string page) { Companion.Browse(page); };
 
             private static void Open(string page)
@@ -3202,7 +3202,7 @@ namespace CapriDesktop
                     bool raw = Asked(item, out about, lines, inks);
                     if (about.Length > 0 && about != sentence) at = Words(block, about, window.small, Neon.Faint, left + pad, at, inner) + Z(8);
                     else at += Z(4);
-                    // A command or a change is what he's agreeing to, so it shows; anything else is its raw input, one click away.
+                    // A command or a change is what they're agreeing to, so it shows; anything else is its raw input, one click away.
                     if (raw)
                     {
                         string shownAs = block.All ? "Hide the details" : "Show the details";
@@ -3977,7 +3977,7 @@ namespace CapriDesktop
                     if (kind != "user" && kind != "text") continue;
                     Rectangle reach = new Rectangle(block.Box.Left, block.Box.Top, block.Box.Width, block.Box.Height + Z(20));
                     if (!reach.Contains(inside)) continue;
-                    // Under his bubble on its right, under her words on their left, clear of the time and cost line.
+                    // Under their bubble on its right, under her words on their left, clear of the time and cost line.
                     key = kind == "user" ? new Rectangle(block.Box.Right - size, block.Box.Bottom + Z(1), size, size) : new Rectangle(block.Box.Left + Z(8), block.Box.Bottom + Z(1), size, size);
                     what = CopyOf(block.Item);
                     break;

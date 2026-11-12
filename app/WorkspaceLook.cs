@@ -1312,7 +1312,7 @@ namespace CapriDesktop
                     if (result != null) chat.Items.Add(new WorkspaceItem { Kind = "result", Id = id, Text = result, Turn = turn, Decision = how == "fail" || how == "deny" ? "error" : "" });
                 }
             };
-            // His first message names the chat, as sending it would.
+            // Their first message names the chat, as sending it would.
             Action<WorkspaceChat, string, string> say = delegate(WorkspaceChat chat, string kind, string text)
             {
                 lock (chat.Gate)
@@ -1438,7 +1438,7 @@ namespace CapriDesktop
                     window.RefreshChat();
                     if (window.Shining || window.Thinking) failures.Add(scale + "%: the shine or the Thinking line stayed after the turn ended.");
 
-                    // A group with a failed call, a denied one and one he was asked about and allowed.
+                    // A group with a failed call, a denied one and one they were asked about and allowed.
                     WorkspaceChat rough = work.NewChat(project, false);
                     work.Trust(rough, true);
                     rough.TrustAsked = true;
@@ -1524,8 +1524,8 @@ namespace CapriDesktop
                     shoot(window, "t-f-narrow-" + scale, null);
                     window.ClientSize = full;
 
-                    // His snake video: a Grep card at the end of a long turn reads as one plain sentence with its raw input behind a
-                    // link; answering it leaves what he was reading where it was; the time and cost read to the cent.
+                    // The snake video: a Grep card at the end of a long turn reads as one plain sentence with its raw input behind a
+                    // link; answering it leaves what they were reading where it was; the time and cost read to the cent.
                     WorkspaceChat snake = work.NewChat(release, false);
                     work.Trust(snake, true);
                     snake.TrustAsked = true;
@@ -1585,7 +1585,7 @@ namespace CapriDesktop
                     lock (snake.Gate) snake.Items.Add(new WorkspaceItem { Kind = "result", Id = "v9", Text = "MODDING.md:12: Import a mod from Mainframe \u2192 Mods.", Turn = snakeTurn.Id });
                     window.RefreshChat();
                     if (!window.Thinking || window.TopOf(reading) != readTop) failures.Add(scale + "%: after the result, Thinking is " + window.Thinking + " and what he was reading sits at " + window.TopOf(reading));
-                    // The turn ends with a summary while he's at the end: the view follows it, as Metis does.
+                    // The turn ends with a summary while they're at the end: the view follows it, as Metis does.
                     say(snake, "text", "Cyber Snake is built, compiled and tested.\n\nTo play it:\n1. Open Mainframe \u2192 Mods \u2192 Import mod.\n2. Pick cyber-snake.capri-code.\n3. Say \"play snake\".");
                     lock (snake.Gate) snake.Items.Add(new WorkspaceItem { Kind = "end", Text = "1174.7s | $1.8235778" });
                     snake.Live = null;
@@ -1689,8 +1689,8 @@ namespace CapriDesktop
             }
         }
 
-        // Copying out of the conversation, with a stand-in for Windows' clipboard so his is never touched: a selection from
-        // his message through her reply into a code well copies as it shows; double click takes a word and triple click the
+        // Copying out of the conversation, with a stand-in for Windows' clipboard so theirs is never touched: a selection from
+        // their message through her reply into a code well copies as it shows; double click takes a word and triple click the
         // paragraph or code line; Shift+click carries a selection on; Ctrl+A and Ctrl+C take everything; dragging past the
         // bottom scrolls; the copy key on a message or a well copies it and ticks for a second; the right-click menu offers
         // Copy only with a selection; the message box keeps Windows' own cut, copy and paste. Pictures h (the selection) and
@@ -1725,7 +1725,7 @@ namespace CapriDesktop
                 string all = ask + "\n\n" + replyShown;
                 if (clipped.Count != 1 || clipped[0] != all) failures.Add(scale + "%: Ctrl+A then Ctrl+C copied " + (clipped.Count > 0 ? clipped[clipped.Count - 1] : "nothing"));
 
-                // From the middle of his message into the code well: by place, then by dragging the same span.
+                // From the middle of their message into the code well: by place, then by dragging the same span.
                 string span = ask.Substring(5) + "\n\nHere's the change, in Clock.cs:\n\n\u2022 it reads the time once a second\n\u2022 it pads the seconds\n\nlabel";
                 window.SelectText(asked, 0, 5, answered, 3, 5);
                 if (window.SelectedText != span) failures.Add(scale + "%: a selection into the code well reads " + window.SelectedText);
@@ -1797,7 +1797,7 @@ namespace CapriDesktop
                 window.ClearSelection();
 
                 // The message box keeps Windows' own Ctrl+C, Ctrl+V, Shift+Insert and right-click menu; it isn't driven here,
-                // since that would use his clipboard.
+                // since that would use their clipboard.
                 if (!window.Input.ShortcutsEnabled || window.Input.ContextMenuStrip != null || window.Input.ContextMenu != null) failures.Add(scale + "%: the message box lost Windows' own cut, copy and paste.");
             }
             finally
@@ -2136,7 +2136,7 @@ namespace CapriDesktop
         // pictured, read back, cancelled, and accepted with known folders and files.
         private void SmokeWorkspacePickers(List<string> checks, string folder)
         {
-            // Windows remembers where a program's open dialogs went, by program name, so this run's picks would be where his own
+            // Windows remembers where a program's open dialogs went, by program name, so this run's picks would be where their own
             // Capri's dialogs open next (the Import mod dialog opened in one on 12 Nov). The history goes back as it was found.
             DialogMemory memory = new DialogMemory();
             try { PickersOnce(checks, folder); }
