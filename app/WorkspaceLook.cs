@@ -740,7 +740,8 @@ namespace CapriDesktop
                 {
                     work.Executable = standin;
                     WorkspaceChat chat = work.Chats().Find(delegate(WorkspaceChat found) { return found.Id == chatId; });
-                    if (chat == null) throw new Exception("The edited chat didn't come back to be pictured.");
+                    // It has come back missing now and then; say why, from what the load wrote down.
+                    if (chat == null) throw new Exception("The edited chat didn't come back to be pictured" + (work.Problems.Count > 0 ? ": " + string.Join("; ", work.Problems.ToArray()) : ", and loading noted no problem."));
                     work.Trust(chat, true);
                     chat.TrustAsked = true;
                     using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
@@ -1301,6 +1302,7 @@ namespace CapriDesktop
             };
             List<string> failures = new List<string>();
             List<string> rows = new List<string>();
+            List<string> timings = new List<string>();
             foreach (float z in new[] { 1f, 1.25f, 1.5f })
             {
                 int scale = (int)Math.Round(z * 100);
@@ -1327,7 +1329,7 @@ namespace CapriDesktop
                     if (groups.Count != 2 || groups[0] != wanted[0] || groups[1] != wanted[1] || sum(groups[0]) != 5 || sum(groups[1]) != 3) failures.Add(scale + "%: the photo's groups read " + string.Join(" / ", groups.ToArray()));
                     Point tipAt;
                     string tip = window.TipOn(0, out tipAt);
-                    if (window.PointerOn(0) != Cursors.Hand || tip == null || !tip.StartsWith("5 tool calls: Bash, Grep, Read", StringComparison.Ordinal)) failures.Add(scale + "%: a fold line's pointer or tooltip is wrong: " + tip);
+                    if (window.PointerOn(0) != Cursors.Hand || tip == null || tip != "5 steps: 2 commands ran, 1 file read, 2 searches") failures.Add(scale + "%: a fold line's pointer or tooltip is wrong: " + tip);
                     TipPicture(window, tip, tipAt, Path.Combine(pictures, "t-tip-fold-" + scale + ".png"), false);
                     tip = window.TipOn(-1, out tipAt);
                     if (tip != "Mode and model changes apply to your next message.") failures.Add(scale + "%: the MODE key's tooltip is " + tip);
@@ -1346,6 +1348,7 @@ namespace CapriDesktop
                     live.TrustAsked = true;
                     WorkspaceTurn turn = new WorkspaceTurn { Chat = live };
                     say(live, "user", "Hey Capri, code me a Cyberpunk style clock mod that sits in the corner of the screen.");
+                    live.Title = "Clock mod, second try";
                     say(live, "text", "I'll look at how mods load first, then write it.");
                     call(live, turn.Id, "r1", "Bash", bash2, "Capri.cs:2210:            ModList = new Mods(folder);", "allow");
                     call(live, turn.Id, "r2", "Grep", app, "Found 6 files", "allow");
@@ -1478,6 +1481,7 @@ namespace CapriDesktop
                     work.Trust(snake, true);
                     snake.TrustAsked = true;
                     WorkspaceTurn snakeTurn = new WorkspaceTurn { Chat = snake };
+                    snake.Title = "Cyber Snake";
                     say(snake, "user", "Hey Capri, code me a Cyberpunk style Snake Game connected to Capri-desktop that I can pull up and play without having to restart Capri.");
                     WorkspaceItem reading = null;
                     for (int k = 0; k < 4; k++)
@@ -1511,6 +1515,12 @@ namespace CapriDesktop
                     shoot(window, "v5-card-open-" + scale, null);
                     window.PressTranscript(details);
                     window.ScrollToEnd();
+                    bool boxShown;
+                    if (window.ReasonShown(grepAsk)) failures.Add(scale + "%: the reason box showed before Deny was pressed.");
+                    if (!window.DenyOpens(grepAsk, out boxShown) || !boxShown) failures.Add(scale + "%: Deny didn't open the reason box.");
+                    shoot(window, "v5-card-deny-" + scale, null);
+                    window.ForgetReason(grepAsk);
+                    window.ScrollToEnd();
                     shoot(window, "v2-before-allow-" + scale, null);
                     int readTop = window.TopOf(reading);
                     lock (snake.Gate)
@@ -1539,11 +1549,13 @@ namespace CapriDesktop
                     shoot(window, "v4-cost-" + scale, null);
                     WorkspaceWindow.ShineAt = -1;
                     WorkspaceCopy(window, work, release, longer, say, failures, scale, shoot);
+                    WorkspaceFormatting(window, work, release, say, failures, scale, shoot, full, timings);
                     window.Close();
                 }
             }
             File.WriteAllLines(Path.Combine(pictures, "t-c-rows.txt"), rows.ToArray());
             // Every picture above came from these sections; the 41-call check is in the failures too.
+            foreach (string timing in timings) checks.Add("NOTE " + timing);
             if (failures.Count > 0) throw new Exception(string.Join(" | ", failures.ToArray()));
             checks.Add("PASS Workspace puts each run of tool calls behind one closed line worded by what finished (commands ran, files read, edited and written, searches, web lookups, agents, MCP calls), marks a failed or denied call on that line and names what's running while it shines; the shine's clock runs only while a running call is seen and stops when it finishes or the window is minimised");
         }
@@ -1666,11 +1678,11 @@ namespace CapriDesktop
 
                 // From the middle of his message into the code well: by place, then by dragging the same span.
                 string span = ask.Substring(5) + "\n\nHere's the change, in Clock.cs:\n\n\u2022 it reads the time once a second\n\u2022 it pads the seconds\n\nlabel";
-                window.SelectText(asked, 0, 5, answered, 2, 5);
+                window.SelectText(asked, 0, 5, answered, 3, 5);
                 if (window.SelectedText != span) failures.Add(scale + "%: a selection into the code well reads " + window.SelectedText);
                 shoot(window, "h-select-" + scale, null);
                 window.ClearSelection();
-                Point from = window.TextPoint(asked, 0, 5), to = window.TextPoint(answered, 2, 5);
+                Point from = window.TextPoint(asked, 0, 5), to = window.TextPoint(answered, 3, 5);
                 window.DragText(from, to);
                 if (window.SelectedText != span) failures.Add(scale + "%: dragging from his message into the code well selected " + window.SelectedText);
                 window.TranscriptKey(Keys.Control | Keys.C);
@@ -1682,7 +1694,7 @@ namespace CapriDesktop
                 if (window.SelectedText != "change") failures.Add(scale + "%: a double click selected " + window.SelectedText);
                 window.ClickText(word, 3);
                 if (window.SelectedText != "Here's the change, in Clock.cs:") failures.Add(scale + "%: a triple click selected " + window.SelectedText);
-                window.ClickText(window.TextPoint(answered, 2, 8), 3);
+                window.ClickText(window.TextPoint(answered, 3, 8), 3);
                 if (window.SelectedText != code) failures.Add(scale + "%: a triple click in the code well selected " + window.SelectedText);
                 window.ClickText(window.TextPoint(answered, 0, 0), 1);
                 shift = true;
@@ -1698,7 +1710,7 @@ namespace CapriDesktop
                 if (string.Join("|", names.ToArray()) != "Copy message|Copy code") failures.Add(scale + "%: with no selection the menu reads " + string.Join(", ", names.ToArray()));
 
                 // The copy key: resting where the pointer is on her words, hovered, then ticked after it copies.
-                Point on = window.TextPoint(answered, 3, 2);
+                Point on = window.TextPoint(answered, 4, 2);
                 Rectangle key = window.CopyKeyOn(on);
                 if (key.IsEmpty) failures.Add(scale + "%: her reply showed no copy key.");
                 window.MoveOver(on);
@@ -1713,8 +1725,12 @@ namespace CapriDesktop
                 shoot(window, "i-copy-ticked-" + scale, null);
                 while (window.CopyTicked && tick.ElapsedMilliseconds < 3000) { Application.DoEvents(); System.Threading.Thread.Sleep(20); }
                 if (window.CopyTicked || tick.ElapsedMilliseconds < 900) failures.Add(scale + "%: the tick lasted " + tick.ElapsedMilliseconds + " ms.");
-                Rectangle well = window.CopyKeyOn(window.TextPoint(answered, 2, 3));
+                Point inWell = window.TextPoint(answered, 3, 3);
+                Rectangle well = window.CopyKeyOn(inWell);
+                window.MoveOver(inWell);
+                shoot(window, "i-copy-well-rest-" + scale, null);
                 window.MoveOver(new Point(well.Left + well.Width / 2, well.Top + well.Height / 2));
+                shoot(window, "i-copy-well-hover-" + scale, null);
                 window.PressCopyKey();
                 if (clipped[clipped.Count - 1] != code) failures.Add(scale + "%: the code well's copy key copied " + clipped[clipped.Count - 1]);
                 Rectangle his = window.CopyKeyOn(window.TextPoint(asked, 0, 3));
@@ -1740,6 +1756,158 @@ namespace CapriDesktop
                 WorkspaceWindow.ClipboardWrite = real;
                 window.ShiftHeld = delegate { return (Control.ModifierKeys & Keys.Shift) != 0; };
             }
+        }
+
+        // Her replies drawn from the Markdown reader: every kind of block and run (picture g), a table at full width and at
+        // the narrowest window (picture j), the reply half streamed, and a long one. Her words copy as WorkWords gives them,
+        // links open only http and https pages (through a stand-in here), show the hand and their address, and nothing is
+        // cut off or overlapping at any width.
+        private static void WorkspaceFormatting(WorkspaceWindow window, Workspace work, string folder, Action<WorkspaceChat, string, string> say, List<string> failures, int scale, Action<WorkspaceWindow, string, ToolStripDropDown> shoot, Size full, List<string> timings)
+        {
+            List<string> opened = new List<string>();
+            Action<string> realOpen = WorkspaceWindow.OpenPage;
+            WorkspaceWindow.OpenPage = delegate(string page) { opened.Add(page); };
+            try
+            {
+                string reply = "# Cyber clock\n\n"
+                    + "Here's what changed, with **bold words**, *a slanted aside*, ~~the old way~~ and `inline code`, plus a link to [her site](https://capriai.app) you can open.\n\n"
+                    + "## How it loads\n\n"
+                    + "1. Capri reads the mods folder\n"
+                    + "2. Each mod gets the ModApi to draw with\n"
+                    + "   - a nested point under the second step\n"
+                    + "   - and another, long enough that it has to wrap onto a second line in a normal window\n"
+                    + "3. The clock draws in the corner\n\n"
+                    + "### Still to do\n\n"
+                    + "- [x] draw the neon frame\n"
+                    + "- [ ] add the seconds\n\n"
+                    + "> The clock keeps to the time your PC shows.\n"
+                    + "> It follows your PC's own 12 or 24 hour setting.\n\n"
+                    + "---\n\n"
+                    + "```csharp\nlabel.Text = now.ToString(\"HH:mm:ss\");\nlabel.Invalidate();\n```\n\n"
+                    + "| File | Lines | Change |\n"
+                    + "|:-----|------:|:------:|\n"
+                    + "| `app\\Clock.cs` | 120 | new |\n"
+                    + "| `mods\\cyber-clock.capri-code` | 48 | edited, with a longer note that wraps when the window is narrow |\n\n"
+                    + "That's all.";
+                WorkspaceChat chat = work.NewChat(folder, false);
+                work.Trust(chat, true);
+                chat.TrustAsked = true;
+                say(chat, "user", "Show me what changed in the clock mod.");
+                chat.Title = "What changed in the clock";
+                say(chat, "text", reply);
+                WorkspaceItem answer;
+                lock (chat.Gate) answer = chat.Items[1];
+                window.ShowChat(chat);
+                window.RefreshChat();
+                window.ConversationTop = 0;
+                shoot(window, "g-format-" + scale, null);
+                window.ScrollToEnd();
+                shoot(window, "g-format-end-" + scale, null);
+                string plain = WorkWords.Plain(WorkWords.Read(reply));
+                if (window.CopyText(answer) != plain) failures.Add(scale + "%: her formatted reply copies as " + window.CopyText(answer));
+                if (plain.Contains("**") || plain.Contains("`") || plain.Contains("](")) failures.Add(scale + "%: the copy kept Markdown marks: " + plain);
+
+                // The link: a hand, its address as the tooltip, and a click opens it; a page that isn't http or https never opens.
+                window.ConversationTop = 0;
+                List<KeyValuePair<Point, string>> links = window.LinksOf(answer);
+                if (links.Count == 0) failures.Add(scale + "%: her reply's link wasn't drawn as one.");
+                else
+                {
+                    window.MoveOver(links[0].Key);
+                    if (window.TranscriptPointer != Cursors.Hand || window.TipNow != "https://capriai.app") failures.Add(scale + "%: over the link the pointer is " + window.TranscriptPointer + " and the tip " + window.TipNow);
+                    window.PressAtText(links[0].Key);
+                    if (opened.Count != 1 || opened[0] != "https://capriai.app/") failures.Add(scale + "%: clicking the link opened " + string.Join(", ", opened.ToArray()));
+                    window.MoveOver(new Point(-1, -1));
+                }
+                foreach (string bad in new[] { "javascript:alert(1)", "file:///C:/Windows/notepad.exe", "ftp://example.com/x", "C:\\Windows" }) WorkspaceWindow.OpenLink(bad);
+                if (opened.Count > 1) failures.Add(scale + "%: a page that isn't http or https was opened: " + opened[opened.Count - 1]);
+
+                // A table at the narrowest window wraps its cells and stays inside the conversation.
+                window.ScrollToEnd();
+                shoot(window, "j-table-wide-" + scale, null);
+                window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Narrowest * scale / 100.0), full.Height);
+                window.RefreshChat();
+                window.ScrollToEnd();
+                shoot(window, "j-table-narrow-" + scale, null);
+                string crowded = window.Crowded();
+                if (crowded != null) failures.Add(scale + "%: at the narrowest width: " + crowded);
+                window.ClientSize = full;
+                window.RefreshChat();
+
+                // Streamed: the reply arriving in pieces, pictured half way, and the end the same as reading it whole.
+                WorkspaceChat live = work.NewChat(folder, false);
+                work.Trust(live, true);
+                live.TrustAsked = true;
+                say(live, "user", "Show me what changed in the clock mod.");
+                live.Title = "The same, as it streams";
+                say(live, "text", "");
+                WorkspaceItem streaming;
+                lock (live.Gate) streaming = live.Items[1];
+                window.ShowChat(live);
+                for (int at = 0; at <= reply.Length; at += 37)
+                {
+                    lock (live.Gate) streaming.Text = reply.Substring(0, at);
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    if (at >= reply.Length / 2 && at - 37 < reply.Length / 2) shoot(window, "g-stream-half-" + scale, null);
+                }
+                lock (live.Gate) streaming.Text = reply;
+                window.RefreshChat();
+                if (window.CopyText(streaming) != plain) failures.Add(scale + "%: the streamed reply ended different from the whole one.");
+
+                // A long reply: forty times the formatted one, laid out and pictured.
+                StringBuilder longer = new StringBuilder();
+                for (int i = 0; i < 40; i++) longer.Append(reply).Append("\n\n");
+                WorkspaceChat big = work.NewChat(folder, false);
+                work.Trust(big, true);
+                big.TrustAsked = true;
+                say(big, "user", "All of it, forty times.");
+                big.Title = "Forty in a row";
+                say(big, "text", longer.ToString());
+                Stopwatch laying = Stopwatch.StartNew();
+                window.ShowChat(big);
+                window.RefreshChat();
+                window.Refresh();
+                long took = laying.ElapsedMilliseconds;
+                if (took > 2500) failures.Add(scale + "%: a 40-part formatted reply took " + took + " ms to lay out and draw.");
+                window.ConversationTop = window.ConversationTall / 2;
+                shoot(window, "g-long-" + scale, null);
+
+                // The same forty arriving as a stream, 600 letters at a time, each step laid out and drawn at the end of the chat.
+                // Once, at 100%: the steps are the same work at every size.
+                if (scale == 100)
+                {
+                    WorkspaceChat flowing = work.NewChat(folder, false);
+                    work.Trust(flowing, true);
+                    flowing.TrustAsked = true;
+                    say(flowing, "user", "All of it again, as it comes.");
+                    flowing.Title = "Forty, streamed";
+                    say(flowing, "text", "");
+                    WorkspaceItem growing;
+                    lock (flowing.Gate) growing = flowing.Items[1];
+                    window.ShowChat(flowing);
+                    string all = longer.ToString();
+                    long worst = 0, total = 0;
+                    int steps = 0;
+                    for (int at = 600; ; at += 600)
+                    {
+                        int upTo = Math.Min(at, all.Length);
+                        Stopwatch step = Stopwatch.StartNew();
+                        lock (flowing.Gate) growing.Text = all.Substring(0, upTo);
+                        window.RefreshChat();
+                        window.ScrollToEnd();
+                        window.Refresh();
+                        long one = step.ElapsedMilliseconds;
+                        worst = Math.Max(worst, one);
+                        total += one;
+                        steps++;
+                        if (upTo == all.Length) break;
+                    }
+                    timings.Add("Workspace at " + scale + "%: a 40-part formatted reply (" + all.Length + " letters) lays out and draws in " + took + " ms whole; streamed in " + steps + " steps of 600 letters it took " + total + " ms in all, " + (total / steps) + " ms a step on average and " + worst + " ms at worst");
+                    if (worst > 1500) failures.Add(scale + "%: a step of the streamed 40-part reply took " + worst + " ms.");
+                }
+            }
+            finally { WorkspaceWindow.OpenPage = realOpen; }
         }
 
         // A tooltip as it shows, laid on the window's own picture where it would appear: the window copy doesn't take Windows'
