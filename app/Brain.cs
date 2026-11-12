@@ -2418,7 +2418,9 @@ namespace CapriDesktop
             // reading it all again (Mirit0, #226).
             string heard = string.IsNullOrEmpty(callLines) ? "" : "\n" + callLines;
             string turn = ForYou(Now() + Seen() + Gap() + heard);
-            messages.Add(new ChatMessage("system", steady + (act != null ? fileChat ? kit.ChatOnly : kit.Chat + Hands.MiniBoard() : "") + selfGuide + callContext) { Steady = steady.Length });
+            // A brain on their PC chats without her tools, so it's told it can write her heart into a reply (Lachy, 12 Nov).
+            string heartNote = act != null && !fileChat && OnThisPc ? Hands.LocalHeart : "";
+            messages.Add(new ChatMessage("system", steady + (act != null ? fileChat ? kit.ChatOnly : kit.Chat + Hands.MiniBoard() : "") + heartNote + selfGuide + callContext) { Steady = steady.Length });
             if (HuskFacts != null) messages[0].Content += HuskFacts();
             List<ChatMessage> recent;
             List<string> chat;
@@ -2541,6 +2543,7 @@ namespace CapriDesktop
             {
                 Predicate<KeyValuePair<string, ToolArguments>> runs = typed => act != null && !fileChat && kit.Unable(typed.Key, typed.Value) == null;
                 raw = Chat(model, messages, answerBudget, ticket, runs);
+                if (heartNote.Length > 0) raw = SendHearts(raw, act, ticket);
                 // A call it wrote out as text, like <tool_call>{"name":"open_app",...}</tool_call>, runs as a real one.
                 calls.AddRange(Leaks.Taken(raw).FindAll(runs));
                 // Her brain says "act" when this is a job, in whatever language they said it. A brain that holds her tools then works it
@@ -2565,8 +2568,9 @@ namespace CapriDesktop
                         if (calls.Count == 0 && unable == null && (playing != null || Hands.Wants(request))) Force(calls, request, kit, ref unable);
                         if (calls.Count == 0 && unable == null)
                         {
-                            messages[0] = new ChatMessage("system", steady + kit.ChatOnly + Hands.MiniBoard() + selfGuide + callContext) { Steady = steady.Length };
+                            messages[0] = new ChatMessage("system", steady + kit.ChatOnly + Hands.MiniBoard() + heartNote + selfGuide + callContext) { Steady = steady.Length };
                             raw = Chat(model, messages, answerBudget, ticket, typed => false);
+                            if (heartNote.Length > 0) raw = SendHearts(raw, act, ticket);
                             if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;
                         }
                     }
@@ -2771,6 +2775,19 @@ namespace CapriDesktop
             Logged(text, said);
             followLine = after;
             return said;
+        }
+
+        // Her heart written into a chat reply by a brain on their PC, however sloppily: each one plays, and none of the call's text
+        // is shown or said. A reply that was only the heart says the heart's own line instead of nothing.
+        private string SendHearts(string raw, Func<string, ToolArguments, string> act, int ticket)
+        {
+            string shown = Visible(raw ?? "");
+            if (shown.IndexOf("animate", StringComparison.OrdinalIgnoreCase) < 0) return raw;
+            int hearts;
+            string left = Hands.TakeHearts(shown, out hearts);
+            string line = null;
+            for (int i = 0; i < hearts; i++) { Check(ticket); line = act("animate", new ToolArguments { Name = "heart" }); }
+            return left.Length > 0 ? left : line ?? left;
         }
 
         // F57: on a strong brain she works jobs out herself. Her own brain turns this on; brains made for checks leave it off.

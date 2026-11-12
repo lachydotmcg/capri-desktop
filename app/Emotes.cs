@@ -924,7 +924,7 @@ namespace CapriDesktop
             }
             chair.Release();
             heart.Release();
-            string timing = "", heartRun = "", brainHearts = "";
+            string timing = "", heartRun = "", brainHearts = "", localHearts = "";
             ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
             {
                 Func<string, string> thinkWas = Think;
@@ -1129,6 +1129,74 @@ namespace CapriDesktop
                     }
                     emote.Stop();
                     RenderFrame();
+                    // A small brain on their PC writes her heart into its reply, tidily or not: each one meant plays, and no call
+                    // text is ever shown or said.
+                    {
+                        Cloud localWas = brain.Remote;
+                        string localModelWas = brain.Model, localSaved = Security.Saved;
+                        int localUserWas = callUser, localUserVersionWas = callUserVersion, localAnswerWas = callAnswer;
+                        bool localKeepingWas = Brain.Keeping, localWakeWas = Security.On(Security.Wake), localFollowWas = preferences.FollowUps, localCallWas = CallModeOn;
+                        System.Net.Sockets.TcpListener local = null;
+                        try
+                        {
+                            Security.Load("1111111111");
+                            Brain.Keeping = false;
+                            preferences.FollowUps = false;
+                            Think = null;
+                            Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                            string[,] cases =
+                            {
+                                { "Aww, thank you! animate{\"name\":\"heart\"}", "Aww, thank you!", "1", "at the end" },
+                                { "Aww animate{\"name\":\"heart\"} you're sweet.", "Aww you're sweet.", "1", "in the middle" },
+                                { "Love you too! animate{\"name\":\"heart\"} animate{\"name\":\"heart\"}", "Love you too!", "2", "twice" },
+                                { "Hehe animate{name:heart}", "Hehe", "1", "unquoted" },
+                                { "Sure animate {\"name\": \"heart\"}", "Sure", "1", "spaced" },
+                                { "Here you go animate{\"name\":\"hearts\"}", "Here you go", "1", "hearts" },
+                                { "Thanks! animate{\"name\":\"hea", "Thanks!", "0", "cut off" },
+                                { "animate{\"name\":\"heart\"}", "Here, a little heart for you.", "1", "only the call" },
+                                { "Night! animate{\"name\":\"heart\"}", "Night!", "1", "call mode" }
+                            };
+                            string[] replies = new string[cases.GetLength(0) + 2];
+                            for (int i = 0; i < cases.GetLength(0); i++) replies[i] = says(cases[i, 0]);
+                            replies[replies.Length - 2] = replies[replies.Length - 1] = says("spare");
+                            List<string> localAsked = new List<string>();
+                            brain.Remote = new Cloud(0, "stand-in-local", FakeServer(replies, localAsked, out local));
+                            brain.Model = "stand-in-local";
+                            List<string> heartsSeen = new List<string>();
+                            for (int i = 0; i < cases.GetLength(0); i++)
+                            {
+                                if (cases[i, 3] == "call mode") callSession.Change(true);
+                                emote.Stop();
+                                int before = emote.Plays, want = int.Parse(cases[i, 2]);
+                                Hear("you're great");
+                                System.Diagnostics.Stopwatch answered = System.Diagnostics.Stopwatch.StartNew();
+                                while ((reply == null || emote.Plays < before + want) && answered.Elapsed.TotalSeconds < 15) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                                Pump(0.3);
+                                string shown = reply ?? "";
+                                if (emote.Plays - before != want || shown != cases[i, 1] || shown.IndexOf("animate", StringComparison.OrdinalIgnoreCase) >= 0 || shown.IndexOf('{') >= 0 || shown.IndexOf('}') >= 0)
+                                    throw new Exception("A small brain's heart " + cases[i, 3] + ": " + (emote.Plays - before) + " of " + want + " played and she said \"" + shown + "\".");
+                                heartsSeen.Add(cases[i, 3] + " " + (emote.Plays - before));
+                                CloseTalk();
+                                brain.Forget();
+                            }
+                            string first;
+                            lock (localAsked) first = localAsked.Count > 0 ? localAsked[0] : "";
+                            if (first.IndexOf("end your reply with animate", StringComparison.Ordinal) < 0) throw new Exception("A brain on this PC wasn't told it can write her heart.");
+                            localHearts = "a brain on this PC writing her heart played it (" + string.Join(", ", heartsSeen.ToArray()) + ") with no call text shown or said; only the call says her heart line";
+                        }
+                        finally
+                        {
+                            if (local != null) local.Stop();
+                            callSession.Change(localCallWas);
+                            callUser = localUserWas; callUserVersion = localUserVersionWas; callAnswer = localAnswerWas;
+                            brain.Remote = localWas; brain.Model = localModelWas;
+                            Brain.Keeping = localKeepingWas; preferences.FollowUps = localFollowWas;
+                            Security.Drop(); Security.Load(localSaved, localWakeWas);
+                            brain.Forget();
+                            Think = null;
+                            emote.Stop();
+                        }
+                    }
                     // And after it all, her hands still work: a plain draw goes through.
                     {
                         Func<ToolArguments, string> drawWas = Hands.Draw;
@@ -1160,6 +1228,7 @@ namespace CapriDesktop
             checks.Add("PASS emotes: her chair (301 frames) and her heart (105 frames, art: Qewiw) play their own frames at 30 a second, the chair at her size with her black body kept; asks, typed or said, and Vergil or Devil May Cry set them off, look-alikes don't; a mention still gets her answer, and a heard Virgil counts where a typed one doesn't; she comes back where she was, standing, perched or lying; Motion off keeps her put");
             checks.Add("PASS her heart's quick copy: " + copyPath);
             checks.Add("PASS hearts have no cooldown: " + heartRun + "; " + brainHearts);
+            checks.Add("PASS small brains' hearts: " + localHearts);
             checks.Add("PASS emotes played in real time on this desktop, next frames decoded ahead: " + timing);
         }
         // Smoke only, asked for by name with CAPRI_EMOTE_FILM set to a folder: records of her real windows on this (hidden)

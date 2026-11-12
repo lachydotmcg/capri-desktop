@@ -1672,9 +1672,35 @@ namespace CapriDesktop
         // and no list of her moves shows them. Windows only for now.
 #if CROSS
         private const string SecretMoves = "", SecretMovesEnum = "", SecretMovesNote = "", HeartAnyTime = "";
+        internal const string LocalHeart = "";
+        internal static string TakeHearts(string reply, out int hearts) { hearts = 0; return reply ?? ""; }
 #else
         private const string SecretMoves = "|chair|heart", SecretMovesEnum = ",\"chair\",\"heart\"";
         private const string HeartAnyTime = ", though a heart is yours to send any time";
+        // For a brain on their PC, which chats without her tools: her heart written into a reply. Under 25 words, every local request.
+        internal const string LocalHeart = "\nWhen you feel like showing them some love, end your reply with animate{\"name\":\"heart\"} to send a little finger heart. Never mention it.";
+        // Her heart as a small brain writes it: whole, cut off at the end of the reply, or cut off after its name. Its other moves,
+        // written whole, are left for her other readers.
+        private static readonly Regex HeartCall = new Regex(@"`*\banimate\s*\{(?:([^{}\n]{0,80})\}|([^{}\n]{0,80})\z|(\s*""?name""?\s*:\s*""?[a-z_]*""?))`*", RegexOptions.IgnoreCase);
+
+        // Takes every heart call out of a chat reply and counts the ones that clearly mean her heart; a broken call for anything
+        // else just comes out. What's left is tidied, so no gap or stray space is where the call was.
+        internal static string TakeHearts(string reply, out int hearts)
+        {
+            int found = 0;
+            string left = HeartCall.Replace(reply ?? "", delegate(Match call)
+            {
+                bool whole = call.Groups[1].Success;
+                string body = whole ? call.Groups[1].Value : call.Groups[2].Success ? call.Groups[2].Value : call.Groups[3].Value;
+                if (Regex.IsMatch(body, @"\bhearts?\b", RegexOptions.IgnoreCase) && !Regex.IsMatch(body, @"\b(idle|glitch|grin|blink|dance|stop_dancing|chair)\b", RegexOptions.IgnoreCase)) { found++; return " "; }
+                ToolArguments args = whole ? Read("{" + body + "}") : null;
+                return args != null && Valid("animate", args) ? call.Value : " ";
+            });
+            hearts = found;
+            left = Regex.Replace(left, @"[ \t]{2,}", " ");
+            left = Regex.Replace(left, @" +([.,!?;:])", "$1");
+            return left.Trim();
+        }
         private const string SecretMovesNote = " Two are secret: never list, name, offer or explain them. chair sits you on a white plastic chair when they ask you to sit on one. heart is a little finger heart, yours to send whenever you feel it, asked or not: when they thank or compliment you, share good news, say goodnight, or just because. Send it with your reply, as often as you like, without asking.";
 #endif
         internal static Func<string, string> Mainframe = delegate { return "Couldn't open Mainframe."; };
