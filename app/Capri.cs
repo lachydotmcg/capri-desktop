@@ -40213,6 +40213,7 @@ namespace CapriDesktop
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
             Section(checks, "SmokePlanBrain", delegate { SmokePlanBrain(checks); });
+            Section(checks, "SmokeLeaks", delegate { SmokeLeaks(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
             Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });
