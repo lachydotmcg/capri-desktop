@@ -141,7 +141,7 @@ namespace CapriDesktop
             string plan = Path.Combine(notes, "PLAN.md"), markup = Path.Combine(notes, "attempt-1-lachys-markup.png");
             File.WriteAllText(plan, "plan");
             File.WriteAllText(markup, "picture");
-            List<string> saved = new List<string>(), crowded = new List<string>();
+            List<string> saved = new List<string>(), crowded = new List<string>(), cueless = new List<string>();
             // The pictures show the stand-in folders where a person's projects would be, never the test's own temp path.
             Func<string, string> alias = delegate(string path)
             {
@@ -160,6 +160,7 @@ namespace CapriDesktop
                 Application.DoEvents();
                 string problem = window.Crowded();
                 if (problem != null) crowded.Add(name + ": " + problem);
+                if (menu == null) using (Bitmap copy = LookShots.Copy(window)) if (window.CueMissing(copy)) cueless.Add(name);
                 string path = Path.Combine(pictures, name + ".png");
                 LookShots.Save(window, path, menu);
                 saved.Add(path);
@@ -318,6 +319,7 @@ namespace CapriDesktop
                     }
                 }
             }
+            SmokeWorkspaceEdits(checks, folder, projects, pipe, alias, shoot);
             bool shown = mainframe.Visible;
             FormWindowState state = mainframe.WindowState;
             try
@@ -353,7 +355,141 @@ namespace CapriDesktop
             foreach (string path in saved) if (!File.Exists(path) || new FileInfo(path).Length < 2000) throw new Exception("Workspace look picture missing: " + path);
             checks.Add("PASS Workspace look pictures saved: " + saved.Count + " in " + pictures);
             if (crowded.Count > 0) throw new Exception("Workspace look is crowded: " + string.Join(" | ", crowded.ToArray()));
-            checks.Add("PASS Workspace look: nothing outside, overlapping or cut off in any of the " + (saved.Count - 1) + " Workspace pictures");
+            checks.Add("PASS Workspace look: nothing outside, overlapping or cut off in any of the " + (saved.Count - 3) + " Workspace pictures");
+            if (cueless.Count > 0) throw new Exception("Workspace's empty message box lost its cue in: " + string.Join(", ", cueless.ToArray()));
+            checks.Add("PASS Workspace's empty message box shows its cue in every picture where it's empty and uncovered");
+        }
+
+        // An Edit through the real path: a stand-in claude.cmd streams a real-shaped Edit call and its result, Capri's approval
+        // hook's undo copy is made as the hook would make it, and the card shows the removed and added lines from the tool's
+        // own input. They survive a restart, Undo last edits follows the engine's own answer after the edit and after an undo,
+        // and a 5,000-line Write keeps at most Workspace.ShownAll letters for its card and lays out quickly.
+        private void SmokeWorkspaceEdits(List<string> checks, string folder, string projects, string pipe, Func<string, string> alias, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            string box = Path.Combine(folder, "edits"), project = Path.Combine(projects, "shop"), data = Path.Combine(box, "data");
+            Directory.CreateDirectory(box);
+            Directory.CreateDirectory(project);
+            string file = Path.Combine(project, "Window.cs"), session = Guid.NewGuid().ToString();
+            string before = "class Window\n{\n    void Resized() { Place(); }\n}\n";
+            string oldText = "    void Resized() { Place(); }";
+            string newText = "    void Resized() { Shape(); Place(); }\n\n    // Cuts the window to her frame's corners.\n    void Shape() { Neon.Clip(this, Z(16), Z(6)); }";
+            File.WriteAllText(file, before);
+            string standin = WorkspaceRawStandin(box, session, true), finish = Path.Combine(box, "finish"), stream = Path.Combine(box, "result.txt");
+            Action<string, string, Dictionary<string, object>, string, string> streamOf = delegate(string id, string tool, Dictionary<string, object> input, string result, string words)
+            {
+                StringBuilder lines = new StringBuilder();
+                lines.Append(HuskJson.Write(HuskJson.Map("type", "system", "subtype", "init", "session_id", session, "cwd", project, "model", "claude-sonnet-4-5"))).Append('\n');
+                lines.Append(HuskJson.Write(HuskJson.Map("type", "assistant", "session_id", session, "message", HuskJson.Map("role", "assistant", "content", new List<object> { HuskJson.Map("type", "tool_use", "id", id, "name", tool, "input", input) })))).Append('\n');
+                lines.Append(HuskJson.Write(HuskJson.Map("type", "user", "session_id", session, "message", HuskJson.Map("role", "user", "content", new List<object> { HuskJson.Map("type", "tool_result", "tool_use_id", id, "content", result) })))).Append('\n');
+                lines.Append(HuskJson.Write(HuskJson.Map("type", "assistant", "session_id", session, "message", HuskJson.Map("role", "assistant", "content", new List<object> { HuskJson.Map("type", "text", "text", words) })))).Append('\n');
+                lines.Append(HuskJson.Write(HuskJson.Map("type", "result", "subtype", "success", "is_error", false, "duration_ms", 1200, "total_cost_usd", 0.02, "session_id", session, "result", words))).Append('\n');
+                File.WriteAllText(stream, lines.ToString(), new UTF8Encoding(false));
+            };
+            // One turn: sent from the box, the hook's undo copy, the edit itself on disk, then Claude Code's stream.
+            Action<WorkspaceWindow, Workspace, WorkspaceChat, string, string, Dictionary<string, object>, string, string> turnOf =
+                delegate(WorkspaceWindow window, Workspace work, WorkspaceChat chat, string asked, string tool, Dictionary<string, object> input, string target, string after)
+            {
+                File.Delete(finish);
+                window.Input.Text = asked;
+                window.TypeInto(window.Input, Keys.Enter);
+                WorkspaceTurn live = chat.Live;
+                if (live == null) throw new Exception("Workspace didn't start the edit turn.");
+                work.Snapshot(chat, live.Id, tool, input, project);
+                File.WriteAllText(target, after);
+                streamOf("toolu_" + tool.ToLowerInvariant(), tool, input, "The file " + target + " has been updated.", "Done.");
+                File.WriteAllText(finish, "go");
+                if (!live.Done.WaitOne(15000)) throw new Exception("The stand-in edit turn didn't finish.");
+                File.Delete(finish);
+                WorkspaceWait(delegate { Application.DoEvents(); return chat.Live == null && window.Find("Send") != null; }, "Workspace didn't settle after the edit turn.");
+                Application.DoEvents();
+            };
+            Func<WorkspaceWindow, bool> diffShown = delegate(WorkspaceWindow window)
+            {
+                window.ToggleTool("toolu_edit");
+                List<string> rows = window.ToolWell("toolu_edit");
+                return rows.Contains("R- " + oldText) && rows.Contains("G+ " + oldText.Replace("Place();", "Shape(); Place();")) && rows.Contains("G+     void Shape() { Neon.Clip(this, Z(16), Z(6)); }");
+            };
+            string chatId;
+            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+            {
+                work.Executable = standin;
+                WorkspaceChat chat = work.NewChat(project, false);
+                work.Trust(chat, true);
+                chat.TrustAsked = true;
+                work.Change(chat, "Shape on resize", null, null);
+                chatId = chat.Id;
+                using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+                {
+                    window.PathAlias = alias;
+                    window.Location = new Point(40, 40);
+                    window.Show(this);
+                    window.ClientSize = new Size(1080, 740);
+                    window.ShowChat(chat);
+                    Application.DoEvents();
+                    if (window.UndoOffered || work.CanUndo(chat)) throw new Exception("Undo last edits was offered before any edit.");
+                    using (Bitmap blank = new Bitmap(window.Width, window.Height))
+                    {
+                        using (Graphics graphics = Graphics.FromImage(blank)) graphics.Clear(Neon.Field);
+                        if (!window.CueMissing(blank)) throw new Exception("The cue check didn't notice a message box with no cue.");
+                    }
+                    using (Bitmap copy = LookShots.Copy(window)) if (window.CueMissing(copy)) throw new Exception("The empty message box has no cue in a new chat.");
+                    turnOf(window, work, chat, "Shape the window on every resize.", "Edit", HuskJson.Map("file_path", file, "old_string", oldText, "new_string", newText), file, before.Replace(oldText, newText));
+                    WorkspaceItem tool = WorkspaceItems(chat).Find(delegate(WorkspaceItem item) { return item.Kind == "tool" && item.Name == "Edit"; });
+                    if (tool == null || tool.Input.Length == 0) throw new Exception("The Edit card didn't keep the tool's input.");
+                    if (!work.CanUndo(chat)) throw new Exception("The engine had nothing to undo after the edit landed.");
+                    WorkspaceWait(delegate { Application.DoEvents(); return window.UndoOffered; }, "Undo last edits didn't light up after the edit landed.");
+                    if (!diffShown(window)) throw new Exception("The Edit card didn't show the removed and added lines: " + string.Join(" / ", window.ToolWell("toolu_edit").ToArray()));
+                    window.ScrollToEnd();
+                    shoot(window, "18-undo-ready", null);
+                    work.Flush(chat);
+                    window.Close();
+                }
+            }
+            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+            {
+                work.Executable = standin;
+                WorkspaceChat chat = work.Chats().Find(delegate(WorkspaceChat found) { return found.Id == chatId; });
+                if (chat == null) throw new Exception("The edited chat didn't come back after a restart.");
+                work.Trust(chat, true);
+                chat.TrustAsked = true;
+                using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+                {
+                    window.PathAlias = alias;
+                    window.Location = new Point(40, 40);
+                    window.Show(this);
+                    window.ClientSize = new Size(1080, 740);
+                    window.ShowChat(chat);
+                    Application.DoEvents();
+                    if (!diffShown(window)) throw new Exception("The Edit card's diff didn't survive a restart: " + string.Join(" / ", window.ToolWell("toolu_edit").ToArray()));
+                    if (window.UndoOffered != work.CanUndo(chat) || !window.UndoOffered) throw new Exception("After a restart Undo last edits didn't match the engine's answer.");
+                    window.Find("Undo last edits").PerformClick();
+                    WorkspaceWait(delegate { Application.DoEvents(); return !window.UndoOffered; }, "Undo last edits stayed on after the undo.");
+                    if (work.CanUndo(chat) || File.ReadAllText(file) != before) throw new Exception("The undo didn't put the file back, or the engine still had something to undo.");
+                    window.ScrollToEnd();
+                    shoot(window, "19-undo-done", null);
+
+                    StringBuilder big = new StringBuilder();
+                    for (int i = 0; i < 5000; i++) big.Append("line ").Append(i).Append(" of a very large file that Claude Code writes in one go\n");
+                    string bigFile = Path.Combine(project, "big.txt");
+                    turnOf(window, work, chat, "Write the big file.", "Write", HuskJson.Map("file_path", bigFile, "content", big.ToString()), bigFile, big.ToString());
+                    WorkspaceItem written = WorkspaceItems(chat).Find(delegate(WorkspaceItem item) { return item.Kind == "tool" && item.Name == "Write"; });
+                    if (written == null || written.Input.Length == 0 || written.Input.Length > Workspace.ShownAll + 1000) throw new Exception("The 5,000-line Write kept " + (written == null ? 0 : written.Input.Length) + " letters for its card.");
+                    work.Flush(chat);
+                    long saved = new FileInfo(Path.Combine(work.Root, "chats", chat.Id + ".json")).Length;
+                    if (saved > 150000) throw new Exception("The saved chat grew to " + saved + " bytes with a 5,000-line Write.");
+                    Stopwatch clock = Stopwatch.StartNew();
+                    window.RefreshChat();
+                    window.ToggleTool("toolu_write");
+                    window.Refresh();
+                    long took = clock.ElapsedMilliseconds;
+                    List<string> rows = window.ToolWell("toolu_write");
+                    if (took > 1000 || rows.Count == 0 || rows.Count > 14 || !rows[0].StartsWith("G+ line 0", StringComparison.Ordinal)) throw new Exception("The 5,000-line Write card took " + took + " ms or showed " + rows.Count + " rows.");
+                    WorkspaceItem old = WorkspaceItem.Read(HuskJson.Map("kind", "tool", "text", "Edit " + file, "name", "Edit", "id", "o", "turn", "x"));
+                    if (old.Input.Length != 0) throw new Exception("An old saved tool card read back an input it never had.");
+                    checks.Add("PASS Workspace Edit cards show the removed and added lines from Claude Code's own tool input, through a stand-in claude.cmd stream, and keep them across a restart; Undo last edits is on exactly when the engine can undo, after the edit and after a restart, and off after the undo; a 5,000-line Write keeps " + written.Input.Length + " letters for its card (cap " + Workspace.ShownLines + " lines and " + Workspace.ShownChars + " letters a text, " + Workspace.ShownAll + " in all), saves a " + saved + "-byte chat and lays out in " + took + " ms; old saved cards without an input still load");
+                    window.Close();
+                }
+            }
         }
     }
 
