@@ -2542,7 +2542,7 @@ namespace CapriDesktop
             if (calls.Count == 0 && !planned && unable == null)
             {
                 Predicate<KeyValuePair<string, ToolArguments>> runs = typed => act != null && !fileChat && kit.Unable(typed.Key, typed.Value) == null;
-                raw = Chat(model, messages, answerBudget, ticket, runs);
+                raw = Chat(model, messages, answerBudget, ticket, runs, heartNote.Length > 0);
                 if (heartNote.Length > 0) raw = SendHearts(raw, act, ticket);
                 // A call it wrote out as text, like <tool_call>{"name":"open_app",...}</tool_call>, runs as a real one.
                 calls.AddRange(Leaks.Taken(raw).FindAll(runs));
@@ -2569,7 +2569,7 @@ namespace CapriDesktop
                         if (calls.Count == 0 && unable == null)
                         {
                             messages[0] = new ChatMessage("system", steady + kit.ChatOnly + Hands.MiniBoard() + heartNote + Hands.SkillNote() + selfGuide + callContext) { Steady = steady.Length };
-                            raw = Chat(model, messages, answerBudget, ticket, typed => false);
+                            raw = Chat(model, messages, answerBudget, ticket, typed => false, heartNote.Length > 0);
                             if (heartNote.Length > 0) raw = SendHearts(raw, act, ticket);
                             if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;
                         }
@@ -3442,11 +3442,15 @@ namespace CapriDesktop
         // Her chat reply. One that was only its thinking, or a call she has no tool for, is asked once more for just her answer, so
         // she never shows an empty bubble for it. If that's empty too she says the model only thought. Thinking in plain words is a
         // guess, so a second reply that still reads like it is shown as it came.
-        private string Chat(string model, List<ChatMessage> messages, int budget, int ticket, Predicate<KeyValuePair<string, ToolArguments>> runs)
+        private string Chat(string model, List<ChatMessage> messages, int budget, int ticket, Predicate<KeyValuePair<string, ToolArguments>> runs, bool hearts = false)
         {
             string raw = null;
             try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, budget, ticket); }
             catch (BrainException error) { if (error.Detail != Leaks.OnlyThought) throw; }
+            // A small brain on their PC that answered with only her heart has said something: the heart is sent and she says its
+            // line, so it isn't asked again (and the heart lost) for words it never meant to add.
+            int sent;
+            if (raw != null && hearts && Hands.TakeHearts(Visible(raw), out sent).Length == 0 && sent > 0) return raw;
             if (raw != null && ((!Leaks.Mused(Visible(raw)) && Clean(Leaks.Unmused(Visible(raw))).Length > 0) || Leaks.Kinds(raw).Count == 0 || Leaks.Taken(raw).Exists(runs))) return raw;
             Log("leak", -1, Leaks.Who + ": nothing left to say, asking again for just the answer");
             List<ChatMessage> again = new List<ChatMessage>(messages);
