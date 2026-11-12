@@ -1337,17 +1337,50 @@ namespace CapriDesktop
             internal int First_Line { get { return IsHandleCreated ? Native.SendMessage(Handle, 0x00CE, IntPtr.Zero, IntPtr.Zero).ToInt32() : 0; } }
             internal int Visible_Lines { get { return Math.Max(1, ClientSize.Height / Math.Max(1, Font.Height)); } }
 
-            // The cue is drawn over the box's own painting whenever it's empty, focused or not: after each paint, into each
-            // print (WM_PRINTCLIENT, which is how Windows copies the box), and the box repaints whenever it gains or loses focus
-            // or empties, since the edit control draws those changes straight to the screen without a paint.
+            [StructLayout(LayoutKind.Sequential)]
+            private struct PaintSheet
+            {
+                internal IntPtr Dc;
+                internal bool Erase;
+                internal int Left, Top, Right, Bottom;
+                internal bool Restore, Update;
+                [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)] internal byte[] Reserved;
+            }
+
+            [DllImport("user32.dll")] private static extern IntPtr BeginPaint(IntPtr window, out PaintSheet sheet);
+            [DllImport("user32.dll")] private static extern bool EndPaint(IntPtr window, ref PaintSheet sheet);
+
+            // While the box is empty its whole paint is hers, in one go: the field and the cue, focused or not. An empty edit
+            // control has nothing else to draw (the caret is Windows' own), so the cue can't be lost between the control's paint
+            // and a second one on top. A print (WM_PRINTCLIENT, how Windows copies the box) gets the same, and the box repaints
+            // whenever it gains or loses focus or empties.
             protected override void WndProc(ref Message message)
             {
-                base.WndProc(ref message);
                 int kind = message.Msg;
-                if (kind == 0x000F && CueWanted) using (Graphics graphics = CreateGraphics()) DrawCue(graphics);
-                if (kind == 0x0318 && CueWanted && message.WParam != IntPtr.Zero) using (Graphics graphics = Graphics.FromHdc(message.WParam)) DrawCue(graphics);
+                if (kind == 0x000F && CueWanted && message.WParam == IntPtr.Zero)
+                {
+                    PaintSheet sheet;
+                    IntPtr dc = BeginPaint(Handle, out sheet);
+                    try { using (Graphics graphics = Graphics.FromHdc(dc)) PaintEmpty(graphics); }
+                    finally { EndPaint(Handle, ref sheet); }
+                    message.Result = IntPtr.Zero;
+                    return;
+                }
+                if (kind == 0x0318 && CueWanted && message.WParam != IntPtr.Zero)
+                {
+                    using (Graphics graphics = Graphics.FromHdc(message.WParam)) PaintEmpty(graphics);
+                    message.Result = IntPtr.Zero;
+                    return;
+                }
+                base.WndProc(ref message);
                 if ((kind == 0x0007 || kind == 0x0008) && TextLength == 0) Invalidate();
                 if ((kind == 0x020A || kind == 0x0115 || kind == 0x0100) && Scrolled != null) Scrolled();
+            }
+
+            private void PaintEmpty(Graphics graphics)
+            {
+                using (Brush field = new SolidBrush(BackColor)) graphics.FillRectangle(field, ClientRectangle);
+                DrawCue(graphics);
             }
 
             private bool CueWanted { get { return TextLength == 0 && Cue.Length > 0 && CueFont != null; } }
