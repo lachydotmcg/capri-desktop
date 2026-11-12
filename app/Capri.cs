@@ -1997,6 +1997,26 @@ namespace CapriDesktop
         private readonly Clip blinkGlitch = new Clip("blink_glitch", 4, 8, 1.11f, 0, 0, true);
         private readonly Clip grin = new Clip("grin", 16, 8, 1.11f);
         private readonly Clip glitch = new Clip("glitch", 10, 15, 1.11f);
+        // glitch.png is drawn on her old standing art. On her artist's standing set her glitch is drawn under her instead, in
+        // the same ten steps at 15 fps, while her standing loop plays on over it from where it was. Legacy stand, a skin in
+        // the old cells, and a skin with its own glitch.png still play the strip.
+        private static readonly double[] UnderStrength = { 0.5, 1.0, 0.8, 1.0, 0.6, 0.9, 0.5, 0.7, 0.3, 0.1 };
+        private double underFrom;
+        private int underSeed, drawnUnder = -1;
+        private string underSkin;
+        private bool underSkinned;
+
+        private bool GlitchUnder(Clip shown)
+        {
+            if (shown != glitch || idle.Old) return false;
+            string skin = SkinFolder;
+            if (!ReferenceEquals(skin, underSkin)) { underSkin = skin; underSkinned = skin != null && File.Exists(Path.Combine(skin, "glitch.png")); }
+            return !underSkinned;
+        }
+
+        private int UnderCell(double now) { return preferences.Motion ? (int)(Math.Max(0, now - underFrom) * idle.Fps) % idle.Count : 0; }
+
+        private int UnderReach() { return (int)Math.Ceiling(Shatter.UnderReach * preferences.Size * idle.Height / 384) + 2; }
         private readonly Clip dangle = new Clip("dangle", 24, 10, 1.11f);
         private readonly Clip sleep = new Clip("sleep", 16, 6, 1.11f);
         private readonly Clip wake = new Clip("wake", 13, 15, 1.11f);
@@ -3439,8 +3459,19 @@ namespace CapriDesktop
                 if (aside) asideAt = anchor;
                 Location = anchor;
             }
+            Clip from = clip;
+            double fromStart = clipStart;
+            bool under = GlitchUnder(from);
             clip = next;
             clipStart = clock.Elapsed.TotalSeconds;
+            // Glitching from her standing loop, it goes on under the glitch from the frame it was on, and picks up after it.
+            if (next == glitch && from != glitch)
+            {
+                double loop = idle.Count / idle.Fps;
+                underFrom = from == idle && fromStart <= clipStart ? clipStart - (clipStart - fromStart) % loop : clipStart;
+                underSeed = random.Next(1 << 20);
+            }
+            else if (next == idle && under) clipStart = underFrom;
             idleCycle = 0;
             perchMix = 0;
             drawnStep = -1;
@@ -3501,7 +3532,7 @@ namespace CapriDesktop
             // Lying needs her ledge still under her: anything else sits her back up first, her hip where it was.
             if (lying && (seat == null || riding || onPanel || walking || falling || hanging || dragging)) SitUp(false);
             if (seated) { if (lying) WarmLie(); else WarmPerch(); }
-            if (facingLeft && (clip == idle || clip == dance)) WarmStand();
+            if (facingLeft && (clip == idle || clip == dance || clip == glitch)) WarmStand();
             if (perched && (!seated || (lain && !lying && clip != laydownLeave)) && !walking) Play(lying ? laydown : perch);
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
             // An arrival that waits for her ribbons can start a moment from now, and holds its first frame until then.
@@ -3512,7 +3543,7 @@ namespace CapriDesktop
             if (clip == idle && Resting(now)) index = (int)((long)((now - clipStart) * SaverFps) * clip.Fps / SaverFps);
             if (clip == perchSleep) return PerchSleepCell;
             if (clip == leave || clip == perchLeave || clip == laydownLeave) return Math.Min(index, clip.Count - 1);
-            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = 0; }
+            if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = Math.Max(0, (int)((now - clipStart) * clip.Fps)); }
             if (clip == arrive && index >= arrive.Count)
             {
                 Play(idle);
@@ -15016,9 +15047,11 @@ namespace CapriDesktop
             int talk = MouthCell(now, shown);
             if (PerchTalks(TalkingNow)) { shown = perchTalk; cell = loopCell; }
             else if (LieTalks(TalkingNow)) { shown = laydownTalk; cell = loopCell; }
+            int under = -1;
+            if (GlitchUnder(shown)) { under = cell; shown = idle; cell = UnderCell(now); }
             UpdateTalk(now);
             if (pill.Visible) UpdatePill(now);
-            if (!BodyChanged(now, shown, cell, talk)) return;
+            if (!BodyChanged(now, shown, cell, talk) && under == drawnUnder) return;
             Bitmap tween = perchMix > 0 ? Tween(shown, cell, following) : null;
             if (bodySurface == null || bodySurface.Image.Size != Size)
             {
@@ -15032,8 +15065,8 @@ namespace CapriDesktop
                 bodySurface.ClearBody();
                 if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyClear += end - phase; phase = end; }
                 bool mods = ModsListen(host => host.drawing != null);
-                if (!CopyBody(bodySurface, shown, cell, talk, tween, now))
-                    using (Graphics graphics = Graphics.FromImage(frame)) Draw(graphics, shown, cell, talk, tween, true, now);
+                if (under >= 0 || !CopyBody(bodySurface, shown, cell, talk, tween, now))
+                    using (Graphics graphics = Graphics.FromImage(frame)) Draw(graphics, shown, cell, talk, tween, true, now, under);
                 if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyDraw += end - phase; phase = end; }
                 if (mods)
                 {
@@ -15044,13 +15077,13 @@ namespace CapriDesktop
                         graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
                         graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                         graphics.SmoothingMode = SmoothingMode.HighQuality;
-                        ModsDraw(graphics, shown, cell);
+                        ModsDraw(graphics, under >= 0 ? glitch : shown, under >= 0 ? under : cell);
                     }
                 }
                 if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyMods += end - phase; phase = end; }
                 if (preferences.Hologram) TintHologram(frame);
                 if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyTint += end - phase; phase = end; }
-                drawnBounds = BodyBounds(shown, now);
+                drawnBounds = BodyBounds(shown, now, under >= 0 ? UnderReach() : 0);
                 Rectangle content = PaintBounds(shown, drawnBounds, mods);
                 Rectangle dirty = bodySurface.Damage(content);
                 if (bodyTiming) { long end = Stopwatch.GetTimestamp(); bodyDiff += end - phase; phase = end; }
@@ -15063,6 +15096,7 @@ namespace CapriDesktop
             drawnClip = shown;
             drawnArt = Art(shown);
             drawnCell = cell;
+            drawnUnder = under;
             drawnMouth = talk;
             drawnMix = perchMix;
             drawnVeil = veiled || now < veilUntil;
@@ -15154,7 +15188,7 @@ namespace CapriDesktop
             return points;
         }
 
-        private Rectangle BodyBounds(Clip shown, double now)
+        private Rectangle BodyBounds(Clip shown, double now, int reach = 0)
         {
             if (veiled || now < veilUntil) return Rectangle.Empty;
             PointF[] points = BodyCorners(shown, now);
@@ -15164,7 +15198,7 @@ namespace CapriDesktop
                 left = Math.Min(left, points[i].X); top = Math.Min(top, points[i].Y);
                 right = Math.Max(right, points[i].X); bottom = Math.Max(bottom, points[i].Y);
             }
-            Rectangle bounds = Rectangle.Intersect(new Rectangle(Point.Empty, Size), Rectangle.FromLTRB((int)Math.Floor(left) - 3, (int)Math.Floor(top) - 3, (int)Math.Ceiling(right) + 3, (int)Math.Ceiling(bottom) + 3));
+            Rectangle bounds = Rectangle.Intersect(new Rectangle(Point.Empty, Size), Rectangle.FromLTRB((int)Math.Floor(left) - 3 - reach, (int)Math.Floor(top) - 3, (int)Math.Ceiling(right) + 3 + reach, (int)Math.Ceiling(bottom) + 3));
             return bounds.Width <= 0 || bounds.Height <= 0 ? Rectangle.Empty : bounds;
         }
 
@@ -15348,7 +15382,7 @@ namespace CapriDesktop
 
         private static float Tilt(double now) { return (float)Math.Sin(now * 0.95) * 0.65f; }
 
-        private void Draw(Graphics graphics, Clip shown, int cell, int talk = -1, Bitmap tween = null, bool cached = true, double at = -1)
+        private void Draw(Graphics graphics, Clip shown, int cell, int talk = -1, Bitmap tween = null, bool cached = true, double at = -1, int under = -1)
         {
             if (veiled || clock.Elapsed.TotalSeconds < veilUntil) return;
             graphics.CompositingMode = CompositingMode.SourceOver;
@@ -15380,6 +15414,7 @@ namespace CapriDesktop
             float shiftX = shown.ShiftX * preferences.Size, shiftY = shown.ShiftY * preferences.Size;
             if (shown == walk && walking && preferences.Motion) Wisp(graphics, now, Math.Sign(walkTo - anchor.X) * (facingLeft ? -1 : 1), wide, tall);
             float nod = shown == dance || shown == perchDance ? NodDepth() : 0;
+            if (under >= 0) Shatter.Under(graphics, strip, new Rectangle(cell * width, 0, width, strip.Height), new RectangleF(-wide / 2f + shiftX, -tall / 2f + shiftY, wide, tall), UnderStrength[under % UnderStrength.Length], underSeed * 16 + under);
             if (nod > 0.002f) Nod(graphics, strip, cell, width, wide, tall, nod, shown == perchDance ? SitNeck : idle.Old ? OldNeck : StandNeck, shiftX, shiftY);
             else if (!cached || tween != null || (shown == walk && walking && preferences.Motion) || !DrawCell(graphics, strip, cell, width, wide, tall, shiftX, shiftY, sway, tilt + (float)leanAngle + Turn() + HuskTurn(now), breathe + HuskDip(now)))
                 graphics.DrawImage(strip, new RectangleF(-wide / 2f + shiftX, -tall / 2f + shiftY, wide, tall), new RectangleF(cell * width, 0, width, strip.Height), GraphicsUnit.Pixel);
@@ -40199,6 +40234,8 @@ namespace CapriDesktop
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
             Section(checks, "SmokeStanding", delegate { string standOut = Path.Combine(output, "standing"); Directory.CreateDirectory(standOut); CheckStanding(checks, standOut); });
             Section(checks, "SmokeLegacyStand", delegate { string legacyOut = Path.Combine(output, "legacy-stand"); Directory.CreateDirectory(legacyOut); CheckLegacyStand(checks, legacyOut); });
+            Section(checks, "SmokeGlitchUnder", delegate { SmokeGlitchUnder(checks, Path.Combine(output, "glitch-under")); });
+            Section(checks, "SmokeGlitchFilm", delegate { SmokeGlitchFilm(checks, Path.Combine(output, "glitch-film")); });
             Section(checks, "SmokeClickEffect", delegate { SmokeClickEffect(checks, output); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });

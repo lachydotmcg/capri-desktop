@@ -1790,6 +1790,72 @@ namespace CapriDesktop
             }
         }
 
+        // How far Under can reach past the sides of her cell, in pixels of her 384-tall art.
+        internal const float UnderReach = 34;
+
+        // Her glitch on her artist's standing set, drawn under her before her frame goes on top: mint and violet ghosts of that
+        // same frame, some of its bands knocked sideways, and a few stray bars. Her own frame stays whole over it, so it shows
+        // around her edges the way the old glitch strip did. cell is her frame in strip, target where it's drawn, and strength
+        // how hard this step glitches, 0 to 1; the same seed draws the same picture.
+        internal static void Under(Graphics graphics, Bitmap strip, Rectangle cell, RectangleF target, double strength, int seed)
+        {
+            if (strength <= 0) return;
+            Random pick = new Random(seed);
+            float unit = target.Height / 384f;
+            float shift = (float)((3 + 5 * strength) * unit);
+            // Her one frame is scaled once to the size she's drawn at, and tinted from that, so the bands are plain copies. Drawn
+            // straight from her 60-frame strip with a tint, GDI+ works through far more of it than each band, and a step took a second.
+            int w = Math.Max(1, (int)Math.Ceiling(target.Width)), h = Math.Max(1, (int)Math.Ceiling(target.Height));
+            Bitmap own = new Bitmap(w, h, PixelFormat.Format32bppPArgb), green = null, violet = null;
+            try
+            {
+                Rectangle whole = new Rectangle(0, 0, w, h);
+                using (Graphics paper = Graphics.FromImage(own))
+                {
+                    paper.CompositingMode = CompositingMode.SourceCopy;
+                    paper.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    paper.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    paper.DrawImage(strip, new RectangleF(0, 0, target.Width, target.Height), cell, GraphicsUnit.Pixel);
+                }
+                green = new Bitmap(w, h, PixelFormat.Format32bppPArgb);
+                violet = new Bitmap(w, h, PixelFormat.Format32bppPArgb);
+                using (ImageAttributes tint = Tint(Mint, 0.15 + 0.75 * strength))
+                using (Graphics paper = Graphics.FromImage(green)) paper.DrawImage(own, whole, 0, 0, w, h, GraphicsUnit.Pixel, tint);
+                using (ImageAttributes tint = Tint(Violet, 0.15 + 0.75 * strength))
+                using (Graphics paper = Graphics.FromImage(violet)) paper.DrawImage(own, whole, 0, 0, w, h, GraphicsUnit.Pixel, tint);
+                // The bands go down whole pixels apart, copied pixel for pixel: a glitch's edges are meant to be hard.
+                GraphicsState kept = graphics.Save();
+                graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+                graphics.PixelOffsetMode = PixelOffsetMode.Half;
+                float left = (float)Math.Round(target.X), high = (float)Math.Round(target.Y);
+                for (int top = 0; top < h; )
+                {
+                    int tall = Math.Min(h - top, Math.Max(3, (int)(h * (0.03 + pick.NextDouble() * 0.13))));
+                    float off = pick.Next(3) == 0 ? (float)((pick.NextDouble() * 2 - 1) * 22 * unit * strength) : 0;
+                    Rectangle from = new Rectangle(0, top, w, tall);
+                    foreach (KeyValuePair<Bitmap, float> layer in new[] { new KeyValuePair<Bitmap, float>(green, off - shift), new KeyValuePair<Bitmap, float>(violet, off + shift), new KeyValuePair<Bitmap, float>(off != 0 ? own : null, off) })
+                        if (layer.Key != null) graphics.DrawImage(layer.Key, new RectangleF(left + (float)Math.Round(layer.Value), high + top, w, tall), from, GraphicsUnit.Pixel);
+                    top += tall;
+                }
+                graphics.Restore(kept);
+            }
+            finally
+            {
+                own.Dispose();
+                if (green != null) green.Dispose();
+                if (violet != null) violet.Dispose();
+            }
+            Color[] bars = { Color.White, Mint, Look.Red, Violet };
+            float middle = target.X + target.Width / 2, room = target.Width / 2 + (UnderReach - 2) * unit;
+            for (int i = 0, count = (int)Math.Round(5 * strength); i < count; i++)
+            {
+                float y = target.Y + target.Height * (float)(0.1 + pick.NextDouble() * 0.8);
+                float width = Math.Min(room * 2, target.Width * (float)(0.3 + pick.NextDouble() * 0.6));
+                float x = Math.Max(middle - room, Math.Min(middle + room - width, middle + target.Width * (float)((pick.NextDouble() - 0.5) * 0.6) - width / 2));
+                using (Brush bar = new SolidBrush(Color.FromArgb((int)(40 + 180 * strength), bars[pick.Next(bars.Length)]))) graphics.FillRectangle(bar, x, y, width, Math.Max(1.5f, (1 + pick.Next(3)) * 1.3f * unit));
+            }
+        }
+
         private static ImageAttributes Tint(Color colour, double alpha)
         {
             ImageAttributes tint = new ImageAttributes();
@@ -3495,6 +3561,268 @@ namespace CapriDesktop
             float s = scale;
             Neon.Frame(e.Graphics, Size, s, 10 * s, 4 * s, 36 * s, 10 * s);
             using (Brush tick = new SolidBrush(Neon.Hot)) e.Graphics.FillRectangle(tick, 12 * s, 12 * s, 2.5f * s, Height - 24 * s);
+        }
+    }
+    internal sealed partial class Companion
+    {
+        // Her glitch on her artist's standing set: drawn through her own RenderFrame, every step is her new frame whole on top
+        // of the underlay made from that same frame, cleared right by the lighter drawing on both facings and at two sizes;
+        // her loop picks up where it was afterwards; Legacy stand still plays the old strip. Pictures go in output.
+        private void SmokeGlitchUnder(List<string> checks, string output)
+        {
+            bool framesWas = frames.Enabled, signalsWas = signals.Enabled, motionWas = preferences.Motion, facingWas = facingLeft, veilWas = veiled, hologramWas = preferences.Hologram;
+            bool hiddenWas = hidden, dockedWas = docked, ridingWas = riding, panelWas = onPanel, fallingWas = falling, draggingWas = dragging, lyingWas = lying, walkingWas = walking;
+            int sizeWas = preferences.Size;
+            Size canvasWas = Size;
+            double startWas = clipStart, veilUntilWas = veilUntil, leanWas = leanAngle, glitchWas = nextGlitch, dizzyWas = dizzyUntil, moodWas = huskMoodAt;
+            Clip clipWas = clip, blinkWas = blinkWith;
+            Ledge seatWas = seat;
+            string speechWas = speech;
+            TalkState talkWas = talkState;
+            List<Note> notesWas = new List<Note>(notes);
+            Directory.CreateDirectory(output);
+            string worst = "";
+            // How many pixels of two pictures differ by more than slack in any channel, and where the first one is.
+            Func<Bitmap, Bitmap, int, int> apart = delegate(Bitmap a, Bitmap b, int slack)
+            {
+                int[] first = new int[a.Width * a.Height], second = new int[b.Width * b.Height];
+                Pixels(a, new Rectangle(Point.Empty, a.Size), first, false);
+                Pixels(b, new Rectangle(Point.Empty, b.Size), second, false);
+                int off = 0;
+                worst = "";
+                for (int i = 0; i < first.Length; i++)
+                    for (int shift = 0; shift < 32; shift += 8)
+                        if (Math.Abs(((first[i] >> shift) & 255) - ((second[i] >> shift) & 255)) > slack)
+                        {
+                            if (off == 0) worst = " first at " + (i % a.Width) + "," + (i / a.Width) + ": 0x" + first[i].ToString("X8") + " against 0x" + second[i].ToString("X8");
+                            off++;
+                            break;
+                        }
+                return off;
+            };
+            // What she should look like: the underlay for that step made from her standing frame, then the frame over it, from
+            // her cell cache as her window draws it.
+            Func<int, int, Bitmap> expect = delegate(int step, int cell)
+            {
+                Bitmap drawn = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb);
+                using (Graphics graphics = Graphics.FromImage(drawn))
+                {
+                    graphics.CompositingMode = CompositingMode.SourceOver;
+                    graphics.CompositingQuality = CompositingQuality.HighQuality;
+                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphics.SmoothingMode = SmoothingMode.HighQuality;
+                    graphics.TranslateTransform(Width / 2f, Height / 2f);
+                    if (facingLeft) graphics.ScaleTransform(-1, 1);
+                    Bitmap art = Art(idle);
+                    int width = art.Width / idle.Count;
+                    float tall = preferences.Size * idle.Height, wide = tall * width / art.Height;
+                    RectangleF target = new RectangleF(-wide / 2f + idle.ShiftX * preferences.Size, -tall / 2f + idle.ShiftY * preferences.Size, wide, tall);
+                    Rectangle from = new Rectangle(cell * width, 0, width, art.Height);
+                    if (step >= 0) Shatter.Under(graphics, art, from, target, UnderStrength[step], underSeed * 16 + step);
+                    if (!DrawCell(graphics, art, cell, width, wide, tall, target.X + wide / 2f, target.Y + tall / 2f, 0, 0, 0)) graphics.DrawImage(art, target, from, GraphicsUnit.Pixel);
+                }
+                return drawn;
+            };
+            Func<Bitmap> shot = delegate
+            {
+                Bitmap copy = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb);
+                int[] pixels = new int[Width * Height];
+                Pixels(bodySurface.Image, new Rectangle(Point.Empty, Size), pixels, false);
+                Pixels(copy, new Rectangle(Point.Empty, Size), pixels, true);
+                return copy;
+            };
+            try
+            {
+                frames.Stop(); signals.Stop();
+                hidden = docked = riding = onPanel = falling = dragging = lying = walking = false;
+                seat = null;
+                veiled = false; veilUntil = -1; leanAngle = 0; dizzyUntil = huskMoodAt = -100;
+                nextGlitch = double.MaxValue;
+                speech = null; talkState = TalkState.Off;
+                notes.Clear();
+                preferences.Hologram = false;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                if (idle.Old || !GlitchUnder(glitch)) throw new Exception("Her own art with no skin didn't put her glitch under her.");
+
+                int stepsChecked = 0, underPixels = int.MaxValue, oldOnly = int.MaxValue;
+                foreach (int size in new[] { 240, 480 })
+                    foreach (bool left in new[] { false, true })
+                    {
+                        preferences.Size = size;
+                        Size = CanvasSize(size);
+                        facingLeft = left;
+                        preferences.Motion = false;
+                        idle.Load(left);
+                        bodyCells.Clear(); drawnClip = null;
+                        Play(idle);
+                        RenderFrame();
+                        Play(glitch);
+                        string tag = (left ? "left" : "right") + "-" + size;
+                        for (int step = 0; step < glitch.Count; step++)
+                        {
+                            for (int tries = 0; tries < 3; tries++)
+                            {
+                                clipStart = clock.Elapsed.TotalSeconds - (step + 0.5) / glitch.Fps;
+                                RenderFrame();
+                                if (drawnUnder == step) break;
+                            }
+                            if (clip != glitch || drawnUnder != step || drawnClip != idle || drawnArt != Art(idle))
+                                throw new Exception("Step " + step + " of her glitch (" + tag + ") wasn't her standing frame over the underlay: clip " + clip.Title + ", drawn " + (drawnClip == null ? "none" : drawnClip.Title) + ", under " + drawnUnder);
+                            using (Bitmap got = shot())
+                            using (Bitmap wanted = expect(step, 0))
+                            using (Bitmap plain = expect(-1, 0))
+                            using (Bitmap old = Stood(glitch, step))
+                            {
+                                int off = apart(got, wanted, 2);
+                                if (off > 0) throw new Exception("Step " + step + " of her glitch (" + tag + ") isn't her standing frame over its underlay: " + off + " pixels off," + worst);
+                                // Wherever her own frame is solid, she's exactly her own frame: nothing is drawn over her.
+                                int[] her = new int[Width * Height], seen = new int[Width * Height], before = new int[Width * Height];
+                                Pixels(plain, new Rectangle(Point.Empty, Size), her, false);
+                                Pixels(got, new Rectangle(Point.Empty, Size), seen, false);
+                                Pixels(old, new Rectangle(Point.Empty, Size), before, false);
+                                int covered = 0, under = 0, oldShown = 0;
+                                for (int i = 0; i < her.Length; i++)
+                                {
+                                    if (((uint)her[i] >> 24) == 255 && Math.Abs((her[i] & 255) - (seen[i] & 255)) + Math.Abs(((her[i] >> 8) & 255) - ((seen[i] >> 8) & 255)) + Math.Abs(((her[i] >> 16) & 255) - ((seen[i] >> 16) & 255)) > 6) covered++;
+                                    if (her[i] == 0 && seen[i] != 0) under++;
+                                    if (((uint)before[i] >> 24) > 128 && ((uint)seen[i] >> 24) <= 128) oldShown++;
+                                }
+                                if (covered > 0) throw new Exception("Something was drawn over her own frame in step " + step + " (" + tag + "): " + covered + " pixels.");
+                                if (UnderStrength[step] >= 0.5 && under < 200) throw new Exception("Step " + step + " (" + tag + ") showed hardly any underlay: " + under + " pixels.");
+                                if (UnderStrength[step] >= 0.5) underPixels = Math.Min(underPixels, under);
+                                oldOnly = Math.Min(oldOnly, oldShown);
+                                if (size == 240) { got.Save(Path.Combine(output, "after-" + tag + "-" + step + ".png"), ImageFormat.Png); old.Save(Path.Combine(output, "before-" + tag + "-" + step + ".png"), ImageFormat.Png); }
+                            }
+                            stepsChecked++;
+                        }
+                        // Past its last step she's back on her loop, and the lighter drawing clears every pixel of the underlay.
+                        clipStart = clock.Elapsed.TotalSeconds - (glitch.Count + 0.2) / glitch.Fps;
+                        RenderFrame();
+                        if (clip != idle || drawnClip != idle || drawnUnder != -1) throw new Exception("Her glitch (" + tag + ") didn't end on her standing loop: " + clip.Title);
+                        using (Bitmap got = shot())
+                        using (Bitmap wanted = expect(-1, 0))
+                        {
+                            int off = apart(got, wanted, 2);
+                            if (off > 0) throw new Exception("After her glitch (" + tag + ") the lighter drawing left " + off + " pixels of it behind," + worst);
+                        }
+                    }
+                checks.Add("PASS glitch under her: on her artist's standing set each of its 10 steps is her own standing frame, untouched, over mint and violet ghosts, knocked-aside bands and bars made from that same frame, and nothing from glitch.png; facing right and left at 240 and 480 (" + stepsChecked + " steps, at least " + underPixels + " underlay pixels on a strong step, where the old strip would have shown at least " + oldOnly + " pixels of old art outside her new frame), and afterwards the lighter drawing clears every pixel of it");
+
+                // Her loop runs on under the glitch from the frame it was on and carries on from there after it.
+                preferences.Size = 240;
+                Size = CanvasSize(240);
+                facingLeft = false;
+                preferences.Motion = true;
+                Play(idle);
+                clipStart = clock.Elapsed.TotalSeconds - 10.5 / idle.Fps - 3 * idle.Count / idle.Fps;
+                double loopStart = clipStart;
+                Play(glitch);
+                double now = clock.Elapsed.TotalSeconds;
+                int during = UnderCell(now), expected = (int)((now - loopStart) * idle.Fps) % idle.Count;
+                if (during != expected || during < 10 || during > 14) throw new Exception("Under her glitch her loop didn't carry on from its frame: " + during + " against " + expected);
+                clipStart -= 0.7; underFrom -= 0.7;
+                now = clock.Elapsed.TotalSeconds;
+                int last = UnderCell(now - 0.001);
+                int back = Advance(now);
+                if (clip != idle || clipStart != underFrom || back != UnderCell(now) || (back - last + idle.Count) % idle.Count > 1)
+                    throw new Exception("After her glitch she didn't pick her loop up where it was: " + clip.Title + ", cell " + back + " after " + last);
+                checks.Add("PASS glitch under her: her standing loop keeps its frame through the glitch (frame " + during + " as it starts) and goes on from it after (frame " + back + "), with no jump back to frame 0");
+
+                // Legacy stand keeps the old strip, as it was.
+                preferences.Motion = false;
+                ToggleLegacyStand();
+                if (!idle.Old || GlitchUnder(glitch)) throw new Exception("Legacy stand put her glitch under her.");
+                bodyCells.Clear(); drawnClip = null;
+                Play(glitch);
+                clipStart = clock.Elapsed.TotalSeconds - 3.5 / glitch.Fps;
+                RenderFrame();
+                if (drawnClip != glitch || drawnUnder != -1 || drawnCell != 3) throw new Exception("Legacy stand didn't play the old glitch strip: " + (drawnClip == null ? "none" : drawnClip.Title) + " " + drawnCell);
+                using (Bitmap got = shot())
+                using (Bitmap old = Stood(glitch, 3))
+                {
+                    int off = apart(got, old, 2);
+                    if (off > 0) throw new Exception("Legacy stand's glitch wasn't the old strip: " + off + " pixels off," + worst);
+                    got.Save(Path.Combine(output, "legacy-glitch-3.png"), ImageFormat.Png);
+                }
+                ToggleLegacyStand();
+                if (idle.Old || !GlitchUnder(glitch)) throw new Exception("Turning Legacy stand off didn't put her glitch back under her.");
+                checks.Add("PASS glitch under her: with Legacy stand on she plays the old glitch strip pixel for pixel, and turning it off puts the underlay back");
+            }
+            finally
+            {
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                preferences.Size = sizeWas; Size = canvasWas; preferences.Motion = motionWas; preferences.Hologram = hologramWas;
+                facingLeft = facingWas; veiled = veilWas; veilUntil = veilUntilWas; leanAngle = leanWas; nextGlitch = glitchWas;
+                dizzyUntil = dizzyWas; huskMoodAt = moodWas;
+                hidden = hiddenWas; docked = dockedWas; riding = ridingWas; onPanel = panelWas; falling = fallingWas; dragging = draggingWas; lying = lyingWas; walking = walkingWas;
+                seat = seatWas; speech = speechWas; talkState = talkWas;
+                notes.Clear(); notes.AddRange(notesWas);
+                clip = clipWas; clipStart = startWas; blinkWith = blinkWas;
+                bodyCells.Clear(); drawnClip = null; RenderFrame();
+                if (framesWas) frames.Start();
+                if (signalsWas) signals.Start();
+            }
+        }
+
+        // Her glitch on her standing set as a film at real speed: her own RenderFrame off her real clock, about 30 times a
+        // second, with a glitch partway in, facing right then left. Each frame is her window's picture.
+        private void SmokeGlitchFilm(List<string> checks, string output)
+        {
+            bool framesWas = frames.Enabled, signalsWas = signals.Enabled, motionWas = preferences.Motion, facingWas = facingLeft;
+            double glitchWas = nextGlitch;
+            Clip clipWas = clip;
+            try
+            {
+                frames.Stop(); signals.Stop();
+                preferences.Motion = true;
+                nextGlitch = double.MaxValue;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                int saved = 0, underFrames = 0;
+                double slowest = 0;
+                foreach (bool left in new[] { false, true })
+                {
+                    facingLeft = left;
+                    idle.Load(left);
+                    string folder = Path.Combine(output, left ? "film-left" : "film-right");
+                    Directory.CreateDirectory(folder);
+                    bodyCells.Clear(); drawnClip = null;
+                    Play(idle);
+                    double began = clock.Elapsed.TotalSeconds;
+                    bool glitched = false;
+                    using (StreamWriter times = new StreamWriter(Path.Combine(folder, "times.txt")))
+                        for (int number = 0; ; number++)
+                        {
+                            double due = began + number / 30.0;
+                            while (clock.Elapsed.TotalSeconds < due) System.Threading.Thread.Sleep(1);
+                            double now = clock.Elapsed.TotalSeconds;
+                            if (now - began > 2.4) break;
+                            if (!glitched && now - began >= 0.8) { Play(glitch); glitched = true; }
+                            long drawing = System.Diagnostics.Stopwatch.GetTimestamp();
+                            RenderFrame();
+                            double took = (System.Diagnostics.Stopwatch.GetTimestamp() - drawing) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                            if (drawnUnder >= 0) { slowest = Math.Max(slowest, took); underFrames++; }
+                            using (Bitmap copy = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                            {
+                                int[] pixels = new int[Width * Height];
+                                Pixels(bodySurface.Image, new Rectangle(Point.Empty, Size), pixels, false);
+                                Pixels(copy, new Rectangle(Point.Empty, Size), pixels, true);
+                                copy.Save(Path.Combine(folder, number.ToString("000") + ".png"), ImageFormat.Png);
+                            }
+                            times.WriteLine(number + " " + (now - began).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " " + took.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "ms " + clip.Title + " " + (drawnClip == null ? "-" : drawnClip.Title) + " " + drawnCell + " " + drawnUnder);
+                            saved++;
+                        }
+                }
+                if (underFrames < 24 || slowest > 60) throw new Exception("Her glitch didn't keep up at real speed: " + underFrames + " frames of it, the slowest " + slowest.ToString("0") + " ms.");
+                checks.Add("PASS glitch film: " + underFrames + " of its frames under her at real speed, none slower than " + slowest.ToString("0") + " ms to draw; " + saved + " frames of her own drawing at real speed, facing right then left, in " + output);
+            }
+            finally
+            {
+                preferences.Motion = motionWas; facingLeft = facingWas; nextGlitch = glitchWas; clip = clipWas;
+                bodyCells.Clear(); drawnClip = null; RenderFrame();
+                if (framesWas) frames.Start();
+                if (signalsWas) signals.Start();
+            }
         }
     }
 }
