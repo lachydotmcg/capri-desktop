@@ -218,10 +218,20 @@ namespace CapriDesktop
             pet = owner;
             Caption("MAINFRAME", 24, 15, 120, 29, MainframeTheme.Rose, 64.0 / 3, true, true);
             build = Caption("v" + typeof(Pet).Assembly.GetName().Version.ToString(), 230, 20, 62, 22, MainframeTheme.Faint, 34.0 / 3); build.Align = TextAlignment.Right;
-            minimize = Key("", 300, 20, 26, 22, () => WindowState = WindowState.Minimized); minimize.Glyph = 1;
-            close = Key("", 330, 20, 26, 22, Close); close.Glyph = 2;
-            AutomationProperties.SetName(minimize, "Minimize"); AutomationProperties.SetName(close, "Close");
-            MainframeTips.Explain(minimize, "Minimize"); MainframeTips.Explain(close, "Close");
+            // Kelv's Hyprland changes: a minimized Mainframe has no taskbar there to come back from, so it gets only Close,
+            // and Super+C closes it the way Hyprland folk expect. Super is Meta here; on a Mac Meta is Cmd and Cmd+C is copy,
+            // so this stays on Hyprland.
+            bool hyprland = OperatingSystem.IsLinux() && HyprlandDesktop.Current != null;
+            if (!hyprland)
+            {
+                minimize = Key("", 300, 20, 26, 22, () => WindowState = WindowState.Minimized); minimize.Glyph = 1;
+                AutomationProperties.SetName(minimize, "Minimize");
+                MainframeTips.Explain(minimize, "Minimize");
+            }
+            close = Key("", 330, 20, 26, 22, hyprland ? (Action)Shut : Close); close.Glyph = 2;
+            AutomationProperties.SetName(close, "Close");
+            MainframeTips.Explain(close, "Close");
+            if (hyprland) KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.C && e.KeyModifiers == KeyModifiers.Meta) { e.Handled = true; Program.Guard(Shut); } };
             more = Key("Settings", 146, 20, 84, 22, () => ShowSettings(!paged)); more.Accent = MainframeTheme.Cyan; more.Loud = true;
             foreach (Item item in items) item.Page = -1;
             Section("BRAIN", 0, 58);

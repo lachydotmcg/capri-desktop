@@ -10,7 +10,7 @@ namespace CapriDesktop
         {
             { "Settings", "Settings at the top of Mainframe opens her settings page. Back returns to BRAIN, VOICE and CAPRI. Advanced Settings shows every row; Simple Settings keeps the main ones. Changes save as you make them." },
             { "Minimize", "Minimize puts Capri Mainframe on your taskbar or Dock. Capri keeps running, and clicking it there brings the window back." },
-            { "Close", "Close puts Capri Mainframe away too. Capri keeps running. Open it again from her right-click or tray menu, and use Quit Capri on the main page when you want to close her completely." },
+            { "Close", "Close puts Capri Mainframe away too. On Hyprland, Super+C does the same while Mainframe is focused. Capri keeps running. Open it again from her right-click or tray menu, and use Quit Capri on the main page when you want to close her completely." },
             { "Support", "Mainframe > CAPRI > Support opens Lachy's Ko-fi page in your browser. Opening the page does not make a payment." },
             { "Help", "Mainframe > CAPRI > Help opens Capri's help page in your browser, where you can ask about her. You can also ask Capri about a setting in chat." },
             { "Quit Capri", "Mainframe > CAPRI > Quit Capri closes Capri and her windows. She stops running until you open her again. Closing the Mainframe with its corner button only puts that window away." },
