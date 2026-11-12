@@ -850,7 +850,7 @@ namespace CapriDesktop
             if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote(NoWords, false); return; }
             mainframe.VoiceNote(chatting && local && preferences.ListenCapri ? LocalListening : "Heard you.", false);
             Commentary.Stage.Hear(text, true);
-            Hear(text, text, "> you: ");
+            Hear(text, text, "> you: ", 0, false, null, true);
         }
 
         internal string PushKeyName { get { return preferences.PushVk == 0 ? "not set" : KeyName(preferences.PushMods, preferences.PushVk); } }

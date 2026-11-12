@@ -175,6 +175,7 @@ namespace CapriDesktop
         private int shown = -2;
         private Func<bool> busy, here;
         private Action done;
+        private Native.Surface surface;
 
         internal EmoteWindow() : base("Capri emote")
         {
@@ -229,6 +230,7 @@ namespace CapriDesktop
             watch.Stop();
             if (Visible) Hide();
             Forget();
+            DropSurface();
             EmoteClip was = clip;
             Action after = done;
             clip = null;
@@ -251,20 +253,56 @@ namespace CapriDesktop
                 if (frame >= clip.Count) { Stop(); return; }
                 if (frame == shown) return;
                 shown = frame;
-                Point offset;
-                Bitmap picture = clip.Picture(frame, out offset);
-                Rectangle area = picture == null ? Rectangle.Empty : Rectangle.Intersect(Rectangle.Ceiling(place.On(new Rectangle(offset, picture.Size))), screen);
-                if (area.Width < 2 || area.Height < 2) { if (Visible) Hide(); return; }
-                using (Native.Surface surface = new Native.Surface(area.Width, area.Height))
-                {
-                    using (Graphics graphics = Graphics.FromImage(surface.Image)) Paint(graphics, picture, offset, place, new Point(-area.X, -area.Y));
-                    if (Bounds != area) Bounds = area;
-                    if (!Visible) Show();
-                    surface.Show(Handle, area.Location);
-                }
+                Draw(frame);
             }
             // A screen unplugged, no memory for the picture: the emote ends and nothing is left on the screen.
             catch (Exception) { Stop(); }
+        }
+
+        // One frame on the screen: its picture decoded, drawn over the part of the screen it covers, and the window moved there.
+        private void Draw(int frame)
+        {
+            Point offset;
+            Bitmap picture = clip.Picture(frame, out offset);
+            Rectangle area = picture == null ? Rectangle.Empty : Rectangle.Intersect(Rectangle.Ceiling(place.On(new Rectangle(offset, picture.Size))), screen);
+            if (area.Width < 2 || area.Height < 2) { if (Visible) Hide(); return; }
+            // The heart covers the whole screen most frames, so one surface is kept while the size stays the same.
+            if (surface == null || surface.Image.Width != area.Width || surface.Image.Height != area.Height)
+            {
+                DropSurface();
+                surface = new Native.Surface(area.Width, area.Height);
+            }
+            using (Graphics graphics = Graphics.FromImage(surface.Image))
+            {
+                graphics.Clear(Color.Transparent);
+                Paint(graphics, picture, offset, place, new Point(-area.X, -area.Y));
+            }
+            if (Bounds != area) Bounds = area;
+            if (!Visible) Show();
+            surface.Show(Handle, area.Location);
+        }
+
+        private void DropSurface()
+        {
+            if (surface != null) surface.Dispose();
+            surface = null;
+        }
+
+        // For her checks: every frame of what's playing drawn in turn, the way she draws it, and how long each took in ms.
+        internal double[] TimeEvery()
+        {
+            if (clip == null) return new double[0];
+            ticks.Stop();
+            double[] took = new double[clip.Count];
+            System.Diagnostics.Stopwatch each = new System.Diagnostics.Stopwatch();
+            for (int i = 0; i < clip.Count; i++)
+            {
+                each.Restart();
+                Draw(i);
+                took[i] = each.Elapsed.TotalMilliseconds;
+            }
+            ticks.Start();
+            return took;
         }
 
         internal static void Paint(Graphics graphics, Bitmap picture, Point offset, EmotePlace place, Point shift)
@@ -299,8 +337,12 @@ namespace CapriDesktop
     internal sealed partial class Companion
     {
         // Vergil, or Devil May Cry, said or typed anywhere in what they say: she sits in her chair as she starts answering.
-        // "Virgil" and "may cry" alone are someone else.
+        // Typed, "Virgil" is someone else. Said out loud, speech to text writes Vergil as Virgil, so heard it counts.
+        // "May cry" alone never does.
         internal static readonly Regex VergilMention = new Regex(@"\bvergil(?:'?s)?\b|\bdevil[\s-]*may[\s-]*cry\b", RegexOptions.IgnoreCase);
+        internal static readonly Regex VergilHeard = new Regex(@"\bvirgil(?:'?s)?\b", RegexOptions.IgnoreCase);
+
+        internal static bool Mentions(string text, bool spoken) { return VergilMention.IsMatch(text ?? "") || spoken && VergilHeard.IsMatch(text ?? ""); }
 
         internal static bool EmoteName(string name) { return name == "chair" || name == "heart"; }
 
@@ -365,9 +407,9 @@ namespace CapriDesktop
         }
 
         // Typed or said: Vergil or Devil May Cry gets her chair as she starts answering. Her answer still comes.
-        private void EmoteOnMention(string text)
+        private void EmoteOnMention(string text, bool spoken)
         {
-            if (!VergilMention.IsMatch(text ?? "") || hidden || !Visible) return;
+            if (!Mentions(text, spoken) || hidden || !Visible) return;
             PlayEmote("chair");
         }
 
@@ -454,6 +496,7 @@ namespace CapriDesktop
             }
             chair.Release();
             heart.Release();
+            string timing = "";
             ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
             {
                 Func<string, string> thinkWas = Think;
@@ -509,6 +552,55 @@ namespace CapriDesktop
                     if (reply != "Here, a little heart for you." || !emote.Playing || emote.Name != "heart" || veilUntil != -1) throw new Exception("Asking for a heart got \"" + reply + "\".");
                     CloseTalk();
                     emote.Stop();
+                    // Said out loud, speech to text's "Virgil" is him; typed, it isn't.
+                    if (!Mentions("what do you think of Virgil", true) || Mentions("what do you think of Virgil", false) || Mentions("she may cry", true)) throw new Exception("Heard and typed Virgil weren't told apart.");
+                    Think = delegate { return "Motivated."; };
+                    Hear("what do you think of virgil", "what do you think of virgil", "> you: ", 0, false, null, true);
+                    if (!emote.Playing || emote.Name != "chair") throw new Exception("A spoken Virgil didn't put her in her chair.");
+                    WaitVoice(delegate { return reply != null; }, "A spoken Virgil got no answer.");
+                    CloseTalk();
+                    emote.Stop();
+                    RenderFrame();
+                    Hear("what do you think of virgil");
+                    WaitVoice(delegate { return reply != null; }, "A typed Virgil got no answer.");
+                    if (emote.Playing) throw new Exception("A typed Virgil put her in her chair.");
+                    CloseTalk();
+                    // Perched on a ledge, her chair stands on it, and afterwards she's still perched there.
+                    seat = new Ledge { Floor = true, Left = anchor.X - 400, Right = anchor.X + Width + 400, Y = Hip().Y };
+                    Play(perch);
+                    RenderFrame();
+                    Ledge ledge = seat;
+                    Point perchedAt = anchor;
+                    if (Math.Abs(ChairFoot().Y - Hip().Y) > 0.01f) throw new Exception("Perched, her chair's feet weren't on her ledge.");
+                    Animate("chair");
+                    if (!emote.Playing) throw new Exception("Perched, she didn't sit on her chair.");
+                    emote.Stop();
+                    if (veilUntil != -1 || seat != ledge || clip != perch || anchor != perchedAt) throw new Exception("After her chair she wasn't back on her ledge: " + (clip == null ? "no clip" : clip.Title));
+                    RenderFrame();
+                    // Lying down, and afterwards still lying there.
+                    lying = true;
+                    Play(laydown);
+                    RenderFrame();
+                    Animate("chair");
+                    if (!emote.Playing) throw new Exception("Lying down, she didn't sit on her chair.");
+                    emote.Stop();
+                    if (veilUntil != -1 || !lying || seat != ledge || clip != laydown || anchor != perchedAt) throw new Exception("After her chair she wasn't lying down again: " + (clip == null ? "no clip" : clip.Title));
+                    lying = false;
+                    seat = null;
+                    StandForThrow(new Point(work.Left + work.Width * 2 / 3, work.Top + work.Height / 2));
+                    RenderFrame();
+                    // How long one frame takes, decoded and on the screen, every frame of both.
+                    foreach (string which in new[] { "chair", "heart" })
+                    {
+                        Animate(which);
+                        double[] took = emote.TimeEvery();
+                        emote.Stop();
+                        RenderFrame();
+                        double sum = 0, worst = 0;
+                        int worstAt = 0;
+                        for (int i = 0; i < took.Length; i++) { sum += took[i]; if (took[i] > worst) { worst = took[i]; worstAt = i; } }
+                        timing += (timing.Length > 0 ? "; " : "") + which + " " + (sum / Math.Max(1, took.Length)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a frame, worst " + worst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms (frame " + worstAt + ")";
+                    }
                     // With Motion off she says so and stays put.
                     preferences.Motion = false;
                     if (!Animate("chair").Contains("Motion") || emote.Playing || veilUntil != -1) throw new Exception("With Motion off she still sat on her chair.");
@@ -523,7 +615,8 @@ namespace CapriDesktop
                     veilUntil = emoteVeil = -1;
                 }
             });
-            checks.Add("PASS emotes: her chair (301 frames) and her heart (105 frames, art: Qewiw) play their own frames at 30 a second, the chair at her size with her black body kept; asks, typed or said, and Vergil or Devil May Cry set them off, look-alikes don't; a mention still gets her answer; she comes back where she was; Motion off keeps her put");
+            checks.Add("PASS emotes: her chair (301 frames) and her heart (105 frames, art: Qewiw) play their own frames at 30 a second, the chair at her size with her black body kept; asks, typed or said, and Vergil or Devil May Cry set them off, look-alikes don't; a mention still gets her answer, and a heard Virgil counts where a typed one doesn't; she comes back where she was, standing, perched or lying; Motion off keeps her put");
+            checks.Add("PASS emote frame times on this desktop, decode and window update: " + timing);
         }
     }
 }

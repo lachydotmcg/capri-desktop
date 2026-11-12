@@ -13389,7 +13389,7 @@ namespace CapriDesktop
             CheckEars(clock.Elapsed.TotalSeconds);
             if (earsShut || text.Length == 0) return;
             mainframe.VoiceNote(LocalListening, false);
-            Hear(text, text, "> you: ");
+            Hear(text, text, "> you: ", 0, false, null, true);
         }
 
         internal bool ListenCapriOn { get { return preferences.ListenCapri; } }
@@ -13939,7 +13939,7 @@ namespace CapriDesktop
                 BargeIn();
             }
             mainframe.VoiceNote(LocalListening, false);
-            Hear(text, text, "> you: ");
+            Hear(text, text, "> you: ", 0, false, null, true);
         }
 
         private void OpenLink()
@@ -14571,7 +14571,7 @@ namespace CapriDesktop
 
         private static bool StopWords(string text) { return Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase); }
 
-        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null)
+        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false, string callHeard = null, bool spoken = false)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
@@ -14673,7 +14673,7 @@ namespace CapriDesktop
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
                 think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext, delegate { return CallReply(ticket, question); }, callLines); };
             }
-            if (switches == 0 && prompt == "> you: ") EmoteOnMention(text);
+            if (switches == 0 && prompt == "> you: ") EmoteOnMention(text, spoken || callInput);
             reply = null;
             replyDone = -1;
             Say(null);
