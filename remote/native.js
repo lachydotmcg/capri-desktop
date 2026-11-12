@@ -1,7 +1,8 @@
 /* Capri on this phone, with no PC: the browser calls her brain's provider straight, with the user's own API key. The key,
    the model and which mode she's in stay in this phone's localStorage and go nowhere but that provider: never to the
    relay, capriai.app or her PC. Her chat looks the same, because remote.js opens this module's link in place of the relay
-   and it answers in the relay's message names (PROTOCOL.md section 8). There are no PC tools here.
+   and it answers in the relay's message names (PROTOCOL.md section 8). There are no PC tools here. The one other thing it
+   sends is the daily count below, with no key, chat or id in it.
      CapriNative.on()             true when she runs on this phone
      CapriNative.use(mode)        'phone' or 'pc'; CapriRemote.use(mode) switches and reconnects
      CapriNative.link()           the link remote.js opens while she runs here
@@ -121,6 +122,37 @@
   const writeBrain = brain => put(BRAIN, brain ? JSON.stringify({ provider: brain.provider, key: brain.key, model: brain.model, models: brain.models || [], door: !!brain.door }) : null);
   const on = () => get(MODE) === 'phone' && !!readBrain();
   const use = mode => put(MODE, mode === 'phone' ? 'phone' : null);
+
+  // ---------- The daily count ----------
+  // Lachy asked how many people use her on a phone alone (12 Nov). After her first reply that worked on a UTC day, one
+  // POST tells the worker so, with two yes/no flags and nothing else: no key, no chat, no id. It's tried once a day, never
+  // waited on, and a failed one is just a day not counted. Only capriai.app counts; on localhost, ?count= points it at a
+  // stand-in (remote/test/native.test.mjs) and without it nothing is sent.
+  const COUNTED = 'capri-remote-counted';
+  const COUNT = local ? (() => {
+    const asked = new URLSearchParams(location.search).get('count');
+    return asked && /^http:\/\/(127\.0\.0\.1|localhost):\d{2,5}(\/[\w-]+)?$/.test(asked) ? asked + '/phone-day' : '';
+  })() : /^(capriai\.app|lachydotmcg\.github\.io)$/.test(location.hostname) ? 'https://capri-reactions.lachydotmcg.workers.dev/phone-day' : '';
+  const count = () => {
+    try {
+      const info = window.CapriRemote ? window.CapriRemote.info : null;
+      if (!COUNT || !on() || !info || !info.native || info.demo) return;
+      const day = Math.floor(Date.now() / 86400000);
+      let last = null;
+      try { last = JSON.parse(get(COUNTED)); } catch (error) {}
+      if (last && last.day === day) return;
+      const first = !(last && last.sent === true);
+      const tried = JSON.stringify({ day, sent: !first });
+      put(COUNTED, tried);
+      // A phone that can't remember the day would count every reply, so it doesn't count at all.
+      if (get(COUNTED) !== tried) return;
+      let pairing = null;
+      try { pairing = JSON.parse(get('capri-remote-pairing')); } catch (error) {}
+      const paired = !!(pairing && pairing.device === true && pairing.allowed === true);
+      fetch(COUNT, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ first, paired }), cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', keepalive: true })
+        .then(response => { if (response.ok && first) put(COUNTED, JSON.stringify({ day, sent: true })); }, () => {});
+    } catch (error) {}
+  };
 
   // ---------- Calling the provider ----------
   const failure = (code, detail) => Object.assign(new Error(code), { code, detail: String(detail || '').slice(0, 300) });
@@ -299,6 +331,7 @@
         await reply(brain, history(text), words => tell({ type: 'chat.reply', id, text: words, done: false, re }), job.signal);
         tell({ type: 'chat.reply', id, text: '', done: true, re });
         if (brain.door) writeBrain(Object.assign(readBrain() || brain, { door: true }));
+        count();
       } catch (error) {
         if (!open) return;
         const code = error && error.code ? error.code : 'down';
