@@ -2637,7 +2637,10 @@ namespace CapriDesktop
                         case WordKind.Task:
                             {
                                 int pitch = Pitch(window.Font);
-                                if (word.Kind == WordKind.Task)
+                                // A marker waits for its item's first word, so a streaming reply never shows a lone dot or box.
+                                bool worded = word.Runs.Exists(delegate(WordRun run) { return !string.IsNullOrWhiteSpace(run.Text); });
+                                if (!worded) { }
+                                else if (word.Kind == WordKind.Task)
                                 {
                                     int side = Z(12);
                                     Piece box = Add(block, "", window.Font, Neon.Faint, new Rectangle(left + Step - side - Z(6), y + (pitch - side) / 2, side, side));
