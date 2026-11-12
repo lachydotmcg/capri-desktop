@@ -448,7 +448,7 @@ namespace CapriDesktop
         private readonly Rectangle room;
         private readonly List<InkStroke> strokes;
         private readonly Stopwatch clock;
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private Native.Surface surface;
         internal Action Failed;
         internal int Frames;

@@ -2111,7 +2111,7 @@ namespace CapriDesktop
         private long lagIdle, lagTotal;
         private int lagHot;
         private double lagAt = -LagGap, lagSaid = -LagGap;
-        private readonly System.Windows.Forms.Timer frames;
+        private readonly Beat frames;
         private readonly System.Windows.Forms.Timer signals;
         private readonly EventWaitHandle restore, shown;
         private readonly string settingsPath;
@@ -3092,7 +3092,8 @@ namespace CapriDesktop
             typer.CallMode = CallModeOn;
             typer.CallModeChanged += ToggleCallMode;
             typer.VisibleChanged += delegate { if (!typer.Visible && replyDone >= 0 && remarkTicket != asking) replyDone = clock.Elapsed.TotalSeconds; };
-            frames = new System.Windows.Forms.Timer();
+            Beat.Ui = SynchronizationContext.Current;
+            frames = new Beat();
             frames.Interval = 33;
             frames.Tick += delegate { Tick(); };
             chatTail = new System.Windows.Forms.Timer();

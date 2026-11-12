@@ -86,7 +86,7 @@ namespace CapriDesktop
         // the ball's middle is this far from the cell's middle, in the cell's pixels, once she's turned to face right.
         internal const float FormInCell = 0.335f, FormSitX = 5.97f, FormSitY = 12.34f;
         private const int Points = 48;
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private readonly Random random = new Random();
         private Trip trip;
@@ -513,15 +513,15 @@ namespace CapriDesktop
                 Job game = new Job("play Five Nights at Freddy's");
                 string ended = null;
                 System.Threading.Thread hands = new System.Threading.Thread(delegate() { try { ended = Work(game); } catch (Exception error) { ended = error.Message; } }) { IsBackground = true, Name = "Smoke job" };
-                // Something else always waiting on her window's thread, for 2.5 s: a handler that queues the next one before it
-                // works. Windows only hands over a window timer when nothing else is waiting.
+                // Something else always waiting on her window's thread, for 2.5 s: a message that posts the next one before it
+                // works. Windows only hands over a window timer when nothing else is waiting, but her posted work still runs.
                 System.Diagnostics.Stopwatch busy = System.Diagnostics.Stopwatch.StartNew();
                 double began = -1;
                 string seen = null;
-                Action keep = null;
-                keep = delegate
+                BusyWindow keeper = new BusyWindow();
+                keeper.Work = delegate
                 {
-                    if (busy.ElapsedMilliseconds < 2500) BeginInvoke(keep);
+                    if (busy.ElapsedMilliseconds < 2500) keeper.Again();
                     System.Threading.Thread.Sleep(3);
                     double now = busy.Elapsed.TotalSeconds;
                     if (began < 0 && job == game && taskPanel.Showing) began = now;
@@ -530,7 +530,7 @@ namespace CapriDesktop
                 };
                 try
                 {
-                    BeginInvoke(keep);
+                    keeper.Again();
                     hands.Start();
                     while (busy.ElapsedMilliseconds < 3000) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
                     if (seen == null) throw new Exception("The stand-in game job never showed its task panel.");
@@ -543,6 +543,7 @@ namespace CapriDesktop
                     System.Diagnostics.Stopwatch ending = System.Diagnostics.Stopwatch.StartNew();
                     while (hands.IsAlive && ending.ElapsedMilliseconds < 8000) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
                     Application.DoEvents();
+                    keeper.DestroyHandle();
                     driveTest = null;
                     FullScreen = fullWas;
                     Computer.Use = useWas;
@@ -557,6 +558,22 @@ namespace CapriDesktop
                     if (hands.IsAlive) list.Add("FAIL the stand-in game job didn't stop when told to: " + ended);
                 }
             });
+        }
+
+        // A message-only window whose one message does some work, so each piece is its own message on her window's thread.
+        private sealed class BusyWindow : NativeWindow
+        {
+            internal Action Work;
+
+            internal BusyWindow() { CreateHandle(new CreateParams { Parent = new IntPtr(-3) }); }
+
+            internal void Again() { Native.PostMessage(Handle, 0x8000 + 0x1B5, IntPtr.Zero, IntPtr.Zero); }
+
+            protected override void WndProc(ref Message message)
+            {
+                if (message.Msg == 0x8000 + 0x1B5) { if (Work != null) Work(); return; }
+                base.WndProc(ref message);
+            }
         }
 
         private void SmokeRibbons(List<string> checks, string output)

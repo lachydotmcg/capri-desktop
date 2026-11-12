@@ -605,6 +605,166 @@ namespace CapriDesktop
         }
     }
 
+    // The clock her moves run on: her frames, her teleport's ribbons, her glitch bars and the rest of her overlays. A window timer
+    // only fires when nothing else is waiting on her window's thread, so a thread that's never quite idle starves every one of
+    // them at once. On 12 Nov, a computer job in a full-screen game did that for 22 s: her bubble and task panel kept updating,
+    // since those arrive as posted work, but her teleport sat on its first frame, glitch bars and all, until Esc ended the job.
+    // This counts time on a worker and hands each tick over as posted work, so her moves keep going whenever her window still
+    // answers. Only one tick waits at a time, and the next is counted from when it was due, like a window timer's.
+    internal sealed class Beat : IDisposable
+    {
+        // Her window's thread, set as she starts. A beat started before then posts to the thread that started it.
+        internal static System.Threading.SynchronizationContext Ui;
+        // One thread of its own counts every beat's time, so a thread pool that's busy with her brain and her hands can't hold
+        // her moves up either.
+        private static readonly List<Beat> armed = new List<Beat>();
+        private static System.Threading.Thread counter;
+        private readonly object gate = new object();
+        private System.Threading.SynchronizationContext target;
+        private int interval = 100, generation;
+        private bool enabled, pending, disposed;
+        private long due;
+
+        internal event EventHandler Tick;
+
+        internal int Interval
+        {
+            get { lock (gate) return interval; }
+            set
+            {
+                if (value < 1) throw new ArgumentOutOfRangeException("value");
+                lock (gate)
+                {
+                    if (interval == value) return;
+                    interval = value;
+                    if (!enabled || pending || disposed) return;
+                    due = System.Diagnostics.Stopwatch.GetTimestamp();
+                    Arm();
+                }
+            }
+        }
+
+        internal bool Enabled
+        {
+            get { lock (gate) return enabled; }
+            set { if (value) Start(); else Stop(); }
+        }
+
+        internal void Start()
+        {
+            lock (gate)
+            {
+                if (enabled || disposed) return;
+                enabled = true;
+                generation++;
+                if (target == null) target = Ui ?? System.Threading.SynchronizationContext.Current;
+                due = System.Diagnostics.Stopwatch.GetTimestamp();
+                if (!pending) Arm();
+            }
+        }
+
+        internal void Stop()
+        {
+            lock (gate)
+            {
+                if (!enabled) return;
+                enabled = false;
+                generation++;
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (gate)
+            {
+                disposed = true;
+                enabled = false;
+                generation++;
+            }
+        }
+
+        // Inside the gate: the next tick, an interval after the last one was due, or straight away if that's already gone.
+        private void Arm()
+        {
+            long now = System.Diagnostics.Stopwatch.GetTimestamp(), next = due + interval * System.Diagnostics.Stopwatch.Frequency / 1000;
+            System.Threading.Interlocked.Exchange(ref due, Math.Max(next, now));
+            lock (armed)
+            {
+                if (!armed.Contains(this)) armed.Add(this);
+                if (counter == null)
+                {
+                    counter = new System.Threading.Thread(Count) { IsBackground = true, Name = "Capri beat", Priority = System.Threading.ThreadPriority.AboveNormal };
+                    counter.Start();
+                }
+                System.Threading.Monitor.Pulse(armed);
+            }
+        }
+
+        private static void Count()
+        {
+            List<Beat> ready = new List<Beat>();
+            while (true)
+            {
+                lock (armed)
+                {
+                    while (true)
+                    {
+                        long now = System.Diagnostics.Stopwatch.GetTimestamp(), next = long.MaxValue;
+                        for (int i = armed.Count - 1; i >= 0; i--)
+                        {
+                            long at = armed[i].Due;
+                            if (at <= now) { ready.Add(armed[i]); armed.RemoveAt(i); }
+                            else next = Math.Min(next, at);
+                        }
+                        if (ready.Count > 0) break;
+                        if (next == long.MaxValue) System.Threading.Monitor.Wait(armed);
+                        else System.Threading.Monitor.Wait(armed, (int)Math.Max(1, Math.Min(1000, (next - now) * 1000 / System.Diagnostics.Stopwatch.Frequency)));
+                    }
+                }
+                foreach (Beat beat in ready) beat.Fire();
+                ready.Clear();
+            }
+        }
+
+        // Read by the counting thread without the gate, which is always taken before the list and never after it.
+        private long Due { get { return System.Threading.Interlocked.Read(ref due); } }
+
+        private void Fire()
+        {
+            System.Threading.SynchronizationContext to;
+            int ticket;
+            lock (gate)
+            {
+                if (!enabled || pending || disposed) return;
+                to = target ?? Ui;
+                if (to == null) { Arm(); return; }
+                pending = true;
+                ticket = generation;
+            }
+            try { to.Post(Run, ticket); }
+            catch (Exception) { lock (gate) pending = false; }
+        }
+
+        private void Run(object ticket)
+        {
+            bool fire;
+            lock (gate) fire = enabled && !disposed && (int)ticket == generation;
+            try
+            {
+                EventHandler tick = Tick;
+                if (fire && tick != null) tick(this, EventArgs.Empty);
+            }
+            finally
+            {
+                lock (gate)
+                {
+                    pending = false;
+                    if (enabled && !disposed) Arm();
+                }
+            }
+        }
+    }
+
     internal class Overlay : Form
     {
         internal bool ClickThrough;
@@ -698,7 +858,7 @@ namespace CapriDesktop
         internal static readonly Color Caption = Color.FromArgb(168, 174, 184);
         private const int WashAlpha = 40;
         private static readonly Random random = new Random();
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private int hover;
         private float scale = 1;
         private Point centre;
@@ -1174,7 +1334,7 @@ namespace CapriDesktop
         private static readonly Color Bruise = Color.FromArgb(34, 8, 48);
         private static readonly Color Violet = Color.FromArgb(110, 30, 170);
         private static readonly Color Hot = Color.FromArgb(255, 120, 140);
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private readonly Random random = new Random();
         private Rectangle area;
@@ -1571,7 +1731,7 @@ namespace CapriDesktop
         internal const double Handoff = 0.42;
         internal static readonly Color Violet = Color.FromArgb(122, 60, 255);
         internal static readonly Color Mint = Color.FromArgb(30, 240, 138);
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private readonly Random random = new Random();
         private Bitmap picture;
@@ -1911,7 +2071,7 @@ namespace CapriDesktop
         internal static Bitmap Face;
         private static Bitmap painted, minted, bruised;
         private static RectangleF paintedFrom;
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly Random random = new Random();
         private IntPtr window;
@@ -2309,7 +2469,7 @@ namespace CapriDesktop
     // there it hides for the moment she takes one.
     internal sealed class ControlGlow : Overlay
     {
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private Rectangle area;
         private bool excluded;
         private bool unseen;
@@ -2477,7 +2637,7 @@ namespace CapriDesktop
         private const int ClickTick = 15;
         // Lazy, so it's only in memory around her clicks, and a Clip, so colour mods and skins change it like the rest of her.
         internal readonly Clip ClickArt = new Clip("click", 20, 60, 1, 0, 0, true);
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly object gate = new object();
         private IntPtr window;
@@ -2816,7 +2976,7 @@ namespace CapriDesktop
         private const int MostRows = 7;
         internal const int EndingRows = 5, SnagRows = 5;
         private const string Speaker = "CAPRI: ";
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly List<JobStep> steps = new List<JobStep>();
         private object owner;
