@@ -10557,7 +10557,15 @@ namespace CapriDesktop
             running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700, true); }) : null;
             running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320, true); };
             running.Reader = testing ? null : new Action<Sight>(delegate(Sight read) { if (Ink.ScreenRequest(running.Task)) Computer.ReadWords(read, Computer.Shoot(null)); else Computer.ReadWords(read); });
-            running.Says = delegate(string line) { Post(delegate { if (Computer.Streaming) ChatLine(line, running); else PlayLine(line, running); }); };
+            // The job waits the moment it takes her to take the line, so her brain hears whether it went out.
+            running.Says = delegate(string line, bool now)
+            {
+                bool said = false;
+                Action say = delegate { said = Computer.Streaming ? ChatLine(line, running) : PlayLine(line, running, now); };
+                try { if (!InvokeRequired) say(); else if (!IsDisposed) Invoke(say); }
+                catch (InvalidOperationException) { }
+                return said;
+            };
             running.Blind = delegate { if (!running.Playing || preferences.SlowHands) blindModel = driver.Model; };
             running.Progress = delegate(string status) { RemoteJobStatus(running, status); Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
             bool social = Computer.Social(running.Task + " " + running.Words);
@@ -10659,34 +10667,41 @@ namespace CapriDesktop
         private double playVoiced;
         private bool asideVoiceTest;
 
-        // A line she says while she plays. A chat reply or a watch's alert that's still up keeps the bubble.
-        private void PlayLine(string line, Job running)
+        // A line she says while she plays. A chat reply or a watch's alert that's still up keeps the bubble. It's false when the line
+        // never reached her bubble, so her say move can tell her brain it wasn't said.
+        private string playShown;
+        private bool PlayLine(string line, Job running, bool cut = false)
         {
             double now = clock.Elapsed.TotalSeconds;
-            if (job != running || working == null || (asideShown != null && now < asideUntil)) return;
+            if (job != running || working == null) return false;
+            // A jump scare cuts in on her own last line, but never on a reply to them she's still making or saying, or on voice chat.
+            cut = cut && answerVoice != asking && hdSpeaking != asking && !speaker.Busy && !chatTail.Enabled;
+            if (asideShown != null && now < asideUntil && !(cut && asideShown == playShown)) return false;
             if (docked) Commentary.Stage.Say(line);
-            asideShown = line;
+            asideShown = playShown = line;
             asideUntil = now + BubbleHold(line.Length);
             UpdateTalk(now);
             // A slow voice would never speak if each new line cancelled the one it's still making, so the next line waits for it.
-            if ((chatting && !local) || Hushed || now < playVoiced) return;
+            if ((chatting && !local) || Hushed || (!cut && now < playVoiced)) return true;
             playVoiced = now + 15;
-            SayAside(line, running);
+            SayAside(line, running, -1, cut);
+            return true;
         }
 
         // Her say lines on stream are for chat, so every one goes in her bubble and out loud, in her usual voice.
-        private void ChatLine(string line, Job running)
+        private bool ChatLine(string line, Job running)
         {
-            if (job != running || working == null) return;
+            if (job != running || working == null) return false;
             double now = clock.Elapsed.TotalSeconds;
             if (docked) Commentary.Stage.Say(line);
             asideShown = line;
             asideUntil = now + BubbleHold(line.Length);
             UpdateTalk(now);
             SayAside(line, running);
+            return true;
         }
 
-        private void SayAside(string line, Job running, int toolReply = -1)
+        private void SayAside(string line, Job running, int toolReply = -1, bool cut = false)
         {
             if ((testing && !asideVoiceTest) || preferences.Silent || Hushed || (chatting && !local && !Computer.Streaming)) return;
             Func<string, byte[]> free;
@@ -10694,6 +10709,14 @@ namespace CapriDesktop
             if (speak == null) return;
             string words = Voice.Spoken(line);
             int turn = ++asideVoice;
+            // A cut-in line stops what she's saying at once and drops any older line still being made, so the scream lands on the scare.
+            if (cut)
+            {
+                voice.Stop();
+                voiceUntil = 0;
+                spokenLevels = null;
+                CheckEars(clock.Elapsed.TotalSeconds);
+            }
             ToolVoicing(toolReply, turn);
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -32160,29 +32183,6 @@ namespace CapriDesktop
             finally { Hands.Windows = windowsWere; }
         }
 
-        private static void SmokeGameFocus(List<string> checks)
-        {
-            Func<List<OpenWindow>> windowsWas = Hands.Windows;
-            Func<OpenWindow, string, bool> steerWas = Hands.Steer;
-            Func<IntPtr> foregroundWas = Hands.Foreground, frontWas = Computer.Front;
-            Func<IntPtr, bool> activeWas = Hands.Active, aliveWas = Computer.Alive, aboveWas = Computer.AboveHer;
-            Func<IntPtr, IntPtr, bool> sameWas = Computer.SameWindow;
-            Func<IntPtr, Rectangle> clientWas = Computer.ClientArea;
-            Func<IntPtr, string> titleWas = Computer.TitleOf;
-            Func<Point, IntPtr> atWas = Computer.WindowAt;
-            Func<Rectangle, byte[]> grayWas = Computer.GrayFrame;
-            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
-            Func<Sight> glimpseWas = Computer.Glimpse;
-            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
-            Func<string> gameOpenWas = Computer.GameOpen;
-            Picture shownWas = Computer.Shown;
-            Action<short, bool, bool> keyWas = Computer.SendKey;
-            Action<int, int> mouseWas = Computer.SendMouse, nudgeWas = Computer.Nudge;
-            Action<Point> trackWas = Computer.Track, tapWas = Computer.Tapped, putWas = Computer.PutCursor;
-            Func<Point> cursorWas = Computer.CursorAt;
-            Action<bool> lendWas = Computer.Lending, signWas = InControl.Changed;
-            Func<bool> hiddenWas = Computer.CursorHidden, underEscapeWas = Computer.Escape;
-            Func<Point, bool> underWas = Computer.GameUnder;
         private void SmokeBrowserGame(List<string> checks, string output, Func<string> find)
         {
             Func<List<OpenWindow>> windowsWas = Hands.Windows;
@@ -32316,6 +32316,137 @@ namespace CapriDesktop
             }
         }
 
+        // A jump scare through her own say path: her bubble and her chosen voice, and then a real skill file reaching a browser game job.
+        // Set CAPRI_SKILL_CHECK to a .capri-skill to run the second part; it's imported into the smoke's own mods folder and removed after.
+        private void SmokeSayNow(List<string> checks, string output, Func<string> find)
+        {
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            bool quietWas = preferences.Quiet, silentWas = preferences.Silent, serverWas = preferences.ServerVoice;
+            bool localWas = local, chatWas = chatting, brokenWas = voiceBroke, hushedWas = shushed, streamWas = Computer.Streaming;
+            Job jobWas = job;
+            string workingWas = working, shownWas = asideShown, playShownWas = playShown;
+            double untilWas = asideUntil, playedWas = playVoiced;
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<string> gameWas = Computer.GameOpen;
+            Func<Sight> glimpseWas = Computer.Glimpse;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            string folderWas = GameNotes.Folder;
+            string folder = Path.Combine(output, "say-now-notes-" + Guid.NewGuid().ToString("N"));
+            Mod real = null;
+            try
+            {
+                CloseTalk();
+                preferences.Quiet = preferences.Silent = preferences.ServerVoice = voiceBroke = shushed = false;
+                local = chatting = asideVoiceTest = true;
+                Computer.Streaming = false;
+                int paid = 0;
+                List<string> voiced = new List<string>();
+                byte[] wav = Voice.Wave(new short[12000], 24000);
+                Speak = delegate(string words) { lock (voiced) voiced.Add(words); Interlocked.Increment(ref paid); return wav; };
+                FreeSpeak = delegate { return wav; };
+                Job speakingJob = new Job("play minecraft");
+                job = speakingJob;
+                working = Lines.OnIt[0];
+                speakingJob.Says = delegate(string line, bool now) { return PlayLine(line, speakingJob, now); };
+                // Her last line still has a minute to go, so a new say line goes to her bubble alone, as it always has.
+                double start = clock.Elapsed.TotalSeconds;
+                asideShown = null;
+                voiceUntil = playVoiced = start + 60;
+                int asideWas = asideVoice;
+                string door = "That door just moved.", scare = "AAAH! Get out of my office!";
+                if (speakingJob.Spoken(door, 0) != "Said." || asideShown != door || paid != 0 || asideVoice != asideWas) throw new Exception("A say line while her voice was busy didn't go to her bubble alone.");
+                if (!speakingJob.Spoken(scare, 1).StartsWith("Not said: you spoke less than 8 seconds ago.", StringComparison.Ordinal) || asideShown != door || asideVoice != asideWas) throw new Exception("A line inside 8 seconds reached her.");
+                // A reply to them that's still being made or said is never cut, and nor is a chat reply's bubble.
+                answerVoice = asking;
+                if (speakingJob.Spoken(scare, 1, true) != Job.Unsaid || asideVoice != asideWas || voiceUntil != start + 60 || asideShown != door) throw new Exception("A jump scare cut off her reply to them.");
+                answerVoice = -1;
+                asideShown = "A reply to them.";
+                asideUntil = start + 60;
+                if (speakingJob.Spoken(scare, 1, true) != Job.Unsaid || asideVoice != asideWas || asideShown != "A reply to them.") throw new Exception("A jump scare replaced a chat reply's bubble.");
+                asideShown = door;
+                if (speakingJob.Spoken(scare, 1, true) != "Said." || asideVoice != asideWas + 1 || voiceUntil != 0 || asideShown != scare) throw new Exception("A jump scare didn't cut in on her own line.");
+                WaitVoice(delegate { return paid == 1 && voiceUntil > 0; }, "A jump scare never reached her voice after cutting in.");
+                if (voiced[0] != Voice.Spoken(scare)) throw new Exception("A jump scare lost its words on the way to her voice: " + voiced[0]);
+                if (speakingJob.Spoken(scare, 2, true) != "Not said: you've used that line. Find new words." || asideVoice != asideWas + 1 || paid != 1) throw new Exception("A repeated jump scare reached her voice.");
+                checks.Add("PASS a jump scare cuts in on her own say line at once, both sentences in her chosen voice, while a reply to them, a chat reply's bubble, a line inside 8 seconds and a repeat never cut in");
+
+                string from = Environment.GetEnvironmentVariable("CAPRI_SKILL_CHECK");
+                if (string.IsNullOrEmpty(from) || !File.Exists(from)) { checks.Add("SKIP a real skill file in a browser game job: CAPRI_SKILL_CHECK names no .capri-skill"); return; }
+                real = ModList.Import(from, null);
+                string know = Regex.Replace(real.File.Know ?? "", @"\s+", " ").Trim();
+                string opening = know.Substring(0, Math.Min(60, know.Length));
+                GameNotes.Folder = folder;
+                string title = "Five Nights at Freddy's - Play Online Free | Some Games Site - Google Chrome";
+                List<OpenWindow> windows = new List<OpenWindow> { new OpenWindow(new IntPtr(-1), title, "chrome") };
+                Hands.Windows = delegate { return windows; };
+                Computer.GameOpen = find;
+                Sight view = new Sight { Window = new IntPtr(-1), Title = title, Program = "chrome" };
+                Computer.Glimpse = delegate { return view; };
+                byte[] frame;
+                using (Bitmap blank = new Bitmap(240, 160)) frame = Jpeg(blank, 240);
+                Computer.Shoot = delegate { return new Picture { Jpeg = frame, Size = new Size(240, 160), Area = new Rectangle(0, 0, 240, 160), Sight = view }; };
+                Job fnaf = new Job("use computer to play Five Nights at Freddy's");
+                bool fromWords = fnaf.Playing;
+                string calm = "Okay Fazbear, show me your night.", cry = "AAAH! Get your plastic face out of my office!";
+                List<string> systems = new List<string>(), users = new List<string>();
+                fnaf.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls)
+                {
+                    systems.Add(system);
+                    users.Add(user ?? "");
+                    if (systems.Count == 1) return "say{\"text\": " + Voice.Quote(calm) + "}";
+                    if (systems.Count == 2) return "say{\"text\": " + Voice.Quote(cry) + ", \"now\": true}";
+                    return "done{\"text\":\"Survived.\"}";
+                };
+                fnaf.Says = delegate(string line, bool now) { return PlayLine(line, fnaf, now); };
+                lock (voiced) voiced.Clear();
+                paid = 0;
+                asideShown = null;
+                voiceUntil = playVoiced = 0;
+                job = fnaf;
+                string outcome = fnaf.Run();
+                string brief = systems.Count > 0 ? systems[0] : "";
+                if (!fromWords || !brief.Contains("The game open now is Five Nights at Freddy's.") || !brief.Contains("Skill on for Five Nights at Freddy's: " + real.File.Name) || !Regex.Replace(brief, @"\s+", " ").Contains(opening))
+                    throw new Exception("His words and a game site's tab didn't bring the real skill into her job prompt (playing from his words: " + fromWords + ").");
+                if (outcome != "Survived." || systems.Count != 3 || users[2].IndexOf("Not said", StringComparison.Ordinal) >= 0 || asideShown != cry) throw new Exception("Her say lines in the browser game job went wrong: " + outcome + " / " + (users.Count > 2 ? users[2] : "no third turn"));
+                WaitVoice(delegate { lock (voiced) return voiceUntil > 0 && voiced.Contains(Voice.Spoken(cry)); }, "The jump scare line in the browser game job never reached her voice.");
+                checks.Add("PASS \"use computer to play Five Nights at Freddy's\" with a game site's tab gets " + real.File.Name + " in her job prompt, and a now line straight after another one reaches her voice");
+            }
+            finally
+            {
+                asideVoiceTest = false; asideVoice++; CloseTalk();
+                if (real != null) ModList.Remove(real);
+                Speak = speakWas; FreeSpeak = freeWas;
+                preferences.Quiet = quietWas; preferences.Silent = silentWas; preferences.ServerVoice = serverWas;
+                local = localWas; chatting = chatWas; voiceBroke = brokenWas; shushed = hushedWas; Computer.Streaming = streamWas;
+                job = jobWas; working = workingWas; asideShown = shownWas; playShown = playShownWas; asideUntil = untilWas; playVoiced = playedWas;
+                Hands.Windows = windowsWas; Computer.GameOpen = gameWas; Computer.Glimpse = glimpseWas; Computer.Shoot = shootWas; GameNotes.Folder = folderWas;
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            }
+        }
+
+        private static void SmokeGameFocus(List<string> checks)
+        {
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<OpenWindow, string, bool> steerWas = Hands.Steer;
+            Func<IntPtr> foregroundWas = Hands.Foreground, frontWas = Computer.Front;
+            Func<IntPtr, bool> activeWas = Hands.Active, aliveWas = Computer.Alive, aboveWas = Computer.AboveHer;
+            Func<IntPtr, IntPtr, bool> sameWas = Computer.SameWindow;
+            Func<IntPtr, Rectangle> clientWas = Computer.ClientArea;
+            Func<IntPtr, string> titleWas = Computer.TitleOf;
+            Func<Point, IntPtr> atWas = Computer.WindowAt;
+            Func<Rectangle, byte[]> grayWas = Computer.GrayFrame;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<Sight> glimpseWas = Computer.Glimpse;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Func<string> gameOpenWas = Computer.GameOpen;
+            Picture shownWas = Computer.Shown;
+            Action<short, bool, bool> keyWas = Computer.SendKey;
+            Action<int, int> mouseWas = Computer.SendMouse, nudgeWas = Computer.Nudge;
+            Action<Point> trackWas = Computer.Track, tapWas = Computer.Tapped, putWas = Computer.PutCursor;
+            Func<Point> cursorWas = Computer.CursorAt;
+            Action<bool> lendWas = Computer.Lending, signWas = InControl.Changed;
+            Func<bool> hiddenWas = Computer.CursorHidden, underEscapeWas = Computer.Escape;
+            Func<Point, bool> underWas = Computer.GameUnder;
             Action haltWas = Computer.Halted;
             Action<string> runWas = Hands.Run;
             bool flinchedWas = Computer.Flinched, streamWas = Computer.Streaming;
@@ -33028,18 +33159,50 @@ namespace CapriDesktop
                 if (!flinchedInGame || Computer.Flinched) throw new Exception("A hit didn't reach a game job, or it reached one that isn't a game.");
                 if (flinchedAgain) throw new Exception("A second hit straight after the first stopped her again.");
                 System.Collections.Generic.List<string> playLines = new System.Collections.Generic.List<string>();
-                Job narrating = new Job("play minecraft") { Says = playLines.Add };
+                Func<string, bool, bool> playSay = delegate(string line, bool now) { playLines.Add(line); return true; };
+                Job narrating = new Job("play minecraft") { Says = playSay };
                 narrating.Narrate("  Got you.\nAnd a second sentence nobody needs.");
                 narrating.Narrate("Too soon after the last one.");
-                new Job("write a line in notepad") { Says = playLines.Add }.Narrate("Not a game, so she keeps working quietly.");
-                if (playLines.Count != 1 || playLines[0] != "Got you.") throw new Exception("Her lines while she plays came out wrong: " + string.Join(" / ", playLines.ToArray()));
-                narrating = new Job("play minecraft") { Says = playLines.Add };
+                new Job("write a line in notepad") { Says = playSay }.Narrate("Not a game, so she keeps working quietly.");
+                if (playLines.Count != 1 || playLines[0] != "Got you. And a second sentence nobody needs.") throw new Exception("Her lines while she plays came out wrong: " + string.Join(" / ", playLines.ToArray()));
+                narrating = new Job("play minecraft") { Says = playSay };
                 narrating.Narrate("Eat dirt.");
                 System.Threading.Thread.Sleep(0);
                 if (playLines.Count != 2 || playLines[1] != "Eat dirt.") throw new Exception("A fresh game job couldn't talk.");
                 if (Computer.Moves("say{\"text\": \"Eat dirt.\"}\nclick{\"x\": 50, \"y\": 48}").Count != 2 || Computer.Moves("say{\"text\": \"Eat dirt.\"}")[0].Key != "say") throw new Exception("A written say wasn't read as a move.");
+                List<string> scareLines = new List<string>();
+                List<bool> scareNow = new List<bool>();
+                Func<string, bool, bool> scareSay = delegate(string line, bool now) { scareLines.Add(line); scareNow.Add(now); return true; };
+                Job scared = new Job("play minecraft") { Says = scareSay };
+                if (scared.Spoken("That door just moved.", 0) != "Said." || scared.Spoken("AAAH! Get out of my office!", 1) != "Not said: you spoke less than 8 seconds ago. Say it on a later move if it still fits." || scareLines.Count != 1) throw new Exception("A line inside eight seconds was spoken or claimed it was.");
+                if (scared.Spoken("AAAH! Get out of my office!", 1, true) != "Said." || scareLines.Count != 2 || scareLines[1] != "AAAH! Get out of my office!" || !scareNow[1]) throw new Exception("A shock didn't cut in with both sentences.");
+                if (scared.Spoken("aaah! Get out of my office!", 2, true) != "Not said: you've used that line. Find new words." || scareLines.Count != 2) throw new Exception("A repeated shock was spoken or claimed it was.");
+                foreach (string shortLine in new[] { "Nope! Stay away!", "No no! Shut that door!", "A! Get back!" })
+                    if (scared.Spoken(shortLine + " A third sentence stays quiet.", 2, true) != "Said." || scareLines[scareLines.Count - 1] != shortLine) throw new Exception("A short first sentence lost the next one or kept a third.");
+                if (scared.Spoken("That thing nearly got me. Another sentence stays quiet.", 2, true) != "Said." || scareLines[scareLines.Count - 1] != "That thing nearly got me.") throw new Exception("A longer first sentence kept the second one.");
+                string longScare = "AAAH! " + string.Join(" ", new string('x', 90).ToCharArray());
+                if (scared.Spoken(longScare, 2, true) != "Said." || scareLines[scareLines.Count - 1].Length > 140 || !scareLines[scareLines.Count - 1].StartsWith("AAAH! x ", StringComparison.Ordinal)) throw new Exception("A shock lost the 140 character limit.");
+                int scareCount = scareLines.Count;
+                if (scared.Spoken(" ", 2, true) == "Said." || new Job("write in notepad") { Says = scareSay }.Spoken("Quiet.", 0, true) == "Said." || new Job("play minecraft").Spoken("No voice.", 0, true) == "Said." || scareLines.Count != scareCount) throw new Exception("An empty line, a quiet job or a missing voice claimed to speak.");
+                Job unvoiced = new Job("play minecraft") { Says = delegate { return false; } };
+                if (unvoiced.Spoken("Try this line.", 0) == "Said.") throw new Exception("A refused voice line claimed to speak.");
+                unvoiced.Says = scareSay;
+                if (unvoiced.Spoken("Try this line.", 0) != "Said.") throw new Exception("A refused voice line used up its words or its wait.");
+                ToolArguments sayArgs;
+                string sayTool;
+                if (!Computer.Written("say{\"text\":\"AAAH!\",\"now\":true}", out sayTool, out sayArgs) || sayTool != "say" || sayArgs.Now != true || Computer.Moves("say{\"text\":\"AAAH!\",\"now\":true}")[0].Value.Now != true || Computer.Moves("say{\"text\":\"AAAH!\",\"now\":false}")[0].Value.Now != false || Computer.Moves("say{\"text\":\"AAAH!\"}")[0].Value.Now != null) throw new Exception("A written say lost its optional now flag.");
+                foreach (string saySchema in new[] { Computer.Tools, Computer.ClaudeTools, Computer.Toolset, Computer.Listing })
+                    if (!saySchema.Contains("\"now\":{\"type\":\"boolean\"")) throw new Exception("A say schema lost its now flag.");
+                foreach (string sayPath in new[] { "Step", "Perform" })
+                {
+                    Job saying = new Job("play minecraft") { Says = scareSay };
+                    System.Reflection.MethodInfo method = typeof(Job).GetMethod(sayPath, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    Func<ToolArguments, string> speakMove = delegate(ToolArguments args) { return (string)method.Invoke(saying, sayPath == "Step" ? new object[] { "say", args, false, null } : new object[] { "say", args, null }); };
+                    if (speakMove(new ToolArguments { Text = "Stay over there." }) != "Said." || !speakMove(new ToolArguments { Text = "Something just jumped!", Now = false }).StartsWith("Not said: you spoke less than 8 seconds ago.", StringComparison.Ordinal) || speakMove(new ToolArguments { Text = "Something just jumped!", Now = true }) != "Said." || !scareNow[scareNow.Count - 1]) throw new Exception("A say runner lost its now flag or its result: " + sayPath);
+                }
+                checks.Add("PASS say reports waits, repeats and unavailable voices; now cuts in once; short cries keep the next sentence within 140 characters on both move paths");
                 if (!Computer.GivingUp("I'm stuck: the game has stopped responding.") || !Computer.GivingUp("It froze.") || !Computer.GivingUp("I didn't finish the job.") || !Computer.GivingUp("I stopped before finishing the job: 2 logs and no planks.") || Computer.GivingUp("Done, stopping short of the edge like you said.") || Computer.GivingUp("Lost at round 39 with 3 towers.") || Computer.GivingUp("Couldn't find any more enemies, so the level's clear.") || !Computer.GivingUp("I stopped here because I'm wedged against a wall and I haven't found a single enemy.") || Computer.GivingUp("Won the map with 88 lives left.")) throw new Exception("A game job's giving up was read wrong.");
-                checks.Add("PASS she says lines out loud while she plays, one sentence at a time and only in games");
+                checks.Add("PASS she says short lines out loud while she plays, keeps the next sentence after a short cry, and stays quiet outside games");
                 if (Computer.MemberCall("computer", "look") || !Computer.MemberCall("computer", "left_click") || Computer.MemberCall(null, "left_click")) throw new Exception("A tool filed under Claude's computer tools went the wrong way.");
                 Func<string, bool> localSeesWas = Brain.LocalSees;
                 Func<string> localEyesWere = Brain.LocalEyes;
@@ -33302,14 +33465,18 @@ namespace CapriDesktop
                 Computer.Streaming = true;
                 bool quietDropped = Computer.PlayingNow.IndexOf("keep playing quietly", StringComparison.Ordinal) < 0;
                 System.Collections.Generic.List<string> streamTalk = new System.Collections.Generic.List<string>();
-                Job streamJob = new Job("play Terraria") { Says = streamTalk.Add };
-                string streamShut = streamJob.Spoken("Not my chat time yet.", 5);
+                Job streamJob = new Job("play Terraria") { Says = delegate(string line, bool now) { if (now) throw new Exception("A stream line tried to cut in."); streamTalk.Add(line); return true; } };
+                string streamShut = streamJob.Spoken("Not my chat time yet.", 5, true);
                 string streamShown = streamJob.ChatWords(41);
                 streamJob.Spoken(" Hi Milo, thanks for the follow! ", 42);
-                streamJob.Spoken("And right after it, another line for chat.", 43);
+                streamJob.Spoken("And right after it, another line for chat.", 43, true);
                 bool streamHeard = streamShut == Computer.LockedIn && streamTalk.Count == 2 && streamTalk[0] == "Hi Milo, thanks for the follow!";
                 bool streamTold = streamJob.Prompted(Computer.Sees).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0 && streamJob.Prompted(Computer.Prompt).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0 && streamJob.Prompted(Computer.Seeing).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0;
                 bool streamChat = streamShown.IndexOf("out loud with say", StringComparison.Ordinal) >= 0 && streamJob.ChatWords(50).Length == 0 && streamJob.Spoken("Too late for chat.", 70) == Computer.LockedIn && streamTalk.Count == 2 && streamJob.ChatWords(101).Length > 0;
+                List<string> streamCries = new List<string>();
+                Job streamScare = new Job("play Terraria") { Says = delegate(string line, bool now) { if (now) throw new Exception("A stream shock tried to interrupt chat."); streamCries.Add(line); return true; } };
+                string streamCry = "AAAH! Get out of my office! That scared me!";
+                if (streamScare.Spoken(streamCry, 5, true) != Computer.LockedIn || streamScare.Spoken(streamCry, 42, true) != "Said." || streamScare.Spoken(streamCry, 43, true) != "Said." || streamCries.Count != 2 || streamCries[0] != streamCry || streamCries[1] != streamCry) throw new Exception("The now flag changed stream chat timing, repeats or sentences.");
                 Hands.StreamMinute streamBeat = new Hands.StreamMinute();
                 bool streamBeats = !streamBeat.Due(39) && !streamBeat.Open(39) && streamBeat.Due(41) && streamBeat.Open(50) && !streamBeat.Due(50) && !streamBeat.Open(62) && !streamBeat.Due(100) && streamBeat.Due(130) && streamBeat.Open(140) && !streamBeat.Due(189) && streamBeat.Due(190);
                 Computer.Streaming = false;
@@ -40544,6 +40711,8 @@ namespace CapriDesktop
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
             Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });
+            Section(checks, "SmokeBrowserGame", delegate { SmokeBrowserGame(checks, output, findGame); });
+            Section(checks, "SmokeSayNow", delegate { SmokeSayNow(checks, output, findGame); });
             Section(checks, "SmokeGameHolds", delegate { SmokeGameHolds(checks); });
             Section(checks, "SmokeGameFocus", delegate { SmokeGameFocus(checks); });
             Section(checks, "SmokeGameAsks", delegate { SmokeGameAsks(checks); });
@@ -40722,7 +40891,6 @@ namespace CapriDesktop
             {
                 Brain.Secrets = delegate { return new[] { shapeless, escapedKey, "local-key", null, "" }; };
                 if (Brain.Redacted("said " + shapeless + " back") != "said " + shapeless + " back") throw new Exception("The scrub check's key has a shape Redacted already knows.");
-            Section(checks, "SmokeBrowserGame", delegate { SmokeBrowserGame(checks, output, findGame); });
                 Brain.LogAt(log, "https://api.example.com/v1/" + shapeless + "/models", -1, "Bad key " + shapeless + " for /v1?key=" + Uri.EscapeDataString(escapedKey) + ", the local-key placeholder");
                 string written = File.ReadAllText(log);
                 if (written.Contains(shapeless) || written.Contains(Uri.EscapeDataString(escapedKey)) || !written.Contains("Bad key [redacted] for /v1?key=[redacted], the local-key placeholder") || !written.Contains("api.example.com/v1/[redacted]/models"))

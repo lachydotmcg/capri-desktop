@@ -220,8 +220,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\",\"description\":\"Spot to face, across the screenshot\"},\"y\":{\"type\":\"number\",\"description\":\"Spot to face, down the screenshot\"},\"right\":{\"type\":\"number\",\"description\":\"Degrees to turn right, negative for left\"},\"up\":{\"type\":\"number\",\"description\":\"Degrees to look up, negative for down\"},\"level\":{\"type\":\"string\",\"description\":\"yes to look straight ahead at the horizon in a first-person game\",\"enum\":[\"yes\"]}}}" },
             { "walk", "Move around in a game by holding movement keys. It jumps over small things by itself and lets go by itself when you're really stuck, and it tells you how it went.",
               "{\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"string\",\"description\":\"The keys to hold, joined with +, like w, a, shift+w. Default w\"},\"seconds\":{\"type\":\"string\",\"description\":\"How long to keep going. Default 2\"},\"jump\":{\"type\":\"string\",\"description\":\"Jump when something's in the way. Default yes\",\"enum\":[\"yes\",\"no\"]}}}" },
-            { "say", "Say one short line out loud to them while you play, as Capri: under 12 words, first person, reacting to what just happened. Gloat, trash-talk what you're fighting, curse the game, get hyped, in the spirit of \"Oh, you little freaks.\" or \"That one stung, choom.\" Never a report: no plans, no \"I'll\", no numbers off the screen. Never the same line twice.",
-              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The line she says\"}},\"required\":[\"text\"]}" },
+            { "say", "Say one short line out loud to them while you play, as Capri: under 12 words, first person, reacting to what just happened. Gloat, trash-talk what you're fighting, curse the game, get hyped, in the spirit of \"Oh, you little freaks.\" or \"That one stung, choom.\" Never a report: no plans, no \"I'll\", no numbers off the screen. Never the same line twice. Set now to true to cut in for a jump scare, sudden death or something lunging at you.",
+              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The line she says\"},\"now\":{\"type\":\"boolean\",\"description\":\"Cut in for a sudden scare or death\"}},\"required\":[\"text\"]}" },
             { "learn", "Save one short thing you worked out about this game for every time you play it after this, like a key, what killed you, what worked or where something is. You're told these before you play it again.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"One short line\"}},\"required\":[\"text\"]}" },
             { "mouse_hold", "Hold a mouse button in a game for as long as something takes, like holding left click to mine a block or fire, or right click to aim, block or use. When you're breaking something, always set stop to yes, so it lets go by itself the moment what's under the crosshair changes and you don't start on the next block.",
@@ -2481,35 +2481,56 @@ namespace CapriDesktop
             return answer.Success ? answer.Value.Equals("no", StringComparison.OrdinalIgnoreCase) : Computer.GivingUp(words);
         }
 
-        // What she says out loud while she plays.
-        internal Action<string> Says;
+        // What she says out loud while she plays, and whether it reached her: false when her bubble or voice is busy with something else.
+        // True for a cut-in line lets it stop the line she's still saying.
+        internal Func<string, bool, bool> Says;
         private DateTime saidAt = DateTime.MinValue;
         private readonly HashSet<string> saidLines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        // One sentence at most every 8 seconds, so her voice keeps up with her hands.
-        internal void Narrate(string words)
+        // One sentence at most every 8 seconds, so her voice keeps up with her hands. A short cry like "AAAH!" keeps the sentence after it,
+        // and a now line skips the wait for a jump scare. It answers in words the brain can act on, so a line that wasn't said never
+        // reads as said.
+        internal string Narrate(string words, bool now = false)
         {
-            Action<string> say = Says;
+            Func<string, bool, bool> say = Says;
             string line = Regex.Replace(words ?? "", @"\s+", " ").Trim();
             // On stream only her say lines are spoken, so she talks to chat instead of over her own play.
-            if (Computer.Streaming || !Playing || say == null || line.Length == 0 || (DateTime.UtcNow - saidAt).TotalSeconds < 8) return;
-            Match sentence = Regex.Match(line, @"^.{3,140}?[.!?]+(?=\s|$)");
-            if (sentence.Success) line = sentence.Value;
-            else if (line.Length > 140) line = line.Substring(0, line.LastIndexOf(' ', 140) > 0 ? line.LastIndexOf(' ', 140) : 140);
-            if (!saidLines.Add(line)) return;
+            if (Computer.Streaming) return Computer.LockedIn;
+            if (!Playing) return "Not said: you're not playing.";
+            if (line.Length == 0) return "Not said: there's nothing to say.";
+            if (say == null) return "Not said: your voice isn't ready.";
+            Match sentence = Regex.Match(line, @"^.{1,140}?[.!?]+(?=\s|$)");
+            if (sentence.Success)
+            {
+                string rest = line.Substring(sentence.Length).TrimStart();
+                line = sentence.Value;
+                int count = Regex.Matches(line, @"[\p{L}\p{N}]+(?:['\u2019][\p{L}\p{N}]+)*").Count;
+                if (rest.Length > 0 && count > 0 && count <= 2)
+                {
+                    Match next = Regex.Match(rest, @"^.{1,140}?[.!?]+(?=\s|$)");
+                    line += " " + (next.Success ? next.Value : rest);
+                }
+            }
+            if (line.Length > 140) line = line.Substring(0, line.LastIndexOf(' ', 140) > 0 ? line.LastIndexOf(' ', 140) : 140);
+            if (saidLines.Contains(line)) return "Not said: you've used that line. Find new words.";
+            if (!now && (DateTime.UtcNow - saidAt).TotalSeconds < 8) return "Not said: you spoke less than 8 seconds ago. Say it on a later move if it still fits.";
+            if (!say(line, now)) return Unsaid;
+            saidLines.Add(line);
             saidAt = DateTime.UtcNow;
-            say(line);
+            return "Said.";
         }
+
+        internal const string Unsaid = "Not said: you're still saying something else. Say it on a later move if it still fits.";
 
         private readonly Hands.StreamMinute streamMinute = new Hands.StreamMinute();
 
         // Her say move. On stream every line in her chat time goes out as it is, on any brain, and the rest of the time she keeps playing.
-        internal string Spoken(string words, double now)
+        internal string Spoken(string words, double now, bool cut = false)
         {
-            if (!Computer.Streaming) { Narrate(words); return "Said."; }
+            if (!Computer.Streaming) return Narrate(words, cut);
             if (!streamMinute.Open(now)) return Computer.LockedIn;
-            Action<string> says = Says;
-            if (says != null && !string.IsNullOrWhiteSpace(words)) says(words.Trim());
-            return "Said.";
+            if (string.IsNullOrWhiteSpace(words)) return "Not said: there's nothing to say.";
+            Func<string, bool, bool> says = Says;
+            return says != null && says(words.Trim(), false) ? "Said." : Unsaid;
         }
 
         private DateTime flinchedAt = DateTime.MinValue;
@@ -3444,7 +3465,7 @@ namespace CapriDesktop
             if (name == "draw") args.Drawing = shown;
             if (name == "say")
             {
-                string spoken = Spoken(args.Text, clock.Elapsed.TotalSeconds);
+                string spoken = Spoken(args.Text, clock.Elapsed.TotalSeconds, args.Now == true);
                 if (Computer.Streaming && spoken == "Said." && !string.IsNullOrWhiteSpace(args.Text)) Mark(new JobStep { Tool = name, Label = "Said " + Voice.Quote(args.Text.Trim()) });
                 return spoken;
             }
@@ -3545,7 +3566,7 @@ namespace CapriDesktop
             TypeStamp stamp = Typing(tool, args, sight, false);
             if (tool == "say")
             {
-                string spoken = Spoken(args.Text, clock.Elapsed.TotalSeconds);
+                string spoken = Spoken(args.Text, clock.Elapsed.TotalSeconds, args.Now == true);
                 if (spoken == "Said.") Steps.Add("Said " + Voice.Quote(args.Text ?? ""));
                 return spoken;
             }

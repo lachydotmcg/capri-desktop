@@ -53,6 +53,7 @@ namespace CapriDesktop
         internal long? Sequence;
         [DataMember(Name = "target")] public string Target;
         [DataMember(Name = "text")] public string Text;
+        [DataMember(Name = "now")] public bool? Now;
         [DataMember(Name = "description")] public string Description;
         [DataMember(Name = "path")] public string Path;
         [DataMember(Name = "page")] public int? Page;
