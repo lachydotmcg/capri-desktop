@@ -44,22 +44,22 @@ namespace CapriDesktop
                         CheckFreeKeyRows();
                         if (!advanced && percent != 200) SaveFreeKeyPreview(output, percent);
                         FreeKeyPress(freeKeyMenu, Keys.Escape);
-                        if (freeKeyMenu.Visible) throw new Exception("Esc did not close the Free key menu.");
+                        if (freeKeyMenu.Visible) throw new Exception("Esc did not close the Free key menu." + " " + WindowPicture.Focus());
                         foreach (Keys opening in new[] { Keys.Enter, Keys.Space })
                             for (int provider = 0; provider < freeKeyMenu.Items.Count; provider++)
                             {
                                 freeKey.Focus();
                                 FreeKeyPress(freeKey, opening);
                                 CheckFreeKeyRows();
-                                if (!freeKeyMenu.Items[0].Selected) throw new Exception("The Free key menu did not start on NVIDIA.");
+                                if (!freeKeyMenu.Items[0].Selected) throw new Exception("The Free key menu did not start on NVIDIA." + " " + WindowPicture.Focus());
                                 FreeKeyPress(freeKeyMenu, Keys.Down);
-                                if (!freeKeyMenu.Items[1].Selected) throw new Exception("Down did not move to Google AI Studio.");
+                                if (!freeKeyMenu.Items[1].Selected) throw new Exception("Down did not move to Google AI Studio." + " " + WindowPicture.Focus());
                                 FreeKeyPress(freeKeyMenu, Keys.Up);
-                                if (!freeKeyMenu.Items[0].Selected) throw new Exception("Up did not move back to NVIDIA.");
+                                if (!freeKeyMenu.Items[0].Selected) throw new Exception("Up did not move back to NVIDIA." + " " + WindowPicture.Focus());
                                 for (int step = 0; step < provider; step++) FreeKeyPress(freeKeyMenu, Keys.Down);
                                 if (!freeKeyMenu.Items[provider].Selected) throw new Exception("Arrows did not reach free key provider " + provider + ".");
                                 FreeKeyPress(freeKeyMenu, Keys.Enter);
-                                if (freeKeyMenu.Visible) throw new Exception("Enter did not close the Free key menu after picking.");
+                                if (freeKeyMenu.Visible) throw new Exception("Enter did not close the Free key menu after picking." + " " + WindowPicture.Focus());
                                 picked(provider);
                             }
                     }

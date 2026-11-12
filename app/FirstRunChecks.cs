@@ -76,6 +76,33 @@ namespace CapriDesktop
             return cut;
         }
 
+        [DllImport("user32.dll")] private static extern IntPtr GetFocus();
+        [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] private static extern int GetWindowThreadProcessId(IntPtr window, out int process);
+
+        // Which window has the foreground and which of hers has the keyboard, for a key check that didn't land: one of her
+        // windows by type, anything else by its program and window class only.
+        internal static string Focus()
+        {
+            IntPtr front = GetForegroundWindow(), focus = GetFocus();
+            string frontIs;
+            if (front == IntPtr.Zero) frontIs = "none";
+            else if (Control.FromHandle(front) != null) frontIs = "hers, " + TimerWatch.Who(front);
+            else
+            {
+                int process;
+                GetWindowThreadProcessId(front, out process);
+                string program;
+                try { using (System.Diagnostics.Process owner = System.Diagnostics.Process.GetProcessById(process)) program = owner.ProcessName; }
+                catch (ArgumentException) { program = "a program that's gone"; }
+                catch (InvalidOperationException) { program = "a program that's gone"; }
+                frontIs = (process == System.Diagnostics.Process.GetCurrentProcess().Id ? "hers, " : program + ", ") + TimerWatch.Who(front);
+            }
+            Control focused = focus == IntPtr.Zero ? null : Control.FromHandle(focus);
+            string focusIs = focus == IntPtr.Zero ? "nothing of hers" : focused == null ? TimerWatch.Who(focus) : TimerWatch.Who(focus) + " \"" + (focused.AccessibleName ?? focused.Text) + "\"";
+            return "foreground: " + frontIs + "; keyboard focus: " + focusIs;
+        }
+
         // Several windows where they sit on the screen, like the card with her language menu open off it, on the backdrop.
         internal static void Together(string path, params Control[] windows)
         {
@@ -388,7 +415,7 @@ namespace CapriDesktop
                     if (!languageMenu.Visible || languageMenu.SourceControl != languageButton) throw new Exception("The setup language button didn't open its menu by mouse.");
                     languageKey(languageMenu, Keys.Escape);
                     pump();
-                    if (languageMenu.Visible) throw new Exception("Esc didn't close the setup language menu.");
+                    if (languageMenu.Visible) throw new Exception("Esc didn't close the setup language menu. " + WindowPicture.Focus());
                     bool tabbedToLanguage = false;
                     for (int step = 0; step < languageCard.Controls.Count; step++)
                     {
@@ -397,10 +424,10 @@ namespace CapriDesktop
                     }
                     if (!tabbedToLanguage) throw new Exception("Tab couldn't reach the setup language button.");
                     languageKey(languageButton, Keys.Enter);
-                    if (!languageMenu.Visible || languageCard.Screen != FirstRun.Pick) throw new Exception("Enter didn't open the setup language menu (or went on past the first screen).");
+                    if (!languageMenu.Visible || languageCard.Screen != FirstRun.Pick) throw new Exception("Enter didn't open the setup language menu (or went on past the first screen). " + WindowPicture.Focus());
                     languageMenu.Close();
                     languageKey(languageButton, Keys.Space);
-                    if (!languageMenu.Visible || languageCard.Screen != FirstRun.Pick) throw new Exception("Space didn't open the setup language menu.");
+                    if (!languageMenu.Visible || languageCard.Screen != FirstRun.Pick) throw new Exception("Space didn't open the setup language menu. " + WindowPicture.Focus());
                     ToolStripMenuItem japanese = null;
                     foreach (ToolStripMenuItem item in Mainframe.LanguageItems(languageMenu.Items)) if ((string)item.Tag == "Japanese") japanese = item;
                     if (japanese == null) throw new Exception("The setup menu has no Japanese pick.");
