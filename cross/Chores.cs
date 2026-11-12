@@ -96,7 +96,11 @@ namespace CapriDesktop
                 // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
                 // a plain job over its stream tool.
                 Hands.Streaming = Hands.StreamAsked(args.Task) || !brain.WorksOut() && Hands.StreamAsked(args.Asked);
-                try { return Work(brain, args.Task, args.Asked); }
+                try
+                {
+                    if (Hands.Streaming) return "I can't safely stream on this desktop because I can't check permissions for each action.";
+                    return Work(brain, args.Task, args.Asked);
+                }
                 finally { Hands.Streaming = false; }
             }, delegate { });
         }

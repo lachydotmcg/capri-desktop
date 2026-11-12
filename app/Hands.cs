@@ -1792,6 +1792,9 @@ namespace CapriDesktop
                 StopStream();
                 return was ? "Stopped streaming." : "I'm not streaming right now.";
             }
+#if CROSS
+            if (NativeWork == null) return Work("stream mode", args.Asked);
+#endif
             Streaming = true;
             string game = string.IsNullOrWhiteSpace(args.Name) ? null : args.Name.Trim();
             return Work(game == null ? "Stream the game that's open: play it yourself, live for their stream, and talk to their chat."
