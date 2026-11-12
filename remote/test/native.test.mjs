@@ -1,6 +1,7 @@
 // Phone-only mode (site/remote/native.js) in a real browser: headless Chrome opens the phone page from a local copy of the
 // site, a stand-in provider answers (lib/fake-provider.mjs), and the test sets her up with a key, chats, reloads, changes
-// brain, hits an error and switches between a PC (the demo's) and this phone. Her persona is checked word for word
+// brain, hits an error and switches between a PC (the demo's) and this phone. It also starts free, checks the daily
+// allowance and its two limit replies, and switches to a key. Her persona is checked word for word
 // against app/Brain.cs. Ports 8792 to 8794. Skipped where Chrome isn't installed.
 
 import { test } from 'node:test';
@@ -62,6 +63,7 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
     await click('#native-start');
     await page.until(`!document.querySelector('#brain').hidden`, 'SETTINGS');
     assert.equal(await page.run(`document.querySelector('.native-modes .nbtn[aria-pressed="true"]').textContent`), 'This phone');
+    await click('#brain .native-own-key');
     await type('#brain-key', BAD);
     await click('.native-row .nbtn.solid');
     await page.until(`/rejected the key/.test(document.querySelector('#brain .native-status').textContent)`, 'the bad key note');
@@ -246,6 +248,169 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
     try { where = await page.run(`JSON.stringify({ link: document.querySelector('#app').dataset.link, screen: document.querySelector('#app').dataset.screen, mode: localStorage.getItem('capri-remote-mode'), you: document.querySelectorAll('.msg.you').length, chats: (localStorage.getItem('capri-remote-chats') || '').length, counted: localStorage.getItem('capri-remote-counted') })`); } catch {}
     error.message += ' | page: ' + where;
     throw error;
+  } finally {
+    await page.close();
+    await site.close();
+    await provider.close();
+  }
+});
+
+test('phone-only mode: start free, see the allowance and switch to a key', { skip: !chromePath() && 'Chrome is not installed', timeout: 120000 }, async () => {
+  const provider = await startProvider(PROVIDER_PORT);
+  const site = await startSite(SITE_PORT);
+  const page = await launch({ port: CHROME_PORT });
+  const seen = [];
+  page.on((method, params) => { if (method === 'Network.requestWillBeSent') seen.push(params.request.url); });
+  const url = `http://127.0.0.1:${SITE_PORT}/?provider=http://127.0.0.1:${PROVIDER_PORT}&free=http://127.0.0.1:${PROVIDER_PORT}&count=http://127.0.0.1:${PROVIDER_PORT}/count`;
+  const click = selector => page.run(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  const type = (selector, text) => page.run(`(() => { const node = document.querySelector(${JSON.stringify(selector)}); node.value = ${JSON.stringify(text)}; node.dispatchEvent(new Event('input', { bubbles: true })); })()`);
+  const text = selector => page.run(`document.querySelector(${JSON.stringify(selector)}).textContent`);
+  const say = async words => { await type('#msg', words); await click('#send'); };
+  const lastReply = `(() => { const all = [...document.querySelectorAll('.msg.capri.done')]; return all.length ? all[all.length - 1].textContent : ''; })()`;
+  const requests = method => provider.got.filter(item => item.path === '/free' && item.method === method);
+  const counts = () => provider.got.filter(item => item.path === '/count/phone-day');
+  const freeWords = "Capri's developers provide this AI usage for free, however it is limited because it costs real money.";
+  const kofiWords = "If you'd like to help keep it free, you can support Capri on Ko-fi.";
+  const shot = async name => { if (SHOTS) { mkdirSync(SHOTS, { recursive: true }); await page.shot(join(SHOTS, name + '.png')); } };
+  const shown = selector => page.run(`(() => { const node = document.querySelector(${JSON.stringify(selector)}); return !!node && node.getClientRects().length > 0; })()`);
+  try {
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() });
+    await page.send('Emulation.setTimezoneOverride', { timezoneId: 'Australia/Sydney' });
+    await page.go(url);
+    await page.until(`document.querySelector('#app').dataset.screen === 'pair'`, 'the pair screen');
+    await click('#native-start');
+    await page.until(`!document.querySelector('#brain').hidden`, 'the free choice');
+    assert.equal(await text('#brain .native-free'), 'Start free');
+    assert.equal(await text('#brain .native-free-words'), freeWords);
+    assert.equal(await text('#brain .native-own-key'), 'or use your own key');
+    assert.equal(await page.run(`document.querySelector('#native-key-part').hidden`), true);
+    // The start screen has his words alone: no allowance and no Ko-fi line until the free brain is in use.
+    assert.equal(await shown('#brain .native-free-kofi'), false);
+    assert.equal(await shown('#brain .native-free-left'), false);
+    assert.equal(provider.got.length, 0);
+    await shot('free-1-start');
+    await click('#brain .native-free');
+    await page.until(`CapriRemote.info.native === true && document.querySelector('#app').dataset.screen === 'chat'`, 'free chat without a key');
+    assert.equal(await page.run(`localStorage.getItem('capri-remote-free')`), '1');
+    assert.equal(await page.run(`localStorage.getItem('capri-remote-brain')`), null);
+    assert.equal(await text('#native-mode'), 'This phone');
+    assert.equal(counts().length, 0);
+
+    // A whole reply uses the same typing state, history and daily phone count as a keyed brain.
+    provider.state.free.wait = 300;
+    await say('hello free brain');
+    await page.until(`!!document.querySelector('.msg.capri.thinking')`, 'her typing state');
+    await page.until(`${lastReply} === 'Capri: Free says: hello free brain'`, 'her whole free reply');
+    await page.until(`JSON.parse(localStorage.getItem('capri-remote-counted')).sent === true`, 'the free phone counted');
+    assert.deepEqual(requests('POST')[0].body, { messages: [{ role: 'user', content: 'hello free brain' }] });
+    // A plain-text POST, so no preflight goes before each message.
+    assert.equal(requests('POST')[0].headers['content-type'], 'text/plain');
+    assert.equal(provider.got.filter(item => item.path === '/free' && item.method === 'OPTIONS').length, 0);
+    await shot('free-2-chat');
+    for (const name of ['x-api-key', 'authorization', 'cookie', 'referer']) assert.equal(requests('POST')[0].headers[name], undefined, name);
+    assert.equal(counts().length, 1);
+    assert.deepEqual(counts()[0].body, { first: true, paired: false });
+
+    // Opening SETTINGS reads the server, rather than just repeating the number from her last reply.
+    provider.state.free.left = 7;
+    await click('#f-settings');
+    await page.until(`document.querySelector('.native-free-left').textContent === 'Free messages today: 7 of 15 left'`, 'the allowance read from GET');
+    assert.equal(requests('GET').length, 1);
+    assert.equal(await text('.native-free-words'), freeWords);
+    // Midnight UTC in Sydney in November is 11:00 am daylight time, today or tomorrow there.
+    const sydneyDay = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+    const plain = words => words.replace(/\s/g, ' ');
+    // The time is in the phone's own locale and zone: 11:00 or 11:00 AM, as this browser writes it.
+    const elevenLocal = plain(await page.run(`new Date(${JSON.stringify(provider.state.free.resets)}).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })`));
+    assert.match(elevenLocal, /^11:00( AM)? GMT\+11$/);
+    const localReset = 'at ' + elevenLocal + ' ' + (sydneyDay(new Date(provider.state.free.resets)) === sydneyDay(new Date()) ? 'today' : 'tomorrow');
+    assert.equal(plain(await text('.native-free-reset')), 'Resets ' + localReset + '.');
+    // His words, then the Ko-fi line straight after them, under the allowance, with a plain link to his page.
+    assert.equal(await text('.native-free-kofi'), kofiWords);
+    assert.equal(await page.run(`document.querySelector('.native-free-words').nextElementSibling.className`), 'native-note native-free-kofi');
+    assert.equal(await page.run(`!!(document.querySelector('.native-free-left').compareDocumentPosition(document.querySelector('.native-free-words')) & Node.DOCUMENT_POSITION_FOLLOWING)`), true);
+    assert.deepEqual(await page.run(`(() => { const link = document.querySelector('.native-free-kofi a'); return [link.textContent, link.href, link.target, link.rel]; })()`), ['Ko-fi', 'https://ko-fi.com/lachysdev', '_blank', 'noopener noreferrer']);
+    assert.equal(await shown('.native-free-kofi'), true);
+    await shot('free-3-settings');
+    // A reply updates the open sheet too, with no extra GET.
+    await say('one more for free');
+    await page.until(`${lastReply} === 'Capri: Free says: one more for free'`, 'another free reply');
+    assert.equal(await text('.native-free-left'), 'Free messages today: 6 of 15 left');
+    assert.equal(requests('GET').length, 1);
+    assert.deepEqual(requests('POST')[1].body.messages, [
+      { role: 'user', content: 'hello free brain' }, { role: 'assistant', content: 'Free says: hello free brain' },
+      { role: 'user', content: 'one more for free' }
+    ]);
+    await click('#brain .native-done');
+    await new Promise(resolve => setTimeout(resolve, 500));
+    await page.go(url);
+    await page.until(`CapriRemote.info.native === true && document.querySelectorAll('.msg.you').length === 2`, 'free chat kept after reload');
+
+    // Limit lines are her reply, rather than a cut or a toast, and never count as a successful phone reply.
+    await page.run(`localStorage.setItem('capri-remote-counted', JSON.stringify({ day: Math.floor(Date.now() / 86400000) - 1, sent: true }))`);
+    provider.state.free.left = 0;
+    await say('used up');
+    await page.until(`${lastReply}.includes("That's all your free messages for today")`, 'her used-up line');
+    assert.equal(plain(await page.run(lastReply)), "Capri: That's all your free messages for today, choom. They're back " + localReset + '. Your own key in SETTINGS skips the limit.');
+    await shot('free-4-used');
+    provider.state.free.left = 9;
+    provider.state.free.open = false;
+    await say('pool used up');
+    await page.until(`${lastReply}.includes("Everyone's free messages for today are gone.")`, 'her shared pool line');
+    assert.ok(plain(await page.run(lastReply)).includes(localReset));
+    assert.equal(counts().length, 1);
+    assert.equal(await page.run(`[...document.querySelectorAll('.msg.capri .cut')].filter(node => node.textContent).length`), 0);
+    assert.equal(await page.run(`!!document.querySelector('.native-toast:not([hidden])')`), false);
+
+    // Switching to a key uses the existing check and model choice, and future chats go straight to that provider.
+    await click('#f-settings');
+    await page.until(`document.querySelector('.native-free-left').textContent === 'Free messages today: 9 of 15 left'`, 'the pool allowance');
+    assert.equal(await page.run(`document.querySelector('.native-free-pool').hidden`), false);
+    assert.equal(await text('.native-own-key'), 'Switch to your own key');
+    await click('.native-own-key');
+    assert.equal(await page.run(`document.querySelector('#native-key-part').hidden`), false);
+    await type('#brain-key', GOOD.anthropic);
+    await click('.native-row .nbtn.solid');
+    await page.until(`document.querySelector('#brain').hidden && JSON.parse(localStorage.getItem('capri-remote-brain')).provider === 'anthropic'`, 'the key saved');
+    assert.equal(JSON.parse(await page.run(`localStorage.getItem('capri-remote-brain')`)).model, 'claude-haiku-5-5');
+    const freePosts = requests('POST').length;
+    await say('back with a key');
+    await page.until(`${lastReply} === 'Capri: Got it: back with a key'`, 'her keyed reply');
+    assert.equal(requests('POST').length, freePosts);
+    const freeGets = requests('GET').length;
+    await click('#f-settings');
+    assert.equal(await page.run(`document.querySelector('.native-free-left').parentNode.hidden`), true);
+    assert.equal(await shown('.native-free-kofi'), false);
+    assert.equal(requests('GET').length, freeGets);
+    // Back to free and to the key again: trying the free brain never throws the saved key away.
+    assert.equal(await text('#brain .native-free'), 'Use free brain');
+    await click('#brain .native-free');
+    await page.until(`document.querySelector('#brain').hidden && localStorage.getItem('capri-remote-free') === '1'`, 'back on the free brain');
+    assert.equal(JSON.parse(await page.run(`localStorage.getItem('capri-remote-brain')`)).key, GOOD.anthropic);
+    await page.until(`CapriRemote.info.native === true && document.querySelector('#app').dataset.link === 'connected'`, 'free brain connected');
+    provider.state.free.open = true;
+    await say('free once more');
+    await page.until(`${lastReply} === 'Capri: Free says: free once more'`, 'a free reply after the key');
+    await click('#f-settings');
+    await page.until(`!document.querySelector('#brain').hidden`, 'SETTINGS on free');
+    await click('.native-own-key');
+    assert.equal(await page.run(`document.querySelector('#brain-key').placeholder`), 'Key saved');
+    assert.equal(await text('.native-row .nbtn.solid'), 'Use this phone');
+    assert.equal(await shown('.native-row .nbtn.hot'), true);
+    await click('.native-row .nbtn.solid');
+    await page.until(`document.querySelector('#brain').hidden && localStorage.getItem('capri-remote-free') === null`, 'the saved key back in use');
+    await say('the key again');
+    await page.until(`${lastReply} === 'Capri: Got it: the key again'`, 'a keyed reply with no retyping');
+    // A browser that saves nothing gets a plain line, not a silent trip back to the pair screen.
+    await page.run(`Storage.prototype.setItem = () => { throw new Error('QuotaExceededError'); }`);
+    await click('#f-settings');
+    await page.until(`!document.querySelector('#brain').hidden`, 'SETTINGS with no storage');
+    await click('#brain .native-free');
+    await page.until(`(() => { const toast = document.querySelector('.native-toast'); return !!toast && !toast.hidden && /won't save settings/.test(toast.textContent); })()`, 'the no-storage line');
+    assert.equal(await page.run(`localStorage.getItem('capri-remote-free')`), null);
+    assert.equal(await page.run(`document.querySelector('#brain').hidden`), false);
+    for (const request of requests('GET').concat(requests('POST'))) for (const name of ['x-api-key', 'authorization', 'cookie', 'referer']) assert.equal(request.headers[name], undefined, name);
+    for (const address of seen.concat(site.asked)) assert.ok(/^(data:|about:|http:\/\/127\.0\.0\.1:(8792|8793)\/|\/)/.test(address), 'the page reached ' + address);
   } finally {
     await page.close();
     await site.close();

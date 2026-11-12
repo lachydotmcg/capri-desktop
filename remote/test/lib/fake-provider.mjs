@@ -1,6 +1,6 @@
 // A stand-in for her brain's providers, for phone-only mode's page test (site/remote/native.js). It answers as Anthropic
 // under /anthropic and as OpenRouter (OpenAI's chat format) under /openrouter, with CORS like the real ones, and keeps
-// every request it got. No real key or provider is ever involved.
+// every request it got. /free stands in for the worker's free phone brain. No real key or provider is ever involved.
 
 import { createServer } from 'node:http';
 
@@ -54,7 +54,7 @@ const chatFrame = {
 export const startProvider = port =>
   new Promise((resolve, reject) => {
     const got = [];
-    const state = { count: 0 };
+    const state = { count: 0, free: { left: 15, each: 15, resets: new Date((Math.floor(Date.now() / 86400000) + 1) * 86400000).toISOString(), open: true, wait: 0 } };
     const server = createServer((request, response) => {
       cors(request, response);
       if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
@@ -70,6 +70,18 @@ export const startProvider = port =>
         if (url.pathname === '/count/phone-day') {
           if (state.count === 'drop') { request.socket.destroy(); return; }
           return json(response, state.count || 200, state.count ? { error: 'down' } : { ok: true });
+        }
+        // The free allowance has no key, cookie or page id. A short wait lets the page test see her typing.
+        if (url.pathname === '/free') {
+          const { left, each, resets, open } = state.free;
+          if (request.method === 'GET') return json(response, 200, { left, each, resets, open });
+          if (request.method === 'POST') {
+            if (!left) return json(response, 429, { error: 'used', left, each, resets });
+            if (!open) return json(response, 429, { error: 'pool', left, each, resets });
+            state.free.left--;
+            if (state.free.wait) await new Promise(done => setTimeout(done, state.free.wait));
+            return json(response, 200, { reply: 'Free says: ' + heard, left: state.free.left, each, resets });
+          }
         }
         if (url.pathname.startsWith('/anthropic/')) {
           // The real API turns a browser away without this header.

@@ -4,6 +4,9 @@
 .native-sheet .native-modes .nbtn { flex: 1 1 0; }
 .native-sheet .native-modes .nbtn[aria-pressed="true"] { --face: var(--deep); --rim: var(--cyan); --ink: var(--cyan); }
 .native-part { margin-top: 4px; }
+.native-free { margin-top: 12px; }
+.native-own-key { margin: 8px 0 0; }
+.native-free-kofi a { color: var(--cyan); text-decoration: underline; text-underline-offset: 3px; }
 .native-line { margin: 12px 0 0; color: var(--white); font: 500 16px/1.3 var(--ui); font-stretch: 87.5%; }
 .native-note { margin: 8px 0 12px; color: var(--faint); font: 500 14px/1.3 var(--ui); font-stretch: 87.5%; }
 .native-part .code-label { display: block; margin: 14px 0 8px; }
