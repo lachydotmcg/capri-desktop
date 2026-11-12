@@ -3313,7 +3313,7 @@ namespace CapriDesktop
 
         // A new install only (Lachy, 31 Oct): she wanders now and then, after her usual wait rather than as soon as she arrives,
         // and EXTRAS offers what costs something or uses the mic. A brand new install gets her first launch card instead
-        // (FirstRun.cs), and skipping that card lands here.
+        // (FirstRun.cs).
         private void FirstLaunch()
         {
             SetWanderLevel(1);
@@ -6463,7 +6463,8 @@ namespace CapriDesktop
         private void CheckWander(double now, long quiet)
         {
             bool settled = talkState == TalkState.Off || (talkState == TalkState.Talking && replyDone >= 0 && now - replyDone > 8);
-            if (!preferences.Wander || Hushed || ownRest || SleepBusy || GamingOn || hidden || dragging || pressed || riding || onPanel || falling || hanging || InChat || typer.Visible || menu.Visible || speech != null || !settled || quiet > 90000 || (seat != null && seat.Free) || outro != null || (clip != idle && clip != perch && clip != dance && clip != perchDance)) return;
+            // She stays beside her first launch card while it's open.
+            if (!preferences.Wander || FirstRunShowing || Hushed || ownRest || SleepBusy || GamingOn || hidden || dragging || pressed || riding || onPanel || falling || hanging || InChat || typer.Visible || menu.Visible || speech != null || !settled || quiet > 90000 || (seat != null && seat.Free) || outro != null || (clip != idle && clip != perch && clip != dance && clip != perchDance)) return;
             double pace = WanderPaces[preferences.WanderPace];
             if (nextWander < 0) nextWander = now + (20 + random.NextDouble() * 40) * pace;
             if (now < nextWander) return;

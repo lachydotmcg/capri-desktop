@@ -53,6 +53,48 @@ namespace CapriDesktop
             return how;
         }
 
+        // The window alone, as Windows draws it, with everything outside its outline see-through, to lay over a mock desktop.
+        internal static Bitmap Cut(Form window)
+        {
+            window.Refresh();
+            Application.DoEvents();
+            Bitmap shot = new Bitmap(window.Width, window.Height, PixelFormat.Format32bppArgb);
+            if (!Print(window, shot, true) || Blank(shot)) Print(window, shot, false);
+            Bitmap cut = new Bitmap(window.Width, window.Height, PixelFormat.Format32bppArgb);
+            IntPtr handle = CreateRectRgn(0, 0, 0, 0);
+            Region outline;
+            try { outline = GetWindowRgn(window.Handle, handle) > 1 ? Region.FromHrgn(handle) : new Region(new Rectangle(0, 0, window.Width, window.Height)); }
+            finally { DeleteObject(handle); }
+            using (outline)
+            using (Graphics drawing = Graphics.FromImage(cut))
+            {
+                drawing.Clear(Color.Transparent);
+                drawing.SetClip(outline, CombineMode.Replace);
+                drawing.DrawImageUnscaled(shot, 0, 0);
+            }
+            shot.Dispose();
+            return cut;
+        }
+
+        // Where a picture has anything drawn, by its alpha.
+        internal static Rectangle Inked(Bitmap image)
+        {
+            int left = image.Width, top = image.Height, right = -1, bottom = -1;
+            BitmapData bits = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            try
+            {
+                int[] row = new int[image.Width];
+                for (int y = 0; y < image.Height; y++)
+                {
+                    Marshal.Copy(new IntPtr(bits.Scan0.ToInt64() + (long)y * bits.Stride), row, 0, image.Width);
+                    for (int x = 0; x < image.Width; x++)
+                        if ((row[x] >> 24 & 0xFF) > 24) { if (x < left) left = x; if (x > right) right = x; if (y < top) top = y; if (y > bottom) bottom = y; }
+                }
+            }
+            finally { image.UnlockBits(bits); }
+            return right < 0 ? Rectangle.Empty : Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
+        }
+
         private static bool Print(Form window, Bitmap into, bool full)
         {
             using (Graphics drawing = Graphics.FromImage(into))
@@ -144,6 +186,7 @@ namespace CapriDesktop
                 pump();
                 string crowded = card.Crowded();
                 if (crowded != null) throw new Exception("The card's " + name + " screen is crowded at " + card.Unit + ": " + crowded);
+                if (card.ClientSize.Height > (int)Math.Ceiling(Mainframe.FirstRunCard.Tallest * card.Unit) + 1) throw new Exception("The card's " + name + " screen is taller than the screen room it's sized for: " + card.ClientSize.Height + " at " + card.Unit);
                 string path = Path.Combine(output, name + ".png");
                 string how = WindowPicture.Save(card, path);
                 if (!ways.Contains(how)) ways.Add(how);
@@ -182,6 +225,61 @@ namespace CapriDesktop
                     || !WantsFirstRun(new Preferences { Welcomed = true, FirstRunStep = FirstRun.Voice }, false, false) || WantsFirstRun(new Preferences { Welcomed = true }, true, false))
                     throw new Exception("The wrong starts get her first launch card.");
                 checks.Add("PASS an update (settings saved before this version, or finished with the card) never gets her first launch card; a brand new install does, one that quit halfway picks up, and settings reset after crashes keep the old first launch");
+                Preferences brandNew;
+                using (MemoryStream empty = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}")))
+                    brandNew = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(empty);
+                if (new Preferences().Silent || brandNew.Silent || !FreeChatOn) throw new Exception("A brand new install starts with her voice off, so HOW I SOUND would have TEXT ONLY picked and she'd stay silent.");
+                checks.Add("PASS a brand new install has her voice on, so HOW I SOUND has MY FREE VOICE picked and her free voice downloads from her first second");
+
+                // The card waits for her to land before it opens beside her, and she doesn't wander off while it's open.
+                reset();
+                bool landing = true;
+                FirstRunLanding = delegate { return landing; };
+                OpenWhenLanded(FirstRun.Pick, FirstRun.Local, false, 0);
+                Stopwatch held = Stopwatch.StartNew();
+                while (held.ElapsedMilliseconds < 700) { Application.DoEvents(); Thread.Sleep(15); }
+                bool waitedForHer = !FirstRunShowing;
+                landing = false;
+                wait(delegate { return FirstRunShowing; }, "The card never opened once she'd landed.");
+                if (!waitedForHer) throw new Exception("The card opened before she'd dropped onto the taskbar.");
+                Mainframe.FirstRunCard landed = firstRun;
+                Point herWas = anchor, cardWas = landed.Location;
+                anchor = new Point(anchor.X - 160, anchor.Y);
+                Location = anchor;
+                pump();
+                Point followed = landed.Location;
+                anchor = herWas;
+                Location = anchor;
+                pump();
+                if (followed == cardWas || landed.Location != cardWas) throw new Exception("The card didn't follow her when she moved: " + cardWas + " -> " + followed + " -> " + landed.Location);
+                bool wanderWas = preferences.Wander;
+                double wanderAt = nextWander;
+                preferences.Wander = true;
+                nextWander = -1;
+                ++asking;
+                CloseTalk();
+                CheckWander(clock.Elapsed.TotalSeconds, 0);
+                bool stayed = nextWander < 0;
+                landed.SkipAll();
+                putBack();
+                nextWander = -1;
+                ++asking;
+                CloseTalk();
+                CheckWander(clock.Elapsed.TotalSeconds, 0);
+                bool wandersAfter = nextWander >= 0;
+                preferences.Wander = wanderWas;
+                nextWander = wanderAt;
+                if (!stayed || !wandersAfter) throw new Exception("She wandered off while the card was open, or never would after: " + stayed + " / " + wandersAfter);
+                // On a short screen or with big scaling its tallest screen still fits above the taskbar.
+                foreach (int[] screenCase in new[] { new[] { 768, 100, 48 }, new[] { 768, 125, 60 }, new[] { 1080, 150, 72 }, new[] { 1080, 175, 84 }, new[] { 1080, 225, 108 }, new[] { 720, 100, 48 } })
+                {
+                    float want = screenCase[1] / 100f;
+                    int room = screenCase[0] - screenCase[2];
+                    float got = Mainframe.FirstRunCard.FitScale(want, room);
+                    if (got > want || Mainframe.FirstRunCard.Tallest * got > room) throw new Exception("The card doesn't fit a " + screenCase[0] + " px screen at " + screenCase[1] + "%: " + got);
+                    if (Mainframe.FirstRunCard.Tallest * want <= room - 8 && got != want) throw new Exception("The card was shrunk on a screen it fits: " + screenCase[0] + " px at " + screenCase[1] + "%");
+                }
+                checks.Add("PASS the card opens once she's landed and follows her when she's moved, she doesn't wander off while it's open, and its tallest screen fits above the taskbar on a 1366 x 768 screen at 125% and a 1080p one at 175% or 225%");
 
                 // This PC, the default: the download starts on Next, the voice and EXTRAS screens run while it comes down with its
                 // progress on the card, and her first reply comes when it's in, here on the waiting screen.
@@ -201,15 +299,15 @@ namespace CapriDesktop
                 picture(card, "1-pick-voice-coming");
                 SettingUpVoice = voiceWas;
                 voiceGot = voiceTotal = 0;
-                if (voiceShown != "HER FREE VOICE | " + Engine.Amount(212L << 20) + " of " + Engine.Amount(LocalVoice.PackSize) + ", downloading while you pick") throw new Exception("WAKE ME UP didn't show her free voice coming down: " + voiceShown);
+                if (voiceShown != "MY FREE VOICE | " + Engine.Amount(212L << 20) + " of " + Engine.Amount(LocalVoice.PackSize) + ", downloading while you pick") throw new Exception("WAKE ME UP didn't show her free voice coming down: " + voiceShown);
                 card.Go(FirstRun.Pick);
                 card.Next();
                 pump();
-                if (setups != 1 || card.Screen != FirstRun.Voice || card.Count != "2 OF 4" || !card.FasterShown || card.GaugeShown == null || !card.GaugeShown.StartsWith("HER BRAIN | ", StringComparison.Ordinal) || reply != FirstRun.WhileLine)
+                if (setups != 1 || card.Screen != FirstRun.Voice || card.Count != "2 OF 4" || !card.FasterShown || card.GaugeShown == null || !card.GaugeShown.StartsWith("MY BRAIN | ", StringComparison.Ordinal) || reply != FirstRun.WhileLine)
                     throw new Exception("Next on ON THIS PC didn't start the download and go on to her voice: " + setups + " / " + card.Screen + " / " + card.GaugeShown + " / " + reply);
                 mainframe.ShowProgress(1, "Downloading " + fit.Name, fit.Size / 3, fit.Size);
                 pump();
-                if (card.GaugeShown != "HER BRAIN | " + Engine.Amount(fit.Size / 3) + " of " + fit.Download) throw new Exception("The card didn't show the download's progress: " + card.GaugeShown);
+                if (card.GaugeShown != "MY BRAIN | " + Engine.Amount(fit.Size / 3) + " of " + fit.Download) throw new Exception("The card didn't show the download's progress: " + card.GaugeShown);
                 Preferences kept = LoadPreferences();
                 if (kept.FirstRunStep != FirstRun.Voice || kept.FirstRunPick != FirstRun.Local) throw new Exception("The card's step wasn't kept: " + kept.FirstRunStep + " / " + kept.FirstRunPick);
                 picture(card, "4-voice-downloading");
@@ -246,6 +344,30 @@ namespace CapriDesktop
                 card.Typed = "hello";
                 card.Next();
                 if (card.Told != Brain.NotAKey || card.Screen != FirstRun.Key) throw new Exception("Something that isn't a key was sent: " + card.Told);
+                // Paste with nothing to paste (an empty clipboard, or a picture on it), a key that picked up spaces and a line
+                // break, 50,000 characters, and a key that stays put when they switch tabs.
+                const string noKey = "There's no key on your clipboard yet. Copy it from the page, then press Paste.";
+                foreach (string nothing in new[] { null, "", " \r\n\t " })
+                {
+                    FirstRunPaste = delegate { return nothing; };
+                    card.Typed = "";
+                    card.Paste();
+                    if (card.Typed != "" || card.Told != noKey) throw new Exception("Paste with nothing on the clipboard didn't say so: " + card.Told);
+                }
+                FirstRunPaste = delegate { return " AIza-first\r\nrun-test\u200B "; };
+                card.Paste();
+                if (card.Typed != "AIza-firstrun-test" || card.Told != "") throw new Exception("A key with spaces and a line break in it wasn't cleaned up: " + card.Typed.Length + " / " + card.Told);
+                string huge = new string('x', 50000);
+                FirstRunPaste = delegate { return huge; };
+                card.Paste();
+                if (card.Typed.Length != 50000) throw new Exception("50,000 pasted characters didn't fill the box: " + card.Typed.Length);
+                card.Next();
+                if (card.Told != Brain.NotAKey || card.Brain == FirstRun.Connecting) throw new Exception("50,000 characters were sent as a key: " + card.Told);
+                FirstRunPaste = delegate { return "  AIza-firstrun-test  "; };
+                card.Paste();
+                card.Tab(1, false);
+                pump();
+                if (card.Typed != "AIza-firstrun-test" || card.Provider != 1) throw new Exception("Switching tabs lost the pasted key: " + card.Provider);
                 card.Paste();
                 if (card.Typed != "AIza-firstrun-test") throw new Exception("Paste didn't fill the key: " + card.Typed);
                 Brain.Google = serve(new[] { "!401 {\"error\":{\"message\":\"Key rejected\"}}" });
@@ -253,15 +375,35 @@ namespace CapriDesktop
                 wait(delegate { return card.Brain != FirstRun.Connecting; }, "A rejected key never came back.");
                 if (card.Screen != FirstRun.Key || string.IsNullOrEmpty(card.Told) || brain.Remote != null) throw new Exception("A rejected key didn't stay on FREE KEY with what went wrong: " + card.Told);
                 picture(card, "2-free-key-rejected");
+                string rejected = card.Told;
+                Brain.Google = serve(new string[0]);
+                servers[servers.Count - 1].Stop();
+                card.Next();
+                wait(delegate { return card.Brain != FirstRun.Connecting; }, "A key with no internet never came back.");
+                if (card.Screen != FirstRun.Key || card.Told == null || card.Told.IndexOf("internet", StringComparison.Ordinal) < 0 || brain.Remote != null) throw new Exception("No internet didn't say so on FREE KEY: " + card.Told);
+                string offline = card.Told;
                 Brain.Google = serve(new[] { "{\"data\":[{\"id\":\"gemini-90-flash\"},{\"id\":\"gemini-90-pro\"}]}" });
                 card.Next();
                 wait(delegate { return card.Screen == FirstRun.Online && reply == online; }, "The free key didn't connect and bring her first reply: " + card.Screen + " / " + card.Told + " / " + reply);
                 if (brain.Remote == null || brain.Remote.Kind != "google" || preferences.Tier != 1 || card.Count != "3 OF 5") throw new Exception("The free key didn't go under MEDIUM INTELLIGENCE.");
+                if (rejected == offline || string.IsNullOrEmpty(rejected)) throw new Exception("A rejected key and no internet said the same thing: " + rejected);
                 picture(card, "3-online-free");
                 card.Next();
                 pump();
                 if (card.Screen != FirstRun.Voice || card.Count != "4 OF 5" || reply != FirstRun.NoVoiceLine) throw new Exception("Her voice didn't follow BRAIN ONLINE: " + card.Screen + " / " + reply);
+                // As a new install has it: her voice on, and her free voice coming down since her first second.
+                preferences.Silent = false;
+                bool voiceWasComing = SettingUpVoice;
+                SettingUpVoice = true;
+                voiceGot = 230L << 20;
+                voiceTotal = LocalVoice.PackSize;
+                card.Redraw();
+                pump();
                 picture(card, "4-voice");
+                SettingUpVoice = voiceWasComing;
+                voiceGot = voiceTotal = 0;
+                preferences.Silent = true;
+                card.Redraw();
                 card.Voice(false);
                 bool textOnly = preferences.Silent;
                 card.Voice(true);
@@ -311,9 +453,9 @@ namespace CapriDesktop
                 if (card.Screen != FirstRun.Voice) throw new Exception("Skip on BRAIN ONLINE didn't move past it.");
                 card.SkipAll();
                 pump();
-                if (FirstRunShowing || preferences.FirstRunStep != FirstRun.None || !mainframe.Visible || mainframe.WindowState != FormWindowState.Normal || mainframe.ExtrasShown != "0000") throw new Exception("Skip all didn't land in the Mainframe with EXTRAS: " + mainframe.ExtrasShown);
+                if (FirstRunShowing || preferences.FirstRunStep != FirstRun.None || mainframe.Visible && mainframe.WindowState == FormWindowState.Normal || mainframe.ExtrasShown != null) throw new Exception("Skip all with a brain didn't just end the card: " + mainframe.ExtrasShown);
                 putBack();
-                checks.Add("PASS MY PLAN OR KEY asks for a Claude or ChatGPT plan through her own plan hookup (a stand-in) and a paid key goes under MAX INTELLIGENCE with no Move to MAX step; Skip on BRAIN ONLINE moves on and Skip all lands in the Mainframe with EXTRAS");
+                checks.Add("PASS MY PLAN OR KEY asks for a Claude or ChatGPT plan through her own plan hookup (a stand-in) and a paid key goes under MAX INTELLIGENCE with no Move to MAX step; Skip on BRAIN ONLINE moves on and Skip all with a brain ends the card with no Mainframe and no EXTRAS");
 
                 // Skip on every screen moves past that step.
                 reset();
@@ -355,21 +497,28 @@ namespace CapriDesktop
                 if (!hidAndKept || FirstRunShowing) throw new Exception("Hide this on the waiting screen didn't close the card and leave the download going.");
                 checks.Add("PASS Skip on every screen moves past that step (WAKE ME UP, FREE KEY, MY PLAN OR KEY, BRAIN ONLINE, her voice, EXTRAS, and Hide this while she waits), and skipping every step with no brain leaves them in the Mainframe on Set up her brain");
 
-                // Skip all from every screen lands where a first launch used to.
-                foreach (int screen in new[] { FirstRun.Pick, FirstRun.Key, FirstRun.Plan, FirstRun.Online, FirstRun.Voice, FirstRun.Extras, FirstRun.Wait })
-                {
-                    reset();
-                    card = open(screen == FirstRun.Online ? FirstRun.Pick : screen, screen == FirstRun.Key ? FirstRun.Free : screen == FirstRun.Plan ? FirstRun.Own : FirstRun.Local);
-                    if (screen == FirstRun.Online) { brain.Model = fit.Name; card.BrainOnline(); pump(); }
-                    if (card.Screen != screen) throw new Exception("The card didn't open on screen " + screen + ".");
-                    bool seen = card.ExtrasSeen;
-                    card.SkipAll();
-                    pump();
-                    if (FirstRunShowing || preferences.FirstRunStep != FirstRun.None || !mainframe.Visible || mainframe.WindowState != FormWindowState.Normal || (mainframe.ExtrasShown != null) == seen)
-                        throw new Exception("Skip all on screen " + screen + " didn't land in the Mainframe" + (seen ? "" : " with EXTRAS") + ".");
-                    putBack();
-                }
-                checks.Add("PASS Skip all from every screen closes the card for good and lands in the Mainframe, with EXTRAS unless they'd had it");
+                // Skip all, and Alt + F4, from every screen ends the whole thing: never EXTRAS, and the Mainframe only when she
+                // still has no brain and none on its way, so they can see where to set one up.
+                foreach (bool viaClose in new[] { false, true })
+                    foreach (int screen in new[] { FirstRun.Pick, FirstRun.Key, FirstRun.Plan, FirstRun.Online, FirstRun.Voice, FirstRun.Extras, FirstRun.Wait })
+                        foreach (bool coming in new[] { false, true })
+                        {
+                            if (coming && (screen == FirstRun.Key || screen == FirstRun.Plan || screen == FirstRun.Online)) continue;
+                            reset();
+                            card = open(screen == FirstRun.Online ? FirstRun.Pick : screen, screen == FirstRun.Key ? FirstRun.Free : screen == FirstRun.Plan ? FirstRun.Own : FirstRun.Local);
+                            if (screen == FirstRun.Online) { brain.Model = fit.Name; card.BrainOnline(); pump(); }
+                            if (coming) { card.Brain = FirstRun.Coming; SettingUp = true; card.Redraw(); pump(); }
+                            if (card.Screen != screen) throw new Exception("The card didn't open on screen " + screen + ".");
+                            bool needsBrain = brain.Model == null && !coming;
+                            if (viaClose) card.Close();
+                            else card.SkipAll();
+                            pump();
+                            bool opened = mainframe.Visible && mainframe.WindowState == FormWindowState.Normal;
+                            if (FirstRunShowing || preferences.FirstRunStep != FirstRun.None || mainframe.ExtrasShown != null || opened != needsBrain)
+                                throw new Exception((viaClose ? "Alt + F4" : "Skip all") + " on screen " + screen + (coming ? " with her brain coming" : "") + " left the Mainframe " + (opened ? "open" : "shut") + ", EXTRAS " + (mainframe.ExtrasShown ?? "shut") + ".");
+                            putBack();
+                        }
+                checks.Add("PASS Skip all and Alt + F4 from every screen end the whole card for good: no EXTRAS panel, and the Mainframe opens only when she has no brain and none coming");
 
                 // Quitting halfway: next launch picks up on the same screen, her own brain's download carries on, and the free
                 // key page isn't opened again.
@@ -426,6 +575,104 @@ namespace CapriDesktop
                 if (!newsHeld || !meetHeld || !greetTried) throw new Exception("Her news or Get to know me talked over the card: news " + newsHeld + ", meet " + meetHeld);
                 checks.Add("PASS while the card is open her news and holiday lines wait for her hello, which the card stands in for, and Get to know me waits for the card to finish");
 
+                // Her first launch as it looks: a plain desktop with a taskbar, her standing where she lands, her bubble with the
+                // screen's line and the card beside her. Nothing may overlap or leave the screen, on 1920 x 1080 and 1366 x 768,
+                // with her in the middle or at either edge.
+                Point headAt = Head(), feetAt = Feet(), herAt = anchor;
+                Size herSize = Size;
+                List<string> scenes = new List<string>(), clashes = new List<string>(), nudged = new List<string>();
+                Func<Mainframe.FirstRunCard, Size, int, string, string> scene = delegate(Mainframe.FirstRunCard shown, Size screen, int side, string name)
+                {
+                    pump();
+                    Rectangle area = new Rectangle(0, 0, screen.Width, screen.Height - 48);
+                    int x = side == 0 ? (area.Width - herSize.Width) / 2 : side < 0 ? area.Left - PaddingSize : area.Right - herSize.Width + PaddingSize;
+                    Point at = new Point(x, area.Bottom - (feetAt.Y - herAt.Y));
+                    Rectangle her = new Rectangle(at, herSize);
+                    Point head = new Point(at.X + headAt.X - herAt.X, at.Y + headAt.Y - herAt.Y), feet = new Point(at.X + feetAt.X - herAt.X, at.Y + feetAt.Y - herAt.Y);
+                    int spanLeft, spanRight;
+                    BubbleSpan(head, 1f, area, out spanLeft, out spanRight);
+                    // She steps aside first where the card fits neither side, as OpenFirstRun has her do.
+                    int aside = Mainframe.FirstRunCard.Nudge(her, spanLeft, spanRight, area, shown.Width, shown.Unit);
+                    if (aside != 0)
+                    {
+                        at.Offset(aside, 0);
+                        her.Offset(aside, 0);
+                        head.Offset(aside, 0);
+                        feet.Offset(aside, 0);
+                        BubbleSpan(head, 1f, area, out spanLeft, out spanRight);
+                        nudged.Add(screen.Width + "x" + screen.Height + " " + (side == 0 ? "middle" : side < 0 ? "left" : "right") + " " + aside + " px");
+                    }
+                    Point cardAt = Mainframe.FirstRunCard.Beside(her, spanLeft, spanRight, area, shown.Size, shown.Unit);
+                    Rectangle cardBox = new Rectangle(cardAt, shown.Size);
+                    box.State = TalkState.Talking;
+                    box.Prompt = "";
+                    box.Heard = "first run";
+                    box.Reply = shown.Line;
+                    box.Revealed = shown.Line.Length;
+                    Point bubbleAt;
+                    using (Bitmap bubble = box.Render(1f, head, new Point(feet.X, feet.Y + 44), area, false, out bubbleAt))
+                    using (Bitmap body = new Bitmap(herSize.Width, herSize.Height, PixelFormat.Format32bppArgb))
+                    using (Bitmap cardShot = WindowPicture.Cut(shown))
+                    {
+                        using (Graphics drawing = Graphics.FromImage(body)) { drawing.Clear(Color.Transparent); Draw(drawing, idle, 0); }
+                        Rectangle bodyInk = WindowPicture.Inked(body), bubbleInk = WindowPicture.Inked(bubble);
+                        bodyInk.Offset(at);
+                        bubbleInk.Offset(bubbleAt);
+                        string where = screen.Width + "x" + screen.Height + (side == 0 ? " middle" : side < 0 ? " left edge" : " right edge");
+                        string problem = bodyInk.IsEmpty || bubbleInk.IsEmpty ? where + ": her or her bubble didn't draw"
+                            : !area.Contains(cardBox) ? where + ": the card leaves the screen, " + cardBox
+                            : cardBox.IntersectsWith(bodyInk) ? where + ": the card covers her, " + cardBox + " / " + bodyInk
+                            : cardBox.IntersectsWith(bubbleInk) ? where + ": the card covers her bubble by " + Rectangle.Intersect(cardBox, bubbleInk).Width + " px, " + cardBox + " / " + bubbleInk : null;
+                        if (name == null) return problem;
+                        using (Bitmap desk = new Bitmap(screen.Width, screen.Height, PixelFormat.Format24bppRgb))
+                        using (Graphics drawing = Graphics.FromImage(desk))
+                        {
+                            using (LinearGradientBrush wall = new LinearGradientBrush(new Rectangle(0, 0, screen.Width, screen.Height), Color.FromArgb(66, 82, 104), Color.FromArgb(30, 36, 50), 70f)) drawing.FillRectangle(wall, 0, 0, screen.Width, screen.Height);
+                            using (Brush bar = new SolidBrush(Color.FromArgb(32, 33, 38))) drawing.FillRectangle(bar, 0, area.Bottom, screen.Width, 48);
+                            using (Brush icon = new SolidBrush(Color.FromArgb(72, 76, 88)))
+                                for (int i = -3; i <= 3; i++) drawing.FillRectangle(icon, screen.Width / 2 + i * 44 - 14, area.Bottom + 10, 28, 28);
+                            drawing.DrawImageUnscaled(body, at);
+                            drawing.DrawImageUnscaled(bubble, bubbleAt);
+                            drawing.DrawImageUnscaled(cardShot, cardAt);
+                            desk.Save(Path.Combine(output, name + ".png"), ImageFormat.Png);
+                        }
+                        scenes.Add(name);
+                        return problem;
+                    }
+                };
+                foreach (int screen in new[] { FirstRun.Pick, FirstRun.Key, FirstRun.Plan, FirstRun.Online, FirstRun.Voice, FirstRun.Extras, FirstRun.Wait })
+                {
+                    reset();
+                    if (screen == FirstRun.Online) { brain.Remote = new Cloud("AIza-firstrun-test", "gemini-90-flash"); brain.Model = "gemini-90-flash"; preferences.Tier = 1; }
+                    bool coming = screen == FirstRun.Voice || screen == FirstRun.Extras || screen == FirstRun.Wait;
+                    if (coming) mainframe.ShowProgress(1, "Downloading " + fit.Name, fit.Size / 3, fit.Size);
+                    bool voiceBefore = SettingUpVoice;
+                    // As a new install has it: her voice on and her free voice coming down.
+                    preferences.Silent = false;
+                    SettingUpVoice = true;
+                    voiceGot = 96L << 20;
+                    voiceTotal = LocalVoice.PackSize;
+                    card = OpenFirstRun(screen == FirstRun.Online ? FirstRun.Pick : screen, screen == FirstRun.Key ? FirstRun.Free : screen == FirstRun.Plan ? FirstRun.Own : FirstRun.Local, false, 1f);
+                    if (screen == FirstRun.Online) card.BrainOnline();
+                    if (coming) { card.Brain = FirstRun.Coming; SettingUp = true; card.Go(screen); }
+                    pump();
+                    if (card.Line == null) card.Line = online;
+                    string[] names = { "", "desktop-1-pick-1080-middle", "desktop-2-free-key-1080-right", null, "desktop-4-voice-768-middle", null, null, null };
+                    foreach (Size size in new[] { new Size(1920, 1080), new Size(1366, 768) })
+                        foreach (int side in new[] { 0, -1, 1 })
+                        {
+                            string name = names[screen] != null && names[screen].IndexOf(size.Height.ToString(), StringComparison.Ordinal) >= 0 && names[screen].EndsWith(side == 0 ? "middle" : side < 0 ? "left" : "right", StringComparison.Ordinal) ? names[screen] : null;
+                            string clash = scene(card, size, side, name);
+                            if (clash != null) clashes.Add(card.Count + " " + screen + " " + clash);
+                        }
+                    SettingUpVoice = voiceBefore;
+                    voiceGot = voiceTotal = 0;
+                    card.SkipAll();
+                    putBack();
+                }
+                if (scenes.Count != 3 || clashes.Count > 0) throw new Exception("Her first launch on a desktop: " + scenes.Count + " pictures; " + string.Join("; ", clashes.ToArray()));
+                checks.Add("PASS on a 1920 x 1080 and a 1366 x 768 desktop, with her in the middle or at either edge, every screen of the card sits beside her on the screen without covering her or her bubble (she steps aside first where it fits neither side: " + string.Join(", ", nudged.ToArray()) + "): " + string.Join(", ", scenes.ToArray()));
+
                 // Every screen at 125% and 150%.
                 foreach (float scale in new[] { 1.25f, 1.5f })
                 {
@@ -447,7 +694,30 @@ namespace CapriDesktop
                     }
                 }
                 checks.Add("PASS every screen fits with nothing overlapping or cut off at 100%, 125% and 150% (drawn on this desktop at " + mainframe.Px(1000) / 10 + "%), pictures by " + string.Join(" and ", ways.ToArray()) + ": " + string.Join(", ", pictures.ToArray()));
+
+                // The keys typed and pasted above never reach her log, her chat or these checks. Her settings hold them sealed and
+                // aren't read here.
+                List<string> leaks = new List<string>();
+                foreach (string line in checks) if (line.IndexOf("firstrun-test", StringComparison.Ordinal) >= 0) leaks.Add("a check line");
+                List<string> folders = new List<string> { output };
+                if (Brain.LogPath != null) folders.Add(Path.GetDirectoryName(Brain.LogPath));
+                foreach (string folder in folders)
+                {
+                    if (!Directory.Exists(folder)) continue;
+                    foreach (string file in Directory.GetFiles(folder))
+                    {
+                        string named = Path.GetFileName(file).ToLowerInvariant();
+                        if (named.StartsWith("settings", StringComparison.Ordinal) || !(named.EndsWith(".txt") || named.EndsWith(".json") || named.EndsWith(".jsonl") || named.EndsWith(".md") || named.EndsWith(".log"))) continue;
+                        string text;
+                        try { text = File.ReadAllText(file); } catch (IOException) { continue; }
+                        if (text.IndexOf("firstrun-test", StringComparison.Ordinal) >= 0) leaks.Add(named);
+                    }
+                }
+                if (leaks.Count > 0) throw new Exception("A key from the card was written down in: " + string.Join(", ", leaks.ToArray()));
+                checks.Add("PASS no key typed or pasted on the card is written to her log, her chat files or the checks, and the key box shows dots in every picture");
             }
+            // A slip in the checks themselves says where, since the section only keeps the message.
+            catch (NullReferenceException slip) { throw new Exception(slip.Message + " " + slip.StackTrace.Replace(Environment.NewLine, " | ")); }
             finally
             {
                 if (firstRun != null && !firstRun.IsDisposed) firstRun.Dispose();
@@ -464,6 +734,7 @@ namespace CapriDesktop
                 FirstRunSetUp = null;
                 FirstRunPaste = wasPaste;
                 FirstRunUsePlan = null;
+                FirstRunLanding = null;
                 machine = wasMachine;
                 fit = wasFit;
                 brain.Remote = wasRemote;
