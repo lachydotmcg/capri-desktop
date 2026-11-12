@@ -2815,9 +2815,17 @@ namespace CapriDesktop
             int off = NoAiRowShown ? 24 : 0;
             top += off;
             tierNote.Top = Scaled(168 + top - off);
+            // Each tier row reaches down to the next row's top. Their heights were rounded once where they were first laid out
+            // and their tops are rounded here, and with OFF above them at some sizes (text 225%, size 175%) the two roundings
+            // disagreed and a row poked a pixel into the one below. At 100% every row is 24 px, as before.
             offRung.Top = Scaled(184 + top - off);
+            offRung.Height = Scaled(208 + top - off) - offRung.Top;
             offRung.Visible = NoAiRowShown;
-            for (int i = 0; i < rungs.Length; i++) rungs[i].Top = Scaled(184 + 24 * i + top);
+            for (int i = 0; i < rungs.Length; i++)
+            {
+                rungs[i].Top = Scaled(184 + 24 * i + top);
+                rungs[i].Height = Scaled(208 + 24 * i + top) - rungs[i].Top;
+            }
             freeKey.Top = Scaled(209 + top);
             planKey.Top = Scaled(233 + top);
             textEntry.Top = Scaled(262 + top);
