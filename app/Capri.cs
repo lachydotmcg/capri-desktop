@@ -10424,6 +10424,8 @@ namespace CapriDesktop
             // A game job thinks harder on every turn, on her fast hands unless they've turned those off.
             running.Drive = brain.Drives && driver.Model != blindModel ? new Func<string, string, string, ClaudeReply>(delegate(string system, string tools, string messages) { return brain.Drive(system, tools, messages, running.Playing, running.Playing && !preferences.SlowHands); }) : null;
             running.Advised = delegate { return !preferences.SlowHands && brain.Advises; };
+            // Her smoke test drives a stand-in game job without a brain.
+            if (driveTest != null) running.Drive = driveTest;
             // Anything else that can see plays from pictures.
             running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700, true); }) : null;
             running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320, true); };
@@ -40350,6 +40352,7 @@ namespace CapriDesktop
             Section(checks, "SmokeRibbons", delegate { SmokeRibbons(checks, output); });
             Section(checks, "SmokeEmotes", delegate { SmokeEmotes(checks, output); });
             Section(checks, "SmokeEmoteFilms", delegate { SmokeEmoteFilms(checks, output); });
+            Section(checks, "SmokeJobTeleport", delegate { SmokeJobTeleport(checks); });
             Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });

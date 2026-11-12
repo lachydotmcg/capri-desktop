@@ -485,6 +485,80 @@ namespace CapriDesktop
         // flecks and her green; where they land she forms from Qewiw's drawings, the right way round for the way she faces;
         // nothing is left once she's back; a hop takes well under a second; and her own teleport leaves as ribbons, lands
         // where she went and holds her own window back until she has formed.
+        private Func<string, string, string, ClaudeReply> driveTest;
+
+        // A computer job's teleport onto the task panel finishes by itself while her window's thread is kept busy with other
+        // work the whole time, the way a full-screen game job kept it on 12 Nov: her window timers never fired then, and she sat
+        // on the teleport's first frame, glitch bars and all, for the whole 22 s job until Esc stopped it.
+        private void SmokeJobTeleport(List<string> checks)
+        {
+            Func<bool> fullWas = FullScreen;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Picture shownWas = Computer.Shown;
+            ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
+            {
+                Rectangle work = Screen.PrimaryScreen.WorkingArea;
+                StandForThrow(new Point(work.Left + work.Width / 3, work.Top + work.Height / 2));
+                RenderFrame();
+                instant = false;
+                FullScreen = delegate { return true; };
+                Computer.Use = delegate { System.Threading.Thread.Sleep(200); return "Waited."; };
+                int turn = 0;
+                driveTest = delegate(string system, string tools, string messages)
+                {
+                    System.Threading.Thread.Sleep(300);
+                    turn++;
+                    return Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t" + turn + "\",\"name\":\"wait\",\"toolset_name\":\"computer\",\"input\":{\"duration\":1}}]}");
+                };
+                Job game = new Job("play Five Nights at Freddy's");
+                string ended = null;
+                System.Threading.Thread hands = new System.Threading.Thread(delegate() { try { ended = Work(game); } catch (Exception error) { ended = error.Message; } }) { IsBackground = true, Name = "Smoke job" };
+                // Something else always waiting on her window's thread, for 2.5 s: a handler that queues the next one before it
+                // works. Windows only hands over a window timer when nothing else is waiting.
+                System.Diagnostics.Stopwatch busy = System.Diagnostics.Stopwatch.StartNew();
+                double began = -1;
+                string seen = null;
+                Action keep = null;
+                keep = delegate
+                {
+                    if (busy.ElapsedMilliseconds < 2500) BeginInvoke(keep);
+                    System.Threading.Thread.Sleep(3);
+                    double now = busy.Elapsed.TotalSeconds;
+                    if (began < 0 && job == game && taskPanel.Showing) began = now;
+                    if (began >= 0 && seen == null && now - began >= 1.2)
+                        seen = "on the panel " + onPanel + ", teleport still on " + (outro != null) + ", ribbons " + (ribbons.Waiting ? "waiting" : ribbons.Going ? "going" : ribbons.Visible ? "showing" : "gone") + ", glitch bars " + (tear.Visible ? "up" : "gone") + ", job running " + (job == game && hands.IsAlive);
+                };
+                try
+                {
+                    BeginInvoke(keep);
+                    hands.Start();
+                    while (busy.ElapsedMilliseconds < 3000) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                    if (seen == null) throw new Exception("The stand-in game job never showed its task panel.");
+                    if (seen != "on the panel True, teleport still on False, ribbons gone, glitch bars gone, job running True") throw new Exception("Her teleport onto the task panel stalled while her window's thread was busy, 1.2 s after the job began: " + seen);
+                    list.Add("PASS a computer job's teleport onto the task panel finishes on its own clock, ribbons and glitch bars gone and her on the panel within 1.2 s, while her window's thread stays busy with other work and the job is still running");
+                }
+                finally
+                {
+                    Computer.Interrupt("The smoke job is over.");
+                    System.Diagnostics.Stopwatch ending = System.Diagnostics.Stopwatch.StartNew();
+                    while (hands.IsAlive && ending.ElapsedMilliseconds < 8000) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                    Application.DoEvents();
+                    driveTest = null;
+                    FullScreen = fullWas;
+                    Computer.Use = useWas;
+                    Computer.Shown = shownWas;
+                    Computer.Finish();
+                    Computer.Arm();
+                    taskPanel.Stop();
+                    LeavePanel(false);
+                    Halt();
+                    ribbons.Stop();
+                    tear.Hide();
+                    if (hands.IsAlive) list.Add("FAIL the stand-in game job didn't stop when told to: " + ended);
+                }
+            });
+        }
+
         private void SmokeRibbons(List<string> checks, string output)
         {
             Color hairColour = ArtColour(ArtColors.Usual[ArtColors.Hair]), accentColour = ArtColour(ArtColors.Usual[ArtColors.Accent]);
