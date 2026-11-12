@@ -386,13 +386,18 @@ namespace CapriDesktop
         internal int AddFolders(WorkspaceChat chat, IEnumerable<string> paths)
         {
             int added = 0;
+            List<string> picked = new List<string>();
+            foreach (string raw in paths)
+            {
+                string folder = Tidy(raw);
+                if (!Directory.Exists(folder)) throw new IOException("That folder isn't here: " + folder);
+                picked.Add(folder);
+            }
             lock (chat.Gate)
             {
                 if (chat.Deleted) return 0;
-                foreach (string raw in paths)
+                foreach (string folder in picked)
                 {
-                    string folder = Path.GetFullPath(raw);
-                    if (!Directory.Exists(folder)) throw new IOException("That folder isn't here: " + folder);
                     if (Same(folder, chat.Folder) || chat.Folders.Exists(delegate(string had) { return Same(had, folder); })) continue;
                     chat.Folders.Add(folder);
                     added++;
@@ -407,13 +412,18 @@ namespace CapriDesktop
         internal int AddFiles(WorkspaceChat chat, IEnumerable<string> paths)
         {
             int added = 0;
+            List<string> picked = new List<string>();
+            foreach (string raw in paths)
+            {
+                string file = Path.GetFullPath(raw);
+                if (!File.Exists(file)) throw new IOException("That file isn't here: " + file);
+                picked.Add(file);
+            }
             lock (chat.Gate)
             {
                 if (chat.Deleted) return 0;
-                foreach (string raw in paths)
+                foreach (string file in picked)
                 {
-                    string file = Path.GetFullPath(raw);
-                    if (!File.Exists(file)) throw new IOException("That file isn't here: " + file);
                     if (chat.Files.Exists(delegate(string had) { return Same(had, file); })) continue;
                     chat.Files.Add(file);
                     chat.Sent.Remove(file);
@@ -437,6 +447,14 @@ namespace CapriDesktop
             }
             if (removed) Notify(chat, null);
             return removed;
+        }
+
+        // A full path without a trailing slash, except a drive or share root, which needs its own.
+        internal static string Tidy(string path)
+        {
+            string full = Path.GetFullPath(path), root = Path.GetPathRoot(full) ?? "";
+            string trimmed = full.TrimEnd('\\', '/');
+            return trimmed.Length <= root.TrimEnd('\\', '/').Length ? full : trimmed;
         }
 
         internal static bool Same(string a, string b)
@@ -644,7 +662,11 @@ namespace CapriDesktop
                 for (int i = 0; i < args.Count; i++)
                 {
                     string key = "CAPRI_WORKSPACE_ARG" + i;
-                    start.EnvironmentVariables[key] = args[i];
+                    // Backslashes right before the closing quote would escape it and swallow the next argument, so a folder
+                    // like C:\ goes out as "C:\\", which Claude Code reads back as C:\.
+                    string value = args[i];
+                    int slashes = value.Length - value.TrimEnd('\\').Length;
+                    start.EnvironmentVariables[key] = value + new string('\\', slashes);
                     line.Append(" \"%").Append(key).Append("%\"");
                 }
                 start.Arguments = line.Append('"').ToString();
@@ -1014,6 +1036,8 @@ namespace CapriDesktop
                 if (tool == "Glob")
                 {
                     string pattern = HuskJson.Text(input, "pattern");
+                    // A .. after the first wildcard, like **/../../*, climbs out of wherever the start of the pattern is.
+                    if (Regex.IsMatch(pattern, @"(?:^|[\\/])\.\.(?:[\\/]|$)")) return false;
                     int wild = pattern.IndexOfAny(new[] { '*', '?', '[' });
                     if (wild >= 0)
                     {
