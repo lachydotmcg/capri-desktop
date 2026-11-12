@@ -36029,7 +36029,13 @@ namespace CapriDesktop
 
         private void SmokeBrainLayout(System.Collections.Generic.List<string> checks, string pictures = null)
         {
-            if (pictures != null) Directory.CreateDirectory(pictures);
+            if (pictures != null)
+            {
+                Directory.CreateDirectory(pictures);
+                // A minimised Mainframe draws only its title bar; its section puts it back afterwards.
+                mainframe.Show();
+                if (mainframe.WindowState == FormWindowState.Minimized) mainframe.WindowState = FormWindowState.Normal;
+            }
             SmokeMainframePictures(checks);
             bool wasSettings = mainframe.SettingsShown;
             bool wasSimple = simpleTest, wasAdvanced = preferences.AdvancedSettings, wasCheckIns = preferences.CheckIns;
