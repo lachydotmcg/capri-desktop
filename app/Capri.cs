@@ -40332,6 +40332,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
             Section(checks, "SmokeWorkspace", delegate { SmokeWorkspace(checks, Path.Combine(output, "workspace")); });
+            Section(checks, "SmokeWorkspaceLook", delegate { SmokeWorkspaceLook(checks, Path.Combine(output, "workspace-look")); });
             Section(checks, "SmokeRedaction", delegate { SmokeRedaction(checks); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
             Section(checks, "SmokeCallJob", delegate { SmokeCallJob(checks); });
