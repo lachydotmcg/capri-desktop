@@ -346,7 +346,10 @@ namespace CapriDesktop
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
         private static extern void SHCreateItemFromParsingName(string path, IntPtr context, ref Guid id, out IShellItem item);
 
-        private const uint PickFolders = 0x20, ForceFileSystem = 0x40, AllowMultiSelect = 0x200, PathMustExist = 0x800, NoChangeDir = 0x8;
+        internal const uint PickFolders = 0x20, ForceFileSystem = 0x40, AllowMultiSelect = 0x200, PathMustExist = 0x800, NoChangeDir = 0x8;
+
+        // What the last folder picker said its options were once they were set, so the smoke test can see them.
+        internal static uint Opened;
 
         // Empty when they cancel.
         internal static string[] Folders(IWin32Window owner, string title, string start)
@@ -357,6 +360,7 @@ namespace CapriDesktop
                 uint options;
                 dialog.GetOptions(out options);
                 dialog.SetOptions(options | PickFolders | ForceFileSystem | AllowMultiSelect | PathMustExist | NoChangeDir);
+                dialog.GetOptions(out Opened);
                 dialog.SetTitle(title);
                 dialog.SetOkButtonLabel("Add");
                 if (!string.IsNullOrEmpty(start) && Directory.Exists(start))

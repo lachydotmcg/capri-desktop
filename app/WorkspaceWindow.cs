@@ -128,7 +128,7 @@ namespace CapriDesktop
         private readonly Action<WorkspaceChat, WorkspaceItem> changed;
         private WorkspaceItem pageEnd;
         private WorkspaceChat chat;
-        private bool filling, saving, arranging;
+        private bool filling, saving, arranging, picking;
         private float zoom;
         private Font small, strong, keys, caption, mono, monoPlain, note, title, heading;
         private Rectangle titleBox, folderBox;
@@ -294,20 +294,34 @@ namespace CapriDesktop
             return all.Count > 0 ? Path.GetDirectoryName(all[0].Folder) : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         }
 
+        // An Explorer window pumps this window's messages while it's open, so a queued click could open a second one over it.
         internal void ChooseFolders()
         {
-            string[] picked = PickFolders != null ? PickFolders() : WorkPickers.Folders(this, chat == null ? "Choose a folder for this chat" : "Add folders to this chat", StartFolder());
-            if (picked == null || picked.Length == 0) return;
+            if (picking) return;
+            picking = true;
+            string[] picked;
+            try { picked = PickFolders != null ? PickFolders() : WorkPickers.Folders(this, chat == null ? "Choose a folder for this chat" : "Add folders to this chat", StartFolder()); }
+            catch (Exception error) { picked = null; Notice.Tell(this, "Couldn't open the folder picker: " + error.Message, "Workspace", true); }
+            finally { picking = false; }
+            if (picked == null || picked.Length == 0 || IsDisposed) return;
             AddPaths(picked, new string[0]);
         }
 
         internal void ChooseFiles()
         {
             if (chat == null) { ChooseFolders(); return; }
-            string[] picked = PickFiles != null ? PickFiles() : WorkPickers.Files(this, "Add files to this chat", chat.Folder);
-            if (picked == null || picked.Length == 0) return;
+            if (picking) return;
+            picking = true;
+            WorkspaceChat target = chat;
+            string[] picked;
+            try { picked = PickFiles != null ? PickFiles() : WorkPickers.Files(this, "Add files to this chat", chat.Folder); }
+            catch (Exception error) { picked = null; Notice.Tell(this, "Couldn't open the file picker: " + error.Message, "Workspace", true); }
+            finally { picking = false; }
+            if (picked == null || picked.Length == 0 || IsDisposed || chat != target) return;
             AddPaths(new string[0], picked);
         }
+
+        internal bool Picking { get { return picking; } }
 
         // Folders and files from the pickers or dropped on the window. With no chat yet, the first folder starts one there.
         internal void AddPaths(string[] folders, string[] files)
@@ -442,11 +456,10 @@ namespace CapriDesktop
         {
             if (chat == null || picked == chat.Mode) return;
             WorkspaceChat target = chat;
-            Action apply = delegate { Try(delegate { workspace.Change(target, null, picked, null); }); FillHeader(); composer.Input.Focus(); };
-            if (picked != "Everything") { apply(); return; }
-            string question = "Everything lets Claude Code run anything without asking. Switch?";
-            if (Confirm != null) { if (Confirm(question)) apply(); return; }
-            ask.Ask(question, "Switch to Everything", Neon.Hot, "Keep " + chat.Mode, delegate(bool yes) { if (yes && chat == target) apply(); });
+            // Everything switches at once, like the Mainframe's Blackwall: its menu row already says it runs anything without asking.
+            Try(delegate { workspace.Change(target, null, picked, null); });
+            FillHeader();
+            composer.Input.Focus();
         }
 
         internal void PickModel(string picked)
@@ -845,6 +858,7 @@ namespace CapriDesktop
         internal string CodeFont { get { return mono.Name; } }
         internal string ProseFont { get { return Font.Name; } }
         internal bool ChooseShown { get { return choose.Visible && chat == null; } }
+        internal bool UndoOffered { get { return undo.Visible && undo.Enabled; } }
         internal List<string> Chips { get { return composer.ChipNames(); } }
         internal void ClickChipCross(string path) { composer.Cross(path); }
         internal void Pending(string question, bool yes) { if (ask.Visible && ask.Question == question) ask.Answer(yes); }
@@ -1027,7 +1041,7 @@ namespace CapriDesktop
                 this.window = window;
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
                 AccessibleName = "Composer";
-                Input = new MessageField { Multiline = true, AcceptsReturn = true, WordWrap = true, ScrollBars = ScrollBars.None, BorderStyle = BorderStyle.None, BackColor = Neon.Field, ForeColor = Neon.White,
+                Input = new MessageField { Multiline = true, AcceptsReturn = true, MaxLength = 0, WordWrap = true, ScrollBars = ScrollBars.None, BorderStyle = BorderStyle.None, BackColor = Neon.Field, ForeColor = Neon.White,
                     AccessibleName = "Message. Enter sends. Shift+Enter adds a line.", Cue = "Message Claude Code. Enter sends, Shift+Enter adds a line." };
                 Input.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter && !e.Shift) { e.SuppressKeyPress = true; window.Send(); } };
                 Input.TextChanged += delegate { if (!window.filling && Grow()) window.Place(); Invalidate(); };
@@ -1124,15 +1138,24 @@ namespace CapriDesktop
             {
                 if (window.small == null) return;
                 if (inputTall == 0) Grow();
-                int pad = Pad, x = pad, y = pad, rowTall = window.Z(24), gap = window.Z(6), rows = chips.Count > 0 ? 1 : 0, right = Width - pad;
-                foreach (Chip chip in chips)
+                int pad = Pad, rowTall = window.Z(24), gap = window.Z(6), rows = 0, right = Width - pad;
+                // When some don't fit, the third row leaves room for its "+N more".
+                for (int pass = 0; pass < 2; pass++)
                 {
-                    int wide = Math.Min(Math.Max(window.Z(60), right - pad), window.Z(30) + WorkPaint.Wide(chip.Name, window.small) + (chip.Main ? WorkPaint.Wide("runs here", window.caption) + window.Z(10) : window.Z(20)));
-                    wide = Math.Min(wide, window.Z(260));
-                    if (x + wide > right && x > pad) { x = pad; y += rowTall + gap; rows++; }
-                    chip.Box = rows > 3 ? Rectangle.Empty : new Rectangle(x, y, wide, rowTall);
-                    chip.Cross = chip.Main || chip.Box.IsEmpty ? Rectangle.Empty : new Rectangle(chip.Box.Right - window.Z(20), chip.Box.Top, window.Z(18), rowTall);
-                    x += wide + gap;
+                    int x = pad, y = pad, last = pass == 0 ? right : right - window.Z(76);
+                    bool hidden = false;
+                    rows = chips.Count > 0 ? 1 : 0;
+                    foreach (Chip chip in chips)
+                    {
+                        int wide = Math.Min(Math.Max(window.Z(60), right - pad), window.Z(30) + WorkPaint.Wide(chip.Name, window.small) + (chip.Main ? WorkPaint.Wide("runs here", window.caption) + window.Z(10) : window.Z(20)));
+                        wide = Math.Min(wide, window.Z(260));
+                        if (x + wide > (rows == 3 ? last : right) && x > pad) { x = pad; y += rowTall + gap; rows++; }
+                        chip.Box = rows > 3 ? Rectangle.Empty : new Rectangle(x, y, wide, rowTall);
+                        chip.Cross = chip.Main || chip.Box.IsEmpty ? Rectangle.Empty : new Rectangle(chip.Box.Right - window.Z(20), chip.Box.Top, window.Z(18), rowTall);
+                        if (chip.Box.IsEmpty) hidden = true;
+                        x += wide + gap;
+                    }
+                    if (!hidden) break;
                 }
                 chipsTall = chips.Count == 0 ? 0 : Math.Min(rows, 3) * (rowTall + gap);
                 Input.Bounds = new Rectangle(pad, pad + chipsTall, Math.Max(1, Width - pad * 2 - window.Z(6)), inputTall);
@@ -1234,6 +1257,10 @@ namespace CapriDesktop
                     foreach (Control other in seen) if (control.Bounds.IntersectsWith(other.Bounds)) return "Composer overlap: " + (control.AccessibleName ?? control.Text) + " / " + (other.AccessibleName ?? other.Text);
                     seen.Add(control);
                 }
+                Chip shownLast = null;
+                bool more = false;
+                foreach (Chip chip in chips) { if (chip.Box.IsEmpty) more = true; else shownLast = chip; }
+                if (more && shownLast != null && shownLast.Box.Right + window.Z(76) > Width - Pad) return "Composer's +N more runs past its edge.";
                 foreach (Chip chip in chips)
                 {
                     if (chip.Box.IsEmpty) continue;
@@ -1361,6 +1388,10 @@ namespace CapriDesktop
                 internal readonly List<Piece> Pieces = new List<Piece>();
                 internal readonly List<Control> Keys = new List<Control>();
                 internal WorkField Reason;
+                // What it was last measured from, so a card that hasn't changed only moves when another arrives.
+                internal string LaidText, LaidResult, LaidDecision, LaidShape;
+                internal bool LaidOpen, LaidAll;
+                internal int LaidWidth = -1, LaidRound;
             }
 
             internal sealed class Piece
@@ -1382,7 +1413,7 @@ namespace CapriDesktop
             internal string Empty = "";
             private Block picked, hovered;
             private bool dragging, earlier, newer;
-            private int dragFrom, dragOffset, laid = -1;
+            private int dragFrom, dragOffset, laid = -1, round;
 
             internal Transcript(WorkspaceWindow window)
             {
@@ -1412,6 +1443,7 @@ namespace CapriDesktop
                     if (block.Reason != null) block.Reason.Font = window.Font;
                 }
                 laid = -1;
+                round++;
             }
 
             internal void Clear()
@@ -1546,11 +1578,29 @@ namespace CapriDesktop
                 }
                 foreach (Block block in Blocks)
                 {
-                    Measure(block, y);
+                    WorkspaceItem item = block.Item;
+                    if (block.LaidWidth == Width && block.LaidRound == round && (object)block.LaidText == item.Text && (object)block.LaidResult == block.Result && block.LaidDecision == item.Decision
+                        && block.LaidShape == block.Shape && block.LaidOpen == block.Open && block.LaidAll == block.All) Shift(block, y - block.Box.Top);
+                    else
+                    {
+                        Measure(block, y);
+                        block.LaidWidth = Width; block.LaidRound = round; block.LaidText = item.Text; block.LaidResult = block.Result;
+                        block.LaidDecision = item.Decision; block.LaidShape = block.Shape; block.LaidOpen = block.Open; block.LaidAll = block.All;
+                    }
                     y = block.Box.Bottom + Z(block.Item.Kind == "tool" || block.Item.Kind == "end" ? 6 : 14);
                 }
                 Content = y + Z(6);
                 Place();
+            }
+
+            private static void Shift(Block block, int by)
+            {
+                if (by == 0) return;
+                block.Box.Offset(0, by);
+                if (!block.Toggle.IsEmpty) block.Toggle.Offset(0, by);
+                foreach (Piece piece in block.Pieces) piece.Box.Offset(0, by);
+                foreach (Control key in block.Keys) if (key.Tag is Rectangle) { Rectangle at = (Rectangle)key.Tag; at.Offset(0, by); key.Tag = at; }
+                if (block.Reason != null && block.Reason.Tag is Rectangle) { Rectangle at = (Rectangle)block.Reason.Tag; at.Offset(0, by); block.Reason.Tag = at; }
             }
 
             private Piece Add(Block block, string text, Font font, Color ink, Rectangle box)
