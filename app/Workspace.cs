@@ -350,12 +350,15 @@ namespace CapriDesktop
         {
             string words = Regex.Replace(text ?? "", @"\s+", " ").Trim();
             if (words.Length == 0) return files != null && files.Count > 0 ? Path.GetFileName(files[0]) : "New chat";
-            if (words.Length > 40)
+            bool cut = words.Length > 40;
+            if (cut)
             {
-                int cut = words.LastIndexOf(' ', 40);
-                words = cut >= 12 ? words.Substring(0, cut) : words.Substring(0, 40);
+                int at = words.LastIndexOf(' ', 40);
+                words = at >= 12 ? words.Substring(0, at) : words.Substring(0, 40);
             }
-            return words.TrimEnd(' ', '.', ',', ';', ':', '!', '?', '-', '\u2013', '\u2014', '(', '"', '\'');
+            words = words.TrimEnd(' ', '.', ',', ';', ':', '!', '?', '-', '\u2013', '\u2014', '(', '"', '\'');
+            // A title made from a longer message looks cut: the dots sit tight against the last word.
+            return cut ? words + "\u2026" : words;
         }
 
         // A chat in her own folder, ready to type in. Nothing has been asked yet, so its folder can still change.

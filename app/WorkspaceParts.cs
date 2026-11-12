@@ -142,6 +142,24 @@ namespace CapriDesktop
 
         internal static int Wide(string text, Font font) { return TextRenderer.MeasureText(text, font, Size.Empty, Line).Width; }
 
+        // A title cut to a width the one way everywhere: at a word, with the dots tight against it, and mid-word only when
+        // the first word alone is too wide.
+        internal static string Fit(string text, Font font, int width)
+        {
+            if (string.IsNullOrEmpty(text) || Wide(text, font) <= width) return text;
+            string kept = text.TrimEnd('\u2026');
+            while (kept.Length > 0)
+            {
+                int at = kept.LastIndexOf(' ');
+                if (at <= 0) break;
+                kept = kept.Substring(0, at).TrimEnd(' ', '.', ',', ';', ':', '-');
+                if (Wide(kept + "\u2026", font) <= width) return kept + "\u2026";
+            }
+            kept = text.TrimEnd('\u2026');
+            while (kept.Length > 1 && Wide(kept + "\u2026", font) > width) kept = kept.Substring(0, kept.Length - 1);
+            return kept + "\u2026";
+        }
+
         internal static int Tall(string text, Font font, int width)
         {
             if (string.IsNullOrEmpty(text)) return font.Height;
