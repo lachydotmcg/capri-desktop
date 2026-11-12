@@ -1808,6 +1808,11 @@ namespace CapriDesktop
                 Blocks.Clear();
                 known.Clear();
                 picked = hovered = null;
+                // The copy key and its tick belong to the chat they were on, not the next one.
+                tickClock.Stop();
+                tickKey = copyKey = Rectangle.Empty;
+                copyWhat = null;
+                copyHot = false;
                 Offset = 0;
                 laid = -1;
             }
