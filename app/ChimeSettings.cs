@@ -33,6 +33,9 @@ namespace CapriDesktop
         // Free voice chat chimed as the line ended, so the words coming back don't chime it again.
         private bool lineChimed;
         private bool chimesClosed;
+        // The smoke feeds her ears far faster than a mic does, so a chime's mask would still be up over lines it never could
+        // be; chimes stay quiet in every check but SmokeSounds.
+        private bool chimesTested;
         private readonly object chimeGate = new object();
         // Her ears' gates through a chime: her own ears, Hey Capri's mic while she talks, and ElevenLabs voice chat's mic.
         private readonly EchoGate earsGate = new EchoGate(), wakeGate = new EchoGate(), linkGate = new EchoGate();
@@ -115,7 +118,7 @@ namespace CapriDesktop
 
         private void ShowChimes()
         {
-            Chimes.On = !preferences.NoChimes;
+            Chimes.On = !preferences.NoChimes && (!testing || chimesTested);
             Chimes.Volume = ChimeVolume;
             Chimes.Set = ChimeSet;
             Chimes.Want(Chime.Sent, !preferences.NoChimeSent);
@@ -235,6 +238,7 @@ namespace CapriDesktop
             bool advancedWas = preferences.AdvancedSettings, pageWas = mainframe.SettingsShown;
             long now = 1000000;
             double ringing = 0;
+            chimesTested = true;
             List<short[]> played = new List<short[]>();
             Func<int> count = delegate { lock (played) return played.Count; };
             Action later = delegate { now += 2000; };
@@ -452,6 +456,7 @@ namespace CapriDesktop
                 Chimes.Clock = clockWas;
                 Chimes.Reset();
                 preferences.ChimeSet = setWas;
+                chimesTested = false;
                 preferences.NoChimes = offWas; preferences.NoChimeSent = sentWas; preferences.NoChimeHeard = heardWas; preferences.NoChimeListening = listeningWas;
                 preferences.ChimeVolume = volumeWas;
                 preferences.AdvancedSettings = advancedWas;
@@ -754,6 +759,11 @@ namespace CapriDesktop
             }
             finally
             {
+                // Anything still on its way from these lines lands here, on the stand-in brain, before the real one is back.
+                int lateWas = calls;
+                Stopwatch drain = Stopwatch.StartNew();
+                while (drain.ElapsedMilliseconds < 1500 || transcribing && drain.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(10); }
+                if (calls != lateWas) checks.Add("INFO a line from the sounds checks reached her stand-in brain " + (calls - lateWas) + " time(s) after they finished");
                 if (dictationOpen != null) dictation = dictationOpen;
                 pushing = false;
                 wakeChecks = wakeChecksWas;
