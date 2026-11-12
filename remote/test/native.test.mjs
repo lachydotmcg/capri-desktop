@@ -303,8 +303,12 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     // What's left shows by THIS PHONE, read from the worker when she connects, and drops by one with each reply.
     await page.until(`!document.querySelector('#native-left').hidden && document.querySelector('#native-left').textContent === '15 left today'`, 'the count by THIS PHONE');
     // On a 390 px phone the count still leaves room for the whole CAPRI title.
-    const fit = await page.run(`(() => { const n = document.querySelector('.crumb-name'); return { fits: innerWidth > 430 || n.scrollWidth <= n.clientWidth, inner: innerWidth, kids: [...document.querySelector('.top').children].map(e => e.className + ':' + Math.round(e.getBoundingClientRect().width) + (e.hidden ? 'h' : '')), name: [n.scrollWidth, n.clientWidth] }; })()`);
-    assert.equal(fit.fits, true, 'CAPRI clipped: ' + JSON.stringify(fit));
+    const fits = async width => {
+      const fit = await page.run(`(() => { const n = document.querySelector('.crumb-name'), left = document.querySelector('#native-left'); return { inner: innerWidth, whole: n.scrollWidth <= n.clientWidth, count: !left.hidden && left.getBoundingClientRect().width > 0 && left.getBoundingClientRect().right <= document.querySelector('.top').getBoundingClientRect().right + 0.5, kids: [...document.querySelector('.top').children].map(e => e.className + ':' + Math.round(e.getBoundingClientRect().width)), name: [n.scrollWidth, n.clientWidth] }; })()`);
+      assert.equal(fit.inner, width);
+      assert.ok(fit.whole && fit.count, 'CAPRI or the count cut at ' + width + ' px: ' + JSON.stringify(fit));
+    };
+    await fits(390);
     assert.equal(counts().length, 0);
 
     // A whole reply uses the same typing state, history and daily phone count as a keyed brain.
@@ -320,6 +324,16 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     // Let her finish forming before the picture.
     await new Promise(resolve => setTimeout(resolve, 2500));
     await shot('free-2-chat');
+    // The common Android width and the smallest phones still in use keep the whole title and the count.
+    for (const width of [360, 320]) {
+      await page.send('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 2, mobile: false });
+      await new Promise(resolve => setTimeout(resolve, 400));
+      await fits(width);
+      await shot('free-2-chat-' + width);
+    }
+    await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: false });
+    await new Promise(resolve => setTimeout(resolve, 400));
+    await fits(390);
     for (const name of ['x-api-key', 'authorization', 'cookie', 'referer']) assert.equal(requests('POST')[0].headers[name], undefined, name);
     assert.equal(counts().length, 1);
     assert.deepEqual(counts()[0].body, { first: true, paired: false });
@@ -491,7 +505,6 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     await say('one');
     assert.equal(await noticeSays('/one minute/', 'the per-minute notice'), "Google AI says that's too many messages for one minute. Try again in a few seconds.");
     assert.equal(await page.run(`document.querySelector('.native-notice-free').hidden`), false);
-    await shot('limit-minute');
     assert.equal(chats().length, 2);
     await say('two');
     await noticeSays('/Try again in a few seconds/', 'the wait kept');
@@ -503,6 +516,8 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     assert.ok(!(await saved()).chats.some(chat => chat.msgs.some(msg => msg.role === 'capri' && (msg.cut || !msg.text))));
     await new Promise(resolve => setTimeout(resolve, 3200));
     assert.equal(chats().length, 2, 'never retried by itself');
+    // Taken here, after the wait, so she has fully formed: the notice is still up.
+    await shot('limit-minute');
     provider.state.fail = null;
     await say('three');
     await page.until(`${lastReply} === 'Capri: Gemini says: one\\n\\ntwo\\n\\nthree'`, 'the next good reply');
@@ -530,6 +545,8 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     assert.match(raw, /GenerateRequestsPerDayPerProjectPerModel-FreeTier/);
     assert.ok(!raw.includes(GOOD.google), 'no key in Details');
     assert.equal(await page.run(`document.querySelector('.native-notice-more').getAttribute('aria-expanded')`), 'true');
+    // Let her finish forming before the picture.
+    await new Promise(resolve => setTimeout(resolve, 2500));
     await shot('limit-daily');
     // A daily limit has no wait to keep: the next message is tried again, once.
     const beforeDaily = chats().length;

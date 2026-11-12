@@ -60,3 +60,7 @@
   .top .native-mode, .top .native-left { letter-spacing: .08em; }
   .top .native-left { margin-left: 4px; }
 }
+/* Under 380 px the count is worth more than THIS PHONE: the tag steps aside while it shows. */
+@media (max-width: 380px) {
+  .top.native-counting .native-mode { display: none; }
+}

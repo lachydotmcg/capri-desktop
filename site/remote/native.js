@@ -594,6 +594,7 @@
     const brain = readBrain(), info = remote() ? remote().info : {};
     const show = !!(info.native && brain && brain.provider === 'free' && freeAllowance && remote().state === 'connected');
     left.hidden = !show;
+    if (left.parentElement) left.parentElement.classList.toggle('native-counting', show);
     if (!show) return;
     // A narrow phone drops the word "today" so CAPRI still fits in the header.
     const day = make('span', 'native-left-day');
