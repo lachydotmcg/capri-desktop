@@ -6470,11 +6470,22 @@ namespace CapriDesktop
             return null;
         }
 
-        private void CheckWander(double now, long quiet)
+        // What keeps her from wandering off right now, or null. Her first launch card is named only when nothing else holds her,
+        // so a check can tell the card apart from her being busy.
+        internal string WanderHeld(double now, long quiet)
         {
             bool settled = talkState == TalkState.Off || (talkState == TalkState.Talking && replyDone >= 0 && now - replyDone > 8);
+            string held = !preferences.Wander ? "wandering off" : Hushed ? "hushed" : ownRest ? "resting" : SleepBusy ? "sleep" : GamingOn ? "gaming" : hidden ? "hidden"
+                : dragging ? "dragged" : pressed ? "pressed" : riding ? "riding" : onPanel ? "on a panel" : falling ? "falling" : hanging ? "hanging" : InChat ? "in a chat"
+                : typer.Visible ? "typing box" : menu.Visible ? "her menu" : speech != null ? "speaking" : !settled ? "talking " + talkState : quiet > 90000 ? "quiet"
+                : seat != null && seat.Free ? "on a free seat" : outro != null ? "leaving" : clip != idle && clip != perch && clip != dance && clip != perchDance ? "a clip playing" : null;
             // She stays beside her first launch card while it's open.
-            if (!preferences.Wander || FirstRunShowing || Hushed || ownRest || SleepBusy || GamingOn || hidden || dragging || pressed || riding || onPanel || falling || hanging || InChat || typer.Visible || menu.Visible || speech != null || !settled || quiet > 90000 || (seat != null && seat.Free) || outro != null || (clip != idle && clip != perch && clip != dance && clip != perchDance)) return;
+            return held ?? (FirstRunShowing ? "first launch card" : null);
+        }
+
+        private void CheckWander(double now, long quiet)
+        {
+            if (WanderHeld(now, quiet) != null) return;
             double pace = WanderPaces[preferences.WanderPace];
             if (nextWander < 0) nextWander = now + (20 + random.NextDouble() * 40) * pace;
             if (now < nextWander) return;
