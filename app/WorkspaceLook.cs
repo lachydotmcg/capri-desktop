@@ -342,6 +342,7 @@ namespace CapriDesktop
             SmokeWorkspaceAttachments(checks, folder, projects, pipe, alias, shoot);
             SmokeWorkspaceTitles(checks, folder, projects, pipe, alias, shoot);
             SmokeWorkspaceEdits(checks, folder, projects, pipe, alias, shoot);
+            SmokeWorkspaceTools(checks, folder, projects, pipe, alias, shoot);
             bool shown = mainframe.Visible;
             FormWindowState state = mainframe.WindowState;
             try
@@ -1228,6 +1229,187 @@ namespace CapriDesktop
         }
 
         // The pictures' stand-in answers in a believable few seconds, at a believable cost, instead of the 40 ms it takes.
+        // Tool calls behind summary lines, built from a real turn and a few more: one line per run of calls
+        // between her words, closed until it's opened, worded by what finished, with a failed or denied call marked on the
+        // line, and a running call's shine on its own clock that stops when nothing runs or the window is minimised. Pictured
+        // at 100%, 125% and 150%; the t-c frames are the shine at four points of its pass.
+        private void SmokeWorkspaceTools(List<string> checks, string folder, string projects, string pipe, Func<string, string> alias, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            string box = Path.Combine(folder, "tools"), project = Path.Combine(projects, "capri-desktop");
+            Directory.CreateDirectory(box);
+            Directory.CreateDirectory(project);
+            string pictures = Path.Combine(folder, "look");
+            string app = @"C:\Users\you\Projects\release-089\app", mods = @"C:\Users\you\Projects\release-089\mods";
+            string bash1 = "cd /c/Users/you/Projects/capri-desktop/app; sed -n 1,40p Workspace.cs | grep -v \"^using\"; sed -n 315,332p Workspace.cs; sed -n 1295,1330p Workspace.cs; grep -n \"localhost\\|127.0.0.1\" *.cs";
+            string bash2 = "cd /c/Users/you/Projects/release-089/app; grep -n \"ModList.Load()\\|mods.Load()\\|ModList = \\|new Mods(\" *.cs | grep -v \"throw\\|Smoke\\|Check\" | head; grep -n \"folder = \\|\\\"mods\\\"\" Mods.cs";
+            Action<WorkspaceChat, string, string, string, string, string, string> call = delegate(WorkspaceChat chat, string turn, string id, string name, string about, string result, string how)
+            {
+                string text = name == "Bash" || name == "PowerShell" ? name + ": " + about : name + " " + about;
+                lock (chat.Gate)
+                {
+                    chat.Items.Add(new WorkspaceItem { Kind = "tool", Id = id, Name = name, Text = text, Turn = turn });
+                    if (how == "allow") chat.Items.Add(new WorkspaceItem { Kind = "approval", Name = name, Text = "Allowed: " + text, Decision = "allow", Turn = turn });
+                    if (how == "deny") chat.Items.Add(new WorkspaceItem { Kind = "approval", Name = name, Text = "Denied: Not that folder, use the copy in Projects.", Decision = "deny", Turn = turn });
+                    if (result != null) chat.Items.Add(new WorkspaceItem { Kind = "result", Id = id, Text = result, Turn = turn, Decision = how == "fail" || how == "deny" ? "error" : "" });
+                }
+            };
+            Action<WorkspaceChat, string, string> say = delegate(WorkspaceChat chat, string kind, string text) { lock (chat.Gate) chat.Items.Add(new WorkspaceItem { Kind = kind, Text = text }); };
+            // The photo's turn, finished.
+            Action<WorkspaceChat> photo = delegate(WorkspaceChat chat)
+            {
+                say(chat, "user", "Hey Capri, code me a Cyberpunk style clock mod that sits in the corner of the screen.");
+                say(chat, "text", "I'll look at how mods load first, then write it.");
+                call(chat, "p", "p1", "Bash", bash1, "  1 namespace Capri\n315     internal static string HomeFolder()", "allow");
+                call(chat, "p", "p2", "Bash", bash2, "Capri.cs:2210:            ModList = new Mods(folder);", "allow");
+                call(chat, "p", "p3", "Grep", app, "Found 6 files", "allow");
+                call(chat, "p", "p4", "Grep", app + @"\ModApi.cs", "Found 1 file", "allow");
+                call(chat, "p", "p5", "Read", mods + @"\hello-code.capri-code", "     1\t// Hello, from a code mod.", "allow");
+                say(chat, "text", "Mods load from the mods folder through ModList.Load, and a code mod gets the ModApi to draw with.\n\nI'll write the clock as one now.");
+                call(chat, "p", "p6", "Write", mods + @"\cyber-clock.capri-code", "File created successfully", "");
+                call(chat, "p", "p7", "Edit", mods + @"\cyber-clock.capri-code", "The file has been updated.", "");
+                call(chat, "p", "p8", "Bash", "powershell -File ci\\build-windows.ps1 -OutputDirectory out", "Built out\\Capri.exe", "");
+                say(chat, "text", "Done. The clock sits in the top right corner in a neon frame, and it keeps to the time your PC shows.");
+                lock (chat.Gate) chat.Items.Add(new WorkspaceItem { Kind = "end", Text = "48.2s | $0.31" });
+            };
+            List<string> failures = new List<string>();
+            List<string> rows = new List<string>();
+            foreach (float z in new[] { 1f, 1.25f, 1.5f })
+            {
+                int scale = (int)Math.Round(z * 100);
+                using (Workspace work = new Workspace(Path.Combine(box, "data" + scale), pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(box, "her-folder") })
+                using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
+                {
+                    window.PathAlias = alias;
+                    window.Location = new Point(z == 1f ? 40 : 0, z == 1f ? 40 : 0);
+                    window.Show(this);
+                    Size full = new Size((int)Math.Round(WorkspaceWindow.Wide * z), Math.Min((int)Math.Round(WorkspaceWindow.Tall * z), 1032));
+                    window.ClientSize = full;
+                    // The first open's empty chat in her folder isn't part of these pictures.
+                    if (window.Chat != null) work.Delete(window.Chat);
+
+                    WorkspaceChat chat = work.NewChat(project, false);
+                    work.Trust(chat, true);
+                    chat.TrustAsked = true;
+                    photo(chat);
+                    window.ShowChat(chat);
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    List<string> groups = window.ToolGroups;
+                    string[] wanted = { "2 commands ran, 1 file read, 2 searches", "1 command ran, 1 file edited, 1 file written" };
+                    if (groups.Count != 2 || groups[0] != wanted[0] || groups[1] != wanted[1]) failures.Add(scale + "%: the photo's groups read " + string.Join(" / ", groups.ToArray()));
+                    if (window.Shining) failures.Add(scale + "%: the shine's clock ran with nothing running.");
+                    shoot(window, "t-a-new-" + scale, null);
+                    window.ToggleTool("p2");
+                    window.ScrollToEnd();
+                    window.RefreshChat();
+                    shoot(window, "t-b-open-" + scale, null);
+                    window.OpenToolGroups(false);
+
+                    // A running turn: two calls done, a third running; the line says what's running and shines.
+                    WorkspaceChat live = work.NewChat(project, false);
+                    work.Trust(live, true);
+                    live.TrustAsked = true;
+                    WorkspaceTurn turn = new WorkspaceTurn { Chat = live };
+                    say(live, "user", "Hey Capri, code me a Cyberpunk style clock mod that sits in the corner of the screen.");
+                    say(live, "text", "I'll look at how mods load first, then write it.");
+                    call(live, turn.Id, "r1", "Bash", bash2, "Capri.cs:2210:            ModList = new Mods(folder);", "allow");
+                    call(live, turn.Id, "r2", "Grep", app, "Found 6 files", "allow");
+                    call(live, turn.Id, "r3", "Read", mods + @"\hello-code.capri-code", null, "");
+                    live.Live = turn;
+                    window.ShowChat(live);
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    groups = window.ToolGroups;
+                    if (groups.Count != 1 || groups[0] != "Reading hello-code.capri-code | 1 command ran, 1 search") failures.Add(scale + "%: the running line reads " + string.Join(" / ", groups.ToArray()));
+                    if (!window.Shining) failures.Add(scale + "%: the shine's clock didn't start for a running call.");
+                    double[] phases = { 0.2, 0.4, 0.6, 0.8 };
+                    for (int k = 0; k < phases.Length; k++)
+                    {
+                        WorkspaceWindow.ShineAt = phases[k];
+                        shoot(window, "t-c-frame" + (k + 1) + "-" + scale, null);
+                    }
+                    WorkspaceWindow.ShineAt = -1;
+                    Rectangle area = window.ShineArea;
+                    rows.Add("t-c-" + scale + " " + area.Left + " " + area.Top + " " + area.Width + " " + area.Height);
+                    window.WindowState = FormWindowState.Minimized;
+                    Application.DoEvents();
+                    if (window.Shining) failures.Add(scale + "%: the shine kept running while the window was minimised.");
+                    window.WindowState = FormWindowState.Normal;
+                    Application.DoEvents();
+                    window.ClientSize = full;
+                    if (!window.Shining) failures.Add(scale + "%: the shine didn't come back after the window was restored.");
+                    lock (live.Gate) live.Items.Add(new WorkspaceItem { Kind = "result", Id = "r3", Text = "     1\t// Hello, from a code mod.", Turn = turn.Id });
+                    window.RefreshChat();
+                    if (window.Shining) failures.Add(scale + "%: the shine kept running after the call finished.");
+                    groups = window.ToolGroups;
+                    if (groups.Count != 1 || groups[0] != "1 command ran, 1 file read, 1 search") failures.Add(scale + "%: the count didn't take the finished call: " + string.Join(" / ", groups.ToArray()));
+                    live.Live = null;
+
+                    // A group with a failed call, a denied one and one he was asked about and allowed.
+                    WorkspaceChat rough = work.NewChat(project, false);
+                    work.Trust(rough, true);
+                    rough.TrustAsked = true;
+                    say(rough, "user", "Run the tests and fix what breaks.");
+                    say(rough, "text", "Running the tests first.");
+                    call(rough, "d", "d1", "Bash", "npm test -- --runInBand", "FAIL tests/clock.test.js\n  expected \"23:59\" but got \"11:59 PM\"\nexit code 1", "fail");
+                    call(rough, "d", "d2", "Read", @"C:\Users\you\Documents\private\notes.txt", "Denied: Not that folder, use the copy in Projects.", "deny");
+                    call(rough, "d", "d3", "Edit", Path.Combine(project, "mods", "cyber-clock.capri-code"), "The file has been updated.", "allow");
+                    say(rough, "text", "One test failed on the 24-hour format. I fixed the clock to use your PC's own format.");
+                    window.ShowChat(rough);
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    groups = window.ToolGroups;
+                    if (groups.Count != 1 || groups[0] != "1 command ran, 1 file edited | 1 failed, 1 denied") failures.Add(scale + "%: the rough group reads " + string.Join(" / ", groups.ToArray()));
+                    shoot(window, "t-d-closed-" + scale, null);
+                    window.ToggleTool("d1");
+                    window.ScrollToEnd();
+                    window.RefreshChat();
+                    shoot(window, "t-d-open-" + scale, null);
+
+                    // A long turn: six groups with her words between them.
+                    WorkspaceChat longer = work.NewChat(project, false);
+                    work.Trust(longer, true);
+                    longer.TrustAsked = true;
+                    say(longer, "user", "Tidy the mod loader, check the docs online and update the issue.");
+                    string[][] runs =
+                    {
+                        new[] { "Grep|" + app, "Grep|" + app + @"\Mods.cs", "Glob|mods/**/*.capri-code" },
+                        new[] { "Read|" + app + @"\Mods.cs", "Read|" + app + @"\ModApi.cs", "Read|" + app + @"\CodeMods.cs", "Read|" + app + @"\Mods.cs" },
+                        new[] { "WebFetch|https://learn.microsoft.com/dotnet/api/system.io.filesystemwatcher", "WebSearch|FileSystemWatcher buffer overflow" },
+                        new[] { "Edit|" + app + @"\Mods.cs", "Edit|" + app + @"\Mods.cs", "Edit|" + app + @"\CodeMods.cs", "Bash|powershell -File ci\\build-windows.ps1 -OutputDirectory out" },
+                        new[] { "TodoWrite|3 to-dos", "Task|Review the loader change" },
+                        new[] { "mcp__github__add_issue_comment|lachydotmcg/capri#214", "mcp__github__update_issue|lachydotmcg/capri#214" }
+                    };
+                    string[] between = { "The loader reads every mod twice on start.", "It reads the folder once for the list and again for each mod.", "The watcher can drop events when many files change at once.", "Fixed: one read, and a rescan when the watcher overflows.", "I've noted what's left.", "The issue is updated with what changed." };
+                    int n = 0;
+                    for (int g = 0; g < runs.Length; g++)
+                    {
+                        foreach (string one in runs[g]) { string[] bits = one.Split('|'); n++; call(longer, "l", "l" + n, bits[0], bits[1], "ok", ""); }
+                        say(longer, "text", between[g]);
+                    }
+                    lock (longer.Gate) longer.Items.Add(new WorkspaceItem { Kind = "end", Text = "3m 12s | $1.04" });
+                    window.ShowChat(longer);
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    groups = window.ToolGroups;
+                    string[] longWanted = { "3 searches", "3 files read", "2 web lookups", "1 command ran, 2 files edited", "to-do list updated, 1 agent ran", "2 MCP calls" };
+                    if (string.Join(" / ", groups.ToArray()) != string.Join(" / ", longWanted)) failures.Add(scale + "%: the long turn reads " + string.Join(" / ", groups.ToArray()));
+                    shoot(window, "t-e-long-" + scale, null);
+
+                    // The narrowest window, with the photo's turn.
+                    window.ShowChat(chat);
+                    window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Narrowest * z), (int)Math.Round(WorkspaceWindow.Shortest * z));
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    shoot(window, "t-f-narrow-" + scale, null);
+                    window.Close();
+                }
+            }
+            File.WriteAllLines(Path.Combine(pictures, "t-c-rows.txt"), rows.ToArray());
+            if (failures.Count > 0) throw new Exception(string.Join(" | ", failures.ToArray()));
+            checks.Add("PASS Workspace puts each run of tool calls behind one closed line worded by what finished (commands ran, files read, edited and written, searches, web lookups, agents, MCP calls), marks a failed or denied call on that line and names what's running while it shines; the shine's clock runs only while a running call is seen and stops when it finishes or the window is minimised");
+        }
+
         private static string WorkspaceHeaderOf(Func<string, string> alias, string folder) { return alias != null ? alias(folder) : folder; }
 
         private static void WorkspaceTimed(string folder)
