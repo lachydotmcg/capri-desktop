@@ -86,6 +86,128 @@ namespace CapriDesktop
             graphics.SmoothingMode = was;
         }
 
+        // Which picture a tool's row gets: a prompt for commands, a magnifier for searches, a page for reads, a pencil for
+        // edits, a globe for the web, a checklist for to-dos and tasks, a branch for agents, a plug for MCP tools, and a plain
+        // dot for anything else.
+        internal static string ToolKind(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "dot";
+            if (name == "Bash" || name == "PowerShell" || name == "BashOutput" || name == "KillShell" || name == "KillBash") return "terminal";
+            if (name == "Grep" || name == "Glob" || name == "LS" || name == "ToolSearch") return "search";
+            if (name == "Read" || name == "NotebookRead") return "page";
+            if (name == "Edit" || name == "MultiEdit" || name == "Write" || name == "NotebookEdit") return "pencil";
+            if (name == "WebFetch" || name == "WebSearch") return "globe";
+            if (name == "Task" || name == "Agent") return "branch";
+            if (name.StartsWith("Todo", StringComparison.Ordinal) || name.StartsWith("Task", StringComparison.Ordinal)) return "list";
+            if (name.StartsWith("mcp__", StringComparison.Ordinal)) return "plug";
+            return "dot";
+        }
+
+        // A tool's picture drawn from lines in a square box, so it stays sharp at every size.
+        internal static void ToolMark(Graphics graphics, string name, RectangleF box, Color ink, float s)
+        {
+            SmoothingMode was = graphics.SmoothingMode;
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            float x = box.Left, y = box.Top, w = box.Width, h = box.Height;
+            using (Pen pen = new Pen(ink, Math.Max(1f, 1.3f * s)))
+            using (Brush fill = new SolidBrush(ink))
+            {
+                pen.StartCap = pen.EndCap = LineCap.Round;
+                pen.LineJoin = LineJoin.Round;
+                switch (ToolKind(name))
+                {
+                    case "terminal":
+                        using (GraphicsPath frame = Rounded(new RectangleF(x + w * 0.04f, y + h * 0.12f, w * 0.92f, h * 0.76f), w * 0.14f)) graphics.DrawPath(pen, frame);
+                        graphics.DrawLines(pen, new[] { new PointF(x + w * 0.24f, y + h * 0.36f), new PointF(x + w * 0.42f, y + h * 0.5f), new PointF(x + w * 0.24f, y + h * 0.64f) });
+                        graphics.DrawLine(pen, x + w * 0.5f, y + h * 0.66f, x + w * 0.74f, y + h * 0.66f);
+                        break;
+                    case "search":
+                        graphics.DrawEllipse(pen, x + w * 0.1f, y + h * 0.1f, w * 0.56f, h * 0.56f);
+                        graphics.DrawLine(pen, x + w * 0.6f, y + h * 0.6f, x + w * 0.9f, y + h * 0.9f);
+                        break;
+                    case "page":
+                        {
+                            float left = x + w * 0.18f, right = x + w * 0.82f, fold = w * 0.24f;
+                            graphics.DrawPolygon(pen, new[] { new PointF(left, y + h * 0.06f), new PointF(right - fold, y + h * 0.06f), new PointF(right, y + h * 0.06f + fold), new PointF(right, y + h * 0.94f), new PointF(left, y + h * 0.94f) });
+                            graphics.DrawLine(pen, left + w * 0.14f, y + h * 0.52f, right - w * 0.14f, y + h * 0.52f);
+                            graphics.DrawLine(pen, left + w * 0.14f, y + h * 0.72f, right - w * 0.14f, y + h * 0.72f);
+                        }
+                        break;
+                    case "pencil":
+                        graphics.DrawPolygon(pen, new[] { new PointF(x + w * 0.1f, y + h * 0.9f), new PointF(x + w * 0.16f, y + h * 0.66f), new PointF(x + w * 0.66f, y + h * 0.16f), new PointF(x + w * 0.84f, y + h * 0.34f), new PointF(x + w * 0.34f, y + h * 0.84f) });
+                        graphics.DrawLine(pen, x + w * 0.54f, y + h * 0.28f, x + w * 0.72f, y + h * 0.46f);
+                        break;
+                    case "globe":
+                        graphics.DrawEllipse(pen, x + w * 0.08f, y + h * 0.08f, w * 0.84f, h * 0.84f);
+                        graphics.DrawEllipse(pen, x + w * 0.32f, y + h * 0.08f, w * 0.36f, h * 0.84f);
+                        graphics.DrawLine(pen, x + w * 0.1f, y + h * 0.5f, x + w * 0.9f, y + h * 0.5f);
+                        break;
+                    case "list":
+                        foreach (float row in new[] { 0.28f, 0.72f })
+                        {
+                            graphics.DrawRectangle(pen, x + w * 0.06f, y + h * (row - 0.13f), w * 0.26f, h * 0.26f);
+                            graphics.DrawLine(pen, x + w * 0.46f, y + h * row, x + w * 0.94f, y + h * row);
+                        }
+                        graphics.DrawLines(pen, new[] { new PointF(x + w * 0.11f, y + h * 0.28f), new PointF(x + w * 0.18f, y + h * 0.35f), new PointF(x + w * 0.3f, y + h * 0.17f) });
+                        break;
+                    case "branch":
+                        {
+                            float r = w * 0.11f;
+                            graphics.DrawEllipse(pen, x + w * 0.28f - r, y + h * 0.18f - r, r * 2, r * 2);
+                            graphics.DrawEllipse(pen, x + w * 0.28f - r, y + h * 0.82f - r, r * 2, r * 2);
+                            graphics.DrawEllipse(pen, x + w * 0.74f - r, y + h * 0.34f - r, r * 2, r * 2);
+                            graphics.DrawLine(pen, x + w * 0.28f, y + h * 0.18f + r, x + w * 0.28f, y + h * 0.82f - r);
+                            graphics.DrawBezier(pen, new PointF(x + w * 0.74f, y + h * 0.34f + r), new PointF(x + w * 0.74f, y + h * 0.62f), new PointF(x + w * 0.4f, y + h * 0.56f), new PointF(x + w * 0.29f, y + h * 0.7f));
+                        }
+                        break;
+                    case "plug":
+                        using (GraphicsPath body = Rounded(new RectangleF(x + w * 0.24f, y + h * 0.3f, w * 0.52f, h * 0.36f), w * 0.1f)) graphics.DrawPath(pen, body);
+                        graphics.DrawLine(pen, x + w * 0.4f, y + h * 0.08f, x + w * 0.4f, y + h * 0.3f);
+                        graphics.DrawLine(pen, x + w * 0.6f, y + h * 0.08f, x + w * 0.6f, y + h * 0.3f);
+                        graphics.DrawLine(pen, x + w * 0.5f, y + h * 0.66f, x + w * 0.5f, y + h * 0.94f);
+                        break;
+                    default:
+                        graphics.FillEllipse(fill, x + w * 0.34f, y + h * 0.34f, w * 0.32f, h * 0.32f);
+                        break;
+                }
+            }
+            graphics.SmoothingMode = was;
+        }
+
+        // The small mark at the end of a row: a tick when it was asked about and allowed, a cross when it was denied, and an
+        // exclamation mark when it failed.
+        internal static void StatusMark(Graphics graphics, string status, PointF middle, float half, Color colour, float s)
+        {
+            if (status == "denied") { Cross(graphics, middle, half * 0.8f, colour, s); return; }
+            SmoothingMode was = graphics.SmoothingMode;
+            graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using (Pen pen = new Pen(colour, Math.Max(1f, 1.4f * s)))
+            {
+                pen.StartCap = pen.EndCap = LineCap.Round;
+                pen.LineJoin = LineJoin.Round;
+                if (status == "failed")
+                {
+                    graphics.DrawLine(pen, middle.X, middle.Y - half, middle.X, middle.Y + half * 0.3f);
+                    using (Brush dot = new SolidBrush(colour)) graphics.FillEllipse(dot, middle.X - 1.1f * s, middle.Y + half * 0.7f, 2.2f * s, 2.2f * s);
+                }
+                else if (status == "asked")
+                    graphics.DrawLines(pen, new[] { new PointF(middle.X - half, middle.Y), new PointF(middle.X - half * 0.3f, middle.Y + half * 0.65f), new PointF(middle.X + half, middle.Y - half * 0.7f) });
+            }
+            graphics.SmoothingMode = was;
+        }
+
+        private static GraphicsPath Rounded(RectangleF box, float r)
+        {
+            GraphicsPath path = new GraphicsPath();
+            float d = r * 2;
+            path.AddArc(box.Left, box.Top, d, d, 180, 90);
+            path.AddArc(box.Right - d, box.Top, d, d, 270, 90);
+            path.AddArc(box.Right - d, box.Bottom - d, d, d, 0, 90);
+            path.AddArc(box.Left, box.Bottom - d, d, d, 90, 90);
+            path.CloseFigure();
+            return path;
+        }
+
         internal static void Cross(Graphics graphics, PointF middle, float half, Color colour, float s)
         {
             SmoothingMode was = graphics.SmoothingMode;
