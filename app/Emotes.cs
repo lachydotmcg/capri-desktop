@@ -423,16 +423,16 @@ namespace CapriDesktop
             // is copied straight in, row by row, mirrored where it's turned: no clearing and no blending of a full screen of
             // pixels, which is what held the heart to about 80 of its 105 frames.
             bool both = closePlace.Scale > 0 && closeup != null;
-            bool copied = both ? CopyFirst(closeup, closeAt, closePlace, area) : CopyFirst(picture, offset, place, area);
+            bool copied = both ? CopyFirst(surface, closeup, closeAt, closePlace, area) : CopyFirst(surface, picture, offset, place, area);
             if (!copied || both)
                 using (Graphics graphics = Graphics.FromImage(surface.Image))
                 {
                     if (!copied)
                     {
                         graphics.Clear(Color.Transparent);
-                        if (both) Paint(graphics, closeup, closeAt, closePlace, new Point(-area.X, -area.Y));
+                        if (both) Paint(graphics, closeup, closeAt, closePlace, new Point(-area.X, -area.Y), true);
                     }
-                    Paint(graphics, picture, offset, place, new Point(-area.X, -area.Y));
+                    Paint(graphics, picture, offset, place, new Point(-area.X, -area.Y), !both);
                 }
             PaintTotal += part.Elapsed.TotalMilliseconds; part.Restart();
             if (Bounds != area) Bounds = area;
@@ -441,7 +441,7 @@ namespace CapriDesktop
             ShowTotal += part.Elapsed.TotalMilliseconds;
         }
 
-        private unsafe bool CopyFirst(Bitmap picture, Point offset, EmotePlace where, Rectangle area)
+        private static unsafe bool CopyFirst(Native.Surface surface, Bitmap picture, Point offset, EmotePlace where, Rectangle area)
         {
             if (picture == null || Math.Abs(where.Scale - 1) > 0.0001f || Math.Abs(Math.Abs(where.Across) - 1) > 0.0001f) return false;
             bool turned = where.Across < 0;
@@ -468,15 +468,60 @@ namespace CapriDesktop
             return true;
         }
 
+        // For her checks: one frame of her layer drawn both ways into two surfaces, the quick copy and GDI+. Says whether the
+        // copy took it, and the first pixel where the two differ (premultiplied, alpha included), or null when none do.
+        internal static string BothWays(EmoteClip what, int frame, EmotePlace where, Rectangle screen, out bool copied)
+        {
+            Point offset;
+            Bitmap picture = what.Picture(frame, out offset);
+            copied = false;
+            Rectangle area = Covers(picture, offset, where, null, Point.Empty, new EmotePlace(), screen);
+            if (area.Width < 2 || area.Height < 2) return "nothing to draw";
+            using (Native.Surface quick = new Native.Surface(area.Width, area.Height))
+            using (Native.Surface slow = new Native.Surface(area.Width, area.Height))
+            {
+                copied = CopyFirst(quick, picture, offset, where, area);
+                using (Graphics graphics = Graphics.FromImage(slow.Image))
+                {
+                    graphics.Clear(Color.Transparent);
+                    Paint(graphics, picture, offset, where, new Point(-area.X, -area.Y), true);
+                }
+                if (!copied) return null;
+                int count = area.Width * area.Height;
+                int[] a = new int[count], b = new int[count], own = new int[count];
+                System.Runtime.InteropServices.Marshal.Copy(quick.Pixels, a, 0, count);
+                System.Runtime.InteropServices.Marshal.Copy(slow.Pixels, b, 0, count);
+                // and the copy is the clip's own pixels, turned when it's turned
+                BitmapData data = picture.LockBits(new Rectangle(Point.Empty, picture.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+                try
+                {
+                    int[] row = new int[picture.Width];
+                    for (int y = 0; y < picture.Height; y++)
+                    {
+                        System.Runtime.InteropServices.Marshal.Copy(data.Scan0 + y * data.Stride, row, 0, picture.Width);
+                        for (int x = 0; x < picture.Width; x++) own[y * picture.Width + (where.Across < 0 ? picture.Width - 1 - x : x)] = row[x];
+                    }
+                }
+                finally { picture.UnlockBits(data); }
+                for (int i = 0; i < count; i++) if (a[i] != own[i]) return "the copy isn't the clip's own pixels at " + (i % area.Width) + "," + (i / area.Width) + ": " + a[i].ToString("X8") + " for " + own[i].ToString("X8");
+                int differ = 0, first = -1;
+                for (int i = 0; i < count; i++) if (a[i] != b[i]) { if (first < 0) first = i; differ++; }
+                return differ == 0 ? null : differ + " pixels differ, first at " + (first % area.Width) + "," + (first / area.Width) + ": copy " + a[first].ToString("X8") + ", GDI+ " + b[first].ToString("X8");
+            }
+        }
+
         private void DropSurface()
         {
             if (surface != null) surface.Dispose();
             surface = null;
         }
 
-        internal static void Paint(Graphics graphics, Bitmap picture, Point offset, EmotePlace place, Point shift)
+        internal static void Paint(Graphics graphics, Bitmap picture, Point offset, EmotePlace place, Point shift, bool alone = false)
         {
             if (picture == null) return;
+            // The first picture on a clear surface is put down as it is: blended over nothing, GDI+ rounds faint alpha down a step
+            // (5 became 4), so its pixels wouldn't be the clip's own.
+            graphics.CompositingMode = alone ? CompositingMode.SourceCopy : CompositingMode.SourceOver;
             graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
             graphics.PixelOffsetMode = PixelOffsetMode.Half;
             graphics.CompositingQuality = CompositingQuality.HighQuality;
@@ -501,8 +546,9 @@ namespace CapriDesktop
             using (Graphics graphics = Graphics.FromImage(image))
             {
                 Bitmap face = what.Closeup(frame, out closeAt);
-                if (closeup.Scale > 0) Paint(graphics, face, closeAt, closeup, new Point(-stage.X, -stage.Y));
-                Paint(graphics, what.Picture(frame, out offset), offset, where, new Point(-stage.X, -stage.Y));
+                bool under = closeup.Scale > 0 && face != null;
+                if (under) Paint(graphics, face, closeAt, closeup, new Point(-stage.X, -stage.Y), true);
+                Paint(graphics, what.Picture(frame, out offset), offset, where, new Point(-stage.X, -stage.Y), !under);
             }
             return image;
         }
@@ -791,6 +837,31 @@ namespace CapriDesktop
             // Her close-up is its own layer: on in the frames it was drawn in, the height of her screen against the edge away
             // from her, on her own screen whichever that is, and her seated figure under it is the same still picture.
             if (chair.CloseHeight <= 0 || !chair.HasCloseup(100) || chair.HasCloseup(20) || chair.HasCloseup(200) || chair.HerPicture(100) != chair.HerPicture(160)) throw new Exception("Her chair's close-up isn't its own layer.");
+            string copyPath;
+            // The heart's quick copy gives the same pixels GDI+ does, facing either way, and a frame that doesn't fill its window
+            // (partly off the screen, or scaled for another screen) goes through GDI+.
+            {
+                EmoteClip copyHeart = EmoteClip.Load("heart");
+                Rectangle full = new Rectangle(0, 0, 1920, 1080);
+                List<int> drawnFrames = new List<int>();
+                for (int f = 0; f < copyHeart.Count; f++) { Point at; if (copyHeart.Picture(f, out at) != null) drawnFrames.Add(f); }
+                EmotePlace facing = EmoteWindow.HeartPlace(copyHeart, full);
+                EmotePlace turnedHeart = new EmotePlace { Scale = facing.Scale, Across = -facing.Across, Left = full.Left + full.Right - facing.Left, Top = facing.Top };
+                foreach (int f in new[] { drawnFrames[0], drawnFrames[drawnFrames.Count / 2], drawnFrames[drawnFrames.Count - 1] })
+                    foreach (EmotePlace way in new[] { facing, turnedHeart })
+                    {
+                        bool copiedIt;
+                        string differs = EmoteWindow.BothWays(copyHeart, f, way, full, out copiedIt);
+                        if (!copiedIt || differs != null) throw new Exception("Heart frame " + f + (way.Across < 0 ? " turnedHeart" : "") + ": " + (copiedIt ? differs : "the quick copy didn't take it"));
+                    }
+                bool slowPath;
+                EmoteWindow.BothWays(copyHeart, drawnFrames[drawnFrames.Count / 2], facing, new Rectangle(200, 0, 1920, 1080), out slowPath);
+                bool scaledPath;
+                EmoteWindow.BothWays(copyHeart, drawnFrames[drawnFrames.Count / 2], EmoteWindow.HeartPlace(copyHeart, new Rectangle(0, 0, 1366, 768)), new Rectangle(0, 0, 1366, 768), out scaledPath);
+                if (slowPath || scaledPath) throw new Exception("A heart frame that doesn't fill its window took the quick copy.");
+                copyPath = "heart frames " + drawnFrames[0] + ", " + drawnFrames[drawnFrames.Count / 2] + " and " + drawnFrames[drawnFrames.Count - 1] + " copied facing and turned match GDI+ pixel for pixel, alpha included; partly off screen or scaled they go through GDI+";
+                copyHeart.Release();
+            }
             foreach (Rectangle monitor in new[] { new Rectangle(0, 0, 1920, 1080), new Rectangle(0, 0, 1366, 768), new Rectangle(1920, -200, 2560, 1440), new Rectangle(-1366, 300, 1366, 768) })
                 foreach (bool mirrored in new[] { false, true })
                 {
@@ -1067,6 +1138,7 @@ namespace CapriDesktop
                 }
             });
             checks.Add("PASS emotes: her chair (301 frames) and her heart (105 frames, art: Qewiw) play their own frames at 30 a second, the chair at her size with her black body kept; asks, typed or said, and Vergil or Devil May Cry set them off, look-alikes don't; a mention still gets her answer, and a heard Virgil counts where a typed one doesn't; she comes back where she was, standing, perched or lying; Motion off keeps her put");
+            checks.Add("PASS her heart's quick copy: " + copyPath);
             checks.Add("PASS hearts have no cooldown: " + heartRun + "; " + brainHearts);
             checks.Add("PASS emotes played in real time on this desktop, next frames decoded ahead: " + timing);
         }
