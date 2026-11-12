@@ -719,6 +719,10 @@ namespace CapriDesktop
         }
 
         private int EmptyTop() { return Math.Max(Z(90), (ClientSize.Height - Z(260)) / 2); }
+        private const string EmptySaid = "Pick where Claude Code works: Capri's own folder, or folders on your PC it can read and change. You can add more folders and files any time.";
+        // The empty page's sentence as it's drawn, one entry a line.
+        internal List<string> EmptyLines { get { return WorkPaint.Balanced(EmptySaid, Font, ClientSize.Width - Z(20) - Z(262) - Z(80)); } }
+        internal int EmptyLineWide(string line) { return WorkPaint.Wide(line, Font); }
 
         protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Shape(); Place(); }
 
@@ -758,8 +762,9 @@ namespace CapriDesktop
                 WorkPaint.FolderMark(graphics, new RectangleF(middle - Z(22), top, Z(44), Z(40)), Neon.Cyan, zoom * 1.4f);
                 Rectangle line = new Rectangle(left + Z(20), top + Z(54), right - left - Z(40), Z(28));
                 TextRenderer.DrawText(graphics, workspace.Chats().Count == 0 ? "Start your first chat" : "Start a new chat", heading, line, Neon.White, WorkPaint.Line | TextFormatFlags.HorizontalCenter);
-                Rectangle words = new Rectangle(left + Z(40), top + Z(88), right - left - Z(80), Z(50));
-                TextRenderer.DrawText(graphics, "Pick where Claude Code works: Capri's own folder, or folders on your PC it can read and change. You can add more folders and files any time.", Font, words, Neon.Faint, WorkPaint.Wrap | TextFormatFlags.HorizontalCenter);
+                List<string> said = EmptyLines;
+                for (int i = 0; i < said.Count; i++)
+                    TextRenderer.DrawText(graphics, said[i], Font, new Rectangle(left + Z(40), top + Z(88) + i * Font.Height, right - left - Z(80), Font.Height), Neon.Faint, WorkPaint.Line | TextFormatFlags.HorizontalCenter);
                 Rectangle hint = new Rectangle(left + Z(20), choose.Bottom + Z(14), right - left - Z(40), Z(20));
                 TextRenderer.DrawText(graphics, "Capri's folder: " + Display(workspace.Home), note, hint, Neon.Faint, WorkPaint.Line | TextFormatFlags.HorizontalCenter | TextFormatFlags.PathEllipsis);
                 Rectangle drop = new Rectangle(left + Z(20), hint.Bottom + Z(6), right - left - Z(40), Z(20));
@@ -1254,7 +1259,7 @@ namespace CapriDesktop
                     rows = chips.Count > 0 ? 1 : 0;
                     foreach (Chip chip in chips)
                     {
-                        int wide = Math.Min(Math.Max(window.Z(60), right - pad), window.Z(30) + WorkPaint.Wide(chip.Name, window.small) + (chip.Main ? WorkPaint.Wide(MainCaption, window.caption) + window.Z(window.CanRehome ? 20 : 10) : window.Z(20)));
+                        int wide = Math.Min(Math.Max(window.Z(60), right - pad), window.Z(30) + WorkPaint.Wide(chip.Name, window.small) + (chip.Main ? CaptionWide + window.Z(10) : window.Z(20)));
                         wide = Math.Min(wide, window.Z(260));
                         if (x + wide > (rows == 3 ? last : right) && x > pad) { x = pad; y += rowTall + gap; rows++; }
                         chip.Box = rows > 3 ? Rectangle.Empty : new Rectangle(x, y, wide, rowTall);
@@ -1277,6 +1282,8 @@ namespace CapriDesktop
 
             // Until the first message the folder it runs in can change, and the chip says so.
             private string MainCaption { get { return window.CanRehome ? "runs here · change" : "runs here"; } }
+            // How wide the caption is drawn: with "change", the dot has the same gap on both sides.
+            private int CaptionWide { get { return window.CanRehome ? WorkPaint.Wide("runs here", window.caption) + WorkPaint.Wide("\u00b7", window.caption) + WorkPaint.Wide("change", window.caption) + 4 * window.Z(4) : WorkPaint.Wide(MainCaption, window.caption); } }
 
             internal void Cross(string path)
             {
@@ -1308,16 +1315,18 @@ namespace CapriDesktop
                     Color ink = chip.Sent ? Neon.Faint : chip.Main ? Neon.Cyan : Neon.White;
                     if (chip.Folder) WorkPaint.FolderMark(graphics, mark, chip.Main ? Neon.Cyan : Neon.Faint, s); else WorkPaint.FileMark(graphics, mark, chip.Sent ? Neon.Faint : Neon.Cyan, s);
                     int textLeft = chip.Box.Left + window.Z(26);
-                    int textRight = chip.Main ? chip.Box.Right - WorkPaint.Wide(MainCaption, window.caption) - window.Z(window.CanRehome ? 22 : 12) : chip.Cross.Left;
+                    int textRight = chip.Main ? chip.Box.Right - CaptionWide - window.Z(12) : chip.Cross.Left;
                     TextRenderer.DrawText(graphics, chip.Name, window.small, new Rectangle(textLeft, chip.Box.Top, Math.Max(1, textRight - textLeft), chip.Box.Height), ink, WorkPaint.Line | TextFormatFlags.EndEllipsis);
                     if (chip.Main && window.CanRehome)
                     {
                         // "runs here" stays grey; "change" is cyan like the window's keys, with a key's hover plate.
-                        int at = textRight + window.Z(4), lead = WorkPaint.Wide("runs here \u00b7", window.caption), wide = WorkPaint.Wide("change", window.caption);
-                        TextRenderer.DrawText(graphics, "runs here \u00b7", window.caption, new Rectangle(at, chip.Box.Top, lead + window.Z(2), chip.Box.Height), Neon.Faint, WorkPaint.Line);
-                        Rectangle change = new Rectangle(at + lead + window.Z(2), chip.Box.Top + window.Z(4), wide + window.Z(8), chip.Box.Height - window.Z(8));
+                        int gap = window.Z(4), at = textRight + gap, lead = WorkPaint.Wide("runs here", window.caption), dot = WorkPaint.Wide("\u00b7", window.caption), wide = WorkPaint.Wide("change", window.caption);
+                        TextRenderer.DrawText(graphics, "runs here", window.caption, new Rectangle(at, chip.Box.Top, lead + 1, chip.Box.Height), Neon.Faint, WorkPaint.Line);
+                        TextRenderer.DrawText(graphics, "\u00b7", window.caption, new Rectangle(at + lead + gap, chip.Box.Top, dot + 1, chip.Box.Height), Neon.Faint, WorkPaint.Line);
+                        int word = at + lead + gap + dot + gap;
+                        Rectangle change = new Rectangle(word - window.Z(3), chip.Box.Top + window.Z(4), wide + window.Z(6), chip.Box.Height - window.Z(8));
                         if (over) WorkPaint.Plate(graphics, change, 3 * s, Neon.Tone(13, 45, 49), Neon.Cyan, line);
-                        TextRenderer.DrawText(graphics, "change", window.caption, new Rectangle(change.Left + window.Z(4), chip.Box.Top, wide + window.Z(2), chip.Box.Height), Neon.Cyan, WorkPaint.Line);
+                        TextRenderer.DrawText(graphics, "change", window.caption, new Rectangle(word, chip.Box.Top, wide + 1, chip.Box.Height), Neon.Cyan, WorkPaint.Line);
                     }
                     else if (chip.Main) TextRenderer.DrawText(graphics, MainCaption, window.caption, new Rectangle(textRight + window.Z(4), chip.Box.Top, chip.Box.Right - textRight - window.Z(4), chip.Box.Height), Neon.Faint, WorkPaint.Line);
                     else WorkPaint.Cross(graphics, new PointF(chip.Cross.Left + chip.Cross.Width / 2f - window.Z(1), chip.Cross.Top + chip.Cross.Height / 2f), window.Z(3.5f), over ? Neon.Hot : Neon.Faint, s);

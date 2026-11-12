@@ -410,6 +410,9 @@ namespace CapriDesktop
                     window.Show(this);
                     window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Wide * z), Math.Min((int)Math.Round(WorkspaceWindow.Tall * z), 1032));
                     if (!window.HomeShown) throw new Exception("The empty Workspace doesn't offer her folder.");
+                    List<string> said0 = window.EmptyLines;
+                    if (said0.Count > 1 && window.EmptyLineWide(said0[said0.Count - 1]) * 2 < window.EmptyLineWide(said0[0]))
+                        throw new Exception("The empty page's last line is less than half as wide as its first at " + scale + "%: " + string.Join(" / ", said0.ToArray()));
                     shoot(window, "23-empty-state-" + scale, null);
                     string[] said = { longOne, "Fix the header spacing.", "" };
                     for (int i = 0; i < said.Length; i++)
@@ -691,6 +694,32 @@ namespace CapriDesktop
                     shoot(window, "18-undo-ready", null);
                     work.Flush(chat);
                     window.Close();
+                }
+            }
+            // The edited chat with its undo still waiting, pictured at each size with Undo last edits lit.
+            foreach (float z in new[] { 1f, 1.25f, 1.5f })
+            {
+                int scale = (int)Math.Round(z * 100);
+                using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+                {
+                    work.Executable = standin;
+                    WorkspaceChat chat = work.Chats().Find(delegate(WorkspaceChat found) { return found.Id == chatId; });
+                    if (chat == null) throw new Exception("The edited chat didn't come back to be pictured.");
+                    work.Trust(chat, true);
+                    chat.TrustAsked = true;
+                    using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
+                    {
+                        window.PathAlias = alias;
+                        window.Location = new Point(z == 1f ? 40 : 0, z == 1f ? 40 : 0);
+                        window.Show(this);
+                        window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Wide * z), Math.Min((int)Math.Round(WorkspaceWindow.Tall * z), 1032));
+                        window.ShowChat(chat);
+                        WorkspaceWait(delegate { Application.DoEvents(); return window.UndoOffered; }, "Undo last edits wasn't lit for the edited chat at " + scale + "%.");
+                        window.ToggleTool("toolu_edit");
+                        window.ScrollToEnd();
+                        shoot(window, "26-undo-ready-" + scale, null);
+                        window.Close();
+                    }
                 }
             }
             using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
