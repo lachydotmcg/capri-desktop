@@ -918,6 +918,36 @@ namespace CapriDesktop
         // The window itself, at 100%, 125%, 150% and 200% and at its smallest size: nothing crowded, code in her mono,
         // copyable messages, tool results that open, pickers that save, Everything at once, a draft per chat, following
         // only at the end, Enter and Shift+Enter, the Explorer flow for folders and files, paging and its place.
+        // A change made just before Workspace closes is on disk when it opens again, even when a save takes a whole second:
+        // once with a save already being written as it closes, once with a change it hasn't started saving.
+        private static void WorkspaceClosingSaves(List<string> checks, string data, string project)
+        {
+            Directory.CreateDirectory(data);
+            string chatId;
+            Stopwatch closing = new Stopwatch();
+            using (Workspace work = new Workspace(data, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-closing-" + Guid.NewGuid().ToString("N")))
+            {
+                WorkspaceChat chat = work.NewChat(project, false);
+                work.Flush(chat);
+                chatId = chat.Id;
+                int started = 0;
+                work.ReplaceFile = delegate(string temp, string target) { Interlocked.Increment(ref started); Thread.Sleep(1000); File.Replace(temp, target, null); };
+                work.Change(chat, "Written as it closes", null, null);
+                WorkspaceWait(delegate { return Thread.VolatileRead(ref started) > 0; }, "The slow save never started.");
+                work.Change(chat, "Changed while that save ran", null, null);
+                closing.Start();
+                work.Dispose();
+                closing.Stop();
+            }
+            using (Workspace again = new Workspace(data, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-reopened-" + Guid.NewGuid().ToString("N")))
+            {
+                WorkspaceChat back = again.Chats().Find(delegate(WorkspaceChat found) { return found.Id == chatId; });
+                if (back == null || back.Title != "Changed while that save ran") throw new Exception("A change made as Workspace closed was lost: it reopened as " + (back == null ? "no chat" : "\"" + back.Title + "\"") + ".");
+            }
+            if (closing.ElapsedMilliseconds > 3500) throw new Exception("Closing Workspace waited " + closing.ElapsedMilliseconds + " ms for its saves.");
+            checks.Add("PASS Workspace finishes a save already being written and writes a waiting one before it closes, with one-second saves, in " + closing.ElapsedMilliseconds + " ms (3 s at most)");
+        }
+
         private void SmokeWorkspaceWindow(List<string> checks, string folder)
         {
             folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
@@ -925,6 +955,7 @@ namespace CapriDesktop
             foreach (string made in new[] { project, second, third }) Directory.CreateDirectory(made);
             string fileOne = Path.Combine(second, "one.txt"), fileTwo = Path.Combine(third, "two.txt");
             File.WriteAllText(fileOne, "1"); File.WriteAllText(fileTwo, "2");
+            WorkspaceClosingSaves(checks, Path.Combine(folder, "closing"), project);
             using (Workspace work = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-window-" + Guid.NewGuid().ToString("N")) { Home = Path.Combine(folder, "her-folder") })
             {
                 work.Executable = WorkspaceStandin(folder, Guid.NewGuid().ToString());

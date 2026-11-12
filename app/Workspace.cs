@@ -1679,6 +1679,24 @@ namespace CapriDesktop
             saveReady.Set();
             List<WorkspaceChat> copy = Chats();
             foreach (WorkspaceChat chat in copy) Stop(chat);
+            // A save already being written finishes and one still waiting is written, so the last change isn't lost when she
+            // closes; three seconds at most, so a dead or very slow disk never holds her quitting up.
+            Thread last = new Thread(delegate()
+            {
+                try
+                {
+                    if (saver != null) saver.Join();
+                    foreach (WorkspaceChat chat in copy)
+                    {
+                        bool pending;
+                        lock (chat.Gate) pending = !chat.Deleted && chat.Revision != chat.SavedRevision;
+                        if (pending) WriteChat(chat, true);
+                    }
+                }
+                catch (Exception) { }
+            }) { IsBackground = true, Name = "Capri Workspace last saves" };
+            last.Start();
+            last.Join(3000);
             lock (pipeGate)
             {
                 if (waiting != null) waiting.Dispose();
