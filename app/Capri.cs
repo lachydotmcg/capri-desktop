@@ -36125,6 +36125,38 @@ namespace CapriDesktop
                                         if (frameProblem != null || !frameWidthFits) frameProblems.Add(frameDpi + " DPI, text " + frameText + "%, size " + framePercent + "%, " + (framePage ? frameSimple ? "Simple Settings" : "Advanced Settings" : "Brain and Voice") + (frameFallback ? ", fallback font" : "") + ": " + (frameProblem ?? "width scaled twice"));
                                     }
                             }
+                // Named with -Only: Brain and Voice as someone sees it while her own brain downloads, the way FindBrain and
+                // SetUpBrain show it (the setup steps, then the download's progress), at 100%, 125%, 150% and large text.
+                if (pictures != null)
+                {
+                    Machine here = Machine.Read();
+                    Pick downloading = Engine.Fit(here);
+                    System.Collections.Generic.List<string> downloadProblems = new System.Collections.Generic.List<string>();
+                    foreach (int[] look in new[] { new[] { 100, 100 }, new[] { 100, 125 }, new[] { 100, 150 }, new[] { 225, 175 } })
+                    {
+                        mainframe.LayoutScale(96, look[0]);
+                        mainframe.SizeMainframe(look[1]);
+                        simpleTest = false;
+                        mainframe.ShowSettings(false);
+                        mainframe.ShowSetup(here, downloading, false, null);
+                        mainframe.ShowProgress(1, "Downloading " + downloading.Name, downloading.Size / 3, downloading.Size);
+                        string seen = mainframe.TextFits() ?? mainframe.Overlap();
+                        if (seen != null) downloadProblems.Add("text " + look[0] + "%, size " + look[1] + "%: " + seen);
+                        try
+                        {
+                            mainframe.Settle();
+                            mainframe.Update();
+                            using (Bitmap page = new Bitmap(Math.Max(1, mainframe.ClientSize.Width), Math.Max(1, mainframe.ClientSize.Height)))
+                            {
+                                mainframe.DrawToBitmap(page, new Rectangle(Point.Empty, page.Size));
+                                page.Save(Path.Combine(pictures, "brain-voice-downloading-text-" + look[0] + "-size-" + look[1] + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                            }
+                        }
+                        catch (System.Runtime.InteropServices.ExternalException) { }
+                    }
+                    if (downloadProblems.Count > 0) frameProblems.Add("while her brain downloads, " + string.Join("; ", downloadProblems.ToArray()));
+                    else checks.Add("PASS while her own brain downloads, Brain and Voice shows its setup steps and progress with nothing overlapping or cut off at 100%, 125%, 150% and at 225% text and 175% size");
+                }
                 if (frameProblems.Count > 0) throw new Exception("Mainframe layout, " + frameProblems.Count + " problems:\r\n" + string.Join("\r\n", frameProblems.ToArray()));
                 checks.Add("PASS Mainframe text: every control on both pages, including tier hints and flags, switch names, slider choices and input cues, fits without overlaps at Auto, 100%, 175% and 200% size on simulated 100%, 150% and 200% DPI with 100% and 225% text and fallback fonts; returning to 100% keeps the original scale");
                 checks.Add("PASS BRAIN Settings layout: Husk, Thinking, Extra request JSON, Verbosity and the following rows fit in order and fold in Simple Settings, while Mainframe colours and Head pats stay available at every simulated DPI, text and Mainframe size");
