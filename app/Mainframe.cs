@@ -1435,7 +1435,12 @@ namespace CapriDesktop
 
         private void FillLanguages(Rectangle area)
         {
+            // A group's menu is one of her own dropdowns, which WinForms doesn't dispose with its item. Left behind, it stayed in
+            // Dropdowns holding a font FitLanguages had already disposed, and the next look change threw "Parameter is not valid".
+            List<ToolStripDropDown> groups = new List<ToolStripDropDown>();
+            foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items)) if (item.HasDropDownItems) groups.Add(item.DropDown);
             while (languageMenu.Items.Count > 0) languageMenu.Items[0].Dispose();
+            foreach (ToolStripDropDown group in groups) group.Dispose();
             languageMenu.Font = Font;
             if (languageFont != null) { languageFont.Dispose(); languageFont = null; }
             languageMenu.Items.Add(LanguageItem(0));
