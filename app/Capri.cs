@@ -36027,8 +36027,9 @@ namespace CapriDesktop
             finally { SetMemorySize(wasMemory); SetReplyLength(wasReply); mainframe.Sync(); }
         }
 
-        private void SmokeBrainLayout(System.Collections.Generic.List<string> checks)
+        private void SmokeBrainLayout(System.Collections.Generic.List<string> checks, string pictures = null)
         {
+            if (pictures != null) Directory.CreateDirectory(pictures);
             SmokeMainframePictures(checks);
             bool wasSettings = mainframe.SettingsShown;
             bool wasSimple = simpleTest, wasAdvanced = preferences.AdvancedSettings, wasCheckIns = preferences.CheckIns;
@@ -36099,6 +36100,18 @@ namespace CapriDesktop
                                             }
                                         }
                                         bool frameWidthFits = frameWidth > SystemInformation.MaxWindowTrackSize.Width || mainframe.ClientSize.Width == frameWidth;
+                                        // Brain and Voice drawn at ordinary and at large text, to compare by eye across a layout change.
+                                        if (pictures != null && !frameFallback && frameDpi == 96 && !framePage && !frameSimple && (frameText == 100 && framePercent == 100 || frameText == 225 && framePercent == 175))
+                                        {
+                                            FormWindowState stateWas = mainframe.WindowState;
+                                            mainframe.WindowState = FormWindowState.Normal;
+                                            using (Bitmap page = new Bitmap(mainframe.Width, mainframe.Height))
+                                            {
+                                                mainframe.DrawToBitmap(page, new Rectangle(Point.Empty, mainframe.Size));
+                                                page.Save(Path.Combine(pictures, "brain-voice-text-" + frameText + "-size-" + framePercent + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                                            }
+                                            mainframe.WindowState = stateWas;
+                                        }
                                         if (frameProblem != null || !frameWidthFits) frameProblems.Add(frameDpi + " DPI, text " + frameText + "%, size " + framePercent + "%, " + (framePage ? frameSimple ? "Simple Settings" : "Advanced Settings" : "Brain and Voice") + (frameFallback ? ", fallback font" : "") + ": " + (frameProblem ?? "width scaled twice"));
                                     }
                             }
@@ -41349,6 +41362,9 @@ namespace CapriDesktop
 
         private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)
         {
+            // The Mainframe's layout at every simulated DPI, text and size runs in step 1 through her local brain picker. Named
+            // with -Only it runs here too, first, on a Mainframe no other section has changed, with pictures of Brain and Voice.
+            if (SmokeRun.Named("SmokeBrainLayout")) Section(checks, "SmokeBrainLayout", delegate { SmokeBrainLayout(checks, Path.Combine(output, "brain-layout")); });
             Section(checks, "HologramChecks", delegate { HologramChecks(checks, output); });
             Section(checks, "SmokeReportedLogic", delegate { SmokeReportedLogic(checks); });
             Section(checks, "SmokeRepeats", delegate { SmokeRepeats(checks); });

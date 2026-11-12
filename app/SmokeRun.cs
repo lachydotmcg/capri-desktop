@@ -151,6 +151,13 @@ namespace CapriDesktop
             catch (IOException) { return ""; }
         }
 
+        // Whether -Only names this section itself, for one that otherwise runs inside a step.
+        internal static bool Named(string name)
+        {
+            foreach (string item in options.Only) if (string.Equals(name, item.Trim(), StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
         internal static bool Wants(string name)
         {
             // --steps runs the steps alone, with the sections inside them.
