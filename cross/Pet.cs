@@ -890,7 +890,14 @@ namespace CapriDesktop
         private void Face()
         {
             if (dragging || pressed || walking || falling || riding || lying || outro != null || clip == arrive || clip == leave) return;
-            SetFacing(WorkAt(Hip).Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
+            PixelRect area = WorkAt(new PixelPoint(Hip.X, Hip.Y - 1));
+            SetFacing(seat != null ? SitsLeft(Hip.X, area, Px(body.Size), FacingLeft) : area.Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
+        }
+
+        internal static bool SitsLeft(int hipX, PixelRect area, int size, bool left)
+        {
+            int middle = area.X + area.Width / 2, keep = size / 8;
+            return hipX > (left ? middle - keep : middle + keep);
         }
         internal int Headroom { get { return (int)Math.Ceiling(body.Size * (SitY - PerchTop) * DesktopScaling); } }
         internal int Feet { get { return anchor.Y + Px(body.Size * 0.99); } }
@@ -3813,14 +3820,18 @@ namespace CapriDesktop
             return right ? at + step : at - step;
         }
 
+        private int StrollFrom(int left, bool facingLeft) { return left + Px(body.Size * (facingLeft ? 0.41 : 0.1)) + Px(8); }
+
+        private int StrollTo(int right, bool facingLeft) { return right - Px(body.Size * (facingLeft ? 0.1 : 0.41)) - Px(8); }
+
         internal bool Stroll()
         {
             if (walking || falling || dragging || outro != null || seat == null || seat.Free) return false;
             PixelPoint hip = Hip;
             PixelRect area = WorkAt(hip);
             if (seat.Y - Px(body.Size * StandY) < ScreenAt(hip).Y) return false;
-            int from = Math.Max(seat.Left, area.X) + Px(body.Size * 0.1) + Px(8);
-            int to = Math.Min(seat.Right, area.Right) - Px(body.Size * 0.41) - Px(8);
+            int from = StrollFrom(Math.Max(seat.Left, area.X), true);
+            int to = StrollTo(Math.Min(seat.Right, area.Right), false);
             int target = WalkTarget(hip.X, from, to, Px(body.Size), random.NextDouble(), random.NextDouble());
             if (target == hip.X) return false;
             SetFacing(target < hip.X);
@@ -3873,8 +3884,8 @@ namespace CapriDesktop
             if (walking || falling || dragging || outro != null || quitting || seat == null || seat.Free) return false;
             PixelPoint hip = Hip;
             PixelRect area = WorkAt(hip);
-            int from = Math.Max(seat.Left, area.X) + Px(body.Size * 0.1) + Px(8);
-            int to = Math.Min(seat.Right, area.Right) - Px(body.Size * 0.41) - Px(8);
+            int from = StrollFrom(Math.Max(seat.Left, area.X), FacingLeft);
+            int to = StrollTo(Math.Min(seat.Right, area.Right), FacingLeft);
             int target = WalkTarget(hip.X, from, to, Px(body.Size), random.NextDouble(), random.NextDouble());
             if (target == hip.X) return false;
             Ledge spot = seat;
@@ -5298,7 +5309,7 @@ namespace CapriDesktop
 
         internal void Save()
         {
-            Saved.X = anchor.X;
+            Saved.X = anchor.X + Px(body.Size * SitAcross) - Px(body.Size * SitX);
             Saved.Y = anchor.Y;
             Saved.Placed = true;
             NotifySettings();

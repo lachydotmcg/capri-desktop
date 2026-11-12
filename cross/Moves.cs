@@ -543,5 +543,123 @@ namespace CapriDesktop
                 MacFingers.Trusted = trusted; MacFingers.Sink = sink; MacFingers.Pause = pause;
             }
         }
+
+        internal static void FaceChecks(Pet pet, List<string> checks)
+        {
+            PixelRect? moveArea = pet.MoveArea;
+            Action<PixelPoint> moveTo = pet.MoveTo;
+            PixelPoint anchor = pet.anchor;
+            int walkTo = pet.walkTo;
+            double walkStep = pet.walkStep, walkCarry = pet.walkCarry;
+            PixelPoint[] asked = pet.asked.ToArray();
+            Ledge seat = pet.seat;
+            bool facing = pet.FacingLeft, falling = pet.falling, walking = pet.walking;
+            bool pressed = pet.pressed, dragging = pet.dragging, riding = pet.riding, lying = pet.lying;
+            Action outro = pet.outro;
+            Clip clip = pet.clip;
+            int savedX = pet.Saved.X, savedY = pet.Saved.Y;
+            bool placed = pet.Saved.Placed;
+            try
+            {
+                pet.MoveTo = _ => { };
+                pet.falling = pet.walking = pet.pressed = pet.dragging = pet.riding = pet.lying = false;
+                pet.outro = null;
+                pet.clip = pet.perch;
+                bool realScreen = false;
+                Func<PixelRect, int, bool, bool> sitsLeftAt = (area, eighths, left) =>
+                {
+                    pet.MoveArea = realScreen ? (PixelRect?)null : area;
+                    int ledgeY = area.Y + area.Height / 2;
+                    pet.seat = new Ledge { Left = area.X, Right = area.Right, Y = ledgeY };
+                    pet.body.FacingLeft = left;
+                    pet.Move(pet.Seated(area.X + area.Width * eighths / 8, ledgeY));
+                    int hipX = pet.Hip.X;
+                    pet.Face();
+                    if (pet.Hip.X != hipX) throw new Exception("Turning to face the middle moved her off her spot: " + hipX + " to " + pet.Hip.X + ".");
+                    return pet.FacingLeft;
+                };
+                PixelRect main = new PixelRect(0, 0, 1920, 1080), leftMonitor = new PixelRect(-1920, 0, 1920, 1080), rightMonitor = new PixelRect(1920, -200, 2560, 1440);
+                bool mainMiddle = !sitsLeftAt(main, 2, true) && !sitsLeftAt(main, 2, false) && sitsLeftAt(main, 6, false) && sitsLeftAt(main, 6, true);
+                Func<bool> comesBack = () =>
+                {
+                    PixelPoint hipNow = pet.Hip, spotNow = pet.anchor;
+                    bool leftNow = pet.FacingLeft, lyingNow = pet.lying;
+                    pet.Save();
+                    pet.body.FacingLeft = false;
+                    pet.lying = false;
+                    pet.Move(new PixelPoint(pet.Saved.X, pet.Saved.Y));
+                    bool back = pet.Saved.Placed && pet.Hip == hipNow;
+                    pet.body.FacingLeft = leftNow;
+                    pet.lying = lyingNow;
+                    pet.Move(spotNow);
+                    return back;
+                };
+                bool savedHip = comesBack();
+                pet.lying = true;
+                savedHip = savedHip && comesBack();
+                pet.lying = false;
+                bool walkKept = true;
+                foreach (int eighths in new[] { 6, 2 })
+                {
+                    bool walkLeft = sitsLeftAt(main, eighths, eighths == 2);
+                    int walkHip = pet.Hip.X;
+                    bool started = pet.Stroll() && pet.walking && pet.Hip.X == walkHip;
+                    started = started && pet.FacingLeft == pet.walkTo < pet.anchor.X;
+                    pet.EndWalk();
+                    walkKept = walkKept && walkLeft == (eighths == 6) && started && !pet.walking && pet.Hip.X == walkHip;
+                }
+                bool walkFits = true;
+                int lead = pet.Px(pet.body.Size * 0.41), shortest = pet.Px(pet.body.Size) / 2, margin = pet.Px(8), walkY = main.Y + main.Height / 2;
+                foreach (bool towardLeft in new[] { true, false })
+                {
+                    int at = towardLeft ? main.X + 800 : main.Right - 800;
+                    Ledge edge = towardLeft ? new Ledge { Left = at - shortest - lead - margin, Right = at + lead + margin + 1, Y = walkY } : new Ledge { Left = at - lead - margin + 1, Right = at + shortest + lead + margin, Y = walkY };
+                    pet.MoveArea = main;
+                    pet.seat = edge;
+                    pet.body.FacingLeft = !towardLeft;
+                    pet.Move(pet.Seated(at, walkY));
+                    bool strolled = pet.Stroll();
+                    int walkEnd = pet.walkTo + pet.Px(pet.body.Size * pet.StandAcross);
+                    if (!strolled || pet.FacingLeft != towardLeft || (towardLeft ? walkEnd < edge.Left + lead : walkEnd > edge.Right - lead)) walkFits = false;
+                    pet.EndWalk();
+                }
+                bool standsRight = sitsLeftAt(main, 5, false);
+                pet.seat = null;
+                pet.Face();
+                standsRight = standsRight && !pet.FacingLeft;
+                bool otherMiddle = !sitsLeftAt(leftMonitor, 2, true) && sitsLeftAt(leftMonitor, 6, false) && !sitsLeftAt(rightMonitor, 2, true) && sitsLeftAt(rightMonitor, 6, false);
+                realScreen = true;
+                int realScreens = 0;
+                bool realMiddle = true;
+                foreach (var screen in pet.Screens.All)
+                {
+                    realScreens++;
+                    PixelRect work = X11Safety.Work(screen);
+                    if (sitsLeftAt(work, 2, true) || !sitsLeftAt(work, 6, false)) realMiddle = false;
+                }
+                realScreen = false;
+                PixelRect wide = new PixelRect(0, 0, 3840, 1080);
+                bool keepsWay = !SitsLeft(1940, wide, 240, false) && SitsLeft(1900, wide, 240, true) && !SitsLeft(-500, main, 240, true);
+                if (!mainMiddle || !savedHip || !standsRight || !walkKept || !walkFits || !otherMiddle || !realMiddle || !keepsWay) throw new Exception("Facing the middle went wrong: main " + mainMiddle + ", saved hip " + savedHip + ", standing " + standsRight + ", walk kept her hip " + walkKept + ", walk fits the window " + walkFits + ", second monitor " + otherMiddle + ", real screens " + realMiddle + " of " + realScreens + ", near the middle " + keepsWay + ".");
+                checks.Add("PASS sitting she faces the middle of her screen: right on its left half and left on its right half, without leaving her spot, on a second monitor left or right of the main one and on each of this desktop's own screens, and saving her spot sitting or lying so she comes back with her hip where it was; a walk turns her toward where she goes, keeps her body on the window, and starts and ends with her hip in place; standing she still only turns at the right edge");
+                if (realScreens < 2) checks.Add("LIMIT facing the middle on a real second monitor: this desktop has " + realScreens + " screen" + (realScreens == 1 ? "" : "s") + ", so a second one was checked with made-up monitors");
+            }
+            finally
+            {
+                pet.MoveArea = moveArea;
+                pet.MoveTo = moveTo;
+                pet.body.FacingLeft = facing;
+                pet.anchor = anchor;
+                pet.walkTo = walkTo; pet.walkStep = walkStep; pet.walkCarry = walkCarry;
+                pet.asked.Clear(); pet.asked.AddRange(asked);
+                pet.seat = seat;
+                pet.falling = falling;
+                pet.walking = walking;
+                pet.pressed = pressed; pet.dragging = dragging; pet.riding = riding; pet.lying = lying;
+                pet.outro = outro;
+                pet.clip = clip;
+                pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
+            }
+        }
     }
 }
