@@ -965,6 +965,18 @@ namespace CapriDesktop
                     CloseTalk();
                     emote.Stop();
                     RenderFrame();
+                    // With no AI on, a mention still gets her chair: it needs no brain.
+                    bool noAiWas = preferences.NoAi;
+                    preferences.NoAi = true;
+                    try
+                    {
+                        Hear("Capri, what do you think about Devil May Cry?");
+                        if (emote == null || !emote.Playing || emote.Name != "chair") throw new Exception("With no AI on, Devil May Cry didn't put her in her chair.");
+                    }
+                    finally { preferences.NoAi = noAiWas; }
+                    CloseTalk();
+                    emote.Stop();
+                    RenderFrame();
                     Think = delegate { return "My cat's called that too."; };
                     Hear("my friend Virgil may cry");
                     WaitVoice(delegate { return reply != null; }, "A look-alike got no answer.");

@@ -14930,7 +14930,13 @@ namespace CapriDesktop
             if (preferences.NoAi && (think == null || think == firstThink && planned.Key == null))
             {
                 if (callReply == null && News.Matching(text) != null) think = delegate { return News.Facts; };
-                else { NoAiLine(ticket); return; }
+                else
+                {
+                    // Her mention emote needs no brain either; only the answer becomes her short line.
+                    if (switches == 0 && prompt == "> you: ") EmoteOnMention(text, spoken || callInput);
+                    NoAiLine(ticket);
+                    return;
+                }
             }
             if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, question); }, callLines); };
             if (think == null && brain.Model == null && News.Matching(text) != null) think = delegate { return News.Facts; };
