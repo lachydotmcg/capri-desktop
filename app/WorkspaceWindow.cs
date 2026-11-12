@@ -118,6 +118,9 @@ namespace CapriDesktop
         private readonly Func<bool> blackwall;
         private readonly bool live;
         private readonly WorkKey shut, smaller, bigger, make, undo, trust;
+        private readonly ToolTip tips = new ToolTip();
+        // Which tool groups are open, by their first call, for as long as the window lives.
+        private readonly HashSet<WorkspaceItem> openGroups = new HashSet<WorkspaceItem>();
         private readonly ChatList list;
         private readonly Transcript transcript;
         private readonly Composer composer;
@@ -179,7 +182,7 @@ namespace CapriDesktop
             trust.Accent = Neon.Cyan;
             list = new ChatList(this);
             Controls.Add(list);
-            transcript = new Transcript(this);
+            transcript = new Transcript(this, openGroups);
             Controls.Add(transcript);
             composer = new Composer(this);
             Controls.Add(composer);
@@ -194,6 +197,8 @@ namespace CapriDesktop
             Controls.Add(rename);
             ask = new AskCard(this);
             Controls.Add(ask);
+            tips.SetToolTip(composer.Mode, Composer.Hint);
+            tips.SetToolTip(composer.Model, Composer.Hint);
             foreach (Control control in new Control[] { list, transcript, composer, composer.Input }) Dropping(control);
             Dropping(this);
             ApplyFonts();
@@ -643,33 +648,57 @@ namespace CapriDesktop
             });
         }
 
-        private void SyncItems()
+        // What the conversation shows: a tool's result joins its call, and an answered permission question joins the call it
+        // was about, so a call that was asked about is still one row, with a mark.
+        private List<WorkspaceItem> Showable(Dictionary<string, string> results, HashSet<string> failed, Dictionary<WorkspaceItem, WorkspaceItem> asked)
         {
             List<WorkspaceItem> items = new List<WorkspaceItem>();
             if (chat != null) lock (chat.Gate) items.AddRange(chat.Items);
-            Dictionary<string, string> results = new Dictionary<string, string>(StringComparer.Ordinal);
             HashSet<string> tools = new HashSet<string>(StringComparer.Ordinal);
             foreach (WorkspaceItem item in items)
             {
                 if (item.Kind == "tool") tools.Add(item.Turn + "/" + item.Id);
-                if (item.Kind == "result") results[item.Turn + "/" + item.Id] = item.Text;
+                if (item.Kind == "result") { results[item.Turn + "/" + item.Id] = item.Text; if (item.Decision == "error") failed.Add(item.Turn + "/" + item.Id); }
             }
             items.RemoveAll(delegate(WorkspaceItem item) { return item.Kind == "result" && tools.Contains(item.Turn + "/" + item.Id); });
+            HashSet<WorkspaceItem> joined = new HashSet<WorkspaceItem>();
+            for (int i = 0; i < items.Count; i++)
+            {
+                WorkspaceItem question = items[i];
+                if (question.Kind != "approval" || question.Decision.Length == 0 || question.Ask != null) continue;
+                // The call it answered: the same tool in the same turn, by its words when it was allowed, or else the nearest
+                // one before it, then after it.
+                string about = question.Text.StartsWith("Allowed: ", StringComparison.Ordinal) ? question.Text.Substring(9) : null;
+                Predicate<WorkspaceItem> fits = delegate(WorkspaceItem call) { return call.Kind == "tool" && call.Turn == question.Turn && call.Name == question.Name && !asked.ContainsKey(call); };
+                WorkspaceItem match = about == null ? null : items.Find(delegate(WorkspaceItem call) { return fits(call) && call.Text == about; });
+                for (int k = i - 1; match == null && k >= 0; k--) if (fits(items[k])) match = items[k];
+                for (int k = i + 1; match == null && k < items.Count; k++) if (fits(items[k])) match = items[k];
+                if (match == null) continue;
+                asked[match] = question;
+                joined.Add(question);
+            }
+            items.RemoveAll(joined.Contains);
+            return items;
+        }
+
+        private void SyncItems()
+        {
+            Dictionary<string, string> results = new Dictionary<string, string>(StringComparer.Ordinal);
+            HashSet<string> failed = new HashSet<string>(StringComparer.Ordinal);
+            Dictionary<WorkspaceItem, WorkspaceItem> asked = new Dictionary<WorkspaceItem, WorkspaceItem>();
+            List<WorkspaceItem> items = Showable(results, failed, asked);
+            WorkspaceTurn running = chat == null ? null : chat.Live;
             int end = pageEnd == null ? items.Count : items.IndexOf(pageEnd) + 1;
             if (end <= 0) { pageEnd = null; end = items.Count; }
             int start = Math.Max(0, end - 150);
             transcript.Empty = chat == null ? "" : "Write your first message below." + (workspace.Problems.Count > 0 ? "\n\n" + string.Join("\n", workspace.Problems.ToArray()) : "");
-            transcript.Fill(items.GetRange(start, end - start), results, start > 0, end < items.Count);
+            transcript.Fill(items.GetRange(start, end - start), results, failed, asked, running == null ? null : running.Id, start > 0, end < items.Count);
         }
 
         private void Page(bool back)
         {
             if (chat == null) return;
-            List<WorkspaceItem> items;
-            lock (chat.Gate) items = new List<WorkspaceItem>(chat.Items);
-            HashSet<string> tools = new HashSet<string>(StringComparer.Ordinal);
-            foreach (WorkspaceItem item in items) if (item.Kind == "tool") tools.Add(item.Turn + "/" + item.Id);
-            items.RemoveAll(delegate(WorkspaceItem item) { return item.Kind == "result" && tools.Contains(item.Turn + "/" + item.Id); });
+            List<WorkspaceItem> items = Showable(new Dictionary<string, string>(StringComparer.Ordinal), new HashSet<string>(StringComparer.Ordinal), new Dictionary<WorkspaceItem, WorkspaceItem>());
             int end = pageEnd == null ? items.Count : items.IndexOf(pageEnd) + 1;
             end = back ? Math.Max(1, end - 150) : Math.Min(items.Count, end + 150);
             pageEnd = end >= items.Count ? null : items[end - 1];
@@ -712,8 +741,7 @@ namespace CapriDesktop
                     composer.Arrange();
                     int composerTall = composer.Wanted;
                     composer.Bounds = new Rectangle(left, h - Z(20) - composerTall, width, composerTall);
-                    int hint = chat.Running && !composer.HintShown ? Z(22) : 0;
-                    transcript.Bounds = new Rectangle(left - Z(4), Z(116), width + Z(8), Math.Max(Z(80), composer.Top - Z(10) - hint - Z(116)));
+                    transcript.Bounds = new Rectangle(left - Z(4), Z(116), width + Z(8), Math.Max(Z(80), composer.Top - Z(10) - Z(116)));
                 }
                 ask.Place();
             }
@@ -722,7 +750,9 @@ namespace CapriDesktop
         }
 
 
-        protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Shape(); Place(); }
+        protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Shape(); Place(); if (transcript != null) transcript.Shimmer(); }
+
+        protected override void OnVisibleChanged(EventArgs e) { base.OnVisibleChanged(e); if (transcript != null) transcript.Shimmer(); }
 
         // Cuts the window to her frame's corners, like the Mainframe, so its outline is the frame it paints.
         private void Shape() { if (Width > 0 && Height > 0) Neon.Clip(this, Z(16), Z(6)); }
@@ -768,8 +798,6 @@ namespace CapriDesktop
                 Rectangle words = new Rectangle(trust.Left - Z(96), trust.Top, Z(88), trust.Height);
                 if (words.Left > titleBox.Left + Z(120)) TextRenderer.DrawText(graphics, "Not trusted", small, words, Neon.Faint, WorkPaint.Line | TextFormatFlags.Right);
             }
-            if (chat.Running && !composer.HintShown)
-                TextRenderer.DrawText(graphics, Composer.Hint, note, new Rectangle(left, composer.Top - Z(24), right - left, Z(16)), Neon.Faint, WorkPaint.Line | TextFormatFlags.Right | TextFormatFlags.EndEllipsis);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -930,6 +958,19 @@ namespace CapriDesktop
         internal int ConversationTall { get { return transcript.Content; } }
         internal string ToggleTool(string id) { return transcript.Toggle(id); }
         internal List<string> ToolWell(string id) { return transcript.Well(id); }
+        // For the smoke and its pictures: the tool groups' summary lines, opening them, the shine's clock and where it draws.
+        internal List<string> ToolGroups { get { return transcript.Summaries(); } }
+        internal void OpenToolGroups(bool open) { transcript.OpenAll(open); }
+        internal bool Shining { get { return transcript.Shining; } }
+        internal static double ShineAt { set { Transcript.ShineFixed = value; } }
+        internal Rectangle ShineArea
+        {
+            get
+            {
+                Rectangle at = transcript.ShineBox();
+                return at.IsEmpty ? at : RectangleToClient(transcript.RectangleToScreen(at));
+            }
+        }
         internal bool CueMissing(Bitmap shot)
         {
             if (!composer.Visible || composer.Input.TextLength > 0 || ask.Visible) return false;
@@ -986,6 +1027,7 @@ namespace CapriDesktop
             {
                 workspace.Changed -= changed;
                 transcript.Clear();
+                tips.Dispose();
                 if (openMenu != null && !openMenu.IsDisposed) openMenu.Dispose();
             }
             base.Dispose(disposing);
@@ -1134,10 +1176,8 @@ namespace CapriDesktop
             internal readonly WorkKey Plus, Mode, Model, Send, Stop;
             private readonly List<Chip> chips = new List<Chip>();
             private int chipsTall, inputTall, hover = -1;
-            private bool hintShown;
             internal const string Hint = "Mode and model changes apply to your next message.";
             internal int Wanted;
-            internal bool HintShown { get { return hintShown; } }
 
             internal Composer(WorkspaceWindow window)
             {
@@ -1267,7 +1307,6 @@ namespace CapriDesktop
                 Mode.Bounds = new Rectangle(Plus.Right + window.Z(8), keyTop, Math.Max(window.Z(148), Mode.Needs), keyTall);
                 Model.Bounds = new Rectangle(Mode.Right + window.Z(8), keyTop, Math.Max(window.Z(132), Model.Needs), keyTall);
                 Send.Bounds = Stop.Bounds = new Rectangle(Width - pad - window.Z(86), keyTop, window.Z(86), keyTall);
-                hintShown = window.chat != null && window.chat.Running && WorkPaint.Wide(Hint, window.note) <= Stop.Left - Model.Right - window.Z(32);
                 Wanted = keyTop + keyTall + pad;
             }
 
@@ -1333,7 +1372,6 @@ namespace CapriDesktop
                     RectangleF rail = new RectangleF(Width - Pad - window.Z(2), Input.Top, 2 * s, Input.Height);
                     WorkPaint.Rail(graphics, rail, Input.Visible_Lines, Input.Line_Count, Input.First_Line);
                 }
-                if (hintShown) TextRenderer.DrawText(graphics, Hint, window.note, new Rectangle(Model.Right + window.Z(12), Model.Top, Stop.Left - Model.Right - window.Z(20), Model.Height), Neon.Faint, WorkPaint.Line | TextFormatFlags.Right);
             }
 
             private int ChipAt(Point point)
@@ -1610,9 +1648,16 @@ namespace CapriDesktop
                 internal readonly List<Control> Keys = new List<Control>();
                 internal WorkField Reason;
                 // What it was last measured from, so a card that hasn't changed only moves when another arrives.
-                internal string LaidText, LaidResult, LaidDecision, LaidShape, LaidInput, LaidPaths;
+                internal string LaidText, LaidResult, LaidDecision, LaidShape, LaidInput, LaidPaths, LaidState;
                 internal bool LaidOpen, LaidAll;
                 internal int LaidWidth = -1, LaidRound;
+                // A tool call: whether its result is in, came back failed or is still coming, and the question it was asked about.
+                internal bool Done, Failed, Running, Hidden;
+                internal WorkspaceItem Asked;
+                // On the first call of a run of them: the whole run, its summary line and what that line says.
+                internal List<Block> Group;
+                internal Rectangle Head;
+                internal string Words = "", Trouble = "", Doing, HeadTool = "", HeadMark = "";
             }
 
             internal sealed class Piece
@@ -1636,12 +1681,23 @@ namespace CapriDesktop
             internal bool Following = true;
             internal string Empty = "";
             private Block picked, hovered;
-            private bool dragging, earlier, newer;
+            private bool dragging, earlier, newer, hoveredHead;
             private int dragFrom, dragOffset, laid = -1, round;
+            private readonly HashSet<WorkspaceItem> opened;
+            private readonly ToolTip tips = new ToolTip();
+            private string tipShown;
+            // The shine's clock, the one seam its frames hang on. On tryout-090 this line becomes:
+            //     private readonly Beat shineClock = new Beat { Interval = 33 };
+            private readonly System.Windows.Forms.Timer shineClock = new System.Windows.Forms.Timer { Interval = 33 };
+            private static readonly Stopwatch shineTime = Stopwatch.StartNew();
+            // Where the shine is in its pass, 0 to 1, when the smoke pictures it; below 0 it follows the clock.
+            internal static double ShineFixed = -1;
 
-            internal Transcript(WorkspaceWindow window)
+            internal Transcript(WorkspaceWindow window, HashSet<WorkspaceItem> opened)
             {
                 this.window = window;
+                this.opened = opened;
+                shineClock.Tick += delegate { ShineTick(); };
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
                 TabStop = true;
                 AccessibleName = "Conversation";
@@ -1688,7 +1744,7 @@ namespace CapriDesktop
                 block.Shape = "";
             }
 
-            internal void Fill(List<WorkspaceItem> shown, Dictionary<string, string> results, bool hasEarlier, bool hasNewer)
+            internal void Fill(List<WorkspaceItem> shown, Dictionary<string, string> results, HashSet<string> failed, Dictionary<WorkspaceItem, WorkspaceItem> asked, string live, bool hasEarlier, bool hasNewer)
             {
                 bool follow = Following;
                 int was = Offset;
@@ -1706,8 +1762,13 @@ namespace CapriDesktop
                 {
                     Block block;
                     if (!known.TryGetValue(item, out block)) { block = new Block { Item = item }; known.Add(item, block); }
-                    string result;
-                    if (item.Kind == "tool" && results.TryGetValue(item.Turn + "/" + item.Id, out result)) block.Result = result;
+                    string result, key = item.Turn + "/" + item.Id;
+                    block.Done = item.Kind == "tool" && results.TryGetValue(key, out result);
+                    if (block.Done) block.Result = results[key];
+                    block.Failed = block.Done && failed.Contains(key);
+                    WorkspaceItem question;
+                    block.Asked = asked.TryGetValue(item, out question) ? question : null;
+                    block.Running = item.Kind == "tool" && !block.Done && live != null && item.Turn == live;
                     Blocks.Add(block);
                     Equip(block);
                 }
@@ -1801,29 +1862,207 @@ namespace CapriDesktop
                     y += Z(40);
                 }
                 string paths = window.PathsSeen();
-                foreach (Block block in Blocks)
+                Group();
+                for (int i = 0; i < Blocks.Count; i++)
                 {
+                    Block block = Blocks[i];
                     WorkspaceItem item = block.Item;
+                    if (block.Hidden)
+                    {
+                        block.Pieces.Clear();
+                        block.Toggle = block.More = block.Head = Rectangle.Empty;
+                        block.Box = new Rectangle(Inset, y, Edge - Inset, 0);
+                        block.LaidWidth = -1;
+                        continue;
+                    }
+                    string state = State(block);
                     if (block.LaidWidth == Width && block.LaidRound == round && (object)block.LaidText == item.Text && (object)block.LaidResult == block.Result && block.LaidDecision == item.Decision
-                        && (object)block.LaidInput == item.Input && block.LaidPaths == paths
+                        && (object)block.LaidInput == item.Input && block.LaidPaths == paths && block.LaidState == state
                         && block.LaidShape == block.Shape && block.LaidOpen == block.Open && block.LaidAll == block.All) Shift(block, y - block.Box.Top);
                     else
                     {
                         Measure(block, y);
                         block.LaidWidth = Width; block.LaidRound = round; block.LaidText = item.Text; block.LaidResult = block.Result;
-                        block.LaidInput = item.Input; block.LaidPaths = paths;
+                        block.LaidInput = item.Input; block.LaidPaths = paths; block.LaidState = state;
                         block.LaidDecision = item.Decision; block.LaidShape = block.Shape; block.LaidOpen = block.Open; block.LaidAll = block.All;
                     }
-                    y = block.Box.Bottom + Z(block.Item.Kind == "tool" || block.Item.Kind == "end" ? 6 : 14);
+                    Block next = null;
+                    for (int k = i + 1; k < Blocks.Count && next == null; k++) if (!Blocks[k].Hidden) next = Blocks[k];
+                    y = block.Box.Bottom + Gap(block, next);
                 }
                 Content = y + Z(6);
                 Place();
+            }
+
+            // Room between things: tight inside an open group, a little above the time and cost line, and clear space between
+            // his message, her words and each group of tool calls.
+            private int Gap(Block block, Block next)
+            {
+                if (next == null) return 0;
+                if (Row(block) && Row(next) && next.Group == null) return Z(2);
+                if (next.Item.Kind == "end") return Z(8);
+                return Z(18);
+            }
+
+            // A tool call, or a permission question that was answered but couldn't be matched to its call.
+            private static bool Row(Block block) { return block.Item.Kind == "tool" || block.Item.Kind == "approval" && !Waiting(block.Item); }
+
+            private static bool Command(string name) { return name == "Bash" || name == "PowerShell"; }
+
+            // Every run of tool calls between two other things sits behind one summary line, closed until it's opened.
+            private void Group()
+            {
+                for (int i = 0; i < Blocks.Count; )
+                {
+                    Block first = Blocks[i];
+                    if (!Row(first)) { first.Group = null; first.Hidden = false; first.Head = Rectangle.Empty; i++; continue; }
+                    int j = i;
+                    while (j < Blocks.Count && Row(Blocks[j])) j++;
+                    List<Block> run = Blocks.GetRange(i, j - i);
+                    bool open = opened.Contains(first.Item);
+                    for (int k = 0; k < run.Count; k++) { run[k].Group = k == 0 ? run : null; run[k].Hidden = k > 0 && !open; }
+                    Summarise(first, run);
+                    i = j;
+                }
+            }
+
+            private string State(Block block)
+            {
+                string state = block.Hidden + "|" + block.Running + block.Done + block.Failed + "|" + Status(block);
+                if (block.Group != null) state += "|" + opened.Contains(block.Item) + "|" + block.Words + block.Trouble + "|" + block.Doing;
+                return state;
+            }
+
+            // What a call came to, shown as a mark: asked about and allowed, denied, or failed.
+            private static string Status(Block block)
+            {
+                WorkspaceItem item = block.Item;
+                if (item.Kind == "approval") return item.Decision == "deny" ? "denied" : "asked";
+                if (block.Asked != null && block.Asked.Decision == "deny") return "denied";
+                if (block.Failed) return "failed";
+                if (block.Asked != null) return "asked";
+                return "";
+            }
+
+            // What a call is about, on one line: the command, or the path.
+            private string Detail(Block block, bool whole)
+            {
+                WorkspaceItem item = block.Item;
+                string text = item.Text;
+                if (item.Kind == "approval")
+                {
+                    if (text.StartsWith("Allowed: ", StringComparison.Ordinal)) text = text.Substring(9);
+                    else if (text.StartsWith("Denied: ", StringComparison.Ordinal)) return text;
+                }
+                string detail = text.StartsWith(item.Name, StringComparison.Ordinal) ? text.Substring(item.Name.Length).TrimStart(':', ' ') : text;
+                if (!Command(item.Name)) return whole ? window.Display(detail) : window.Shorten(detail);
+                detail = window.Display(detail);
+                int cut = detail.IndexOf('\n');
+                return whole || cut < 0 ? detail : detail.Substring(0, cut).TrimEnd() + " \u2026";
+            }
+
+            private static string Leaf(string path)
+            {
+                string name = Path.GetFileName(path.TrimEnd('\\', '/'));
+                return name.Length > 0 ? name : path;
+            }
+
+            // The summary line's words, Metis's way: what happened, counted by kind, with failures and denials after them.
+            // Only finished calls count; a call that's running says what it's doing instead.
+            private void Summarise(Block lead, List<Block> run)
+            {
+                int commands = 0, searches = 0, web = 0, todos = 0, agents = 0, mcp = 0, failed = 0, denied = 0, stopped = 0;
+                HashSet<string> read = new HashSet<string>(StringComparer.OrdinalIgnoreCase), edited = new HashSet<string>(StringComparer.OrdinalIgnoreCase), written = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                List<string> otherNames = new List<string>();
+                Dictionary<string, int> others = new Dictionary<string, int>(StringComparer.Ordinal);
+                Dictionary<string, int> kinds = new Dictionary<string, int>(StringComparer.Ordinal);
+                Block running = null;
+                foreach (Block block in run)
+                {
+                    WorkspaceItem item = block.Item;
+                    if (block.Running) { running = block; continue; }
+                    string status = Status(block);
+                    if (status == "failed") failed++;
+                    if (status == "denied") { denied++; continue; }
+                    if (item.Kind == "tool" && !block.Done) { stopped++; continue; }
+                    string kind = WorkPaint.ToolKind(item.Name), target = Detail(block, true);
+                    int had;
+                    kinds[item.Name] = kinds.TryGetValue(item.Name, out had) ? had + 1 : 1;
+                    if (kind == "terminal") commands++;
+                    else if (kind == "search") searches++;
+                    else if (kind == "page") read.Add(target);
+                    else if (kind == "pencil") { if (item.Name == "Write") written.Add(target); else edited.Add(target); }
+                    else if (kind == "globe") web++;
+                    else if (kind == "list") todos++;
+                    else if (kind == "branch") agents++;
+                    else if (kind == "plug") mcp++;
+                    else { if (!others.ContainsKey(item.Name)) { others[item.Name] = 0; otherNames.Add(item.Name); } others[item.Name]++; }
+                }
+                List<string> parts = new List<string>();
+                if (commands > 0) parts.Add(commands + (commands == 1 ? " command ran" : " commands ran"));
+                if (read.Count > 0) parts.Add(read.Count + (read.Count == 1 ? " file read" : " files read"));
+                if (edited.Count > 0) parts.Add(edited.Count + (edited.Count == 1 ? " file edited" : " files edited"));
+                if (written.Count > 0) parts.Add(written.Count + (written.Count == 1 ? " file written" : " files written"));
+                if (searches > 0) parts.Add(searches + (searches == 1 ? " search" : " searches"));
+                if (web > 0) parts.Add(web + (web == 1 ? " web lookup" : " web lookups"));
+                if (todos > 0) parts.Add("to-do list updated");
+                if (agents > 0) parts.Add(agents + (agents == 1 ? " agent ran" : " agents ran"));
+                if (mcp > 0) parts.Add(mcp + (mcp == 1 ? " MCP call" : " MCP calls"));
+                foreach (string name in otherNames) parts.Add(others[name] > 1 ? name + " \u00d7" + others[name] : name);
+                List<string> trouble = new List<string>();
+                if (failed > 0) trouble.Add(failed + " failed");
+                if (denied > 0) trouble.Add(denied + " denied");
+                if (stopped > 0) trouble.Add(stopped + " stopped");
+                lead.Words = string.Join(", ", parts.ToArray());
+                lead.Trouble = string.Join(", ", trouble.ToArray());
+                lead.HeadMark = denied > 0 ? "denied" : failed > 0 ? "failed" : "";
+                lead.Doing = running == null ? null : Doing(running);
+                string most = null;
+                int best = 0;
+                foreach (KeyValuePair<string, int> pair in kinds) if (pair.Value > best) { best = pair.Value; most = pair.Key; }
+                lead.HeadTool = running != null ? running.Item.Name : most ?? run[0].Item.Name;
+            }
+
+            // What a running call is doing, in a few words.
+            private string Doing(Block block)
+            {
+                string name = block.Item.Name, kind = WorkPaint.ToolKind(name), target = Detail(block, false);
+                if (kind == "terminal")
+                {
+                    string[] words = target.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    string start = string.Join(" ", words, 0, Math.Min(3, words.Length));
+                    if (start.Length > 36) start = start.Substring(0, 35) + "\u2026";
+                    return "Running " + start;
+                }
+                if (kind == "page") return "Reading " + Leaf(target);
+                if (kind == "pencil") return (name == "Write" ? "Writing " : "Editing ") + Leaf(target);
+                if (kind == "search") return "Searching " + Leaf(target);
+                if (kind == "globe") return "Looking it up online";
+                if (kind == "list") return "Updating the to-do list";
+                if (kind == "branch") return "Running an agent";
+                if (kind == "plug") { string[] bits = name.Split(new[] { "__" }, StringSplitOptions.None); return "Calling " + bits[bits.Length - 1]; }
+                return "Running " + name;
+            }
+
+            internal List<string> Summaries()
+            {
+                List<string> lines = new List<string>();
+                foreach (Block block in Blocks)
+                    if (block.Group != null) lines.Add((block.Doing != null ? block.Doing + " | " : "") + block.Words + (block.Trouble.Length > 0 ? " | " + block.Trouble : ""));
+                return lines;
+            }
+
+            internal void OpenAll(bool open)
+            {
+                foreach (Block block in Blocks) if (block.Group != null) { if (open) opened.Add(block.Item); else opened.Remove(block.Item); }
+                Arrange(true);
             }
 
             private static void Shift(Block block, int by)
             {
                 if (by == 0) return;
                 block.Box.Offset(0, by);
+                if (!block.Head.IsEmpty) block.Head.Offset(0, by);
                 if (!block.Toggle.IsEmpty) block.Toggle.Offset(0, by);
                 if (!block.More.IsEmpty) block.More.Offset(0, by);
                 foreach (Piece piece in block.Pieces) piece.Box.Offset(0, by);
@@ -1844,6 +2083,43 @@ namespace CapriDesktop
                 int tall = WorkPaint.Tall(text, font, width);
                 Add(block, text, font, ink, new Rectangle(x, y, width, tall));
                 return y + tall;
+            }
+
+            // Words wrapped to a width with room between the lines; returns the bottom.
+            private int Prose(Block block, string text, Font font, Color ink, int x, int y, int width)
+            {
+                List<string> rows = Wrap(text, font, width);
+                int pitch = font.Height + Z(5);
+                Piece piece = Add(block, text, font, ink, new Rectangle(x, y, width, rows.Count * pitch));
+                piece.Rows = rows;
+                piece.RowTall = pitch;
+                return piece.Box.Bottom;
+            }
+
+            // Lines cut at spaces to fit a width, and mid-word only when a word is wider than a whole line. Each candidate line
+            // is measured whole, since words measured one by one add up wider than they draw.
+            private static List<string> Wrap(string text, Font font, int width)
+            {
+                List<string> rows = new List<string>();
+                foreach (string line in text.Replace("\r", "").Split('\n'))
+                {
+                    string row = null;
+                    foreach (string word in line.Split(' '))
+                    {
+                        string next = row == null ? word : row + " " + word;
+                        if (row != null && row.Length > 0 && word.Length > 0 && WorkPaint.Wide(next, font) > width) { rows.Add(row); next = word; }
+                        while (next.Length > 1 && WorkPaint.Wide(next, font) > width)
+                        {
+                            int low = 1, high = next.Length - 1;
+                            while (low < high) { int mid = (low + high + 1) / 2; if (WorkPaint.Wide(next.Substring(0, mid), font) <= width) low = mid; else high = mid - 1; }
+                            rows.Add(next.Substring(0, low));
+                            next = next.Substring(low);
+                        }
+                        row = next;
+                    }
+                    rows.Add(row ?? "");
+                }
+                return rows;
             }
 
             // A code well: her mono font (or Windows' own when the code has letters hers lacks) on a dark well with a cut corner.
@@ -1962,8 +2238,8 @@ namespace CapriDesktop
                     string paragraph = prose.ToString().Trim('\n');
                     prose.Length = 0;
                     if (paragraph.Length == 0) return;
-                    if (any) y += Z(6);
-                    y = Words(block, paragraph, window.Font, Neon.White, x, y, width);
+                    if (any) y += Z(10);
+                    y = Prose(block, paragraph, window.Font, Neon.White, x, y, width);
                     any = true;
                 };
                 foreach (string raw in lines)
@@ -1975,7 +2251,7 @@ namespace CapriDesktop
                         else
                         {
                             fenced = false;
-                            if (any) y += Z(8);
+                            if (any) y += Z(12);
                             y = Code(block, code.ToString().TrimEnd('\n'), tag, x, y, width);
                             any = true;
                         }
@@ -1987,8 +2263,8 @@ namespace CapriDesktop
                     if (head.Success)
                     {
                         flush();
-                        if (any) y += Z(8);
-                        y = Words(block, Plain(head.Groups[1].Value), window.strong, Neon.White, x, y, width);
+                        if (any) y += Z(14);
+                        y = Prose(block, Plain(head.Groups[1].Value), window.strong, Neon.White, x, y, width);
                         any = true;
                         continue;
                     }
@@ -2110,7 +2386,7 @@ namespace CapriDesktop
                     int x = right - wide, top = y + Z(10);
                     Add(block, "YOU", window.caption, Neon.Cyan, new Rectangle(x + pad, top, wide - pad * 2, Z(14))).Line = true;
                     // A message of only files has no line of words above them.
-                    int bottom = item.Text.Length == 0 && files.Count > 0 ? top + Z(14) : Words(block, item.Text, window.Font, Neon.White, x + pad, top + Z(20), wide - pad * 2);
+                    int bottom = item.Text.Length == 0 && files.Count > 0 ? top + Z(14) : Prose(block, item.Text, window.Font, Neon.White, x + pad, top + Z(20), wide - pad * 2);
                     foreach (string file in files)
                     {
                         Piece chip = Add(block, Path.GetFileName(file), window.note, Neon.Faint, new Rectangle(x + pad, bottom + Z(6), wide - pad * 2, Z(16)));
@@ -2128,18 +2404,37 @@ namespace CapriDesktop
                     block.Box = new Rectangle(left, y, width, bottom - y);
                     return;
                 }
-                if (kind == "tool")
+                if (Row(block))
                 {
-                    block.Toggle = new Rectangle(left, y, width, Z(28));
+                    int top = y;
+                    block.Head = Rectangle.Empty;
+                    if (block.Group != null)
+                    {
+                        block.Head = new Rectangle(left, y, width, Z(26));
+                        top = block.Head.Bottom + Z(4);
+                        if (!opened.Contains(item)) { block.Toggle = Rectangle.Empty; block.Box = block.Head; return; }
+                    }
+                    int indent = Z(18);
+                    block.Toggle = new Rectangle(left + indent, top, width - indent, Z(24));
                     int bottom = block.Toggle.Bottom;
                     if (block.Open)
                     {
-                        List<string> lines = new List<string>();
-                        List<Color> inks = new List<Color>();
-                        string copy = block.Result;
-                        if (Diff(item.Name, item.Input, lines, inks)) copy = string.Join("\n", lines.ToArray());
-                        else { lines.AddRange(window.Shorten(block.Result).Replace("\r", "").Split('\n')); inks = Inks(lines.Count, Neon.White); }
-                        bottom = Well(block, copy, lines, inks, "", left + pad, bottom + Z(4), width - pad, 14);
+                        int x = block.Toggle.Left + Z(26), wide = block.Toggle.Right - x;
+                        // The whole command or path, when the row had to cut it.
+                        string whole = Detail(block, true), shown = Detail(block, false);
+                        if (whole != shown || WorkPaint.Wide(shown, window.note) > block.Toggle.Width - Z(52)) bottom = Words(block, whole, window.note, Neon.Faint, x, bottom + Z(4), wide);
+                        string status = Status(block), said = status == "asked" ? "You allowed this." : status == "denied" ? (block.Asked != null ? block.Asked.Text : item.Text) : status == "failed" ? "It failed." : "";
+                        if (said.Length > 0) bottom = Words(block, said, window.small, status == "asked" ? Neon.Faint : Pink, x, bottom + Z(4), wide);
+                        if (item.Kind == "tool")
+                        {
+                            List<string> lines = new List<string>();
+                            List<Color> inks = new List<Color>();
+                            string copy = block.Result;
+                            if (Diff(item.Name, item.Input, lines, inks)) copy = string.Join("\n", lines.ToArray());
+                            else { lines.AddRange(window.Shorten(block.Result).Replace("\r", "").Split('\n')); inks = Inks(lines.Count, Neon.White); }
+                            bottom = Well(block, copy, lines, inks, "", x, bottom + Z(6), wide, 14);
+                        }
+                        bottom += Z(4);
                     }
                     block.Box = new Rectangle(left, y, width, bottom - y);
                     return;
@@ -2193,6 +2488,7 @@ namespace CapriDesktop
                     if (block.Reason != null && block.Reason.Tag is Rectangle) { Rectangle at = (Rectangle)block.Reason.Tag; at.Offset(0, -Offset); block.Reason.Bounds = at; }
                 }
                 Invalidate();
+                Shimmer();
             }
 
             internal void ScrollTo(int to)
@@ -2240,23 +2536,10 @@ namespace CapriDesktop
                 string kind = item.Kind;
                 if (kind == "user") WorkPaint.Plate(graphics, block.Box, 8 * s, Neon.Deep, Neon.Tone(28, 84, 92), line);
                 else if (kind == "text") using (Brush bar = new SolidBrush(Neon.Rose)) graphics.FillRectangle(bar, block.Box.Left, block.Box.Top + Z(2), Math.Max(2, Z(2)), block.Box.Height - Z(2));
-                else if (kind == "tool")
+                else if (Row(block))
                 {
-                    if (block == hovered || block.Open) WorkPaint.Plate(graphics, block.Toggle, 5 * s, block == hovered ? Neon.Hover : Neon.Band, Color.Empty, 0);
-                    float mid = block.Toggle.Top + block.Toggle.Height / 2f, x = block.Toggle.Left + Z(10);
-                    PointF[] mark = block.Open
-                        ? new[] { new PointF(x, mid - 2.5f * s), new PointF(x + 8 * s, mid - 2.5f * s), new PointF(x + 4 * s, mid + 2.5f * s) }
-                        : new[] { new PointF(x + 1.5f * s, mid - 4 * s), new PointF(x + 6.5f * s, mid), new PointF(x + 1.5f * s, mid + 4 * s) };
-                    SmoothingMode was = graphics.SmoothingMode;
-                    graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    using (Brush fill = new SolidBrush(Neon.Cyan)) graphics.FillPolygon(fill, mark);
-                    graphics.SmoothingMode = was;
-                    int nameWide = WorkPaint.Wide(item.Name, window.keys);
-                    TextRenderer.DrawText(graphics, item.Name, window.keys, new Rectangle(block.Toggle.Left + Z(26), block.Toggle.Top, nameWide + Z(2), block.Toggle.Height), Neon.Cyan, WorkPaint.Line);
-                    string detail = item.Text.StartsWith(item.Name, StringComparison.Ordinal) ? item.Text.Substring(item.Name.Length).TrimStart(':', ' ') : item.Text;
-                    detail = item.Name == "Bash" || item.Name == "PowerShell" ? window.Display(detail) : window.Shorten(detail);
-                    int detailLeft = block.Toggle.Left + Z(34) + nameWide;
-                    TextRenderer.DrawText(graphics, detail, window.note, new Rectangle(detailLeft, block.Toggle.Top, Math.Max(1, block.Toggle.Right - detailLeft - Z(8)), block.Toggle.Height), Neon.Faint, WorkPaint.Line | (item.Name == "Bash" || item.Name == "PowerShell" ? TextFormatFlags.EndEllipsis : TextFormatFlags.PathEllipsis));
+                    if (block.Group != null) PaintHead(graphics, block);
+                    if (!block.Toggle.IsEmpty) PaintRow(graphics, block);
                 }
                 else if (kind == "note" || kind == "stopped" || (kind == "approval" || kind == "trust") && !Waiting(item))
                 {
@@ -2284,11 +2567,177 @@ namespace CapriDesktop
                             TextRenderer.DrawText(graphics, piece.Rows[i], piece.Font, new Rectangle(piece.Box.Left + pad, piece.Box.Top + pad + top + i * piece.RowTall, piece.Box.Width - pad * 2, piece.RowTall), piece.Inks[i], WorkPaint.Line | TextFormatFlags.EndEllipsis);
                         continue;
                     }
+                    if (piece.Rows != null)
+                    {
+                        for (int i = 0; i < piece.Rows.Count; i++)
+                            TextRenderer.DrawText(graphics, piece.Rows[i], piece.Font, new Rectangle(piece.Box.Left, piece.Box.Top + i * piece.RowTall, piece.Box.Width, piece.RowTall), piece.Ink, WorkPaint.Line | TextFormatFlags.NoClipping);
+                        continue;
+                    }
                     if (piece.Tag == "file") WorkPaint.FileMark(graphics, new RectangleF(piece.Box.Left, piece.Box.Top + Z(2), Z(12), piece.Box.Height - Z(4)), Neon.Cyan, s);
                     Rectangle box = piece.Tag == "file" ? new Rectangle(piece.Box.Left + Z(18), piece.Box.Top, piece.Box.Width - Z(18), piece.Box.Height) : piece.Box;
                     TextFormatFlags flags = piece.Line ? WorkPaint.Line | (piece.Tag == "path" ? TextFormatFlags.PathEllipsis : TextFormatFlags.EndEllipsis) | (piece.Right ? TextFormatFlags.Right : TextFormatFlags.Left) : WorkPaint.Wrap;
                     TextRenderer.DrawText(graphics, piece.Text, piece.Font, box, piece.Ink, flags);
                 }
+            }
+
+            // Her palette's green for tool calls, quiet once they're done and bright while one runs, and its pink for trouble.
+            private static Color Green { get { return Neon.Tone(1, 247, 109); } }
+            private static Color Pink { get { return Neon.Tone(253, 0, 79); } }
+            private static Color Quiet(Color ink) { return Mix(Neon.Field, ink, 0.62f); }
+
+            private static Color Mix(Color from, Color to, float t)
+            {
+                return Color.FromArgb((int)(from.R + (to.R - from.R) * t), (int)(from.G + (to.G - from.G) * t), (int)(from.B + (to.B - from.B) * t));
+            }
+
+            // The summary line: a caret, the group's picture, what it did (or what's running, shining) and any trouble in pink.
+            private void PaintHead(Graphics graphics, Block block)
+            {
+                float s = window.zoom;
+                Rectangle head = block.Head;
+                bool open = opened.Contains(block.Item);
+                if (block == hovered && hoveredHead) WorkPaint.Plate(graphics, head, 5 * s, Neon.Hover, Color.Empty, 0);
+                float mid = head.Top + head.Height / 2f, cx = head.Left + Z(8);
+                PointF[] caret = open
+                    ? new[] { new PointF(cx, mid - 2 * s), new PointF(cx + 7 * s, mid - 2 * s), new PointF(cx + 3.5f * s, mid + 2.5f * s) }
+                    : new[] { new PointF(cx + 1.5f * s, mid - 3.5f * s), new PointF(cx + 6 * s, mid), new PointF(cx + 1.5f * s, mid + 3.5f * s) };
+                SmoothingMode was = graphics.SmoothingMode;
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (Brush fill = new SolidBrush(Neon.Faint)) graphics.FillPolygon(fill, caret);
+                graphics.SmoothingMode = was;
+                bool running = block.Doing != null;
+                Color ink = running ? Green : block.HeadMark.Length > 0 ? Pink : Quiet(Green);
+                RectangleF icon = new RectangleF(head.Left + Z(22), mid - Z(7), Z(14), Z(14));
+                WorkPaint.ToolMark(graphics, block.HeadTool, icon, ink, s);
+                int x = head.Left + Z(44), right = head.Right - Z(8);
+                Font font = window.small;
+                if (running)
+                {
+                    int wide = Math.Min(right - x, WorkPaint.Wide(block.Doing, font) + Z(2));
+                    Rectangle doing = new Rectangle(x, head.Top, Math.Max(1, wide), head.Height);
+                    TextRenderer.DrawText(graphics, block.Doing, font, doing, Green, WorkPaint.Line | TextFormatFlags.EndEllipsis);
+                    Shine(graphics, head, icon, block.HeadTool, doing, block.Doing, font, WorkPaint.Line | TextFormatFlags.EndEllipsis, Green);
+                    x = doing.Right + Z(10);
+                }
+                string words = block.Words + (block.Words.Length > 0 && block.Trouble.Length > 0 ? "," : "");
+                if (words.Length > 0 && x < right)
+                {
+                    int wide = Math.Min(right - x, WorkPaint.Wide(words, font) + Z(2));
+                    TextRenderer.DrawText(graphics, words, font, new Rectangle(x, head.Top, Math.Max(1, wide), head.Height), running ? Neon.Faint : Quiet(Green), WorkPaint.Line | TextFormatFlags.EndEllipsis);
+                    // The trouble follows the comma as one sentence would, a space after it.
+                    x += block.Trouble.Length > 0 ? WorkPaint.Wide(words + " x", font) - WorkPaint.Wide("x", font) : wide;
+                }
+                if (block.Trouble.Length > 0 && x < right)
+                {
+                    string trouble = block.Trouble;
+                    int wide = Math.Min(right - x, WorkPaint.Wide(trouble, font) + Z(2));
+                    TextRenderer.DrawText(graphics, trouble, font, new Rectangle(x, head.Top, Math.Max(1, wide), head.Height), Pink, WorkPaint.Line | TextFormatFlags.EndEllipsis);
+                    x += wide;
+                }
+                if (block.HeadMark.Length > 0 && x + Z(14) < right) WorkPaint.StatusMark(graphics, block.HeadMark, new PointF(x + Z(9), mid), Z(4), Pink, s);
+            }
+
+            // One call inside an open group: its picture, its command or path on one line, and its mark.
+            private void PaintRow(Graphics graphics, Block block)
+            {
+                float s = window.zoom;
+                Rectangle row = block.Toggle;
+                WorkspaceItem item = block.Item;
+                if (block == hovered && !hoveredHead || block.Open) WorkPaint.Plate(graphics, row, 5 * s, block == hovered && !hoveredHead ? Neon.Hover : Neon.Band, Color.Empty, 0);
+                using (Pen rule = new Pen(Neon.Rule, Math.Max(1f, s))) graphics.DrawLine(rule, block.Box.Left + Z(9), row.Top - Z(2), block.Box.Left + Z(9), block.Box.Bottom);
+                string status = Status(block);
+                Color ink = block.Running ? Green : status == "failed" || status == "denied" ? Pink : Quiet(Green);
+                Color words = block.Running ? Green : status == "failed" ? Pink : status == "denied" ? Neon.Faint : Quiet(Green);
+                RectangleF icon = new RectangleF(row.Left + Z(6), row.Top + (row.Height - Z(13)) / 2f, Z(13), Z(13));
+                WorkPaint.ToolMark(graphics, item.Name, icon, ink, s);
+                string text = Detail(block, false);
+                TextFormatFlags flags = WorkPaint.Line | (Command(item.Name) || item.Kind == "approval" ? TextFormatFlags.EndEllipsis : TextFormatFlags.PathEllipsis);
+                Rectangle at = new Rectangle(row.Left + Z(26), row.Top, Math.Max(1, row.Width - Z(26) - Z(26)), row.Height);
+                TextRenderer.DrawText(graphics, text, window.note, at, words, flags);
+                if (status.Length > 0) WorkPaint.StatusMark(graphics, status, new PointF(row.Right - Z(12), row.Top + row.Height / 2f), Z(4), status == "asked" ? Quiet(Green) : Pink, s);
+                if (block.Running) Shine(graphics, row, icon, item.Name, at, text, window.note, flags, Green);
+            }
+
+            // A soft highlight sweeping left to right over a running line's picture and words, about 1.5 s a pass: the line is
+            // drawn again in thin slices, each a step brighter towards the middle of the band.
+            private void Shine(Graphics graphics, Rectangle area, RectangleF icon, string tool, Rectangle box, string text, Font font, TextFormatFlags flags, Color ink)
+            {
+                double phase = ShineFixed >= 0 ? ShineFixed : (shineTime.ElapsedMilliseconds % 1500) / 1500.0;
+                int from = (int)icon.Left, to = box.Left + Math.Min(box.Width, WorkPaint.Wide(text, font));
+                int band = Z(64);
+                float centre = (float)(from - band + phase * (to - from + band * 2));
+                const int slices = 12;
+                GraphicsState state = graphics.Save();
+                for (int k = 0; k < slices; k++)
+                {
+                    float a = centre - band / 2f + k * band / (float)slices, t = 1f - Math.Abs((k + 0.5f) / slices * 2f - 1f);
+                    Color lit = Mix(ink, Neon.White, 0.85f * t * t);
+                    graphics.SetClip(new RectangleF(a, area.Top, band / (float)slices + 0.5f, area.Height));
+                    WorkPaint.ToolMark(graphics, tool, icon, lit, window.zoom);
+                    TextRenderer.DrawText(graphics, text, font, box, lit, flags);
+                }
+                graphics.Restore(state);
+            }
+
+            // Where the shine draws right now, in this control's own space; nothing when no call runs where it can be seen.
+            private List<Rectangle> ShineBoxes()
+            {
+                List<Rectangle> boxes = new List<Rectangle>();
+                foreach (Block block in Blocks)
+                {
+                    if (block.Hidden) continue;
+                    if (block.Group != null && block.Doing != null && !block.Head.IsEmpty) boxes.Add(block.Head);
+                    if (block.Running && !block.Toggle.IsEmpty) boxes.Add(block.Toggle);
+                }
+                List<Rectangle> seen = new List<Rectangle>();
+                foreach (Rectangle box in boxes) { Rectangle at = box; at.Offset(0, -Offset); if (at.IntersectsWith(ClientRectangle)) seen.Add(at); }
+                return seen;
+            }
+
+            internal Rectangle ShineBox() { List<Rectangle> boxes = ShineBoxes(); return boxes.Count > 0 ? boxes[0] : Rectangle.Empty; }
+
+            internal bool Shining { get { return shineClock.Enabled; } }
+
+            // The clock runs only while a running call can be seen: not when nothing runs, the window is hidden or minimised.
+            internal void Shimmer()
+            {
+                if (ShineWanted()) shineClock.Start(); else shineClock.Stop();
+            }
+
+            private bool ShineWanted()
+            {
+                return IsHandleCreated && Visible && window.Visible && window.WindowState != FormWindowState.Minimized && ShineBoxes().Count > 0;
+            }
+
+            // Each frame repaints only the running lines.
+            private void ShineTick()
+            {
+                if (!ShineWanted()) { shineClock.Stop(); return; }
+                foreach (Rectangle box in ShineBoxes()) Invalidate(box);
+            }
+
+            protected override void OnVisibleChanged(EventArgs e) { base.OnVisibleChanged(e); Shimmer(); }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing) { shineClock.Stop(); shineClock.Dispose(); tips.Dispose(); }
+                base.Dispose(disposing);
+            }
+
+            // What hovering a line tells: the tool's name and what came of it, or what a group holds.
+            private string TipFor(Block block, bool head)
+            {
+                if (block == null) return null;
+                if (head)
+                {
+                    List<string> names = new List<string>();
+                    foreach (Block one in block.Group) if (!names.Contains(one.Item.Name)) names.Add(one.Item.Name);
+                    return block.Group.Count + (block.Group.Count == 1 ? " tool call: " : " tool calls: ") + string.Join(", ", names.ToArray());
+                }
+                string status = Status(block), how = block.Running ? " \u00b7 running" : status == "failed" ? " \u00b7 failed" : status == "denied" ? " \u00b7 denied" : status == "asked" ? " \u00b7 you allowed it" : "";
+                string detail = Detail(block, true);
+                if (detail.Length > 300) detail = detail.Substring(0, 300) + "\u2026";
+                return block.Item.Name + how + "\n" + detail;
             }
 
             private Block At(Point point, out Piece code)
@@ -2297,6 +2746,7 @@ namespace CapriDesktop
                 Point inside = new Point(point.X, point.Y + Offset);
                 foreach (Block block in Blocks)
                 {
+                    if (block.Hidden) continue;
                     if (!Rectangle.Inflate(block.Box, 0, Z(4)).Contains(inside)) continue;
                     foreach (Piece piece in block.Pieces) if (piece.Code && piece.Box.Contains(inside)) code = piece;
                     return block;
@@ -2316,11 +2766,19 @@ namespace CapriDesktop
                 }
                 Piece code;
                 Block over = At(e.Location, out code);
+                bool head = over != null && !over.Head.IsEmpty && over.Head.Contains(new Point(e.X, e.Y + Offset));
                 bool link = over != null && !over.Toggle.IsEmpty && over.Toggle.Contains(new Point(e.X, e.Y + Offset));
                 bool more = over != null && !over.More.IsEmpty && over.More.Contains(new Point(e.X, e.Y + Offset));
-                Cursor = link || more ? Cursors.Hand : Cursors.Default;
-                Block hot = link && over.Item.Kind == "tool" ? over : null;
-                if (hot != hovered) { hovered = hot; Invalidate(); }
+                Cursor = head || link || more ? Cursors.Hand : Cursors.Default;
+                Block hot = head || link && Row(over) ? over : null;
+                if (hot != hovered || head != hoveredHead)
+                {
+                    hovered = hot;
+                    hoveredHead = head;
+                    Invalidate();
+                    string tip = TipFor(hot, head);
+                    if (tip != tipShown) { tipShown = tip; tips.SetToolTip(this, tip); }
+                }
             }
 
             protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); if (hovered != null) { hovered = null; Invalidate(); } }
@@ -2340,9 +2798,17 @@ namespace CapriDesktop
                     ScrollTo(kept);
                     return;
                 }
+                if (block != null && e.Button == MouseButtons.Left && !block.Head.IsEmpty && block.Head.Contains(new Point(e.X, e.Y + Offset)))
+                {
+                    if (!opened.Remove(block.Item)) opened.Add(block.Item);
+                    int kept = Offset;
+                    Arrange(true);
+                    ScrollTo(kept);
+                    return;
+                }
                 if (block != null && e.Button == MouseButtons.Left && !block.Toggle.IsEmpty && block.Toggle.Contains(new Point(e.X, e.Y + Offset)))
                 {
-                    if (block.Item.Kind == "tool") block.Open = !block.Open; else block.All = !block.All;
+                    if (Row(block)) block.Open = !block.Open; else block.All = !block.All;
                     bool follow = Following;
                     int was = Offset;
                     Arrange(true);
@@ -2425,6 +2891,8 @@ namespace CapriDesktop
                 foreach (Block block in Blocks)
                 {
                     if (block.Item.Kind != "tool" || block.Item.Id != id) continue;
+                    if (block.Hidden || block.Group != null)
+                        for (int i = Blocks.IndexOf(block); i >= 0; i--) if (Blocks[i].Group != null) { opened.Add(Blocks[i].Item); break; }
                     block.Open = !block.Open;
                     Arrange(true);
                     return block.Open ? block.Result : "";
