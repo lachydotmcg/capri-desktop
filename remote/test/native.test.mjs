@@ -285,7 +285,10 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     await page.until(`!document.querySelector('#brain').hidden`, 'the free choice');
     assert.equal(await text('#brain .native-free'), 'Start free');
     assert.equal(await text('#brain .native-free-words'), freeWords);
-    assert.equal(await text('#brain .native-own-key'), 'or use your own key');
+    assert.equal(await text('#brain .native-own-key'), 'Use your own key');
+    // How much is free is said before Start free is tapped.
+    assert.equal(await text('#brain .native-free-count'), '15 free messages a day. No key needed.');
+    assert.equal(await page.run(`document.querySelector('#brain .native-free-on').hidden`), true);
     assert.equal(await page.run(`document.querySelector('#native-key-part').hidden`), true);
     // The start screen has his words alone: no allowance and no Ko-fi line until the free brain is in use.
     assert.equal(await shown('#brain .native-free-kofi'), false);
@@ -297,6 +300,11 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     assert.equal(await page.run(`localStorage.getItem('capri-remote-free')`), '1');
     assert.equal(await page.run(`localStorage.getItem('capri-remote-brain')`), null);
     assert.equal(await text('#native-mode'), 'This phone');
+    // What's left shows by THIS PHONE, read from the worker when she connects, and drops by one with each reply.
+    await page.until(`!document.querySelector('#native-left').hidden && document.querySelector('#native-left').textContent === '15 left today'`, 'the count by THIS PHONE');
+    // On a 390 px phone the count still leaves room for the whole CAPRI title.
+    const fit = await page.run(`(() => { const n = document.querySelector('.crumb-name'); return { fits: innerWidth > 430 || n.scrollWidth <= n.clientWidth, inner: innerWidth, kids: [...document.querySelector('.top').children].map(e => e.className + ':' + Math.round(e.getBoundingClientRect().width) + (e.hidden ? 'h' : '')), name: [n.scrollWidth, n.clientWidth] }; })()`);
+    assert.equal(fit.fits, true, 'CAPRI clipped: ' + JSON.stringify(fit));
     assert.equal(counts().length, 0);
 
     // A whole reply uses the same typing state, history and daily phone count as a keyed brain.
@@ -309,6 +317,8 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     // A plain-text POST, so no preflight goes before each message.
     assert.equal(requests('POST')[0].headers['content-type'], 'text/plain');
     assert.equal(provider.got.filter(item => item.path === '/free' && item.method === 'OPTIONS').length, 0);
+    // Let her finish forming before the picture.
+    await new Promise(resolve => setTimeout(resolve, 2500));
     await shot('free-2-chat');
     for (const name of ['x-api-key', 'authorization', 'cookie', 'referer']) assert.equal(requests('POST')[0].headers[name], undefined, name);
     assert.equal(counts().length, 1);
@@ -316,9 +326,12 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
 
     // Opening SETTINGS reads the server, rather than just repeating the number from her last reply.
     provider.state.free.left = 7;
+    const getsBefore = requests('GET').length;
+    assert.equal(getsBefore, 1, 'one read when she connected');
     await click('#f-settings');
     await page.until(`document.querySelector('.native-free-left').textContent === 'Free messages today: 7 of 15 left'`, 'the allowance read from GET');
-    assert.equal(requests('GET').length, 1);
+    assert.equal(requests('GET').length, getsBefore + 1);
+    assert.equal(await text('#native-left'), '7 left today');
     assert.equal(await text('.native-free-words'), freeWords);
     // Midnight UTC in Sydney in November is 11:00 am daylight time, today or tomorrow there.
     const sydneyDay = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
@@ -326,6 +339,9 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     // The time is the phone's own, with no zone code: 11:00 or 11:00 AM, as this browser writes it.
     const elevenLocal = plain(await page.run(`new Date(${JSON.stringify(provider.state.free.resets)}).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })`));
     assert.match(elevenLocal, /^11:00( AM)?$/);
+    // Once on, SETTINGS says so in a plain line in place of the button.
+    assert.equal(await text('#brain .native-free-on'), 'Free messages are on.');
+    assert.equal(await page.run(`document.querySelector('#brain .native-free').hidden && document.querySelector('#brain .native-free-count').hidden`), true);
     const localReset = 'at ' + elevenLocal + ' ' + (sydneyDay(new Date(provider.state.free.resets)) === sydneyDay(new Date()) ? 'today' : 'tomorrow');
     assert.equal(plain(await text('.native-free-reset')), 'Resets ' + localReset + '.');
     // His words, then the Ko-fi line straight after them, under the allowance, with a plain link to his page.
@@ -339,7 +355,8 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     await say('one more for free');
     await page.until(`${lastReply} === 'Capri: Free says: one more for free'`, 'another free reply');
     assert.equal(await text('.native-free-left'), 'Free messages today: 6 of 15 left');
-    assert.equal(requests('GET').length, 1);
+    assert.equal(await text('#native-left'), '6 left today');
+    assert.equal(requests('GET').length, getsBefore + 1);
     assert.deepEqual(requests('POST')[1].body.messages, [
       { role: 'user', content: 'hello free brain' }, { role: 'assistant', content: 'Free says: hello free brain' },
       { role: 'user', content: 'one more for free' }
@@ -386,6 +403,8 @@ test('phone-only mode: start free, see the allowance and switch to a key', { ski
     // The two messages the free brain turned away were never answered, so they go with this one.
     await page.until(`${lastReply} === 'Capri: Got it: used up\\n\\npool used up\\n\\nback with a key'`, 'her keyed reply');
     assert.equal(requests('POST').length, freePosts);
+    // On its own key the phone shows no free count.
+    assert.equal(await page.run(`document.querySelector('#native-left').hidden`), true);
     const freeGets = requests('GET').length;
     await click('#f-settings');
     assert.equal(await page.run(`document.querySelector('.native-free-left').parentNode.hidden`), true);

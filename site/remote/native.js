@@ -225,6 +225,7 @@
       freeFailed = false;
       freeAllowance = { left: sent.left, each: sent.each, resets: sent.resets, open: typeof sent.open === 'boolean' ? sent.open : sent.error === 'pool' ? false : sent.error === 'used' && freeAllowance ? freeAllowance.open : true };
       if (sheet && !sheet.hidden) render();
+      freeTag();
     }
     return sent;
   };
@@ -500,6 +501,9 @@
         hooks = given;
         open = true;
         hooks.state('connected', { native: true, demo: false, pc: pairing && pairing.pc || '', pairedAt: pairing && pairing.pairedAt || 0, code: '', reason: '' });
+        // On free messages, read what's left so the header can show it before the first message.
+        const brain = readBrain();
+        if (brain && brain.provider === 'free') freeRequest(null).catch(() => {});
       },
       send(message) {
         if (!open || !message) return false;
@@ -583,6 +587,19 @@
     const log = $('#log');
     if (log) log.scrollTop = log.scrollHeight;
   };
+  // "7 left today" next to THIS PHONE while the phone is on free messages; nothing on its own key.
+  const freeTag = () => {
+    const left = $('#native-left');
+    if (!left) return;
+    const brain = readBrain(), info = remote() ? remote().info : {};
+    const show = !!(info.native && brain && brain.provider === 'free' && freeAllowance && remote().state === 'connected');
+    left.hidden = !show;
+    if (!show) return;
+    // A narrow phone drops the word "today" so CAPRI still fits in the header.
+    const day = make('span', 'native-left-day');
+    day.textContent = ' today';
+    left.replaceChildren(freeAllowance.left + ' left', day);
+  };
   let toastNode = null, toastTimer = 0;
   const toast = text => {
     if (!toastNode) { toastNode = make('p', 'native-toast'); toastNode.setAttribute('role', 'status'); document.body.append(toastNode); }
@@ -660,13 +677,16 @@
       parts.model.value = saved.model;
     }
     // The free brain: its button first, then while it's in use the allowance, his words and the Ko-fi line.
-    parts.freeChoice.textContent = free && phone ? 'In use' : free || keyed ? 'Use free brain' : 'Start free';
-    parts.freeChoice.disabled = free && phone;
+    parts.freeChoice.textContent = free || keyed ? 'Use free brain' : 'Start free';
+    parts.freeChoice.hidden = free && phone;
+    parts.freeOn.hidden = !(free && phone);
+    parts.freeCount.hidden = free;
+    parts.freeCount.textContent = (freeAllowance ? freeAllowance.each : 15) + ' free messages a day. No key needed.';
     parts.freeInfo.hidden = parts.freeKofi.hidden = !free;
     parts.freeLeft.textContent = freeFailed ? "Couldn't read your free messages. Open SETTINGS again to retry." : freeAllowance ? 'Free messages today: ' + freeAllowance.left + ' of ' + freeAllowance.each + ' left' : 'Reading free messages...';
     parts.freeReset.textContent = freeAllowance ? 'Resets ' + resetTime(freeAllowance.resets) + '.' : '';
     parts.freePool.hidden = !freeAllowance || freeAllowance.open;
-    parts.ownKey.textContent = free ? 'Switch to your own key' : 'or use your own key';
+    parts.ownKey.textContent = free ? 'Switch to your own key' : 'Use your own key';
     parts.ownKey.hidden = parts.keyOpen;
     parts.ownKey.setAttribute('aria-expanded', String(parts.keyOpen));
     parts.keyPart.hidden = !parts.keyOpen;
@@ -750,6 +770,10 @@
     pcKey.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); pcSend.click(); } });
     const phonePart = make('div', 'native-part');
     const freeChoice = button('Start free', 'nbtn solid wide native-free');
+    // Seen before Start free is tapped: how much is free. Once it's on, a plain line says so.
+    const freeCount = make('p', 'native-line native-free-count');
+    const freeOn = make('p', 'native-line native-free-on', 'Free messages are on.');
+    freeOn.setAttribute('role', 'status');
     const freeInfo = make('div');
     const freeLeft = make('p', 'native-line native-free-left');
     freeLeft.setAttribute('role', 'status');
@@ -761,7 +785,7 @@
     const kofi = make('a', '', 'Ko-fi');
     Object.assign(kofi, { href: FREE_KOFI, target: '_blank', rel: 'noopener noreferrer' });
     freeKofi.append(kofi, '.');
-    const ownKey = button('or use your own key', 'nbtn cyan wide native-own-key');
+    const ownKey = button('Use your own key', 'nbtn cyan wide native-own-key');
     ownKey.setAttribute('aria-controls', 'native-key-part');
     const keyPart = make('div');
     keyPart.id = 'native-key-part';
@@ -806,7 +830,7 @@
     row.append(useHere, forget);
     keyPart.append(providerLabel, providerField, keyLabel, keyField, get, modelPart, note,
       make('p', 'native-note', 'Your key stays in this browser on capriai.app. Forget key or clearing the site\'s data removes it.'), state, row);
-    phonePart.append(freeChoice, freeInfo, make('p', 'native-note native-free-words', FREE_WORDS), freeKofi, ownKey, keyPart);
+    phonePart.append(freeChoice, freeOn, freeCount, freeInfo, make('p', 'native-note native-free-words', FREE_WORDS), freeKofi, ownKey, keyPart);
     // Calls: talking over her stops her. A phone whose own speaker sets it off turns it off here.
     const callHead = make('h3', 'nhead', 'Calls');
     const overHer = button('Talk over her to stop her', 'nbtn wide native-over');
@@ -820,7 +844,7 @@
     words.append(title, make('h3', 'nhead', 'Her brain'), modes, pcPart, phonePart, callHead, overHer, homeHead, home, done);
     sheet.append(words);
     ($('#app') || document.body).append(sheet);
-    parts = { words, pcTab, phoneTab, pcPart, pcLine, usePc, pcBrainsPart, rungs, pcNow, pcKeyPart, pcKeyLabel, pcKey, pcState, pcOld, phonePart, freeChoice, freeInfo, freeLeft, freeReset, freePool, freeKofi, ownKey, keyPart, keyOpen: false, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, home, callHead, overHer, overState, view: '' };
+    parts = { words, pcTab, phoneTab, pcPart, pcLine, usePc, pcBrainsPart, rungs, pcNow, pcKeyPart, pcKeyLabel, pcKey, pcState, pcOld, phonePart, freeChoice, freeOn, freeCount, freeInfo, freeLeft, freeReset, freePool, freeKofi, ownKey, keyPart, keyOpen: false, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, home, callHead, overHer, overState, view: '' };
 
     // A browser that saves nothing (some private modes) can't remember the choice, so it says so instead of going nowhere.
     freeChoice.addEventListener('click', () => {
@@ -971,7 +995,10 @@
     const tag = make('span', 'tag native-mode');
     tag.id = 'native-mode';
     tag.hidden = true;
-    if (top) top.append(tag);
+    const left = make('span', 'tag native-left');
+    left.id = 'native-left';
+    left.hidden = true;
+    if (top) top.append(tag, left);
     const settingsButton = $('#f-settings');
     if (settingsButton) settingsButton.setAttribute('aria-label', 'Settings: her brain and the home screen');
     const screen = $('#f-screen');
@@ -985,6 +1012,7 @@
     if (remote()) remote().onState((state, info) => {
       tag.hidden = state === 'unpaired' || state === 'pairing';
       tag.textContent = info.native ? 'This phone' : info.demo ? 'Demo PC' : 'Your PC';
+      freeTag();
       tag.classList.toggle('phone', !!info.native);
       if (state !== 'connected' || info.native || info.demo) { pcBrains = null; pcAsked = false; }
       else if (sheet && !sheet.hidden && !pcAsked) askBrains();

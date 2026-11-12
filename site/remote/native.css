@@ -49,3 +49,14 @@
 .native-notice-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .native-notice-row .nbtn { min-height: 44px; padding: 0 14px; font-size: 14px; }
 .native-notice-raw { max-height: 30vh; overflow: auto; margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--faint); font: 12px/16px var(--mono); }
+/* What's left of the free messages, next to THIS PHONE. */
+.top .native-left { flex: none; margin-left: 6px; color: var(--cyan); }
+.top .native-left::before { background: rgb(94 240 246 / .55); }
+.top .native-left::after { background: var(--deep); }
+.top .native-left-day { white-space: pre; }
+@media (max-width: 430px) {
+  .top .native-left-day { display: none; }
+  .top .native-mode { margin-left: 6px; }
+  .top .native-mode, .top .native-left { letter-spacing: .08em; }
+  .top .native-left { margin-left: 4px; }
+}
