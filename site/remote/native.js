@@ -183,6 +183,21 @@
     const day = when.toDateString() === today.toDateString() ? 'today' : when.toDateString() === tomorrow.toDateString() ? 'tomorrow' : 'on ' + when.toLocaleDateString([], { weekday: 'long' });
     return 'at ' + when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }) + ' ' + day;
   };
+  // Google's free daily counts reset at midnight US Pacific time. The next one, as an ISO time for resetTime.
+  const pacificMidnight = () => {
+    const now = Date.now();
+    const offset = at => {
+      const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })
+        .formatToParts(new Date(at)).map(part => [part.type, Number(part.value)]));
+      return { parts, ms: Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second) - Math.floor(at / 1000) * 1000 };
+    };
+    try {
+      const { parts, ms } = offset(now);
+      let next = Date.UTC(parts.year, parts.month - 1, parts.day + 1) - ms;
+      next += offset(next).ms === ms ? 0 : ms - offset(next).ms;
+      return new Date(next).toISOString();
+    } catch (error) { return ''; }
+  };
   const freeTurns = turns => {
     const kept = turns.slice(-12).map(turn => ({ role: turn.role, content: turn.content.slice(0, 2000) }));
     let size = kept.reduce((sum, turn) => sum + turn.content.length, 0);
@@ -250,7 +265,7 @@
       key: company + ' rejected the key. Paste it again in SETTINGS.',
       credits: 'No credits on this key. Add credits on ' + company + '\'s site.',
       limit: company + ' says that\'s too many messages for one minute. ' + soon,
-      daily: 'This ' + company + ' key has used up its free messages for today. They come back tomorrow, or pick another model in SETTINGS.',
+      daily: 'This ' + company + ' key has used up its free messages for today. They come back ' + (kind === 'google' && pacificMidnight() ? resetTime(pacificMidnight()) : 'within a day') + ', or pick another model in SETTINGS.',
       unfree: 'This ' + company + ' key can\'t use that model for free. Pick another model in SETTINGS.',
       busy: company + '\'s free model is full for everyone right now. ' + soon + ' Or pick another model in SETTINGS.',
       model: 'That model isn\'t on your key. Pick another one.',

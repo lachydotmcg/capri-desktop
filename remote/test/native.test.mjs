@@ -448,6 +448,7 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
   const google = (status, message, quotaId, more = {}) => ({ status, body: [{ error: { code: status, message, status: 'RESOURCE_EXHAUSTED', details: quotaId ? [{ '@type': 'type.googleapis.com/google.rpc.QuotaFailure', violations: [{ quotaMetric: 'generativelanguage.googleapis.com/generate_content_free_tier_requests', quotaId, quotaValue: more.value || '20' }] }] : [] } }], headers: more.headers || {} });
   try {
     await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() });
+    await page.send('Emulation.setTimezoneOverride', { timezoneId: 'Australia/Sydney' });
     await page.go(url);
     await page.until(`document.querySelector('#app').dataset.screen === 'pair'`, 'the pair screen');
 
@@ -495,7 +496,15 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     // is behind Details, with the key taken out.
     provider.state.fail = google(429, `You exceeded your current quota. Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.5-flash-lite. key=${GOOD.google} Please retry in 41.3s.`, 'GenerateRequestsPerDayPerProjectPerModel-FreeTier');
     await say('daily');
-    assert.equal(await noticeSays('/for today/', 'the daily notice'), 'This Google AI key has used up its free messages for today. They come back tomorrow, or pick another model in SETTINGS.');
+    // Google's day ends at midnight US Pacific: 7 pm in Sydney in November, today or tomorrow there.
+    const sydneyDay = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(date);
+    const pacificDay = date => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Los_Angeles' }).format(date);
+    let midnight = new Date(Math.ceil(Date.now() / 3600000) * 3600000);
+    while (pacificDay(new Date(midnight - 1)) === pacificDay(midnight)) midnight = new Date(+midnight + 3600000);
+    const sevenLocal = (await page.run(`new Date(${+midnight}).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })`)).replace(/\s/g, ' ');
+    assert.match(sevenLocal, /^(7:00 PM|19:00) GMT\+11$/);
+    const backAt = 'at ' + sevenLocal + ' ' + (sydneyDay(midnight) === sydneyDay(new Date()) ? 'today' : 'tomorrow');
+    assert.equal((await noticeSays('/for today/', 'the daily notice')).replace(/\s/g, ' '), 'This Google AI key has used up its free messages for today. They come back ' + backAt + ', or pick another model in SETTINGS.');
     await click('.native-notice-more');
     const raw = await text('.native-notice-raw');
     assert.match(raw, /^429 /);
