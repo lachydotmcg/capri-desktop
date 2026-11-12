@@ -32547,6 +32547,34 @@ namespace CapriDesktop
             finally { Hands.Windows = windowsWere; }
         }
 
+        // A say line with now on during a stream keeps to her chat windows like any other: same timing, every repeat said, the
+        // whole line, and it never cuts in. Each job opens its own chat window, since a window belongs to the job.
+        private static void SmokeStreamChat(List<string> checks)
+        {
+            bool streamingWas = Computer.Streaming;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            try
+            {
+                Computer.Streaming = true;
+                Computer.Shoot = delegate { return null; };
+                string cry = "AAAH! Get out of my office! That scared me!", calm = null;
+                foreach (bool cut in new[] { false, true })
+                {
+                    List<string> cries = new List<string>();
+                    Job scare = new Job("play Terraria") { Says = delegate(string line, bool now) { if (now) throw new Exception("A stream line tried to cut in."); cries.Add(line); return true; } };
+                    string shut = scare.Spoken(cry, 5, cut);
+                    bool opened = scare.ChatWords(41).Length > 0;
+                    string said = scare.Spoken(cry, 42, cut), again = scare.Spoken(cry, 43, cut), late = scare.Spoken(cry, 70, cut);
+                    string got = shut + " / " + opened + " / " + said + " / " + again + " / " + late + " / " + string.Join(" | ", cries.ToArray());
+                    if (shut != Computer.LockedIn || !opened || said != "Said." || again != "Said." || late != Computer.LockedIn || cries.Count != 2 || cries[0] != cry || cries[1] != cry) throw new Exception("Stream chat with now " + cut + " lost its timing, repeats or sentences: " + got);
+                    if (calm != null && got != calm) throw new Exception("The now flag changed stream chat timing, repeats or sentences: " + calm + " against " + got);
+                    calm = got;
+                }
+                checks.Add("PASS stream chat: a say line with now on or off waits for her chat window, says every repeat in full inside it, is locked out after it, and never cuts in");
+            }
+            finally { Computer.Streaming = streamingWas; Computer.Shoot = shootWas; }
+        }
+
         private void SmokeBrowserGame(List<string> checks, string output, Func<string> find)
         {
             Func<List<OpenWindow>> windowsWas = Hands.Windows;
@@ -33837,10 +33865,7 @@ namespace CapriDesktop
                 bool streamHeard = streamShut == Computer.LockedIn && streamTalk.Count == 2 && streamTalk[0] == "Hi Milo, thanks for the follow!";
                 bool streamTold = streamJob.Prompted(Computer.Sees).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0 && streamJob.Prompted(Computer.Prompt).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0 && streamJob.Prompted(Computer.Seeing).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0;
                 bool streamChat = streamShown.IndexOf("out loud with say", StringComparison.Ordinal) >= 0 && streamJob.ChatWords(50).Length == 0 && streamJob.Spoken("Too late for chat.", 70) == Computer.LockedIn && streamTalk.Count == 2 && streamJob.ChatWords(101).Length > 0;
-                List<string> streamCries = new List<string>();
-                Job streamScare = new Job("play Terraria") { Says = delegate(string line, bool now) { if (now) throw new Exception("A stream shock tried to interrupt chat."); streamCries.Add(line); return true; } };
-                string streamCry = "AAAH! Get out of my office! That scared me!";
-                if (streamScare.Spoken(streamCry, 5, true) != Computer.LockedIn || streamScare.Spoken(streamCry, 42, true) != "Said." || streamScare.Spoken(streamCry, 43, true) != "Said." || streamCries.Count != 2 || streamCries[0] != streamCry || streamCries[1] != streamCry) throw new Exception("The now flag changed stream chat timing, repeats or sentences.");
+                SmokeStreamChat(checks);
                 Hands.StreamMinute streamBeat = new Hands.StreamMinute();
                 bool streamBeats = !streamBeat.Due(39) && !streamBeat.Open(39) && streamBeat.Due(41) && streamBeat.Open(50) && !streamBeat.Due(50) && !streamBeat.Open(62) && !streamBeat.Due(100) && streamBeat.Due(130) && streamBeat.Open(140) && !streamBeat.Due(189) && streamBeat.Due(190);
                 Computer.Streaming = false;
@@ -41081,6 +41106,7 @@ namespace CapriDesktop
             Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });
             Section(checks, "SmokeBrowserGame", delegate { SmokeBrowserGame(checks, output, findGame); });
             Section(checks, "SmokeSayNow", delegate { SmokeSayNow(checks, output, findGame); });
+            Section(checks, "SmokeStreamChat", delegate { SmokeStreamChat(checks); });
             Section(checks, "SmokeGameHolds", delegate { SmokeGameHolds(checks); });
             Section(checks, "SmokeGameFocus", delegate { SmokeGameFocus(checks); });
             Section(checks, "SmokeGameAsks", delegate { SmokeGameAsks(checks); });
