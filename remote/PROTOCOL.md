@@ -371,7 +371,7 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 - **`brain.use`** picks a rung, as clicking it in her Mainframe does, and the phone hears the new `brain.state`.
 - **State.** The PC answers `brain.get` with `brain.state`, and sends it again to that phone whenever her brains change while its session lasts.
 - **Malformed asks** (an unknown `brain`, a missing, empty or too long `key`, a bad `id`) get `error` `bad-message`, with `re` when the id was good.
-- **Phone-only mode** (`site/remote/native.js`, Capri on the phone with no PC) is not part of this protocol: its key stays on the phone and goes only to the provider the user picked, never through the relay.
+- **Phone-only mode** (`site/remote/native.js`, Capri on the phone with no PC) is not part of this protocol: its key stays on the phone and goes only to the provider the user picked, never through the relay. The only other thing it sends is a daily count: after the first reply that worked on a UTC day, one POST of `{"first": bool, "paired": bool}` to the reactions worker's `/phone-day`, with no key, chat or id.
 
 **Reserved for later phases.** Do not send these in phase 1, and ignore them if received:
 
