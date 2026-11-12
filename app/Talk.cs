@@ -610,7 +610,8 @@ namespace CapriDesktop
     // them at once. On 12 Nov, a computer job in a full-screen game did that for 22 s: her bubble and task panel kept updating,
     // since those arrive as posted work, but her teleport sat on its first frame, glitch bars and all, until Esc ended the job.
     // This counts time on a worker and hands each tick over as posted work, so her moves keep going whenever her window still
-    // answers. Only one tick waits at a time, and the next is counted from when it was due, like a window timer's.
+    // answers. Only one tick waits at a time, and the next is counted from when this one went out, as a window timer counts,
+    // so her rates land on Windows' 1/64 s clock the way they always have: 33 ms still takes 47 ms.
     internal sealed class Beat : IDisposable
     {
         // Her window's thread, set as she starts. A beat started before then posts to the thread that started it.
@@ -683,7 +684,7 @@ namespace CapriDesktop
             }
         }
 
-        // Inside the gate: the next tick, an interval after the last one was due, or straight away if that's already gone.
+        // Inside the gate: the next tick, an interval after the last one went out, or straight away if that's already gone.
         private void Arm()
         {
             long now = System.Diagnostics.Stopwatch.GetTimestamp(), next = due + interval * System.Diagnostics.Stopwatch.Frequency / 1000;
@@ -740,6 +741,7 @@ namespace CapriDesktop
                 if (to == null) { Arm(); return; }
                 pending = true;
                 ticket = generation;
+                System.Threading.Interlocked.Exchange(ref due, System.Diagnostics.Stopwatch.GetTimestamp());
             }
             try { to.Post(Run, ticket); }
             catch (Exception) { lock (gate) pending = false; }
