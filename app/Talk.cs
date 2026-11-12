@@ -3565,6 +3565,52 @@ namespace CapriDesktop
     }
     internal sealed partial class Companion
     {
+        // Her old strips that are drawn in her old standing pose, which her artist's standing set stands in for, and how hard
+        // the glitch under her is on each of their cells. Her grin has no new art: her loop plays through it, with a flicker
+        // of glitch at its start.
+        private static readonly Dictionary<string, double[]> StandIns = new Dictionary<string, double[]>
+        {
+            { "glitch", new[] { 0.5, 1.0, 0.8, 1.0, 0.6, 0.9, 0.5, 0.7, 0.3, 0.1 } },
+            { "arrive", new[] { 1.0, 1.0, 1.0, 1.0, 1.0, 0.9, 0.8, 0.9, 0.7, 0.6, 0.45, 0.3, 0.15, 0.05 } },
+            { "leave", new[] { 0.1, 0.3, 0.5, 0.7, 0.9, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 } },
+            { "wake", new[] { 1.0, 0.9, 1.0, 0.8, 0.9, 0.7, 0.8, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1 } },
+            { "grin", new[] { 0.6, 0.3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+            // Her old blinks and mouths only ever go with her old 16 cells, but drawn on their own they're her old stand too.
+            { "blink", new[] { 0.0 } },
+            { "blink_glitch", new[] { 0.3, 0.5, 0.3, 0.1 } },
+            { "mouth", new[] { 0.0 } }
+        };
+        // Her other old strips at her standing size, in other poses: asleep, held by the cursor, walking. A new strip her standing
+        // size has to go in this list or in StandIns.
+        internal static readonly string[] OtherPoses = { "sleep", "dangle", "walk" };
+        private static string standInSkin;
+        private static readonly Dictionary<string, bool> skinShips = new Dictionary<string, bool>();
+        // Every clip her window draws, while a check is listening.
+        private List<Clip> drawnLog;
+
+        internal static double UnderLevel(Clip of, int cell)
+        {
+            double[] levels;
+            if (of == null || of.Title == null || !StandIns.TryGetValue(of.Title, out levels)) return 0;
+            return levels[Math.Max(0, cell) % levels.Length];
+        }
+
+        // Whether her standing loop is drawn in place of shown: shown is one of those old strips, she's on her artist's standing
+        // set, and the skin she's wearing, if any, doesn't bring its own strip for it.
+        internal static bool StandsIn(Clip shown, Clip stand)
+        {
+            if (shown == null || shown == stand || stand.Old || shown.Title == null || !StandIns.ContainsKey(shown.Title)) return false;
+            string skin = SkinFolder;
+            if (skin == null) return true;
+            bool ships;
+            lock (skinShips)
+            {
+                if (!ReferenceEquals(skin, standInSkin)) { standInSkin = skin; skinShips.Clear(); }
+                if (!skinShips.TryGetValue(shown.Title, out ships)) skinShips[shown.Title] = ships = File.Exists(Path.Combine(skin, shown.Title + ".png"));
+            }
+            return !ships;
+        }
+
         // Her glitch on her artist's standing set: drawn through her own RenderFrame, every step is her new frame whole on top
         // of the underlay made from that same frame, cleared right by the lighter drawing on both facings and at two sizes;
         // her loop picks up where it was afterwards; Legacy stand still plays the old strip. Pictures go in output.
@@ -3619,7 +3665,7 @@ namespace CapriDesktop
                     float tall = preferences.Size * idle.Height, wide = tall * width / art.Height;
                     RectangleF target = new RectangleF(-wide / 2f + idle.ShiftX * preferences.Size, -tall / 2f + idle.ShiftY * preferences.Size, wide, tall);
                     Rectangle from = new Rectangle(cell * width, 0, width, art.Height);
-                    if (step >= 0) Shatter.Under(graphics, art, from, target, UnderStrength[step], underSeed * 16 + step);
+                    if (step >= 0) Shatter.Under(graphics, art, from, target, UnderLevel(glitch, step), underSeed * 16 + step);
                     if (!DrawCell(graphics, art, cell, width, wide, tall, target.X + wide / 2f, target.Y + tall / 2f, 0, 0, 0)) graphics.DrawImage(art, target, from, GraphicsUnit.Pixel);
                 }
                 return drawn;
@@ -3643,7 +3689,7 @@ namespace CapriDesktop
                 notes.Clear();
                 preferences.Hologram = false;
                 if (preferences.LegacyStand) ToggleLegacyStand();
-                if (idle.Old || !GlitchUnder(glitch)) throw new Exception("Her own art with no skin didn't put her glitch under her.");
+                if (idle.Old || !StandsIn(glitch)) throw new Exception("Her own art with no skin didn't put her glitch under her.");
 
                 int stepsChecked = 0, underPixels = int.MaxValue, oldOnly = int.MaxValue;
                 foreach (int size in new[] { 240, 480 })
@@ -3689,8 +3735,8 @@ namespace CapriDesktop
                                     if (((uint)before[i] >> 24) > 128 && ((uint)seen[i] >> 24) <= 128) oldShown++;
                                 }
                                 if (covered > 0) throw new Exception("Something was drawn over her own frame in step " + step + " (" + tag + "): " + covered + " pixels.");
-                                if (UnderStrength[step] >= 0.5 && under < 200) throw new Exception("Step " + step + " (" + tag + ") showed hardly any underlay: " + under + " pixels.");
-                                if (UnderStrength[step] >= 0.5) underPixels = Math.Min(underPixels, under);
+                                if (UnderLevel(glitch, step) >= 0.5 && under < 200) throw new Exception("Step " + step + " (" + tag + ") showed hardly any underlay: " + under + " pixels.");
+                                if (UnderLevel(glitch, step) >= 0.5) underPixels = Math.Min(underPixels, under);
                                 oldOnly = Math.Min(oldOnly, oldShown);
                                 if (size == 240) { got.Save(Path.Combine(output, "after-" + tag + "-" + step + ".png"), ImageFormat.Png); old.Save(Path.Combine(output, "before-" + tag + "-" + step + ".png"), ImageFormat.Png); }
                             }
@@ -3732,7 +3778,7 @@ namespace CapriDesktop
                 // Legacy stand keeps the old strip, as it was.
                 preferences.Motion = false;
                 ToggleLegacyStand();
-                if (!idle.Old || GlitchUnder(glitch)) throw new Exception("Legacy stand put her glitch under her.");
+                if (!idle.Old || StandsIn(glitch)) throw new Exception("Legacy stand put her glitch under her.");
                 bodyCells.Clear(); drawnClip = null;
                 Play(glitch);
                 clipStart = clock.Elapsed.TotalSeconds - 3.5 / glitch.Fps;
@@ -3746,7 +3792,7 @@ namespace CapriDesktop
                     got.Save(Path.Combine(output, "legacy-glitch-3.png"), ImageFormat.Png);
                 }
                 ToggleLegacyStand();
-                if (idle.Old || !GlitchUnder(glitch)) throw new Exception("Turning Legacy stand off didn't put her glitch back under her.");
+                if (idle.Old || !StandsIn(glitch)) throw new Exception("Turning Legacy stand off didn't put her glitch back under her.");
                 checks.Add("PASS glitch under her: with Legacy stand on she plays the old glitch strip pixel for pixel, and turning it off puts the underlay back");
             }
             finally
@@ -3822,6 +3868,254 @@ namespace CapriDesktop
                 bodyCells.Clear(); drawnClip = null; RenderFrame();
                 if (framesWas) frames.Start();
                 if (signalsWas) signals.Start();
+            }
+        }
+    }
+    internal sealed partial class Companion
+    {
+        // On her artist's standing set no frame of her old standing pose is ever drawn. Every strip her old standing size has
+        // to be listed (drawn as her standing loop, or another pose), so a strip added the old way fails here;
+        // then every clip is played through every cell by her own RenderFrame, both ways round, and the ways she comes back to
+        // standing run at real speed, and none of what her window drew may be one of those strips. Legacy stand still plays
+        // each of them pixel for pixel.
+        private void SmokeOldStand(List<string> checks, string output)
+        {
+            bool framesWas = frames.Enabled, signalsWas = signals.Enabled, motionWas = preferences.Motion, facingWas = facingLeft, veilWas = veiled;
+            bool ridingWas = riding, panelWas = onPanel, fallingWas = falling, draggingWas = dragging, lyingWas = lying, walkingWas = walking, hangingWas = hanging, instantWas = instant;
+            double startWas = clipStart, veilUntilWas = veilUntil, leanWas = leanAngle, glitchWas = nextGlitch;
+            Point anchorWas = anchor;
+            Clip clipWas = clip;
+            Ledge seatWas = seat;
+            string speechWas = speech;
+            Directory.CreateDirectory(output);
+            try
+            {
+                frames.Stop(); signals.Stop();
+                seat = null;
+                riding = onPanel = falling = dragging = lying = walking = hanging = false;
+                veiled = false; veilUntil = -1; leanAngle = 0; nextGlitch = double.MaxValue; speech = null;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                if (idle.Old) throw new Exception("She wasn't on her artist's standing set.");
+
+                Clip[] every = Clip.Every();
+                List<Clip> forbidden = new List<Clip>(), stoodIn = new List<Clip>();
+                List<string> sorted = new List<string>();
+                foreach (Clip strip in every)
+                {
+                    if (strip.Title == null) continue;
+                    Bitmap art = strip.Strip;
+                    if (art == null || art.Height != 384 || art.Width / strip.Count != 240 || Math.Abs(strip.Height - 1.11f) > 0.001f) continue;
+                    bool other = Array.IndexOf(OtherPoses, strip.Title) >= 0;
+                    if (!other && !StandIns.ContainsKey(strip.Title))
+                        throw new Exception("The strip " + strip.Title + " is her old standing size, but it isn't drawn as her standing loop on her new stand or listed as another pose.");
+                    if (!other) forbidden.Add(strip);
+                    if (StandIns.ContainsKey(strip.Title)) { stoodIn.Add(strip); if (!StandsIn(strip)) throw new Exception(strip.Title + " doesn't stand in on her new stand."); }
+                    sorted.Add(strip.Title + (other ? " (other pose)" : " (her loop stands in)"));
+                }
+                if (stoodIn.Count != StandIns.Count) throw new Exception("Only " + stoodIn.Count + " of the " + StandIns.Count + " standing strips were found.");
+                Func<string> drew = delegate
+                {
+                    foreach (Clip shown in drawnLog) if (forbidden.Contains(shown)) return shown.Title;
+                    return null;
+                };
+
+                drawnLog = new List<Clip>();
+                preferences.Motion = false;
+                int painted = 0;
+                foreach (bool left in new[] { false, true })
+                    foreach (Clip strip in every)
+                    {
+                        facingLeft = left;
+                        seat = null; lying = false;
+                        veiled = false; veilUntil = -1;
+                        bodyCells.Clear(); drawnClip = null;
+                        Play(strip);
+                        int steps = strip.Count * (strip == grin ? 2 : 1) + 1;
+                        for (int step = 0; step < steps && clip == strip; step++)
+                        {
+                            clipStart = clock.Elapsed.TotalSeconds - (step + 0.5) / strip.Fps;
+                            RenderFrame();
+                            veiled = false; veilUntil = -1;
+                        }
+                        painted += drawnLog.Count;
+                        string bad = drew();
+                        if (bad != null) throw new Exception("Playing " + (strip.Title ?? "dance") + (left ? " facing left" : "") + " drew her old standing strip " + bad + ".");
+                        drawnLog.Clear();
+                    }
+
+                // The ways she comes back to standing, with her own timers running them at real speed.
+                preferences.Motion = true;
+                instant = false;
+                facingLeft = false;
+                Rectangle room = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
+                Point home = new Point(room.Left + room.Width / 2 - 200, room.Bottom - 1), away = new Point(room.Left + room.Width / 2 + 200, room.Bottom - 1);
+                Action<double> run = delegate(double seconds)
+                {
+                    double until = clock.Elapsed.TotalSeconds + seconds;
+                    frames.Start();
+                    while (clock.Elapsed.TotalSeconds < until) { Application.DoEvents(); System.Threading.Thread.Sleep(2); }
+                };
+                List<string> ways = new List<string>();
+                Action<string, Action, double> way = delegate(string name, Action start, double seconds)
+                {
+                    drawnLog.Clear();
+                    seat = null; falling = false; veiled = false; veilUntil = -1;
+                    anchor = Standing(home.X, home.Y);
+                    Location = anchor;
+                    Play(idle);
+                    start();
+                    run(seconds);
+                    string bad = drew();
+                    if (bad != null) throw new Exception(name + " drew her old standing strip " + bad + ".");
+                    if (drawnLog.Count == 0) throw new Exception(name + " drew nothing to check.");
+                    ways.Add(name + " (" + drawnLog.Count + " frames)");
+                };
+                way("teleporting", delegate { Teleport(away); }, 2.2);
+                way("a hop called off", delegate { GlitchOut(delegate { }, false); Halt(); }, 0.4);
+                way("hiding and showing", delegate { ShowHidden(true); ShowHidden(false); }, 1.4);
+                way("waking from a standing nap", delegate { Play(sleep); run(0.3); WakeRest(false); }, 1.4);
+                way("standing up from a seat", delegate { Play(glitch); }, 1.0);
+                way("her grin", delegate { Play(grin); }, 4.3);
+                way("talking over her glitch", delegate { Play(glitch); run(0.2); Say("hi"); }, 0.6);
+                way("a click", delegate { Animate("glitch"); run(0.3); Animate("grin"); }, 0.8);
+                speech = null;
+                ribbons.Stop();
+                outro = null;
+                if (!StandsIn(glitch, idle) || !StandsIn(grin, idle)) throw new Exception("Her clones would glitch in or grin in her old stand.");
+                checks.Add("PASS no old stand: on her artist's standing set her strips her old standing size are " + string.Join(", ", sorted.ToArray()) + "; playing all " + every.Length + " clips through every cell both ways round drew " + painted + " frames and none from her old standing strips, and neither did " + string.Join(", ", ways.ToArray()) + "; her clones glitch in and grin in her new stand too");
+
+                // Legacy stand keeps every one of them as it was.
+                preferences.Motion = false;
+                facingLeft = false;
+                ToggleLegacyStand();
+                foreach (Clip strip in stoodIn)
+                {
+                    if (StandsIn(strip)) throw new Exception("Legacy stand still stood in for " + strip.Title + ".");
+                    bodyCells.Clear(); drawnClip = null;
+                    Play(strip);
+                    clipStart = clock.Elapsed.TotalSeconds - 3.5 / strip.Fps;
+                    RenderFrame();
+                    if (drawnClip != strip || drawnCell != 3) throw new Exception("Legacy stand didn't play " + strip.Title + " as it was: drew " + (drawnClip == null ? "nothing" : drawnClip.Title) + " " + drawnCell);
+                    using (Bitmap got = new Bitmap(bodySurface.Image))
+                    using (Bitmap old = Stood(strip, 3))
+                    {
+                        int[] a = new int[Width * Height], b = new int[Width * Height];
+                        Pixels(got, new Rectangle(Point.Empty, Size), a, false);
+                        Pixels(old, new Rectangle(Point.Empty, Size), b, false);
+                        for (int i = 0; i < a.Length; i++)
+                            for (int shift = 0; shift < 32; shift += 8)
+                                if (Math.Abs(((a[i] >> shift) & 255) - ((b[i] >> shift) & 255)) > 2) throw new Exception("Legacy stand's " + strip.Title + " wasn't its own strip at pixel " + (i % Width) + "," + (i / Width) + ".");
+                        if (strip == arrive) got.Save(Path.Combine(output, "legacy-arrive-3.png"), ImageFormat.Png);
+                    }
+                }
+                ToggleLegacyStand();
+                checks.Add("PASS no old stand: with Legacy stand on, " + stoodIn.Count + " clips (glitch, arrive, leave, wake, grin, and her old blinks and mouth) still play their own strips pixel for pixel");
+            }
+            finally
+            {
+                drawnLog = null;
+                instant = instantWas;
+                ribbons.Stop();
+                outro = null;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                preferences.Motion = motionWas; facingLeft = facingWas; veiled = veilWas; veilUntil = veilUntilWas; leanAngle = leanWas; nextGlitch = glitchWas;
+                riding = ridingWas; onPanel = panelWas; falling = fallingWas; dragging = draggingWas; lying = lyingWas; walking = walkingWas; hanging = hangingWas;
+                seat = seatWas; speech = speechWas; hidden = false;
+                anchor = anchorWas; Location = anchor;
+                clip = clipWas; clipStart = startWas;
+                bodyCells.Clear(); drawnClip = null; RenderFrame();
+                if (framesWas) frames.Start(); else frames.Stop();
+                if (signalsWas) signals.Start();
+            }
+        }
+    }
+
+    internal sealed partial class Companion
+    {
+        // Her teleporting out and back and standing up after a nap, filmed off the real app at real speed: her own timers run
+        // her, and about 30 times a second her window's picture and her ribbons' are saved with where they sit on the screen.
+        private void SmokeStandFilm(List<string> checks, string output)
+        {
+            bool framesWas = frames.Enabled, motionWas = preferences.Motion, facingWas = facingLeft, legacyWas = preferences.LegacyStand, instantWas = instant;
+            Point anchorWas = anchor;
+            Clip clipWas = clip;
+            double glitchWas = nextGlitch;
+            Action<Bitmap, Rectangle> paintedWas = Ribbons.Painted;
+            Bitmap ribbonShot = null;
+            Rectangle ribbonArea = Rectangle.Empty;
+            try
+            {
+                preferences.Motion = true;
+                instant = false;
+                nextGlitch = double.MaxValue;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                seat = null; riding = onPanel = falling = dragging = lying = walking = hanging = false;
+                Ribbons.Painted = delegate(Bitmap picture, Rectangle area)
+                {
+                    if (ribbonShot != null) ribbonShot.Dispose();
+                    ribbonShot = new Bitmap(picture);
+                    ribbonArea = area;
+                };
+                Rectangle room = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
+                Point home = new Point(room.Left + room.Width / 2 - 260, room.Bottom - 1), away = new Point(room.Left + room.Width / 2 + 260, room.Bottom - 1);
+                int saved = 0;
+                foreach (string take in new[] { "teleport", "nap" })
+                {
+                    string folder = Path.Combine(output, take);
+                    Directory.CreateDirectory(folder);
+                    facingLeft = false;
+                    anchor = Standing(home.X, home.Y);
+                    Location = anchor;
+                    ribbons.Stop();
+                    outro = null;
+                    seat = null; falling = false; hanging = false; dropAfter = false;
+                    if (hidden) ShowHidden(false);
+                    veiled = false; veilUntil = -1;
+                    Play(take == "nap" ? sleep : idle);
+                    frames.Start();
+                    double began = clock.Elapsed.TotalSeconds, length = take == "nap" ? 2.6 : 4.4;
+                    bool first = false, second = false;
+                    using (StreamWriter times = new StreamWriter(Path.Combine(folder, "times.txt")))
+                        for (int number = 0; ; number++)
+                        {
+                            double due = began + number / 30.0;
+                            while (clock.Elapsed.TotalSeconds < due) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                            double at = clock.Elapsed.TotalSeconds - began;
+                            if (at > length) break;
+                            if (take == "teleport" && !first && at >= 0.5) { first = true; Teleport(away); }
+                            if (take == "teleport" && !second && at >= 2.3) { second = true; Teleport(home); }
+                            if (take == "nap" && !first && at >= 0.6) { first = true; WakeRest(false); }
+                            Tick();
+                            string her = "-", ribbon = "-";
+                            if (bodySurface != null && !hidden)
+                            {
+                                her = "her-" + number.ToString("000") + ".png";
+                                using (Bitmap copy = new Bitmap(bodySurface.Image)) copy.Save(Path.Combine(folder, her), ImageFormat.Png);
+                            }
+                            if (ribbons.Visible && ribbonShot != null)
+                            {
+                                ribbon = "ribbons-" + number.ToString("000") + ".png";
+                                ribbonShot.Save(Path.Combine(folder, ribbon), ImageFormat.Png);
+                            }
+                            times.WriteLine(number + " " + at.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " " + clip.Title + " " + (drawnClip == null ? "-" : drawnClip.Title) + " " + drawnCell + " " + anchor.X + " " + anchor.Y + " " + her + " " + ribbonArea.X + " " + ribbonArea.Y + " " + ribbon + " " + (veiled || clock.Elapsed.TotalSeconds < veilUntil ? "veiled" : "shown") + " " + (outro != null ? "outro" : "-") + " " + (frames.Enabled ? "ticking" : "stopped") + " " + (hidden ? "hidden" : "-") + " " + (clock.Elapsed.TotalSeconds - clipStart).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
+                            saved++;
+                        }
+                }
+                checks.Add("PASS stand film: " + saved + " frames of her teleporting out and back and waking from a standing nap, at real speed, in " + output);
+            }
+            finally
+            {
+                Ribbons.Painted = paintedWas;
+                if (ribbonShot != null) ribbonShot.Dispose();
+                ribbons.Stop();
+                outro = null;
+                if (preferences.LegacyStand != legacyWas) ToggleLegacyStand();
+                preferences.Motion = motionWas; facingLeft = facingWas; nextGlitch = glitchWas; instant = instantWas;
+                seat = null; falling = false; hidden = false;
+                anchor = anchorWas; Location = anchor; veiled = false; veilUntil = -1;
+                Play(clipWas);
+                bodyCells.Clear(); drawnClip = null; RenderFrame();
+                if (!framesWas) frames.Stop();
             }
         }
     }

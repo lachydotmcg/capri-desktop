@@ -92,6 +92,8 @@ namespace CapriDesktop
         private Trip trip;
         private int lift;      // frames left in which they go back above her glitch bars, which show just after they do
         private bool landed;   // her own window has taken over under the last drawings
+        // Each picture as it goes up, and where on the screen, while a check is filming them.
+        internal static Action<Bitmap, Rectangle> Painted;
 
         internal Ribbons() : base("Capri ribbons")
         {
@@ -178,6 +180,7 @@ namespace CapriDesktop
                 using (Native.Surface surface = new Native.Surface(area.Width, area.Height))
                 {
                     using (Graphics graphics = Graphics.FromImage(surface.Image)) Paint(graphics, trip, t, shapes, new Point(-area.X, -area.Y));
+                    if (Painted != null) Painted(surface.Image, area);
                     if (Bounds != area) Bounds = area;
                     if (!Visible) Show();
                     surface.Show(Handle, area.Location);
