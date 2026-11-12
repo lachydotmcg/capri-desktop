@@ -7704,6 +7704,10 @@ namespace CapriDesktop
                 float line = Math.Max(1f, s);
                 RectangleF box = new RectangleF(line / 2, line / 2, Width - line, Height - line);
                 Color rim = Focused && ShowFocusCues ? Cyan : hot || sliding ? Neon.Tone(156, 40, 56) : Edge;
+                // Switched off, like SOUNDS' rows with Chimes off, it greys the way a switch does.
+                bool live = Enabled;
+                Color words = live ? Ink : Neon.Tone(112, 94, 104);
+                if (!live) rim = Neon.Tone(52, 22, 32);
                 TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 if (Stepper)
                 {
@@ -7713,14 +7717,14 @@ namespace CapriDesktop
                         using (Pen pen = new Pen(rim, line)) graphics.DrawPath(pen, plate);
                     }
                     float middle = Height / 2f - 1.5f * s;
-                    Arrow(graphics, 11 * s, middle, s, -1, value > 0, zone == -1);
-                    Arrow(graphics, Width - 11 * s, middle, s, 1, value < labels.Length - 1, zone == 1);
+                    Arrow(graphics, 11 * s, middle, s, -1, live && value > 0, zone == -1);
+                    Arrow(graphics, Width - 11 * s, middle, s, 1, live && value < labels.Length - 1, zone == 1);
                     int reach = (int)(26 * s);
-                    TextRenderer.DrawText(graphics, Shown, Font, new Rectangle(reach, 0, Width - 2 * reach, (int)(Height - 4 * s)), Ink, flags);
+                    TextRenderer.DrawText(graphics, Shown, Font, new Rectangle(reach, 0, Width - 2 * reach, (int)(Height - 4 * s)), words, flags);
                     float dash = (labels.Length <= 4 ? 11 : 8) * s, gap = 3 * s;
                     float left = Width / 2f - (labels.Length * dash + (labels.Length - 1) * gap) / 2;
                     using (Brush off = new SolidBrush(Dash))
-                    using (Brush on = new SolidBrush(Lit))
+                    using (Brush on = new SolidBrush(live ? Lit : Dash))
                         for (int i = 0; i < labels.Length; i++) graphics.FillRectangle(i == value ? on : off, left + i * (dash + gap), Height - 5.5f * s, dash, Math.Max(1, 1.5f * s));
                     if (Torn) Tear(graphics, s, flags, reach);
                     return;
@@ -7730,11 +7734,11 @@ namespace CapriDesktop
                 using (GraphicsPath plate = Cut(box, 0, 0, 5 * s, 0))
                 {
                     using (Brush fill = new SolidBrush(Field)) graphics.FillPath(fill, plate);
-                    using (Brush done = new SolidBrush(Neon.Tone(42, 14, 25))) graphics.FillRectangle(done, line, line, knob - line, Height - 2 * line);
+                    using (Brush done = new SolidBrush(live ? Neon.Tone(42, 14, 25) : Field)) graphics.FillRectangle(done, line, line, knob - line, Height - 2 * line);
                     using (Brush tick = new SolidBrush(Dash))
                         for (int i = 0; i < labels.Length; i += Math.Max(1, TickEvery)) graphics.FillRectangle(tick, s + Grip / 2 + travel * i / (labels.Length - 1) - 0.5f * s, Height - 5 * s, Math.Max(1, s), 3 * s);
                     using (GraphicsPath grip = Cut(new RectangleF(knob, line, Grip, Height - 2 * line), 0, 0, 4 * s, 0))
-                    using (Brush red = new SolidBrush(hot || sliding || Focused ? Lit : Hot))
+                    using (Brush red = new SolidBrush(!live ? Neon.Tone(52, 22, 32) : hot || sliding || Focused ? Lit : Hot))
                         graphics.FillPath(red, grip);
                     using (Pen pen = new Pen(rim, line)) graphics.DrawPath(pen, plate);
                 }
@@ -7745,12 +7749,14 @@ namespace CapriDesktop
                 {
                     bar.Exclude(handle);
                     graphics.SetClip(bar, CombineMode.Replace);
-                    TextRenderer.DrawText(graphics, Shown, Font, area, Ink, flags);
+                    TextRenderer.DrawText(graphics, Shown, Font, area, words, flags);
                 }
                 graphics.SetClip(handle);
                 TextRenderer.DrawText(graphics, Shown, Font, area, Neon.Tone(40, 6, 12), flags);
                 graphics.ResetClip();
             }
+
+            protected override void OnEnabledChanged(EventArgs e) { base.OnEnabledChanged(e); Invalidate(); }
 
             // A selector's ◁ or ▷: cyan, solid under the mouse, and dark at the end it can't go past.
             private static void Arrow(Graphics graphics, float tip, float middle, float s, int way, bool open, bool over)

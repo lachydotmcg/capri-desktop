@@ -1080,6 +1080,7 @@ namespace CapriDesktop
         private Toggle chimes, chimeSent, chimeHeard, chimeListening;
         private Slider chimeVolume;
         private Readout chimeVolumeName;
+        private Control chimeVolumeLabel;
 
         // SOUNDS, under HABITS: her chimes. last is where Explore after's row is, as built so far.
         private void BuildSounds(int c, int last)
@@ -1090,6 +1091,7 @@ namespace CapriDesktop
             chimes.AccessibleName = "Chimes. Soft sounds when your message is sent, when she's heard you and when she's listening";
             chimeVolume = Setting("Chime volume", ChimeVolumeNames, c, y + 24 + Row, "How loud her chimes are");
             chimeVolumeName = new Readout(chimeVolume);
+            chimeVolumeLabel = Controls[Controls.IndexOf(chimeVolume) - 1];
             chimeVolume.Changed += delegate { if (syncing) return; chimeVolumeName.Text = ChimeVolumeNames[chimeVolume.Value]; capri.SetChimeVolume((chimeVolume.Value + 1) * 10); };
             chimeVolume.Released += delegate { if (!syncing) capri.PreviewChime(); };
             chimeSent = Switch("Message sent", c, y + 24 + Row * 2, delegate { if (!syncing) capri.ToggleChime(Chime.Sent); });
@@ -1110,6 +1112,7 @@ namespace CapriDesktop
             chimeHeard.Checked = capri.ChimeOn(Chime.Heard);
             chimeListening.Checked = capri.ChimeOn(Chime.Listening);
             chimeVolume.Enabled = chimeSent.Enabled = chimeHeard.Enabled = chimeListening.Enabled = on;
+            chimeVolumeLabel.ForeColor = on ? Rose : Neon.Tone(112, 94, 104);
         }
 
         internal bool ChimesShown { get { return chimes.Checked; } }
