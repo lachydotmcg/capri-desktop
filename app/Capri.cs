@@ -10926,6 +10926,7 @@ namespace CapriDesktop
                 case "clip_bitrate": return Array.IndexOf(ClipSettings.Bitrates, ClipOptions.Mbps);
                 case "typing_sound": return Math.Max(0, Math.Min(2, preferences.Typing));
                 case "chime_volume": return ChimeVolume / 10 - 1;
+                case "chime_set": return Math.Max(0, Array.IndexOf(Chimes.Picked, ChimeSet));
                 default: return -1;
             }
         }
@@ -10977,6 +10978,7 @@ namespace CapriDesktop
                 case "clip_bitrate": SetClipOptions(ClipOptions.Seconds, ClipOptions.Fps, ClipOptions.Resolution, ClipSettings.Bitrates[step]); break;
                 case "typing_sound": SetTyping(step); break;
                 case "chime_volume": SetChimeVolume((step + 1) * 10); break;
+                case "chime_set": SetChimeSet(Chimes.Picked[step]); break;
                 default: return null;
             }
             if (mainframe != null) mainframe.Sync();

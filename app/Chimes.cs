@@ -47,10 +47,13 @@ namespace CapriDesktop
     internal static class Chimes
     {
         internal const int Rate = 48000;
-        // Three sets to pick from by ear. Glass ships; Pulse and Air are kept for the audition.
-        internal static readonly string[] Sets = { "glass", "pulse", "air" };
+        // Six sets to pick from by ear under SOUNDS > Sound set, Glass until they pick (Lachy, 12 Nov: he'd rather hear them in
+        // use than in a video). Their numbers are fixed; Picked is the order SOUNDS steps through them.
+        internal static readonly string[] Sets = { "glass", "pulse", "air", "shard", "burst", "crush" };
+        internal static readonly string[] Titles = { "Glass", "Pulse", "Air", "Shard", "Burst", "Crush" };
         internal static readonly string[] Names = { "sent", "heard", "listening" };
-        internal const int Glass = 0, Pulse = 1, Air = 2;
+        internal const int Glass = 0, Pulse = 1, Air = 2, Shard = 3, Burst = 4, Crush = 5;
+        internal static readonly int[] Picked = { Glass, Shard, Burst, Crush, Pulse, Air };
         internal const int DefaultSet = Glass;
         internal const int DefaultVolume = 40;
         internal static volatile bool On = true;
@@ -95,7 +98,8 @@ namespace CapriDesktop
             lock (gate)
             {
                 long now = Clock();
-                if (now - last < Gap || now - lastOf[(int)chime] < Again) return false;
+                // A preview, from Sound set or Chime volume, doesn't wait out the same chime's 700 ms, so each step is heard.
+                if (now - last < Gap || now - lastOf[(int)chime] < Again && !preview) return false;
                 Func<double> left = Left;
                 if (left != null && left() > 0) return false;
                 sound = Render(Set, chime, volume);
@@ -190,7 +194,7 @@ namespace CapriDesktop
             int at = set * 3 + (int)chime;
             float[] shape = made[at];
             if (shape != null) return shape;
-            shape = set == Pulse ? MakePulse(chime) : set == Air ? MakeAir(chime) : MakeGlass(chime);
+            shape = set == Pulse ? MakePulse(chime) : set == Air ? MakeAir(chime) : set == Shard ? MakeShard(chime) : set == Burst ? MakeBurst(chime) : set == Crush ? MakeCrush(chime) : MakeGlass(chime);
             made[at] = shape;
             return shape;
         }
@@ -316,6 +320,223 @@ namespace CapriDesktop
                 buffer[i] += loud * envelope * (0.55 * Math.Sin(phase) + 0.18 * Math.Sin(2 * phase) + 0.5 * band);
             }
         }
+
+        // Her glitch sets (Lachy, 12 Nov: "actually glitchy audio effects"): the faults are the sound, the way she glitches in
+        // and out on screen. Each still ends soft, and every fault is filtered so it never bites.
+
+        // Shard: Glass's notes, struck the way a skipping buffer would. Sent stutters its first note and snaps up into the
+        // second, Heard settles and crumbles into bits, Listening opens in three retriggered ticks.
+        private static float[] MakeShard(Chime chime)
+        {
+            double[] buffer = new double[Samples(0.36)];
+            if (chime == Chime.Sent)
+            {
+                double[] grain = new double[Samples(0.02)];
+                Strike(grain, 0, A5, 1.0, 0.05);
+                Repeat(buffer, grain, 0, 0.026, 3, 0.75);
+                Snapped(buffer, 0.085, D6, 1.0, 0.09, 0.03, 0.014, 2);
+            }
+            else if (chime == Chime.Heard)
+            {
+                Strike(buffer, 0, D6, 0.75, 0.05);
+                Strike(buffer, 0.06, A5, 1.0, 0.11);
+                Crushed(buffer, 0.11, 0.3, 2, 14, 5);
+            }
+            else
+            {
+                double[] note = new double[Samples(0.016)];
+                double[] pitches = { Fs5, A5, D6 };
+                for (int i = 0; i < 3; i++)
+                {
+                    Array.Clear(note, 0, note.Length);
+                    Strike(note, 0, pitches[i], 1.0, 0.04);
+                    Repeat(buffer, note, i * 0.055, 0.02, 2, 0.6 + i * 0.15);
+                }
+                Strike(buffer, 0.15, D6, 0.9, 0.08);
+            }
+            return Finish(buffer, 0.42, 7000);
+        }
+
+        // Burst: a little packet of data. Sent is a stepped chirp climbing out, Heard is two FM blips coming down with the second
+        // repeating like a skipped buffer, Listening is a quick two-tone handshake that speeds up. Its steps are one unbroken
+        // wave that jumps pitch, so the packet sounds digital without clicking at every step.
+        private static float[] MakeBurst(Chime chime)
+        {
+            double[] buffer = new double[Samples(0.34)];
+            if (chime == Chime.Sent)
+            {
+                Stepped(buffer, 0, new double[] { 1175, 1319, 1480, 1760, 1976, 2349 }, 0.011, 0.6, 1.0, 0.012);
+                double[] tail = new double[Samples(0.03)];
+                Stepped(tail, 0, new double[] { 2349 }, 0.012, 1.0, 1.0, 0.004);
+                Repeat(buffer, tail, 0.08, 0.03, 3, 0.5);
+            }
+            else if (chime == Chime.Heard)
+            {
+                Blip(buffer, 0, 0.035, 2349, 1760, 0.9, 1.0, 0.03);
+                double[] blip = new double[Samples(0.034)];
+                Blip(blip, 0, 0.03, 1760, 1175, 1.0, 1.0, 0.004);
+                Repeat(buffer, blip, 0.06, 0.034, 3, 0.5);
+            }
+            else
+            {
+                double[] hops = { 1480, 1976, 1480, 1976, 1480, 1976, 1480, 1976, 2349 };
+                Hopping(buffer, 0, hops, 0.024, 0.0016, 0.55, 1.0, 0.05);
+            }
+            Crushed(buffer, 0, 0.34, 2, 2, 7);
+            // A packet is dense, so its peaks sit lower to land as loud as Glass.
+            return Finish(buffer, chime == Chime.Listening ? 0.2 : 0.27, 5500);
+        }
+
+        // One wave that jumps from pitch to pitch every step seconds, getting louder along the way, then dies away.
+        private static void Stepped(double[] buffer, double at, double[] pitches, double step, double loudFrom, double loudTo, double decay)
+        {
+            double[] lengths = new double[pitches.Length];
+            for (int i = 0; i < lengths.Length; i++) lengths[i] = step;
+            Hop(buffer, at, pitches, lengths, loudFrom, loudTo, decay);
+        }
+
+        // The same, with each step shorter than the one before by shrink seconds: a handshake speeding up.
+        private static void Hopping(double[] buffer, double at, double[] pitches, double step, double shrink, double loudFrom, double loudTo, double decay)
+        {
+            double[] lengths = new double[pitches.Length];
+            for (int i = 0; i < lengths.Length; i++) lengths[i] = Math.Max(0.008, step - i * shrink);
+            Hop(buffer, at, pitches, lengths, loudFrom, loudTo, decay);
+        }
+
+        private static void Hop(double[] buffer, double at, double[] pitches, double[] lengths, double loudFrom, double loudTo, double decay)
+        {
+            int start = Samples(at), edge = Samples(0.0015);
+            double total = 0;
+            foreach (double length in lengths) total += length;
+            int body = Samples(total), tail = Samples(decay * 4);
+            double phase = 0;
+            int step = 0;
+            double stepEnd = lengths[0];
+            for (int i = 0; i < body + tail && start + i < buffer.Length; i++)
+            {
+                double t = (double)i / Rate;
+                while (step < pitches.Length - 1 && t >= stepEnd) { step++; stepEnd += lengths[step]; }
+                phase += 2 * Math.PI * pitches[step] / Rate;
+                double loud = loudFrom + (loudTo - loudFrom) * Math.Min(1, t / total);
+                double envelope = Math.Min(1, (double)(i + 1) / edge) * (i < body ? 1 : Math.Exp(-(t - total) / decay) * (1 - (double)(i - body) / tail));
+                buffer[start + i] += loud * envelope * (Math.Sin(phase) + 0.15 * Math.Sin(3 * phase));
+            }
+        }
+
+        // Crush: soft and low, a synth pulse through a failing line. Sent glides up and drops out twice on the way, Heard steps
+        // down and crumbles, Listening starts choppy and comes through clean, like her ears tuning in.
+        private static float[] MakeCrush(Chime chime)
+        {
+            double[] buffer = new double[Samples(0.36)];
+            if (chime == Chime.Sent)
+            {
+                Synth(buffer, 0, D4, A4, 0.09, 1.0, 0.12);
+                Crushed(buffer, 0, 0.36, 6, 6, 5);
+                Gate(buffer, 0.045, 0.012);
+                Gate(buffer, 0.085, 0.01);
+            }
+            else if (chime == Chime.Heard)
+            {
+                Synth(buffer, 0, A4, A4, 0, 0.8, 0.06);
+                Synth(buffer, 0.08, D4, D4, 0, 1.0, 0.12);
+                Crushed(buffer, 0.08, 0.36, 3, 16, 4);
+                Gate(buffer, 0.15, 0.012);
+                Gate(buffer, 0.19, 0.016);
+            }
+            else
+            {
+                Synth(buffer, 0, D4, D4, 0, 0.7, 0.3);
+                Synth(buffer, 0.12, A4, A4, 0, 0.8, 0.09);
+                Crushed(buffer, 0, 0.12, 10, 3, 4);
+                double[] gaps = { 0.016, 0.042, 0.064, 0.082, 0.096 };
+                foreach (double gap in gaps) Gate(buffer, gap, 0.012 - gap * 0.06);
+            }
+            return Finish(buffer, 0.45, 3500);
+        }
+
+        // Pastes a grain in count times, every gap seconds, each copy a little quieter: a buffer repeating.
+        private static void Repeat(double[] buffer, double[] grain, double at, double gap, int count, double fade)
+        {
+            int edge = Samples(0.0015);
+            for (int copy = 0; copy < count; copy++)
+            {
+                int start = Samples(at + copy * gap);
+                double loud = Math.Pow(fade, copy);
+                for (int i = 0; i < grain.Length && start + i < buffer.Length; i++)
+                {
+                    double ramp = Math.Min(1, Math.Min((double)(i + 1) / edge, (double)(grain.Length - i) / edge));
+                    buffer[start + i] += grain[i] * loud * ramp;
+                }
+            }
+        }
+
+        // A struck note whose pitch snaps by a ratio for a moment partway in, then back, without a break in its wave.
+        private static void Snapped(double[] buffer, double at, double pitch, double loud, double decay, double snapAt, double snapFor, double ratio)
+        {
+            int start = Samples(at);
+            double phase = 0, upper = 0;
+            for (int i = start; i < buffer.Length; i++)
+            {
+                double t = (double)(i - start) / Rate;
+                double now = t >= snapAt && t < snapAt + snapFor ? pitch * ratio : pitch;
+                phase += 2 * Math.PI * now / Rate;
+                upper += 2 * Math.PI * now * 2.76 / Rate;
+                double attack = Math.Min(1, t / 0.0015);
+                buffer[i] += loud * attack * (Math.Exp(-t / decay) * Math.Sin(phase) + 0.2 * Math.Exp(-t * 1.9 / decay) * Math.Sin(upper));
+            }
+        }
+
+        // A short tone sliding from one pitch to another, with an FM wobble whose depth dies away, then a decay: a data blip, or
+        // with depth, a zap.
+        private static void Blip(double[] buffer, double at, double length, double from, double to, double loud, double depth, double decay)
+        {
+            int start = Samples(at), count = Samples(length), edge = Samples(0.0015), tail = Samples(decay * 4);
+            double phase = 0, wobble = 0;
+            for (int i = 0; i < count + tail && start + i < buffer.Length; i++)
+            {
+                double t = (double)i / Rate;
+                double along = Math.Min(1, t / length);
+                double pitch = from * Math.Pow(to / from, along);
+                wobble += 2 * Math.PI * pitch * 0.5 / Rate;
+                phase += 2 * Math.PI * pitch / Rate + depth * Math.Exp(-t / 0.01) * Math.Sin(wobble) * 0.2;
+                double envelope = Math.Min(1, (double)(i + 1) / edge) * (i < count ? 1 : Math.Exp(-(t - length) / decay) * (1 - (double)(i - count) / tail));
+                buffer[start + i] += loud * envelope * (Math.Sin(phase) + 0.25 * Math.Sin(3 * phase));
+            }
+        }
+
+        // Sample-rate and bit crush over a stretch, the hold growing from one length to another, so the sound falls apart (or
+        // comes together) as it goes. Bits count from the stretch's own loudest point.
+        private static void Crushed(double[] buffer, double from, double to, int holdFrom, int holdTo, int bits)
+        {
+            int start = Samples(from), end = Math.Min(buffer.Length, Samples(to));
+            double most = 0;
+            for (int i = start; i < end; i++) most = Math.Max(most, Math.Abs(buffer[i]));
+            if (most <= 0 || end <= start) return;
+            double steps = Math.Pow(2, bits - 1) / most, held = 0;
+            int left = 0;
+            for (int i = start; i < end; i++)
+            {
+                if (left-- <= 0)
+                {
+                    double along = (double)(i - start) / (end - start);
+                    left = (int)Math.Round(holdFrom + (holdTo - holdFrom) * along) - 1;
+                    held = Math.Round(buffer[i] * steps) / steps;
+                }
+                buffer[i] = held;
+            }
+        }
+
+        // A dropout: the line goes dead for a moment, with a 1 ms edge each side so it skips rather than clicks.
+        private static void Gate(double[] buffer, double at, double length)
+        {
+            int start = Samples(at), count = Samples(Math.Max(0.002, length)), edge = Samples(0.001);
+            for (int i = 0; i < count && start + i < buffer.Length; i++)
+            {
+                double depth = Math.Min(1, Math.Min((double)(i + 1) / edge, (double)(count - i) / edge));
+                buffer[start + i] *= 1 - depth;
+            }
+        }
+
 
         // Every chime ends the same way: a gentle low-pass, peaks brought to the set's level, and a fade to true silence, since
         // stopping on a sample that isn't zero clicks.

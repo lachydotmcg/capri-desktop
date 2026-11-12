@@ -20,6 +20,8 @@ namespace CapriDesktop
         [DataMember] public bool NoChimeHeard;
         [DataMember] public bool NoChimeListening;
         [DataMember] public int ChimeVolume;
+        // Which set, by its name in Chimes.Sets. Null, as in older settings, is Glass.
+        [DataMember] public string ChimeSet;
     }
 
     internal sealed partial class Companion
@@ -115,6 +117,7 @@ namespace CapriDesktop
         {
             Chimes.On = !preferences.NoChimes;
             Chimes.Volume = ChimeVolume;
+            Chimes.Set = ChimeSet;
             Chimes.Want(Chime.Sent, !preferences.NoChimeSent);
             Chimes.Want(Chime.Heard, !preferences.NoChimeHeard);
             Chimes.Want(Chime.Listening, !preferences.NoChimeListening);
@@ -123,6 +126,18 @@ namespace CapriDesktop
         internal bool ChimesOn { get { return !preferences.NoChimes; } }
 
         internal int ChimeVolume { get { int volume = preferences.ChimeVolume; return volume <= 0 ? Chimes.DefaultVolume : Math.Max(10, Math.Min(100, volume / 10 * 10)); } }
+
+        internal int ChimeSet { get { int set = Array.IndexOf(Chimes.Sets, preferences.ChimeSet ?? ""); return set < 0 ? Chimes.DefaultSet : set; } }
+
+        // A new set takes over from the next chime, and plays its heard chime once at their volume so they hear it.
+        internal void SetChimeSet(int set)
+        {
+            set = Math.Max(0, Math.Min(Chimes.Sets.Length - 1, set));
+            preferences.ChimeSet = set == Chimes.DefaultSet ? null : Chimes.Sets[set];
+            ShowChimes();
+            SavePreferences();
+            Chimes.Play(Chime.Heard, true);
+        }
 
         internal bool ChimeOn(Chime chime) { return chime == Chime.Sent ? !preferences.NoChimeSent : chime == Chime.Heard ? !preferences.NoChimeHeard : !preferences.NoChimeListening; }
 
@@ -202,13 +217,13 @@ namespace CapriDesktop
                 double alike = Alike(Chimes.Render(set, Chime.Sent, 100), Chimes.Render(set, Chime.Heard, 100));
                 if (alike > 0.8) throw new Exception("The " + Chimes.Sets[set] + " set's sent and heard chimes sound too alike: " + alike);
             }
-            checks.Add("PASS her chimes: all three sets made in code, none longer than 400 ms, none clips or starts or ends off zero, 40% is the volume curve's 12 dB down, and each set's sent and heard chimes differ (" + string.Join("; ", table.ToArray()) + ")");
+            checks.Add("PASS her chimes: all six sets made in code, none longer than 400 ms, none clips or starts or ends off zero, 40% is the volume curve's 12 dB down, and each set's sent and heard chimes differ (" + string.Join("; ", table.ToArray()) + ")");
 
             using (MemoryStream old = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}")))
             {
                 Preferences older = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(old);
                 foreach (Preferences start in new[] { older, new Preferences(), Preferences.Fresh() })
-                    if (start.NoChimes || start.NoChimeSent || start.NoChimeHeard || start.NoChimeListening || start.ChimeVolume != 0) throw new Exception("Her chimes didn't start on at 40% in new or older settings.");
+                    if (start.NoChimes || start.NoChimeSent || start.NoChimeHeard || start.NoChimeListening || start.ChimeVolume != 0 || start.ChimeSet != null) throw new Exception("Her chimes didn't start on Glass at 40% in new or older settings.");
             }
 
             Action<short[]> outWas = Chimes.Out;
@@ -216,6 +231,7 @@ namespace CapriDesktop
             Func<long> clockWas = Chimes.Clock;
             bool offWas = preferences.NoChimes, sentWas = preferences.NoChimeSent, heardWas = preferences.NoChimeHeard, listeningWas = preferences.NoChimeListening;
             int volumeWas = preferences.ChimeVolume;
+            string setWas = preferences.ChimeSet;
             bool advancedWas = preferences.AdvancedSettings, pageWas = mainframe.SettingsShown;
             long now = 1000000;
             double ringing = 0;
@@ -230,6 +246,7 @@ namespace CapriDesktop
                 Chimes.Reset();
                 preferences.NoChimes = preferences.NoChimeSent = preferences.NoChimeHeard = preferences.NoChimeListening = false;
                 preferences.ChimeVolume = 0;
+                preferences.ChimeSet = null;
                 ShowChimes();
                 mainframe.Sync();
 
@@ -310,7 +327,7 @@ namespace CapriDesktop
                 }
                 if (opens < 2 || goneUi > 50 || duringStuck != 1) throw new Exception("A gone or stuck speaker held her or stacked chimes: opens " + opens + ", " + goneUi + " ms on her UI thread, " + duringStuck + " opens while stuck");
                 checks.Add("PASS Chimes off mid-ring stops the chime ringing; with no speaker a chime fails quietly off her UI thread, and while a speaker is stuck opening the chimes after it are dropped, not queued (" + stuckUi + " ms on her UI thread for three)");
-                checks.Add("PASS her chimes play on their own Plain speaker, which stays out of her voice in your mic and Capri Remote, and a chime over her voice leaves it playing; a chime leaves her UI thread in " + onUi + " us and is playing on the silent stand-in " + reached.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms later, and the nine chimes took " + Chimes.Warmed + " ms to make at start-up, off her UI thread");
+                checks.Add("PASS her chimes play on their own Plain speaker, which stays out of her voice in your mic and Capri Remote, and a chime over her voice leaves it playing; a chime leaves her UI thread in " + onUi + " us and is playing on the silent stand-in " + reached.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms later, and the eighteen chimes took " + Chimes.Warmed + " ms to make at start-up, off her UI thread");
 
                 // Mainframe's SOUNDS rows.
                 mainframe.ShowSettings(true);
@@ -346,6 +363,7 @@ namespace CapriDesktop
                 mainframe.SlideChimeVolume(-20);
                 if (ChimeVolume != 10 || mainframe.SoundsStatus != "on | 10% | sent heard listening | enabled") throw new Exception("Chime volume didn't stop at 10%: " + mainframe.SoundsStatus);
                 mainframe.SlideChimeVolume(3);
+                SoundSets(checks, played, delegate { now += 2000; }, delegate(double seconds) { ringing = seconds; });
                 checks.Add("PASS SOUNDS in Mainframe: Chimes off silences every chime, greys its rows and saves; Message sent, Heard you and Listening each switch their own chime; Chime volume runs 10% to 100%, saves and sets the chime's level");
 
                 string turned = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "chimes" });
@@ -433,6 +451,7 @@ namespace CapriDesktop
                 Chimes.Left = leftWas;
                 Chimes.Clock = clockWas;
                 Chimes.Reset();
+                preferences.ChimeSet = setWas;
                 preferences.NoChimes = offWas; preferences.NoChimeSent = sentWas; preferences.NoChimeHeard = heardWas; preferences.NoChimeListening = listeningWas;
                 preferences.ChimeVolume = volumeWas;
                 preferences.AdvancedSettings = advancedWas;
@@ -441,6 +460,64 @@ namespace CapriDesktop
                 mainframe.Sync();
                 mainframe.ShowSettings(pageWas);
             }
+        }
+
+        // Sound set: each step saves, takes over from the very next chime and plays its heard chime once; never over one still
+        // ringing, never with Chimes off; and her settings tool picks a set by name.
+        private void SoundSets(List<string> checks, List<short[]> played, Action later, Action<double> ring)
+        {
+            Func<int> count = delegate { lock (played) return played.Count; };
+            List<string> walked = new List<string>();
+            mainframe.ShowSettings(true);
+            if (mainframe.ChimeSetShown != "Glass" || Chimes.Set != Chimes.Glass) throw new Exception("Sound set didn't start on Glass: " + mainframe.ChimeSetShown);
+            for (int step = 1; step <= Chimes.Picked.Length; step++)
+            {
+                int set = Chimes.Picked[step % Chimes.Picked.Length];
+                later();
+                int was = count();
+                mainframe.StepChimeSet(step < Chimes.Picked.Length ? 1 : -(Chimes.Picked.Length - 1));
+                if (Chimes.Set != set || ChimeSet != set || LoadPreferences().ChimeSet != (set == Chimes.Glass ? null : Chimes.Sets[set]) || mainframe.ChimeSetShown != Chimes.Titles[set])
+                    throw new Exception("Sound set didn't move to " + Chimes.Titles[set] + " or save it: " + mainframe.ChimeSetShown + ", playing " + Chimes.Titles[Chimes.Set]);
+                if (step < Chimes.Picked.Length && (count() != was + 1 || !Same(played[played.Count - 1], Chimes.Render(set, Chime.Heard, Chimes.Volume)))) throw new Exception("Sound set's " + Chimes.Titles[set] + " preview didn't play once: " + (count() - was));
+                later();
+                Chimes.Play(Chime.Sent);
+                if (!Same(played[played.Count - 1], Chimes.Render(set, Chime.Sent, Chimes.Volume))) throw new Exception("The next chime after picking " + Chimes.Titles[set] + " wasn't from it.");
+                walked.Add(Chimes.Titles[set]);
+            }
+            // Picked while one still rings: the new set waits for the next chime, and nothing lands on the one ringing.
+            later();
+            Chimes.Play(Chime.Sent);
+            ring(0.2);
+            int ringingWas = count();
+            mainframe.StepChimeSet(1);
+            bool overlapped = count() != ringingWas;
+            ring(0);
+            mainframe.StepChimeSet(-1);
+            // With Chimes off, a new set saves but plays nothing.
+            preferences.NoChimes = true;
+            ShowChimes();
+            mainframe.Sync();
+            later();
+            int offWas = count();
+            mainframe.StepChimeSet(2);
+            bool offPreview = count() != offWas;
+            int offSet = Chimes.Set;
+            preferences.NoChimes = false;
+            ShowChimes();
+            mainframe.Sync();
+            mainframe.StepChimeSet(-2);
+            if (overlapped || offPreview || offSet != Chimes.Picked[2]) throw new Exception("Sound set played over a ringing chime or with Chimes off: overlapped " + overlapped + ", off " + offPreview);
+            // Her settings tool.
+            string shard = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "chime_set", Level = "shard" });
+            bool toolShard = Chimes.Set == Chimes.Shard && mainframe.ChimeSetShown == "Shard";
+            string crush = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "chime_set", Level = "Crush" });
+            bool toolCrush = Chimes.Set == Chimes.Crush;
+            string listed = Hands.Do("capri_settings", new ToolArguments { Action = "list" });
+            Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "chime_set", Level = "glass" });
+            string help = SelfKnow.Matching("can you use the shard sounds?");
+            if (!toolShard || !toolCrush || Chimes.Set != Chimes.Glass || !listed.Contains("Chime sound set: Crush") || SelfKnow.Setting("Mainframe.cs", "Sound set") == null || help == null || !help.Contains("Sound set"))
+                throw new Exception("Her settings tool or help didn't handle Sound set: " + shard + " / " + crush + " / " + help);
+            checks.Add("PASS Sound set steps " + string.Join(", ", walked.ToArray()) + ", each saved, taking over from the very next chime and playing its heard chime once; picked mid-ring it plays nothing over the ringing chime, and with Chimes off it saves but plays nothing; her settings tool picks a set by name and her help answers about it");
         }
 
         // Every way of talking to her plays its chime once, through her real ears and hands with a stand-in brain, and her ears
@@ -1078,9 +1155,17 @@ namespace CapriDesktop
     {
         private static readonly string[] ChimeVolumeNames = { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private Toggle chimes, chimeSent, chimeHeard, chimeListening;
-        private Slider chimeVolume;
-        private Readout chimeVolumeName;
-        private Control chimeVolumeLabel;
+        private Slider chimeVolume, chimeSet;
+        private Readout chimeVolumeName, chimeSetName;
+
+        // Sound set's steps, in the order SOUNDS shows them.
+        internal static string[] SetNames()
+        {
+            string[] names = new string[Chimes.Picked.Length];
+            for (int i = 0; i < names.Length; i++) names[i] = Chimes.Titles[Chimes.Picked[i]];
+            return names;
+        }
+        private Control chimeVolumeLabel, chimeSetLabel;
 
         // SOUNDS, under HABITS: her chimes. last is where Explore after's row is, as built so far.
         private void BuildSounds(int c, int last)
@@ -1089,16 +1174,20 @@ namespace CapriDesktop
             Section("SOUNDS >", c, y);
             chimes = Switch("Chimes", c, y + 24, delegate { if (!syncing) capri.ToggleChimes(); });
             chimes.AccessibleName = "Chimes. Soft sounds when your message is sent, when she's heard you and when she's listening";
-            chimeVolume = Setting("Chime volume", ChimeVolumeNames, c, y + 24 + Row, "How loud her chimes are");
+            chimeSet = Setting("Sound set", SetNames(), c, y + 24 + Row, "Which set of chimes she plays");
+            chimeSetName = new Readout(chimeSet);
+            chimeSetLabel = Controls[Controls.IndexOf(chimeSet) - 1];
+            chimeSet.Changed += delegate { if (syncing) return; chimeSetName.Text = SetNames()[chimeSet.Value]; capri.SetChimeSet(Chimes.Picked[chimeSet.Value]); };
+            chimeVolume = Setting("Chime volume", ChimeVolumeNames, c, y + 24 + Row * 2, "How loud her chimes are");
             chimeVolumeName = new Readout(chimeVolume);
             chimeVolumeLabel = Controls[Controls.IndexOf(chimeVolume) - 1];
             chimeVolume.Changed += delegate { if (syncing) return; chimeVolumeName.Text = ChimeVolumeNames[chimeVolume.Value]; capri.SetChimeVolume((chimeVolume.Value + 1) * 10); };
             chimeVolume.Released += delegate { if (!syncing) capri.PreviewChime(); };
-            chimeSent = Switch("Message sent", c, y + 24 + Row * 2, delegate { if (!syncing) capri.ToggleChime(Chime.Sent); });
+            chimeSent = Switch("Message sent", c, y + 24 + Row * 3, delegate { if (!syncing) capri.ToggleChime(Chime.Sent); });
             chimeSent.AccessibleName = "Message sent. A soft rising tick when your typed message goes to her";
-            chimeHeard = Switch("Heard you", c, y + 24 + Row * 3, delegate { if (!syncing) capri.ToggleChime(Chime.Heard); });
+            chimeHeard = Switch("Heard you", c, y + 24 + Row * 4, delegate { if (!syncing) capri.ToggleChime(Chime.Heard); });
             chimeHeard.AccessibleName = "Heard you. A soft falling tick when she's heard you finish talking";
-            chimeListening = Switch("Listening", c, y + 24 + Row * 4, delegate { if (!syncing) capri.ToggleChime(Chime.Listening); });
+            chimeListening = Switch("Listening", c, y + 24 + Row * 5, delegate { if (!syncing) capri.ToggleChime(Chime.Listening); });
             chimeListening.AccessibleName = "Listening. Three soft rising ticks when Hey Capri opens her ears";
         }
 
@@ -1108,11 +1197,13 @@ namespace CapriDesktop
             chimes.Checked = on;
             chimeVolume.Value = Math.Max(0, Math.Min(ChimeVolumeNames.Length - 1, capri.ChimeVolume / 10 - 1));
             chimeVolumeName.Text = ChimeVolumeNames[chimeVolume.Value];
+            chimeSet.Value = Math.Max(0, Array.IndexOf(Chimes.Picked, capri.ChimeSet));
+            chimeSetName.Text = SetNames()[chimeSet.Value];
             chimeSent.Checked = capri.ChimeOn(Chime.Sent);
             chimeHeard.Checked = capri.ChimeOn(Chime.Heard);
             chimeListening.Checked = capri.ChimeOn(Chime.Listening);
-            chimeVolume.Enabled = chimeSent.Enabled = chimeHeard.Enabled = chimeListening.Enabled = on;
-            chimeVolumeLabel.ForeColor = on ? Rose : Neon.Tone(112, 94, 104);
+            chimeSet.Enabled = chimeVolume.Enabled = chimeSent.Enabled = chimeHeard.Enabled = chimeListening.Enabled = on;
+            chimeVolumeLabel.ForeColor = chimeSetLabel.ForeColor = on ? Rose : Neon.Tone(112, 94, 104);
         }
 
         internal bool ChimesShown { get { return chimes.Checked; } }
@@ -1135,6 +1226,10 @@ namespace CapriDesktop
         internal void FlipChime(Chime chime) { Toggle row = chime == Chime.Sent ? chimeSent : chime == Chime.Heard ? chimeHeard : chimeListening; row.Checked = !row.Checked; }
 
         internal void SlideChimeVolume(int steps) { Press(chimeVolume, steps); }
+
+        internal void StepChimeSet(int steps) { Press(chimeSet, steps); }
+
+        internal string ChimeSetShown { get { return chimeSetName.Text + (chimeSet.Enabled ? "" : " (grey)"); } }
 
         // Settings as they'd see it with Windows at dpi (96 for 100%, 120 for 125%, 144 for 150%) and her Mainframe size at 100%,
         // drawn the way PrintWindow draws it on the smoke's own desktop: the view with HABITS at its top, and the whole page down
@@ -1225,14 +1320,14 @@ namespace CapriDesktop
                     Application.DoEvents();
                     ScrollPage((int)Math.Round((chimes.Top + Scaled(pageScroll)) / Unit()) - 300);
                     Application.DoEvents();
-                    foreach (Control control in new Control[] { chimes, chimeVolume, chimeHeard })
+                    foreach (Control control in new Control[] { chimes, chimeSet, chimeVolume, chimeHeard })
                     {
                         DismissHint();
                         dismissedHint = null;
                         overHint = null;
                         MoveOverHint(control);
                         AwaitHint(control);
-                        if (HintVisible) SaveTipPreview(folder, "tip-" + (control == chimes ? "chimes" : control == chimeVolume ? "volume" : "heard") + "-" + percent + ".png");
+                        if (HintVisible) SaveTipPreview(folder, "tip-" + (control == chimes ? "chimes" : control == chimeSet ? "set" : control == chimeVolume ? "volume" : "heard") + "-" + percent + ".png");
                     }
                     DismissHint();
                     chimes.Checked = false;
@@ -1259,7 +1354,7 @@ namespace CapriDesktop
         {
             get
             {
-                foreach (Control row in new Control[] { chimes, chimeVolume, chimeSent, chimeHeard, chimeListening })
+                foreach (Control row in new Control[] { chimes, chimeSet, chimeVolume, chimeSent, chimeHeard, chimeListening })
                     if (Folded(row) || Hidden(row)) return false;
                 return true;
             }
