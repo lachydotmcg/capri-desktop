@@ -149,8 +149,8 @@ namespace CapriDesktop
             File.WriteAllText(markup, "picture");
             List<string> saved = new List<string>(), crowded = new List<string>(), cueless = new List<string>();
             // The pictures show the stand-in folders where a person's projects would be, never the test's own temp path.
-            // Her folder in the pictures is a stand-in for Documents\Capri\Workspace, never the real one.
-            string standinDocuments = Path.Combine(folder, "Documents"), standinHome = Path.Combine(standinDocuments, "Capri", "Workspace");
+            // Her folder in the pictures is a stand-in for the profile's Capri\Workspace, never the real one.
+            string standinProfile = Path.Combine(folder, "profile"), standinHome = Path.Combine(standinProfile, "Capri", "Workspace");
             Func<string, string> alias = delegate(string path)
             {
                 int at = path.IndexOf(projects, StringComparison.OrdinalIgnoreCase);
@@ -159,8 +159,8 @@ namespace CapriDesktop
                     path = path.Substring(0, at) + @"C:\Users\you\Projects" + path.Substring(at + projects.Length);
                     at = path.IndexOf(projects, at + 1, StringComparison.OrdinalIgnoreCase);
                 }
-                at = path.IndexOf(standinDocuments, StringComparison.OrdinalIgnoreCase);
-                if (at >= 0) path = path.Substring(0, at) + @"C:\Users\you\Documents" + path.Substring(at + standinDocuments.Length);
+                at = path.IndexOf(standinProfile, StringComparison.OrdinalIgnoreCase);
+                if (at >= 0) path = path.Substring(0, at) + @"C:\Users\you" + path.Substring(at + standinProfile.Length);
                 return path;
             };
             string pipe = "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-look-";
@@ -340,6 +340,7 @@ namespace CapriDesktop
                 }
             }
             SmokeWorkspaceAttachments(checks, folder, projects, pipe, alias, shoot);
+            SmokeWorkspaceTitles(checks, folder, projects, pipe, alias, shoot);
             SmokeWorkspaceEdits(checks, folder, projects, pipe, alias, shoot);
             bool shown = mainframe.Visible;
             FormWindowState state = mainframe.WindowState;
@@ -381,15 +382,75 @@ namespace CapriDesktop
             checks.Add("PASS Workspace's empty message box shows its cue in every picture where it's empty and uncovered");
         }
 
+        // Chats in her folder take their titles from their first message, pictured with the empty state at 100%, 125% and 150%:
+        // a long message cut at a word, a short one, and files with no words named after the first file. A typed title wins.
+        private void SmokeWorkspaceTitles(List<string> checks, string folder, string projects, string pipe, Func<string, string> alias, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            string box = Path.Combine(folder, "titles"), home = Path.Combine(folder, "profile", "Capri", "Workspace");
+            string notes = Path.Combine(projects, "notes for the workspace window rebuild"), markup = Path.Combine(notes, "attempt-1-lachys-markup.png");
+            Directory.CreateDirectory(box);
+            Directory.CreateDirectory(notes);
+            if (!File.Exists(markup)) File.WriteAllText(markup, "x");
+            string standin = WorkspaceRawStandin(box, Guid.NewGuid().ToString(), false);
+            string longOne = "Make the download band on the home page match the new city look, with both buttons";
+            string[] expected = { "Make the download band on the home page", "Fix the header spacing", "attempt-1-lachys-markup.png" };
+            if (Workspace.TitleFrom(longOne, null) != expected[0] || Workspace.TitleFrom("Fix the header spacing.", null) != expected[1] || Workspace.TitleFrom("  ", new List<string> { markup }) != expected[2] || Workspace.TitleFrom("Why?!", null) != "Why")
+                throw new Exception("Titles from first messages came out wrong: " + Workspace.TitleFrom(longOne, null));
+            foreach (float z in new[] { 1f, 1.25f, 1.5f })
+            {
+                int scale = (int)Math.Round(z * 100);
+                using (Workspace work = new Workspace(Path.Combine(box, "data" + scale), pipe + Guid.NewGuid().ToString("N")))
+                using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
+                {
+                    work.Executable = standin;
+                    work.Home = home;
+                    window.PathAlias = alias;
+                    window.Location = new Point(z == 1f ? 40 : 0, z == 1f ? 40 : 0);
+                    window.Show(this);
+                    window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Wide * z), Math.Min((int)Math.Round(WorkspaceWindow.Tall * z), 1032));
+                    if (!window.HomeShown) throw new Exception("The empty Workspace doesn't offer her folder.");
+                    shoot(window, "23-empty-state-" + scale, null);
+                    string[] said = { longOne, "Fix the header spacing.", "" };
+                    for (int i = 0; i < said.Length; i++)
+                    {
+                        window.NewChat();
+                        WorkspaceChat chat = window.Chat;
+                        if (chat.Title != "New chat") throw new Exception("A new chat in her folder wasn't called New chat before its first message.");
+                        if (said[i].Length == 0) window.AddPaths(new string[0], new[] { markup });
+                        window.Input.Text = said[i];
+                        window.TypeInto(window.Input, Keys.Enter);
+                        WorkspaceWait(delegate { Application.DoEvents(); return chat.Live == null; }, "A titles turn didn't finish.");
+                        Application.DoEvents();
+                        if (chat.Title != expected[i]) throw new Exception("The chat was titled \"" + chat.Title + "\" instead of \"" + expected[i] + "\".");
+                    }
+                    window.RefreshChat();
+                    shoot(window, "24-home-titles-" + scale, null);
+                    if (z == 1f)
+                    {
+                        window.NewChat();
+                        WorkspaceChat named = window.Chat;
+                        window.Rename("Website notes");
+                        window.Input.Text = "Something else entirely";
+                        window.TypeInto(window.Input, Keys.Enter);
+                        WorkspaceWait(delegate { Application.DoEvents(); return named.Live == null; }, "The named chat's turn didn't finish.");
+                        if (named.Title != "Website notes") throw new Exception("A typed title was replaced by the first message.");
+                        window.ShowChat(window.Chat);
+                    }
+                    window.Close();
+                }
+            }
+            checks.Add("PASS Workspace chats in her folder are called New chat until their first message, then take its first words (cut at a word near 40 letters, no trailing punctuation) or the first file's name, and a typed title is never replaced");
+        }
+
         // Her own folder and files as attachments, through the real send path with a stand-in claude.cmd: "+ New chat" opens a
-        // chat in her folder (a stand-in for Documents\Capri\Workspace here, never the real one), trusted and ready to type in,
+        // chat in her folder (a stand-in for the profile's Capri\Workspace here, never the real one), trusted and ready to type in,
         // whose folder can change until the first message; files ride with one message and then leave the composer while
         // staying part of the chat, also after a restart; a file can be taken off before sending, attached again later, and
         // sent with no words; a failed start keeps the message and its files for Retry. Pictured at 100%, 125% and 150%.
         private void SmokeWorkspaceAttachments(List<string> checks, string folder, string projects, string pipe, Func<string, string> alias, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
         {
             string box = Path.Combine(folder, "attachments"), data = Path.Combine(box, "data");
-            string documents = Path.Combine(folder, "Documents"), home = Path.Combine(documents, "Capri", "Workspace");
+            string home = Path.Combine(folder, "profile", "Capri", "Workspace");
             string notes = Path.Combine(projects, "notes for the workspace window rebuild"), other = Path.Combine(projects, "metis-orchestrator");
             Directory.CreateDirectory(box);
             Directory.CreateDirectory(notes);
