@@ -3304,7 +3304,7 @@ namespace CapriDesktop
                 foreach (Piece piece in block.Pieces)
                 {
                     if (piece.Code) WorkPaint.Plate(graphics, piece.Box, 6 * s, Neon.Well, Neon.WellEdge, line);
-                    else if (piece.Tag == "run" && piece.Back.A > 0) WorkPaint.Plate(graphics, new Rectangle(piece.Box.Left - Z(3), piece.Box.Top + Z(2), piece.Box.Width + Z(6), piece.Box.Height - Z(4)), 3 * s, piece.Back, Color.Empty, 0);
+                    else if (piece.Tag == "run" && piece.Back.A > 0) WorkPaint.Plate(graphics, new Rectangle(piece.Box.Left - Z(3), piece.Box.Top + Z(2), piece.Box.Width + Z(6), piece.Box.Height - Z(4)), 3 * s, piece.Back, Neon.WellEdge, Math.Max(1f, s));
                     else if (piece.Tag == "table") PaintTable(graphics, piece);
                 }
                 PaintSelection(graphics, block);
