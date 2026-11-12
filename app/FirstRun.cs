@@ -182,6 +182,10 @@ namespace CapriDesktop
             internal void Go(int screen)
             {
                 if (Finished) return;
+                Moved(screen);
+                // The old screen's controls stay alive until its click has finished, so anything still on its way to them
+                // is dropped from here on.
+                built++;
                 shownBrain = Brain;
                 bool leavingVoice = Screen == FirstRun.Voice && screen != FirstRun.Voice;
                 if (leavingVoice && owner.MicTesting) capri.TestMic();
@@ -304,7 +308,7 @@ namespace CapriDesktop
                 key.Font = font;
                 key.Accent = accent;
                 key.Bounds = Box(x, y, width, height);
-                key.Click += click;
+                key.Click += Live(click);
                 Controls.Add(key);
                 return key;
             }
@@ -318,7 +322,7 @@ namespace CapriDesktop
                 link.AccessibleName = text;
                 Size size = TextRenderer.MeasureText(text, font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
                 link.Bounds = new Rectangle(Z(x), Z(y), size.Width + Z(4), Math.Max(size.Height, Z(24)));
-                link.Click += click;
+                link.Click += Live(click);
                 Controls.Add(link);
                 return link;
             }
@@ -337,7 +341,7 @@ namespace CapriDesktop
                 pick.Font = Body(18);
                 pick.AccessibleName = title + ". " + body;
                 pick.Bounds = Box(28, y, Wide - 56, height);
-                pick.Click += chosen;
+                pick.Click += Live(chosen);
                 Controls.Add(pick);
                 return pick;
             }
@@ -391,8 +395,36 @@ namespace CapriDesktop
 
             private void LanguagePicked(object sender, EventArgs e) { SyncLanguage(); }
 
+            // Where the card has been and what sent it there, newest last, so a check that finds it somewhere unexpected can say why.
+            private readonly List<string> trail = new List<string>();
+
+            internal string Trail { get { return string.Join(" | ", trail.ToArray()); } }
+
+            private void Moved(int screen)
+            {
+                System.Diagnostics.StackTrace callers = new System.Diagnostics.StackTrace(2, false);
+                List<string> names = new List<string>();
+                for (int i = 0; i < Math.Min(4, callers.FrameCount); i++) { System.Reflection.MethodBase method = callers.GetFrame(i).GetMethod(); if (method != null) names.Add(method.Name); }
+                trail.Add(screen + " < " + string.Join(" < ", names.ToArray()));
+                if (trail.Count > 12) trail.RemoveAt(0);
+            }
+
+            // Each screen built, counted, so its controls' handlers know when they're from a screen that's gone.
+            private int built;
+
+            // A handler that only runs while its screen is the one showing: a click or key already on its way to a control when
+            // the card moves on (her brain coming online, Skip all, a pick in the Mainframe), is rebuilt or is finished does
+            // nothing, so it can't reach a screen whose pieces are gone.
+            private EventHandler Live(EventHandler handler)
+            {
+                int screen = built;
+                return delegate(object sender, EventArgs e) { if (!Finished && !IsDisposed && screen == built) handler(sender, e); };
+            }
+
             internal void PickBrain(int choice)
             {
+                // Only WAKE ME UP has brains to pick.
+                if (Finished || IsDisposed || Screen != FirstRun.Pick || picks == null) return;
                 Picked = choice;
                 int[] order = { FirstRun.Local, FirstRun.Free, FirstRun.Own, FirstRun.NoAi };
                 for (int i = 0; i < picks.Length; i++) { picks[i].Picked = order[i] == choice; picks[i].Invalidate(); }
@@ -606,7 +638,7 @@ namespace CapriDesktop
                     box.Bounds = Box(28, y, Wide - 56, 28);
                     box.Checked = capri.FirstRunExtraOn(i);
                     box.AccessibleName = names[i] + ". " + notes[i];
-                    box.CheckedChanged += delegate { if (box.Checked != capri.FirstRunExtraOn(row)) capri.FirstRunExtra(row); };
+                    box.CheckedChanged += Live(delegate { if (box.Checked != capri.FirstRunExtraOn(row)) capri.FirstRunExtra(row); });
                     Controls.Add(box);
                     extras[i] = box;
                     Caption(notes[i], 28, y + 32, Wide - 56, 24, Body(17), Faint);
