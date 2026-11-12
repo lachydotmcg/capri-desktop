@@ -227,7 +227,7 @@ namespace CapriDesktop
             graphics.SmoothingMode = was;
         }
 
-        private static GraphicsPath Rounded(RectangleF box, float r)
+        internal static GraphicsPath Rounded(RectangleF box, float r)
         {
             GraphicsPath path = new GraphicsPath();
             float d = r * 2;

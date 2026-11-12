@@ -967,6 +967,21 @@ namespace CapriDesktop
         internal List<string> CardWords(out Point details) { return transcript.CardWords(out details); }
         internal void PressTranscript(Point at) { transcript.PressAt(at); }
         internal static string EndText(string text) { return Transcript.EndShown(text); }
+        internal string SelectedText { get { return transcript.Selected(); } }
+        internal bool SelectText(WorkspaceItem a, int partA, int atA, WorkspaceItem b, int partB, int atB) { return transcript.SelectText(a, partA, atA, b, partB, atB); }
+        internal void ClearSelection() { transcript.ClearSelection(); }
+        internal Point TextPoint(WorkspaceItem item, int part, int at) { return transcript.PointOf(item, part, at); }
+        internal void DragText(Point from, Point to) { transcript.DragText(from, to, 8); }
+        internal void ClickText(Point at, int times) { transcript.ClickText(at, times); }
+        internal int DragPastEnd(Point from, int ticks) { return transcript.DragPastEnd(from, ticks); }
+        internal void TranscriptKey(Keys keys) { transcript.Key(keys); }
+        internal Rectangle CopyKeyOn(Point at) { return transcript.CopyKeyOn(at); }
+        internal void PressCopyKey() { transcript.PressCopyKey(); }
+        internal bool CopyTicked { get { return transcript.Ticked; } }
+        internal List<string> MenuNames(WorkspaceItem item) { return transcript.MenuNames(item); }
+        internal void MoveOver(Point at) { transcript.MoveTo(at); }
+        internal Func<bool> ShiftHeld { set { transcript.ShiftDown = value; } }
+        internal Cursor TranscriptPointer { get { return transcript.Cursor; } }
         // A fold line's middle (index-th line, in the window's own space) or the MODE key's, with the tooltip each shows.
         internal string TipOn(int fold, out Point at)
         {
@@ -1011,6 +1026,8 @@ namespace CapriDesktop
             return inked < 20;
         }
         internal string CopyText(WorkspaceItem item) { return transcript.CopyOf(item); }
+        // Where copied text goes: Windows' clipboard, or the smoke's stand-in so a run never touches his.
+        internal static Action<string> ClipboardWrite = delegate(string text) { Clipboard.SetText(text); };
         internal string CodeFont { get { return mono.Name; } }
         internal string ProseFont { get { return Font.Name; } }
         internal bool UndoOffered { get { return undo.Visible && undo.Enabled; } }
@@ -1685,6 +1702,30 @@ namespace CapriDesktop
                 internal List<Block> Group;
                 internal Rectangle Head;
                 internal string Words = "", Trouble = "", Doing, HeadTool = "", HeadMark = "";
+                // Its text as parts a selection counts along (his words, her paragraphs, a well's code, a row's line), and where
+                // each stretch of it is drawn.
+                internal readonly List<WordBlock> Parts = new List<WordBlock>();
+                internal readonly List<Seg> Segs = new List<Seg>();
+            }
+
+            // One drawn stretch of selectable text: its part, where it starts in that part's characters, and its box. A code
+            // row draws tabs as four spaces, so Map gives each drawn character's place in the part when the row had a tab.
+            internal sealed class Seg
+            {
+                internal int Part, Start;
+                internal string Text;
+                internal Font Font;
+                internal Rectangle Box;
+                internal int[] Map;
+                internal int At(int drawn) { return Map != null ? Map[Math.Max(0, Math.Min(drawn, Map.Length - 1))] : Start + drawn; }
+                internal int End { get { return At(Text.Length); } }
+            }
+
+            // A place in the conversation's text: a block, one of its parts, and a character along it.
+            internal struct Spot
+            {
+                internal Block Block;
+                internal int Part, At;
             }
 
             internal sealed class Piece
@@ -1731,6 +1772,8 @@ namespace CapriDesktop
                 this.opened = opened;
                 tips = WorkPaint.Tips(delegate { return window.small; });
                 shineClock.Tick += delegate { ShineTick(); };
+                edgeClock.Tick += delegate { EdgeTick(); };
+                tickClock.Tick += delegate { TickDone(); };
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
                 TabStop = true;
                 AccessibleName = "Conversation";
@@ -1934,6 +1977,8 @@ namespace CapriDesktop
                     if (block.Hidden)
                     {
                         block.Pieces.Clear();
+                        block.Parts.Clear();
+                        block.Segs.Clear();
                         block.Toggle = block.More = block.Head = Rectangle.Empty;
                         block.Box = new Rectangle(Inset, y, Edge - Inset, 0);
                         block.LaidWidth = -1;
@@ -2239,6 +2284,7 @@ namespace CapriDesktop
                 if (!block.More.IsEmpty) block.More.Offset(0, by);
                 if (!block.Mark.IsEmpty) block.Mark.Offset(0, by);
                 foreach (Piece piece in block.Pieces) piece.Box.Offset(0, by);
+                foreach (Seg seg in block.Segs) seg.Box.Offset(0, by);
                 foreach (Control key in block.Keys) if (key.Tag is Rectangle) { Rectangle at = (Rectangle)key.Tag; at.Offset(0, by); key.Tag = at; }
                 if (block.Reason != null && block.Reason.Tag is Rectangle) { Rectangle at = (Rectangle)block.Reason.Tag; at.Offset(0, by); block.Reason.Tag = at; }
             }
@@ -2266,7 +2312,28 @@ namespace CapriDesktop
                 Piece piece = Add(block, text, font, ink, new Rectangle(x, y, width, rows.Count * pitch));
                 piece.Rows = rows;
                 piece.RowTall = pitch;
+                // Each row is a stretch of the paragraph as typed: Wrap only drops the space or line break where it breaks.
+                string source = text.Replace("\r", "");
+                int part = Part(block, WordKind.Para, source), at = 0;
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    string row = rows[i];
+                    int start = row.Length > 0 ? source.IndexOf(row, at, StringComparison.Ordinal) : at;
+                    if (start < 0) start = at;
+                    block.Segs.Add(new Seg { Part = part, Start = start, Text = row, Font = font, Box = new Rectangle(x, y + i * pitch, Math.Max(Z(2), WorkPaint.Wide(row, font)), pitch) });
+                    at = start + row.Length;
+                    if (at < source.Length && (source[at] == ' ' || source[at] == '\n')) at++;
+                }
                 return piece.Box.Bottom;
+            }
+
+            // A new part of a block's text, of one kind and one plain run.
+            private static int Part(Block block, WordKind kind, string text)
+            {
+                WordBlock part = new WordBlock { Kind = kind };
+                part.Runs.Add(new WordRun { Text = text, Code = kind == WordKind.Code });
+                block.Parts.Add(part);
+                return block.Parts.Count - 1;
             }
 
             // Lines cut at spaces to fit a width, and mid-word only when a word is wider than a whole line. Each candidate line
@@ -2319,8 +2386,39 @@ namespace CapriDesktop
                 int columns = Columns(font, width - pad * 2);
                 List<string> rows = new List<string>();
                 List<Color> rowInks = new List<Color>();
-                for (int i = 0; i < lines.Count; i++) foreach (string row in Fold(lines[i], columns)) { rows.Add(row); rowInks.Add(inks[i]); }
-                if (rows.Count == 0) { rows.Add(""); rowInks.Add(Neon.White); }
+                // Where each row starts in the well's text, and each drawn character's place for a row that had a tab.
+                List<int> starts = new List<int>();
+                List<int[]> maps = new List<int[]>();
+                int lineAt = 0;
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    string line = lines[i];
+                    int[] map = null;
+                    if (line.IndexOf('\t') >= 0)
+                    {
+                        List<int> places = new List<int>();
+                        for (int k = 0; k < line.Length; k++) for (int n = line[k] == '\t' ? 4 : 1; n > 0; n--) places.Add(lineAt + k);
+                        places.Add(lineAt + line.Length);
+                        map = places.ToArray();
+                    }
+                    int drawn = 0;
+                    foreach (string row in Fold(line, columns))
+                    {
+                        rows.Add(row);
+                        rowInks.Add(inks[i]);
+                        if (map == null) { starts.Add(lineAt + drawn); maps.Add(null); }
+                        else
+                        {
+                            int[] own = new int[row.Length + 1];
+                            for (int k = 0; k <= row.Length; k++) own[k] = map[Math.Min(drawn + k, map.Length - 1)];
+                            starts.Add(own[0]);
+                            maps.Add(own);
+                        }
+                        drawn += row.Length;
+                    }
+                    lineAt += line.Length + 1;
+                }
+                if (rows.Count == 0) { rows.Add(""); rowInks.Add(Neon.White); starts.Add(0); maps.Add(null); }
                 int total = rows.Count, hidden = 0;
                 if (most > 0 && total > most && !block.All) { hidden = total - most; rows.RemoveRange(most, hidden); rowInks.RemoveRange(most, hidden); }
                 int rowTall = Math.Max(font.Height, TextRenderer.MeasureText("Mgjp|", font).Height) + Z(1);
@@ -2330,6 +2428,9 @@ namespace CapriDesktop
                 piece.Rows = rows;
                 piece.Inks = rowInks;
                 piece.RowTall = rowTall;
+                int part = Part(block, WordKind.Code, string.Join("\n", lines.ToArray()));
+                for (int i = 0; i < rows.Count; i++)
+                    block.Segs.Add(new Seg { Part = part, Start = starts[i], Map = maps[i], Text = rows[i], Font = font, Box = new Rectangle(x + pad, y + pad + top + i * rowTall, Math.Max(Z(2), WorkPaint.Wide(rows[i], font)), rowTall) });
                 int bottom = piece.Box.Bottom;
                 if (most > 0 && total > most)
                 {
@@ -2573,6 +2674,8 @@ namespace CapriDesktop
             private void Measure(Block block, int y)
             {
                 block.Pieces.Clear();
+                block.Parts.Clear();
+                block.Segs.Clear();
                 block.Toggle = block.More = Rectangle.Empty;
                 block.Mark = RectangleF.Empty;
                 WorkspaceItem item = block.Item;
@@ -2619,13 +2722,18 @@ namespace CapriDesktop
                     int indent = Z(18);
                     block.Toggle = new Rectangle(left + indent, top, width - indent, Z(24));
                     int bottom = block.Toggle.Bottom;
+                    {
+                        string shown = block.Open && Cut(block) ? item.Name : Detail(block, false);
+                        int part = Part(block, WordKind.Para, shown), most = Math.Max(1, block.Toggle.Width - Z(52));
+                        block.Segs.Add(new Seg { Part = part, Start = 0, Text = shown, Font = window.note, Box = new Rectangle(block.Toggle.Left + Z(26), block.Toggle.Top, Math.Max(Z(2), Math.Min(most, WorkPaint.Wide(shown, window.note))), block.Toggle.Height) });
+                    }
                     if (block.Open)
                     {
                         int x = block.Toggle.Left + Z(26), wide = block.Toggle.Right - x;
                         // The whole command or path, once, when the row had to cut it; the row itself then shows only the tool.
-                        if (Cut(block)) bottom = Words(block, Detail(block, true), window.note, Neon.Faint, x, bottom + Z(4), wide);
+                        if (Cut(block)) bottom = Prose(block, Detail(block, true), window.note, Neon.Faint, x, bottom + Z(4), wide);
                         string status = Status(block), said = status == "denied" ? Refusal(block) : status == "failed" ? "It failed." : "";
-                        if (said.Length > 0) bottom = Words(block, said, window.small, Pink, x, bottom + Z(4), wide);
+                        if (said.Length > 0) bottom = Prose(block, said, window.small, Pink, x, bottom + Z(4), wide);
                         if (item.Kind == "tool")
                         {
                             List<string> lines = new List<string>();
@@ -2743,6 +2851,7 @@ namespace CapriDesktop
                 Rectangle view = new Rectangle(area.Left, area.Top + Offset, area.Width, area.Height);
                 foreach (Block block in Blocks) if (block.Box.IntersectsWith(Rectangle.Inflate(view, 0, Z(8)))) PaintBlock(graphics, block);
                 if (!thinkLine.IsEmpty && thinkLine.IntersectsWith(view)) PaintThinking(graphics);
+                PaintCopyKey(graphics);
                 graphics.Restore(state);
             }
 
@@ -2773,12 +2882,13 @@ namespace CapriDesktop
                     WorkPaint.Plate(graphics, block.Box, 9 * s, fill, rim, line);
                     if (!block.Mark.IsEmpty) WorkPaint.ToolMark(graphics, item.Name, block.Mark, Neon.White, s);
                 }
-                if (block == picked) WorkPaint.Plate(graphics, Rectangle.Inflate(block.Box, Z(4), Z(4)), 10 * s, Color.Empty, Color.FromArgb(150, Neon.Cyan), line);
+                // Grounds first (a well's plate), then the selection over them, then the words over that.
+                foreach (Piece piece in block.Pieces) if (piece.Code) WorkPaint.Plate(graphics, piece.Box, 6 * s, Neon.Well, Neon.WellEdge, line);
+                PaintSelection(graphics, block);
                 foreach (Piece piece in block.Pieces)
                 {
                     if (piece.Code)
                     {
-                        WorkPaint.Plate(graphics, piece.Box, 6 * s, Neon.Well, Neon.WellEdge, line);
                         int pad = Z(10), top = 0;
                         if (!string.IsNullOrEmpty(piece.Tag)) { TextRenderer.DrawText(graphics, piece.Tag.ToUpperInvariant(), window.caption, new Rectangle(piece.Box.Left + pad, piece.Box.Top + Z(6), piece.Box.Width - pad * 2, Z(14)), Neon.Faint, WorkPaint.Line); top = Z(16); }
                         for (int i = 0; i < piece.Rows.Count; i++)
@@ -2979,7 +3089,7 @@ namespace CapriDesktop
 
             protected override void Dispose(bool disposing)
             {
-                if (disposing) { shineClock.Stop(); shineClock.Dispose(); tips.Dispose(); }
+                if (disposing) { shineClock.Stop(); shineClock.Dispose(); edgeClock.Dispose(); tickClock.Dispose(); tips.Dispose(); }
                 base.Dispose(disposing);
             }
 
@@ -3023,12 +3133,15 @@ namespace CapriDesktop
                     if (room > 0) ScrollTo(dragOffset + (int)((e.Y - dragFrom) * (Content - Height) / room));
                     return;
                 }
+                if (selecting) { Drag(e.Location); return; }
                 Piece code;
                 Block over = At(e.Location, out code);
                 bool head = over != null && !over.Head.IsEmpty && over.Head.Contains(new Point(e.X, e.Y + Offset));
                 bool link = over != null && !over.Toggle.IsEmpty && over.Toggle.Contains(new Point(e.X, e.Y + Offset));
                 bool more = over != null && !over.More.IsEmpty && over.More.Contains(new Point(e.X, e.Y + Offset));
-                Cursor = head || link || more ? Cursors.Hand : Cursors.Default;
+                CopyHover(e.Location);
+                bool key = !copyKey.IsEmpty && copyKey.Contains(new Point(e.X, e.Y + Offset));
+                Cursor = head || link || more || key ? Cursors.Hand : OnText(new Point(e.X, e.Y + Offset)) ? Cursors.IBeam : Cursors.Default;
                 Block hot = head || link && Row(over) ? over : null;
                 if (hot != hovered || head != hoveredHead)
                 {
@@ -3040,7 +3153,12 @@ namespace CapriDesktop
                 }
             }
 
-            protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); if (hovered != null) { hovered = null; Invalidate(); } }
+            protected override void OnMouseLeave(EventArgs e)
+            {
+                base.OnMouseLeave(e);
+                if (hovered != null) { hovered = null; Invalidate(); }
+                if (!selecting) CopyHover(new Point(-1, -1));
+            }
 
             protected override void OnMouseDown(MouseEventArgs e)
             {
@@ -3074,11 +3192,18 @@ namespace CapriDesktop
                     ScrollTo(follow && block == Blocks[Blocks.Count - 1] ? int.MaxValue : was);
                     return;
                 }
-                if (block != picked) { picked = block; Invalidate(); }
+                if (e.Button == MouseButtons.Left && !copyKey.IsEmpty && copyKey.Contains(new Point(e.X, e.Y + Offset))) { CopyKey(); return; }
+                picked = block;
+                if (e.Button == MouseButtons.Left) Press(e.Location);
                 if (block != null && e.Button == MouseButtons.Right) CopyMenu(block, code, e.Location);
             }
 
-            protected override void OnMouseUp(MouseEventArgs e) { base.OnMouseUp(e); if (dragging) { dragging = false; Capture = false; Invalidate(); } }
+            protected override void OnMouseUp(MouseEventArgs e)
+            {
+                base.OnMouseUp(e);
+                if (dragging) { dragging = false; Capture = false; Invalidate(); }
+                if (selecting) { selecting = false; Capture = false; edgeClock.Stop(); }
+            }
 
             protected override void OnMouseWheel(MouseEventArgs e)
             {
@@ -3093,7 +3218,15 @@ namespace CapriDesktop
             protected override void OnKeyDown(KeyEventArgs e)
             {
                 base.OnKeyDown(e);
-                if (e.Control && e.KeyCode == System.Windows.Forms.Keys.C && picked != null) { Copy(CopyOf(picked.Item)); e.Handled = true; return; }
+                if (e.Control && (e.KeyCode == System.Windows.Forms.Keys.C || e.KeyCode == System.Windows.Forms.Keys.Insert))
+                {
+                    string chosen = Selected();
+                    if (chosen.Length > 0) Copy(chosen);
+                    else if (picked != null) Copy(CopyOf(picked.Item));
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Control && e.KeyCode == System.Windows.Forms.Keys.A) { SelectAll(); e.Handled = true; return; }
                 int page = Math.Max(Z(40), Height - Z(40));
                 if (e.KeyCode == System.Windows.Forms.Keys.Down) ScrollTo(Offset + Z(40));
                 else if (e.KeyCode == System.Windows.Forms.Keys.Up) ScrollTo(Offset - Z(40));
@@ -3108,18 +3241,414 @@ namespace CapriDesktop
                 ContextMenuStrip menu = new ContextMenuStrip { Renderer = new Mainframe.MenuLook(), BackColor = Neon.Ground, ForeColor = Neon.White, ShowImageMargin = false };
                 Font own = new Font(window.Font, FontStyle.Regular);
                 menu.Font = own;
-                menu.Items.Add("Copy message", null, delegate { Copy(CopyOf(block.Item)); });
-                if (code != null) { string text = code.Text; menu.Items.Add("Copy code", null, delegate { Copy(text); }); }
+                foreach (KeyValuePair<string, string> item in MenuFor(block, code)) { string text = item.Value; menu.Items.Add(item.Key, null, delegate { Copy(text); }); }
                 menu.Closed += delegate { window.Post(delegate { menu.Dispose(); own.Dispose(); }); };
                 window.openMenu = menu;
                 menu.Show(this, at);
             }
 
+            // What right-clicking offers and what each copies: the selection when there is one, then the message and its code.
+            internal List<KeyValuePair<string, string>> MenuFor(Block block, Piece code)
+            {
+                List<KeyValuePair<string, string>> items = new List<KeyValuePair<string, string>>();
+                string chosen = Selected();
+                if (chosen.Length > 0) items.Add(new KeyValuePair<string, string>("Copy", chosen));
+                if (block != null) items.Add(new KeyValuePair<string, string>("Copy message", CopyOf(block.Item)));
+                if (code != null) items.Add(new KeyValuePair<string, string>("Copy code", CodeOf(block, code)));
+                return items;
+            }
+
             private void Copy(string text)
             {
                 if (string.IsNullOrEmpty(text)) return;
-                try { Clipboard.SetText(text); }
+                try { ClipboardWrite(text); }
                 catch (ExternalException) { }
+            }
+
+            // A well's code as it shows, tabs and all.
+            private static string CodeOf(Block block, Piece code)
+            {
+                foreach (Seg seg in block.Segs)
+                    if (code.Box.Contains(seg.Box.Location) && seg.Part < block.Parts.Count && block.Parts[seg.Part].Kind == WordKind.Code) return WorkWords.Shown(block.Parts[seg.Part]);
+                return code.Text;
+            }
+
+            // ---- Selecting text: press, drag, double and triple click, Shift+click, Ctrl+A, and scrolling past an edge ----
+
+            private Spot anchor, caret;
+            private bool selecting;
+            // Whether Shift is held, from the keyboard, or from the smoke.
+            internal Func<bool> ShiftDown = delegate { return (ModifierKeys & System.Windows.Forms.Keys.Shift) != 0; };
+            private int clicks;
+            private long lastPress = -10000;
+            private Point pressedAt;
+            private Point dragAt;
+            private readonly System.Windows.Forms.Timer edgeClock = new System.Windows.Forms.Timer { Interval = 40 };
+            private static readonly Stopwatch pressClock = Stopwatch.StartNew();
+            private static Color Chosen { get { return Color.FromArgb(78, Neon.Cyan); } }
+
+            private bool OnText(Point inside)
+            {
+                foreach (Block block in Blocks)
+                {
+                    if (block.Hidden || !Rectangle.Inflate(block.Box, 0, Z(4)).Contains(inside)) continue;
+                    foreach (Seg seg in block.Segs) if (seg.Box.Contains(inside)) return true;
+                }
+                return false;
+            }
+
+            // The nearest place in the text to a point (in the conversation's own space): the closest line, then the gap
+            // between characters nearest the point.
+            private bool Hit(Point inside, out Spot spot)
+            {
+                spot = new Spot();
+                Seg best = null;
+                Block owner = null;
+                long bestFar = long.MaxValue;
+                foreach (Block block in Blocks)
+                {
+                    if (block.Hidden) continue;
+                    foreach (Seg seg in block.Segs)
+                    {
+                        long dy = inside.Y < seg.Box.Top ? seg.Box.Top - inside.Y : inside.Y >= seg.Box.Bottom ? inside.Y - seg.Box.Bottom + 1 : 0;
+                        long dx = inside.X < seg.Box.Left ? seg.Box.Left - inside.X : inside.X > seg.Box.Right ? inside.X - seg.Box.Right : 0;
+                        long far = dy * 100000 + dx;
+                        if (far < bestFar) { bestFar = far; best = seg; owner = block; }
+                    }
+                }
+                if (best == null) return false;
+                spot.Block = owner;
+                spot.Part = best.Part;
+                spot.At = best.At(Nearest(best, inside.X));
+                return true;
+            }
+
+            // The drawn character gap nearest an x.
+            private static int Nearest(Seg seg, int x)
+            {
+                if (x <= seg.Box.Left) return 0;
+                int low = 0, high = seg.Text.Length;
+                while (low < high)
+                {
+                    int mid = (low + high + 1) / 2;
+                    if (seg.Box.Left + WorkPaint.Wide(seg.Text.Substring(0, mid), seg.Font) <= x) low = mid; else high = mid - 1;
+                }
+                if (low < seg.Text.Length)
+                {
+                    int here = seg.Box.Left + WorkPaint.Wide(seg.Text.Substring(0, low), seg.Font), next = seg.Box.Left + WorkPaint.Wide(seg.Text.Substring(0, low + 1), seg.Font);
+                    if (x - here > next - x) low++;
+                }
+                return low;
+            }
+
+            private int Order(Spot a, Spot b)
+            {
+                int ia = Blocks.IndexOf(a.Block), ib = Blocks.IndexOf(b.Block);
+                if (ia != ib) return ia.CompareTo(ib);
+                if (a.Part != b.Part) return a.Part.CompareTo(b.Part);
+                return a.At.CompareTo(b.At);
+            }
+
+            // The selection's two ends in reading order, or false when nothing is selected or its text has gone.
+            private bool Ends(out Spot from, out Spot to)
+            {
+                from = anchor;
+                to = caret;
+                if (anchor.Block == null || caret.Block == null || !Blocks.Contains(anchor.Block) || !Blocks.Contains(caret.Block)) return false;
+                if (Order(from, to) > 0) { Spot swap = from; from = to; to = swap; }
+                return Order(from, to) != 0;
+            }
+
+            // The selection's paste text: each block's part as WorkWords gives it, blocks a blank line apart.
+            internal string Selected()
+            {
+                Spot from, to;
+                if (!Ends(out from, out to)) return "";
+                int first = Blocks.IndexOf(from.Block), last = Blocks.IndexOf(to.Block);
+                StringBuilder text = new StringBuilder();
+                for (int i = first; i <= last; i++)
+                {
+                    Block block = Blocks[i];
+                    if (block.Hidden || block.Parts.Count == 0) continue;
+                    int fromPart = i == first ? from.Part : 0, fromAt = i == first ? from.At : 0;
+                    int toPart = i == last ? to.Part : block.Parts.Count - 1, toAt = i == last ? to.At : int.MaxValue;
+                    if (fromPart >= block.Parts.Count) continue;
+                    string piece = WorkWords.Plain(block.Parts, fromPart, fromAt, Math.Min(toPart, block.Parts.Count - 1), toAt);
+                    if (piece.Length == 0) continue;
+                    if (text.Length > 0) text.Append("\n\n");
+                    text.Append(piece);
+                }
+                return text.ToString();
+            }
+
+            // How much of one part is selected, in its own characters.
+            private bool Covers(int index, Block block, int part, Spot from, Spot to, out int low, out int high)
+            {
+                low = 0;
+                high = int.MaxValue;
+                int first = Blocks.IndexOf(from.Block), last = Blocks.IndexOf(to.Block);
+                if (index < first || index > last) return false;
+                if (index == first) { if (part < from.Part) return false; if (part == from.Part) low = from.At; }
+                if (index == last) { if (part > to.Part) return false; if (part == to.Part) high = to.At; }
+                return high > low;
+            }
+
+            private void PaintSelection(Graphics graphics, Block block)
+            {
+                Spot from, to;
+                if (block.Segs.Count == 0 || !Ends(out from, out to)) return;
+                int index = Blocks.IndexOf(block);
+                using (Brush fill = new SolidBrush(Chosen))
+                    foreach (Seg seg in block.Segs)
+                    {
+                        int low, high;
+                        if (!Covers(index, block, seg.Part, from, to, out low, out high)) continue;
+                        int start = seg.At(0), end = seg.End;
+                        if (high < start || low > end) continue;
+                        int a = 0, b = seg.Text.Length;
+                        while (a < seg.Text.Length && seg.At(a) < low) a++;
+                        while (b > 0 && seg.At(b) > high) b--;
+                        if (b < a) continue;
+                        int left = seg.Box.Left + (a == 0 ? 0 : WorkPaint.Wide(seg.Text.Substring(0, a), seg.Font));
+                        int right = seg.Box.Left + (b == 0 ? 0 : WorkPaint.Wide(seg.Text.Substring(0, b), seg.Font));
+                        // A selection that runs on past this line's end shows a little past it, as in an editor.
+                        if (high > end && low <= end) right += Z(5);
+                        if (right <= left) continue;
+                        graphics.FillRectangle(fill, left, seg.Box.Top + Z(1), right - left, seg.Box.Height - Z(2));
+                    }
+            }
+
+            private void Press(Point at)
+            {
+                long now = pressClock.ElapsedMilliseconds;
+                Size near = SystemInformation.DoubleClickSize;
+                clicks = now - lastPress <= SystemInformation.DoubleClickTime && Math.Abs(at.X - pressedAt.X) <= near.Width && Math.Abs(at.Y - pressedAt.Y) <= near.Height ? clicks + 1 : 1;
+                lastPress = now;
+                pressedAt = at;
+                Spot spot;
+                if (!Hit(new Point(at.X, at.Y + Offset), out spot)) { anchor = caret = new Spot(); Invalidate(); return; }
+                if (clicks == 1 && ShiftDown() && anchor.Block != null && Blocks.Contains(anchor.Block)) caret = spot;
+                else if (clicks == 2) Word(spot);
+                else if (clicks >= 3) Whole(spot);
+                else anchor = caret = spot;
+                selecting = clicks == 1;
+                if (selecting) Capture = true;
+                Invalidate();
+            }
+
+            // Double click: the word under the pointer, letters, digits and _ together, or the one other character.
+            private void Word(Spot spot)
+            {
+                string shown = WorkWords.Shown(spot.Block.Parts[spot.Part]);
+                int a = Math.Min(spot.At, shown.Length), b = a;
+                Func<char, bool> wordy = delegate(char c) { return char.IsLetterOrDigit(c) || c == '_'; };
+                if (b < shown.Length && wordy(shown[b]) || a > 0 && wordy(shown[a - 1]))
+                {
+                    while (a > 0 && wordy(shown[a - 1])) a--;
+                    while (b < shown.Length && wordy(shown[b])) b++;
+                }
+                else if (b < shown.Length && shown[b] != '\n') b++;
+                anchor = new Spot { Block = spot.Block, Part = spot.Part, At = a };
+                caret = new Spot { Block = spot.Block, Part = spot.Part, At = b };
+            }
+
+            // Triple click: the line in code, the whole paragraph or item anywhere else.
+            private void Whole(Spot spot)
+            {
+                WordBlock part = spot.Block.Parts[spot.Part];
+                string shown = WorkWords.Shown(part);
+                int a = 0, b = shown.Length;
+                if (part.Kind == WordKind.Code)
+                {
+                    int at = Math.Min(spot.At, shown.Length);
+                    a = at > 0 ? shown.LastIndexOf('\n', at - 1) + 1 : 0;
+                    int end = shown.IndexOf('\n', at);
+                    b = end < 0 ? shown.Length : end;
+                }
+                anchor = new Spot { Block = spot.Block, Part = spot.Part, At = a };
+                caret = new Spot { Block = spot.Block, Part = spot.Part, At = b };
+            }
+
+            internal void SelectAll()
+            {
+                Block first = null, last = null;
+                foreach (Block block in Blocks) if (!block.Hidden && block.Parts.Count > 0) { if (first == null) first = block; last = block; }
+                if (first == null) return;
+                anchor = new Spot { Block = first, Part = 0, At = 0 };
+                caret = new Spot { Block = last, Part = last.Parts.Count - 1, At = WorkWords.Shown(last.Parts[last.Parts.Count - 1]).Length };
+                Invalidate();
+            }
+
+            // Dragging: the caret follows the pointer, and past the top or bottom edge the conversation scrolls under it.
+            private void Drag(Point at)
+            {
+                dragAt = at;
+                Spot spot;
+                Point inside = new Point(at.X, Math.Max(0, Math.Min(Height - 1, at.Y)) + Offset);
+                if (Hit(inside, out spot) && (spot.Block != caret.Block || spot.Part != caret.Part || spot.At != caret.At)) { caret = spot; Invalidate(); }
+                if (at.Y < 0 || at.Y >= Height) { if (!edgeClock.Enabled) edgeClock.Start(); } else edgeClock.Stop();
+            }
+
+            internal void EdgeTick()
+            {
+                if (!selecting) { edgeClock.Stop(); return; }
+                int past = dragAt.Y < 0 ? dragAt.Y : dragAt.Y >= Height ? dragAt.Y - Height + 1 : 0;
+                if (past == 0) { edgeClock.Stop(); return; }
+                ScrollTo(Offset + Math.Sign(past) * Math.Min(Z(60), Z(6) + Math.Abs(past) / 2));
+                Drag(dragAt);
+            }
+
+            // ---- The copy key: on a message or a code well under the pointer, a tick for a second after it copies ----
+
+            private Rectangle copyKey, tickKey;
+            private string copyWhat;
+            private bool copyHot;
+            private long tickedAt = -10000;
+            private readonly System.Windows.Forms.Timer tickClock = new System.Windows.Forms.Timer { Interval = 1000 };
+
+            private void CopyHover(Point at)
+            {
+                Point inside = new Point(at.X, at.Y + Offset);
+                Rectangle key = Rectangle.Empty;
+                string what = null;
+                int size = Z(22);
+                foreach (Block block in Blocks)
+                {
+                    if (block.Hidden || block.Parts.Count == 0) continue;
+                    foreach (Piece piece in block.Pieces)
+                        if (piece.Code && piece.Box.Contains(inside))
+                        {
+                            key = new Rectangle(piece.Box.Right - size - Z(4), piece.Box.Top + Z(4), size, size);
+                            what = CodeOf(block, piece);
+                        }
+                    if (what != null) break;
+                    string kind = block.Item.Kind;
+                    if (kind != "user" && kind != "text") continue;
+                    Rectangle reach = new Rectangle(block.Box.Left, block.Box.Top, block.Box.Width, block.Box.Height + Z(20));
+                    if (!reach.Contains(inside)) continue;
+                    // Under his bubble on its right, under her words on their left, clear of the time and cost line.
+                    key = kind == "user" ? new Rectangle(block.Box.Right - size, block.Box.Bottom + Z(1), size, size) : new Rectangle(block.Box.Left + Z(8), block.Box.Bottom + Z(1), size, size);
+                    what = CopyOf(block.Item);
+                    break;
+                }
+                bool hot = !key.IsEmpty && key.Contains(inside);
+                if (key != copyKey || hot != copyHot) { Invalidate(); copyKey = key; copyHot = hot; }
+                copyWhat = what;
+            }
+
+            private void CopyKey()
+            {
+                if (copyWhat == null) return;
+                Copy(copyWhat);
+                tickKey = copyKey;
+                tickedAt = pressClock.ElapsedMilliseconds;
+                tickClock.Stop();
+                tickClock.Start();
+                Invalidate();
+            }
+
+            internal bool Ticked { get { return !tickKey.IsEmpty && pressClock.ElapsedMilliseconds - tickedAt < 1000; } }
+
+            private void TickDone() { tickClock.Stop(); tickKey = Rectangle.Empty; Invalidate(); }
+
+            private void PaintCopyKey(Graphics graphics)
+            {
+                Rectangle key = Ticked ? tickKey : copyKey;
+                if (key.IsEmpty) return;
+                float s = window.zoom;
+                bool ticked = Ticked && key == tickKey;
+                if (copyHot && !ticked) WorkPaint.Plate(graphics, key, 4 * s, Neon.Hover, Color.Empty, 0);
+                if (ticked) { WorkPaint.StatusMark(graphics, "asked", new PointF(key.Left + key.Width / 2f, key.Top + key.Height / 2f), Z(5), Green, s); return; }
+                Color ink = copyHot ? Neon.Cyan : Neon.Faint;
+                float unit = key.Width / 22f, x = key.Left + 6 * unit, y = key.Top + 5 * unit, w = 8 * unit, h = 10 * unit;
+                SmoothingMode was = graphics.SmoothingMode;
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (Pen pen = new Pen(ink, Math.Max(1f, 1.3f * s)))
+                {
+                    pen.LineJoin = LineJoin.Round;
+                    // The sheet behind shows only where the front one doesn't cover it.
+                    Region kept = graphics.Clip;
+                    graphics.SetClip(new RectangleF(x - unit, y + 2 * unit, w + 2 * unit, h + 2 * unit), CombineMode.Exclude);
+                    using (GraphicsPath back = WorkPaint.Rounded(new RectangleF(x + 3 * unit, y, w, h), 1.6f * unit)) graphics.DrawPath(pen, back);
+                    graphics.Clip = kept;
+                    kept.Dispose();
+                    using (GraphicsPath front = WorkPaint.Rounded(new RectangleF(x, y + 3 * unit, w, h), 1.6f * unit)) graphics.DrawPath(pen, front);
+                }
+                graphics.SmoothingMode = was;
+            }
+
+            // For the smoke: a selection set by place, the copy key's box and pressing it, the right-click menu's items and the
+            // keys, all without the real clipboard.
+            internal bool SelectText(WorkspaceItem fromItem, int fromPart, int fromAt, WorkspaceItem toItem, int toPart, int toAt)
+            {
+                Block a, b;
+                if (!known.TryGetValue(fromItem, out a) || !known.TryGetValue(toItem, out b)) return false;
+                anchor = new Spot { Block = a, Part = fromPart, At = fromAt };
+                caret = new Spot { Block = b, Part = toPart, At = toAt };
+                Invalidate();
+                return true;
+            }
+
+            internal void ClearSelection() { anchor = caret = new Spot(); Invalidate(); }
+
+            internal Rectangle CopyKeyOn(Point at) { CopyHover(at); Rectangle key = copyKey; key.Offset(0, -Offset); return key; }
+
+            internal void PressCopyKey() { CopyKey(); }
+
+            internal List<string> MenuNames(WorkspaceItem item)
+            {
+                Block block;
+                List<string> names = new List<string>();
+                if (!known.TryGetValue(item, out block)) return names;
+                Piece code = null;
+                foreach (Piece piece in block.Pieces) if (piece.Code) code = piece;
+                foreach (KeyValuePair<string, string> pair in MenuFor(block, code)) names.Add(pair.Key);
+                return names;
+            }
+
+            internal void Key(Keys keys) { OnKeyDown(new KeyEventArgs(keys)); }
+
+            // Where a part's character is drawn, in this control's space, for the smoke's drags.
+            internal Point PointOf(WorkspaceItem item, int part, int at)
+            {
+                Block block;
+                if (!known.TryGetValue(item, out block)) return Point.Empty;
+                foreach (Seg seg in block.Segs)
+                {
+                    if (seg.Part != part || at < seg.At(0) || at > seg.End) continue;
+                    int drawn = 0;
+                    while (drawn < seg.Text.Length && seg.At(drawn) < at) drawn++;
+                    return new Point(seg.Box.Left + WorkPaint.Wide(seg.Text.Substring(0, drawn), seg.Font), seg.Box.Top + seg.Box.Height / 2 - Offset);
+                }
+                return Point.Empty;
+            }
+
+            internal void DragText(Point from, Point to, int steps)
+            {
+                OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, from.X, from.Y, 0));
+                for (int i = 1; i <= steps; i++) OnMouseMove(new MouseEventArgs(MouseButtons.Left, 0, from.X + (to.X - from.X) * i / steps, from.Y + (to.Y - from.Y) * i / steps, 0));
+                OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, to.X, to.Y, 0));
+            }
+
+            internal void ClickText(Point at, int times)
+            {
+                lastPress = -10000;
+                for (int i = 0; i < times; i++)
+                {
+                    OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, at.X, at.Y, 0));
+                    OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, at.X, at.Y, 0));
+                }
+            }
+
+            // Holds the button down past the bottom edge for some ticks of the edge clock, then lets go.
+            internal int DragPastEnd(Point from, int ticks)
+            {
+                int before = Offset;
+                OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, from.X, from.Y, 0));
+                OnMouseMove(new MouseEventArgs(MouseButtons.Left, 0, from.X, Height + Z(30), 0));
+                for (int i = 0; i < ticks; i++) EdgeTick();
+                OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, from.X, Height + Z(30), 0));
+                return Offset - before;
             }
 
             internal string CopyOf(WorkspaceItem item)
@@ -3128,6 +3657,7 @@ namespace CapriDesktop
                 if (!known.TryGetValue(item, out block)) return null;
                 if (item.Kind == "tool") return item.Text + "\n" + block.Result;
                 if (item.Kind == "approval" && item.Input.Length > 0) return item.Text + "\n" + Lines(item.Input);
+                if (item.Kind == "text" && block.Parts.Count > 0) return WorkWords.Plain(block.Parts);
                 return item.Text;
             }
 
