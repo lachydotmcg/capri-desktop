@@ -41165,6 +41165,7 @@ namespace CapriDesktop
             Section(checks, "SmokeWorkspaceWindow", delegate { SmokeWorkspaceWindow(checks, Path.Combine(output, "workspace-window")); });
             Section(checks, "SmokeWorkspaceLook", delegate { SmokeWorkspaceLook(checks, Path.Combine(output, "workspace-look")); });
             Section(checks, "SmokeWorkspacePickers", delegate { SmokeWorkspacePickers(checks, Path.Combine(output, "workspace-pickers")); });
+            Section(checks, "SmokeWorkspaceWords", delegate { SmokeWorkspaceWords(checks); });
             Section(checks, "SmokeRedaction", delegate { SmokeRedaction(checks); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
             Section(checks, "SmokeCallJob", delegate { SmokeCallJob(checks); });
