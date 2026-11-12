@@ -81,6 +81,12 @@ namespace CapriDesktop
         }
 
         // The window and its open menus over the light backdrop, saved as a PNG.
+        [DllImport("dwmapi.dll")] private static extern int DwmFlush();
+
+        internal static void Flush() { try { DwmFlush(); } catch (Exception) { } }
+
+        internal static bool CueMissing(WorkspaceWindow window) { using (Bitmap copy = Copy(window)) return window.CueMissing(copy); }
+
         // One of her menus on its own over the light backdrop.
         internal static void SaveMenu(ToolStripDropDown menu, string path)
         {
@@ -143,6 +149,8 @@ namespace CapriDesktop
             File.WriteAllText(markup, "picture");
             List<string> saved = new List<string>(), crowded = new List<string>(), cueless = new List<string>();
             // The pictures show the stand-in folders where a person's projects would be, never the test's own temp path.
+            // Her folder in the pictures is a stand-in for Documents\Capri\Workspace, never the real one.
+            string standinDocuments = Path.Combine(folder, "Documents"), standinHome = Path.Combine(standinDocuments, "Capri", "Workspace");
             Func<string, string> alias = delegate(string path)
             {
                 int at = path.IndexOf(projects, StringComparison.OrdinalIgnoreCase);
@@ -151,6 +159,8 @@ namespace CapriDesktop
                     path = path.Substring(0, at) + @"C:\Users\you\Projects" + path.Substring(at + projects.Length);
                     at = path.IndexOf(projects, at + 1, StringComparison.OrdinalIgnoreCase);
                 }
+                at = path.IndexOf(standinDocuments, StringComparison.OrdinalIgnoreCase);
+                if (at >= 0) path = path.Substring(0, at) + @"C:\Users\you\Documents" + path.Substring(at + standinDocuments.Length);
                 return path;
             };
             string pipe = "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-look-";
@@ -160,12 +170,21 @@ namespace CapriDesktop
                 Application.DoEvents();
                 string problem = window.Crowded();
                 if (problem != null) crowded.Add(name + ": " + problem);
-                if (menu == null) using (Bitmap copy = LookShots.Copy(window)) if (window.CueMissing(copy)) cueless.Add(name);
+                // Windows' copy can be a frame behind a layout that just moved, so a miss is looked at again on the next frame; a
+                // cue a repaint really lost stays lost.
+                if (menu == null && LookShots.CueMissing(window))
+                {
+                    LookShots.Flush();
+                    window.Refresh();
+                    Application.DoEvents();
+                    LookShots.Flush();
+                    if (LookShots.CueMissing(window)) cueless.Add(name);
+                }
                 string path = Path.Combine(pictures, name + ".png");
                 LookShots.Save(window, path, menu);
                 saved.Add(path);
             };
-            using (Workspace empty = new Workspace(Path.Combine(folder, "empty"), pipe + Guid.NewGuid().ToString("N")))
+            using (Workspace empty = new Workspace(Path.Combine(folder, "empty"), pipe + Guid.NewGuid().ToString("N")) { Home = standinHome })
             using (WorkspaceWindow window = new WorkspaceWindow(empty, delegate { return false; }, 1f, false))
             {
                 window.PathAlias = alias;
@@ -179,6 +198,7 @@ namespace CapriDesktop
             using (Workspace work = new Workspace(Path.Combine(folder, "data"), pipe + Guid.NewGuid().ToString("N")))
             {
                 work.Executable = Path.Combine(folder, "no-claude-here.cmd");
+                work.Home = standinHome;
                 WorkspaceChat second = work.NewChat(other, false);
                 work.Trust(second, true);
                 work.Change(second, "Metis composer notes", null, null);
@@ -319,6 +339,7 @@ namespace CapriDesktop
                     }
                 }
             }
+            SmokeWorkspaceAttachments(checks, folder, projects, pipe, alias, shoot);
             SmokeWorkspaceEdits(checks, folder, projects, pipe, alias, shoot);
             bool shown = mainframe.Visible;
             FormWindowState state = mainframe.WindowState;
@@ -358,6 +379,126 @@ namespace CapriDesktop
             checks.Add("PASS Workspace look: nothing outside, overlapping or cut off in any of the " + (saved.Count - 3) + " Workspace pictures");
             if (cueless.Count > 0) throw new Exception("Workspace's empty message box lost its cue in: " + string.Join(", ", cueless.ToArray()));
             checks.Add("PASS Workspace's empty message box shows its cue in every picture where it's empty and uncovered");
+        }
+
+        // Her own folder and files as attachments, through the real send path with a stand-in claude.cmd: "+ New chat" opens a
+        // chat in her folder (a stand-in for Documents\Capri\Workspace here, never the real one), trusted and ready to type in,
+        // whose folder can change until the first message; files ride with one message and then leave the composer while
+        // staying part of the chat, also after a restart; a file can be taken off before sending, attached again later, and
+        // sent with no words; a failed start keeps the message and its files for Retry. Pictured at 100%, 125% and 150%.
+        private void SmokeWorkspaceAttachments(List<string> checks, string folder, string projects, string pipe, Func<string, string> alias, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            string box = Path.Combine(folder, "attachments"), data = Path.Combine(box, "data");
+            string documents = Path.Combine(folder, "Documents"), home = Path.Combine(documents, "Capri", "Workspace");
+            string notes = Path.Combine(projects, "notes for the workspace window rebuild"), other = Path.Combine(projects, "metis-orchestrator");
+            Directory.CreateDirectory(box);
+            Directory.CreateDirectory(notes);
+            Directory.CreateDirectory(other);
+            string plan = Path.Combine(notes, "PLAN.md"), shot = Path.Combine(notes, "attempt-1-lachys-markup.png"), spare = Path.Combine(notes, "spare.txt");
+            foreach (string made in new[] { plan, shot, spare }) if (!File.Exists(made)) File.WriteAllText(made, "x");
+            Func<string, string> shown = alias;
+            string standin = WorkspaceRawStandin(box, Guid.NewGuid().ToString(), false), stdin = Path.Combine(box, "stdin.txt");
+            Func<WorkspaceChat, WorkspaceItem> lastAsk = delegate(WorkspaceChat chat) { return WorkspaceItems(chat).FindLast(delegate(WorkspaceItem item) { return item.Kind == "user"; }); };
+            Action<WorkspaceWindow, WorkspaceChat> send = delegate(WorkspaceWindow window, WorkspaceChat chat)
+            {
+                window.TypeInto(window.Input, Keys.Enter);
+                WorkspaceWait(delegate { Application.DoEvents(); return chat.Live == null && chat.PendingText == null; }, "The attachment turn didn't finish.");
+                Application.DoEvents();
+                window.RefreshChat();
+            };
+            Func<WorkspaceWindow, int> fileChips = delegate(WorkspaceWindow window) { return window.Chips.FindAll(delegate(string chip) { return chip.StartsWith("file ", StringComparison.Ordinal); }).Count; };
+            string chatId = null;
+            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+            {
+                work.Executable = standin;
+                work.Home = home;
+                if (Directory.Exists(home)) throw new Exception("Her folder was there before any chat needed it.");
+                foreach (float z in new[] { 1f, 1.25f, 1.5f })
+                {
+                    int scale = (int)Math.Round(z * 100);
+                    using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
+                    {
+                        window.PathAlias = shown;
+                        window.Location = new Point(z == 1f ? 40 : 0, z == 1f ? 40 : 0);
+                        window.Show(this);
+                        window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Wide * z), Math.Min((int)Math.Round(WorkspaceWindow.Tall * z), 1032));
+                        if (z == 1f && Directory.Exists(home)) throw new Exception("Opening Workspace made her folder.");
+                        window.NewChat();
+                        WorkspaceChat chat = window.Chat;
+                        if (chat == null || !work.IsHome(chat.Folder) || !Directory.Exists(home) || !work.Trusted(chat) || chat.TrustItem != null || !window.CanRehome || !window.Chips[0].EndsWith("(runs here)", StringComparison.Ordinal))
+                            throw new Exception("+ New chat didn't open a trusted chat in her folder, ready to type in.");
+                        window.NewChat();
+                        if (window.Chat != chat) throw new Exception("+ New chat made a second unused chat in her folder.");
+                        shoot(window, "20-home-chat-" + scale, null);
+                        window.AddPaths(new string[0], new[] { plan, shot });
+                        window.Input.Text = "Read these and tell me what's still missing.";
+                        window.RefreshChat();
+                        if (fileChips(window) != 2) throw new Exception("Attached files didn't show as chips: " + string.Join(", ", window.Chips.ToArray()));
+                        shoot(window, "21-chips-before-send-" + scale, null);
+                        send(window, chat);
+                        WorkspaceItem asked = lastAsk(chat);
+                        if (fileChips(window) != 0 || Workspace.Attached(chat).Count != 0 || !Workspace.AllFiles(chat).Contains(plan) || !Workspace.AllFiles(chat).Contains(shot) || asked == null || asked.Files != plan + "\n" + shot)
+                            throw new Exception("After sending, the files didn't leave the composer while staying with the chat and its message: " + string.Join(", ", window.Chips.ToArray()));
+                        if (window.CanRehome || window.Input.Text.Length != 0) throw new Exception("The chat's folder could still change after a message, or the box kept the words.");
+                        string heard = File.ReadAllText(stdin);
+                        if (heard.IndexOf("Attached files:", StringComparison.Ordinal) < 0 || heard.IndexOf(plan.Replace("\\", "\\\\"), StringComparison.Ordinal) < 0 && heard.IndexOf(plan, StringComparison.Ordinal) < 0) throw new Exception("Claude Code wasn't told about the attached files.");
+                        window.ScrollToEnd();
+                        shoot(window, "22-chips-after-send-" + scale, null);
+                        if (z != 1f) { window.Close(); continue; }
+                        chatId = chat.Id;
+
+                        window.AddPaths(new string[0], new[] { spare });
+                        window.ClickChipCross(spare);
+                        if (Workspace.AllFiles(chat).Contains(spare) || fileChips(window) != 0) throw new Exception("Taking a chip off before sending didn't un-attach it.");
+                        window.AddPaths(new string[0], new[] { plan });
+                        if (fileChips(window) != 1 || Workspace.Attached(chat).Count != 1) throw new Exception("Adding a sent file again didn't attach it to the next message.");
+                        window.Input.Text = "";
+                        send(window, chat);
+                        asked = lastAsk(chat);
+                        heard = File.ReadAllText(stdin);
+                        if (asked == null || asked.Text != "" || asked.Files != plan || fileChips(window) != 0 || heard.IndexOf("Attached files:", StringComparison.Ordinal) < 0)
+                            throw new Exception("A message of files with no words didn't go with just its file.");
+
+                        work.Executable = Path.Combine(box, "no-claude-here.cmd");
+                        window.AddPaths(new string[0], new[] { shot });
+                        window.Input.Text = "This one can't start.";
+                        window.TypeInto(window.Input, Keys.Enter);
+                        Application.DoEvents();
+                        window.RefreshChat();
+                        asked = lastAsk(chat);
+                        if (asked == null || asked.Text != "This one can't start." || asked.Files != shot || window.Find("Retry") == null || fileChips(window) != 0 || window.Input.Text.Length != 0)
+                            throw new Exception("A failed start didn't keep the message and its file for Retry.");
+                        work.Executable = standin;
+                        window.Find("Retry").PerformClick();
+                        WorkspaceWait(delegate { Application.DoEvents(); return chat.Live == null; }, "Retry didn't finish.");
+                        if (File.ReadAllText(stdin).IndexOf("This one can't start.", StringComparison.Ordinal) < 0) throw new Exception("Retry didn't send the message again.");
+                        work.Flush(chat);
+                        window.Close();
+                    }
+                }
+            }
+            using (Workspace work = new Workspace(data, pipe + Guid.NewGuid().ToString("N")))
+            {
+                work.Executable = standin;
+                work.Home = home;
+                WorkspaceChat chat = work.Chats().Find(delegate(WorkspaceChat found) { return found.Id == chatId; });
+                if (chat == null || !Workspace.AllFiles(chat).Contains(plan) || !Workspace.AllFiles(chat).Contains(shot) || Workspace.Attached(chat).Count != 0 || !work.Trusted(chat))
+                    throw new Exception("After a restart the chat lost its files, showed them as attached again, or stopped trusting her folder.");
+                using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+                {
+                    window.PathAlias = shown;
+                    window.Show(this);
+                    window.NewChat();
+                    WorkspaceChat fresh = window.Chat;
+                    if (fresh == null || fresh == chat || !work.IsHome(fresh.Folder)) throw new Exception("+ New chat didn't open a new chat in her folder after the last one was used.");
+                    window.PickFolders = delegate { return new[] { other, notes }; };
+                    window.ChooseMain();
+                    if (fresh.Folder != Workspace.Tidy(other) || fresh.Folders.Count != 1 || fresh.Folders[0] != Workspace.Tidy(notes) || fresh.Title != "metis-orchestrator" || work.Trusted(fresh) || !window.CanRehome)
+                        throw new Exception("Picking folders before the first message didn't replace her folder, or a picked folder counted as trusted.");
+                    window.Close();
+                }
+            }
+            checks.Add("PASS Workspace + New chat opens a trusted chat in her own folder (made only then), ready to type in and reused while unused, whose folder the runs-here chip can change until the first message; files ride with one message then leave the composer but stay part of the chat across a restart; a chip taken off before sending is un-attached, a sent file added again rides again, files can go with no words, and a failed start keeps the message and its files for Retry");
         }
 
         // An Edit through the real path: a stand-in claude.cmd streams a real-shaped Edit call and its result, Capri's approval
