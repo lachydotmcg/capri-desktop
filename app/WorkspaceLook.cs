@@ -104,50 +104,165 @@ namespace CapriDesktop
         }
     }
 
+
     internal sealed partial class Companion
     {
+        // Pictures of the Workspace window in every state it has, with stand-in chats, at 100%, 125% and 150% and at its
+        // smallest size, plus the Mainframe beside it. Each picture is also checked for crowding.
         private void SmokeWorkspaceLook(List<string> checks, string folder)
         {
             folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
             string pictures = Path.Combine(folder, "look");
             Directory.CreateDirectory(pictures);
-            string project = Path.Combine(folder, "capri-desktop");
-            Directory.CreateDirectory(project);
-            List<string> saved = new List<string>();
-            using (Workspace work = new Workspace(Path.Combine(folder, "data"), "CapriWorkspace-" + System.Diagnostics.Process.GetCurrentProcess().Id + "-look-" + Guid.NewGuid().ToString("N")))
+            string projects = Path.Combine(folder, "Projects");
+            string project = Path.Combine(projects, "capri-desktop"), other = Path.Combine(projects, "metis-orchestrator"), notes = Path.Combine(projects, "notes for the workspace window rebuild");
+            string deep = Path.Combine(projects, "a folder with a very long name that keeps going", "and another folder inside it", "capri-website");
+            foreach (string made in new[] { project, other, notes, deep }) Directory.CreateDirectory(made);
+            string plan = Path.Combine(notes, "PLAN.md"), markup = Path.Combine(notes, "attempt-1-lachys-markup.png");
+            File.WriteAllText(plan, "plan");
+            File.WriteAllText(markup, "picture");
+            List<string> saved = new List<string>(), crowded = new List<string>();
+            string pipe = "CapriWorkspace-" + System.Diagnostics.Process.GetCurrentProcess().Id + "-look-";
+            Action<WorkspaceWindow, string, ToolStripDropDown> shoot = delegate(WorkspaceWindow window, string name, ToolStripDropDown menu)
             {
+                window.Refresh();
+                Application.DoEvents();
+                string problem = window.Crowded();
+                if (problem != null) crowded.Add(name + ": " + problem);
+                string path = Path.Combine(pictures, name + ".png");
+                LookShots.Save(window, path, menu);
+                saved.Add(path);
+            };
+            using (Workspace empty = new Workspace(Path.Combine(folder, "empty"), pipe + Guid.NewGuid().ToString("N")))
+            using (WorkspaceWindow window = new WorkspaceWindow(empty, delegate { return false; }, 1f, false))
+            {
+                window.Location = new Point(40, 40);
+                window.Show(this);
+                window.ClientSize = new Size(1080, 740);
+                shoot(window, "01-no-chats", null);
+                if (!window.ChooseShown) throw new Exception("The empty Workspace doesn't show Choose folder.");
+                window.Close();
+            }
+            using (Workspace work = new Workspace(Path.Combine(folder, "data"), pipe + Guid.NewGuid().ToString("N")))
+            {
+                work.Executable = Path.Combine(folder, "no-claude-here.cmd");
+                WorkspaceChat chat = work.NewChat(project, false);
+                work.AddFolders(chat, new[] { other, deep });
+                work.AskTrust(chat);
+                work.Trust(chat, true);
+                lock (chat.Gate) chat.Items.Clear();
+                work.AddFiles(chat, new[] { plan, markup });
+                WorkspaceChat second = work.NewChat(other, false);
+                work.Trust(second, true);
+                work.Change(second, "Metis composer notes", null, null);
+                string website = Path.Combine(projects, "capri-website");
+                Directory.CreateDirectory(website);
+                WorkspaceChat third = work.NewChat(website, false);
+                work.Change(third, "Website download band", null, "Sonnet");
                 using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
                 {
                     window.Location = new Point(40, 40);
                     window.Show(this);
                     window.ClientSize = new Size(1080, 740);
-                    string path = Path.Combine(pictures, "old-01-no-chats.png");
-                    LookShots.Save(window, path);
-                    saved.Add(path);
-                    WorkspaceChat chat = work.NewChat(project, false);
-                    chat.TrustAsked = true;
-                    work.Add(chat, new WorkspaceItem { Kind = "user", Text = "Why does the Workspace window's frame look wrong at the corners?" });
-                    work.Add(chat, new WorkspaceItem { Kind = "text", Text = "The window paints a cut frame but never shapes itself to it.\n```cs\nNeon.Clip(this, 16 * s, 6 * s);\n```\nShaping it on every resize fixes the corners." });
-                    work.Add(chat, new WorkspaceItem { Kind = "tool", Id = "look-tool", Name = "Read", Text = "Read app/WorkspaceWindow.cs" });
-                    work.Add(chat, new WorkspaceItem { Kind = "result", Id = "look-tool", Text = "962 lines." });
-                    work.Add(chat, new WorkspaceItem { Kind = "end", Text = "4.2s | $0.03" });
                     window.ShowChat(chat);
+                    window.Rename("Workspace window rebuild");
+                    window.Input.Text = "Look at the plan and the markup, then tell me what's left for the Workspace window.";
                     window.RefreshChat();
-                    path = Path.Combine(pictures, "old-02-conversation.png");
-                    LookShots.Save(window, path);
-                    saved.Add(path);
-                    for (int i = 0; i < 12; i++) work.Add(chat, new WorkspaceItem { Kind = i % 2 == 0 ? "user" : "text", Text = "Line " + i + " of a longer chat, long enough to wrap across the conversation at the smallest window size the Workspace allows." });
-                    WorkspaceItem approval = new WorkspaceItem { Kind = "approval", Name = "Bash", Text = "Bash: npm test", Input = HuskJson.Write(HuskJson.Map("command", "npm test -- --runInBand --verbose", "description", "Run the tests")) };
+                    shoot(window, "02-new-chat-chips", null);
+
+                    window.Input.Text = "";
+                    lock (chat.Gate) { chat.Sent.Add(plan); chat.Sent.Add(markup); }
+                    work.Add(chat, new WorkspaceItem { Kind = "user", Text = "Look at the plan and the markup, then tell me what's left for the Workspace window.", Files = plan + "\n" + markup });
+                    work.Add(chat, new WorkspaceItem { Kind = "text", Text = "Here's what's left, in the order I'd do it.\n\n## Frame\nThe window paints a cut frame but never shapes itself to it, so the corners show slivers.\n```cs\nprivate void Shape() { Neon.Clip(this, Z(16), Z(6)); }\n```\n- Shape it on every resize, like the Mainframe.\n- Draw the title with room for the W." });
+                    work.Add(chat, new WorkspaceItem { Kind = "tool", Id = "t1", Name = "Read", Text = "Read " + Path.Combine(project, "app", "WorkspaceWindow.cs"), Turn = "x" });
+                    work.Add(chat, new WorkspaceItem { Kind = "result", Id = "t1", Text = "962 lines", Turn = "x" });
+                    work.Add(chat, new WorkspaceItem { Kind = "tool", Id = "t2", Name = "Edit", Text = "Edit " + Path.Combine(project, "app", "WorkspaceWindow.cs"), Turn = "x" });
+                    work.Add(chat, new WorkspaceItem { Kind = "result", Id = "t2", Text = "The file " + Path.Combine(project, "app", "WorkspaceWindow.cs") + " has been updated.\n  604 |         protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Shape(); Place(); }", Turn = "x" });
+                    work.Add(chat, new WorkspaceItem { Kind = "tool", Id = "t3", Name = "Bash", Text = "Bash: powershell -File ci\\build-windows.ps1 -OutputDirectory out", Turn = "x" });
+                    work.Add(chat, new WorkspaceItem { Kind = "result", Id = "t3", Text = "Built out\\Capri.exe", Turn = "x" });
+                    work.Add(chat, new WorkspaceItem { Kind = "text", Text = "The frame now matches its outline. Next up are the dropdowns." });
+                    work.Add(chat, new WorkspaceItem { Kind = "end", Text = "48.2s | $0.31" });
+                    window.RefreshChat();
+                    window.ToggleTool("t2");
+                    window.ScrollToEnd();
+                    shoot(window, "03-conversation", null);
+
+                    WorkspaceItem approval = new WorkspaceItem { Kind = "approval", Name = "Bash", Text = "Bash: npm test -- --runInBand", Input = HuskJson.Write(HuskJson.Map("command", "npm test -- --runInBand", "description", "Run the tests once, in band", "timeout", 120000)) };
                     approval.Ask = new WorkspaceApproval { Item = approval };
                     work.Add(chat, approval);
-                    window.ClientSize = new Size(900, 600);
                     window.RefreshChat();
-                    path = Path.Combine(pictures, "old-03-smallest-approval.png");
-                    LookShots.Save(window, path);
-                    saved.Add(path);
+                    window.ScrollToEnd();
+                    shoot(window, "04-approval", null);
+
+                    WorkspaceTurn running = new WorkspaceTurn { Chat = chat };
+                    chat.Live = running;
+                    window.RefreshChat();
+                    shoot(window, "05-running", null);
+                    chat.Live = null;
+                    lock (chat.Gate) chat.Items.Remove(approval);
                     approval.Ask.Answered.Dispose();
                     approval.Ask = null;
+                    window.RefreshChat();
+
+                    window.ShowChat(third);
+                    work.Add(third, new WorkspaceItem { Kind = "user", Text = "Make the download band match the new home page." });
+                    work.AskTrust(third);
+                    window.RefreshChat();
+                    shoot(window, "06-trust", null);
+
+                    window.ShowChat(chat);
+                    window.ScrollToEnd();
+                    window.PickMode("Everything");
+                    if (window.Asking == null) throw new Exception("Everything didn't ask first.");
+                    shoot(window, "07-everything-confirm", null);
+                    window.Pending(window.Asking, false);
+                    if (chat.Mode == "Everything") throw new Exception("Keep didn't keep the mode.");
+
+                    shoot(window, "08-plus-menu", window.OpenMenu("add"));
+                    shoot(window, "09-mode-menu", window.OpenMenu("mode"));
+                    shoot(window, "10-model-menu", window.OpenMenu("model"));
+                    ToolStripDropDown closing = window.OpenMenu("model");
+                    closing.Close();
+                    Application.DoEvents();
+
+                    WorkspaceChat longChat = work.NewChat(project, false);
+                    work.Trust(longChat, true);
+                    work.Change(longChat, "A long chat", null, null);
+                    lock (longChat.Gate)
+                        for (int i = 0; i < 400; i++)
+                        {
+                            if (i % 4 == 0) longChat.Items.Add(new WorkspaceItem { Kind = "user", Text = "Question " + i + ": what does this part of the app do?" });
+                            else if (i % 4 == 3) longChat.Items.Add(new WorkspaceItem { Kind = "tool", Id = "l" + i, Name = "Grep", Text = "Grep Workspace" });
+                            else longChat.Items.Add(new WorkspaceItem { Kind = "text", Text = "Answer " + i + ". It reads the chat, lays out each item and draws only what's on screen, so a long chat stays quick." });
+                        }
+                    work.Save(longChat);
+                    window.ShowChat(longChat);
+                    window.ScrollConversation(window.ConversationTall / 2);
+                    shoot(window, "11-long-scrolled", null);
+
+                    window.ShowChat(chat);
+                    window.ClientSize = new Size(WorkspaceWindow.Narrowest, WorkspaceWindow.Shortest);
+                    window.ScrollToEnd();
+                    shoot(window, "12-smallest-100", null);
                     window.Close();
+                }
+                foreach (int scale in new[] { 125, 150 })
+                {
+                    float z = scale / 100f;
+                    using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
+                    {
+                        window.Location = new Point(0, 0);
+                        window.Show(this);
+                        window.ShowChat(chat);
+                        window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Wide * z), Math.Min((int)Math.Round(WorkspaceWindow.Tall * z), 1032));
+                        window.ScrollToEnd();
+                        shoot(window, "13-conversation-" + scale, null);
+                        window.ClientSize = new Size((int)Math.Round(WorkspaceWindow.Narrowest * z), (int)Math.Round(WorkspaceWindow.Shortest * z));
+                        window.ScrollToEnd();
+                        shoot(window, "14-smallest-" + scale, null);
+                        shoot(window, "15-mode-menu-" + scale, window.OpenMenu("mode"));
+                        window.Close();
+                    }
                 }
             }
             bool shown = mainframe.Visible;
@@ -167,7 +282,9 @@ namespace CapriDesktop
                 if (!shown) mainframe.Hide();
             }
             foreach (string path in saved) if (!File.Exists(path) || new FileInfo(path).Length < 2000) throw new Exception("Workspace look picture missing: " + path);
-            checks.Add("PASS Workspace look pictures saved: " + string.Join(", ", saved.ConvertAll(delegate(string p) { return Path.GetFileName(p); }).ToArray()) + " in " + pictures);
+            checks.Add("PASS Workspace look pictures saved: " + saved.Count + " in " + pictures);
+            if (crowded.Count > 0) throw new Exception("Workspace look is crowded: " + string.Join(" | ", crowded.ToArray()));
+            checks.Add("PASS Workspace look: nothing outside, overlapping or cut off in any of the " + (saved.Count - 1) + " Workspace pictures");
         }
     }
 }

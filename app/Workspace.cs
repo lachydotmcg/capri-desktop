@@ -17,7 +17,7 @@ namespace CapriDesktop
 {
     internal sealed class WorkspaceItem
     {
-        internal string Kind = "", Text = "", Name = "", Id = "", Turn = "", Input = "", Decision = "", Cost = "";
+        internal string Kind = "", Text = "", Name = "", Id = "", Turn = "", Input = "", Decision = "", Cost = "", Files = "";
         internal double Seconds;
         internal bool Retry;
         internal WorkspaceApproval Ask;
@@ -27,14 +27,14 @@ namespace CapriDesktop
         {
             string text = Kind == "result" && Text.Length > 2000 ? Text.Substring(0, 2000) : Text;
             return HuskJson.Map("kind", Kind, "text", text, "name", Name, "id", Id, "turn", Turn, "input", "",
-                "decision", Decision, "seconds", Seconds, "cost", Cost, "retry", Retry);
+                "decision", Decision, "seconds", Seconds, "cost", Cost, "retry", Retry, "files", Files);
         }
 
         internal static WorkspaceItem Read(Dictionary<string, object> row)
         {
             return new WorkspaceItem { Kind = HuskJson.Text(row, "kind"), Text = HuskJson.Text(row, "text"), Name = HuskJson.Text(row, "name"),
                 Id = HuskJson.Text(row, "id"), Turn = HuskJson.Text(row, "turn"), Decision = HuskJson.Text(row, "decision"),
-                Seconds = Workspace.Number(row, "seconds"), Cost = HuskJson.Text(row, "cost"), Retry = true.Equals(HuskJson.Get(row, "retry")) };
+                Seconds = Workspace.Number(row, "seconds"), Cost = HuskJson.Text(row, "cost"), Retry = true.Equals(HuskJson.Get(row, "retry")), Files = HuskJson.Text(row, "files") };
         }
     }
 
@@ -47,6 +47,10 @@ namespace CapriDesktop
         internal readonly List<WorkspaceItem> Items = new List<WorkspaceItem>();
         internal readonly List<string> Turns = new List<string>();
         internal readonly HashSet<string> Allowed = new HashSet<string>(StringComparer.Ordinal);
+        // Folders after the first go to Claude Code with --add-dir. Files ride along with the next message, and reads and edits
+        // of exactly those files count as inside the chat's folders until they're removed.
+        internal readonly List<string> Folders = new List<string>(), Files = new List<string>();
+        internal readonly HashSet<string> Sent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         internal volatile WorkspaceTurn Live;
         internal bool Deleted, TrustAsked, SaveWarning;
         internal string PendingText;
@@ -80,6 +84,7 @@ namespace CapriDesktop
         internal readonly HashSet<string> Tools = new HashSet<string>(StringComparer.Ordinal);
         internal readonly Dictionary<string, Dictionary<string, object>> Edits = new Dictionary<string, Dictionary<string, object>>(StringComparer.Ordinal);
         internal readonly StringBuilder Errors = new StringBuilder(), Output = new StringBuilder();
+        internal readonly List<string> Extra = new List<string>(), Files = new List<string>();
         internal readonly ManualResetEvent OutputDone = new ManualResetEvent(false), ErrorDone = new ManualResetEvent(false), Done = new ManualResetEvent(false), Cancel = new ManualResetEvent(false);
         internal WorkspaceChat Chat;
         internal string Mode = "", Model = "", Session = "", Settings, Wrapper, ResultText = "", Fault;
@@ -154,6 +159,10 @@ namespace CapriDesktop
                     }
                     if (turns != null) foreach (object turn in turns) if (turn is string && Key((string)turn)) chat.Turns.Add((string)turn);
                     if (allowed != null) foreach (object tool in allowed) if (tool is string) chat.Allowed.Add((string)tool);
+                    List<object> folders = HuskJson.List(HuskJson.Get(row, "folders")), files = HuskJson.List(HuskJson.Get(row, "files")), sent = HuskJson.List(HuskJson.Get(row, "sent"));
+                    if (folders != null) foreach (object extra in folders) if (extra is string && ((string)extra).Length > 0) chat.Folders.Add((string)extra);
+                    if (files != null) foreach (object named in files) if (named is string && ((string)named).Length > 0) chat.Files.Add((string)named);
+                    if (sent != null) foreach (object named in sent) if (named is string) chat.Sent.Add((string)named);
                     chats.Add(chat);
                 }
                 catch (Exception error) { Problems.Add("Couldn't load " + Path.GetFileName(file) + ": " + error.Message); }
@@ -255,11 +264,15 @@ namespace CapriDesktop
                     foreach (WorkspaceItem item in chat.Items) items.Add(item.Json());
                     foreach (string tool in chat.Allowed) allowed.Add(tool);
                     foreach (string turn in chat.Turns) turns.Add(turn);
+                    List<object> folders = new List<object>(), files = new List<object>(), sent = new List<object>();
+                    foreach (string extra in chat.Folders) folders.Add(extra);
+                    foreach (string file in chat.Files) files.Add(file);
+                    foreach (string file in chat.Sent) sent.Add(file);
                     revision = chat.Revision;
                     chat.LastSave = Stopwatch.GetTimestamp();
                     copy = HuskJson.Map("id", chat.Id, "title", chat.Title, "folder", chat.Folder,
                         "session", chat.Session, "mode", chat.Mode, "model", chat.Model, "updated", chat.Updated.ToString(CultureInfo.InvariantCulture),
-                        "trustAsked", chat.TrustAsked, "items", items, "allowed", allowed, "turns", turns);
+                        "trustAsked", chat.TrustAsked, "items", items, "allowed", allowed, "turns", turns, "folders", folders, "files", files, "sent", sent);
                 }
                 string text = HuskJson.Write(copy);
                 Exception failed = null;
@@ -283,19 +296,42 @@ namespace CapriDesktop
             }
         }
 
-        internal bool Trusted(WorkspaceChat chat)
+        internal static List<string> AllFolders(WorkspaceChat chat)
         {
-            try { string folder = WorkspacePaths.Final(chat.Folder); lock (trustGate) return trusted.Contains(folder); }
+            lock (chat.Gate)
+            {
+                List<string> all = new List<string> { chat.Folder };
+                all.AddRange(chat.Folders);
+                return all;
+            }
+        }
+
+        internal static List<string> AllFiles(WorkspaceChat chat) { lock (chat.Gate) return new List<string>(chat.Files); }
+
+        internal bool Trusted(WorkspaceChat chat) { return Untrusted(chat).Count == 0; }
+
+        internal bool Trusted(string folder)
+        {
+            try { string final = WorkspacePaths.Final(folder); lock (trustGate) return trusted.Contains(final); }
             catch (Exception) { return false; }
+        }
+
+        internal List<string> Untrusted(WorkspaceChat chat)
+        {
+            List<string> untrusted = new List<string>();
+            foreach (string folder in AllFolders(chat)) if (!Trusted(folder)) untrusted.Add(folder);
+            return untrusted;
         }
 
         internal void AskTrust(WorkspaceChat chat)
         {
             lock (chat.Gate)
             {
-                if (chat.Deleted || Trusted(chat) || chat.TrustItem != null) return;
+                List<string> untrusted = Untrusted(chat);
+                if (chat.Deleted || untrusted.Count == 0 || chat.TrustItem != null) return;
                 chat.TrustAsked = true;
-                chat.TrustItem = new WorkspaceItem { Kind = "trust", Text = "Claude Code will run this folder's own settings, hooks and MCP servers. Trust " + chat.Folder + "?" };
+                string names = untrusted.Count == 1 ? untrusted[0] : string.Join(", ", untrusted.GetRange(0, untrusted.Count - 1).ToArray()) + " and " + untrusted[untrusted.Count - 1];
+                chat.TrustItem = new WorkspaceItem { Kind = "trust", Text = (untrusted.Count == 1 ? "Claude Code will run this folder's own settings, hooks and MCP servers. Trust " : "Claude Code will run these folders' own settings, hooks and MCP servers. Trust ") + names + "?" };
                 Add(chat, chat.TrustItem);
             }
         }
@@ -304,15 +340,16 @@ namespace CapriDesktop
         {
             if (yes)
             {
-                string folder = WorkspacePaths.Final(chat.Folder);
+                List<string> folders = new List<string>();
+                foreach (string each in AllFolders(chat)) folders.Add(WorkspacePaths.Final(each));
                 lock (trustGate)
                 {
                     HashSet<string> copy = new HashSet<string>(trusted, StringComparer.OrdinalIgnoreCase);
-                    copy.Add(folder);
-                    List<object> folders = new List<object>();
-                    foreach (string path in copy) folders.Add(path);
-                    Atomic(Path.Combine(Root, "trusted.json"), HuskJson.Write(folders));
-                    trusted.Add(folder);
+                    copy.UnionWith(folders);
+                    List<object> list = new List<object>();
+                    foreach (string path in copy) list.Add(path);
+                    Atomic(Path.Combine(Root, "trusted.json"), HuskJson.Write(list));
+                    trusted.UnionWith(folders);
                 }
             }
             string pending;
@@ -343,6 +380,77 @@ namespace CapriDesktop
                 Save(chat);
             }
             Notify(chat, null);
+        }
+
+        // New folders join the chat; one this PC hasn't trusted makes the next message ask again.
+        internal int AddFolders(WorkspaceChat chat, IEnumerable<string> paths)
+        {
+            int added = 0;
+            lock (chat.Gate)
+            {
+                if (chat.Deleted) return 0;
+                foreach (string raw in paths)
+                {
+                    string folder = Path.GetFullPath(raw);
+                    if (!Directory.Exists(folder)) throw new IOException("That folder isn't here: " + folder);
+                    if (Same(folder, chat.Folder) || chat.Folders.Exists(delegate(string had) { return Same(had, folder); })) continue;
+                    chat.Folders.Add(folder);
+                    added++;
+                    if (!Trusted(folder)) chat.TrustAsked = false;
+                }
+                if (added > 0) Save(chat);
+            }
+            if (added > 0) Notify(chat, null);
+            return added;
+        }
+
+        internal int AddFiles(WorkspaceChat chat, IEnumerable<string> paths)
+        {
+            int added = 0;
+            lock (chat.Gate)
+            {
+                if (chat.Deleted) return 0;
+                foreach (string raw in paths)
+                {
+                    string file = Path.GetFullPath(raw);
+                    if (!File.Exists(file)) throw new IOException("That file isn't here: " + file);
+                    if (chat.Files.Exists(delegate(string had) { return Same(had, file); })) continue;
+                    chat.Files.Add(file);
+                    chat.Sent.Remove(file);
+                    added++;
+                }
+                if (added > 0) Save(chat);
+            }
+            if (added > 0) Notify(chat, null);
+            return added;
+        }
+
+        // Takes a folder after the first, or a file, off the chat. The first folder is where Claude Code runs, so it stays.
+        internal bool Remove(WorkspaceChat chat, string path)
+        {
+            bool removed;
+            lock (chat.Gate)
+            {
+                removed = chat.Folders.RemoveAll(delegate(string had) { return Same(had, path); }) > 0;
+                if (chat.Files.RemoveAll(delegate(string had) { return Same(had, path); }) > 0) { chat.Sent.Remove(path); removed = true; }
+                if (removed) Save(chat);
+            }
+            if (removed) Notify(chat, null);
+            return removed;
+        }
+
+        internal static bool Same(string a, string b)
+        {
+            return string.Equals((a ?? "").TrimEnd('\\', '/'), (b ?? "").TrimEnd('\\', '/'), StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Their words, then the files that ride along with this message, by full path.
+        internal static string Compose(string text, List<string> files)
+        {
+            if (files == null || files.Count == 0) return text;
+            StringBuilder message = new StringBuilder(text).Append("\n\nAttached files:");
+            foreach (string file in files) message.Append("\n- ").Append(file);
+            return message.ToString();
         }
 
         internal void Delete(WorkspaceChat chat)
@@ -384,11 +492,17 @@ namespace CapriDesktop
 
         internal static List<string> Arguments(string mode, string session, string model, string settings, bool trusted)
         {
+            return Arguments(mode, session, model, settings, trusted, null);
+        }
+
+        internal static List<string> Arguments(string mode, string session, string model, string settings, bool trusted, List<string> extra)
+        {
             string permission = mode == "Edits only" ? "acceptEdits" : mode == "Plan only" ? "plan" : mode == "Everything" ? "bypassPermissions" : "default";
             List<string> args = new List<string> { "-p", "--verbose", "--input-format", "stream-json", "--output-format", "stream-json", "--permission-mode", permission };
             if (!string.IsNullOrEmpty(session)) { args.Add("--resume"); args.Add(session); }
             if (!string.IsNullOrEmpty(model) && model != "Default") { args.Add("--model"); args.Add(model.ToLowerInvariant()); }
             if (!string.IsNullOrEmpty(settings)) { args.Add("--settings"); args.Add(settings); }
+            if (extra != null) foreach (string folder in extra) { args.Add("--add-dir"); args.Add(folder); }
             if (!trusted) args.AddRange(new[] { "--setting-sources", "user", "--strict-mcp-config" });
             return args;
         }
@@ -467,7 +581,12 @@ namespace CapriDesktop
             lock (chat.Gate)
             {
                 if (chat.Live != null || chat.Deleted || chat.PendingText != null || chat.Undoing != null) return false;
-                if (!retry) Add(chat, new WorkspaceItem { Kind = "user", Text = text });
+                if (!retry)
+                {
+                    List<string> riding = chat.Files.FindAll(delegate(string file) { return !chat.Sent.Contains(file); });
+                    foreach (string file in riding) chat.Sent.Add(file);
+                    Add(chat, new WorkspaceItem { Kind = "user", Text = text, Files = string.Join("\n", riding.ToArray()) });
+                }
                 if (!Trusted(chat) && !chat.TrustAsked)
                 {
                     chat.PendingText = text;
@@ -477,10 +596,14 @@ namespace CapriDesktop
                 string exe = Executable == null ? PlanBrain.Find("claude") : File.Exists(Executable) ? Executable : null;
                 if (exe == null) { Add(chat, new WorkspaceItem { Kind = "error", Text = Missing, Retry = true }); return false; }
                 turn = new WorkspaceTurn { Chat = chat, Mode = chat.Mode, Model = chat.Model, Session = chat.Session, Trusted = Trusted(chat) };
+                turn.Extra.AddRange(chat.Folders);
+                for (int i = chat.Items.Count - 1; i >= 0; i--)
+                    if (chat.Items[i].Kind == "user") { foreach (string file in chat.Items[i].Files.Split('\n')) if (file.Length > 0) turn.Files.Add(file); break; }
                 chat.Live = turn;
                 try
                 {
                     if (!Directory.Exists(chat.Folder)) throw new IOException("That folder isn't here.");
+                    foreach (string extra in turn.Extra) if (!Directory.Exists(extra)) throw new IOException("That folder isn't here: " + extra);
                     BeginUndo(chat, turn.Id);
                     turn.Settings = Path.Combine(Root, "turns", chat.Id, turn.Id + ".json");
                     turn.Wrapper = Path.ChangeExtension(turn.Settings, ".cmd");
@@ -494,7 +617,8 @@ namespace CapriDesktop
                     turn.Done.Set();
                     return false;
                 }
-                new Thread(delegate() { Run(turn, exe, text); }) { IsBackground = true, Name = "Capri Workspace turn" }.Start();
+                string prompt = Compose(text, turn.Files);
+                new Thread(delegate() { Run(turn, exe, prompt); }) { IsBackground = true, Name = "Capri Workspace turn" }.Start();
             }
             Notify(chat, null);
             return true;
@@ -621,7 +745,7 @@ namespace CapriDesktop
                 turn.OutputDone.Reset();
                 turn.ErrorDone.Reset();
             }
-            using (Process process = new Process { StartInfo = StartInfo(exe, Arguments(turn.Mode, turn.Session, turn.Model, turn.Settings, turn.Trusted), turn.Chat.Folder) })
+            using (Process process = new Process { StartInfo = StartInfo(exe, Arguments(turn.Mode, turn.Session, turn.Model, turn.Settings, turn.Trusted, turn.Extra), turn.Chat.Folder) })
             using (WorkspaceJob job = new WorkspaceJob())
             {
                 process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs row)
@@ -876,6 +1000,13 @@ namespace CapriDesktop
 
         internal static bool Inside(string folder, string tool, Dictionary<string, object> input, string cwd)
         {
+            return Inside(new List<string> { folder }, null, tool, input, cwd);
+        }
+
+        // Every path the tool names sits in one of the chat's folders or is exactly one of its files.
+        internal static bool Inside(List<string> folders, List<string> files, string tool, Dictionary<string, object> input, string cwd)
+        {
+            string folder = folders[0];
             try
             {
                 List<string> paths = new List<string>();
@@ -892,11 +1023,16 @@ namespace CapriDesktop
                     }
                     if (pattern.Length > 0) paths.Add(pattern);
                 }
-                string root = WorkspacePaths.Final(folder).TrimEnd('\\') + "\\";
+                List<string> roots = new List<string>(), exact = new List<string>();
+                foreach (string each in folders) roots.Add(WorkspacePaths.Final(each).TrimEnd('\\') + "\\");
+                if (files != null) foreach (string file in files) exact.Add(WorkspacePaths.Final(file));
                 foreach (string path in paths)
                 {
                     string full = WorkspacePaths.Final(WorkspacePaths.Full(path, string.IsNullOrEmpty(cwd) ? folder : cwd));
-                    if (!string.Equals(full.TrimEnd('\\') + "\\", root, StringComparison.OrdinalIgnoreCase) && !full.StartsWith(root, StringComparison.OrdinalIgnoreCase)) return false;
+                    bool found = exact.Exists(delegate(string file) { return string.Equals(file, full, StringComparison.OrdinalIgnoreCase); });
+                    foreach (string root in roots)
+                        if (string.Equals(full.TrimEnd('\\') + "\\", root, StringComparison.OrdinalIgnoreCase) || full.StartsWith(root, StringComparison.OrdinalIgnoreCase)) found = true;
+                    if (!found) return false;
                 }
                 return true;
             }
@@ -928,7 +1064,7 @@ namespace CapriDesktop
                 turn = chat.Live;
                 if (turn == null || turn.Id != key || turn.Stopped || turn.Result || closed || chat.Deleted) return WorkspaceHook.Decision(false, "That Workspace turn isn't running.");
                 if (turn.Mode == "Plan only") return HuskJson.Map();
-                bool inside = Inside(chat.Folder, tool, input, cwd);
+                bool inside = Inside(AllFolders(chat), AllFiles(chat), tool, input, cwd);
                 bool quiet = turn.Mode == "Everything" || inside && (turn.Mode == "Edits only" ? ReadTool(tool) || EditTool(tool) : QuietTool(tool));
                 if (!quiet && !chat.Allowed.Contains(tool))
                 {
