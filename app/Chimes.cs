@@ -11,6 +11,39 @@ namespace CapriDesktop
     // so there's no sample anyone else owns.
     internal enum Chime { Sent, Heard, Listening }
 
+    // Her ears through a chime. Its echo rises while the chime plays, a little late through Bluetooth, and only fades after,
+    // so sound past that which is louder than the echo could still be, twice running, is someone talking over it. From then
+    // until the mask ends everything counts as them. Until then what the mic hears is held, never thrown away.
+    internal sealed class EchoGate
+    {
+        // Bluetooth plays up to about 400 ms late, and a mic chunk is 100 ms long.
+        internal const int Late = 500;
+        // The most the echo can be falls this much every 100 ms: about 3 dB, slower than any chime or a room's ring fades.
+        internal const double Fall = 0.7;
+        private int heard = -1, over;
+        private double ceiling;
+        private long last;
+        private bool voiced;
+
+        // False while what the mic hears could be her chime.
+        internal bool Voice(double level, double wake)
+        {
+            int which, body;
+            long since;
+            if (!Chimes.Mask(out which, out since, out body)) return true;
+            if (which != heard) { heard = which; ceiling = 0; over = 0; voiced = false; last = since; }
+            if (voiced) return true;
+            double fall = Math.Pow(Fall, Math.Max(0, since - last) / 100.0);
+            last = since;
+            if (since < body + Late) { ceiling = Math.Max(ceiling, level); over = 0; return false; }
+            ceiling *= fall;
+            if (level < wake || level <= ceiling) { over = 0; return false; }
+            if (++over < 2) return false;
+            voiced = true;
+            return true;
+        }
+    }
+
     internal static class Chimes
     {
         internal const int Rate = 48000;
@@ -39,6 +72,12 @@ namespace CapriDesktop
         private static readonly long[] lastOf = { long.MinValue / 4, long.MinValue / 4, long.MinValue / 4 };
         private static long last = long.MinValue / 4;
         private static long maskUntil = long.MinValue / 4;
+        private static long maskFrom = long.MinValue / 4;
+        private static int masks, maskBody;
+        // What her ears hold of the mic through a chime is kept this long after its mask too, so a line that carries on past
+        // the mask starts with everything they said under it.
+        internal const int After = 300;
+        private static readonly int[] bodies = new int[Sets.Length * 3];
         private static readonly float[][] made = new float[Sets.Length * 3][];
         internal static int Played;
 
@@ -62,6 +101,9 @@ namespace CapriDesktop
                 sound = Render(Set, chime, volume);
                 last = lastOf[(int)chime] = now;
                 maskUntil = now + sound.Length * 1000L / Rate + Echo;
+                maskFrom = now;
+                maskBody = Body(Set, chime);
+                masks++;
                 Played++;
             }
             output(sound);
@@ -71,11 +113,49 @@ namespace CapriDesktop
         // While a chime plays and just after, a mic chunk that isn't part of a line already begun is her chime, not them.
         internal static bool Masking { get { lock (gate) return Clock() < maskUntil; } }
 
+        // Her ears keep what they hear through a chime's mask and just after it.
+        internal static bool Holding { get { lock (gate) return Clock() < maskUntil + After; } }
+
+        // The chime masking her ears: which one it is, ms since it began and how long its body lasts. False when none is.
+        internal static bool Mask(out int which, out long since, out int body)
+        {
+            lock (gate)
+            {
+                long now = Clock();
+                which = masks;
+                since = now - maskFrom;
+                body = maskBody;
+                return now < maskUntil;
+            }
+        }
+
+        // How far into a chime it's still within half its loudest, in ms. Past that it only fades.
+        private static int Body(int set, Chime chime)
+        {
+            set = Math.Max(0, Math.Min(Sets.Length - 1, set));
+            int at = set * 3 + (int)chime;
+            if (bodies[at] > 0) return bodies[at];
+            float[] shape = Made(set, chime);
+            int frame = Rate / 100, last = 0;
+            double most = 0;
+            double[] loud = new double[shape.Length / frame];
+            for (int f = 0; f < loud.Length; f++)
+            {
+                double sum = 0;
+                for (int i = f * frame; i < (f + 1) * frame; i++) sum += shape[i] * shape[i];
+                loud[f] = Math.Sqrt(sum / frame);
+                most = Math.Max(most, loud[f]);
+            }
+            for (int f = 0; f < loud.Length; f++) if (loud[f] >= most * 0.5) last = f;
+            bodies[at] = (last + 1) * 10;
+            return bodies[at];
+        }
+
         internal static void Reset()
         {
             lock (gate)
             {
-                last = maskUntil = long.MinValue / 4;
+                last = maskUntil = maskFrom = long.MinValue / 4;
                 for (int i = 0; i < lastOf.Length; i++) lastOf[i] = long.MinValue / 4;
                 Played = 0;
             }
@@ -84,9 +164,13 @@ namespace CapriDesktop
         // Each set's three made at start-up, so a chime only has to be scaled to their volume when it plays.
         internal static void Warm()
         {
+            Stopwatch took = Stopwatch.StartNew();
             for (int set = 0; set < Sets.Length; set++)
-                for (int chime = 0; chime < 3; chime++) Made(set, (Chime)chime);
+                for (int chime = 0; chime < 3; chime++) Body(set, (Chime)chime);
+            Warmed = took.ElapsedMilliseconds;
         }
+
+        internal static long Warmed = -1;
 
         // Their volume is a percent, heard as a curve so the low end isn't all one loudness: 40% is about 12 dB under 100%.
         internal static double Gain(int volume) { return Math.Pow(Math.Max(0, Math.Min(100, volume)) / 100.0, 1.5); }

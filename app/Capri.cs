@@ -13620,10 +13620,10 @@ namespace CapriDesktop
 
         private void Gather(short[] chunk)
         {
-            if (utterance == null && Chimes.Masking) chunk = new short[chunk.Length];
             double level = VoiceLevel(chunk);
-            if (OverHerLocally(chunk, level)) return;
-            if (nameOver && clock.Elapsed.TotalSeconds < voiceUntil && !talkOver.Above(level, SpokenLevel(clock.Elapsed.TotalSeconds), room < 0 ? WakeLevel : RoomWake()))
+            bool echo = !earsGate.Voice(level, room < 0 ? WakeLevel : RoomWake());
+            if (OverHerLocally(chunk, level, echo)) return;
+            if (nameOver && clock.Elapsed.TotalSeconds < voiceUntil && !talkOver.Above(echo ? 0 : level, SpokenLevel(clock.Elapsed.TotalSeconds), room < 0 ? WakeLevel : RoomWake()))
             {
                 chunk = new short[chunk.Length];
                 level = 0;
@@ -13634,12 +13634,12 @@ namespace CapriDesktop
                 // The room's level is its quietest moment: it drops straight to anything quieter and creeps up 2% a chunk between lines, never mid-line. It starts no higher than the old fixed level allows.
                 if (room < 0) room = Math.Min(Math.Max(level, 0.0003), WakeLevel / RoomMargin);
                 else if (level < room) room = Math.Max(level, 0.0003);
-                else if (utterance == null) room = Math.Min(level, room * 1.02);
+                else if (utterance == null && !echo) room = Math.Min(level, room * 1.02);
                 double wake = RoomWake();
                 bool loud = level >= wake;
                 if (noiseHold)
                 {
-                    quietRun = loud ? 0 : quietRun + 1;
+                    quietRun = loud && !echo ? 0 : quietRun + 1;
                     if (quietRun >= 9)
                     {
                         noiseHold = false;
@@ -13652,8 +13652,8 @@ namespace CapriDesktop
                 if (utterance == null)
                 {
                     preroll.Add(chunk);
-                    if (preroll.Count > 4) preroll.RemoveAt(0);
-                    loudRun = loud ? loudRun + 1 : 0;
+                    if (preroll.Count > 4) PastChimeRoll(4);
+                    loudRun = loud && !echo ? loudRun + 1 : 0;
                     if (loudRun < 2) return;
                     utterance = new System.Collections.Generic.List<short[]>(preroll);
                     carrying = false;
@@ -14512,7 +14512,12 @@ namespace CapriDesktop
             // Their push-to-talk key, held: what the mic hears is theirs until they let go.
             lock (waking) if (pushed != null) { pushed.Add(chunk); return; }
             if (local) { CallHear(chunk); return; }
-            if (Chimes.Masking) chunk = new short[chunk.Length];
+            if (linkHeld.Count == 0 && !Chimes.Holding) { LinkHear(chunk); return; }
+            foreach (short[] piece in PastChime(chunk)) LinkHear(piece);
+        }
+
+        private void LinkHear(short[] chunk)
+        {
             lock (waking)
             {
                 if (resting)

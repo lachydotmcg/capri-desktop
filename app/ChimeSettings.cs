@@ -30,22 +30,84 @@ namespace CapriDesktop
         private Speaker chimeSpeaker;
         // Free voice chat chimed as the line ended, so the words coming back don't chime it again.
         private bool lineChimed;
+        private bool chimesClosed;
+        private readonly object chimeGate = new object();
+        // Her ears' gates through a chime: her own ears, Hey Capri's mic while she talks, and ElevenLabs voice chat's mic.
+        private readonly EchoGate earsGate = new EchoGate(), wakeGate = new EchoGate(), linkGate = new EchoGate();
+        // What ElevenLabs voice chat's mic heard through a chime, waiting to be sent as it was or as silence.
+        private readonly List<short[]> linkHeld = new List<short[]>();
+        // The preroll holds more than its own few chunks for a chime.
+        private bool rollHeld;
+        // The most her ears hold through a chime: its mask, the 300 ms after and the preroll before it.
+        private const int MaskHeld = 18;
 
         private void WireChimes()
         {
             chimeSpeaker = new Speaker(testing) { Plain = true };
             ShowChimes();
+            // Her speakers can take a moment to open, the first time or on a new device, so that's never on her UI thread.
             Chimes.Out = delegate(short[] sound)
             {
-                if (IsDisposed) return;
-                try { chimeSpeaker.Open(Chimes.Rate); chimeSpeaker.Play(sound); }
-                catch (Exception) { }
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    // A speaker still stuck opening for the last chime drops this one rather than queueing it up late.
+                    if (!Monitor.TryEnter(chimeGate)) return;
+                    try
+                    {
+                        if (chimesClosed) return;
+                        chimeSpeaker.Open(Chimes.Rate);
+                        chimeSpeaker.Play(sound);
+                    }
+                    catch (Exception) { }
+                    finally { Monitor.Exit(chimeGate); }
+                });
             };
             Chimes.Left = delegate { return chimeSpeaker.Left; };
             ThreadPool.QueueUserWorkItem(delegate { Chimes.Warm(); });
         }
 
-        private void CloseChimes() { if (chimeSpeaker != null) chimeSpeaker.Close(); }
+        // A speaker stuck opening never holds her closing for more than half a second.
+        private void CloseChimes()
+        {
+            if (chimeSpeaker == null || !Monitor.TryEnter(chimeGate, 500)) return;
+            try { chimesClosed = true; chimeSpeaker.Close(); }
+            finally { Monitor.Exit(chimeGate); }
+        }
+
+        // One chunk too many in her preroll, which keeps `keep`. Through a chime and just after, it holds up to MaskHeld instead,
+        // so a line begun under the chime keeps its start; after that, what it held for the chime goes.
+        private void PastChimeRoll(int keep)
+        {
+            if (Chimes.Holding)
+            {
+                rollHeld = true;
+                if (preroll.Count > MaskHeld) preroll.RemoveAt(0);
+                return;
+            }
+            preroll.RemoveAt(0);
+            if (!rollHeld) return;
+            rollHeld = false;
+            while (preroll.Count > keep) preroll.RemoveAt(0);
+        }
+
+        // ElevenLabs voice chat's mic through a chime. What could be the chime is held; once they're heard over it, or just after
+        // it, everything held goes to the agent as it was, a little late. If nobody spoke it goes as silence.
+        private List<short[]> PastChime(short[] chunk)
+        {
+            List<short[]> ready = new List<short[]>();
+            double level = VoiceLevel(chunk);
+            bool holding = Chimes.Holding, voice = Chimes.Masking ? linkGate.Voice(level, WakeLevel) : level >= WakeLevel;
+            if (holding && !voice)
+            {
+                linkHeld.Add(chunk);
+                if (linkHeld.Count > MaskHeld) { ready.Add(new short[linkHeld[0].Length]); linkHeld.RemoveAt(0); }
+                return ready;
+            }
+            foreach (short[] held in linkHeld) ready.Add(voice ? held : new short[held.Length]);
+            linkHeld.Clear();
+            ready.Add(chunk);
+            return ready;
+        }
 
         private void SentChime(string text) { if (!string.IsNullOrWhiteSpace(text)) Chimes.Play(Chime.Sent); }
 
@@ -68,6 +130,8 @@ namespace CapriDesktop
         {
             preferences.NoChimes = !preferences.NoChimes;
             ShowChimes();
+            // Off stops one still ringing too.
+            if (preferences.NoChimes && chimeSpeaker != null) ThreadPool.QueueUserWorkItem(delegate { lock (chimeGate) { try { chimeSpeaker.Clear(); } catch (Exception) { } } });
             SavePreferences();
             mainframe.Sync();
         }
@@ -192,13 +256,61 @@ namespace CapriDesktop
                 speaker.Open(Chimes.Rate);
                 speaker.Play(tone);
                 long herEnd = speaker.SoundEnd;
+                Stopwatch handed = Stopwatch.StartNew();
                 outWas(Chimes.Render(Chimes.Glass, Chime.Heard, 40));
+                long onUi = handed.ElapsedTicks * 1000000 / Stopwatch.Frequency;
+                while (chimeSpeaker.Left <= 0 && handed.ElapsedMilliseconds < 2000) Thread.Sleep(1);
+                double reached = handed.ElapsedTicks * 1000.0 / Stopwatch.Frequency;
                 bool own = chimeSpeaker.Plain && chimeSpeaker != speaker && chimeSpeaker != effects && chimeSpeaker.Left > 0;
                 bool kept = speaker.SoundEnd == herEnd && speaker.Left > 0;
                 speaker.Clear();
+                // Chimes off mid-ring stops the one ringing.
+                preferences.NoChimes = false;
+                ToggleChimes();
+                Stopwatch off = Stopwatch.StartNew();
+                while (chimeSpeaker.Left > 0 && off.ElapsedMilliseconds < 2000) Thread.Sleep(1);
+                bool stopped = chimeSpeaker.Left <= 0 && off.ElapsedMilliseconds < 250;
+                ToggleChimes();
                 chimeSpeaker.Clear();
-                if (!own || !kept) throw new Exception("Her chimes didn't get their own Plain speaker, or cut her voice: own " + own + ", kept " + kept);
-                checks.Add("PASS her chimes play on their own Plain speaker, which stays out of her voice in your mic and Capri Remote, and a chime over her voice leaves it playing");
+                if (!own || !kept || !stopped) throw new Exception("Her chimes didn't get their own Plain speaker, cut her voice or rang on once off: own " + own + ", kept " + kept + ", stopped " + stopped);
+                // A speaker that's gone, or stuck opening, never throws, holds her UI thread or stacks chimes up behind it.
+                Speaker realChimes = chimeSpeaker;
+                bool skipWas = Speaker.SkipWave;
+                int opens = 0;
+                long goneUi, stuckUi;
+                int duringStuck;
+                using (ManualResetEvent stuck = new ManualResetEvent(false))
+                {
+                    try
+                    {
+                        Speaker.SkipWave = true;
+                        chimeSpeaker = new Speaker(false, delegate(int rate, string id) { Interlocked.Increment(ref opens); throw new VoiceException("No speakers."); }) { Plain = true };
+                        Stopwatch gone = Stopwatch.StartNew();
+                        outWas(Chimes.Render(Chimes.Glass, Chime.Sent, 40));
+                        goneUi = gone.ElapsedMilliseconds;
+                        while (opens == 0 && gone.ElapsedMilliseconds < 2000) Thread.Sleep(1);
+                        Thread.Sleep(50);
+                        lock (chimeGate) chimeSpeaker = new Speaker(false, delegate(int rate, string id) { Interlocked.Increment(ref opens); stuck.WaitOne(3000); throw new VoiceException("Busy."); }) { Plain = true };
+                        int opensWas = opens;
+                        Stopwatch held = Stopwatch.StartNew();
+                        outWas(Chimes.Render(Chimes.Glass, Chime.Sent, 40));
+                        while (opens == opensWas && held.ElapsedMilliseconds < 2000) Thread.Sleep(1);
+                        outWas(Chimes.Render(Chimes.Glass, Chime.Heard, 40));
+                        outWas(Chimes.Render(Chimes.Glass, Chime.Listening, 40));
+                        stuckUi = held.ElapsedMilliseconds;
+                        Thread.Sleep(150);
+                        duringStuck = opens - opensWas;
+                    }
+                    finally
+                    {
+                        stuck.Set();
+                        lock (chimeGate) { if (chimeSpeaker != realChimes) chimeSpeaker.Dispose(); chimeSpeaker = realChimes; }
+                        Speaker.SkipWave = skipWas;
+                    }
+                }
+                if (opens < 2 || goneUi > 50 || duringStuck != 1) throw new Exception("A gone or stuck speaker held her or stacked chimes: opens " + opens + ", " + goneUi + " ms on her UI thread, " + duringStuck + " opens while stuck");
+                checks.Add("PASS Chimes off mid-ring stops the chime ringing; with no speaker a chime fails quietly off her UI thread, and while a speaker is stuck opening the chimes after it are dropped, not queued (" + stuckUi + " ms on her UI thread for three)");
+                checks.Add("PASS her chimes play on their own Plain speaker, which stays out of her voice in your mic and Capri Remote, and a chime over her voice leaves it playing; a chime leaves her UI thread in " + onUi + " us and is playing on the silent stand-in " + reached.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms later, and the nine chimes took " + Chimes.Warmed + " ms to make at start-up, off her UI thread");
 
                 // Mainframe's SOUNDS rows.
                 mainframe.ShowSettings(true);
@@ -292,10 +404,28 @@ namespace CapriDesktop
                     mainframe.WindowState = stateWas;
                 }
                 checks.Add("PASS SOUNDS shows under HABITS in Simple and Advanced Settings with nothing overlapping or past the page (" + reach.TrimEnd(' ', ';') + "); pictures in mainframe-sounds-simple.png and mainframe-sounds-advanced.png");
+                SettingsLook(Path.Combine(output, "sounds-look"));
+                {
+                    bool visibleWas = mainframe.Visible;
+                    FormWindowState windowWas = mainframe.WindowState;
+                    try
+                    {
+                        mainframe.WindowState = FormWindowState.Normal;
+                        mainframe.Show();
+                        Application.DoEvents();
+                        mainframe.SoundsTips(Path.Combine(output, "sounds-look"));
+                    }
+                    finally
+                    {
+                        if (!visibleWas) mainframe.Hide();
+                        mainframe.WindowState = windowWas;
+                        mainframe.ShowSettings(pageWas);
+                    }
+                }
                 preferences.AdvancedSettings = advancedWas;
                 mainframe.ShowSettings(pageWas);
 
-                SoundsHeard(checks, played, delegate { now += 2000; });
+                SoundsHeard(checks, played, delegate { now += 2000; }, delegate(long ms) { now += ms; });
             }
             finally
             {
@@ -315,7 +445,7 @@ namespace CapriDesktop
 
         // Every way of talking to her plays its chime once, through her real ears and hands with a stand-in brain, and her ears
         // never take a chime for them.
-        private void SoundsHeard(List<string> checks, List<short[]> played, Action later)
+        private void SoundsHeard(List<string> checks, List<short[]> played, Action later, Action<long> step)
         {
             bool listenWas = preferences.ListenCapri, toldWas = preferences.ListenCapriTold, freeToldWas = preferences.FreeChatTold;
             bool quietWas = preferences.Quiet, silentWas = preferences.Silent, freeChatWas = FreeChatOn;
@@ -537,6 +667,13 @@ namespace CapriDesktop
                 ShowChimes();
                 checks.Add("PASS every way of talking to her chimes once: " + string.Join(", ", steps.ToArray()) + "; with Chimes off, typing and push to talk play nothing");
                 checks.Add("LIMIT ElevenLabs voice chat's heard chime and a real mic and speakers need a live check; on a call only the sent chime plays");
+
+                // Last, with her own ears open again: what a chime costs a line said straight after it.
+                StopChat();
+                ToggleChat();
+                dictation = null;
+                SoundsLost(checks, later, step);
+                StopChat();
             }
             finally
             {
@@ -571,6 +708,290 @@ namespace CapriDesktop
                 voiceUntil = 0;
                 talkState = TalkState.Off;
             }
+        }
+
+        // How much of what they say straight after a chime reaches her, every way she hears them, with the chime's echo in the
+        // mic as speakers next to it would play it: each 100 ms of their line is looked for, whole, in what her ears turned into
+        // words or sent on to ElevenLabs. Losing someone's first word is worse than anything a chime's echo could do.
+        private void SoundsLost(List<string> checks, Action later, Action<long> step)
+        {
+            Func<short[], string> runWas = Hearing.Run;
+            Func<string, string> thinkWas = Think;
+            Action<short[]> micWas = sendMicTest;
+            bool listenWas = preferences.ListenCapri;
+            int setWas = Chimes.Set;
+            Agent agentWas = agent;
+            bool localWas = local;
+            Agent link = new Agent();
+            short[] heard = null;
+            int decoded = 0, replies = 0;
+            string words = "what's for dinner";
+            Func<short[]> hush = delegate { return Tone(0, 40); };
+            Action<Func<bool>> settleOn = delegate(Func<bool> done)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (!done() && waited.ElapsedMilliseconds < 4000) { Application.DoEvents(); Thread.Sleep(5); }
+            };
+            Action open = delegate
+            {
+                CloseTalk();
+                CheckEars(clock.Elapsed.TotalSeconds);
+                lock (waking) { room = -1; lineAt = -100; noiseHold = false; utterance = null; preroll.Clear(); loudRun = quietRun = 0; }
+                nameOver = false;
+                for (int i = 0; i < 10; i++) Gather(hush());
+                if (earsShut || transcribing || utterance != null) throw new Exception("Her ears weren't open to measure what a chime costs.");
+            };
+            // How many of `fed` are in `got`, whole.
+            Func<List<short[]>, List<short[]>, int> found = delegate(List<short[]> fed, List<short[]> got)
+            {
+                int kept = 0;
+                foreach (short[] chunk in fed)
+                    foreach (short[] piece in got)
+                        if (Same(chunk, piece)) { kept++; break; }
+                return kept;
+            };
+            Func<short[], List<short[]>> chunked = delegate(short[] samples)
+            {
+                List<short[]> pieces = new List<short[]>();
+                for (int at = 0; samples != null && at + Ears.Chunk <= samples.Length; at += Ears.Chunk)
+                {
+                    short[] piece = new short[Ears.Chunk];
+                    Array.Copy(samples, at, piece, 0, Ears.Chunk);
+                    pieces.Add(piece);
+                }
+                return pieces;
+            };
+            // The echo, with their line from `from` chunks into it for `length` chunks, then a second of quiet. Returns their line as fed.
+            Func<List<short[]>, int, int, Action<short[]>, List<short[]>> speak = delegate(List<short[]> echo, int from, int length, Action<short[]> ear)
+            {
+                List<short[]> fed = new List<short[]>();
+                int chunks = Math.Max(echo.Count, from + length) + 12;
+                for (int i = 0; i < chunks; i++)
+                {
+                    short[] chunk = i < echo.Count ? echo[i] : hush();
+                    if (i >= from && i < from + length) { chunk = Mix(chunk, Tone(i + 1, i % 2 == 0 ? 14000 : 20000)); fed.Add(chunk); }
+                    ear(chunk);
+                    step(100);
+                }
+                return fed;
+            };
+            List<string> table = new List<string>(), lost = new List<string>();
+            try
+            {
+                Hearing.Run = delegate(short[] samples) { heard = samples; Interlocked.Increment(ref decoded); return words; };
+                Think = delegate { Interlocked.Increment(ref replies); return "Got it."; };
+                List<short[]> near = EchoIn(Chimes.Render(Chimes.Set, Chime.Heard, Chimes.Volume), 4, 0, false);
+                List<short[]> late = EchoIn(Chimes.Render(Chimes.Set, Chime.Heard, 100), 1, 400, true);
+                int[] starts = { 0, 2, 4, 6, 8, 10 };
+                const int Long = 15, Short = 3;
+                Func<int, int, string> ms = delegate(int kept, int of) { return ((of - kept) * 100).ToString(); };
+
+                // Her own ears in free voice chat and with Listen for Capri: a line straight after a chime.
+                foreach (bool name in new[] { false, true })
+                {
+                    preferences.ListenCapri = name;
+                    words = name ? "capri what's for dinner" : "what's for dinner";
+                    foreach (int length in new[] { Long, Short })
+                    {
+                        List<string> row = new List<string>();
+                        foreach (int from in starts)
+                        {
+                            open();
+                            later();
+                            if (!Chimes.Play(Chime.Heard)) throw new Exception("The heard chime didn't play for the measure.");
+                            int decodedWas = decoded;
+                            List<short[]> fed = speak(late, from, length, Gather);
+                            settleOn(delegate { return decoded > decodedWas && !transcribing; });
+                            int kept = decoded > decodedWas ? found(fed, chunked(heard)) : 0;
+                            row.Add(from * 100 + " ms: " + ms(kept, fed.Count));
+                            if (length == Long && kept < fed.Count) lost.Add((name ? "Listen for Capri" : "free voice chat") + " lost " + ms(kept, fed.Count) + " ms of a line begun " + from * 100 + " ms after the chime");
+                            settleOn(delegate { return !transcribing && talkState == TalkState.Off; });
+                            CloseTalk();
+                            if (name) CloseNameChat();
+                        }
+                        table.Add((name ? "Listen for Capri" : "free voice chat") + ", " + (length == Long ? "1.5 s line" : "300 ms word") + " lost " + string.Join(", ", row.ToArray()));
+                    }
+                }
+                preferences.ListenCapri = false;
+                words = "what's for dinner";
+
+                // Hey Capri: her ears have only just opened, and they say it all in one breath.
+                {
+                    List<string> row = new List<string>();
+                    foreach (int from in new[] { 0, 3 })
+                    {
+                        StopChat();
+                        ToggleChat();
+                        dictation = null;
+                        CheckEars(clock.Elapsed.TotalSeconds);
+                        later();
+                        if (!Chimes.Play(Chime.Listening)) throw new Exception("The listening chime didn't play for the measure.");
+                        int decodedWas = decoded;
+                        List<short[]> fed = speak(EchoIn(Chimes.Render(Chimes.Set, Chime.Listening, 100), 1, 400, true), from, Long, Gather);
+                        settleOn(delegate { return decoded > decodedWas && !transcribing; });
+                        int kept = decoded > decodedWas ? found(fed, chunked(heard)) : 0;
+                        row.Add(from * 100 + " ms: " + ms(kept, fed.Count));
+                        if (kept < fed.Count) lost.Add("Hey Capri lost " + ms(kept, fed.Count) + " ms of a line begun " + from * 100 + " ms after the chime");
+                        settleOn(delegate { return !transcribing && talkState == TalkState.Off; });
+                        CloseTalk();
+                    }
+                    table.Add("Hey Capri, 1.5 s line lost " + string.Join(", ", row.ToArray()));
+                }
+
+                // Push to talk, held again the moment the heard chime plays.
+                {
+                    open();
+                    later();
+                    Chimes.Play(Chime.Heard);
+                    int decodedWas = decoded;
+                    PushStart();
+                    List<short[]> fed = speak(near, 0, Long, Listen);
+                    PushDone();
+                    settleOn(delegate { return decoded > decodedWas; });
+                    int kept = decoded > decodedWas ? found(fed, chunked(heard)) : 0;
+                    table.Add("push to talk, held at the chime, lost " + ms(kept, fed.Count) + " ms");
+                    if (kept < fed.Count) lost.Add("push to talk lost " + ms(kept, fed.Count) + " ms");
+                    settleOn(delegate { return !transcribing && talkState == TalkState.Off; });
+                    CloseTalk();
+                }
+
+                // ElevenLabs voice chat: what reaches the agent.
+                {
+                    List<short[]> sent = new List<short[]>();
+                    sendMicTest = delegate(short[] chunk) { sent.Add(chunk); };
+                    List<string> row = new List<string>();
+                    bool echoSent = false;
+                    try
+                    {
+                        local = false;
+                        agent = link;
+                        lock (waking) { resting = false; backlog = null; }
+                        foreach (int from in starts)
+                        {
+                            later();
+                            sent.Clear();
+                            Chimes.Play(Chime.Heard);
+                            List<short[]> fed = speak(late, from, Long, Listen);
+                            int kept = found(fed, sent);
+                            row.Add(from * 100 + " ms: " + ms(kept, fed.Count));
+                            if (kept < fed.Count) lost.Add("ElevenLabs voice chat lost " + ms(kept, fed.Count) + " ms of a line begun " + from * 100 + " ms after the chime");
+                        }
+                        // The echo alone reaches the agent as silence.
+                        later();
+                        sent.Clear();
+                        Chimes.Play(Chime.Heard);
+                        speak(late, 0, 0, Listen);
+                        for (int i = 0; i < sent.Count && i < 10; i++) if (VoiceLevel(sent[i]) >= WakeLevel) echoSent = true;
+                    }
+                    finally
+                    {
+                        agent = agentWas;
+                        local = localWas;
+                        sendMicTest = micWas;
+                    }
+                    table.Add("ElevenLabs voice chat, 1.5 s line lost " + string.Join(", ", row.ToArray()) + (echoSent ? "; the echo alone reached it as sound" : ""));
+                    if (echoSent) lost.Add("a chime's echo reached ElevenLabs as sound");
+                }
+
+                // The echo alone, of every chime in every set, near the mic and late with a room's ring, never starts a line. In a
+                // room with a steady hum her ears keep its level through a chime, or the hum starts lines after it.
+                List<string> started = new List<string>();
+                for (int set = 0; set < Chimes.Sets.Length; set++)
+                    for (int kind = 0; kind < 3; kind++)
+                        foreach (bool ring in new[] { false, true })
+                        {
+                            Chimes.Set = set;
+                            open();
+                            later();
+                            Chimes.Play((Chime)kind);
+                            int decodedWas = decoded;
+                            speak(EchoIn(Chimes.Render(set, (Chime)kind, 100), ring ? 1 : 12, ring ? 400 : 0, ring), 0, 0, Gather);
+                            bool begun = utterance != null;
+                            settleOn(delegate { return !transcribing; });
+                            if (begun || decoded != decodedWas) started.Add(Chimes.Sets[set] + " " + Chimes.Names[kind] + (ring ? " late" : " near"));
+                            CloseTalk();
+                        }
+                Chimes.Set = setWas;
+                open();
+                short[] hum = new short[Ears.Chunk];
+                for (int i = 0; i < hum.Length; i++) hum[i] = (short)(Math.Sin(i * Math.PI / 40) * 300);
+                for (int i = 0; i < 20; i++) Gather(hum);
+                double roomBefore = room;
+                later();
+                Chimes.Play(Chime.Heard);
+                List<short[]> humEcho = EchoIn(Chimes.Render(Chimes.Set, Chime.Heard, Chimes.Volume), 4, 0, false);
+                int humDecoded = decoded;
+                bool humStarted = false;
+                for (int i = 0; i < 40; i++) { Gather(i < humEcho.Count ? Mix(hum, humEcho[i]) : hum); step(100); humStarted = humStarted || utterance != null; }
+                double roomAfter = room;
+                settleOn(delegate { return !transcribing; });
+                humStarted = humStarted || decoded != humDecoded;
+                CloseTalk();
+                table.Add("a steady hum's level " + roomBefore.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture) + " before a chime and " + roomAfter.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture) + " after" + (humStarted ? ", and the hum started a line" : ""));
+                // With Chimes off nothing plays, so nothing masks or holds her ears and every gate lets all through, as before chimes.
+                preferences.NoChimes = true;
+                ShowChimes();
+                later();
+                bool offPlayed = Chimes.Play(Chime.Sent) | Chimes.Play(Chime.Heard) | Chimes.Play(Chime.Listening);
+                bool offOpen = !offPlayed && !Chimes.Masking && !Chimes.Holding && earsGate.Voice(0.5, WakeLevel) && wakeGate.Voice(0.5, WakeLevel) && linkGate.Voice(0.5, WakeLevel);
+                preferences.NoChimes = false;
+                ShowChimes();
+                if (!offOpen) lost.Add("with Chimes off a chime still masked or held her ears");
+                checks.Add("INFO what a chime costs what they say: " + string.Join("; ", table.ToArray()));
+                if (started.Count > 0) lost.Add("a chime's echo alone started a line: " + string.Join(", ", started.ToArray()));
+                if (humStarted || roomAfter < roomBefore / 2) lost.Add("a chime made her ears forget a room's hum");
+                if (lost.Count > 0) throw new Exception("A chime cost them words or fooled her ears: " + string.Join("; ", lost.ToArray()));
+                checks.Add("PASS a chime costs nothing of a line said straight after it, 0 to 1000 ms on, in free voice chat, Listen for Capri, Hey Capri, push to talk and ElevenLabs voice chat; its echo alone, near the mic twelve times over full volume or 400 ms late with a room's ring at full volume, starts no line and reaches ElevenLabs as silence, for every chime in every set; and a room's hum keeps its level through it");
+            }
+            finally
+            {
+                Hearing.Run = runWas;
+                Think = thinkWas;
+                sendMicTest = micWas;
+                agent = agentWas;
+                local = localWas;
+                preferences.ListenCapri = listenWas;
+                Chimes.Set = setWas;
+                link.Dispose();
+                CloseTalk();
+            }
+        }
+
+        private static short[] Tone(int index, int amplitude)
+        {
+            short[] samples = new short[Ears.Chunk];
+            double period = 30 + index % 17;
+            for (int i = 0; i < samples.Length; i++) samples[i] = (short)(Math.Sin(i * Math.PI / period) * amplitude);
+            return samples;
+        }
+
+        private static short[] Mix(short[] a, short[] b)
+        {
+            short[] mixed = new short[a.Length];
+            for (int i = 0; i < a.Length; i++) mixed[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, a[i] + b[i]));
+            return mixed;
+        }
+
+        // A chime as her mic would hear it: 48 kHz down to her ears' 16 kHz, louder by loud, `late` ms after it played, and with
+        // ring, a room's echoes every 23 ms, each a quarter quieter, about half a second of ring in all.
+        private static List<short[]> EchoIn(short[] sound, double loud, int late, bool ring)
+        {
+            int length = sound.Length / 3, delay = late * Ears.Rate / 1000, tail = ring ? 25 * 368 : 0;
+            double[] down = new double[delay + length + tail + Ears.Chunk];
+            for (int i = 0; i < length; i++)
+            {
+                double sample = (sound[i * 3] + sound[i * 3 + 1] + sound[i * 3 + 2]) / 3.0 * loud;
+                down[delay + i] += sample;
+                for (int tap = 1; ring && tap <= 25; tap++) down[delay + i + tap * 368] += sample * Math.Pow(0.75, tap);
+            }
+            List<short[]> chunks = new List<short[]>();
+            for (int at = 0; at + Ears.Chunk <= down.Length; at += Ears.Chunk)
+            {
+                short[] chunk = new short[Ears.Chunk];
+                for (int i = 0; i < Ears.Chunk; i++) chunk[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, down[at + i] + Math.Sin(i * Math.PI / 40) * 40));
+                chunks.Add(chunk);
+            }
+            return chunks;
         }
 
         // A chime as her mic would hear it from the speakers: 48 kHz down to her ears' 16 kHz, louder by loud, in her ears' chunks.
@@ -610,6 +1031,36 @@ namespace CapriDesktop
                 best = Math.Max(best, Math.Abs(sum) / Math.Sqrt(energyA * energyB));
             }
             return best;
+        }
+
+        // Settings drawn at 100%, 125% and 150%, Simple and Advanced, into folder, with every row's place in settings-rows.txt.
+        private void SettingsLook(string folder)
+        {
+            bool advancedWas = preferences.AdvancedSettings, pageWas = mainframe.SettingsShown, shownWas = mainframe.Visible;
+            FormWindowState stateWas = mainframe.WindowState;
+            List<string> rows = new List<string>();
+            Directory.CreateDirectory(folder);
+            try
+            {
+                mainframe.WindowState = FormWindowState.Normal;
+                mainframe.Show();
+                Application.DoEvents();
+                foreach (bool advanced in new[] { false, true })
+                    foreach (int percent in new[] { 100, 125, 150 })
+                    {
+                        Action draw = delegate { mainframe.SnapSettings(percent * 96 / 100, (advanced ? "advanced-" : "simple-") + percent, folder, rows); };
+                        if (advanced) { preferences.AdvancedSettings = true; draw(); }
+                        else InSimpleSettings(draw);
+                    }
+                File.WriteAllLines(Path.Combine(folder, "settings-rows.txt"), rows.ToArray());
+            }
+            finally
+            {
+                preferences.AdvancedSettings = advancedWas;
+                mainframe.ShowSettings(pageWas);
+                if (!shownWas) mainframe.Hide();
+                mainframe.WindowState = stateWas;
+            }
         }
 
         private void SnapMainframe(string path)
@@ -681,6 +1132,125 @@ namespace CapriDesktop
         internal void FlipChime(Chime chime) { Toggle row = chime == Chime.Sent ? chimeSent : chime == Chime.Heard ? chimeHeard : chimeListening; row.Checked = !row.Checked; }
 
         internal void SlideChimeVolume(int steps) { Press(chimeVolume, steps); }
+
+        // Settings as they'd see it with Windows at dpi (96 for 100%, 120 for 125%, 144 for 150%) and her Mainframe size at 100%,
+        // drawn the way PrintWindow draws it on the smoke's own desktop: the view with HABITS at its top, and the whole page down
+        // its length. Each row's place on the page goes into rows, to hold against another build's.
+        internal void SnapSettings(int dpi, string name, string folder, List<string> rows)
+        {
+            int dpiWas = layoutDpi, textWas = layoutText, sizeWas = capri.MainframeSize;
+            bool fallbackWas = layoutFallback;
+            try
+            {
+                ShowSettings(true);
+                LayoutScale(dpi, 100);
+                SizeMainframe(100);
+                ShowSettings(true);
+                Application.DoEvents();
+                if (Math.Abs(unit - dpi / 96f) > 0.01f) name += "-drawn-at-" + Math.Round(unit * 100);
+                foreach (KeyValuePair<Control, int> entry in pageLeft)
+                {
+                    Control row = entry.Key;
+                    if (Folded(row) || Hidden(row) || !row.Visible) continue;
+                    string label = row.AccessibleName ?? "";
+                    if (label.Length == 0) label = row.Text ?? "";
+                    if (label.Length == 0) label = row.GetType().Name;
+                    int stop = label.IndexOf('.');
+                    if (stop > 0) label = label.Substring(0, stop);
+                    rows.Add(name + "\t" + label.Replace('\t', ' ').Replace('\n', ' ') + "\t" + entry.Value + "\t" + (row.Top + Scaled(pageScroll)) + "\t" + row.Height + "\t" + row.Width);
+                }
+                float s = Unit();
+                ScrollPage((int)Math.Round((startup.Top + Scaled(pageScroll)) / s) - 44);
+                Application.DoEvents();
+                using (Bitmap view = new Bitmap(Width, Height))
+                {
+                    DrawToBitmap(view, new Rectangle(Point.Empty, Size));
+                    DrawRims(view);
+                    view.Save(Path.Combine(folder, name + "-habits.png"), ImageFormat.Png);
+                }
+                ScrollPage(0);
+                Application.DoEvents();
+                List<KeyValuePair<int, Bitmap>> parts = new List<KeyValuePair<int, Bitmap>>();
+                try
+                {
+                    int at = 0, height = 0;
+                    for (int i = 0; i < 20; i++)
+                    {
+                        ScrollPage(at);
+                        Application.DoEvents();
+                        Bitmap part = new Bitmap(Width, Height);
+                        DrawToBitmap(part, new Rectangle(Point.Empty, Size));
+                        parts.Add(new KeyValuePair<int, Bitmap>(Scaled(pageScroll), part));
+                        height = Scaled(pageScroll) + Height;
+                        if (pageScroll < at) break;
+                        int reached = pageScroll;
+                        at = reached + Math.Max(100, pageView - 60);
+                        ScrollPage(at);
+                        if (pageScroll == reached) break;
+                    }
+                    using (Bitmap page = new Bitmap(Width, height))
+                    using (Graphics graphics = Graphics.FromImage(page))
+                    {
+                        foreach (KeyValuePair<int, Bitmap> part in parts) graphics.DrawImageUnscaled(part.Value, 0, part.Key);
+                        page.Save(Path.Combine(folder, name + "-page.png"), ImageFormat.Png);
+                    }
+                }
+                finally { foreach (KeyValuePair<int, Bitmap> part in parts) part.Value.Dispose(); }
+            }
+            finally
+            {
+                ScrollPage(0);
+                LayoutScale(dpiWas, textWas, fallbackWas);
+                SizeMainframe(sizeWas);
+            }
+        }
+
+        // SOUNDS greyed with Chimes off, and the tips on its rows, with Windows at 100%, 125% and 150%.
+        internal void SoundsTips(string folder)
+        {
+            int dpiWas = layoutDpi, textWas = layoutText, sizeWas = capri.MainframeSize;
+            bool fallbackWas = layoutFallback;
+            try
+            {
+                foreach (int dpi in new[] { 96, 120, 144 })
+                {
+                    int percent = dpi * 100 / 96;
+                    ShowSettings(true);
+                    LayoutScale(dpi, 100);
+                    SizeMainframe(100);
+                    ShowSettings(true);
+                    Application.DoEvents();
+                    ScrollPage((int)Math.Round((chimes.Top + Scaled(pageScroll)) / Unit()) - 300);
+                    Application.DoEvents();
+                    foreach (Control control in new Control[] { chimes, chimeVolume, chimeHeard })
+                    {
+                        DismissHint();
+                        dismissedHint = null;
+                        overHint = null;
+                        MoveOverHint(control);
+                        AwaitHint(control);
+                        if (HintVisible) SaveTipPreview(folder, "tip-" + (control == chimes ? "chimes" : control == chimeVolume ? "volume" : "heard") + "-" + percent + ".png");
+                    }
+                    DismissHint();
+                    chimes.Checked = false;
+                    Application.DoEvents();
+                    using (Bitmap view = new Bitmap(Width, Height))
+                    {
+                        DrawToBitmap(view, new Rectangle(Point.Empty, Size));
+                        DrawRims(view);
+                        view.Save(Path.Combine(folder, "chimes-off-" + percent + ".png"), ImageFormat.Png);
+                    }
+                    chimes.Checked = true;
+                }
+            }
+            finally
+            {
+                DismissHint();
+                ScrollPage(0);
+                LayoutScale(dpiWas, textWas, fallbackWas);
+                SizeMainframe(sizeWas);
+            }
+        }
 
         internal bool SoundsInPage
         {

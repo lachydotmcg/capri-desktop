@@ -687,15 +687,15 @@ namespace CapriDesktop
         }
 
         // The same for free voice chat, whose ears shut while she talks: it listens for them over her, with the line's start kept.
-        private bool OverHerLocally(short[] chunk, double level)
+        private bool OverHerLocally(short[] chunk, double level, bool echo = false)
         {
             int ticket = asking, audio = audioTurn;
             double now = clock.Elapsed.TotalSeconds;
-            if (level >= WakeLevel) micTalked = Environment.TickCount;
+            if (level >= WakeLevel && !echo) micTalked = Environment.TickCount;
             if (nameOver && local && earsReady && !ears.Muted && !transcribing) return false;
             if (!local || !earsReady || ears.Muted || transcribing || now >= voiceUntil)
             {
-                if (local && earsReady && !ears.Muted && now >= voiceUntil) talkOver.Quiet(level);
+                if (local && earsReady && !ears.Muted && now >= voiceUntil) { if (!echo) talkOver.Quiet(level); }
                 else talkOver.Reset();
                 // She finished by herself, so what these chunks hold is her own voice and not the start of their line.
                 if (overHeld) lock (waking) preroll.Clear();
@@ -707,8 +707,9 @@ namespace CapriDesktop
             {
                 preroll.Add(chunk);
                 // On a call it takes about a second to know they're really talking, so more of their line's start is kept.
-                if (preroll.Count > (CallModeOn ? TalkOver.CallWindow + 2 : TalkOver.Held + 2)) preroll.RemoveAt(0);
-                if (!talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake(), CallModeOn)) return true;
+                int keep = CallModeOn ? TalkOver.CallWindow + 2 : TalkOver.Held + 2;
+                if (preroll.Count > keep) PastChimeRoll(keep);
+                if (echo || !talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake(), CallModeOn)) return true;
             }
             overHeld = false;
             // Listen for Capri waits to hear whether the line was for her. On a call every line is, so talking over her stops
@@ -727,8 +728,8 @@ namespace CapriDesktop
         private void OverHeard(short[] chunk)
         {
             int ticket = asking, audio = audioTurn;
-            if (Chimes.Masking) return;
             double now = clock.Elapsed.TotalSeconds, level = VoiceLevel(chunk);
+            if (!wakeGate.Voice(level, WakeLevel)) return;
             if (now >= voiceUntil) { wakeOver.Quiet(level); return; }
             if (!wakeOver.Heard(level, SpokenLevel(now), WakeLevel)) return;
             wakeOver.Reset();
