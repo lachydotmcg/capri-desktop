@@ -432,7 +432,7 @@ namespace CapriDesktop
 
         private bool AskToRun(ModFile mod, string hash)
         {
-            return MessageBox.Show(this, Mods.Consent(mod, hash), "Run this code mod?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
+            return Question.Ask(this, Mods.Consent(mod, hash), "Run this code mod?");
         }
 
         private void RemoveMod(int row)
