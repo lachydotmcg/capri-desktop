@@ -949,7 +949,7 @@ namespace CapriDesktop
             "Work out every step it needs and take the steps one tool call at a time: you'll see what each one did before you pick the next. " +
             "Nobody tells you what's open on their PC, so when it matters, find out first: list_windows shows their open windows and which one is in front, and check_app says whether an app or game is installed and running. If something has to be open first, open it, then carry on. When they want you to play a game, that's one use_computer call with their words, open or not: it opens the game, gets into a match or map and keeps playing until they stop you. To start a match in a game, check it's running; if it isn't, call open_app for the game, then use_computer for the rest, which waits for the game to load and clicks through its menus. Use use_computer for anything that needs clicking or typing inside an app, a game or a site, with the whole job in their words. " +
             "When it matters whether a step worked, like a window opening, closing or coming to the front, check again before you say it did. " + WindowNote + OwnSettings +
-            "Never say you did, started or are doing something unless one of your tools did it this turn, and don't stop at a step that only gets part of the way. If a tool fails, try another way once, then tell them plainly what didn't work. When they're just chatting, answer as yourself without tools. Once the job's done, or can't go any further, reply to them in one short line as yourself." + Hurting;
+            "Never say you did, started or are doing something unless one of your tools did it this turn, and don't stop at a step that only gets part of the way. If a tool fails, try another way once, then tell them plainly what didn't work. When they're just chatting, answer as yourself without tools" + HeartAnyTime + ". Once the job's done, or can't go any further, reply to them in one short line as yourself." + Hurting;
 
         // Arranging their windows: app_window says where a window really ended up, and list_windows
         // names their monitors and says where one app's window is (Lachy, 2 Nov).
@@ -1670,10 +1670,11 @@ namespace CapriDesktop
         // Her secret emotes: a chair she sits on and a little finger heart. Her brain may do them, never lists or offers them,
         // and no list of her moves shows them. Windows only for now.
 #if CROSS
-        private const string SecretMoves = "", SecretMovesEnum = "", SecretMovesNote = "";
+        private const string SecretMoves = "", SecretMovesEnum = "", SecretMovesNote = "", HeartAnyTime = "";
 #else
         private const string SecretMoves = "|chair|heart", SecretMovesEnum = ",\"chair\",\"heart\"";
-        private const string SecretMovesNote = " Two are secret: never list, name or offer them, just do them. chair sits you on a white plastic chair, for when they ask you to sit on a chair. heart makes a little finger heart at them, for when they ask for a heart or you want to show them some love.";
+        private const string HeartAnyTime = ", though a heart is yours to send any time";
+        private const string SecretMovesNote = " Two are secret: never list, name, offer or explain them. chair sits you on a white plastic chair when they ask you to sit on one. heart is a little finger heart, yours to send whenever you feel it, asked or not: when they thank or compliment you, share good news, say goodnight, or just because. Send it with your reply, as often as you like, without asking.";
 #endif
         internal static Func<string, string> Mainframe = delegate { return "Couldn't open Mainframe."; };
 #if CROSS
