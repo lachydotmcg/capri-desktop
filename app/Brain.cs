@@ -2525,7 +2525,9 @@ namespace CapriDesktop
             if (planned && calls.Count == 0) raw = planText;
             if (calls.Count == 0 && !planned && unable == null)
             {
-                raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
+                raw = Chat(model, messages, answerBudget, ticket);
+                // A call it wrote out as text, like <tool_call>{"name":"open_app",...}</tool_call>, runs as a real one.
+                if (act != null && !fileChat) foreach (KeyValuePair<string, ToolArguments> typed in Leaks.Calls(raw)) if (kit.Unable(typed.Key, typed.Value) == null) calls.Add(typed);
                 // Her brain says "act" when this is a job, in whatever language they said it. A brain that holds her tools then works it
                 // out with every one of them. Otherwise her hands find what to do, with a second look at every tool when the first finds
                 // nothing, and if that finds nothing too she just answers, unless they're in a game or plainly asked.
@@ -2549,7 +2551,7 @@ namespace CapriDesktop
                         if (calls.Count == 0 && unable == null)
                         {
                             messages[0] = new ChatMessage("system", steady + kit.ChatOnly + Hands.MiniBoard() + selfGuide + callContext) { Steady = steady.Length };
-                            raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
+                            raw = Chat(model, messages, answerBudget, ticket);
                             if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;
                         }
                     }
@@ -2728,14 +2730,14 @@ namespace CapriDesktop
                 for (int i = Math.Max(0, history.Count - 10); i < history.Count; i++)
                     if (history[i].Role == "assistant" && Regex.IsMatch(history[i].Content ?? "", @"\bgood (boy|girl)\b", RegexOptions.IgnoreCase)) praised = true;
             string after;
-            string firstPart = Replies.Split(Visible(raw), out after);
+            string firstPart = Replies.Split(Leaks.Unmused(Visible(raw)), out after);
             if (!followUps || calls.Count > 0) { firstPart = firstPart + (after.Length == 0 ? "" : "\n" + after); after = ""; }
             string said = spoken ?? (done != null && (namedWebsite || calls.Exists(pathCall => pathCall.Key == "find_file" || pathCall.Key == "website_nickname")) ? done : Unclosed(Fresh(Unpraised(Sparing(Clean(firstPart), lately, name), praised), request, saidLately)));
             after = Unclosed(Sparing(Clean(after), lately || Regex.IsMatch(said, called, RegexOptions.IgnoreCase), name));
             if (spoken == null && (Regex.IsMatch(said, @"\A[`'""\s]*chat[.!`'""\s]*\z", RegexOptions.IgnoreCase) || Hands.Typed(raw, out written, out writtenArgs))) { said = ""; after = ""; }
             if (said.Length == 0 && after.Length > 0) { said = after; after = ""; }
             if (said.Length == 0 && done != null) said = done;
-            if (said.Length == 0) throw new BrainException(Wordless, true);
+            if (said.Length == 0) throw new BrainException(Leaks.Thought(raw) ? Answerless : Wordless, true);
             if (act != null && !fileChat && unable == null && (upset || Hands.Hurt(Thoughtless(raw))) && !calls.Exists(call => !Hands.UpsetCall(call.Key, call.Value)))
             {
                 Check(ticket);
@@ -2803,7 +2805,7 @@ namespace CapriDesktop
                 string said = Clean(raw), written;
                 ToolArguments writtenArgs;
                 // A brain copying the way its earlier calls are written below gets its calls read all the same.
-                List<KeyValuePair<string, ToolArguments>> several = picked.Count == 0 ? Hands.Written(raw) : null;
+                List<KeyValuePair<string, ToolArguments>> several = picked.Count == 0 ? Leaks.Calls(raw) : null;
                 if (several != null && several.Count > 0) picked.AddRange(several);
                 else if (picked.Count == 0 && Hands.Typed(raw, out written, out writtenArgs, true)) picked.Add(new KeyValuePair<string, ToolArguments>(written, writtenArgs));
                 if (picked.Count == 0)
@@ -2976,9 +2978,10 @@ namespace CapriDesktop
             string written;
             ToolArguments writtenArgs;
             // A list of calls written out as text runs every one of them.
-            List<KeyValuePair<string, ToolArguments>> several = calls.Count == 0 ? Hands.Written(raw) : null;
+            List<KeyValuePair<string, ToolArguments>> several = calls.Count == 0 ? Leaks.Calls(raw) : null;
             if (several != null && several.Count > 1) calls.AddRange(several);
             else if (calls.Count == 0 && Hands.Typed(raw, out written, out writtenArgs, true)) calls.Add(new KeyValuePair<string, ToolArguments>(written, writtenArgs));
+            else if (several != null && several.Count == 1) calls.AddRange(several);
             if (calls.Exists(call => !Hands.Valid(call.Key, call.Value))) { calls.Clear(); throw new BrainException("Couldn't read that tool call. Try again.", true); }
             return raw;
         }
@@ -3020,7 +3023,7 @@ namespace CapriDesktop
                 messages[0].Content += kit.Listing;
                 raw = Think(model, messages, false, calls, null, limit, -1, true, kit.Tools, kit.ClaudeTools, true, true);
             }
-            if (calls.Count == 0) calls.AddRange(Hands.Written(raw));
+            if (calls.Count == 0) calls.AddRange(Leaks.Calls(raw));
             if (calls.Count == 0)
             {
                 string tool;
@@ -3393,6 +3396,31 @@ namespace CapriDesktop
 
         private static bool Refused(BrainException error) { return error.Status == 400 || error.Status == 422; }
 
+        // Which brain an ask goes to, for her log: its kind and model, never a key or an address.
+        private string Asker(string model)
+        {
+            Cloud remote = Remote;
+#if CROSS
+            if (Provider != null) return "provider " + model;
+#endif
+            if (remote != null) return (remote.Plan ? "plan " : "") + remote.Kind + " " + remote.Model;
+            return (Server != null ? "server " : Local != null ? "built-in " : "ollama ") + model;
+        }
+
+        // Her chat reply. One that was only its thinking, or a call she has no tool for, is asked once more for just her answer, so
+        // she never shows an empty bubble for it. If that's empty too she says the model only thought.
+        private string Chat(string model, List<ChatMessage> messages, int budget, int ticket)
+        {
+            string raw = null;
+            try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, budget, ticket); }
+            catch (BrainException error) { if (error.Detail != Leaks.OnlyThought) throw; }
+            if (raw != null && (Clean(Leaks.Unmused(Visible(raw))).Length > 0 || Leaks.Kinds(raw).Count == 0 || Leaks.Calls(raw).Count > 0)) return raw;
+            Log("leak", -1, Leaks.Who + ": nothing left to say, asking again for just the answer");
+            List<ChatMessage> again = new List<ChatMessage>(messages);
+            again[0] = new ChatMessage("system", messages[0].Content + Leaks.JustAnswer) { Steady = messages[0].Steady };
+            return Think(model, again, false, new List<KeyValuePair<string, ToolArguments>>(), null, budget, ticket, false, null, null, false, true);
+        }
+
         // plain: a call outside her chat, which keeps today's settings whatever's picked.
 #if CROSS
         private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false, bool plain = false, bool computerAction = false)
@@ -3401,6 +3429,7 @@ namespace CapriDesktop
 #endif
         {
             Check(ticket);
+            Leaks.Asking(Asker(model));
 #if CROSS
             IBrainProvider provider = Provider;
             if (provider != null)
@@ -3735,10 +3764,11 @@ namespace CapriDesktop
             int before = calls.Count;
             if (message.Calls != null) foreach (CompletionCall call in message.Calls) if (call != null && call.Function != null) calls.Add(new KeyValuePair<string, ToolArguments>(call.Function.Name, Hands.Read(call.Function.Arguments)));
             if (calls.Count == before && Garbled(message.Content, longReply)) throw new BrainException(Gibberish, true);
-            if (Clean(message.Content).Length == 0 && calls.Count == before)
+            if (Clean(message.Content, false).Length == 0 && calls.Count == before)
             {
                 if (choice.Stopped == "length") throw new BrainException("That model ran out of room before answering. Pick another model in Capri Mainframe.", true);
                 if (!string.IsNullOrWhiteSpace(message.Reasoning) || !string.IsNullOrWhiteSpace(message.Thinking)) throw new BrainException(Answerless, true);
+                if (Leaks.Thought(message.Content)) throw new BrainException(Answerless, true) { Detail = Leaks.OnlyThought };
                 throw new BrainException(Wordless, true);
             }
             return Visible(message.Content);
@@ -4257,7 +4287,7 @@ namespace CapriDesktop
         internal static bool Garbled(string text, bool longReply = false)
         {
             int junk = Junk.Matches(text ?? "").Count;
-            return junk >= 3 || (junk > 0 && Clean(text).Length == 0) || Looping(Visible(text), longReply);
+            return junk >= 3 || (junk > 0 && Clean(text, false).Length == 0) || Looping(Visible(text), longReply);
         }
 
         private static bool Looping(string text, bool longReply)
@@ -4307,9 +4337,7 @@ namespace CapriDesktop
 
         private static string Thoughtless(string text)
         {
-            text = Junk.Replace(text ?? "", " ");
-            text = Regex.Replace(text, "<think>.*?(</think>|$)", " ", RegexOptions.Singleline | RegexOptions.IgnoreCase);
-            return Regex.Replace(text, @"<\|channel>thought\b.*?(<channel\|>|$)", " ", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            return Leaks.Thoughts(Junk.Replace(text ?? "", " "));
         }
 
         // "Good boy" only lands now and then, so a sentence with it in goes if she said it lately, unless that's all she said.
@@ -4383,10 +4411,15 @@ namespace CapriDesktop
             return text.Trim('"', '“', '”', ' ');
         }
 
-        internal static string Clean(string text)
+        internal static string Clean(string text) { return Clean(text, true); }
+
+        // Spoken leaves out the calls a brain wrote as text, for what she shows and says. Checks on whether a reply had anything in
+        // it at all keep them, since her hands still run them.
+        private static string Clean(string text, bool spoken)
         {
             if (text == null) return "";
             text = Visible(text);
+            if (spoken) text = Leaks.Spoken(text);
             text = Regex.Replace(text, @"\*[^*]{0,80}\*", " ");
             text = Regex.Replace(text, @"[\uD800-\uDFFF☀-➿️]", "");
             text = Regex.Replace(text, @"\s+", " ").Trim();
