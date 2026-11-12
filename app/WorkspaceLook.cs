@@ -135,9 +135,23 @@ namespace CapriDesktop
     {
         // Pictures of the Workspace window in every state it has, with stand-in chats, at 100%, 125% and 150% and at its
         // smallest size, plus the Mainframe beside it. Each picture is also checked for crowding.
+        // A section's own folder under the run folder: 8 letters of a new id, which is plenty to keep runs apart.
+        private static string RunFolder(string run) { return Path.Combine(run, Guid.NewGuid().ToString("N").Substring(0, 8)); }
+
+        // Below its root, Workspace writes paths up to 122 letters long: undo\<chat>\<turn>\manifest.json and the
+        // .<id>.tmp name it's written through. Past Windows' 259 letters that save fails, and a check fails somewhere
+        // far from the cause, so a run folder that leaves no room for the deepest root a section makes stops here instead.
+        private static void RoomUnder(string run, string deepestRoot)
+        {
+            int longest = Path.GetFullPath(deepestRoot).Length + 122;
+            if (longest > 259) throw new Exception("The run folder is too deep: " + run + " makes Workspace's longest save path " + longest + " letters, past Windows' 259. Run the smoke from a shorter folder.");
+        }
+
         private void SmokeWorkspaceLook(List<string> checks, string folder)
         {
-            folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
+            string run = folder;
+            folder = RunFolder(folder);
+            RoomUnder(run, Path.Combine(folder, "titles", "data150", "workspace"));
             string pictures = Path.Combine(folder, "look");
             Directory.CreateDirectory(pictures);
             string projects = Path.Combine(folder, "Projects");
@@ -496,7 +510,7 @@ namespace CapriDesktop
         // sent with no words; a failed start keeps the message and its files for Retry. Pictured at 100%, 125% and 150%.
         private void SmokeWorkspaceAttachments(List<string> checks, string folder, string projects, string pipe, Func<string, string> alias, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
         {
-            string box = Path.Combine(folder, "attachments"), data = Path.Combine(box, "data");
+            string box = Path.Combine(folder, "att"), data = Path.Combine(box, "data");
             string home = Path.Combine(folder, "profile", "Capri", "Workspace");
             string notes = Path.Combine(projects, "notes for the workspace window rebuild"), other = Path.Combine(projects, "metis-orchestrator");
             Directory.CreateDirectory(box);
@@ -616,7 +630,7 @@ namespace CapriDesktop
                 int scale = (int)Math.Round(z * 100);
                 foreach (bool dropped in new[] { false, true })
                 {
-                    using (Workspace work = new Workspace(Path.Combine(box, (dropped ? "drop" : "change") + scale), pipe + Guid.NewGuid().ToString("N")) { Home = home })
+                    using (Workspace work = new Workspace(Path.Combine(box, (dropped ? "drop" : "ch") + scale), pipe + Guid.NewGuid().ToString("N")) { Home = home })
                     using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
                     {
                         work.Executable = standin;
@@ -831,7 +845,9 @@ namespace CapriDesktop
         // safe flags, and added files go out once with the next message and count as inside for reads and edits.
         private void SmokeWorkspaceFolders(List<string> checks, string folder)
         {
-            folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
+            string run = folder;
+            folder = RunFolder(folder);
+            RoomUnder(run, Path.Combine(folder, "arguments", "workspace"));
             string main = Path.Combine(folder, "main project"), extra = Path.Combine(folder, "extra"), later = Path.Combine(folder, "added later"), loose = Path.Combine(folder, "loose");
             foreach (string made in new[] { main, extra, later, loose }) Directory.CreateDirectory(made);
             string spec = Path.Combine(loose, "spec.md"), log = Path.Combine(loose, "build log.txt"), stranger = Path.Combine(loose, "not added.txt");
@@ -950,7 +966,9 @@ namespace CapriDesktop
 
         private void SmokeWorkspaceWindow(List<string> checks, string folder)
         {
-            folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
+            string run = folder;
+            folder = RunFolder(folder);
+            RoomUnder(run, Path.Combine(folder, "first", "workspace"));
             string project = Path.Combine(folder, "project"), second = Path.Combine(folder, "second"), third = Path.Combine(folder, "third");
             foreach (string made in new[] { project, second, third }) Directory.CreateDirectory(made);
             string fileOne = Path.Combine(second, "one.txt"), fileTwo = Path.Combine(third, "two.txt");
@@ -2126,7 +2144,9 @@ namespace CapriDesktop
 
         private void PickersOnce(List<string> checks, string folder)
         {
-            folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
+            string run = folder;
+            folder = RunFolder(folder);
+            RoomUnder(run, Path.Combine(folder, "data", "workspace"));
             string pictures = Path.Combine(folder, "pictures"), project = Path.Combine(folder, "project");
             string one = Path.Combine(project, "pick one"), two = Path.Combine(project, "pick two"), started = Path.Combine(folder, "started here");
             foreach (string made in new[] { pictures, one, two, started }) Directory.CreateDirectory(made);
@@ -2238,7 +2258,7 @@ namespace CapriDesktop
         // shrinks it, makes 100 chats with long names, drops 30 files or something that isn't a file, pastes a long log.
         private void SmokeWorkspaceFirstMinute(List<string> checks, string folder)
         {
-            string box = Path.Combine(folder, "first-minute");
+            string box = Path.Combine(folder, "first");
             string project = Path.Combine(box, "project"), longName = Path.Combine(Path.GetTempPath(), "cw" + Guid.NewGuid().ToString("N").Substring(0, 6), new string('f', 150));
             foreach (string made in new[] { project, longName }) Directory.CreateDirectory(made);
             List<string> dropped = new List<string>();
