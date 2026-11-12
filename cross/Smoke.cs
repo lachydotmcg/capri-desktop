@@ -2621,7 +2621,7 @@ namespace CapriDesktop
                 Settings old;
                 using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes("{}"))) old = (Settings)json.ReadObject(stream);
                 if (old.LastVersion != null) throw new Exception("Old cross settings invented a last version.");
-                foreach (string last in new[] { old.LastVersion, "0.8.2", "0.9.0" })
+                foreach (string last in new[] { old.LastVersion, "0.8.2", "1.0.0" })
                 {
                     pet.Talk.Dismiss(); pet.Saved.LastVersion = last; pet.StartNews(true); pet.CheckNews(0);
                     if (pet.Talk.Reply != News.Line || voice.Calls != 0 || SettingsCopy().LastVersion != News.Version) throw new Exception("Cross update news did not show and save once from " + (last ?? "missing") + ".");
@@ -2687,7 +2687,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross news that finishes while busy stays pending and returns when free");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "File editor:", "YOU > File editor", "Play a game:", "Listen for Capri:", "Her clicks:", "Terminal commands:", "Asked moves:", "Chromebooks:" } : new[] { "Mouse and keyboard:", "Files:", "Arranging apps:", "On your screen:", "Asked moves:", "Her own tools:", "Quitting:", "Mainframe:" })
+                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Reminders:", "PDFs:", "Moving:", "Sitting:", "HABITS > Music app", "Stopwatch:", "Updates:", "Hyprland:" } : new[] { "Reminders:", "PDFs:", "Sitting:", "HABITS > Music app", "Apple Music", "Stopwatch:", "Mini player:" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })

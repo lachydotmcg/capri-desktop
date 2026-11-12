@@ -15,43 +15,51 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.8.9";
+        internal const string Version = "0.9.0";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
             + (OperatingSystem.IsLinux()
-                ? "File editor: Mainframe > Settings > YOU > File editor, or File editor in her right-click menu, opens personality.md and me.md. Change the text, then press Save or Ctrl + S. Your drafts stay separate until you save.\n"
-                    + "Play a game: ask her to play and give her an ending, like one round or 10 minutes. Say stop or press Stop to end it sooner.\n"
-                    + "Listen for Capri: select your microphone and set up the local speech decoder under VOICE, then turn on Listen for Capri. After you say her name, she keeps listening for 20 seconds so you can carry on without saying it again.\n"
-                    + "Her clicks: a click effect plays at her pointer's tip when she uses your mouse.\n"
-                    + "Terminal commands: she asks before each command by default. Change Run terminal commands under Security to let her run them when you ask.\n"
-                    + "Asked moves: ask her to lie down, walk around, wander or ride your cursor.\n"
-                    + "More of her tools: her fake crash prank, watching your screen for something you name, her mini player, and stopping her speech, quitting, checking for updates and steering her own jobs when you ask.\n"
-                    + "Chromebooks: she starts on a Chromebook's Linux."
-                : "Mouse and keyboard: she does computer jobs on your Mac, clicking, typing and using the shortcuts a Mac has. Your Mac asks you to allow her the first time.\n"
-                    + "Files: she finds and reads the files you choose, opens a folder you name in one go, and keeps website nicknames and game notes.\n"
-                    + "Arranging apps: she can maximize, restore, snap, move or resize an app, or move it to your other screen.\n"
-                    + "On your screen: she draws on it, makes clones, goes hologram, pulls her fake crash prank and watches for something you name.\n"
-                    + "Asked moves: ask her to lie down, walk around, wander or ride your cursor.\n"
-                    + "Her own tools: she stops talking, quits, checks for updates, steers her own jobs and opens her mini player when you ask. She runs terminal jobs too, asking before each command.\n"
-                    + "Quitting: when she quits, Capri Mainframe closes with her, and its close button closes it.\n"
-                    + "Mainframe: it scrolls the natural way on a trackpad, and long menus like Language scroll, from coiai.");
+                ? "Reminders: she says your reminders and routines on Linux too.\n"
+                    + "PDFs: she reads PDF pages.\n"
+                    + "Moving: she stays put when the desktop answers late or a few pixels off, and moves on niri.\n"
+                    + "Sitting: she faces the middle of the screen when she sits, and lands already facing that way. From nathanZW.\n"
+                    + "Music app: Settings > HABITS > Music app picks Spotify or YouTube for when you don't name an app.\n"
+                    + "Stopwatch: start one, ask how long it's been and stop it.\n"
+                    + "Updates: started from the AppImage, she downloads a newer release by herself and her menu shows Restart Capri to update to the new version. If the new one doesn't start, the old one is put back. From Kelv.\n"
+                    + "Hyprland: Super+C closes Mainframe, which has no Minimize button there. From Kelv."
+                : "Reminders: she says your reminders and routines on a Mac too.\n"
+                    + "PDFs: she reads PDF pages.\n"
+                    + "Sitting: she sits on a window you name, faces the middle of the screen when she sits, and lands already facing that way. From nathanZW.\n"
+                    + "Music app: Settings > HABITS > Music app picks Spotify, YouTube or Apple Music for when you don't name an app. On Apple Music she plays your playlists and Favourite Songs. From nathanZW.\n"
+                    + "Stopwatch: start one, ask how long it's been and stop it.\n"
+                    + "Mini player: when it closes, focus goes back to the app you were in.");
         internal static readonly string Line = OperatingSystem.IsLinux()
-            ? "I just updated to " + Version + ": I've got a file editor and Listen for Capri on Linux, and I ask before running terminal commands. Ask me what's new."
-            : "I just updated to " + Version + ": I can use your mouse and keyboard on a Mac now, arrange your apps and draw on your screen. Ask me what's new.";
+            ? "I just updated to " + Version + ": I can update myself from the AppImage now, I say your reminders on Linux and I read PDF pages. Ask me what's new."
+            : "I just updated to " + Version + ": I say your reminders on a Mac now, read PDF pages and sit on a window you name. Ask me what's new.";
 #else
-        internal const string Version = "0.8.9";
+        internal const string Version = "0.9.0";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Mini games: tic-tac-toe, connect four and rock paper scissors have easy, normal and hard. Add one when you ask, like \"play connect four on easy\", or click it at the top of the board. Right-click her > Play opens the games. From nathanZW.\n"
-            + "Reminders: a timer or reminder goes off when it's due, even over a full-screen game, and she says how late it is if something held it.\n"
-            + "Free and HD voices: after you'd switched voices, her check-ins, reminders and hellos could stay in her bubble on them. She says them out loud now.\n"
-            + "Second song: ask for another song while one plays and she starts it, and she only says it's playing once Spotify shows it.\n"
-            + "Folders and nicknames: \"open the cyberpunk folder\" finds and opens it in one go, and a saved website opens when you say just its nickname.\n"
-            + "Repeats: a point she made in a glance isn't made again as a comment or reaction, her set lines all come round once before any repeats, and in a computer job she doesn't type the same text into a field twice.\n"
-            + "Clips: the sound in her clips is joined with no gaps, for the clicking testers heard, and capture keeps a steady pace at 60 fps.\n"
-            + "Her brain at start: when her brain isn't up yet as she starts, like Ollama after a restart, she keeps looking for it quietly until it's there.\n"
-            + "Chaos when upset: more insults count, like \"shut up\" and \"stfu\", and one she sat out during a game or a job still counts toward the next for ten minutes.\n"
-            + "VB-CABLE: Mainframe > Settings > VOICE > Her voice in your mic says what went wrong when its setup fails and what to do next.\n"
-            + "From 0.8.8: she travels as her ribbons when she teleports, and tell her Adam Smasher would beat her.";
-        internal const string Line = "I just updated to " + Version + ": reminders go off on time now, even mid-game, and our mini games have a hard mode. Ask me what's new.";
+            + "Workspace (beta): Mainframe > BRAIN > WORKSPACE (beta), or ask her to open workspace. Chat with your own Claude Code in her window, so install it and sign in first. A chat starts in her folder, Capri\\Workspace in your user folder, and + adds folders or files; files go with one message. Modes: Ask me, Edits only, Plan only and Everything. Undo last edits puts back Claude's file edits from a turn.\n"
+            + "Workspace chats (beta): each run of Claude Code's tool calls folds behind one line, an approval card asks in one plain sentence, each turn shows its time and cost, you can select and copy text with a copy key on messages and code, and replies show headings, lists, tables, code and links.\n"
+            + "Sounds: soft chimes when your message is sent, when she's heard you and when she's listening. Mainframe > Settings > SOUNDS turns them off, sets their volume and picks one of six sets.\n"
+            + "No AI: Mainframe > BRAIN > OFF runs her with no brain at all. Nothing is downloaded for it and nothing goes to any model.\n"
+            + "Hearts: she sends you a little finger heart whenever she feels like it, or when you ask. She has a secret emote too; both are animated by Qewiw.\n"
+            + "Skills: she knows the name of every skill that's on and reads one when it fits, in chat and mid-job, and a skill with no games line is for anything.\n"
+            + "Skills in a browser: a skill's game counts in a browser tab too, like Five Nights at Freddy's in Chrome, when you ask her to play it, and she can cut in on her own line at a jump scare.\n"
+            + "Asking mid-game: ask what's on screen during a game job and she looks at a picture taken just then; ask about the game and she knows its skill.\n"
+            + "Code mods: the Run this code mod? question is in her own look, and No is still the default.\n"
+            + "Thinking and tool calls: she keeps a brain's thinking and written-out tool calls out of her chat, her voice and the saved chat.\n"
+            + "Her glitch: she glitches under her new stand, and her old standing art only shows with Legacy stand on.\n"
+            + "Teleports in games: her teleport and glitch finish while a game job keeps her busy.\n"
+            + "Jealous of other AIs: Mainframe > Settings > CAPRI > Jealous of other AIs, off unless you turn it on. She can offer to close the other AI, and Choose apps sets which ones she may close.\n"
+            + "Music app: Mainframe > Settings > HABITS > Music app picks Spotify, YouTube or Apple Music for when you don't name an app. From nathanZW.\n"
+            + "Stopwatch: start one, ask how long it's been and stop it.\n"
+            + "Pat stroke: Mainframe > Settings > CAPRI > Pat stroke sets how long a stroke over her a head pat needs.\n"
+            + "Mod READMEs: View on a mod shows the first lines of its README, with Learn more for the rest.\n"
+            + "Sitting: she faces the middle of the screen when she sits on a window, and lands already facing that way. From nathanZW.\n"
+            + "Lighter: she uses less of your PC while she holds still, starts with about 100 MB less memory, and her local brain answers faster.\n"
+            + "Games and calls: Comments Off stops game comments in Gaming Mode too, GAMES > Game sounds lets her ignore loud bursts, and on a call she keeps what's said while she thinks or talks.\n"
+            + "Her voice: it cuts out less, she talks through her own echo and hears you talk over her from her first word.";
+        internal const string Line = "I just updated to " + Version + ": I've got a Workspace beta for your Claude Code chats, soft chimes when I've heard you, and I'm lighter on your PC. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 

@@ -37860,7 +37860,7 @@ namespace CapriDesktop
                 using (MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}"))) old = (Preferences)json.ReadObject(stream);
                 if (old.LastVersion != null) throw new Exception("Old settings invented a last version.");
                 greetTried = true;
-                foreach (string last in new[] { old.LastVersion, "0.8.2", "0.9.0" })
+                foreach (string last in new[] { old.LastVersion, "0.8.2", "1.0.0" })
                 {
                     CloseTalk(); preferences.LastVersion = last; StartNews(true); CheckNews(0);
                     if (reply != News.Line || heard != "updated" || voiceUntil != 0 || voices != 0 || newsPending || LoadPreferences().LastVersion != News.Version) throw new Exception("Update news did not show and save once from " + (last ?? "missing") + ".");
@@ -37939,18 +37939,29 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
-                    "Mini games:",
-                    "Right-click her > Play",
-                    "Reminders:",
-                    "Free and HD voices:",
-                    "Second song:",
-                    "Folders and nicknames:",
-                    "Repeats:",
-                    "Clips:",
-                    "Her brain at start:",
-                    "Chaos when upset:",
-                    "VOICE > Her voice in your mic",
-                    "From 0.8.8:"
+                    "Workspace (beta):",
+                    "Workspace chats (beta):",
+                    "BRAIN > WORKSPACE (beta)",
+                    "Sounds:",
+                    "Settings > SOUNDS",
+                    "No AI:",
+                    "Hearts:",
+                    "Skills:",
+                    "Skills in a browser:",
+                    "Asking mid-game:",
+                    "Code mods:",
+                    "Thinking and tool calls:",
+                    "Her glitch:",
+                    "Teleports in games:",
+                    "Jealous of other AIs:",
+                    "Music app:",
+                    "Stopwatch:",
+                    "CAPRI > Pat stroke",
+                    "Mod READMEs:",
+                    "Sitting:",
+                    "Lighter:",
+                    "GAMES > Game sounds",
+                    "Her voice:"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
