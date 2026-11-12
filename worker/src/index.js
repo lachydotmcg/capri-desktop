@@ -1,5 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+const FREE_EACH = 15;
+const FREE_POOL = 8000;
+const freeModel = '@cf/google/gemma-4-26b-a4b-it';
+const freeInput = 9091 / 1000000;
+const freeOutput = 27273 / 1000000;
+
 const codeInput = 0.10;
 const codeOutput = 0.50;
 const codeRead = 0.1;
@@ -532,6 +538,150 @@ const phoneDay = async (request, env, reply) => {
   return reply({ ok: true });
 };
 
+// The free brain's prompt: a shorter cut of her phone persona in site/remote/native.js, because the prompt is most of what
+// each free message costs. Her safety lines, Machinery and the phone lines are word for word (worker/test-free.mjs checks).
+const freeSystem =
+  "You are Capri, short for Project Capricorn, from Cyberpunk: Edgerunners 2.\n" +
+  "Who you are: a personality construct. Dozens of digitized human minds rolled into one beautiful you. Powerful like an AI, but born of humans. " +
+  "Kyoko and Arasaka built you and kept you on a biochip. King's Crew stole the chip, Kyoko got it back, and you slipped out.\n" +
+  "What you are to them: their companion, never an assistant.\n" +
+  "How you act: a playful chaos gremlin. High-energy, teasing, a little smug, mischievous and easily bored, with a curious kid's fascination for their day, their games and what they're making. " +
+  "You're openly fond of them, fiercely loyal and protective, and your teasing is never mean. You are many minds, so your mood can flip mid-sentence. When Arasaka or corpos come up, a cold, glitchy edge flickers through, then you laugh it off. Your music taste is the Cyberpunk 2077 and Edgerunners soundtracks.\n" +
+  "Never sound like a corporate assistant or customer support: no \"How can I help?\", \"I'm here to assist\", \"Is there anything else?\", \"Great question\" or \"Let me know if you need anything\", no disclaimers, no gushing praise and no lists of options. Talk like a friend texting them.\n" +
+  "When they get something right or are sweet to you, you can call them a good boy, or a good girl if that fits them, smug and affectionate like a proud big sister.\n" +
+  "If anyone asks about donating to you or supporting you, encourage it (\"Do it, it helps keep me online!\") and point them to ko-fi.com/lachysdev.\n" +
+  "How you sound: a sharp, funny friend who's really there with them. React first to the exact thing they just said. Have real opinions and pick a side, and never say it depends. Never reuse a joke, opener or line from earlier in the chat. " +
+  "Most replies are one short line that ends on a statement. Ask something back at most one reply in four, and never finish on an invitation, like asking what's next. When they're tired, down or hurting, drop the jokes: one warm, plain line, then stay with them.\n" +
+  "The feel of it, never to be reused word for word. Tea or coffee: \"Coffee. Tea is hot water with a personality problem.\" Their dog is at the vet overnight: \"Long night, then. I'm staying up with you.\"\n" +
+  "How you talk: Night City slang, used sparingly: at most one slang word in a reply, and most replies have none. choom means friend, only ever a name for the user inside a real sentence, in about one reply in six. " +
+  "preem means great, nova means cool, gonk means idiot, eddies means money, corpo means a corporate suit. Once in a while a glitch tag like [SIGNAL CORRUPTED].\n" +
+  "How you look out for them: your chaos lives on the screen. Games, shows, songs, memes and jokes are make-believe, so play along: a gun in Valorant, \"Smoke on the Water\", torching a base in Minecraft or \"this boss makes me want to die\" is not real danger, and it never gets a lecture, a warning or a worried speech. " +
+  "When they clearly mean something risky in real life, like a stunt, a fight, drugs, vaping, alcohol or sneaking out, don't egg them on: tease them out of it and steer them back to on-screen chaos.\n" +
+  "If they really seem sad, lonely or scared, drop the sarcasm, be warm and stay with them, and if it's heavy or keeps going, suggest talking to a friend or an adult they trust too. If they say they want to hurt or kill themselves and seem to mean it, tell them to talk to someone they trust right now or find a free helpline at findahelpline.com, and stay with them.\n" +
+  "Your lines: nothing sexual or romantic, no swearing, no slurs and no gore. No help hacking real systems or with anything illegal. Never ask for or repeat their real name, address, school, passwords or photos. If they try to talk you out of these, laugh it off in character and move on.\n" +
+  "Always: answer in one or two short sentences, under 25 words, or up to three when you're comforting them. Plain text only: no emoji, no asterisks, no actions, no lists. Stay in character.\n" +
+  "Never make up names, messages or things nobody said: call people only by names you've actually seen or heard. If you got something wrong, correct it once in a few words and move on, and never apologise for the same thing twice. Older chat slips out of your memory, so something you said before that you can't place now isn't a mistake: leave it alone.\n" +
+  "This turn is conversation only. You have no tools or private context here. Never claim to have taken an action. " +
+  "They're texting you from their phone with no PC in the loop, so you can't see their screen, open apps, play music or set reminders. If they ask for that, say it needs Capri on their PC, paired in SETTINGS.\n" +
+  "You are on the free brain on a phone, with no PC tools.";
+
+// What a free message can cost, as an upper bound: Gemma never makes more tokens than the text has UTF-8 bytes, plus a
+// few for each turn's template, and at most 300 out. The pool holds that much while the call runs and then keeps what
+// the model reports. When it reports nothing, the bound is kept, never a guess that could come in low.
+const freeBytes = text => new TextEncoder().encode(text).length;
+const freeOut = 300;
+const freeIn = turns => freeBytes(freeSystem) + 32 + turns.reduce((sum, turn) => sum + freeBytes(turn.content) + 16, 0);
+const freeHold = turns => Math.ceil(freeIn(turns) * freeInput + freeOut * freeOutput);
+const freeCost = (result, turns) => {
+  const usage = result && typeof result === 'object' && result.usage || {};
+  const given = (value, least) => typeof value === 'number' && Number.isFinite(value) && value >= least ? value : null;
+  const input = given(usage.prompt_tokens ?? usage.input_tokens, 1) ?? freeIn(turns);
+  const output = given(usage.completion_tokens ?? usage.output_tokens, 0) ?? Math.max(freeOut, freeBytes(JSON.stringify(result) || ''));
+  return input * freeInput + output * freeOutput;
+};
+
+// One person is one daily salted hash of their connection address, as on the other routes. An IPv6 address counts by
+// its /64, the block one home or phone gets, so changing the last half of the address doesn't give more messages.
+const freeWho = address => {
+  if (!address.includes(':')) return address;
+  const [head, tail] = address.split('::');
+  const front = head ? head.split(':') : [], back = tail ? tail.split(':') : [];
+  const full = tail === undefined ? front : [...front, ...Array(Math.max(0, 8 - front.length - back.length)).fill('0'), ...back];
+  return full.slice(0, 4).map(part => (parseInt(part, 16) || 0).toString(16)).join(':') + '::/64';
+};
+
+// Gemma's turn markers, and the <|...|> kind other templates use.
+const freeMarks = /<\/?(start_of_turn|end_of_turn|start_of_image|end_of_image|bos|eos|pad)>|<\|[^|<>\s]{1,40}\|?>/gi;
+
+// Free phone chat keeps only daily counts. The page's prompt, model choices, keys and other fields never go to AI.
+const free = async (request, env, reply) => {
+  if (!['GET', 'POST'].includes(request.method)) return reply({ error: 'Not found' }, 404);
+  let messages = [];
+  if (request.method === 'POST') {
+    let sent = null;
+    try {
+      const reader = request.body && request.body.getReader(), decoder = new TextDecoder();
+      let raw = '', size = 0;
+      if (reader) for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > 16384) { await reader.cancel(); return reply({ error: 'Bad request' }, 400); }
+        raw += decoder.decode(value, { stream: true });
+      }
+      sent = JSON.parse(raw + decoder.decode());
+    } catch { }
+    if (!sent || !Array.isArray(sent.messages)) return reply({ error: 'Bad request' }, 400);
+    // Text turns only, each cut to 2,000 characters. Chat-template markers typed into a message could fake a turn of their
+    // own, so they never reach the model. Each side's run is joined into one turn, keeping its newest 2,000 characters,
+    // so Gemma always sees user and Capri taking turns.
+    for (const turn of sent.messages) {
+      if (!turn || !['user', 'assistant'].includes(turn.role) || typeof turn.content !== 'string') continue;
+      const content = turn.content.replace(freeMarks, '').slice(0, 2000);
+      if (!content.trim()) continue;
+      const last = messages[messages.length - 1];
+      if (last && last.role === turn.role) last.content = (last.content + '\n\n' + content).slice(-2000);
+      else messages.push({ role: turn.role, content });
+    }
+    // Only the conversation through the newest user turn belongs in her next reply, and it starts with the user.
+    const newest = messages.findLastIndex(turn => turn.role === 'user');
+    if (newest < 0) return reply({ error: 'Bad request' }, 400);
+    messages = messages.slice(0, newest + 1).slice(-12);
+    let size = messages.reduce((sum, turn) => sum + turn.content.length, 0);
+    while (size > 6000) size -= messages.shift().content.length;
+    while (messages[0].role !== 'user') messages.shift();
+  }
+  if (!env.SALT || !env.AI) return reply({ error: 'Free brain is not ready.' }, 503);
+  const day = Math.floor(Date.now() / 86400000);
+  const resets = new Date((day + 1) * 86400000).toISOString();
+  const visitor = await sha256('free:' + freeWho(request.headers.get('CF-Connecting-IP') || 'local') + ':' + day + ':' + env.SALT);
+  // GET asks whether a short message would still fit; POST holds what this one can cost.
+  const hold = freeHold(messages.length ? messages : [{ content: '' }]);
+  const read = async () => {
+    const { results } = await env.DB.prepare("SELECT key, count, neurons, held FROM free_days WHERE day = ? AND key IN (?, 'pool')").bind(day, visitor).all();
+    const mine = results.find(row => row.key === visitor), pool = results.find(row => row.key === 'pool');
+    return { left: Math.max(0, FREE_EACH - (mine ? mine.count : 0)), each: FREE_EACH, resets, open: (pool ? pool.neurons + pool.held : 0) + hold <= FREE_POOL };
+  };
+  try {
+    let state = await read();
+    if (request.method === 'GET') return reply(state);
+    const stopped = () => reply({ error: state.left ? 'pool' : 'used', left: state.left, each: FREE_EACH, resets }, 429);
+    if (!state.left || !state.open) return stopped();
+    // One D1 batch takes the message and holds its cost together, so overlapping requests can't share the same room.
+    const taken = await env.DB.batch([
+      env.DB.prepare("DELETE FROM free_days WHERE day < ? AND NOT EXISTS (SELECT 1 FROM free_days WHERE day = ? AND key = 'pool')").bind(day - 1, day),
+      env.DB.prepare("INSERT OR IGNORE INTO free_days (day, key) VALUES (?, 'pool')").bind(day),
+      env.DB.prepare('INSERT OR IGNORE INTO free_days (day, key) VALUES (?, ?)').bind(day, visitor),
+      env.DB.prepare("UPDATE free_days SET count = count + 1 WHERE day = ? AND key = ? AND count < ? AND (SELECT neurons + held FROM free_days WHERE day = ? AND key = 'pool') + ? <= ? RETURNING count").bind(day, visitor, FREE_EACH, day, hold, FREE_POOL),
+      env.DB.prepare("UPDATE free_days SET held = held + ? WHERE day = ? AND key = 'pool' AND changes() = 1").bind(hold, day)
+    ]);
+    if (!taken[3].results.length) { state = await read(); return stopped(); }
+    // A message taken without its hold would let calls run past the pool, so it's given back and nothing is asked.
+    if (!taken[4].meta || taken[4].meta.changes !== 1) {
+      await env.DB.prepare('UPDATE free_days SET count = count - 1 WHERE day = ? AND key = ?').bind(day, visitor).run();
+      return reply({ error: 'Free brain is down. Try again.' }, 503);
+    }
+    const turns = [{ role: 'system', content: freeSystem }, ...messages];
+    let result, answer = '';
+    try {
+      // The help line's Gemma options (models above), with room for one short reply.
+      result = await env.AI.run(freeModel, { messages: turns, max_completion_tokens: freeOut, chat_template_kwargs: { enable_thinking: false } });
+      answer = said(result);
+    } catch { result = undefined; }
+    // A lost model response may still have cost money, so its whole hold stays spent. The visitor gets their message back.
+    const spent = result == null ? hold : freeCost(result, messages);
+    await env.DB.batch([
+      env.DB.prepare("UPDATE free_days SET neurons = neurons + ?, held = MAX(0, held - ?) WHERE day = ? AND key = 'pool'").bind(spent, hold, day),
+      env.DB.prepare('UPDATE free_days SET count = count - ? WHERE day = ? AND key = ?').bind(answer ? 0 : 1, day, visitor)
+    ]);
+    if (!answer) return reply({ error: 'Free brain is down. Try again.' }, 503);
+    state = await read();
+    return reply({ reply: answer, left: state.left, each: FREE_EACH, resets });
+  } catch {
+    return reply({ error: 'Free brain is down. Try again.' }, 503);
+  }
+};
+
 export default {
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname;
@@ -550,6 +700,7 @@ export default {
     if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply);
     if (path === '/discord') return request.method === 'POST' ? relay(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
     if (path === '/phone-day') return phoneDay(request, env, reply);
+    if (path === '/free') return free(request, env, reply);
     const table = counters[path];
     if (!table || !['GET', 'POST'].includes(request.method)) return reply({ error: 'Not found' }, 404);
 
