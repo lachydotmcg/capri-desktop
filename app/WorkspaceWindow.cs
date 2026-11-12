@@ -2905,7 +2905,19 @@ namespace CapriDesktop
                 float centre = (float)(from - band / 2f + phase * (to - from + band));
                 const int slices = 14;
                 float step = band / (float)slices;
-                GraphicsState state = graphics.Save();
+                // Drawn in the control's own pixels, with the shift and clip kept by hand. A Graphics.Save taken under the scroll's
+                // shift, then a clip, makes TextRenderer draw nothing, so a scrolled conversation lost the running words under
+                // the band.
+                Matrix kept = graphics.Transform;
+                Region clip = graphics.Clip;
+                float dx = kept.OffsetX, dy = kept.OffsetY;
+                graphics.ResetTransform();
+                area.Offset((int)dx, (int)dy);
+                box.Offset((int)dx, (int)dy);
+                icon.Offset(dx, dy);
+                from += (int)dx;
+                to += (int)dx;
+                centre += dx;
                 for (int k = 0; k < slices; k++)
                 {
                     float a = (float)Math.Floor(centre - band / 2f + k * step), b = (float)Math.Floor(centre - band / 2f + (k + 1) * step);
@@ -2914,15 +2926,15 @@ namespace CapriDesktop
                     float t = 1f - Math.Abs((k + 0.5f) / slices * 2f - 1f);
                     Color lit = Mix(ink, Mix(Green, Neon.White, 0.7f), t * t * (3 - 2 * t));
                     graphics.SetClip(new RectangleF(left, area.Top, right - left, area.Height));
-                    GraphicsState inner = graphics.Save();
-                    graphics.ResetTransform();
                     WorkPaint.Behind(graphics, this);
-                    graphics.Restore(inner);
                     if (plate.A > 0) WorkPaint.Plate(graphics, area, 5 * window.zoom, plate, Color.Empty, 0);
                     WorkPaint.ToolMark(graphics, tool, icon, lit, window.zoom);
                     TextRenderer.DrawText(graphics, text, font, box, lit, flags);
                 }
-                graphics.Restore(state);
+                graphics.Transform = kept;
+                graphics.Clip = clip;
+                kept.Dispose();
+                clip.Dispose();
             }
 
             // Where the shine draws right now, in this control's own space; nothing when no call runs where it can be seen.
