@@ -132,3 +132,13 @@ most 128 metadata records/256KiB. Request text is hashed; images, credentials an
 window titles are excluded. Traces distinguish selection/capture/retry/model
 stages, epochs, frame dimensions, dispatch count and elapsed time. Public-fixture
 helpers separately retain their known public prompts and image hashes.
+
+## The AppImage updates itself
+
+Started from `Capri-linux-x64.AppImage`, Capri downloads a newer release by herself when she checks for updates (after startup, every 6 hours, or when you pick **Check for updates**), the same as on Windows. She takes only a finished release from this repo's GitHub releases, and checks the file's size and its SHA-256 against the release's `SHA256SUMS.txt`. The download sits in `updates` inside her data folder.
+
+Her right-click menu then shows **Restart Capri to update to X**. Picking it copies the new AppImage next to yours and checks it again, so a folder she can't write to or a full disk is reported while she's still running. Then she closes, a small `sh` script swaps the two files and starts the new one. If the new one closes within 4 seconds, the old one is put back. The script writes what happened to `updates/update.log`.
+
+A tarball, a package or a source build doesn't replace itself: those get the release page as before. Settings and notes stay in her data folder either way.
+
+On Hyprland, Mainframe has a Close button and no Minimize button, and Super+C closes Mainframe while it's focused. Capri keeps running.
