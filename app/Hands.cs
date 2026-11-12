@@ -1045,7 +1045,8 @@ namespace CapriDesktop
             { "care_meals", "Meals check-in", "Capri" }, { "care_long_game", "Game break check-in", "Capri" }, { "care_boredom", "Bored check-in", "Capri" },
             { "fast_hands", "Fast hands in games", "Games" }, { "cursor", "Use her cursor", "Habits" }, { "startup", "Start at login", "Habits" }, { "discord_presence", "Show on Discord", "Habits" },
             { "voice_layers", "Voice layers", "Voice" }, { "show_advanced", "Advanced settings", "Capri" }, { "listen_for_capri", "Listen for Capri", "Voice" }, { "voice_in_mic", "My voice in your mic", "Voice" },
-            { "jealous_of_other_ais", "Jealous of other AIs", "Capri" }, { "close_other_ais", "Close other AIs for me", "Capri" }
+            { "jealous_of_other_ais", "Jealous of other AIs", "Capri" }, { "close_other_ais", "Close other AIs for me", "Capri" },
+            { "chimes", "Chimes", "Sounds" }, { "chime_sent", "Message sent chime", "Sounds" }, { "chime_heard", "Heard you chime", "Sounds" }, { "chime_listening", "Listening chime", "Sounds" }
         };
 
         // Her own sliders her settings tool reads and moves, the same way, with their steps from the bottom up in OwnSteps, named
@@ -1062,7 +1063,7 @@ namespace CapriDesktop
             { "sounds", "Sound effects", "Voice" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
             { "game_comments", "Game comments pace", "Games" }, { "clip_length", "Default clip length", "Clips" }, { "clip_fps", "Clip frame rate", "Clips" }, { "clip_resolution", "Clip resolution", "Clips" }, { "clip_bitrate", "Clip bitrate", "Clips" },
             { "typing_sound", "Typing sound mode", "Voice" }, { "mainframe_colours", "Mainframe colours", "Capri" }, { "power_saver", "Power saver", "Habits" }, { "music_app", "Music app", "Habits" },
-            { "pat_stroke", "Pat stroke", "Capri" }
+            { "pat_stroke", "Pat stroke", "Capri" }, { "chime_volume", "Chime volume", "Sounds" }
         };
         internal static readonly string[][] OwnSteps =
         {
@@ -1089,7 +1090,8 @@ namespace CapriDesktop
             new[] { "Auto", "100%", "125%", "150%", "175%", "200%" }, new[] { "10 fps", "15 fps", "20 fps", "30 fps", "40 fps", "50 fps", "60 fps" }, LanguageSteps(), new[] { "Auto", "256", "2K", "8K" },
             new[] { "Off", "Events only", "Chatty" }, new[] { "15 s", "30 s", "45 s", "1 min", "1.5 min", "2 min" }, new[] { "Up to 15 fps", "Up to 24 fps", "Up to 30 fps", "Up to 60 fps" },
             new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }, new[] { "Night City", "Black", "White", "Grey" },
-            new[] { "Off", "In games", "Always" }, MusicSteps(), new[] { "Short", "Medium", "Long" }
+            new[] { "Off", "In games", "Always" }, MusicSteps(), new[] { "Short", "Medium", "Long" },
+            new[] { "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" }
         };
         // What each step of a slider stands for, where its steps are times, rates or percents, so set takes 45 s or 720p as well.
         private static readonly Dictionary<string, int[]> OwnValues = new Dictionary<string, int[]>
@@ -1104,7 +1106,8 @@ namespace CapriDesktop
             { "care_meals", new[] { 180, 240, 300, 360, 480 } }, { "care_long_game", CareValues() }, { "care_boredom", CareValues() },
             { "voice_pitch", new[] { -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6 } }, { "voice_robot", AmountValues() }, { "voice_glitch", AmountValues() },
             { "mainframe_size", new[] { 0, 100, 125, 150, 175, 200 } }, { "perch_fps", new[] { 10, 15, 20, 30, 40, 50, 60 } },
-            { "clip_length", new[] { 15, 30, 45, 60, 90, 120 } }, { "clip_fps", new[] { 15, 24, 30, 60 } }, { "clip_resolution", new[] { 0, 480, 720, 1080 } }, { "clip_bitrate", new[] { 0, 2, 4, 8, 12, 20 } }
+            { "clip_length", new[] { 15, 30, 45, 60, 90, 120 } }, { "clip_fps", new[] { 15, 24, 30, 60 } }, { "clip_resolution", new[] { 0, 480, 720, 1080 } }, { "clip_bitrate", new[] { 0, 2, 4, 8, 12, 20 } },
+            { "chime_volume", new[] { 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 } }
         };
         // Her check-ins, in CareKind's order, each a switch and a slider.
         internal static readonly string[] CareSettings = { "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom" };
@@ -1177,7 +1180,10 @@ namespace CapriDesktop
             { "reply_limit", "the longest a reply can be" }, { "watch_memory", "how much of a watch-along you keep in mind" }, { "sounds", "your sound effects" },
             { "explore_after", "how long they're away before you explore" },
             { "power_saver", "you go easy on their PC while a game is in front, or always: you draw less, check less and listen at a gentler pace" },
-            { "music_app", "where play_music plays when they don't name an app: Spotify, which is YouTube without Spotify, YouTube or Apple Music" }
+            { "music_app", "where play_music plays when they don't name an app: Spotify, which is YouTube without Spotify, YouTube or Apple Music" },
+            { "chimes", "your soft chimes when their typed message is sent, when you've heard them and when you're listening after Hey Capri; on by default" },
+            { "chime_sent", "the chime when their typed message is sent" }, { "chime_heard", "the chime when you've heard them finish talking" },
+            { "chime_listening", "the chime when Hey Capri opens your ears" }, { "chime_volume", "how loud your chimes are, apart from your voice and sound effects" }
         };
 
         private static string Meant(string name)
@@ -1209,7 +1215,7 @@ namespace CapriDesktop
         private static string SettingsNames(Kit kit)
         {
             List<string> groups = new List<string>();
-            foreach (string group in new[] { "Voice", "Moves", "Capri", "Watch", "Brain", "Habits", "Games", "Clips" })
+            foreach (string group in new[] { "Voice", "Moves", "Capri", "Watch", "Brain", "Habits", "Games", "Clips", "Sounds" })
             {
                 List<string> switches = new List<string>(), sliders = new List<string>(), both = new List<string>();
                 for (int i = 0; i < OwnSwitches.GetLength(0); i++)

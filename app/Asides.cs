@@ -727,6 +727,7 @@ namespace CapriDesktop
         private void OverHeard(short[] chunk)
         {
             int ticket = asking, audio = audioTurn;
+            if (Chimes.Masking) return;
             double now = clock.Elapsed.TotalSeconds, level = VoiceLevel(chunk);
             if (now >= voiceUntil) { wakeOver.Quiet(level); return; }
             if (!wakeOver.Heard(level, SpokenLevel(now), WakeLevel)) return;
@@ -822,6 +823,7 @@ namespace CapriDesktop
             int total = 0;
             foreach (short[] piece in taken) total += piece.Length;
             if (total < Ears.Rate / 5) { Commentary.Stage.Hear("", true); return; }
+            if (!CallModeOn) Chimes.Play(Chime.Heard);
             short[] samples = new short[total];
             int at = 0;
             foreach (short[] piece in taken) { Array.Copy(piece, 0, samples, at, piece.Length); at += piece.Length; }

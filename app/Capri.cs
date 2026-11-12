@@ -810,7 +810,7 @@ namespace CapriDesktop
     }
 
     [DataContract]
-    internal sealed class Preferences : IExtensibleDataObject
+    internal sealed partial class Preferences : IExtensibleDataObject
     {
         public ExtensionDataObject ExtensionData { get; set; }
         [DataMember] public int X;
@@ -2842,6 +2842,7 @@ namespace CapriDesktop
             Sfx.Out = delegate(short[] sound) { Post(delegate { Effect(sound); }); };
             Sfx.TypeOut = delegate(short[] sound) { if (IsDisposed) return; try { typist.Open(Sfx.Rate); typist.Play(sound); } catch (Exception) { } };
             Sfx.Untyped = delegate { try { typist.Clear(); } catch (Exception) { } };
+            WireChimes();
             preferences.WanderPace = Math.Max(0, Math.Min(3, preferences.WanderPace));
             preferences.PopPace = Math.Max(0, Math.Min(2, preferences.PopPace));
             preferences.PowerSaver = Math.Max(0, Math.Min(2, preferences.PowerSaver));
@@ -3085,6 +3086,7 @@ namespace CapriDesktop
             getWakeVoice = delegate { SetUpFreeVoice(true); };
             getWakePack = FetchWake;
             box.Dismissed += delegate { if (box.Leaving < 0) box.Leaving = clock.Elapsed.TotalSeconds; };
+            typer.Submitted += SentChime;
             typer.Submitted += Hear;
             callSession.Change(preferences.CallMode);
             mainframe.ShowCallApp();
@@ -10812,7 +10814,7 @@ namespace CapriDesktop
                 case "show_advanced": return preferences.AdvancedSettings;
                 case "listen_for_capri": return ListenCapriOn;
                 case "voice_in_mic": return VoiceInMic;
-                default: return null;
+                default: return ChimeSettingOn(name);
             }
         }
 
@@ -10864,7 +10866,7 @@ namespace CapriDesktop
                 case "show_advanced": ToggleAdvancedSettings(); if (mainframe.SettingsShown) mainframe.ShowSettings(true); return null;
                 case "listen_for_capri": ToggleListenCapri(true, fromAgent); return null;
                 case "voice_in_mic": ToggleVoiceInMic(); return on && !VoiceInMic ? "Open Mainframe > VOICE > Her voice in your mic > Get VB-CABLE, install it, then restart your PC." : null;
-                default: return null;
+                default: SetChimeSetting(name); return null;
             }
         }
 
@@ -10923,6 +10925,7 @@ namespace CapriDesktop
                 case "clip_resolution": return Array.IndexOf(ClipSettings.Sizes, ClipOptions.Resolution);
                 case "clip_bitrate": return Array.IndexOf(ClipSettings.Bitrates, ClipOptions.Mbps);
                 case "typing_sound": return Math.Max(0, Math.Min(2, preferences.Typing));
+                case "chime_volume": return ChimeVolume / 10 - 1;
                 default: return -1;
             }
         }
@@ -10973,6 +10976,7 @@ namespace CapriDesktop
                 case "clip_resolution": SetClipOptions(ClipOptions.Seconds, ClipOptions.Fps, ClipSettings.Sizes[step], ClipOptions.Mbps); break;
                 case "clip_bitrate": SetClipOptions(ClipOptions.Seconds, ClipOptions.Fps, ClipOptions.Resolution, ClipSettings.Bitrates[step]); break;
                 case "typing_sound": SetTyping(step); break;
+                case "chime_volume": SetChimeVolume((step + 1) * 10); break;
                 default: return null;
             }
             if (mainframe != null) mainframe.Sync();
@@ -12236,6 +12240,7 @@ namespace CapriDesktop
             if (hidden) SetHidden(false);
             ToggleChat();
             if (!chatting) return;
+            Chimes.Play(Chime.Listening);
             string line = Lines.Pick(WakeLines);
             // Mid-job she answers beside the job, so it keeps going and what they say next goes to it.
             Job running = job;
@@ -13391,6 +13396,7 @@ namespace CapriDesktop
             }
             CheckEars(clock.Elapsed.TotalSeconds);
             if (earsShut || text.Length == 0) return;
+            Chimes.Play(Chime.Heard);
             mainframe.VoiceNote(LocalListening, false);
             Hear(text, text, "> you: ", 0, false, null, true);
         }
@@ -13614,6 +13620,7 @@ namespace CapriDesktop
 
         private void Gather(short[] chunk)
         {
+            if (utterance == null && Chimes.Masking) chunk = new short[chunk.Length];
             double level = VoiceLevel(chunk);
             if (OverHerLocally(chunk, level)) return;
             if (nameOver && clock.Elapsed.TotalSeconds < voiceUntil && !talkOver.Above(level, SpokenLevel(clock.Elapsed.TotalSeconds), room < 0 ? WakeLevel : RoomWake()))
@@ -13834,6 +13841,7 @@ namespace CapriDesktop
             foreach (short[] piece in taken) { Array.Copy(piece, 0, samples, at, piece.Length); at += piece.Length; }
             CheckEars(clock.Elapsed.TotalSeconds);
             if (!NameOnly) mainframe.VoiceNote("Hearing you...", false);
+            lineChimed = !NameOnly && !CallModeOn && !unbroken && Chimes.Play(Chime.Heard);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string text = null;
@@ -13892,6 +13900,8 @@ namespace CapriDesktop
         private void HeardLocally(int ticket, int request, string text, string problem, CallTranscript line = null, int callVersion = -1, bool unbroken = false)
         {
             if (callVersion >= 0 && !callSession.Current(callVersion)) { OldCallLine(ticket); return; }
+            bool chimed = lineChimed;
+            lineChimed = false;
             if (ticket != chatTicket || !chatting || !local) return;
             bool chatLine = NameChatLine() && !nameOver && !unbroken;
             if (problem == null)
@@ -13936,6 +13946,7 @@ namespace CapriDesktop
                 if (!NameOnly) mainframe.VoiceNote(LocalListening, false);
                 return;
             }
+            if (!chimed) Chimes.Play(Chime.Heard);
             if (preferences.ListenCapri && (talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy))
             {
                 if (StopVoice(text)) return;
@@ -14288,6 +14299,7 @@ namespace CapriDesktop
             WakeRest(!SleepBusy);
             agentComment = false;
             if (StopListening(text)) return;
+            Chimes.Play(Chime.Heard);
             // A sorry in voice chat makes up with her too, and the agent hears so before it answers (Zr4, F44).
             if (Sulking && Apology(text)) Forgive();
             Brain.Transcribe("You (voice)", text);
@@ -14500,6 +14512,7 @@ namespace CapriDesktop
             // Their push-to-talk key, held: what the mic hears is theirs until they let go.
             lock (waking) if (pushed != null) { pushed.Add(chunk); return; }
             if (local) { CallHear(chunk); return; }
+            if (Chimes.Masking) chunk = new short[chunk.Length];
             lock (waking)
             {
                 if (resting)
@@ -15757,6 +15770,7 @@ namespace CapriDesktop
             speaker.Close();
             effects.Close();
             typist.Close();
+            CloseChimes();
             voice.Stop();
             if (micMix != null) micMix.Stop();
             micMix = null;
@@ -40199,6 +40213,7 @@ namespace CapriDesktop
             Section(checks, "SmokeRepeats", delegate { SmokeRepeats(checks); });
             Section(checks, "SmokeOwnDelivery", delegate { SmokeOwnDelivery(checks); });
             Section(checks, "SmokeJealous", delegate { SmokeJealous(checks); });
+            Section(checks, "SmokeSounds", delegate { SmokeSounds(checks, output); });
             Section(checks, "SmokeCommentDelivery", delegate { SmokeCommentDelivery(checks); });
             Section(checks, "SmokeTypingRepeats", delegate { SmokeTypingRepeats(checks); });
             Section(checks, "SmokeComments", delegate { SmokeComments(checks); });
