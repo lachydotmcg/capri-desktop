@@ -373,6 +373,15 @@ namespace CapriDesktop
 
         // Paths as the chat sees them: inside the folder Claude Code runs in they're relative, inside another of the chat's
         // folders they lead with that folder's name, and anywhere else they stay whole.
+        // Everything Shorten and the trust card read, so the conversation knows when its cards need laying out again.
+        internal string PathsSeen()
+        {
+            if (chat == null) return PathAlias == null ? "" : "alias";
+            int untrusted;
+            try { untrusted = workspace.Untrusted(chat).Count; } catch (Exception) { untrusted = -1; }
+            return string.Join("|", Workspace.AllFolders(chat).ToArray()) + "|" + untrusted + (PathAlias == null ? "" : "|alias");
+        }
+
         internal string Shorten(string text)
         {
             if (string.IsNullOrEmpty(text) || chat == null) return Display(text);
@@ -1472,7 +1481,7 @@ namespace CapriDesktop
                 internal readonly List<Control> Keys = new List<Control>();
                 internal WorkField Reason;
                 // What it was last measured from, so a card that hasn't changed only moves when another arrives.
-                internal string LaidText, LaidResult, LaidDecision, LaidShape;
+                internal string LaidText, LaidResult, LaidDecision, LaidShape, LaidInput, LaidPaths;
                 internal bool LaidOpen, LaidAll;
                 internal int LaidWidth = -1, LaidRound;
             }
@@ -1662,15 +1671,18 @@ namespace CapriDesktop
                     if (newer) Newer.Bounds = new Rectangle(x, y, Math.Max(Z(110), Newer.Needs), Z(28));
                     y += Z(40);
                 }
+                string paths = window.PathsSeen();
                 foreach (Block block in Blocks)
                 {
                     WorkspaceItem item = block.Item;
                     if (block.LaidWidth == Width && block.LaidRound == round && (object)block.LaidText == item.Text && (object)block.LaidResult == block.Result && block.LaidDecision == item.Decision
+                        && (object)block.LaidInput == item.Input && block.LaidPaths == paths
                         && block.LaidShape == block.Shape && block.LaidOpen == block.Open && block.LaidAll == block.All) Shift(block, y - block.Box.Top);
                     else
                     {
                         Measure(block, y);
                         block.LaidWidth = Width; block.LaidRound = round; block.LaidText = item.Text; block.LaidResult = block.Result;
+                        block.LaidInput = item.Input; block.LaidPaths = paths;
                         block.LaidDecision = item.Decision; block.LaidShape = block.Shape; block.LaidOpen = block.Open; block.LaidAll = block.All;
                     }
                     y = block.Box.Bottom + Z(block.Item.Kind == "tool" || block.Item.Kind == "end" ? 6 : 14);
@@ -1684,6 +1696,7 @@ namespace CapriDesktop
                 if (by == 0) return;
                 block.Box.Offset(0, by);
                 if (!block.Toggle.IsEmpty) block.Toggle.Offset(0, by);
+                if (!block.More.IsEmpty) block.More.Offset(0, by);
                 foreach (Piece piece in block.Pieces) piece.Box.Offset(0, by);
                 foreach (Control key in block.Keys) if (key.Tag is Rectangle) { Rectangle at = (Rectangle)key.Tag; at.Offset(0, by); key.Tag = at; }
                 if (block.Reason != null && block.Reason.Tag is Rectangle) { Rectangle at = (Rectangle)block.Reason.Tag; at.Offset(0, by); block.Reason.Tag = at; }
