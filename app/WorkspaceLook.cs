@@ -170,15 +170,20 @@ namespace CapriDesktop
                 Application.DoEvents();
                 string problem = window.Crowded();
                 if (problem != null) crowded.Add(name + ": " + problem);
-                // Windows' copy can be a frame behind a layout that just moved, so a miss is looked at again on the next frame; a
-                // cue a repaint really lost stays lost.
+                // Windows' copy can be a few frames behind a layout that just moved, more so on a busy PC, so a miss is looked at
+                // again over the next few frames; a cue a repaint really lost stays lost.
                 if (menu == null && LookShots.CueMissing(window))
                 {
-                    LookShots.Flush();
-                    window.Refresh();
-                    Application.DoEvents();
-                    LookShots.Flush();
-                    if (LookShots.CueMissing(window)) cueless.Add(name);
+                    bool missing = true;
+                    for (int frame = 0; frame < 4 && missing; frame++)
+                    {
+                        LookShots.Flush();
+                        window.Refresh();
+                        Application.DoEvents();
+                        LookShots.Flush();
+                        missing = LookShots.CueMissing(window);
+                    }
+                    if (missing) cueless.Add(name);
                 }
                 string path = Path.Combine(pictures, name + ".png");
                 LookShots.Save(window, path, menu);
