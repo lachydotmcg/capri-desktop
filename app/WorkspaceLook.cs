@@ -8,6 +8,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace CapriDesktop
@@ -216,10 +217,9 @@ namespace CapriDesktop
                     window.ShowChat(chat);
                     window.ScrollToEnd();
                     window.PickMode("Everything");
-                    if (window.Asking == null) throw new Exception("Everything didn't ask first.");
-                    shoot(window, "07-everything-confirm", null);
-                    window.Pending(window.Asking, false);
-                    if (chat.Mode == "Everything") throw new Exception("Keep didn't keep the mode.");
+                    if (window.Asking != null || chat.Mode != "Everything") throw new Exception("Everything asked first or didn't switch.");
+                    shoot(window, "07-everything", null);
+                    window.PickMode("Ask me");
 
                     shoot(window, "08-plus-menu", window.OpenMenu("add"));
                     shoot(window, "09-mode-menu", window.OpenMenu("mode"));
@@ -393,10 +393,12 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS Workspace keeps each chat's folders, files and which files went out, across a restart");
             }
+            SmokeWorkspaceArguments(checks, folder);
+            SmokeWorkspaceInside(checks, folder);
         }
 
         // The window itself, at 100%, 125%, 150% and 200% and at its smallest size: nothing crowded, code in her mono,
-        // copyable messages, tool results that open, pickers that save, Everything asked first, a draft per chat, following
+        // copyable messages, tool results that open, pickers that save, Everything at once, a draft per chat, following
         // only at the end, Enter and Shift+Enter, the Explorer flow for folders and files, paging and its place.
         private void SmokeWorkspaceWindow(List<string> checks, string folder)
         {
@@ -469,28 +471,19 @@ namespace CapriDesktop
                         if (layout.Title != "Layout " + scale) throw new Exception("Workspace didn't save an edited title.");
                         string before = layout.Mode;
                         int confirmations = 0;
-                        window.Confirm = delegate(string question)
-                        {
-                            if (question != "Everything lets Claude Code run anything without asking. Switch?") throw new Exception("Workspace changed its Everything warning.");
-                            confirmations++;
-                            return false;
-                        };
-                        window.PickMode("Everything");
-                        if (confirmations != 1 || layout.Mode != before) throw new Exception("Workspace switched to Everything without confirmation.");
+                        window.Confirm = delegate { confirmations++; return false; };
                         Native.SendMessage(mode.Handle, 0x020A, new IntPtr(120 << 16), IntPtr.Zero);
                         Native.SendMessage(mode.Handle, 0x0102, new IntPtr('E'), IntPtr.Zero);
                         if (layout.Mode != before) throw new Exception("Workspace changed mode on scroll or typing.");
-                        window.Confirm = delegate { confirmations++; return true; };
                         window.PickMode("Everything");
-                        if (layout.Mode != "Everything" || confirmations != 2) throw new Exception("Workspace didn't accept an intentional Everything switch.");
+                        if (layout.Mode != "Everything" || mode.Text != "Everything" || confirmations != 0) throw new Exception("Workspace asked before Everything, or didn't switch.");
+                        window.Confirm = null;
+                        window.PickMode("Ask me");
+                        window.PickMode("Everything");
+                        if (window.Asking != null || layout.Mode != "Everything") throw new Exception("Workspace's own card asked before Everything.");
                         window.PickMode("Plan only");
                         window.PickModel("Haiku");
                         if (layout.Mode != "Plan only" || layout.Model != "Haiku" || mode.Text != "Plan only" || model.Text != "Haiku") throw new Exception("Workspace's pickers didn't save or show their choice.");
-                        window.Confirm = null;
-                        window.PickMode("Everything");
-                        if (window.Asking == null || layout.Mode != "Plan only") throw new Exception("Workspace's own Everything card didn't ask first.");
-                        window.Pending(window.Asking, false);
-                        if (layout.Mode != "Plan only" || window.Asking != null) throw new Exception("Keep didn't keep the mode.");
                         window.Input.Text = "Keep this draft";
                         window.ShowChat(other);
                         window.ShowChat(layout);
@@ -527,7 +520,7 @@ namespace CapriDesktop
                 approval.Ask.Answered.Dispose();
                 approval.Ask = null;
                 checks.Add("PASS Workspace window and Mainframe button fit at 100%, 125%, 150% and 200% and at the smallest size; code is in her mono, messages copy, tool results open, drafts and pickers save, scrolling follows only at the end, Enter sends and Shift+Enter adds a line");
-                checks.Add("PASS Workspace ignores mode scrolling and typing, and asks before every switch to Everything, in its own card and through Confirm");
+                checks.Add("PASS Workspace ignores mode scrolling and typing, and switches to Everything at once with no question, like the Mainframe's Blackwall");
 
                 WorkspaceChat longChat = work.NewChat(third, false);
                 lock (longChat.Gate) for (int i = 0; i < 1000; i++) longChat.Items.Add(new WorkspaceItem { Kind = "text", Text = "Item " + i });
@@ -573,6 +566,602 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS Workspace remembers its window's size and place when closed or kept before app shutdown");
             }
+            SmokeWorkspaceFirstMinute(checks, folder);
+            SmokeWorkspaceCost(checks, folder);
+        }
+    }
+
+    // The smoke test's hands on a real Explorer picker: finding it among this process's windows, picturing it, typing into
+    // its name box and pressing its keys, all by messages to that one window, so nothing reaches the screen.
+    internal static class WorkspaceDialogs
+    {
+        private delegate bool Each(IntPtr window, IntPtr data);
+        [StructLayout(LayoutKind.Sequential)] private struct Box { internal int Left, Top, Right, Bottom; }
+        [DllImport("user32.dll")] private static extern bool EnumWindows(Each each, IntPtr data);
+        [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr parent, Each each, IntPtr data);
+        [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+        [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
+        [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr window, uint command);
+        [DllImport("user32.dll")] private static extern IntPtr GetParent(IntPtr window);
+        [DllImport("user32.dll")] private static extern int GetDlgCtrlID(IntPtr window);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder name, int size);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr window, StringBuilder text, int size);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wide, string text);
+        [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, int message, IntPtr wide, IntPtr data);
+        [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out Box box);
+        [DllImport("user32.dll")] private static extern bool PrintWindow(IntPtr window, IntPtr dc, uint flags);
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr CommandLineToArgvW(string line, out int count);
+        [DllImport("kernel32.dll")] private static extern IntPtr LocalFree(IntPtr memory);
+
+        internal static string Class(IntPtr window)
+        {
+            StringBuilder name = new StringBuilder(256);
+            GetClassName(window, name, name.Capacity);
+            return name.ToString();
+        }
+
+        internal static string Text(IntPtr window)
+        {
+            StringBuilder text = new StringBuilder(1024);
+            GetWindowText(window, text, text.Capacity);
+            return text.ToString();
+        }
+
+        // This process's shown dialog windows, the kind Explorer's pickers are.
+        internal static List<IntPtr> Open()
+        {
+            List<IntPtr> found = new List<IntPtr>();
+            uint own = (uint)Process.GetCurrentProcess().Id;
+            EnumWindows(delegate(IntPtr window, IntPtr data)
+            {
+                uint process;
+                GetWindowThreadProcessId(window, out process);
+                if (process == own && IsWindowVisible(window) && Class(window) == "#32770") found.Add(window);
+                return true;
+            }, IntPtr.Zero);
+            return found;
+        }
+
+        internal static IntPtr Wait(int milliseconds)
+        {
+            Stopwatch clock = Stopwatch.StartNew();
+            while (clock.ElapsedMilliseconds < milliseconds)
+            {
+                List<IntPtr> open = Open();
+                if (open.Count > 0) return open[0];
+                System.Threading.Thread.Sleep(50);
+            }
+            return IntPtr.Zero;
+        }
+
+        internal static IntPtr Owner(IntPtr window) { return GetWindow(window, 4); }
+
+        // The name box, where a name or a full path can be typed: the file picker's is the edit inside the ComboBoxEx32 with id
+        // 1148 (cmb13), and the folder picker's "Folder:" box is an edit straight on the dialog.
+        internal static IntPtr NameBox(IntPtr dialog)
+        {
+            IntPtr found = IntPtr.Zero, plain = IntPtr.Zero;
+            EnumChildWindows(dialog, delegate(IntPtr child, IntPtr data)
+            {
+                if (Class(child) != "Edit" || !IsWindowVisible(child)) return true;
+                if (GetParent(child) == dialog && plain == IntPtr.Zero) plain = child;
+                for (IntPtr up = GetParent(child); up != IntPtr.Zero && up != dialog; up = GetParent(up))
+                    if (GetDlgCtrlID(up) == 1148) { found = child; return false; }
+                return true;
+            }, IntPtr.Zero);
+            return found != IntPtr.Zero ? found : plain;
+        }
+
+        internal static List<string> Edits(IntPtr dialog)
+        {
+            List<string> edits = new List<string>();
+            EnumChildWindows(dialog, delegate(IntPtr child, IntPtr data)
+            {
+                if (Class(child) == "Edit") edits.Add(GetDlgCtrlID(child) + " in " + Class(GetParent(child)) + "/" + GetDlgCtrlID(GetParent(child)) + (IsWindowVisible(child) ? "" : " hidden"));
+                return true;
+            }, IntPtr.Zero);
+            return edits;
+        }
+
+        internal static List<string> Keys(IntPtr dialog)
+        {
+            List<string> keys = new List<string>();
+            EnumChildWindows(dialog, delegate(IntPtr child, IntPtr data) { if (Class(child) == "Button" && IsWindowVisible(child)) keys.Add(GetDlgCtrlID(child) + "=" + Text(child)); return true; }, IntPtr.Zero);
+            return keys;
+        }
+
+        internal static void Type(IntPtr box, string text) { SendMessage(box, 0x000C, IntPtr.Zero, text); }
+
+        // IDOK or IDCANCEL, as the dialog's own keys send them.
+        internal static void Press(IntPtr dialog, int id) { PostMessage(dialog, 0x0111, new IntPtr(id), IntPtr.Zero); }
+
+        internal static void Picture(IntPtr window, string path)
+        {
+            Box box;
+            GetWindowRect(window, out box);
+            int wide = Math.Max(1, box.Right - box.Left), tall = Math.Max(1, box.Bottom - box.Top);
+            using (Bitmap shot = new Bitmap(wide, tall, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics graphics = Graphics.FromImage(shot))
+                {
+                    graphics.Clear(Color.Magenta);
+                    IntPtr dc = graphics.GetHdc();
+                    try { PrintWindow(window, dc, 2); }
+                    finally { graphics.ReleaseHdc(dc); }
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                shot.Save(path, ImageFormat.Png);
+            }
+        }
+
+        // Splits a command line the way Windows programs, Claude Code among them, read their arguments.
+        internal static List<string> Split(string line)
+        {
+            int count;
+            IntPtr list = CommandLineToArgvW(line, out count);
+            List<string> args = new List<string>();
+            try { for (int i = 0; i < count; i++) args.Add(Marshal.PtrToStringUni(Marshal.ReadIntPtr(list, i * IntPtr.Size))); }
+            finally { LocalFree(list); }
+            return args;
+        }
+    }
+
+    internal sealed partial class Companion
+    {
+        // A stand-in Claude Code that keeps exactly what it was started with, as the real claude.cmd passes it on with %*.
+        private static string WorkspaceRawStandin(string folder, string session, bool wait)
+        {
+            string standin = Path.Combine(folder, "claude.cmd");
+            File.WriteAllText(Path.Combine(folder, "result.txt"), HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "session_id", session, "duration_ms", 40, "result", "Done.")) + "\n", new UTF8Encoding(false));
+            File.WriteAllText(standin, "@echo off\r\nsetlocal\r\nif \"%~1\"==\"--version\" (\r\necho 2.1.295 ^(Claude Code^)\r\necho version>>\"%~dp0version.txt\"\r\nexit /b 0\r\n)\r\n> \"%~dp0raw.txt\" echo %*\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\n"
+                + (wait ? ":wait\r\nif exist \"%~dp0finish\" goto done\r\nping -n 2 127.0.0.1 > nul\r\ngoto wait\r\n:done\r\n" : "") + "type \"%~dp0result.txt\"\r\n", Encoding.ASCII);
+            return standin;
+        }
+
+        private static List<string> WorkspaceRawArgs(string folder)
+        {
+            string raw = File.ReadAllText(Path.Combine(folder, "raw.txt"), Encoding.GetEncoding(System.Globalization.CultureInfo.CurrentCulture.TextInfo.OEMCodePage)).TrimEnd('\r', '\n', ' ');
+            List<string> args = WorkspaceDialogs.Split("claude.exe " + raw);
+            args.RemoveAt(0);
+            return args;
+        }
+
+        private static List<string> WorkspaceRun(string standin, List<string> args, string folder)
+        {
+            File.Delete(Path.Combine(Path.GetDirectoryName(standin), "raw.txt"));
+            using (Process process = new Process { StartInfo = Workspace.StartInfo(standin, args, folder) })
+            {
+                process.Start();
+                process.StandardInput.Close();
+                process.StandardOutput.ReadToEnd();
+                if (!process.WaitForExit(8000)) { Workspace.KillTree(process); throw new Exception("Workspace's argument stand-in didn't finish."); }
+            }
+            return WorkspaceRawArgs(Path.GetDirectoryName(standin));
+        }
+
+        // Every folder the chat names reaches Claude Code as one --add-dir each, exactly as written, whatever it's called and
+        // wherever it is, and nothing after it is swallowed as another folder.
+        private void SmokeWorkspaceArguments(List<string> checks, string folder)
+        {
+            string box = Path.Combine(folder, "arguments");
+            Directory.CreateDirectory(box);
+            string standin = WorkspaceRawStandin(box, Guid.NewGuid().ToString(), false);
+            string root = Path.GetPathRoot(box);
+            List<string> odd = new List<string> {
+                Path.Combine(box, "with spaces in it"), Path.Combine(box, "trailing") + "\\", root, @"\\server\share", @"\\server\share\deep\",
+                Path.Combine(box, "amp & caret ^ bang ! pct %PATH% (paren) 'quote'"), Path.Combine(box, "café"), Path.Combine(box, new string('n', 150)),
+                Path.Combine(box, "gone since"), Path.Combine(box, "twice"), Path.Combine(box, "twice"), Path.Combine(box, "twice", "inside it"), "-not-a-flag" };
+            foreach (int count in new[] { 1, 2, 5, odd.Count })
+            {
+                List<string> extra = odd.GetRange(0, Math.Min(count, odd.Count));
+                foreach (bool trusted in new[] { true, false })
+                {
+                    List<string> args = Workspace.Arguments("Ask me", "session-id", "Opus", Path.Combine(box, "turn settings.json"), trusted, extra);
+                    int at = args.IndexOf("--add-dir");
+                    for (int i = 0; i < extra.Count; i++) if (args[at + i * 2] != "--add-dir" || args[at + i * 2 + 1] != extra[i]) throw new Exception("Workspace's --add-dir list is out of order for " + count + " folders.");
+                    List<string> tail = args.GetRange(at + extra.Count * 2, args.Count - at - extra.Count * 2);
+                    if (string.Join("|", tail.ToArray()) != (trusted ? "" : "--setting-sources|user|--strict-mcp-config")) throw new Exception("Workspace put something after its folders: " + string.Join("|", tail.ToArray()));
+                    List<string> heard = WorkspaceRun(standin, args, box), joined = WorkspaceDialogs.Split("claude.exe " + PlanBrain.Joined(args));
+                    joined.RemoveAt(0);
+                    if (string.Join("\n", heard.ToArray()) != string.Join("\n", args.ToArray())) throw new Exception("Claude Code would read different arguments through claude.cmd: " + string.Join(" | ", heard.ToArray()));
+                    if (string.Join("\n", joined.ToArray()) != string.Join("\n", args.ToArray())) throw new Exception("Claude Code would read different arguments as an exe: " + string.Join(" | ", joined.ToArray()));
+                }
+            }
+            checks.Add("PASS Workspace hands Claude Code 1, 2, 5 and 13 --add-dir folders exactly, through claude.cmd and as an exe: spaces, a trailing backslash, a drive root, UNC paths, & ^ ! % ( ) ', accents, a 150-letter name, a gone folder, a repeat and a folder inside another, and the safe flags after them stay whole");
+
+            using (Workspace work = new Workspace(box, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-args-" + Guid.NewGuid().ToString("N")))
+            {
+                string main = Path.Combine(box, "main"), other = Path.Combine(box, "Other Folder"), inner = Path.Combine(main, "inner");
+                foreach (string made in new[] { main, other, inner }) Directory.CreateDirectory(made);
+                WorkspaceChat chat = work.NewChat(main, false);
+                if (work.AddFolders(chat, new[] { other + "\\", other.ToUpperInvariant(), other.Replace('\\', '/'), main + "\\" }) != 1 || chat.Folders[0] != other) throw new Exception("Workspace kept a repeat folder or its trailing slash: " + string.Join(", ", chat.Folders.ToArray()));
+                bool refused = false;
+                try { work.AddFolders(chat, new[] { inner, Path.Combine(box, "never made") }); } catch (IOException) { refused = true; }
+                if (!refused || chat.Folders.Count != 1) throw new Exception("Workspace added part of a list that had a missing folder in it.");
+                if (work.AddFolders(chat, new[] { root }) != 1 || chat.Folders[1] != root) throw new Exception("Workspace lost a drive root's own backslash.");
+                if (work.AddFolders(chat, new[] { inner }) != 1) throw new Exception("Workspace refused a folder inside another.");
+                chat.TrustAsked = true;
+                work.Executable = standin;
+                WorkspaceTurn turn;
+                lock (chat.Gate) { if (!work.Send(chat, "Go", false)) throw new Exception("Workspace didn't run with a drive root added."); turn = chat.Live; }
+                if (turn == null || !turn.Done.WaitOne(8000)) throw new Exception("Workspace's drive-root turn didn't end.");
+                List<string> heard = WorkspaceRawArgs(box);
+                int at = heard.IndexOf("--add-dir");
+                if (at < 0 || heard[at + 1] != other || heard[at + 3] != root || heard[at + 5] != inner || heard[heard.Count - 3] != "--setting-sources" || heard[heard.Count - 2] != "user" || heard[heard.Count - 1] != "--strict-mcp-config")
+                    throw new Exception("An untrusted chat with a drive root lost its safe flags: " + string.Join(" | ", heard.ToArray()));
+                checks.Add("PASS Workspace drops repeats by case, slash and trailing backslash, adds nothing from a list with a missing folder, keeps a drive root's backslash, and an untrusted chat with a drive root still runs limited");
+            }
+        }
+
+        // Ways to talk the hook into treating a path as inside the chat's folders and files when it isn't, and the other way.
+        private void SmokeWorkspaceInside(List<string> checks, string folder)
+        {
+            string box = Path.Combine(folder, "inside");
+            string work = Path.Combine(box, "work"), shop = Path.Combine(box, "workshop"), extra = Path.Combine(box, "extra"), loose = Path.Combine(box, "loose");
+            foreach (string made in new[] { work, shop, extra, loose, Path.Combine(work, "sub") }) Directory.CreateDirectory(made);
+            string spec = Path.Combine(loose, "spec.md"), beside = Path.Combine(loose, "beside.md"), secret = Path.Combine(shop, "secret.txt");
+            foreach (string file in new[] { spec, beside, secret }) File.WriteAllText(file, "x");
+            List<string> folders = new List<string> { work, extra }, files = new List<string> { spec };
+            Func<string, Dictionary<string, object>, bool> inside = delegate(string tool, Dictionary<string, object> input) { return Workspace.Inside(folders, files, tool, input, work); };
+            Func<string, bool> reads = delegate(string path) { return inside("Read", HuskJson.Map("file_path", path)); };
+            List<string> wrong = new List<string>();
+            Action<string, bool, bool> expect = delegate(string what, bool got, bool want) { if (got != want) wrong.Add(what + (want ? " was outside" : " was inside")); };
+            expect("a file in the first folder", reads(Path.Combine(work, "a.txt")), true);
+            expect("a file in the second folder", reads(Path.Combine(extra, "a.txt")), true);
+            expect("the added file", reads(spec), true);
+            expect("the added file in other case", reads(spec.ToUpperInvariant()), true);
+            expect("the added file with forward slashes", reads(spec.Replace('\\', '/')), true);
+            expect("the added file by a .. route", reads(Path.Combine(work, "..", "loose", "spec.md")), true);
+            expect("a relative path", reads(@"sub\a.txt"), true);
+            expect("a folder in other case", reads(Path.Combine(work.ToUpperInvariant(), "a.txt")), true);
+            expect("forward slashes", reads(work.Replace('\\', '/') + "/sub/a.txt"), true);
+            expect("a file beside the added file", reads(beside), false);
+            expect("the added file's folder", inside("Grep", HuskJson.Map("pattern", "x", "path", loose)), false);
+            expect("a glob in the added file's folder", inside("Glob", HuskJson.Map("pattern", Path.Combine(loose, "*.md"))), false);
+            expect("a .. out of the folder", reads(Path.Combine(work, "..", "workshop", "secret.txt")), false);
+            expect("a relative .. out", reads(@"..\workshop\secret.txt"), false);
+            expect("a folder that starts with the first one's name", reads(secret), false);
+            expect("a name that starts with the first one's name", reads(work + "shop\\secret.txt"), false);
+            expect("forward slashes out", reads(shop.Replace('\\', '/') + "/secret.txt"), false);
+            expect("a \\\\?\\ path with .. out", reads(@"\\?\" + work + @"\..\workshop\secret.txt"), false);
+            expect("a stream beside it", reads(beside + ":hidden"), false);
+            expect("a glob that climbs out after a wildcard", inside("Glob", HuskJson.Map("pattern", "**/../../workshop/*")), false);
+            expect("a glob with a path outside", inside("Glob", HuskJson.Map("pattern", "*.txt", "path", shop)), false);
+            expect("a glob inside", inside("Glob", HuskJson.Map("pattern", "sub/**/*.cs")), true);
+            expect("the home folder", reads(@"~\secret.txt"), false);
+            expect("another drive-relative path", reads("Q:secret.txt"), false);
+            string shortShop = WorkspacePaths.Short(shop), shortWork = WorkspacePaths.Short(work);
+            if (shortShop != shop) expect("a short 8.3 name out", reads(Path.Combine(shortShop, "secret.txt")), false);
+            if (shortWork != work) expect("a short 8.3 name in", reads(Path.Combine(shortWork, "a.txt")), true);
+            string link = Path.Combine(work, "out-link"), fileLink = Path.Combine(loose, "spec-link.md");
+            bool junction = false;
+            using (Process linking = new Process { StartInfo = new ProcessStartInfo("cmd.exe", "/d /s /c \"mklink /J " + PlanBrain.Quoted(link) + " " + PlanBrain.Quoted(shop) + "\"") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true } })
+            {
+                linking.Start();
+                linking.StandardOutput.ReadToEnd();
+                junction = linking.WaitForExit(5000) && linking.ExitCode == 0;
+            }
+            try
+            {
+                if (!junction) throw new Exception("Couldn't make the junction stand-in.");
+                expect("a junction in the folder that points out", reads(Path.Combine(link, "secret.txt")), false);
+                expect("a new file through that junction", reads(Path.Combine(link, "new.txt")), false);
+                folders.Add(link);
+                expect("a junction added as a folder, to where it points", reads(secret), true);
+                folders.Remove(link);
+            }
+            finally { if (Directory.Exists(link)) Directory.Delete(link); }
+            if (wrong.Count > 0) throw new Exception("Workspace's hook got these wrong: " + string.Join("; ", wrong.ToArray()));
+            checks.Add("PASS Workspace hook paths: .., case, forward slashes, \\\\?\\, 8.3 names, streams, junctions out, a file beside an added one, C:\\work against C:\\workshop, and globs that climb out are all judged by where they really are");
+        }
+
+        // Explorer's own pickers, opened for real on the smoke's hidden desktop and driven by messages from another thread:
+        // pictured, read back, cancelled, and accepted with known folders and files.
+        private void SmokeWorkspacePickers(List<string> checks, string folder)
+        {
+            folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
+            string pictures = Path.Combine(folder, "pictures"), project = Path.Combine(folder, "project");
+            string one = Path.Combine(project, "pick one"), two = Path.Combine(project, "pick two"), started = Path.Combine(folder, "started here");
+            foreach (string made in new[] { pictures, one, two, started }) Directory.CreateDirectory(made);
+            string fileOne = Path.Combine(project, "first file.txt"), fileTwo = Path.Combine(project, "second.md");
+            File.WriteAllText(fileOne, "1");
+            File.WriteAllText(fileTwo, "2");
+            List<string> notes = new List<string>();
+            using (Workspace work = new Workspace(Path.Combine(folder, "data"), "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-pickers-" + Guid.NewGuid().ToString("N")))
+            using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+            {
+                window.Location = new Point(40, 40);
+                window.Show(this);
+                window.ClientSize = new Size(WorkspaceWindow.Wide, WorkspaceWindow.Tall);
+                Application.DoEvents();
+                IntPtr owner = window.Handle;
+                // Opens the picker on this thread the way the window's keys do, while another thread finds it and drives it.
+                Func<string, Action, Func<IntPtr, string>, string> drive = delegate(string name, Action open, Func<IntPtr, string> act)
+                {
+                    string problem = null;
+                    bool up = true, again = false;
+                    System.Threading.Thread driver = new System.Threading.Thread(delegate()
+                    {
+                        IntPtr dialog = IntPtr.Zero;
+                        try
+                        {
+                            dialog = WorkspaceDialogs.Wait(20000);
+                            if (dialog == IntPtr.Zero) { problem = name + ": no picker opened."; return; }
+                            System.Threading.Thread.Sleep(1200);
+                            WorkspaceDialogs.Picture(dialog, Path.Combine(pictures, name + ".png"));
+                            if (WorkspaceDialogs.Owner(dialog) != owner) problem = name + ": the picker isn't owned by the Workspace window.";
+                            window.BeginInvoke(new MethodInvoker(delegate { if (!up) return; again = true; window.ChooseFolders(); window.ChooseFiles(); }));
+                            System.Threading.Thread.Sleep(1500);
+                            if (WorkspaceDialogs.Open().Count != 1) problem = name + ": a second picker opened over the first.";
+                            if (!again) problem = name + ": the window didn't take a click while the picker was open, so twice wasn't tried.";
+                            up = false;
+                            lock (notes) notes.Add(name + ": \"" + WorkspaceDialogs.Text(dialog) + "\" keys " + string.Join(", ", WorkspaceDialogs.Keys(dialog).ToArray()));
+                            string acted = act(dialog);
+                            if (acted != null && problem == null) problem = name + ": " + acted;
+                            Stopwatch closing = Stopwatch.StartNew();
+                            while (WorkspaceDialogs.Open().Count > 0 && closing.ElapsedMilliseconds < 10000) System.Threading.Thread.Sleep(50);
+                            if (WorkspaceDialogs.Open().Count > 0 && problem == null) problem = name + ": the picker didn't close.";
+                            System.Threading.Thread.Sleep(1500);
+                            if (WorkspaceDialogs.Open().Count > 0 && problem == null) problem = name + ": another picker opened after it closed.";
+                        }
+                        catch (Exception error) { problem = name + ": " + error.Message; }
+                        finally { foreach (IntPtr left in WorkspaceDialogs.Open()) WorkspaceDialogs.Press(left, 2); }
+                    }) { IsBackground = true, Name = "Capri picker driver" };
+                    driver.Start();
+                    open();
+                    if (!driver.Join(40000)) return name + ": the driver didn't finish.";
+                    Application.DoEvents();
+                    return problem;
+                };
+                Func<IntPtr, string> cancel = delegate(IntPtr dialog) { WorkspaceDialogs.Press(dialog, 2); return null; };
+                Func<string, Func<IntPtr, string>> accept = delegate(string typed)
+                {
+                    return delegate(IntPtr dialog)
+                    {
+                        IntPtr nameBox = WorkspaceDialogs.NameBox(dialog);
+                        if (nameBox == IntPtr.Zero) return "no name box among " + string.Join(", ", WorkspaceDialogs.Edits(dialog).ToArray());
+                        WorkspaceDialogs.Type(nameBox, typed);
+                        System.Threading.Thread.Sleep(300);
+                        WorkspaceDialogs.Press(dialog, 1);
+                        Stopwatch wait = Stopwatch.StartNew();
+                        while (WorkspaceDialogs.Open().Count > 0 && wait.ElapsedMilliseconds < 4000) System.Threading.Thread.Sleep(50);
+                        if (WorkspaceDialogs.Open().Count == 0) return null;
+                        WorkspaceDialogs.Picture(dialog, Path.Combine(pictures, "after-typing.png"));
+                        lock (notes) notes.Add("the picker stayed open after " + typed + " and its key; pressed again");
+                        WorkspaceDialogs.Press(dialog, 1);
+                        return null;
+                    };
+                };
+                List<string> failed = new List<string>();
+                Action<string> fail = delegate(string problem) { if (problem != null) failed.Add(problem); };
+
+                WorkPickers.Opened = 0;
+                fail(drive("folders-cancel", delegate { window.ChooseFolders(); }, cancel));
+                uint options = WorkPickers.Opened;
+                if ((options & WorkPickers.PickFolders) == 0 || (options & WorkPickers.AllowMultiSelect) == 0 || (options & WorkPickers.ForceFileSystem) == 0) failed.Add("The folder picker's options came back as 0x" + options.ToString("X"));
+                if (window.Chat != null || work.Chats().Count != 0 || !window.ChooseShown || window.Picking) failed.Add("Cancelling the folder picker changed something.");
+
+                fail(drive("folders-accept-one", delegate { window.ChooseFolders(); }, accept(started)));
+                if (window.Chat == null || !Workspace.Same(window.Chat.Folder, started) || window.Chat.Folders.Count != 0) failed.Add("Accepting a typed folder didn't start a chat there: " + (window.Chat == null ? "no chat" : window.Chat.Folder));
+                WorkspaceChat first = window.Chat;
+                if (first != null)
+                {
+                    WorkspaceChat inProject = work.NewChat(project, false);
+                    window.ShowChat(inProject);
+                    fail(drive("folders-add-one", delegate { window.ChooseFolders(); }, accept("pick one")));
+                    List<string> added = Workspace.AllFolders(inProject);
+                    if (added.Count != 2 || !added.Exists(delegate(string path) { return Workspace.Same(path, one); })) failed.Add("A folder named in the picker didn't come back: " + string.Join(", ", added.ToArray()));
+
+                    fail(drive("files-cancel", delegate { window.ChooseFiles(); }, cancel));
+                    if (Workspace.AllFiles(inProject).Count != 0 || window.Picking) failed.Add("Cancelling the file picker changed something.");
+                    fail(drive("files-accept-two", delegate { window.ChooseFiles(); }, accept("\"first file.txt\" \"second.md\"")));
+                    List<string> files = Workspace.AllFiles(inProject);
+                    if (files.Count != 2 || !files.Contains(fileOne) || !files.Contains(fileTwo)) failed.Add("Two files picked together didn't both come back: " + string.Join(", ", files.ToArray()));
+                }
+                window.Close();
+                foreach (string note in notes) checks.Add("NOTE " + note);
+                if (failed.Count > 0) throw new Exception(string.Join(" | ", failed.ToArray()));
+            }
+            foreach (string name in new[] { "folders-cancel", "folders-accept-one", "folders-add-one", "files-cancel", "files-accept-two" })
+                if (!File.Exists(Path.Combine(pictures, name + ".png"))) throw new Exception("Picker picture missing: " + name);
+            checks.Add("PASS Workspace opens Windows' own folder picker (pick folders, several at once, file system only) and file picker, owned by its window and never twice; cancelling changes nothing, a typed folder starts a chat there or joins one, and two files picked together both come back. Two folders at once need clicks in the picker's view, which this doesn't do. Pictures in " + pictures);
+        }
+
+        // What a person does in their first minute: types during a turn, stops it and sends again, closes the window mid-turn,
+        // shrinks it, makes 100 chats with long names, drops 30 files or something that isn't a file, pastes a long log.
+        private void SmokeWorkspaceFirstMinute(List<string> checks, string folder)
+        {
+            string box = Path.Combine(folder, "first-minute");
+            string project = Path.Combine(box, "project"), longName = Path.Combine(Path.GetTempPath(), "cw" + Guid.NewGuid().ToString("N").Substring(0, 6), new string('f', 150));
+            foreach (string made in new[] { project, longName }) Directory.CreateDirectory(made);
+            List<string> dropped = new List<string>();
+            for (int i = 0; i < 30; i++) { string file = Path.Combine(project, "dropped file number " + i + ".txt"); File.WriteAllText(file, "x"); dropped.Add(file); }
+            MethodInfo dragDrop = typeof(Control).GetMethod("OnDragDrop", BindingFlags.Instance | BindingFlags.NonPublic), dragEnter = typeof(Control).GetMethod("OnDragEnter", BindingFlags.Instance | BindingFlags.NonPublic);
+            using (Workspace work = new Workspace(box, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-minute-" + Guid.NewGuid().ToString("N")))
+            {
+                work.Executable = WorkspaceRawStandin(box, Guid.NewGuid().ToString(), true);
+                WorkspaceChat chat = work.NewChat(project, false);
+                work.Trust(chat, true);
+                chat.TrustAsked = true;
+                string finish = Path.Combine(box, "finish");
+                using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+                {
+                    window.Show(this);
+                    window.ShowChat(chat);
+                    window.Input.Text = "First message";
+                    window.TypeInto(window.Input, Keys.Enter);
+                    Application.DoEvents();
+                    if (!chat.Running || window.Input.Text.Length != 0 || window.Find("Stop") == null || window.Find("Send") != null) throw new Exception("Workspace didn't start a turn on Enter or show Stop.");
+                    window.Input.Text = "Typed while it works";
+                    window.TypeInto(window.Input, Keys.Enter);
+                    window.TypeInto(window.Input, Keys.Enter | Keys.Shift);
+                    Application.DoEvents();
+                    if (!window.Input.Enabled || window.Input.Text != "Typed while it works" || WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "user"; }).Count != 1) throw new Exception("Typing during a turn sent it, cleared it or locked the box.");
+                    WorkspaceTurn live = chat.Live;
+                    window.Find("Stop").PerformClick();
+                    if (live == null || !live.Done.WaitOne(8000)) throw new Exception("Stop didn't end the turn.");
+                    WorkspaceWait(delegate { Application.DoEvents(); return window.Find("Send") != null && window.Find("Send").Enabled; }, "Send didn't come back after Stop.");
+                    if (window.Input.Text != "Typed while it works") throw new Exception("Stop lost what they'd typed.");
+                    File.WriteAllText(finish, "go");
+                    window.TypeInto(window.Input, Keys.Enter);
+                    live = chat.Live;
+                    if (live == null || !live.Done.WaitOne(8000)) throw new Exception("Sending again after Stop didn't run.");
+                    File.Delete(finish);
+                    Application.DoEvents();
+
+                    string paste = new string('p', 99990) + "\r\nend";
+                    window.Input.Text = "";
+                    window.Input.Focus();
+                    Native.SendMessage(window.Input.Handle, 0x00C2, new IntPtr(1), paste);
+                    Application.DoEvents();
+                    if (window.Input.TextLength != paste.Length || window.Crowded() != null) throw new Exception("A pasted 100,000-letter block came out as " + window.Input.TextLength + " letters: " + window.Crowded());
+                    window.Input.Text = "";
+
+                    window.Input.Text = "Close mid-turn";
+                    window.TypeInto(window.Input, Keys.Enter);
+                    live = chat.Live;
+                    if (live == null) throw new Exception("The mid-turn message didn't start.");
+                    window.Close();
+                    File.WriteAllText(finish, "go");
+                    if (!live.Done.WaitOne(8000)) throw new Exception("Closing the window stuck the turn.");
+                    Application.DoEvents();
+                    File.Delete(finish);
+                }
+                using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+                {
+                    window.Show(this);
+                    window.ShowChat(chat);
+                    if (window.Find("Send") == null || window.Find("Stop") != null) throw new Exception("The reopened window shows a finished chat as running.");
+                    if (!WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "end"; })) throw new Exception("The turn's end was lost while the window was closed.");
+
+                    foreach (Size size in new[] { new Size(10, 10), new Size(WorkspaceWindow.Narrowest, WorkspaceWindow.Shortest), new Size(1600, 1000), new Size(WorkspaceWindow.Wide, WorkspaceWindow.Tall) })
+                    {
+                        window.ClientSize = size;
+                        Application.DoEvents();
+                        string crowded = window.Crowded();
+                        if (crowded != null || window.Width < WorkspaceWindow.Narrowest) throw new Exception("Workspace at " + size + ": " + (crowded ?? "smaller than its smallest"));
+                    }
+
+                    string title = new string('T', 200);
+                    window.Rename(title);
+                    window.Rename("   ");
+                    if (chat.Title != title || window.Crowded() != null) throw new Exception("A 200-letter title didn't save or crowded the window: " + window.Crowded());
+                    WorkspaceChat named = work.NewChat(longName, false);
+                    window.ShowChat(named);
+                    if (window.Crowded() != null) throw new Exception("A 150-letter folder crowded the window: " + window.Crowded());
+                    List<WorkspaceChat> many = new List<WorkspaceChat>();
+                    for (int i = 0; i < 100; i++) many.Add(work.NewChat(project, false));
+                    window.RefreshChat();
+                    window.ShowChat(many[99]);
+                    window.ShowChat(many[0]);
+                    if (window.Crowded() != null) throw new Exception("100 chats crowded the window: " + window.Crowded());
+
+                    window.ShowChat(chat);
+                    DataObject files = new DataObject(DataFormats.FileDrop, dropped.ToArray());
+                    dragDrop.Invoke(window, new object[] { new DragEventArgs(files, 0, 10, 10, DragDropEffects.Copy, DragDropEffects.Copy) });
+                    Application.DoEvents();
+                    if (Workspace.AllFiles(chat).Count != 30 || window.Chips.Count != 31) throw new Exception("Dropping 30 files gave " + Workspace.AllFiles(chat).Count + " files and " + window.Chips.Count + " chips.");
+                    string crowdedChips = window.Crowded();
+                    if (crowdedChips != null) throw new Exception("30 file chips crowded the composer: " + crowdedChips);
+                    DataObject words = new DataObject(DataFormats.UnicodeText, "just some words");
+                    DragEventArgs entering = new DragEventArgs(words, 0, 10, 10, DragDropEffects.Copy | DragDropEffects.Link, DragDropEffects.Copy);
+                    dragEnter.Invoke(window, new object[] { entering });
+                    dragDrop.Invoke(window, new object[] { new DragEventArgs(words, 0, 10, 10, DragDropEffects.Copy, DragDropEffects.Copy) });
+                    dragDrop.Invoke(window, new object[] { new DragEventArgs(new DataObject(DataFormats.FileDrop, new[] { Path.Combine(box, "not there.txt"), "::{20D04FE0-3AEA-1069-A2D8-08002B30309D}" }), 0, 10, 10, DragDropEffects.Copy, DragDropEffects.Copy) });
+                    if (entering.Effect != DragDropEffects.None || Workspace.AllFiles(chat).Count != 30 || Workspace.AllFolders(chat).Count != 1) throw new Exception("Dropping words or a path that isn't a file changed the chat.");
+                    foreach (string file in dropped) window.RemovePath(file);
+                    if (Workspace.AllFiles(chat).Count != 0) throw new Exception("Removing the dropped files left some.");
+
+                    WorkspaceChat fresh = work.NewChat(project, false);
+                    window.ShowChat(fresh);
+                    if (window.UndoOffered) throw new Exception("Undo was offered with nothing to undo.");
+                    if (work.Undo(fresh) != "No turn to undo.") throw new Exception("Undo with nothing to undo said something else.");
+                    int confirmed = 0;
+                    window.Confirm = delegate { confirmed++; return true; };
+                    File.Delete(finish);
+                    fresh.TrustAsked = true;
+                    work.Trust(fresh, true);
+                    window.Input.Text = "Delete me while I run";
+                    window.TypeInto(window.Input, Keys.Enter);
+                    WorkspaceTurn running = fresh.Live;
+                    window.DeleteChat(fresh);
+                    if (confirmed != 1 || running == null || !running.Done.WaitOne(8000) || work.Chats().Contains(fresh) || window.Chat == fresh) throw new Exception("Deleting a running chat didn't stop it and take it away.");
+                    window.Confirm = delegate { return false; };
+                    window.DeleteChat(chat);
+                    if (!work.Chats().Contains(chat)) throw new Exception("Keeping a chat deleted it.");
+                    window.Close();
+                }
+                File.WriteAllText(finish, "go");
+            }
+            try { Directory.Delete(Path.GetDirectoryName(longName), true); } catch (IOException) { }
+            checks.Add("PASS Workspace's first minute: typing during a turn keeps the words, Stop then Enter sends again, closing mid-turn and reopening shows it done, the smallest size holds, 100 chats, a 200-letter title and a 150-letter folder fit, 30 dropped files fit and come off, words and non-files dropped do nothing, a 100,000-letter paste goes in whole, and undo with nothing to undo is off");
+        }
+
+        // How long a 1,000-item chat takes to open, scroll and take one more item while a turn streams, and whether opening
+        // and closing the window leaves window handles or GDI objects behind.
+        private void SmokeWorkspaceCost(List<string> checks, string folder)
+        {
+            string box = Path.Combine(folder, "cost"), project = Path.Combine(box, "project");
+            Directory.CreateDirectory(project);
+            using (Workspace work = new Workspace(box, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-cost-" + Guid.NewGuid().ToString("N")))
+            {
+                WorkspaceChat chat = work.NewChat(project, false);
+                work.Trust(chat, true);
+                lock (chat.Gate)
+                    for (int i = 0; i < 1000; i++)
+                    {
+                        if (i % 5 == 0) chat.Items.Add(new WorkspaceItem { Kind = "user", Text = "Question " + i + ": what does this part do, and why is it written like this?" });
+                        else if (i % 5 == 1) chat.Items.Add(new WorkspaceItem { Kind = "text", Text = "## Part " + i + "\nIt reads the chat and lays out each item.\n```cs\nint total = " + i + ";\nConsole.WriteLine(total);\n```\n- one\n- two\nAnd a longer paragraph that wraps across the conversation's width more than once, so measuring it costs what a real answer costs." });
+                        else if (i % 5 == 2) chat.Items.Add(new WorkspaceItem { Kind = "tool", Id = "c" + i, Name = "Read", Text = "Read " + Path.Combine(project, "file" + i + ".cs"), Turn = "t" });
+                        else if (i % 5 == 3) chat.Items.Add(new WorkspaceItem { Kind = "result", Id = "c" + i, Text = "120 lines", Turn = "t" });
+                        else chat.Items.Add(new WorkspaceItem { Kind = "text", Text = "Short answer " + i + "." });
+                    }
+                work.Save(chat);
+                using (Process own = Process.GetCurrentProcess())
+                {
+                    int userBefore = GetGuiResources(own.Handle, 1), gdiBefore = GetGuiResources(own.Handle, 0);
+                    long open = 0, scroll = 0, add = 0;
+                    using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+                    {
+                        window.Show(this);
+                        Application.DoEvents();
+                        Stopwatch clock = Stopwatch.StartNew();
+                        window.ShowChat(chat);
+                        window.Refresh();
+                        open = clock.ElapsedMilliseconds;
+                        clock.Restart();
+                        for (int i = 0; i < 40; i++) { window.ScrollConversation(window.ConversationTall * i / 40); window.Refresh(); }
+                        scroll = clock.ElapsedMilliseconds / 40;
+                        window.ScrollToEnd();
+                        chat.Live = new WorkspaceTurn { Chat = chat };
+                        clock.Restart();
+                        for (int i = 0; i < 20; i++) { work.Add(chat, new WorkspaceItem { Kind = "text", Text = "Streamed " + i + ". Another answer arrives while the turn runs." }); Application.DoEvents(); window.Refresh(); }
+                        add = clock.ElapsedMilliseconds / 20;
+                        chat.Live = null;
+                        if (!window.AtEnd || window.ItemCount != 150) throw new Exception("Streaming into a long chat stopped following or grew past 150 items.");
+                        window.Close();
+                    }
+                    checks.Add("NOTE Workspace 1,000-item chat: opens in " + open + " ms, scrolls in " + scroll + " ms a step, takes a streamed item in " + add + " ms");
+                    if (open > 1500 || scroll > 100 || add > 150) throw new Exception("Workspace is slow on a long chat: open " + open + " ms, scroll " + scroll + " ms, streamed item " + add + " ms.");
+                    for (int i = 0; i < 20; i++)
+                        using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+                        {
+                            window.Show(this);
+                            window.ShowChat(chat);
+                            window.OpenMenu("mode").Close();
+                            Application.DoEvents();
+                            window.Close();
+                        }
+                    Application.DoEvents();
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    Application.DoEvents();
+                    int userAfter = GetGuiResources(own.Handle, 1), gdiAfter = GetGuiResources(own.Handle, 0);
+                    checks.Add("NOTE Workspace opened and closed 21 times: USER " + userBefore + " -> " + userAfter + ", GDI " + gdiBefore + " -> " + gdiAfter);
+                    if (userAfter - userBefore > 40 || gdiAfter - gdiBefore > 60) throw new Exception("Workspace leaks: USER " + userBefore + " -> " + userAfter + ", GDI " + gdiBefore + " -> " + gdiAfter);
+                }
+            }
+            checks.Add("PASS Workspace opens, scrolls and streams into a 1,000-item chat quickly, and 21 opens and closes leave no window handles or GDI objects behind");
         }
     }
 }
