@@ -704,9 +704,12 @@ namespace CapriDesktop
                 {
                     List<string> riding = chat.Files.FindAll(delegate(string file) { return !chat.Sent.Contains(file); });
                     foreach (string file in riding) chat.Sent.Add(file);
-                    // A title they typed is never replaced: only her folder's untouched "New chat" takes the first message's words.
+                    // A title they typed is never replaced: only a title still as it was given (her folder's "New chat", or a
+                    // picked folder's name) takes the first message's words. The folder's name stays on the list's second line.
                     bool first = !chat.Items.Exists(delegate(WorkspaceItem item) { return item.Kind == "user"; });
-                    if (first && chat.Title == "New chat" && IsHome(chat.Folder)) chat.Title = TitleFrom(text, riding);
+                    string given = new DirectoryInfo(chat.Folder).Name;
+                    if (given.Length == 0) given = chat.Folder;
+                    if (first && (chat.Title == "New chat" && IsHome(chat.Folder) || chat.Title == given)) chat.Title = TitleFrom(text, riding);
                     Add(chat, new WorkspaceItem { Kind = "user", Text = text, Files = string.Join("\n", riding.ToArray()) });
                 }
                 if (!Trusted(chat) && !chat.TrustAsked)

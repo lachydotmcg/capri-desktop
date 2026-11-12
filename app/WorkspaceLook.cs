@@ -439,7 +439,40 @@ namespace CapriDesktop
                     window.Close();
                 }
             }
-            checks.Add("PASS Workspace chats in her folder are called New chat until their first message, then take its first words (cut at a word near 40 letters, no trailing punctuation) or the first file's name, and a typed title is never replaced");
+            // Two chats in the same picked folder are told apart by their first messages; a renamed one keeps its name.
+            string picked = Path.Combine(projects, "capri-desktop");
+            Directory.CreateDirectory(picked);
+            using (Workspace work = new Workspace(Path.Combine(box, "picked"), pipe + Guid.NewGuid().ToString("N")))
+            using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+            {
+                work.Executable = standin;
+                work.Home = home;
+                window.PathAlias = alias;
+                window.Location = new Point(40, 40);
+                window.Show(this);
+                window.ClientSize = new Size(WorkspaceWindow.Wide, WorkspaceWindow.Tall);
+                string[] said = { "Speed up the chat list when there are hundreds of chats", "Why does the tray icon blink twice?", "Tidy the settings page" };
+                string[] wanted = { "Speed up the chat list when there are", "Why does the tray icon blink twice", "My settings notes" };
+                for (int i = 0; i < said.Length; i++)
+                {
+                    WorkspaceChat chat = work.NewChat(picked, false);
+                    work.Trust(chat, true);
+                    chat.TrustAsked = true;
+                    window.RefreshChat();
+                    window.ShowChat(chat);
+                    if (chat.Title != "capri-desktop") throw new Exception("A picked-folder chat wasn't named after its folder before its first message.");
+                    if (i == 2) window.Rename("My settings notes");
+                    window.Input.Text = said[i];
+                    window.TypeInto(window.Input, Keys.Enter);
+                    WorkspaceWait(delegate { Application.DoEvents(); return chat.Live == null; }, "A picked-folder turn didn't finish.");
+                    Application.DoEvents();
+                    if (chat.Title != wanted[i]) throw new Exception("The picked-folder chat was titled \"" + chat.Title + "\" instead of \"" + wanted[i] + "\".");
+                }
+                window.RefreshChat();
+                shoot(window, "25-picked-titles-100", null);
+                window.Close();
+            }
+            checks.Add("PASS Workspace chats take their title from their first message while it's still the one they were given (her folder's New chat, or a picked folder's name): the first words cut at a word near 40 letters with no trailing punctuation, or the first file's name; two chats in one picked folder end up told apart, and a typed title is never replaced");
         }
 
         // Her own folder and files as attachments, through the real send path with a stand-in claude.cmd: "+ New chat" opens a
