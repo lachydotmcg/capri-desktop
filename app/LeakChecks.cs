@@ -90,16 +90,91 @@ namespace CapriDesktop
                 "Let me think... Cyberpunk, obviously.",
                 "Use print(\"hi\") to test it.",
                 "It's <b>bold</b> in HTML.",
+                // Answers that talk about "the user" without a brain talking to itself: a sign-up page, an error, a study, a game.
+                "The user wants to see a clear error when their password is too short, so show it right under the field.",
+                "The user is not authorized means your token is missing or expired. Log in again and it should work.",
+                "The user is asked to rate each screen from 1 to 5.\n\nThen you compare the scores across the two versions.",
+                "The user has three lives and loses one each time they fall.\n\nWhen all three are gone, show the game over screen.",
+                "The user said they love jazz. So here's a playlist for you: Kind of Blue, A Love Supreme.",
+                "Okay so the user wants a login button? Put it top right, that's where people look.",
+                "Analysis: your loop never ends because i never changes.",
+                "Reasoning: cheaper, faster, and it's already installed.",
+                "The right tool to use here is a torque wrench, not pliers.",
+                "Looking at the available tools in Blender, the knife tool is your best bet.",
+                "I'll use the brush tool for the sky, then the pen tool for the outlines.",
+                // Tags mentioned inside a sentence.
+                "Put your steps inside <reasoning> and </reasoning> tags, then the answer after.",
+                "Gemini sometimes writes a <thought> block before the answer, so strip it.",
+                "Close it with </think> and the model stops thinking.",
+                "To ask for it, write [THINK] at the start and [/THINK] at the end.",
+                "In HTML you strike text out with <s>this</s>",
+                "In a table, each header cell is a <th",
+                // Code that looks like her tools: numpy's clip, CSS classes, one-word functions, a sentence after a tool's name.
+                "np.clip(a=arr, a_min=0, a_max=1) keeps every value between 0 and 1.",
+                "Add .clip { overflow: hidden; } to your stylesheet.",
+                "Add .media { display: flex; } and it lines up.",
+                "Your component: video-clip {display: block;}",
+                "In Python, power(base=2, exp=10) is 1024.",
+                "stream(url=\"https://x.y\") opens the feed.",
+                "Use remember(\"milk\") in your script.",
+                "open_app: that's the tool I use to open your apps.",
+                "pc_status: CPU 12%, RAM 40%.",
             };
             foreach (string line in honest)
-                if (Brain.Clean(line) != line || Leaks.Unmused(line) != line || Leaks.Kinds(line).Count != 0) throw new Exception("An honest reply lost words: " + Voice.Quote(line) + " became " + Voice.Quote(Brain.Clean(line)));
+                if (Brain.Clean(line) != System.Text.RegularExpressions.Regex.Replace(line, @"\s+", " ") || Leaks.Unmused(line) != line || Leaks.Kinds(line).Count != 0)
+                    throw new Exception("An honest reply lost words: " + Voice.Quote(line) + " became " + Voice.Quote(Brain.Clean(line)));
+            string python = "Here's how:\n```python\nx = np.clip(a=x, a_min=0, a_max=1)\n```";
+            if (Leaks.Taken(python).Count != 0 || Leaks.Taken("Add .clip { overflow: hidden; } to your stylesheet.").Count != 0) throw new Exception("Code in an honest reply was taken for one of her tools and would run.");
+            if (Leaks.Taken("On it. open_app{\"name\": \"Steam\"}").Count != 1) throw new Exception("A call taken out of her words didn't run.");
+            // Replies that are long or built to be slow never hold her up.
+            string[] slow =
+            {
+                new string('{', 20000),
+                string.Concat(System.Linq.Enumerable.Repeat("{}", 10000)),
+                string.Concat(System.Linq.Enumerable.Repeat("a {b} ", 4000)),
+                string.Concat(System.Linq.Enumerable.Repeat("Here's an honest paragraph about code, with a {brace} and a (paren) and \"quotes\". ", 180)),
+                "open_app(a=" + new string('b', 20000),
+                "open_app(a=" + string.Concat(System.Linq.Enumerable.Repeat("bbb=", 5000)),
+                string.Concat(System.Linq.Enumerable.Repeat("open_app(a=b ", 1500)),
+                "open_app(a=\"" + new string('x', 20000),
+                string.Concat(System.Linq.Enumerable.Repeat("\"{", 10000)),
+                string.Concat(System.Linq.Enumerable.Repeat("<thi", 5000)),
+                string.Concat(System.Linq.Enumerable.Repeat("<think> ", 2500)),
+                string.Concat(System.Linq.Enumerable.Repeat("</think> x ", 2000)),
+                string.Concat(System.Linq.Enumerable.Repeat("[TOOL_CALLS] ", 1500)),
+                string.Concat(System.Linq.Enumerable.Repeat("[TOOL_CALLS][ ", 1300)),
+                string.Concat(System.Linq.Enumerable.Repeat("<function=open_app> ", 1000)),
+                string.Concat(System.Linq.Enumerable.Repeat("<invoke name=\"open_app\"> ", 800)),
+                string.Concat(System.Linq.Enumerable.Repeat("```\nx\n", 3000)),
+                string.Concat(System.Linq.Enumerable.Repeat("The user is asking me to do it. \n\n", 1000)),
+                string.Concat(System.Linq.Enumerable.Repeat("{\"name\": \"open_app\", \"x\": ", 800)),
+                string.Concat(System.Linq.Enumerable.Repeat("print(default_api.open_app(name=\"", 800)),
+                string.Concat(System.Linq.Enumerable.Repeat("call:open_app{name:", 1500)),
+            };
+            Brain.Clean("warm up");
+            Leaks.Taken("warm up open_app{\"name\": \"Steam\"}");
+            long slowest = 0;
+            foreach (string reply in slow)
+            {
+                System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
+                Brain.Clean(reply);
+                Leaks.Unmused(reply);
+                Leaks.Mused(reply);
+                Leaks.Kinds(reply);
+                Leaks.Taken(reply);
+                slowest = Math.Max(slowest, took.ElapsedMilliseconds);
+                if (took.ElapsedMilliseconds > 1500) throw new Exception("A hostile reply took " + took.ElapsedMilliseconds + " ms to clean: " + Voice.Quote(reply.Substring(0, 40)) + "...");
+            }
             string fenced = "Like this:\n```xml\n<think>hi</think>\n<tool_call>{\"name\": \"x\"}</tool_call>\n```";
             if (Brain.Visible(fenced) != fenced || Brain.Clean(fenced).IndexOf("<think>hi</think>", StringComparison.Ordinal) < 0 || Brain.Clean(fenced).IndexOf("<tool_call>", StringComparison.Ordinal) < 0) throw new Exception("Code about tags lost its tags: " + Brain.Clean(fenced));
             string json = "Sure:\n```json\n{\"name\": \"Alex\", \"arguments\": {\"age\": 30}}\n```";
             if (Brain.Clean(json).IndexOf("\"Alex\"", StringComparison.Ordinal) < 0 || Leaks.Calls(json).Count != 0) throw new Exception("A JSON example that isn't one of her tools was taken for a call.");
-            if (Leaks.Unmused("The user is asking me to close discord. Looking at the tools, the correct tool call would be app_window with name: \"discord\", action:") != "") throw new Exception("Thinking in plain words reached her chat.");
+            if (!Leaks.Mused("The user is asking me to close discord. Looking at the tools, the correct tool call would be app_window with name: \"discord\", action:")) throw new Exception("Thinking in plain words reached her chat.");
+            if (!Leaks.Mused("Okay, let's break this down. The user is asking me to play some music. Looking at the tools, the correct tool call would be play_music with app: \"spotify\", kind:")) throw new Exception("Thinking in plain words reached her chat.");
             if (Leaks.Unmused("The user greets me. I'll greet them back.\n\nHey choom, what's up?") != "Hey choom, what's up?") throw new Exception("Her answer after thinking in plain words was lost.");
-            checks.Add("PASS leak shapes: " + shapes.GetLength(0) + " kinds of thinking, template tokens and written tool calls never show, " + callers.Length + " written call shapes read back as the real call, a call inside its thinking never runs, and " + (honest.Length + 2) + " honest replies about code, JSON, XML, tags and a plain < keep every word");
+            if (Leaks.Unmused("The user wants a joke. I’ll tell one.\n\nLooking at my tools, none fit.\n\nWhy did the netrunner cross the road?") != "Why did the netrunner cross the road?") throw new Exception("Thinking in plain words over several paragraphs reached her chat.");
+            if (Leaks.Unmused("Thinking: they said hi, keep it short.\n\nAnswer: Hey choom!") != "Hey choom!") throw new Exception("Labelled thinking reached her chat.");
+            checks.Add("PASS leak shapes: " + shapes.GetLength(0) + " kinds of thinking, template tokens and written tool calls never show, " + callers.Length + " written call shapes read back as the real call, a call inside its thinking never runs, " + (honest.Length + 2) + " honest replies about code, JSON, XML, tags, a plain <, \"the user\" and her tools' names keep every word, code that looks like her tools never runs, and " + slow.Length + " hostile 20,000 character replies clean in " + slowest + " ms at most");
 
             string openAiWas = Brain.Nvidia, ollamaWas = Brain.Ollama, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
             bool keepingWas = Brain.Keeping;
@@ -125,6 +200,10 @@ namespace CapriDesktop
                     says("Okay, the user wants a joke. I should tell one about netrunners."),
                     says("Why did the netrunner cross the road? To jack in on the other side."),
                     says("Sure:\n```json\n{\"name\": \"Alex\", \"age\": 30}\n```\nAnd 2 < 3."),
+                    says("The user wants to see a clear error when their password is too short, so show it right under the field."),
+                    says("The user is asking me to pick. I should pick the blue one."),
+                    says("The user is asking me to pick. I should pick the blue one, it's calmer."),
+                    says("Here's how:\n```python\nx = np.clip(a=x, a_min=0, a_max=1)\n```"),
                 }, asked, out fake);
                 List<string> did = new List<string>();
                 Brain brain = new Brain { Model = "qwen/qwen3-next-80b-a3b-thinking", Remote = new Cloud("nvapi-test", "qwen/qwen3-next-80b-a3b-thinking") };
@@ -149,6 +228,18 @@ namespace CapriDesktop
                 if (joke != "Why did the netrunner cross the road? To jack in on the other side.") throw new Exception("Thinking in plain words reached her chat or her answer was lost: " + joke);
                 string honestReply = brain.Ask("how would you write a person in json");
                 if (honestReply.IndexOf("{\"name\": \"Alex\", \"age\": 30}", StringComparison.Ordinal) < 0 || honestReply.IndexOf("2 < 3", StringComparison.Ordinal) < 0) throw new Exception("An honest JSON reply lost words: " + honestReply);
+                int asks;
+                lock (asked) asks = asked.Count;
+                string signUp = brain.Ask("what should my sign-up page do");
+                lock (asked) asks = asked.Count - asks;
+                if (signUp != "The user wants to see a clear error when their password is too short, so show it right under the field." || asks != 1) throw new Exception("An honest reply about the user was taken for thinking: " + signUp + " after " + asks + " asks");
+                lock (asked) asks = asked.Count;
+                string picked = brain.Ask("blue or green");
+                lock (asked) asks = asked.Count - asks;
+                if (picked != "The user is asking me to pick. I should pick the blue one, it's calmer." || asks != 2) throw new Exception("A reply that read as thinking twice wasn't shown as it came: " + picked + " after " + asks + " asks");
+                did.Clear();
+                string clamped = brain.Ask("how do i clamp values in numpy");
+                if (did.Count != 0 || clamped.IndexOf("np.clip(a=x, a_min=0, a_max=1)", StringComparison.Ordinal) < 0) throw new Exception("Code in an honest reply ran one of her tools or lost words: " + clamped + " / " + string.Join(",", did.ToArray()));
                 fake.Stop();
 
                 // Her own brain on their PC streams: a tag split across pieces, and one that never closes.
@@ -192,7 +283,7 @@ namespace CapriDesktop
                 if (!Array.Exists(lines, line => line.EndsWith(wanted, StringComparison.Ordinal))) throw new Exception("Her log didn't name the brain, model and kind of leak: " + string.Join(" / ", lines));
                 if (!Array.Exists(lines, line => line.IndexOf("ollama gpt-oss:20b: gpt-oss analysis channel", StringComparison.Ordinal) >= 0) || !Array.Exists(lines, line => line.IndexOf("local qwen3-4b: tool call tags", StringComparison.Ordinal) >= 0)) throw new Exception("Her log missed a brain's leak: " + string.Join(" / ", lines));
                 foreach (string line in lines) if (line.IndexOf("greet them", StringComparison.OrdinalIgnoreCase) >= 0 || line.IndexOf("Steam", StringComparison.Ordinal) >= 0 || line.IndexOf("netrunner", StringComparison.Ordinal) >= 0) throw new Exception("Her log kept what a leak said: " + line);
-                checks.Add("PASS leaks through her real chat with stand-in brains: NVIDIA, a streamed brain on their PC and Ollama never show thinking (no opening tag, split across a stream, unclosed, plain words or gpt-oss channels) in her bubble, voice or history, or feed it back to her brain; a call written as text runs as the real call; a reply that was all thinking is asked once more for her answer, and twice says the model only thought; an honest JSON reply keeps its words; her log names the brain, model and kind of each leak and never its words");
+                checks.Add("PASS leaks through her real chat with stand-in brains: NVIDIA, a streamed brain on their PC and Ollama never show thinking (no opening tag, split across a stream, unclosed, plain words or gpt-oss channels) in her bubble, voice or history, or feed it back to her brain; a call written as text runs as the real call; a reply that was all thinking is asked once more for her answer, and twice says the model only thought; an honest JSON reply keeps its words; an honest reply about \"the user\" is asked once and keeps every word, one that reads as thinking twice is shown as it came, and numpy code in a reply never runs her clip tool; her log names the brain, model and kind of each leak and never its words");
                 checks.Add("LIMIT leak checks use stand-in brains only: no real reasoning model, Claude Code, Codex or Ollama was asked");
             }
             finally
