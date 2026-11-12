@@ -576,6 +576,112 @@ namespace CapriDesktop
             }
         }
 
+        // A window that never finishes painting: Windows hands it WM_PAINT again and again, and a window timer only fires when
+        // there's no paint waiting either. Her posted work and her Beat clock still run; her timer watch names the window.
+        private sealed class EndlessPaint : Form
+        {
+            internal bool Endless = true;
+            internal int Paints;
+            internal Action During;
+
+            internal EndlessPaint()
+            {
+                FormBorderStyle = FormBorderStyle.None;
+                ShowInTaskbar = false;
+                StartPosition = FormStartPosition.Manual;
+                Bounds = new Rectangle(20, 20, 160, 90);
+            }
+
+            protected override bool ShowWithoutActivation { get { return true; } }
+
+            protected override void WndProc(ref Message message)
+            {
+                if (message.Msg == 0x000F && Endless) { Paints++; if (During != null) During(); return; }
+                base.WndProc(ref message);
+            }
+        }
+
+        private void SmokeTimerStarve(List<string> checks)
+        {
+            TimerWatch watch = new TimerWatch();
+            int witnessTicks = 0, beatTicks = 0, posts = 0;
+            System.Windows.Forms.Timer witness = new System.Windows.Forms.Timer { Interval = 15 };
+            witness.Tick += delegate { witnessTicks++; };
+            Beat beat = new Beat();
+            beat.Interval = 15;
+            beat.Tick += delegate { beatTicks++; };
+            bool witnessOn = true, done = false;
+            watch.Expected = delegate { return witnessOn; };
+            List<string> lines = new List<string>();
+            System.Threading.Thread watcher = new System.Threading.Thread(delegate()
+            {
+                while (!done)
+                {
+                    string line = watch.Check();
+                    if (line != null) lock (lines) lines.Add(line);
+                    try { BeginInvoke(new Action(delegate { posts++; })); } catch (InvalidOperationException) { }
+                    System.Threading.Thread.Sleep(250);
+                }
+            }) { IsBackground = true };
+            EndlessPaint loop = new EndlessPaint();
+            Application.AddMessageFilter(watch);
+            try
+            {
+                witness.Start();
+                beat.Start();
+                watcher.Start();
+                System.Diagnostics.Stopwatch since = System.Diagnostics.Stopwatch.StartNew();
+                while (since.ElapsedMilliseconds < 600) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                if (witnessTicks < 5 || beatTicks < 5 || lines.Count != 0) throw new Exception("Before the stall, timers didn't tick or her watch spoke up: " + witnessTicks + " and " + beatTicks + ", " + lines.Count + " lines.");
+                int witnessFrom = witnessTicks, beatFrom = beatTicks, postsFrom = posts;
+                System.Diagnostics.Stopwatch stalled = System.Diagnostics.Stopwatch.StartNew();
+                loop.During = delegate { if (stalled.ElapsedMilliseconds >= 3000) loop.Endless = false; };
+                loop.Show();
+                while (loop.Endless || stalled.ElapsedMilliseconds < 3100) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                int witnessDuring = witnessTicks - witnessFrom, beatDuring = beatTicks - beatFrom, postsDuring = posts - postsFrom;
+                double seconds = stalled.Elapsed.TotalSeconds;
+                if (loop.Paints < 100) throw new Exception("The stand-in window wasn't asked to paint over and over on this desktop: " + loop.Paints + " paints.");
+                if (witnessDuring * 10 > (int)(seconds * 1000 / 16) || postsDuring < 8 || beatDuring < 60) throw new Exception("An endless repaint didn't starve window timers alone: window timer " + witnessDuring + ", posted work " + postsDuring + ", Beat " + beatDuring + " in " + seconds.ToString("0.0") + " s.");
+                checks.Add("PASS an endless repaint starves her window timers (" + witnessDuring + " ticks in " + seconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s, " + loop.Paints.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + " WM_PAINTs) while her posted work keeps running (" + postsDuring + ") and her Beat clock keeps ticking (" + beatDuring + ")");
+                string said;
+                lock (lines) said = lines.Count == 1 ? lines[0] : lines.Count + " lines: " + string.Join(" / ", lines.ToArray());
+                if (!said.StartsWith("timers starved ", StringComparison.Ordinal) || said.IndexOf("EndlessPaint got ", StringComparison.Ordinal) < 0 || said.IndexOf(" x WM_PAINT", StringComparison.Ordinal) < 0) throw new Exception("Her timer watch didn't name the window and message once: " + said);
+                checks.Add("PASS her timer watch writes one line naming the window and the message starving her timers: " + said);
+                System.Diagnostics.Stopwatch after = System.Diagnostics.Stopwatch.StartNew();
+                int witnessBack = witnessTicks;
+                while (after.ElapsedMilliseconds < 600) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                lock (lines) if (witnessTicks - witnessBack < 5 || lines.Count != 1) throw new Exception("After the stall, her window timers didn't come back, or her watch spoke again: " + (witnessTicks - witnessBack) + " ticks, " + lines.Count + " lines.");
+                // Off when no timer is expected: a quiet spell isn't a stall then.
+                witnessOn = false;
+                witness.Stop();
+                after.Restart();
+                while (after.ElapsedMilliseconds < 2600) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                lock (lines) if (lines.Count != 1) throw new Exception("Her timer watch spoke up with no timer running.");
+                // What it costs when nothing is wrong: one comparison for most messages, and a clock read for each timer.
+                Message plain = Message.Create(IntPtr.Zero, 0x0200, IntPtr.Zero, IntPtr.Zero), tick = Message.Create(IntPtr.Zero, 0x0113, IntPtr.Zero, IntPtr.Zero);
+                const int runs = 2000000;
+                System.Diagnostics.Stopwatch cost = System.Diagnostics.Stopwatch.StartNew();
+                for (int i = 0; i < runs; i++) watch.PreFilterMessage(ref plain);
+                double plainNs = cost.Elapsed.TotalMilliseconds * 1e6 / runs;
+                cost.Restart();
+                for (int i = 0; i < runs; i++) watch.PreFilterMessage(ref tick);
+                double tickNs = cost.Elapsed.TotalMilliseconds * 1e6 / runs;
+                if (plainNs > 200 || tickNs > 500) throw new Exception("Her timer watch costs too much: " + plainNs + " ns a message, " + tickNs + " ns a timer.");
+                checks.Add("PASS her timer watch costs " + plainNs.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ns for an ordinary message and " + tickNs.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ns for a timer's, and says nothing while no timer is expected");
+            }
+            finally
+            {
+                done = true;
+                Application.RemoveMessageFilter(watch);
+                loop.Endless = false;
+                loop.Close();
+                loop.Dispose();
+                witness.Dispose();
+                beat.Dispose();
+                watcher.Join(2000);
+            }
+        }
+
         // Stand-ins for whatever kept her window's thread busy on 12 Nov, for the review of her beat. One is a window on her
         // thread that never gets painted, so Windows hands it WM_PAINT for ever; the other is a posted message that posts the
         // next. Both starve her window timers while posted work still runs. A window timer of the check's own counts its ticks

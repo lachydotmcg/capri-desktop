@@ -568,6 +568,120 @@ namespace CapriDesktop
     // input helper lets go of any key or button she held. A minute's freeze starts her again, at most once every ten minutes.
     // A shorter stall, from 2 s, goes in once it's over with what held her up, at most once a minute (Neco Arc, 3 Nov: "she
     // lags a lot", "her avatar freezes").
+    // Her window timers only fire when nothing else is waiting on her window's thread. When they go quiet for over a second
+    // while the thread still answers, this counts what the thread takes from its queue for the next second, and errors.txt
+    // gets which of her windows got which message most (12 Nov: her teleport sat still through a whole game job, and nothing
+    // in errors.txt said why). It names her windows by their kind, never by what they show. Messages sent straight to a window
+    // skip the queue, so they aren't counted. Until a stall it only notes when a timer last fired.
+    internal sealed class TimerWatch : IMessageFilter
+    {
+        internal const int StallMs = 1000, CountMs = 1000, Spacing = 60000;
+        internal Func<bool> Expected = delegate { return true; };
+        private readonly Stopwatch clock = Stopwatch.StartNew();
+        private readonly object gate = new object();
+        private readonly Dictionary<long, int> counts = new Dictionary<long, int>();
+        private readonly Dictionary<long, string> names = new Dictionary<long, string>();
+        private long lastTimer;
+        private volatile bool counting;
+        private int total;
+        // The heartbeat's own, read and written on its thread only.
+        private long countFrom, noted = -Spacing;
+        private bool logged;
+
+        public bool PreFilterMessage(ref Message message)
+        {
+            if (message.Msg == 0x0113) Interlocked.Exchange(ref lastTimer, clock.ElapsedMilliseconds);
+            if (counting) Count(message.HWnd, message.Msg);
+            return false;
+        }
+
+        private void Count(IntPtr window, int kind)
+        {
+            long key = (window.ToInt64() << 20) | (uint)(kind & 0xFFFFF);
+            lock (gate)
+            {
+                total++;
+                int seen;
+                counts.TryGetValue(key, out seen);
+                counts[key] = seen + 1;
+                if (seen == 0 && !names.ContainsKey(key)) names[key] = Who(window) + " got {0} x " + What(kind);
+            }
+        }
+
+        internal static string Who(IntPtr window)
+        {
+            if (window == IntPtr.Zero) return "her thread itself";
+            Control control = Control.FromHandle(window);
+            if (control == null)
+            {
+                StringBuilder kind = new StringBuilder(128);
+                return GetClassName(window, kind, kind.Capacity) > 0 ? "a " + kind + " window" : "a window that's gone";
+            }
+            Form form = control.FindForm();
+            return form == null || form == control ? control.GetType().Name : form.GetType().Name + "'s " + control.GetType().Name;
+        }
+
+        internal static string What(int kind)
+        {
+            switch (kind)
+            {
+                case 0x000F: return "WM_PAINT";
+                case 0x0014: return "WM_ERASEBKGND";
+                case 0x0113: return "WM_TIMER";
+                case 0x0200: return "WM_MOUSEMOVE";
+                case 0x0084: return "WM_NCHITTEST";
+                case 0x0046: return "WM_WINDOWPOSCHANGING";
+                case 0x0047: return "WM_WINDOWPOSCHANGED";
+                case 0x0312: return "WM_HOTKEY";
+            }
+            if (kind >= 0xC000 && kind <= 0xFFFF)
+            {
+                StringBuilder name = new StringBuilder(128);
+                if (GetClipboardFormatName((uint)kind, name, name.Capacity) > 0) return name.ToString().IndexOf("ThreadCallbackMessage", StringComparison.Ordinal) >= 0 ? "posted work" : name.ToString();
+            }
+            return "message 0x" + kind.ToString("X4");
+        }
+
+        // From her heartbeat's thread, four times a second while her window answers. One line a stall, a minute apart at most.
+        internal string Check()
+        {
+            long now = clock.ElapsedMilliseconds, quiet = now - Interlocked.Read(ref lastTimer);
+            if (!Expected() || quiet < StallMs)
+            {
+                counting = false;
+                logged = false;
+                return null;
+            }
+            if (logged) return null;
+            if (!counting)
+            {
+                lock (gate) { counts.Clear(); names.Clear(); total = 0; }
+                countFrom = now;
+                counting = true;
+                return null;
+            }
+            if (now - countFrom < CountMs) return null;
+            counting = false;
+            logged = true;
+            long busiest = 0;
+            int most = 0, all;
+            string said;
+            lock (gate)
+            {
+                all = total;
+                foreach (KeyValuePair<long, int> pair in counts) if (pair.Value > most) { most = pair.Value; busiest = pair.Key; }
+                said = most == 0 ? null : string.Format(System.Globalization.CultureInfo.InvariantCulture, names[busiest], most.ToString("N0", System.Globalization.CultureInfo.InvariantCulture));
+            }
+            // Nothing came through the queue at all: a window being dragged or a menu that's open runs its own loop, and that's fine.
+            if (said == null || now - noted < Spacing) return null;
+            noted = now;
+            return "timers starved " + (quiet / 1000.0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s | " + said + ", of " + all.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + " messages in " + ((now - countFrom) / 1000.0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s";
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder name, int size);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClipboardFormatName(uint format, StringBuilder name, int size);
+    }
+
     internal sealed class Heartbeat
     {
         internal int StallAfter = 2000, StallSpacing = 60000, LogAfter = 10000, EndAfter = 60000, CloseFor = 15000, ReopenAfter = 2000, Grace = 2000, SettleAfter = 15000;
@@ -589,6 +703,9 @@ namespace CapriDesktop
         internal Action<string> Note = delegate(string line) { Brain.Log("frozen", -1, line); };
         // Ends her, starting her again when asked. The smoke test swaps it for one that only counts.
         internal Action<bool> End = Stop;
+        // Asked four times a second while her window answers: a line for errors.txt once her window timers have gone quiet.
+        internal Func<string> Starved;
+        internal Action<string> StarveNote = delegate(string line) { Brain.Log("timers", -1, line); };
         internal Action Replaced;
 
         internal Heartbeat(Control window, EventWaitHandle reopened)
@@ -656,6 +773,9 @@ namespace CapriDesktop
                     frozeAt = stalledAt = -1;
                     stall = null;
                     Ping(now);
+                    Func<string> starved = Starved;
+                    string starvedLine = starved == null ? null : starved();
+                    if (starvedLine != null) Noted(starvedLine, StarveNote);
                     continue;
                 }
                 long stuck = now - Interlocked.Read(ref sentAt);
@@ -708,9 +828,10 @@ namespace CapriDesktop
         }
 
         // errors.txt is written on a thread of its own, so a stuck file can't hold up the rest.
-        private void Noted(string line)
+        private void Noted(string line) { Noted(line, Note); }
+
+        private void Noted(string line, Action<string> note)
         {
-            Action<string> note = Note;
             Thread writer = new Thread(delegate() { note(line); });
             writer.IsBackground = true;
             // Level with the heartbeat, so a game on every core can't hold it up while she's lowered.
@@ -2112,6 +2233,7 @@ namespace CapriDesktop
         private int lagHot;
         private double lagAt = -LagGap, lagSaid = -LagGap;
         private readonly Beat frames;
+        private readonly TimerWatch timerWatch = new TimerWatch();
         private readonly System.Windows.Forms.Timer signals;
         private readonly EventWaitHandle restore, shown;
         private readonly string settingsPath;
@@ -6465,6 +6587,9 @@ namespace CapriDesktop
         {
             heartbeat = new Heartbeat(this, restore);
             heartbeat.Replaced = ClearMarks;
+            timerWatch.Expected = delegate { return signals.Enabled && !quitting; };
+            Application.AddMessageFilter(timerWatch);
+            heartbeat.Starved = timerWatch.Check;
             // Fields only: this is read on the heartbeat's thread while hers is stuck.
             heartbeat.Doing = delegate
             {
@@ -40357,6 +40482,7 @@ namespace CapriDesktop
             Section(checks, "SmokeStarvedPaint", delegate { SmokeStarved(checks, true); });
             Section(checks, "SmokeStarvedFlood", delegate { SmokeStarved(checks, false); });
             Section(checks, "SmokeBeatCost", delegate { SmokeBeatCost(checks); });
+            Section(checks, "SmokeTimerStarve", delegate { SmokeTimerStarve(checks); });
             Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
