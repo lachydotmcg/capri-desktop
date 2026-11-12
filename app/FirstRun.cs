@@ -87,7 +87,7 @@ namespace CapriDesktop
             private Gauge gauge;
             private Link faster;
             private Bars bars;
-            private Key micPick, micTest;
+            private Key languagePick, micPick, micTest;
             private Toggle[] extras;
             private Key[] tabs;
             private Key primary;
@@ -196,7 +196,7 @@ namespace CapriDesktop
                 fonts.Clear();
                 Action drop = delegate { foreach (Control control in old) control.Dispose(); foreach (Font font in gone) font.Dispose(); };
                 if (IsHandleCreated) BeginInvoke(drop); else drop();
-                picks = null; voiceFree = voiceText = null; keyBox = null; status = heard = null; gauge = null; faster = null; bars = null; micPick = micTest = null; extras = null; tabs = null; primary = null;
+                picks = null; voiceFree = voiceText = null; keyBox = null; status = heard = null; gauge = null; faster = null; bars = null; languagePick = micPick = micTest = null; extras = null; tabs = null; primary = null;
                 string[] titles = { "", "WAKE ME UP >", "FREE KEY >", "BRAIN ONLINE >", "HOW I SOUND >", "LAST THING >", "MY PLAN OR KEY >", "ALMOST THERE >", "JUST ME >" };
                 Heading(this, titles[screen], new Point(Z(28), Z(18)), Title(30), Rose, 0);
                 Note count = Caption(Count, Wide - 28 - 120, 28, 120, 20, Mono(16), Faint);
@@ -357,8 +357,39 @@ namespace CapriDesktop
                     int choice = order[i];
                     picks[i] = Option(116 + 92 * i, 86, names[i], bodies[i], asides[i], i == 0 ? "Start with this!" : null, Picked == choice, delegate { PickBrain(choice); });
                 }
-                return 116 + 92 * 4;
+                // Her language, under the tiles and lined up with their edges: her guess from Windows until they pick another.
+                // It's the Mainframe's own menu, so a pick here is a Mainframe pick, saved the moment it's made.
+                int row = 116 + 92 * 4 + 14;
+                Caption("I'll talk in", 28, row + 5, 150, 26, Body(19), Faint);
+                languagePick = MakeKey("", 186, row, Wide - 28 - 186, 36, Body(18, true), Rose, delegate { ShowLanguages(); });
+                languagePick.Chevron = true;
+                languagePick.AccessibleName = "Her language";
+                SyncLanguage();
+                return row + 36;
             }
+
+            internal string LanguageShown { get { return languagePick == null ? null : languagePick.Text; } }
+
+            // The row shows what the Mainframe's menu calls it, like 日本語 (Japanese), and follows a pick made in the Mainframe
+            // while the card is open.
+            private void SyncLanguage()
+            {
+                if (languagePick == null) return;
+                string shown = Mainframe.LanguageName(capri.Language);
+                if (languagePick.Text != shown) languagePick.Text = shown;
+                languagePick.Status = shown;
+            }
+
+            internal ContextMenuStrip ShowLanguages()
+            {
+                ContextMenuStrip menu = owner.ShowLanguages(languagePick);
+                // The menu builds its items fresh each time it opens, so these go when the next opening throws the items away.
+                foreach (ToolStripMenuItem item in LanguageItems(menu.Items))
+                    if (item.Tag != null) item.Click += LanguagePicked;
+                return menu;
+            }
+
+            private void LanguagePicked(object sender, EventArgs e) { SyncLanguage(); }
 
             internal void PickBrain(int choice)
             {
@@ -786,12 +817,16 @@ namespace CapriDesktop
                 pulse.Stop();
                 if (owner.MicTesting) capri.TestMic();
                 capri.FirstRunDone(Brain == FirstRun.Coming || pendingLocal);
+                // Her language menu doesn't stay up hanging off a card that's gone.
+                if (owner.languageMenu.Visible && owner.languageMenu.SourceControl == languagePick) owner.languageMenu.Close();
                 Close();
             }
 
             private void Pulse()
             {
                 if (Finished) return;
+                // A pick made in the Mainframe while the card is open.
+                SyncLanguage();
                 if (!moved && capri.Bounds != placedBy) Place();
                 if (pendingLocal)
                 {
@@ -898,7 +933,12 @@ namespace CapriDesktop
             protected override void Dispose(bool disposing)
             {
                 base.Dispose(disposing);
-                if (disposing) { pulse.Dispose(); foreach (Font font in fonts) font.Dispose(); fonts.Clear(); }
+                if (disposing)
+                {
+                    // The Mainframe outlives the card, so its menu items let go of the card.
+                    foreach (ToolStripMenuItem item in LanguageItems(owner.languageMenu.Items)) item.Click -= LanguagePicked;
+                    pulse.Dispose(); foreach (Font font in fonts) font.Dispose(); fonts.Clear();
+                }
             }
 
             // Dragged by any spot that isn't a control, like the Mainframe.

@@ -40732,6 +40732,9 @@ namespace CapriDesktop
             Section(checks, "SmokeAnswerVoice", delegate { SmokeAnswerVoice(checks, output); });
             Section(checks, "SmokeVoiceCuts", delegate { SmokeVoiceCuts(checks, output); });
             Section(checks, "SmokeVoiceLanguages", delegate { SmokeVoiceLanguages(checks, output); });
+            // The Mainframe's Language row and its menu, which the setup card opens too. The full run reaches it from the settings
+            // page checks as well; whichever comes first runs it.
+            Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
@@ -51548,7 +51551,7 @@ namespace CapriDesktop
                             if (pageOverlap != null) throw new Exception("Settings controls overlap: " + pageOverlap);
                             string pageOutside = mainframe.Outside();
                             if (pageOutside != null) throw new Exception("A settings control pokes out of the page: " + pageOutside);
-                            SmokeLanguages(checks);
+                            Section(checks, "SmokeLanguages", delegate { SmokeLanguages(checks); });
                             // Her default personality and safety lines are in code, her reply rules come last, and her chat and voice-chat prompts start with all three.
                             const string todaysPersona = "2975408ad8bc6d515aa950c64ad896f5890dfdfa3eb039b105a4f972eeb51e14";
                             Func<string, string> personaHash = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };

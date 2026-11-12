@@ -1400,6 +1400,13 @@ namespace CapriDesktop
             return found;
         }
 
+        // A language's native name, then its English one when they differ, like 日本語 (Japanese).
+        internal static string LanguageName(string language)
+        {
+            for (int row = 0; row < Brain.Languages.GetLength(0); row++) if (Brain.Languages[row, 1] == language) return LanguageName(row);
+            return language;
+        }
+
         private static string LanguageName(int row)
         {
             string name = Brain.Languages[row, 0], english = Brain.Languages[row, 1];
@@ -1496,17 +1503,30 @@ namespace CapriDesktop
 
         private void KeepLanguageMenu(ToolStripDropDown menu)
         {
-            menu.Location = LanguageAt(menu.Location, menu.Size, Screen.FromControl(this).WorkingArea);
+            // On the screen of whatever opened it: the Language row, or the setup card while the Mainframe is hidden or elsewhere.
+            Control under = languageMenu.SourceControl;
+            menu.Location = LanguageAt(menu.Location, menu.Size, Screen.FromControl(under == null ? this : under.FindForm() ?? this).WorkingArea);
         }
 
         internal ContextMenuStrip ShowLanguages()
         {
+            return ShowLanguages(languages);
+        }
+
+        // The language menu under a button: the Mainframe's Language row, or the setup card's.
+        internal ContextMenuStrip ShowLanguages(Control under)
+        {
+            return ShowLanguages(under, Screen.FromControl(under.FindForm() ?? this).WorkingArea);
+        }
+
+        // The same with the screen room given, so the smoke can try a 1366 x 768 screen on any PC.
+        internal ContextMenuStrip ShowLanguages(Control under, Rectangle area)
+        {
             DismissHint();
             languageMenu.Close();
-            Rectangle area = Screen.FromControl(this).WorkingArea;
             FillLanguages(area);
-            Point at = LanguageAt(languages.PointToScreen(new Point(0, languages.Height)), languageMenu.GetPreferredSize(Size.Empty), area);
-            languageMenu.Show(languages, languages.PointToClient(at));
+            Point at = LanguageAt(under.PointToScreen(new Point(0, under.Height)), languageMenu.GetPreferredSize(Size.Empty), area);
+            languageMenu.Show(under, under.PointToClient(at));
             return languageMenu;
         }
 

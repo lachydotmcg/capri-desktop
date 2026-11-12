@@ -54,7 +54,7 @@ namespace CapriDesktop
         }
 
         // The window alone, as Windows draws it, with everything outside its outline see-through, to lay over a mock desktop.
-        internal static Bitmap Cut(Form window)
+        internal static Bitmap Cut(Control window)
         {
             window.Refresh();
             Application.DoEvents();
@@ -76,6 +76,22 @@ namespace CapriDesktop
             return cut;
         }
 
+        // Several windows where they sit on the screen, like the card with her language menu open off it, on the backdrop.
+        internal static void Together(string path, params Control[] windows)
+        {
+            Rectangle all = Rectangle.Empty;
+            foreach (Control window in windows) all = all.IsEmpty ? window.Bounds : Rectangle.Union(all, window.Bounds);
+            const int margin = 24;
+            using (Bitmap page = new Bitmap(all.Width + margin * 2, all.Height + margin * 2, PixelFormat.Format24bppRgb))
+            using (Graphics drawing = Graphics.FromImage(page))
+            {
+                drawing.Clear(Backdrop);
+                foreach (Control window in windows)
+                    using (Bitmap cut = Cut(window)) drawing.DrawImageUnscaled(cut, window.Left - all.Left + margin, window.Top - all.Top + margin);
+                page.Save(path, ImageFormat.Png);
+            }
+        }
+
         // Where a picture has anything drawn, by its alpha.
         internal static Rectangle Inked(Bitmap image)
         {
@@ -95,7 +111,7 @@ namespace CapriDesktop
             return right < 0 ? Rectangle.Empty : Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
         }
 
-        private static bool Print(Form window, Bitmap into, bool full)
+        private static bool Print(Control window, Bitmap into, bool full)
         {
             using (Graphics drawing = Graphics.FromImage(into))
             {
@@ -134,6 +150,9 @@ namespace CapriDesktop
             Preferences wasPreferences = preferences;
             Func<string, string> wasThink = Think;
             Action<string> wasBrowse = Browse;
+            Func<bool> wasSaidReady = Said.Ready;
+            System.Globalization.CultureInfo wasCulture = Thread.CurrentThread.CurrentUICulture;
+            string wasLanguage = Brain.Language;
             string wasGoogle = Brain.Google, wasOpenAi = Brain.OpenAi, wasHeard = heard, wasNote = mainframe.VoiceNoteText;
             Machine wasMachine = machine;
             Pick wasFit = fit;
@@ -166,6 +185,8 @@ namespace CapriDesktop
                 brain.Model = null;
                 cloudModels = null;
                 preferences = new Preferences { Tiered = true, Silent = true, Welcomed = true, Met = true };
+                Brain.Language = null;
+                PointEars();
                 Brain.Off = false;
                 greetTried = false;
             };
@@ -212,6 +233,7 @@ namespace CapriDesktop
             {
                 Browse = delegate(string page) { lock (browsed) browsed.Add(page); };
                 Think = delegate { return online; };
+                Said.Ready = delegate { return false; };
                 FirstRunPaste = delegate { return "  AIza-firstrun-test  "; };
                 FirstRunUsePlan = delegate(string kind) { planned = kind; };
                 fit = Engine.Picks[1];
@@ -231,6 +253,220 @@ namespace CapriDesktop
                     brandNew = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(empty);
                 if (new Preferences().Silent || brandNew.Silent || !FreeChatOn) throw new Exception("A brand new install starts with her voice off, so HOW I SOUND would have TEXT ONLY picked and she'd stay silent.");
                 checks.Add("PASS a brand new install has her voice on, so HOW I SOUND has MY FREE VOICE picked and her free voice downloads from her first second");
+
+                // Her language row on the first screen, on stand-ins: the Windows guess shows and is saved before any click, the
+                // Mainframe's own menu opens from it by mouse, Tab and Space or Enter, and closes on Esc. It opens on the card's
+                // screen and inside its work area, a 1366 x 768 one too. A pick is saved at once and her brain and ears follow it,
+                // English clears her brain's language, a Mainframe pick shows on the card, and Skip all and NO AI keep the pick.
+                Action<Control, Keys> languageKey = delegate(Control target, Keys code)
+                {
+                    Message down = Message.Create(target.Handle, 0x0100, new IntPtr((int)code), IntPtr.Zero);
+                    if (!target.PreProcessMessage(ref down)) Native.SendMessage(target.Handle, down.Msg, down.WParam, down.LParam);
+                    Message up = Message.Create(target.Handle, 0x0101, new IntPtr((int)code), IntPtr.Zero);
+                    if (!target.PreProcessMessage(ref up)) Native.SendMessage(target.Handle, up.Msg, up.WParam, up.LParam);
+                };
+                Action<Mainframe.FirstRunCard, string> pickLanguage = delegate(Mainframe.FirstRunCard shown, string pickedLanguage)
+                {
+                    ContextMenuStrip choices = shown.ShowLanguages();
+                    try
+                    {
+                        foreach (ToolStripMenuItem item in Mainframe.LanguageItems(choices.Items))
+                            if ((string)item.Tag == pickedLanguage) { item.PerformClick(); return; }
+                        throw new Exception("The card has no language item for " + pickedLanguage + ".");
+                    }
+                    finally { choices.Close(); }
+                };
+                // Whether a menu item's Click still calls into the card.
+                Func<ToolStripItem, object, bool> clickHeldBy = delegate(ToolStripItem item, object target)
+                {
+                    System.Reflection.FieldInfo key = typeof(ToolStripItem).GetField("EventClick", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                    System.Reflection.PropertyInfo list = typeof(System.ComponentModel.Component).GetProperty("Events", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    if (key == null || list == null) throw new Exception("Can't read a menu item's Click handlers on this .NET.");
+                    Delegate click = ((System.ComponentModel.EventHandlerList)list.GetValue(item, null))[key.GetValue(null)];
+                    if (click == null) return false;
+                    foreach (Delegate one in click.GetInvocationList()) if (one.Target == target) return true;
+                    return false;
+                };
+                Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo("es-ES");
+                preferences = Preferences.Fresh();
+                if (preferences.Language != "Spanish") throw new Exception("Fresh Spanish settings lost her guessed language before setup.");
+                preferences.Silent = true;
+                preferences.Met = true;
+                Brain.Language = Brain.LanguageCode(preferences.Language) == "en" ? null : preferences.Language;
+                PointEars();
+                Mainframe.FirstRunCard languageCard = open(FirstRun.Pick, FirstRun.Local);
+                if (languageCard.LanguageShown != Mainframe.LanguageName("Spanish") || preferences.Language != "Spanish" || LoadPreferences().Language != "Spanish") throw new Exception("The setup row didn't show and keep the Spanish guess before a click: " + languageCard.LanguageShown);
+                checks.Add("PASS fresh setup under Spanish Windows shows " + Mainframe.LanguageName("Spanish") + " and has the guess saved before any click");
+                Button languageButton = null;
+                foreach (Control control in languageCard.Controls) if (control.AccessibleName == "Her language") languageButton = control as Button;
+                if (languageButton == null || !languageButton.TabStop) throw new Exception("The setup language pick has no keyboard button.");
+                ContextMenuStrip languageMenu = languageCard.ShowLanguages();
+                bool[] languagesSeen = new bool[Brain.Languages.GetLength(0)];
+                try { SmokeLanguageBounds(languageMenu, Screen.FromControl(languageCard).WorkingArea, languagesSeen); }
+                finally { languageMenu.Close(); }
+                for (int row = 0; row < languagesSeen.Length; row++) if (!languagesSeen[row]) throw new Exception("The setup menu is missing " + Brain.Languages[row, 1] + ".");
+                // From the middle of every screen this PC has, the menu opens on that screen and inside its work area.
+                Point languageCardAt = languageCard.Location;
+                int screensTried = 0;
+                foreach (Screen screen in Screen.AllScreens)
+                {
+                    Rectangle work = screen.WorkingArea;
+                    if (work.Width < languageCard.Width || work.Height < languageCard.Height) continue;
+                    languageCard.Location = new Point(work.Left + (work.Width - languageCard.Width) / 2, work.Top + (work.Height - languageCard.Height) / 2);
+                    languageMenu = languageCard.ShowLanguages();
+                    try
+                    {
+                        if (!work.Contains(languageMenu.Bounds)) throw new Exception("The setup language menu left the card's screen: " + languageMenu.Bounds + " outside " + work);
+                        SmokeLanguageBounds(languageMenu, work, new bool[Brain.Languages.GetLength(0)]);
+                    }
+                    finally { languageMenu.Close(); }
+                    screensTried++;
+                }
+                // A 1366 x 768 screen, with the card in its bottom right corner where the menu has least room.
+                Rectangle home = Screen.FromControl(languageCard).WorkingArea;
+                Rectangle small = Rectangle.Intersect(home, new Rectangle(home.Location, new Size(1366, 728)));
+                languageCard.Location = new Point(small.Right - languageCard.Width, small.Bottom - languageCard.Height);
+                languageMenu = mainframe.ShowLanguages(languageButton, small);
+                try
+                {
+                    if (!small.Contains(languageMenu.Bounds)) throw new Exception("The setup language menu left a 1366 x 768 screen: " + languageMenu.Bounds + " outside " + small);
+                    foreach (ToolStripMenuItem item in Mainframe.LanguageItems(languageMenu.Items))
+                        if (item.HasDropDownItems)
+                        {
+                            Size room = item.DropDown.GetPreferredSize(Size.Empty);
+                            if (room.Width > small.Width - 4 || room.Height > small.Height - 4) throw new Exception("A setup language group is too big for a 1366 x 768 screen: " + item.Text + " " + room);
+                        }
+                }
+                finally { languageMenu.Close(); }
+                languageCard.Location = languageCardAt;
+                checks.Add("PASS the setup language menu has every Mainframe language and opens on the card's screen inside its work area, from the middle of " + screensTried + " screen(s) and from the corner of a 1366 x 768 one");
+                languageButton.PerformClick();
+                if (!languageMenu.Visible || languageMenu.SourceControl != languageButton) throw new Exception("The setup language button didn't open its menu by mouse.");
+                languageKey(languageMenu, Keys.Escape);
+                pump();
+                if (languageMenu.Visible) throw new Exception("Esc didn't close the setup language menu.");
+                bool tabbedToLanguage = false;
+                for (int step = 0; step < languageCard.Controls.Count; step++)
+                {
+                    languageCard.SelectNextControl(languageCard.ActiveControl, true, true, true, true);
+                    if (languageCard.ActiveControl == languageButton) { tabbedToLanguage = true; break; }
+                }
+                if (!tabbedToLanguage) throw new Exception("Tab couldn't reach the setup language button.");
+                languageKey(languageButton, Keys.Enter);
+                if (!languageMenu.Visible || languageCard.Screen != FirstRun.Pick) throw new Exception("Enter didn't open the setup language menu (or went on past the first screen).");
+                languageMenu.Close();
+                languageKey(languageButton, Keys.Space);
+                if (!languageMenu.Visible || languageCard.Screen != FirstRun.Pick) throw new Exception("Space didn't open the setup language menu.");
+                ToolStripMenuItem japanese = null;
+                foreach (ToolStripMenuItem item in Mainframe.LanguageItems(languageMenu.Items)) if ((string)item.Tag == "Japanese") japanese = item;
+                if (japanese == null) throw new Exception("The setup menu has no Japanese pick.");
+                List<ToolStripMenuItem> languagePath = new List<ToolStripMenuItem>();
+                // The groups down to Japanese, found from the top: a group's own menu doesn't always know its group item.
+                for (ToolStripItemCollection level = languageMenu.Items; level != null; )
+                {
+                    ToolStripItemCollection next = null;
+                    foreach (ToolStripItem entry in level)
+                    {
+                        ToolStripMenuItem group = entry as ToolStripMenuItem;
+                        if (group == null || !group.HasDropDownItems) continue;
+                        foreach (ToolStripMenuItem inside in Mainframe.LanguageItems(group.DropDownItems))
+                            if (inside == japanese) { languagePath.Add(group); next = group.DropDownItems; break; }
+                        if (next != null) break;
+                    }
+                    level = next;
+                }
+                foreach (ToolStripMenuItem group in languagePath)
+                {
+                    group.Select();
+                    languageKey(group.Owner, Keys.Right);
+                    if (!group.DropDown.Visible) throw new Exception("Right didn't open a setup language group.");
+                }
+                japanese.Select();
+                languageKey(japanese.Owner, Keys.Enter);
+                if (preferences.Language != "Japanese" || Brain.Language != "Japanese" || LoadPreferences().Language != "Japanese" || parakeet.Language != Listening("Japanese", "es") || languageCard.LanguageShown != Mainframe.LanguageName("Japanese") || !mainframe.LanguageIs("Japanese"))
+                    throw new Exception("The setup Japanese pick didn't save or reach her brain, ears and row.");
+                languageMenu.Close();
+                checks.Add("PASS the setup language menu opens by mouse, Tab then Enter, or Space, Esc closes it, and Right then Enter picks Japanese, saved at once, with her brain, listening language, Mainframe tick and row following");
+                // What a Mainframe Language pick does, made while the card is open.
+                SetLanguage("Korean");
+                mainframe.Sync();
+                pump();
+                if (languageCard.LanguageShown != Mainframe.LanguageName("Korean")) throw new Exception("A Mainframe language pick didn't show on the open setup card: " + languageCard.LanguageShown);
+                checks.Add("PASS a language picked in the Mainframe while the card is open shows on its row");
+                pickLanguage(languageCard, "English");
+                if (preferences.Language != "English" || Brain.Language != null || LoadPreferences().Language != "English" || parakeet.Language != Listening("English", "es") || languageCard.LanguageShown != "English")
+                    throw new Exception("Picking English on setup didn't clear her brain's language and point her ears at English.");
+                checks.Add("PASS picking English after another language on setup saves English, clears Brain.Language and listens the way a Mainframe English pick does");
+                pickLanguage(languageCard, "Japanese");
+                languageMenu = languageCard.ShowLanguages();
+                bool heldOpen = false;
+                foreach (ToolStripMenuItem item in Mainframe.LanguageItems(languageMenu.Items)) if (clickHeldBy(item, languageCard)) heldOpen = true;
+                if (!heldOpen) throw new Exception("The open setup language menu doesn't call into the card, so the leak check below proves nothing.");
+                languageCard.SkipAll();
+                pump();
+                if (FirstRunShowing || preferences.Language != "Japanese" || Brain.Language != "Japanese" || LoadPreferences().Language != "Japanese" || parakeet.Language != "ja") throw new Exception("Skip all lost the language just picked on setup.");
+                if (languageMenu.Visible) throw new Exception("Skip all left her language menu up with the card gone.");
+                if (!languageCard.IsDisposed) throw new Exception("Skip all didn't dispose the card.");
+                foreach (ToolStripMenuItem item in Mainframe.LanguageItems(languageMenu.Items)) if (clickHeldBy(item, languageCard)) throw new Exception("The Mainframe's language menu still calls into a disposed setup card: " + item.Text);
+                putBack();
+                reset();
+                languageCard = open(FirstRun.Pick, FirstRun.Local);
+                pickLanguage(languageCard, "Japanese");
+                languageCard.PickBrain(FirstRun.NoAi);
+                if (languageCard.LanguageShown != Mainframe.LanguageName("Japanese")) throw new Exception("NO AI hid the setup language row.");
+                picture(languageCard, "lang-pick-no-ai-100");
+                languageCard.Next();
+                if (languageCard.Screen != FirstRun.Alone || !preferences.NoAi || preferences.Language != "Japanese" || Brain.Language != "Japanese" || LoadPreferences().Language != "Japanese" || parakeet.Language != "ja") throw new Exception("NO AI lost the language just picked on setup.");
+                languageCard.Next();
+                if (FirstRunShowing || LoadPreferences().Language != "Japanese") throw new Exception("Finishing NO AI lost the setup language.");
+                putBack();
+                checks.Add("PASS Skip all right after a language pick keeps it, closes the menu and leaves no handler on the disposed card; NO AI keeps the row and the pick through JUST ME and Done");
+                Thread.CurrentThread.CurrentUICulture = wasCulture;
+                // Pictures: English, the widest names the row gets, with and without the voice strip, and the menu open off it.
+                bool languageVoiceWas = SettingUpVoice;
+                int[] languageTall = new int[2];
+                try
+                {
+                    foreach (float scale in new[] { 1f, 1.25f, 1.5f })
+                        foreach (string language in new[] { "English", "Traditional Chinese", "Indonesian" })
+                            foreach (bool voiceComing in new[] { false, true })
+                            {
+                                if (language == "Indonesian" && (voiceComing || scale != 1f)) continue;
+                                reset();
+                                SettingUpVoice = voiceComing;
+                                languageCard = OpenFirstRun(FirstRun.Pick, FirstRun.Local, false, scale);
+                                pump();
+                                pickLanguage(languageCard, language);
+                                string percent = ((int)Math.Round(scale * 100)).ToString();
+                                picture(languageCard, "lang-pick-" + language.ToLowerInvariant().Replace(' ', '-') + "-" + percent + (voiceComing ? "-voice" : ""));
+                                if (languageCard.LanguageShown != Mainframe.LanguageName(language) || languageCard.ClientSize.Width != (int)Math.Round(600 * languageCard.Unit)) throw new Exception("The setup language row lost its text or the card's width changed at " + scale + ": " + languageCard.ClientSize);
+                                if (scale == 1f && language == "English") languageTall[voiceComing ? 1 : 0] = languageCard.ClientSize.Height;
+                                if (language == "English" && !voiceComing && scale != 1.25f)
+                                {
+                                    ContextMenuStrip shownMenu = languageCard.ShowLanguages();
+                                    try
+                                    {
+                                        pump();
+                                        WindowPicture.Together(Path.Combine(output, "lang-menu-open-" + percent + ".png"), languageCard, shownMenu);
+                                        ToolStripMenuItem group = null;
+                                        foreach (ToolStripItem entry in shownMenu.Items) { ToolStripMenuItem item = entry as ToolStripMenuItem; if (item != null && item.HasDropDownItems && group == null) group = item; }
+                                        if (group != null)
+                                        {
+                                            group.Select();
+                                            group.ShowDropDown();
+                                            pump();
+                                            WindowPicture.Together(Path.Combine(output, "lang-menu-group-" + percent + ".png"), languageCard, shownMenu, group.DropDown);
+                                        }
+                                    }
+                                    finally { shownMenu.Close(); }
+                                }
+                                languageCard.SkipAll();
+                                putBack();
+                            }
+                }
+                finally { SettingUpVoice = languageVoiceWas; }
+                reset();
+                checks.Add("PASS the setup language row fits the first screen with no overlap or clipped text at 100%, 125% and 150%, in English, Traditional Chinese and Indonesian, with and without the free voice strip, inside the room the card is sized for; at 100% the first screen is " + languageTall[0] + " px tall, " + languageTall[1] + " with the strip");
 
                 // The card waits for her to land before it opens beside her, and she doesn't wander off while it's open.
                 reset();
@@ -830,6 +1066,10 @@ namespace CapriDesktop
                 CloseTalk();
                 foreach (System.Net.Sockets.TcpListener server in servers) server.Stop();
                 preferences = wasPreferences;
+                Brain.Language = wasLanguage;
+                Thread.CurrentThread.CurrentUICulture = wasCulture;
+                PointEars();
+                Said.Ready = wasSaidReady;
                 SavePreferences();
                 Think = wasThink;
                 Browse = wasBrowse;
