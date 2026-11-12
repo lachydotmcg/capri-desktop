@@ -558,7 +558,7 @@ test('phone-only mode: a refused key says which limit it hit, and offers free me
     // A model with no free allowance at all.
     provider.state.fail = google(429, 'Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-3.1-pro', 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', { value: '0' });
     await say('pro please');
-    assert.equal(await noticeSays('/for free/', 'the no-free notice'), "This Google AI key can't use that model for free. Pick another model in SETTINGS.");
+    assert.equal(await noticeSays('/for free/', 'the no-free notice'), "Your Google AI key can't use that model for free. Pick another model in SETTINGS.");
     await shot('limit-unfree');
 
     // A free model full upstream for everyone, with a Retry-After the page may read.

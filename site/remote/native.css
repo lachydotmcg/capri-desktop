@@ -64,3 +64,4 @@
 @media (max-width: 380px) {
   .top.native-counting .native-mode { display: none; }
 }
+.native-line.native-free-on { color: var(--faint); }

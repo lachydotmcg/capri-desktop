@@ -269,7 +269,7 @@
       credits: 'No credits on this key. Add credits on ' + company + '\'s site.',
       limit: company + ' says that\'s too many messages for one minute. ' + soon,
       daily: 'Your ' + company + ' key has hit ' + owner + '\'s daily free limit. It comes back ' + (kind === 'google' && pacificMidnight() ? resetTime(pacificMidnight()) : 'within a day') + ', or pick another model in SETTINGS.',
-      unfree: 'This ' + company + ' key can\'t use that model for free. Pick another model in SETTINGS.',
+      unfree: 'Your ' + company + ' key can\'t use that model for free. Pick another model in SETTINGS.',
       busy: company + '\'s free model is full for everyone right now. Try again in a moment, or pick another model in SETTINGS.',
       model: 'That model isn\'t on your key. Pick another one.',
       down: 'The service failed on its end. Pick another model or retry.',
