@@ -2115,6 +2115,15 @@ namespace CapriDesktop
                 return whole || cut < 0 ? detail : detail.Substring(0, cut).TrimEnd() + " \u2026";
             }
 
+            // A row's one line: what it ran or touched, the tool's name when it's open and its whole line shows below, and on a
+            // closed denied row his no (with his reason) before it.
+            private string RowText(Block block)
+            {
+                if (block.Open && Cut(block)) return block.Item.Name;
+                if (!block.Open && Status(block) == "denied") return Refusal(block) + "  \u00b7  " + Detail(block, false);
+                return Detail(block, false);
+            }
+
             // Whether a row's one line had to cut its command or path short.
             private bool Cut(Block block)
             {
@@ -2761,7 +2770,7 @@ namespace CapriDesktop
                     block.Toggle = new Rectangle(left + indent, top, width - indent, Z(24));
                     int bottom = block.Toggle.Bottom;
                     {
-                        string shown = block.Open && Cut(block) ? item.Name : Detail(block, false);
+                        string shown = RowText(block);
                         int part = Part(block, WordKind.Para, shown), most = Math.Max(1, block.Toggle.Width - Z(52));
                         block.Segs.Add(new Seg { Part = part, Start = 0, Text = shown, Font = window.note, Box = new Rectangle(block.Toggle.Left + Z(26), block.Toggle.Top, Math.Max(Z(2), Math.Min(most, WorkPaint.Wide(shown, window.note))), block.Toggle.Height) });
                     }
@@ -3035,7 +3044,7 @@ namespace CapriDesktop
                 Color words = block.Running ? Live : status == "failed" ? Pink : status == "denied" ? Neon.Faint : Quiet(Green);
                 RectangleF icon = new RectangleF(row.Left + Z(6), row.Top + (row.Height - Z(13)) / 2f, Z(13), Z(13));
                 WorkPaint.ToolMark(graphics, item.Name, icon, ink, s);
-                string text = block.Open && Cut(block) ? item.Name : Detail(block, false);
+                string text = RowText(block);
                 TextFormatFlags flags = WorkPaint.Line | (Command(item.Name) || item.Kind == "approval" ? TextFormatFlags.EndEllipsis : TextFormatFlags.PathEllipsis);
                 Rectangle at = new Rectangle(row.Left + Z(26), row.Top, Math.Max(1, row.Width - Z(26) - Z(26)), row.Height);
                 TextRenderer.DrawText(graphics, text, window.note, at, words, flags);
