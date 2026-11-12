@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -116,6 +116,9 @@ namespace CapriDesktop
 
         internal static void FrameShown(IntPtr window, Bitmap image)
         {
+#if !CROSS
+            EmoteFilm.Shown(window, image);
+#endif
             if (!WatchFrame || Interlocked.Read(ref FirstFrameAt) != 0 || !Native.IsWindowVisible(window)) return;
             if (!HasFrame(image)) return;
             long at = Stopwatch.GetTimestamp();
@@ -40323,6 +40326,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCapriCodes", delegate { SmokeCapriCodes(checks); });
             Section(checks, "SmokeRibbons", delegate { SmokeRibbons(checks, output); });
             Section(checks, "SmokeEmotes", delegate { SmokeEmotes(checks, output); });
+            Section(checks, "SmokeEmoteFilms", delegate { SmokeEmoteFilms(checks, output); });
             Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });

@@ -14,17 +14,23 @@ namespace CapriDesktop
     // Her two secret emotes, her chair and her mini heart: the drawings by Qewiw (mix_qewiw1412_86144), played from the
     // frames as they were drawn. Each is a zip of PNGs in assets/emotes: every frame of the clip at 30 a second, cut to its
     // own ink, with a frame that matches the one before it pointing back at that picture. The clips came with their own
-    // alpha, so nothing in them was keyed.
+    // alpha, so nothing in them was keyed. The chair comes in two layers: her, drawn at her size where she is, and the
+    // close-up of her face, every pixel of those frames that isn't her seated figure, drawn the height of her screen.
     internal sealed class EmoteClip
     {
         internal const double Fps = 30;
         internal readonly string Name;
         internal readonly int Width, Height, Count;
+        // The close-up layer's whole frame, in its own pixels; 0 when the clip has none.
+        internal readonly int CloseWidth, CloseHeight;
         private readonly List<byte[]> pictures = new List<byte[]>();
-        private readonly int[] picture;      // for each frame, which picture, or -1 for an empty frame
-        private readonly Point[] offsets;    // where that picture's top left sits in the whole frame
-        private int decodedIndex = -1;
-        private Bitmap decoded;
+        private readonly int[] her, close;            // for each frame, which picture, or -1
+        private readonly Point[] herAt, closeAt;      // where that picture's top left sits in its layer's frame
+        // Pictures are decoded ahead on workers, so her screen thread only swaps them in. Only a few frames' worth are kept.
+        private readonly object gate = new object();
+        private readonly Dictionary<int, Bitmap> ready = new Dictionary<int, Bitmap>();
+        private readonly HashSet<int> pending = new HashSet<int>();
+        private int generation;
 
         private EmoteClip(string name, Stream zip)
         {
@@ -48,22 +54,28 @@ namespace CapriDesktop
                 if (list == null) throw new InvalidDataException("Her " + name + " emote has no frame list.");
                 using (StreamReader reader = new StreamReader(list.Open())) lines = reader.ReadToEnd().Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             }
-            List<int> which = new List<int>();
-            List<Point> at = new List<Point>();
+            List<int> herList = new List<int>(), closeList = new List<int>();
+            List<Point> herPlaces = new List<Point>(), closePlaces = new List<Point>();
             foreach (string raw in lines)
             {
                 string[] parts = raw.Trim().Split(' ');
                 if (parts[0] == "size") { Width = int.Parse(parts[1]); Height = int.Parse(parts[2]); continue; }
+                if (parts[0] == "closeup") { CloseWidth = int.Parse(parts[1]); CloseHeight = int.Parse(parts[2]); continue; }
                 int frame;
                 if (!int.TryParse(parts[0], out frame)) continue;
-                if (frame != which.Count) throw new InvalidDataException("Her " + name + " emote skips a frame at " + frame + ".");
-                if (parts[1] == "-") { which.Add(-1); at.Add(Point.Empty); continue; }
-                which.Add(named[parts[1]]);
-                at.Add(new Point(int.Parse(parts[2]), int.Parse(parts[3])));
+                if (frame != herList.Count) throw new InvalidDataException("Her " + name + " emote skips a frame at " + frame + ".");
+                // "frame her x y [close x y]", with "-" for an empty layer
+                int next = 1;
+                if (parts[next] == "-") { herList.Add(-1); herPlaces.Add(Point.Empty); next++; }
+                else { herList.Add(named[parts[next]]); herPlaces.Add(new Point(int.Parse(parts[next + 1]), int.Parse(parts[next + 2]))); next += 3; }
+                if (parts.Length >= next + 3) { closeList.Add(named[parts[next]]); closePlaces.Add(new Point(int.Parse(parts[next + 1]), int.Parse(parts[next + 2]))); }
+                else { closeList.Add(-1); closePlaces.Add(Point.Empty); }
             }
-            picture = which.ToArray();
-            offsets = at.ToArray();
-            Count = picture.Length;
+            her = herList.ToArray();
+            herAt = herPlaces.ToArray();
+            close = closeList.ToArray();
+            closeAt = closePlaces.ToArray();
+            Count = her.Length;
             if (Width <= 0 || Height <= 0 || Count == 0) throw new InvalidDataException("Her " + name + " emote is empty.");
         }
 
@@ -77,44 +89,117 @@ namespace CapriDesktop
 
         internal int Pictures { get { return pictures.Count; } }
 
-        internal bool Empty(int frame) { return frame < 0 || frame >= Count || picture[frame] < 0; }
+        internal bool Empty(int frame) { return frame < 0 || frame >= Count || her[frame] < 0; }
 
-        // A frame's picture and where it sits, decoded when it's asked for. Only one is kept, so a long clip never sits in
-        // memory whole. Lent: the clip keeps it.
-        internal Bitmap Picture(int frame, out Point offset)
+        internal bool HasCloseup(int frame) { return frame >= 0 && frame < Count && close[frame] >= 0; }
+
+        // Which stored picture her layer shows in a frame, so her checks can see two frames share one.
+        internal int HerPicture(int frame) { return frame >= 0 && frame < Count ? her[frame] : -1; }
+
+        private static Bitmap Decode(byte[] png)
         {
-            offset = Point.Empty;
-            if (Empty(frame)) return null;
-            offset = offsets[frame];
-            int index = picture[frame];
-            if (index == decodedIndex && decoded != null) return decoded;
-            Bitmap next;
-            using (MemoryStream data = new MemoryStream(pictures[index]))
+            using (MemoryStream data = new MemoryStream(png))
             using (Bitmap raw = new Bitmap(data))
             {
-                next = new Bitmap(raw.Width, raw.Height, PixelFormat.Format32bppPArgb);
+                Bitmap next = new Bitmap(raw.Width, raw.Height, PixelFormat.Format32bppPArgb);
                 using (Graphics graphics = Graphics.FromImage(next))
                 {
                     graphics.CompositingMode = CompositingMode.SourceCopy;
                     graphics.DrawImage(raw, new Rectangle(0, 0, raw.Width, raw.Height));
                 }
+                return next;
             }
-            if (decoded != null) decoded.Dispose();
-            decoded = next;
-            decodedIndex = index;
-            return decoded;
+        }
+
+        // A stored picture, from what the workers decoded ahead, or decoded here when it isn't in yet. Lent: the clip keeps it
+        // until it's well behind the frame being drawn.
+        private Bitmap Decoded(int index, int frame)
+        {
+            if (index < 0) return null;
+            Bitmap found;
+            lock (gate)
+            {
+                Forget(frame);
+                if (ready.TryGetValue(index, out found)) return found;
+            }
+            Bitmap made = Decode(pictures[index]);
+            lock (gate)
+            {
+                if (ready.TryGetValue(index, out found)) { made.Dispose(); return found; }
+                ready[index] = made;
+                return made;
+            }
+        }
+
+        // Lets go of the pictures no frame near this one shows. Called only from the thread that draws.
+        private void Forget(int frame)
+        {
+            if (ready.Count <= 6) return;
+            HashSet<int> near = new HashSet<int>();
+            for (int i = Math.Max(0, frame - 1); i < Math.Min(Count, frame + 6); i++) { near.Add(her[i]); near.Add(close[i]); }
+            List<int> gone = new List<int>();
+            foreach (int index in ready.Keys) if (!near.Contains(index)) gone.Add(index);
+            foreach (int index in gone) { ready[index].Dispose(); ready.Remove(index); }
+        }
+
+        // Her layer's picture in a frame, and where it sits in her layer's frame.
+        internal Bitmap Picture(int frame, out Point offset)
+        {
+            offset = Empty(frame) ? Point.Empty : herAt[frame];
+            return Empty(frame) ? null : Decoded(her[frame], frame);
+        }
+
+        // The close-up's picture in a frame, or null, and where it sits in the close-up's frame.
+        internal Bitmap Closeup(int frame, out Point offset)
+        {
+            offset = HasCloseup(frame) ? closeAt[frame] : Point.Empty;
+            return HasCloseup(frame) ? Decoded(close[frame], frame) : null;
+        }
+
+        // Starts decoding the pictures of the next few frames on workers.
+        internal void Ahead(int frame, int frames)
+        {
+            for (int i = Math.Max(0, frame); i < Math.Min(Count, frame + frames); i++)
+                foreach (int index in new[] { her[i], close[i] })
+                {
+                    if (index < 0) continue;
+                    int version;
+                    lock (gate)
+                    {
+                        if (ready.ContainsKey(index) || pending.Contains(index)) continue;
+                        pending.Add(index);
+                        version = generation;
+                    }
+                    int which = index;
+                    System.Threading.ThreadPool.QueueUserWorkItem(delegate
+                    {
+                        Bitmap made = null;
+                        try { made = Decode(pictures[which]); }
+                        catch (Exception) { }
+                        lock (gate)
+                        {
+                            pending.Remove(which);
+                            if (made == null) return;
+                            if (version != generation || ready.ContainsKey(which)) made.Dispose();
+                            else ready[which] = made;
+                        }
+                    });
+                }
         }
 
         internal void Release()
         {
-            if (decoded != null) decoded.Dispose();
-            decoded = null;
-            decodedIndex = -1;
+            lock (gate)
+            {
+                generation++;
+                foreach (Bitmap picture in ready.Values) picture.Dispose();
+                ready.Clear();
+            }
         }
     }
 
     // Where a clip's frame goes on the screen: x is Left + Across * frame x, y is Top + Scale * frame y. Across is minus the
-    // scale when it's mirrored.
+    // scale when it's mirrored. A Scale of 0 is nowhere.
     internal struct EmotePlace
     {
         internal float Left, Top, Scale, Across;
@@ -164,18 +249,30 @@ namespace CapriDesktop
         // Her chair clip's own pixels are her size at her usual 240: her sitting there, hair to the chair's feet, is as tall as
         // she is perched.
         internal const float ChairSize = 240;
+        // Frames decoded ahead of the one on the screen.
+        internal const int Ahead = 3;
+        // Her figure in the chair, in her layer's frame: where her ribbons run to and leave from. The clip's sweep into the
+        // chair first shows at frame 4; her ribbons take her back from frame 280, as its fade takes her out of the chair.
+        internal static readonly Rectangle ChairBody = Rectangle.FromLTRB(534, 205, 692, 416);
+        internal const int SweepFrom = 4, ChairLeave = 280;
 
         private readonly Timer ticks = new Timer();
         private readonly System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private EmoteClip clip;
         private EmoteClock clock;
-        private EmotePlace place;
+        private EmotePlace place, closePlace;
         private Rectangle screen;
         private double last;
         private int shown = -2;
         private Func<bool> busy, here;
         private Action done;
         private Native.Surface surface;
+        private double delay;
+        private int leaveFrame = -1;
+        private Action leave;
+        // For her checks: how many frames reached the screen in the last play, and how long drawing them took on her thread.
+        internal int FramesShown;
+        internal double DrawTotal, DrawWorst;
 
         internal EmoteWindow() : base("Capri emote")
         {
@@ -190,11 +287,20 @@ namespace CapriDesktop
 
         internal int At { get { return clock == null ? -1 : clock.Frame; } }
 
-        // The chair, with its feet at foot, at her size; mirrored puts her close-ups on her right.
+        // The chair, with its feet at foot, at her size; mirrored is her on the left of her screen.
         internal static EmotePlace ChairPlace(PointF foot, int size, bool mirrored)
         {
             float scale = size / ChairSize;
             return new EmotePlace { Scale = scale, Across = mirrored ? -scale : scale, Left = foot.X + (mirrored ? ChairFootX : -ChairFootX) * scale, Top = foot.Y - ChairFootY * scale };
+        }
+
+        // Her close-up as it was drawn: the clip's whole frame the height of her screen, against the edge away from her, so
+        // only the screen's own edges cut it. Mirrored when she's on the left, against the right edge.
+        internal static EmotePlace CloseupPlace(EmoteClip chair, Rectangle screen, bool mirrored)
+        {
+            if (chair.CloseHeight <= 0) return new EmotePlace();
+            float scale = screen.Height / (float)chair.CloseHeight;
+            return new EmotePlace { Scale = scale, Across = mirrored ? -scale : scale, Left = mirrored ? screen.Right : screen.Left, Top = screen.Top };
         }
 
         // Her heart over the whole of a screen, cropped to fill it.
@@ -206,11 +312,15 @@ namespace CapriDesktop
 
         // Plays a clip. busy holds the chair while she's answering; here says she's still where the emote is, and when she
         // isn't (hidden, moved away) it stops; done runs once it's over, however it ended.
-        internal void Play(EmoteClip what, EmotePlace where, Rectangle bounds, int holdAt, Func<bool> answering, Func<bool> still, Action finished)
+        internal void Play(EmoteClip what, EmotePlace where, EmotePlace closeup, Rectangle bounds, int holdAt, Func<bool> answering, Func<bool> still, Action finished, double wait = 0, int leaveAt = -1, Action leaving = null)
         {
             Stop();
+            delay = wait;
+            leaveFrame = leaveAt;
+            leave = leaving;
             clip = what;
             place = where;
+            closePlace = closeup;
             screen = bounds;
             clock = new EmoteClock(holdAt, HoldMost);
             busy = answering;
@@ -218,6 +328,9 @@ namespace CapriDesktop
             done = finished;
             shown = -2;
             last = 0;
+            FramesShown = 0;
+            DrawTotal = DrawWorst = 0;
+            clip.Ahead(0, Ahead + 1);
             watch.Reset();
             watch.Start();
             Step();
@@ -236,6 +349,7 @@ namespace CapriDesktop
             clip = null;
             clock = null;
             done = null;
+            leave = null;
             busy = here = null;
             if (was != null) was.Release();
             if (after != null) after();
@@ -247,26 +361,47 @@ namespace CapriDesktop
             try
             {
                 if (here != null && !here()) { Stop(); return; }
-                double now = watch.Elapsed.TotalSeconds;
+                double now = watch.Elapsed.TotalSeconds - delay;
+                if (now < 0) return;
                 int frame = clock.Advance(now - last, busy != null && busy());
                 last = now;
                 if (frame >= clip.Count) { Stop(); return; }
+                if (leave != null && leaveFrame >= 0 && frame >= leaveFrame) { Action going = leave; leave = null; going(); }
                 if (frame == shown) return;
                 shown = frame;
+                System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
                 Draw(frame);
+                double ms = took.Elapsed.TotalMilliseconds;
+                FramesShown++;
+                DrawTotal += ms;
+                DrawWorst = Math.Max(DrawWorst, ms);
+                clip.Ahead(frame + 1, Ahead);
             }
             // A screen unplugged, no memory for the picture: the emote ends and nothing is left on the screen.
             catch (Exception) { Stop(); }
         }
 
-        // One frame on the screen: its picture decoded, drawn over the part of the screen it covers, and the window moved there.
+        // The part of the screen a frame covers: the close-up, and her over it.
+        private static Rectangle Covers(Bitmap picture, Point offset, EmotePlace where, Bitmap closeup, Point closeAt, EmotePlace closeWhere, Rectangle screen)
+        {
+            Rectangle area = picture == null ? Rectangle.Empty : Rectangle.Ceiling(where.On(new Rectangle(offset, picture.Size)));
+            if (closeup != null && closeWhere.Scale > 0)
+            {
+                Rectangle face = Rectangle.Ceiling(closeWhere.On(new Rectangle(closeAt, closeup.Size)));
+                area = area.IsEmpty ? face : Rectangle.Union(area, face);
+            }
+            return Rectangle.Intersect(area, screen);
+        }
+
+        // One frame on the screen: its pictures, decoded ahead, drawn over the part of the screen they cover, and the window
+        // moved there.
         private void Draw(int frame)
         {
-            Point offset;
-            Bitmap picture = clip.Picture(frame, out offset);
-            Rectangle area = picture == null ? Rectangle.Empty : Rectangle.Intersect(Rectangle.Ceiling(place.On(new Rectangle(offset, picture.Size))), screen);
+            Point offset, closeAt;
+            Bitmap picture = clip.Picture(frame, out offset), closeup = clip.Closeup(frame, out closeAt);
+            Rectangle area = Covers(picture, offset, place, closeup, closeAt, closePlace, screen);
             if (area.Width < 2 || area.Height < 2) { if (Visible) Hide(); return; }
-            // The heart covers the whole screen most frames, so one surface is kept while the size stays the same.
+            // The heart and the close-up cover most of the screen, so one surface is kept while the size stays the same.
             if (surface == null || surface.Image.Width != area.Width || surface.Image.Height != area.Height)
             {
                 DropSurface();
@@ -275,6 +410,7 @@ namespace CapriDesktop
             using (Graphics graphics = Graphics.FromImage(surface.Image))
             {
                 graphics.Clear(Color.Transparent);
+                if (closePlace.Scale > 0) Paint(graphics, closeup, closeAt, closePlace, new Point(-area.X, -area.Y));
                 Paint(graphics, picture, offset, place, new Point(-area.X, -area.Y));
             }
             if (Bounds != area) Bounds = area;
@@ -288,23 +424,6 @@ namespace CapriDesktop
             surface = null;
         }
 
-        // For her checks: every frame of what's playing drawn in turn, the way she draws it, and how long each took in ms.
-        internal double[] TimeEvery()
-        {
-            if (clip == null) return new double[0];
-            ticks.Stop();
-            double[] took = new double[clip.Count];
-            System.Diagnostics.Stopwatch each = new System.Diagnostics.Stopwatch();
-            for (int i = 0; i < clip.Count; i++)
-            {
-                each.Restart();
-                Draw(i);
-                took[i] = each.Elapsed.TotalMilliseconds;
-            }
-            ticks.Start();
-            return took;
-        }
-
         internal static void Paint(Graphics graphics, Bitmap picture, Point offset, EmotePlace place, Point shift)
         {
             if (picture == null) return;
@@ -313,17 +432,28 @@ namespace CapriDesktop
             graphics.CompositingQuality = CompositingQuality.HighQuality;
             float left = place.Left + place.Across * offset.X + shift.X, right = place.Left + place.Across * (offset.X + picture.Width) + shift.X;
             float top = place.Top + place.Scale * offset.Y + shift.Y, bottom = place.Top + place.Scale * (offset.Y + picture.Height) + shift.Y;
+            // Drawn pixel for pixel (the heart, and the close-up on a 1080 high screen): the quick way, and the same pixels.
+            if (Math.Abs(place.Scale - 1) < 0.0001f && Math.Abs(Math.Abs(place.Across) - 1) < 0.0001f && Math.Abs(left - (float)Math.Round(left)) < 0.01f && Math.Abs(top - (float)Math.Round(top)) < 0.01f)
+            {
+                if (place.Across > 0) { graphics.DrawImageUnscaled(picture, (int)Math.Round(left), (int)Math.Round(top)); return; }
+                graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+            }
             // top left, top right, bottom left of the picture: swapped over when it's mirrored
             graphics.DrawImage(picture, new[] { new PointF(left, top), new PointF(right, top), new PointF(left, bottom) }, new RectangleF(0, 0, picture.Width, picture.Height), GraphicsUnit.Pixel);
         }
 
-        // One frame of a clip as a picture of a given part of the screen, for her checks and her films.
-        internal static Bitmap Frame(EmoteClip what, int frame, EmotePlace where, Rectangle stage)
+        // One frame of a clip as a picture of a given part of the screen, for her checks and her films: the close-up where
+        // closeup puts it, if there is one, and her layer over it.
+        internal static Bitmap Frame(EmoteClip what, int frame, EmotePlace where, Rectangle stage, EmotePlace closeup = new EmotePlace())
         {
             Bitmap image = new Bitmap(stage.Width, stage.Height, PixelFormat.Format32bppPArgb);
-            Point offset;
-            Bitmap picture = what.Picture(frame, out offset);
-            using (Graphics graphics = Graphics.FromImage(image)) Paint(graphics, picture, offset, where, new Point(-stage.X, -stage.Y));
+            Point offset, closeAt;
+            using (Graphics graphics = Graphics.FromImage(image))
+            {
+                Bitmap face = what.Closeup(frame, out closeAt);
+                if (closeup.Scale > 0) Paint(graphics, face, closeAt, closeup, new Point(-stage.X, -stage.Y));
+                Paint(graphics, what.Picture(frame, out offset), offset, where, new Point(-stage.X, -stage.Y));
+            }
             return image;
         }
 
@@ -331,6 +461,129 @@ namespace CapriDesktop
         {
             if (disposing) { ticks.Dispose(); Stop(); }
             base.Dispose(disposing);
+        }
+    }
+
+    // Smoke only, and only when CAPRI_EMOTE_FILM names a folder: a record of her real windows as the app draws them, for a
+    // film made afterwards. Every picture a window of hers is given (the same one UpdateLayeredWindow gets) is copied as it's
+    // given, with the time and where the window is, and written out on another thread; 30 times a second which of her
+    // windows are showing, in their stacking order, is written down too. Nothing is read off the screen, and nothing is
+    // encoded while she plays, so the record costs her as little as it can.
+    internal static class EmoteFilm
+    {
+        private sealed class Shot { public long At; public long Window; public int X, Y, Width, Height; public byte[] Pixels; }
+
+        private static readonly object gate = new object();
+        private static readonly Queue<Shot> waiting = new Queue<Shot>();
+        private static readonly Stack<byte[]> spare = new Stack<byte[]>();
+        private static readonly System.Diagnostics.Stopwatch clock = new System.Diagnostics.Stopwatch();
+        private static volatile bool recording;
+        private static System.Threading.Thread writer, sampler;
+        private static int process;
+        internal static int Copies, Samples;
+        internal static double CopyWorst;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetTopWindow(IntPtr parent);
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr window, uint command);
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out Box box);
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
+        [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern int GetWindowThreadProcessId(IntPtr window, out int owner);
+        private struct Box { public int Left, Top, Right, Bottom; }
+
+        internal static unsafe void Shown(IntPtr window, Bitmap image)
+        {
+            if (!recording || window == IntPtr.Zero || image == null) return;
+            System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
+            Box box;
+            if (!GetWindowRect(window, out box)) return;
+            int bytes = image.Width * image.Height * 4;
+            byte[] pixels = null;
+            lock (gate) { while (spare.Count > 0 && pixels == null) { byte[] one = spare.Pop(); if (one.Length >= bytes) pixels = one; } }
+            if (pixels == null) pixels = new byte[bytes];
+            Rectangle all = new Rectangle(Point.Empty, image.Size);
+            BitmapData from = image.LockBits(all, ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            try
+            {
+                fixed (byte* to = pixels)
+                    for (int y = 0; y < all.Height; y++)
+                        Buffer.MemoryCopy((byte*)from.Scan0 + y * from.Stride, to + y * all.Width * 4, bytes - y * all.Width * 4, all.Width * 4);
+            }
+            finally { image.UnlockBits(from); }
+            lock (gate)
+            {
+                waiting.Enqueue(new Shot { At = clock.ElapsedTicks, Window = window.ToInt64(), X = box.Left, Y = box.Top, Width = all.Width, Height = all.Height, Pixels = pixels });
+                System.Threading.Monitor.Pulse(gate);
+                Copies++;
+                CopyWorst = Math.Max(CopyWorst, took.Elapsed.TotalMilliseconds);
+            }
+        }
+
+        // pictures.bin: per picture its time in microseconds, window, left, top, width, height, then its premultiplied BGRA
+        // rows. shown.txt: per sample its time in microseconds and the windows showing, top of the stack first.
+        internal static void Start(string folder)
+        {
+            Stop();
+            Directory.CreateDirectory(folder);
+            Copies = Samples = 0;
+            CopyWorst = 0;
+            process = System.Diagnostics.Process.GetCurrentProcess().Id;
+            clock.Restart();
+            recording = true;
+            FileStream pictures = new FileStream(Path.Combine(folder, "pictures.bin"), FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20);
+            writer = new System.Threading.Thread(delegate()
+            {
+                using (BinaryWriter into = new BinaryWriter(pictures))
+                    while (true)
+                    {
+                        Shot next = null;
+                        lock (gate)
+                        {
+                            while (waiting.Count == 0 && recording) System.Threading.Monitor.Wait(gate, 100);
+                            if (waiting.Count == 0) break;
+                            next = waiting.Dequeue();
+                        }
+                        into.Write(next.At * 1000000 / System.Diagnostics.Stopwatch.Frequency);
+                        into.Write(next.Window);
+                        into.Write(next.X); into.Write(next.Y); into.Write(next.Width); into.Write(next.Height);
+                        into.Write(next.Pixels, 0, next.Width * next.Height * 4);
+                        lock (gate) if (spare.Count < 8) spare.Push(next.Pixels);
+                    }
+            });
+            writer.IsBackground = true;
+            writer.Start();
+            StreamWriter shown = new StreamWriter(Path.Combine(folder, "shown.txt"));
+            sampler = new System.Threading.Thread(delegate()
+            {
+                using (shown)
+                    while (recording)
+                    {
+                        System.Text.StringBuilder line = new System.Text.StringBuilder();
+                        line.Append(clock.ElapsedTicks * 1000000 / System.Diagnostics.Stopwatch.Frequency);
+                        for (IntPtr w = GetTopWindow(IntPtr.Zero); w != IntPtr.Zero; w = GetWindow(w, 2))
+                        {
+                            int owner;
+                            GetWindowThreadProcessId(w, out owner);
+                            if (owner != process || !IsWindowVisible(w)) continue;
+                            Box box;
+                            GetWindowRect(w, out box);
+                            line.Append(' ').Append(w.ToInt64()).Append(',').Append(box.Left).Append(',').Append(box.Top);
+                        }
+                        shown.WriteLine(line.ToString());
+                        Samples++;
+                        System.Threading.Thread.Sleep(8);
+                    }
+            });
+            sampler.IsBackground = true;
+            sampler.Start();
+        }
+
+        internal static void Stop()
+        {
+            recording = false;
+            lock (gate) System.Threading.Monitor.PulseAll(gate);
+            if (sampler != null) { sampler.Join(5000); sampler = null; }
+            if (writer != null) { writer.Join(60000); writer = null; }
+            lock (gate) { waiting.Clear(); spare.Clear(); }
         }
     }
 
@@ -374,28 +627,65 @@ namespace CapriDesktop
             if (name == "heart")
             {
                 Rectangle bounds = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).Bounds;
-                emote.Play(what, EmoteWindow.HeartPlace(what, bounds), bounds, -1, null, null, null);
+                emote.Play(what, EmoteWindow.HeartPlace(what, bounds), new EmotePlace(), bounds, -1, null, null, null);
                 return "Here, a little heart for you.";
             }
             if (riding) StopRide();
             if (hanging) LetGo();
             PointF foot = ChairFoot();
             Rectangle area = Screen.FromPoint(Point.Round(foot)).Bounds;
-            // As drawn her close-ups are on her left. Near the left of her screen they go on her right.
+            // As drawn her close-up is on her left, against the screen's left edge. In the left half of her screen it goes on
+            // her right, against the right edge. It stays on her screen.
             bool mirrored = foot.X - area.Left < area.Width / 2f;
+            EmotePlace seated = EmoteWindow.ChairPlace(foot, preferences.Size, mirrored);
+            Rectangle chairBody = Rectangle.Round(seated.On(EmoteWindow.ChairBody));
             Point at = anchor;
             double veil = clock.Elapsed.TotalSeconds + 3600;
+            // She comes apart into her ribbons where she is, the way she does to teleport, and they run to her chair. The
+            // clip's own sweep of red and green into the chair starts as they land there, so it reads as one movement.
+            double delay = 0;
+            Bitmap self = frame;
+            ribbons.Stop();
+            if (self != null && Visible)
+            {
+                ribbons.Leave(new Bitmap(self), anchor, BodyOnScreen(anchor, lying || seat != null || onPanel ? PerchedBody : Body), RibbonColour(ArtColors.Hair), RibbonColour(ArtColors.Accent), preferences.Size);
+                delay = Math.Max(0, ribbons.Go(new PointF(chairBody.Left + chairBody.Width / 2f, chairBody.Top + chairBody.Height / 2f), null, 1, mirrored) - EmoteWindow.SweepFrom / EmoteClip.Fps);
+            }
             emoteVeil = veilUntil = veil;
             frames.Start();
             RenderFrame();
-            emote.Play(what, EmoteWindow.ChairPlace(foot, preferences.Size, mirrored), area, EmoteWindow.ChairHold,
+            bool back = false;
+            emote.Play(what, seated, EmoteWindow.CloseupPlace(what, area, mirrored), area, EmoteWindow.ChairHold,
                 delegate { return talkState == TalkState.Thinking || talkState == TalkState.Talking; },
-                delegate { return anchor == at && !hidden && Visible; },
-                delegate { ChairDone(veil); });
+                delegate { return back || anchor == at && !hidden && Visible; },
+                delegate { ChairDone(veil); },
+                delay, EmoteWindow.ChairLeave, delegate { back = ChairReturn(veil, chairBody); });
             return "Pulling up a chair.";
         }
 
-        // Out of her chair: back to what she was doing, unless something else took over her window meanwhile.
+        // As the clip fades her out of her chair, she comes apart into her ribbons there and they take her back to where she
+        // was: her arrival standing, her perch on her ledge, or lying down where she lay, the way she lands from a teleport.
+        private bool ChairReturn(double veil, Rectangle chairBody)
+        {
+            if (IsDisposed || veilUntil != veil || !preferences.Motion) return false;
+            emoteVeil = -1;
+            using (Bitmap empty = new Bitmap(Width, Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb))
+            {
+                ribbons.Stop();
+                ribbons.Leave(new Bitmap(empty), anchor, chairBody, RibbonColour(ArtColors.Hair), RibbonColour(ArtColors.Accent), preferences.Size);
+            }
+            form.Warm(false);
+            bool standing = seat == null && !onPanel && !riding && !hanging && !lying && !walking;
+            veilUntil = -1;
+            if (standing && clip != dance) Play(arrive);
+            else if ((seat != null || onPanel) && !lying) Play(perchArrive);
+            frames.Start();
+            RenderFrame();
+            return true;
+        }
+
+        // Out of her chair: back to what she was doing, unless something else took over her window meanwhile (her ribbons
+        // bringing her back already have).
         private void ChairDone(double veil)
         {
             if (IsDisposed || veilUntil != veil) return;
@@ -446,6 +736,17 @@ namespace CapriDesktop
             // Mirrored, the same frame is the other way round about her chair's feet.
             RectangleF drawn = EmoteWindow.ChairPlace(foot, 240, false).On(new Rectangle(offset, sat.Size)), turned = EmoteWindow.ChairPlace(foot, 240, true).On(new Rectangle(offset, sat.Size));
             if (Math.Abs((foot.X - drawn.Left) - (turned.Right - foot.X)) > 0.5f || Math.Abs(drawn.Top - turned.Top) > 0.01f) throw new Exception("Her mirrored chair wasn't turned about its feet.");
+            // Her close-up is its own layer: on in the frames it was drawn in, the height of her screen against the edge away
+            // from her, on her own screen whichever that is, and her seated figure under it is the same still picture.
+            if (chair.CloseHeight <= 0 || !chair.HasCloseup(100) || chair.HasCloseup(20) || chair.HasCloseup(200) || chair.HerPicture(100) != chair.HerPicture(160)) throw new Exception("Her chair's close-up isn't its own layer.");
+            foreach (Rectangle monitor in new[] { new Rectangle(0, 0, 1920, 1080), new Rectangle(0, 0, 1366, 768), new Rectangle(1920, -200, 2560, 1440), new Rectangle(-1366, 300, 1366, 768) })
+                foreach (bool mirrored in new[] { false, true })
+                {
+                    EmotePlace face = EmoteWindow.CloseupPlace(chair, monitor, mirrored);
+                    RectangleF all = face.On(new Rectangle(0, 0, chair.CloseWidth, chair.CloseHeight));
+                    if (Math.Abs(all.Height - monitor.Height) > 0.5f || Math.Abs(all.Top - monitor.Top) > 0.5f || (mirrored ? Math.Abs(all.Right - monitor.Right) : Math.Abs(all.Left - monitor.Left)) > 0.5f)
+                        throw new Exception("Her close-up wasn't the height of a " + monitor.Width + "x" + monitor.Height + " screen against its " + (mirrored ? "right" : "left") + " edge: " + all);
+                }
             // Her heart fills the screen it's on, the whole of it, and stays on it.
             Rectangle wide = new Rectangle(100, 50, 2560, 1440);
             EmotePlace over = EmoteWindow.HeartPlace(heart, wide);
@@ -513,6 +814,7 @@ namespace CapriDesktop
                     // Asked: she sits where she is, her own window waits, and the chair holds while she talks.
                     string line = Animate("chair");
                     double now = clock.Elapsed.TotalSeconds;
+                    if (!ribbons.Going || !ribbons.Visible) throw new Exception("She didn't go to her chair as her ribbons.");
                     if (line != "Pulling up a chair." || emote == null || !emote.Playing || emote.Name != "chair" || veilUntil < now + 100) throw new Exception("Asked to sit on a chair she said \"" + line + "\" and the chair is " + (emote != null && emote.Playing ? "playing" : "not playing"));
                     System.Diagnostics.Stopwatch waited = System.Diagnostics.Stopwatch.StartNew();
                     while (emote.At < 12 && waited.ElapsedMilliseconds < 2000) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
@@ -589,21 +891,36 @@ namespace CapriDesktop
                     seat = null;
                     StandForThrow(new Point(work.Left + work.Width * 2 / 3, work.Top + work.Height / 2));
                     RenderFrame();
-                    // How long one frame takes, decoded and on the screen, every frame of both.
+                    // Each played through in real time: how many of its frames reach the screen, and how long her thread spends
+                    // on each one now that the next few are decoded ahead.
                     foreach (string which in new[] { "chair", "heart" })
                     {
+                        Point standingAt = anchor;
                         Animate(which);
-                        double[] took = emote.TimeEvery();
-                        emote.Stop();
+                        System.Diagnostics.Stopwatch playing = System.Diagnostics.Stopwatch.StartNew();
+                        bool ribbonsBack = false;
+                        while (emote.Playing && playing.Elapsed.TotalSeconds < 20)
+                        {
+                            Application.DoEvents();
+                            System.Threading.Thread.Sleep(1);
+                            if (emote.At >= EmoteWindow.ChairLeave && ribbons.Going) ribbonsBack = true;
+                        }
+                        if (emote.Playing) throw new Exception("Her " + which + " never finished.");
+                        if (which == "chair")
+                        {
+                            // As the clip fades her out of her chair her ribbons take her back, and she forms where she stood.
+                            while (clock.Elapsed.TotalSeconds < veilUntil + 0.05 && playing.Elapsed.TotalSeconds < 22) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                            if (!ribbonsBack || veilUntil > clock.Elapsed.TotalSeconds || anchor != standingAt || emoteVeil != -1) throw new Exception("Her ribbons didn't bring her back from her chair: " + ribbonsBack + ", veiled until " + veilUntil + ", at " + anchor + " from " + standingAt);
+                        }
                         RenderFrame();
-                        double sum = 0, worst = 0;
-                        int worstAt = 0;
-                        for (int i = 0; i < took.Length; i++) { sum += took[i]; if (took[i] > worst) { worst = took[i]; worstAt = i; } }
-                        timing += (timing.Length > 0 ? "; " : "") + which + " " + (sum / Math.Max(1, took.Length)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a frame, worst " + worst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms (frame " + worstAt + ")";
+                        int count = which == "chair" ? 301 : 105;
+                        timing += (timing.Length > 0 ? "; " : "") + which + " " + emote.FramesShown + " of " + count + " frames shown in " + playing.Elapsed.TotalSeconds.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s, "
+                            + (emote.DrawTotal / Math.Max(1, emote.FramesShown)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a frame on her thread, worst " + emote.DrawWorst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms";
                     }
                     // With Motion off she says so and stays put.
                     preferences.Motion = false;
-                    if (!Animate("chair").Contains("Motion") || emote.Playing || veilUntil != -1) throw new Exception("With Motion off she still sat on her chair.");
+                    string still = Animate("chair");
+                    if (!still.Contains("Motion") || emote.Playing || veilUntil > clock.Elapsed.TotalSeconds) throw new Exception("With Motion off she still sat on her chair: \"" + still + "\", " + (emote.Playing ? "playing" : "not playing") + ", veiled until " + veilUntil + " at " + clock.Elapsed.TotalSeconds);
                     preferences.Motion = true;
                 }
                 finally
@@ -612,11 +929,90 @@ namespace CapriDesktop
                     preferences.Silent = silentWas;
                     CloseTalk();
                     if (emote != null) emote.Stop();
+                    ribbons.Stop();
                     veilUntil = emoteVeil = -1;
                 }
             });
             checks.Add("PASS emotes: her chair (301 frames) and her heart (105 frames, art: Qewiw) play their own frames at 30 a second, the chair at her size with her black body kept; asks, typed or said, and Vergil or Devil May Cry set them off, look-alikes don't; a mention still gets her answer, and a heard Virgil counts where a typed one doesn't; she comes back where she was, standing, perched or lying; Motion off keeps her put");
-            checks.Add("PASS emote frame times on this desktop, decode and window update: " + timing);
+            checks.Add("PASS emotes played in real time on this desktop, next frames decoded ahead: " + timing);
+        }
+        // Smoke only, asked for by name with CAPRI_EMOTE_FILM set to a folder: records of her real windows on this (hidden)
+        // desktop, from a second before she's asked until she's back standing, for chair-real-run.mp4 and heart-real-run.mp4,
+        // made from them afterwards. Her stand-in brain answers; nothing is said out loud.
+        private void SmokeEmoteFilms(List<string> checks, string output)
+        {
+            string folder = Environment.GetEnvironmentVariable("CAPRI_EMOTE_FILM");
+            if (string.IsNullOrEmpty(folder)) { checks.Add("SKIP emote films: CAPRI_EMOTE_FILM isn't set"); return; }
+            Directory.CreateDirectory(folder);
+            Func<string, string> thinkWas = Think;
+            bool silentWas = preferences.Silent, motionWas = preferences.Motion;
+            List<string> notes = new List<string>();
+            try
+            {
+                preferences.Silent = true;
+                preferences.Motion = true;
+                Rectangle bounds = Screen.PrimaryScreen.Bounds, work = Screen.PrimaryScreen.WorkingArea;
+                notes.Add("screen " + bounds + ", work area " + work);
+                foreach (string which in new[] { "chair", "heart" })
+                {
+                    CloseTalk();
+                    if (emote != null) emote.Stop();
+                    ribbons.Stop();
+                    veilUntil = emoteVeil = -1;
+                    StandForThrow(new Point(work.Left + work.Width * 3 / 4, work.Top + work.Height / 2));
+                    Play(idle);
+                    RenderFrame();
+                    Point standingAt = anchor;
+                    string path = Path.Combine(folder, which + "-record");
+                    EmoteFilm.Start(path);
+                    Pump(1.0);
+                    System.Diagnostics.Stopwatch run = System.Diagnostics.Stopwatch.StartNew();
+                    if (which == "chair")
+                    {
+                        Think = delegate { return "Vergil sat in a chair and won the internet."; };
+                        Hear("Capri, what do you think about Devil May Cry?");
+                    }
+                    else
+                    {
+                        Think = delegate { return "A brain was asked for a heart."; };
+                        Hear("make me a heart");
+                    }
+                    while ((emote == null || !emote.Playing) && run.Elapsed.TotalSeconds < 4.5) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                    if (emote == null || !emote.Playing || emote.Name != which) throw new Exception("The " + which + " film's ask didn't start her " + which + ".");
+                    double asked = clock.Elapsed.TotalSeconds, formed = -1;
+                    while ((emote.Playing || clock.Elapsed.TotalSeconds < veilUntil || ribbons.Visible) && run.Elapsed.TotalSeconds < 25)
+                    {
+                        Application.DoEvents();
+                        System.Threading.Thread.Sleep(1);
+                    }
+                    formed = clock.Elapsed.TotalSeconds;
+                    Pump(1.0);
+                    EmoteFilm.Stop();
+                    if (anchor != standingAt) throw new Exception("After her " + which + " she wasn't where she stood.");
+                    notes.Add(which + ": back standing " + (formed - asked).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s after the ask; window pictures recorded " + EmoteFilm.Copies + " (worst copy " + EmoteFilm.CopyWorst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms), window samples " + EmoteFilm.Samples + "; "
+                        + (emote.FramesShown) + " clip frames shown, " + (emote.DrawTotal / Math.Max(1, emote.FramesShown)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a frame, worst " + emote.DrawWorst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms");
+                    if (!File.Exists(Path.Combine(path, "pictures.bin")) || new FileInfo(Path.Combine(path, "pictures.bin")).Length < 10000) throw new Exception("No " + which + " film was written.");
+                }
+                checks.Add("PASS emote films on this desktop: " + string.Join("; ", notes.ToArray()));
+            }
+            finally
+            {
+                EmoteFilm.Stop();
+                Think = thinkWas;
+                preferences.Silent = silentWas;
+                preferences.Motion = motionWas;
+                CloseTalk();
+                if (emote != null) emote.Stop();
+                ribbons.Stop();
+                veilUntil = emoteVeil = -1;
+                File.WriteAllLines(Path.Combine(folder, "film-notes.txt"), notes.ToArray());
+            }
+        }
+
+        private static void Pump(double seconds)
+        {
+            System.Diagnostics.Stopwatch waited = System.Diagnostics.Stopwatch.StartNew();
+            while (waited.Elapsed.TotalSeconds < seconds) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
         }
     }
 }
