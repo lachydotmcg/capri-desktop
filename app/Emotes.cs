@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
@@ -273,6 +274,11 @@ namespace CapriDesktop
         // For her checks: how many frames reached the screen in the last play, and how long drawing them took on her thread.
         internal int FramesShown;
         internal double DrawTotal, DrawWorst;
+        // Where her thread's time goes, for her checks: picking the decoded pictures, the surface, painting, and showing it.
+        internal double PickTotal, MakeTotal, PaintTotal, ShowTotal;
+        internal int Plays;
+        // Why the last one stopped early, if something went wrong drawing it.
+        internal string Ended;
 
         internal EmoteWindow() : base("Capri emote")
         {
@@ -330,6 +336,9 @@ namespace CapriDesktop
             last = 0;
             FramesShown = 0;
             DrawTotal = DrawWorst = 0;
+            PickTotal = MakeTotal = PaintTotal = ShowTotal = 0;
+            Plays++;
+            Ended = null;
             clip.Ahead(0, Ahead + 1);
             watch.Reset();
             watch.Start();
@@ -378,7 +387,7 @@ namespace CapriDesktop
                 clip.Ahead(frame + 1, Ahead);
             }
             // A screen unplugged, no memory for the picture: the emote ends and nothing is left on the screen.
-            catch (Exception) { Stop(); }
+            catch (Exception problem) { Ended = problem.GetType().Name + ": " + problem.Message; Stop(); }
         }
 
         // The part of the screen a frame covers: the close-up, and her over it.
@@ -397,8 +406,10 @@ namespace CapriDesktop
         // moved there.
         private void Draw(int frame)
         {
+            System.Diagnostics.Stopwatch part = System.Diagnostics.Stopwatch.StartNew();
             Point offset, closeAt;
             Bitmap picture = clip.Picture(frame, out offset), closeup = clip.Closeup(frame, out closeAt);
+            PickTotal += part.Elapsed.TotalMilliseconds; part.Restart();
             Rectangle area = Covers(picture, offset, place, closeup, closeAt, closePlace, screen);
             if (area.Width < 2 || area.Height < 2) { if (Visible) Hide(); return; }
             // The heart and the close-up cover most of the screen, so one surface is kept while the size stays the same.
@@ -407,15 +418,54 @@ namespace CapriDesktop
                 DropSurface();
                 surface = new Native.Surface(area.Width, area.Height);
             }
-            using (Graphics graphics = Graphics.FromImage(surface.Image))
-            {
-                graphics.Clear(Color.Transparent);
-                if (closePlace.Scale > 0) Paint(graphics, closeup, closeAt, closePlace, new Point(-area.X, -area.Y));
-                Paint(graphics, picture, offset, place, new Point(-area.X, -area.Y));
-            }
+            MakeTotal += part.Elapsed.TotalMilliseconds; part.Restart();
+            // A frame drawn pixel for pixel that fills the window (every heart frame, and the close-up on a screen 1080 high)
+            // is copied straight in, row by row, mirrored where it's turned: no clearing and no blending of a full screen of
+            // pixels, which is what held the heart to about 80 of its 105 frames.
+            bool both = closePlace.Scale > 0 && closeup != null;
+            bool copied = both ? CopyFirst(closeup, closeAt, closePlace, area) : CopyFirst(picture, offset, place, area);
+            if (!copied || both)
+                using (Graphics graphics = Graphics.FromImage(surface.Image))
+                {
+                    if (!copied)
+                    {
+                        graphics.Clear(Color.Transparent);
+                        if (both) Paint(graphics, closeup, closeAt, closePlace, new Point(-area.X, -area.Y));
+                    }
+                    Paint(graphics, picture, offset, place, new Point(-area.X, -area.Y));
+                }
+            PaintTotal += part.Elapsed.TotalMilliseconds; part.Restart();
             if (Bounds != area) Bounds = area;
             if (!Visible) Show();
             surface.Show(Handle, area.Location);
+            ShowTotal += part.Elapsed.TotalMilliseconds;
+        }
+
+        private unsafe bool CopyFirst(Bitmap picture, Point offset, EmotePlace where, Rectangle area)
+        {
+            if (picture == null || Math.Abs(where.Scale - 1) > 0.0001f || Math.Abs(Math.Abs(where.Across) - 1) > 0.0001f) return false;
+            bool turned = where.Across < 0;
+            float left = turned ? where.Left - offset.X - picture.Width : where.Left + offset.X, top = where.Top + offset.Y;
+            if (Math.Abs(left - Math.Round(left)) > 0.01 || Math.Abs(top - Math.Round(top)) > 0.01) return false;
+            if (new Rectangle((int)Math.Round(left), (int)Math.Round(top), picture.Width, picture.Height) != area || surface.Image.Width != area.Width) return false;
+            BitmapData from = picture.LockBits(new Rectangle(Point.Empty, picture.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            try
+            {
+                int width = picture.Width, row = width * 4;
+                byte* into = (byte*)surface.Pixels;
+                for (int y = 0; y < picture.Height; y++)
+                {
+                    byte* source = (byte*)from.Scan0 + y * from.Stride, target = into + y * row;
+                    if (!turned) Buffer.MemoryCopy(source, target, row, row);
+                    else
+                    {
+                        int* s = (int*)source, t = (int*)target;
+                        for (int x = 0; x < width; x++) t[x] = s[width - 1 - x];
+                    }
+                }
+            }
+            finally { picture.UnlockBits(from); }
+            return true;
         }
 
         private void DropSurface()
@@ -616,8 +666,10 @@ namespace CapriDesktop
         private string PlayEmote(string name)
         {
             if (!preferences.Motion) return name == "heart" ? "My Motion setting is off, so no heart this time." : "My Motion setting is off, so I'm staying put.";
-            // Asked again mid-way, or asked and mentioned at once, it carries on rather than starting over.
-            if (emote != null && emote.Playing && emote.Name == name) return name == "heart" ? "Here, a little heart for you." : "Pulling up a chair.";
+            // Her chair, asked again mid-way or asked and mentioned at once, carries on: she's already in it. A heart has no
+            // cooldown: each one starts over from the top the moment it's sent, so ten in ten seconds are ten hearts and none
+            // waits to play after they've stopped asking.
+            if (name == "chair" && emote != null && emote.Playing && emote.Name == name) return "Pulling up a chair.";
             EmoteClip what;
             try { what = EmoteClip.Load(name); }
             catch (Exception) { what = null; }
@@ -797,7 +849,7 @@ namespace CapriDesktop
             }
             chair.Release();
             heart.Release();
-            string timing = "";
+            string timing = "", heartRun = "", brainHearts = "";
             ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
             {
                 Func<string, string> thinkWas = Think;
@@ -915,8 +967,89 @@ namespace CapriDesktop
                         RenderFrame();
                         int count = which == "chair" ? 301 : 105;
                         timing += (timing.Length > 0 ? "; " : "") + which + " " + emote.FramesShown + " of " + count + " frames shown in " + playing.Elapsed.TotalSeconds.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s, "
-                            + (emote.DrawTotal / Math.Max(1, emote.FramesShown)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a frame on her thread, worst " + emote.DrawWorst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms";
+                            + (emote.DrawTotal / Math.Max(1, emote.FramesShown)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a frame on her thread, worst " + emote.DrawWorst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms ("
+                            + string.Join("/", new[] { emote.PickTotal, emote.MakeTotal, emote.PaintTotal, emote.ShowTotal }.Select(delegate(double v) { return (v / Math.Max(1, emote.FramesShown)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture); }).ToArray()) + " ms picking/surface/painting/showing)";
                     }
+                    // No cooldown: ten asks in ten seconds are ten hearts, each from the top the moment it's asked, and nothing
+                    // plays on after the last one.
+                    CloseTalk();
+                    Think = delegate { return "A brain was asked for a heart."; };
+                    int playsBefore = emote.Plays;
+                    for (int ask = 0; ask < 10; ask++)
+                    {
+                        Hear("make me a heart");
+                        System.Diagnostics.Stopwatch asked = System.Diagnostics.Stopwatch.StartNew();
+                        while (emote.Plays < playsBefore + ask + 1 && asked.Elapsed.TotalSeconds < 0.9) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                        if (emote.Plays != playsBefore + ask + 1 || !emote.Playing || emote.Name != "heart") throw new Exception("Heart ask " + (ask + 1) + " of 10 didn't start a heart: " + (emote.Plays - playsBefore) + " started.");
+                        int startedAt = emote.At;
+                        while (asked.Elapsed.TotalSeconds < 1) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                        if (startedAt > 6) throw new Exception("Heart ask " + (ask + 1) + " carried on from frame " + startedAt + " instead of starting over.");
+                    }
+                    System.Diagnostics.Stopwatch tail = System.Diagnostics.Stopwatch.StartNew();
+                    while (emote.Playing && tail.Elapsed.TotalSeconds < 6) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                    double lastEnded = tail.Elapsed.TotalSeconds;
+                    while (tail.Elapsed.TotalSeconds < lastEnded + 2) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                    if (emote.Playing || emote.Plays != playsBefore + 10 || lastEnded > 3.6 || lastEnded < 2.2 || emote.Ended != null) throw new Exception("After ten hearts something played on: " + (emote.Plays - playsBefore) + " started, the last ended " + lastEnded.ToString("0.00") + " s after the tenth ask's first second, " + emote.FramesShown + " frames shown" + (emote.Ended == null ? "" : ", stopped by " + emote.Ended) + ".");
+                    heartRun = "ten asks one second apart started ten hearts, each from its first frames, and the last played through, ending " + (1 + lastEnded).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " s after the tenth ask, " + emote.FramesShown + " of 105 frames shown, with nothing after it";
+                    CloseTalk();
+                    // Her own brain sends one when she feels like it, with her words: in chat, mid-conversation after another tool,
+                    // and with call mode on.
+                    Cloud remoteWas = brain.Remote;
+                    string modelWas = brain.Model, addressWas = Brain.OpenAi, savedSecurity = Security.Saved;
+                    bool ownStepsWas = brain.OwnSteps, keepingWas = Brain.Keeping, wakeWas = Security.On(Security.Wake), followWas = preferences.FollowUps, callWas = CallModeOn;
+                    System.Net.Sockets.TcpListener fake = null;
+                    try
+                    {
+                        Security.Load("1111111111");
+                        Brain.Keeping = false;
+                        preferences.FollowUps = false;
+                        Think = null;
+                        brain.Remote = new Cloud("sk-proj-test", "gpt-5-mini");
+                        brain.Model = "gpt-5-mini";
+                        brain.OwnSteps = true;
+                        Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                        Func<string, string, string, string> calls = delegate(string text, string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + (text == null ? "null" : Voice.Quote(text)) + ",\"tool_calls\":[{\"id\":\"h1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+                        string heartCall = "{\"name\":\"heart\"}";
+                        List<string> brainAsked = new List<string>();
+                        Brain.OpenAi = FakeServer(new[]
+                        {
+                            calls("Aww, you're sweet.", "animate", heartCall), says("Aww, you're sweet. Thank you."),
+                            calls(null, "animate", "{\"name\":\"grin\"}"), calls(null, "animate", heartCall), says("Congrats, that's huge!"),
+                            calls(null, "animate", heartCall), says("You cheer me up too."),
+                            says("spare"), says("spare")
+                        }, brainAsked, out fake);
+                        string[,] turns = { { "thank you capri, you're the best", "Aww, you're sweet. Thank you.", "chat" }, { "i passed my driving test!!", "Congrats, that's huge!", "after her grin" }, { "you always cheer me up capri", "You cheer me up too.", "call mode" } };
+                        for (int turn = 0; turn < 3; turn++)
+                        {
+                            if (turn == 2) callSession.Change(true);
+                            emote.Stop();
+                            int heartsBefore = emote.Plays;
+                            Hear(turns[turn, 0]);
+                            System.Diagnostics.Stopwatch answered = System.Diagnostics.Stopwatch.StartNew();
+                            while ((reply == null || emote.Plays == heartsBefore) && answered.Elapsed.TotalSeconds < 15) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                            if (emote.Plays != heartsBefore + 1 || emote.Name != "heart") { string last; lock (brainAsked) last = brainAsked.Count == 0 ? "" : brainAsked[brainAsked.Count - 1]; int body = last.IndexOf("\r\n\r\n", StringComparison.Ordinal); throw new Exception("Her brain's heart didn't play (" + turns[turn, 2] + "): " + (emote.Plays - heartsBefore) + " started, reply " + reply + ", " + brainAsked.Count + " brain requests, call mode " + CallModeOn + ", her turn " + (callUser == asking) + ", " + talkState + ", last request " + (body < 0 ? "" : last.Substring(body + 4, Math.Min(300, last.Length - body - 4)))); }
+                            if (reply != turns[turn, 1]) throw new Exception("With her brain's heart (" + turns[turn, 2] + ") she said \"" + reply + "\" instead of her words.");
+                            CloseTalk();
+                            brain.Forget();
+                        }
+                        string sent;
+                        lock (brainAsked) sent = brainAsked.Count > 0 ? brainAsked[0] : "";
+                        if (!sent.Contains("yours to send whenever you feel it")) throw new Exception("Her brain wasn't told the heart is hers to send.");
+                        string nightTool; ToolArguments nightArgs;
+                        brainHearts = "her brain's animate heart played with her words kept, in chat, mid-turn right after another tool call, and with call mode on; \"goodnight capri\" goes to " + (Hands.Heard("goodnight capri", out nightTool, out nightArgs) ? nightTool + " " + (nightArgs.Action ?? nightArgs.Name) : "her brain");
+                    }
+                    finally
+                    {
+                        if (fake != null) fake.Stop();
+                        callSession.Change(callWas);
+                        brain.Remote = remoteWas; brain.Model = modelWas; brain.OwnSteps = ownStepsWas; Brain.OpenAi = addressWas;
+                        Brain.Keeping = keepingWas; preferences.FollowUps = followWas;
+                        Security.Drop(); Security.Load(savedSecurity, wakeWas);
+                        brain.Forget();
+                        Think = null;
+                    }
+                    emote.Stop();
+                    RenderFrame();
                     // With Motion off she says so and stays put.
                     preferences.Motion = false;
                     string still = Animate("chair");
@@ -934,6 +1067,7 @@ namespace CapriDesktop
                 }
             });
             checks.Add("PASS emotes: her chair (301 frames) and her heart (105 frames, art: Qewiw) play their own frames at 30 a second, the chair at her size with her black body kept; asks, typed or said, and Vergil or Devil May Cry set them off, look-alikes don't; a mention still gets her answer, and a heard Virgil counts where a typed one doesn't; she comes back where she was, standing, perched or lying; Motion off keeps her put");
+            checks.Add("PASS hearts have no cooldown: " + heartRun + "; " + brainHearts);
             checks.Add("PASS emotes played in real time on this desktop, next frames decoded ahead: " + timing);
         }
         // Smoke only, asked for by name with CAPRI_EMOTE_FILM set to a folder: records of her real windows on this (hidden)
