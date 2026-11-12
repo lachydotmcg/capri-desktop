@@ -185,6 +185,8 @@ namespace CapriDesktop
             Pick wasFit = fit;
             Cloud wasRemote = brain.Remote;
             Engine wasLocal = brain.Local;
+            string wasServer, wasServerKey;
+            brain.GetServer(out wasServer, out wasServerKey);
             string wasModel = brain.Model;
             List<string> wasModels = cloudModels;
             Func<string> wasPaste = FirstRunPaste;
@@ -275,9 +277,10 @@ namespace CapriDesktop
                     catch (NullReferenceException slip) { throw new Exception(slip.Message + " " + slip.StackTrace.Replace(Environment.NewLine, " | ") + (firstRun != null ? " / the card's trail: " + firstRun.Trail : "")); }
                     finally
                     {
-                        // A part that stopped halfway leaves no card or Spanish Windows behind for the next.
+                        // A part that stopped halfway leaves no card, No AI or Spanish Windows behind for the next.
                         Thread.CurrentThread.CurrentUICulture = wasCulture;
                         if (firstRun != null && !firstRun.IsDisposed) firstRun.Dispose();
+                        reset();
                         putBack();
                     }
                 });
@@ -861,12 +864,29 @@ namespace CapriDesktop
                     if (card.Screen != FirstRun.Alone || card.Count != "2 OF 2" || reply != FirstRun.AloneLine || !preferences.NoAi || !Brain.Off || setups != setupsAt || !LoadPreferences().NoAi)
                         throw new Exception("Next on NO AI didn't finish on JUST ME with No AI kept: " + card.Screen + " / " + card.Count + " / " + reply + " / " + preferences.NoAi + " / " + setups);
                     picture(card, "6-just-me");
+                    // A local brain an earlier look found isn't brought back by Back; only the look below can find one.
+                    brain.SetServer(null, null);
                     card.Back();
                     pump();
                     if (card.Screen != FirstRun.Pick || preferences.NoAi || Brain.Off) throw new Exception("Back on JUST ME didn't take No AI off again.");
                     // Back looked for a brain again; that look finishes before No AI goes back on, so what's counted below is only what
                     // asked with No AI already on.
                     wait(delegate { return !finding && !brainLooking; }, "Her look for a brain after Back never finished.");
+                    pump();
+                    // A brain that look finds on this PC, like a running Ollama, takes the card to BRAIN ONLINE as at any first
+                    // launch. That isn't what's checked here, so it's let go and the card opened again on WAKE ME UP.
+                    string foundOnBack = "";
+                    if (brain.Model != null || card.Screen != FirstRun.Pick)
+                    {
+                        if (brain.Model == null) throw new Exception("After Back the card left WAKE ME UP with no brain found: " + card.Trail);
+                        foundOnBack = " (her look after Back found a brain on this PC and the card went to BRAIN ONLINE, as designed; it was opened again for the rest)";
+                        brain.SetServer(null, null);
+                        brain.Remote = null;
+                        brain.Model = null;
+                        card.SkipAll();
+                        putBack();
+                        card = open(FirstRun.Pick, FirstRun.Local);
+                    }
                     refused.Clear();
                     pickBrain(card, FirstRun.NoAi);
                     card.Next();
@@ -936,7 +956,7 @@ namespace CapriDesktop
                     // Its look for a brain ends before the next checks, which start with none.
                     wait(delegate { return !finding && !brainLooking; }, "Her look for a brain after No AI never finished.");
                     reset();
-                    passed("PASS NO AI is the fourth pick on WAKE ME UP, never the default: Next ends on JUST ME (2 OF 2) with her line about the Mainframe, no voice, mic or EXTRAS and no Mainframe, Back undoes it, and the choice is kept; with it on she never looks for a brain, chat gets her short line once and then stays quiet, volume still works by phrase, a direct model request is turned away and nothing else asked a brain; BRAIN's OFF row and NORMAL switch it; older settings files read and save without it");
+                    passed("PASS NO AI is the fourth pick on WAKE ME UP, never the default: Next ends on JUST ME (2 OF 2) with her line about the Mainframe, no voice, mic or EXTRAS and no Mainframe, Back undoes it, and the choice is kept; with it on she never looks for a brain, chat gets her short line once and then stays quiet, volume still works by phrase, a direct model request is turned away and nothing else asked a brain; BRAIN's OFF row and NORMAL switch it; older settings files read and save without it" + foundOnBack);
                 });
 
                 part("SmokeFirstRunSkips", delegate
@@ -1236,6 +1256,7 @@ namespace CapriDesktop
                 fit = wasFit;
                 brain.Remote = wasRemote;
                 brain.Local = wasLocal;
+                brain.SetServer(wasServer, wasServerKey);
                 brain.Model = wasModel;
                 cloudModels = wasModels;
                 SettingUp = wasSettingUp;
