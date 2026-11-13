@@ -655,7 +655,11 @@ namespace CapriDesktop
                     link.Admit(notes);
                     RemoteDevice child = state.Devices[state.Devices.Count - 1];
                     if (child.Parent != parent.Id || child.From != parent.Name) throw new Exception("A link-added phone lost its parent's id or name.");
+#if CROSS
+                    RemoteState saved = RemoteState.FromJson(state.Copy().ToJson());
+#else
                     RemoteState saved = RemoteState.Unseal(state.Copy().Seal());
+#endif
                     if (saved == null || saved.Find(child.Id).Parent != parent.Id || saved.Find(child.Id).From != parent.Name) throw new Exception("A saved phone lost its link parent.");
                     take();
                     link.PairAsk(link.phones[child.Id], "pair-child", notes);

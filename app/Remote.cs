@@ -522,6 +522,7 @@ namespace CapriDesktop
             return state;
         }
 
+#if !CROSS
         internal string Seal()
         {
             byte[] plain = Encoding.UTF8.GetBytes(ToJson());
@@ -543,5 +544,6 @@ namespace CapriDesktop
             catch (FormatException) { return null; }
             finally { if (plain != null) Array.Clear(plain, 0, plain.Length); }
         }
+#endif
     }
 }

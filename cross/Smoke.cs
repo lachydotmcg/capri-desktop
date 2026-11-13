@@ -166,6 +166,7 @@ namespace CapriDesktop
                 FakeCrash.WindowChecks(checks);
                 ProviderErrorChecks();
                 Watching.Checks(checks);
+                RemoteCoreChecks();
                 Vector swipe = Mainframe.Wheel(new Vector(0.04, 1), KeyModifiers.None), plain = Mainframe.Wheel(new Vector(0, -1), KeyModifiers.None), shifted = Mainframe.Wheel(new Vector(0, 1), KeyModifiers.Shift);
                 if (swipe != new Vector(0.04, 1) || plain != new Vector(0, -1) || shifted != new Vector(1, 0)
                     || !Mainframe.Precise(new Vector(0.04, 0.3)) || Mainframe.Precise(new Vector(0, -1)))
@@ -5985,6 +5986,411 @@ namespace CapriDesktop
                     }
                 }
                 scene.Save(Path.Combine(folder, name));
+            }
+        }
+
+        private void RemoteCoreChecks()
+        {
+            string words = "Phone \"one\"\n\t\\\u0001 \uD83D\uDE00 \uD800";
+            string json = new RemoteJson.Writer().Text("words", words).Number("n", 17).Flag("ok", true)
+                .Texts("names", new[] { "one", "two" }).Objects("items", new[] { new RemoteJson.Writer().Text("id", "first") }).ToString();
+            RemoteJson.Map read = RemoteJson.ParseMap(json);
+            double n;
+            if (read == null || read.Text("words") != words || !read.Number("n", out n) || n != 17 || !read.Is("ok", true)
+                || read.Items("names").Count != 2 || ((RemoteJson.Map)read.Items("items")[0]).Text("id") != "first") throw new Exception("Remote JSON lost a value.");
+            foreach (string bad in new[] { "{", "{}x", "{\"n\":01}", "{\"n\":1e}", "{\"x\":\"\\q\"}", "{\"x\":\"\n\"}", "{\"x\":true,}", "[1,]", new string('[', 66) + "0" + new string(']', 66) })
+            {
+                bool failed = false;
+                try { RemoteJson.Parse(bad); }
+                catch (FormatException) { failed = true; }
+                if (!failed) throw new Exception("Remote JSON accepted damaged text.");
+            }
+            if (RemoteJson.Message(new byte[] { 0xc3, 0x28 }) != null || RemoteJson.Message(Encoding.UTF8.GetBytes("[]")) != null
+                || RemoteJson.Message(Encoding.UTF8.GetBytes("{\"type\":7}")) != null) throw new Exception("Remote accepted an invalid protocol message.");
+            if (RemoteMessages.Auth("token") != "{\"t\":\"auth\",\"token\":\"token\"}" || RemoteMessages.CodeCancel() != "{\"t\":\"code-cancel\"}"
+                || RemoteMessages.Ping != "{\"t\":\"ping\"}" || RemoteMessages.Pong != "{\"t\":\"pong\"}"
+                || RemoteMessages.Typing(true, "m1") != "{\"type\":\"chat.typing\",\"on\":true,\"re\":\"m1\"}"
+                || RemoteJson.ParseMap(RemoteMessages.Reply("r1", "m1", words, true)).Text("text") != words
+                || RemoteJson.ParseMap(RemoteMessages.Tool("t1", "open_app", "Opening an app", "done", "m1")).Text("re") != "m1"
+                || !RemoteMessages.IdOk("a_Z-09") || RemoteMessages.IdOk("a b") || RemoteMessages.IdOk(new string('a', 65))) throw new Exception("Remote protocol messages changed.");
+            checks.Add("PASS Remote core JSON: values and text round-trip, malformed JSON and UTF-8 fail, and control and chat messages keep their protocol fields");
+
+            byte[] ikm = RemoteVectors.FromHex("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
+            byte[] hkdf = RemoteCrypto.Hkdf(ikm, RemoteVectors.FromHex("000102030405060708090a0b0c"), RemoteVectors.FromHex("f0f1f2f3f4f5f6f7f8f9"), 42);
+            if (RemoteVectors.Hex(hkdf) != "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865") throw new Exception("Remote HKDF missed RFC 5869.");
+            byte[] key = RemoteVectors.FromHex("505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f");
+            byte[] nonce = RemoteVectors.FromHex("707172737475767778797a7b7c7d7e7f");
+            RemoteKeys pair = RemoteCrypto.PairKeys(key, nonce), hello = RemoteCrypto.HelloKeys(key, nonce), session = RemoteCrypto.SessionKeys(key, nonce, new byte[16]);
+            if (RemoteCrypto.Confirm(key, nonce) != "318 338" || RemoteVectors.Hex(pair.PhoneToPc.Enc) == RemoteVectors.Hex(pair.PcToPhone.Enc)
+                || RemoteVectors.Hex(pair.PhoneToPc.Enc) == RemoteVectors.Hex(hello.PhoneToPc.Enc) || RemoteVectors.Hex(hello.PhoneToPc.Enc) == RemoteVectors.Hex(session.PhoneToPc.Enc)) throw new Exception("Remote key contexts or confirmation changed.");
+            foreach (string bad in new[] { "A", "AA=", "A+", "A/", "AB", "AA\n" })
+                if (RemoteCrypto.FromB64u(bad) != null) throw new Exception("Remote accepted invalid base64url.");
+            if (RemoteCrypto.FromB64u(RemoteCrypto.B64u(key), 16) != null || RemoteVectors.Hex(RemoteCrypto.FromB64u(RemoteCrypto.B64u(key), 32)) != RemoteVectors.Hex(key)) throw new Exception("Remote base64url changed a key.");
+            byte[] sealedText = RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 0, Encoding.UTF8.GetBytes(RemoteMessages.PongFor(9)), new byte[16]);
+            byte[] opened = RemoteCrypto.Open(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 0, sealedText);
+            if (opened == null || Encoding.UTF8.GetString(opened) != RemoteMessages.PongFor(9)) throw new Exception("Remote could not open its envelope.");
+            foreach (string reason in new[] { "length", "mac", "version", "context", "seq", "padding" })
+            {
+                byte[] frame = reason == "padding" ? RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 0, new byte[] { 42 }, new byte[16]) : (byte[])sealedText.Clone();
+                if (reason == "length") Array.Resize(ref frame, 4);
+                else if (reason == "mac") frame[frame.Length - 1] ^= 1;
+                else
+                {
+                    if (reason == "version") frame[0] = 2;
+                    if (reason == "context") frame[2] = RemoteCrypto.PcToPhone;
+                    if (reason == "seq") frame[7] = 1;
+                    if (reason == "padding") frame[RemoteCrypto.HeaderBytes + RemoteCrypto.IvBytes - 1] ^= 1;
+                    using var mac = new System.Security.Cryptography.HMACSHA256(session.PhoneToPc.Mac);
+                    byte[] tag = mac.ComputeHash(frame, 0, frame.Length - RemoteCrypto.TagBytes);
+                    Buffer.BlockCopy(tag, 0, frame, frame.Length - tag.Length, tag.Length);
+                }
+                string why;
+                if (RemoteCrypto.Open(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 0, frame, 0, frame.Length, out why) != null || why != reason) throw new Exception("Remote did not reject " + reason + ".");
+            }
+            RemoteChannel channel = new RemoteChannel(session, RemoteCrypto.KindSession);
+            if (channel.Open(sealedText, 0, sealedText.Length) == null || channel.Open(sealedText, 0, sealedText.Length) != null) throw new Exception("Remote accepted a replay.");
+            byte[] skipped = RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 2, Encoding.UTF8.GetBytes(RemoteMessages.PongFor(2)));
+            byte[] next = RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 1, Encoding.UTF8.GetBytes(RemoteMessages.PongFor(1)));
+            byte[] badJson = RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 1, Encoding.UTF8.GetBytes("[]"));
+            if (channel.Open(skipped, 0, skipped.Length) != null || channel.Open(badJson, 0, badJson.Length) != null || channel.Open(next, 0, next.Length) == null || channel.Open(skipped, 0, skipped.Length) == null) throw new Exception("Remote advanced a failed sequence.");
+            HashSet<uint> sequences = new HashSet<uint>();
+            Parallel.For(0, 16, delegate(int i) { byte[] frame = channel.Seal(RemoteMessages.PongFor(i)); lock (sequences) sequences.Add(RemoteCrypto.SeqOf(frame, 0)); });
+            if (sequences.Count != 16 || !sequences.Contains(0) || !sequences.Contains(15)) throw new Exception("Remote reused an outgoing sequence.");
+            RemoteWire.Set(channel, "sent", uint.MaxValue);
+            bool exhausted = false;
+            try { channel.Seal(RemoteMessages.PongFor(0)); }
+            catch (InvalidOperationException) { exhausted = true; }
+            if (!exhausted) throw new Exception("Remote wrapped an outgoing sequence.");
+            checks.Add("PASS Remote core crypto: RFC keys, separate contexts, confirmation, strict base64url, envelopes, all six rejection reasons, ordered receive, concurrent send and sequence exhaustion");
+
+            string url = RemoteCrypto.QrUrl("EBESExQVFhcYGRobHB0eHw", "QEFCQ0RFRkdISUpLTE1OTw", "UFFSU1RVVldYWVpbXF1eX2BhYmNkZWZnaGlqa2xtbm8");
+            RemoteQr qr = RemoteQr.Encode(url);
+            if (qr.Version != 8 || qr.Size != 49 || qr.Correction != RemoteQr.Level.Medium || qr.Mask < 0 || qr.Mask > 7 || qr.Dark(-1, 0) || qr.Dark(49, 0)) throw new Exception("Remote's known pairing QR changed size.");
+            foreach (int[] corner in new[] { new[] { 0, 0 }, new[] { 42, 0 }, new[] { 0, 42 } })
+                for (int y = 0; y < 7; y++)
+                    for (int x = 0; x < 7; x++)
+                        if (qr.Dark(corner[0] + x, corner[1] + y) != (x == 0 || x == 6 || y == 0 || y == 6 || x >= 2 && x <= 4 && y >= 2 && y <= 4)) throw new Exception("Remote QR lost a finder module.");
+            for (int at = 8; at < 41; at++)
+                if (qr.Dark(at, 6) != (at % 2 == 0) || qr.Dark(6, at) != (at % 2 == 0)) throw new Exception("Remote QR lost a timing module.");
+            foreach (int y in new[] { 6, 24, 42 })
+                foreach (int x in new[] { 6, 24, 42 })
+                    if (!(x == 6 && y == 6 || x == 42 && y == 6 || x == 6 && y == 42))
+                        for (int dy = -2; dy <= 2; dy++)
+                            for (int dx = -2; dx <= 2; dx++)
+                                if (qr.Dark(x + dx, y + dy) != (Math.Max(Math.Abs(dx), Math.Abs(dy)) != 1)) throw new Exception("Remote QR lost an alignment module.");
+            RemoteQr small = RemoteQr.Encode("HELLO WORLD");
+            if (small.Size != 21 || small.Correction != RemoteQr.Level.Quartile) throw new Exception("Remote's short QR changed capacity.");
+            byte[] payload = RemoteVectors.FromHex("40b48454c4c4f20574f524c440");
+            int bit = 0;
+            for (int right = 20; right >= 1; right -= 2)
+            {
+                if (right == 6) right = 5;
+                for (int row = 0; row < 21; row++)
+                    for (int column = 0; column < 2; column++)
+                    {
+                        int x = right - column, y = ((right + 1) & 2) == 0 ? 20 - row : row;
+                        if (x <= 8 && y <= 8 || x >= 13 && y <= 8 || x <= 8 && y >= 13 || x == 6 || y == 6) continue;
+                        bool mask = small.Mask == 0 ? (x + y) % 2 == 0 : small.Mask == 1 ? y % 2 == 0 : small.Mask == 2 ? x % 3 == 0
+                            : small.Mask == 3 ? (x + y) % 3 == 0 : small.Mask == 4 ? (x / 3 + y / 2) % 2 == 0 : small.Mask == 5 ? x * y % 2 + x * y % 3 == 0
+                            : small.Mask == 6 ? (x * y % 2 + x * y % 3) % 2 == 0 : ((x + y) % 2 + x * y % 3) % 2 == 0;
+                        if (bit < payload.Length * 8 && (small.Dark(x, y) ^ mask) != ((payload[bit / 8] >> (7 - bit % 8) & 1) != 0)) throw new Exception("Remote QR matrix lost the known text's bytes.");
+                        bit++;
+                    }
+            }
+            if (bit != 208) throw new Exception("Remote QR matrix lost data modules.");
+            checks.Add("PASS Remote core QR: known pairing text makes a 49-module matrix with finder, timing and alignment modules; version one's unmasked matrix holds HELLO WORLD's exact byte-mode payload");
+
+            string vectors = RemoteVectors.Find();
+            if (vectors == null) throw new Exception("Remote core needs remote/test/vectors.json. Run smoke from the checkout.");
+            int count;
+            List<string> wrong = RemoteVectors.Check(File.ReadAllText(vectors), out count);
+            if (wrong.Count > 0 || count == 0) throw new Exception("Remote protocol vectors failed: " + (wrong.Count == 0 ? "no checks" : wrong[0]));
+            checks.Add("PASS Remote core protocol vectors: all " + count + " checks in remote/test/vectors.json");
+            RemotePairChecks();
+            RemoteLink.SmokePairing(checks);
+            RemoteLink.SmokeJobs(checks);
+            RemoteStoreChecks();
+        }
+
+        private void RemotePairChecks()
+        {
+            RemoteState state = RemoteState.Fresh();
+            using RemoteWire wire = new RemoteWire(state);
+            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair") throw new Exception("Remote text core offered unsupported features.");
+            RemoteView view = new RemoteView { On = true, Ready = wire.Link.Ready, Status = wire.Link.Status };
+            RemoteSink sink = new RemoteLinkSink(wire.Link);
+            byte[] nonce = new byte[16];
+            string pending = RemoteMessages.NewId();
+            RemoteKeys pair = wire.Pair(pending, "First phone", nonce);
+            RemoteAsk ask = wire.Link.Asking;
+            if (ask == null || ask.Pending != pending || ask.Name != "First phone" || wire.Link.Qr != null || state.Devices.Count != 0) throw new Exception("Remote admitted before Allow.");
+            if (!wire.Link.Allow() || wire.Link.Allow()) throw new Exception("Remote Allow was not one-shot.");
+            wire.Pump();
+            RemoteJson.Map admit = wire.Controls.Find(item => item.Text("t") == "admit");
+            byte[] env = admit == null ? null : RemoteCrypto.FromB64u(admit.Text("env"));
+            byte[] plain = RemoteCrypto.Open(pair.PcToPhone, RemoteCrypto.KindPair, RemoteCrypto.PcToPhone, 0, env);
+            RemoteJson.Map allowed = plain == null ? null : RemoteJson.Message(plain);
+            RemoteDevice phone = allowed == null ? null : state.Find(allowed.Text("device"));
+            if (phone == null || wire.Saved == null || wire.Saved.Find(phone.Id) == null || RemoteCrypto.B64u(phone.Key) != allowed.Text("key")
+                || wire.Saved.ToJson().Contains(allowed.Text("token")) || RemoteCrypto.Hash(RemoteCrypto.FromB64u(allowed.Text("token"), 32)) != admit.Text("tokenHash")) throw new Exception("Remote Allow lost its state or token boundary.");
+            wire.Text(new RemoteJson.Writer().Text("t", "ok").Text("op", "admit").Text("pending", pending).ToString());
+            if (!wire.Events.Contains("paired " + phone.Id)) throw new Exception("Remote did not report pairing.");
+            RemoteKeys keys = wire.Hello(phone, nonce);
+            if (!wire.Link.HasSession(phone.Id) || !wire.Link.IsOnline(phone.Id)) throw new Exception("Remote hello did not start a session.");
+            sink.Tool(phone.Id, "t1", "open_app", "Opening an app", "running", "m1");
+            wire.Pump();
+            byte[] tool = wire.BinaryFrames[0];
+            string why;
+            plain = RemoteCrypto.Open(keys.PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, 0, tool, 16, tool.Length - 16, out why);
+            if (plain == null || RemoteJson.Message(plain).Text("type") != "chat.tool") throw new Exception("Remote link sink did not use the session.");
+            string chat = new RemoteJson.Writer().Text("type", "chat.send").Text("id", "m1").Text("text", "Hello").ToString();
+            wire.Send(phone, keys, 0, chat);
+            wire.Send(phone, keys, 1, chat);
+            if (wire.Said.Count != 1 || wire.Said[0][0] != phone.Id || wire.Said[0][1] != "m1" || wire.Said[0][2] != "Hello") throw new Exception("Remote chat lost its source or deduplication.");
+            wire.Send(phone, keys, 3, chat);
+            if (wire.Link.HasSession(phone.Id)) throw new Exception("Remote kept an out-of-order session.");
+            byte[] later = new byte[16]; later[0] = 1;
+            RemoteKeys fresh = wire.Hello(phone, later);
+            if (RemoteVectors.Hex(fresh.PhoneToPc.Enc) == RemoteVectors.Hex(keys.PhoneToPc.Enc)) throw new Exception("Remote reused session keys.");
+            wire.Text(new RemoteJson.Writer().Text("t", "left").Text("device", phone.Id).ToString());
+            if (wire.Link.HasSession(phone.Id) || wire.Link.IsOnline(phone.Id)) throw new Exception("Remote kept a departed session.");
+            fresh = wire.Hello(phone, later);
+            wire.Link.Revoke(phone.Id);
+            wire.Send(phone, fresh, 0, chat);
+            if (wire.Link.HasSession(phone.Id) || wire.Said.Count != 1 || wire.Saved.Devices.Count != 0) throw new Exception("Remote accepted a revoked phone.");
+            wire.Pump();
+            if (!wire.Controls.Exists(item => item.Text("t") == "revoke" && item.Text("device") == phone.Id)) throw new Exception("Remote did not tell the relay about revoke.");
+
+            pending = RemoteMessages.NewId();
+            pair = wire.Pair(pending, "Denied phone", nonce);
+            int saves = wire.Saves;
+            if (!wire.Link.Deny() || wire.Link.Deny() || wire.Link.Asking != null) throw new Exception("Remote Deny did not clear approval.");
+            wire.Pump();
+            RemoteJson.Map denied = wire.Controls.Find(item => item.Text("t") == "deny");
+            plain = RemoteCrypto.Open(pair.PcToPhone, RemoteCrypto.KindPair, RemoteCrypto.PcToPhone, 0, denied == null ? null : RemoteCrypto.FromB64u(denied.Text("env")));
+            if (plain == null || RemoteJson.Message(plain).Text("reason") != "denied" || wire.Saves != saves || state.Devices.Count != 0) throw new Exception("Remote Deny admitted or saved a phone.");
+            pending = RemoteMessages.NewId();
+            wire.Pair(pending, "Timed out phone", nonce);
+            wire.Text(new RemoteJson.Writer().Text("t", "pending-left").Text("id", pending).Text("reason", "timeout").ToString());
+            if (wire.Link.Asking != null || wire.Link.Allow() || !wire.Events.Contains("ask-ended timeout")) throw new Exception("Remote kept a relay-expired approval.");
+            string first = wire.Link.NewCode();
+            string second = wire.Link.NewCode();
+            if (first == null || first == second || wire.Link.Qr != second) throw new Exception("Remote reused a pairing code.");
+            object pairing = RemoteWire.Get(wire.Link, "pairing");
+            object expired = Activator.CreateInstance(pairing.GetType(), RemoteWire.Own, null, new[] { RemoteWire.Get(pairing, "Code"), RemoteWire.Get(pairing, "Key"), (object)(-1L), state.Room }, null);
+            RemoteWire.Set(wire.Link, "pairing", expired);
+            if (wire.Link.QrSeconds != 0) throw new Exception("Remote showed time left on an expired QR.");
+            wire.Link.CloseCode();
+            wire.Pump();
+            if (wire.Link.Qr != null || !wire.Controls.Exists(item => item.Text("t") == "code-cancel")) throw new Exception("Remote did not close its code.");
+            wire.Link.NewCode();
+            wire.Link.Stop();
+            saves = wire.Saves;
+            wire.Text("{\"t\":\"ready\",\"devices\":[],\"online\":[]}");
+            if (wire.Link.Status != "off" || wire.Link.Qr != null || wire.Saves != saves) throw new Exception("Remote changed after Stop.");
+            checks.Add("PASS Remote core pairing and sessions: desktop Allow and Deny, saved keys, token hashes, hello features and fresh keys, chat source and deduplication, sequence failure, leave, revoke, relay timeout, QR expiry, replacement and close, and Stop");
+        }
+
+        private void RemoteStoreChecks()
+        {
+            RemoteFileFake file = new RemoteFileFake();
+            RemoteStore store = new RemoteStore(file);
+            RemoteState read;
+            string relay;
+            if (store.Load(out read, out relay) != RemoteStoreResult.Missing || read != null || relay != null || store.Problem != null) throw new Exception("Remote store did not report missing state.");
+            RemoteState state = RemoteState.Fresh();
+            state.Used = true;
+            RemoteDevice parent = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone", Added = new DateTime(2026, 11, 14, 0, 0, 0, DateTimeKind.Utc) };
+            RemoteDevice child = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Home screen", Added = parent.Added, From = parent.Name, Parent = parent.Id };
+            state.Devices.Add(parent); state.Devices.Add(child);
+            string host = " https://" + RemoteLink.DefaultHost.ToUpperInvariant() + "/ ";
+            if (store.Save(host, state) != RemoteStoreResult.Saved || new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read
+                || relay != RemoteLink.RelayBase(null) || read.ToJson() != state.ToJson()) throw new Exception("Remote store lost state across restart.");
+            string good = file.Text;
+            foreach (string damaged in new[] { "{", good.Replace("\"v\":1", "\"v\":2"), good.Replace(state.Token, "bad"), good.Replace(RemoteCrypto.B64u(child.Key), "bad"), good.Replace("\"devices\":", "\"missing\":"), good.Replace(child.Added.ToString("o"), "bad-date") })
+            {
+                file.Text = damaged;
+                int writes = file.Writes;
+                if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem == null || file.Text != damaged || file.Writes != writes) throw new Exception("Remote store hid or replaced damaged state.");
+            }
+            file.Text = good; file.Denied = true;
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || file.Text != good) throw new Exception("Remote store hid an unreadable file.");
+            file.Denied = false;
+            file.Fail = "read-close";
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || file.Text != good) throw new Exception("Remote store returned state after a failed read close.");
+            foreach (string failure in new[] { "begin", "write", "flush", "replace" })
+            {
+                file.Fail = failure;
+                if (store.Save(null, RemoteState.Fresh()) != RemoteStoreResult.WriteFailed || store.Problem == null || file.Text != good || file.Pending != null
+                    || failure == "write" && file.Written == 0) throw new Exception("Remote store left a partial file after " + failure + ".");
+            }
+            file.Fail = null;
+            if (store.Load(out read, out relay) != RemoteStoreResult.Read || read.ToJson() != state.ToJson() || store.Problem != null) throw new Exception("Remote store could not read after a failed write.");
+            RemoteFileFake empty = new RemoteFileFake { Fail = "write" };
+            if (new RemoteStore(empty).Save(null, state) != RemoteStoreResult.WriteFailed || empty.Written == 0 || new RemoteStore(empty).Load(out read, out relay) != RemoteStoreResult.Missing) throw new Exception("Remote store created a partial first record.");
+            if (store.Save("ws://relay.example", state) != RemoteStoreResult.WriteFailed || file.Text != good) throw new Exception("An invalid relay replaced Remote state.");
+            if (store.Load(out read, out relay) != RemoteStoreResult.Read || relay == RemoteLink.RelayBase("relay.example:8443")) throw new Exception("Remote store lost its relay identity.");
+            using (RemoteWire wire = new RemoteWire(state.Copy(), saved => { if (store.Save(null, saved) != RemoteStoreResult.Saved) throw new Exception("Remote revoke did not save."); }))
+            {
+                wire.Link.Revoke(parent.Id);
+                if (store.Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 0) throw new Exception("Remote store restored a revoked child.");
+                RemoteState fresh = wire.Link.RemoveAll();
+                if (store.Save(null, fresh) != RemoteStoreResult.Saved || store.Load(out read, out relay) != RemoteStoreResult.Read || read.Room == state.Room || read.Token == state.Token || read.Devices.Count != 0) throw new Exception("Remote store did not keep Remove all's new room.");
+                RemoteState changed = RemoteState.Fresh();
+                if (store.Save("relay.example:8443", changed) != RemoteStoreResult.Saved || new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read
+                    || relay != "wss://relay.example:8443" || read.Room != changed.Room || read.Token != changed.Token || read.Devices.Count != 0) throw new Exception("Remote store mixed relay states.");
+                string kept = file.Text;
+                if (store.Save("wss://RELAY.EXAMPLE:8443/", read) != RemoteStoreResult.Saved || file.Text != kept) throw new Exception("An equivalent relay changed the Remote record.");
+            }
+            checks.Add("PASS Remote core store: missing, saved and read, damaged, unreadable and failed writes stay distinct; partial writes and failed replace keep the old record; restart, relay identity, cascading revoke and Remove all keep the complete state");
+        }
+
+        private sealed class RemoteFileFake : RemoteStoreFile
+        {
+            internal string Text, Fail;
+            internal bool Denied;
+            internal int Writes, Written;
+            internal MemoryStream Pending;
+            internal override Stream Read()
+            {
+                if (Denied) throw new UnauthorizedAccessException("Cannot read the fake Remote file.");
+                return Text == null ? null : new RemoteInput(this);
+            }
+            protected override Stream Begin()
+            {
+                Written = 0;
+                if (Fail == "begin") throw new IOException("Cannot create the fake Remote file.");
+                return Pending = new RemoteOutput(this);
+            }
+            protected override void Commit()
+            {
+                if (Fail == "replace") throw new IOException("Cannot replace the fake Remote file.");
+                Text = Encoding.UTF8.GetString(Pending.ToArray());
+                Writes++;
+            }
+            protected override void Cancel() { Pending = null; }
+
+            private sealed class RemoteInput : MemoryStream
+            {
+                private readonly RemoteFileFake file;
+                internal RemoteInput(RemoteFileFake file) : base(Encoding.UTF8.GetBytes(file.Text)) { this.file = file; }
+                protected override void Dispose(bool disposing)
+                {
+                    base.Dispose(disposing);
+                    if (disposing && file.Fail == "read-close") throw new IOException("Cannot close the fake Remote file.");
+                }
+            }
+
+            private sealed class RemoteOutput : MemoryStream
+            {
+                private readonly RemoteFileFake file;
+                internal RemoteOutput(RemoteFileFake file) { this.file = file; }
+                public override void Write(byte[] buffer, int offset, int count)
+                {
+                    count = file.Fail == "write" ? Math.Min(9, count) : count;
+                    base.Write(buffer, offset, count);
+                    file.Written += count;
+                    if (file.Fail == "write") throw new IOException("The fake Remote write stopped part way.");
+                }
+                public override void Write(ReadOnlySpan<byte> buffer) { byte[] bytes = buffer.ToArray(); Write(bytes, 0, bytes.Length); }
+                public override void Flush()
+                {
+                    if (file.Fail == "flush") throw new IOException("Cannot flush the fake Remote file.");
+                    base.Flush();
+                }
+            }
+        }
+
+        private sealed class RemoteWire : IDisposable
+        {
+            internal const System.Reflection.BindingFlags Own = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+            internal readonly RemoteLink Link;
+            internal readonly List<RemoteJson.Map> Controls = new List<RemoteJson.Map>();
+            internal readonly List<byte[]> BinaryFrames = new List<byte[]>();
+            internal readonly List<string[]> Said = new List<string[]>();
+            internal readonly List<string> Events = new List<string>();
+            internal RemoteState Saved;
+            internal int Saves;
+            private readonly CancellationTokenSource stop = new CancellationTokenSource();
+            private readonly object wire;
+
+            internal RemoteWire(RemoteState state, Action<RemoteState> save = null)
+            {
+                Link = new RemoteLink(state, "ws://127.0.0.1:1", "Test PC", "test", delegate(RemoteState saved) { Saved = saved.Copy(); Saves++; save?.Invoke(saved); });
+                wire = Activator.CreateInstance(typeof(RemoteLink).GetNestedType("Wire", System.Reflection.BindingFlags.NonPublic), Own, null, new object[] { stop }, null);
+                Set(Link, "wire", wire); Set(Link, "started", true); Set(Link, "run", stop);
+                Link.Said += (phone, id, text) => Said.Add(new[] { phone, id, text });
+                Link.Happened += (what, about) => Events.Add(what + " " + about);
+                List<string> ids = new List<string>();
+                foreach (RemoteDevice phone in state.Devices) ids.Add(phone.Id);
+                Text(new RemoteJson.Writer().Text("t", "ready").Texts("devices", ids).Texts("online", new string[0]).ToString());
+            }
+
+            internal static object Get(object target, string name) { return target.GetType().GetField(name, Own).GetValue(target); }
+            internal static void Set(object target, string name, object value) { target.GetType().GetField(name, Own).SetValue(target, value); }
+            private static object Call(object target, string name, params object[] args) { return target.GetType().GetMethod(name, Own).Invoke(target, args); }
+            internal void Text(string json) { Call(Link, "OnText", wire, Encoding.UTF8.GetBytes(json)); }
+
+            internal RemoteKeys Pair(string pending, string name, byte[] nonce)
+            {
+                string url = Link.NewCode();
+                byte[] key = RemoteCrypto.FromB64u(url.Substring(url.IndexOf("&k=", StringComparison.Ordinal) + 3), 32);
+                RemoteKeys keys = RemoteCrypto.PairKeys(key, nonce);
+                string request = new RemoteJson.Writer().Text("type", "pair-request").Number("v", 1).Text("name", name).Text("app", "test").ToString();
+                byte[] envelope = RemoteCrypto.Seal(keys.PhoneToPc, RemoteCrypto.KindPair, RemoteCrypto.PhoneToPc, 0, Encoding.UTF8.GetBytes(request));
+                Pump();
+                Text(new RemoteJson.Writer().Text("t", "pending").Text("id", pending).Text("nonce", RemoteCrypto.B64u(nonce)).Text("env", RemoteCrypto.B64u(envelope)).ToString());
+                if (Link.Asking == null || Link.Asking.Code != RemoteCrypto.Confirm(key, nonce)) throw new Exception("Remote pairing confirmation changed.");
+                return keys;
+            }
+
+            internal RemoteKeys Hello(RemoteDevice phone, byte[] nonce)
+            {
+                Pump();
+                Text(new RemoteJson.Writer().Text("t", "joined").Text("device", phone.Id).ToString());
+                RemoteKeys hello = RemoteCrypto.HelloKeys(phone.Key, phone.IdBytes);
+                byte[] frame = RemoteCrypto.Seal(hello.PhoneToPc, RemoteCrypto.KindHello, RemoteCrypto.PhoneToPc, 0,
+                    Encoding.UTF8.GetBytes(new RemoteJson.Writer().Text("type", "hello").Number("v", 1).Text("nonce", RemoteCrypto.B64u(nonce)).ToString()));
+                Call(Link, "OnBinary", RemoteCrypto.Join(phone.IdBytes, frame));
+                Pump();
+                if (BinaryFrames.Count != 1) throw new Exception("Remote hello did not send one response.");
+                frame = BinaryFrames[0];
+                string reason;
+                byte[] opened = RemoteCrypto.Open(hello.PcToPhone, RemoteCrypto.KindHello, RemoteCrypto.PcToPhone, 0, frame, 16, frame.Length - 16, out reason);
+                RemoteJson.Map response = opened == null ? null : RemoteJson.Message(opened);
+                if (response == null || response.Text("type") != "hello-ok" || response.Text("echo") != RemoteCrypto.B64u(nonce)
+                    || response.Items("features").Count != 2 || !response.Items("features").Contains("chat") || !response.Items("features").Contains("pair")) throw new Exception("Remote hello lost its nonce or text features.");
+                return RemoteCrypto.SessionKeys(phone.Key, nonce, RemoteCrypto.FromB64u(response.Text("nonce"), 16));
+            }
+
+            internal void Send(RemoteDevice phone, RemoteKeys keys, uint sequence, string json)
+            {
+                byte[] frame = RemoteCrypto.Seal(keys.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, sequence, Encoding.UTF8.GetBytes(json));
+                Call(Link, "OnBinary", RemoteCrypto.Join(phone.IdBytes, frame));
+            }
+
+            internal void Pump()
+            {
+                Controls.Clear(); BinaryFrames.Clear();
+                object item;
+                while ((item = Call(wire, "Take")) != null)
+                {
+                    if (!(bool)Get(item, "Close"))
+                        foreach (var frame in (List<KeyValuePair<byte[], System.Net.WebSockets.WebSocketMessageType>>)Call(Link, "Frames", item))
+                            if (frame.Value == System.Net.WebSockets.WebSocketMessageType.Text) Controls.Add(RemoteJson.ParseMap(Encoding.UTF8.GetString(frame.Key)));
+                            else BinaryFrames.Add(frame.Key);
+                    Call(item, "Finish");
+                }
+            }
+
+            public void Dispose()
+            {
+                Link.Stop();
+                stop.Cancel();
+                ((IDisposable)Get(wire, "Socket")).Dispose();
+                ((IDisposable)Get(wire, "Signal")).Dispose();
+                ((IDisposable)Get(wire, "Sending")).Dispose();
+                stop.Dispose();
             }
         }
 
