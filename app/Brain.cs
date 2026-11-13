@@ -1086,29 +1086,47 @@ namespace CapriDesktop
             return wordy == 1 ? "\nThey picked longer replies: use up to four sentences, under 70 words." : wordy >= 2 ? "\nThey picked long replies: use up to a short paragraph, under 140 words." : "";
         }
 
-        // Auto memory grows when an ask outgrows it, like a 6,073-token ask on Auto's 4,096 that failed for a tester (3 Nov), and
-        // stays grown until she restarts.
+        // Auto memory starts at 16K, enough for a job ask with her whole tool list. Grown is the size Auto is on for this run: bigger
+        // after an ask outgrew it, smaller after her built-in brain couldn't load it. A size they picked is used as picked.
         internal static int Grown;
-        internal static int Window { get { return MemorySize > 0 ? MemorySize : Math.Max(System.Threading.Volatile.Read(ref Grown), Recall > 8 ? 8192 : 4096); } }
+        internal static int Window { get { int grown = System.Threading.Volatile.Read(ref Grown); return MemorySize > 0 ? MemorySize : grown > 0 ? grown : 16384; } }
 
         // llama-server's words for an ask longer than its window: "request (6073 tokens) exceeds the available context size (4096
         // tokens), try increasing it".
         private static readonly Regex Overflow = new Regex(@"exceeds the available context size", RegexOptions.IgnoreCase);
-        private const int AutoMost = 16384;
+        private const int AutoMost = 32768;
 
-        // The window an ask that overflowed needs on Auto memory: the next memory size that fits it and room for its reply, up to 16K.
+        // The window an ask that overflowed needs on Auto memory: the next memory size that fits it and room for its reply, up to 32K.
         // 0 when they picked a size or the ask is too long even for that.
         internal static int Room(string problem, int was, int reply)
         {
             if (MemorySize > 0) return 0;
-            Match sized = Regex.Match(problem ?? "", @"\((\d+) tokens\) exceeds");
-            long asked;
-            long need = sized.Success && long.TryParse(sized.Groups[1].Value, out asked) ? asked + Math.Min(reply, 2048) : 2L * was;
+            long need = Need(problem, reply);
+            if (need == 0) need = 2L * was;
             foreach (int size in MemorySizes) if (size > was && size >= need && size <= AutoMost) return size;
             return 0;
         }
 
-        internal static string TooLong(int window) { return "That was too long for my brain's " + window / 1024 + "K memory. Pick a bigger Memory size " + BrainMenu + "."; }
+        // The tokens an overflowed ask needs with room for its reply, from llama-server's own count. 0 when it gave no count.
+        private static long Need(string problem, int reply)
+        {
+            Match sized = Regex.Match(problem ?? "", @"\((\d+) tokens\) exceeds");
+            long asked;
+            if (!sized.Success || !long.TryParse(sized.Groups[1].Value, out asked)) return 0;
+            int spare = Math.Min(reply, 2048);
+            return asked > long.MaxValue - spare ? long.MaxValue : asked + spare;
+        }
+
+        // Her line for an ask that doesn't fit. With a size they picked it names the smallest size that does.
+        internal static string TooLong(int window, string problem = null, int reply = 0)
+        {
+            string pick = "a bigger";
+            long need = Need(problem, reply);
+            if (MemorySize > 0 && need > 0)
+                foreach (int size in MemorySizes)
+                    if (size > window && size >= need) { pick = size / 1024 + "K" + (size <= AutoMost ? " or Auto" : "") + " for"; break; }
+            return "That was too long for my brain's " + window / 1024 + "K memory. Pick " + pick + " Memory size " + BrainMenu + ".";
+        }
 
         internal static int ReplyLimit(int automatic, bool job = false)
         {
@@ -3639,18 +3657,20 @@ namespace CapriDesktop
         }
 
         // An ask longer than her built-in brain's window restarts it once with a window that fits, on Auto memory. A size they picked,
-        // or an ask too long even for 16K, says how to give her more instead of llama-server's own words.
+        // or an ask too long even for 32K, says how to give her more instead of llama-server's own words.
         private string Roomier(Engine local, BrainException error, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools, bool job)
         {
             int was = Window;
-            int room = Room(error.Detail ?? error.Message, was, ReplyLimit(limit, job || routing));
-            if (room == 0) throw new BrainException(TooLong(was), true);
+            string problem = error.Detail ?? error.Message;
+            int reply = ReplyLimit(limit, job || routing);
+            int room = Room(problem, was, reply);
+            if (room == 0) throw new BrainException(TooLong(was, problem, reply), true);
             Log(local.Address, -1, "An ask outgrew the brain's " + was + "-token memory, restarting it with " + room);
             int before = System.Threading.Interlocked.Exchange(ref Grown, room);
             try { local.Ensure(LocalPick); }
-            catch (BrainException) { System.Threading.Interlocked.Exchange(ref Grown, before); throw; }
+            catch (BrainException) { System.Threading.Interlocked.CompareExchange(ref Grown, before, room); throw; }
             try { return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); }
-            catch (BrainException again) { if (Overflow.IsMatch(again.Detail ?? again.Message)) throw new BrainException(TooLong(room), true); throw; }
+            catch (BrainException again) { if (Overflow.IsMatch(again.Detail ?? again.Message)) throw new BrainException(TooLong(Window), true); throw; }
         }
 
         // What each model takes for reasoning_effort, learned from errors. Empty means it takes none at all.

@@ -35702,12 +35702,12 @@ namespace CapriDesktop
 
         private static void SmokeBrainBodies(System.Collections.Generic.List<string> checks)
         {
-            int wasMemory = Brain.MemorySize, wasReply = Brain.ReplyLength, wasRecall = Brain.Recall;
+            int wasMemory = Brain.MemorySize, wasReply = Brain.ReplyLength, wasRecall = Brain.Recall, wasGrown = Brain.Grown;
             string wasOllama = Brain.Ollama, wasOpenAi = Brain.OpenAi, wasClaude = Brain.Anthropic, wasDeep = Brain.DeepSeek, wasNvidia = Brain.Nvidia, wasGoogle = Brain.Google, wasRouter = Brain.OpenRouter;
             System.Net.Sockets.TcpListener fake = null;
             try
             {
-                Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = 8;
+                Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = 8; Brain.Grown = 0;
                 string answer = "{\"message\":{\"content\":\"Done.\"},\"choices\":[{\"message\":{\"content\":\"Done.\"},\"finish_reason\":\"stop\"}],\"content\":[{\"type\":\"text\",\"text\":\"Done.\"}],\"stop_reason\":\"end_turn\"}";
                 string[] replies = new string[120];
                 for (int replyAt = 0; replyAt < replies.Length; replyAt++) replies[replyAt] = answer;
@@ -35725,13 +35725,13 @@ namespace CapriDesktop
                 local.Aside("Talk", "Hello", 90);
                 string[] automatic =
                 {
-                    "{\"keep_alive\":\"15m\",\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\",\"options\":{\"num_ctx\":4096,\"num_predict\":90,\"temperature\":0.85},\"stream\":false,\"think\":false}",
+                    "{\"keep_alive\":\"15m\",\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\",\"options\":{\"num_ctx\":16384,\"num_predict\":90,\"temperature\":0.85},\"stream\":false,\"think\":false}",
                     "{\"max_tokens\":90,\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"capri\",\"stream\":false,\"temperature\":0.85}",
                     "{\"max_completion_tokens\":2000,\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\"}",
                     "{\"max_tokens\":16000,\"messages\":[{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\",\"system\":[{\"text\":\"Talk\",\"type\":\"text\"}]}"
                 };
                 for (int autoAt = 0; autoAt < automatic.Length; autoAt++) if (SentBody(asked[autoAt]) != automatic[autoAt]) throw new Exception("Auto changed request body " + autoAt + ": " + SentBody(asked[autoAt]));
-                checks.Add("PASS brain settings Auto: Ollama, built-in, OpenAI and Claude request bodies exactly match their previous JSON, including each token default and omitted fields");
+                checks.Add("PASS brain settings Auto: Ollama starts with 16K context; built-in, OpenAI and Claude request bodies keep their reply defaults and omitted fields");
 
                 local.Remote = null;
                 Engine builtIn = new Engine(Path.Combine(Environment.CurrentDirectory, "out", "context-check"));
@@ -35740,14 +35740,20 @@ namespace CapriDesktop
                     Brain.MemorySize = memory;
                     local.Aside("Talk", "Hello", 90);
                     string memoryOptions = Brain.Field(SentBody(asked[asked.Count - 1]), "options");
-                    int memoryExpected = memory == 0 ? 4096 : memory;
-                    if (Brain.Field(memoryOptions, "num_ctx") != memoryExpected.ToString() || builtIn.StartInfo(Engine.Picks[0], true, false, 32123, Brain.Window).Arguments.IndexOf(" -c " + memoryExpected + " ", StringComparison.Ordinal) < 0) throw new Exception("Memory size did not reach Ollama and the built-in launch.");
+                    int memoryExpected = memory == 0 ? 16384 : memory;
+                    if (Brain.Window != memoryExpected || Brain.Field(memoryOptions, "num_ctx") != memoryExpected.ToString() || builtIn.StartInfo(Engine.Picks[0], true, false, 32123, Brain.Window).Arguments.IndexOf(" -c " + memoryExpected + " ", StringComparison.Ordinal) < 0) throw new Exception("Memory size did not reach Ollama and the built-in launch.");
                 }
                 Brain.MemorySize = 0;
-                Brain.Recall = 16;
-                local.Aside("Talk", "Hello", 180);
-                string remembered = Brain.Field(SentBody(asked[asked.Count - 1]), "options");
-                if (Brain.Window != 8192 || Brain.Field(remembered, "num_ctx") != "8192" || Brain.Field(remembered, "num_predict") != "180") throw new Exception("Auto lost the longer chat's existing context or reply allowance.");
+                foreach (int recall in new[] { 8, 16, 32 })
+                {
+                    Brain.Recall = recall;
+                    local.Aside("Talk", "Hello", 180);
+                    string remembered = Brain.Field(SentBody(asked[asked.Count - 1]), "options");
+                    if (Brain.Window != 16384 || Brain.Field(remembered, "num_ctx") != "16384" || Brain.Field(remembered, "num_predict") != "180" || builtIn.StartInfo(Engine.Picks[0], true, false, 32123, Brain.Window).Arguments.IndexOf(" -c 16384 ", StringComparison.Ordinal) < 0) throw new Exception("Auto lost its 16K context or reply allowance.");
+                }
+                string memoryWords = SelfKnow.Matching("Explain the Memory size setting");
+                if (memoryWords == null || !memoryWords.Contains("Auto starts at 16384 tokens with every Memory setting") || !memoryWords.Contains("32768") || !memoryWords.Contains("8192 then 4096")) throw new Exception("Her memory size help kept the old Auto sizes.");
+                checks.Add("PASS Auto memory: Short, Medium and Long all send 16384 to Ollama num_ctx and the built-in -c argument, and her memory size help names the new sizes");
                 Brain.Recall = 8;
                 Brain.MemorySize = 65536;
                 Cloud[] clouds = { new Cloud("sk-test", "test"), new Cloud("sk-" + new string('a', 32), "test"), new Cloud("nvapi-test", "test"), new Cloud("sk-ant-test", "test"), new Cloud(Brain.LocalPort(address), "test"), new Cloud("AIza-test", "test"), new Cloud("sk-or-test", "test") };
@@ -35881,18 +35887,20 @@ namespace CapriDesktop
                 if (Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_predict") != "8192") throw new Exception("A job ignored a larger reply setting.");
                 checks.Add("PASS job allowances: Short keeps local steps, built-in jobs, local server tools, game pictures, asides and comments at their own defaults; Long raises smaller jobs, while deep game turns keep 16000 tokens, and Auto keeps 4096 for other driving");
 
-                // An ask longer than Auto memory's 4K window restarts her built-in brain once with room for it (_mamad and sniix, 3 Nov).
-                Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = 8;
+                Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = 8; Brain.Grown = 0;
                 if (Brain.Room("request (6073 tokens) exceeds the available context size (4096 tokens), try increasing it", 4096, 90) != 8192 || Brain.Room("request (4538 tokens) exceeds the available context size (4096 tokens), try increasing it", 4096, 4096) != 8192
-                    || Brain.Room("the request exceeds the available context size, try increasing it", 4096, 90) != 8192 || Brain.Room("request (15000 tokens) exceeds the available context size (8192 tokens), try increasing it", 8192, 2048) != 0)
+                    || Brain.Room("the request exceeds the available context size, try increasing it", 16384, 90) != 32768 || Brain.Room("request (15000 tokens) exceeds the available context size (8192 tokens), try increasing it", 8192, 2048) != 32768
+                    || Brain.Room("request (17000 tokens) exceeds the available context size (16384 tokens), try increasing it", 16384, 90) != 32768 || Brain.Room("request (33000 tokens) exceeds the available context size (32768 tokens), try increasing it", 32768, 90) != 0
+                    || Brain.Room("request (6145 tokens) exceeds the available context size (4096 tokens), try increasing it", 4096, 8192) != 16384)
                     throw new Exception("An overflowing ask picked the wrong memory size.");
+                checks.Add("PASS Auto memory room: token counts keep up to 2048 tokens for the reply, unknown counts double the window, and Auto can grow to 32K");
                 string overflowData = Path.Combine(Path.GetTempPath(), "capri-overflow-" + Guid.NewGuid().ToString("N"));
                 Func<ProcessStartInfo, Process> spawnWas = Engine.Spawn;
                 Engine roomy = new Engine(overflowData);
                 System.Collections.Generic.List<string> windows = new System.Collections.Generic.List<string>();
                 System.Collections.Generic.List<string> roomAsked = new System.Collections.Generic.List<string>();
                 System.Collections.Generic.List<System.Net.Sockets.TcpListener> engines = new System.Collections.Generic.List<System.Net.Sockets.TcpListener>();
-                string tooLong = "!400 {\"error\":{\"code\":400,\"message\":\"request (6073 tokens) exceeds the available context size (4096 tokens), try increasing it\",\"type\":\"exceed_context_size_error\",\"n_prompt_tokens\":6073,\"n_ctx\":4096}}";
+                string tooLong = "!400 {\"error\":{\"code\":400,\"message\":\"request (17000 tokens) exceeds the available context size (16384 tokens), try increasing it\",\"type\":\"exceed_context_size_error\",\"n_prompt_tokens\":17000,\"n_ctx\":16384}}";
                 try
                 {
                     ProcessStartInfo files = roomy.StartInfo(Engine.Picks[2], false, false, 1);
@@ -35903,7 +35911,12 @@ namespace CapriDesktop
                     File.WriteAllText(modelFile, "");
                     string healthy = "{\"status\":\"ok\"}";
                     string loading = "!503 {\"error\":{\"message\":\"Loading model\",\"type\":\"unavailable_error\",\"code\":503}}";
-                    string[][] launches = { new[] { healthy, tooLong }, new[] { healthy, answer }, new[] { healthy, tooLong }, new[] { healthy, loading, healthy, answer } };
+                    string pastAuto = tooLong.Replace("17000", "33000").Replace("16384", "32768");
+                    string picked8 = tooLong.Replace("17000", "10000").Replace("16384", "8192");
+                    string picked4 = tooLong.Replace("17000", "6073").Replace("16384", "4096");
+                    string picked64 = tooLong.Replace("17000", "66000").Replace("16384", "65536");
+                    string unknown = "!400 {\"error\":{\"message\":\"the request exceeds the available context size, try increasing it\"}}";
+                    string[][] launches = { new[] { healthy, tooLong }, new[] { healthy, answer, pastAuto }, new[] { healthy, picked8 }, new[] { healthy, picked4 }, new[] { healthy, picked64 }, new[] { healthy, unknown }, new[] { healthy, loading, healthy, answer } };
                     Engine.Spawn = delegate(ProcessStartInfo info)
                     {
                         windows.Add(Regex.Match(info.Arguments, @" -c (\d+) ").Groups[1].Value);
@@ -35914,17 +35927,37 @@ namespace CapriDesktop
                     };
                     Brain overflowing = new Brain { Model = "test", Local = roomy, LocalPick = Engine.Picks[2] };
                     string fits = overflowing.Aside("Talk", "Hello", 90);
-                    if (fits != "Done." || string.Join(" ", windows.ToArray()) != "4096 8192" || Brain.Window != 8192) throw new Exception("An ask longer than Auto memory didn't restart her brain with room for it: " + fits + " / " + string.Join(" ", windows.ToArray()));
-                    Brain.MemorySize = 4096;
-                    string picked = null;
+                    if (fits != "Done." || string.Join(" ", windows.ToArray()) != "16384 32768" || Brain.Window != 32768) throw new Exception("An ask longer than Auto memory didn't restart her brain with room for it: " + fits + " / " + string.Join(" ", windows.ToArray()));
+                    string beyond = null;
                     try { overflowing.Aside("Talk", "Hello", 90); }
-                    catch (BrainException error) { picked = error.Message; }
-                    if (picked != "That was too long for my brain's 4K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe." || string.Join(" ", windows.ToArray()) != "4096 8192 4096") throw new Exception("An ask longer than a memory size they picked didn't say how to give her more: " + picked + " / " + string.Join(" ", windows.ToArray()));
-                    checks.Add("PASS long asks: an ask longer than Auto memory's 4K restarts her built-in brain once with 8K and answers, and one longer than a size they picked says to pick a bigger Memory size instead of llama-server's own words");
+                    catch (BrainException error) { beyond = error.Message; }
+                    if (beyond != "That was too long for my brain's 32K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe." || windows.Count != 2) throw new Exception("An ask longer than 32K kept growing Auto memory: " + beyond);
+                    checks.Add("PASS long asks: Auto restarts once from 16K to 32K and answers; an ask past 32K keeps her too-long words and does not restart again");
+                    int[] pickedSizes = { 8192, 4096, 65536, 16384 };
+                    string[] pickedLines =
+                    {
+                        "That was too long for my brain's 8K memory. Pick 16K or Auto for Memory size under BRAIN in Capri Mainframe.",
+                        "That was too long for my brain's 4K memory. Pick 8K or Auto for Memory size under BRAIN in Capri Mainframe.",
+                        "That was too long for my brain's 64K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe.",
+                        "That was too long for my brain's 16K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe."
+                    };
+                    for (int pickedAt = 0; pickedAt < pickedSizes.Length; pickedAt++)
+                    {
+                        Brain.MemorySize = pickedSizes[pickedAt];
+                        string picked = null;
+                        try { overflowing.Aside("Talk", "Hello", 90); }
+                        catch (BrainException error) { picked = error.Message; }
+                        if (picked != pickedLines[pickedAt] || windows.Count != pickedAt + 3 || Brain.Room(tooLong, Brain.Window, 90) != 0) throw new Exception("An ask longer than a picked memory size gave the wrong line or restarted: " + picked);
+                    }
+                    Brain.MemorySize = 4096;
+                    if (Brain.TooLong(4096, "request (6145 tokens) exceeds the available context size (4096 tokens)", 8192) != "That was too long for my brain's 4K memory. Pick 16K or Auto for Memory size under BRAIN in Capri Mainframe.") throw new Exception("Her suggested memory size lost the reply allowance.");
+                    Brain.MemorySize = 32768;
+                    if (Brain.TooLong(32768, "request (40000 tokens) exceeds the available context size (32768 tokens)", 90) != "That was too long for my brain's 32K memory. Pick 64K for Memory size under BRAIN in Capri Mainframe.") throw new Exception("Her suggested memory size offered Auto past 32K.");
+                    checks.Add("PASS picked memory asks: 10000 tokens on 8K names 16K, 6073 on 4K names 8K, reply room counts, 64K and unknown counts keep the old words, and Auto is offered only when it fits");
                     // An ask that lands while her brain is still loading, like during another ask's restart, waits for it (Lean, 3 Nov).
                     Brain.MemorySize = 8192;
                     string waited = overflowing.Aside("Talk", "Hello", 90);
-                    if (waited != "Done." || string.Join(" ", windows.ToArray()) != "4096 8192 4096 8192") throw new Exception("An ask that came while her brain was loading didn't wait for it: " + waited + " / " + string.Join(" ", windows.ToArray()));
+                    if (waited != "Done." || string.Join(" ", windows.ToArray()) != "16384 32768 8192 4096 65536 16384 8192") throw new Exception("An ask that came while her brain was loading didn't wait for it: " + waited + " / " + string.Join(" ", windows.ToArray()));
                     checks.Add("PASS loading brain: an ask that gets llama-server's 503 Loading model, like one sent during another ask's restart, waits for her brain to load and asks once more");
                 }
                 finally
@@ -35935,13 +35968,149 @@ namespace CapriDesktop
                     Brain.Grown = 0;
                     try { Directory.Delete(overflowData, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
                 }
+                SmokeMemoryLoads(checks, answer);
             }
             catch (System.Net.Sockets.SocketException unavailable) { checks.Add("LIMIT brain request settings: loopback sockets unavailable here (" + unavailable.SocketErrorCode + ")"); }
             finally
             {
                 if (fake != null) fake.Stop();
-                Brain.MemorySize = wasMemory; Brain.ReplyLength = wasReply; Brain.Recall = wasRecall;
+                Brain.MemorySize = wasMemory; Brain.ReplyLength = wasReply; Brain.Recall = wasRecall; Brain.Grown = wasGrown;
                 Brain.Ollama = wasOllama; Brain.OpenAi = wasOpenAi; Brain.Anthropic = wasClaude; Brain.DeepSeek = wasDeep; Brain.Nvidia = wasNvidia; Brain.Google = wasGoogle; Brain.OpenRouter = wasRouter;
+            }
+        }
+
+        private static void SmokeMemoryLoads(System.Collections.Generic.List<string> checks, string answer)
+        {
+            string data = Path.Combine(Path.GetTempPath(), "capri-memory-load-" + Guid.NewGuid().ToString("N"));
+            Func<ProcessStartInfo, Process> spawnWas = Engine.Spawn;
+            int memoryWas = Brain.MemorySize, grownWas = Brain.Grown;
+            string logWas = Brain.LogPath;
+            int[] failures = { 1, 1, 2, 2, 3, 3, 4, 1, 1, 1 };
+            bool[] cpu = { false, true, false, true, false, true, false, false, true, false };
+            string[] expectedWindows = { "16384 8192", "16384 8192", "16384 8192 4096", "16384 8192 4096", "16384 8192 4096 4096", "16384 8192 4096", "16384 8192 4096 4096", "16384 16384", "16384", "16384 8192" };
+            string[] expectedDevices = { "gpu gpu", "cpu cpu", "gpu gpu gpu", "cpu cpu cpu", "gpu gpu gpu cpu", "cpu cpu cpu", "gpu gpu gpu cpu", "gpu cpu", "cpu", "gpu gpu" };
+            string[] passed =
+            {
+                "Auto tries 16K then 8K on the graphics card and answers without a CPU mark",
+                "Auto tries 16K then 8K on the CPU and answers without a CPU mark",
+                "Auto tries 16K, 8K then 4K on the graphics card and answers without a CPU mark",
+                "Auto tries 16K, 8K then 4K on the CPU and answers without a CPU mark",
+                "Auto tries all three sizes on the graphics card before marking the CPU and answering at 4K",
+                "Auto stops with the crash line after all three sizes die on the CPU",
+                "Auto keeps the CPU mark and crash line when all graphics card sizes and the CPU try die",
+                "a picked 16K goes straight from a graphics card load crash to the CPU at 16K",
+                "a picked 16K load crash on the CPU stops without stepping down",
+                "a failed growth keeps the smaller window even when the CPU load also dies"
+            };
+            try
+            {
+                for (int loadAt = 0; loadAt < failures.Length; loadAt++)
+                {
+                    Brain.MemorySize = loadAt == 7 || loadAt == 8 ? 16384 : 0;
+                    Brain.Grown = 0;
+                    string folder = Path.Combine(data, loadAt.ToString());
+                    Directory.CreateDirectory(folder);
+                    Brain.LogPath = Path.Combine(folder, "errors.txt");
+                    Engine memory = new Engine(folder) { CpuOnly = cpu[loadAt] };
+                    System.Collections.Generic.List<string> windows = new System.Collections.Generic.List<string>();
+                    System.Collections.Generic.List<string> devices = new System.Collections.Generic.List<string>();
+                    System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                    System.Collections.Generic.List<System.Net.Sockets.TcpListener> servers = new System.Collections.Generic.List<System.Net.Sockets.TcpListener>();
+                    try
+                    {
+                        ProcessStartInfo files = memory.StartInfo(Engine.Picks[2], false, false, 1);
+                        string modelFile = Regex.Match(files.Arguments, "-m \"([^\"]+)\"").Groups[1].Value;
+                        Directory.CreateDirectory(Path.GetDirectoryName(files.FileName));
+                        Directory.CreateDirectory(Path.GetDirectoryName(modelFile));
+                        File.WriteAllText(files.FileName, "");
+                        File.WriteAllText(modelFile, "");
+                        string mark = Path.Combine(Path.GetDirectoryName(files.FileName), "cpu-only.txt");
+                        string healthy = "{\"status\":\"ok\"}";
+                        string overflow = "!400 {\"error\":{\"message\":\"request (10000 tokens) exceeds the available context size (8192 tokens), try increasing it\"}}";
+                        Engine.Spawn = delegate(ProcessStartInfo info)
+                        {
+                            windows.Add(Regex.Match(info.Arguments, @" -c (\d+) ").Groups[1].Value);
+                            bool onCpu = info.Arguments.Contains(" --device none ");
+                            devices.Add(onCpu ? "cpu" : "gpu");
+                            if (File.Exists(mark) != (!cpu[loadAt] && onCpu)) throw new Exception("A memory load wrote its CPU mark before the CPU fallback.");
+                            bool dies = windows.Count <= failures[loadAt] || loadAt == 0 && windows.Count == 4 || loadAt == 2 && windows.Count == 4 || loadAt == 9 && windows.Count >= 3;
+                            if (dies)
+                            {
+                                Process stopped = Process.Start(new ProcessStartInfo("cmd.exe", "/c exit 3") { UseShellExecute = false, CreateNoWindow = true });
+                                if (!stopped.WaitForExit(3000)) throw new Exception("The fake load did not stop.");
+                                return stopped;
+                            }
+                            string[] replies = new[] { healthy, answer };
+                            if ((loadAt == 0 || loadAt == 1) && windows.Count == 2) replies = new[] { healthy, answer, answer, overflow };
+                            string past16 = overflow.Replace("10000", "17000").Replace("8192", "16384");
+                            if (loadAt == 0 && windows.Count == 3) replies = new[] { healthy, answer, past16 };
+                            if (loadAt == 0 && windows.Count == 5) replies = new[] { healthy, past16, answer };
+                            if (loadAt == 2 && windows.Count == 3 || loadAt == 9 && windows.Count == 2) replies = new[] { healthy, answer, overflow };
+                            if (loadAt == 2 && windows.Count == 5) replies = new[] { healthy, overflow, answer };
+                            System.Net.Sockets.TcpListener served;
+                            FakeServer(replies, asked, out served, port: int.Parse(Regex.Match(info.Arguments, @"--port (\d+)").Groups[1].Value));
+                            servers.Add(served);
+                            return Process.Start(new ProcessStartInfo("ping.exe", "-n 30 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true });
+                        };
+                        Brain brain = new Brain { Model = "test", Local = memory, LocalPick = Engine.Picks[2] };
+                        string said = null, problem = null;
+                        try { said = brain.Aside("Talk", "Hello", 90); }
+                        catch (BrainException error) { problem = error.Message; }
+                        bool crashed = loadAt == 5 || loadAt == 6 || loadAt == 8;
+                        bool marked = loadAt == 4 || loadAt == 6 || loadAt == 7;
+                        if (crashed ? problem != "Brain crashed loading. Close games, press Refresh." || said != null : said != "Done." || problem != null) throw new Exception("A memory load gave the wrong answer: " + loadAt + " / " + said + " / " + problem);
+                        if (string.Join(" ", windows.ToArray()) != expectedWindows[loadAt] || string.Join(" ", devices.ToArray()) != expectedDevices[loadAt] || File.Exists(mark) != marked || memory.CpuOnly != (cpu[loadAt] || marked)) throw new Exception("A memory load changed its sizes, device or CPU mark: " + loadAt + " / " + string.Join(" ", windows.ToArray()) + " / " + string.Join(" ", devices.ToArray()));
+                        int lastWindow = int.Parse(windows[windows.Count - 1]);
+                        if (Brain.Window != lastWindow || Brain.MemorySize != (loadAt == 7 || loadAt == 8 ? 16384 : 0) || Brain.Grown != (loadAt == 7 || loadAt == 8 ? 0 : lastWindow)) throw new Exception("A memory load did not keep its size only for this run.");
+                        string[] settled = Array.FindAll(File.ReadAllLines(Brain.LogPath), line => line.Contains(" | brain | - | Auto memory loaded at "));
+                        bool reduced = !crashed && loadAt != 7;
+                        if (settled.Length != (reduced ? 1 : 0) || reduced && !settled[0].EndsWith("Auto memory loaded at " + lastWindow + " tokens", StringComparison.Ordinal)) throw new Exception("A memory load did not log its settled size once.");
+                        if (loadAt == 0 || loadAt == 1)
+                        {
+                            if (brain.Aside("Talk", "Hello again", 90) != "Done." || windows.Count != 2 || Brain.Window != 8192) throw new Exception("A second ask restarted a brain that loaded at 8K.");
+                            if (brain.Aside("Talk", "A longer ask", 90) != "Done." || string.Join(" ", windows.ToArray()) != "16384 8192 16384" || Brain.Window != 16384 || File.Exists(mark) || memory.CpuOnly != cpu[loadAt]) throw new Exception("An overflow could not grow a brain that loaded at 8K on the same device.");
+                            checks.Add("PASS memory after step down: the next ask reuses 8K and an overflow can request 16K again on the same device");
+                        }
+                        if (loadAt == 0)
+                        {
+                            string longer = null;
+                            try { brain.Aside("Talk", "A longer ask", 90); }
+                            catch (BrainException error) { longer = error.Message; }
+                            if (longer != "That was too long for my brain's 16K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe." || string.Join(" ", windows.ToArray()) != "16384 8192 16384 32768 16384" || Brain.Window != 16384 || File.Exists(mark) || memory.CpuOnly) throw new Exception("A failed 32K load skipped the 16K that had since loaded: " + longer + " / " + string.Join(" ", windows.ToArray()));
+                            if (brain.Aside("Talk", "Hello again", 90) != "Done." || windows.Count != 5) throw new Exception("A second ask retried a 32K load that failed.");
+                            checks.Add("PASS memory after growth: a size that loaded after an overflow can be used again if 32K fails, and later asks keep that size");
+                        }
+                        if (loadAt == 2)
+                        {
+                            string longer = null;
+                            try { brain.Aside("Talk", "A longer ask", 90); }
+                            catch (BrainException error) { longer = error.Message; }
+                            if (longer != "That was too long for my brain's 4K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe." || string.Join(" ", windows.ToArray()) != "16384 8192 4096 16384 4096" || Brain.Window != 4096 || File.Exists(mark) || memory.CpuOnly) throw new Exception("A failed growth retried a failed smaller size or lost the size that loaded: " + longer + " / " + string.Join(" ", windows.ToArray()));
+                            if (brain.Aside("Talk", "Hello again", 90) != "Done." || windows.Count != 5 || Brain.Window != 4096) throw new Exception("A failed growth left a restart loop.");
+                            checks.Add("PASS failed memory growth: a 16K overflow retry skips the 8K that already failed, settles at 4K, names the actual size on another overflow, and the next ask reuses it");
+                        }
+                        if (loadAt == 9)
+                        {
+                            string longer = null;
+                            try { brain.Aside("Talk", "A longer ask", 90); }
+                            catch (BrainException error) { longer = error.Message; }
+                            if (longer != "Brain crashed loading. Close games, press Refresh." || string.Join(" ", windows.ToArray()) != "16384 8192 16384 8192 4096 4096" || Brain.Window != 4096 || Brain.Grown != 4096 || !File.Exists(mark) || !memory.CpuOnly) throw new Exception("A failed growth restored a size that failed to load: " + longer + " / " + string.Join(" ", windows.ToArray()));
+                        }
+                        checks.Add("PASS memory load: " + passed[loadAt]);
+                    }
+                    finally
+                    {
+                        memory.Stop();
+                        foreach (System.Net.Sockets.TcpListener served in servers) served.Stop();
+                    }
+                }
+            }
+            finally
+            {
+                Engine.Spawn = spawnWas;
+                Brain.MemorySize = memoryWas; Brain.Grown = grownWas;
+                Brain.LogPath = logWas;
+                try { Directory.Delete(data, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
             }
         }
 
@@ -48045,13 +48214,15 @@ namespace CapriDesktop
                                 {
                                     ProcessStartInfo launch = engine.StartInfo(Engine.Picks[0], eyes, cpu, 12345);
                                     string args = launch.Arguments;
-                                    foreach (string part in new[] { " --host 127.0.0.1 --port 12345 ", " -c 4096 -np 1 ", " -t " + Engine.Threads(Environment.ProcessorCount) + " -tb " + Engine.Threads(Environment.ProcessorCount) + " ", " -b 256 -ub 128 ", " --poll 0 --poll-batch 0", " --sleep-idle-seconds 900 " })
+                                    foreach (string part in new[] { " --host 127.0.0.1 --port 12345 ", " -c 16384 -np 1 ", " -t " + Engine.Threads(Environment.ProcessorCount) + " -tb " + Engine.Threads(Environment.ProcessorCount) + " ", " -b 256 -ub 128 ", " --poll 0 --poll-batch 0", " --sleep-idle-seconds 900 " })
                                         if (args.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("The brain launch is missing " + part);
                                     if (launch.UseShellExecute || !launch.CreateNoWindow || Path.GetFileName(launch.FileName) != "llama-server.exe" || launch.WorkingDirectory != Path.GetDirectoryName(launch.FileName)) throw new Exception("The brain launch window changed.");
                                     if (eyes != args.Contains(" --mmproj \"") || cpu != args.Contains(" --device none -ngl 0 --no-mmproj-offload") || (!cpu && args.Contains(" -ngl "))) throw new Exception("The brain launch changed its eyes or GPU choice.");
                                 }
                             string crashData = Path.Combine(Path.GetDirectoryName(settingsPath), "engine-crash");
                             Func<ProcessStartInfo, Process> spawnWas = Engine.Spawn;
+                            int crashMemoryWas = Brain.MemorySize;
+                            Brain.MemorySize = 16384;
                             Engine crashing = new Engine(crashData);
                             try
                             {
@@ -48100,11 +48271,12 @@ namespace CapriDesktop
                                     finally { retrying.Stop(); if (healthyFake != null) healthyFake.Stop(); }
                                 }
                                 checks.Add("PASS CPU markers: a load crash keeps its reason, exit code and version; old or reasonless files allow one marked graphics card try, and a healthy load clears the file");
-                                checks.Add("PASS brain load crash: when the built-in brain's server dies while loading on the graphics card, errors.txt gets its exit code and she tries once on the CPU; a CPU crash stops with Close games, press Refresh");
+                                checks.Add("PASS brain load crash: a picked 16K that dies loading on the graphics card logs its exit code and tries once on the CPU; a CPU crash stops with Close games, press Refresh");
                             }
                             finally
                             {
                                 Engine.Spawn = spawnWas;
+                                Brain.MemorySize = crashMemoryWas;
                                 crashing.Stop();
                                 try { Directory.Delete(crashData, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
                             }
@@ -52810,7 +52982,7 @@ namespace CapriDesktop
                             int loudRate;
                             short[] loudWave = Voice.Samples(Voice.Louder(Voice.Wave(new short[] { 1000, -1000, 30000 }, 24000)), out loudRate);
                             if (preferences.Volume != 50 || loudTest[0] != 500 || loudTest[2] != 15000 || loudWave.Length != 3 || loudWave[1] != -500 || loudRate != 24000) throw new Exception("Her volume did not scale her voice.");
-                            if (!preferences.Wander || preferences.WanderPace != 2 || WanderLevel != 3 || Brain.Wordiness != 1 || Brain.Budget != 180 || Brain.Recall != 16 || Brain.Window != 8192 || preferences.Language != "French" || Brain.LanguageCode(Language) != "fr") throw new Exception("Settings were not saved.");
+                            if (!preferences.Wander || preferences.WanderPace != 2 || WanderLevel != 3 || Brain.Wordiness != 1 || Brain.Budget != 180 || Brain.Recall != 16 || Brain.Window != 16384 || preferences.Language != "French" || Brain.LanguageCode(Language) != "fr") throw new Exception("Settings were not saved.");
                             if (Brain.Character.IndexOf("Always reply in French", StringComparison.Ordinal) < 0 || Brain.Character.IndexOf("up to four sentences", StringComparison.Ordinal) < 0 || Brain.Clean(new string('a', 300)).Length != 300) throw new Exception("Language or reply length did not reach her prompt.");
                             if (parakeet.Language != "fr" || parakeet.Model != LocalEars.EuropeanPack || parakeet.Size != LocalEars.EuropeanSize) throw new Exception("Picking French did not point her ears at the European pack: " + parakeet.Language + " / " + parakeet.Model);
                             System.Globalization.CultureInfo uiWas = Thread.CurrentThread.CurrentUICulture;
@@ -52883,7 +53055,7 @@ namespace CapriDesktop
                             SetWordiness(0);
                             SetRecall(8);
                             SetLanguage("English");
-                            if (preferences.Wander || preferences.Language != "English" || Brain.Language != null || Brain.Character != Brain.Persona || Brain.Clean(new string('a', 300)).Length > 230 || Brain.Window != 4096) throw new Exception("Settings did not go back to their defaults.");
+                            if (preferences.Wander || preferences.Language != "English" || Brain.Language != null || Brain.Character != Brain.Persona || Brain.Clean(new string('a', 300)).Length > 230 || Brain.Window != 16384) throw new Exception("Settings did not go back to their defaults.");
                             if (parakeet.Language != "en") throw new Exception("Picking English did not point her ears at English: " + parakeet.Language);
                             // agir: a picked English listens in English on a Japanese PC; one never picked listens for Windows' language.
                             string[] dictationTags = { "ja-JP", "en-US", "en-GB", "en-AU", "zh-CN", "zh-TW", "nb-NO", "fil-PH" };
