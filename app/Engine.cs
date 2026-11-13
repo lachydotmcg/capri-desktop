@@ -143,7 +143,6 @@ namespace CapriDesktop
         private bool serverEyes;
         private bool serverCpu;
         private int serverWindow;
-        private int missedGpu, missedCpu;
         internal volatile bool Cancel;
         internal volatile bool CpuOnly;
         private int loading;
@@ -321,7 +320,7 @@ namespace CapriDesktop
 
         internal static int Threads(int processors) { return Math.Max(1, Math.Min(4, processors / 2)); }
 
-        internal ProcessStartInfo StartInfo(Pick pick, bool eyes, bool cpu, int number, int window = 16384)
+        internal ProcessStartInfo StartInfo(Pick pick, bool eyes, bool cpu, int number, int window = 4096)
         {
             int threads = Threads(Environment.ProcessorCount);
             ProcessStartInfo info = new ProcessStartInfo(Server, "-m \"" + ModelPath(pick) + "\"" + (eyes ? " --mmproj \"" + EyesPath(pick) + "\"" : "") + " --host 127.0.0.1 --port " + number + " -c " + window + " -np 1 -a capri --jinja --reasoning off --no-webui --sleep-idle-seconds 900 --log-disable -t " + threads + " -tb " + threads + " -b 256 -ub 128 --poll 0 --poll-batch 0" + (cpu ? " --device none -ngl 0 --no-mmproj-offload" : ""));
@@ -353,7 +352,7 @@ namespace CapriDesktop
             finally { Interlocked.Decrement(ref loading); }
         }
 
-        private void Load(Pick pick, bool reduced = false)
+        private void Load(Pick pick)
         {
             lock (gate)
             {
@@ -378,40 +377,19 @@ namespace CapriDesktop
             {
                 Process running;
                 bool onGpu;
-                int window;
-                lock (gate) { running = server; onGpu = !serverCpu; window = serverWindow; }
+                lock (gate) { running = server; onGpu = !serverCpu; }
                 if (running == null || running.HasExited)
                 {
-                    // Its own log is off, so the exit code is the only clue Copy error details can carry. On Auto memory a load that
-                    // stops is tried with the next smaller window on the same device first, since 16K can be more than a small PC
-                    // holds. After that a graphics driver that crashes it while loading gets one try on the CPU, as a crash mid-chat does.
-                    int smaller = 0;
-                    lock (gate)
-                    {
-                        if (running != null && Brain.MemorySize == 0)
-                        {
-                            int missed = (onGpu ? missedGpu : missedCpu) | window;
-                            if (onGpu) missedGpu = missed; else missedCpu = missed;
-                            foreach (int size in Brain.MemorySizes) if (size >= 4096 && size < window && (missed & size) == 0) smaller = size;
-                            if (smaller > 0) Interlocked.Exchange(ref Brain.Grown, smaller);
-                        }
-                    }
+                    // Its own log is off, so the exit code is the only clue Copy error details can carry. A graphics driver that crashes it while loading gets one try on the CPU, as a crash mid-chat does.
                     bool retry = running != null && onGpu;
-                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (smaller > 0 ? ", trying " + smaller + "-token memory" : retry ? ", restarting it on the CPU" : "");
+                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? ", restarting it on the CPU" : "");
                     Brain.Log("brain", -1, reason);
-                    if (smaller > 0) { Load(pick, true); return; }
                     if (!retry) throw new BrainException("Brain crashed loading. Close games, press Refresh.");
                     lock (gate) { KeepCpu(reason); retryGpu = false; CpuOnly = true; }
-                    Load(pick, reduced);
+                    Ensure(pick);
                     return;
                 }
-                if (Healthy())
-                {
-                    lock (gate) { if (onGpu) missedGpu &= ~window; else missedCpu &= ~window; }
-                    Proven();
-                    if (reduced) Brain.Log("brain", -1, "Auto memory loaded at " + window + " tokens");
-                    return;
-                }
+                if (Healthy()) { Proven(); return; }
                 Thread.Sleep(400);
             }
             throw new BrainException("Brain loaded too slowly. Close games, press Refresh.");
