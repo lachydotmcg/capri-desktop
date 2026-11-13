@@ -4732,6 +4732,11 @@ namespace CapriDesktop
 
         internal static void Start(string id)
         {
+            Start(id, delegate(string app) { using (Process.Start(Launch(app))) { } });
+        }
+
+        internal static void Start(string id, Action<string> run)
+        {
 #if !CROSS
             // A Store app, like Windows 11's Notepad, opens through Windows' own app activation, which says when it can't start it.
             // Through explorer.exe and shell:AppsFolder, something in between like 360 Total Security can turn the launch into a
@@ -4743,10 +4748,11 @@ namespace CapriDesktop
                 catch (COMException) { result = NoActivator; }
                 catch (InvalidCastException) { result = NoActivator; }
                 if (result >= 0) return;
-                if (result != NoActivator) throw new InvalidOperationException("Windows wouldn't start " + id + ": 0x" + result.ToString("X8"));
+                if (result != NoActivator && result != unchecked((int)0x80270251) && result != unchecked((int)0x80270252) && result != unchecked((int)0x80270253))
+                    throw new InvalidOperationException("Windows wouldn't start " + id + ": 0x" + result.ToString("X8"));
             }
 #endif
-            using (Process.Start(Launch(id))) { }
+            run(id);
         }
 
         // A Store app's id: its package family name (name, then _ and the 13-letter publisher id), then ! and the app's own name.

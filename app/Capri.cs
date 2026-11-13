@@ -37806,7 +37806,54 @@ namespace CapriDesktop
             Section(checks, "SmokePcStatus", delegate { SmokePcStatus(checks); });
             Section(checks, "SmokeInternetStatus", delegate { SmokeInternetStatus(checks); });
             Section(checks, "SmokeOpensOnce", delegate { SmokeOpensOnce(checks); });
-            Section(checks, "SmokeStoreLaunch", delegate { SmokeStoreLaunch(checks); });
+            Section(checks, "SmokeStoreLaunch", delegate
+            {
+                SmokeStoreLaunch(checks);
+                Func<System.Collections.Generic.List<InstalledApp>> storeCatalog = Hands.Catalog;
+                Func<string, int> storeActivation = Hands.Activation;
+                Func<string, string> storeOpened = Hands.Opened;
+                Action<string> storeRun = Hands.Run;
+                try
+                {
+                    const string notepad = "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App";
+                    int answer = 0, activated = 0, ran = 0;
+                    Hands.Activation = delegate(string id) { if (id != notepad) throw new Exception("The wrong Store app was activated."); activated++; return answer; };
+                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Notepad", notepad) }; };
+                    Hands.Opened = delegate { return ""; };
+                    Hands.Run = delegate(string id)
+                    {
+                        Hands.Start(id, delegate(string app)
+                        {
+                            ProcessStartInfo launch = Hands.Launch(app);
+                            if (app != notepad || launch.FileName != "explorer.exe" || launch.Arguments != "shell:AppsFolder\\" + notepad || !launch.UseShellExecute)
+                                throw new Exception("The Store app's fallback did not launch through Explorer.");
+                            ran++;
+                        });
+                    };
+                    Hands.Forget();
+                    foreach (int result in new[] { unchecked((int)0x80270251), unchecked((int)0x80270252), unchecked((int)0x80270253) })
+                    {
+                        answer = result;
+                        int before = ran;
+                        string opened = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                        if (ran != before + 1 || activated != ran || opened != "Opened Notepad.")
+                            throw new Exception("A blocked Store activation did not fall back to Explorer: 0x" + result.ToString("X8") + " / " + opened);
+                    }
+                    answer = unchecked((int)0x80270254);
+                    string refused = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                    if (ran != 3 || activated != 4 || refused != "Couldn't open Notepad: Windows wouldn't start it. Try opening it from the Start menu." || !Hands.Failed(refused))
+                        throw new Exception("A Store activation failure lost its refusal or opened Explorer: " + refused);
+                    checks.Add("PASS Store apps fall back to Explorer for elevation, disabled UAC and the built-in Administrator, and other activation failures keep the Windows refusal");
+                }
+                finally
+                {
+                    Hands.Catalog = storeCatalog;
+                    Hands.Activation = storeActivation;
+                    Hands.Opened = storeOpened;
+                    Hands.Run = storeRun;
+                    Hands.Forget();
+                }
+            });
             Section(checks, "SmokeHelpForTools", delegate { SmokeHelpForTools(checks); });
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
