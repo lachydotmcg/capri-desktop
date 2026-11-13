@@ -4460,8 +4460,11 @@ namespace CapriDesktop
             InstalledApp chosen = found[0];
             foreach (InstalledApp app in found) if (AppName(app).Length < AppName(chosen).Length) chosen = app;
             if (current != null && !current()) return "That call errand has ended.";
-            Run(chosen.Id);
             string openedName = AppName(chosen) == "spotify" ? "Spotify" : chosen.Name;
+            // Windows saying no gets said, instead of "Opened" over nothing.
+            try { Run(chosen.Id); }
+            catch (InvalidOperationException) { return "Couldn't open " + openedName + ": Windows wouldn't start it. Try opening it from the Start menu."; }
+            catch (System.ComponentModel.Win32Exception) { return "Couldn't open " + openedName + ": Windows wouldn't start it. Try opening it from the Start menu."; }
             return "Opened " + openedName + (current == null ? Opened(openedName) : "") + ".";
         }
 
@@ -4813,10 +4816,57 @@ namespace CapriDesktop
 
         private static object Get(object target, string property) { return target.GetType().InvokeMember(property, BindingFlags.GetProperty, null, target, null); }
 
-        private static void Start(string id)
+        internal static void Start(string id)
         {
-            using (Process.Start(Launch(id))) { }
+            Start(id, delegate(string app) { using (Process.Start(Launch(app))) { } });
         }
+
+        internal static void Start(string id, Action<string> run)
+        {
+#if !CROSS
+            // A Store app, like Windows 11's Notepad, opens through Windows' own app activation, which says when it can't start it.
+            // Through explorer.exe and shell:AppsFolder, something in between like 360 Total Security can turn the launch into a
+            // File Explorer window on Documents, while she says it opened (the Saac fan, 11 Nov: "open notepad" opened Documents).
+            if (Packaged(id))
+            {
+                int result;
+                try { result = Activation(id); }
+                catch (COMException) { result = NoActivator; }
+                catch (InvalidCastException) { result = NoActivator; }
+                if (result >= 0) return;
+                if (result != NoActivator && result != unchecked((int)0x80270251) && result != unchecked((int)0x80270252) && result != unchecked((int)0x80270253))
+                    throw new InvalidOperationException("Windows wouldn't start " + id + ": 0x" + result.ToString("X8"));
+            }
+#endif
+            run(id);
+        }
+
+        // A Store app's id: its package family name (name, then _ and the 13-letter publisher id), then ! and the app's own name.
+        internal static bool Packaged(string id)
+        {
+            return Regex.IsMatch(id ?? "", @"^[\w.-]+_[a-z0-9]{13}![\w.-]+$", RegexOptions.IgnoreCase);
+        }
+
+#if !CROSS
+        // A Windows without app activation, which never happens on 10 or 11, opens Store apps through Explorer as before.
+        private const int NoActivator = int.MinValue;
+
+        // Windows' answer to starting a Store app, an HRESULT. The smoke test stands in for it.
+        internal static Func<string, int> Activation = delegate(string id)
+        {
+            uint process;
+            object made = System.Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")));
+            try { return ((IApplicationActivationManager)made).ActivateApplication(id, null, 0, out process); }
+            finally { Marshal.ReleaseComObject(made); }
+        };
+
+        [ComImport, Guid("2e941141-7f97-4756-ba1d-9decde894a3d"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IApplicationActivationManager
+        {
+            [PreserveSig]
+            int ActivateApplication([MarshalAs(UnmanagedType.LPWStr)] string appUserModelId, [MarshalAs(UnmanagedType.LPWStr)] string arguments, int options, out uint processId);
+        }
+#endif
 
         internal static ProcessStartInfo Launch(string id)
         {
