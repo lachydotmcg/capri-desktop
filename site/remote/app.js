@@ -409,6 +409,9 @@
       }
       if (message.done) settleReply(job.key, '');
     } else if (type === 'error') {
+      // Phone-only mode shows its own notice (native.js) and asks for her empty reply to go, so an error is never
+      // saved as something she said.
+      if (message.quiet) { if (asked) settleReply(asked.key, ''); return; }
       const words = errorWords[message.code] || 'ERROR';
       if (asked) settleReply(asked.key, words);
       else say(words.charAt(0) + words.slice(1).toLowerCase());
