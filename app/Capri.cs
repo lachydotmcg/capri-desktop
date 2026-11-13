@@ -27766,6 +27766,49 @@ namespace CapriDesktop
             finally { Hands.Run = runWas; }
         }
 
+        private static void SmokeSetupWindow(System.Collections.Generic.List<string> checks)
+        {
+            float plain = 0;
+            foreach (int dpi in new[] { 96, 144, 192 })
+                foreach (int state in new[] { 0, 1, 2 })
+                    using (CapriSetup.SetupWindow window = new CapriSetup.SetupWindow(state == 1, dpi))
+                    {
+                        ShowQuietly(window);
+                        if (state == 2) window.Speaking(127L << 20, VoicePack.Size, CapriSetup.Program.Megabytes(127L << 20) + " of " + CapriSetup.Program.Megabytes(VoicePack.Size));
+                        Application.DoEvents();
+                        string place = (state == 0 ? "installing" : state == 1 ? "removing" : "fetching her voice") + " at " + (dpi * 100 / 96) + "%";
+                        string misfit = window.Misfit();
+                        if (misfit != null) throw new Exception("The setup window doesn't fit " + place + ": " + misfit);
+                        if (dpi == 96) plain = window.Font.Size;
+                        else if (Math.Abs(window.Font.Size - plain * dpi / 96f) > 0.01f) throw new Exception("The setup window's type didn't follow its scale " + place + ".");
+                    }
+            using (CapriSetup.SetupWindow moved = new CapriSetup.SetupWindow(false, 96))
+            {
+                ShowQuietly(moved);
+                Application.DoEvents();
+                IntPtr suggested = Marshal.AllocHGlobal(16);
+                try
+                {
+                    Marshal.Copy(new[] { moved.Left, moved.Top, moved.Left + moved.Width * 2, moved.Top + moved.Height * 2 }, 0, suggested, 4);
+                    Native.SendMessage(moved.Handle, 0x02E0, new IntPtr(192 | (192 << 16)), suggested);
+                }
+                finally { Marshal.FreeHGlobal(suggested); }
+                Application.DoEvents();
+                string misfit = moved.Misfit();
+                if (Math.Abs(moved.Font.Size - plain * 2) > 0.01f || misfit != null) throw new Exception("The setup window didn't lay itself out again on a 200% screen: " + (misfit ?? "its type stayed " + moved.Font.Size));
+            }
+            checks.Add("PASS the setup window lays out its boxes and type at the same scale: at 100%, 150% and 200%, installing, removing and fetching her voice, every word fits its box and nothing overlaps or leaves the window, and dragged to a 200% screen it lays itself out again");
+        }
+
+        private static void ShowQuietly(Form window)
+        {
+            window.Opacity = 0;
+            window.ShowInTaskbar = false;
+            window.StartPosition = FormStartPosition.Manual;
+            window.Location = Screen.PrimaryScreen.WorkingArea.Location;
+            window.Show();
+        }
+
         private static void SmokeSetupFiles(System.Collections.Generic.List<string> checks, string output)
         {
             if (CapriSetup.Program.Wanted("Capri.exe", new string[0]) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--smoke-test", "out" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--bench", "x" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--stream" }) || CapriSetup.Program.Wanted("Capri.exe", new[] { "--hook", "x" }) || CapriSetup.Program.Wanted(@"C:\setup\Capri.exe", new string[0])) throw new Exception("Capri took herself for her installer.");
@@ -27777,6 +27820,30 @@ namespace CapriDesktop
             foreach (string packed in Assembly.GetExecutingAssembly().GetManifestResourceNames())
                 if (packed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) throw new Exception("Capri still has a program packed inside her: " + packed);
             checks.Add("PASS setup names and commands choose the installer, normal app commands stay with Capri and no app is packed inside her");
+            foreach (string name in new[] { @"C:\Users\someone\AppData\Local\Capri\Uninstall.exe", "UNINSTALL.EXE" })
+                if (!CapriSetup.Program.Wanted(name, new string[0]) || !CapriSetup.Program.Removing(name, new string[0])) throw new Exception("Opening " + name + " with nothing after it didn't open her uninstaller.");
+            if (CapriSetup.Program.Removing("Capri-Setup.exe", new string[0]) || CapriSetup.Program.Removing("Capri.exe", new string[0]) || !CapriSetup.Program.Removing("Capri-Setup.exe", new[] { "--uninstall" })) throw new Exception("Her installer opened the wrong window.");
+            checks.Add("PASS Uninstall.exe opened with no arguments shows Remove Capri, not Install Capri, and Capri-Setup.exe still installs unless it's given --uninstall");
+            string home = @"C:\Users\Some One\AppData\Local\Capri";
+            foreach (bool silent in new[] { false, true })
+            {
+                string command = CapriSetup.Program.UninstallCommand(home, silent);
+                int closing = command.IndexOf('"', 1);
+                string program = command.Substring(1, closing - 1);
+                string[] given = command.Substring(closing + 1).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                if (command[0] != '"' || !string.Equals(program, Path.Combine(home, "Uninstall.exe"), StringComparison.OrdinalIgnoreCase) || !CapriSetup.Program.Wanted(program, given)) throw new Exception("Her uninstall entry doesn't start her uninstaller: " + command);
+                if (silent ? SetupFiles.Mode(given) != 2 : SetupFiles.Mode(given) != 0 || !CapriSetup.Program.Removing(program, given)) throw new Exception("Her uninstall entry doesn't remove her: " + command);
+            }
+            checks.Add("PASS the uninstall entry Windows runs opens Remove Capri, and the quiet one winget runs removes her with no window");
+            string copy = CapriSetup.Program.UninstallCopy();
+            foreach (string[] run in new[] { new[] { Path.Combine(home, "Uninstall.exe") }, new[] { Path.Combine(home, "Uninstall.exe"), "--uninstall" }, new[] { Path.Combine(home, "Uninstall.exe"), "--silent", "--uninstall" }, new[] { copy, "--remove-files" }, new[] { copy, "--close", home } })
+            {
+                string[] given = new string[run.Length - 1];
+                Array.Copy(run, 1, given, 0, given.Length);
+                if (!CapriSetup.Program.Wanted(run[0], given)) throw new Exception("A step of removing her would open Capri instead of her uninstaller: " + string.Join(" ", run));
+            }
+            if (!string.Equals(Path.GetDirectoryName(copy).TrimEnd('\\'), Path.GetTempPath().TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) || CapriSetup.Program.Inside(copy, home)) throw new Exception("Her uninstaller's copy would run from her own folder: " + copy);
+            checks.Add("PASS every program removing her starts, from her uninstall entry to its copy in Temp and its administrator helper, opens her uninstaller and never Capri herself (#248)");
             if (SetupFiles.Mode(new string[0]) != 0 || SetupFiles.Mode(new[] { "--uninstall" }) != 0 || SetupFiles.Mode(new[] { "--silent" }) != 1 || SetupFiles.Mode(new[] { "--uninstall", "--silent" }) != 2 || SetupFiles.Mode(new[] { "--silent", "--uninstall" }) != 2) throw new Exception("Silent setup flags chose the wrong path.");
             foreach (string flag in new[] { "--update", "--remove-files", "--verify", "--unknown" })
             {
@@ -41479,6 +41546,7 @@ namespace CapriDesktop
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
             Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
             Section(checks, "SmokeSetupFiles", delegate { SmokeSetupFiles(checks, output); });
+            Section(checks, "SmokeSetupWindow", delegate { SmokeSetupWindow(checks); });
             Section(checks, "SmokePackageMarker", delegate { SmokePackageMarker(checks, output); });
             Section(checks, "SmokePackaged", delegate { SmokePackaged(checks, output); });
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
