@@ -54,6 +54,7 @@ const chatFrame = {
 export const startProvider = port =>
   new Promise((resolve, reject) => {
     const got = [];
+    const state = { count: 0 };
     const server = createServer((request, response) => {
       cors(request, response);
       if (request.method === 'OPTIONS') { response.writeHead(204); response.end(); return; }
@@ -65,6 +66,11 @@ export const startProvider = port =>
         const url = new URL(request.url, 'http://127.0.0.1');
         got.push({ method: request.method, path: url.pathname + url.search, headers: request.headers, body });
         const heard = lastUser(body);
+        // The worker's daily phone count (?count= on the page): 'drop' hangs up, a number answers with that status.
+        if (url.pathname === '/count/phone-day') {
+          if (state.count === 'drop') { request.socket.destroy(); return; }
+          return json(response, state.count || 200, state.count ? { error: 'down' } : { ok: true });
+        }
         if (url.pathname.startsWith('/anthropic/')) {
           // The real API turns a browser away without this header.
           if (request.headers['anthropic-dangerous-direct-browser-access'] !== 'true') return json(response, 401, { type: 'error', error: { type: 'authentication_error', message: 'CORS requests must set the anthropic-dangerous-direct-browser-access header' } });
@@ -89,5 +95,5 @@ export const startProvider = port =>
       });
     });
     server.on('error', reject);
-    server.listen(port, '127.0.0.1', () => resolve({ got, close: () => new Promise(done => server.close(done)) }));
+    server.listen(port, '127.0.0.1', () => resolve({ got, state, close: () => new Promise(done => { server.close(done); server.closeAllConnections(); }) }));
   });

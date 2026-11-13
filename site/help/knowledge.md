@@ -1711,6 +1711,7 @@ On Android:
 
 - This is text chat with no PC. Her tools, opening apps, playing music, reminders, SCREEN, JOBS, CALL and her voice need Capri on your PC.
 - The key stays in this browser on this phone and goes only to the provider. It doesn't go through the relay, capriai.app or your PC. Forget key removes it from this browser.
+- Once a day, after her first reply, the page tells Capri's server that a phone used her that day, with two yes or no answers: first time in this browser, and also paired with a PC. It sends no key, chat, name or id, and the server keeps only each day's totals.
 - NVIDIA keys, Capri codes and Claude or ChatGPT plans stay PC-only.
 - To go back to the paired PC, open SETTINGS > Your PC > Use your PC.
 
@@ -1729,7 +1730,7 @@ On Android:
 - The Cloudflare relay can see room and device IDs, which devices are online, connection timing and encrypted frame sizes. It checks sign-in tokens and the one-time code, and stores their SHA-256 hashes. It can't read your messages, audio, screen pictures or API keys, and never gets the encryption keys. It doesn't log frames.
 - Brain keys sent from the phone are write-only: she never sends them back, even in part. Your PC checks and saves them like keys entered in Mainframe, protected with Windows DPAPI for your Windows account.
 - Her SECURITY settings still decide what she asks first. An ask-first question shows in JOBS with Allow and Deny; pairing a phone doesn't turn those settings off.
-- Your chosen brain and voice services still receive what they need to answer, as described in section 19. Phone-only chat sends your words and key straight to the provider you picked.
+- Your chosen brain and voice services still receive what they need to answer, as described in section 19. Phone-only chat sends your words and key straight to the provider you picked, plus one anonymous count a day to Capri's server (see "Use her without a PC").
 
 ### Pairing and connection problems
 - "Code used up. Show a new one": the QR is expired, used or no longer valid. Press New code (or Pair a phone) on the PC and scan again. Retrying the old QR won't work.

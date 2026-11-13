@@ -515,6 +515,23 @@ const relay = async (request, env, ctx, reply) => {
   return respond(request, env, ctx, reply, body, body.user);
 };
 
+// Capri Remote on a phone alone sends this once a UTC day (site/remote/native.js): two yes/no flags, and it only adds to
+// today's row. Nothing about the sender is kept, not even a hash, so anyone could send more and the count can be inflated.
+const phoneDay = async (request, env, reply) => {
+  if (request.method !== 'POST') return reply({ error: 'Not found' }, 404);
+  const raw = await request.text().catch(() => '');
+  let sent = null;
+  try { sent = raw.length <= 200 ? JSON.parse(raw) : null; } catch { }
+  if (!sent || typeof sent !== 'object' || Array.isArray(sent) || typeof sent.first !== 'boolean' || typeof sent.paired !== 'boolean') return reply({ error: 'Bad request' }, 400);
+  const day = new Date().toISOString().slice(0, 10);
+  try {
+    await env.DB.prepare('INSERT INTO phone_days (day, phones, first_time, also_paired) VALUES (?, 1, ?, ?) ON CONFLICT(day) DO UPDATE SET phones = phones + 1, first_time = first_time + excluded.first_time, also_paired = also_paired + excluded.also_paired').bind(day, sent.first ? 1 : 0, sent.paired ? 1 : 0).run();
+  } catch {
+    return reply({ error: "Couldn't count that." }, 503);
+  }
+  return reply({ ok: true });
+};
+
 export default {
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname;
@@ -532,6 +549,7 @@ export default {
     if (path === '/help') return request.method === 'POST' ? help(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
     if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply);
     if (path === '/discord') return request.method === 'POST' ? relay(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
+    if (path === '/phone-day') return phoneDay(request, env, reply);
     const table = counters[path];
     if (!table || !['GET', 'POST'].includes(request.method)) return reply({ error: 'Not found' }, 404);
 

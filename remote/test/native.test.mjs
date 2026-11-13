@@ -45,7 +45,7 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
   try {
     // The gate is passed the way the page keeps it, with its own hash: the password never goes in a test.
     await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() });
-    await page.go(`http://127.0.0.1:${SITE_PORT}/?provider=http://127.0.0.1:${PROVIDER_PORT}`);
+    await page.go(`http://127.0.0.1:${SITE_PORT}/?provider=http://127.0.0.1:${PROVIDER_PORT}&count=http://127.0.0.1:${PROVIDER_PORT}/count`);
     await page.until(`document.querySelector('#app').dataset.screen === 'pair'`, 'the pair screen');
     assert.equal(await text('#native-start'), 'Use her without a PC');
     await shot('phone-pair');
@@ -78,6 +78,24 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
     assert.equal(await text('.starters .nbtn'), 'rate my day so far');
     await shot('phone-chat-empty');
 
+    // The daily count: nothing goes before her first reply that worked, and the first try gets a 503.
+    const counts = () => provider.got.filter(item => item.path === '/count/phone-day');
+    const until = async (check, what) => {
+      for (const end = Date.now() + 8000; !check();) {
+        if (Date.now() > end) throw new Error('Timed out waiting for ' + what);
+        await new Promise(resolve => setTimeout(resolve, 60));
+      }
+    };
+    const quiet = async () => {
+      assert.equal(await page.run(`(() => { const toast = document.querySelector('.native-toast'); return !!toast && !toast.hidden; })()`), false, 'a toast showed');
+      assert.equal(await page.run(`[...document.querySelectorAll('.msg.capri .cut')].filter(node => node.textContent).length`), 0, 'her reply was cut');
+    };
+    const counted = async () => JSON.parse(await page.run(`localStorage.getItem('capri-remote-counted')`));
+    const day = Math.floor(Date.now() / 86400000);
+    const newDay = sent => page.run(`localStorage.setItem('capri-remote-counted', ${JSON.stringify(JSON.stringify({ day: day - 1, sent }))})`);
+    assert.equal(counts().length, 0);
+    assert.equal(await counted(), null);
+    provider.state.count = 503;
     await say('hello from the phone test');
     await page.until(`${lastReply} === 'Capri: Got it: hello from the phone test'`, 'her first streamed reply');
     let asked = provider.got.filter(item => item.path === '/anthropic/messages');
@@ -95,6 +113,16 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
     const machinery = brainConst('Machinery').split('\n').slice(0, 2).join('\n');
     assert.ok(first.body.system.startsWith(brainConst('DefaultPersonality') + '\n' + brainConst('Safety') + '\n' + machinery + '\n'), 'her persona matches Brain.cs');
     assert.ok(!/ElevenLabs/.test(first.body.system));
+    // The count carries its two flags and nothing else: no key, no chat, no cookie or referrer.
+    await until(() => counts().length === 1, 'the first count');
+    assert.equal(counts()[0].method, 'POST');
+    assert.deepEqual(counts()[0].body, { first: true, paired: false });
+    assert.match(counts()[0].headers['content-type'], /^text\/plain/);
+    for (const name of ['x-api-key', 'authorization', 'cookie', 'referer']) assert.equal(counts()[0].headers[name], undefined, name);
+    assert.ok(!JSON.stringify(counts()[0]).includes(GOOD.anthropic) && !JSON.stringify(counts()[0]).includes('hello'));
+    await new Promise(resolve => setTimeout(resolve, 300));
+    await quiet();
+    assert.deepEqual(await counted(), { day, sent: false });
 
     // Her memory is the chat on screen.
     await say('and a second one');
@@ -105,13 +133,42 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
       { role: 'assistant', content: 'Got it: hello from the phone test' },
       { role: 'user', content: 'and a second one' }
     ]);
+    // One try a day: her second reply sends nothing.
+    await new Promise(resolve => setTimeout(resolve, 300));
+    assert.equal(counts().length, 1);
     await shot('phone-chat');
 
     // A reload keeps her on this phone with the chat (saved 200 ms after it changes).
     await new Promise(resolve => setTimeout(resolve, 500));
-    await page.go(`http://127.0.0.1:${SITE_PORT}/?provider=http://127.0.0.1:${PROVIDER_PORT}`);
+    await page.go(`http://127.0.0.1:${SITE_PORT}/?provider=http://127.0.0.1:${PROVIDER_PORT}&count=http://127.0.0.1:${PROVIDER_PORT}/count`);
     await page.until(`document.querySelector('#app').dataset.link === 'connected' && document.querySelectorAll('.msg.you').length === 2`, 'her chat after a reload');
     assert.equal(await text('#native-mode'), 'This phone');
+
+    // A reload the same day sends nothing either.
+    await say('after the reload');
+    await page.until(`${lastReply} === 'Capri: Got it: after the reload'`, 'her reply after the reload');
+    await new Promise(resolve => setTimeout(resolve, 300));
+    assert.equal(counts().length, 1);
+    // The next day the line drops (Chrome tries once more by itself): nothing shows, and the phone still hasn't told it once.
+    await newDay(false);
+    provider.state.count = 'drop';
+    await say('a new day');
+    await page.until(`${lastReply} === 'Capri: Got it: a new day'`, 'her reply on a new day');
+    await until(() => counts().length >= 2, "the second day's count");
+    await new Promise(resolve => setTimeout(resolve, 300));
+    for (const sent of counts().slice(1)) assert.deepEqual(sent.body, { first: true, paired: false });
+    const base = counts().length;
+    await quiet();
+    assert.deepEqual(await counted(), { day, sent: false });
+    // The day after, it works, and this phone is no longer a first-timer.
+    await newDay(false);
+    provider.state.count = 0;
+    await say('third time lucky');
+    await page.until(`${lastReply} === 'Capri: Got it: third time lucky'`, 'her reply on a third day');
+    await until(() => counts().length === base + 1, 'the third day\'s count');
+    assert.deepEqual(counts()[base].body, { first: true, paired: false });
+    await page.until(`JSON.parse(localStorage.getItem('capri-remote-counted')).sent === true`, 'the count remembered');
+    assert.deepEqual(await counted(), { day, sent: true });
 
     // Another brain: an OpenRouter key picks its provider by itself, and the desktop's pick (free, sees, uses tools).
     await click('#f-settings');
@@ -153,11 +210,30 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
     await page.until(`document.querySelector('#app').dataset.link === 'connected' && !document.querySelector('#native-mode').hidden`, 'the demo PC');
     assert.equal(await text('#native-mode'), 'Demo PC');
     assert.equal(await page.run(`CapriRemote.info.native`), false);
+    // On a PC, the demo's here, nothing is counted, even on a new day.
+    await newDay(true);
+    const before = await page.run(`document.querySelectorAll('.msg.capri.done').length`);
+    await say('hello demo');
+    await page.until(`document.querySelectorAll('.msg.capri.done').length > ${before}`, 'the demo\'s reply');
+    await new Promise(resolve => setTimeout(resolve, 500));
+    assert.equal(counts().length, base + 1);
     await click('#f-settings');
     await page.until(`!document.querySelector('#brain').hidden`, 'SETTINGS on the PC');
     await click('.native-modes .nbtn:last-child');
     await click('.native-row .nbtn.solid');
     await page.until(`CapriRemote.info.native === true && document.querySelector('#native-mode').textContent === 'This phone'`, 'this phone again');
+    // Back on this phone it counts, and the demo isn't a PC this phone is paired with.
+    await say('back on the phone');
+    await page.until(`${lastReply} === 'Capri: Router says: back on the phone'`, 'her reply back on the phone');
+    await until(() => counts().length === base + 2, 'the count back on the phone');
+    assert.deepEqual(counts()[base + 1].body, { first: false, paired: false });
+    // A phone that's also paired with a real PC says so.
+    await page.run(`localStorage.setItem('capri-remote-pairing', JSON.stringify({ demo: false, device: true, pc: 'Test PC', pairedAt: Date.now(), allowed: true }))`);
+    await newDay(true);
+    await say('paired too');
+    await page.until(`${lastReply} === 'Capri: Router says: paired too'`, 'her reply when paired too');
+    await until(() => counts().length === base + 3, 'the paired phone\'s count');
+    assert.deepEqual(counts()[base + 2].body, { first: false, paired: true });
 
     // The key went to the provider only: never in an address, and nothing left for anywhere but these two ports.
     for (const url of seen.concat(site.asked)) {
@@ -167,7 +243,7 @@ test('phone-only mode: her own brain on the phone, with no PC', { skip: !chromeP
   } catch (error) {
     // Where the page was, for the failure's message.
     let where = '';
-    try { where = await page.run(`JSON.stringify({ link: document.querySelector('#app').dataset.link, screen: document.querySelector('#app').dataset.screen, mode: localStorage.getItem('capri-remote-mode'), you: document.querySelectorAll('.msg.you').length, chats: (localStorage.getItem('capri-remote-chats') || '').length })`); } catch {}
+    try { where = await page.run(`JSON.stringify({ link: document.querySelector('#app').dataset.link, screen: document.querySelector('#app').dataset.screen, mode: localStorage.getItem('capri-remote-mode'), you: document.querySelectorAll('.msg.you').length, chats: (localStorage.getItem('capri-remote-chats') || '').length, counted: localStorage.getItem('capri-remote-counted') })`); } catch {}
     error.message += ' | page: ' + where;
     throw error;
   } finally {
