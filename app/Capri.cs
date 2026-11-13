@@ -6191,6 +6191,7 @@ namespace CapriDesktop
                 args = musicArgs;
             }
             // SECURITY: a toggle they switched off holds the call and she asks first; their yes runs it (ResumeJob).
+            if (tool == "open_website") Hands.WebsiteArgs(args);
             string asked = Security.Gate(tool, args);
             if (asked != null) return asked;
             bool joining = tool == "use_computer" && args != null && CallSession.Joining(args.Task);
@@ -37946,7 +37947,7 @@ namespace CapriDesktop
             }
         }
 
-        private static void SmokeOpening(System.Collections.Generic.List<string> checks, string output)
+        private void SmokeOpening(System.Collections.Generic.List<string> checks, string output)
         {
             Func<System.Collections.Generic.List<InstalledApp>> openingCatalog = Hands.Catalog;
             Func<System.Collections.Generic.List<OpenWindow>> openingWindows = Hands.Windows;
@@ -38037,7 +38038,7 @@ namespace CapriDesktop
                 int fallbackBefore = openingLaunched.Count;
                 string browserFallback = Hands.Do("open_website", new ToolArguments { Site = "reddit", Browser = "Brave" });
                 if (browserFallback != "Opened reddit.com in your default browser because Brave isn't installed." || openingLaunched.Count != fallbackBefore + 1 || openingLaunched[fallbackBefore] != Hands.Address("reddit", null) || Hands.Pulled(browserFallback) != browserFallback) throw new Exception("A missing browser didn't fall back and say so.");
-                if (Hands.Valid("open_website", new ToolArguments { Site = "youtube", Browser = "unknown" }) || !Hands.Valid("open_website", new ToolArguments { Site = "youtube" }) || Hands.Read("{\"site\":\"youtube\",\"browser\":\"edge\"}").Browser != "edge") throw new Exception("The optional browser didn't survive validation and JSON.");
+                if (!Hands.Valid("open_website", new ToolArguments { Site = "youtube", Browser = "unknown" }) || !Hands.Valid("open_website", new ToolArguments { Site = "youtube" }) || Hands.Read("{\"site\":\"youtube\",\"browser\":\"edge\"}").Browser != "edge") throw new Exception("The optional browser didn't survive validation and JSON.");
                 string writtenBrowserTool;
                 ToolArguments writtenBrowserArgs;
                 if (!Hands.Typed("open_website{site:youtube,browser:firefox}", out writtenBrowserTool, out writtenBrowserArgs, true) || writtenBrowserArgs.Browser != "firefox") throw new Exception("The written browser argument was lost.");
@@ -38046,6 +38047,65 @@ namespace CapriDesktop
                 checks.Add("PASS browser choice: all seven browsers keep their exe, link and foreground target, Direct and Heard keep named browsers before and after requests, search terms stay intact, missing browsers fall back explicitly, and chat and job schemas and cursor jobs keep the argument");
                 checks.Add("LIMIT browser choice: real Windows registrations and each browser's tab handoff need an installed browser; these launch checks use stand-ins");
                 SmokeSearch(checks, output);
+                Action<string> websiteRunWas = Hands.Run;
+                Action<string, string> websiteBrowseWas = Hands.Browse;
+                Func<string, string> websitePathWas = Hands.BrowserPath, websiteOpenedWas = Hands.Opened;
+                string websitePermissions = Security.Saved;
+                bool websiteWake = Security.On(Security.Wake);
+                try
+                {
+                    string websiteSent = null, websiteBrowser = null;
+                    int websiteRuns = 0;
+                    Hands.Run = delegate(string address) { websiteRuns++; websiteSent = address; websiteBrowser = null; };
+                    Hands.Browse = delegate(string path, string address) { websiteRuns++; websiteSent = address; websiteBrowser = path; };
+                    Hands.BrowserPath = delegate(string name) { return name; };
+                    Hands.Opened = delegate { return ""; };
+                    ToolArguments[] misplaced = { new ToolArguments { Search = "cats" }, new ToolArguments { Name = "wikipedia.org" }, new ToolArguments { Search = "wikipedia.org" }, new ToolArguments { Search = "node.js tutorial" } };
+                    string[] misplacedAddresses = { "https://www.google.com/search?q=cats", "https://wikipedia.org/", "https://wikipedia.org/", "https://www.google.com/search?q=node.js%20tutorial" };
+                    for (int m = 0; m < misplaced.Length; m++)
+                    {
+                        if (!Hands.Valid("open_website", misplaced[m])) throw new Exception("A usable website call was refused.");
+                        string line = Hands.Do("open_website", misplaced[m]);
+                        if (websiteSent != misplacedAddresses[m] || line.StartsWith("That isn't", StringComparison.Ordinal) || m == 2 && misplaced[m].Search != null) throw new Exception("A misplaced website address or search opened wrong.");
+                    }
+                    int websiteBefore = websiteRuns;
+                    if (Hands.Valid("open_website", new ToolArguments()) || Hands.Valid("open_website", new ToolArguments { Name = "some words" }) || Hands.Do("open_website", new ToolArguments()) != "That isn't a website." || websiteRuns != websiteBefore) throw new Exception("An empty website call opened something.");
+                    if (Hands.Do("open_website", new ToolArguments { Site = "javascript:alert(1)" }) != "That isn't a website." || websiteRuns != websiteBefore) throw new Exception("Website repair loosened address checks.");
+                    string[,] browserAliases = { { "Brave Browser", "Brave" }, { "Google Chrome", "Chrome" }, { "Microsoft Edge", "Edge" }, { "Mozilla Firefox", "Firefox" }, { "the brave browser", "Brave" }, { "opera_gx", "Opera GX" }, { "Opera GX", "Opera GX" } };
+                    for (int b = 0; b < browserAliases.GetLength(0); b++)
+                    {
+                        string alias = browserAliases[b, 0], canonical = browserAliases[b, 1];
+                        ToolArguments called = new ToolArguments { Site = "wikipedia.org", Browser = alias };
+                        if (Hands.BrowserName(alias) != canonical || !Hands.Valid("open_website", called) || Hands.Do("open_website", called) != "Opened wikipedia.org in " + canonical + "." || websiteSent != "https://wikipedia.org/" || websiteBrowser != canonical) throw new Exception("A browser alias lost the page or chose the wrong browser: " + alias);
+                        string named;
+                        ToolArguments heard;
+                        if (!Hands.Direct("open wikipedia.org in " + alias, out named, out heard) || named != "open_website" || Hands.BrowserName(heard.Browser) != canonical) throw new Exception("A browser alias was lost in their words: " + alias);
+                    }
+                    Hands.BrowserPath = delegate { throw new Exception("An unknown browser must use the default."); };
+                    ToolArguments unknown = new ToolArguments { Site = "wikipedia.org", Browser = "netscape" };
+                    string unknownLine = Hands.Do("open_website", unknown);
+                    if (!Hands.Valid("open_website", unknown) || unknownLine != "Opened wikipedia.org in your default browser." || Hands.Pulled(unknownLine) != unknownLine || websiteSent != "https://wikipedia.org/" || websiteBrowser != null) throw new Exception("An unknown browser lost the page or hid the default browser.");
+                    string repairedTool;
+                    ToolArguments repairedArgs;
+                    foreach (string written in new[] { "open_website{\"name\":\"wikipedia.org\"}", "open_website{\"search\":\"wikipedia.org\"}", "open_website{\"search\":\"cats\"}", "open_website{\"site\":\"wikipedia.org\",\"browser\":\"netscape\"}" })
+                        if (!Hands.Typed(written, out repairedTool, out repairedArgs) || repairedTool != "open_website") throw new Exception("A written website slip was still refused.");
+                    Security.Drop();
+                    Security.Load("0" + websitePermissions.Substring(1), websiteWake);
+                    websiteBefore = websiteRuns;
+                    foreach (ToolArguments heldSite in new[] { new ToolArguments { Name = "wikipedia.org", Browser = "Brave Browser" }, new ToolArguments { Search = "wikipedia.org", Browser = "netscape" } })
+                    {
+                        string heldLine = DoTool("open_website", heldSite);
+                        if (!Security.IsHold(heldLine) || Security.Question != "Open wikipedia.org? Say yes and I will." || websiteRuns != websiteBefore) throw new Exception("A repaired website call bypassed SECURITY or changed its question.");
+                        Security.Drop();
+                    }
+                    if (!Security.IsHold(DoTool("open_website", new ToolArguments { Search = "cats" })) || Security.Question != "Search for cats? Say yes and I will." || websiteRuns != websiteBefore) throw new Exception("A plain search bypassed SECURITY or asked the wrong question.");
+                    checks.Add("PASS website slips: search-only calls, addresses in name or search, spaced search words, empty calls, every browser alias, Opera GX, unknown-browser default, written calls and held SECURITY prompts keep the page and the gate");
+                }
+                finally
+                {
+                    Security.Drop(); Security.Load(websitePermissions, websiteWake);
+                    Hands.Run = websiteRunWas; Hands.Browse = websiteBrowseWas; Hands.BrowserPath = websitePathWas; Hands.Opened = websiteOpenedWas;
+                }
             }
             finally
             {

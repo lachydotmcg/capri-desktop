@@ -556,7 +556,9 @@ namespace CapriDesktop
 #endif
                 case "open_app": return "open " + Plain(a.Name, "that app");
                 case "open_website":
+                    Hands.WebsiteArgs(a);
                     string site = Plain(a.Site, "that site");
+                    if (string.IsNullOrWhiteSpace(a.Site) && !string.IsNullOrWhiteSpace(a.Search)) return "search for " + Plain(a.Search, "that");
                     return string.IsNullOrWhiteSpace(a.Search) ? "open " + site : "search " + Regex.Replace(site, @"^(https?://)?(www\.)?|\.(com|org|net|tv)(/.*)?$", "", RegexOptions.IgnoreCase) + " for " + Plain(a.Search, "that");
                 case "media":
                     switch (a.Action)
@@ -1889,6 +1891,7 @@ namespace CapriDesktop
         internal static string Do(string tool, ToolArguments args)
         {
             if (args == null) args = new ToolArguments();
+            if (tool == "open_website") WebsiteArgs(args);
             try
             {
                 // Something that can't work here gets her line saying so and why, before anything runs.
@@ -2907,7 +2910,7 @@ namespace CapriDesktop
             // What isn't here goes out as she said it, like her line that clones are Windows-only.
             if (Honest(result)) return result;
             if (Regex.IsMatch(result ?? "", @"^(The closest match is |I didn't find a name matching |Stopped looking for files\.|Selected .+ in File Explorer\.|Couldn't select that in File Explorer\.|Your websites:\n|I'll remember .+ as https?://|Forgot the .+ website\.|I couldn't read that browser's address\.)")) return result;
-            if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser because |but (it's behind|I couldn't bring) )")) return result;
+            if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser(?: because |\.)|but (it's behind|I couldn't bring) )")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Saved [\d.]+ seconds of |Turn on Clip my games |I haven't buffered any game video |Windows couldn't (find an H\.264 encoder|encode that clip)|Windows Media Foundation isn't installed|Couldn't save that clip)")) return result;
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
@@ -4303,7 +4306,7 @@ namespace CapriDesktop
                 return args.Action == "now" || Regex.IsMatch(args.Action ?? "", @"\A(set|up|down|mute|unmute)\z") && Named(args.Name) && (args.Action == "set" ? leveled : string.IsNullOrEmpty(args.Level) || leveled);
             }
 #endif
-            if (tool == "open_website") return (Named(args.Site) || Named(args.Search)) && (string.IsNullOrEmpty(args.Browser) || BrowserName(args.Browser) != null);
+            if (tool == "open_website") { WebsiteArgs(args); return Named(args.Site) || Named(args.Search); }
             if (tool == "look_at_screen") return true;
             if (tool == "media")
             {
@@ -5141,6 +5144,14 @@ namespace CapriDesktop
         }
 #endif
 
+        // Keep a page when her website call has a misplaced address or browser name (YunoTheAlien, 13 Nov).
+        internal static void WebsiteArgs(ToolArguments args)
+        {
+            if (args == null || Named(args.Site)) return;
+            if (Named(args.Name) && Site(args.Name)) args.Site = args.Name.Trim();
+            else if (Named(args.Search) && Site(args.Search)) { args.Site = args.Search.Trim(); args.Search = null; }
+        }
+
         private static string OpenSite(string site, string search, string browser = null)
         {
             string address = null;
@@ -5159,25 +5170,27 @@ namespace CapriDesktop
             string host = new Uri(address).Host;
             if (host.StartsWith("www.", StringComparison.Ordinal)) host = host.Substring(4);
             string result = address.TrimEnd('/') == "https://" + Home ? "Opened your own website, " + Home : string.IsNullOrWhiteSpace(search) ? "Opened " + host : "Searched " + host + " for " + search.Trim();
-            if (browserName == null) return result + ".";
+            if (browserName == null) return result + (string.IsNullOrWhiteSpace(browser) ? "." : " in your default browser.");
             if (browserPath == null) return result + " in your default browser because " + browserName + " isn't installed.";
             return result + " in " + browserName + Opened(browserName) + ".";
         }
 
-        private const string BrowserWords = @"chrome|edge|firefox|opera gx|opera|brave|vivaldi";
+        private const string BrowserWords = @"(?:google )?chrome|(?:microsoft )?edge|(?:mozilla )?firefox|opera[ _]gx|opera|brave|vivaldi";
 
         internal static string BrowserName(string browser)
         {
-            string plain = (browser ?? "").Trim().ToLowerInvariant();
-            string[] choices = { "Chrome", "Edge", "Firefox", "Opera", "Opera GX", "Brave", "Vivaldi" };
+            string plain = Regex.Replace(Plain(browser), @"^the | (browser|stable)$", "");
+            if (plain == "google chrome") plain = "chrome";
+            if (plain == "microsoft edge") plain = "edge";
+            if (plain == "mozilla firefox") plain = "firefox";
+            string[] choices = { "Chrome", "Edge", "Firefox", "Opera GX", "Opera", "Brave", "Vivaldi" };
             foreach (string choice in choices) if (plain == choice.ToLowerInvariant()) return choice;
             return null;
         }
 
         private static string BrowserApp(string name)
         {
-            string plain = Regex.Replace(Plain(name), @"^(google|microsoft|mozilla) | (browser|stable)$", "");
-            return BrowserName(plain);
+            return BrowserName(name);
         }
 
         // "open youtube in chrome", "in firefox open reddit", "search for cats on youtube in edge". Only the end or the start of what they said can name a browser, so "chrome hearts" stays a search.
