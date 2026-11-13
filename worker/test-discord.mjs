@@ -71,7 +71,7 @@ const noteTitles = [
   ['Updates', "Is my version the latest? I'm on an old version (like 0.8.5) and it won't update"],
   ['Install on Windows', 'Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?'],
   ['Install on Windows', 'Is Capri safe, and how do I check my download is the real one?'],
-  ['Updates', "Is my version the latest, or am I on an old version (like 0.8.5) that won't update?"],
+  ['Updates', "Is my version the latest, or an old version (like 0.8.5) that won't update?"],
   ['Capri Remote', 'How do I pair a phone?'],
   ['Troubleshooting', "She doesn't go to sleep by herself any more (since 0.8.9)"],
   ['Install on Windows', 'PC acting on its own, or Capri came back after you removed her?'],

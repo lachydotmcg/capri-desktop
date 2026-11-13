@@ -1878,7 +1878,7 @@ A package manager installed her, so update with it: winget, Scoop, Chocolatey or
 ### "Windows couldn't verify the update signature. It won't run." or "The update checksum doesn't match. It won't run."
 The update was blocked to keep you safe. Download the latest Capri-Setup.exe from the website and run it. Your settings and notes stay.
 
-### Is my version the latest, or am I on an old version (like 0.8.5) that won't update?
+### Is my version the latest, or an old version (like 0.8.5) that won't update?
 Check right-click her > Help > Check for updates. If the website Windows copy won't update, download the latest Capri-Setup.exe from the website and run it. It installs over the old one. The Microsoft Store copy updates through the Store when a new version is sent there. On a Mac or Linux tarball, quit Capri and replace the old app with the new download; see Mac and Linux below.
 
 ### "Capri updated but couldn't restart. Open her from the Start menu."
