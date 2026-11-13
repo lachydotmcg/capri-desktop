@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 const FREE_EACH = 15;
-const FREE_POOL = 8000;
+const FREE_POOL = 10000;
 const freeModel = '@cf/google/gemma-4-26b-a4b-it';
 const freeInput = 9091 / 1000000;
 const freeOutput = 27273 / 1000000;
