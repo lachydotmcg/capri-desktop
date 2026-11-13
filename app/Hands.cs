@@ -1608,6 +1608,8 @@ namespace CapriDesktop
         private static readonly Regex Opener = new Regex(@"^((great|nice|cool|sweet|perfect|awesome|amazing|alright|alr|aight|bet|thanks|thank you|thx|ty|so|and|now|also|oh|wait|um|uh|hmm|lol|lmao|bro|dude|bruh)[\s,!.]+)+(?=((hey|yo|ok|okay)[\s,]+)?(capri\b|(can|could|would|will) (you|u)\b|please\b|pls\b|plz\b))", RegexOptions.IgnoreCase);
 
         internal static Func<List<InstalledApp>> Catalog = ReadCatalog;
+        internal static string AppsPath;
+        internal static Func<DateTime> AppsNow = delegate { return DateTime.UtcNow; };
         internal static Func<string, bool> Exists = File.Exists;
         internal static Action<string> Run = Start;
         internal static Func<string, string> Opened = BringOpened;
@@ -2070,7 +2072,7 @@ namespace CapriDesktop
             });
         }
 
-        internal static void Forget() { lock (gate) cached = null; }
+        internal static void Forget() { lock (gate) { cached = null; remembered = null; } }
 
         private static readonly string[] Swaps = { @"\bi'?m\b", "they're", @"\bi am\b", "they are", @"\bi was\b", "they were", @"\bi've\b", "they've", @"\bi'll\b", "they'll", @"\bi'd\b", "they'd", @"\bi\b", "they", @"\bmyself\b", "themselves", @"\bmy\b", "their", @"\bmine\b", "theirs", @"\bme\b", "them" };
 
@@ -4364,11 +4366,15 @@ namespace CapriDesktop
             if (want.Length == 0) return false;
             try
             {
-                foreach (InstalledApp app in Apps())
+                List<InstalledApp> apps = Apps();
+                foreach (InstalledApp app in apps)
                     if (Score(app, want) >= 3) return true;
 #if CROSS
                 if (want == "minecraft" && Apps().Exists(MinecraftLauncher)) return true;
 #endif
+                if (AppsPath != null)
+                    foreach (InstalledApp app in FreshApps(apps))
+                        if (Score(app, want) >= 3) return true;
             }
             catch (Exception) { }
             return false;
@@ -4437,16 +4443,20 @@ namespace CapriDesktop
             try
             {
                 List<InstalledApp> apps = Apps();
-                // Each "in", "on" or "into" in turn, and the most words after it that name a game they have: "hop on bedwars in
-                // roblox for me" is roblox.
-                foreach (Match place in Regex.Matches(Plain(job), @"\b(?:in|on|into)\s+(?:the\s+)?(?=([\p{L}\p{Nd}]+(?: [\p{L}\p{Nd}]+){0,3}))"))
+                for (int pass = 0; pass < (AppsPath == null ? 1 : 2); pass++)
                 {
-                    string[] words = place.Groups[1].Value.Split(' ');
-                    for (int count = words.Length; count > 0; count--)
+                    if (pass > 0) apps = FreshApps(apps);
+                    // Each "in", "on" or "into" in turn, and the most words after it that name a game they have: "hop on bedwars in
+                    // roblox for me" is roblox.
+                    foreach (Match place in Regex.Matches(Plain(job), @"\b(?:in|on|into)\s+(?:the\s+)?(?=([\p{L}\p{Nd}]+(?: [\p{L}\p{Nd}]+){0,3}))"))
                     {
-                        string named = string.Join(" ", words, 0, count);
-                        string wanted = Nickname(named) ?? named;
-                        if (wanted.Length >= 3 && apps.Exists(app => Score(app, wanted) >= 2)) return Showing(wanted) ? null : wanted;
+                        string[] words = place.Groups[1].Value.Split(' ');
+                        for (int count = words.Length; count > 0; count--)
+                        {
+                            string named = string.Join(" ", words, 0, count);
+                            string wanted = Nickname(named) ?? named;
+                            if (wanted.Length >= 3 && apps.Exists(app => Score(app, wanted) >= 2)) return Showing(wanted) ? null : wanted;
+                        }
                     }
                 }
             }
@@ -4457,9 +4467,7 @@ namespace CapriDesktop
         private static string OpenApp(string wanted, Func<bool> current = null)
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
-            List<InstalledApp> found = Match(Apps(), wanted);
-            string nicknamed = found.Count == 0 ? Nickname(wanted) : null;
-            if (nicknamed != null) found = Match(Apps(), nicknamed);
+            List<InstalledApp> found = FindApps(wanted);
             if (found.Count == 0) return "No app called " + wanted.Trim() + " is installed on this PC.";
             // When several match equally well, the one with the fewest extra words is closest to what they said.
             InstalledApp chosen = found[0];
@@ -4468,6 +4476,30 @@ namespace CapriDesktop
             Run(chosen.Id);
             string openedName = AppName(chosen) == "spotify" ? "Spotify" : chosen.Name;
             return "Opened " + openedName + (current == null ? Opened(openedName) : "") + ".";
+        }
+
+        private static List<InstalledApp> FindApps(List<InstalledApp> apps, string wanted)
+        {
+            List<InstalledApp> found = Match(apps, wanted);
+            string nicknamed = found.Count == 0 ? Nickname(wanted) : null;
+            return nicknamed == null ? found : Match(apps, nicknamed);
+        }
+
+        private static List<InstalledApp> FindApps(string wanted)
+        {
+            List<InstalledApp> apps = Apps();
+            List<InstalledApp> found = FindApps(apps, wanted);
+            return found.Count == 0 && AppsPath != null ? FindApps(FreshApps(apps), wanted) : found;
+        }
+
+        private static List<InstalledApp> FreshApps(List<InstalledApp> apps)
+        {
+            lock (gate)
+            {
+                if (AppsPath == null) return apps;
+                if (cached != apps) return cached != null && AppsNow() - cachedAt <= TimeSpan.FromMinutes(2) ? cached : apps;
+                return AppsNow() - cachedAt <= TimeSpan.FromMinutes(2) ? apps : Apps(true);
+            }
         }
 
         internal static List<InstalledApp> Match(List<InstalledApp> apps, string wanted)
@@ -4528,13 +4560,85 @@ namespace CapriDesktop
             return name;
         }
 
-        private static string Plain(string text) { return Regex.Replace(Regex.Replace((text ?? "").Normalize(NormalizationForm.FormD).ToLowerInvariant(), @"\p{M}", ""), @"[^\p{L}\p{Nd}]+", " ").Trim(); }
+        private static readonly Regex PlainMarks = new Regex(@"\p{M}");
+        private static readonly Regex PlainWords = new Regex(@"[^\p{L}\p{Nd}]+");
 
-        private static List<InstalledApp> Apps()
+        private static string Plain(string text) { return PlainWords.Replace(PlainMarks.Replace((text ?? "").Normalize(NormalizationForm.FormD).ToLowerInvariant(), ""), " ").Trim(); }
+
+        // Remember good app lists and merge each name once (YunoTheAlien, 13 Nov).
+        [DataContract]
+        private sealed class AppEntry
+        {
+            [DataMember] internal string Name;
+            [DataMember] internal string Id;
+            [DataMember] internal long Seen;
+        }
+
+        private static List<AppEntry> remembered;
+        private static string rememberedPath;
+        private static SavedList<AppEntry> appsFile;
+        private static string savedApps;
+
+        private static bool AppPath(string id) { return Regex.IsMatch(id ?? "", @"^(?:[A-Za-z]:[\\/]|\\\\|/)"); }
+
+        private static string AppText(List<AppEntry> entries)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                new DataContractJsonSerializer(typeof(List<AppEntry>)).WriteObject(stream, entries);
+                return Encoding.UTF8.GetString(stream.ToArray());
+            }
+        }
+
+        private static void RememberApps(List<InstalledApp> apps, bool failed, DateTime now)
+        {
+            if (AppsPath == null) return;
+            if (remembered == null || rememberedPath != AppsPath)
+            {
+                rememberedPath = AppsPath;
+                appsFile = new SavedList<AppEntry>(AppsPath, "apps");
+                remembered = appsFile.Read(item => !string.IsNullOrWhiteSpace(item.Name) && !string.IsNullOrWhiteSpace(item.Id) && item.Seen > 0 && item.Seen <= now.Ticks);
+                savedApps = AppText(remembered);
+            }
+            remembered.RemoveAll(item => item.Seen <= now.Date.AddDays(-30).Ticks || AppPath(item.Id) && !Exists(item.Id));
+            Dictionary<string, AppEntry> byId = new Dictionary<string, AppEntry>(StringComparer.OrdinalIgnoreCase);
+            foreach (AppEntry item in remembered) byId[item.Id] = item;
+            if (!failed)
+                foreach (InstalledApp app in apps)
+                {
+                    if (AppName(app).Length == 0 || AppPath(app.Id) && !Exists(app.Id)) continue;
+                    AppEntry item;
+                    if (!byId.TryGetValue(app.Id, out item))
+                    {
+                        item = new AppEntry { Id = app.Id };
+                        remembered.Add(item); byId.Add(item.Id, item);
+                    }
+                    item.Name = app.Name; item.Seen = now.Date.Ticks;
+                }
+            if (remembered.Count > 4000)
+            {
+                List<AppEntry> recent = new List<AppEntry>(remembered);
+                recent.Sort(delegate(AppEntry a, AppEntry b) { return b.Seen.CompareTo(a.Seen); });
+                HashSet<AppEntry> kept = new HashSet<AppEntry>(recent.GetRange(0, 4000));
+                remembered.RemoveAll(item => !kept.Contains(item));
+            }
+            HashSet<string> listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (InstalledApp app in apps) listed.Add(app.Id);
+            foreach (AppEntry item in remembered)
+                if ((failed || AppPath(item.Id)) && listed.Add(item.Id)) apps.Add(new InstalledApp(item.Name, item.Id));
+            string next = AppText(remembered);
+            if (next == savedApps) return;
+            try { appsFile.Write(remembered, ".new"); savedApps = next; }
+            catch (Exception) { }
+            finally { try { File.Delete(AppsPath + ".new"); } catch (Exception) { } }
+        }
+
+        private static List<InstalledApp> Apps(bool fresh = false)
         {
             lock (gate)
             {
-                if (cached != null && DateTime.UtcNow - cachedAt <= TimeSpan.FromMinutes(2)) return cached;
+                DateTime now = AppsNow();
+                if (cached != null && now - cachedAt <= TimeSpan.FromMinutes(AppsPath == null || fresh ? 2 : 10)) return cached;
                 List<InstalledApp> apps;
                 Exception failed = null;
                 try { apps = new List<InstalledApp>(Catalog()); }
@@ -4542,13 +4646,14 @@ namespace CapriDesktop
                 string folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 string path = folder.Length == 0 ? "" : Path.Combine(folder, @"Spotify\Spotify.exe");
                 if (path.Length > 0 && Exists(path) && !apps.Exists(app => AppName(app) == "spotify")) apps.Add(new InstalledApp("Spotify", path));
+                RememberApps(apps, failed != null, now);
                 if (failed != null)
                 {
                     if (apps.Count == 0) throw failed;
                     return apps;
                 }
                 cached = apps;
-                cachedAt = DateTime.UtcNow;
+                cachedAt = AppsNow();
                 return cached;
             }
         }
@@ -4590,8 +4695,13 @@ namespace CapriDesktop
         // library, and from her other launchers' lists the same way. One already in All apps by that name isn't listed twice.
         internal static List<InstalledApp> WithSteam(List<InstalledApp> apps, List<InstalledApp> steam)
         {
+            HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (InstalledApp app in apps) names.Add(AppName(app));
             foreach (InstalledApp game in steam)
-                if (AppName(game).Length > 0 && !apps.Exists(app => AppName(app) == AppName(game))) apps.Add(game);
+            {
+                string name = AppName(game);
+                if (name.Length > 0 && names.Add(name)) apps.Add(game);
+            }
             return apps;
         }
 
@@ -5591,7 +5701,7 @@ namespace CapriDesktop
                 string played = PlayMusic(asked, "auto", askedKind, current, songOnly);
                 return played.StartsWith("Playing ", StringComparison.Ordinal) ? "Apple Music isn't installed, so p" + played.Substring(1) : played;
             }
-            if (app != "youtube" && Match(Apps(), "spotify").Count > 0)
+            if (app != "youtube" && FindApps("spotify").Count > 0)
             {
                 if (liked) named = "their Liked Songs";
                 string spotted = liked || ownPlaylist ? null : known ?? SpotifyLink(Fetch("https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString("site:open.spotify.com/" + (kind == "song" ? "track" : kind) + " " + song)), kind, song);
@@ -5667,11 +5777,17 @@ namespace CapriDesktop
             try
             {
                 InstalledApp chosen = null;
-                foreach (InstalledApp app in Apps())
+                List<InstalledApp> apps = Apps();
+                for (int pass = 0; pass < (AppsPath == null ? 1 : 2); pass++)
                 {
-                    string name = AppName(app);
-                    if (name != "apple music" && !name.StartsWith("apple music ", StringComparison.Ordinal)) continue;
-                    if (chosen == null || WebApp(chosen) && !WebApp(app) || WebApp(chosen) == WebApp(app) && name.Length < AppName(chosen).Length) chosen = app;
+                    if (pass > 0) apps = FreshApps(apps);
+                    foreach (InstalledApp app in apps)
+                    {
+                        string name = AppName(app);
+                        if (name != "apple music" && !name.StartsWith("apple music ", StringComparison.Ordinal)) continue;
+                        if (chosen == null || WebApp(chosen) && !WebApp(app) || WebApp(chosen) == WebApp(app) && name.Length < AppName(chosen).Length) chosen = app;
+                    }
+                    if (chosen != null) return chosen;
                 }
                 return chosen;
             }
@@ -6171,9 +6287,7 @@ namespace CapriDesktop
             List<InstalledApp> found;
             try
             {
-                found = Match(Apps(), wanted);
-                string nicknamed = found.Count == 0 ? Nickname(wanted) : null;
-                if (nicknamed != null) found = Match(Apps(), nicknamed);
+                found = FindApps(wanted);
             }
             catch (Exception error) { return "Couldn't read their apps just now: " + error.Message; }
             InstalledApp chosen = null;
