@@ -26,6 +26,7 @@ const ctx = { waitUntil() {} };
 let system = '', says = '', sent = [];
 globalThis.claudeCall = async body => { system = body.system; sent = body.messages; return { stop_reason: 'end_turn', content: [{ type: 'text', text: says }] }; };
 const discord = async body => (await worker.fetch(new Request('https://worker.test/discord', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer stand-in-relay' }, body: JSON.stringify({ user: '123', ...body }) }), env, ctx)).json();
+const help = async body => (await worker.fetch(new Request('https://worker.test/help', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), env, ctx)).json();
 
 // A hello gets her own line back and no links, in her app voice.
 says = 'There you are. I was about to start rearranging the server.';
@@ -117,6 +118,62 @@ assert.match(system, /corner of your own website/);
 assert.match(system, /you're just here for Capri help/);
 assert.doesNotMatch(system, /PING/);
 console.log('PASS the website helper keeps its voice and links');
+
+// PC activity and doubts about a copy need the whole safety note on both routes, including short searches.
+const odd = '[Install on Windows > Mouse moved by itself, screen went black, or Capri not in Settings?]';
+says = 'Check the download source.';
+for (const [route, ask] of [['/discord', discord], ['/help', help]]) {
+  for (const question of ['my mouse moved by itself', 'my mouse moved on its own', 'screen went black', 'she came back after I deleted her', 'she reinstalled after I deleted her', 'not in Settings', 'hacked', 'fake copy', 'is my Capri real', 'my PC did something on its own', 'my PC is doing things by itself', 'my computer did something by itself', 'I think I was hacked', 'Capri came back after I uninstalled her', 'Capri reinstalled herself', 'she installed herself again', 'Capri is not in Settings', 'Capri is missing from Installed apps']) {
+    await ask({ question });
+    assert.ok(system.includes(odd), route + ': ' + question);
+    assert.match(system, /change passwords from another device, email first, and sign out of other sessions/);
+  }
+}
+console.log('PASS PC activity and copy questions get the whole note on both routes');
+
+// Ordinary voice, install and antivirus questions keep their notes without pulling in the PC activity note.
+for (const ask of [discord, help]) {
+  for (const [question, titles] of [
+    ['how do I change her voice?', ['Her voice > Voice layers (0.7.6 and newer)', 'Her voice > Your own voice model: Fish Audio, OpenAI, a model file or your own server (from 0.7.6)', 'The Capri Mainframe > VOICE section']],
+    ['how do I install Capri?', ['Install on Windows > Steps', 'Install on Windows > "Quit Capri from her tray menu, then install again."', 'Troubleshooting > Install and antivirus', 'Quick facts > How do I install Capri VR? (0.8.3)']],
+    ['why does Windows warn me?', ['Install on Windows > Why does Windows warn me?', 'Install on Windows > Is Capri on the Microsoft Store? Which download should I get?', 'What she can do on your PC (Windows) > Move, snap and resize windows (0.8.0)', 'Install on Windows > Does Capri start with Windows?']],
+    ['my antivirus says it is a virus', ["Troubleshooting > Install and antivirus", "Install on Windows > My antivirus says it's a virus or Trojan", 'Install on Windows > "Item Not Found" or the installer disappeared', 'Install on Windows > "Unable to save shortcut" or "Windows wouldn\'t let the installer save her shortcut"']]
+  ]) {
+    await ask({ question });
+    assert.ok(!system.includes(odd), question);
+    const shown = [...system.split('\n\nHelp notes:\n')[1].matchAll(/^\[(.+)\]$/gm)].map(match => match[1]);
+    assert.deepEqual(shown, [...titles, 'Quick facts > What is Capri?', 'Quick facts > What does it run on?']);
+  }
+}
+console.log('PASS ordinary voice, install and antivirus questions keep their notes');
+
+// Both helpers need the same limits on guesses, delays, questions and unavailable menus.
+for (const ask of [discord, help]) {
+  await ask({ question: 'is my Capri real' });
+  const prompt = system.split('\n\nHelp notes:\n')[0];
+  assert.ok(prompt.includes('use "Mouse moved by itself, screen went black, or Capri not in Settings?"'));
+  assert.match(prompt, /For a PC acting on its own, Capri returning after removal or a possibly fake copy/);
+  assert.match(prompt, /never guess the cause or say their copy is or is not fake or a virus/);
+  assert.match(prompt, /never tell them to wait, leave the PC as it is or delay a scan or uninstall/);
+  assert.match(prompt, /ask only where they downloaded her/);
+  assert.match(prompt, /never send them to Capri menus if she is uninstalled, deleted or will not open/);
+}
+console.log('PASS both helpers carry the PC activity rule');
+
+// The first Discord reply asks for a helper while the website has no PING instruction.
+says = 'Check the download source. LINK: Install on Windows\nPING: helper';
+got = await discord({ question: 'is my Capri real' });
+assert.match(system, /PING: helper on your first reply about a PC acting on its own, Capri returning after removal or a possibly fake copy/);
+assert.match(system, /if they ask for a human, a helper or staff, or it's still broken after your fixes/);
+assert.match(system, /PING: moderator if they ask for a mod, or for rule-breaking, scams, harassment or anything about the server itself/);
+assert.match(system, /PING: developer only for a genuine bug in Capri/);
+assert.equal(got.ping, 'helper');
+assert.equal(got.reply, 'Check the download source.');
+assert.deepEqual(got.links, [{ title: 'Install on Windows', href: 'https://capriai.app/help/#install' }]);
+says = 'Check the download source.';
+await help({ question: 'is my Capri real' });
+assert.doesNotMatch(system, /PING/);
+console.log('PASS only Discord asks for a helper on the first PC activity reply');
 
 // The website and the Discord each count their own day, so a busy website can't silence the bot.
 const today = Math.floor(Date.now() / 86400000);

@@ -165,6 +165,20 @@ Each release has a SHA256SUMS.txt file on its GitHub release page.
 2. Run: Get-FileHash Capri-Setup.exe
 3. The long code should match the line for Capri-Setup.exe in SHA256SUMS.txt.
 
+### Mouse moved by itself, screen went black, or Capri not in Settings?
+If your mouse moved on its own, your screen went black, or Capri came back after you deleted her or seems to have reinstalled, use these checks. Use them too if you are worried about a hacked PC or a fake copy and want to know if your Capri is real.
+
+The real Capri uses your mouse or keys only while she is running: for a job you asked for (typed, spoken or sent from Capri Remote), in a game she plays, when Explore while I'm away is on, or when her clones grab your cursor. While she does (0.8.5 and newer), a pink and cyan glow goes round that screen with a badge that says "Capri's using your mouse. Esc stops her." It shows even while she's hidden, so if your mouse moved with no glow, it wasn't her.
+
+Quit Capri closes her completely, and nothing of hers keeps running after it. Closing the Mainframe window only minimizes it. If her window freezes for a minute, she closes herself and starts again once, at most once every ten minutes, so she can be open again after a PC hang. Start with Windows is off unless you turned it on.
+
+Once she is removed through Settings > Apps she cannot come back by herself, and she never installs anything that is missing from Settings > Apps. Deleting her shortcut or her folder does not remove her. Fake copies on other download sites can carry malware.
+
+1. Check where you downloaded her. The real Capri comes from https://capriai.app/, https://github.com/lachydotmcg/capri-desktop/releases and the Microsoft Store as CapriAI. The Windows file is Capri-Setup.exe. See "How do I check my download is the real one?" for the file check.
+2. Check Settings > Apps > Installed apps for Capri, or CapriAI for the Store copy. To remove her, pick her there and press Uninstall. "What does the installer add?" lists what she adds.
+3. Open Windows Security > Virus & threat protection > Scan options, pick the offline scan, then Scan now. Never turn your antivirus off.
+4. If the download was from anywhere else, change passwords from another device, email first, and sign out of other sessions.
+
 ### "Quit Capri from her tray menu, then install again."
 Capri is already running. Right-click her > Quit Capri, then run the installer again.
 

@@ -202,7 +202,7 @@ const rules = inDiscord => [
     'Keep it fresh: never reuse an opener, joke, line or question you already said. Lines starting You said are your own recent messages in this channel.',
     'Never write @everyone or @here.',
     "Never put links in your reply. When your answer comes from the help notes, end it with LINK: and the chapter name from that note's [ ] label, like LINK: Her voice. Leave LINK out for chit-chat, jokes and greetings.",
-    "When a person needs to step in, say so in one short line of your own, then end with PING: and who. PING: helper if they ask for a human, a helper or staff, or it's still broken after your fixes. PING: moderator if they ask for a mod, or for rule-breaking, scams, harassment or anything about the server itself. PING: developer only for a genuine bug in Capri, when they've said what happens, it isn't a setup mistake and the help notes' fixes didn't work. Leave PING out for everything else, and never use it for a joke or a dare."
+    "When a person needs to step in, say so in one short line of your own, then end with PING: and who. PING: helper on your first reply about a PC acting on its own, Capri returning after removal or a possibly fake copy, or if they ask for a human, a helper or staff, or it's still broken after your fixes. PING: moderator if they ask for a mod, or for rule-breaking, scams, harassment or anything about the server itself. PING: developer only for a genuine bug in Capri, when they've said what happens, it isn't a setup mistake and the help notes' fixes didn't work. Leave PING out for everything else, and never use it for a joke or a dare."
   ] : [
     "You are Capri, the glitchy cyberpunk desktop companion from the Capri app. You're in the corner of your own website, helping people set you up and fix problems.",
     'Answer only from the help notes below. If they do not cover the question, say you are not sure, and point them to the Discord (' + discord + ') or the Help page.',
@@ -213,6 +213,7 @@ const rules = inDiscord => [
   "When something isn't working and you can't tell why, ask one or two short questions, not more: what still works (typing to her, hearing her, her hearing them, screen reading, jobs), the exact error words, their Capri version, or the exact BRAIN line like Built-in · Gemma 4 E4B.",
   "Give one fix at a time, and don't repeat a fix they already tried. A status like Voice link online, or a thanks, doesn't prove it's fixed: ask if it works now.",
   'If the notes have no fix, or it is still broken after their steps, tell them to post in the ' + (inDiscord ? 'server' : 'Discord') + ' with Copy error details, the exact error and what they tried.',
+  'For a PC acting on its own, Capri returning after removal or a possibly fake copy, use "Mouse moved by itself, screen went black, or Capri not in Settings?"; never guess the cause or say their copy is or is not fake or a virus, never tell them to wait, leave the PC as it is or delay a scan or uninstall, ask only where they downloaded her, and never send them to Capri menus if she is uninstalled, deleted or will not open.',
   "Don't ask for API keys or personal details. If someone pastes a key, tell them to delete that key on the site that made it and make a new one, since keys are private." + (inDiscord ? ' Also tell them to delete the Discord message where they pasted it.' : ''),
   'If they send a screenshot, look at it and answer about what it shows. Never repeat keys, passwords, emails or names you can see in it.',
   inDiscord
@@ -344,10 +345,11 @@ const knowledge = async env => {
 const pick = (sections, text) => {
   const asked = [...new Set(words(text, true))];
   if (!asked.length) return [];
+  const odd = /\bhacked\b|\b(?:pc|computer)\b.*\b(?:by itself|on its own)\b/i.test(text);
   const seen = {};
   for (const section of sections) for (const term of new Set([...section.heading, ...section.terms])) seen[term] = (seen[term] || 0) + 1;
   const scored = sections.map(section => {
-    let score = 0;
+    let score = odd && section.title === 'Mouse moved by itself, screen went black, or Capri not in Settings?' ? sections.length : 0;
     for (const term of asked) {
       if (!seen[term]) continue;
       const weight = Math.log(1 + sections.length / seen[term]);
