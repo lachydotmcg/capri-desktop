@@ -3590,6 +3590,11 @@ namespace CapriDesktop
             if (args.App == null && (args.Action == "volume_up" || args.Action == "volume_down") && Regex.IsMatch(said ?? "", @"\bspotify\b", RegexOptions.IgnoreCase)) args.App = "spotify";
         }
 
+        internal static bool Plain(string tool, ToolArguments args)
+        {
+            return tool == "open_app" || tool == "app_window" || tool == "media" || tool == "open_website" && args != null && string.IsNullOrEmpty(args.Search);
+        }
+
         internal static bool Heard(string said, out string tool, out ToolArguments args, bool brainy = false)
         {
 #if CROSS
