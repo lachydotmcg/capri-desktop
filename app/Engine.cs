@@ -145,6 +145,9 @@ namespace CapriDesktop
         private int serverWindow;
         internal volatile bool Cancel;
         internal volatile bool CpuOnly;
+        // The window an ask is growing her to past 16K, or 0. A load of that size that stops on the graphics card throws without
+        // marking her for the CPU, so Brain can put back the size that worked.
+        internal volatile int Careful;
         private int loading;
         private bool retryGpu;
 
@@ -345,19 +348,22 @@ namespace CapriDesktop
             catch (System.ComponentModel.Win32Exception) { }
         }
 
-        internal void Ensure(Pick pick, bool careful = false)
+        internal void Ensure(Pick pick)
         {
             Interlocked.Increment(ref loading);
-            try { Load(pick, careful); }
+            try { Load(pick); }
             finally { Interlocked.Decrement(ref loading); }
         }
 
-        private void Load(Pick pick, bool careful)
+        private void Load(Pick pick)
         {
+            int window;
+            bool careful;
             lock (gate)
             {
                 bool eyes = HasEyes(pick);
-                int window = Brain.Window;
+                window = Brain.Window;
+                careful = window == Careful;
                 if (server != null && !server.HasExited && serverEyes == eyes && serverCpu == CpuOnly && serverWindow == window) return;
                 if (server != null) Stop();
                 if (!File.Exists(Server) || !File.Exists(ModelPath(pick))) throw new BrainException("Brain not downloaded. Press Set up her brain.");
@@ -377,14 +383,19 @@ namespace CapriDesktop
             {
                 Process running;
                 bool onGpu;
-                lock (gate) { running = server; onGpu = !serverCpu; }
+                lock (gate)
+                {
+                    running = server; onGpu = !serverCpu;
+                    if (window != serverWindow) { window = serverWindow; careful = window == Careful; }
+                    else careful = careful || window == Careful;
+                }
                 if (running == null || running.HasExited)
                 {
                     // Its own log is off, so the exit code is the only clue Copy error details can carry. A graphics driver that crashes it while loading gets one try on the CPU, as a crash mid-chat does.
                     bool retry = running != null && onGpu;
                     string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? careful ? ", keeping its previous memory size" : ", restarting it on the CPU" : "");
                     Brain.Log("brain", -1, reason);
-                    if (!retry || careful) throw new BrainException("Brain crashed loading. Close games, press Refresh.");
+                    if (!retry || careful) throw new BrainException("Brain crashed loading. Close games, press Refresh.") { Careful = careful };
                     lock (gate) { KeepCpu(reason); retryGpu = false; CpuOnly = true; }
                     Ensure(pick);
                     return;

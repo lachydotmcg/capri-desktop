@@ -641,6 +641,7 @@ namespace CapriDesktop
     {
         internal readonly bool Told;
         internal int Status;
+        internal bool Careful;
         internal string Detail;
         internal DateTime RetryAt;
         internal BrainException(string message, bool told = false) : base(told ? message : Brain.Plain(message) ?? message) { Told = told || Brain.Plain(message) != null; }
@@ -1128,7 +1129,7 @@ namespace CapriDesktop
         // Her line for an ask that doesn't fit. With a size they picked it names the smallest size that does.
         internal static string TooLong(int window, string problem = null, int reply = 0)
         {
-            if (MemorySize == 0 && NoBigger) return "That was too long for my brain's " + window / 1024 + "K memory, and this PC couldn't load a bigger one.";
+            if (MemorySize == 0 && NoBigger) return "That was too long for my brain's " + window / 1024 + "K memory, and this PC couldn't load one big enough.";
             string pick = "a bigger";
             long need = Need(problem, reply);
             if (MemorySize > 0 && need > 0)
@@ -1182,9 +1183,10 @@ namespace CapriDesktop
                 if (chat.Error != null) throw new BrainException(chat.Error);
                 return chat;
             }
-            catch
+            catch (Exception error)
             {
-                if (grown > before)
+                WebException web = error as WebException;
+                if (grown > before && (web == null || web.Status != WebExceptionStatus.RequestCanceled))
                     lock (ollamaMemoryGate) System.Threading.Interlocked.CompareExchange(ref OllamaGrown, before, grown);
                 throw;
             }
@@ -3661,7 +3663,17 @@ namespace CapriDesktop
             Engine local = Local;
             if (local != null)
             {
-                lock (memoryGate) local.Ensure(LocalPick);
+                // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
+                int careful = local.Careful;
+                try { local.Ensure(LocalPick); }
+                catch (BrainException error)
+                {
+                    if (!error.Careful) throw;
+                    lock (memoryGate) { }
+                    local.Ensure(LocalPick);
+                    careful = 0;
+                }
+                if (careful == 0) careful = local.Careful;
                 string lost;
                 bool garbled = false, crashed = false;
                 try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
@@ -3669,6 +3681,15 @@ namespace CapriDesktop
                 {
                     if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
                     if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                    if (error.Status == 503 && careful != 0)
+                    {
+                        lock (memoryGate) { }
+                        if (Window < careful)
+                        {
+                            local.Ensure(LocalPick);
+                            return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        }
+                    }
                     garbled = error.Message == Gibberish;
                     if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
                     lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
@@ -3734,8 +3755,13 @@ namespace CapriDesktop
                 if (room > Window)
                 {
                     Log(local.Address, -1, "An ask outgrew the brain's " + was + "-token memory, restarting it with " + room);
+                    local.Careful = room > 16384 ? room : 0;
                     int before = System.Threading.Interlocked.Exchange(ref Grown, room);
-                    try { local.Ensure(LocalPick, room > 16384); }
+                    try
+                    {
+                        local.Ensure(LocalPick);
+                        if (room > 16384 && local.Loading && !local.Settle()) throw new BrainException("Brain crashed loading. Close games, press Refresh.");
+                    }
                     catch (BrainException)
                     {
                         System.Threading.Interlocked.CompareExchange(ref Grown, before, room);
@@ -3744,6 +3770,8 @@ namespace CapriDesktop
                         local.Ensure(LocalPick);
                         throw new BrainException(TooLong(Window), true);
                     }
+                    catch { System.Threading.Interlocked.CompareExchange(ref Grown, before, room); throw; }
+                    finally { local.Careful = 0; }
                 }
                 else local.Ensure(LocalPick);
             }
@@ -4181,7 +4209,7 @@ namespace CapriDesktop
             try
             {
                 Engine local = Local;
-                if (local != null) { lock (memoryGate) local.Ensure(LocalPick); }
+                if (local != null) local.Ensure(LocalPick);
                 else if (Server != null) return;
                 else Send<ChatReply>(Ollama + "/api/chat", new ChatRequest { Model = model, Messages = new ChatMessage[0], Options = OllamaOptions(model, 90) }, 180000);
             }

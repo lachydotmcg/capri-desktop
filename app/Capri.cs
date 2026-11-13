@@ -13206,7 +13206,7 @@ namespace CapriDesktop
             return 0;
         }
 
-        private static string FakeServer(string[] replies, System.Collections.Generic.List<string> asked, out System.Net.Sockets.TcpListener listener, int status = 200, int delay = 0, bool drip = false, int missing = 0, string contentType = "application/json", string headers = "", ManualResetEvent release = null, int port = 0, ManualResetEvent hungUp = null, Action<string> received = null)
+        private static string FakeServer(string[] replies, System.Collections.Generic.List<string> asked, out System.Net.Sockets.TcpListener listener, int status = 200, int delay = 0, bool drip = false, int missing = 0, string contentType = "application/json", string headers = "", ManualResetEvent release = null, int port = 0, ManualResetEvent hungUp = null, Action<string> received = null, Func<string, string> respond = null)
         {
             System.Net.Sockets.TcpListener server = new System.Net.Sockets.TcpListener(IPAddress.Loopback, port);
             server.Start();
@@ -13235,7 +13235,8 @@ namespace CapriDesktop
                             }
                             lock (asked) asked.Add(text);
                             if (received != null) received(text);
-                            if (reply == null)
+                            string sending = respond == null ? reply : respond(text);
+                            if (sending == null)
                             {
                                 if (hungUp != null)
                                 {
@@ -13248,8 +13249,8 @@ namespace CapriDesktop
                             }
                             if (release != null && !release.WaitOne(15000)) throw new TimeoutException("The fake model list stayed held.");
                             // A reply starting "!400 " goes out with that status instead.
-                            System.Text.RegularExpressions.Match coded = System.Text.RegularExpressions.Regex.Match(reply, @"^!(\d{3}) ");
-                            byte[] answer = System.Text.Encoding.UTF8.GetBytes(coded.Success ? reply.Substring(coded.Length) : reply);
+                            System.Text.RegularExpressions.Match coded = System.Text.RegularExpressions.Regex.Match(sending, @"^!(\d{3}) ");
+                            byte[] answer = System.Text.Encoding.UTF8.GetBytes(coded.Success ? sending.Substring(coded.Length) : sending);
                             if (!drip && delay > 0) Thread.Sleep(delay);
                             byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 " + (coded.Success ? coded.Groups[1].Value : status.ToString()) + " Reply\r\nContent-Type: " + contentType + "\r\nContent-Length: " + (answer.Length + missing) + "\r\nConnection: close\r\n" + headers + "\r\n");
                             stream.Write(head, 0, head.Length);
@@ -35960,7 +35961,7 @@ namespace CapriDesktop
                     roomy.Stop();
                     Brain.Ram = 16L << 30; Brain.Vram = 0; Brain.Grown = 0;
                     fits = overflowing.Aside("Talk", "An ask past 16K", 90);
-                    if (fits != "Done." || string.Join(" ", windows.ToArray()) != "4096 8192 16384 16384 32768" || Brain.Window != 32768 || roomy.CpuOnly || Brain.NoBigger || File.Exists(Path.Combine(Path.GetDirectoryName(files.FileName), "cpu-only.txt"))) throw new Exception("An ask longer than 16K didn't restart her brain once with 32K on the graphics card.");
+                    if (fits != "Done." || string.Join(" ", windows.ToArray()) != "4096 8192 16384 16384 32768" || Brain.Window != 32768 || roomy.Careful != 0 || roomy.CpuOnly || Brain.NoBigger || File.Exists(Path.Combine(Path.GetDirectoryName(files.FileName), "cpu-only.txt"))) throw new Exception("An ask longer than 16K didn't restart her brain once with 32K on the graphics card.");
                     int beyondFrom = roomAsked.Count;
                     string beyond = null;
                     try { overflowing.Aside("Talk", "Hello", 90); }
@@ -36003,6 +36004,7 @@ namespace CapriDesktop
                     try { Directory.Delete(overflowData, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
                 }
                 SmokeCarefulMemory(checks, answer);
+                SmokeLoadingMemory(checks, answer);
                 SmokeOllamaMemory(checks, answer);
             }
             catch (System.Net.Sockets.SocketException unavailable) { checks.Add("LIMIT brain request settings: loopback sockets unavailable here (" + unavailable.SocketErrorCode + ")"); }
@@ -36026,11 +36028,12 @@ namespace CapriDesktop
             {
                 Directory.CreateDirectory(data);
                 Brain.LogPath = Path.Combine(data, "log.txt");
-                for (int kind = 0; kind < 3; kind++)
+                for (int kind = 0; kind < 6; kind++)
                 {
-                    bool ordinary = kind == 1, together = kind == 2;
-                    Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = ordinary ? 16 : 8; Brain.Grown = 0; Brain.OllamaGrown = 0; Brain.NoBigger = false;
-                    Brain.Ram = ordinary ? 8L << 30 : 16L << 30; Brain.Vram = 8L << 30;
+                    bool ordinary = kind == 1, together = kind == 2, overlap = kind == 3;
+                    Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = ordinary || kind == 4 ? 16 : 8; Brain.Grown = 0; Brain.OllamaGrown = 0; Brain.NoBigger = false;
+                    Brain.Ram = ordinary || kind >= 4 ? 8L << 30 : 16L << 30; Brain.Vram = 8L << 30;
+                    int start = Brain.Window;
                     string folder = Path.Combine(data, kind.ToString());
                     Engine local = new Engine(folder);
                     System.Collections.Generic.List<string> windows = new System.Collections.Generic.List<string>(), devices = new System.Collections.Generic.List<string>(), asked = new System.Collections.Generic.List<string>();
@@ -36039,9 +36042,12 @@ namespace CapriDesktop
                     Thread[] workers = new Thread[3];
                     Exception[] errors = new Exception[3];
                     string[] lines = new string[3];
+                    Process growing = null;
+                    string exit = "C0000005";
                     using (ManualResetEvent release = new ManualResetEvent(false))
                     using (ManualResetEvent loading = new ManualResetEvent(false))
                     using (ManualResetEvent finish = new ManualResetEvent(false))
+                    using (ManualResetEvent sent = new ManualResetEvent(false))
                     try
                     {
                         ProcessStartInfo files = local.StartInfo(Engine.Picks[2], false, false, 1);
@@ -36050,14 +36056,16 @@ namespace CapriDesktop
                         Directory.CreateDirectory(Path.GetDirectoryName(model));
                         File.WriteAllText(files.FileName, ""); File.WriteAllText(model, "");
                         string mark = Path.Combine(Path.GetDirectoryName(files.FileName), "cpu-only.txt");
-                        string overflow = "!400 {\"error\":{\"message\":\"request (" + (ordinary ? "15000" : "17000") + " tokens) exceeds the available context size (" + (ordinary ? "8192" : "16384") + " tokens), try increasing it\"}}";
+                        string overflow = "!400 {\"error\":{\"message\":\"request (" + (ordinary ? "15000" : "17000") + " tokens) exceeds the available context size (" + start + " tokens), try increasing it\"}}";
                         string healthy = "{\"status\":\"ok\"}";
+                        string busy = "!503 {\"error\":{\"message\":\"Loading model\",\"type\":\"unavailable_error\",\"code\":503}}";
+                        string[] waiting = new string[64];
                         Engine.Spawn = delegate(ProcessStartInfo info)
                         {
                             windows.Add(Regex.Match(info.Arguments, @" -c (\d+) ").Groups[1].Value);
                             devices.Add(info.Arguments.Contains(" --device none ") ? "cpu" : "gpu");
                             int launch = windows.Count;
-                            if (launch == 2)
+                            if (launch == 2 && !overlap)
                             {
                                 if (together) { loading.Set(); if (!finish.WaitOne(15000)) throw new Exception("The fake bigger load stayed held."); }
                                 Process stopped = Process.Start(new ProcessStartInfo("cmd.exe", "/c exit -1073741819") { UseShellExecute = false, CreateNoWindow = true });
@@ -36065,16 +36073,48 @@ namespace CapriDesktop
                                 return stopped;
                             }
                             System.Net.Sockets.TcpListener served;
-                            FakeServer(launch == 1 ? new[] { healthy, overflow, overflow } : ordinary ? new[] { healthy, answer } : new[] { healthy, overflow, answer }, asked, out served,
+                            FakeServer(launch == 1 ? new[] { healthy, overflow, overflow } : overlap ? waiting : ordinary ? new[] { healthy, answer } : new[] { healthy, overflow, answer }, asked, out served,
                                 port: int.Parse(Regex.Match(info.Arguments, @"--port (\d+)").Groups[1].Value), received: delegate(string request)
                                 {
                                     if (together && launch == 1 && request.StartsWith("POST ", StringComparison.Ordinal) && !release.WaitOne(15000)) throw new Exception("The fake overflowing asks stayed held.");
-                                });
+                                    if (overlap && launch == 2)
+                                    {
+                                        if (request.StartsWith("GET ", StringComparison.Ordinal)) loading.Set();
+                                        else sent.Set();
+                                    }
+                                }, respond: !overlap || launch == 1 ? null : new Func<string, string>(delegate(string request)
+                                {
+                                    return launch == 2 ? busy : request.StartsWith("GET ", StringComparison.Ordinal) ? healthy : request.Contains("Another long ask") ? overflow : answer;
+                                }));
                             servers.Add(served);
-                            return Process.Start(new ProcessStartInfo("ping.exe", "-n 30 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true });
+                            Process running = Process.Start(new ProcessStartInfo("ping.exe", "-n 30 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true });
+                            if (overlap && launch == 2) growing = running;
+                            return running;
                         };
                         string line = null;
-                        if (together)
+                        if (overlap)
+                        {
+                            local.Ensure(Engine.Picks[2]);
+                            for (int at = 0; at < 2; at++)
+                            {
+                                int index = at;
+                                workers[at] = new Thread(delegate()
+                                {
+                                    try { lines[index] = brains[index].Aside("Talk", index == 0 ? "A long ask" : "A small ask", 90); }
+                                    catch (Exception error) { errors[index] = error; }
+                                }) { IsBackground = true };
+                            }
+                            workers[0].Start();
+                            if (!loading.WaitOne(4500) || local.Careful != 32768) throw new Exception("The careful load did not reach its health wait.");
+                            workers[1].Start();
+                            if (!sent.WaitOne(4500)) throw new Exception("The small ask queued behind the careful load before sending.");
+                            growing.Kill(); growing.WaitForExit(3000);
+                            exit = ((uint)Engine.ExitCode(growing)).ToString("X8");
+                            if (!workers[0].Join(4500) || !(errors[0] is BrainException)) throw new Exception("The failed careful load did not give its memory line.");
+                            if (!workers[1].Join(4500) || errors[1] != null || lines[1] != "Done.") throw new Exception("The small ask did not answer after the careful load failed: " + errors[1]);
+                            line = errors[0].Message;
+                        }
+                        else if (together)
                         {
                             local.Ensure(Engine.Picks[2]);
                             System.Net.Sockets.TcpListener served;
@@ -36115,19 +36155,19 @@ namespace CapriDesktop
                         }
                         if (ordinary)
                         {
-                            if (line != "Done." || string.Join(" ", windows.ToArray()) != "8192 16384 16384" || string.Join(" ", devices.ToArray()) != "gpu gpu cpu" || !local.CpuOnly || Brain.NoBigger || !File.Exists(mark) || !new Engine(folder).CpuOnly || !File.ReadAllText(mark).Contains("with exit code 0xC0000005, restarting it on the CPU\nVersion: " + News.Version)) throw new Exception("Growth up to 16K lost the usual lasting CPU fallback.");
+                            if (line != "Done." || string.Join(" ", windows.ToArray()) != "8192 16384 16384" || string.Join(" ", devices.ToArray()) != "gpu gpu cpu" || local.Careful != 0 || !local.CpuOnly || Brain.NoBigger || !File.Exists(mark) || !new Engine(folder).CpuOnly || !File.ReadAllText(mark).Contains("with exit code 0xC0000005, restarting it on the CPU\nVersion: " + News.Version)) throw new Exception("Growth up to 16K lost the usual lasting CPU fallback.");
                             checks.Add("PASS growth up to 16K: a graphics card load crash writes its CPU reason and version, tries the CPU and answers at 16K");
                         }
                         else
                         {
-                            string expected = "That was too long for my brain's 16K memory, and this PC couldn't load a bigger one.";
-                            if (line != expected || string.Join(" ", windows.ToArray()) != "16384 32768 16384" || string.Join(" ", devices.ToArray()) != "gpu gpu gpu" || File.Exists(mark) || local.CpuOnly || new Engine(folder).CpuOnly || Brain.Grown != 0 || Brain.Window != 16384 || !Brain.NoBigger || Brain.Room(overflow, 16384, 90) != 0) throw new Exception("A failed load past 16K did not restore graphics memory without a CPU marker.");
+                            string expected = "That was too long for my brain's " + start / 1024 + "K memory, and this PC couldn't load one big enough.";
+                            if (line != expected || string.Join(" ", windows.ToArray()) != start + " 32768 " + start || string.Join(" ", devices.ToArray()) != "gpu gpu gpu" || local.Careful != 0 || File.Exists(mark) || local.CpuOnly || new Engine(folder).CpuOnly || Brain.Grown != 0 || Brain.Window != start || !Brain.NoBigger || Brain.Room(overflow, start, 90) != 0) throw new Exception("A failed load past 16K did not restore graphics memory without a CPU marker.");
                             string again = null;
                             try { brains[0].Aside("Talk", "Another long ask", 90); }
                             catch (BrainException error) { again = error.Message; }
                             if (again != expected || windows.Count != 3 || brains[0].Aside("Talk", "A small ask", 90) != "Done." || windows.Count != 3 || local.CpuOnly || File.Exists(mark)) throw new Exception("A failed bigger load retried or stopped the next small ask on the graphics card.");
-                            if (!Array.Exists(File.ReadAllLines(Brain.LogPath), entry => entry.EndsWith("with exit code 0xC0000005, keeping its previous memory size", StringComparison.Ordinal))) throw new Exception("The careful load lost its exit code or next action in the log.");
-                            checks.Add(together ? "PASS two overflowing asks on two threads: one failed bigger load, one restore, the same memory line, and Ollama answers while the built-in load is held" : "PASS careful growth past 16K: launches 16K, 32K, 16K on the graphics card, leaves no CPU mark, remembers the failure, and the next small ask answers at 16K");
+                            if (!Array.Exists(File.ReadAllLines(Brain.LogPath), entry => entry.EndsWith("with exit code 0x" + exit + ", keeping its previous memory size", StringComparison.Ordinal))) throw new Exception("The careful load lost its exit code or next action in the log.");
+                            checks.Add(together ? "PASS two overflowing asks on two threads: one failed bigger load, one restore, the same memory line, and Ollama answers while the built-in load is held" : overlap ? "PASS a small ask during careful 32K loading: sends while health reports loading, survives 503 and the crash, answers at 16K after one restore, and leaves no CPU mark or extra 32K launch" : kind >= 4 ? "PASS failed direct growth from " + start / 1024 + "K to 32K: restores the old size, says this PC could not load one big enough, and the next small ask answers" : "PASS careful growth past 16K: launches 16K, 32K, 16K on the graphics card, leaves no CPU mark, remembers the failure, and the next small ask answers at 16K");
                         }
                     }
                     finally
@@ -36145,6 +36185,146 @@ namespace CapriDesktop
                 Engine.Spawn = spawnWas;
                 Brain.MemorySize = memoryWas; Brain.ReplyLength = replyWas; Brain.Recall = recallWas; Brain.Grown = grownWas; Brain.OllamaGrown = ollamaGrownWas; Brain.Ram = ramWas; Brain.Vram = vramWas; Brain.NoBigger = noBiggerWas;
                 Brain.Ollama = ollamaWas; Brain.LogPath = logWas;
+                try { Directory.Delete(data, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
+        }
+
+        private static void SmokeLoadingMemory(System.Collections.Generic.List<string> checks, string answer)
+        {
+            int memoryWas = Brain.MemorySize, replyWas = Brain.ReplyLength, recallWas = Brain.Recall, grownWas = Brain.Grown;
+            long ramWas = Brain.Ram, vramWas = Brain.Vram;
+            bool noBiggerWas = Brain.NoBigger;
+            string logWas = Brain.LogPath;
+            string data = Path.Combine(Path.GetTempPath(), "capri-loading-" + Guid.NewGuid().ToString("N"));
+            Func<ProcessStartInfo, Process> spawnWas = Engine.Spawn;
+            try
+            {
+                Directory.CreateDirectory(data);
+                Brain.LogPath = Path.Combine(data, "log.txt");
+                for (int kind = 0; kind < 3; kind++)
+                {
+                    bool failed = kind == 1, careful = kind == 2;
+                    Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = 8; Brain.Grown = careful ? 32768 : 0; Brain.NoBigger = false;
+                    Brain.Ram = 16L << 30; Brain.Vram = 8L << 30;
+                    string folder = Path.Combine(data, kind.ToString());
+                    Engine local = new Engine(folder);
+                    local.Careful = careful ? 32768 : 0;
+                    System.Collections.Generic.List<string> windows = new System.Collections.Generic.List<string>(), devices = new System.Collections.Generic.List<string>(), asked = new System.Collections.Generic.List<string>();
+                    System.Collections.Generic.List<System.Net.Sockets.TcpListener> servers = new System.Collections.Generic.List<System.Net.Sockets.TcpListener>();
+                    Brain[] brains = { new Brain { Model = "test", Local = local, LocalPick = Engine.Picks[2] }, new Brain { Model = "test", Local = local, LocalPick = Engine.Picks[2] }, new Brain { Model = "test", Local = local, LocalPick = Engine.Picks[2] } };
+                    Thread[] workers = new Thread[3];
+                    Exception[] errors = new Exception[3];
+                    string[] lines = new string[3];
+                    Process running = null;
+                    using (ManualResetEvent loading = new ManualResetEvent(false))
+                    using (ManualResetEvent release = new ManualResetEvent(false))
+                    using (ManualResetEvent sent = new ManualResetEvent(false))
+                    try
+                    {
+                        ProcessStartInfo files = local.StartInfo(Engine.Picks[2], false, false, 1);
+                        string model = Regex.Match(files.Arguments, "-m \"([^\"]+)\"").Groups[1].Value;
+                        Directory.CreateDirectory(Path.GetDirectoryName(files.FileName));
+                        Directory.CreateDirectory(Path.GetDirectoryName(model));
+                        File.WriteAllText(files.FileName, ""); File.WriteAllText(model, "");
+                        string mark = Path.Combine(Path.GetDirectoryName(files.FileName), "cpu-only.txt");
+                        string busy = "!503 {\"error\":{\"message\":\"Loading model\",\"type\":\"unavailable_error\",\"code\":503}}";
+                        string[] waiting = new string[64];
+                        Engine.Spawn = delegate(ProcessStartInfo info)
+                        {
+                            windows.Add(Regex.Match(info.Arguments, @" -c (\d+) ").Groups[1].Value);
+                            devices.Add(info.Arguments.Contains(" --device none ") ? "cpu" : "gpu");
+                            int launch = windows.Count;
+                            if ((failed && launch != 2) || (careful && launch == 1))
+                            {
+                                if (careful) local.Careful = 0;
+                                Process stopped = Process.Start(new ProcessStartInfo("cmd.exe", "/c exit -1073741819") { UseShellExecute = false, CreateNoWindow = true });
+                                stopped.WaitForExit(3000);
+                                if (careful) loading.Set();
+                                return stopped;
+                            }
+                            System.Net.Sockets.TcpListener served;
+                            FakeServer(waiting, asked, out served,
+                                port: int.Parse(Regex.Match(info.Arguments, @"--port (\d+)").Groups[1].Value), received: delegate(string request)
+                                {
+                                    if (!careful && request.StartsWith("GET ", StringComparison.Ordinal)) loading.Set();
+                                    if (request.StartsWith("POST ", StringComparison.Ordinal)) sent.Set();
+                                }, respond: delegate(string request) { return failed || (!careful && !release.WaitOne(0)) ? busy : answer; });
+                            servers.Add(served);
+                            running = Process.Start(new ProcessStartInfo("ping.exe", "-n 30 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true });
+                            return running;
+                        };
+                        for (int at = 0; at < workers.Length; at++)
+                        {
+                            int index = at;
+                            workers[at] = new Thread(delegate()
+                            {
+                                try
+                                {
+                                    if (index == 2) brains[index].Warm();
+                                    else lines[index] = brains[index].Aside("Talk", "A small ask", 90);
+                                }
+                                catch (Exception error) { errors[index] = error; }
+                            }) { IsBackground = true };
+                        }
+                        if (careful)
+                        {
+                            object memoryGate = typeof(Brain).GetField("memoryGate", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetValue(null);
+                            lock (memoryGate)
+                            {
+                                workers[0].Start();
+                                if (!loading.WaitOne(4500)) throw new Exception("The ordinary careful load did not start.");
+                                WaitVoice(delegate { return !local.Loading && local.Careful == 0 && (workers[0].ThreadState & System.Threading.ThreadState.WaitSleepJoin) != 0; }, "The small ask did not wait for memory to be restored after its careful crash.");
+                                if (errors[0] != null || windows.Count != 1 || local.CpuOnly || File.Exists(mark)) throw new Exception("An ordinary caller lost the careful load after its marker cleared.");
+                                Interlocked.Exchange(ref Brain.Grown, 0);
+                                Brain.NoBigger = true;
+                            }
+                            if (!workers[0].Join(4500) || errors[0] != null || lines[0] != "Done." || string.Join(" ", windows.ToArray()) != "32768 16384" || string.Join(" ", devices.ToArray()) != "gpu gpu" || local.Careful != 0 || local.CpuOnly || File.Exists(mark)) throw new Exception("A careful crash from an ordinary Ensure did not retry at the restored size.");
+                            if (!Array.Exists(File.ReadAllLines(Brain.LogPath), entry => entry.EndsWith("with exit code 0xC0000005, keeping its previous memory size", StringComparison.Ordinal))) throw new Exception("An ordinary caller lost the careful crash reason.");
+                            checks.Add("PASS careful load owned by an ordinary caller: captures the careful window, keeps that fact after the marker clears, waits for the memory gate, and answers at restored 16K without a CPU mark");
+                        }
+                        else
+                        {
+                            workers[0].Start();
+                            if (!loading.WaitOne(4500)) throw new Exception("The cold load did not reach its health wait.");
+                            workers[1].Start(); workers[2].Start();
+                            if (!sent.WaitOne(4500)) throw new Exception("The second cold ask queued behind the first load.");
+                            if (!workers[2].Join(4500) || errors[2] != null || !local.Loading || windows.Count != (failed ? 2 : 1)) throw new Exception("Warm-up waited for the cold load or the second ask launched again.");
+                            if (failed) { running.Kill(); running.WaitForExit(3000); }
+                            release.Set();
+                            for (int at = 0; at < 2; at++)
+                                if (!workers[at].Join(4500)) throw new Exception("A cold ask stayed waiting after the load ended.");
+                            if (failed)
+                            {
+                                BrainException first = errors[0] as BrainException, second = errors[1] as BrainException;
+                                if (first == null || first.Careful || first.Message != "Brain crashed loading. Close games, press Refresh." || second == null || second.Careful || second.Status != 503 || windows.Count != 2 || !local.CpuOnly || !File.Exists(mark)) throw new Exception("The second ask retried after the cold CPU load died or lost its 503.");
+                                BrainException later = null;
+                                try { brains[1].Aside("Talk", "A fresh ask after the crash", 90); }
+                                catch (BrainException error) { later = error; }
+                                if (later == null || later.Careful || later.Message != first.Message || string.Join(" ", windows.ToArray()) != "16384 16384 16384" || string.Join(" ", devices.ToArray()) != "gpu cpu cpu" || !new Engine(folder).CpuOnly || local.Careful != 0) throw new Exception("A fresh ask after a cold CPU crash changed the usual single CPU launch.");
+                                checks.Add("PASS cold CPU load failure: the second ask passes Ensure while health waits, gets 503 and fails without another launch when the CPU dies; a fresh ask after death starts one CPU load, as in 0.9.0");
+                            }
+                            else
+                            {
+                                if (errors[0] != null || errors[1] != null || lines[0] != "Done." || lines[1] != "Done." || windows.Count != 1 || local.CpuOnly || File.Exists(mark) || local.Careful != 0) throw new Exception("Two cold asks did not share the ordinary graphics load.");
+                                checks.Add("PASS ordinary cold load: the second ask passes Ensure and warm-up returns while the first waits for healthy; both asks answer from one graphics load without taking the memory gate");
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        release.Set();
+                        foreach (Brain brain in brains) brain.Cancel();
+                        foreach (Thread worker in workers) if (worker != null && worker.IsAlive) worker.Join(4500);
+                        local.Stop();
+                        foreach (System.Net.Sockets.TcpListener served in servers) served.Stop();
+                    }
+                }
+            }
+            finally
+            {
+                Engine.Spawn = spawnWas;
+                Brain.MemorySize = memoryWas; Brain.ReplyLength = replyWas; Brain.Recall = recallWas; Brain.Grown = grownWas; Brain.Ram = ramWas; Brain.Vram = vramWas; Brain.NoBigger = noBiggerWas;
+                Brain.LogPath = logWas;
                 try { Directory.Delete(data, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
             }
         }
@@ -36250,6 +36430,40 @@ namespace CapriDesktop
                     }
                 }
                 checks.Add("PASS failed Ollama growth: an error reply, a thrown timeout and an HTTP error restore the previous Auto growth, keep the error, and the next small ask uses the old size");
+
+                fake.Stop(); Brain.OllamaGrown = 8192;
+                System.Collections.Generic.List<string> cancelled = new System.Collections.Generic.List<string>();
+                using (ManualResetEvent sent = new ManualResetEvent(false))
+                using (ManualResetEvent hungUp = new ManualResetEvent(false))
+                {
+                    Brain.Ollama = FakeServer(new[] { null, answer }, cancelled, out fake, hungUp: hungUp, received: delegate(string request) { sent.Set(); });
+                    Brain cancelling = new Brain { Model = "test" };
+                    Exception problem = null;
+                    Thread worker = new Thread(delegate()
+                    {
+                        try { cancelling.Step(system, user, tools, "[]", "Tools", new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>(), 8192); }
+                        catch (Exception error) { problem = error; }
+                    }) { IsBackground = true };
+                    try
+                    {
+                        worker.Start();
+                        if (!sent.WaitOne(4500) || Brain.OllamaGrown != 16384) throw new Exception("The cancellable Ollama ask did not send its grown window.");
+                        cancelling.Cancel();
+                        if (!worker.Join(4500)) throw new Exception("The cancelled Ollama ask stayed running.");
+                        WebException stopped = problem as WebException;
+                        if (stopped == null || stopped.Status != WebExceptionStatus.RequestCanceled || Brain.OllamaGrown != 16384) throw new Exception("A cancelled Ollama send undid its grown window.");
+                        WaitVoice(delegate { return hungUp.WaitOne(0); }, "The cancelled Ollama send stayed connected.");
+                        if (cancelling.Aside("Talk", "Hello after cancelling", 90) != "Done." || cancelled.Count != 2 || Brain.Grown != 8192) throw new Exception("The next small ask after cancelling Ollama did not answer.");
+                        foreach (string request in cancelled)
+                            if (Brain.Field(Brain.Field(SentBody(request), "options"), "num_ctx") != "16384") throw new Exception("Ollama reloaded a smaller window after a cancelled send.");
+                        checks.Add("PASS cancelled Ollama growth: RequestCanceled keeps 16K and the next small ask sends 16K, while built-in growth stays unchanged");
+                    }
+                    finally
+                    {
+                        cancelling.Cancel();
+                        if (worker.IsAlive) worker.Join(4500);
+                    }
+                }
 
                 for (int retry = 0; retry < 2; retry++)
                 {
