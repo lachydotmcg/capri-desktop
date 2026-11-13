@@ -4449,7 +4449,7 @@ namespace CapriDesktop
         // it as their words.
         private static string ForYou(string parts) { return "(For you, not from them:" + parts + "\n)\n\n"; }
 
-        internal static string Now() { return "\nRight now it's " + DateTime.Now.ToString("dddd d MMMM yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture) + " where they are, so answer the time or date from this line without searching for it."; }
+        internal static string Now() { return "\nIf the time or date is needed, it's " + DateTime.Now.ToString("dddd d MMMM yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture) + " where they are, so there's no need to search for it."; }
 
         internal const string Gibberish = "My brain sent gibberish. Pick another model in Capri Mainframe.";
         internal const string Wordless = "My brain sent an empty reply. Try again or pick another model in Capri Mainframe.";
