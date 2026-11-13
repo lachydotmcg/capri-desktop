@@ -37866,7 +37866,7 @@ namespace CapriDesktop
                     string line = Hands.Do(named, search);
                     if (sent != "https://search.brave.com/search?q=" + Uri.EscapeDataString(search.Search.Trim()) + "&lang=en" || line != "Searched search.brave.com for " + search.Search.Trim() + ".") throw new Exception("An unnamed look-up lost the browser's engine: " + phrase);
                 }
-                ToolArguments lookup = Hands.Lookup("when does the new GTA come out?", "I don't know.");
+                ToolArguments lookup = Hands.Lookup("when does the new GTA come out?", "I don't have live info on that, choom.");
                 if (lookup == null || !string.IsNullOrEmpty(lookup.Site)) throw new Exception("The automatic look-up still picked Google.");
                 Hands.Do("open_website", lookup);
                 if (sent != "https://search.brave.com/search?q=" + Uri.EscapeDataString(lookup.Search) + "&lang=en") throw new Exception("The automatic look-up lost the browser's engine.");
