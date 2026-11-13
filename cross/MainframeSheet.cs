@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -495,6 +497,348 @@ namespace CapriDesktop
         private static string NameOf(Control control)
         {
             return Avalonia.Automation.AutomationProperties.GetName(control) ?? (control as NeonCaption == null ? control.GetType().Name : ((NeonCaption)control).Text);
+        }
+    }
+
+    internal sealed class RemoteSheet : MainframeWindow
+    {
+        internal const int Wide = 600, Tall = 704, PhonesPerPage = 5;
+        private readonly Func<RemoteView> read;
+        private readonly Action<bool> change;
+        private readonly Action newCode, closeCode, allowPhone, denyPhone, removePhones;
+        private readonly Action<string> revokePhone;
+        private readonly Func<string, bool> changeHost;
+        private readonly DispatcherTimer clock = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        private readonly NeonSwitch power;
+        private readonly NeonCaption status, idle, qrNote, askTitle, askName, codeLabel, askCode, askCheck, empty, page, note, revokeNote;
+        private readonly NeonCaption[] names = new NeonCaption[PhonesPerPage], states = new NeonCaption[PhonesPerPage], sources = new NeonCaption[PhonesPerPage];
+        private readonly NeonButton[] revokes = new NeonButton[PhonesPerPage];
+        private readonly NeonButton pair, showQr, allow, deny, back, next, removeAll;
+        private readonly NeonEntry host;
+        private readonly RemoteQrBox qr;
+        private RemoteView view = new RemoteView();
+        private string armedId, lastQr, revealedQr, lastHost, refusedText, refusedHost, refusedNote;
+        private int first, armedAt;
+        private bool syncing, closed, armedAll, streaming, hostRefused;
+        internal readonly Dictionary<string, Control> Rows = new Dictionary<string, Control>();
+
+        internal RemoteSheet(Func<RemoteView> read, Action<bool> change, Action newCode, Action closeCode, Action allow, Action deny, Action<string> revoke, Action removeAll, Func<string, bool> changeHost) : base("Remote")
+        {
+            this.read = read; this.change = change; this.newCode = newCode; this.closeCode = closeCode;
+            allowPhone = allow; denyPhone = deny; revokePhone = revoke; removePhones = removeAll; this.changeHost = changeHost;
+            ShowInTaskbar = false;
+            Caption("Title", "REMOTE", 24, 15, 480, 29, MainframeTheme.Rose, 20, true).Display = true;
+            Button("Close", "", 550, 20, 26, 22, Close).Glyph = 2;
+            Caption("About", "Chat with Capri from your phone", 28, 52, 544, 20);
+            power = Put(Page, new NeonSwitch { Text = "Remote", Hint = "Sealed end to end", Switch = 120 }, 28, 80, 544, 24, "Capri Remote"); Rows["Remote"] = power;
+            power.IsCheckedChanged += delegate { if (!syncing && !closed) { this.change(power.Checked); Sync(); } };
+            status = Caption("Status", "", 28, 112, 544, 24, MainframeTheme.Faint, MainframeTheme.Size, true);
+            Put(Page, new NeonHead { Text = "QR CODE" }, 14, 148, 284, 24, "QR code");
+            Put(Page, new NeonHead { Text = "PHONES" }, 302, 148, 284, 24, "Phones");
+            pair = Button("Pair", "Pair a phone", 178, 148, 114, 24, delegate { this.newCode(); }); pair.Accent = MainframeTheme.Cyan; pair.Loud = true;
+            qr = Put(Page, new RemoteQrBox(this), 34, 184, 252, 252, "Pairing QR code"); Rows["QR"] = qr;
+            qrNote = Caption("QR note", "", 28, 444, 264, 20, MainframeTheme.Faint, 34.0 / 3); qrNote.Align = TextAlignment.Center;
+            idle = Caption("Idle", "", 28, 192, 264, 44);
+            showQr = Button("Show QR", "Show QR", 106, 248, 108, 28, delegate { revealedQr = view.Qr; }); showQr.Accent = MainframeTheme.Cyan;
+            askTitle = Caption("Ask title", "ALLOW THIS PHONE?", 28, 192, 264, 24, MainframeTheme.Rose, 14, true);
+            askName = Caption("Ask name", "", 28, 220, 264, 36, MainframeTheme.White, 44.0 / 3, true);
+            codeLabel = Caption("Code label", "CODE", 28, 264, 264, 18, MainframeTheme.Faint, 34.0 / 3);
+            askCode = Caption("Code", "", 28, 286, 264, 46, MainframeTheme.Cyan, 104.0 / 3); askCode.Display = true;
+            askCheck = Caption("Ask check", "Same code on the phone?", 28, 340, 264, 24);
+            this.allow = Button("Allow", "Allow", 28, 376, 128, 28, delegate { allowPhone(); }); this.allow.Accent = MainframeTheme.Cyan; this.allow.Loud = true;
+            this.deny = Button("Deny", "Deny", 164, 376, 128, 28, delegate { denyPhone(); }); this.deny.Accent = MainframeTheme.Hot;
+            for (int i = 0; i < PhonesPerPage; i++)
+            {
+                int row = i, y = 184 + 58 * i;
+                names[i] = Caption("Phone " + (i + 1), "", 316, y, 176, 20, MainframeTheme.White, 40.0 / 3, true);
+                states[i] = Caption("Phone state " + (i + 1), "", 316, y + 20, 176, 16, MainframeTheme.Faint, 34.0 / 3);
+                sources[i] = Caption("Phone source " + (i + 1), "", 316, y + 36, 256, 16, MainframeTheme.Faint, 34.0 / 3);
+                revokes[i] = Button("Revoke " + (i + 1), "Revoke", 500, y + 5, 72, 26, delegate { Revoke(row); }); revokes[i].Accent = MainframeTheme.Hot;
+            }
+            empty = Caption("Empty", "No phones yet", 316, 192, 256, 24);
+            back = Button("Back", "Back", 316, 480, 58, 24, delegate { first -= PhonesPerPage; });
+            page = Caption("Page", "", 382, 480, 124, 24, MainframeTheme.Faint, 34.0 / 3); page.Align = TextAlignment.Center;
+            next = Button("Next", "Next", 514, 480, 58, 24, delegate { first += PhonesPerPage; });
+            this.removeAll = Button("Remove all phones", "Remove all phones", 316, 512, 256, 28, RemoveAll); this.removeAll.Accent = MainframeTheme.Hot;
+            AutomationProperties.SetName(this.removeAll, "Remove all phones and pair again");
+            revokeNote = Caption("Revoke note", "", 316, 546, 256, 32, MainframeTheme.Faint, 34.0 / 3);
+            Put(Page, new NeonHead { Text = "RELAY" }, 14, 588, 572, 24, "Relay");
+            host = Put(Page, new NeonEntry(RemoteLink.DefaultHost), 28, 620, 460, 28, "Relay host"); Rows["Relay host"] = host;
+            AutomationProperties.SetName(host.Box, "Relay host");
+            host.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(SaveHost); } };
+            Button("Save relay host", "Save", 496, 620, 76, 28, SaveHost);
+            note = Caption("Note", "", 28, 656, 544, 24, MainframeTheme.Cyan);
+            List<Control> keys = new List<Control>();
+            foreach (Control control in Page.Children) if (control.Focusable || control == host) keys.Add(control);
+            keys.Sort(delegate(Control a, Control b) { int row = Canvas.GetTop(a).CompareTo(Canvas.GetTop(b)); return row != 0 ? row : Canvas.GetLeft(a).CompareTo(Canvas.GetLeft(b)); });
+            for (int i = 0; i < keys.Count; i++) { keys[i].TabIndex = i; if (keys[i] == host) host.Box.TabIndex = i; }
+            clock.Tick += Tick;
+            Opened += delegate { Sync(); clock.Start(); };
+            ScalingChanged += delegate { qr.InvalidateVisual(); };
+            SizeChanged += delegate { qr.InvalidateVisual(); };
+            Scroll.ScrollChanged += delegate { qr.InvalidateVisual(); };
+            Closed += delegate { closed = true; clock.Stop(); clock.Tick -= Tick; qr.Url = null; Program.Guard(this.closeCode); };
+            Sync();
+        }
+
+        private NeonCaption Caption(string name, string text, int x, int y, int width, int height, IBrush ink = null, double size = MainframeTheme.Size, bool bold = false)
+        {
+            NeonCaption caption = Put(Page, new NeonCaption { Text = text, Ink = ink ?? MainframeTheme.Faint, Size = size, Bold = bold, Ellipsis = true }, x, y, width, height, text.Length > 0 ? text : name);
+            Rows[name] = caption; return caption;
+        }
+
+        private NeonButton Button(string name, string text, int x, int y, int width, int height, Action action)
+        {
+            NeonButton button = Put(Page, new NeonButton { Text = text }, x, y, width, height, name);
+            Rows[name] = button;
+            button.Click += delegate { if (closed) return; action(); Sync(); };
+            return button;
+        }
+
+        private static void Say(NeonCaption caption, string text)
+        {
+            caption.Text = text ?? "";
+            AutomationProperties.SetName(caption, caption.Text);
+        }
+
+        private static void Tip(Control control, string text)
+        {
+            TextBlock tip = ToolTip.GetTip(control) as TextBlock;
+            if (tip != null && tip.Text == text) return;
+            ToolTip.SetTip(control, new TextBlock { Text = text, MaxWidth = 320, TextWrapping = TextWrapping.Wrap, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size, Foreground = MainframeTheme.White });
+        }
+
+        private void Tick(object sender, EventArgs e) { Program.Guard(Sync); }
+
+        internal void Sync()
+        {
+            if (closed || syncing) return;
+            syncing = true;
+            try
+            {
+                view = read() ?? new RemoteView();
+                MainframeWindow frame = Owner as MainframeWindow;
+                double zoom = frame == null ? Zoom : frame.Zoom;
+                if (double.IsNaN(Page.Width) || Zoom != zoom) Fit(Wide, Tall, zoom);
+                if (streaming != Hands.Streaming || lastQr != view.Qr) revealedQr = null;
+                streaming = Hands.Streaming; lastQr = view.Qr;
+                first = Math.Max(0, Math.Min(first, Math.Max(0, (view.Phones.Count - 1) / PhonesPerPage) * PhonesPerPage));
+                if (unchecked(Environment.TickCount - armedAt) > 4000) { armedId = null; armedAll = false; }
+                if (armedId != null && !view.Phones.Exists(delegate(RemoteDevice phone) { return phone.Id == armedId; })) armedId = null;
+                power.Checked = view.On;
+                IBrush tone;
+                Say(status, StatusLine(view, out tone)); status.Ink = tone; status.InvalidateVisual();
+                bool asking = view.Ask != null, linking = !asking && view.LinkFor != null;
+                bool expired = view.Expired || view.Qr != null && view.QrSeconds <= 0;
+                bool showing = view.On && view.Ready && !asking && !linking && !expired && view.Qr != null;
+                bool hidden = showing && streaming && revealedQr != view.Qr;
+                qr.Url = showing && !hidden ? view.Qr : null; qr.IsVisible = showing && !hidden;
+                showQr.IsVisible = hidden;
+                qrNote.IsVisible = showing && !hidden;
+                Say(qrNote, showing ? "SCAN WITH YOUR PHONE \u00b7 " + view.QrSeconds + (view.QrSeconds == 1 ? " SECOND LEFT" : " SECONDS LEFT") : "");
+                idle.IsVisible = !asking && (!showing || hidden);
+                Say(idle, hidden ? "QR hidden while streaming" : !view.On ? "Turn Remote on first" : !view.Ready ? "Waiting for the relay" : expired ? "That code expired" : linking ? "Pairing link sent to " + view.LinkFor : "No code open");
+                askTitle.IsVisible = askName.IsVisible = codeLabel.IsVisible = askCode.IsVisible = askCheck.IsVisible = allow.IsVisible = deny.IsVisible = asking;
+                Say(askName, asking ? view.Ask.Name : ""); Say(askCode, asking ? view.Ask.Code : "");
+                if (asking) Tip(askName, view.Ask.Name);
+                allow.IsEnabled = deny.IsEnabled = view.On && view.Ready;
+                pair.Text = showing || expired ? "New code" : "Pair a phone"; AutomationProperties.SetName(pair, pair.Text);
+                pair.IsEnabled = view.On && view.Ready && !asking;
+                for (int i = 0; i < PhonesPerPage; i++)
+                {
+                    bool present = first + i < view.Phones.Count;
+                    names[i].IsVisible = states[i].IsVisible = revokes[i].IsVisible = present;
+                    sources[i].IsVisible = false;
+                    if (!present) continue;
+                    RemoteDevice phone = view.Phones[first + i];
+                    bool online = view.Online.Contains(phone.Id);
+                    Say(names[i], phone.Name); Tip(names[i], phone.Name);
+                    Say(states[i], online ? "CONNECTED" : "OFFLINE \u00b7 ADDED " + phone.Added.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture).ToUpperInvariant());
+                    states[i].Ink = online ? MainframeTheme.Cyan : MainframeTheme.Faint; states[i].InvalidateVisual();
+                    string from = phone.From;
+                    if (string.IsNullOrEmpty(from) && phone.Parent != null)
+                    {
+                        RemoteDevice parent = view.Phones.Find(delegate(RemoteDevice found) { return found.Id == phone.Parent; });
+                        if (parent != null) from = parent.Name;
+                    }
+                    bool linked = phone.From != null || phone.Parent != null;
+                    sources[i].IsVisible = linked;
+                    Say(sources[i], linked ? "BY LINK" + (string.IsNullOrEmpty(from) ? "" : " \u00b7 " + from) : "");
+                    if (linked) Tip(sources[i], sources[i].Text);
+                    revokes[i].Text = armedId == phone.Id ? "Sure?" : "Revoke"; revokes[i].Loud = armedId == phone.Id;
+                    AutomationProperties.SetName(revokes[i], (armedId == phone.Id ? "Sure? Revoke " : "Revoke ") + phone.Name); revokes[i].InvalidateVisual();
+                }
+                empty.IsVisible = view.Phones.Count == 0;
+                back.IsVisible = next.IsVisible = page.IsVisible = view.Phones.Count > PhonesPerPage;
+                back.IsEnabled = first > 0; next.IsEnabled = first + PhonesPerPage < view.Phones.Count;
+                Say(page, "Page " + (first / PhonesPerPage + 1) + " of " + Math.Max(1, (view.Phones.Count + PhonesPerPage - 1) / PhonesPerPage));
+                removeAll.Text = armedAll ? "Sure?" : "Remove all phones"; removeAll.Loud = armedAll; removeAll.InvalidateVisual();
+                AutomationProperties.SetName(removeAll, armedAll ? "Sure? Remove all phones and pair again" : "Remove all phones and pair again");
+                Say(revokeNote, view.Phones.Exists(delegate(RemoteDevice phone) { return phone.Parent != null; }) ? "Revoke also removes the phones its links added" : ""); revokeNote.IsVisible = revokeNote.Text.Length > 0;
+                if (!host.Box.IsKeyboardFocusWithin && lastHost != view.Host) { host.Box.Text = view.Host == RemoteLink.DefaultHost ? "" : view.Host; lastHost = view.Host; }
+                if (hostRefused && (refusedText != (host.Box.Text ?? "") || refusedHost != view.Host || refusedNote != view.Note)) hostRefused = false;
+                Say(note, hostRefused ? "Not a relay host" : view.Note); note.IsVisible = note.Text.Length > 0; note.Ink = hostRefused ? MainframeTheme.Rose : MainframeTheme.Cyan; note.InvalidateVisual();
+            }
+            finally { syncing = false; }
+        }
+
+        private static string StatusLine(RemoteView shown, out IBrush tone)
+        {
+            tone = MainframeTheme.Faint;
+            switch (shown.Status)
+            {
+                case "online":
+                    tone = MainframeTheme.Cyan;
+                    int count = shown.Online.Count;
+                    return "ONLINE \u00b7 " + (count == 0 ? "NO PHONES CONNECTED" : count + (count == 1 ? " PHONE CONNECTED" : " PHONES CONNECTED"));
+                case "connecting": return "CONNECTING";
+                case "retrying": tone = MainframeTheme.Rose; return "CAN'T REACH THE RELAY \u00b7 RETRYING";
+                case "replaced": tone = MainframeTheme.Rose; return "ANOTHER CAPRI TOOK OVER \u00b7 TURN OFF AND ON";
+                case "bad-host": tone = MainframeTheme.Rose; return "BAD RELAY HOST";
+                case "off": return "OFF";
+                default: return string.IsNullOrEmpty(shown.Status) ? "OFF" : shown.Status;
+            }
+        }
+
+        private void Revoke(int row)
+        {
+            if (row < 0 || row >= PhonesPerPage || first + row >= view.Phones.Count) return;
+            string id = view.Phones[first + row].Id;
+            armedAll = false;
+            if (armedId != id || unchecked(Environment.TickCount - armedAt) > 4000) { armedId = id; armedAt = Environment.TickCount; return; }
+            armedId = null; revokePhone(id);
+        }
+
+        private void RemoveAll()
+        {
+            armedId = null;
+            if (!armedAll || unchecked(Environment.TickCount - armedAt) > 4000) { armedAll = true; armedAt = Environment.TickCount; return; }
+            armedAll = false; removePhones();
+        }
+
+        private void SaveHost()
+        {
+            if (closed) return;
+            hostRefused = !changeHost(host.Box.Text ?? "");
+            refusedText = host.Box.Text ?? ""; refusedHost = view.Host; refusedNote = view.Note;
+            Sync();
+        }
+
+        internal string Crowded()
+        {
+            Rect pageBox = new Rect(0, 0, Wide, Tall);
+            for (int i = 0; i < Page.Children.Count; i++)
+            {
+                Control a = Page.Children[i]; if (!a.IsVisible) continue;
+                Rect box = Box(a);
+                if (!pageBox.Contains(box)) return "Outside: " + AutomationProperties.GetName(a);
+                NeonCaption caption = a as NeonCaption; NeonButton button = a as NeonButton; NeonEntry entry = a as NeonEntry; NeonSwitch toggle = a as NeonSwitch;
+                string wrong = caption != null ? caption.TextFits() : button != null ? button.TextFits() : entry != null ? entry.TextFits() : toggle != null ? toggle.TextFits() : null;
+                if (wrong != null) return "Text: " + wrong;
+                for (int j = i + 1; j < Page.Children.Count; j++)
+                {
+                    Control b = Page.Children[j]; if (!b.IsVisible) continue;
+                    Rect overlap = box.Intersect(Box(b));
+                    if (overlap.Width > 0.5 && overlap.Height > 0.5) return AutomationProperties.GetName(a) + " / " + AutomationProperties.GetName(b);
+                }
+            }
+            return null;
+        }
+
+        private static Rect Box(Control control)
+        {
+            double x = Canvas.GetLeft(control), y = Canvas.GetTop(control);
+            NeonHead head = control as NeonHead;
+            return head == null ? new Rect(x, y, control.Width, control.Height) : new Rect(x + 14, y + 5, MainframeTheme.Words(head.Text, 40.0 / 3, true).Width, 19);
+        }
+
+        internal static Dictionary<string, RemoteView> Samples()
+        {
+            Dictionary<string, RemoteView> views = new Dictionary<string, RemoteView>();
+            foreach (string name in new[] { "off", "connecting", "ready", "qr", "qr-streaming", "expired", "asking", "online", "seven-phones", "unreadable", "long", "link", "retrying", "replaced", "bad-host" })
+                views[name] = new RemoteView { On = true, Ready = true, Status = "online" };
+            views["off"] = new RemoteView();
+            views["connecting"].Ready = false; views["connecting"].Status = "connecting";
+            string url = RemoteCrypto.QrUrl(RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[32]));
+            views["qr"].Qr = views["qr-streaming"].Qr = url;
+            views["qr"].QrSeconds = views["qr-streaming"].QrSeconds = 90;
+            views["expired"].Expired = true; views["expired"].Qr = url;
+            views["asking"].Ask = new RemoteAsk { Pending = "sample", Name = "Lachy's Pixel 9 Pro XL", Code = "318 338", App = "remote-web/0.1.0" };
+            views["asking"].Qr = url; views["asking"].QrSeconds = 90;
+            DateTime added = new DateTime(2026, 11, 8, 9, 30, 0, DateTimeKind.Utc);
+            foreach (string name in new[] { "online", "seven-phones", "long", "link" })
+            {
+                for (int i = 0; i < (name == "seven-phones" ? 7 : 1); i++)
+                {
+                    byte[] id = new byte[16]; id[15] = (byte)(i + 1);
+                    views[name].Phones.Add(new RemoteDevice { Id = RemoteCrypto.B64u(id), Name = i == 0 ? "Lachy's Pixel 9 Pro XL" : "Phone " + (i + 1), Added = added.AddDays(-i) });
+                }
+                views[name].Online.Add(views[name].Phones[0].Id);
+            }
+            views["seven-phones"].Phones[6].From = views["seven-phones"].Phones[0].Name;
+            views["seven-phones"].Phones[6].Parent = views["seven-phones"].Phones[0].Id;
+            views["unreadable"] = new RemoteView { Status = "Couldn't read the saved phones." };
+            string longName = "Lachy's Samsung Galaxy S26 Ultra with a very long phone name that must stay inside the sheet";
+            views["long"].Host = "relay-with-a-very-long-name.for-the-family-phones.on-another-long-subdomain.example:8443";
+            views["long"].Phones[0].Name = longName;
+            views["long"].Ask = new RemoteAsk { Pending = "long-sample", Name = longName, Code = "318 338", App = "remote-web/0.1.0" };
+            views["link"].LinkFor = views["link"].Phones[0].Name; views["link"].Qr = url; views["link"].QrSeconds = 90;
+            foreach (string name in new[] { "retrying", "replaced", "bad-host" }) { views[name].Status = name; views[name].Ready = false; }
+            return views;
+        }
+    }
+
+    internal sealed class RemoteQrBox : Control
+    {
+        private static readonly IBrush Paper = new SolidColorBrush(Color.FromRgb(242, 242, 246)), Ink = new SolidColorBrush(Color.FromRgb(10, 10, 16));
+        private readonly MainframeWindow frame;
+        private RemoteQr code;
+        private string url;
+        private double zoom, dpi;
+        internal int PixelUnit { get; private set; }
+        internal Rect QuietBox { get; private set; }
+
+        internal RemoteQrBox(MainframeWindow frame) { this.frame = frame; IsHitTestVisible = false; }
+
+        internal string Url
+        {
+            get { return url; }
+            set
+            {
+                if (url != value) { url = value; code = null; PixelUnit = 0; QuietBox = new Rect(); }
+                if (code == null || zoom != frame.Zoom || dpi != frame.RenderScaling) InvalidateVisual();
+            }
+        }
+
+        internal static Rect Pixels(int modules, Size size, double scale, Point origin, out int unit)
+        {
+            double left = Math.Ceiling(origin.X + 6 * scale), top = Math.Ceiling(origin.Y + 6 * scale);
+            double wide = Math.Floor(origin.X + (size.Width - 6) * scale) - left, tall = Math.Floor(origin.Y + (size.Height - 6) * scale) - top;
+            unit = (int)Math.Floor(Math.Min(wide, tall) / modules);
+            if (unit < 1) { unit = 0; return new Rect(); }
+            int side = unit * modules;
+            return new Rect((left + Math.Floor((wide - side) / 2) - origin.X) / scale, (top + Math.Floor((tall - side) / 2) - origin.Y) / scale, side / scale, side / scale);
+        }
+
+        public override void Render(DrawingContext context)
+        {
+            if (url == null) return;
+            if (code == null || zoom != frame.Zoom || dpi != frame.RenderScaling)
+            {
+                zoom = frame.Zoom; dpi = frame.RenderScaling; code = RemoteQr.Encode(url);
+            }
+            context.DrawGeometry(Paper, null, MainframeTheme.Cut(new Rect(Bounds.Size), br: 12));
+            Point? point = this.TranslatePoint(new Point(), frame);
+            if (!point.HasValue) return;
+            double scale = zoom * dpi;
+            int pixels;
+            QuietBox = Pixels(code.Size + 8, Bounds.Size, scale, new Point(point.Value.X * dpi, point.Value.Y * dpi), out pixels); PixelUnit = pixels;
+            if (pixels == 0) return;
+            double unit = pixels / scale, left = QuietBox.X + 4 * unit, top = QuietBox.Y + 4 * unit;
+            using (context.PushRenderOptions(new RenderOptions { EdgeMode = EdgeMode.Aliased }))
+                for (int y = 0; y < code.Size; y++)
+                    for (int x = 0; x < code.Size; x++)
+                        if (code.Dark(x, y)) context.DrawRectangle(Ink, null, new Rect(left + x * unit, top + y * unit, unit, unit));
         }
     }
 
