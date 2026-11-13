@@ -28419,9 +28419,20 @@ namespace CapriDesktop
                 string reminded = working.Ask("open cs");
                 if (reminded != "CS is up." || did.Count != 3 || did[2] != "open_app:Counter-Strike 2") throw new Exception("A promise with no tool behind it wasn't sent back for the tool: " + reminded + " / " + string.Join(",", did.ToArray()));
                 working.Forget();
-                string unkept = working.Ask("open spotify");
-                // Two promises with no tool still leave a plain ask undone by the brain, so her hands open it, as for any other brain (Gale, 11 Nov).
-                if (unkept != "Spotify's up." || did.Count != 4 || did[3].IndexOf("open_app:spotify", StringComparison.OrdinalIgnoreCase) != 0) throw new Exception("Two promises with no tool left a plain open undone: " + unkept + " / " + string.Join(",", did.ToArray()));
+                Func<System.Collections.Generic.List<InstalledApp>> spotifyCatalog = Hands.Catalog;
+                try
+                {
+                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Spotify", "spotify-id") }; };
+                    Hands.Forget();
+                    string unkept = working.Ask("open spotify");
+                    // Two promises with no tool still leave a plain ask undone by the brain, so her hands open it, as for any other brain (Gale, 11 Nov).
+                    if (unkept != "Spotify's up." || did.Count != 4 || did[3].IndexOf("open_app:spotify", StringComparison.OrdinalIgnoreCase) != 0) throw new Exception("Two promises with no tool left a plain open undone: " + unkept + " / " + string.Join(",", did.ToArray()));
+                }
+                finally
+                {
+                    Hands.Catalog = spotifyCatalog;
+                    Hands.Forget();
+                }
                 working.Forget();
                 string chatted = working.Ask("what's your favourite game?");
                 if (chatted != "Cyberpunk, obviously." || did.Count != 4) throw new Exception("Chat turned into a job: " + chatted);
