@@ -591,7 +591,7 @@ Use preset returns to the Pop-ins slider's pace. Moving that slider also clears 
 ### How do I get mods? (0.8.3)
 Right-click her > Open Capri Mainframe > Mods, beside Settings. On Mac and Linux it's on the CAPRI heading. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins and Skills filter the list.
 
-Press Install on the mod you want. View opens its folder on GitHub so you can read about it first. Once installed, click its stars to rate it from 1 to 5.
+Press Install on the mod you want. View lets you read about it first. Once installed, click its stars to rate it from 1 to 5.
 
 View on a mod (0.9.0) shows the first few lines of its README, with Learn more for the whole page. A mod with no description takes one from its README.
 
@@ -1301,7 +1301,7 @@ While a song or video plays, a small black player with her pink and cyan neon sh
 - It follows Always on top: on, it stays over your windows, just under her. Off, it sits among them.
 - Her own screenshots during a job look straight through it.
 
-Turn it off: Mainframe > Settings > Mini player, or the player's menu > Turn off mini player. It's Windows only for now.
+Turn it off: Mainframe > Settings > Mini player, or the player's menu > Turn off mini player. It's on a Mac and Linux too.
 
 ### Sleep
 If you don't touch the mouse or keyboard for a while, she falls asleep. Move the mouse to wake her. Mainframe > Settings > Sleep sets the time, or Never. On Mac and Linux it's right-click her > Move > Fall asleep after.
@@ -1501,6 +1501,9 @@ Story choices and dialogue options are yours. She is told to leave them alone un
 She can say a short reaction to a win, death, close call or mistake while her hands keep going. These lines appear in her bubble. During voice chat, her own play-by-play stays as text.
 
 This is separate from GAMES > Comments, which controls her reactions while you're playing. Turning Comments off doesn't turn off the lines from a game job she's doing for you.
+
+### Asking her something mid-game (0.9.0, Windows)
+During a game job, ask what's on screen ("what is that", "what happened") and she answers from a picture taken just then, even with "oh no, hey capri" in front. Ask about the game and she knows its skill. When you change what her job should do, she says so in her own words.
 
 ### What is Gaming Mode?
 It's on by default: a game in front brings it up with nothing said. She stays on your desktop as usual, you can still drag her, and she reacts when something happens in the game. Ask separately if you want her to play.
@@ -1854,7 +1857,7 @@ The update worked. Open Capri from the Start menu.
 Wait a few seconds, then press Restart to update again.
 
 ### Mac and Linux
-No automatic updates yet, but she tells you when a new version is out: "Capri X is out. Right-click me > Get Capri X."
+On a Mac, and on Linux from the tarball, there are no automatic updates yet, but she tells you when a new version is out: "Capri X is out. Right-click me > Get Capri X." Started from Capri-linux-x64.AppImage (0.9.0 and newer), she downloads a newer release by herself when she checks for updates, and her right-click menu shows "Restart Capri to update to X" (see "The Linux AppImage updates itself" in section 21).
 1. Right-click her > Get Capri X. Its download page opens. (The item only shows when there's a new version.)
 2. Download Capri-mac-apple-silicon.zip, Capri-mac-intel.zip, Capri-linux-x64.AppImage or Capri-linux-x64.tar.gz.
 3. Quit Capri and put the new one where the old one was. Her settings, notes, chat and keys stay, because they're kept outside the app.
@@ -2008,8 +2011,7 @@ Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her h
 - No built-in brain. Use Ollama or an API key.
 - No keyboard shortcuts.
 - No mouse and keyboard jobs on Mac.
-- No automatic updates. She says when a new version is out, and right-click her > Get Capri X opens its download page.
-- No mini player.
+- No automatic updates on a Mac, or on Linux from the tarball. She says when a new version is out, and right-click her > Get Capri X opens its download page. Started from the Linux AppImage she updates herself (0.9.0).
 
 ### TALK on Linux
 Follow the [Linux TALK setup](https://github.com/lachydotmcg/capri-desktop#linux-talk-setup) to install `parec`, extract sherpa-onnx into her ears folder (or put `sherpa-onnx-offline` on PATH) and add her English Parakeet pack. Pick your default mic in your sound settings. Hover over her, click TALK, say one English line and pause. Click TALK again to cancel. She transcribes the audio on your PC and uses the same brain and reply voice as TYPE.
