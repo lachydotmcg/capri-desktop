@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -12,8 +12,8 @@ mkdirSync(sdk, { recursive: true });
 writeFileSync(join(sdk, 'package.json'), JSON.stringify({ name: '@anthropic-ai/sdk', type: 'module', main: 'index.js' }));
 writeFileSync(join(sdk, 'index.js'), 'export default class Anthropic { constructor() { this.messages = { create: body => globalThis.claudeCall(body) }; } }');
 writeFileSync(join(room, 'package.json'), JSON.stringify({ type: 'module' }));
-copyFileSync(join(here, 'src', 'index.js'), join(room, 'index.js'));
-const { default: worker } = await import(pathToFileURL(join(room, 'index.js')).href);
+writeFileSync(join(room, 'index.js'), readFileSync(join(here, 'src', 'index.js'), 'utf8') + '\nexport { parse, pick, cited };\n');
+const { default: worker, parse, pick, cited } = await import(pathToFileURL(join(room, 'index.js')).href);
 process.on('exit', () => rmSync(room, { recursive: true, force: true }));
 
 const notes = readFileSync(join(here, '..', 'site', 'help', 'knowledge.md'), 'utf8');
@@ -63,6 +63,46 @@ assert.equal(got.reply, 'Drag my size wherever you like.');
 assert.equal(got.links.length, 1);
 assert.match(got.links[0].href, /#moving$/);
 console.log('PASS a help answer keeps one link, for the chapter she named');
+
+// Whole labels, including old titles with sentence punctuation and long future titles, are stripped on both routes.
+const noteTitles = [
+  ['Install on Windows', 'Is Capri on the Microsoft Store? Which download should I get for antivirus or SmartScreen warnings?'],
+  ['Install on Windows', 'How do I check my download is the real one? Is Capri safe?'],
+  ['Updates', "Is my version the latest? I'm on an old version (like 0.8.5) and it won't update"],
+  ['Install on Windows', 'Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?'],
+  ['Install on Windows', 'Is Capri safe, and how do I check my download is the real one?'],
+  ['Updates', "Is my version the latest, or am I on an old version (like 0.8.5) that won't update?"],
+  ['Capri Remote', 'How do I pair a phone?'],
+  ['Troubleshooting', "She doesn't go to sleep by herself any more (since 0.8.9)"],
+  ['Install on Windows', 'PC acting on its own, or Capri came back after you removed her?'],
+  ['Install on Windows', 'A future title? With punctuation! And dots. Plus [brackets], (parentheses), + signs and enough extra words to exceed the old label length limit.']
+];
+const chapters = { 'Install on Windows': [2, 'install'], Updates: [17, 'updates'], 'Capri Remote': [0, 'remote'], Troubleshooting: [23, 'fixes'] };
+const notesUrl = env.KNOWLEDGE_URL;
+for (let i = 0; i < noteTitles.length; i++) {
+  const [chapter, title] = noteTitles[i];
+  env.KNOWLEDGE_URL = 'https://notes.test/label-' + i;
+  sources.set(env.KNOWLEDGE_URL, '## ' + chapters[chapter][0] + '. ' + chapter + '\n### ' + title + '\nLabel fixture.');
+  for (const ask of [discord, help]) for (const ending of ['', '.', '!', '?']) for (const bracket of [false, true]) {
+    const label = (chapter + ' > ' + title).toUpperCase();
+    says = 'Read this note. LINK: ' + (bracket ? '[' + label + ']' : label) + ending;
+    got = await ask({ question: 'Label fixture' });
+    assert.ok(system.includes('[' + chapter + ' > ' + title + ']'));
+    assert.equal(got.reply, 'Read this note.', says);
+    assert.deepEqual(got.links, [{ title: chapter, href: 'https://capriai.app/help/#' + chapters[chapter][1] }]);
+  }
+  if (title.startsWith('PC acting')) for (const ask of [discord, help]) {
+    says = 'Read this note. LINK: ' + chapter + ' > ' + title + ' PING: helper';
+    got = await ask({ question: 'Label fixture' });
+    assert.equal(got.reply, 'Read this note.');
+    assert.equal(got.links.length, 1);
+    assert.equal(got.ping, ask === discord ? 'helper' : undefined);
+  }
+  const section = parse(sources.get(env.KNOWLEDGE_URL))[0];
+  assert.equal(cited('Read this note. LINK: ' + chapter, [section]).section, section);
+}
+env.KNOWLEDGE_URL = notesUrl;
+console.log('PASS all three old and new full labels and a long punctuated label give clean replies and one link on both routes');
 
 // Capri Remote notes keep their own chapter and the named chapter gives exactly one remote Help link on both routes.
 says = 'Open Remote in the Mainframe. LINK: Capri Remote';
@@ -163,25 +203,78 @@ assert.match(system, /you're just here for Capri help/);
 assert.doesNotMatch(system, /PING/);
 console.log('PASS the website helper keeps its voice and links');
 
-// PC activity and doubts about a copy need the whole safety note on both routes, including short searches.
-const odd = '[Install on Windows > Mouse moved by itself, screen went black, or Capri not in Settings?]';
+// A website LINK keeps the two ranked links, while the Store tail alone replaces them and Discord keeps its named link.
+env.KNOWLEDGE_URL = 'https://notes.test/two-links';
+sources.set(env.KNOWLEDGE_URL, '## 11. Her voice\n### Voice choice\nPick a voice.\n\n## 12. Voice chat\n### Voice talk\nPick a voice.');
+const rankedLinks = [{ title: 'Her voice', href: 'https://capriai.app/help/#voice' }, { title: 'Voice chat', href: 'https://capriai.app/help/#voice-chat' }];
+for (const tail of ['', ' LINK: Her voice', ' LINK: Voice chat > Voice talk']) {
+  says = 'Pick a voice.' + tail;
+  got = await help({ question: 'voice' });
+  assert.equal(got.reply, 'Pick a voice.');
+  assert.deepEqual(got.links, rankedLinks);
+}
+says = 'Pick a voice. LINK: Voice chat';
+got = await discord({ question: 'voice' });
+assert.deepEqual(got.links, [rankedLinks[1]]);
+says = 'Get the Store copy. LINK: Microsoft Store';
+got = await help({ question: 'voice' });
+assert.deepEqual(got.links, [{ title: 'Microsoft Store', href: 'https://apps.microsoft.com/detail/9P0KFRB76X0G' }]);
+env.KNOWLEDGE_URL = notesUrl;
+console.log('PASS the website keeps both ranked links except for a Store tail and Discord keeps one named link');
+
+// Unasked PC activity and doubts about a copy need the whole note first on both routes.
+const oddTitle = 'PC acting on its own, or Capri came back after you removed her?';
+const odd = '[Install on Windows > ' + oddTitle + ']';
 says = 'Check the download source.';
 for (const [route, ask] of [['/discord', discord], ['/help', help]]) {
-  for (const question of ['my mouse moved by itself', 'my mouse moved on its own', 'screen went black', 'she came back after I deleted her', 'she reinstalled after I deleted her', 'not in Settings', 'hacked', 'fake copy', 'is my Capri real', 'my PC did something on its own', 'my PC is doing things by itself', 'my computer did something by itself', 'I think I was hacked', 'Capri came back after I uninstalled her', 'Capri reinstalled herself', 'she installed herself again', 'Capri is not in Settings', 'Capri is missing from Installed apps']) {
+  for (const question of ['my mouse moved by itself', 'my mouse moved on its own', 'my cursor is moving on its own', 'she came back after I deleted her', 'she reinstalled after I deleted her', 'fake copy', 'is my Capri real', 'is my capri a fake copy', 'i think capri hacked my pc', 'my PC did something on its own', 'my PC is doing things by itself', 'my computer did something by itself', 'Capri came back after I uninstalled her', 'Capri reinstalled herself', 'she installed herself again', 'I uninstalled Capri and she came back', 'I deleted Capri but she is still there']) {
     await ask({ question });
     assert.ok(system.includes(odd), route + ': ' + question);
+    assert.equal(system.split('\n\nHelp notes:\n')[1].split('\n')[0], odd, question);
     assert.match(system, /change passwords from another device, email first, and sign out of other sessions/);
   }
 }
-console.log('PASS PC activity and copy questions get the whole note on both routes');
+console.log('PASS unasked PC activity and copy questions get the whole note first on both routes');
+
+// Ordinary requests never put the PC note first, and earlier chat, history and screenshots cannot trigger its priority.
+const ordinaryPc = ['she moves my mouse in games', 'my mouse cursor is stuck', 'my screen goes black when she checks my screen', 'my roblox account got hacked lol', 'how do I open settings', 'settings wont open', 'black screen capture'];
+for (const ask of [discord, help]) for (const question of ordinaryPc) {
+  await ask({ question });
+  assert.notEqual(system.split('\n\nHelp notes:\n')[1].split('\n')[0], odd, question);
+}
+for (const extra of [{ context: 'Earlier from Sam: my mouse moved by itself' }, { history: [{ role: 'user', text: 'my pc did something on its own' }] }]) {
+  await discord({ question: 'how do I change her voice?', ...extra });
+  const ranked = pick(parse(notes), 'how do I change her voice? ' + (extra.context || extra.history[0].text), 'how do I change her voice?');
+  assert.notEqual(ranked[0].section.title, oddTitle);
+  assert.notEqual(system.split('\n\nHelp notes:\n')[1].split('\n')[0], odd);
+}
+env.AI = { run: async () => ({ response: 'my mouse moved by itself' }) };
+await discord({ question: 'how do I change her voice?', image: 'data:image/png;base64,AAAA' });
+assert.notEqual(system.split('\n\nHelp notes:\n')[1].split('\n')[0], odd);
+delete env.AI;
+console.log('PASS ordinary mouse, screen, settings and account questions do not lead with the PC activity note');
+
+// The PC note fits in one prompt and explains the known uninstall failure and the startup entry kept from older installs.
+const pcBody = parse(notes).find(section => section.title === oddTitle).body;
+assert.ok(pcBody.length < 2600, String(pcBody.length));
+assert.match(pcBody, /first check Settings > Apps > Installed apps/);
+assert.match(pcBody, /On some PCs Uninstall opens her instead of removing her/);
+assert.match(pcBody, /Before 0\.8\.7.*old entry can stay on after updates/);
+assert.match(pcBody, /If she opens when you sign in to Windows, check Mainframe > Settings > HABITS > Start with Windows/);
+assert.doesNotMatch(pcBody, /Start with Windows is off unless you turned it on|Once she is removed through Settings > Apps she cannot come back/);
+assert.ok(pcBody.indexOf('first check') < pcBody.indexOf('Start with Windows'));
+assert.doesNotMatch(notes, /It's the same app from the same code/);
+assert.equal((notes.match(/can be a version behind while Microsoft checks it/g) || []).length, 4);
+assert.match(notes, /Microsoft Store copy \(version 0\.8\.9\)/);
+console.log('PASS the full PC note covers uninstall and older startup entries and all four Store notes allow version lag');
 
 // Ordinary voice, install and antivirus questions keep their notes without pulling in the PC activity note.
 for (const ask of [discord, help]) {
   for (const [question, titles] of [
     ['how do I change her voice?', ['Her voice > Voice layers (0.7.6 and newer)', 'Her voice > Your own voice model: Fish Audio, OpenAI, a model file or your own server (from 0.7.6)', 'The Capri Mainframe > VOICE section']],
     ['how do I install Capri?', ['Install on Windows > Steps', 'Install on Windows > "Quit Capri from her tray menu, then install again."', 'Troubleshooting > Install and antivirus', 'Quick facts > How do I install Capri VR? (0.8.3)']],
-    ['why does Windows warn me?', ['Install on Windows > Why does Windows warn me?', 'Install on Windows > Is Capri on the Microsoft Store? Which download should I get for antivirus or SmartScreen warnings?', 'What she can do on your PC (Windows) > Move, snap and resize windows (0.8.0)', 'Install on Windows > Does Capri start with Windows?']],
-    ['my antivirus says it is a virus', ["Troubleshooting > Install and antivirus", 'Install on Windows > Is Capri on the Microsoft Store? Which download should I get for antivirus or SmartScreen warnings?', "Install on Windows > My antivirus says it's a virus or Trojan", 'Install on Windows > "Item Not Found" or the installer disappeared']]
+    ['why does Windows warn me?', ['Install on Windows > Why does Windows warn me?', 'Install on Windows > Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?', 'What she can do on your PC (Windows) > Move, snap and resize windows (0.8.0)', 'Install on Windows > Does Capri start with Windows?']],
+    ['my antivirus says it is a virus', ["Troubleshooting > Install and antivirus", 'Install on Windows > Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?', "Install on Windows > My antivirus says it's a virus or Trojan", 'Install on Windows > "Item Not Found" or the installer disappeared']]
   ]) {
     await ask({ question });
     assert.ok(!system.includes(odd), question);
@@ -195,19 +288,20 @@ console.log('PASS ordinary voice, install and antivirus questions keep their not
 for (const ask of [discord, help]) {
   await ask({ question: 'is my Capri real' });
   const prompt = system.split('\n\nHelp notes:\n')[0];
-  assert.ok(prompt.includes('use "Mouse moved by itself, screen went black, or Capri not in Settings?"'));
-  assert.match(prompt, /For a PC acting on its own, Capri returning after removal or a possibly fake copy/);
-  assert.match(prompt, /never guess the cause or say their copy is or is not fake or a virus/);
-  assert.match(prompt, /never tell them to wait, leave the PC as it is or delay a scan or uninstall/);
-  assert.match(prompt, /ask only where they downloaded her/);
-  assert.match(prompt, /never send them to Capri menus if she is uninstalled, deleted or will not open/);
+  assert.ok(prompt.includes('use "' + oddTitle + '"'));
+  assert.match(prompt, /For PC activity they say happened without asking Capri for anything/);
+  assert.match(prompt, /never guess the cause or whether their copy is fake or a virus/);
+  assert.match(prompt, /Never tell them to wait, leave the PC as it is or delay a scan or uninstall/);
+  assert.match(prompt, /Ask only where they downloaded her/);
+  assert.match(prompt, /Never send them to Capri menus if she is uninstalled, deleted or will not open/);
+  assert.match(prompt, /An antivirus, SmartScreen or VirusTotal alert alone follows the antivirus rule/);
 }
 console.log('PASS both helpers carry the PC activity rule');
 
 // The first Discord reply asks for a helper while the website has no PING instruction.
 says = 'Check the download source. LINK: Install on Windows\nPING: helper';
 got = await discord({ question: 'is my Capri real' });
-assert.match(system, /PING: helper on your first reply about a PC acting on its own, Capri returning after removal or a possibly fake copy/);
+assert.match(system, /PING: helper on your first reply about unasked PC activity, Capri returning after removal or a possibly fake copy/);
 assert.match(system, /if they ask for a human, a helper or staff, or it's still broken after your fixes/);
 assert.match(system, /PING: moderator if they ask for a mod, or for rule-breaking, scams, harassment or anything about the server itself/);
 assert.match(system, /PING: developer only for a genuine bug in Capri/);
@@ -256,7 +350,9 @@ says = "I don't have a fix for that in these notes. PING: helper";
 got = await discord({ question: 'invalid byte encoding' });
 assert.equal(got.reply, "I don't have a fix for that in these notes.");
 assert.equal(got.ping, 'helper');
-assert.match(system, /If the notes shown do not cover their Capri question, or you are not sure your answer fits, say so in one short line and end that same reply with PING: helper at once/);
+assert.match(system, /If the notes shown have nothing on their Capri question, say so in one short line and end that same reply with PING: helper at once/);
+assert.match(system, /When a note fits but a detail is missing, ask one or two short questions/);
+assert.doesNotMatch(system, /or you are not sure your answer fits/);
 assert.match(system, /Never send them elsewhere to ask/);
 assert.doesNotMatch(system, /tell them to ask the humans in the server|tell them to post in the server with/);
 says = "I don't have a fix for that in these notes. Ask in the Discord. PING: helper";
@@ -279,26 +375,36 @@ assert.ok(sent.at(-1).content.includes(ticket));
 assert.equal(sent[0].content, 'Sam: Typing works. My version is 0.8.5.');
 console.log('PASS tickets keep the help and missing details in place');
 
-// Antivirus answers on both routes show the Store note and turn either allowed LINK tail into one link.
+// Antivirus answers on both routes show the Store note; only a Store tail overrides the website's ranked links.
 const storeLink = { title: 'Microsoft Store', href: 'https://apps.microsoft.com/detail/9P0KFRB76X0G' };
 for (const ask of [discord, help]) {
-  for (const question of ['my antivirus deleted capri', 'virustotal says trojan', 'defender blocked the download', 'SmartScreen blocked Capri']) {
+  for (const question of ['my antivirus deleted capri', 'virustotal says trojan', 'defender blocked the download', 'SmartScreen blocked Capri', "Defender says it's a trojan, is it fake?"]) {
     says = "Get CapriAI from the Microsoft Store. The official website copy's alert is a false alarm on an unsigned app. LINK: Microsoft Store";
     got = await ask({ question });
     assert.deepEqual(got.links, [storeLink]);
     assert.doesNotMatch(got.reply, /LINK|https:/);
-    assert.match(system, /If antivirus, Defender, SmartScreen or VirusTotal flags or blocks Capri, give the Microsoft Store copy as CapriAI first, in a sentence/);
-    assert.match(system, /Then add one line that the official website copy's alert is a false alarm on an unsigned app/);
+    assert.match(system, /On Windows, if antivirus, Defender, SmartScreen or VirusTotal flags or blocks Capri, give the Microsoft Store copy as CapriAI first/);
+    assert.match(system, /Add that the official website copy's alert is a false alarm on an unsigned app/);
     assert.match(system, /Never argue about their antivirus or tell them to turn it off/);
-    assert.match(system, /\[Install on Windows > Is Capri on the Microsoft Store\? Which download should I get for antivirus or SmartScreen warnings\?\]/);
+    assert.ok(system.includes('[Install on Windows > Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?]'));
+    assert.match(system, /An antivirus, SmartScreen or VirusTotal alert alone follows the antivirus rule/);
   }
-  says = 'Get CapriAI from the Store. LINK: [Microsoft Store].';
-  got = await ask({ question: 'my antivirus deleted capri' });
-  assert.deepEqual(got.links, [storeLink]);
+  for (const tail of ['Microsoft Store.', '[Microsoft Store]', '[Microsoft Store].']) {
+    says = 'Get CapriAI from the Store. LINK: ' + tail;
+    got = await ask({ question: 'my antivirus deleted capri' });
+    assert.equal(got.reply, 'Get CapriAI from the Store.');
+    assert.deepEqual(got.links, [storeLink]);
+  }
   says = 'The Windows install notes cover this. LINK: Install on Windows';
   got = await ask({ question: 'my antivirus deleted capri' });
   assert.equal(got.reply, 'The Windows install notes cover this.');
-  assert.deepEqual(got.links, [{ title: 'Install on Windows', href: 'https://capriai.app/help/#install' }]);
+  if (ask === discord) assert.deepEqual(got.links, [{ title: 'Install on Windows', href: 'https://capriai.app/help/#install' }]);
+  else {
+    const withTail = got.links;
+    says = 'The Windows install notes cover this.';
+    got = await help({ question: 'my antivirus deleted capri' });
+    assert.deepEqual(got.links, withTail);
+  }
 }
 console.log('PASS antivirus replies get the Store first and exactly one link');
 
@@ -312,13 +418,30 @@ for (const ask of [discord, help]) {
 }
 assert.equal(fetched.filter(entry => entry.url === 'https://capriai.app/release.json').length, 1);
 const releaseUrl = env.RELEASE_URL;
-env.RELEASE_URL = 'https://release.test/new.json';
-releases.set(env.RELEASE_URL, { body: { ...release, tag_name: 'v1.2.3' } });
-await discord({ question: 'is 0.8.5 the latest' });
-assert.match(system, /^Latest release: 1\.2\.3\./m);
-assert.doesNotMatch(system, /^Latest release: 0\.9\.0/m);
+for (const tag of ['v1.2.3', 'v0.8.6.1', '0.8.6.2']) {
+  env.RELEASE_URL = 'https://release.test/' + tag + '.json';
+  releases.set(env.RELEASE_URL, { body: { ...release, tag_name: tag } });
+  for (const ask of [discord, help]) {
+    await ask({ question: 'is 0.8.5 the latest' });
+    assert.ok(system.includes('\nLatest release: ' + tag.replace(/^v/, '') + '.'));
+    assert.doesNotMatch(system, /^Latest release: 0\.9\.0/m);
+  }
+}
 env.RELEASE_URL = releaseUrl;
-console.log('PASS the latest version comes from the release feed without a guessed date');
+console.log('PASS three-part and four-part latest versions come from the release feed without a guessed date');
+
+// A draft or prerelease supplies no latest line, even when a different feed already supplied a version.
+for (const flag of ['draft', 'prerelease']) {
+  env.RELEASE_URL = 'https://release.test/' + flag + '.json';
+  releases.set(env.RELEASE_URL, { body: { tag_name: 'v9.9.9', [flag]: true } });
+  for (const ask of [discord, help]) {
+    await ask({ question: 'is 0.8.5 the latest' });
+    assert.doesNotMatch(system, /^Latest release:/m);
+  }
+  assert.equal(fetched.filter(entry => entry.url === env.RELEASE_URL).length, 1);
+}
+env.RELEASE_URL = releaseUrl;
+console.log('PASS drafts and prereleases supply no latest version on either route');
 
 // A failed or invalid release fetch with no cache supplies no latest line and cannot borrow another URL's version.
 for (const [name, entry] of [
@@ -334,11 +457,12 @@ for (const [name, entry] of [
     assert.doesNotMatch(system, /^Latest release:/m);
     assert.match(system, /If it is absent, do not guess it from the notes/);
   }
+  assert.equal(fetched.filter(entry => entry.url === env.RELEASE_URL).length, 1);
 }
 env.RELEASE_URL = releaseUrl;
 console.log('PASS unavailable release data never supplies a made-up latest version');
 
-// Release data uses the notes' ten-minute cache and keeps its last good value when a refresh fails.
+// Release data caches for ten minutes, rests failures for sixty seconds and keeps the last good value during a failed refresh.
 const realNow = Date.now;
 let clock = realNow();
 Date.now = () => clock;
@@ -361,13 +485,72 @@ try {
   assert.match(system, /^Latest release: 2\.3\.4\./m);
   releases.set(cachedUrl, { body: { tag_name: 'v2.3.5' } });
   await discord({ question: 'is 0.8.5 the latest' });
+  assert.equal(fetches().length, 2);
+  assert.match(system, /^Latest release: 2\.3\.4\./m);
+  clock += 59999;
+  await help({ question: 'is 0.8.5 the latest' });
+  assert.equal(fetches().length, 2);
+  clock++;
+  await discord({ question: 'is 0.8.5 the latest' });
   assert.equal(fetches().length, 3);
   assert.match(system, /^Latest release: 2\.3\.5\./m);
+  for (const flag of ['draft', 'prerelease']) {
+    clock += 600000;
+    releases.set(cachedUrl, { body: { tag_name: 'v2.3.6', [flag]: true } });
+    await help({ question: 'latest version' });
+    assert.doesNotMatch(system, /^Latest release:/m);
+    clock += 600000;
+    releases.set(cachedUrl, { body: { tag_name: 'v2.3.5' } });
+    await discord({ question: 'latest version' });
+    assert.match(system, /^Latest release: 2\.3\.5\./m);
+  }
+  env.RELEASE_URL = 'https://release.test/cold-failure.json';
+  releases.set(env.RELEASE_URL, new Error('Feed down'));
+  await help({ question: 'latest version' });
+  assert.doesNotMatch(system, /^Latest release:/m);
+  releases.set(env.RELEASE_URL, { body: { tag_name: 'v2.3.6' } });
+  clock += 59999;
+  await discord({ question: 'latest version' });
+  assert.doesNotMatch(system, /^Latest release:/m);
+  assert.equal(fetched.filter(entry => entry.url === env.RELEASE_URL).length, 1);
+  clock++;
+  await help({ question: 'latest version' });
+  assert.match(system, /^Latest release: 2\.3\.6\./m);
+  assert.equal(fetched.filter(entry => entry.url === env.RELEASE_URL).length, 2);
 } finally {
   Date.now = realNow;
   env.RELEASE_URL = releaseUrl;
 }
-console.log('PASS release caching and failed refreshes match the help notes');
+console.log('PASS cached and cold release failures rest sixty seconds before retrying');
+
+// Both fetches start before either finishes, so a slow notes fetch cannot delay starting the release fetch.
+const fetchSaved = globalThis.fetch;
+const started = [];
+let releaseNotes;
+const heldNotes = new Promise(resolve => { releaseNotes = resolve; });
+let notesStarted;
+const fetchingNotes = new Promise(resolve => { notesStarted = resolve; });
+env.KNOWLEDGE_URL = 'https://notes.test/concurrent';
+env.RELEASE_URL = 'https://release.test/concurrent';
+globalThis.fetch = async (url, options) => {
+  if (url === env.KNOWLEDGE_URL) { started.push('notes'); notesStarted(); await heldNotes; return new Response(notes); }
+  if (url === env.RELEASE_URL) { started.push('release'); return Response.json({ tag_name: 'v3.4.5' }); }
+  return fetchSaved(url, options);
+};
+try {
+  const pending = help({ question: 'latest version' });
+  await fetchingNotes;
+  assert.deepEqual(started, ['notes', 'release']);
+  releaseNotes();
+  await pending;
+  assert.match(system, /^Latest release: 3\.4\.5\./m);
+} finally {
+  releaseNotes();
+  globalThis.fetch = fetchSaved;
+  env.KNOWLEDGE_URL = notesUrl;
+  env.RELEASE_URL = releaseUrl;
+}
+console.log('PASS notes and release fetches start together');
 
 // Each tracked problem has its own note, shown for its symptom with its workaround, without another developer ping.
 says = 'That is a known problem being worked on. LINK: Troubleshooting';

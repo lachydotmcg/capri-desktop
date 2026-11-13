@@ -15,7 +15,7 @@ writeFileSync(join(sdk, 'package.json'), JSON.stringify({ name: '@anthropic-ai/s
 writeFileSync(join(sdk, 'index.js'), 'export default class Anthropic { constructor() { this.messages = { create: body => globalThis.claudeCall(body) }; } }');
 writeFileSync(join(room, 'package.json'), JSON.stringify({ type: 'module' }));
 const source = readFileSync(join(here, 'src', 'index.js'), 'utf8');
-writeFileSync(join(room, 'index.js'), source + '\nexport { parse, pick, search, vectorTexts, vectorCache };\n');
+writeFileSync(join(room, 'index.js'), source + '\nexport { parse, pick, search, fuse, oddPc, knowledge, vectorTexts, vectorCache };\n');
 let serial = 0;
 const load = () => import(pathToFileURL(join(room, 'index.js')).href + '?isolate=' + (++serial));
 const sources = new Map();
@@ -84,6 +84,8 @@ const make = async (text = small, table = true) => {
   };
   const DB = { prepare: sql => statement(sql), batch: async statements => {
     if (state.dbFail) throw new Error('D1 is down');
+    if (state.writeFail) throw new Error('D1 write failed');
+    if (state.loseClaim) sqlite.exec('UPDATE help_vectors SET pending = 0 WHERE vector IS NULL');
     sqlite.exec('BEGIN');
     try { const result = statements.map(query => query.execute()); sqlite.exec('COMMIT'); return result; }
     catch (error) { sqlite.exec('ROLLBACK'); throw error; }
@@ -173,6 +175,27 @@ assert.equal(cached.queries.filter(sql => sql.includes('help_vectors')).length, 
 assert.deepEqual(cached.calls, [{ text: 'Could you alter my timbre?' }]);
 console.log('PASS a complete warm set reads no help_vectors statements and makes exactly one AI call');
 
+// Identical notes after ten minutes keep the section array and decoded vectors without another vector read.
+const same = await make();
+await warm(same);
+const sameSections = await same.mod.knowledge(same.env);
+const sameVectors = same.mod.vectorCache.get(sameSections);
+clock += 600001;
+got = await send(same, 'Could you alter my timbre?');
+await got.done();
+assert.equal(await same.mod.knowledge(same.env), sameSections);
+assert.equal(same.mod.vectorCache.get(sameSections), sameVectors);
+assert.equal(same.queries.filter(sql => sql.includes('help_vectors')).length, 0);
+assert.deepEqual(same.calls, [{ text: 'Could you alter my timbre?' }]);
+same.env.KNOWLEDGE_URL += '-same';
+sources.set(same.env.KNOWLEDGE_URL, small);
+got = await send(same, 'Could you alter my timbre?');
+await got.done();
+assert.equal(await same.mod.knowledge(same.env), sameSections);
+assert.equal(same.mod.vectorCache.get(sameSections), sameVectors);
+assert.equal(same.queries.filter(sql => sql.includes('help_vectors')).length, 0);
+console.log('PASS unchanged notes retain their array and decoded vectors across the ten-minute refresh');
+
 // Only a changed section is re-embedded after the knowledge cache expires, and removed rows are deleted.
 const before = ready(test).map(row => row.hash);
 const changed = small.replace('Pick a speaker from the list.', 'Pick a different speaker from the list.').replace('## 18. Remove Capri\n### Uninstall\nRemove the app from Installed apps.\n\n', '');
@@ -191,7 +214,7 @@ assert.equal(before.filter(hash => !after.includes(hash)).length, 2);
 assert.equal(after.filter(hash => !before.includes(hash)).length, 1);
 console.log('PASS one changed note is embedded alone and a removed note is pruned');
 
-// An unavailable notes file keeps stored vectors, while a successfully emptied notes file removes all of them.
+// Failed, empty, HTML and cut-off chapter-free notes responses keep every stored vector.
 test = await make();
 await warm(test);
 const fresh = await load();
@@ -200,12 +223,49 @@ got = await send(test, 'voice choice', '/help', {}, fresh);
 await got.done();
 assert.equal(ready(test).length, count);
 assert.equal(test.calls.length, 0);
-sources.set(test.env.KNOWLEDGE_URL, '');
-got = await send(test, 'voice choice', '/help', {}, fresh);
-await got.done();
-assert.equal(ready(test).length, 0);
+for (const text of ['', '<!doctype html><html><body>Not here</body></html>', '# Help notes\nThe rest was cut off']) {
+  sources.set(test.env.KNOWLEDGE_URL, text);
+  got = await send(test, 'voice choice', '/help', {}, fresh);
+  await got.done();
+  assert.equal(ready(test).length, count);
+  assert.equal(test.queries.filter(sql => sql.startsWith('DELETE FROM help_vectors')).length, 0);
+}
 assert.equal(test.calls.length, 0);
-console.log('PASS failed knowledge fetches keep stored vectors and an empty knowledge file prunes them');
+console.log('PASS failed, empty, HTML and chapter-free notes responses never prune stored vectors');
+
+// Pruning allows at most twenty rows or a quarter of the stored set, and logs a larger stale set once.
+for (const [base, stale, allowed] of [[47, 20, true], [47, 21, false], [90, 30, true], [90, 31, false]]) {
+  test = await make(Array.from({ length: base }, (_, i) => '## 30. Topic ' + i + '\n### Detail ' + i + '\nMarker ' + i + '.').join('\n\n'));
+  await warm(test);
+  const insert = test.sqlite.prepare('INSERT INTO help_vectors (hash, vector) VALUES (?, ?)');
+  for (let i = 0; i < stale; i++) insert.run('stale-' + i, new Uint8Array([127, 0]));
+  test.mod = await load();
+  const start = logs.length;
+  for (let i = 0; i < 2; i++) {
+    test.mod.vectorCache.delete(await test.mod.knowledge(test.env));
+    got = await send(test, 'voice choice');
+    await got.done();
+    assert.equal(ready(test).length, base + (allowed ? 0 : stale));
+  }
+  assert.equal(test.queries.filter(sql => sql.startsWith('DELETE FROM help_vectors')).length, allowed ? 1 : 0);
+  assert.deepEqual(logs.slice(start), allowed ? [] : ['Help vectors: prune skipped.']);
+}
+console.log('PASS pruning respects twenty-row and quarter-row limits and logs an oversized stale set once');
+
+// Caches for old and new full notes can fill together without deleting either large set.
+test = await make();
+await warm(test);
+const old = test.mod;
+sources.set(test.env.KNOWLEDGE_URL, small.replaceAll('Topic', 'Revised topic').replaceAll('Detail', 'Revised detail').replace('Choose a voice', 'Select a voice').replace('Download the installer.', 'Get the installer.').replace('An antivirus might', 'Your antivirus might').replace('Remove the app', 'Delete the app'));
+test.mod = await load();
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(ready(test).length, count * 2);
+got = await send(test, 'voice choice', '/help', {}, old);
+await got.done();
+assert.equal(ready(test).length, count * 2);
+assert.equal(test.queries.filter(sql => sql.startsWith('DELETE FROM help_vectors')).length, 0);
+console.log('PASS old and new notes caches retain both large vector sets during an edit');
 
 // The body prefix bounds embedding cost; a later edit still appears in the help notes without another note embedding.
 test = await make('## 11. Her voice\n### Voice choice\n' + 'Choose a voice. '.repeat(100) + 'Original tail.');
@@ -230,7 +290,31 @@ for (const route of ['/help', '/discord']) for (const question of ['Jak zmienić
   assert.ok(headings(got.system).slice(0, 2).includes('Her voice > Voice choice'), route + ': ' + question);
   assert.deepEqual(test.calls.slice(start), [{ text: question }]);
 }
-console.log('PASS meaning search finds the right English note from Polish, Spanish and different words without embedding chat context');
+console.log('PASS stand-in Polish, Spanish and different words prove retrieval plumbing, not model quality, without embedding chat context');
+
+// Stand-in scores reject weak chatter, raise the floor without word hits, keep only nearby scores and cap meaning results at four.
+for (const [scores, question, wanted] of [
+  [[0.4, 0.4, 0.4], 'lovely afternoon', []],
+  [[0.59, 0.55, 0.52], 'lovely afternoon', []],
+  [[0.61, 0.4, 0.3], 'lovely afternoon', [0]],
+  [[0.9, 0.85, 0.7], 'lovely afternoon', [0, 1]],
+  [[0.9, 0.89, 0.88, 0.87, 0.86, 0.85], 'lovely afternoon', [0, 1, 2, 3]],
+  [[0.55, 0.49, 0], 'needle afternoon', [2, 0]]
+]) {
+  test = await make(scores.map((score, i) => '## 30. Topic ' + i + '\n### Detail ' + i + '\nMarker ' + i + (i === 2 ? ' needle' : '') + '.').join('\n\n'));
+  test.state.output = text => ({ data: Array.isArray(text) ? text.map(note => {
+    const score = scores[Number(note.match(/Marker (\d+)/)[1])];
+    return [score, Math.sqrt(1 - score * score)];
+  }) : [[1, 0]] });
+  await warm(test);
+  for (const route of ['/help', '/discord']) {
+    got = await send(test, question, route);
+    await got.done();
+    assert.deepEqual(headings(got.system), wanted.map(i => 'Topic ' + i + ' > Detail ' + i), question + ': ' + scores);
+    assert.equal(questionCalls(test).at(-1).text, question);
+  }
+}
+console.log('PASS weak 0.4 chatter gets no notes; meaning uses 0.5 or 0.6 floors, a 0.12 best-score gap and at most four notes');
 
 // The existing ordinary voice, install, warning and antivirus note lists stay exactly the same with stored vectors.
 test = await make(realNotes);
@@ -256,17 +340,60 @@ for (const route of ['/help', '/discord']) for (const question of ordinary) {
 }
 console.log('PASS all four ordinary note lists stay exact on both routes with vectors enabled');
 
-// A conflicting meaning ranking cannot displace the existing PC activity priority or cut the safety note short.
+// A conflicting meaning ranking cannot displace unasked PC activity, but ordinary questions never pin that note.
 test.state.queryVector = concepts('voice');
-for (const route of ['/help', '/discord']) for (const question of ['hacked', 'my PC did something on its own', 'my computer did something by itself', 'fake copy', 'is my Capri real', 'Capri came back after I uninstalled her']) {
-  const title = 'Install on Windows > Mouse moved by itself, screen went black, or Capri not in Settings?';
+const pcTitle = 'PC acting on its own, or Capri came back after you removed her?';
+const pcLabel = 'Install on Windows > ' + pcTitle;
+for (const route of ['/help', '/discord']) for (const question of ['my mouse moved by itself', 'she came back after I deleted her', 'is my capri a fake copy', 'i think capri hacked my pc', 'my pc did something on its own', 'my computer did something by itself', 'fake copy', 'is my Capri real', 'Capri came back after I uninstalled her']) {
+  const title = pcLabel;
   const place = expected(test, question).indexOf(title);
   got = await send(test, question, route);
   await got.done();
   assert.ok(place >= 0 && headings(got.system).indexOf(title) >= 0 && headings(got.system).indexOf(title) <= place, question);
+  assert.equal(headings(got.system)[0], pcLabel, question);
   assert.match(got.system, /change passwords from another device, email first, and sign out of other sessions/);
 }
-console.log('PASS the PC activity note keeps its word-search priority against conflicting vectors');
+const ordinaryPc = ['she moves my mouse in games', 'my mouse cursor is stuck', 'my screen goes black when she checks my screen', 'my roblox account got hacked lol', 'how do I open settings', 'settings wont open', 'black screen capture'];
+for (const question of [...ordinaryPc, 'can Capri see my real name', 'my roblox account got hacked, how do I use Capri', 'she reinstalled my game when I asked her']) assert.equal(test.mod.oddPc(question), false, question);
+for (const question of ['my cursor is moving by itself', 'I was hacked by Capri', 'I was hacked because of her', 'I got hacked after installing Capri', 'Capri may have hacked my pc', 'she reinstalled herself', 'I deleted Capri but she is still on my pc', 'she is still being there after I uninstalled her']) assert.equal(test.mod.oddPc(question), true, question);
+for (const route of ['/help', '/discord']) for (const question of ordinaryPc) {
+  const word = expected(test, question);
+  got = await send(test, question, route);
+  await got.done();
+  assert.notEqual(word[0], pcLabel, question);
+  assert.notEqual(headings(got.system)[0], pcLabel, question);
+  if (ordinaryPc.slice(-3).includes(question)) assert.ok(!word.includes(pcLabel), question);
+  if (!word.includes(pcLabel)) assert.ok(!headings(got.system).includes(pcLabel), question);
+}
+const pcSections = test.mod.parse(realNotes);
+const pc = pcSections.find(section => section.title === pcTitle);
+const other = pcSections.filter(section => section !== pc).slice(0, 5);
+const raw = [...other.slice(0, 2).map(section => ({ section, score: 1 })), { section: pc, score: 1 }, ...other.slice(2, 3).map(section => ({ section, score: 1 }))];
+const semantic = [other[3], other[4], pc, other[0]].map(section => ({ section, score: 1 }));
+const unpinned = test.mod.fuse(raw, semantic, 'ordinary chatter');
+assert.notEqual(unpinned[0].section, pc);
+assert.notDeepEqual(unpinned.slice(0, 3).map(entry => entry.section), raw.slice(0, 3).map(entry => entry.section));
+assert.equal(test.mod.fuse(raw, semantic, 'my mouse moved by itself')[0].section, pc);
+for (const context of ['my mouse moved by itself', 'my pc did something on its own', 'capri hacked my pc']) {
+  const text = 'voice ' + context;
+  assert.deepEqual(test.mod.pick(pcSections, text, 'ordinary question'), test.mod.pick(pcSections, text, 'voice'));
+  const boosted = test.mod.pick(pcSections, text, context).find(entry => entry.section === pc);
+  const plain = test.mod.pick(pcSections, text, 'voice').find(entry => entry.section === pc);
+  assert.ok(boosted && boosted.score >= (plain ? plain.score : 0) + pcSections.length);
+}
+console.log('PASS unasked PC activity stays first; all seven ordinary questions avoid it first and settings, settings failure and black capture omit it');
+
+// The remaining review searches do not pin the PC note, while its body still finds a missing Installed apps entry.
+for (const route of ['/help', '/discord']) for (const question of ['where is capri in settings', 'capri is not in installed apps', 'she uses my mouse for jobs', 'screen capture is black']) {
+  assert.equal(test.mod.oddPc(question), false, question);
+  const word = expected(test, question);
+  got = await send(test, question, route);
+  await got.done();
+  assert.notEqual(headings(got.system)[0], pcLabel, question);
+  if (question === 'capri is not in installed apps') assert.ok(word.includes(pcLabel));
+  else assert.ok(!headings(got.system).includes(pcLabel), question);
+}
+console.log('PASS the remaining review searches avoid PC priority and its body still finds a missing Installed apps entry');
 
 // Mixed rankings stay within the existing four-note, per-note and approximate total-size limits.
 test.state.queryVector = null;
@@ -328,6 +455,35 @@ for (const failure of ['binding', 'AI']) {
 }
 console.log('PASS no AI binding and thrown AI calls preserve replies and log no private text');
 
+// Three query failures rest meaning search for five minutes, and a success clears the consecutive-failure count.
+test = await make();
+await warm(test);
+test.state.fail = new Error('AI unavailable');
+for (let i = 0; i < 10; i++) {
+  got = await send(test, 'voice choice');
+  await got.done();
+  assert.deepEqual(headings(got.system), expected(test, 'voice choice'));
+}
+assert.equal(questionCalls(test).length, 3);
+clock += 299999;
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(questionCalls(test).length, 3);
+clock++;
+test.state.fail = null;
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(questionCalls(test).length, 4);
+for (let i = 0; i < 2; i++) {
+  test.state.fail = new Error('AI unavailable');
+  for (let j = 0; j < 2; j++) { got = await send(test, 'voice choice'); await got.done(); }
+  test.state.fail = null;
+  got = await send(test, 'voice choice');
+  await got.done();
+}
+assert.equal(questionCalls(test).length, 10);
+console.log('PASS three query failures pause AI for five minutes and a success clears the failure count');
+
 // Both allowance error forms stop further embeddings in the isolate until the next UTC day.
 for (const error of [Object.assign(new Error('allocation used'), { code: 4006 }), new Error('daily free allocation is exhausted')]) {
   test = await make();
@@ -351,9 +507,9 @@ for (const error of [Object.assign(new Error('allocation used'), { code: 4006 })
 console.log('PASS code 4006 and daily free allocation errors fall back and retry after midnight UTC');
 
 // Unknown fields, wrong counts, empty, non-number, non-finite, zero and mismatched vectors are all refused.
-test = await make();
-await warm(test);
 for (const output of [{ embeddings: [[1, 0]] }, { data: 'wrong' }, { data: new Array(1) }, { data: [[1], [2]] }, { data: [[]] }, { data: [['1']] }, { data: [[NaN]] }, { data: [[Infinity]] }, { data: [[0, 0]] }, { data: [{ embedding: [1, 0] }] }, { data: [[1]] }]) {
+  test = await make();
+  await warm(test);
   test.state.output = () => output;
   const start = test.calls.length;
   got = await send(test, 'voice choice');
@@ -363,24 +519,52 @@ for (const output of [{ embeddings: [[1, 0]] }, { data: 'wrong' }, { data: new A
 }
 console.log('PASS unexpected embedding output is refused without changing the reply');
 
-// A bad note batch stores no vectors, releases its claims and can be retried without breaking the reply.
-for (const failure of ['count', 'length', 'throw', 'allowance']) {
+// Ten failing fills make one note batch, release claims and retry after ten minutes, except for the daily allowance.
+for (const failure of ['count', 'length', 'typed', 'throw', 'write', 'allowance']) {
   test = await make();
   if (failure === 'count') test.state.output = () => ({ data: [[1, 0]] });
   if (failure === 'length') test.state.output = text => ({ data: text.map((_, index) => index ? [1, 0] : [1]) });
+  if (failure === 'typed') test.state.output = text => ({ data: text.map(() => new Float32Array([1, 0])) });
   if (failure === 'throw') test.state.fail = new Error('note embedding failed');
+  if (failure === 'write') test.state.writeFail = true;
   if (failure === 'allowance') test.state.fail = new Error('4006: daily free allocation');
-  got = await send(test, 'voice choice');
-  await got.done();
-  assert.deepEqual(headings(got.system), expected(test, 'voice choice'));
+  for (let i = 0; i < 10; i++) {
+    got = await send(test, 'voice choice');
+    await got.done();
+    assert.deepEqual(headings(got.system), expected(test, 'voice choice'));
+  }
+  assert.equal(test.calls.length, 1, failure);
+  assert.equal(noteCalls(test).length, 20, failure);
   assert.equal(ready(test).length, 0);
   assert.equal(test.sqlite.prepare('SELECT COUNT(*) AS n FROM help_vectors WHERE pending <> 0').get().n, 0);
+  clock += 599999;
+  got = await send(test, 'voice choice');
+  await got.done();
+  assert.equal(test.calls.length, 1, failure);
+  clock += 60001;
+  got = await send(test, 'voice choice');
+  await got.done();
+  assert.equal(test.calls.length, failure === 'allowance' ? 1 : 2, failure);
+  assert.equal(ready(test).length, 0);
   test.state.output = null;
   test.state.fail = null;
+  test.state.writeFail = false;
   if (failure === 'allowance') clock += 86400000;
+  else clock += 600001;
   await warm(test);
 }
-console.log('PASS malformed or failed background batches leave replies intact and release claims for retry');
+console.log('PASS ten requests make one failed note batch and eleven minutes allow one retry, with claims released and replies intact');
+
+// Losing a claim to another fill does not impose the failure rest.
+test = await make();
+test.state.loseClaim = true;
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(ready(test).length, 0);
+assert.equal(test.calls.length, 1);
+test.state.loseClaim = false;
+await warm(test);
+console.log('PASS a lost fill claim can retry without the ten-minute failure rest');
 
 // Empty input and unmatched one-word greetings spend nothing, while a one-word help topic still gets an embedding.
 test = await make();
@@ -439,6 +623,34 @@ for (const part of ['queryGate', 'readGate']) {
   assert.equal(test.calls.length, part === 'queryGate' ? 1 : 0);
 }
 console.log('PASS slow vector reads and question embeddings return word-search replies at the 800 ms deadline');
+
+// Three timed-out queries pause meaning search; a late result cannot clear the pause.
+test = await make();
+await warm(test);
+for (let i = 0; i < 3; i++) {
+  gate = defer();
+  test.state.queryGate = gate.promise;
+  got = await send(test, 'voice choice');
+  assert.deepEqual(headings(got.system), expected(test, 'voice choice'));
+  gate.resolve();
+  await got.done();
+}
+assert.equal(questionCalls(test).length, 3);
+let quick = performance.now();
+got = await send(test, 'voice choice');
+await got.done();
+assert.ok(performance.now() - quick < 700);
+assert.equal(questionCalls(test).length, 3);
+clock += 299999;
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(questionCalls(test).length, 3);
+clock++;
+test.state.queryGate = null;
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(questionCalls(test).length, 4);
+console.log('PASS three timeouts skip AI for five minutes even after the late results finish');
 
 // Cold loads repair bad blobs and mixed dimensions in the background without sending the question to AI.
 test = await make();

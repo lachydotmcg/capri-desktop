@@ -93,11 +93,11 @@ From 0.7.7 the installer looks like the Mainframe and has no Windows title bar: 
 If the speech model fails it says "Couldn't install the local speech model" and "Capri is installed. Get it later in Capri Mainframe, or add an API key." Press Finish. Capri still works; get her free voice later with Get free voice under VOICE.
 
 ### Why does Windows warn me?
-Get CapriAI from the Microsoft Store: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's signed and checked by Microsoft, so Windows doesn't warn you. It's the same app from the same code.
+Get CapriAI from the Microsoft Store: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's signed and checked by Microsoft, so Windows doesn't warn you. The Store copy is built from the same code and can be a version behind while Microsoft checks it.
 
 The website copy (Capri-Setup.exe) is new and unsigned, so SmartScreen doesn't know it. The alert on that official copy is a false alarm. If you want the website copy, More info > Run anyway lets it run. The code is open on GitHub, so anyone can check it.
 
-### Is Capri on the Microsoft Store? Which download should I get for antivirus or SmartScreen warnings?
+### Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?
 Yes. She's on the Microsoft Store as CapriAI: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's the first pick for Windows on the website.
 
 If your antivirus, Defender, SmartScreen or VirusTotal flags or blocks the download, or your antivirus deleted Capri, get the Store copy. It's signed and checked by Microsoft, so Windows doesn't warn you. The website copy's alert is a false alarm on an unsigned app.
@@ -106,7 +106,7 @@ There are two ways to get her on Windows:
 - The Microsoft Store copy (version 0.8.9) is signed and checked by Microsoft, so Windows doesn't warn you. It has Capri Remote, her ribbon teleport and the icon rampage. It updates through the Store when a new version is sent there, and says "Update through the Microsoft Store." where the website copy would update itself.
 - The latest release (Capri-Setup.exe from the website or GitHub) updates herself as soon as a new version is out. It isn't signed yet, so Windows or your antivirus may warn you as if it were a virus.
 
-It's the same app from the same code. Get the Store copy, unless you'd rather have each new version the day it's out. Both are on https://capriai.app/#download
+The Store copy is built from the same code and can be a version behind while Microsoft checks it. Get the Store copy, unless you'd rather have each new version the day it's out. Both are on https://capriai.app/#download
 
 The Store copy can't install VB-CABLE (the virtual cable she uses on calls) for you. Get it from VB-Audio's site yourself.
 
@@ -137,7 +137,7 @@ Your browser or antivirus held the file back.
 The same fix applies to "Windows cannot access the specified device, path, or file".
 
 ### My antivirus says it's a virus or Trojan
-Get CapriAI from the Microsoft Store: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's signed and checked by Microsoft, so Windows doesn't warn you. It's the same app from the same code.
+Get CapriAI from the Microsoft Store: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's signed and checked by Microsoft, so Windows doesn't warn you. The Store copy is built from the same code and can be a version behind while Microsoft checks it.
 
 For the website copy, the antivirus, Defender, SmartScreen or VirusTotal alert is a false alarm on an unsigned app. If you want to keep that copy, the checks and restore steps are below.
 
@@ -165,7 +165,7 @@ If you're not sure about your file, check the download's SHA256 (below) and ask 
 - Opera "Failed - Insufficient permissions" (French: "Échec - Autorisations insuffisantes"): try another browser like Chrome or Edge, or download it from https://github.com/lachydotmcg/capri-desktop/releases/latest.
 - On a phone you may see a "dangerous download" warning. Download Capri-Setup.exe on your Windows PC. To use her from a phone, see "Capri Remote".
 
-### How do I check my download is the real one? Is Capri safe?
+### Is Capri safe, and how do I check my download is the real one?
 Use the official website, GitHub release or Microsoft Store as CapriAI. Fake copies on other download sites can carry malware. The code is open on GitHub.
 
 Each release has a SHA256SUMS.txt file on its GitHub release page.
@@ -173,16 +173,16 @@ Each release has a SHA256SUMS.txt file on its GitHub release page.
 2. Run: Get-FileHash Capri-Setup.exe
 3. The long code should match the line for Capri-Setup.exe in SHA256SUMS.txt.
 
-### Mouse moved by itself, screen went black, or Capri not in Settings?
-If your mouse moved on its own, your screen went black, or Capri came back after you deleted or uninstalled her, seems to have reinstalled herself, or is missing from Installed apps, use these checks. Use them too if you are worried about a hacked PC or a fake copy and want to know if your Capri is real.
+### PC acting on its own, or Capri came back after you removed her?
+If your mouse moved by itself, your PC did things on its own, Capri came back after removal, or you are worried about a hacked PC or fake copy, use these checks. A black screen or missing app entry can also need these checks.
+
+If you pressed Uninstall and she opened again, first check Settings > Apps > Installed apps for Capri or CapriAI. On some PCs Uninstall opens her instead of removing her; see "Clicking Uninstall opens her again". Deleting her shortcut or folder does not uninstall her. After a completed uninstall she has no way to reinstall herself.
 
 The real Capri uses your mouse or keys only while she is running: for a job you asked for (typed, spoken or sent from Capri Remote), in a game she plays, when Explore while I'm away is on, or when her clones grab your cursor. While she does (0.8.5 and newer), a pink and cyan glow goes round that screen with a badge that says "Capri's using your mouse. Esc stops her." It shows even while she's hidden, so if your mouse moved with no glow, it wasn't her.
 
-Quit Capri closes her completely, and nothing of hers keeps running after it. Closing the Mainframe window only minimizes it. If her window freezes for a minute, she closes herself and starts again once, at most once every ten minutes, so she can be open again after a PC hang. Start with Windows is off unless you turned it on.
+Quit Capri closes her completely. Closing Mainframe only minimizes it. If her window freezes for a minute she closes herself and starts again, at most once every ten minutes. Before 0.8.7 the installed Capri turned Start with Windows on by herself, and that old entry can stay on after updates. If she opens when you sign in to Windows, check Mainframe > Settings > HABITS > Start with Windows.
 
-Once she is removed through Settings > Apps she cannot come back by herself, and she never installs anything that is missing from Settings > Apps. Deleting her shortcut or her folder does not remove her. Fake copies on other download sites can carry malware.
-
-1. Check where you downloaded her. The real Capri comes from https://capriai.app/, https://github.com/lachydotmcg/capri-desktop/releases and the Microsoft Store as CapriAI. The Windows file is Capri-Setup.exe. See "How do I check my download is the real one?" for the file check.
+1. Check where you downloaded her. The real Capri comes from https://capriai.app/, https://github.com/lachydotmcg/capri-desktop/releases and the Microsoft Store as CapriAI. Other download sites can carry malware. The Windows file is Capri-Setup.exe. See "Is Capri safe, and how do I check my download is the real one?" for the file check.
 2. Check Settings > Apps > Installed apps for Capri, or CapriAI for the Store copy. To remove her, pick her there and press Uninstall. "What does the installer add?" lists what she adds.
 3. Open Windows Security > Virus & threat protection > Scan options, pick the offline scan, then Scan now. Never turn your antivirus off.
 4. If the download was from anywhere else, change passwords from another device, email first, and sign out of other sessions.
@@ -1878,7 +1878,7 @@ A package manager installed her, so update with it: winget, Scoop, Chocolatey or
 ### "Windows couldn't verify the update signature. It won't run." or "The update checksum doesn't match. It won't run."
 The update was blocked to keep you safe. Download the latest Capri-Setup.exe from the website and run it. Your settings and notes stay.
 
-### Is my version the latest? I'm on an old version (like 0.8.5) and it won't update
+### Is my version the latest, or am I on an old version (like 0.8.5) that won't update?
 Check right-click her > Help > Check for updates. If the website Windows copy won't update, download the latest Capri-Setup.exe from the website and run it. It installs over the old one. The Microsoft Store copy updates through the Store when a new version is sent there. On a Mac or Linux tarball, quit Capri and replace the old app with the new download; see Mac and Linux below.
 
 ### "Capri updated but couldn't restart. Open her from the Start menu."
@@ -2178,7 +2178,7 @@ Updating to the latest version gets you everything in this guide.
 Then check the exact message, your Capri version (top of the Mainframe), and the exact BRAIN line, like "Built-in · Gemma 4 E4B" or "Ollama · gemma4:e4b". Try one fix at a time and check if it helped.
 
 ### Install and antivirus
-Get CapriAI from the Microsoft Store first if antivirus, Defender, SmartScreen or VirusTotal flags or blocks her, or your antivirus deleted Capri: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's signed and checked by Microsoft, so Windows doesn't warn you. It's the same app from the same code.
+Get CapriAI from the Microsoft Store first if antivirus, Defender, SmartScreen or VirusTotal flags or blocks her, or your antivirus deleted Capri: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's signed and checked by Microsoft, so Windows doesn't warn you. The Store copy is built from the same code and can be a version behind while Microsoft checks it.
 
 The official website copy's alert is a false alarm on an unsigned app. If you want that copy, use the checks and restore steps below.
 
