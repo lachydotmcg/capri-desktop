@@ -326,20 +326,20 @@ const parse = text => {
   let chapter = '';
   let current = null;
   for (const line of text.split(/\r?\n/)) {
-    const big = line.match(/^## (\d+)\. (.+)/);
+    const big = line.match(/^## (?:(\d+)\. )?(.+)/);
     const small = line.match(/^### (.+)/);
     if (big) {
-      number = Number(big[1]);
+      number = Number(big[1] || 0);
       chapter = big[2].trim();
       current = { number, chapter, title: chapter, lines: [] };
       sections.push(current);
-    } else if (small && number) {
+    } else if (small && chapter) {
       current = { number, chapter, title: small[1].trim(), lines: [] };
       sections.push(current);
     } else if (current) current.lines.push(line);
   }
   return sections
-    .filter(section => !/needs checking/i.test(section.chapter))
+    .filter(section => !/needs checking|^fan work and voices$/i.test(section.chapter))
     .map(section => {
       const body = section.lines.join('\n').trim();
       return { number: section.number, chapter: section.chapter, title: section.title, body, heading: words(section.chapter + ' ' + section.title), terms: words(body) };
@@ -402,7 +402,218 @@ const pick = (sections, text) => {
   return chosen;
 };
 
+const vectorModel = '@cf/baai/bge-m3';
+const vectorHex = Array.from({ length: 256 }, (_, byte) => byte.toString(16).padStart(2, '0'));
+const vectorEncoder = new TextEncoder();
+const vectorNotes = new WeakMap();
+const vectorCache = new WeakMap();
+const vectorJobs = new WeakSet();
+const vectorLogs = new Set();
+let vectorDay = -1;
+
+const vectorLog = reason => {
+  if (vectorLogs.has(reason)) return;
+  vectorLogs.add(reason);
+  console.log('Help vectors: ' + reason + '.');
+};
+
+const vectorFail = reason => Object.assign(new Error(reason), { vector: reason });
+
+const vectorReason = error => error && error.vector || (/no such table.*help_vectors/i.test(String(error && error.message || error)) ? 'table not ready' : 'database failed');
+
+const unit = vector => {
+  if (!Array.isArray(vector) || !vector.length) return null;
+  let largest = 0;
+  for (const value of vector) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+    largest = Math.max(largest, Math.abs(value));
+  }
+  if (!largest) return null;
+  const scaled = vector.map(value => value / largest);
+  const length = Math.sqrt(scaled.reduce((sum, value) => sum + value * value, 0));
+  return scaled.map(value => value / length);
+};
+
+const pack = vector => {
+  let largest = 0;
+  for (const value of vector) largest = Math.max(largest, Math.abs(value));
+  return Int8Array.from(vector, value => Math.round(value / largest * 127)).buffer;
+};
+
+const unpack = value => {
+  let vector, length = 0;
+  if (Array.isArray(value)) {
+    vector = new Int8Array(value.length);
+    for (let i = 0; i < value.length; i++) {
+      const byte = value[i];
+      if (byte !== (byte & 255)) return null;
+      const signed = byte << 24 >> 24;
+      vector[i] = signed;
+      length += signed * signed;
+    }
+  } else {
+    if (value instanceof ArrayBuffer) vector = new Int8Array(value);
+    else if (ArrayBuffer.isView(value)) vector = new Int8Array(value.buffer, value.byteOffset, value.byteLength);
+    else return null;
+    for (let i = 0; i < vector.length; i++) length += vector[i] * vector[i];
+  }
+  return length ? { vector, length: Math.sqrt(length) } : null;
+};
+
+const vectorTexts = sections => {
+  if (!vectorNotes.has(sections)) vectorNotes.set(sections, Promise.all(sections.map(async section => {
+    const text = section.chapter + '\n' + section.title + '\n' + section.body.slice(0, 1200);
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', vectorEncoder.encode(JSON.stringify([vectorModel, section.chapter, section.title, text]))));
+    let hash = '';
+    for (let i = 0; i < digest.length; i++) hash += vectorHex[digest[i]];
+    return { section, text, hash };
+  })));
+  return vectorNotes.get(sections);
+};
+
+const keepVectors = (sections, items, stored) => {
+  const ready = [];
+  let size = 0;
+  for (const entry of items) {
+    const found = stored.get(entry.hash);
+    if (!found || size && found.vector.length !== size) return null;
+    size = found.vector.length;
+    ready.push({ section: entry.section, vector: found.vector, length: found.length });
+  }
+  const saved = { items: ready, size };
+  vectorCache.set(sections, saved);
+  return saved;
+};
+
+const embed = async (env, text, size = 0) => {
+  const count = Array.isArray(text) ? text.length : 1;
+  if (vectorDay === Math.floor(Date.now() / 86400000)) throw vectorFail('daily allowance spent');
+  let result;
+  try { result = await env.AI.run(vectorModel, { text }); }
+  catch (error) {
+    if (/\b4006\b|daily free allocation/i.test(String(error && error.message || error) + ' ' + (error && error.code || ''))) {
+      vectorDay = Math.floor(Date.now() / 86400000);
+      throw vectorFail('daily allowance spent');
+    }
+    throw vectorFail('AI failed');
+  }
+  if (!result || !Array.isArray(result.data) || result.data.length !== count) throw vectorFail('unexpected AI output');
+  const vectors = Array.from(result.data, unit);
+  if (vectors.some(vector => !vector || vector.length !== (size || vectors[0].length))) throw vectorFail('unexpected AI output');
+  return vectors;
+};
+
+const fillVectors = async (env, missing, removed, size, stored) => {
+  const started = Date.now();
+  for (let i = 0; i < removed.length; i += 80) {
+    const hashes = removed.slice(i, i + 80);
+    await env.DB.prepare('DELETE FROM help_vectors WHERE hash IN (' + hashes.map(() => '?').join(', ') + ')').bind(...hashes).run();
+  }
+  for (let i = 0; i < missing.length && Date.now() - started < 20000; i += 20) {
+    const batch = missing.slice(i, i + 20);
+    const now = Date.now(), pending = now + 60000;
+    const { results } = await env.DB.prepare('INSERT INTO help_vectors (hash, pending) VALUES ' + batch.map(() => '(?, ?)').join(', ') + ' ON CONFLICT(hash) DO UPDATE SET pending = excluded.pending WHERE help_vectors.vector IS NULL AND help_vectors.pending < ? RETURNING hash').bind(...batch.flatMap(entry => [entry.hash, pending]), now).all();
+    const owned = new Set(results.map(row => row.hash));
+    const taken = batch.filter(entry => owned.has(entry.hash));
+    if (!taken.length) continue;
+    try {
+      const vectors = await embed(env, taken.map(entry => entry.text), size);
+      size = size || vectors[0].length;
+      const packed = vectors.map(pack);
+      const saved = await env.DB.batch(taken.map((entry, index) => env.DB.prepare('UPDATE help_vectors SET vector = ?, pending = 0 WHERE hash = ? AND pending = ?').bind(packed[index], entry.hash, pending)));
+      for (let j = 0; j < taken.length; j++) if (saved[j].meta.changes === 1) stored.set(taken[j].hash, unpack(packed[j]));
+    } catch (error) {
+      await env.DB.prepare('UPDATE help_vectors SET pending = 0 WHERE pending = ? AND hash IN (' + taken.map(() => '?').join(', ') + ')').bind(pending, ...taken.map(entry => entry.hash)).run().catch(() => {});
+      throw error;
+    }
+  }
+};
+
+const fuse = (ranked, meaning, question) => {
+  if (!meaning.length) return ranked;
+  const asked = [...new Set(words(question, true))];
+  if (ranked.length && asked.length && asked.every(term => ranked[0].section.heading.includes(term) || ranked[0].section.terms.includes(term))) return ranked;
+  const scores = new Map();
+  for (const list of [ranked, meaning]) for (let i = 0; i < list.length; i++) {
+    const section = list[i].section;
+    scores.set(section, (scores.get(section) || 0) + 1 / (60 + i + 1));
+  }
+  const scored = [...scores].map(([section, score]) => ({ section, score })).sort((a, b) => b.score - a.score);
+  const first = ranked.findIndex(entry => entry.section.title === 'Mouse moved by itself, screen went black, or Capri not in Settings?');
+  if (first >= 0) {
+    const keep = /\bhacked\b|\b(?:pc|computer)\b.*\b(?:by itself|on its own)\b/i.test(question) ? [ranked[first]] : ranked.slice(0, first + 1);
+    scored.unshift(...keep.map(entry => scored.find(known => known.section === entry.section)));
+  }
+  const chosen = [];
+  let size = 0;
+  for (const entry of scored) {
+    if (chosen.length === 4 || size > 7000) break;
+    if (chosen.some(known => known.section === entry.section)) continue;
+    chosen.push(entry);
+    size += Math.min(entry.section.body.length, 2600);
+  }
+  return chosen;
+};
+
+const vectorFind = async (sections, question, env, ctx, ranked, until) => {
+  let saved = vectorCache.get(sections);
+  if (!saved) {
+    const [items, { results }] = await Promise.all([vectorTexts(sections), env.DB.prepare('SELECT hash, vector FROM help_vectors').all()]);
+    const current = new Map(items.map(entry => [entry.hash, entry]));
+    const stored = new Map(), removed = [];
+    let size = 0, mixed = false;
+    for (const row of results) {
+      if (!current.has(row.hash)) { removed.push(row.hash); continue; }
+      if (row.vector == null) continue;
+      const found = unpack(row.vector);
+      if (!found) { removed.push(row.hash); continue; }
+      if (size && found.vector.length !== size) mixed = true;
+      size = size || found.vector.length;
+      stored.set(row.hash, found);
+    }
+    if (mixed) { removed.push(...stored.keys()); stored.clear(); size = 0; }
+    const missing = [...current.values()].filter(entry => !stored.has(entry.hash));
+    if ((missing.length || removed.length) && !vectorJobs.has(env.DB)) {
+      vectorJobs.add(env.DB);
+      ctx.waitUntil(fillVectors(env, missing, removed, size, stored).then(() => keepVectors(sections, items, stored)).catch(error => { vectorCache.delete(sections); vectorLog(vectorReason(error)); }).finally(() => vectorJobs.delete(env.DB)));
+    }
+    if (!items.length) return ranked;
+    if (missing.length) throw vectorFail('notes missing');
+    saved = keepVectors(sections, items, stored);
+  }
+  if (!saved.items.length) return ranked;
+  if (until.over || Date.now() >= until.at) throw vectorFail('search timed out');
+  const [query] = await embed(env, question, saved.size);
+  const meaning = [];
+  for (const entry of saved.items) {
+    let score = 0;
+    const vector = entry.vector;
+    for (let i = 0; i < vector.length; i++) score += vector[i] * query[i];
+    score /= entry.length;
+    if (score > 0.3) meaning.push({ section: entry.section, score });
+  }
+  meaning.sort((a, b) => b.score - a.score);
+  return fuse(ranked, meaning.slice(0, 8), question);
+};
+
+const search = async (sections, text, question, env, ctx) => {
+  const ranked = pick(sections, text);
+  if ((!sections.length && sections !== notes.sections) || !question.trim() || (!ranked.length && /^(?:hi|hello|hey|yo|hiya|hola|hej|cześć|bonjour|hallo)[.!?]*$/iu.test(question.trim()))) return ranked;
+  if (!env.AI || typeof env.AI.run !== 'function') { vectorLog('no AI binding'); return ranked; }
+  if (vectorDay === Math.floor(Date.now() / 86400000)) { vectorLog('daily allowance spent'); return ranked; }
+  let timer;
+  try {
+    const until = { at: Date.now() + 800, over: false };
+    const work = vectorFind(sections, question, env, ctx, ranked, until);
+    ctx.waitUntil(work.catch(() => {}));
+    return await Promise.race([work, new Promise((resolve, reject) => { timer = setTimeout(() => { until.over = true; reject(vectorFail('search timed out')); }, 800); })]);
+  } catch (error) { vectorLog(vectorReason(error)); return ranked; }
+  finally { clearTimeout(timer); }
+};
+
 const link = section => {
+  if (section.chapter === 'Capri Remote') return { title: 'Capri Remote', href: site + 'help/#remote' };
+  if (section.number === 0) return { title: 'Help page', href: site + 'help/' };
   if (section.title === 'Microsoft Store') return { title: 'Microsoft Store', href: store };
   if (/free nvidia key/i.test(section.title)) return { title: 'Free NVIDIA key', href: site + 'help/#free-key' };
   if (/^settings page/i.test(section.title)) return { title: 'Settings', href: site + 'help/#settings' };
@@ -513,7 +724,7 @@ const respond = async (request, env, ctx, reply, body, user) => {
   const seen = image ? await see(env, image) : '';
   // Her own lines in the chat context stay out of the search, or every reply about her voice pulls in the voice notes again.
   const others = context.split('\n').filter(line => !line.startsWith('You said')).join(' ');
-  const ranked = pick(sections, question + ' ' + seen + ' ' + recent + (others ? ' ' + others : ''));
+  const ranked = await search(sections, question + ' ' + seen + ' ' + recent + (others ? ' ' + others : ''), question, env, ctx);
   const chosen = ranked.map(entry => entry.section);
   const facts = sections.filter(section => section.number === 1 && section.title !== section.chapter).slice(0, 2);
   const shown = [...chosen, ...facts.filter(section => !chosen.includes(section))];

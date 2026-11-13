@@ -17,13 +17,14 @@ const { default: worker } = await import(pathToFileURL(join(room, 'index.js')).h
 process.on('exit', () => rmSync(room, { recursive: true, force: true }));
 
 const notes = readFileSync(join(here, '..', 'site', 'help', 'knowledge.md'), 'utf8');
+const sources = new Map([['https://notes.test/knowledge.md', notes]]);
 const release = JSON.parse(readFileSync(join(here, '..', 'site', 'release.json'), 'utf8'));
 const releases = new Map([['https://capriai.app/release.json', { body: release }]]);
 const fetched = [];
 globalThis.fetch = async (url, options) => {
   url = String(url);
   fetched.push({ url, options });
-  if (url === 'https://notes.test/knowledge.md') return new Response(notes);
+  if (sources.has(url)) return new Response(sources.get(url));
   const entry = releases.get(url);
   if (!entry || entry instanceof Error) throw entry || new Error('Unexpected fetch: ' + url);
   return Response.json(entry.body, { status: entry.status || 200 });
@@ -62,6 +63,40 @@ assert.equal(got.reply, 'Drag my size wherever you like.');
 assert.equal(got.links.length, 1);
 assert.match(got.links[0].href, /#moving$/);
 console.log('PASS a help answer keeps one link, for the chapter she named');
+
+// Capri Remote notes keep their own chapter and the named chapter gives exactly one remote Help link on both routes.
+says = 'Open Remote in the Mainframe. LINK: Capri Remote';
+for (const ask of [discord, help]) {
+  got = await ask({ question: 'What is Capri Remote?' });
+  assert.match(system, /\[Capri Remote > What is Capri Remote\? \(0\.8\.7\)\]/);
+  assert.doesNotMatch(system, /\[Watch my screen > What is Capri Remote/);
+  assert.equal(got.reply, 'Open Remote in the Mainframe.');
+  assert.deepEqual(got.links, [{ title: 'Capri Remote', href: 'https://capriai.app/help/#remote' }]);
+}
+console.log('PASS Capri Remote notes and LINK use Capri Remote and exactly one remote Help link');
+
+// Hidden chapters never enter either prompt, even when their headings or their own words are asked for.
+says = 'Check the Help page.';
+for (const ask of [discord, help]) for (const question of ['Needs checking', 'Fan work and voices', 'unofficial fan project approved endorsed voice actors']) {
+  await ask({ question });
+  assert.doesNotMatch(system, /\[(?:Needs checking|Fan work and voices)(?: > |\])/);
+  assert.doesNotMatch(system, /Things in this file the team should confirm|Capri is an unofficial fan project/);
+}
+console.log('PASS Needs checking and Fan work and voices stay hidden on both routes');
+
+// Other unnumbered chapters and their child notes use the plain Help page, including titles with special links elsewhere.
+const knowledgeUrl = env.KNOWLEDGE_URL;
+env.KNOWLEDGE_URL = 'https://notes.test/unnumbered.md';
+sources.set(env.KNOWLEDGE_URL, '## Extra guide\n### Free NVIDIA key\nFixture reference about NVIDIA keys.\n\n### Microsoft Store\nFixture reference about the store.\n\n## 24. Needs checking\n### Draft\nHidden draft marker.\n\n## Fan work and voices\n### Cast\nHidden cast marker.');
+says = 'Read the guide. LINK: Extra guide';
+for (const ask of [discord, help]) for (const question of ['Free NVIDIA key', 'Microsoft Store']) {
+  got = await ask({ question });
+  assert.ok(system.includes('[Extra guide > ' + question + ']'));
+  assert.doesNotMatch(system, /Hidden draft marker|Hidden cast marker/);
+  assert.deepEqual(got.links, [{ title: 'Help page', href: 'https://capriai.app/help/' }]);
+}
+env.KNOWLEDGE_URL = knowledgeUrl;
+console.log('PASS other unnumbered chapters link to the plain Help page and keep their child notes');
 
 // A chapter she wasn't shown gets no link, and LINK never shows in the chat.
 says = 'No clue, ask the humans here. LINK: Pizza';
