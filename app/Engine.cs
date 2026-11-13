@@ -345,14 +345,14 @@ namespace CapriDesktop
             catch (System.ComponentModel.Win32Exception) { }
         }
 
-        internal void Ensure(Pick pick)
+        internal void Ensure(Pick pick, bool careful = false)
         {
             Interlocked.Increment(ref loading);
-            try { Load(pick); }
+            try { Load(pick, careful); }
             finally { Interlocked.Decrement(ref loading); }
         }
 
-        private void Load(Pick pick)
+        private void Load(Pick pick, bool careful)
         {
             lock (gate)
             {
@@ -382,9 +382,9 @@ namespace CapriDesktop
                 {
                     // Its own log is off, so the exit code is the only clue Copy error details can carry. A graphics driver that crashes it while loading gets one try on the CPU, as a crash mid-chat does.
                     bool retry = running != null && onGpu;
-                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? ", restarting it on the CPU" : "");
+                    string reason = "llama-server stopped while loading " + pick.Name + (onGpu ? "" : " on the CPU") + (running == null ? "" : " with exit code 0x" + ((uint)ExitCode(running)).ToString("X8")) + (retry ? careful ? ", keeping its previous memory size" : ", restarting it on the CPU" : "");
                     Brain.Log("brain", -1, reason);
-                    if (!retry) throw new BrainException("Brain crashed loading. Close games, press Refresh.");
+                    if (!retry || careful) throw new BrainException("Brain crashed loading. Close games, press Refresh.");
                     lock (gate) { KeepCpu(reason); retryGpu = false; CpuOnly = true; }
                     Ensure(pick);
                     return;

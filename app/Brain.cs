@@ -1086,15 +1086,18 @@ namespace CapriDesktop
             return wordy == 1 ? "\nThey picked longer replies: use up to four sentences, under 70 words." : wordy >= 2 ? "\nThey picked long replies: use up to a short paragraph, under 140 words." : "";
         }
 
-        // Auto starts at 16K with at least 12 GB RAM, otherwise 4K or 8K with longer Memory. Grown keeps her built-in brain's
-        // growth for this run, like a 6,073-token ask on Auto's 4,096 that failed for a tester (3 Nov). Auto grows up to 32K;
-        // Ollama keeps its own growth. A size they picked is used as picked.
-        internal static long Ram;
+        // Auto starts at 16K with at least 11 GiB RAM and under 1 or at least 7 GiB video memory, otherwise 4K or 8K with longer
+        // Memory. Grown keeps her built-in brain's growth for this run, like a 6,073-token ask on Auto's 4,096 that failed for a
+        // tester (3 Nov). Auto grows up to 32K; a failed load past 16K keeps the old size and stops trying past 16K this run.
+        // Ollama keeps its own growth after a send works. A size they picked is used as picked.
+        internal static long Ram, Vram;
         internal static int Grown, OllamaGrown;
+        internal static volatile bool NoBigger;
         private static readonly object memoryGate = new object();
-        internal static int AutoStart(long ram, int recall) { return ram >= (12L << 30) ? 16384 : recall > 8 ? 8192 : 4096; }
-        internal static int Window { get { return MemorySize > 0 ? MemorySize : Math.Max(AutoStart(System.Threading.Interlocked.Read(ref Ram), Recall), System.Threading.Volatile.Read(ref Grown)); } }
-        private static int OllamaWindow { get { return MemorySize > 0 ? MemorySize : Math.Max(AutoStart(System.Threading.Interlocked.Read(ref Ram), Recall), System.Threading.Volatile.Read(ref OllamaGrown)); } }
+        private static readonly object ollamaMemoryGate = new object();
+        internal static int AutoStart(long ram, long vram, int recall) { return ram >= (11L << 30) && (vram < (1L << 30) || vram >= (7L << 30)) ? 16384 : recall > 8 ? 8192 : 4096; }
+        internal static int Window { get { return MemorySize > 0 ? MemorySize : Math.Max(AutoStart(System.Threading.Interlocked.Read(ref Ram), System.Threading.Interlocked.Read(ref Vram), Recall), System.Threading.Volatile.Read(ref Grown)); } }
+        private static int OllamaWindow { get { return MemorySize > 0 ? MemorySize : Math.Max(AutoStart(System.Threading.Interlocked.Read(ref Ram), System.Threading.Interlocked.Read(ref Vram), Recall), System.Threading.Volatile.Read(ref OllamaGrown)); } }
 
         // llama-server's words for an ask longer than its window: "request (6073 tokens) exceeds the available context size (4096
         // tokens), try increasing it".
@@ -1108,7 +1111,7 @@ namespace CapriDesktop
             if (MemorySize > 0) return 0;
             long need = Need(problem, reply);
             if (need == 0) need = 2L * was;
-            foreach (int size in MemorySizes) if (size > was && size >= need && size <= AutoMost) return size;
+            foreach (int size in MemorySizes) if (size > was && size >= need && size <= (NoBigger ? 16384 : AutoMost)) return size;
             return 0;
         }
 
@@ -1125,6 +1128,7 @@ namespace CapriDesktop
         // Her line for an ask that doesn't fit. With a size they picked it names the smallest size that does.
         internal static string TooLong(int window, string problem = null, int reply = 0)
         {
+            if (MemorySize == 0 && NoBigger) return "That was too long for my brain's " + window / 1024 + "K memory, and this PC couldn't load a bigger one.";
             string pick = "a bigger";
             long need = Need(problem, reply);
             if (MemorySize > 0 && need > 0)
@@ -1133,29 +1137,56 @@ namespace CapriDesktop
             return "That was too long for my brain's " + window / 1024 + "K memory. Pick " + pick + " Memory size " + BrainMenu + ".";
         }
 
-        private static int OllamaRoom(IEnumerable<ChatMessage> messages, string tools, int reply)
+        private static long Letters(string text)
         {
-            lock (memoryGate)
+            if (text == null) return 0;
+            long letters = text.Length;
+            foreach (char letter in text) if (letter > '\u2e7f') letters += 2;
+            return letters;
+        }
+
+        private static int OllamaRoom(IEnumerable<ChatMessage> messages, string tools, int reply, out int before, out int grown)
+        {
+            lock (ollamaMemoryGate)
             {
+                before = grown = System.Threading.Volatile.Read(ref OllamaGrown);
                 int was = OllamaWindow;
                 if (MemorySize > 0) return was;
-                long letters = tools == null ? 0 : tools.Length;
+                long letters = Letters(tools);
                 foreach (ChatMessage message in messages)
                 {
-                    if (message.Content != null) letters += message.Content.Length;
-                    if (message.Thinking != null) letters += message.Thinking.Length;
-                    if (message.Calls != null) letters += Encoding.UTF8.GetString(Json(message.Calls)).Length;
+                    letters += Letters(message.Content) + Letters(message.Thinking);
+                    if (message.Calls != null) letters += Letters(Encoding.UTF8.GetString(Json(message.Calls)));
+                    if (message.Images != null) letters += 3L * 1024 * message.Images.Length;
                 }
                 long need = (letters + 2) / 3 + Math.Min(reply, 2048);
                 if (need > was)
                     foreach (int size in MemorySizes)
                         if (size > was && size <= AutoMost && (size >= need || size == AutoMost))
                         {
-                            System.Threading.Interlocked.Exchange(ref OllamaGrown, size);
+                            System.Threading.Interlocked.Exchange(ref OllamaGrown, grown = size);
                             Log(Ollama, -1, "An ask needs more than Ollama's " + was + "-token memory, using " + size);
                             break;
                         }
                 return OllamaWindow;
+            }
+        }
+
+        internal ChatReply OllamaAsk(ChatRequest asking, string tools, int timeout, int ticket = -1)
+        {
+            int before, grown;
+            asking.Options.Context = OllamaRoom(asking.Messages, tools, asking.Options.Limit, out before, out grown);
+            try
+            {
+                ChatReply chat = Send<ChatReply>(Ollama + "/api/chat", asking, timeout, tools, null, null, ticket);
+                if (chat.Error != null) throw new BrainException(chat.Error);
+                return chat;
+            }
+            catch
+            {
+                if (grown > before)
+                    lock (ollamaMemoryGate) System.Threading.Interlocked.CompareExchange(ref OllamaGrown, before, grown);
+                throw;
             }
         }
 
@@ -3630,7 +3661,7 @@ namespace CapriDesktop
             Engine local = Local;
             if (local != null)
             {
-                local.Ensure(LocalPick);
+                lock (memoryGate) local.Ensure(LocalPick);
                 string lost;
                 bool garbled = false, crashed = false;
                 try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
@@ -3659,16 +3690,12 @@ namespace CapriDesktop
             }
             string thinking = Ollama + "|" + model;
             ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = OllamaOptions(model, ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing)) };
-            asking.Options.Context = OllamaRoom(messages, listed, asking.Options.Limit);
-            ChatReply chat = Send<ChatReply>(Ollama + "/api/chat", asking, 180000, listed, null, null, ticket);
-            if (chat.Error != null) throw new BrainException(chat.Error);
+            ChatReply chat = OllamaAsk(asking, listed, 180000, ticket);
             if (thinker != thinking && ReplyLimit(limit + 2048, job || routing) > asking.Options.Limit && chat.Stopped == "length" && chat.Message != null && (!string.IsNullOrEmpty(chat.Message.Thinking) || (chat.Message.Content ?? "").IndexOf("<think>", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 thinker = thinking;
                 asking.Options.Limit = ReplyLimit(limit + 2048, job || routing);
-                asking.Options.Context = OllamaRoom(messages, listed, asking.Options.Limit);
-                chat = Send<ChatReply>(Ollama + "/api/chat", asking, 180000, listed, null, null, ticket);
-                if (chat.Error != null) throw new BrainException(chat.Error);
+                chat = OllamaAsk(asking, listed, 180000, ticket);
             }
             if (chat.Message != null && chat.Message.Calls == null && Garbled(chat.Message.Content, limit > 400))
             {
@@ -3676,18 +3703,14 @@ namespace CapriDesktop
                 Log(Ollama, -1, "Ollama's graphics card garbled the brain's reply, asking again on the CPU");
                 ollamaCpu = model;
                 asking.Options.Gpu = 0;
-                chat = Send<ChatReply>(Ollama + "/api/chat", asking, 180000, listed, null, null, ticket);
-                if (chat.Error != null) throw new BrainException(chat.Error);
+                chat = OllamaAsk(asking, listed, 180000, ticket);
                 if (chat.Message != null && chat.Message.Calls == null && Garbled(chat.Message.Content, limit > 400)) throw new BrainException(Gibberish, true);
             }
             if (routing && chat.Stopped == "length" && chat.Message != null && Unfinished(chat.Message.Content, chat.Message.Calls != null, chat.Message.Thinking))
                 chat = Longer(chat, asking.Options.Limit, reply => reply.Stopped == "length", Whole, delegate(int room)
                 {
                     asking.Options.Limit = room;
-                    asking.Options.Context = OllamaRoom(messages, listed, asking.Options.Limit);
-                    ChatReply again = Send<ChatReply>(Ollama + "/api/chat", asking, Math.Max(180000, room * 150), listed, null, null, ticket);
-                    if (again.Error != null) throw new BrainException(again.Error);
-                    return again;
+                    return OllamaAsk(asking, listed, Math.Max(180000, room * 150), ticket);
                 });
             if (chat.Message == null) return null;
             if (routing && chat.Stopped == "length") return CutShort(chat.Message.Content, Whole(chat), calls);
@@ -3704,16 +3727,23 @@ namespace CapriDesktop
             int was;
             if (!sized.Success || !int.TryParse(sized.Groups[1].Value, out was) || was <= 0) was = Window;
             int reply = ReplyLimit(limit, job || routing);
-            int room = Room(problem, was, reply);
-            if (room == 0) throw new BrainException(TooLong(was, problem, reply), true);
             lock (memoryGate)
             {
+                int room = Room(problem, was, reply);
+                if (room == 0) throw new BrainException(TooLong(was, problem, reply), true);
                 if (room > Window)
                 {
                     Log(local.Address, -1, "An ask outgrew the brain's " + was + "-token memory, restarting it with " + room);
                     int before = System.Threading.Interlocked.Exchange(ref Grown, room);
-                    try { local.Ensure(LocalPick); }
-                    catch (BrainException) { System.Threading.Interlocked.CompareExchange(ref Grown, before, room); throw; }
+                    try { local.Ensure(LocalPick, room > 16384); }
+                    catch (BrainException)
+                    {
+                        System.Threading.Interlocked.CompareExchange(ref Grown, before, room);
+                        if (room <= 16384) throw;
+                        NoBigger = true;
+                        local.Ensure(LocalPick);
+                        throw new BrainException(TooLong(Window), true);
+                    }
                 }
                 else local.Ensure(LocalPick);
             }
@@ -4151,7 +4181,7 @@ namespace CapriDesktop
             try
             {
                 Engine local = Local;
-                if (local != null) local.Ensure(LocalPick);
+                if (local != null) { lock (memoryGate) local.Ensure(LocalPick); }
                 else if (Server != null) return;
                 else Send<ChatReply>(Ollama + "/api/chat", new ChatRequest { Model = model, Messages = new ChatMessage[0], Options = OllamaOptions(model, 90) }, 180000);
             }
