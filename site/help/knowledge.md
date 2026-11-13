@@ -2,7 +2,7 @@
 
 Plain answers for setting up and using Capri. The Help page (site/help/index.html) is made from this file, and the support chat on the website answers from it.
 
-Written for Capri 0.8.7 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
+Written for Capri 0.9.0 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
 
 Menu paths are written like this: right-click her > Open Capri Mainframe. Button and menu names are in the same words the app uses.
 
@@ -93,10 +93,14 @@ From 0.7.7 the installer looks like the Mainframe and has no Windows title bar: 
 If the speech model fails it says "Couldn't install the local speech model" and "Capri is installed. Get it later in Capri Mainframe, or add an API key." Press Finish. Capri still works; get her free voice later with Get free voice under VOICE.
 
 ### Why does Windows warn me?
-The latest release (Capri-Setup.exe) is new and not signed yet, so SmartScreen doesn't know it. That's normal for new apps. The code is open on GitHub, so anyone can check it. The Microsoft Store copy is signed, so it doesn't get this warning (next answer).
+Get CapriAI from the Microsoft Store: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's signed and checked by Microsoft, so Windows doesn't warn you. It's the same app from the same code.
 
-### Is Capri on the Microsoft Store? Which download should I get?
+The website copy (Capri-Setup.exe) is new and unsigned, so SmartScreen doesn't know it. The alert on that official copy is a false alarm. If you want the website copy, More info > Run anyway lets it run. The code is open on GitHub, so anyone can check it.
+
+### Is Capri on the Microsoft Store? Which download should I get for antivirus or SmartScreen warnings?
 Yes. She's on the Microsoft Store as CapriAI: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's the first pick for Windows on the website.
+
+If your antivirus, Defender, SmartScreen or VirusTotal flags or blocks the download, or your antivirus deleted Capri, get the Store copy. It's signed and checked by Microsoft, so Windows doesn't warn you. The website copy's alert is a false alarm on an unsigned app.
 
 There are two ways to get her on Windows:
 - The Microsoft Store copy (version 0.8.9) is signed and checked by Microsoft, so Windows doesn't warn you. It has Capri Remote, her ribbon teleport and the icon rampage. It updates through the Store when a new version is sent there, and says "Update through the Microsoft Store." where the website copy would update itself.
@@ -133,6 +137,10 @@ Your browser or antivirus held the file back.
 The same fix applies to "Windows cannot access the specified device, path, or file".
 
 ### My antivirus says it's a virus or Trojan
+Get CapriAI from the Microsoft Store: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's signed and checked by Microsoft, so Windows doesn't warn you. It's the same app from the same code.
+
+For the website copy, the antivirus, Defender, SmartScreen or VirusTotal alert is a false alarm on an unsigned app. If you want to keep that copy, the checks and restore steps are below.
+
 If you downloaded it from the Capri website or GitHub, it's a false alarm on a new, unsigned app. Names people have seen:
 - Microsoft Defender: Trojan:Win32/Wacatac.H!ml
 - Bitdefender: Gen:Variant.Zusy or Gen:Suspicious.Cloud
@@ -140,8 +148,6 @@ If you downloaded it from the Capri website or GitHub, it's a false alarm on a n
 - Kaspersky: PDM:Trojan.Win32.Bazon.a on Capri.exe, HEUR:Trojan.MSIL.Startun.gen or UDS:Trojan.MSIL.Startun.gen on Capri-Setup.exe, and UDS:DangerousObject.Multi.Generic on Uninstall.exe or an older installer. PDM means Kaspersky's behaviour check flagged what the app does, not a known virus. Capri reads your shortcut keys, takes screenshots when you ask and moves the mouse for jobs, which behaviour checks can mistake for spyware. HEUR is a rule-of-thumb guess, and UDS is Kaspersky's cloud flagging a file that few people have run yet. MSIL only means a .NET app, which Capri is. Kaspersky Endpoint Security is usually run by a school or work IT team, so ask them to allow it.
 
 These are generic, machine-learning or behaviour detections. They often flag new apps that aren't signed yet. Restore the file from quarantine (or allow it in your antivirus), then run it again. If you want to be sure, check the code on GitHub or check the download's SHA256 (below).
-
-If you'd rather not deal with the alert, the Microsoft Store copy is signed and doesn't get it: https://apps.microsoft.com/detail/9P0KFRB76X0G
 
 On VirusTotal, a few of about 70 engines flagging Capri.exe or Capri-Setup.exe is the same kind of detection. People have seen Bkav Pro (W32.Malware), SecureAge (Malicious) and Trapmine (Suspicious.low.ml.score). The SHA256 check below tells you whether your file is the one on the release page.
 
@@ -159,14 +165,16 @@ If you're not sure about your file, check the download's SHA256 (below) and ask 
 - Opera "Failed - Insufficient permissions" (French: "Échec - Autorisations insuffisantes"): try another browser like Chrome or Edge, or download it from https://github.com/lachydotmcg/capri-desktop/releases/latest.
 - On a phone you may see a "dangerous download" warning. Download Capri-Setup.exe on your Windows PC. To use her from a phone, see "Capri Remote".
 
-### How do I check my download is the real one?
+### How do I check my download is the real one? Is Capri safe?
+Use the official website, GitHub release or Microsoft Store as CapriAI. Fake copies on other download sites can carry malware. The code is open on GitHub.
+
 Each release has a SHA256SUMS.txt file on its GitHub release page.
 1. Open PowerShell in your Downloads folder.
 2. Run: Get-FileHash Capri-Setup.exe
 3. The long code should match the line for Capri-Setup.exe in SHA256SUMS.txt.
 
 ### Mouse moved by itself, screen went black, or Capri not in Settings?
-If your mouse moved on its own, your screen went black, or Capri came back after you deleted her or seems to have reinstalled, use these checks. Use them too if you are worried about a hacked PC or a fake copy and want to know if your Capri is real.
+If your mouse moved on its own, your screen went black, or Capri came back after you deleted or uninstalled her, seems to have reinstalled herself, or is missing from Installed apps, use these checks. Use them too if you are worried about a hacked PC or a fake copy and want to know if your Capri is real.
 
 The real Capri uses your mouse or keys only while she is running: for a job you asked for (typed, spoken or sent from Capri Remote), in a game she plays, when Explore while I'm away is on, or when her clones grab your cursor. While she does (0.8.5 and newer), a pink and cyan glow goes round that screen with a badge that says "Capri's using your mouse. Esc stops her." It shows even while she's hidden, so if your mouse moved with no glow, it wasn't her.
 
@@ -819,6 +827,15 @@ Both are in Mainframe > Settings > BRAIN.
 - Memory size chooses how much text fits at once in Ollama or her built-in brain: Auto, 4K, 8K, 16K, 32K or 64K tokens. Tokens are pieces of text, not messages.
 
 Auto uses 4K with Short Memory and 8K with Medium or Long Memory. A bigger window needs more memory on your PC. This setting doesn't change a cloud model's window or the window in LM Studio, Jan, KoboldCpp or llama.cpp; set those in their own server.
+
+### She says "That was too long for my brain's memory"
+Her built-in brain ran out of room for what you asked. She names the size it has now, like 4K or 8K. Chatting fits in a small window. Asking her to do something, like opening an app, sends her whole tool list as well, and that needs more than 8K.
+
+1. Open Mainframe > Settings > BRAIN > Memory size.
+2. Pick 16K.
+3. Ask her again. If she says it again with 16K, pick 32K.
+
+It is the same whether you asked on the PC or from Capri Remote on your phone. On Auto she moves up to 16K by herself when a job needs it. A size you picked stays as you picked it. A bigger window needs more memory on your PC.
 
 ### How do I get longer answers?
 Mainframe > Settings > BRAIN > Replies chooses Short, Medium or Long. Max reply gives her answer more room: Auto, 256, 2K or 8K tokens. 2K is 2048 tokens and 8K is 8192.
@@ -1775,7 +1792,7 @@ On Android:
 1. In your browser, tap the three-dot menu, then Install app.
 2. It stays paired.
 
-### Use her without a PC
+### Use her without a PC: how many free messages do I get?
 1. Open capriai.app/remote and choose Use her without a PC, or open SETTINGS > This phone.
 2. Press Start free to talk with no key.
 3. For a key, choose "or use your own key" for Claude (Anthropic), ChatGPT (OpenAI), Gemini (Google AI), OpenRouter or DeepSeek.
@@ -1861,8 +1878,8 @@ A package manager installed her, so update with it: winget, Scoop, Chocolatey or
 ### "Windows couldn't verify the update signature. It won't run." or "The update checksum doesn't match. It won't run."
 The update was blocked to keep you safe. Download the latest Capri-Setup.exe from the website and run it. Your settings and notes stay.
 
-### I'm on an old version (like 0.5.0) and it won't update
-Download the latest Capri-Setup.exe from the website and run it. It installs over the old one.
+### Is my version the latest? I'm on an old version (like 0.8.5) and it won't update
+Check right-click her > Help > Check for updates. If the website Windows copy won't update, download the latest Capri-Setup.exe from the website and run it. It installs over the old one. The Microsoft Store copy updates through the Store when a new version is sent there. On a Mac or Linux tarball, quit Capri and replace the old app with the new download; see Mac and Linux below.
 
 ### "Capri updated but couldn't restart. Open her from the Start menu."
 The update worked. Open Capri from the Start menu.
@@ -1880,6 +1897,14 @@ On a Mac, and on Linux from the tarball, there are no automatic updates yet, but
 - The changelog on the website's main page
 - GitHub releases: https://github.com/lachydotmcg/capri-desktop/releases
 - The Discord
+
+### What's new in 0.9.0
+- Windows: Workspace (beta) opens chats with your own Claude Code from Mainframe > BRAIN > WORKSPACE (beta). Install Claude Code and sign in first. It has chat history, file attachments, approval cards and Undo last edits.
+- Windows: new installs get a setup card with Skip and Skip all. BRAIN > OFF runs her with no AI. Settings > SOUNDS controls the new chimes.
+- Windows: she uses less memory at startup and takes less time to draw while still. Her local brain answers faster, and model thinking and written-out tool calls stay out of her replies.
+- Windows: calls keep speech heard while she thinks or talks, and her voice cuts out less.
+- Mac and Linux: she says reminders and routines and reads PDF pages. The Linux AppImage downloads updates and offers Restart Capri to update.
+- Capri Remote on a phone: Start free gives 15 messages a day with no key or PC. A shared daily pool can run out sooner.
 
 ---
 
@@ -1967,7 +1992,7 @@ It copies your Capri version, which brain and voice you use, and the last 25 lin
 
 On Mac, her error log is errors.txt in ~/Library/Application Support/Capri. On Linux, it's errors.txt in ~/.config/Capri.
 
-### Where to get help
+### Where do I report a bug or get help?
 - Mainframe > Help, or right-click her > Help > Help page: opens this Help page.
 - Capri in the bottom-right corner of the website: click her and ask, or drop a screenshot. She answers from this help.
 - The setup guide: https://capriai.app/setup/
@@ -2153,6 +2178,10 @@ Updating to the latest version gets you everything in this guide.
 Then check the exact message, your Capri version (top of the Mainframe), and the exact BRAIN line, like "Built-in · Gemma 4 E4B" or "Ollama · gemma4:e4b". Try one fix at a time and check if it helped.
 
 ### Install and antivirus
+Get CapriAI from the Microsoft Store first if antivirus, Defender, SmartScreen or VirusTotal flags or blocks her, or your antivirus deleted Capri: https://apps.microsoft.com/detail/9P0KFRB76X0G . It's signed and checked by Microsoft, so Windows doesn't warn you. It's the same app from the same code.
+
+The official website copy's alert is a false alarm on an unsigned app. If you want that copy, use the checks and restore steps below.
+
 - "Windows protected your PC": More info > Run anyway.
 - "Item Not Found", or the installer vanished: Ctrl + J > Keep in Chrome or Edge, or restore it from your antivirus quarantine. Open it from your Downloads folder.
 - Antivirus says Trojan, Wacatac, Zusy, Gen:Suspicious or MachineLearning/Anomalous: if you downloaded it from the Capri website or GitHub, it's a false alarm on a new unsigned app. Restore and allow it. For what VirusTotal behaviour flags mean, see "What do VirusTotal behaviour reports mean?" above.
@@ -2323,6 +2352,54 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 
 ### Still stuck?
 Right-click her > Help > Copy error details, then ask in the Discord: https://discord.gg/capridesktop
+
+### She won't open an app, or says she opened it and nothing happens
+Known problem. It's tracked and we're working on it. Until it's fixed, try asking again in text. https://github.com/lachydotmcg/capri-desktop/issues/255
+
+### She doesn't go to sleep by herself any more (since 0.8.9)
+Known problem. It's tracked and we're working on it. Until it's fixed, right-click her > Move > Go to sleep puts her to sleep. https://github.com/lachydotmcg/capri-desktop/issues/249
+
+### Clicking Uninstall opens her again
+Known problem. It's tracked and we're working on it. On some PCs she opens again instead of being uninstalled. https://github.com/lachydotmcg/capri-desktop/issues/248
+
+### On calls she takes clear speech for static
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/172
+
+### Diagrams stay on "Waiting for NVIDIA"
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/166
+
+### She is invisible in Ghostrunner 2 on DirectX 11
+Known problem. It's tracked and we're working on it. Try borderless or windowed mode. https://github.com/lachydotmcg/capri-desktop/issues/159
+
+### She floats above the taskbar when you come back
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/156
+
+### She teleports into the air and sits on nothing
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/155
+
+### Valorant crashes when her settings open
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/110
+
+### She clicks the wrong button in game menus
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/108
+
+### "This app can't run on your PC"
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/104
+
+### She gets stuck and won't quit
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/103
+
+### Mac keeps asking to see the screen
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/105
+
+### Mac updates don't install themselves yet
+Known problem. It's tracked and we're working on it. Until they do, quit Capri and replace the old app with the new download. https://github.com/lachydotmcg/capri-desktop/issues/236
+
+### Mouse and keyboard setup fails on Ubuntu GNOME Wayland
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/250
+
+### She isn't drawn on niri
+Known problem. It's tracked and we're working on it. https://github.com/lachydotmcg/capri-desktop/issues/252
 
 ### She stops when I say "end task"
 "End task" stops her job. It doesn't close anything else.

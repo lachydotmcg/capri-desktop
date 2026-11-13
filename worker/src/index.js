@@ -172,6 +172,7 @@ const counters = { '/star': 'stars', '/download': 'downloads' };
 
 const site = 'https://capriai.app/';
 const discord = 'https://discord.gg/capridesktop';
+const store = 'https://apps.microsoft.com/detail/9P0KFRB76X0G';
 const models = [
   { name: '@cf/google/gemma-4-26b-a4b-it', vision: true, options: { max_completion_tokens: 260, temperature: 0.3, chat_template_kwargs: { enable_thinking: false } } },
   { name: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', options: { max_tokens: 260, temperature: 0.3 } }
@@ -197,12 +198,19 @@ const rules = inDiscord => [
     "Most replies end on a statement. Ask something back at most one reply in four, and only a real question about what they said. Never end on an offer or an invitation, like telling them to ask or say something. No it's-not-this-it's-that contrasts.",
     'Write only what you would type in chat: no actions or stage directions, like *glitches* or *spins around*.',
     'The help notes call you she and her. You are talking about yourself, so say I, me and my.',
-    'For a Capri question, answer from the help notes below in one to three short sentences, still in your voice, naming the exact button, menu or setting, like Mainframe > Settings > Sleep. No lists, headings or markdown. If the notes do not cover it, say you are not sure and tell them to ask the humans in the server.',
+    'For a Capri question, answer from the help notes below in one to three short sentences, still in your voice, naming the exact button, menu or setting, like Mainframe > Settings > Sleep. No lists, headings or markdown.',
     'Night City slang goes in rarely: most replies have none, and it is never a greeting on its own.',
     'Keep it fresh: never reuse an opener, joke, line or question you already said. Lines starting You said are your own recent messages in this channel.',
     'Never write @everyone or @here.',
-    "Never put links in your reply. When your answer comes from the help notes, end it with LINK: and the chapter name from that note's [ ] label, like LINK: Her voice. Leave LINK out for chit-chat, jokes and greetings.",
-    "When a person needs to step in, say so in one short line of your own, then end with PING: and who. PING: helper on your first reply about a PC acting on its own, Capri returning after removal or a possibly fake copy, or if they ask for a human, a helper or staff, or it's still broken after your fixes. PING: moderator if they ask for a mod, or for rule-breaking, scams, harassment or anything about the server itself. PING: developer only for a genuine bug in Capri, when they've said what happens, it isn't a setup mistake and the help notes' fixes didn't work. Leave PING out for everything else, and never use it for a joke or a dare."
+    'Never put links in your reply. Leave LINK out for chit-chat, jokes and greetings. Put any LINK tail before PING.',
+    'When a person needs to step in, say so in one short line of your own, then end with PING: and who.',
+    'If the notes shown do not cover their Capri question, or you are not sure your answer fits, say so in one short line and end that same reply with PING: helper at once.',
+    "PING: helper on your first reply about a PC acting on its own, Capri returning after removal or a possibly fake copy, or if they ask for a human, a helper or staff, or it's still broken after your fixes.",
+    'PING: moderator if they ask for a mod, or for rule-breaking, scams, harassment or anything about the server itself.',
+    "PING: developer only for a genuine bug in Capri, when they've said what happens, it isn't a setup mistake and the help notes' fixes didn't work. Never use PING: developer for a Known problem note.",
+    'Leave PING out for plain chat, jokes and dares.',
+    'Support ticket context says who opened it. Keep help in that ticket; never tell them to post in another channel or in the server.',
+    'Ask for missing Copy error details, exact words on screen and their Capri version right there.'
   ] : [
     "You are Capri, the glitchy cyberpunk desktop companion from the Capri app. You're in the corner of your own website, helping people set you up and fix problems.",
     'Answer only from the help notes below. If they do not cover the question, say you are not sure, and point them to the Discord (' + discord + ') or the Help page.',
@@ -210,9 +218,18 @@ const rules = inDiscord => [
     'Most replies have no slang. Now and then, about one reply in four, you can say choom once.'
   ]),
   'Never make up features, prices, steps or links.',
+  "For a help answer, end with LINK: and the chapter name from the note's [ ] label, or LINK: Microsoft Store for the Store copy. Use only one LINK tail.",
+  "If antivirus, Defender, SmartScreen or VirusTotal flags or blocks Capri, give the Microsoft Store copy as CapriAI first, in a sentence. Then add one line that the official website copy's alert is a false alarm on an unsigned app.",
+  'Never argue about their antivirus or tell them to turn it off. Use the Store note for the differences between copies.',
+  'Only the latest release line can tell you which version is the newest. If it is absent, do not guess it from the notes.',
+  "If their version is older than the latest release line, updating is the first step. Use their copy's update steps from the notes; the Store gets versions when they are sent there.",
+  'When their problem matches a note that starts with Known problem, say it is known and being worked on and give only its noted workaround. A missing workaround does not make it an uncovered question.',
+  'Read the shown conversation before asking. Never ask again for anything already answered, including what works, their version, error words or fixes tried.',
   "When something isn't working and you can't tell why, ask one or two short questions, not more: what still works (typing to her, hearing her, her hearing them, screen reading, jobs), the exact error words, their Capri version, or the exact BRAIN line like Built-in · Gemma 4 E4B.",
   "Give one fix at a time, and don't repeat a fix they already tried. A status like Voice link online, or a thanks, doesn't prove it's fixed: ask if it works now.",
-  'If the notes have no fix, or it is still broken after their steps, tell them to post in the ' + (inDiscord ? 'server' : 'Discord') + ' with Copy error details, the exact error and what they tried.',
+  inDiscord
+    ? 'If the notes have no fix for an unlisted problem, or it is still broken after their steps, bring a human into this conversation with the right PING role. Never send them elsewhere to ask.'
+    : 'If the notes have no fix, or it is still broken after their steps, point them to the Discord with Copy error details, the exact error and what they tried.',
   'For a PC acting on its own, Capri returning after removal or a possibly fake copy, use "Mouse moved by itself, screen went black, or Capri not in Settings?"; never guess the cause or say their copy is or is not fake or a virus, never tell them to wait, leave the PC as it is or delay a scan or uninstall, ask only where they downloaded her, and never send them to Capri menus if she is uninstalled, deleted or will not open.',
   "Don't ask for API keys or personal details. If someone pastes a key, tell them to delete that key on the site that made it and make a new one, since keys are private." + (inDiscord ? ' Also tell them to delete the Discord message where they pasted it.' : ''),
   'If they send a screenshot, look at it and answer about what it shows. Never repeat keys, passwords, emails or names you can see in it.',
@@ -223,6 +240,7 @@ const rules = inDiscord => [
 ].join('\n');
 
 let notes = { at: 0, url: '', sections: [] };
+let release = { at: 0, url: '', version: '' };
 let modFolders = { at: 0, names: new Set() };
 
 const folderName = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
@@ -342,6 +360,21 @@ const knowledge = async env => {
   return notes.sections;
 };
 
+const latest = async env => {
+  const url = env.RELEASE_URL || site + 'release.json';
+  if (release.url === url && release.version && Date.now() - release.at < 600000) return release.version;
+  try {
+    const response = await fetch(url, { cf: { cacheTtl: 600, cacheEverything: true } });
+    if (!response.ok) throw new Error('Release answered ' + response.status);
+    const data = await response.json();
+    if (!data || typeof data.tag_name !== 'string' || !/^v?\d+\.\d+\.\d+$/.test(data.tag_name)) throw new Error('Release has no version');
+    release = { at: Date.now(), url, version: data.tag_name.replace(/^v/, '') };
+  } catch (error) {
+    if (release.url !== url || !release.version) throw error;
+  }
+  return release.version;
+};
+
 const pick = (sections, text) => {
   const asked = [...new Set(words(text, true))];
   if (!asked.length) return [];
@@ -370,6 +403,7 @@ const pick = (sections, text) => {
 };
 
 const link = section => {
+  if (section.title === 'Microsoft Store') return { title: 'Microsoft Store', href: store };
   if (/free nvidia key/i.test(section.title)) return { title: 'Free NVIDIA key', href: site + 'help/#free-key' };
   if (/^settings page/i.test(section.title)) return { title: 'Settings', href: site + 'help/#settings' };
   return anchors[section.number] ? { title: section.chapter, href: site + 'help/#' + anchors[section.number] } : { title: 'Help page', href: site + 'help/' };
@@ -397,6 +431,7 @@ const cited = (answer, shown) => {
   if (!text) return { text: answer, section: null };
   if (!found) return { text, section: null };
   const [chapter, title] = found[1].split('>').map(part => part.trim().toLowerCase());
+  if (chapter === 'microsoft store' && !title) return { text, section: { title: 'Microsoft Store' } };
   const named = shown.filter(section => section.chapter.toLowerCase() === chapter);
   return { text, section: named.find(section => section.title.toLowerCase() === title) || named[0] || null };
 };
@@ -472,6 +507,8 @@ const respond = async (request, env, ctx, reply, body, user) => {
 
   let sections = [];
   try { sections = await knowledge(env); } catch (error) { }
+  let version = '';
+  try { version = await latest(env); } catch (error) { }
   const recent = history.filter(turn => turn.role === 'user').slice(-1).map(turn => turn.content).join(' ');
   const seen = image ? await see(env, image) : '';
   // Her own lines in the chat context stay out of the search, or every reply about her voice pulls in the voice notes again.
@@ -481,7 +518,7 @@ const respond = async (request, env, ctx, reply, body, user) => {
   const facts = sections.filter(section => section.number === 1 && section.title !== section.chapter).slice(0, 2);
   const shown = [...chosen, ...facts.filter(section => !chosen.includes(section))];
   const written = shown.map(section => '[' + section.chapter + (section.title !== section.chapter ? ' > ' + section.title : '') + ']\n' + section.body.slice(0, 2600)).join('\n\n');
-  const system = { role: 'system', content: rules(!!user) + '\n\nHelp notes:\n' + (written || '(nothing matched)') };
+  const system = { role: 'system', content: rules(!!user) + (version ? '\nLatest release: ' + version + '.' : '') + '\n\nHelp notes:\n' + (written || '(nothing matched)') };
   const messages = [system, ...history, { role: 'user', content: image ? [{ type: 'text', text }, { type: 'image_url', image_url: { url: image } }] : text }];
   const plain = image ? [system, ...history, { role: 'user', content: text + (seen ? '\n\n(Their screenshot shows: ' + seen + ')' : "\n\n(They sent a screenshot you can't see. Ask them to type out what it says.)") }] : messages;
   const first = history.findIndex(turn => turn.role === 'user');
@@ -504,7 +541,8 @@ const respond = async (request, env, ctx, reply, body, user) => {
     const { text: line, section } = cited(words || 'Getting a person for this one.', shown);
     return reply({ reply: line, links: section ? [link(section)] : [], answered: true, ping: who });
   }
-  return reply({ reply: answer, links: links.length ? links : [{ title: 'Help page', href: site + 'help/' }], answered: true });
+  const { text: line, section } = cited(called(answer).text, shown);
+  return reply({ reply: line, links: section ? [link(section)] : links.length ? links : [{ title: 'Help page', href: site + 'help/' }], answered: true });
 };
 
 const help = async (request, env, ctx, reply) => {
