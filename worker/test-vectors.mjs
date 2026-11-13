@@ -16,7 +16,7 @@ writeFileSync(join(sdk, 'index.js'), 'export default class Anthropic { construct
 writeFileSync(join(room, 'package.json'), JSON.stringify({ type: 'module' }));
 const source = readFileSync(join(here, 'src', 'index.js'), 'utf8');
 writeFileSync(join(room, 'index.js'), source + '\nexport { parse, pick, search, fuse, oddPc, knowledge, vectorTexts, vectorCache };\n');
-let serial = 0;
+let serial = 0, visitor = 0;
 const load = () => import(pathToFileURL(join(room, 'index.js')).href + '?isolate=' + (++serial));
 const sources = new Map();
 globalThis.fetch = async url => {
@@ -60,6 +60,7 @@ const make = async (text = small, table = true) => {
       queries.push(sql);
       assert.ok(values.length <= 100, 'D1 allows at most 100 bound values');
       if (sql.includes('help_vectors') && state.dbFail) throw new Error('D1 is down');
+      if (sql.startsWith('DELETE FROM help_vectors') && state.pruneFail) throw new Error('D1 prune failed');
       if (sql.startsWith('SELECT hash, vector') && state.readGate) await state.readGate;
     };
     const blob = value => {
@@ -109,9 +110,10 @@ const make = async (text = small, table = true) => {
 const send = async (test, question, route = '/help', extra = {}, mod = test.mod) => {
   const pending = [];
   const ctx = { waitUntil: work => pending.push(work) };
+  const user = String(++visitor);
   const response = await mod.default.fetch(new Request('https://worker.test' + route, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', ...(route === '/discord' ? { Authorization: 'Bearer stand-in relay' } : {}) },
-    body: JSON.stringify({ question, ...(route === '/discord' ? { user: '123' } : {}), ...extra })
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': 'test-' + user, ...(route === '/discord' ? { Authorization: 'Bearer stand-in relay' } : {}) },
+    body: JSON.stringify({ question, ...(route === '/discord' ? { user } : {}), ...extra })
   }), test.env, ctx);
   const body = await response.json();
   assert.equal(response.status, 200);
@@ -233,26 +235,57 @@ for (const text of ['', '<!doctype html><html><body>Not here</body></html>', '# 
 assert.equal(test.calls.length, 0);
 console.log('PASS failed, empty, HTML and chapter-free notes responses never prune stored vectors');
 
-// Pruning allows at most twenty rows or a quarter of the stored set, and logs a larger stale set once.
-for (const [base, stale, allowed] of [[47, 20, true], [47, 21, false], [90, 30, true], [90, 31, false]]) {
+// Each request prunes at most twenty rows or a quarter of the stored set until no stale rows remain.
+for (const [base, stale] of [[47, 20], [47, 21], [90, 30], [90, 31], [47, 140], [310, 310]]) {
   test = await make(Array.from({ length: base }, (_, i) => '## 30. Topic ' + i + '\n### Detail ' + i + '\nMarker ' + i + '.').join('\n\n'));
   await warm(test);
   const insert = test.sqlite.prepare('INSERT INTO help_vectors (hash, vector) VALUES (?, ?)');
   for (let i = 0; i < stale; i++) insert.run('stale-' + i, new Uint8Array([127, 0]));
   test.mod = await load();
-  const start = logs.length;
-  for (let i = 0; i < 2; i++) {
-    test.mod.vectorCache.delete(await test.mod.knowledge(test.env));
+  let left = stale, batches = 0;
+  while (left) {
+    const start = test.queries.length;
+    const pruned = Math.min(left, Math.max(20, Math.floor((base + left) / 4)));
     got = await send(test, 'voice choice');
     await got.done();
-    assert.equal(ready(test).length, base + (allowed ? 0 : stale));
+    left -= pruned;
+    batches += Math.ceil(pruned / 80);
+    assert.equal(ready(test).length, base + left);
+    assert.equal(test.sqlite.prepare("SELECT COUNT(*) AS n FROM help_vectors WHERE hash LIKE 'stale-%'").get().n, left);
+    assert.equal(test.queries.slice(start).filter(sql => sql.startsWith('SELECT hash, vector')).length, 1);
+    assert.equal(test.queries.slice(start).filter(sql => sql.startsWith('DELETE FROM help_vectors')).length, Math.ceil(pruned / 80));
   }
-  assert.equal(test.queries.filter(sql => sql.startsWith('DELETE FROM help_vectors')).length, allowed ? 1 : 0);
-  assert.deepEqual(logs.slice(start), allowed ? [] : ['Help vectors: prune skipped.']);
+  assert.equal(test.queries.filter(sql => sql.startsWith('DELETE FROM help_vectors')).length, batches);
+  const start = test.queries.length;
+  got = await send(test, 'voice choice');
+  await got.done();
+  assert.equal(test.queries.slice(start).filter(sql => sql.includes('help_vectors')).length, 0);
+  assert.equal(noteCalls(test).length, 0);
 }
-console.log('PASS pruning respects twenty-row and quarter-row limits and logs an oversized stale set once');
+console.log('PASS capped pruning reduces stale rows every round, clears small edits at once and caches only after cleanup');
 
-// Caches for old and new full notes can fill together without deleting either large set.
+// A failed prune and requests during its retry delay never cache the leftover rows as finished.
+test = await make();
+await warm(test);
+test.sqlite.prepare('INSERT INTO help_vectors (hash, vector) VALUES (?, ?)').run('stale', new Uint8Array([127, 0]));
+test.mod = await load();
+test.state.pruneFail = true;
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(ready(test).length, count + 1);
+test.state.pruneFail = false;
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(ready(test).length, count + 1);
+assert.equal(test.mod.vectorCache.has(await test.mod.knowledge(test.env)), false);
+clock += 600001;
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(ready(test).length, count);
+assert.equal(test.mod.vectorCache.has(await test.mod.knowledge(test.env)), true);
+console.log('PASS a failed prune and its retry delay cannot leave stale rows cached for good');
+
+// Replacing every note prunes a capped batch, and an older warm cache does not restore the removed rows.
 test = await make();
 await warm(test);
 const old = test.mod;
@@ -260,12 +293,45 @@ sources.set(test.env.KNOWLEDGE_URL, small.replaceAll('Topic', 'Revised topic').r
 test.mod = await load();
 got = await send(test, 'voice choice');
 await got.done();
-assert.equal(ready(test).length, count * 2);
+let left = count - Math.max(20, Math.floor(count / 4));
+assert.equal(ready(test).length, count + left);
+const reads = test.queries.filter(sql => sql.startsWith('SELECT hash, vector')).length;
 got = await send(test, 'voice choice', '/help', {}, old);
 await got.done();
-assert.equal(ready(test).length, count * 2);
-assert.equal(test.queries.filter(sql => sql.startsWith('DELETE FROM help_vectors')).length, 0);
-console.log('PASS old and new notes caches retain both large vector sets during an edit');
+assert.equal(ready(test).length, count + left);
+assert.equal(test.queries.filter(sql => sql.startsWith('SELECT hash, vector')).length, reads);
+while (left) {
+  left -= Math.min(left, Math.max(20, Math.floor((count + left) / 4)));
+  got = await send(test, 'voice choice');
+  await got.done();
+  assert.equal(ready(test).length, count + left);
+}
+assert.equal(noteCalls(test).length, count);
+console.log('PASS a full notes replacement finishes pruning and an older warm cache does not restore stale rows');
+
+// The real notes drain stale vectors after a 120-title sweep and two later five-title edits.
+test = await make(realNotes);
+await warm(test);
+for (const [amount, tag] of [[120, 'A'], [5, 'B'], [5, 'C']]) {
+  let title = 0;
+  const text = realNotes.replace(/^### (.+)$/gm, (line, name) => title++ < amount ? '### ' + name + ' ' + tag : line);
+  sources.set(test.env.KNOWLEDGE_URL, text);
+  clock += 600001;
+  const current = new Set((await test.mod.vectorTexts(test.mod.parse(text))).map(entry => entry.hash));
+  const stale = () => ready(test).filter(row => !current.has(row.hash)).length;
+  let left = stale();
+  assert.ok(left > 0);
+  do {
+    const pruned = Math.min(left, Math.max(20, Math.floor(ready(test).length / 4)));
+    got = await send(test, 'voice choice');
+    await got.done();
+    left -= pruned;
+    assert.equal(stale(), left);
+    assert.equal(ready(test).length, current.size + left);
+  } while (left);
+  assert.equal(stale(), 0);
+}
+console.log('PASS the real notes finish pruning after a 120-title sweep and two later five-title edits');
 
 // The body prefix bounds embedding cost; a later edit still appears in the help notes without another note embedding.
 test = await make('## 11. Her voice\n### Voice choice\n' + 'Choose a voice. '.repeat(100) + 'Original tail.');
@@ -344,7 +410,24 @@ console.log('PASS all four ordinary note lists stay exact on both routes with ve
 test.state.queryVector = concepts('voice');
 const pcTitle = 'PC acting on its own, or Capri came back after you removed her?';
 const pcLabel = 'Install on Windows > ' + pcTitle;
-for (const route of ['/help', '/discord']) for (const question of ['my mouse moved by itself', 'she came back after I deleted her', 'is my capri a fake copy', 'i think capri hacked my pc', 'my pc did something on its own', 'my computer did something by itself', 'fake copy', 'is my Capri real', 'Capri came back after I uninstalled her']) {
+const scaryPc = [
+  'why does capri move my mouse on its own', 'capri is hacking my pc', 'was it capri that hacked me', 'is this capri legit, i got it from a youtube link',
+  'my mouse moved by itself', 'my pc did something on its own', 'my pc turned on by itself',
+  'someone is controlling my pc', 'something is typing on my pc', 'my keyboard types on its own',
+  'apps open by themselves', 'programs keep opening by themselves', 'my discord sent messages I didnt send',
+  'is capri a rat', 'she came back after I deleted her', 'capri wont go away even after uninstalling',
+  'capri reinstalled itself', 'is my capri a fake copy', 'i think my capri is fake',
+  'i think capri hacked my pc', 'I got hacked, was it capri?', 'got hacked after installing it',
+  'my accounts got hacked since i installed capri', 'my mouse moved on its own', 'my cursor is moving on its own',
+  'my cursor is moving by itself', 'my PC is doing things by itself', 'my computer did something by itself',
+  'fake copy', 'is my Capri real', 'Capri came back after I uninstalled her', 'she reinstalled after I deleted her',
+  'she installed herself again', 'I uninstalled Capri and she came back', 'I deleted Capri but she is still there',
+  'I was hacked by Capri', 'I was hacked because of her', 'I got hacked after installing Capri',
+  'Capri may have hacked my pc', 'she reinstalled herself', 'Capri reinstalled herself', 'I deleted Capri but she is still on my pc',
+  'she is still being there after I uninstalled her', 'is this capri download legit or a virus from some site'
+];
+for (const route of ['/help', '/discord']) for (const question of scaryPc) {
+  assert.equal(test.mod.oddPc(question), true, question);
   const title = pcLabel;
   const place = expected(test, question).indexOf(title);
   got = await send(test, question, route);
@@ -353,15 +436,33 @@ for (const route of ['/help', '/discord']) for (const question of ['my mouse mov
   assert.equal(headings(got.system)[0], pcLabel, question);
   assert.match(got.system, /change passwords from another device, email first, and sign out of other sessions/);
 }
-const ordinaryPc = ['she moves my mouse in games', 'my mouse cursor is stuck', 'my screen goes black when she checks my screen', 'my roblox account got hacked lol', 'how do I open settings', 'settings wont open', 'black screen capture'];
-for (const question of [...ordinaryPc, 'can Capri see my real name', 'my roblox account got hacked, how do I use Capri', 'she reinstalled my game when I asked her']) assert.equal(test.mod.oddPc(question), false, question);
-for (const question of ['my cursor is moving by itself', 'I was hacked by Capri', 'I was hacked because of her', 'I got hacked after installing Capri', 'Capri may have hacked my pc', 'she reinstalled herself', 'I deleted Capri but she is still on my pc', 'she is still being there after I uninstalled her']) assert.equal(test.mod.oddPc(question), true, question);
+const ordinaryPc = [
+  'should I uninstall her and reinstall to fix the voice?', 'I uninstalled and reinstalled her and she still has no voice',
+  'is capri legit', 'is capri real', 'can capri use my computer on its own', 'can it use my pc by itself',
+  'can capri control my computer by itself', 'can capri open apps on its own', 'does capri do something on its own if i dont talk',
+  'how do i make her open programs by themselves', 'will capri type on my keyboard on its own', 'can capri be hacked',
+  'windows updated on its own and now she wont start', 'the keys on my keyboard light up on their own when she talks',
+  'I deleted her memories, can I get them back?', 'she deleted my file, how do I get it back',
+  'how do I remove her from the taskbar and put her back', 'she went back to sleep after I removed the timer',
+  'I removed my api key and she is still running on nvidia', 'can capri hack roblox for me',
+  'capri said something fake about my screen', 'capri keeps telling fake facts',
+  'her cursor moves by itself when she plays a game', 'she removed my background, how do I get it back',
+  'after removing the mod she still crashes', 'my mouse moves on its own when she does a job',
+  'can she delete a file and bring it back', 'she moves my mouse in games', 'my mouse cursor is stuck',
+  'my screen goes black when she checks my screen', 'my roblox account got hacked lol', 'how do I open settings',
+  'settings wont open', 'black screen capture'
+];
+for (const question of [...ordinaryPc, 'can Capri see my real name', 'my roblox account got hacked, how do I use Capri', 'she reinstalled my game when I asked her', 'my screen went black and stuff opened', 'windows opens capri at startup by itself']) assert.equal(test.mod.oddPc(question), false, question);
 for (const route of ['/help', '/discord']) for (const question of ordinaryPc) {
   const word = expected(test, question);
+  const sections = test.mod.parse(realNotes);
+  assert.deepEqual(test.mod.pick(sections, question), test.mod.pick(sections, question, 'ordinary question'), question);
   got = await send(test, question, route);
   await got.done();
-  assert.notEqual(word[0], pcLabel, question);
-  assert.notEqual(headings(got.system)[0], pcLabel, question);
+  if (ordinaryPc.slice(-7).includes(question)) {
+    assert.notEqual(word[0], pcLabel, question);
+    assert.notEqual(headings(got.system)[0], pcLabel, question);
+  }
   if (ordinaryPc.slice(-3).includes(question)) assert.ok(!word.includes(pcLabel), question);
   if (!word.includes(pcLabel)) assert.ok(!headings(got.system).includes(pcLabel), question);
 }
@@ -381,7 +482,7 @@ for (const context of ['my mouse moved by itself', 'my pc did something on its o
   const plain = test.mod.pick(pcSections, text, 'voice').find(entry => entry.section === pc);
   assert.ok(boosted && boosted.score >= (plain ? plain.score : 0) + pcSections.length);
 }
-console.log('PASS unasked PC activity stays first; all seven ordinary questions avoid it first and settings, settings failure and black capture omit it');
+console.log('PASS all listed PC scares stay first and ordinary questions avoid the PC activity boost on both routes');
 
 // The remaining review searches do not pin the PC note, while its body still finds a missing Installed apps entry.
 for (const route of ['/help', '/discord']) for (const question of ['where is capri in settings', 'capri is not in installed apps', 'she uses my mouse for jobs', 'screen capture is black']) {
@@ -623,6 +724,27 @@ for (const part of ['queryGate', 'readGate']) {
   assert.equal(test.calls.length, part === 'queryGate' ? 1 : 0);
 }
 console.log('PASS slow vector reads and question embeddings return word-search replies at the 800 ms deadline');
+
+// Three cold vector-read timeouts leave a healthy question embedding available without the five-minute pause.
+test = await make();
+await warm(test);
+for (let i = 0; i < 3; i++) {
+  test.mod.vectorCache.delete(await test.mod.knowledge(test.env));
+  gate = defer();
+  test.state.readGate = gate.promise;
+  got = await send(test, 'voice choice');
+  assert.deepEqual(headings(got.system), expected(test, 'voice choice'));
+  assert.equal(questionCalls(test).length, 0);
+  gate.resolve();
+  await got.done();
+}
+assert.equal(test.queries.filter(sql => sql.startsWith('SELECT hash, vector')).length, 3);
+test.state.readGate = null;
+got = await send(test, 'voice choice');
+await got.done();
+assert.equal(questionCalls(test).length, 1);
+assert.equal(test.queries.filter(sql => sql.startsWith('SELECT hash, vector')).length, 3);
+console.log('PASS three cold vector-read timeouts do not pause a healthy AI');
 
 // Three timed-out queries pause meaning search; a late result cannot clear the pause.
 test = await make();

@@ -12,8 +12,8 @@ mkdirSync(sdk, { recursive: true });
 writeFileSync(join(sdk, 'package.json'), JSON.stringify({ name: '@anthropic-ai/sdk', type: 'module', main: 'index.js' }));
 writeFileSync(join(sdk, 'index.js'), 'export default class Anthropic { constructor() { this.messages = { create: body => globalThis.claudeCall(body) }; } }');
 writeFileSync(join(room, 'package.json'), JSON.stringify({ type: 'module' }));
-writeFileSync(join(room, 'index.js'), readFileSync(join(here, 'src', 'index.js'), 'utf8') + '\nexport { parse, pick, cited };\n');
-const { default: worker, parse, pick, cited } = await import(pathToFileURL(join(room, 'index.js')).href);
+writeFileSync(join(room, 'index.js'), readFileSync(join(here, 'src', 'index.js'), 'utf8') + '\nexport { parse, pick, cited, oddPc };\n');
+const { default: worker, parse, pick, cited, oddPc } = await import(pathToFileURL(join(room, 'index.js')).href);
 process.on('exit', () => rmSync(room, { recursive: true, force: true }));
 
 const notes = readFileSync(join(here, '..', 'site', 'help', 'knowledge.md'), 'utf8');
@@ -222,12 +222,93 @@ assert.deepEqual(got.links, [{ title: 'Microsoft Store', href: 'https://apps.mic
 env.KNOWLEDGE_URL = notesUrl;
 console.log('PASS the website keeps both ranked links except for a Store tail and Discord keeps one named link');
 
+// Multiple LINK tails keep text before the first tail, prefer the Store and otherwise use the last shown label.
+env.KNOWLEDGE_URL = 'https://notes.test/link-tails';
+const storeTitle = 'Is Capri on the Microsoft Store, and which download avoids antivirus or SmartScreen warnings?';
+sources.set(env.KNOWLEDGE_URL, "## 2. Install on Windows\n### My antivirus says it's a virus or Trojan\nLink fixture.\n\n## 7. The Capri Mainframe\n### Settings page (Mainframe > Settings)\nLink fixture.\n\n## 2. Install on Windows\n### " + storeTitle + '\nLink fixture.\n\n## 11. Her voice\nLink fixture.');
+const installLink = { title: 'Install on Windows', href: 'https://capriai.app/help/#install' };
+const settingsLink = { title: 'Settings', href: 'https://capriai.app/help/#settings' };
+const voiceLink = { title: 'Her voice', href: 'https://capriai.app/help/#voice' };
+const storeTailLink = { title: 'Microsoft Store', href: 'https://apps.microsoft.com/detail/9P0KFRB76X0G' };
+for (const ask of [discord, help]) {
+  says = 'Read this note.';
+  const ranked = (await ask({ question: 'link fixture' })).links;
+  if (ask === help) assert.deepEqual(ranked, [installLink, settingsLink]);
+  for (const [tail, expected] of [
+    ['Microsoft Store. LINK: Install on Windows', storeTailLink],
+    ['Install on Windows LINK: Microsoft Store', storeTailLink],
+    ['Install on Windows. LINK: The Capri Mainframe > Settings page (Mainframe > Settings)', settingsLink],
+    ['The Capri Mainframe > Settings page (Mainframe > Settings). LINK: Install on Windows', installLink],
+    ["Install on Windows > My antivirus says it’s a virus or Trojan", installLink],
+    ["Install on Windows › My antivirus says it's a virus or Trojan", installLink],
+    ["Install on Windows >  My antivirus says it's a virus or Trojan", installLink],
+    ['The  Capri Mainframe>Settings page (Mainframe›Settings)', settingsLink],
+    ['Install on Windows > ' + storeTitle, installLink],
+    ['The Capri Mainframe > Settings page (Mainframe > Settings)', settingsLink],
+    ['Her voice > Her voice', voiceLink],
+    ['[Her voice]', voiceLink],
+    ['Install on Windows LINK: Pizza', installLink],
+    ['Microsoft Store PING: helper', storeTailLink]
+  ]) {
+    says = 'Read this note. LINK: ' + tail;
+    got = await ask({ question: 'link fixture' });
+    assert.equal(got.reply, 'Read this note.', says);
+    assert.doesNotMatch(got.reply, /LINK/i);
+    assert.deepEqual(got.links, ask === discord || expected === storeTailLink ? [expected] : ranked, says);
+  }
+  says = 'Check Microsoft Store';
+  got = await ask({ question: 'link fixture' });
+  assert.equal(got.reply, says);
+  assert.deepEqual(got.links, ask === discord ? [] : ranked);
+  says = 'LINK: Microsoft Store';
+  got = await ask({ question: 'link fixture' });
+  assert.equal(got.reply, "Here's the page for that.");
+  assert.deepEqual(got.links, [storeTailLink]);
+}
+env.KNOWLEDGE_URL = notesUrl;
+console.log('PASS both routes strip every LINK tail and normalize apostrophes, separators and spaces with the expected links');
+
+// Curly punctuation in the shown label matches straight punctuation in the tail, and the reverse also matches.
+for (const [title, tail] of [
+  ['Why won’t “Check for updates” open?', 'Why won\'t "Check for updates" open?'],
+  ['Why won\'t "Check for updates" open?', 'Why won’t “Check for updates” open?']
+]) {
+  env.KNOWLEDGE_URL = 'https://notes.test/quotes-' + sources.size;
+  sources.set(env.KNOWLEDGE_URL, '## 17. Updates\n### ' + title + '\nQuote fixture.');
+  for (const ask of [discord, help]) {
+    says = 'Read this note. LINK: Updates ›  ' + tail;
+    got = await ask({ question: 'quote fixture' });
+    assert.equal(got.reply, 'Read this note.');
+    assert.doesNotMatch(got.reply, /LINK/i);
+    assert.deepEqual(got.links, [{ title: 'Updates', href: 'https://capriai.app/help/#updates' }]);
+  }
+}
+env.KNOWLEDGE_URL = notesUrl;
+console.log('PASS straight and curly apostrophes and quotes match in both labels and tails on both routes');
+
 // Unasked PC activity and doubts about a copy need the whole note first on both routes.
 const oddTitle = 'PC acting on its own, or Capri came back after you removed her?';
 const odd = '[Install on Windows > ' + oddTitle + ']';
+const scaryPc = [
+  'why does capri move my mouse on its own', 'capri is hacking my pc', 'was it capri that hacked me', 'is this capri legit, i got it from a youtube link',
+  'my mouse moved by itself', 'my pc did something on its own', 'my pc turned on by itself',
+  'someone is controlling my pc', 'something is typing on my pc', 'my keyboard types on its own',
+  'apps open by themselves', 'programs keep opening by themselves', 'my discord sent messages I didnt send',
+  'is capri a rat', 'she came back after I deleted her', 'capri wont go away even after uninstalling',
+  'capri reinstalled itself', 'is my capri a fake copy', 'i think my capri is fake',
+  'i think capri hacked my pc', 'I got hacked, was it capri?', 'got hacked after installing it',
+  'my accounts got hacked since i installed capri', 'my mouse moved on its own', 'my cursor is moving on its own',
+  'my cursor is moving by itself', 'my PC is doing things by itself', 'my computer did something by itself',
+  'fake copy', 'is my Capri real', 'Capri came back after I uninstalled her', 'she reinstalled after I deleted her',
+  'she installed herself again', 'I uninstalled Capri and she came back', 'I deleted Capri but she is still there',
+  'I was hacked by Capri', 'I was hacked because of her', 'I got hacked after installing Capri',
+  'Capri may have hacked my pc', 'she reinstalled herself', 'Capri reinstalled herself', 'I deleted Capri but she is still on my pc',
+  'she is still being there after I uninstalled her', 'is this capri download legit or a virus from some site'
+];
 says = 'Check the download source.';
 for (const [route, ask] of [['/discord', discord], ['/help', help]]) {
-  for (const question of ['my mouse moved by itself', 'my mouse moved on its own', 'my cursor is moving on its own', 'she came back after I deleted her', 'she reinstalled after I deleted her', 'fake copy', 'is my Capri real', 'is my capri a fake copy', 'i think capri hacked my pc', 'my PC did something on its own', 'my PC is doing things by itself', 'my computer did something by itself', 'Capri came back after I uninstalled her', 'Capri reinstalled herself', 'she installed herself again', 'I uninstalled Capri and she came back', 'I deleted Capri but she is still there']) {
+  for (const question of scaryPc) {
+    assert.equal(oddPc(question), true, question);
     await ask({ question });
     assert.ok(system.includes(odd), route + ': ' + question);
     assert.equal(system.split('\n\nHelp notes:\n')[1].split('\n')[0], odd, question);
@@ -236,12 +317,31 @@ for (const [route, ask] of [['/discord', discord], ['/help', help]]) {
 }
 console.log('PASS unasked PC activity and copy questions get the whole note first on both routes');
 
-// Ordinary requests never put the PC note first, and earlier chat, history and screenshots cannot trigger its priority.
-const ordinaryPc = ['she moves my mouse in games', 'my mouse cursor is stuck', 'my screen goes black when she checks my screen', 'my roblox account got hacked lol', 'how do I open settings', 'settings wont open', 'black screen capture'];
+// Ordinary requests get no PC activity boost, and earlier chat, history and screenshots cannot trigger its priority.
+const ordinaryPc = [
+  'should I uninstall her and reinstall to fix the voice?', 'I uninstalled and reinstalled her and she still has no voice',
+  'is capri legit', 'is capri real', 'can capri use my computer on its own', 'can it use my pc by itself',
+  'can capri control my computer by itself', 'can capri open apps on its own', 'does capri do something on its own if i dont talk',
+  'how do i make her open programs by themselves', 'will capri type on my keyboard on its own', 'can capri be hacked',
+  'windows updated on its own and now she wont start', 'the keys on my keyboard light up on their own when she talks',
+  'I deleted her memories, can I get them back?', 'she deleted my file, how do I get it back',
+  'how do I remove her from the taskbar and put her back', 'she went back to sleep after I removed the timer',
+  'I removed my api key and she is still running on nvidia', 'can capri hack roblox for me',
+  'capri said something fake about my screen', 'capri keeps telling fake facts',
+  'her cursor moves by itself when she plays a game', 'she removed my background, how do I get it back',
+  'after removing the mod she still crashes', 'my mouse moves on its own when she does a job',
+  'can she delete a file and bring it back', 'she moves my mouse in games', 'my mouse cursor is stuck',
+  'my screen goes black when she checks my screen', 'my roblox account got hacked lol', 'how do I open settings',
+  'settings wont open', 'black screen capture'
+];
 for (const ask of [discord, help]) for (const question of ordinaryPc) {
+  assert.equal(oddPc(question), false, question);
+  const sections = parse(notes);
+  assert.deepEqual(pick(sections, question), pick(sections, question, 'ordinary question'), question);
   await ask({ question });
-  assert.notEqual(system.split('\n\nHelp notes:\n')[1].split('\n')[0], odd, question);
+  if (ordinaryPc.slice(-7).includes(question)) assert.notEqual(system.split('\n\nHelp notes:\n')[1].split('\n')[0], odd, question);
 }
+for (const question of ['my screen went black and stuff opened', 'windows opens capri at startup by itself']) assert.equal(oddPc(question), false, question);
 for (const extra of [{ context: 'Earlier from Sam: my mouse moved by itself' }, { history: [{ role: 'user', text: 'my pc did something on its own' }] }]) {
   await discord({ question: 'how do I change her voice?', ...extra });
   const ranked = pick(parse(notes), 'how do I change her voice? ' + (extra.context || extra.history[0].text), 'how do I change her voice?');
@@ -252,7 +352,7 @@ env.AI = { run: async () => ({ response: 'my mouse moved by itself' }) };
 await discord({ question: 'how do I change her voice?', image: 'data:image/png;base64,AAAA' });
 assert.notEqual(system.split('\n\nHelp notes:\n')[1].split('\n')[0], odd);
 delete env.AI;
-console.log('PASS ordinary mouse, screen, settings and account questions do not lead with the PC activity note');
+console.log('PASS all listed ordinary questions avoid the PC activity boost and earlier context cannot trigger it');
 
 // The PC note fits in one prompt and explains the known uninstall failure and the startup entry kept from older installs.
 const pcBody = parse(notes).find(section => section.title === oddTitle).body;
@@ -345,23 +445,28 @@ assert.equal(got.answered, undefined);
 env.DB = realDB;
 console.log('PASS a busy website leaves the Discord its own limit');
 
-// An uncovered question brings a helper into the same Discord reply; the website points to Discord without a ping.
+// An uncovered or uncertain question brings a helper into the same Discord reply, even with nearby notes shown.
 says = "I don't have a fix for that in these notes. PING: helper";
 got = await discord({ question: 'invalid byte encoding' });
 assert.equal(got.reply, "I don't have a fix for that in these notes.");
 assert.equal(got.ping, 'helper');
-assert.match(system, /If the notes shown have nothing on their Capri question, say so in one short line and end that same reply with PING: helper at once/);
-assert.match(system, /When a note fits but a detail is missing, ask one or two short questions/);
-assert.doesNotMatch(system, /or you are not sure your answer fits/);
+assert.match(system, /If no note shown answers their Capri question, or you are not sure the note fits, say so in one short line and end that same reply with PING: helper at once/);
+assert.match(system, /When a note clearly fits but a detail is missing, ask one or two short questions/);
 assert.match(system, /Never send them elsewhere to ask/);
 assert.doesNotMatch(system, /tell them to ask the humans in the server|tell them to post in the server with/);
+says = "I'm not sure this note fits. PING: helper";
+got = await discord({ question: 'her voice gives a zargle error' });
+assert.equal(got.reply, "I'm not sure this note fits.");
+assert.equal(got.ping, 'helper');
+assert.match(system, /\[Her voice > /);
+assert.match(system, /or you are not sure the note fits/);
 says = "I don't have a fix for that in these notes. Ask in the Discord. PING: helper";
 got = await help({ question: 'invalid byte encoding' });
 assert.equal(got.ping, undefined);
 assert.doesNotMatch(got.reply, /PING/);
 assert.doesNotMatch(system, /PING/);
 assert.match(system, /point them to the Discord/);
-console.log('PASS uncovered Discord questions ask for a helper at once');
+console.log('PASS uncovered and uncertain Discord questions ask for a helper at once');
 
 // Ticket details stay in the ticket, and questions already answered in history and context are not asked again.
 says = 'Getting a human to look at this. PING: helper';
@@ -462,7 +567,7 @@ for (const [name, entry] of [
 env.RELEASE_URL = releaseUrl;
 console.log('PASS unavailable release data never supplies a made-up latest version');
 
-// Release data caches for ten minutes, rests failures for sixty seconds and keeps the last good value during a failed refresh.
+// Release data keeps its last good value through failed, draft and prerelease refreshes on the same feed.
 const realNow = Date.now;
 let clock = realNow();
 Date.now = () => clock;
@@ -498,8 +603,13 @@ try {
     clock += 600000;
     releases.set(cachedUrl, { body: { tag_name: 'v2.3.6', [flag]: true } });
     await help({ question: 'latest version' });
-    assert.doesNotMatch(system, /^Latest release:/m);
-    clock += 600000;
+    assert.match(system, /^Latest release: 2\.3\.5\./m);
+    const count = fetches().length;
+    clock += 599999;
+    await discord({ question: 'latest version' });
+    assert.match(system, /^Latest release: 2\.3\.5\./m);
+    assert.equal(fetches().length, count);
+    clock++;
     releases.set(cachedUrl, { body: { tag_name: 'v2.3.5' } });
     await discord({ question: 'latest version' });
     assert.match(system, /^Latest release: 2\.3\.5\./m);
@@ -521,7 +631,7 @@ try {
   Date.now = realNow;
   env.RELEASE_URL = releaseUrl;
 }
-console.log('PASS cached and cold release failures rest sixty seconds before retrying');
+console.log('PASS release failures rest sixty seconds and drafts or prereleases retain the same feed\'s last good version');
 
 // Both fetches start before either finishes, so a slow notes fetch cannot delay starting the release fetch.
 const fetchSaved = globalThis.fetch;

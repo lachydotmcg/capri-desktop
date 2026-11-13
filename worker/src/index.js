@@ -204,7 +204,7 @@ const rules = inDiscord => [
     'Never write @everyone or @here.',
     'Never put links in your reply. Leave LINK out for chit-chat, jokes and greetings. Put any LINK tail before PING.',
     'When a person needs to step in, say so in one short line of your own, then end with PING: and who.',
-    'If the notes shown have nothing on their Capri question, say so in one short line and end that same reply with PING: helper at once.',
+    'If no note shown answers their Capri question, or you are not sure the note fits, say so in one short line and end that same reply with PING: helper at once.',
     "PING: helper on your first reply about unasked PC activity, Capri returning after removal or a possibly fake copy; an antivirus alert alone follows the antivirus rule. Also ping if they ask for a human, a helper or staff, or it's still broken after your fixes.",
     'PING: moderator if they ask for a mod, or for rule-breaking, scams, harassment or anything about the server itself.',
     "PING: developer only for a genuine bug in Capri, when they've said what happens, it isn't a setup mistake and the help notes' fixes didn't work. Never use PING: developer for a Known problem note.",
@@ -225,7 +225,7 @@ const rules = inDiscord => [
   "If their version is older than the latest release line, updating is the first step. Use their copy's update steps from the notes; the Store gets versions when they are sent there.",
   'When their problem matches a note that starts with Known problem, say it is known and being worked on and give only its noted workaround. A missing workaround does not make it an uncovered question.',
   'Read the shown conversation before asking. Never ask again for anything already answered, including what works, their version, error words or fixes tried.',
-  "When a note fits but a detail is missing, ask one or two short questions, not more: what still works (typing to her, hearing her, her hearing them, screen reading, jobs), the exact error words, their Capri version, or the exact BRAIN line like Built-in · Gemma 4 E4B.",
+  "When a note clearly fits but a detail is missing, ask one or two short questions, not more: what still works (typing to her, hearing her, her hearing them, screen reading, jobs), the exact error words, their Capri version, or the exact BRAIN line like Built-in · Gemma 4 E4B.",
   "Give one fix at a time, and don't repeat a fix they already tried. A status like Voice link online, or a thanks, doesn't prove it's fixed: ask if it works now.",
   inDiscord
     ? 'If the notes have no fix for an unlisted problem, or it is still broken after their steps, bring a human into this conversation with the right PING role. Never send them elsewhere to ask.'
@@ -371,7 +371,7 @@ const latest = async env => {
     if (!response.ok) throw new Error('Release answered ' + response.status);
     const data = await response.json();
     if (data && (data.draft || data.prerelease)) {
-      release = { at: Date.now(), url, version: '', retry: 0 };
+      release = { at: Date.now(), url, version: release.url === url ? release.version : '', retry: 0 };
     } else {
       if (!data || typeof data.tag_name !== 'string' || !/^v?\d+\.\d+\.\d+(?:\.\d+)?$/.test(data.tag_name)) throw new Error('Release has no version');
       release = { at: Date.now(), url, version: data.tag_name.replace(/^v/, ''), retry: 0 };
@@ -383,11 +383,15 @@ const latest = async env => {
   return release.version;
 };
 
-const oddPc = text => /\b(?:mouse|cursor|pc|computer)\b.*\b(?:by itself|on its own)\b/i.test(text)
-  || /\bfake (?:copy|capri)\b|\bcapri\b.*\bfake\b|\b(?:is|was) (?:my |this |the )?capri (?:copy )?real\b/i.test(text)
-  || /\bcapri\s+(?:(?:has|had|have|just|might|may|could|is|was|be|been|possibly|probably|somehow)\s+)*hack(?:ed|ing|s)?\b|\bhack(?:ed|ing|s)?\b.*\b(?:by|because of|after (?:installing|using|downloading)) (?:capri|her)\b/i.test(text)
-  || /\b(?:capri|she)\b.*\b(?:reinstall(?:ed|ing|s)?|install(?:ed|ing|s)?) (?:herself|itself)\b/i.test(text)
-  || /\b(?:capri|she|her)\b/i.test(text) && /\b(?:delet(?:e|ed|ing)|uninstall(?:ed|ing)?|remov(?:e|ed|ing))\b/i.test(text) && /\b(?:back|return(?:ed|ing|s)?|reinstall(?:ed|ing|s)?|still (?:being )?(?:here|there|installed|running|on (?:my|this|the) (?:pc|computer)))\b/i.test(text);
+const oddPc = text => /\b(?:mouse|cursor|keyboard|keys|pc|computer|apps?|programs?|something|someone)\b.*\b(?:by (?:itself|themselves)|on (?:its|their) own)\b/i.test(text)
+    && !/(?<!\bwhy )\b(?:can|could|will|would|does|should) (?:capri|she|it)\b|\bhow (?:(?:do|can) i|to) (?:make|get|let|have)\b|\b(?:when|while) (?:capri|she) (?:plays? (?:a |the )?games?|talks?|speaks?|(?:does|is doing) (?:a |the )?job)\b|\bat startup\b/i.test(text)
+  || /\b(?:someone|something) (?:is )?(?:controlling|typing on) my (?:pc|computer)\b|\bmessages? i didn'?t send\b/i.test(text)
+  || /\bcapri\b/i.test(text) && /\brat\b/i.test(text)
+  || /\bfake (?:copy|version|download|capri)\b|\bcapri is fake\b|\bis (?:my|this|the) capri (?:copy |download )?(?:real|fake|legit)\b/i.test(text)
+  || /\bcapri\s+(?:(?:has|had|have|just|might|may|could|possibly|probably|somehow)\s+)*hacked\b|\bcapri\s+(?:(?:is|was|just|possibly|probably|somehow)\s+)*hacking\b|\bdid capri (?:just )?hack\b|\bwas it capri\b.*\bhack(?:ed|ing)?\b|\bhacked\b.*\bwas it capri\b|\bhacked (?:by|because of) (?:capri|her)\b|\bhacked (?:after|since|because of)\b.*\b(?:capri|her|it|install(?:ed|ing)?)\b/i.test(text)
+  || /\b(?:reinstalled (?:itself|herself)|(?:capri|she) installed (?:herself|itself))\b/i.test(text)
+  || /\b(?:capri|she)\s+(?:(?:came|comes|keeps coming|is) back|reinstalled|(?:is )?still (?:being )?(?:here|there|installed|on (?:my|this|the) (?:pc|computer))|(?:won'?t|will not) go away)\b/i.test(text)
+    && /\b(?:deleted|uninstalled|removed) (?:her|capri|it)\b|\bafter (?:i )?(?:uninstalling|deleting|removing)\b/i.test(text);
 
 const pick = (sections, text, question = text) => {
   const asked = [...new Set(words(text, true))];
@@ -494,7 +498,7 @@ const vectorTexts = sections => {
   return vectorNotes.get(sections);
 };
 
-const keepVectors = (sections, items, stored) => {
+const keepVectors = (sections, items, stored, cache = true) => {
   const ready = [];
   let size = 0;
   for (const entry of items) {
@@ -504,7 +508,7 @@ const keepVectors = (sections, items, stored) => {
     ready.push({ section: entry.section, vector: found.vector, length: found.length });
   }
   const saved = { items: ready, size };
-  vectorCache.set(sections, saved);
+  if (cache) vectorCache.set(sections, saved);
   return saved;
 };
 
@@ -600,11 +604,13 @@ const vectorFind = async (sections, question, env, ctx, ranked, until) => {
       stored.set(row.hash, found);
     }
     if (mixed) { broken.push(...stored.keys()); stored.clear(); size = 0; }
-    if (removed.length > Math.max(results.length / 4, 20)) { removed.length = 0; vectorLog('prune skipped'); }
+    const limit = Math.max(20, Math.floor(results.length / 4));
+    const more = removed.length > limit;
+    removed.splice(limit);
     const missing = [...current.values()].filter(entry => !stored.has(entry.hash));
     if ((missing.length || removed.length) && !vectorJobs.has(env.DB) && Date.now() >= vectorRetry) {
       vectorJobs.add(env.DB);
-      ctx.waitUntil(fillVectors(env, missing, removed, broken, size, stored).then(() => keepVectors(sections, items, stored)).catch(error => {
+      ctx.waitUntil(fillVectors(env, missing, removed, broken, size, stored).then(() => keepVectors(sections, items, stored, !more)).catch(error => {
         vectorCache.delete(sections);
         if (vectorReason(error) !== 'claim lost') vectorRetry = Date.now() + vectorRest;
         vectorLog(vectorReason(error));
@@ -612,10 +618,11 @@ const vectorFind = async (sections, question, env, ctx, ranked, until) => {
     }
     if (!items.length) return ranked;
     if (missing.length) throw vectorFail('notes missing');
-    saved = keepVectors(sections, items, stored);
+    saved = keepVectors(sections, items, stored, !removed.length);
   }
   if (!saved.items.length) return ranked;
   if (until.over || Date.now() >= until.at) throw vectorFail('search timed out');
+  until.query = true;
   const [query] = await embed(env, question, saved.size);
   const meaning = [];
   for (const entry of saved.items) {
@@ -636,8 +643,8 @@ const search = async (sections, text, question, env, ctx) => {
   if (vectorDay === Math.floor(Date.now() / 86400000)) { vectorLog('daily allowance spent'); return ranked; }
   if (Date.now() < vectorUntil) return ranked;
   let timer;
+  const until = { at: Date.now() + 800, over: false, query: false };
   try {
-    const until = { at: Date.now() + 800, over: false };
     const work = vectorFind(sections, question, env, ctx, ranked, until);
     ctx.waitUntil(work.catch(() => {}));
     const found = await Promise.race([work, new Promise((resolve, reject) => { timer = setTimeout(() => { until.over = true; reject(vectorFail('search timed out')); }, 800); })]);
@@ -645,7 +652,7 @@ const search = async (sections, text, question, env, ctx) => {
     return found;
   } catch (error) {
     const reason = vectorReason(error);
-    if (['search timed out', 'AI failed', 'unexpected AI output'].includes(reason) && ++vectorFailures >= 3) vectorUntil = Date.now() + vectorPause;
+    if ((reason !== 'search timed out' || until.query) && ['search timed out', 'AI failed', 'unexpected AI output'].includes(reason) && ++vectorFailures >= 3) vectorUntil = Date.now() + vectorPause;
     vectorLog(reason);
     return ranked;
   }
@@ -677,28 +684,26 @@ const clip = reply => reply.length > 700 ? reply.slice(0, 697).replace(/\s+\S*$/
 
 // In the Discord she names the help chapter she answered from, and only that one gets a link, so chit-chat gets none (Lachy, 6 Nov).
 const cited = (answer, shown) => {
+  const normal = label => label.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s*[>›]\s*/g, ' > ').replace(/\s+/g, ' ').trim().toLowerCase();
   const labels = [{ label: 'Microsoft Store', section: { title: 'Microsoft Store' } }];
   for (const section of shown) {
     labels.push({ label: section.chapter, section });
-    if (section.title !== section.chapter) labels.push({ label: section.chapter + ' > ' + section.title, section });
+    labels.push({ label: section.chapter + ' > ' + section.title, section });
   }
   for (const entry of labels) {
-    const label = entry.label.replace(/[.!?]$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const found = answer.match(new RegExp('\\s*\\bLINK:\\s*\\[?' + label + '[.!?]?\\]?[.!?]?\\s*$', 'i'));
-    if (found) {
-      const text = answer.slice(0, found.index).trim();
-      if (text) return { text, section: entry.section };
-    }
+    const label = normal(entry.label).replace(/[.!?]$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    entry.match = new RegExp('^\\[?' + label + '[.!?]?\\]?[.!?]?$');
   }
-  // A chapter name never runs over the end of a sentence, so a LINK in the middle of her reply isn't read as the last line.
-  const found = answer.match(/\s*\bLINK:\s*\[?((?:[^\[\].!?\n]|[.!?](?=\S)){2,120}?)\]?[.!?]?\s*$/i);
-  const text = (found ? answer.slice(0, found.index) : answer.replace(/\s*\bLINK:\s*\[?[^\]\n.!?]*\]?[.!?]?/gi, ' ')).replace(/\s+/g, ' ').trim();
-  if (!text) return { text: answer, section: null };
-  if (!found) return { text, section: null };
-  const [chapter, title] = found[1].split('>').map(part => part.trim().toLowerCase());
-  if (chapter === 'microsoft store' && !title) return { text, section: { title: 'Microsoft Store' } };
-  const named = shown.filter(section => section.chapter.toLowerCase() === chapter);
-  return { text, section: named.find(section => section.title.toLowerCase() === title) || named[0] || null };
+  const tails = answer.split(/\bLINK:\s*/i);
+  const text = tails.shift().trim();
+  let section = null;
+  for (const tail of tails) {
+    const found = labels.find(entry => entry.match.test(normal(tail)));
+    if (!found) continue;
+    section = found.section;
+    if (!section.chapter && section.title === 'Microsoft Store') break;
+  }
+  return { text: text || (section ? "Here's the page for that." : answer.replace(/\bLINK:\s*/gi, ' ').replace(/\s+/g, ' ').trim()), section };
 };
 
 // When a person has to step in she ends with PING: and who. The bot does the pinging, so nothing she types can mention anyone (Lachy, 7 Nov).
