@@ -1306,8 +1306,8 @@ namespace CapriDesktop
 #if !CROSS
               "A saved website nickname goes in site, with no search words when opening it. " +
 #endif
-              "Set browser only when they named a browser; otherwise leave it out for their default.",
-              "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}},\"required\":[\"site\"]}", "open websites and search Google, YouTube and other sites", "open sites and search Google or YouTube" },
+              "Set browser only when they named a browser; otherwise leave it out for their default. No site named: leave site out, it uses their browser's search engine; a site or engine they named goes in site.",
+              "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}}}", "open websites and search Google, YouTube and other sites", "open sites and search Google or YouTube" },
 #if !CROSS
             { "media", "Control their music, video or PC volume when they ask, suggest or hint at it. Pause, resume, skip, seek to seconds from the start, like or unlike the current Spotify song, open the player that's playing, or read the song or volume. Seek and likes need a player that supports them.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"play_pause\",\"pause\",\"resume\",\"next\",\"previous\",\"seek\",\"like\",\"unlike\",\"open_player\",\"volume_up\",\"volume_down\",\"volume_set\",\"mute\",\"unmute\",\"now_playing\",\"volume_now\"]},\"seconds\":{\"type\":\"string\",\"description\":\"For seek, seconds from the start, like 90 for 1:30\"},\"level\":{\"type\":\"string\",\"description\":\"For volume_set, 0 to 100. For volume_up or volume_down, how many percent, only if they said\"}},\"required\":[\"action\"]}", "control music and volume, seek, like songs or open the player", "control music and volume, seek, like songs or open the player" },
@@ -1614,6 +1614,9 @@ namespace CapriDesktop
         internal static Action<string> Run = Start;
         internal static Func<string, string> Opened = BringOpened;
         internal static Func<string, string> BrowserPath = FindBrowser;
+        internal static Func<string, string> SearchEngine = ReadSearchEngine;
+        internal static Func<string> DefaultBrowser = ReadDefaultBrowser;
+        internal static Func<DateTime> SearchNow = delegate { return DateTime.UtcNow; };
         internal static Action<string, string> Browse = StartBrowser;
         internal static Func<IntPtr> Foreground = Native.GetForegroundWindow;
         internal static Action<byte> Press = Tap;
@@ -2881,7 +2884,7 @@ namespace CapriDesktop
             string text = Asked(said);
             string plain = Regex.Replace(text, @"^(do|did) (you|u) (know|have any idea)\b|\byou know\b|^(tell|show|get|find) me\b|\b(near me|where i (am|live)|in my (area|city|town|suburb))\b", "", RegexOptions.IgnoreCase);
             if (text.Length < 4 || ClockAsk.IsMatch(text) || !Question.IsMatch((said ?? "").Trim()) || !Unknown.IsMatch((reply ?? "").Replace('’', '\'')) || Regex.IsMatch(plain, @"\b(screen|song|playing|track|you|your|yourself|u|ur|capri|me|my|i|i'm|im)\b", RegexOptions.IgnoreCase) || Regex.IsMatch(reply ?? "", @"\bscreen\b", RegexOptions.IgnoreCase)) return null;
-            return new ToolArguments { Site = "google", Search = text };
+            return new ToolArguments { Search = text };
         }
 
         // A clicking job that's clearly music goes straight to the song. A bare title stays the job a brain asked for: "play
@@ -2911,8 +2914,13 @@ namespace CapriDesktop
             if (Regex.IsMatch(result ?? "", @"^(One of me wasn't|There's (?:two|\d+ more) of me|Got rid of|I don't have any clones|Messing with your icons|Poof\. Your icons|Put your icons back|Your icons are already|I'm already in there|Couldn't get at your desktop|Couldn't put all your icons back|Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.|Gaming Mode|Moved my HUD|Put my HUD|My HUD)")) return result;
             // So do her stopwatch's lines, or a second brain call could round or reword its time.
             if (Regex.IsMatch(result ?? "", @"^(Started your stopwatch|Stopped your stopwatch|Your stopwatch )")) return result;
-            Match searched = Regex.Match(result ?? "", @"^Searched google\.com for (.+)\.$");
-            return searched.Success ? "Pulled up \"" + searched.Groups[1].Value + "\" on Google for you, choom." : null;
+            Match searched = Regex.Match(result ?? "", @"^Searched ([a-z0-9.-]+) for (.+)\.$");
+            if (!searched.Success) return null;
+            string host = searched.Groups[1].Value;
+            if (Regex.IsMatch(host, @"^(youtube\.com|twitch\.tv|reddit\.com|en\.wikipedia\.org|open\.spotify\.com|roblox\.com|github\.com)$")) return null;
+            string engine = Regex.IsMatch(host, @"^google\.(com|[a-z]{2}|co\.[a-z]{2}|com\.[a-z]{2})$") ? "Google"
+                : host == "duckduckgo.com" || host == "html.duckduckgo.com" ? "DuckDuckGo" : host == "search.brave.com" ? "Brave Search" : host == "bing.com" ? "Bing" : null;
+            return "Pulled up \"" + searched.Groups[2].Value + "\"" + (engine == null ? "" : " on " + engine) + " for you, choom.";
         }
 
         // A diagram's result lists what's written on it. Mac and Linux have no ink, so it never comes up there.
@@ -3832,7 +3840,7 @@ namespace CapriDesktop
             string miniWeb = Regex.Replace(text, @"\s+online\b", "", RegexOptions.IgnoreCase);
             if (miniWeb != text && MiniName(miniWeb) != null)
             {
-                tool = "open_website"; args.Site = "google"; args.Search = text; return true;
+                tool = "open_website"; args.Search = text; return true;
             }
 #if !CROSS
             ToolArguments miniMove = MiniInput(text);
@@ -3914,9 +3922,9 @@ namespace CapriDesktop
                 if (Site(target)) { tool = "open_website"; args.Site = target; return true; }
                 return false;
             }
-            found = Regex.Match(text, @"^(?:google|look up)\s+(.+)$", RegexOptions.IgnoreCase);
-            if (found.Success && !Regex.IsMatch(found.Groups[1].Value, @"^(it|this|that|something|stuff|for me)$", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = "google"; args.Search = found.Groups[1].Value.Trim(); return true; }
-            if (Regex.IsMatch(text, LookupWords, RegexOptions.IgnoreCase) && !Regex.IsMatch(Regex.Replace(text, @"\bnear me\b", ""), @"\b(my|your|you|me|i)\b", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = "google"; args.Search = text; return true; }
+            found = Regex.Match(text, @"^(google|look up)\s+(.+)$", RegexOptions.IgnoreCase);
+            if (found.Success && !Regex.IsMatch(found.Groups[2].Value, @"^(it|this|that|something|stuff|for me)$", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = string.Equals(found.Groups[1].Value, "google", StringComparison.OrdinalIgnoreCase) ? "google" : null; args.Search = found.Groups[2].Value.Trim(); return true; }
+            if (Regex.IsMatch(text, LookupWords, RegexOptions.IgnoreCase) && !Regex.IsMatch(Regex.Replace(text, @"\bnear me\b", ""), @"\b(my|your|you|me|i)\b", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Search = text; return true; }
             found = Regex.Match(text, @"^(?:play|shuffle|put on|blast)\s+(.+?)(\s+on\s+(spotify|youtube|apple\s+music))?$", RegexOptions.IgnoreCase);
             if (found.Success)
             {
@@ -4295,7 +4303,7 @@ namespace CapriDesktop
                 return args.Action == "now" || Regex.IsMatch(args.Action ?? "", @"\A(set|up|down|mute|unmute)\z") && Named(args.Name) && (args.Action == "set" ? leveled : string.IsNullOrEmpty(args.Level) || leveled);
             }
 #endif
-            if (tool == "open_website") return Named(args.Site) && (string.IsNullOrEmpty(args.Browser) || BrowserName(args.Browser) != null);
+            if (tool == "open_website") return (Named(args.Site) || Named(args.Search)) && (string.IsNullOrEmpty(args.Browser) || BrowserName(args.Browser) != null);
             if (tool == "look_at_screen") return true;
             if (tool == "media")
             {
@@ -4945,6 +4953,194 @@ namespace CapriDesktop
             return info;
         }
 
+        // Unnamed searches use the engine their browser states (YunoTheAlien, 13 Nov).
+        [DataContract]
+        private sealed class SearchSettings
+        {
+            [DataMember(Name = "default_search_provider_data")] internal SearchProvider Provider;
+        }
+
+        [DataContract]
+        private sealed class SearchProvider
+        {
+            [DataMember(Name = "template_url_data")] internal SearchUrl Template;
+        }
+
+        [DataContract]
+        private sealed class SearchUrl
+        {
+            [DataMember(Name = "url")] internal string Url;
+        }
+
+        [DataContract]
+        private sealed class BrowserState
+        {
+            [DataMember(Name = "profile")] internal BrowserProfile Profile;
+        }
+
+        [DataContract]
+        private sealed class BrowserProfile
+        {
+            [DataMember(Name = "last_used")] internal string Last;
+        }
+
+        private sealed class Engine
+        {
+            internal string Url;
+            internal DateTime At;
+        }
+
+        private static readonly object searchGate = new object();
+        private static readonly Dictionary<string, Engine> engines = new Dictionary<string, Engine>();
+
+        internal static void ForgetSearch() { lock (searchGate) engines.Clear(); }
+
+        private static T SearchJson<T>(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || text.Length > 4 * 1024 * 1024) return default(T);
+            using (MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes(text))) return (T)new DataContractJsonSerializer(typeof(T)).ReadObject(input);
+        }
+
+        internal static string SearchTemplate(string text)
+        {
+            try
+            {
+                SearchSettings settings = SearchJson<SearchSettings>(text);
+                return settings == null || settings.Provider == null || settings.Provider.Template == null ? null : settings.Provider.Template.Url;
+            }
+            catch (Exception) { return null; }
+        }
+
+        internal static string SearchProfile(string text)
+        {
+            try
+            {
+                BrowserState state = SearchJson<BrowserState>(text);
+                string profile = state == null || state.Profile == null ? null : state.Profile.Last;
+                if (string.IsNullOrWhiteSpace(profile)) return "Default";
+                return profile != "." && profile != ".." && Regex.IsMatch(profile, @"^[^\\/:*?""<>|\x00-\x1F]+$") ? profile : null;
+            }
+            catch (Exception) { return null; }
+        }
+
+        internal static string EngineTemplate(string template)
+        {
+            if (string.IsNullOrWhiteSpace(template) || !Regex.IsMatch(template, @"\Ahttps?://", RegexOptions.IgnoreCase) || !template.Contains("{searchTerms}")) return null;
+            try
+            {
+                int hostAt = template.IndexOf("://", StringComparison.Ordinal) + 3;
+                int hostEnd = template.IndexOfAny(new[] { '/', '?', '#' }, hostAt);
+                if (hostEnd < 0) hostEnd = template.Length;
+                if (hostEnd == hostAt) return null;
+                if (Regex.IsMatch(Uri.UnescapeDataString(template.Substring(hostAt, hostEnd - hostAt)), @"[{}]")) return null;
+                int fragmentAt = template.IndexOf('#');
+                string fragment = fragmentAt < 0 ? "" : template.Substring(fragmentAt);
+                string address = fragmentAt < 0 ? template : template.Substring(0, fragmentAt);
+                int queryAt = address.IndexOf('?');
+                string path = queryAt < 0 ? address : address.Substring(0, queryAt);
+                if (Regex.IsMatch(Uri.UnescapeDataString((path + fragment).Replace("{searchTerms}", "caprisearch")), @"[{}]")) return null;
+                List<string> parts = new List<string>();
+                if (queryAt >= 0)
+                    foreach (string part in address.Substring(queryAt + 1).Split('&'))
+                        if (!Regex.IsMatch(Uri.UnescapeDataString(part.Replace("{searchTerms}", "caprisearch")), @"[{}]")) parts.Add(part);
+                string cleaned = path + (parts.Count == 0 ? "" : "?" + string.Join("&", parts.ToArray())) + fragment;
+                Uri uri;
+                if (!cleaned.Contains("{searchTerms}") || !Uri.TryCreate(cleaned.Replace("{searchTerms}", "caprisearch"), UriKind.Absolute, out uri) || (uri.Scheme != "http" && uri.Scheme != "https") || uri.Host.Length == 0 || uri.UserInfo.Length > 0) return null;
+                return cleaned;
+            }
+            catch (Exception) { return null; }
+        }
+
+        private static string SearchAddress(string search, string browser)
+        {
+            string words = Uri.EscapeDataString(search.Trim());
+#if !CROSS
+            try
+            {
+                string name = string.IsNullOrWhiteSpace(browser) ? BrowserName(DefaultBrowser()) : BrowserName(browser);
+                if (name != null && name != "Firefox")
+                {
+                    string template;
+                    lock (searchGate)
+                    {
+                        Engine engine;
+                        DateTime now = SearchNow();
+                        if (!engines.TryGetValue(name, out engine) || now - engine.At >= TimeSpan.FromMinutes(10))
+                        {
+                            string read = null;
+                            try { read = EngineTemplate(SearchEngine(name)); } catch (Exception) { }
+                            engine = new Engine { Url = read, At = now }; engines[name] = engine;
+                        }
+                        template = engine.Url;
+                    }
+                    Uri uri;
+                    if (template != null && Uri.TryCreate(template.Replace("{searchTerms}", words), UriKind.Absolute, out uri) && (uri.Scheme == "http" || uri.Scheme == "https") && uri.Host.Length > 0 && uri.UserInfo.Length == 0) return uri.AbsoluteUri;
+                }
+            }
+            catch (Exception) { }
+#endif
+            return Searches[1, 1] + words;
+        }
+
+        private static string ReadDefaultBrowser()
+        {
+#if !CROSS
+            try
+            {
+                using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"))
+                    return DefaultBrowserName(key == null ? null : key.GetValue("ProgId") as string);
+            }
+            catch (Exception) { }
+#endif
+            return null;
+        }
+
+        internal static string DefaultBrowserName(string id)
+        {
+            if (Regex.IsMatch(id ?? "", @"^ChromeHTML(?:\.|$)", RegexOptions.IgnoreCase)) return "Chrome";
+            if (Regex.IsMatch(id ?? "", @"^MSEdgeHTM(?:\.|$)", RegexOptions.IgnoreCase)) return "Edge";
+            if (Regex.IsMatch(id ?? "", @"^BraveHTML(?:\.|$)", RegexOptions.IgnoreCase)) return "Brave";
+            if (Regex.IsMatch(id ?? "", @"^VivaldiHTM(?:\.|$)", RegexOptions.IgnoreCase)) return "Vivaldi";
+            if (Regex.IsMatch(id ?? "", @"^OperaGX", RegexOptions.IgnoreCase)) return "Opera GX";
+            if (Regex.IsMatch(id ?? "", @"^OperaStable(?:\.|$)", RegexOptions.IgnoreCase)) return "Opera";
+            if (Regex.IsMatch(id ?? "", @"^FirefoxURL(?:-|$)", RegexOptions.IgnoreCase)) return "Firefox";
+            return null;
+        }
+
+        private static string ReadSearchEngine(string browser)
+        {
+#if !CROSS
+            try
+            {
+                string folder = browser == "Chrome" ? @"Google\Chrome\User Data" : browser == "Edge" ? @"Microsoft\Edge\User Data" : browser == "Brave" ? @"BraveSoftware\Brave-Browser\User Data" : browser == "Vivaldi" ? @"Vivaldi\User Data" : browser == "Opera" ? @"Opera Software\Opera Stable" : browser == "Opera GX" ? @"Opera Software\Opera GX Stable" : null;
+                if (folder == null) return null;
+                string root = Path.Combine(Environment.GetFolderPath(browser == "Opera" || browser == "Opera GX" ? Environment.SpecialFolder.ApplicationData : Environment.SpecialFolder.LocalApplicationData), folder);
+                string state = Path.Combine(root, "Local State");
+                bool hasState = File.Exists(state);
+                string stateText = hasState ? ReadSearchFile(state) : null;
+                if (hasState && stateText == null) return null;
+                string profile = SearchProfile(stateText);
+                return profile == null ? null : SearchTemplate(ReadSearchFile(Path.Combine(Path.Combine(root, profile), "Preferences")));
+            }
+            catch (Exception) { }
+#endif
+            return null;
+        }
+
+#if !CROSS
+        private static string ReadSearchFile(string path)
+        {
+            using (FileStream input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            {
+                if (input.Length > 4 * 1024 * 1024) return null;
+                byte[] bytes = new byte[(int)input.Length];
+                int offset = 0, got;
+                while (offset < bytes.Length && (got = input.Read(bytes, offset, bytes.Length - offset)) > 0) offset += got;
+                return offset == bytes.Length && input.Length == bytes.Length ? Encoding.UTF8.GetString(bytes) : null;
+            }
+        }
+#endif
+
         private static string OpenSite(string site, string search, string browser = null)
         {
             string address = null;
@@ -4954,7 +5150,7 @@ namespace CapriDesktop
                 site = Websites.Find(nickname);
                 if (string.IsNullOrWhiteSpace(search)) address = site;
             }
-            if (address == null) address = Address(site, search);
+            if (address == null) address = Address(site, search, browser);
             if (address == null) return "That isn't a website.";
             string browserName = BrowserName(browser);
             string browserPath = browserName == null ? null : BrowserPath(browserName);
@@ -5005,6 +5201,15 @@ namespace CapriDesktop
             if (searching.Success && Site(searching.Groups[1].Value)) return new ToolArguments { Site = searching.Groups[1].Value, Search = searching.Groups[2].Value.Trim(), Browser = browser };
             Match searchingOn = Regex.Match(text, @"^search(?: for)?\s+(.+?)\s+on\s+(\S+)$", RegexOptions.IgnoreCase);
             if (searchingOn.Success && Site(searchingOn.Groups[2].Value)) return new ToolArguments { Site = searchingOn.Groups[2].Value, Search = searchingOn.Groups[1].Value.Trim(), Browser = browser };
+            if (browser != null)
+            {
+                Match lookup = Regex.Match(text, @"^(google|look up)\s+(.+)$", RegexOptions.IgnoreCase);
+                if (lookup.Success && !Regex.IsMatch(lookup.Groups[2].Value, @"^(it|this|that|something|stuff|for me)$", RegexOptions.IgnoreCase))
+                    return new ToolArguments { Site = string.Equals(lookup.Groups[1].Value, "google", StringComparison.OrdinalIgnoreCase) ? "google" : null, Search = lookup.Groups[2].Value.Trim(), Browser = browser };
+                string online = Regex.Replace(text, @"\s+online\b", "", RegexOptions.IgnoreCase);
+                if (online != text && MiniName(online) != null || Regex.IsMatch(text, LookupWords, RegexOptions.IgnoreCase) && !Regex.IsMatch(Regex.Replace(text, @"\bnear me\b", ""), @"\b(my|your|you|me|i)\b", RegexOptions.IgnoreCase))
+                    return new ToolArguments { Search = text, Browser = browser };
+            }
             return null;
         }
 
@@ -5134,12 +5339,13 @@ namespace CapriDesktop
             return bestWindow;
         }
 
-        internal static string Address(string site, string search)
+        internal static string Address(string site, string search, string browser = null)
         {
             string host = Regex.Replace((site ?? "").Trim().ToLowerInvariant(), @"^(https?://)?(www\.)?", "");
             bool searching = !string.IsNullOrWhiteSpace(search);
             if (searching)
             {
+                if (host.Length == 0) return SearchAddress(search, browser);
                 for (int i = 0; i < Searches.GetLength(0); i++)
                 {
                     string key = Searches[i, 0];

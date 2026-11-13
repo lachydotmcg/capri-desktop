@@ -29587,7 +29587,7 @@ namespace CapriDesktop
                     must(!Hands.Direct(notSong, out named, out namedArgs), "A game went to Spotify: " + notSong);
                 foreach (string titled in new[] { "play bohemian rhapsody", "play stay with me", "play this love", "play poker face", "play tetris on spotify" })
                     must(Hands.Direct(titled, out named, out namedArgs) && named == "play_music", "A song stopped routing to music: " + titled);
-                must(Hands.Heard("play tic tac toe online", out named, out namedArgs) && named == "open_website" && namedArgs.Site == "google", "Online tic-tac-toe did not reach the browser.");
+                must(Hands.Heard("play tic tac toe online", out named, out namedArgs) && named == "open_website" && string.IsNullOrEmpty(namedArgs.Site), "Online tic-tac-toe did not reach the browser.");
                 foreach (string left in new[] { "don't play tic tac toe", "if we play tic tac toe", "play checkers", "play tic tac toe on youtube", "play tic tac toe and open discord", "top left", "middle", "column 3", "rock", "nice one", "you're cheating", "easy", "hard", "level hard", "play hard rock", "play easy" })
                     must(!Hands.Heard(left, out named, out namedArgs) || named != "mini_game", "A board stole these words: " + left);
                 must(Hands.Tools.Contains("mini_game") && Hands.ClaudeTools.Contains("mini_game") && Hands.Listing.Contains("mini_game") && Hands.Valid("mini_game", new ToolArguments { Name = "connect_four" }) && !Hands.Valid("mini_game", new ToolArguments { Name = "checkers" }), "The board tool wasn't registered or accepted another game.");
@@ -37830,7 +37830,123 @@ namespace CapriDesktop
             }
         }
 
-        private static void SmokeOpening(System.Collections.Generic.List<string> checks)
+        private static void SmokeSearch(System.Collections.Generic.List<string> checks, string output)
+        {
+            Func<string, string> engineWas = Hands.SearchEngine, browserWas = Hands.BrowserPath, openedWas = Hands.Opened;
+            Func<string> defaultWas = Hands.DefaultBrowser;
+            Func<DateTime> nowWas = Hands.SearchNow;
+            Action<string> runWas = Hands.Run;
+            Action<string, string> browseWas = Hands.Browse;
+            Websites sitesWas = Hands.Websites;
+            string siteFolder = Path.Combine(output, "search-sites-test");
+            try
+            {
+                string sent = null, selected = null;
+                int engineReads = 0;
+                DateTime now = new DateTime(2026, 11, 13, 12, 0, 0, DateTimeKind.Utc);
+                string engine = "https://search.brave.com/search?q={searchTerms}&source={unknown}&lang=en";
+                Hands.SearchEngine = delegate(string name) { selected = name; engineReads++; return engine; };
+                Hands.DefaultBrowser = delegate { return "Brave"; };
+                Hands.SearchNow = delegate { return now; };
+                Hands.BrowserPath = delegate { return "fake-browser.exe"; };
+                Hands.Opened = delegate { return ""; };
+                Hands.Run = delegate(string address) { sent = address; };
+                Hands.Browse = delegate(string path, string address) { sent = address; };
+                Hands.ForgetSearch();
+                foreach (string phrase in new[] { "look up capri ai", "what's the weather in Sydney", "play chess online" })
+                {
+                    string named;
+                    ToolArguments search;
+                    if (!Hands.Direct(phrase, out named, out search) || named != "open_website" || !string.IsNullOrEmpty(search.Site) || string.IsNullOrEmpty(search.Search) || Hands.Plain(named, search)) throw new Exception("An unnamed look-up changed its route: " + phrase);
+                    string line = Hands.Do(named, search);
+                    if (sent != "https://search.brave.com/search?q=" + Uri.EscapeDataString(search.Search.Trim()) + "&lang=en" || line != "Searched search.brave.com for " + search.Search.Trim() + ".") throw new Exception("An unnamed look-up lost the browser's engine: " + phrase);
+                }
+                ToolArguments lookup = Hands.Lookup("when does the new GTA come out?", "I don't know.");
+                if (lookup == null || !string.IsNullOrEmpty(lookup.Site)) throw new Exception("The automatic look-up still picked Google.");
+                Hands.Do("open_website", lookup);
+                if (sent != "https://search.brave.com/search?q=" + Uri.EscapeDataString(lookup.Search) + "&lang=en") throw new Exception("The automatic look-up lost the browser's engine.");
+                const string searchWords = "C# & cats {x} é";
+                if (!Hands.Valid("open_website", new ToolArguments { Search = searchWords })) throw new Exception("A brain couldn't ask for a plain search.");
+                Hands.Do("open_website", new ToolArguments { Search = searchWords });
+                if (sent != "https://search.brave.com/search?q=" + Uri.EscapeDataString(searchWords) + "&lang=en" || selected != "Brave" || engineReads != 1) throw new Exception("Search words weren't escaped or the engine wasn't remembered.");
+                Hands.Do("open_website", new ToolArguments { Search = "cats", Browser = "Chrome" });
+                if (selected != "Chrome" || engineReads != 2) throw new Exception("A named browser didn't choose its own engine.");
+                engine = "https://duckduckgo.com/?q={searchTerms}";
+                Hands.Do("open_website", new ToolArguments { Search = "cats" });
+                if (!sent.StartsWith("https://search.brave.com/", StringComparison.Ordinal) || engineReads != 2) throw new Exception("The search engine cache expired early.");
+                now = now.AddMinutes(10);
+                Hands.Do("open_website", new ToolArguments { Search = "cats" });
+                if (sent != "https://duckduckgo.com/?q=cats" || engineReads != 3) throw new Exception("The engine cache didn't refresh after ten minutes.");
+                string tool;
+                ToolArguments args;
+                if (!Hands.Direct("google capri ai", out tool, out args) || args.Site != "google") throw new Exception("An explicit Google request lost its site.");
+                Hands.Do(tool, args);
+                if (sent != "https://www.google.com/search?q=capri%20ai") throw new Exception("Google words used the browser's engine.");
+                Hands.Do("open_website", new ToolArguments { Site = "google", Search = "cats" });
+                if (sent != "https://www.google.com/search?q=cats") throw new Exception("A brain's named Google engine changed.");
+                if (!Hands.Direct("search youtube for cats", out tool, out args) || args.Site != "youtube") throw new Exception("A named site was lost.");
+                Hands.Do(tool, args);
+                if (sent != "https://www.youtube.com/results?search_query=cats") throw new Exception("A named site used the browser's engine.");
+                Hands.Do("open_website", new ToolArguments { Site = "youtube", Search = "cats" });
+                if (sent != "https://www.youtube.com/results?search_query=cats") throw new Exception("A brain's named YouTube site changed.");
+                Hands.Websites = new Websites(siteFolder);
+                Hands.Websites.Do(new ToolArguments { Action = "save", Name = "school portal", Site = "https://portal.example/classes" });
+                if (!Hands.Direct("open school portal", out tool, out args) || args.Site != "school portal") throw new Exception("A saved nickname became a search.");
+                Hands.Do(tool, args);
+                if (sent != "https://portal.example/classes") throw new Exception("A saved nickname used the browser's engine.");
+                foreach (string bad in new[] { "file:///search?q={searchTerms}", "javascript:search({searchTerms})", "https:///search?q={searchTerms}", "https://{host}/?q={searchTerms}", "https://{searchTerms}.example/", "https://search.example/?q=cats", "https://search.example/{unknown}?q={searchTerms}" })
+                {
+                    engine = bad; Hands.ForgetSearch();
+                    Hands.Do("open_website", new ToolArguments { Search = searchWords });
+                    if (sent != "https://www.google.com/search?q=" + Uri.EscapeDataString(searchWords)) throw new Exception("An unsafe engine template reached the shell: " + bad);
+                }
+                Func<string, string> preferences = delegate(string url) { return "{\"default_search_provider_data\":{\"template_url_data\":{\"url\":" + Voice.Quote(url) + "}}}"; };
+                string changed = "https://duckduckgo.com/?q={searchTerms}&t=capri";
+                string builtIn = "{google:baseURL}search?q={searchTerms}&{google:RLZ}";
+                string nested = "{\"url\":\"https://decoy.example/\",\"other\":{\"template_url_data\":{\"url\":\"wrong\"}},\"default_search_provider_data\":{\"ignore\":{\"url\":\"wrong\",\"text\":\"} \\\" {\"},\"template_url_data\":{\"url\":\"https:\\/\\/search.example\\/find?q={searchTerms}&tag=\\u0061\",\"other\":{\"url\":\"wrong\"}}}}";
+                if (Hands.SearchTemplate(preferences(changed)) != changed || Hands.SearchTemplate(preferences(builtIn)) != builtIn || Hands.EngineTemplate(builtIn) != null || Hands.SearchTemplate(nested) != "https://search.example/find?q={searchTerms}&tag=a"
+                    || Hands.SearchTemplate("{\"other\":{\"url\":\"https://wrong.example/?q={searchTerms}\"}}") != null || Hands.SearchTemplate("{broken") != null || Hands.SearchTemplate(new string(' ', 4 * 1024 * 1024 + 1)) != null) throw new Exception("The engine reader guessed outside its JSON member or missed escaped text.");
+                if (Hands.SearchProfile("{\"other\":{\"last_used\":\"Wrong\"},\"profile\":{\"last_used\":\"Profile\\u00202\"}}") != "Profile 2" || Hands.SearchProfile("{}") != "Default" || Hands.SearchProfile(null) != "Default" || Hands.SearchProfile("{\"profile\":{\"last_used\":\"../other\"}}") != null || Hands.SearchProfile("{broken") != null) throw new Exception("The engine reader chose the wrong profile.");
+                engine = Hands.SearchTemplate(preferences(builtIn)); Hands.ForgetSearch();
+                Hands.Do("open_website", new ToolArguments { Search = "cats" });
+                if (sent != "https://www.google.com/search?q=cats") throw new Exception("Chrome's built-in template didn't fall back to Google.");
+                foreach (string missing in new[] { "none", "Firefox", "Unknown" })
+                {
+                    Hands.DefaultBrowser = delegate { return missing; }; Hands.ForgetSearch();
+                    Hands.SearchEngine = delegate { throw new Exception("An unsupported browser read its settings."); };
+                    Hands.Do("open_website", new ToolArguments { Search = "cats" });
+                    if (sent != "https://www.google.com/search?q=cats") throw new Exception("An unsupported browser lost the Google fallback.");
+                }
+                Hands.DefaultBrowser = delegate { return "Edge"; };
+                foreach (bool throws in new[] { false, true })
+                {
+                    Hands.SearchEngine = delegate { if (throws) throw new IOException("Fake locked file."); return null; };
+                    Hands.ForgetSearch(); Hands.Do("open_website", new ToolArguments { Search = "cats" });
+                    if (sent != "https://www.google.com/search?q=cats") throw new Exception("An unreadable engine lost the Google fallback.");
+                }
+                string[,] progIds = { { "ChromeHTML", "Chrome" }, { "MSEdgeHTM", "Edge" }, { "BraveHTML.1", "Brave" }, { "VivaldiHTM", "Vivaldi" }, { "OperaStable", "Opera" }, { "OperaGXStable", "Opera GX" }, { "FirefoxURL-test", "Firefox" }, { "Unknown", null } };
+                for (int p = 0; p < progIds.GetLength(0); p++) if (Hands.DefaultBrowserName(progIds[p, 0]) != progIds[p, 1]) throw new Exception("A fake default-browser ProgId was misread.");
+                Hands.SearchEngine = delegate { return "https://search.example/?q={searchTerms}"; };
+                Hands.ForgetSearch();
+                foreach (string namedSearch in new[] { "look up capri ai in Chrome", "in Edge look up capri ai", "play chess online in Brave" })
+                {
+                    if (!Hands.Direct(namedSearch, out tool, out args) || tool != "open_website" || string.IsNullOrEmpty(args.Browser) || !string.IsNullOrEmpty(args.Site)) throw new Exception("An unnamed search lost its named browser: " + namedSearch);
+                    Hands.Do(tool, args);
+                    if (sent != "https://search.example/?q=" + Uri.EscapeDataString(args.Search)) throw new Exception("A named browser's plain search lost its engine.");
+                }
+                if (Hands.Pulled("Searched google.com for cats.") != "Pulled up \"cats\" on Google for you, choom." || Hands.Pulled("Searched duckduckgo.com for cats.") != "Pulled up \"cats\" on DuckDuckGo for you, choom." || Hands.Pulled("Searched search.brave.com for cats.") != "Pulled up \"cats\" on Brave Search for you, choom." || Hands.Pulled("Searched bing.com for cats.") != "Pulled up \"cats\" on Bing for you, choom." || Hands.Pulled("Searched search.example for cats.") != "Pulled up \"cats\" for you, choom.") throw new Exception("A look-up line named the wrong engine.");
+                if (Hands.Tools.IndexOf("No site named: leave site out, it uses their browser's search engine; a site or engine they named goes in site.", StringComparison.Ordinal) < 0) throw new Exception("The website description lost plain searches.");
+                checks.Add("PASS browser search: automatic look-ups, online games, look up, weather and search-only calls use the stated engine with escaped words; Google, named sites and nicknames keep their routes; templates, nested JSON, profiles, cache and fallback stay bounded");
+            }
+            finally
+            {
+                Hands.SearchEngine = engineWas; Hands.DefaultBrowser = defaultWas; Hands.SearchNow = nowWas; Hands.ForgetSearch();
+                Hands.Run = runWas; Hands.Browse = browseWas; Hands.BrowserPath = browserWas; Hands.Opened = openedWas; Hands.Websites = sitesWas;
+                if (Directory.Exists(siteFolder)) Directory.Delete(siteFolder, true);
+            }
+        }
+
+        private static void SmokeOpening(System.Collections.Generic.List<string> checks, string output)
         {
             Func<System.Collections.Generic.List<InstalledApp>> openingCatalog = Hands.Catalog;
             Func<System.Collections.Generic.List<OpenWindow>> openingWindows = Hands.Windows;
@@ -37929,6 +38045,7 @@ namespace CapriDesktop
                 if (Hands.Tools.IndexOf("\"browser\"", StringComparison.Ordinal) < 0 || Computer.Tools.IndexOf("\"browser\"", StringComparison.Ordinal) < 0 || Computer.Toolset.IndexOf("\"browser\"", StringComparison.Ordinal) < 0 || CursorJob("open_website", new ToolArguments { Site = "youtube", Search = "cats", Browser = "edge" }).IndexOf("browser \"edge\"", StringComparison.Ordinal) < 0) throw new Exception("A chat or job route omitted browser choice.");
                 checks.Add("PASS browser choice: all seven browsers keep their exe, link and foreground target, Direct and Heard keep named browsers before and after requests, search terms stay intact, missing browsers fall back explicitly, and chat and job schemas and cursor jobs keep the argument");
                 checks.Add("LIMIT browser choice: real Windows registrations and each browser's tab handoff need an installed browser; these launch checks use stand-ins");
+                SmokeSearch(checks, output);
             }
             finally
             {
@@ -42329,7 +42446,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCommentDelivery", delegate { SmokeCommentDelivery(checks); });
             Section(checks, "SmokeTypingRepeats", delegate { SmokeTypingRepeats(checks); });
             Section(checks, "SmokeComments", delegate { SmokeComments(checks); });
-            Section(checks, "SmokeOpening", delegate { SmokeOpening(checks); });
+            Section(checks, "SmokeOpening", delegate { SmokeOpening(checks, output); });
             Section(checks, "SmokeVoiceWaits", delegate { SmokeVoiceWaits(checks); });
             Section(checks, "SmokeLineChanges", delegate { SmokeLineChanges(checks); });
             Section(checks, "SmokeAdminKeys", delegate { SmokeAdminKeys(checks); });
@@ -45845,6 +45962,9 @@ namespace CapriDesktop
 
         internal void StartSmokeTest(string output, SmokeOptions options)
         {
+            Hands.SearchEngine = delegate { return null; };
+            Hands.DefaultBrowser = delegate { return null; };
+            Hands.ForgetSearch();
             // A video full screen on another monitor is full screen to Windows too, and the test shouldn't depend on what's on the PC.
             Native.FakedGaming = false;
             // The checks hold her thread for seconds at a time, and Windows swaps a window that long unanswered for a ghost of it.
@@ -49356,7 +49476,7 @@ namespace CapriDesktop
                                     || !Hands.Promised("Otwieram YouTube!") || !Hands.Promised("Jasne, już otwieram YouTube, choom.") || !Hands.Promised("Włączyłam muzykę.") || !Hands.Promised("Claro, abro YouTube.") || !Hands.Promised("Ich öffne YouTube.") || !Hands.Promised("Открываю YouTube.")
                                     || Hands.Promised("Otwieranie aplikacji jest proste.") || Hands.Promised("Lubię tę piosenkę.") || Hands.Promised("Abrazos, choom.")) throw new Exception("Computer jobs or false promises were spotted wrong.");
                                 ToolArguments lookedUp = Hands.Lookup("when does the new GTA come out?", "I don't have live info on that, choom.");
-                                if (!Hands.Wants("what's the weather in sydney?") || !Hands.Wants("can you check the weather") || !Hands.Wants("who won the game last night") || Hands.Wants("i love rainy weather") || lookedUp == null || lookedUp.Site != "google" || lookedUp.Search != "when does the new GTA come out" || Hands.Lookup("what's the weather near me?", "I'll look it up for you, choom!") == null || Hands.Lookup("what's my name?", "I don't have a way to know your name.") != null || Hands.Lookup("how are you?", "Can't complain, choom.") != null || Hands.Lookup("what do you see?", "I can't see your screen right now.") != null || Hands.Lookup("what's the capital of france?", "Paris, choom.") != null || !Hands.Wants("is it gonna rain tomorrow?") || Hands.Lookup("when does gta 6 come out?", "I gotta check that for you, choom. You might need to look that up somewhere else.") == null || Hands.Lookup("is it hot in perth?", "Check a proper weather feed, choom; I ain't got crystal ball optics.") == null || Hands.Lookup("when's the next gta out?", "You gotta check a search engine for that, choom.") == null || Hands.Pulled("Searched google.com for weather in sydney.") != "Pulled up \"weather in sydney\" on Google for you, choom." || Hands.Pulled("Searched youtube.com for lofi beats.") != null || Hands.Pulled("Opened your own website, " + Hands.Home + ".") != "Here's my site, choom. That's where people download me.") throw new Exception("Look-ups that need Google were spotted wrong.");
+                                if (!Hands.Wants("what's the weather in sydney?") || !Hands.Wants("can you check the weather") || !Hands.Wants("who won the game last night") || Hands.Wants("i love rainy weather") || lookedUp == null || !string.IsNullOrEmpty(lookedUp.Site) || lookedUp.Search != "when does the new GTA come out" || Hands.Lookup("what's the weather near me?", "I'll look it up for you, choom!") == null || Hands.Lookup("what's my name?", "I don't have a way to know your name.") != null || Hands.Lookup("how are you?", "Can't complain, choom.") != null || Hands.Lookup("what do you see?", "I can't see your screen right now.") != null || Hands.Lookup("what's the capital of france?", "Paris, choom.") != null || !Hands.Wants("is it gonna rain tomorrow?") || Hands.Lookup("when does gta 6 come out?", "I gotta check that for you, choom. You might need to look that up somewhere else.") == null || Hands.Lookup("is it hot in perth?", "Check a proper weather feed, choom; I ain't got crystal ball optics.") == null || Hands.Lookup("when's the next gta out?", "You gotta check a search engine for that, choom.") == null || Hands.Pulled("Searched google.com for weather in sydney.") != "Pulled up \"weather in sydney\" on Google for you, choom." || Hands.Pulled("Searched youtube.com for lofi beats.") != null || Hands.Pulled("Opened your own website, " + Hands.Home + ".") != "Here's my site, choom. That's where people download me.") throw new Exception("Look-ups were spotted wrong.");
                                 if (Hands.Lookup("what time is it?", "Let me check, choom.") != null || Hands.Lookup("hey capri, what's the date today?", "I can't check that.") != null || Hands.Lookup("what time is it in tokyo?", "Let me check, choom.") == null
                                     || Hands.ClockLine(new DateTime(2026, 11, 1, 15, 25, 0)) != "It's 3:25 PM on Sunday 1 November 2026." || !Hands.ClockDodged("Hey Capri, what time is it?", "Let me check, choom.") || !Hands.ClockDodged("do you know what time it is?", "Time for you to get a watch.")
                                     || Hands.ClockDodged("what time is it?", "3:25 PM, choom.") || Hands.ClockDodged("what day is it?", "Sunday, choom.") || Hands.ClockDodged("what time is the game?", "Let me check.")) throw new Exception("Asking the time didn't go to her clock.");
@@ -49373,7 +49493,7 @@ namespace CapriDesktop
                                 string shortTool;
                                 ToolArguments shortArgs;
                                 if (!Hands.Direct("capri, open your website", out shortTool, out shortArgs) || shortTool != "open_website" || shortArgs.Site != Hands.Home || !Hands.Direct("google weather tomorrow", out shortTool, out shortArgs) || shortTool != "open_website" || shortArgs.Site != "google" || shortArgs.Search != "weather tomorrow" || Hands.Direct("look up it", out shortTool, out shortArgs)) throw new Exception("Her website or a quick Google search didn't skip the brain.");
-                                if (!Hands.Heard("This is day 4. Capri, play In Love With Myself.", out shortTool, out shortArgs) || shortTool != "play_music" || shortArgs.Song != "In Love With Myself" || !Hands.Heard("This is day 4, Capri, open your website", out shortTool, out shortArgs) || shortTool != "open_website" || shortArgs.Site != Hands.Home || !Hands.Heard("Capri, what's the weather tomorrow?", out shortTool, out shortArgs) || shortArgs.Site != "google" || shortArgs.Search != "what's the weather tomorrow" || Hands.Heard("how's my score looking?", out shortTool, out shortArgs) || Hands.Heard("I love you Capri", out shortTool, out shortArgs)) throw new Exception("Voice chat shortcuts were heard wrong: " + shortTool + " " + shortArgs.Song + shortArgs.Site + shortArgs.Search);
+                                if (!Hands.Heard("This is day 4. Capri, play In Love With Myself.", out shortTool, out shortArgs) || shortTool != "play_music" || shortArgs.Song != "In Love With Myself" || !Hands.Heard("This is day 4, Capri, open your website", out shortTool, out shortArgs) || shortTool != "open_website" || shortArgs.Site != Hands.Home || !Hands.Heard("Capri, what's the weather tomorrow?", out shortTool, out shortArgs) || !string.IsNullOrEmpty(shortArgs.Site) || shortArgs.Search != "what's the weather tomorrow" || Hands.Heard("how's my score looking?", out shortTool, out shortArgs) || Hands.Heard("I love you Capri", out shortTool, out shortArgs)) throw new Exception("Voice chat shortcuts were heard wrong: " + shortTool + " " + shortArgs.Song + shortArgs.Site + shortArgs.Search);
                                 string[] screenAsks = { "check my screen", "Capri, look at my screen", "can you see my screen?", "can you check my screen please", "what's on my screen", "what do you see?", "look at this", "check this out", "what am I doing rn", "take a look", "hey capri what game is this?", "do you see this?", "peep my screen", "What’s on the screen?", "please look at this error", "regarde mon écran" };
                                 foreach (string screenAsk in screenAsks)
                                     if (!Hands.Heard(screenAsk, out shortTool, out shortArgs) || shortTool != "look_at_screen") throw new Exception("Asked to check the screen, she didn't look: " + screenAsk + " -> " + shortTool);
