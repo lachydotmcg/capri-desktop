@@ -15,6 +15,7 @@
   const startVoice = () => {
     const r = window.CapriRemote, call = window.CapriCall;
     if (!voiceOn || !r || r.info.native || r.info.demo || r.state !== 'connected') return;
+    if (call?.active) return;
     if (!r.info.features?.includes('call')) {
       if (!oldVoice) { voiceStatus('Her voice needs a newer Capri on your PC.'); oldVoice = true; }
       return;
@@ -140,7 +141,7 @@
   };
   const openCamera = async (lead = '', focus = true) => {
     if (room.hidden) {
-      window.CapriCall?.end();
+      window.CapriCall?.room();
       setPose('perch');
       for (const name of Object.keys(clips)) load(name);
       loadHeart();
@@ -308,13 +309,13 @@
   };
   love.addEventListener('click', showHeart);
   voice.addEventListener('click', () => {
-    if (voiceOn && voiceNote.textContent === 'Tap Voice to hear her.') { startVoice(); return; }
+    if (voiceOn && (voiceNote.textContent === 'Tap Voice to hear her.' || !window.CapriCall?.listening && /Tap Voice|another call/.test(voiceNote.textContent))) { startVoice(); return; }
     voiceOn = !voiceOn;
     voice.setAttribute('aria-pressed', String(voiceOn));
     try { localStorage.setItem('capri-room-voice', voiceOn ? 'on' : 'off'); } catch (error) {}
     voiceNote.textContent = '';
     if (voiceOn) startVoice();
-    else { window.CapriCall?.stopListening(); talking = false; }
+    else window.CapriCall?.stopListening();
   });
   const moveCamera = (x, y) => {
     const box = view.getBoundingClientRect();
@@ -405,5 +406,5 @@
     if (next === 'connected') queueMicrotask(() => { if (!room.hidden) startVoice(); });
     else { window.CapriCall?.stopListening(); talking = false; voiceNote.textContent = ''; }
   });
-  window.CapriRoom = { close: closeRoom, voiceStatus, talk: on => { talking = !room.hidden && !!on; } };
+  window.CapriRoom = { close: closeRoom, startVoice: () => { if (!room.hidden) startVoice(); }, voiceStatus, talk: on => { talking = !room.hidden && !!on; } };
 })();

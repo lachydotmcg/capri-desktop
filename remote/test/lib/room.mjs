@@ -79,7 +79,7 @@ export async function roomRig({ features = ['chat', 'call'], native = false, por
       const source = `window.pc = {sent:[]};
         window.CapriRelay = {clear(){},link(){return {
           open(pairing,hooks){pc.hooks=hooks;hooks.state('connected',{pc:'Test PC',demo:false,native:${native},features:${JSON.stringify(features)}});},
-          send(message){pc.sent.push(message);if(message.type==='call.start') queueMicrotask(()=>pc.hooks.message({type:'call.state',on:true,voice:true,ears:true}));return true;},
+          send(message){pc.sent.push(message);if(message.type==='call.start' && !pc.noAnswer) queueMicrotask(()=>pc.hooks.message(pc.answer || {type:'call.state',on:true,voice:true,ears:true}));return true;},
           close(){},retry(){}
         };}};`;
       page.send('Fetch.fulfillRequest', { requestId: params.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'text/javascript' }], body: Buffer.from(source).toString('base64') }).catch(() => {});

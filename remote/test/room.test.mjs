@@ -1,8 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { chromePath, launch } from './lib/cdp.mjs';
 import { HOME_SCREEN, IPHONES, misfitsOf, setPhone } from './lib/fit.mjs';
 import { startSite } from './lib/site.mjs';
+
+test('Chrome keeps extra switches without the browser audit hook or duplicate close handler', () => {
+  const source = readFileSync(new URL('./lib/cdp.mjs', import.meta.url), 'utf8');
+  assert.ok(source.includes('process.env.CAPRI_CHROME_ARGS'));
+  assert.ok(!source.includes('CAPRI_BROWSER_LOG'));
+  assert.equal((source.match(/socket\.onclose\s*=/g) || []).length, 1);
+});
 
 test('the phone room camera starts on request and releases its tracks', { skip: !chromePath() }, async () => {
   const site = await startSite(8981);
@@ -75,6 +83,7 @@ test('room voice, tool moves, teardown and AR use the call audio without a mic',
     assert.equal(await page.run('audioStarts'), 0);
     await r.open();
     assert.equal(await value('room-voice'), 'true');
+    assert.deepEqual(await page.run('pc.sent.find(m => m.type === "call.start")'), { type: 'call.start', hush: true, listen: true });
     assert.equal(await page.run("CapriCall.listening && !document.querySelector('.call-room').getClientRects().length && !document.getElementById('app').classList.contains('on-call')"), true);
     await move('lie_down', 'running');
     assert.equal(await value('room-sit'), 'true');
@@ -161,7 +170,8 @@ test('room voice, tool moves, teardown and AR use the call audio without a mic',
     await r.open();
     await click('f-call');
     await page.until('CapriCall.stats().micLive && CapriCall.stats().shown', 'ordinary call');
-    assert.equal(await page.run("document.getElementById('room').hidden && !CapriCall.listening"), true);
+    assert.equal(await page.run("!document.getElementById('room').hidden && !CapriCall.listening"), true);
+    await click('room-close');
     await page.run('CapriCall.end()');
     await page.until("contexts.every(c => c.state === 'closed')", 'ordinary call released');
     for (const result of await verifyArt(page)) assert.equal(result.equal, true, JSON.stringify(result));
@@ -334,5 +344,82 @@ test('room gives a plain status if the heart cannot load', { skip: !chromePath()
     await r.page.until("document.getElementById('room-status').textContent === 'Heart.'", 'failed heart status');
     assert.equal(await r.page.run("document.getElementById('room-heart').hidden"), true);
     assert.equal(await r.page.run("document.getElementById('room-love').getAttribute('aria-pressed')"), 'true');
+  } finally { await r.close(); }
+});
+
+test('room reports unanswered, refused, busy and voice-off PCs and shows pressed buttons', { skip: !chromePath() }, async () => {
+  const r = await roomRig({port:29889,chrome:29899});
+  const {page, click} = r;
+  const note = text => page.until('document.getElementById("room-voice-note").textContent === ' + JSON.stringify(text), text);
+  try {
+    await page.run(`pc.noAnswer = true; const timeout = window.setTimeout; window.setTimeout = (fn, ms, ...args) => timeout(fn, ms === 8000 ? 100 : ms, ...args)`);
+    await r.open();
+    await note("Your PC didn't answer. Tap Voice to try again.");
+    assert.equal(await page.run('CapriCall.listening'), false);
+    assert.equal(await page.run('pc.sent.at(-1).type'), 'call.stop');
+    await page.run("pc.noAnswer = false; pc.answer = {type:'call.state',on:false,reason:'not-allowed'}");
+    await click('room-voice');
+    await note("Your PC didn't answer. Tap Voice to try again.");
+    await page.run("pc.answer = {type:'call.state',on:false,reason:'busy'}");
+    await click('room-voice');
+    await note('Your PC is on another call.');
+    await page.run("pc.answer = {type:'call.state',on:true,voice:false,ears:true}");
+    await click('room-voice');
+    await note('Her voice is off on your PC.');
+    await page.run('new Promise(resolve => setTimeout(resolve,200))');
+    await note('Her voice is off on your PC.');
+    assert.equal(await page.run('CapriCall.stats().micLive'), false);
+    const colors = () => page.run(`['room-sit','room-lie','room-voice'].map(id => {const el=document.getElementById(id);return {face:getComputedStyle(el,'::after').backgroundColor,ink:getComputedStyle(el).color};})`);
+    const on = await colors();
+    assert.deepEqual(on[0], on[2]);
+    assert.notEqual(on[0].face, on[1].face);
+    await click('room-voice');
+    const off = await colors();
+    assert.deepEqual(off[1], off[2]);
+    assert.equal(await page.run('CapriCall.listening'), false);
+    await page.run('pc.answer = null');
+    await click('room-voice');
+    await page.until('CapriCall.listening', 'voice retry');
+    await note('');
+  } finally { await r.close(); }
+});
+
+test('room and ordinary calls share sound without ending each other or leaving the call screen up', { skip: !chromePath() }, async () => {
+  const r = await roomRig({port:29890,chrome:29900});
+  const {page, click, pc} = r;
+  const call = async () => { await click('f-call'); await page.until('CapriCall.stats().micLive && CapriCall.state === "on"', 'live call'); };
+  try {
+    await call();
+    const before = await page.run('({sent:pc.sent.length,contexts:contexts.length})');
+    await r.open();
+    assert.deepEqual(await page.run('({sent:pc.sent.length,contexts:contexts.length})'), before);
+    assert.equal(await page.run('CapriCall.active && !CapriCall.listening && CapriCall.stats().micLive && !document.querySelector(".callbar").hidden && !document.getElementById("app").classList.contains("call-open")'), true);
+    await click('room-lie');
+    await pc.voice('room', tone(24000, 1, 220));
+    await page.until('document.getElementById("room-sprite").style.backgroundImage.includes("laydown_talk.png")', 'call drives room frames');
+    await page.until('document.getElementById("room-sprite").style.backgroundImage.includes("laydown.png")', 'call quiet frames');
+    await page.run('document.querySelector(".call-key.speaker").click()');
+    await pc.voice('room', tone(24000, 1, 220));
+    await page.run('new Promise(resolve => setTimeout(resolve,100))');
+    assert.equal(await page.run('document.getElementById("room-sprite").style.backgroundImage.includes("_talk")'), false);
+    await page.run('document.querySelector(".call-bar-mute").click()');
+    assert.equal(await page.run('CapriCall.stats().muted'), true);
+    await page.run('document.querySelector(".call-bar-end").click()');
+    await page.until('CapriCall.listening && !CapriCall.stats().micLive', 'listening after call');
+    assert.equal(await page.run('document.querySelector(".call-room").hidden && !document.getElementById("app").classList.contains("call-open")'), true);
+    await call();
+    assert.equal(await page.run('!document.getElementById("room").hidden && !CapriCall.listening'), true);
+    assert.equal(await page.run('pc.sent.filter(m => m.type === "call.start").at(-1).listen === undefined'), true);
+    await click('room-voice');
+    await page.run('CapriCall.end()');
+    await page.until('CapriCall.state === "ended"', 'ended call screen');
+    await click('room-close'); await r.open();
+    assert.equal(await page.run('CapriCall.state === "off" && document.querySelector(".call-room").hidden && !document.getElementById("app").classList.contains("call-open")'), true);
+    await click('room-voice');
+    await page.until('CapriCall.listening', 'listen replaces ended screen');
+    await page.run('new Promise(resolve => setTimeout(resolve,1300))');
+    assert.equal(await page.run('document.querySelector(".call-room").hidden && !document.getElementById("room").hidden'), true);
+    await click('room-close');
+    await page.until('contexts.every(c => c.state === "closed")', 'all call sound closed');
   } finally { await r.close(); }
 });
