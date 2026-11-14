@@ -34,6 +34,8 @@ try {
       await page.go('http://127.0.0.1:8986/?relay=ws://127.0.0.1:8986' + pc.hash);
       await page.until("document.querySelector('#app').dataset.link === 'connected'", 'old PC');
       await click(page, '#room-camera'); await click(page, '#room-attach'); await line(page, 'Update Capri on your PC to send pictures.');
+      await page.run('Promise.all([...document.images].map(img => img.decode().catch(() => {})))');
+      await page.run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
       await page.shot(join(folder, `${width}x${height}-old-pc.png`));
     } finally { if (page) { await page.close(); closed++; } }
   }

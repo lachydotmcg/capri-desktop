@@ -18,6 +18,10 @@ for (const size of [[390, 844], [360, 640]]) {
     await r.open();
     await page.until("document.getElementById('room-sprite').style.backgroundImage.includes('perch.webp')", 'sitting sprite');
     await shot('sitting');
+    await shot('voice-on');
+    await click('room-voice');
+    await shot('voice-off');
+    await click('room-voice');
     if (size[0] === 390) {
       await page.send('Emulation.setTouchEmulationEnabled', {enabled:true,maxTouchPoints:1});
       const {end} = await dragRoom(page, 'touch', -300, -200);
@@ -36,6 +40,14 @@ for (const size of [[390, 844], [360, 640]]) {
     await page.until("document.getElementById('room-heart').naturalWidth === 1920", 'heart frames');
     await new Promise(resolve => setTimeout(resolve, 700));
     await shot('heart');
+    await click('f-call');
+    await page.until('CapriCall.stats().micLive && CapriCall.state === "on"', 'call in room');
+    await page.run('CapriCall.room()');
+    await pc.voice('room', tone(24000, 2, 240));
+    await page.until("document.getElementById('room-sprite').style.backgroundImage.includes('laydown_talk.png')", 'call room frames');
+    await shot('during-call');
+    await page.run('CapriCall.end()');
+    await page.until('CapriCall.listening', 'listening after screenshot call');
     await page.run('window.blockSound = true; contexts.at(-1).suspend()');
     await page.until("document.getElementById('room-voice-note').textContent === 'Tap Voice to hear her.'", 'blocked voice');
     await shot('tap-voice');

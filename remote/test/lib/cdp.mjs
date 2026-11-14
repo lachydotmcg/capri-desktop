@@ -2,7 +2,7 @@
 // calls the tests need. Node 22+ has the WebSocket it talks over.
 
 import { spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync, writeFileSync, appendFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -21,9 +21,6 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 export const launch = async ({ port, width = 390, height = 844, args = [] }) => {
   const profile = mkdtempSync(join(tmpdir(), 'capri-phone-chrome-'));
   const chrome = spawn(chromePath(), ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--window-size=' + width + ',' + height, ...JSON.parse(process.env.CAPRI_CHROME_ARGS || '[]'), ...args, 'about:blank'], { stdio: 'ignore' });
-  const audit = event => { if (process.env.CAPRI_BROWSER_LOG) appendFileSync(process.env.CAPRI_BROWSER_LOG, JSON.stringify({event,pid:chrome.pid,port}) + '\n'); };
-  audit('started');
-  chrome.once('exit', () => audit('exited'));
   let target = null;
   for (let tries = 0; tries < 100 && !target; tries++) {
     await wait(100);
@@ -50,7 +47,6 @@ export const launch = async ({ port, width = 390, height = 844, args = [] }) => 
       if (message.error) reject(new Error(message.error.message)); else resolve(message.result);
     } else if (message.method) for (const listen of listeners) listen(message.method, message.params);
   };
-  socket.onclose = () => { for (const item of waiting.values()) item.reject(new Error('Chrome DevTools socket closed')); waiting.clear(); };
   const send = (method, params = {}) => new Promise((resolve, reject) => {
     if (socket.readyState !== WebSocket.OPEN) { reject(new Error('Chrome is closed')); return; }
     const id = ++next;

@@ -37,7 +37,7 @@
 .room-her { --s: clamp(84px, 28vmin, 164px); left: 50%; top: 74%; transform: translate(-37%, -80%); }
 .room-her[data-pose="lie"] { transform: translate(-57%, -95%); }
 .room-her .sprite { filter: drop-shadow(0 4px 3px rgb(0 0 0 / .42)); }
-.room-controls .nbtn[aria-pressed="true"] { --rim: var(--cyan); }
+.room-controls .nbtn[aria-pressed="true"] { --face: var(--cyan); --rim: var(--cyan); --ink: var(--on-ink); }
 .room-menu {
   position: absolute;
   right: max(0px, calc((100% - 720px) / 2));

@@ -111,7 +111,7 @@
         at: Number(chat.at) || Date.now(),
         last: Number(chat.last) || Number(chat.at) || Date.now(),
         msgs: chat.msgs.filter(msg => msg && roles.has(msg.role) && typeof msg.text === 'string').slice(-200).map(msg => {
-          const kept = { role: msg.role, text: msg.text.slice(0, 8000), at: Number(msg.at) || 0 };
+          const kept = { role: msg.role, text: msg.text.slice(0, 8000) || (msg.role === 'you' ? '[picture]' : ''), at: Number(msg.at) || 0 };
           if (msg.role === 'tool') {
             kept.name = clip(msg.name, 40) || 'tool';
             // A tool still running when the page closed never said how it went.
@@ -323,7 +323,7 @@
     if (linkState !== 'connected') { say(linkState === 'offline' ? 'PC offline' : 'Not connected yet'); return false; }
     const chat = current() || startChat();
     const now = Date.now();
-    const said = { role: 'you', text: text.slice(0, 8000), at: now };
+    const said = { role: 'you', text: text.slice(0, 8000) || (picture ? '[picture]' : ''), at: now };
     if (picture && window.CapriAttach) CapriAttach.keep(said, picture);
     chat.msgs.push(said);
     chat.last = now;
@@ -332,7 +332,7 @@
     const re = id || newId();
     openReply(re, chat);
     toEnd();
-    const body = { id: re, text: said.text };
+    const body = { id: re, text: text.slice(0, 8000) };
     if (picture) { body.picture = picture; CapriAttach.sent(re, input.value, picture); }
     if (!CapriRemote.send('chat.send', body)) {
       settleReply(re, 'NOT SENT');
@@ -520,7 +520,7 @@
     else if (screen === 'replace') CapriBar.seat($('#replace-card'), 'right');
     else if (screen === 'where') CapriBar.seat($('#where-card'), 'right');
     else if (screen === 'wait') CapriBar.seat($('#wait-card'), 'right');
-    else CapriBar.seat(bar, 'left');
+    else CapriBar.seat(composer, 'left');
   };
   const showBanner = (title, sub, tone, retry) => {
     bannerTitle.textContent = title;
