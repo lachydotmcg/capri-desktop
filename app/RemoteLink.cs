@@ -1693,6 +1693,7 @@ namespace CapriDesktop
                         return;
                     }
                     Heard item = new Heard { Device = phone.Device.Id, Id = id, Text = text, Picture = picture, Phone = phone, Session = phone.Session };
+                    if (picture == null && !Receive(item)) return;
                     item.Ready = picture == null;
                     item.Valid = true;
                     phone.Chat.Enqueue(item);
@@ -1781,6 +1782,12 @@ namespace CapriDesktop
             return !stopped && Live(item.Device) == item.Phone && item.Phone.Session == item.Session && !item.Phone.Kicked && item.Phone.Online;
         }
 
+        // A text's answer waits for the phone's next session, so only a picture needs the session it came in.
+        private bool Reachable(Heard item)
+        {
+            return !stopped && Live(item.Device) == item.Phone;
+        }
+
         private Func<bool> SessionCurrent(Heard item)
         {
             return delegate { lock (gate) return Current(item); };
@@ -1801,9 +1808,10 @@ namespace CapriDesktop
                 catch (Exception) { }
                 lock (gate)
                 {
+                    bool current = Current(item);
                     item.Ready = true;
-                    item.Valid = valid;
-                    if (Current(item) && !valid)
+                    item.Valid = valid && current && Receive(item);
+                    if (current && !valid)
                     {
                         Outgoing refused = Outgoing.Message(item.Phone, RemoteMessages.Error("bad-message", item.Id));
                         refused.Bound = item.Session;
@@ -1844,7 +1852,7 @@ namespace CapriDesktop
                         return;
                     }
                     item = phone.Chat.Dequeue();
-                    if (!Current(item) || !item.Valid || !Receive(item)) continue;
+                    if (!item.Valid || !(item.Picture == null ? Reachable(item) : Current(item))) continue;
                     phone.Chatting = item;
                 }
                 if (item.Picture != null)
