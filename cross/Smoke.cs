@@ -5443,6 +5443,7 @@ namespace CapriDesktop
             var fields = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
             object opened = typeof(MacFingers).GetField("opened", fields).GetValue(null), inputPane = typeof(MacFingers).GetField("inputPane", fields).GetValue(null);
             object recordingTold = typeof(Eyes).GetField("recordingTold", fields).GetValue(null);
+            object captureGate = typeof(Eyes).GetField("captureGate", fields).GetValue(null);
             object automationUntil = typeof(MacFingers).GetField("automationUntil", fields).GetValue(null);
             try
             {
@@ -5450,50 +5451,66 @@ namespace CapriDesktop
                 MacFingers.Trusted = () => true; MacFingers.Listening = () => true; Eyes.ScreenAllowed = () => true;
                 MacFingers.Pause = _ => { }; Chores.Hidden = _ => { }; Chores.SignHidden = _ => false; Chores.Track = (x, y) => { };
                 int panes = 0, captures = 0, requests = 0;
+                const string screenLine = "I need Screen Recording to see your screen. Turn Capri on in System Settings > Privacy & Security > Screen Recording, then reopen me. If I'm already on that list, remove me with the minus button first.";
+                string pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
+                bool launchLocked = false, requestFirst = true, rightPane = true;
                 Eyes.ScreenRequest = () => { requests++; return false; };
                 typeof(Eyes).GetField("recordingTold", fields).SetValue(null, false);
-                MacFingers.Launch = (file, args) => { if (file != "/usr/bin/open" || args.Length != 1) throw new Exception("Mac permission command"); panes++; };
+                MacFingers.Launch = (file, args) =>
+                {
+                    panes++; rightPane &= file == "/usr/bin/open" && args.Length == 1 && args[0] == pane;
+                    launchLocked |= Monitor.IsEntered(captureGate); requestFirst &= requests == 1;
+                };
                 byte[] wallpaper = FakeScreen(SkiaSharp.SKColors.Blue);
                 Eyes.Take = (tool, path) => { captures++; File.WriteAllBytes(path, wallpaper); return true; };
-                MacFingers.JobReady();
+                if (!MacFingers.JobReady() || Eyes.Screenshot(Eyes.Tools(true, null, null), true).Length != wallpaper.Length || requests != 0 || panes != 0) throw new Exception("An allowed Mac capture requested access or opened Settings");
                 Eyes.ScreenAllowed = () => false;
-                if (Hands.KitFor().Has("use_computer") || requests != 0) throw new Exception("Mac tool list asked for Screen Recording");
+                Eyes.Tools(true, null, null); Eyes.QuietTools(true, null, null);
+                if (Eyes.CanRecord() || MacFingers.JobReady() || Hands.KitFor().Has("use_computer") || Hands.KitFor().Tools.Contains("\"name\":\"use_computer\"") || requests != 0 || panes != 0) throw new Exception("Mac permission probes or tool lists opened Settings or asked for Screen Recording");
+                checks.Add("PASS Mac permission probes and tool lists do not open Settings or request Screen Recording");
                 for (int attempt = 0; attempt < 2; attempt++)
                 {
                     bool refused = false;
                     try { Eyes.Screenshot(Eyes.Tools(true, null, null), true); }
                     catch (InvalidOperationException error)
                     {
-                        refused = error.Message == Eyes.MissingFor(true, null, null);
+                        refused = error.Message == screenLine;
                     }
-                    if (!refused || captures != 0 || requests != 1) throw new Exception("Mac wallpaper reached the brain, lost its guidance or repeated its permission request");
+                    if (!refused || captures != 1 || requests != 1 || panes != 1) throw new Exception("Mac wallpaper reached the brain, lost its guidance or repeated its permission request or pane");
                 }
-                if (Hands.KitFor().Has("use_computer") || Hands.KitFor().Tools.Contains("\"name\":\"use_computer\"") || !Hands.Unable("use_computer", new ToolArguments()).Contains("Screen Recording")) throw new Exception("Mac advertised a job without Screen Recording");
+                if (!rightPane || launchLocked || !requestFirst) throw new Exception("Mac Screen Recording opened the wrong pane, ran before requesting access or held the capture lock");
+                checks.Add("PASS Mac Screen Recording opens its pane once after the first request and outside the capture lock");
+                if (Eyes.CanRecord() || MacFingers.JobReady() || Hands.KitFor().Has("use_computer") || Hands.KitFor().Tools.Contains("\"name\":\"use_computer\"") || Hands.Unable("use_computer", new ToolArguments()) != screenLine || requests != 1 || panes != 1) throw new Exception("Mac permission probes reopened Settings or a job lost its Screen Recording guidance");
+                Eyes.ScreenAllowed = () => true;
+                if (!Eyes.CanRecord() || !MacFingers.JobReady() || !Hands.KitFor().Has("use_computer") || Hands.Unable("use_computer", new ToolArguments()) != null || Eyes.Screenshot(Eyes.Tools(true, null, null), true).Length != wallpaper.Length || requests != 1 || panes != 1) throw new Exception("Mac permission recovery still refused a capture, requested access or reopened Settings");
+                checks.Add("PASS Mac allowed screen captures and later permission probes keep Settings closed");
                 int probes = 0;
                 Eyes.ScreenAllowed = () => ++probes == 1;
                 bool revoked = false;
                 try { Eyes.Screenshot(Eyes.Tools(true, null, null), true); }
-                catch (InvalidOperationException error) { revoked = error.Message == Eyes.MissingFor(true, null, null); }
-                if (!revoked || captures != 1) throw new Exception("Mac accepted a capture after Screen Recording was revoked");
+                catch (InvalidOperationException error) { revoked = error.Message == screenLine; }
+                if (!revoked || captures != 3 || requests != 1 || panes != 1) throw new Exception("Mac accepted a revoked capture or reopened Screen Recording Settings");
                 Eyes.ScreenAllowed = () => true;
                 MacFingers.JobReady();
+                pane = MacFingers.Pane;
                 MacFingers.Trusted = () => false;
                 string first = Hands.Unable("use_computer", new ToolArguments()), again = Hands.Unable("use_computer", new ToolArguments());
-                if (first != MacFingers.Permission || again != first || panes != 1 || Hands.KitFor().Has("use_computer")) throw new Exception("Mac Accessibility lost its guidance, reopened Settings or advertised as ready");
+                if (first != MacFingers.Permission || again != first || panes != 2 || Hands.KitFor().Has("use_computer")) throw new Exception("Mac Accessibility lost its guidance, reopened Settings or advertised as ready");
                 MacFingers.Trusted = () => true;
                 MacFingers.JobReady();
                 MacFingers.Listening = () => false;
                 typeof(MacFingers).GetField("inputPane", fields).SetValue(null, 0);
+                pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent";
                 first = MacFingers.ListenProblem(); again = MacFingers.ListenProblem();
-                if (!first.Contains("System Settings > Privacy & Security > Input Monitoring") || again != first || panes != 2 || !MacFingers.JobReady()) throw new Exception("Mac listener failure lost its guidance, reopened Settings or blocked an untried tap");
+                if (!first.Contains("System Settings > Privacy & Security > Input Monitoring") || again != first || panes != 3 || !MacFingers.JobReady()) throw new Exception("Mac listener failure lost its guidance, reopened Settings or blocked an untried tap");
                 MacFingers.Listening = () => true;
                 if (!MacFingers.JobReady() || !Hands.KitFor().Has("use_computer") || Hands.Unable("use_computer", new ToolArguments()) != null || Hands.KitFor().Has("stream")) throw new Exception("Mac permission recovery or stream gap");
-                Eyes.ScreenAllowed = () => false;
-                if (Eyes.Screenshot(Eyes.Tools(false, "x11", null), false).Length != wallpaper.Length || captures != 2) throw new Exception("Mac permission checks changed Linux capture");
+                Eyes.ScreenAllowed = () => { throw new Exception("Linux probed Mac Screen Recording"); };
+                if (Eyes.Screenshot(Eyes.Tools(false, "x11", null), false).Length != wallpaper.Length || captures != 4 || requests != 1 || panes != 3) throw new Exception("Mac permission checks changed Linux capture");
                 Eyes.ScreenAllowed = () => true;
                 checks.Add("PASS Mac captures reject missing or revoked Screen Recording before wallpaper can reach the brain");
                 checks.Add("PASS Mac job catalogs require screen and input access, recover when allowed and keep Linux capture unchanged");
-                if (requests != 1 || !Eyes.MissingFor(true, null, null).Contains("If I'm already on that list, remove me with the minus button first.")) throw new Exception("Mac Screen Recording repeated its request or lost the stale-entry guidance");
+                if (!rightPane || requests != 1 || panes != 3 || Eyes.MissingFor(true, null, null) != screenLine) throw new Exception("Mac Screen Recording repeated its request or lost the stale-entry guidance");
                 checks.Add("PASS Mac permission guidance stays complete on repeat calls, Settings opens once per pane and Screen Recording is requested once");
                 foreach (bool platform in new[] { true, false })
                 {
