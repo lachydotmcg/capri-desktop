@@ -88,6 +88,7 @@ export const startProvider = port =>
         }
         // A refusal set by the test, for any chat call.
         if (state.fail && /\/(messages|chat\/completions)$/.test(url.pathname) && request.method === 'POST') return json(response, state.fail.status, state.fail.body, state.fail.headers);
+        if (state.hold && heard.includes(state.hold.text)) await new Promise(resolve => { state.hold.release = resolve; });
         if (url.pathname.startsWith('/google/')) {
           if (request.headers.authorization !== 'Bearer ' + GOOD.google) return json(response, 401, [{ error: { code: 401, message: 'API key not valid.', status: 'UNAUTHENTICATED' } }]);
           if (url.pathname === '/google/models') return json(response, 200, { object: 'list', data: [

@@ -1014,6 +1014,7 @@
     if (window.CapriScreen && window.CapriScreen.within) window.CapriScreen.within(null);
   };
   const reasons = { 'not-allowed': 'Calls are off on your PC', ended: 'Your PC ended the call', busy: 'Capri is busy' };
+  const listenReasons = { 'not-allowed': 'Your PC is not taking calls. Tap Voice to try again.', busy: "Your PC is on another phone's call. Tap Voice to try again.", ended: 'Your PC ended it. Tap Voice to try again.' };
   const over = (why, byHim) => {
     clearTimeout(ring);
     drop();
@@ -1046,7 +1047,7 @@
         window.CapriRoom.talk(false);
         window.CapriRoom.voiceStatus(why || '');
       }
-    } else if (window.CapriRoom) {
+    } else if (window.CapriRoom && (!why || byHim)) {
       queueMicrotask(() => { if (!live()) window.CapriRoom.startVoice(); });
     }
     draw();
@@ -1066,11 +1067,11 @@
     audioSession('playback');
     try { openSound(); } catch (error) { listening = false; audioSession('auto'); return false; }
     state = 'ringing';
-    if (!remote().send('call.start', { hush: true, listen: true })) { over("Your PC didn't answer. Tap Voice to try again.", false); return true; }
+    if (!remote().send('call.start', { hush: true, listen: true })) { over("Your PC did not answer in time. Tap Voice to try again.", false); return true; }
     ring = setTimeout(() => {
       if (listening && state === 'ringing') {
         remote().send('call.stop', {});
-        over("Your PC didn't answer. Tap Voice to try again.", false);
+        over("Your PC did not answer in time. Tap Voice to try again.", false);
       }
     }, 8000);
     tick = setInterval(onTick, 50);
@@ -1182,7 +1183,7 @@
         if (state === 'ringing') { state = 'on'; since = Date.now(); }
         them = { voice: message.voice !== false, ears: message.ears !== false };
         draw();
-      } else if (live()) over(listening ? message.reason === 'busy' ? 'Your PC is on another call.' : "Your PC didn't answer. Tap Voice to try again." : reasons[message.reason] || 'Call ended', false);
+      } else if (live()) over(listening ? listenReasons[message.reason] || "Your PC did not answer in time. Tap Voice to try again." : reasons[message.reason] || 'Call ended', false);
     } else if (type === 'chat.tool') toolSaid(message);
     else if (type === 'call.heard') {
       if (typeof message.id !== 'string' || state !== 'on') return;

@@ -211,7 +211,7 @@
       node = make('p', 'msg you');
       node.append(make('span', 'sr-only', 'You: '));
       if (window.CapriAttach) CapriAttach.render(node, msg);
-      node.append(make('span', 'words', msg.text));
+      if (!node.querySelector('img') || msg.text !== '[picture]') node.append(make('span', 'words', msg.text === '[picture]' ? 'Picture' : msg.text));
     } else if (msg.role === 'capri') {
       node = make('p', 'msg capri done');
       const caret = make('span', 'caret');
@@ -320,6 +320,7 @@
 
   // One message from him to her, over chat.send, whether he typed it, tapped a starter or tapped SCREEN.
   const deliver = (text, picture, id) => {
+    if (window.CapriAttach && CapriAttach.busy) return false;
     if (linkState !== 'connected') { say(linkState === 'offline' ? 'PC offline' : 'Not connected yet'); return false; }
     const chat = current() || startChat();
     const now = Date.now();
@@ -683,7 +684,7 @@
   // SCREEN shows the PC's screen live when her PC has the screen view (screen.js). Otherwise it's a chat message asking
   // her to look, so her own look_at_screen tool runs on the PC and her answer lands here like any other (the demo PC
   // answers it with its scripted look). CALL rings her when her PC takes calls (call.js). CLOSE goes back to the menu.
-  $('#f-screen').addEventListener('click', () => { if (!(window.CapriScreen && CapriScreen.open())) deliver('Look at my screen. What\'s on it?'); });
+  $('#f-screen').addEventListener('click', () => { if (window.CapriAttach && CapriAttach.busy) return; if (!(window.CapriScreen && CapriScreen.open())) deliver('Look at my screen. What\'s on it?'); });
   $('#f-call').addEventListener('click', () => {
     if (window.CapriCall && CapriCall.start()) return;
     if (linkState !== 'connected') say(linkState === 'offline' ? 'PC offline' : 'Not connected yet');
