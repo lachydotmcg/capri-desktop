@@ -2818,6 +2818,16 @@ namespace CapriDesktop
                 if (frame.WindowState != WindowState.Normal || frame.SettingsShown) throw new Exception("Asking for her Mainframe did not open the main page.");
                 pet.SetAdvancedSettings(false); Hands.Do("mainframe", new ToolArguments { Name = "moves" });
                 if (!frame.SettingsShown || !pet.Saved.AdvancedSettings || !frame.Row("Wander").IsVisible) throw new Exception("A tool page did not unfold its advanced rows.");
+                if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+                {
+                    // Open ears folder ends 50 below the top of her ears picker, and the MOVES heading starts 32 above Wander.
+                    Control earsRow = frame.Row("Her ears"), wander = frame.Row("Wander");
+                    if (!earsRow.IsVisible || Canvas.GetTop(earsRow) + 50 > Canvas.GetTop(wander) - 32)
+                        throw new Exception("Her ears rows are hidden under MOVES: " + Canvas.GetTop(earsRow) + " / " + Canvas.GetTop(wander));
+                    pet.SetAdvancedSettings(false);
+                    if (earsRow.IsVisible || !frame.Row("Volume").IsVisible) throw new Exception("Simple Settings didn't fold her ears with the rest of VOICE.");
+                    pet.SetAdvancedSettings(true);
+                }
                 pet.Talk.Dismiss();
                 checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps the pet running and closes the Mac and Linux window");
                 MainframePictures(frame, voice);

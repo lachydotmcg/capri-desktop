@@ -370,6 +370,10 @@ namespace CapriDesktop
         private static readonly int[] Recalls = { 8, 16, 32 };
         private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
+        // Her ears and Open ears folder, under Typing mode on Mac and Linux. Simple Settings folds them with the rest of VOICE.
+        private static readonly int[] EarsBand = { 428, 488 };
+        private static bool HearsHere => OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
+        private static int[][] With(int[][] bands, int[] band) { var all = new int[bands.Length + 1][]; bands.CopyTo(all, 0); all[bands.Length] = band; return all; }
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 854, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
         private static readonly int[][] MissingRight = { new[] { 400, 428 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
 
@@ -819,10 +823,14 @@ namespace CapriDesktop
                 {
                     bool right = x >= 380;
                     double anchor = y + (control is NeonHead ? 5 : 0);
-                    if (simple && In(anchor, right ? FoldedRight : FoldedLeft)) show = false;
+                    int[][] folded = right ? FoldedRight : FoldedLeft;
+                    if (!right && HearsHere) folded = With(folded, EarsBand);
+                    if (simple && In(anchor, folded)) show = false;
                     int[][] missing = right ? MissingRight : MissingLeft;
                     if (!right && pet.MainframeInputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
-                    y = Lift(anchor, missing, right ? FoldedRight : FoldedLeft, simple) - (control is NeonHead ? 5 : 0);
+                    // Her ears rows sit at the top of the left gap, so on Mac and Linux the gap starts below them.
+                    if (!right && HearsHere) missing = Array.ConvertAll(missing, band => band[0] == EarsBand[0] ? new[] { EarsBand[1], band[1] } : band);
+                    y = Lift(anchor, missing, folded, simple) - (control is NeonHead ? 5 : 0);
                     if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel && control != thinkingLevel && control != thinkingLabel && control != thinkingExtra && control != extraLabel) y += control == huskVerbosity ? 84 : 112;
                 }
                 if (item.Page == 0)
