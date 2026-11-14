@@ -11404,6 +11404,7 @@ namespace CapriDesktop
             brain.Model = name;
             Cloud remote = brain.Remote;
             if (remote != null) remote.Model = name;
+            mainframe.ForgotText(null);
             if (!keep) return;
             if (remote != null) Keep(remote);
             else if (preferences.ProviderOn && brain.Server != null)
@@ -11677,7 +11678,7 @@ namespace CapriDesktop
             brain.Remote = TierCloud();
             brain.Model = brain.Remote == null ? brain.Server == null ? null : preferences.ProviderModel : brain.Remote.Model;
             ShowTiers();
-            mainframe.ForgotText(brain.Remote);
+            mainframe.ForgotText(preferences.Tier == 2 && brain.Remote != null && !brain.Remote.Code && brain.Remote.Kind != "local" ? brain.Remote : null);
             FindBrain();
         }
 
@@ -37974,6 +37975,10 @@ namespace CapriDesktop
                 if (preferences.PaidPlan != null || preferences.PlanModel != null || preferences.PaidKey != sealedKey || preferences.PlanPicked || preferences.Tier != 2 || brain.Remote == null || brain.Remote.Key != key) throw new Exception("Removing a plan did not leave the saved API key in use.");
                 forgetNote("Back on your saved API key.");
                 checks.Add("PASS Forget plan says Back on your saved API key. before and after model refresh");
+                ChooseModel("gpt-90");
+                mainframe.ShowCloud(brain.Remote, cloudModels);
+                if (brain.Remote.Model != "gpt-90" || mainframe.Status.EndsWith(" | Back on your saved API key.", StringComparison.Ordinal)) throw new Exception("The note after Forget stayed after another model was picked: " + mainframe.Status);
+                checks.Add("PASS the note after Forget goes once another model is picked");
                 use(2);
                 ForgetText();
                 if (preferences.PaidKey != null || preferences.PaidModel != null || preferences.PaidPlan != sealedClaude || !preferences.PlanPicked || preferences.Tier != 2 || brain.Remote == null || brain.Remote.Kind != "claudecode" || brain.Remote.Model != "sonnet") throw new Exception("Removing an API key did not leave the saved plan in use.");
