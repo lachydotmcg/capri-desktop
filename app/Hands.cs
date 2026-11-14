@@ -2898,6 +2898,15 @@ namespace CapriDesktop
             return new ToolArguments { Search = text };
         }
 
+        // A question her hands would only search the web for is her brain's to answer. Its words stay, unless they say it can't
+        // know or are a tool call written out as words.
+        internal static bool Knew(string tool, ToolArguments args, string said, string reply)
+        {
+            if (tool != "open_website" || args == null || !string.IsNullOrEmpty(args.Site) || string.IsNullOrEmpty(args.Search)) return false;
+            if (!Question.IsMatch((said ?? "").Trim()) && !Question.IsMatch(Asked(said))) return false;
+            return !string.IsNullOrWhiteSpace(reply) && !Unknown.IsMatch(reply.Replace('’', '\'')) && !Regex.IsMatch(reply, @"\b[a-z]+(?:_[a-z]+)+\b");
+        }
+
         // A clicking job that's clearly music goes straight to the song. A bare title stays the job a brain asked for: "play
         // Balloons Tower Defense 6" isn't for Spotify (Lachy, 7 Nov).
         internal static bool MusicJob(string task, out ToolArguments music)

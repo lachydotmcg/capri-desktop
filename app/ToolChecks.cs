@@ -327,6 +327,28 @@ namespace CapriDesktop
                     if (string.Join(",", skipped.ToArray()) != "app_window:discord:close" || boltReply != "Closed discord.")
                         throw new Exception("Her brain's words for a call didn't close discord: " + words + " / " + boltReply + " / " + string.Join(",", skipped.ToArray()));
                 }
+                // A question her hands would only search for stays her brain's answer. They search when it says it can't know, writes
+                // the call out as words, or they were told to google it.
+                List<string> searched = new List<string>();
+                string[,] lookups = {
+                    { "what is rain", "Rain is water falling from clouds.", "" },
+                    { "look up capri ai", "Capri is a desktop companion.", "" },
+                    { "what's the weather in Sydney", "I can't check live weather, choom.", "open_website::what's the weather in Sydney" },
+                    { "what's the weather in Sydney", "open_website: weather in Sydney", "open_website::what's the weather in Sydney" },
+                    { "google capri ai", "Capri is a desktop companion.", "open_website:google:capri ai" } };
+                for (int row = 0; row < lookups.GetLength(0); row++)
+                {
+                    fake.Stop();
+                    asked.Clear();
+                    searched.Clear();
+                    Brain.OpenAi = FakeServer(new[] { says(lookups[row, 1]), says("Pulled it up."), says("Pulled it up.") }, asked, out fake);
+                    Brain reader = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                    reader.Act = delegate(string name, ToolArguments args) { searched.Add(name + ":" + args.Site + ":" + args.Search); return "No result."; };
+                    string lookedUp = reader.Ask(lookups[row, 0]);
+                    if (string.Join(",", searched.ToArray()) != lookups[row, 2] || (lookups[row, 2].Length == 0) != (lookedUp == lookups[row, 1]))
+                        throw new Exception("A look-up her brain answered in words went wrong: " + lookups[row, 0] + " / " + lookedUp + " / " + string.Join(",", searched.ToArray()));
+                }
+                checks.Add("PASS a question her hands would only search for stays her brain's answer; they search when it says it can't know or writes the call out as words, and when told to google it");
                 checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she keeps a window on top of the others and lets it go, like \"keep discord on top\"; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up; a planner that answers a plain \"close discord\" with only words, the call written as words or its reasoning cut off still gets it closed");
             }
             finally
