@@ -526,18 +526,23 @@ namespace CapriDesktop
                 for (int i = 1; i <= 3; i++)
                 {
                     int x = around.Left + around.Width * i / 4, y = around.Top + around.Height * i / 4;
-                    CheckMarkPixel(picture, x, around.Top + 1, marked, name);
-                    CheckMarkPixel(picture, x, around.Bottom - 2, marked, name);
-                    CheckMarkPixel(picture, around.Left + 1, y, marked, name);
-                    CheckMarkPixel(picture, around.Right - 2, y, marked, name);
+                    CheckMarkPixel(picture, x, around.Top + 1, 0, 1, marked, name);
+                    CheckMarkPixel(picture, x, around.Bottom - 2, 0, 1, marked, name);
+                    CheckMarkPixel(picture, around.Left + 1, y, 1, 0, marked, name);
+                    CheckMarkPixel(picture, around.Right - 2, y, 1, 0, marked, name);
                 }
             }
         }
 
-        private static void CheckMarkPixel(Bitmap picture, int x, int y, bool marked, string name)
+        private static void CheckMarkPixel(Bitmap picture, int x, int y, int dx, int dy, bool marked, string name)
         {
-            Color color = picture.GetPixel(x, y), white = White;
-            bool line = color.A == 255 && Math.Abs(color.R - white.R) <= 6 && Math.Abs(color.G - white.G) <= 6 && Math.Abs(color.B - white.B) <= 6;
+            Color white = White;
+            bool line = false;
+            for (int step = -1; step <= 1; step++)
+            {
+                Color color = picture.GetPixel(x + step * dx, y + step * dy);
+                if (color.A == 255 && Math.Abs(color.R - white.R) <= 6 && Math.Abs(color.G - white.G) <= 6 && Math.Abs(color.B - white.B) <= 6) line = true;
+            }
             if (line != marked) throw new Exception("Her saved mark pixel is wrong: " + name + " at " + x + "," + y);
         }
 

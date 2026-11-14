@@ -14949,9 +14949,8 @@ namespace CapriDesktop
             if (callReply == null && Hands.Heard(text, out quick, out quickArgs))
             {
                 if (quick == "hologram" || quick == "desktop_icons" && quickArgs.Action == "rampage" || quick == "animate" && EmoteName(quickArgs.Name) || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick))) { followAllowed = false; think = delegate { return Hands.Shown(Security.Said(DoTool(quick, quickArgs))); }; }
-                // Plain commands run before her brain words the result, with no tools to run again (YunoTheAlien, 13 Nov). In a
-                // call they still go to her brain, which has the call's rules and what was just said.
-                else if (think == null && planned.Key == null && callVersion < 0 && !preferences.NoAi && brain.Model != null && Hands.Plain(quick, quickArgs)) { plain = true; followAllowed = false; think = delegate { return PlainReply(text, quick, quickArgs, ticket); }; }
+                // Plain commands run before her brain words the result, with no tools to run again (YunoTheAlien, 13 Nov).
+                else if (think == null && planned.Key == null && !callInput && !preferences.NoAi && brain.Model != null && Hands.Plain(quick, quickArgs)) { plain = true; followAllowed = false; think = delegate { return PlainReply(text, quick, quickArgs, ticket); }; }
             }
             // No AI: what her hands do by phrase ran above, and the news needs no brain; anything else gets her short line now and then.
             if (preferences.NoAi && (think == null || think == firstThink && planned.Key == null))
