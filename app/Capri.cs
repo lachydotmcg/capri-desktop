@@ -46514,13 +46514,35 @@ namespace CapriDesktop
         private void SmokeCapriCodes(System.Collections.Generic.List<string> checks)
         {
             string codeKey = "CAPRI-0123-4567-89AB-CDEF", codeTyped = "  capri-0123-4567-89ab-cdef  ";
-            if (!Cloud.IsCode(codeKey) || !Cloud.IsCode(codeTyped) || Cloud.KindOf(codeTyped) != "anthropic" || Cloud.IsCode("CAPRI-0123-4567-89AI-CDEF") || Cloud.IsCode("CAPRI-0123-4567-89AU-CDEF") || Cloud.IsCode(codeKey + "-0000")) throw new Exception("Capri codes were sorted wrong.");
-            Cloud codeCloud = new Cloud(codeTyped, "claude-sonnet-5-5"), realKeyCloud = new Cloud("sk-ant-test", "claude-sonnet-5-5");
+            string namedKey = "CAPRI-YOPLAXS-0123-4567-89AB-CDEF", namedTyped = "  capri-yoplaxs-0123-4567-89ab-cdef  ";
+            if (!Cloud.IsCode(codeKey) || !Cloud.IsCode(codeTyped) || Cloud.KindOf(codeTyped) != "anthropic" || !Cloud.IsCode(namedKey) || !Cloud.IsCode(namedTyped) || Cloud.KindOf(namedKey) != "anthropic" || Cloud.KindOf(namedTyped) != "anthropic") throw new Exception("Capri codes were sorted wrong.");
+            foreach (string code in new[] { "CAPRI-A0-0123-4567-89AB-CDEF", "CAPRI-ILOU01234567-0123-4567-89AB-CDEF", "CAPRI-ASHY-0123-4567-89AB-CDEF" })
+                if (!Cloud.IsCode(code)) throw new Exception("A named Capri code was refused.");
+            foreach (string code in new[] {
+                "CAPRI-A-0123-4567-89AB-CDEF", "CAPRI-ABCDEFGHIJKLM-0123-4567-89AB-CDEF",
+                "CAPRI-YOP_LAXS-0123-4567-89AB-CDEF", "CAPRI-YOP LAXS-0123-4567-89AB-CDEF",
+                "CAPRI-ASHY-YOPLAXS-0123-4567-89AB-CDEF", "CAPRI-0123-4567-89AB-CDEF-0000-1111",
+                "CAPRI-YOPLAXS-0123-4567-89AI-CDEF", "CAPRI-YOPLAXS-0123-4567-89AL-CDEF",
+                "CAPRI-YOPLAXS-0123-4567-89AO-CDEF", "CAPRI-YOPLAXS-0123-4567-89AU-CDEF",
+                "CAPRI-0123-4567-89AI-CDEF", "CAPRI-0123-4567-89AL-CDEF", "CAPRI-0123-4567-89AO-CDEF", "CAPRI-0123-4567-89AU-CDEF" })
+                if (Cloud.IsCode(code)) throw new Exception("A bad Capri code was accepted.");
+            Cloud codeCloud = new Cloud(namedTyped, "claude-sonnet-5-5"), plainCloud = new Cloud(codeTyped, "claude-sonnet-5-5"), realKeyCloud = new Cloud("sk-ant-test", "claude-sonnet-5-5");
             codeCloud.Model = "claude-sonnet-5-5";
-            if (!codeCloud.Code || !codeCloud.Claude || codeCloud.Key != codeKey || codeCloud.Model != Brain.Fastest || realKeyCloud.Code || realKeyCloud.Model != "claude-sonnet-5-5" || realKeyCloud.Key != "sk-ant-test") throw new Exception("A Capri code didn't keep Haiku or changed a real key.");
-            if (Brain.ClaudeAddress(codeTyped, "/messages") != "https://capri-reactions.lachydotmcg.workers.dev/brain/v1/messages" || Brain.ClaudeAddress(realKeyCloud.Key, "/messages") != Brain.Anthropic + "/v1/messages") throw new Exception("A Capri code or real key picked the wrong address.");
+            plainCloud.Model = "claude-sonnet-5-5";
+            if (!codeCloud.Code || !codeCloud.Claude || codeCloud.Key != namedKey || codeCloud.Model != Brain.Fastest
+                || !plainCloud.Code || !plainCloud.Claude || plainCloud.Key != codeKey || plainCloud.Model != Brain.Fastest
+                || realKeyCloud.Code || realKeyCloud.Model != "claude-sonnet-5-5" || realKeyCloud.Key != "sk-ant-test") throw new Exception("A Capri code didn't keep its spelling or Haiku, or changed a real key.");
+            if (Brain.ClaudeAddress(codeTyped, "/messages") != "https://capri-reactions.lachydotmcg.workers.dev/brain/v1/messages" || Brain.ClaudeAddress(namedTyped, "/messages") != "https://capri-reactions.lachydotmcg.workers.dev/brain/v1/messages" || Brain.ClaudeAddress(realKeyCloud.Key, "/messages") != Brain.Anthropic + "/v1/messages") throw new Exception("A Capri code or real key picked the wrong address.");
             if (Brain.Redacted(codeTyped).Trim() != "[redacted]") throw new Exception("A Capri code could reach a log.");
-            checks.Add("PASS Capri codes accept lowercase and outer spaces, reject other shapes, keep Haiku 5.5 and use the worker while real Claude keys keep their model and address");
+            string[,] codeHidden = {
+                { namedKey, "[redacted]" }, { namedKey.ToLowerInvariant(), "[redacted]" }, { namedTyped, "  [redacted]  " },
+                { "Try " + namedKey + " again.", "Try [redacted] again." }, { "(" + namedKey + "),", "([redacted])," },
+                { namedKey + " / " + namedKey.ToLowerInvariant(), "[redacted] / [redacted]" },
+                { "CAPRI-ASHY-0123-4567-89AB-CDEF", "[redacted]" }
+            };
+            for (int codeIndex = 0; codeIndex < codeHidden.GetLength(0); codeIndex++)
+                if (Brain.Redacted(codeHidden[codeIndex, 0]) != codeHidden[codeIndex, 1]) throw new Exception("A named Capri code could reach a log.");
+            checks.Add("PASS plain and named Capri codes accept lowercase and outer spaces, reject other shapes, keep Haiku 5.5, use the worker and stay out of logs. Real Claude keys keep their model and address");
             System.Collections.Generic.List<string> codeAsked = new System.Collections.Generic.List<string>(), realKeyAsked = new System.Collections.Generic.List<string>();
             System.Net.Sockets.TcpListener codeFake, realKeyFake;
             string[] codeRefusals = { "That Capri code isn't right.", "That Capri code was switched off.", "That Capri code has expired.", "That Capri code has used up its budget." };
@@ -46535,7 +46557,7 @@ namespace CapriDesktop
             {
                 Brain.Codes = codeAddress + "/brain";
                 Brain.Anthropic = realKeyAddress;
-                System.Collections.Generic.List<string> codeModels = Brain.CloudModels(codeTyped);
+                System.Collections.Generic.List<string> codeModels = Brain.CloudModels(namedTyped);
                 if (codeModels.Count != 1 || codeModels[0] != Brain.Fastest) throw new Exception("A code didn't list only Haiku.");
                 Brain codeBrain = new Brain { Remote = codeCloud, Model = codeCloud.Model };
                 if (codeBrain.Advises || !codeBrain.Drives) throw new Exception("A code offered another model or lost her hands.");
@@ -46578,11 +46600,11 @@ namespace CapriDesktop
                 if (codeSent.Length != 7 || codeSent[0].IndexOf("GET /brain/v1/models?limit=100 ", StringComparison.Ordinal) < 0) throw new Exception("A code checked the wrong model list.");
                 for (int codeIndex = 0; codeIndex < codeSent.Length; codeIndex++)
                 {
-                    if (codeSent[codeIndex].IndexOf("x-api-key: " + codeKey, StringComparison.Ordinal) < 0 || codeSent[codeIndex].IndexOf("anthropic-version: 2026-10-21", StringComparison.Ordinal) < 0) throw new Exception("A code request had the wrong headers.");
+                    if (codeSent[codeIndex].IndexOf("x-api-key: " + namedKey + "\r\n", StringComparison.Ordinal) < 0 || codeSent[codeIndex].IndexOf("anthropic-version: 2026-10-21", StringComparison.Ordinal) < 0) throw new Exception("A code request had the wrong headers.");
                     if (codeIndex > 0 && (codeSent[codeIndex].IndexOf("POST /brain/v1/messages ", StringComparison.Ordinal) < 0 || codeSent[codeIndex].IndexOf("\"model\":\"claude-haiku-5-5\"", StringComparison.Ordinal) < 0 || codeSent[codeIndex].IndexOf("advisor_20260301", StringComparison.Ordinal) >= 0)) throw new Exception("A code request left Haiku or the worker.");
                 }
                 if (realKeySent.Length != 1 || realKeySent[0].IndexOf("POST /v1/messages ", StringComparison.Ordinal) < 0 || realKeySent[0].IndexOf("x-api-key: sk-ant-test", StringComparison.Ordinal) < 0 || realKeySent[0].IndexOf("\"model\":\"claude-sonnet-5-5\"", StringComparison.Ordinal) < 0) throw new Exception("A real key went through the code worker or changed model.");
-                checks.Add("PASS a code lists only Haiku, keeps its picker fixed, sends chat and hands through the worker, shows dollars and optional expiry from headers, and keeps every refusal's plain line; a real Claude key still goes straight to Anthropic");
+                checks.Add("PASS named Capri codes list only Haiku, keep their picker fixed, send their uppercase tag with chat and hands through the worker, show dollars and optional expiry from headers, and keep every refusal's plain line. A real Claude key still goes straight to Anthropic");
             }
             finally
             {

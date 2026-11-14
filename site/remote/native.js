@@ -80,7 +80,7 @@
     if (key.startsWith('sk-or-')) return 'openrouter';
     if (key.startsWith('sk-nous-')) return 'nous';
     if (key.startsWith('sk-ant-')) return 'anthropic';
-    if (/^CAPRI(-[0-9A-HJKMNP-TV-Z]{4}){4}$/i.test(key)) return 'code';
+    if (/^CAPRI(?:-[A-Z0-9]{2,12})?(-[0-9A-HJKMNP-TV-Z]{4}){4}$/i.test(key)) return 'code';
     if (key.startsWith('nvapi-')) return 'nvidia';
     if (/^sk-[0-9a-f]{32}$/.test(key)) return 'deepseek';
     return key.startsWith('sk-') ? 'openai' : null;
@@ -249,7 +249,7 @@
   const hideKeys = (text, key) => {
     let clean = String(text || '');
     if (key) clean = clean.split(key).join('[your key]');
-    return clean.replace(/\b(sk-[\w-]{8,}|AIza[\w-]{20,}|AQ\.[\w.-]{10,}|nvapi-[\w-]{10,}|CAPRI(-[0-9A-Z]{4}){4})/gi, '[a key]');
+    return clean.replace(/\b(sk-[\w-]{8,}|AIza[\w-]{20,}|AQ\.[\w.-]{10,}|nvapi-[\w-]{10,}|CAPRI(?:-[A-Z0-9]{2,12})?(-[0-9A-Z]{4}){4})/gi, '[a key]');
   };
   const failure = (code, detail, extra) => Object.assign(new Error(code), { code, detail: String(detail || '').slice(0, 300) }, extra || {});
   const sentence = (code, kind, allowance, wait) => {
