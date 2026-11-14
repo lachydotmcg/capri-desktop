@@ -510,19 +510,19 @@ namespace CapriDesktop
         private readonly Func<string, bool> changeHost;
         private readonly DispatcherTimer clock = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         private readonly NeonSwitch power;
-        private readonly NeonCaption status, idle, qrNote, askTitle, askName, codeLabel, askCode, askCheck, empty, page, note, revokeNote;
+        private readonly NeonCaption status, idle, qrNote, askTitle, askName, codeLabel, askCode, askCheck, empty, page, note, hostNote, revokeNote;
         private readonly NeonCaption[] names = new NeonCaption[PhonesPerPage], states = new NeonCaption[PhonesPerPage], sources = new NeonCaption[PhonesPerPage];
         private readonly NeonButton[] revokes = new NeonButton[PhonesPerPage];
         private readonly NeonButton pair, showQr, allow, deny, back, next, removeAll;
         private readonly NeonEntry host;
         private readonly RemoteQrBox qr;
         private RemoteView view = new RemoteView();
-        private string armedId, lastQr, revealedQr, lastHost, refusedText, refusedHost, refusedNote;
+        private string armedId, lastQr, revealedQr, lastHost, refusedText, refusedHost;
         private int first, armedAt;
         private bool syncing, closed, armedAll, streaming, hostRefused;
         internal readonly Dictionary<string, Control> Rows = new Dictionary<string, Control>();
 
-        internal RemoteSheet(Func<RemoteView> read, Action<bool> change, Action newCode, Action closeCode, Action allow, Action deny, Action<string> revoke, Action removeAll, Func<string, bool> changeHost) : base("Remote")
+        internal RemoteSheet(Func<RemoteView> read, Action<bool> change, Action newCode, Action closeCode, Action allow, Action deny, Action<string> revoke, Action removeAll, Func<string, bool> changeHost, double zoom = 1) : base("Remote")
         {
             this.read = read; this.change = change; this.newCode = newCode; this.closeCode = closeCode;
             allowPhone = allow; denyPhone = deny; revokePhone = revoke; removePhones = removeAll; this.changeHost = changeHost;
@@ -531,6 +531,7 @@ namespace CapriDesktop
             Button("Close", "", 550, 20, 26, 22, Close).Glyph = 2;
             Caption("About", "Chat with Capri from your phone", 28, 52, 544, 20);
             power = Put(Page, new NeonSwitch { Text = "Remote", Hint = "Sealed end to end", Switch = 120 }, 28, 80, 544, 24, "Capri Remote"); Rows["Remote"] = power;
+            HoldEnter(power);
             power.IsCheckedChanged += delegate { if (!syncing && !closed) { this.change(power.Checked); Sync(); } };
             status = Caption("Status", "", 28, 112, 544, 24, MainframeTheme.Faint, MainframeTheme.Size, true);
             Put(Page, new NeonHead { Text = "QR CODE" }, 14, 148, 284, 24, "QR code");
@@ -565,12 +566,17 @@ namespace CapriDesktop
             Put(Page, new NeonHead { Text = "RELAY" }, 14, 588, 572, 24, "Relay");
             host = Put(Page, new NeonEntry(RemoteLink.DefaultHost), 28, 620, 460, 28, "Relay host"); Rows["Relay host"] = host;
             AutomationProperties.SetName(host.Box, "Relay host");
+            HoldEnter(host.Box);
+            host.Box.PropertyChanged += delegate(object sender, AvaloniaPropertyChangedEventArgs e)
+            {
+                if (e.Property == TextBox.TextProperty && hostRefused) { hostRefused = false; Program.Guard(Sync); }
+            };
             host.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(SaveHost); } };
             Button("Save relay host", "Save", 496, 620, 76, 28, SaveHost);
             note = Caption("Note", "", 28, 656, 544, 24, MainframeTheme.Cyan);
+            hostNote = Caption("Host note", "Not a relay host", 28, 656, 544, 20, MainframeTheme.Rose);
             List<Control> keys = new List<Control>();
             foreach (Control control in Page.Children) if (control.Focusable || control == host) keys.Add(control);
-            keys.Sort(delegate(Control a, Control b) { int row = Canvas.GetTop(a).CompareTo(Canvas.GetTop(b)); return row != 0 ? row : Canvas.GetLeft(a).CompareTo(Canvas.GetLeft(b)); });
             for (int i = 0; i < keys.Count; i++) { keys[i].TabIndex = i; if (keys[i] == host) host.Box.TabIndex = i; }
             clock.Tick += Tick;
             Opened += delegate { Sync(); clock.Start(); };
@@ -578,6 +584,7 @@ namespace CapriDesktop
             SizeChanged += delegate { qr.InvalidateVisual(); };
             Scroll.ScrollChanged += delegate { qr.InvalidateVisual(); };
             Closed += delegate { closed = true; clock.Stop(); clock.Tick -= Tick; qr.Url = null; Program.Guard(this.closeCode); };
+            Fit(Wide, Tall, zoom);
             Sync();
         }
 
@@ -590,9 +597,23 @@ namespace CapriDesktop
         private NeonButton Button(string name, string text, int x, int y, int width, int height, Action action)
         {
             NeonButton button = Put(Page, new NeonButton { Text = text }, x, y, width, height, name);
+            HoldEnter(button);
             Rows[name] = button;
             button.Click += delegate { if (closed) return; action(); Sync(); };
             return button;
+        }
+
+        private static void HoldEnter(Control control)
+        {
+            bool held = false;
+            control.AddHandler(KeyDownEvent, delegate(object sender, KeyEventArgs e)
+            {
+                if (e.Key != Key.Enter) return;
+                if (held) e.Handled = true;
+                else held = true;
+            }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+            control.AddHandler(KeyUpEvent, delegate(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) held = false; }, Avalonia.Interactivity.RoutingStrategies.Tunnel, true);
+            control.LostFocus += delegate { held = false; };
         }
 
         private static void Say(NeonCaption caption, string text)
@@ -616,7 +637,13 @@ namespace CapriDesktop
             syncing = true;
             try
             {
-                view = read() ?? new RemoteView();
+                try { view = read() ?? new RemoteView(); }
+                catch
+                {
+                    qr.Url = null; qr.IsVisible = false;
+                    revealedQr = null; qrNote.IsVisible = showQr.IsVisible = false;
+                    throw;
+                }
                 MainframeWindow frame = Owner as MainframeWindow;
                 double zoom = frame == null ? Zoom : frame.Zoom;
                 if (double.IsNaN(Page.Width) || Zoom != zoom) Fit(Wide, Tall, zoom);
@@ -653,7 +680,7 @@ namespace CapriDesktop
                     RemoteDevice phone = view.Phones[first + i];
                     bool online = view.Online.Contains(phone.Id);
                     Say(names[i], phone.Name); Tip(names[i], phone.Name);
-                    Say(states[i], online ? "CONNECTED" : "OFFLINE \u00b7 ADDED " + phone.Added.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture).ToUpperInvariant());
+                    Say(states[i], online ? "CONNECTED" : "ADDED " + phone.Added.ToLocalTime().ToString("d MMM", CultureInfo.CurrentCulture).ToUpperInvariant());
                     states[i].Ink = online ? MainframeTheme.Cyan : MainframeTheme.Faint; states[i].InvalidateVisual();
                     string from = phone.From;
                     if (string.IsNullOrEmpty(from) && phone.Parent != null)
@@ -676,8 +703,10 @@ namespace CapriDesktop
                 AutomationProperties.SetName(removeAll, armedAll ? "Sure? Remove all phones and pair again" : "Remove all phones and pair again");
                 Say(revokeNote, view.Phones.Exists(delegate(RemoteDevice phone) { return phone.Parent != null; }) ? "Revoke also removes the phones its links added" : ""); revokeNote.IsVisible = revokeNote.Text.Length > 0;
                 if (!host.Box.IsKeyboardFocusWithin && lastHost != view.Host) { host.Box.Text = view.Host == RemoteLink.DefaultHost ? "" : view.Host; lastHost = view.Host; }
-                if (hostRefused && (refusedText != (host.Box.Text ?? "") || refusedHost != view.Host || refusedNote != view.Note)) hostRefused = false;
-                Say(note, hostRefused ? "Not a relay host" : view.Note); note.IsVisible = note.Text.Length > 0; note.Ink = hostRefused ? MainframeTheme.Rose : MainframeTheme.Cyan; note.InvalidateVisual();
+                if (hostRefused && (refusedText != (host.Box.Text ?? "") || refusedHost != view.Host)) hostRefused = false;
+                hostNote.IsVisible = hostRefused;
+                Canvas.SetTop(note, hostRefused ? 676 : 656); note.Height = hostRefused ? 20 : 24;
+                Say(note, view.Note); note.IsVisible = note.Text.Length > 0;
             }
             finally { syncing = false; }
         }
@@ -696,7 +725,7 @@ namespace CapriDesktop
                 case "replaced": tone = MainframeTheme.Rose; return "ANOTHER CAPRI TOOK OVER \u00b7 TURN OFF AND ON";
                 case "bad-host": tone = MainframeTheme.Rose; return "BAD RELAY HOST";
                 case "off": return "OFF";
-                default: return string.IsNullOrEmpty(shown.Status) ? "OFF" : shown.Status;
+                default: return "OFF";
             }
         }
 
@@ -719,8 +748,9 @@ namespace CapriDesktop
         private void SaveHost()
         {
             if (closed) return;
-            hostRefused = !changeHost(host.Box.Text ?? "");
-            refusedText = host.Box.Text ?? ""; refusedHost = view.Host; refusedNote = view.Note;
+            string text = host.Box.Text ?? "";
+            hostRefused = !changeHost(text);
+            refusedText = text; refusedHost = view.Host;
             Sync();
         }
 
@@ -733,7 +763,7 @@ namespace CapriDesktop
                 Rect box = Box(a);
                 if (!pageBox.Contains(box)) return "Outside: " + AutomationProperties.GetName(a);
                 NeonCaption caption = a as NeonCaption; NeonButton button = a as NeonButton; NeonEntry entry = a as NeonEntry; NeonSwitch toggle = a as NeonSwitch;
-                string wrong = caption != null ? caption.TextFits() : button != null ? button.TextFits() : entry != null ? entry.TextFits() : toggle != null ? toggle.TextFits() : null;
+                string wrong = caption != null ? TextFits(caption) : button != null ? button.TextFits() : entry != null ? entry.TextFits() : toggle != null ? TextFits(toggle) : null;
                 if (wrong != null) return "Text: " + wrong;
                 for (int j = i + 1; j < Page.Children.Count; j++)
                 {
@@ -743,6 +773,33 @@ namespace CapriDesktop
                 }
             }
             return null;
+        }
+
+        private string TextFits(NeonCaption caption)
+        {
+            bool name = caption == askName || Array.IndexOf(names, caption) >= 0 || Array.IndexOf(sources, caption) >= 0 || caption == idle && view.LinkFor != null;
+            return TextFits(caption.Text, caption.Width, caption.Height, caption.Size, caption.Bold, caption.Display, caption.Align, name && caption.Ellipsis);
+        }
+
+        private static string TextFits(NeonSwitch toggle)
+        {
+            double room = toggle.Width - toggle.Switch - 10;
+            string wrong = TextFits(toggle.Text, room, toggle.Height);
+            if (wrong != null) return wrong;
+            double after = MainframeTheme.Words(toggle.Text).Width + 10;
+            if (toggle.Hint == null) return null;
+            if (after + MainframeTheme.Words(toggle.Hint, 34.0 / 3).Width > room) return toggle.Hint;
+            return TextFits(toggle.Hint, room - after, toggle.Height, 34.0 / 3);
+        }
+
+        private static string TextFits(string text, double width, double height, double size = MainframeTheme.Size, bool bold = false, bool display = false, TextAlignment align = TextAlignment.Left, bool ellipsis = false)
+        {
+            if (string.IsNullOrEmpty(text)) return null;
+            if (width <= 0 || height <= 0) return text;
+            FormattedText words = MainframeTheme.Words(text, size, bold, display: display);
+            words.MaxTextWidth = width; words.Trimming = TextTrimming.CharacterEllipsis; words.TextAlignment = align;
+            if (ellipsis) words.MaxTextHeight = height;
+            return words.Width > width + 0.5 || words.Height > height + 0.5 || words.Height == 0 ? text : null;
         }
 
         private static Rect Box(Control control)
@@ -755,7 +812,7 @@ namespace CapriDesktop
         internal static Dictionary<string, RemoteView> Samples()
         {
             Dictionary<string, RemoteView> views = new Dictionary<string, RemoteView>();
-            foreach (string name in new[] { "off", "connecting", "ready", "qr", "qr-streaming", "expired", "asking", "online", "seven-phones", "unreadable", "long", "link", "retrying", "replaced", "bad-host" })
+            foreach (string name in new[] { "off", "connecting", "ready", "qr", "qr-streaming", "expired", "asking", "online", "seven-phones", "unreadable", "long", "link", "retrying", "replaced", "bad-host", "two-online", "online-note", "orphan-link", "long-link" })
                 views[name] = new RemoteView { On = true, Ready = true, Status = "online" };
             views["off"] = new RemoteView();
             views["connecting"].Ready = false; views["connecting"].Status = "connecting";
@@ -764,11 +821,10 @@ namespace CapriDesktop
             views["qr"].QrSeconds = views["qr-streaming"].QrSeconds = 90;
             views["expired"].Expired = true; views["expired"].Qr = url;
             views["asking"].Ask = new RemoteAsk { Pending = "sample", Name = "Lachy's Pixel 9 Pro XL", Code = "318 338", App = "remote-web/0.1.0" };
-            views["asking"].Qr = url; views["asking"].QrSeconds = 90;
             DateTime added = new DateTime(2026, 11, 8, 9, 30, 0, DateTimeKind.Utc);
-            foreach (string name in new[] { "online", "seven-phones", "long", "link" })
+            foreach (string name in new[] { "online", "seven-phones", "long", "link", "two-online", "online-note", "orphan-link", "long-link" })
             {
-                for (int i = 0; i < (name == "seven-phones" ? 7 : 1); i++)
+                for (int i = 0; i < (name == "seven-phones" ? 7 : name == "two-online" ? 2 : 1); i++)
                 {
                     byte[] id = new byte[16]; id[15] = (byte)(i + 1);
                     views[name].Phones.Add(new RemoteDevice { Id = RemoteCrypto.B64u(id), Name = i == 0 ? "Lachy's Pixel 9 Pro XL" : "Phone " + (i + 1), Added = added.AddDays(-i) });
@@ -777,13 +833,19 @@ namespace CapriDesktop
             }
             views["seven-phones"].Phones[6].From = views["seven-phones"].Phones[0].Name;
             views["seven-phones"].Phones[6].Parent = views["seven-phones"].Phones[0].Id;
-            views["unreadable"] = new RemoteView { Status = "Couldn't read the saved phones." };
+            views["unreadable"] = new RemoteView { Note = "The saved phones couldn't be read. Remove all phones to start again." };
             string longName = "Lachy's Samsung Galaxy S26 Ultra with a very long phone name that must stay inside the sheet";
             views["long"].Host = "relay-with-a-very-long-name.for-the-family-phones.on-another-long-subdomain.example:8443";
             views["long"].Phones[0].Name = longName;
             views["long"].Ask = new RemoteAsk { Pending = "long-sample", Name = longName, Code = "318 338", App = "remote-web/0.1.0" };
-            views["link"].LinkFor = views["link"].Phones[0].Name; views["link"].Qr = url; views["link"].QrSeconds = 90;
-            foreach (string name in new[] { "retrying", "replaced", "bad-host" }) { views[name].Status = name; views[name].Ready = false; }
+            views["link"].LinkFor = views["link"].Phones[0].Name; views["link"].QrSeconds = 90;
+            foreach (string name in new[] { "retrying", "replaced" }) { views[name].Status = name; views[name].Ready = false; }
+            views["bad-host"] = new RemoteView { Note = "That relay host isn't valid." };
+            views["two-online"].Online.Add(views["two-online"].Phones[1].Id);
+            views["online-note"].Note = "That phone wasn't paired. Try a new code.";
+            byte[] missing = new byte[16]; missing[15] = 9;
+            views["orphan-link"].Phones[0].Parent = RemoteCrypto.B64u(missing); views["orphan-link"].Online.Clear();
+            views["long-link"].Phones[0].Name = views["long-link"].LinkFor = longName; views["long-link"].QrSeconds = 90;
             return views;
         }
     }

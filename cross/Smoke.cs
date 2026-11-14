@@ -7225,10 +7225,10 @@ namespace CapriDesktop
                 if (((NeonCaption)sheet.Rows["Phone 1"]).Text != fake.View.Phones[0].Name || sheet.Rows["Back"].IsEnabled) throw new Exception("Remote's Back key did not restore page one.");
                 NeonEntry host = (NeonEntry)sheet.Rows["Relay host"];
                 host.Box.Text = "https://relay.example/path"; RemoteSheetPress(sheet, "Save relay host"); sheet.Sync(); sheet.Sync();
-                if (((NeonCaption)sheet.Rows["Note"]).Text != "Not a relay host" || host.Box.Text != "https://relay.example/path" || fake.Count("host https://relay.example/path") != 1) throw new Exception("Remote lost a refused host or its refusal words while polling.");
+                if (((NeonCaption)sheet.Rows["Host note"]).Text != "Not a relay host" || !sheet.Rows["Host note"].IsVisible || host.Box.Text != "https://relay.example/path" || fake.Count("host https://relay.example/path") != 1) throw new Exception("Remote lost a refused host or its refusal words while polling.");
                 host.Box.Text = "relay.example:8443"; fake.AcceptHost = true;
                 host.Box.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter }); sheet.Sync();
-                if (fake.View.Host != "relay.example:8443" || host.Box.Text != fake.View.Host || sheet.Rows["Note"].IsVisible || fake.Count("host relay.example:8443") != 1) throw new Exception("Remote did not clear an accepted host's refusal.");
+                if (fake.View.Host != "relay.example:8443" || host.Box.Text != fake.View.Host || sheet.Rows["Host note"].IsVisible || sheet.Rows["Note"].IsVisible || fake.Count("host relay.example:8443") != 1) throw new Exception("Remote did not clear an accepted host's refusal.");
                 host.Box.Text = "unsaved.example"; sheet.Rows["Pair"].Focus(); sheet.Sync();
                 if (host.Box.Text != "unsaved.example") throw new Exception("Remote polling replaced an unsaved host edit.");
                 RemoteSheetPress(sheet, "Close"); sheet.Close();

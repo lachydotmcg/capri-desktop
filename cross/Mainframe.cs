@@ -771,7 +771,7 @@ namespace CapriDesktop
         {
             if (Remote == null)
             {
-                RemoteSheet sheet = new RemoteSheet(pet.ReadRemote, pet.SetRemote, pet.NewRemoteCode, pet.CloseRemoteCode, pet.AllowRemote, pet.DenyRemote, pet.RevokeRemote, pet.RemoveRemotePhones, pet.SetRemoteHost);
+                RemoteSheet sheet = new RemoteSheet(pet.ReadRemote, pet.SetRemote, pet.NewRemoteCode, pet.CloseRemoteCode, pet.AllowRemote, pet.DenyRemote, pet.RevokeRemote, pet.RemoveRemotePhones, pet.SetRemoteHost, Zoom);
                 Remote = sheet;
                 sheet.Closed += delegate { Remote = null; };
                 ShowSheet(sheet);
