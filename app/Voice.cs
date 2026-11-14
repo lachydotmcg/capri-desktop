@@ -3025,7 +3025,21 @@ namespace CapriDesktop
                     {
                         try
                         {
-                            using (ZipArchive zip = new ZipArchive(packed, ZipArchiveMode.Read, true)) zip.ExtractToDirectory(staging);
+                            using (ZipArchive zip = new ZipArchive(packed, ZipArchiveMode.Read, true))
+                            {
+                                // .NET Framework's own check would let "../<name>.newer/x" through.
+                                string root = Path.GetFullPath(staging).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                                foreach (ZipArchiveEntry entry in zip.Entries)
+                                {
+                                    string path;
+                                    try { path = Path.GetFullPath(Path.Combine(root, entry.FullName)); }
+                                    catch (ArgumentException problem) { throw new ArchiveException(problem.Message); }
+                                    catch (NotSupportedException problem) { throw new ArchiveException(problem.Message); }
+                                    if (path != root.TrimEnd(Path.DirectorySeparatorChar) && !path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                                        throw new ArchiveException("A zip entry would land outside its folder: " + entry.FullName);
+                                }
+                                zip.ExtractToDirectory(staging);
+                            }
                         }
                         catch (IOException problem)
                         {
