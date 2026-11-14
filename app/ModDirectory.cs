@@ -19,6 +19,8 @@ namespace CapriDesktop
     internal sealed class ModListing
     {
         internal string Folder, FileName, Sha, PreviewSha;
+        // The README in its folder, as the tree spells it (readme.md and README.md are different files on GitHub), or null.
+        internal string ReadmeName;
         internal string Name = "", Author = "", About = "";
         // A checked download of this listing, kept from looking for updates so getting it doesn't download it again.
         internal string Fetched;
@@ -72,17 +74,23 @@ namespace CapriDesktop
         private const long LargestList = 16L * 1024 * 1024;
         private const long LargestPreview = 2L * 1024 * 1024;
         private const long LargestIndex = 2L * 1024 * 1024;
+        private const long LargestReadme = 256L * 1024;
         private const int WidestPreview = 4096, PreviewWide = 444;
         private const string Raw = "https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/";
         internal const string IndexPage = Raw + "index.json";
         internal const string StatsPage = "https://capri-reactions.lachydotmcg.workers.dev/mods";
         private static readonly byte[] PngStart = { 137, 80, 78, 71, 13, 10, 26, 10 };
         private static readonly Regex PreviewFile = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/preview\.png$");
+        private static readonly Regex ReadmeFile = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/((?i:README\.md))$");
+        // The README lines View has read this session, by folder. Reads finish on worker threads, so it's locked.
+        private static readonly Dictionary<string, List<string>> Readmes = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         internal static string PreviewFolder = Path.Combine(Path.GetTempPath(), "capri-mod-previews");
         internal static Func<string, string, byte[]> Post = Push;
         private static readonly Regex Listed = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/([A-Za-z0-9][A-Za-z0-9._-]{0,63}\.capri-(?:mod|code|skin|skill))$");
         private static readonly Regex Blob = new Regex(@"^[0-9a-f]{40}$");
-        internal static Func<string, long, byte[]> Get = Fetch;
+        internal static Func<string, long, byte[]> Get = delegate(string url, long most) { return Fetch(url, most, 15000, 30000); };
+        // View's README waits 4 seconds at most, so a slow connection gets the mod's description instead of a long wait.
+        internal static Func<string, long, byte[]> GetSoon = delegate(string url, long most) { return Fetch(url, most, 4000, 4000); };
 
         [DataContract]
         private sealed class Tree
@@ -178,6 +186,7 @@ namespace CapriDesktop
             catch (SerializationException) { throw new ModException("The mods directory sent something I can't read."); }
             List<ModListing> found = new List<ModListing>();
             Dictionary<string, string> previews = new Dictionary<string, string>();
+            Dictionary<string, string> readmes = new Dictionary<string, string>();
             foreach (TreeEntry entry in tree.Entries ?? new TreeEntry[0])
             {
                 if (entry == null || entry.Type != "blob" || entry.Path == null || entry.Sha == null || entry.Size <= 0 || entry.Size > LargestPreview || !Blob.IsMatch(entry.Sha)) continue;
@@ -186,15 +195,214 @@ namespace CapriDesktop
             }
             foreach (TreeEntry entry in tree.Entries ?? new TreeEntry[0])
             {
+                if (entry == null || entry.Type != "blob" || entry.Path == null || entry.Sha == null || entry.Size <= 0 || entry.Size > LargestReadme || !Blob.IsMatch(entry.Sha)) continue;
+                Match readme = ReadmeFile.Match(entry.Path);
+                if (!readme.Success || readme.Groups[1].Value.Contains("..")) continue;
+                string folder = readme.Groups[1].Value, name = readme.Groups[2].Value;
+                if (!readmes.ContainsKey(folder) || name == "README.md") readmes[folder] = name;
+            }
+            foreach (TreeEntry entry in tree.Entries ?? new TreeEntry[0])
+            {
                 if (entry == null || entry.Type != "blob" || entry.Path == null || entry.Sha == null || entry.Size <= 0 || entry.Size > Largest || !Blob.IsMatch(entry.Sha)) continue;
                 Match match = Listed.Match(entry.Path);
                 if (!match.Success || match.Groups[1].Value.Contains("..") || match.Groups[2].Value.Contains("..")) continue;
-                string previewSha;
+                string previewSha, readmeName;
                 previews.TryGetValue(match.Groups[1].Value, out previewSha);
-                found.Add(new ModListing { Folder = match.Groups[1].Value, FileName = match.Groups[2].Value, Sha = entry.Sha, Size = entry.Size, PreviewSha = previewSha });
+                readmes.TryGetValue(match.Groups[1].Value, out readmeName);
+                found.Add(new ModListing { Folder = match.Groups[1].Value, FileName = match.Groups[2].Value, Sha = entry.Sha, Size = entry.Size, PreviewSha = previewSha, ReadmeName = readmeName });
             }
             found.Sort(delegate(ModListing a, ModListing b) { return Named(a, b); });
             return found;
+        }
+
+        // The first few useful lines of a mod's README for View (issue #221), read from raw.githubusercontent.com, which has
+        // no API rate limit, once a session. Null when the mod has no README. A read that fails throws and keeps nothing, so
+        // the next View tries again; a README with nothing useful is kept as no lines.
+        internal static List<string> Readme(ModListing listing)
+        {
+            if (listing.ReadmeName == null) return null;
+            List<string> kept = ReadmeKept(listing);
+            if (kept != null) return kept;
+            List<string> lines = ReadmeLines(Encoding.UTF8.GetString(GetSoon(Raw + "mods/" + listing.Folder + "/" + listing.ReadmeName, LargestReadme)));
+            lock (Readmes)
+            {
+                if (Readmes.TryGetValue(listing.Folder, out kept)) return kept;
+                Readmes[listing.Folder] = lines;
+            }
+            return lines;
+        }
+
+        internal static List<string> ReadmeKept(ModListing listing)
+        {
+            lock (Readmes)
+            {
+                List<string> kept;
+                return Readmes.TryGetValue(listing.Folder, out kept) ? kept : null;
+            }
+        }
+
+        internal static void ForgetReadmes()
+        {
+            lock (Readmes) Readmes.Clear();
+        }
+
+        // A README's opening as plain lines, at most 5 and 400 characters: paragraphs and list items joined into one line each,
+        // and headings only with a line under them. Badges, pictures, HTML, link-only lines, code, tables, comments, its own
+        // title and the directory template's Kind and Made by lines are left out, since the window shows those already.
+        internal static List<string> ReadmeLines(string text)
+        {
+            List<string> lines = new List<string>();
+            text = text ?? "";
+            if (text.Length > 0 && text[0] == '\uFEFF') text = text.Substring(1);
+            string paragraph = "", heading = null;
+            bool comment = false, titleSeen = false;
+            char fenced = '\0';
+            int fenceLength = 0;
+            using (StringReader read = new StringReader(text))
+            {
+                string source;
+                while ((source = read.ReadLine()) != null)
+                {
+                    // Only a line's start is read, so one giant line can't stall the patterns below.
+                    if (source.Length > 1000) source = source.Substring(0, 1000);
+                    bool skip = fenced != '\0';
+                    if (skip)
+                    {
+                        // Code ends at a fence like the one that opened it, in a quote too.
+                        Match end = Regex.Match(source, @"^\s*(?:>\s*)*(`{3,}|~{3,})\s*$");
+                        if (end.Success && end.Groups[1].Value[0] == fenced && end.Groups[1].Length >= fenceLength) fenced = '\0';
+                    }
+                    else
+                    {
+                        StringBuilder outside = new StringBuilder();
+                        int at = 0;
+                        while (at < source.Length)
+                        {
+                            int mark = source.IndexOf(comment ? "-->" : "<!--", at, StringComparison.Ordinal);
+                            if (mark < 0)
+                            {
+                                if (!comment) outside.Append(source, at, source.Length - at);
+                                break;
+                            }
+                            if (!comment) outside.Append(source, at, mark - at);
+                            at = mark + (comment ? 3 : 4);
+                            comment = !comment;
+                        }
+                        source = Regex.Replace(outside.ToString(), @"^\s*(?:>\s*)+", "");
+                        Match fence = Regex.Match(source, @"^\s*(`{3,}|~{3,})");
+                        if (fence.Success)
+                        {
+                            fenced = fence.Groups[1].Value[0];
+                            fenceLength = fence.Groups[1].Length;
+                            // A "<!--" after the fence is code, not the start of a comment.
+                            comment = false;
+                            skip = true;
+                        }
+                    }
+                    if (skip) source = "";
+                    Match item = Regex.Match(source, @"^\s*(?:([-*+])|(\d+)[.)])\s+");
+                    string prefix = "";
+                    if (item.Success)
+                    {
+                        source = Regex.Replace(source.Substring(item.Length), @"^\[[ xX]\]\s*", "");
+                        prefix = item.Groups[1].Success ? "\u2022 " : item.Groups[2].Value + ". ";
+                    }
+                    Match head = Regex.Match(source, @"^\s*(#{1,6})(?:\s+|$)(.*)$");
+                    if (head.Success) source = Regex.Replace(head.Groups[2].Value, @"\s+#+\s*$", "");
+                    skip = skip || Regex.IsMatch(source, @"^\s*\||^\s*\[[^\]]+\]:|^(?:\s*[-=*_]){3,}\s*$");
+                    string clean = "";
+                    if (!skip)
+                    {
+                        // With its links, addresses and tags taken out, a line needs words of its own: badges, pictures and
+                        // lines like [Website](..) | [Discord](..) don't have any.
+                        string words = ReadmeLinks(source, false);
+                        words = Regex.Replace(words, @"<?https?://[^\s<>]+>?|</?[A-Za-z][^>]*>", "", RegexOptions.IgnoreCase);
+                        clean = ReadmeText(source);
+                        skip = !Regex.IsMatch(words, @"[\p{L}\p{N}]") || !Regex.IsMatch(clean, @"[\p{L}\p{N}]")
+                            || (item.Success && Regex.IsMatch(clean, @"^(?:Kind|Made by)\s*:", RegexOptions.IgnoreCase));
+                    }
+                    if ((skip || item.Success || head.Success) && paragraph.Length > 0)
+                    {
+                        if (!KeepReadme(lines, heading, paragraph)) return lines;
+                        paragraph = "";
+                        heading = null;
+                    }
+                    if (skip)
+                    {
+                        // A heading with no words, or only a link, still ends the section before it.
+                        if (head.Success) heading = null;
+                        continue;
+                    }
+                    if (head.Success)
+                    {
+                        // Its first # heading before any line is the README's title, the mod's name, which the window shows.
+                        bool title = head.Groups[1].Length == 1 && !titleSeen && lines.Count == 0;
+                        if (head.Groups[1].Length == 1) titleSeen = true;
+                        heading = title ? null : clean;
+                        continue;
+                    }
+                    paragraph += (paragraph.Length > 0 ? " " : prefix) + clean;
+                    // It can't fit whole anyway, so a giant paragraph isn't read any further.
+                    if (paragraph.Length > 400)
+                    {
+                        KeepReadme(lines, heading, paragraph);
+                        return lines;
+                    }
+                }
+            }
+            if (paragraph.Length > 0) KeepReadme(lines, heading, paragraph);
+            return lines;
+        }
+
+        private static string ReadmeLinks(string text, bool words)
+        {
+            text = Regex.Replace(text, @"!\[[^\]]*\](?:\((?:[^()]|\([^()]*\))*\)|\[[^\]]*\])", "");
+            return Regex.Replace(text, @"\[([^\]]*)\](?:\((?:[^()]|\([^()]*\))*\)|\[[^\]]*\])", words ? "$1" : "");
+        }
+
+        private static string ReadmeText(string text)
+        {
+            text = ReadmeLinks(text, true);
+            text = Regex.Replace(text, @"<(https?://[^<>\s]+)>", "$1", RegexOptions.IgnoreCase);
+            text = Regex.Replace(text, @"<br\b[^>]*>", " ", RegexOptions.IgnoreCase);
+            // Only tags: "1 < 2 and 3 > 2" stays as it is.
+            text = Regex.Replace(text, @"</?[A-Za-z][^>]*>", "");
+            text = WebUtility.HtmlDecode(text).Replace("**", "").Replace("__", "").Replace("~~", "").Replace("`", "");
+            text = Regex.Replace(text, @"(?<![\w*])[*_](\S(?:.*?\S)?)[*_](?![\w*])", "$1");
+            text = Regex.Replace(text, @"\\([\p{P}\p{S}])", "$1");
+            text = Regex.Replace(text, @"\p{Cf}", "");
+            return Regex.Replace(text, @"[\p{Cc}\s]+", " ").Trim();
+        }
+
+        // Adds a finished paragraph or item, with the heading above it, and says whether there's room for more. A line that
+        // doesn't fit is cut after a word and ends in "...", unless fewer than 40 characters are left; a heading only goes in
+        // with its line.
+        private static bool KeepReadme(List<string> lines, string heading, string text)
+        {
+            int left = 400;
+            foreach (string line in lines) left -= line.Length;
+            if (heading != null)
+            {
+                int under = left - heading.Length;
+                if (lines.Count >= 4 || under <= 0 || (text.Length > under && under < 40)) return false;
+                lines.Add(heading);
+                left = under;
+            }
+            if (text.Length > left)
+            {
+                if (left >= 40)
+                {
+                    string cut = text.Substring(0, left - 3);
+                    int space = cut.LastIndexOf(' ');
+                    if (space > 0) cut = cut.Substring(0, space);
+                    cut = cut.TrimEnd();
+                    if (cut.Length > 0 && char.IsHighSurrogate(cut[cut.Length - 1])) cut = cut.Substring(0, cut.Length - 1);
+                    lines.Add(cut + "...");
+                }
+                return false;
+            }
+            lines.Add(text);
+            return lines.Count < 5 && text.Length < left;
         }
 
         private static int Named(ModListing a, ModListing b)
@@ -503,14 +711,14 @@ namespace CapriDesktop
             }
         }
 
-        private static byte[] Fetch(string url, long most)
+        private static byte[] Fetch(string url, long most, int wait, int readWait)
         {
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
             request.UserAgent = "Capri-Desktop";
             request.Accept = url.Contains("/blobs/") ? "application/vnd.github.raw+json" : "application/vnd.github+json";
-            request.Timeout = 15000;
-            request.ReadWriteTimeout = 30000;
+            request.Timeout = wait;
+            request.ReadWriteTimeout = readWait;
             using (WebResponse response = request.GetResponse())
             using (Stream body = response.GetResponseStream())
             using (MemoryStream kept = new MemoryStream())

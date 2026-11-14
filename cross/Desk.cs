@@ -13,6 +13,8 @@ namespace CapriDesktop
     internal sealed class Spot
     {
         internal long Window;
+        internal int Pid;
+        internal string Name;
         internal PixelRect Bounds;
         internal bool Seat;
         internal bool Solid;
@@ -22,6 +24,8 @@ namespace CapriDesktop
     {
         internal List<PixelRect> Screens = new List<PixelRect>();
         internal double Scale = 1;
+        // Set by Program. The niri bridge needs parts of her app that the desktop test build leaves out.
+        internal static Func<Desk> Niri;
 
         internal static Desk Make()
         {
@@ -30,6 +34,7 @@ namespace CapriDesktop
                 if (OperatingSystem.IsWindows()) return new WindowsDesk();
                 if (OperatingSystem.IsMacOS()) return new MacDesk();
                 if (HyprlandDesktop.Current is HyprlandDesktop hyprland) return new HyprlandDesk(hyprland);
+                if (OperatingSystem.IsLinux() && Program.Smoke == null && Niri?.Invoke() is Desk niri) return niri;
                 if (OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("DISPLAY") != null)
                 {
                     // On Wayland, XWayland only knows where the mouse is while it's over an X window, such as her while she's held.
@@ -248,7 +253,9 @@ namespace CapriDesktop
                     if (box == IntPtr.Zero || !CGRectMakeWithDictionaryRepresentation(box, out area)) continue;
                     PixelRect bounds = new PixelRect((int)Math.Round(area.X * Scale), (int)Math.Round(area.Y * Scale), (int)Math.Round(area.Width * Scale), (int)Math.Round(area.Height * Scale));
                     if (bounds.Width <= 0 || bounds.Height <= 0) continue;
-                    found.Add(Make(id, bounds, true));
+                    Spot spot = Make(id, bounds, true);
+                    spot.Pid = (int)Whole(info, owner);
+                    found.Add(spot);
                 }
             }
             finally { CFRelease(array); }
@@ -416,6 +423,8 @@ namespace CapriDesktop
 
         private Spot Look(IntPtr window, long desktop)
         {
+            long[] pid = Property(window, "_NET_WM_PID");
+            if (pid != null && pid.Length > 0 && pid[0] == Environment.ProcessId) return null;
             long[] where = Property(window, "_NET_WM_DESKTOP");
             if (desktop >= 0 && where != null && where.Length > 0 && where[0] != desktop && (where[0] & 0xFFFFFFFF) != 0xFFFFFFFF) return null;
             long[] kinds = Property(window, "_NET_WM_WINDOW_TYPE");

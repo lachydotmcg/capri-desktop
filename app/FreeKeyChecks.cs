@@ -44,22 +44,22 @@ namespace CapriDesktop
                         CheckFreeKeyRows();
                         if (!advanced && percent != 200) SaveFreeKeyPreview(output, percent);
                         FreeKeyPress(freeKeyMenu, Keys.Escape);
-                        if (freeKeyMenu.Visible) throw new Exception("Esc did not close the Free key menu.");
+                        if (freeKeyMenu.Visible) throw new Exception("Esc did not close the Free key menu." + " " + WindowPicture.Focus());
                         foreach (Keys opening in new[] { Keys.Enter, Keys.Space })
                             for (int provider = 0; provider < freeKeyMenu.Items.Count; provider++)
                             {
                                 freeKey.Focus();
                                 FreeKeyPress(freeKey, opening);
                                 CheckFreeKeyRows();
-                                if (!freeKeyMenu.Items[0].Selected) throw new Exception("The Free key menu did not start on NVIDIA.");
+                                if (!freeKeyMenu.Items[0].Selected) throw new Exception("The Free key menu did not start on NVIDIA." + " " + WindowPicture.Focus());
                                 FreeKeyPress(freeKeyMenu, Keys.Down);
-                                if (!freeKeyMenu.Items[1].Selected) throw new Exception("Down did not move to Google AI Studio.");
+                                if (!freeKeyMenu.Items[1].Selected) throw new Exception("Down did not move to Google AI Studio." + " " + WindowPicture.Focus());
                                 FreeKeyPress(freeKeyMenu, Keys.Up);
-                                if (!freeKeyMenu.Items[0].Selected) throw new Exception("Up did not move back to NVIDIA.");
+                                if (!freeKeyMenu.Items[0].Selected) throw new Exception("Up did not move back to NVIDIA." + " " + WindowPicture.Focus());
                                 for (int step = 0; step < provider; step++) FreeKeyPress(freeKeyMenu, Keys.Down);
                                 if (!freeKeyMenu.Items[provider].Selected) throw new Exception("Arrows did not reach free key provider " + provider + ".");
                                 FreeKeyPress(freeKeyMenu, Keys.Enter);
-                                if (freeKeyMenu.Visible) throw new Exception("Enter did not close the Free key menu after picking.");
+                                if (freeKeyMenu.Visible) throw new Exception("Enter did not close the Free key menu after picking." + " " + WindowPicture.Focus());
                                 picked(provider);
                             }
                     }
@@ -118,6 +118,93 @@ namespace CapriDesktop
             Application.DoEvents();
         }
 
+        // BRAIN's OFF row, No AI: BRAIN with OFF picked and not at 100%, 125% and 150%, everything in it fitting, and BRAIN with
+        // the row against BRAIN without it, where only what's under the row moves, by exactly one row, and the page grows by one.
+        internal void CheckNoAiRow(List<string> checks, string output)
+        {
+            bool wasSettings = paged, wasShown = Visible, wasNoAi = noAi;
+            int wasSize = capri.MainframeSize, wasScroll = pageScroll;
+            Point wasAt = WindowState == FormWindowState.Normal ? Location : RestoreBounds.Location;
+            FormWindowState wasState = WindowState;
+            string wasName = brainName.Text, wasNote = brainNote.Text, wasTierNote = tierNote.Text;
+            Color wasInk = brainNote.ForeColor;
+            List<string> moves = new List<string>();
+            try
+            {
+                Restore();
+                ShowSettings(false);
+                Directory.CreateDirectory(output);
+                foreach (int percent in new[] { 100, 125, 150 })
+                {
+                    SizeMainframe(percent);
+                    ShowNoAi(false);
+                    NoAiRowShown = false;
+                    Arrange(expanded);
+                    Dictionary<Control, Rectangle> without = new Dictionary<Control, Rectangle>();
+                    foreach (Control control in Controls) without[control] = control.Bounds;
+                    int tallWithout = ClientSize.Height, rowAt = offRung.Top;
+                    SaveBrainPicture(output, "brain-without-off-row-" + percent);
+                    NoAiRowShown = true;
+                    Arrange(expanded);
+                    int row = Px(24);
+                    foreach (Control control in Controls)
+                    {
+                        Rectangle was;
+                        // Only what shows on BRAIN's page counts: Settings' rows wait off to the side, and the setup steps are folded away.
+                        if (control == offRung || !control.Visible || control.Left >= ClientSize.Width || !without.TryGetValue(control, out was)) continue;
+                        int moved = control.Top - was.Top, should = was.Top >= rowAt ? row : 0;
+                        if (control.Left != was.Left || control.Size != was.Size || Math.Abs(moved - should) > 1)
+                            moves.Add(percent + "%: " + (control.AccessibleName ?? control.Text) + " moved " + moved + " (" + was + " -> " + control.Bounds + ")");
+                    }
+                    if (Math.Abs(ClientSize.Height - tallWithout - row) > 1) moves.Add(percent + "%: the page grew " + (ClientSize.Height - tallWithout) + ", not one row (" + row + ")");
+                    foreach (bool on in new[] { false, true })
+                    {
+                        ShowNoAi(on);
+                        // Off, BRAIN shows the brain it had again, as her own ShowTiers does.
+                        if (!on) { brainName.Text = wasName; brainNote.Text = wasNote; brainNote.ForeColor = wasInk; tierNote.Text = wasTierNote; }
+                        string problem = TiersProblem ?? TextFits() ?? Overlap();
+                        if (problem != null) throw new Exception("BRAIN with OFF " + (on ? "picked" : "not picked") + " doesn't fit at " + percent + "%: " + problem);
+                        if (NoAiShown != on) throw new Exception("BRAIN's OFF row didn't show No AI " + (on ? "on" : "off") + " at " + percent + "%.");
+                        SaveBrainPicture(output, "brain-off-" + (on ? "picked" : "not-picked") + "-" + percent);
+                    }
+                    ShowNoAi(false);
+                }
+                if (moves.Count > 0) throw new Exception("BRAIN's OFF row moved more than the rows under it: " + string.Join("; ", moves.ToArray()));
+                if (hints[offRung].Topic != SelfKnow.Setting("Mainframe.cs", "No AI")) throw new Exception("BRAIN's OFF row has no help topic.");
+                checks.Add("PASS BRAIN's OFF row (No AI) fits picked and not at 100%, 125% and 150% with its help topic, and with it only what's under it moves, by exactly one row, with the page one row longer");
+            }
+            finally
+            {
+                NoAiRowShown = true;
+                ShowNoAi(wasNoAi);
+                brainName.Text = wasName;
+                brainNote.Text = wasNote;
+                brainNote.ForeColor = wasInk;
+                tierNote.Text = wasTierNote;
+                SizeMainframe(wasSize);
+                ShowSettings(wasSettings);
+                Arrange(expanded);
+                ScrollPage(wasScroll);
+                Location = wasAt;
+                WindowState = wasState;
+                if (!wasShown) Hide();
+            }
+        }
+
+        private void SaveBrainPicture(string output, string name)
+        {
+            Refresh();
+            Rectangle brain = new Rectangle(0, 0, Width, Math.Min(Height, voiceHead.Top + Px(10)));
+            using (Bitmap panel = new Bitmap(Width, Height))
+            using (Bitmap picture = new Bitmap(brain.Width, brain.Height))
+            using (Graphics drawing = Graphics.FromImage(picture))
+            {
+                DrawToBitmap(panel, new Rectangle(Point.Empty, Size));
+                drawing.DrawImage(panel, new Rectangle(Point.Empty, brain.Size), brain, GraphicsUnit.Pixel);
+                picture.Save(Path.Combine(output, name + ".png"), ImageFormat.Png);
+            }
+        }
+
         private void SaveFreeKeyPreview(string output, int percent)
         {
             Rectangle brain = new Rectangle(Location, new Size(Width, voiceHead.Top));
@@ -165,6 +252,7 @@ namespace CapriDesktop
                 OpenPage("https://example.invalid/free-key");
                 if (browsed.Count != picked) throw new Exception("OpenPage allowed an unrecognised key page.");
                 checks.Add("PASS Free key pages: NVIDIA, Google AI Studio and OpenRouter each use OpenPage with their own URL and say their own line; browser opening is stubbed and unrecognised pages stay blocked");
+                mainframe.CheckNoAiRow(checks, output);
             }
             finally
             {

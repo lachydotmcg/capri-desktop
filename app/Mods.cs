@@ -326,6 +326,8 @@ namespace CapriDesktop
             if (!wantLog) DeleteLog();
             ApplySkin();
             skills = All.FindAll(mod => mod.Skill && mod.On).ToArray();
+            knownSkills = All.FindAll(mod => mod.Skill).ToArray();
+            skillNote = Standing(skills);
             note = names.Length == 0 ? "" : "\nThey can also call you " + Listed(names) + ". Those are nicknames for you, so answer to them like your own name.";
         }
 

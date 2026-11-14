@@ -7,9 +7,9 @@
   <meta name="description" content="What Capri keeps on your PC and what goes to the services you pick.">
   <title>Capri privacy</title>
   <link rel="icon" type="image/x-icon" href="../assets/chip.ico">
-  <link rel="stylesheet" href="../style.css?v=0.8.9">
+  <link rel="stylesheet" href="../style.css?v=0.9.0">
   <script src="../guide.js" defer></script>
-  <script src="../helper.js?v=0.8.9" defer></script>
+  <script src="../helper.js?v=0.9.0" defer></script>
 </head>
 <body>
   <div class="page">
@@ -62,8 +62,10 @@
           <dt>Phone chats</dt><dd>Saved in localStorage with no timed expiry. Unpairing or removal keeps them. Clear capriai.app site data to erase them</dd>
           <dt>Keys to your PC</dt><dd>Sent end-to-end encrypted, saved with Windows DPAPI like a Mainframe key, and never sent back to your phone</dd>
           <dt>Screen view</dt><dd>Encrypted frames only while a phone watches. A badge shows on your PC while a phone watches or calls</dd>
-          <dt>Phone only</dt><dd>Your key is saved in this browser's localStorage on capriai.app and sent straight to your chosen provider with your chat. Saved chats stay here; no relay is used</dd>
+          <dt>Phone only</dt><dd>With your own key, it's saved in this browser's localStorage on capriai.app and sent straight to your chosen provider with your chat. Saved chats stay here; no relay is used</dd>
           <dt>Phone providers</dt><dd>Anthropic, OpenAI, Google AI, OpenRouter or DeepSeek</dd>
+          <dt>Phone count</dt><dd>Once a day, after her first reply on a phone with no PC, the page tells our server a phone used her that day, with two yes or no answers: is it this browser's first time, and is it also paired with a PC. It sends nothing about you, your key or your chat, and no id. We store only each day's totals. This browser remembers the day it last sent one. Cloudflare sees connection details such as your IP</dd>
+          <dt>Free brain</dt><dd>Your messages and the recent chat go from this phone through our server to Cloudflare's AI and back. That's different from your own key, which sends them straight from this phone to your provider. Our server doesn't store or log the chat. So the daily allowance works, it keeps a count for each day against a scrambled form of your connection address that changes daily. Counts older than yesterday are deleted the next time anyone sends a free message. Cloudflare sees connection details such as your IP</dd>
           <dt>Shared storage</dt><dd>Capri Remote shares browser storage with capriai.app's other pages. They run only the site's own scripts, plus YouTube's player on the home page after you press Play</dd>
         </dl>
       </section>
@@ -116,7 +118,7 @@
         <dl class="keys">
           <dt>Questions</dt><dd><a href="https://github.com/lachydotmcg/capri-desktop/issues" target="_blank" rel="noopener noreferrer">GitHub issues</a></dd>
           <dt>Made by</dt><dd>Lachy's Web Dev</dd>
-          <dt>Updated</dt><dd>10 November 2026</dd>
+          <dt>Updated</dt><dd>12 November 2026</dd>
         </dl>
       </section>
     </main>

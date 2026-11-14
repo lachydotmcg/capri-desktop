@@ -32,6 +32,7 @@ namespace CapriDesktop
         {
             remoteKey = Lower(Make("Remote", 100, y, 88, 18, delegate { OpenRemote(); }));
             remoteKey.AccessibleName = "Capri Remote: chat with her from your phone";
+            remoteKey.Phone = true;
         }
 
         internal void RemoteChanged()
@@ -84,10 +85,11 @@ namespace CapriDesktop
         }
 
         // The smoke test's look at CAPRI's band: nothing else on the main page touches the Remote key, and each control on its
-        // row is drawn where it sits, over the band, into a picture. The page needn't be laid out for it.
-        internal string RemoteBand(string path)
+        // row is drawn where it sits, over the band, into a picture. The page needn't be laid out for it. s is the Mainframe's
+        // scale when its size isn't 100%.
+        internal string RemoteBand(string path, float s = 1f)
         {
-            Rectangle strip = new Rectangle(0, remoteKey.Top - 30, Wide, 66);
+            Rectangle strip = new Rectangle(0, remoteKey.Top - (int)(30 * s), (int)Math.Ceiling(Wide * s), (int)(66 * s));
             List<Control> row = new List<Control>();
             foreach (Control control in Controls)
             {
@@ -105,9 +107,9 @@ namespace CapriDesktop
                     {
                         Head head = control as Head;
                         if (head == null || head.Span <= 0) continue;
-                        RectangleF band = head.Band(1f);
+                        RectangleF band = head.Band(s);
                         band.Offset(-strip.Left, -strip.Top);
-                        DrawBand(graphics, band, 1f);
+                        DrawBand(graphics, band, s);
                     }
                 }
                 foreach (Control control in row)
@@ -119,6 +121,80 @@ namespace CapriDesktop
                 picture.Save(path, System.Drawing.Imaging.ImageFormat.Png);
             }
             return null;
+        }
+
+        // The smoke test's look at Remote's phone at the Mainframe's current size: the key keeps Support's size and row and its
+        // own place, the phone is drawn left of "Remote" with room to spare, and CAPRI's band, the band with Remote hovered, and
+        // Support beside Remote's looks (at rest, hovered, pressed, on, on and hovered, a phone connected, disabled) are saved.
+        // Support's heart is held at rest so pictures from two builds can be compared.
+        internal string RemoteMark(string folder, int size, List<string> seen)
+        {
+            float s = Unit();
+            if (remoteKey.Size != support.Size || remoteKey.Top != support.Top) return "the key is at " + remoteKey.Bounds + " beside Support at " + support.Bounds;
+            if (Math.Abs(remoteKey.Left - 100 * s) > 1.5f) return "the key moved to x " + remoteKey.Left;
+            int wide = TextRenderer.MeasureText(remoteKey.Text, remoteKey.Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width;
+            if (Key.PhoneRoom * s + wide > remoteKey.Width - 8 * s) return "the phone and its label need " + (Key.PhoneRoom * s + wide) + " px of the key's " + remoteKey.Width;
+            support.Swell = 1;
+            support.Beat = 0;
+            int marked = 0, edge = (remoteKey.Width - wide) / 2;
+            using (Bitmap with = KeyShot(remoteKey))
+            {
+                remoteKey.Phone = false;
+                Bitmap without;
+                try { without = KeyShot(remoteKey); }
+                finally { remoteKey.Phone = true; }
+                using (without)
+                    for (int x = 0; x < edge; x++)
+                        for (int y = 0; y < with.Height; y++)
+                            if (with.GetPixel(x, y) != without.GetPixel(x, y)) marked++;
+            }
+            if (marked < 10 * s * s) return "no phone was drawn left of its label (" + marked + " pixels)";
+            System.Reflection.FieldInfo hot = typeof(Key).GetField("hot", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            System.Reflection.FieldInfo down = typeof(Key).GetField("down", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            Color accent = remoteKey.Accent;
+            bool picked = remoteKey.Picked;
+            try
+            {
+                string crowded = RemoteBand(System.IO.Path.Combine(folder, "remote-mark-row-" + size + ".png"), s);
+                if (crowded != null) return crowded;
+                hot.SetValue(remoteKey, true);
+                RemoteBand(System.IO.Path.Combine(folder, "remote-mark-row-hover-" + size + ".png"), s);
+                hot.SetValue(remoteKey, false);
+                int gap = (int)Math.Round(6 * s), looks = 7;
+                using (Bitmap strip = new Bitmap(gap + support.Width + looks * (gap + remoteKey.Width) + gap, remoteKey.Height + 2 * gap))
+                using (Graphics graphics = Graphics.FromImage(strip))
+                {
+                    graphics.Clear(Ground);
+                    using (Bitmap one = KeyShot(support)) graphics.DrawImageUnscaled(one, gap, gap);
+                    for (int look = 0; look < looks; look++)
+                    {
+                        remoteKey.Accent = look >= 3 ? Cyan : Rose;
+                        remoteKey.Picked = look == 5;
+                        hot.SetValue(remoteKey, look == 1 || look == 2 || look == 4);
+                        down.SetValue(remoteKey, look == 2);
+                        remoteKey.Enabled = look != 6;
+                        using (Bitmap one = KeyShot(remoteKey)) graphics.DrawImageUnscaled(one, gap + support.Width + gap + look * (remoteKey.Width + gap), gap);
+                    }
+                    strip.Save(System.IO.Path.Combine(folder, "remote-mark-keys-" + size + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
+            }
+            finally
+            {
+                hot.SetValue(remoteKey, false);
+                down.SetValue(remoteKey, false);
+                remoteKey.Enabled = true;
+                remoteKey.Accent = accent;
+                remoteKey.Pick(picked);
+            }
+            seen.Add(size + "% at " + remoteKey.Bounds.X + "," + remoteKey.Bounds.Y + " " + remoteKey.Width + "x" + remoteKey.Height + ", " + marked + " phone pixels");
+            return null;
+        }
+
+        private static Bitmap KeyShot(Control control)
+        {
+            Bitmap shot = new Bitmap(control.Width, control.Height);
+            control.DrawToBitmap(shot, new Rectangle(Point.Empty, control.Size));
+            return shot;
         }
 
         internal string RemoteKeyFor(RemoteView view)

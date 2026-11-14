@@ -86,12 +86,14 @@ namespace CapriDesktop
         // the ball's middle is this far from the cell's middle, in the cell's pixels, once she's turned to face right.
         internal const float FormInCell = 0.335f, FormSitX = 5.97f, FormSitY = 12.34f;
         private const int Points = 48;
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private readonly Random random = new Random();
         private Trip trip;
         private int lift;      // frames left in which they go back above her glitch bars, which show just after they do
         private bool landed;   // her own window has taken over under the last drawings
+        // Each picture as it goes up, and where on the screen, while a check is filming them.
+        internal static Action<Bitmap, Rectangle> Painted;
 
         internal Ribbons() : base("Capri ribbons")
         {
@@ -178,6 +180,7 @@ namespace CapriDesktop
                 using (Native.Surface surface = new Native.Surface(area.Width, area.Height))
                 {
                     using (Graphics graphics = Graphics.FromImage(surface.Image)) Paint(graphics, trip, t, shapes, new Point(-area.X, -area.Y));
+                    if (Painted != null) Painted(surface.Image, area);
                     if (Bounds != area) Bounds = area;
                     if (!Visible) Show();
                     surface.Show(Handle, area.Location);
@@ -482,6 +485,391 @@ namespace CapriDesktop
         // flecks and her green; where they land she forms from Qewiw's drawings, the right way round for the way she faces;
         // nothing is left once she's back; a hop takes well under a second; and her own teleport leaves as ribbons, lands
         // where she went and holds her own window back until she has formed.
+        private Func<string, string, string, ClaudeReply> driveTest;
+
+        // A computer job's teleport onto the task panel finishes by itself while her window's thread is kept busy with other
+        // work the whole time, the way a full-screen game job kept it on 12 Nov: her window timers never fired then, and she sat
+        // on the teleport's first frame, glitch bars and all, for the whole 22 s job until Esc stopped it.
+        private void SmokeJobTeleport(List<string> checks)
+        {
+            Func<bool> fullWas = FullScreen;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Picture shownWas = Computer.Shown;
+            ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
+            {
+                Rectangle work = Screen.PrimaryScreen.WorkingArea;
+                StandForThrow(new Point(work.Left + work.Width / 3, work.Top + work.Height / 2));
+                RenderFrame();
+                instant = false;
+                FullScreen = delegate { return true; };
+                Computer.Use = delegate { System.Threading.Thread.Sleep(200); return "Waited."; };
+                int turn = 0;
+                driveTest = delegate(string system, string tools, string messages)
+                {
+                    System.Threading.Thread.Sleep(300);
+                    turn++;
+                    return Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t" + turn + "\",\"name\":\"wait\",\"toolset_name\":\"computer\",\"input\":{\"duration\":1}}]}");
+                };
+                Job game = new Job("play Five Nights at Freddy's");
+                string ended = null;
+                System.Threading.Thread hands = new System.Threading.Thread(delegate() { try { ended = Work(game); } catch (Exception error) { ended = error.Message; } }) { IsBackground = true, Name = "Smoke job" };
+                // Something else always waiting on her window's thread, for 2.5 s: a message that posts the next one before it
+                // works. Windows only hands over a window timer when nothing else is waiting, but her posted work still runs.
+                System.Diagnostics.Stopwatch busy = System.Diagnostics.Stopwatch.StartNew();
+                double began = -1;
+                string seen = null;
+                BusyWindow keeper = new BusyWindow();
+                keeper.Work = delegate
+                {
+                    if (busy.ElapsedMilliseconds < 2500) keeper.Again();
+                    System.Threading.Thread.Sleep(3);
+                    double now = busy.Elapsed.TotalSeconds;
+                    if (began < 0 && job == game && taskPanel.Showing) began = now;
+                    if (began >= 0 && seen == null && now - began >= 1.2)
+                        seen = "on the panel " + onPanel + ", teleport still on " + (outro != null) + ", ribbons " + (ribbons.Waiting ? "waiting" : ribbons.Going ? "going" : ribbons.Visible ? "showing" : "gone") + ", glitch bars " + (tear.Visible ? "up" : "gone") + ", job running " + (job == game && hands.IsAlive);
+                };
+                try
+                {
+                    keeper.Again();
+                    hands.Start();
+                    while (busy.ElapsedMilliseconds < 3000) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                    if (seen == null) throw new Exception("The stand-in game job never showed its task panel.");
+                    if (seen != "on the panel True, teleport still on False, ribbons gone, glitch bars gone, job running True") throw new Exception("Her teleport onto the task panel stalled while her window's thread was busy, 1.2 s after the job began: " + seen);
+                    list.Add("PASS a computer job's teleport onto the task panel finishes on its own clock, ribbons and glitch bars gone and her on the panel within 1.2 s, while her window's thread stays busy with other work and the job is still running");
+                }
+                finally
+                {
+                    Computer.Interrupt("The smoke job is over.");
+                    System.Diagnostics.Stopwatch ending = System.Diagnostics.Stopwatch.StartNew();
+                    while (hands.IsAlive && ending.ElapsedMilliseconds < 8000) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                    Application.DoEvents();
+                    keeper.DestroyHandle();
+                    driveTest = null;
+                    FullScreen = fullWas;
+                    Computer.Use = useWas;
+                    Computer.Shown = shownWas;
+                    Computer.Finish();
+                    Computer.Arm();
+                    taskPanel.Stop();
+                    LeavePanel(false);
+                    Halt();
+                    ribbons.Stop();
+                    tear.Hide();
+                    if (hands.IsAlive) list.Add("FAIL the stand-in game job didn't stop when told to: " + ended);
+                }
+            });
+        }
+
+        // A message-only window whose one message does some work, so each piece is its own message on her window's thread.
+        private sealed class BusyWindow : NativeWindow
+        {
+            internal Action Work;
+
+            internal BusyWindow() { CreateHandle(new CreateParams { Parent = new IntPtr(-3) }); }
+
+            internal void Again() { Native.PostMessage(Handle, 0x8000 + 0x1B5, IntPtr.Zero, IntPtr.Zero); }
+
+            protected override void WndProc(ref Message message)
+            {
+                if (message.Msg == 0x8000 + 0x1B5) { if (Work != null) Work(); return; }
+                base.WndProc(ref message);
+            }
+        }
+
+        // A window that never finishes painting: Windows hands it WM_PAINT again and again, and a window timer only fires when
+        // there's no paint waiting either. Her posted work and her Beat clock still run; her timer watch names the window.
+        private sealed class EndlessPaint : Form
+        {
+            internal bool Endless = true;
+            internal int Paints;
+            internal Action During;
+
+            internal EndlessPaint()
+            {
+                FormBorderStyle = FormBorderStyle.None;
+                ShowInTaskbar = false;
+                StartPosition = FormStartPosition.Manual;
+                Bounds = new Rectangle(20, 20, 160, 90);
+            }
+
+            protected override bool ShowWithoutActivation { get { return true; } }
+
+            protected override void WndProc(ref Message message)
+            {
+                if (message.Msg == 0x000F && Endless) { Paints++; if (During != null) During(); return; }
+                base.WndProc(ref message);
+            }
+        }
+
+        private void SmokeTimerStarve(List<string> checks)
+        {
+            TimerWatch watch = new TimerWatch();
+            int witnessTicks = 0, beatTicks = 0, posts = 0;
+            System.Windows.Forms.Timer witness = new System.Windows.Forms.Timer { Interval = 15 };
+            witness.Tick += delegate { witnessTicks++; };
+            Beat beat = new Beat();
+            beat.Interval = 15;
+            beat.Tick += delegate { beatTicks++; };
+            bool witnessOn = true, done = false;
+            watch.Expected = delegate { return witnessOn; };
+            List<string> lines = new List<string>();
+            System.Threading.Thread watcher = new System.Threading.Thread(delegate()
+            {
+                while (!done)
+                {
+                    string line = watch.Check();
+                    if (line != null) lock (lines) lines.Add(line);
+                    try { BeginInvoke(new Action(delegate { posts++; })); } catch (InvalidOperationException) { }
+                    System.Threading.Thread.Sleep(250);
+                }
+            }) { IsBackground = true };
+            EndlessPaint loop = new EndlessPaint();
+            Application.AddMessageFilter(watch);
+            try
+            {
+                witness.Start();
+                beat.Start();
+                watcher.Start();
+                System.Diagnostics.Stopwatch since = System.Diagnostics.Stopwatch.StartNew();
+                while (since.ElapsedMilliseconds < 600) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                if (witnessTicks < 5 || beatTicks < 5 || lines.Count != 0) throw new Exception("Before the stall, timers didn't tick or her watch spoke up: " + witnessTicks + " and " + beatTicks + ", " + lines.Count + " lines.");
+                int witnessFrom = witnessTicks, beatFrom = beatTicks, postsFrom = posts;
+                System.Diagnostics.Stopwatch stalled = System.Diagnostics.Stopwatch.StartNew();
+                loop.During = delegate { if (stalled.ElapsedMilliseconds >= 3000) loop.Endless = false; };
+                loop.Show();
+                while (loop.Endless || stalled.ElapsedMilliseconds < 3100) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                int witnessDuring = witnessTicks - witnessFrom, beatDuring = beatTicks - beatFrom, postsDuring = posts - postsFrom;
+                double seconds = stalled.Elapsed.TotalSeconds;
+                if (loop.Paints < 100) throw new Exception("The stand-in window wasn't asked to paint over and over on this desktop: " + loop.Paints + " paints.");
+                if (witnessDuring * 10 > (int)(seconds * 1000 / 16) || postsDuring < 8 || beatDuring < 60) throw new Exception("An endless repaint didn't starve window timers alone: window timer " + witnessDuring + ", posted work " + postsDuring + ", Beat " + beatDuring + " in " + seconds.ToString("0.0") + " s.");
+                checks.Add("PASS an endless repaint starves her window timers (" + witnessDuring + " ticks in " + seconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s, " + loop.Paints.ToString("N0", System.Globalization.CultureInfo.InvariantCulture) + " WM_PAINTs) while her posted work keeps running (" + postsDuring + ") and her Beat clock keeps ticking (" + beatDuring + ")");
+                string said;
+                lock (lines) said = lines.Count == 1 ? lines[0] : lines.Count + " lines: " + string.Join(" / ", lines.ToArray());
+                if (!said.StartsWith("timers starved ", StringComparison.Ordinal) || said.IndexOf("EndlessPaint got ", StringComparison.Ordinal) < 0 || said.IndexOf(" x WM_PAINT", StringComparison.Ordinal) < 0) throw new Exception("Her timer watch didn't name the window and message once: " + said);
+                checks.Add("PASS her timer watch writes one line naming the window and the message starving her timers: " + said);
+                System.Diagnostics.Stopwatch after = System.Diagnostics.Stopwatch.StartNew();
+                int witnessBack = witnessTicks;
+                while (after.ElapsedMilliseconds < 600) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                lock (lines) if (witnessTicks - witnessBack < 5 || lines.Count != 1) throw new Exception("After the stall, her window timers didn't come back, or her watch spoke again: " + (witnessTicks - witnessBack) + " ticks, " + lines.Count + " lines.");
+                // Off when no timer is expected: a quiet spell isn't a stall then.
+                witnessOn = false;
+                witness.Stop();
+                after.Restart();
+                while (after.ElapsedMilliseconds < 2600) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                lock (lines) if (lines.Count != 1) throw new Exception("Her timer watch spoke up with no timer running.");
+                // What it costs when nothing is wrong: one comparison for most messages, and a clock read for each timer.
+                Message plain = Message.Create(IntPtr.Zero, 0x0200, IntPtr.Zero, IntPtr.Zero), tick = Message.Create(IntPtr.Zero, 0x0113, IntPtr.Zero, IntPtr.Zero);
+                const int runs = 2000000;
+                System.Diagnostics.Stopwatch cost = System.Diagnostics.Stopwatch.StartNew();
+                for (int i = 0; i < runs; i++) watch.PreFilterMessage(ref plain);
+                double plainNs = cost.Elapsed.TotalMilliseconds * 1e6 / runs;
+                cost.Restart();
+                for (int i = 0; i < runs; i++) watch.PreFilterMessage(ref tick);
+                double tickNs = cost.Elapsed.TotalMilliseconds * 1e6 / runs;
+                if (plainNs > 200 || tickNs > 500) throw new Exception("Her timer watch costs too much: " + plainNs + " ns a message, " + tickNs + " ns a timer.");
+                checks.Add("PASS her timer watch costs " + plainNs.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ns for an ordinary message and " + tickNs.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ns for a timer's, and says nothing while no timer is expected");
+            }
+            finally
+            {
+                done = true;
+                Application.RemoveMessageFilter(watch);
+                loop.Endless = false;
+                loop.Close();
+                loop.Dispose();
+                witness.Dispose();
+                beat.Dispose();
+                watcher.Join(2000);
+            }
+        }
+
+        // Stand-ins for whatever kept her window's thread busy on 12 Nov, for the review of her beat. One is a window on her
+        // thread that never gets painted, so Windows hands it WM_PAINT for ever; the other is a posted message that posts the
+        // next. Both starve her window timers while posted work still runs. A window timer of the check's own counts its ticks
+        // too, so a stand-in that didn't really starve anything fails rather than passing for the wrong reason.
+        private void SmokeStarved(List<string> checks, bool paint)
+        {
+            Func<bool> fullWas = FullScreen;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Picture shownWas = Computer.Shown;
+            string name = paint ? "a window that's never painted" : "a posted-message flood";
+            ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
+            {
+                Rectangle work = Screen.PrimaryScreen.WorkingArea;
+                StandForThrow(new Point(work.Left + work.Width / 3, work.Top + work.Height / 2));
+                RenderFrame();
+                instant = false;
+                FullScreen = delegate { return true; };
+                Computer.Use = delegate { System.Threading.Thread.Sleep(200); return "Waited."; };
+                int turn = 0;
+                driveTest = delegate(string system, string tools, string messages)
+                {
+                    System.Threading.Thread.Sleep(300);
+                    turn++;
+                    return Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t" + turn + "\",\"name\":\"wait\",\"toolset_name\":\"computer\",\"input\":{\"duration\":1}}]}");
+                };
+                Job game = new Job("play Five Nights at Freddy's");
+                string ended = null;
+                System.Threading.Thread hands = new System.Threading.Thread(delegate() { try { ended = Work(game); } catch (Exception error) { ended = error.Message; } }) { IsBackground = true, Name = "Smoke job" };
+                System.Diagnostics.Stopwatch busy = System.Diagnostics.Stopwatch.StartNew();
+                double began = -1, landed = -1, lastFrame = -1, worstGap = 0;
+                int drawn = 0, probed = 0;
+                string state = null;
+                Starver keeper = new Starver(paint);
+                EventHandler counted = delegate
+                {
+                    if (keeper.Done) return;
+                    double at = busy.Elapsed.TotalSeconds;
+                    drawn++;
+                    if (lastFrame >= 0) worstGap = Math.Max(worstGap, at - lastFrame);
+                    lastFrame = at;
+                };
+                System.Windows.Forms.Timer probe = new System.Windows.Forms.Timer { Interval = 33 };
+                probe.Tick += delegate { if (!keeper.Done) probed++; };
+                keeper.Work = delegate
+                {
+                    System.Threading.Thread.Sleep(2);
+                    double now = busy.Elapsed.TotalSeconds;
+                    if (began < 0 && job == game && taskPanel.Showing) began = now;
+                    if (began >= 0 && landed < 0 && onPanel && outro == null && !ribbons.Waiting && !ribbons.Going && !ribbons.Visible && !tear.Visible) landed = now;
+                    if (began >= 0 && state == null && now - began >= 1.5)
+                        state = "on the panel " + onPanel + ", teleport still on " + (outro != null) + ", ribbons " + (ribbons.Waiting ? "waiting" : ribbons.Going ? "going" : ribbons.Visible ? "showing" : "gone") + ", glitch bars " + (tear.Visible ? "up" : "gone");
+                    if (now >= 6 || (landed >= 0 && now - landed >= 1)) keeper.Done = true;
+                };
+                frames.Tick += counted;
+                try
+                {
+                    probe.Start();
+                    keeper.Kick();
+                    hands.Start();
+                    while (!keeper.Done) Starver.Pump(50);
+                    string said = name + ": " + keeper.Count + " busy messages, " + probed + " window-timer ticks while it ran, " + drawn + " body frames, worst frame gap " + worstGap.ToString("0.000") + " s, panel at " + began.ToString("0.000") + " s, landed " + (landed < 0 ? "never" : (landed - began).ToString("0.000") + " s after the panel") + (state == null ? "" : ", at 1.5 s: " + state);
+                    if (keeper.Count < 50 || probed > 3) list.Add("FAIL the stand-in didn't starve her window timers, so it proves nothing: " + said);
+                    else if (began < 0) list.Add("FAIL the stand-in game job never showed its task panel: " + said);
+                    else if (landed < 0 || landed - began > 1.5) list.Add("FAIL her teleport onto the task panel stalled while her window timers were starved by " + said);
+                    else list.Add("PASS her teleport onto the task panel lands while her window timers are starved by " + said);
+                }
+                finally
+                {
+                    keeper.Done = true;
+                    frames.Tick -= counted;
+                    probe.Stop();
+                    probe.Dispose();
+                    Computer.Interrupt("The smoke job is over.");
+                    System.Diagnostics.Stopwatch ending = System.Diagnostics.Stopwatch.StartNew();
+                    while (hands.IsAlive && ending.ElapsedMilliseconds < 8000) { Application.DoEvents(); System.Threading.Thread.Sleep(5); }
+                    Application.DoEvents();
+                    keeper.DestroyHandle();
+                    driveTest = null;
+                    FullScreen = fullWas;
+                    Computer.Use = useWas;
+                    Computer.Shown = shownWas;
+                    Computer.Finish();
+                    Computer.Arm();
+                    taskPanel.Stop();
+                    LeavePanel(false);
+                    Halt();
+                    ribbons.Stop();
+                    tear.Hide();
+                    if (hands.IsAlive) list.Add("FAIL the stand-in game job didn't stop when told to: " + ended);
+                }
+            });
+        }
+
+        // What her clock costs while she only stands there: how even her frames are, her process's CPU, and the same once
+        // her frames have stopped.
+        private void SmokeBeatCost(List<string> checks)
+        {
+            ThrowCheck(checks, delegate(List<string> list, List<short[]> sounds)
+            {
+                Rectangle work = Screen.PrimaryScreen.WorkingArea;
+                StandForThrow(new Point(work.Left + work.Width / 3, work.Top + work.Height / 2));
+                instant = false;
+                RenderFrame();
+                System.Diagnostics.Process self = System.Diagnostics.Process.GetCurrentProcess();
+                System.Diagnostics.Stopwatch cost = System.Diagnostics.Stopwatch.StartNew();
+                for (int i = 0; i < 60; i++) RenderFrame();
+                double render = cost.Elapsed.TotalMilliseconds / 60;
+                List<double> at = new List<double>();
+                System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+                EventHandler mark = delegate { at.Add(watch.Elapsed.TotalMilliseconds); };
+                frames.Tick += mark;
+                frames.Start();
+                Starver.Pump(200);
+                at.Clear();
+                self.Refresh();
+                TimeSpan cpuFrom = self.TotalProcessorTime;
+                watch.Restart();
+                while (watch.ElapsedMilliseconds < 6000) Starver.Pump(100);
+                self.Refresh();
+                double standing = (self.TotalProcessorTime - cpuFrom).TotalMilliseconds / watch.Elapsed.TotalSeconds;
+                double span = watch.Elapsed.TotalMilliseconds;
+                frames.Tick -= mark;
+                int interval = frames.Interval;
+                frames.Stop();
+                List<double> gaps = new List<double>();
+                for (int i = 1; i < at.Count; i++) gaps.Add(at[i] - at[i - 1]);
+                double mean = 0, spread = 0, least = double.MaxValue, most = 0;
+                foreach (double gap in gaps) { mean += gap; least = Math.Min(least, gap); most = Math.Max(most, gap); }
+                if (gaps.Count > 0) mean /= gaps.Count;
+                foreach (double gap in gaps) spread += (gap - mean) * (gap - mean);
+                if (gaps.Count > 1) spread = Math.Sqrt(spread / (gaps.Count - 1));
+                Dictionary<int, int> shape = new Dictionary<int, int>();
+                foreach (double gap in gaps) { int key = (int)Math.Round(gap); int seen; shape.TryGetValue(key, out seen); shape[key] = seen + 1; }
+                List<int> keys = new List<int>(shape.Keys);
+                keys.Sort();
+                string spreadOut = "";
+                foreach (int key in keys) if (shape[key] * 50 >= gaps.Count) spreadOut += (spreadOut.Length == 0 ? "" : " ") + key + "ms x" + shape[key];
+                Starver.Pump(300);
+                self.Refresh();
+                cpuFrom = self.TotalProcessorTime;
+                watch.Restart();
+                while (watch.ElapsedMilliseconds < 4000) Starver.Pump(100);
+                self.Refresh();
+                double rest = (self.TotalProcessorTime - cpuFrom).TotalMilliseconds / watch.Elapsed.TotalSeconds;
+                list.Add("PASS her standing loop at interval " + interval + " ms: " + at.Count + " frames in " + (span / 1000).ToString("0.0") + " s (" + (at.Count * 1000 / span).ToString("0.0") + " a second), gaps mean " + mean.ToString("0.0") + " sd " + spread.ToString("0.0") + " min " + least.ToString("0.0") + " max " + most.ToString("0.0") + " ms [" + spreadOut + "], a frame costs " + render.ToString("0.00") + " ms to draw, process CPU " + standing.ToString("0.0") + " ms a second standing and " + rest.ToString("0.0") + " ms a second with her frames stopped");
+            });
+        }
+
+        private sealed class Starver : NativeWindow
+        {
+            internal Action Work;
+            internal volatile bool Done;
+            internal int Count;
+            private readonly bool paint;
+
+            [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool InvalidateRect(IntPtr window, IntPtr area, bool erase);
+            [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern uint MsgWaitForMultipleObjectsEx(uint count, IntPtr handles, uint milliseconds, uint wake, uint flags);
+
+            internal Starver(bool paint)
+            {
+                this.paint = paint;
+                CreateParams made = new CreateParams();
+                if (paint) { made.Style = unchecked((int)0x90000000); made.ExStyle = 0x08000080; made.X = 0; made.Y = 0; made.Width = 48; made.Height = 48; }
+                else made.Parent = new IntPtr(-3);
+                CreateHandle(made);
+            }
+
+            internal void Kick()
+            {
+                if (paint) InvalidateRect(Handle, IntPtr.Zero, false);
+                else Native.PostMessage(Handle, 0x8000 + 0x1B6, IntPtr.Zero, IntPtr.Zero);
+            }
+
+            // Waits for anything at all on this thread, the way her message loop does, then handles it.
+            internal static void Pump(int most)
+            {
+                MsgWaitForMultipleObjectsEx(0, IntPtr.Zero, (uint)most, 0x04FF, 0x0004);
+                Application.DoEvents();
+            }
+
+            protected override void WndProc(ref Message message)
+            {
+                if (paint && message.Msg == 0x000F && !Done) { Count++; if (Work != null) Work(); return; }
+                if (!paint && message.Msg == 0x8000 + 0x1B6) { if (Done) return; Count++; if (Work != null) Work(); if (!Done) Kick(); return; }
+                base.WndProc(ref message);
+            }
+        }
+
         private void SmokeRibbons(List<string> checks, string output)
         {
             Color hairColour = ArtColour(ArtColors.Usual[ArtColors.Hair]), accentColour = ArtColour(ArtColors.Usual[ArtColors.Accent]);

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Avalonia;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 using Avalonia.Threading;
 
 namespace CapriDesktop
@@ -244,7 +246,7 @@ namespace CapriDesktop
 
         private string SitOn(string wanted, bool lie)
         {
-            if (Hands.OnMac) return lie ? "Lying down on a window you name is only on Windows so far." : "Sitting on a window you name is only on Windows so far.";
+            if (Hands.OnMac && lie) return "Lying down on a window you name is only on Windows so far.";
             string name = Regex.Replace((wanted ?? "").Trim(), @"^(?:the|my|your|ur|our|that|this) | (?:window|app|application|game|tab)$", "", RegexOptions.IgnoreCase).Trim();
             if (name.Length == 0) return "Which window?";
             List<Ledge> ledges = Ledges();
@@ -255,6 +257,19 @@ namespace CapriDesktop
                 PixelRect area = WorkAt(Hip);
                 spots = ledges.FindAll(ledge => ledge.Floor && ledge.Y == area.Bottom && ledge.Left == area.X);
                 shown = "the taskbar";
+            }
+            else if (Hands.OnMac)
+            {
+                string problem;
+                long window = CatchUp.Seat(name, Windows(), Desk.Scale, out problem);
+                if (problem != null) return problem;
+                spots = ledges.FindAll(ledge => ledge.Window == window);
+            }
+            else if (!lie && (Desk is KWinDesk || Desk is NiriDesk))
+            {
+                List<long> windows = CatchUp.LinuxSeats(name, Windows());
+                if (windows.Count == 0) return "I can't see " + name + " open.";
+                spots = ledges.FindAll(ledge => windows.Contains(ledge.Window));
             }
             else
             {
@@ -295,13 +310,15 @@ namespace CapriDesktop
         internal static void MoveChecks(Pet pet, List<string> checks)
         {
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
-            string[] names = { "anchor", "seat", "fallTo", "falling", "fallSpeed", "fallStep", "hanging", "walking", "walkTo", "walkStep", "walkCarry", "dragging", "pressed", "dropAfter", "outro", "outroAt", "clip", "clipStart", "idleCycle", "blinkWith", "nextGlitch", "coveredSince", "seatLost", "napAsked", "napping", "dancing", "lying", "riding", "askedHop", "lieBy", "Arrivals" };
+            string[] names = { "anchor", "seat", "fallTo", "falling", "fallSpeed", "fallStep", "hanging", "walking", "walkTo", "walkStep", "walkCarry", "dragging", "pressed", "dropAfter", "outro", "outroAt", "clip", "clipStart", "idleCycle", "blinkWith", "nextGlitch", "coveredSince", "seatLost", "napAsked", "napping", "dancing", "lying", "riding", "askedHop", "lieBy", "Arrivals", "desktopPress", "desktopDrag", "desktopReleased", "desktopMovedAt", "desktopReported", "dragAt", "dragPending", "downAt", "grab", "grabDip", "pointer", "holder", "clicks" };
             Dictionary<string, object> before = new Dictionary<string, object>();
             foreach (string name in names) before[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
             Desk desk = pet.Desk;
             Func<PixelPoint?> mouse = pet.MouseAt;
             Action<PixelPoint> moveTo = pet.MoveTo;
             Func<double> clock = pet.MoveClock;
+            Func<Point, PixelPoint> toScreen = pet.ToScreen;
+            Action<PointerPressedEventArgs> moveDrag = pet.MoveDrag;
             Func<bool, bool> through = pet.RideThrough;
             Action<Action> post = pet.MovePost;
             Func<string, bool?> setting = Hands.SettingOn;
@@ -315,7 +332,8 @@ namespace CapriDesktop
             var trusted = MacFingers.Trusted;
             var sink = MacFingers.Sink;
             var pause = MacFingers.Pause;
-            PixelPoint[] asked = pet.asked.ToArray();
+            var macRead = MacWindows.Run;
+            MoveReports asked = pet.asked.Copy();
             PixelRect area = new PixelRect(-800, -100, 1600, 1000);
             double now = 0;
             PixelPoint? cursor = new PixelPoint(0, 400);
@@ -358,6 +376,13 @@ namespace CapriDesktop
             try
             {
                 pet.Desk = fake;
+                MacWindows.Run = (start, timeout) =>
+                {
+                    Spot window = fake.Shown[0];
+                    window.Pid = 123;
+                    PixelRect bounds = window.Bounds;
+                    return "123\t" + bounds.X + "\t" + bounds.Y + "\t" + bounds.Width + "\t" + bounds.Height + "\tfalse\t1\tRoblox";
+                };
                 pet.Saved.Hologram = false;
                 MacFingers.Trusted = () => true;
                 MacFingers.Sink = _ => { };
@@ -383,8 +408,7 @@ namespace CapriDesktop
                 {
                     Hands.OnMac = platform;
                     foreach (string action in new[] { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off" })
-                        if (Hands.KitFor().Has("move_yourself:" + action) != (!platform || action != "sit_on")) throw new Exception("The moves list was wrong for " + action + ".");
-                    if (platform && tool("sit_on", "Roblox") != "Sitting on a window you name is only on Windows so far.") throw new Exception("Mac lost its named window gap.");
+                        if (!Hands.KitFor().Has("move_yourself:" + action)) throw new Exception("The moves list was wrong for " + action + ".");
                     if (platform && tool("lie_down", "Roblox") != "Lying down on a window you name is only on Windows so far.") throw new Exception("Mac named lying answered about sitting.");
                     if (tool("walk_around", null) != "Going for a little walk." || !pet.walking || pet.clip != pet.walk) throw new Exception("Walk did not start from her tool.");
                     settle();
@@ -413,6 +437,18 @@ namespace CapriDesktop
                     if (tool("hop_off", null) != "Hopped off your cursor." || pet.riding || clicksThrough || clicks.Count != clickCount + 2 || clicks[clickCount + 1] || !pet.falling || pet.clip != pet.grin) throw new Exception("Hop off did not restore clicks.");
                     settle();
                     if (tool("hop_off", null) != "I'm not riding your cursor.") throw new Exception("Hop off claimed a second ride.");
+                    if (platform)
+                    {
+                        if (tool("sit_on", "my Roblox window") != "Sitting on your Roblox window.") throw new Exception("Mac named seating did not reach her move tool.");
+                        settle();
+                        if (pet.seat.Window != 71) throw new Exception("Mac named seating picked the wrong window.");
+                        PixelRect beforeMove = fake.Shown[0].Bounds;
+                        fake.Shown[0].Bounds = new PixelRect(beforeMove.X + 20, beforeMove.Y + 20, beforeMove.Width, beforeMove.Height);
+                        pet.HoldSeat(now);
+                        if (pet.seat.Y != beforeMove.Y + 20) throw new Exception("Mac named seating did not follow its window.");
+                        fake.Shown[0].Bounds = beforeMove;
+                        pet.HoldSeat(now);
+                    }
                     if (platform)
                     {
                         pet.Saved.Hologram = true;
@@ -525,11 +561,119 @@ namespace CapriDesktop
                 checks.Add("PASS asked moves on Mac and Linux use her walk, perch and laydown clips, keep her in the work area, land on real seats and stop for dragging, naps and work");
                 checks.Add("PASS sit up and hop off end their moves, losing the cursor drops her safely, Linux finds a named window and Mac keeps its named window gap");
                 checks.Add("PASS non-job tools and Mac shortcuts keep moves running, job input holds stop moves, background stops post without waiting, and rides restore hologram click-through");
+                fake.Shown.Clear();
+                pet.desktopDrag = pet.desktopReleased = false;
+                pet.pressed = pet.dragging = false;
+                foreach (string kind in new[] { "late", "offset", "rounding", "clamping" })
+                {
+                    now += 10;
+                    pet.StandUp();
+                    pet.body.FacingLeft = false;
+                    pet.asked = new MoveReports();
+                    int floor = pet.Seated(0, area.Bottom).Y + pet.Px(pet.FrameY);
+                    var answers = new MoveReports.TestDesk(kind, floor - 40);
+                    pet.MoveTo = at => answers.Ask(at, now);
+                    pet.Move(new PixelPoint(area.X + area.Width / 2, area.Y + 10));
+                    pet.Arrive(true);
+                    for (int i = 0; i < 1320; i++)
+                    {
+                        now += 0.05;
+                        PixelPoint was = pet.anchor;
+                        bool fell = pet.falling;
+                        pet.TickMoveReports(now);
+                        pet.TickMoves(now);
+                        if (pet.falling) pet.Tumble(now);
+                        else if (pet.seat != null) pet.HoldSeat(now);
+                        if (i == 650) pet.SetFacing(true);
+                        pet.Advance(now);
+                        answers.Answer(now, at => { if (OperatingSystem.IsLinux()) pet.FollowPosition(at); });
+                        if (fell && pet.anchor.Y < was.Y) throw new Exception(kind + " moved her fall back up through MoveTo.");
+                        if (i > 120 && i != 650 && pet.anchor != was) throw new Exception(kind + " moved her at idle through MoveTo.");
+                    }
+                    if (pet.falling || pet.asked.Takes > 1) throw new Exception(kind + " did not settle her pop-in fall.");
+                    checks.Add("PASS " + kind + " reports through MoveTo keep a pop-in fall and 60 seconds idle still");
+                }
+                pet.MoveTo = _ => { };
+                pet.asked = new MoveReports();
+                if (OperatingSystem.IsLinux())
+                {
+                    now += 10;
+                    for (int i = 0; i < 3; i++) pet.asked.Asked(new PixelPoint(100 + i * 20, 100), now + i * 0.05, true);
+                    now += 1.2;
+                    pet.TickMoveReports(now);
+                    if (!pet.MoveStuck) throw new Exception("Dropped window moves did not leave her stuck.");
+                    int count = 0;
+                    pet.MoveTo = _ => count++;
+                    PixelPoint at = pet.anchor;
+                    pet.Fall();
+                    pet.Hop(new Ledge { Left = area.X, Right = area.Right, Y = area.Bottom, Floor = true }, 0);
+                    bool wandered = pet.Wander(), strolled = pet.Stroll();
+                    pet.Drop();
+                    if (count != 0 || pet.anchor != at || pet.falling || wandered || strolled) throw new Exception("A stuck window tried to fall, hop, wander or stroll.");
+                    checks.Add("PASS a stuck Linux window stays standing through Fall, Hop, Wander, Stroll and a drop");
+                }
+                pet.StandUp();
+                pet.pressed = pet.dragging = pet.desktopDrag = pet.desktopReleased = false;
+                pet.MouseAt = () => null;
+                pet.ToScreen = at => new PixelPoint((int)Math.Round(at.X * pet.DesktopScaling), (int)Math.Round(at.Y * pet.DesktopScaling));
+                int moved = 0, began = 0;
+                pet.MoveTo = _ => moved++;
+                using (var mousePointer = new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true))
+                {
+                    pet.MoveDrag = args => { began++; if (args != pet.desktopPress) throw new Exception("The compositor drag lost its press event."); mousePointer.Capture(null); };
+                    Point local = pet.BodySpot() ?? throw new Exception("No body spot for the compositor drag check.");
+                    pet.RaiseEvent(new PointerPressedEventArgs(pet, mousePointer, pet, local, 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+                    Point pulled = new Point(local.X + 10 / pet.DesktopScaling, local.Y);
+                    pet.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, pet, mousePointer, pet, pulled, 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other), KeyModifiers.None));
+                    pet.DragFrame();
+                    if (OperatingSystem.IsLinux())
+                    {
+                        if (began != 1 || moved != 0 || !pet.desktopDrag || !pet.pressed || !pet.dragging) throw new Exception("A Linux compositor drag moved her itself or let go on capture loss.");
+                        PixelPoint report = new PixelPoint(pet.WindowAt.X + 40, pet.WindowAt.Y + 20);
+                        pet.DesktopPosition(report);
+                        if (pet.WindowAt != report) throw new Exception("A compositor drag did not take its position immediately.");
+                        for (int i = 0; i < 4; i++)
+                        {
+                            now += 0.6;
+                            report = new PixelPoint(report.X + 1, report.Y);
+                            pet.DesktopPosition(report);
+                            pet.TickMoveReports(now);
+                            if (!pet.desktopDrag) throw new Exception("A slow compositor drag timed out while moving.");
+                        }
+                        now += 5.1; pet.TickMoveReports(now);
+                        if (pet.desktopDrag || pet.pressed || pet.dragging || pet.falling || pet.WindowAt != report) throw new Exception("A quiet stuck compositor drag did not end in place.");
+                        report = new PixelPoint(report.X + 20, report.Y);
+                        pet.DesktopPosition(report);
+                        if (!pet.desktopDrag || pet.WindowAt != report) throw new Exception("A resumed compositor drag was not held again.");
+                    }
+                    else if (began != 0 || moved != 1 || !pet.dragging) throw new Exception("Mac dragging changed to a compositor drag.");
+                    pet.RaiseEvent(new PointerReleasedEventArgs(pet, mousePointer, pet, pulled, 0, new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+                    if (pet.dragging || pet.pressed || pet.desktopDrag) throw new Exception("A left-up event did not end the drag.");
+                }
+                checks.Add(OperatingSystem.IsLinux() ? "PASS a Linux drag past five pixels uses BeginMoveDrag, survives lost capture, follows reports, ends when quiet and resumes if moved again" : "PASS Mac dragging still moves her once per frame without BeginMoveDrag");
+                if (OperatingSystem.IsLinux())
+                {
+                    pet.asked = new MoveReports();
+                    pet.desktopDrag = pet.desktopReleased = false;
+                    pet.StandUp();
+                    pet.Move(new PixelPoint(0, area.Y + 10));
+                    pet.StartDesktopHold();
+                    pet.EndDesktopDrag();
+                    if (!pet.falling) throw new Exception("A compositor drag without stuck movement did not drop.");
+                    now += 0.05;
+                    pet.Tumble(now);
+                    PixelPoint target = pet.WindowAt;
+                    pet.DesktopPosition(new PixelPoint(target.X, target.Y - 1), true);
+                    pet.DesktopPosition(target, true);
+                    if (pet.desktopDrag || pet.dragging || pet.pressed || !pet.falling) throw new Exception("Her own post-drag fall was held again.");
+                    checks.Add("PASS her own niri drop reports do not resume an interactive drag");
+                }
             }
             finally
             {
                 pet.Talk.Dismiss();
                 pet.MoveClock = clock; pet.MoveArea = moveArea;
+                pet.ToScreen = toScreen; pet.MoveDrag = moveDrag;
                 pet.RideThrough = through; Hands.SettingOn = setting; InControl.Changed = control;
                 pet.MovePost = post;
                 pet.Desk = desk; pet.MouseAt = mouse; pet.MoveTo = moveTo;
@@ -537,10 +681,142 @@ namespace CapriDesktop
                 foreach (string name in names) typeof(Pet).GetField(name, fields).SetValue(pet, before[name]);
                 pet.body.FacingLeft = facing;
                 pet.Fit();
-                pet.asked.Clear(); pet.asked.AddRange(asked);
+                pet.asked = asked;
                 pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
                 pet.Saved.Hologram = hologram;
                 MacFingers.Trusted = trusted; MacFingers.Sink = sink; MacFingers.Pause = pause;
+                MacWindows.Run = macRead;
+            }
+        }
+
+        internal static void FaceChecks(Pet pet, List<string> checks)
+        {
+            PixelRect? moveArea = pet.MoveArea;
+            Action<PixelPoint> moveTo = pet.MoveTo;
+            PixelPoint anchor = pet.anchor;
+            int walkTo = pet.walkTo;
+            double walkStep = pet.walkStep, walkCarry = pet.walkCarry;
+            MoveReports asked = pet.asked.Copy();
+            Ledge seat = pet.seat;
+            bool facing = pet.FacingLeft, falling = pet.falling, walking = pet.walking;
+            bool pressed = pet.pressed, dragging = pet.dragging, riding = pet.riding, lying = pet.lying;
+            Action outro = pet.outro;
+            Clip clip = pet.clip;
+            int savedX = pet.Saved.X, savedY = pet.Saved.Y;
+            bool placed = pet.Saved.Placed;
+            try
+            {
+                pet.MoveTo = _ => { };
+                pet.asked = new MoveReports();
+                pet.falling = pet.walking = pet.pressed = pet.dragging = pet.riding = pet.lying = false;
+                pet.outro = null;
+                pet.clip = pet.perch;
+                bool realScreen = false;
+                Func<PixelRect, int, bool, bool> sitsLeftAt = (area, eighths, left) =>
+                {
+                    pet.MoveArea = realScreen ? (PixelRect?)null : area;
+                    int ledgeY = area.Y + area.Height / 2;
+                    pet.seat = new Ledge { Left = area.X, Right = area.Right, Y = ledgeY };
+                    pet.body.FacingLeft = left;
+                    pet.Move(pet.Seated(area.X + area.Width * eighths / 8, ledgeY));
+                    int hipX = pet.Hip.X;
+                    pet.Face();
+                    if (pet.Hip.X != hipX) throw new Exception("Turning to face the middle moved her off her spot: " + hipX + " to " + pet.Hip.X + ".");
+                    return pet.FacingLeft;
+                };
+                PixelRect main = new PixelRect(0, 0, 1920, 1080), leftMonitor = new PixelRect(-1920, 0, 1920, 1080), rightMonitor = new PixelRect(1920, -200, 2560, 1440);
+                bool mainMiddle = !sitsLeftAt(main, 2, true) && !sitsLeftAt(main, 2, false) && sitsLeftAt(main, 6, false) && sitsLeftAt(main, 6, true);
+                Func<bool> comesBack = () =>
+                {
+                    PixelPoint hipNow = pet.Hip, spotNow = pet.anchor;
+                    bool leftNow = pet.FacingLeft, lyingNow = pet.lying;
+                    pet.Save();
+                    pet.body.FacingLeft = false;
+                    pet.lying = false;
+                    pet.Move(new PixelPoint(pet.Saved.X, pet.Saved.Y));
+                    bool back = pet.Saved.Placed && pet.Hip == hipNow;
+                    pet.body.FacingLeft = leftNow;
+                    pet.lying = lyingNow;
+                    pet.Move(spotNow);
+                    return back;
+                };
+                bool savedHip = comesBack();
+                pet.lying = true;
+                savedHip = savedHip && comesBack();
+                pet.lying = false;
+                foreach (int eighths in new[] { 6, 2 })
+                {
+                    sitsLeftAt(main, 8 - eighths, eighths == 2);
+                    int x = main.X + main.Width * eighths / 8, y = main.Y + main.Height / 2;
+                    Ledge landing = new Ledge { Left = main.X, Right = main.Right, Y = y, Floor = true, Free = true };
+                    PixelPoint hip = new PixelPoint(x, y);
+                    pet.Hop(landing, x);
+                    if (pet.seat != landing || pet.clip != pet.perchArrive || pet.FacingLeft != (eighths == 6) || pet.Hip != hip || !comesBack()) throw new Exception("A hop started her arrival facing the wrong way or moved her saved hip.");
+                    pet.Face();
+                    if (pet.FacingLeft != (eighths == 6) || pet.Hip != hip) throw new Exception("Her arrival turned or moved on the next facing check.");
+                }
+                checks.Add("PASS hops across the screen start her perched arrival facing the middle. Her landing hip and saved spot stay put both ways.");
+                bool walkKept = true;
+                foreach (int eighths in new[] { 6, 2 })
+                {
+                    bool walkLeft = sitsLeftAt(main, eighths, eighths == 2);
+                    int walkHip = pet.Hip.X;
+                    bool started = pet.Stroll() && pet.walking && pet.Hip.X == walkHip;
+                    started = started && pet.FacingLeft == pet.walkTo < pet.anchor.X;
+                    pet.EndWalk();
+                    walkKept = walkKept && walkLeft == (eighths == 6) && started && !pet.walking && pet.Hip.X == walkHip;
+                }
+                bool walkFits = true;
+                int lead = pet.Px(pet.body.Size * 0.41), shortest = pet.Px(pet.body.Size) / 2, margin = pet.Px(8), walkY = main.Y + main.Height / 2;
+                foreach (bool towardLeft in new[] { true, false })
+                {
+                    int at = towardLeft ? main.X + 800 : main.Right - 800;
+                    Ledge edge = towardLeft ? new Ledge { Left = at - shortest - lead - margin, Right = at + lead + margin + 1, Y = walkY } : new Ledge { Left = at - lead - margin + 1, Right = at + shortest + lead + margin, Y = walkY };
+                    pet.MoveArea = main;
+                    pet.seat = edge;
+                    pet.body.FacingLeft = !towardLeft;
+                    pet.Move(pet.Seated(at, walkY));
+                    bool strolled = pet.Stroll();
+                    int walkEnd = pet.walkTo + pet.Px(pet.body.Size * pet.StandAcross);
+                    if (!strolled || pet.FacingLeft != towardLeft || (towardLeft ? walkEnd < edge.Left + lead : walkEnd > edge.Right - lead)) walkFits = false;
+                    pet.EndWalk();
+                }
+                bool standsRight = sitsLeftAt(main, 5, false);
+                pet.seat = null;
+                pet.Face();
+                standsRight = standsRight && !pet.FacingLeft;
+                bool otherMiddle = !sitsLeftAt(leftMonitor, 2, true) && sitsLeftAt(leftMonitor, 6, false) && !sitsLeftAt(rightMonitor, 2, true) && sitsLeftAt(rightMonitor, 6, false);
+                realScreen = true;
+                int realScreens = 0;
+                bool realMiddle = true;
+                foreach (var screen in pet.Screens.All)
+                {
+                    realScreens++;
+                    PixelRect work = X11Safety.Work(screen);
+                    if (sitsLeftAt(work, 2, true) || !sitsLeftAt(work, 6, false)) realMiddle = false;
+                }
+                realScreen = false;
+                PixelRect wide = new PixelRect(0, 0, 3840, 1080);
+                bool keepsWay = !SitsLeft(1940, wide, 240, false) && SitsLeft(1900, wide, 240, true) && !SitsLeft(-500, main, 240, true);
+                if (!mainMiddle || !savedHip || !standsRight || !walkKept || !walkFits || !otherMiddle || !realMiddle || !keepsWay) throw new Exception("Facing the middle went wrong: main " + mainMiddle + ", saved hip " + savedHip + ", standing " + standsRight + ", walk kept her hip " + walkKept + ", walk fits the window " + walkFits + ", second monitor " + otherMiddle + ", real screens " + realMiddle + " of " + realScreens + ", near the middle " + keepsWay + ".");
+                checks.Add("PASS sitting she faces the middle of her screen: right on its left half and left on its right half, without leaving her spot, on a second monitor left or right of the main one and on each of this desktop's own screens, and saving her spot sitting or lying so she comes back with her hip where it was; a walk turns her toward where she goes, keeps her body on the window, and starts and ends with her hip in place; standing she still only turns at the right edge");
+                if (realScreens < 2) checks.Add("LIMIT facing the middle on a real second monitor: this desktop has " + realScreens + " screen" + (realScreens == 1 ? "" : "s") + ", so a second one was checked with made-up monitors");
+            }
+            finally
+            {
+                pet.MoveArea = moveArea;
+                pet.MoveTo = moveTo;
+                pet.body.FacingLeft = facing;
+                pet.anchor = anchor;
+                pet.walkTo = walkTo; pet.walkStep = walkStep; pet.walkCarry = walkCarry;
+                pet.asked = asked;
+                pet.seat = seat;
+                pet.falling = falling;
+                pet.walking = walking;
+                pet.pressed = pressed; pet.dragging = dragging; pet.riding = riding; pet.lying = lying;
+                pet.outro = outro;
+                pet.clip = clip;
+                pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
             }
         }
     }

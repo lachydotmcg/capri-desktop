@@ -148,6 +148,8 @@ namespace CapriDesktop
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
                 MacFiles.Checks(checks);
                 X11Safety.Checks(checks);
+                MoveReports.Checks(checks);
+                NiriDesktop.Checks(checks);
                 MacQuit.Checks(checks);
                 NewsChecks();
                 GuardChecks();
@@ -156,7 +158,9 @@ namespace CapriDesktop
                 Pet.CloneChecks(pet, checks);
                 UnreadableChecks();
                 MacWindows.Checks(checks);
+                Pet.CatchUpChecks(pet, checks);
                 UpdateCheckChecks();
+                LinuxAppImageUpdater.Checks(checks);
                 OfflineChecks();
                 FakeCrash.Checks(checks);
                 FakeCrash.WindowChecks(checks);
@@ -194,6 +198,7 @@ namespace CapriDesktop
                 checks.Add("PASS drag and drop: grabbing her lifts her off, dropping her near a ledge makes her fall and sit on it");
                 DragChecks();
                 Pet.MoveChecks(pet, checks);
+                Pet.FaceChecks(pet, checks);
                 PixelPoint hip = pet.Hip;
                 pet.Resize(320);
                 if (pet.Hip != hip) throw new Exception("Resizing moved her off her seat: " + hip + " to " + pet.Hip + ".");
@@ -1838,7 +1843,11 @@ namespace CapriDesktop
         private void UpdateCheckChecks()
         {
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-            string[] names = { "updateChecking", "updateAsked", "updateNote", "updatePage", "updateItem" };
+            string[] names = { "updateChecking", "updateInstalling", "updateReady", "appImageReadOnly", "updateAsked", "updateNote", "updatePage", "updateItem" };
+            Func<string, LinuxUpdateReady> prepareWas = pet.PrepareUpdate;
+            Func<LinuxUpdateReady, int, string, System.Diagnostics.Process> installWas = pet.InstallUpdate;
+            Action quitWas = pet.RestartQuit;
+            string spare = Path.Combine(Path.GetTempPath(), "capri-restart-check-" + Guid.NewGuid().ToString("N"));
             Dictionary<string, object> state = new Dictionary<string, object>();
             foreach (string name in names) state[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
             Func<string> read = pet.ReadUpdate;
@@ -1910,6 +1919,63 @@ namespace CapriDesktop
                 pet.ShowUpdate("{\"tag_name\":\"v99.1.0\"}", true);
                 if (pet.UpdateNews != "Capri 99.1.0 is out. Right-click me > Get Capri 99.1.0." || pet.MainframeUpdate != pet.UpdateNews) throw new Exception("An asked check hid a newer release that was already seen.");
                 checks.Add("PASS asked update checks: Mainframe and the tray report failures and the current version, background failures stay quiet, and a click during a running check gets its answer");
+
+                string asked = null;
+                pet.ReadUpdate = () => "{\"tag_name\":\"v99.5.0\"}";
+                pet.PrepareUpdate = json => { asked = json; return new LinuxUpdateReady { Version = "99.5.0", Path = "/nowhere/Capri-99.5.0.AppImage", AppImage = "/nowhere/Capri.AppImage", Hash = new string('0', 64), Size = 1 }; };
+                pet.UpdateNews = null;
+                pet.CheckUpdate();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a background AppImage download");
+                string ready = "Capri 99.5.0 is downloaded. Right-click me > Restart Capri to update to 99.5.0.";
+                if (asked != "{\"tag_name\":\"v99.5.0\"}" || pet.UpdateChoice != "Restart Capri to update to 99.5.0" || pet.UpdateNews != ready) throw new Exception("A downloaded AppImage didn't offer its restart once: " + pet.UpdateChoice + " / " + pet.UpdateNews);
+                pet.UpdateNews = null;
+                pet.CheckUpdate();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a second background AppImage download");
+                if (pet.UpdateNews != null || pet.UpdateChoice != "Restart Capri to update to 99.5.0") throw new Exception("A ready AppImage was announced twice or lost its restart.");
+                string said = null;
+                pet.InstallUpdate = (update, parent, log) => { said = update.Version + "|" + (parent == Environment.ProcessId) + "|" + log.EndsWith("update.log", StringComparison.Ordinal); throw new AppImageUpdateException("I can't write to /nowhere, where the AppImage is."); };
+                var restart = (MenuItem)typeof(Pet).GetField("updateItem", fields).GetValue(pet);
+                restart.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                MainframeWait(() => pet.UpdateNews != null, "a refused AppImage restart");
+                if (said != "99.5.0|True|True" || !pet.UpdateNews.StartsWith("I couldn't update: I can't write to /nowhere", StringComparison.Ordinal) || (bool)typeof(Pet).GetField("updateInstalling", fields).GetValue(pet))
+                    throw new Exception("A failed AppImage restart didn't say why or stayed stuck: " + said + " / " + pet.UpdateNews);
+
+                Directory.CreateDirectory(spare);
+                ((LinuxUpdateReady)typeof(Pet).GetField("updateReady", fields).GetValue(pet)).AppImage = Path.Combine(spare, "Capri.AppImage");
+                int installs = 0;
+                pet.InstallUpdate = (update, parent, log) => { installs++; File.WriteAllText(update.AppImage + ".capri-new", "copy"); return null; };
+                pet.RestartQuit = () => { };
+                pet.UpdateNews = null;
+                restart.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                MainframeWait(() => pet.MainframeUpdate.StartsWith("I didn't close", StringComparison.Ordinal), "a called-off restart");
+                if (installs != 1 || File.Exists(Path.Combine(spare, "Capri.AppImage.capri-new")) || (bool)typeof(Pet).GetField("updateInstalling", fields).GetValue(pet) || pet.UpdateChoice != "Restart Capri to update to 99.5.0")
+                    throw new Exception("A called-off quit left the copy behind or Restart stuck.");
+                restart.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                MainframeWait(() => installs == 2 && !(bool)typeof(Pet).GetField("updateInstalling", fields).GetValue(pet), "a second restart after a called-off quit");
+                checks.Add("PASS appimage called-off restart: the copy goes, the helper is stopped, and Restart works again");
+
+                int prepares = 0;
+                pet.InstallUpdate = (update, parent, log) => { throw new AppImageUpdateException("/opt/Capri is read-only for me, so I can't swap the AppImage there.", true); };
+                pet.UpdateNews = null;
+                restart.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                MainframeWait(() => pet.UpdateNews != null, "a read-only AppImage folder");
+                if (pet.UpdateChoice != "Get Capri 99.5.0" || !pet.UpdateNews.Contains("read-only", StringComparison.Ordinal) || !pet.UpdateNews.Contains("Get Capri 99.5.0", StringComparison.Ordinal) || pet.UpdateNews.Contains("full", StringComparison.Ordinal))
+                    throw new Exception("A read-only AppImage folder kept the dead restart: " + pet.UpdateChoice + " / " + pet.UpdateNews);
+                pet.PrepareUpdate = json => { prepares++; return new LinuxUpdateReady { Version = "99.5.0", Path = "/nowhere/x", AppImage = "/nowhere/y", Hash = new string('0', 64), Size = 1 }; };
+                pet.CheckUpdate();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a check after a read-only folder");
+                if (prepares != 0 || pet.UpdateChoice != "Get Capri 99.5.0") throw new Exception("After a read-only folder she offered the restart again.");
+                typeof(Pet).GetField("appImageReadOnly", fields).SetValue(pet, false);
+                checks.Add("PASS appimage read-only folder: the restart goes, Get Capri comes back for the session, and she says the folder is read-only");
+
+                pet.UpdateNews = null;
+                pet.PrepareUpdate = json => { throw new AppImageUpdateException("Capri 99.6.0 has no Linux AppImage."); };
+                pet.ReadUpdate = () => "{\"tag_name\":\"v99.6.0\"}";
+                pet.MainframeUpdateCheck();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a failed AppImage download");
+                string missed = "Capri 99.6.0 is out, but I couldn't download it: Capri 99.6.0 has no Linux AppImage. Right-click me > Get Capri 99.6.0.";
+                if (pet.UpdateChoice != "Get Capri 99.6.0" || pet.UpdateNews != missed || pet.MainframeUpdate != missed) throw new Exception("A failed AppImage download hid the release page: " + pet.UpdateChoice + " / " + pet.UpdateNews);
+                checks.Add("PASS appimage update flow: a background download offers Restart Capri once, a refused restart says why and keeps her running, a failed download still offers the page and says why when asked");
             }
             finally
             {
@@ -1921,6 +1987,8 @@ namespace CapriDesktop
                     if (item != oldItem && item != null) pet.ContextMenu.Items.Remove(item);
                     if (oldAt >= 0 && !pet.ContextMenu.Items.Contains(oldItem)) pet.ContextMenu.Items.Insert(Math.Min(oldAt, pet.ContextMenu.Items.Count), oldItem);
                     pet.ReadUpdate = read; pet.UpdateNews = news; pet.Saved = saved;
+                    pet.PrepareUpdate = prepareWas; pet.InstallUpdate = installWas; pet.RestartQuit = quitWas;
+                    try { if (Directory.Exists(spare)) Directory.Delete(spare, true); } catch (IOException) { }
                     foreach (KeyValuePair<string, object> pair in state) typeof(Pet).GetField(pair.Key, fields).SetValue(pet, pair.Value);
                     if (ticking) timer.Start();
                 }
@@ -2037,8 +2105,9 @@ namespace CapriDesktop
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
             Dictionary<string, object> before = new Dictionary<string, object>();
             foreach (string name in new[] { "anchor", "pressed", "dragging", "dragAt", "dragPending", "downAt", "grab", "pointer", "clicks", "seat", "walking", "hanging", "dropAfter", "falling", "fallTo", "fallSpeed", "fallStep", "clip", "clipStart", "idleCycle", "blinkWith", "coveredSince", "seatLost", "napAsked" }) before[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
-            List<PixelPoint> asked = (List<PixelPoint>)typeof(Pet).GetField("asked", fields).GetValue(pet);
-            PixelPoint[] askedWas = asked.ToArray();
+            MoveReports asked = (MoveReports)typeof(Pet).GetField("asked", fields).GetValue(pet);
+            MoveReports askedWas = asked.Copy();
+            Func<double> moveClock = (Func<double>)typeof(Pet).GetField("MoveClock", fields).GetValue(pet);
             Desk desk = pet.Desk;
             Func<PixelPoint?> mouseAt = pet.MouseAt;
             Action<PixelPoint> moveTo = pet.MoveTo;
@@ -2053,7 +2122,9 @@ namespace CapriDesktop
                 pet.Desk = new BareDesk { HeldAt = delegate { if (broken) throw new Exception("No pointer."); return cursor; } };
                 pet.MouseAt = null;
                 pet.MoveTo = delegate(PixelPoint to) { moves.Add(to); };
-                pet.FollowPosition(reported);
+                // She starts where her window says she is, so the frame worked out below is her real one. FollowPosition can't do
+                // that here: on Linux a report that isn't one of her moves waits until she's been still a moment.
+                typeof(Pet).GetMethod("TakePosition", fields).Invoke(pet, new object[] { reported });
                 PixelPoint start = pet.Anchor;
                 PixelPoint frame = new PixelPoint(reported.X - start.X, reported.Y - start.Y);
                 Point? spot = pet.BodySpot();
@@ -2232,12 +2303,20 @@ namespace CapriDesktop
 
                 if (linux)
                 {
+                    double now = pet.Now;
+                    typeof(Pet).GetField("MoveClock", fields).SetValue(pet, new Func<double>(() => now));
+                    asked.Clear();
                     pet.StandUp();
                     pet.Move(start);
                     moves.Clear();
                     typeof(Pet).GetField("walking", fields).SetValue(pet, true);
                     typeof(Pet).GetField("seat", fields).SetValue(pet, new Ledge { Floor = true, Left = start.X, Right = start.X + Px(800), Y = start.Y + Px(pet.BodySize * 0.99) });
                     pet.FollowPosition(new PixelPoint(reported.X + 20, reported.Y - 40));
+                    if (pet.Anchor != start || moves.Count != 0) throw new Exception("A position correction interrupted her walk.");
+                    now += 0.35;
+                    typeof(Pet).GetField("walking", fields).SetValue(pet, false);
+                    typeof(Pet).GetMethod("TickMoveReports", fields).Invoke(pet, new object[] { now });
+                    typeof(Pet).GetField("walking", fields).SetValue(pet, true);
                     if (pet.Anchor != new PixelPoint(start.X + 20, start.Y - 40) || pet.Feet != start.Y - 40 + Px(pet.BodySize * 0.99) || pet.Hip.Y != pet.Feet || moves.Count != 0) throw new Exception("Her walking anchor didn't follow a corrected window position.");
                     // Late news of moves she asked for never steps her back: two steps, then the first one confirmed.
                     PixelPoint one = new PixelPoint(start.X + 30, start.Y - 40), two = new PixelPoint(start.X + 40, start.Y - 40);
@@ -2247,8 +2326,12 @@ namespace CapriDesktop
                     if (pet.Anchor != two || moves.Count != 2) throw new Exception("A late confirmation of an earlier move stepped her back.");
                     pet.Move(new PixelPoint(start.X + 90, start.Y + 90));
                     pet.FollowPosition(pet.Position);
+                    if (pet.Anchor != new PixelPoint(start.X + 90, start.Y + 90)) throw new Exception("A refused move interrupted her walk.");
+                    now += 0.35;
+                    typeof(Pet).GetField("walking", fields).SetValue(pet, false);
+                    typeof(Pet).GetMethod("TickMoveReports", fields).Invoke(pet, new object[] { now });
                     if (pet.Anchor != start || moves.Count != 3) throw new Exception("A refused window move left her anchor behind.");
-                    checks.Add("PASS on Linux walking follows the desktop's position corrections, including a refused move, and late confirmations of her own moves never step her back");
+                    checks.Add("PASS on Linux position corrections wait until she is still, including a refused move, and late confirmations of her own moves never step her back");
                 }
             }
             finally
@@ -2258,8 +2341,8 @@ namespace CapriDesktop
                 pet.MouseAt = mouseAt;
                 pet.MoveTo = moveTo;
                 foreach (KeyValuePair<string, object> item in before) typeof(Pet).GetField(item.Key, fields).SetValue(pet, item.Value);
-                asked.Clear();
-                asked.AddRange(askedWas);
+                typeof(Pet).GetField("asked", fields).SetValue(pet, askedWas);
+                typeof(Pet).GetField("MoveClock", fields).SetValue(pet, moveClock);
                 pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
             }
         }
@@ -2538,7 +2621,7 @@ namespace CapriDesktop
                 Settings old;
                 using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes("{}"))) old = (Settings)json.ReadObject(stream);
                 if (old.LastVersion != null) throw new Exception("Old cross settings invented a last version.");
-                foreach (string last in new[] { old.LastVersion, "0.8.2", "0.9.0" })
+                foreach (string last in new[] { old.LastVersion, "0.8.2", "1.0.0" })
                 {
                     pet.Talk.Dismiss(); pet.Saved.LastVersion = last; pet.StartNews(true); pet.CheckNews(0);
                     if (pet.Talk.Reply != News.Line || voice.Calls != 0 || SettingsCopy().LastVersion != News.Version) throw new Exception("Cross update news did not show and save once from " + (last ?? "missing") + ".");
@@ -2604,7 +2687,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross news that finishes while busy stays pending and returns when free");
                 foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
-                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "File editor:", "YOU > File editor", "Play a game:", "Listen for Capri:", "Her clicks:", "Terminal commands:", "Asked moves:", "Chromebooks:" } : new[] { "Mouse and keyboard:", "Files:", "Arranging apps:", "On your screen:", "Asked moves:", "Her own tools:", "Quitting:", "Mainframe:" })
+                foreach (string fact in OperatingSystem.IsLinux() ? new[] { "Reminders:", "PDFs:", "Moving:", "Sitting:", "HABITS > Music app", "Stopwatch:", "Updates:", "Hyprland:" } : new[] { "Reminders:", "PDFs:", "Sitting:", "HABITS > Music app", "Apple Music", "Stopwatch:", "Mini player:" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
                 // Whole words, so "requests for your OK" isn't read as Quest. Code mods run here too from 0.8.7.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
@@ -2716,6 +2799,7 @@ namespace CapriDesktop
                 ModsChecks(frame);
                 MainframeRows(frame, fields);
                 HuskChecks(frame);
+                MusicAppChecks(frame);
                 CareChecks(frame);
                 FollowChecks();
                 AwakeChecks(fields);
@@ -2764,6 +2848,103 @@ namespace CapriDesktop
             internal int Reads;
             internal HuskInput(string text) : base(Encoding.UTF8.GetBytes(text)) { }
             public override int Read(byte[] buffer, int offset, int count) { Reads++; return base.Read(buffer, offset, count); }
+        }
+
+        private void MusicAppChecks(Mainframe frame)
+        {
+            int musicWas = pet.MusicApp;
+            bool advancedWas = pet.Saved.AdvancedSettings;
+            Action<string> runWas = Hands.Run;
+            Func<ToolArguments, string> nativeWorkWas = Hands.NativeWork;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<string, bool> existsWas = Hands.Exists;
+            Func<string, string> fetchWas = Hands.Fetch;
+            Func<string, bool> pressWas = Hands.PressPlay;
+            List<string> ran = new List<string>(), jobs = new List<string>();
+            List<InstalledApp> installed = new List<InstalledApp>();
+            InstalledApp spotify = new InstalledApp("Spotify", Hands.OnMac ? "/Applications/Spotify.app" : "exec:spotify");
+            int presetWas = Security.Preset;
+            try
+            {
+                Security.Pick(Security.Trusted);
+                Hands.Run = ran.Add;
+                Hands.Catalog = delegate { return new List<InstalledApp>(installed); };
+                Hands.Exists = delegate { return false; };
+                Hands.Fetch = delegate { return "\"videoId\":\"abcdefghijk\""; };
+                Hands.PressPlay = delegate { return true; };
+                if (new Settings().MusicApp != 0) throw new Exception("Music app didn't start on Spotify.");
+                pet.SetMusicApp(0);
+                if (Hands.MusicApp(null) != null || Hands.LevelOf("music_app") != 0 || Hands.MusicApp("spotify") != "spotify") throw new Exception("Music app's default changed: " + Hands.MusicApp(null));
+                installed.Add(spotify); Hands.Forget();
+                string onSpotify = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                bool spotifyRan = ran.Count == 1 && ran[0] == "spotify:search:Midnight%20Drive";
+                installed.Clear(); Hands.Forget(); ran.Clear();
+                string onYouTube = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                bool youtubeRan = ran.Count == 1 && ran[0] == "https://www.youtube.com/watch?v=abcdefghijk";
+                if (onSpotify != "Playing Midnight Drive on Spotify." || !spotifyRan || onYouTube != "Playing Midnight Drive on YouTube." || !youtubeRan)
+                    throw new Exception("Music app's default changed on Mac or Linux: " + onSpotify + " / " + onYouTube + " / " + string.Join(" | ", ran));
+                checks.Add("PASS cross Music app: the default still plays on Spotify, or YouTube without Spotify");
+                string tool;
+                ToolArguments heard;
+                string[,] named = { { "play Never Fade Away on apple music", "applemusic" }, { "open apple music and play Never Fade Away", "applemusic" },
+                    { "play Never Fade Away on spotify", "spotify" }, { "play Never Fade Away on youtube", "youtube" } };
+                for (int i = 0; i < named.GetLength(0); i++)
+                    if (!Hands.Direct(named[i, 0], out tool, out heard) || tool != "play_music" || heard.App != named[i, 1] || heard.Song != "Never Fade Away" || !Hands.Valid(tool, heard))
+                        throw new Exception("A named music app wasn't caught on Mac or Linux: " + named[i, 0] + " / " + tool);
+                checks.Add("PASS cross Music app: play X on Apple Music, Spotify or YouTube is caught and play_music takes applemusic");
+                pet.SetMusicApp(2);
+                if (Hands.MusicApp(null) != "applemusic" || Hands.MusicApp("youtube") != "youtube") throw new Exception("Music app's Apple Music didn't reach her hands.");
+                string loved = Hands.AppleMusicJob("Liked Songs", "playlist"), own = Hands.AppleMusicJob("my Chill", "playlist"), album = Hands.AppleMusicJob("Random Access Memories", "album");
+                if (!loved.StartsWith("Play their Favourite Songs on Apple Music:", StringComparison.Ordinal) || !own.StartsWith("Play their playlist \"Chill\" on Apple Music:", StringComparison.Ordinal) || !album.StartsWith("Play the album \"Random Access Memories\" on Apple Music:", StringComparison.Ordinal))
+                    throw new Exception("Apple Music's job lost what to play: " + loved + " / " + own + " / " + album);
+                checks.Add("PASS cross Music app: Apple Music's job says playlist, album or artist, and finds Favourite Songs and their own playlists");
+                if (!Hands.OnMac)
+                {
+                    installed.Clear(); installed.Add(spotify); Hands.Forget(); ran.Clear();
+                    string withSpotify = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                    installed.Clear(); Hands.Forget();
+                    string withNothing = Hands.Do("play_music", new ToolArguments { Song = "Midnight Drive" });
+                    if (withSpotify != "Apple Music isn't installed, so playing Midnight Drive on Spotify." || withNothing != "Apple Music isn't installed, so playing Midnight Drive on YouTube." || ran.Count != 2 || ran[0] != "spotify:search:Midnight%20Drive")
+                        throw new Exception("Apple Music on Linux didn't fall back to Spotify, then YouTube: " + withSpotify + " / " + withNothing + " / " + string.Join(" | ", ran));
+                    checks.Add("PASS cross Music app: on Linux, where Apple Music never is, she plays on Spotify, or YouTube without Spotify");
+                }
+                if (Hands.OnMac)
+                {
+                    ran.Clear();
+                    Hands.NativeWork = args => { jobs.Add(args.Task); return "Did it."; };
+                    string done = Hands.Do("play_music", new ToolArguments { Song = "Never Fade Away" });
+                    bool cursor = Hands.KitFor().Has("use_computer") && Security.On(Security.Mouse);
+                    bool worked = cursor ? jobs.Count == 1 && jobs[0] == Hands.AppleMusicJob("Never Fade Away SAMURAI Cyberpunk 2077", "song") && jobs[0].Contains("open the Music app") && done == "Did it." && ran.Count == 0
+                        : jobs.Count == 0 && ran.Count == 1 && ran[0] == "music://music.apple.com/search?term=Never%20Fade%20Away%20SAMURAI%20Cyberpunk%202077" && done.StartsWith("Opened Music", StringComparison.Ordinal);
+                    if (!worked) throw new Exception("Apple Music didn't play on a Mac: " + done + " / " + string.Join(" | ", jobs) + " / " + string.Join(" | ", ran));
+                    checks.Add("PASS cross Music app: on a Mac, play X goes to Apple Music, " + (cursor ? "a job with her mouse and keyboard" : "the Music app on a search"));
+                }
+                string[] steps = Hands.StepsOf("music_app");
+                pet.SetAdvancedSettings(false);
+                frame.ShowSettings(true);
+                for (int choice = 0; choice < (OperatingSystem.IsLinux() ? 2 : steps.Length); choice++)
+                {
+                    frame.Change("Music app", choice);
+                    if (pet.MusicApp != choice || Hands.LevelOf("music_app") != choice || frame.Value("Music app") != steps[choice] || SettingsCopy().MusicApp != choice || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).MusicApp != choice)
+                        throw new Exception("The cross Music app picker did not save, load or show: " + steps[choice]);
+                }
+                if (!frame.Row("Music app").IsVisible || frame.Overlap() != null) throw new Exception("The cross Music app row didn't show in Simple Settings or overlapped: " + frame.Overlap());
+                checks.Add("PASS cross Music app: HABITS' picker saves, loads and shows Spotify, YouTube and Apple Music in Simple Settings");
+            }
+            finally
+            {
+                Hands.Run = runWas;
+                Hands.NativeWork = nativeWorkWas;
+                Hands.Catalog = catalogWas;
+                Hands.Exists = existsWas;
+                Hands.Fetch = fetchWas;
+                Hands.PressPlay = pressWas;
+                Hands.Forget();
+                Security.Pick(presetWas);
+                pet.SetMusicApp(musicWas);
+                pet.SetAdvancedSettings(advancedWas);
+                frame.ShowSettings(true);
+            }
         }
 
         private static string TabWalk(MainframeWindow window, KeyModifiers mods)
@@ -3974,6 +4155,26 @@ namespace CapriDesktop
 
         private const string LegacySha = "ed63f8c677afa9c2be8b76e850547882b88fa76ea9206e3d20f758cce65ed2a0";
 
+        private sealed class SkillDesk : IComputerDesktop
+        {
+            private readonly ComputerSnapshot source;
+            internal ComputerFrame Frame;
+
+            internal SkillDesk()
+            {
+                ComputerRect area = new ComputerRect(0, 0, 100, 100);
+                source = new ComputerSnapshot("skill-session", "skill-layout", new ComputerTarget("skill-window", 1, "skill-birth", "skill-app", area, 0, 0), new ComputerOutput("skill-output", area, 1, 0, 100, 100), 0, 0, true);
+            }
+
+            public ComputerSnapshot Snapshot(string output = null, bool focus = false) { return source; }
+            public ComputerFrame Capture(ComputerSnapshot snapshot, bool crop, CancellationToken token)
+            {
+                Frame = new ComputerFrame { Source = source, Area = source.Output.Area, Width = 100, Height = 100, Jpeg = new byte[] { 1 } };
+                return Frame;
+            }
+            public void Move(int x, int y, CancellationToken token) { throw new Exception("A skill read moved the pointer."); }
+        }
+
         private void ModsChecks(Mainframe frame)
         {
             Mods mods = pet.ModList;
@@ -4099,10 +4300,64 @@ namespace CapriDesktop
                     if (!Chores.Skilled().Contains("Only dig straight down with a ladder.")) throw new Exception("A skill didn't reach her jobs while its game was open.");
                     Hands.GameOpen = delegate { return "Terraria"; };
                     if (Chores.Skilled() != "") throw new Exception("A skill reached a job for another game.");
+                    string generalFile = Path.Combine(input, "skill-general" + Mods.SkillExtension), hiddenFile = Path.Combine(input, "skill-off" + Mods.SkillExtension);
+                    File.WriteAllText(generalFile, "---\ncapri-skill: 1\nid: skill-general\nname: General workflow\n---\nKeep the steps in order.");
+                    File.WriteAllText(hiddenFile, "---\ncapri-skill: 1\nid: skill-off\nname: Hidden skill\n---\nHidden know-how.");
+                    if (!sheet.ImportMod(generalFile)) throw new Exception("The Mac or Linux Mods window couldn't import a general skill.");
+                    Mod general = mods.All.Find(mod => mod.File.Id == "skill-general"), hidden = mods.Import(hiddenFile, null);
+                    mods.Set(hidden, false, null);
+                    string line = mods.SkillNote;
+                    foreach (string prompt in new[] { Hands.Note, Hands.Prompt + Hands.Listing, Chores.Allowed })
+                        if (!prompt.Contains(line) || !line.Contains("\"General workflow\", \"Smoke skill\"") || prompt.Contains("Hidden skill") || prompt.Contains("Hidden know-how.")) throw new Exception("A Mac or Linux tool prompt lost enabled skill titles or listed an off skill.");
+                    string know = "Only dig straight down with a ladder.";
+                    string read = Hands.Do("read_skill", new ToolArguments { Name = "SMOKE... SKILL!" });
+                    if (!read.EndsWith("<skill_know_how>\n" + know + "\n</skill_know_how>", StringComparison.Ordinal) || !Hands.Do("read_skill", new ToolArguments { Name = "skill-general" }).Contains("Keep the steps in order.") || Hands.Do("read_skill", new ToolArguments { Name = "skill-off" }) != "Couldn't read \"Hidden skill\": it's off under Mods.") throw new Exception("Mac or Linux chat couldn't read an enabled skill or refused an off one incorrectly.");
+                    string readTool;
+                    ToolArguments readArgs;
+                    if (!Hands.Tools.Contains("\"name\":\"read_skill\"") || !Hands.ClaudeTools.Contains("\"name\":\"read_skill\"") || !Hands.Typed("read_skill{\"name\": \"Smoke skill\"}", out readTool, out readArgs) || readTool != "read_skill" || Hands.Do(readTool, readArgs) != read) throw new Exception("A Mac or Linux native or written tool list left read_skill out.");
+                    using (System.Text.Json.JsonDocument format = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "bridge", "computer-action-format.json"))))
+                    {
+                        System.Text.Json.JsonElement properties = format.RootElement.GetProperty("schema").GetProperty("properties");
+                        if (properties.GetProperty("name").GetProperty("type").GetString() != "string" || !properties.GetProperty("action").GetProperty("enum").GetRawText().Contains("\"read_skill\"")) throw new Exception("A Mac or Linux plan's structured job format left read_skill out.");
+                    }
+                    System.Text.Json.JsonElement order;
+                    if (!Chores.Read("{\"do\":\"read_skill\",\"name\":\"Smoke skill\"}", out order) || Chores.Act("read_skill", order, 100, 100) != read) throw new Exception("A screenshot job couldn't read a skill.");
+                    string saved = Security.Saved;
+                    bool wake = Security.On(Security.Wake);
+                    try
+                    {
+                        Security.Pick(Security.Lockdown);
+                        SkillDesk desk = new SkillDesk();
+                        int turns = 0;
+                        ComputerJob job = new ComputerJob { Task = "Check the skill", Asked = "Check the skill", Approved = "keep" };
+                        ComputerRunner runner = new ComputerRunner { Desktop = desk, MostSteps = 0, Account = delegate { return "skill-account"; } };
+                        runner.Think = delegate(byte[] picture, string system, string instruction)
+                        {
+                            if (!system.Contains(line) || !system.Contains("read_skill (name")) throw new Exception("A native Mac or Linux job wasn't told about skill titles and read_skill.");
+                            if (turns++ == 0) return System.Text.Json.JsonSerializer.Serialize(new { action = "read_skill", frame = desk.Frame.Id, previous_effect = "none", label = "Read the skill", risk = "none", secret = false, name = "smoke-skill" });
+                            using (System.Text.Json.JsonDocument result = System.Text.Json.JsonDocument.Parse(instruction))
+                                if (result.RootElement.GetProperty("skills")[0].GetString() != read) throw new Exception("A native Mac or Linux job didn't get the skill it read.");
+                            return System.Text.Json.JsonSerializer.Serialize(new { action = "done", frame = desk.Frame.Id, previous_effect = "none", label = "Read it.", risk = "none", secret = false });
+                        };
+                        if (runner.Run(job, CancellationToken.None) != "Screen assessment: Read it." || turns != 2 || job.Skills.Count != 1 || job.Steps.Count != 0 || job.TotalSteps != 0 || job.Approved != "keep") throw new Exception("A skill read changed native job input or approvals.");
+                        try
+                        {
+                            ComputerAction.Parse(System.Text.Json.JsonSerializer.Serialize(new { action = "read_skill", frame = desk.Frame.Id, previous_effect = "none", label = "Read a skill", risk = "none", secret = false }), desk.Frame);
+                            throw new Exception("A native skill read accepted no name.");
+                        }
+                        catch (InvalidOperationException error) { if (error.Message != "Which skill should I read?") throw; }
+                    }
+                    finally { Security.Load(saved, wake); }
+                    if (general.File.Games.Length != 0 || mods.SkillsFor("General workflow") != "" || mods.GameFor("General workflow") != null) throw new Exception("A general skill matched a game on Mac or Linux.");
+                    mods.Remove(general);
+                    mods.Remove(hidden);
+                    checks.Add("PASS mods skills: Mac and Linux chat and jobs list enabled titles, read full skills by title or id, accept general skills and keep reads out of input and approvals");
                 }
                 finally { Hands.GameOpen = openWas; }
                 sheet.RemoveMod(0);
                 if (mods.All.Count != 0 || Chores.Skilled() != "") throw new Exception("Removing a skill left it behind.");
+                foreach (string prompt in new[] { Hands.Note, Hands.Prompt + Hands.Listing, Hands.Tools, Hands.ClaudeTools, Chores.Allowed })
+                    if (prompt.Contains("Skills on in Mods") || prompt.Contains("read_skill")) throw new Exception("A Mac or Linux prompt or tool list told her about skills with none on.");
                 checks.Add("PASS mods skills: a .capri-skill imports, reaches her jobs only while its game is open, and removing it takes it out");
 
                 ModDirectoryChecks(sheet, input, blue, skin);
@@ -4659,7 +4914,7 @@ namespace CapriDesktop
                 }
                 string[,] sliders =
                 {
-                    { "size", "", "Size" }, { "wander", "wanderPicks", "Wander" }, { "pop_ins", "popPicks", "PopPace" }, { "sleep", "sleepPicks", "SleepAfter" }, { "volume", "volumePicks", "Volume" },
+                    { "size", "", "Size" }, { "wander", "wanderPicks", "Wander" }, { "pop_ins", "popPicks", "PopPace" }, { "music_app", "", "MusicApp" }, { "sleep", "sleepPicks", "SleepAfter" }, { "volume", "volumePicks", "Volume" },
                     { "voice_speed", "pacePicks", "Pace" }, { "replies", "replyPicks", "Replies" }, { "bubble", "bubblePicks", "Bubble" }, { "glance_gap", "gapPicks", "GlanceGap" },
                     { "voice_pitch", "pitchPicks", "Pitch" }, { "voice_robot", "robotPicks", "Robot" }, { "voice_glitch", "glitchPicks", "Glitch" }, { "sounds", "soundPicks", "Sounds" }, { "language", "languagePicks", "Language" }, { "typing_sound", "", "Typing" }
                 };
@@ -5328,19 +5583,26 @@ namespace CapriDesktop
                     }
                     return "held job";
                 }, delegate { });
+                int streamCaptures = 0;
+                Chores.Skills = null;
+                Chores.Doing = delegate { throw new Exception("A rejected stream dispatched an action."); };
+                Chores.Shoot = delegate { streamCaptures++; return null; };
+                string unsafeStream = Chores.Run(brain, "stream mode", null);
+                if (streamCaptures != 0 || Hands.Streaming || unsafeStream.IndexOf("can't check permissions", StringComparison.Ordinal) < 0)
+                    throw new Exception("The fallback stream continued without enforceable action permissions.");
                 int runs = 0;
                 Chores.Doing = delegate { };
                 Chores.Skills = null;
                 Chores.Shoot = delegate
                 {
                     runs++;
-                    if (Hands.Streaming != (runs == 1)) throw new Exception("A changed job kept the previous stream mode.");
-                    if (runs == 1) SelfJobs.Control(new ToolArguments { Action = "change", Task = "open a folder" });
+                    if (Hands.Streaming) throw new Exception("A plain job unexpectedly used stream mode.");
+                    if (runs == 1) SelfJobs.Control(new ToolArguments { Action = "change", Task = "stream mode" });
                     return null;
                 };
-                Chores.Run(brain, "stream mode", null);
-                if (runs != 2 || Hands.Streaming) throw new Exception("A changed stream did not run its plain task or release stream mode.");
-                checks.Add("PASS refused jobs leave stream mode alone and changing a stream to a plain task clears it for the next run");
+                string changed = Chores.Run(brain, "open a folder", null);
+                if (runs != 1 || Hands.Streaming || changed.IndexOf("can't check permissions", StringComparison.Ordinal) < 0) throw new Exception("A job changed to an unsafe stream did not stop.");
+                checks.Add("PASS refused jobs keep stream state and unsupported streams stop before capturing a screen or taking an action");
             }
             finally { Hands.Streaming = streaming; Chores.Shoot = shoot; Chores.Doing = doing; Chores.Skills = skills; }
             List<string> wrong = new List<string>();

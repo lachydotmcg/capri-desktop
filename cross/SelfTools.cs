@@ -504,16 +504,18 @@ namespace CapriDesktop
             if (args.Action == "status") return string.IsNullOrEmpty(MainframeUpdate) ? "I haven't checked for updates yet." : MainframeUpdate;
             if (args.Action == "check") { CheckUpdate(true); return "I'm checking for an update."; }
             if (!SelfTools.InstallAsked(args)) return "Ask me clearly to update Capri first.";
+            bool ready = updateReady != null;
             selfTools.After(delegate
             {
-                if (updatePage != null) SelfBrowse(updatePage);
+                if (updateReady != null) RestartUpdate();
+                else if (updatePage != null) SelfBrowse(updatePage);
                 else
                 {
                     selfUpdate = true; selfUpdateTicket = asking; selfUpdateCurrent = args.Current;
                     CheckUpdate(true);
                 }
             }, asking, args.Current);
-            return "I'll open the Capri release page after this reply.";
+            return ready ? "I'll restart to update after this reply." : "I'll open the Capri release page after this reply.";
         }
 
         internal void CheckSelfTools()
@@ -523,7 +525,8 @@ namespace CapriDesktop
             if (selfUpdateTicket != asking || selfUpdateCurrent != null && !selfUpdateCurrent()) { selfUpdate = false; return; }
             if (updateChecking) return;
             selfUpdate = false;
-            if (updatePage != null) SelfBrowse(updatePage);
+            if (updateReady != null) RestartUpdate();
+            else if (updatePage != null) SelfBrowse(updatePage);
         }
 
         private string EditCheckInLines()

@@ -13,6 +13,262 @@ using System.Windows.Forms;
 
 namespace CapriDesktop
 {
+    internal sealed class JealousApp
+    {
+        internal readonly string Id, Name, Process;
+        internal readonly Regex Title;
+        internal JealousApp(string id, string name, string process, string title)
+        {
+            Id = id; Name = name; Process = process;
+            Title = new Regex("^(?:" + title + ")$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+    }
+
+    internal sealed class JealousWindow
+    {
+        internal JealousApp App;
+        internal IntPtr Window;
+        internal string Program, Title, TabId;
+        internal bool Browser, React;
+        internal double Until;
+        internal int Answered;
+    }
+
+    internal sealed class Jealous
+    {
+        internal static readonly JealousApp[] Apps = {
+            new JealousApp("chatgpt", "ChatGPT", "ChatGPT", @"ChatGPT|ChatGPT: Chat, Work, Create & Code with AI|.+ [\-\|] ChatGPT"),
+            new JealousApp("claude", "Claude", "Claude", @"Claude|Chat with Claude|.+ [\-\|] Claude"),
+            new JealousApp("gemini", "Gemini", null, @"(?:Google )?Gemini|.+ [\-\|] (?:Google )?Gemini"),
+            new JealousApp("copilot", "Copilot", "Copilot", @"Copilot|Microsoft Copilot(?:: Your (?:everyday AI|AI) companion| \| Sign in)?|.+ [\-\|] Microsoft Copilot"),
+            new JealousApp("perplexity", "Perplexity", "Perplexity", @"Perplexity(?: AI| - A free AI-powered answer engine)?|.+ [\-\|] Perplexity"),
+            new JealousApp("grok", "Grok", "Grok", @"Grok|.+ [\-\|] Grok"),
+            new JealousApp("deepseek", "DeepSeek", null, @"DeepSeek(?: - Into the Unknown)?|.+ [\-\|] DeepSeek"),
+            new JealousApp("character", "Character.AI", null, @"Character\.AI|character\.ai \| AI Chat, Reimagined[\u2013-]Your Words\. Your World\.|Chat with .+ [\-\|] Character\.AI"),
+            new JealousApp("mistral", "Le Chat", null, @"Le Chat(?: [\-\|] Mistral AI)?|Mistral Le Chat|Vibe Chat|.+ [\-\|] Le Chat"),
+            new JealousApp("meta", "Meta AI", null, @"Meta AI|Meta AI: Discover & Create with AI|Meta AI \| Explore, Create & Share with AI|.+ [\-\|] Meta AI")
+        };
+        internal static readonly string[] Lines = {
+            "{0}? I'm right here, you know.",
+            "Wow. Okay. I see how it is.",
+            "{0}, huh? Fine. I get the good perch.",
+            "Oh, we're comparing notes with {0} now?",
+            "Go on, ask {0}. I'll be over here looking cute.",
+            "Another AI? This desktop's getting crowded.",
+            "Tell {0} I said hi. Very casually.",
+            "I'm practicing my totally unbothered face.",
+            "{0} can have the homework. I call the music.",
+            "A little competition? Alright, choom."
+        };
+        private static readonly Regex Browsers = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|MicrosoftEdge|MicrosoftEdgeCP)$", RegexOptions.IgnoreCase);
+        private static readonly Regex BrowserEnd = new Regex(@"\s[-\u2013\u2014]\s(?:Google Chrome(?: \(Incognito\))?|Microsoft Edge(?: InPrivate)?|Mozilla Firefox(?: Private Browsing)?|Brave(?: \(Private\))?|Opera(?: GX)?|Vivaldi)$", RegexOptions.IgnoreCase);
+        private readonly Dictionary<string, double> reacted = new Dictionary<string, double>();
+        private IntPtr lastWindow;
+        private string lastTitle, lastProgram;
+        internal Func<Sight> Look = delegate { return Computer.Glimpse(); };
+        internal Func<IntPtr> Front = delegate { return Hands.Foreground(); };
+        internal Func<IntPtr, string> Tab = delegate(IntPtr window) { return Computer.ActiveTab(window); };
+        internal Func<IntPtr, int, bool> Message = delegate(IntPtr window, int message) { return Native.PostMessage(window, message, IntPtr.Zero, IntPtr.Zero); };
+        internal Action<byte[]> Keys = delegate(byte[] keys) { Hands.Chord(keys); };
+
+        internal static string Program(string program) { return Regex.Replace(program ?? "", @"\.exe$", "", RegexOptions.IgnoreCase); }
+        internal static bool Browser(string program) { return Browsers.IsMatch(Program(program)); }
+
+        internal static JealousApp Match(Sight sight)
+        {
+            if (sight == null || sight.Window == IntPtr.Zero) return null;
+            string program = Program(sight.Program), title = (sight.Title ?? "").Trim();
+            if (Regex.IsMatch(program, @"^capri(?:[\s._-].*)?$", RegexOptions.IgnoreCase) || Regex.IsMatch(title, @"^Capri(?: Mainframe| Workspace| says| task)?$", RegexOptions.IgnoreCase) || Regex.IsMatch(title, @"\bClaude Code\b", RegexOptions.IgnoreCase)) return null;
+            bool browser = Browser(program);
+            if (browser) title = BrowserEnd.Replace(title, "").Trim('\u200e', '\u200f', ' ');
+            foreach (JealousApp app in Apps)
+                if (browser ? app.Title.IsMatch(title) : app.Process != null && string.Equals(program, app.Process, StringComparison.OrdinalIgnoreCase)) return app;
+            return null;
+        }
+
+        internal static bool Free(bool on, bool call, bool talking, bool full) { return on && !call && !talking && !full; }
+        internal static string Line(JealousApp app, int pick) { return string.Format(Lines[Math.Abs(pick % Lines.Length)], app.Name); }
+        internal static string Question(JealousWindow window) { return "Want me to close " + window.App.Name + "? Save anything you need first."; }
+        internal static bool Chosen(string[] choices, string id) { return choices != null && Array.IndexOf(choices, id) >= 0; }
+
+        internal JealousWindow Notice(Sight sight, bool free, double now)
+        {
+            IntPtr window = sight == null ? IntPtr.Zero : sight.Window;
+            string title = sight == null ? null : sight.Title, program = sight == null ? null : sight.Program;
+            bool changed = window != lastWindow || title != lastTitle || program != lastProgram;
+            lastWindow = window; lastTitle = title; lastProgram = program;
+            JealousApp app = Match(sight);
+            double previous;
+            if (!changed || !free || app == null) return null;
+            bool react = !reacted.TryGetValue(app.Id, out previous) || now - previous >= 20 * 60;
+            if (react) reacted[app.Id] = now;
+            return new JealousWindow { App = app, Window = window, Title = title, Program = program, Browser = Browser(program), React = react };
+        }
+
+        internal static bool Same(JealousWindow window, Sight sight)
+        {
+            return sight != null && sight.Window == window.Window && string.Equals(Program(sight.Program), Program(window.Program), StringComparison.OrdinalIgnoreCase)
+                && Match(sight) == window.App && (!window.Browser || sight.Title == window.Title);
+        }
+
+        internal string Close(JealousWindow window, bool yes, double now, Func<bool> allowed)
+        {
+            if (window == null || Interlocked.Exchange(ref window.Answered, 1) != 0 || !yes || now >= window.Until || !allowed()) return null;
+            if (Front() != window.Window || !Same(window, Look())) return "That window or tab changed. I'll leave it.";
+            if (window.Browser)
+            {
+                if (string.IsNullOrEmpty(window.TabId) || Tab(window.Window) != window.TabId || Front() != window.Window || !Same(window, Look()) || !allowed()) return "I can't confirm that tab. I'll leave it.";
+                using (InControl.Hold()) Keys(new byte[] { 0x11, 0x57 });
+                return "Closed that tab.";
+            }
+            if (!allowed() || Front() != window.Window) return "I'll leave it.";
+            return Message(window.Window, 0x0010) ? "Asked " + window.App.Name + " to close." : "Couldn't close " + window.App.Name + ". I'll leave it.";
+        }
+    }
+
+    internal sealed partial class Companion
+    {
+        private Jealous jealous = new Jealous();
+        private JealousWindow jealousOffer;
+        private bool jealousReady, jealousAsked;
+        private int jealousTicket = -1;
+        private volatile int jealousTurn;
+
+        internal bool JealousAIs { get { return preferences.JealousAIs; } }
+        internal bool CloseAIs { get { return preferences.CloseAIs; } }
+        internal bool JealousChosen(string id) { return Jealous.Chosen(preferences.JealousApps, id); }
+
+        internal void ToggleJealousAIs()
+        {
+            preferences.JealousAIs = !preferences.JealousAIs;
+            EndJealous();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void ToggleCloseAIs()
+        {
+            if (!preferences.CloseAIs && !preferences.JealousAIs) return;
+            preferences.CloseAIs = !preferences.CloseAIs;
+            EndJealous();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void ChooseJealous(string id)
+        {
+            if (Array.Find(Jealous.Apps, app => app.Id == id) == null) return;
+            List<string> choices = new List<string>(preferences.JealousApps ?? new string[0]);
+            if (choices.Contains(id)) choices.RemoveAll(pick => pick == id); else choices.Add(id);
+            preferences.JealousApps = choices.ToArray();
+            EndJealous();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        private bool JealousMayClose(JealousWindow target)
+        {
+            return JealousAIs && CloseAIs && JealousChosen(target.App.Id) && !CallModeOn && !preferences.CallMode && !chatting && !Hushed && !hidden && !quitting && !IsDisposed && !FullScreen();
+        }
+
+        private void DropJealous()
+        {
+            bool choosing = box.Choosing;
+            jealousTurn++;
+            jealousOffer = null;
+            jealousReady = jealousAsked = false;
+            jealousTicket = -1;
+            box.Choose(null);
+            if (choosing) PassThrough();
+        }
+
+        private void EndJealous()
+        {
+            bool shown = jealousAsked && jealousTicket == asking;
+            DropJealous();
+            if (shown) box.Leaving = clock.Elapsed.TotalSeconds;
+        }
+
+        private void JealousReaction(JealousWindow target, double now, int pick)
+        {
+            Animate("blink");
+            huskMood = "error";
+            huskMoodAt = now;
+            frames.Start();
+            string line = Jealous.Line(target.App, pick);
+            SayOwn("Other AI", line);
+        }
+
+        private void CheckJealous(Sight ahead, bool full, double now)
+        {
+            if (ahead != null && ahead.Window != jealous.Front()) ahead = null;
+            if (jealousOffer != null)
+            {
+                JealousWindow target = jealousOffer;
+                if (!JealousMayClose(target) || Hushed || now >= target.Until || jealousTicket != asking || !jealousAsked && !Jealous.Same(target, ahead)) EndJealous();
+                else if (!jealousAsked && jealousReady && !Voicing && !pushing && !transcribing && (!target.React || replyDone >= 0 && talkState == TalkState.Online))
+                {
+                    CloseTalk(false);
+                    Remark("Other AI", Jealous.Question(target), true);
+                    jealousOffer = target;
+                    jealousReady = jealousAsked = true;
+                    jealousTicket = asking;
+                    target.Until = now + 30;
+                    box.Choose(AnswerJealous);
+                    PassThrough();
+                }
+            }
+            bool free = Jealous.Free(JealousAIs, CallModeOn || preferences.CallMode || chatting, LineBusy || speech != null || talkState != TalkState.Off, full)
+                && !Hushed && !hidden && !quitting && !dragging && !pressed && !typer.Visible && !menu.Visible && !docked && !onPanel && !riding && !falling && !hanging && job == null && working == null && jealousOffer == null;
+            JealousWindow found = jealous.Notice(ahead, free, now);
+            if (found == null) return;
+            if (found.React) JealousReaction(found, now, random.Next(Jealous.Lines.Length));
+            if (!JealousMayClose(found)) return;
+            found.Until = now + 45;
+            jealousOffer = found;
+            jealousTicket = asking;
+            jealousReady = !found.Browser;
+            if (!found.Browser) return;
+            int turn = jealousTurn;
+            Jealous watcher = jealous;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string tab = null;
+                try { if (watcher.Front() == found.Window && Jealous.Same(found, watcher.Look())) tab = watcher.Tab(found.Window); }
+                catch (Exception) { }
+                Post(delegate
+                {
+                    if (turn != jealousTurn || jealousOffer != found) return;
+                    found.TabId = tab;
+                    jealousReady = true;
+                });
+            });
+        }
+
+        private void AnswerJealous(bool yes)
+        {
+            JealousWindow target = jealousOffer;
+            bool allowed = jealousAsked && jealousTicket == asking && target != null && clock.Elapsed.TotalSeconds < target.Until && JealousMayClose(target);
+            DropJealous();
+            box.Leaving = clock.Elapsed.TotalSeconds;
+            if (!yes || !allowed) return;
+            CloseTalk(false);
+            int turn = jealousTurn, ticket = asking;
+            Jealous watcher = jealous;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string line;
+                try { line = watcher.Close(target, yes, clock.Elapsed.TotalSeconds, delegate { return turn == jealousTurn && ticket == asking && JealousMayClose(target); }); }
+                catch (Exception) { line = "Couldn't close it. I'll leave it."; }
+                Post(delegate
+                {
+                    if (turn != jealousTurn || ticket != asking || string.IsNullOrEmpty(line) || CallModeOn || chatting || FullScreen()) return;
+                    SayOwn("Other AI", line);
+                });
+            });
+        }
+    }
+
     // Her live reactions in games (F67, from yuuki's Roblox clip; Lachy, 2 Nov: "definitely live reactions in games"). The moment
     // her game watching notices something, her brain is asked for a short line about it, in the mood the run of the game has put
     // her in, and the line goes up in a feed over the game if it lands in time. Her old fixed lines are only examples of her
@@ -1004,6 +1260,17 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
+        // GAMES > Game sounds (#234), on by default. Off, her reactions and comments let bursts of the game's sound go, and
+        // everything else still counts.
+        internal bool GameSoundsOn { get { return !preferences.NoGameSounds; } }
+
+        internal void ToggleGameSounds()
+        {
+            preferences.NoGameSounds = !preferences.NoGameSounds;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         // The game in front, as her game watching last saw it, or empty when there isn't one.
         private Rectangle ReactionGame
         {
@@ -1045,7 +1312,8 @@ namespace CapriDesktop
         }
 
         // Out loud only now and then: at most one every 8 s, never over her own voice or theirs. Mute her, her quiet key, a hide,
-        // her voice off or ElevenLabs voice chat keep reactions as text, and a voice that comes back late stays unsaid.
+        // her voice off or ElevenLabs voice chat keep reactions as text, and a voice that comes back late stays unsaid. So does a
+        // call, where saying one would close her ears on a line she's hearing (#171).
         private void ReactionVoice(string line)
         {
             if (!ReactionVoiceFree() || !Reactions.Voice(Reactions.Clock())) return;
@@ -1069,7 +1337,7 @@ namespace CapriDesktop
                     if (preferences.NoReactions || !Reactions.Running || ReactionGame != game) return;
                     double now = clock.Elapsed.TotalSeconds;
                     voiceUntil = now + Voice.Seconds(wav) + 0.6;
-                    CheckEars(now);
+                    CheckEars(now, true);
                     Played(wav);
                     PlayVoice(wav);
                 });
@@ -1078,7 +1346,7 @@ namespace CapriDesktop
 
         private bool ReactionVoiceFree()
         {
-            if (Hushed || preferences.Silent || quitting || (hidden && !docked) || (chatting && !local)) return false;
+            if (CallModeOn || Hushed || preferences.Silent || quitting || (hidden && !docked) || (chatting && !local)) return false;
             if (pushing || transcribing || typer.Visible || Voicing || (speech != null && working == null)) return false;
             if (unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);

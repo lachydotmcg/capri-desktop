@@ -1,7 +1,7 @@
-/* Capri on this phone, with no PC: the browser calls her brain's provider straight, with the user's own API key. The key,
-   the model and which mode she's in stay in this phone's localStorage and go nowhere but that provider: never to the
-   relay, capriai.app or her PC. Her chat looks the same, because remote.js opens this module's link in place of the relay
-   and it answers in the relay's message names (PROTOCOL.md section 8). There are no PC tools here.
+/* Capri on this phone, with no PC: start with the free brain through Capri's worker, or call a provider straight with
+   the user's own API key. The key and model stay in this phone's localStorage and go only to that provider. Her chat
+   looks the same, because remote.js opens this module's link in place of the relay and it answers in the relay's
+   message names (PROTOCOL.md section 8). There are no PC tools here. The daily count below has no key, chat or id in it.
      CapriNative.on()             true when she runs on this phone
      CapriNative.use(mode)        'phone' or 'pc'; CapriRemote.use(mode) switches and reconnects
      CapriNative.link()           the link remote.js opens while she runs here
@@ -95,7 +95,9 @@
         : kind === 'anthropic' ? /^claude-/.test(id)
           : kind === 'deepseek' ? /^deepseek-/.test(id) : true);
   const FASTEST = 'claude-haiku-5-5';
-  const flashPick = id => !/flash/i.test(id) ? 4 : (/preview|experimental|\bexp\b/i.test(id) ? 2 : 0) + (/lite/i.test(id) ? 1 : 0);
+  // Google's free tier gives Flash-Lite about 500 requests a day and Flash about 20 (AI Studio, Oct 2026), so a new
+  // Gemini key starts on the newest stable Flash-Lite. A model someone already picked stays theirs.
+  const flashPick = id => !/flash/i.test(id) ? 4 : (/preview|experimental|\bexp\b/i.test(id) ? 2 : 0) + (/lite/i.test(id) ? 0 : 1);
   const geminiVersion = id => { const found = /^gemini-(\d+)(?:\.(\d+))?/.exec(id); return found ? Number(found[1]) * 1000 + Number(found[2] || 0) : 0; };
   const routerPick = model => (model.id.endsWith(':free') ? 0 : 4) + (model.images ? 0 : 2) + (model.tools ? 0 : 1);
   const pickModel = (kind, list) => {
@@ -104,6 +106,8 @@
     if (kind === 'anthropic') return ids.includes(FASTEST) ? FASTEST : ids[0];
     if (kind === 'deepseek') return ids.includes('deepseek-flash') ? 'deepseek-flash' : ids[0];
     if (kind === 'google') return ids.reduce((best, id) => flashPick(id) < flashPick(best) || (flashPick(id) === flashPick(best) && geminiVersion(id) > geminiVersion(best)) ? id : best);
+    // OpenRouter's free router sends each message to whichever free model is up, so one full free model doesn't stop her.
+    if (kind === 'openrouter' && ids.includes('openrouter/free')) return 'openrouter/free';
     if (kind === 'openrouter') return list.reduce((best, model) => routerPick(model) < routerPick(best) ? model : best).id;
     return ids.find(id => /^gpt-.*-mini$/.test(id)) || ids[0];
   };
@@ -111,35 +115,191 @@
   // ---------- What this phone keeps ----------
   const get = name => { try { return localStorage.getItem(name); } catch (error) { return null; } };
   const put = (name, value) => { try { if (value == null) localStorage.removeItem(name); else localStorage.setItem(name, value); } catch (error) {} };
-  const readBrain = () => {
+  // The free brain is its own flag, so trying it never throws away a saved key. A page from before it ignores the flag.
+  const FREE_ON = 'capri-remote-free';
+  const readKeyed = () => {
     try {
       const saved = JSON.parse(get(BRAIN));
       if (!saved || !PROVIDERS[saved.provider] || typeof saved.key !== 'string' || !saved.key || typeof saved.model !== 'string') return null;
       return { provider: saved.provider, key: saved.key, model: saved.model, models: Array.isArray(saved.models) ? saved.models.filter(id => typeof id === 'string').slice(0, 500) : [saved.model], door: saved.door === true };
     } catch (error) { return null; }
   };
-  const writeBrain = brain => put(BRAIN, brain ? JSON.stringify({ provider: brain.provider, key: brain.key, model: brain.model, models: brain.models || [], door: !!brain.door }) : null);
+  const readBrain = () => get(FREE_ON) === '1' ? { provider: 'free' } : readKeyed();
+  const writeKeyed = brain => put(BRAIN, brain ? JSON.stringify({ provider: brain.provider, key: brain.key, model: brain.model, models: brain.models || [], door: !!brain.door }) : null);
+  const writeBrain = brain => {
+    if (brain && brain.provider === 'free') { put(FREE_ON, '1'); return; }
+    put(FREE_ON, null);
+    writeKeyed(brain);
+  };
   const on = () => get(MODE) === 'phone' && !!readBrain();
   const use = mode => put(MODE, mode === 'phone' ? 'phone' : null);
 
+  // ---------- The daily count ----------
+  // Lachy asked how many people use her on a phone alone (12 Nov). After her first reply that worked on a UTC day, one
+  // POST tells the worker so, with two yes/no flags and nothing else: no key, no chat, no id. It's tried once a day, never
+  // waited on, and a failed one is just a day not counted. Only capriai.app counts; on localhost, ?count= points it at a
+  // stand-in (remote/test/native.test.mjs) and without it nothing is sent.
+  const COUNTED = 'capri-remote-counted';
+  const COUNT = local ? (() => {
+    const asked = new URLSearchParams(location.search).get('count');
+    return asked && /^http:\/\/(127\.0\.0\.1|localhost):\d{2,5}(\/[\w-]+)?$/.test(asked) ? asked + '/phone-day' : '';
+  })() : /^(capriai\.app|lachydotmcg\.github\.io)$/.test(location.hostname) ? 'https://capri-reactions.lachydotmcg.workers.dev/phone-day' : '';
+  const count = () => {
+    try {
+      const info = window.CapriRemote ? window.CapriRemote.info : null;
+      if (!COUNT || !on() || !info || !info.native || info.demo) return;
+      const day = Math.floor(Date.now() / 86400000);
+      let last = null;
+      try { last = JSON.parse(get(COUNTED)); } catch (error) {}
+      if (last && last.day === day) return;
+      const first = !(last && last.sent === true);
+      const tried = JSON.stringify({ day, sent: !first });
+      put(COUNTED, tried);
+      // A phone that can't remember the day would count every reply, so it doesn't count at all.
+      if (get(COUNTED) !== tried) return;
+      let pairing = null;
+      try { pairing = JSON.parse(get('capri-remote-pairing')); } catch (error) {}
+      const paired = !!(pairing && pairing.device === true && pairing.allowed === true);
+      fetch(COUNT, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: JSON.stringify({ first, paired }), cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', keepalive: true })
+        .then(response => { if (response.ok && first) put(COUNTED, JSON.stringify({ day, sent: true })); }, () => {});
+    } catch (error) {}
+  };
+
+  // ---------- The free brain and its daily allowance ----------
+  // Local tests opt in with ?free= just like ?count=. A local page never falls through to the real worker.
+  const FREE = local ? (() => {
+    const asked = new URLSearchParams(location.search).get('free');
+    return asked && /^http:\/\/(127\.0\.0\.1|localhost):\d{2,5}(\/[\w-]+)?$/.test(asked) ? asked + '/free' : '';
+  })() : 'https://capri-reactions.lachydotmcg.workers.dev/free';
+  const FREE_WORDS = "Capri's developers provide this AI usage for free, however it is limited because it costs real money.";
+  const FREE_KOFI = 'https://ko-fi.com/lachysdev';
+  let freeAllowance = null, freeAsked = 0, freeKept = 0, freeFailed = false, freeChecking = null;
+  // The next midnight UTC in the phone's own time: "at 11:00 am tomorrow".
+  const resetTime = resets => {
+    const at = Date.parse(resets);
+    if (!Number.isFinite(at)) return 'at midnight UTC';
+    const when = new Date(at), today = new Date(), tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    const day = when.toDateString() === today.toDateString() ? 'today' : when.toDateString() === tomorrow.toDateString() ? 'tomorrow' : 'on ' + when.toLocaleDateString([], { weekday: 'long' });
+    return 'at ' + when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + ' ' + day;
+  };
+  // Google's free daily counts reset at midnight US Pacific time. The next one, as an ISO time for resetTime.
+  const pacificMidnight = () => {
+    const now = Date.now();
+    const offset = at => {
+      const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })
+        .formatToParts(new Date(at)).map(part => [part.type, Number(part.value)]));
+      return { parts, ms: Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second) - Math.floor(at / 1000) * 1000 };
+    };
+    try {
+      const { parts, ms } = offset(now);
+      let next = Date.UTC(parts.year, parts.month - 1, parts.day + 1) - ms;
+      next += offset(next).ms === ms ? 0 : ms - offset(next).ms;
+      return new Date(next).toISOString();
+    } catch (error) { return ''; }
+  };
+  const freeTurns = turns => {
+    const kept = turns.slice(-12).map(turn => ({ role: turn.role, content: turn.content.slice(0, 2000) }));
+    let size = kept.reduce((sum, turn) => sum + turn.content.length, 0);
+    while (kept.length > 1 && (size > 6000 || new TextEncoder().encode(JSON.stringify({ messages: kept })).length > 16384)) size -= kept.shift().content.length;
+    return kept;
+  };
+  const freeRequest = async (turns, signal) => {
+    const order = ++freeAsked;
+    if (!FREE) throw failure('net');
+    let response;
+    try {
+      response = await fetch(FREE, {
+        method: turns ? 'POST' : 'GET', headers: turns ? { 'content-type': 'text/plain' } : {},
+        body: turns ? JSON.stringify({ messages: freeTurns(turns) }) : undefined,
+        signal, cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer'
+      });
+    } catch (error) { throw failure(signal && signal.aborted ? 'down' : 'net'); }
+    let sent = null;
+    try { sent = await response.json(); } catch (error) {}
+    if (!response.ok && !(response.status === 429 && sent && ['used', 'pool'].includes(sent.error))) throw failure('down');
+    if (!sent || !Number.isSafeInteger(sent.each) || sent.each < 1 || !Number.isSafeInteger(sent.left) || sent.left < 0 || sent.left > sent.each || typeof sent.resets !== 'string' || !Number.isFinite(Date.parse(sent.resets)) || (!turns && typeof sent.open !== 'boolean')) throw failure('down');
+    if (response.ok && turns && (typeof sent.reply !== 'string' || !sent.reply.trim())) throw failure('empty');
+    if (order >= freeKept) {
+      freeKept = order;
+      freeFailed = false;
+      freeAllowance = { left: sent.left, each: sent.each, resets: sent.resets, open: typeof sent.open === 'boolean' ? sent.open : sent.error === 'pool' ? false : sent.error === 'used' && freeAllowance ? freeAllowance.open : true };
+      if (sheet && !sheet.hidden) render();
+      freeTag();
+    }
+    return sent;
+  };
+  const readFree = () => {
+    if (freeChecking) freeChecking.abort();
+    const mine = freeChecking = new AbortController();
+    const timer = setTimeout(() => mine.abort(), 30000);
+    freeFailed = false;
+    if (freeAllowance && Date.parse(freeAllowance.resets) <= Date.now()) freeAllowance = null;
+    render();
+    freeRequest(null, mine.signal).catch(() => {
+      if (freeChecking !== mine) return;
+      freeFailed = true;
+      if (sheet && !sheet.hidden) render();
+    }).finally(() => { clearTimeout(timer); if (freeChecking === mine) freeChecking = null; });
+  };
+
   // ---------- Calling the provider ----------
-  const failure = (code, detail) => Object.assign(new Error(code), { code, detail: String(detail || '').slice(0, 300) });
-  const sentence = (code, kind) => {
+  // A failure keeps the service's own message (detail) and its whole answer (raw) for the notice's Details, with
+  // anything that looks like a key taken out, and how long the service asked her to wait, when it said.
+  const hideKeys = (text, key) => {
+    let clean = String(text || '');
+    if (key) clean = clean.split(key).join('[your key]');
+    return clean.replace(/\b(sk-[\w-]{8,}|AIza[\w-]{20,}|AQ\.[\w.-]{10,}|nvapi-[\w-]{10,}|CAPRI(-[0-9A-Z]{4}){4})/gi, '[a key]');
+  };
+  const failure = (code, detail, extra) => Object.assign(new Error(code), { code, detail: String(detail || '').slice(0, 300) }, extra || {});
+  const sentence = (code, kind, allowance, wait) => {
+    if (kind === 'free') return ({
+      used: "That's all your free messages for today. They're back " + resetTime(allowance && allowance.resets) + '. Add your own AI key in SETTINGS for no limit.',
+      pool: "Everyone's free messages for today are gone. They're back " + resetTime(allowance && allowance.resets) + '. Add your own AI key in SETTINGS for no limit.',
+      down: 'My free brain is glitching. Try again soon.',
+      net: "Couldn't reach my free brain. Check your internet.",
+      empty: 'My free brain sent back nothing. Try again.'
+    })[code] || 'Something went wrong. Try again.';
     const company = PROVIDERS[kind] ? PROVIDERS[kind].company : 'That provider';
+    // The words never count down while someone reads them; the real wait is kept in ask().
+    const soon = !wait ? 'Give it a minute, then try again.' : wait < 10 ? 'Try again in a few seconds.' : 'Try again in ' + (wait < 90 ? wait + ' seconds.' : Math.ceil(wait / 60) + ' minutes.');
+    const owner = company.replace(/ AI$/, '');
     return ({
       key: company + ' rejected the key. Paste it again in SETTINGS.',
       credits: 'No credits on this key. Add credits on ' + company + '\'s site.',
-      limit: 'Too many requests. Wait a minute, then try again.',
+      limit: company + ' says that\'s too many messages for one minute. ' + soon,
+      daily: 'Your ' + company + ' key has hit ' + owner + '\'s daily free limit. It comes back ' + (kind === 'google' && pacificMidnight() ? resetTime(pacificMidnight()) : 'within a day') + ', or pick another model in SETTINGS.',
+      unfree: 'Your ' + company + ' key can\'t use that model for free. Pick another model in SETTINGS.',
+      busy: company + '\'s free model is full for everyone right now. Try again in a moment, or pick another model in SETTINGS.',
       model: 'That model isn\'t on your key. Pick another one.',
       down: 'The service failed on its end. Pick another model or retry.',
       net: 'Couldn\'t reach ' + company + '. Check your internet.',
       empty: 'Her brain sent back nothing. Try again.'
     })[code] || 'Something went wrong. Try again.';
   };
-  const codeFor = (status, detail) => status === 401 || status === 403 ? 'key' : status === 402 ? 'credits' : status === 429 ? 'limit' : status === 404 ? 'model'
+  // A 429 says which limit it hit, in words or in the quota's name. Google's free tier names the counter
+  // (GenerateRequestsPerDay...-FreeTier, or limit: 0 for a model with no free allowance), OpenRouter says
+  // free-models-per-day or that a free model is rate-limited upstream, and OpenAI's insufficient_quota means no credits.
+  const limitOf = said => /insufficient_quota/i.test(said) ? 'credits'
+    : /limit:\s*0\b|"quotaValue"\s*:\s*"0"|not (available|supported) (on|in) the free tier|no free (tier|allowance)/i.test(said) ? 'unfree'
+      : /per[ _-]?day|PerDay|daily|requests per day|\bRPD\b/i.test(said) ? 'daily'
+        : /upstream|provider_name|at capacity|overloaded/i.test(said) ? 'busy' : 'limit';
+  const codeFor = (status, detail, raw) => status === 401 || status === 403 ? 'key' : status === 402 ? 'credits' : status === 429 ? limitOf(detail + ' ' + (raw || '')) : status === 404 ? 'model'
     : status === 400 && /api[ _-]?key|credential|authenticat|unauthori[sz]ed/i.test(detail) ? 'key'
       : status === 400 && /credit|balance|billing|quota|payment/i.test(detail) ? 'credits'
         : status === 400 && /model/i.test(detail) && /not (found|exist|available|supported)|invalid model|unknown model/i.test(detail) ? 'model' : 'down';
+  // Seconds the service asked her to wait: Retry-After when the browser may read it, else "retry in 41.3s" or a
+  // retryDelay in the answer. Capped at an hour; a daily limit has no useful wait.
+  const waitOf = (response, raw) => {
+    let seconds = NaN;
+    const header = response.headers.get('retry-after');
+    if (header) seconds = /^\d+(\.\d+)?$/.test(header.trim()) ? Number(header) : (Date.parse(header) - Date.now()) / 1000;
+    if (!(seconds > 0)) {
+      const found = /retry in (\d+(?:\.\d+)?)\s*s|"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/i.exec(raw);
+      if (found) seconds = Number(found[1] || found[2]);
+    }
+    return seconds > 0 ? Math.min(3600, Math.ceil(seconds)) : 0;
+  };
   const headersFor = brain => {
     if (brain.provider === 'anthropic') return { 'x-api-key': brain.key, 'anthropic-version': '2026-10-21', 'anthropic-dangerous-direct-browser-access': 'true' };
     // Some of Google's AQ. keys are only let in by x-goog-api-key (Brain.OtherDoor).
@@ -150,13 +310,14 @@
   const detailOf = async response => {
     let text = '';
     try { text = await response.text(); } catch (error) {}
+    let said = '';
     try {
       const parsed = JSON.parse(text);
       const body = Array.isArray(parsed) ? parsed[0] : parsed;
-      const said = body && body.error ? (typeof body.error === 'string' ? body.error : body.error.message) : body && body.message;
-      if (typeof said === 'string' && said) return said;
+      const found = body && body.error ? (typeof body.error === 'string' ? body.error : body.error.message) : body && body.message;
+      if (typeof found === 'string') said = found;
     } catch (error) {}
-    return text.slice(0, 300);
+    return { detail: said || text.slice(0, 300), raw: text.slice(0, 4000) };
   };
   const call = async (brain, path, body, signal) => {
     for (let tries = 0; ; tries++) {
@@ -173,7 +334,7 @@
         throw failure('net', String(error && error.message || ''));
       }
       if (response.ok) return response;
-      const detail = await detailOf(response);
+      const { detail, raw } = await detailOf(response);
       if (tries === 0 && brain.provider === 'google' && !brain.door && brain.key.startsWith('AQ.') && [400, 401, 403].includes(response.status) && /credential|authenticat|ACCESS_TOKEN|API key/i.test(detail)) {
         brain.door = true;
         continue;
@@ -185,7 +346,11 @@
         delete body.output_config;
         continue;
       }
-      throw failure(codeFor(response.status, detail), detail);
+      const code = codeFor(response.status, detail, raw);
+      throw failure(code, hideKeys(detail, brain.key), {
+        raw: hideKeys(response.status + ' ' + (raw || detail), brain.key).slice(0, 2000),
+        wait: ['limit', 'busy'].includes(code) ? waitOf(response, raw) : 0
+      });
     }
   };
   const listModels = async (brain, signal) => {
@@ -223,6 +388,12 @@
   // One reply, streamed: each new bit of her words goes to heard. Sends what the desktop sends (Brain.cs): Claude gets
   // low effort on the models that take it, OpenAI's reasoning models and Gemini low reasoning, DeepSeek no thinking.
   const reply = async (brain, turns, heard, signal) => {
+    if (brain.provider === 'free') {
+      const sent = await freeRequest(turns, signal);
+      if (sent.error) throw failure(sent.error, '', { allowance: sent });
+      heard(sent.reply);
+      return sent.reply;
+    }
     const kind = brain.provider, claude = kind === 'anthropic';
     const body = claude ? { model: brain.model, max_tokens: 16000, stream: true, system: persona(), messages: turns }
       : { model: brain.model, stream: true, messages: [{ role: 'system', content: persona() }].concat(turns) };
@@ -287,23 +458,39 @@
     let open = false;
     const jobs = new Set();
     const tell = message => { if (open && hooks) hooks.message(message); };
+    // What went wrong goes in the notice at the end of the chat. The error tells app.js to drop her empty reply, so it is
+    // never saved as something she said or sent back as chat. A wait the service asked for is kept: until it's over, a
+    // message gets the notice again with no call. Nothing is ever sent again by itself.
+    const stop = (re, brain, code, error) => {
+      tell({ type: 'error', code, re, quiet: true });
+      const words = sentence(code, brain.provider, error && error.allowance, error && error.wait);
+      const offer = !!FREE && brain.provider !== 'free' && ['limit', 'daily', 'unfree', 'busy', 'credits'].includes(code);
+      notice(words, error && (error.raw || error.detail) || '', offer);
+    };
     const ask = async (re, text) => {
       const brain = readBrain();
       if (!brain) { tell({ type: 'error', code: 'key', re }); toast('Paste your key in SETTINGS.'); return; }
+      if (waiting.provider === brain.provider && waiting.until > Date.now()) {
+        stop(re, brain, waiting.code, { raw: waiting.raw, wait: Math.ceil((waiting.until - Date.now()) / 1000) });
+        return;
+      }
       const job = new AbortController();
       jobs.add(job);
       const timer = setTimeout(() => job.abort(), 120000);
       const id = 'phone-' + re;
       tell({ type: 'chat.typing', on: true, re });
       try {
-        await reply(brain, history(text), words => tell({ type: 'chat.reply', id, text: words, done: false, re }), job.signal);
+        const spoke = await reply(brain, history(text), words => tell({ type: 'chat.reply', id, text: words, done: false, re }), job.signal);
         tell({ type: 'chat.reply', id, text: '', done: true, re });
-        if (brain.door) writeBrain(Object.assign(readBrain() || brain, { door: true }));
+        if (brain.door) writeKeyed(Object.assign(readKeyed() || brain, { door: true }));
+        notice(null);
+        waiting.until = 0;
+        if (spoke !== false) count();
       } catch (error) {
         if (!open) return;
         const code = error && error.code ? error.code : 'down';
-        tell({ type: 'error', code, re });
-        toast(sentence(code, brain.provider));
+        if (error && error.wait) Object.assign(waiting, { provider: brain.provider, until: Date.now() + error.wait * 1000, code, raw: error.raw || '' });
+        stop(re, brain, code, error);
       } finally {
         clearTimeout(timer);
         jobs.delete(job);
@@ -314,6 +501,9 @@
         hooks = given;
         open = true;
         hooks.state('connected', { native: true, demo: false, pc: pairing && pairing.pc || '', pairedAt: pairing && pairing.pairedAt || 0, code: '', reason: '' });
+        // On free messages, read what's left so the header can show it before the first message.
+        const brain = readBrain();
+        if (brain && brain.provider === 'free') freeRequest(null).catch(() => {});
       },
       send(message) {
         if (!open || !message) return false;
@@ -349,6 +539,68 @@
       card.append(svg);
     }
   };
+  // The notice: at the end of the chat until her next good reply, with the service's own answer behind Details and, when
+  // the free brain is here, one tap to use it for now. The saved key stays.
+  const waiting = { provider: '', until: 0, code: '', raw: '' };
+  let noticeNode = null;
+  const notice = (words, answer, offer) => {
+    if (!words) { if (noticeNode) noticeNode.hidden = true; return; }
+    if (!noticeNode) {
+      noticeNode = make('div', 'native-notice');
+      noticeNode.setAttribute('role', 'status');
+      const row = make('div', 'native-notice-row');
+      const more = button('Details', 'nbtn native-notice-more');
+      const freeNow = button('Use free messages for now', 'nbtn cyan native-notice-free');
+      const okay = button('OK', 'nbtn native-notice-ok');
+      const raw = make('pre', 'native-notice-raw');
+      raw.hidden = true;
+      row.append(more, freeNow, okay);
+      noticeNode.append(make('p', 'native-notice-words'), row, raw);
+      more.addEventListener('click', () => {
+        raw.hidden = !raw.hidden;
+        more.setAttribute('aria-expanded', String(!raw.hidden));
+        const log = $('#log');
+        if (log && !raw.hidden) log.scrollTop = log.scrollHeight;
+      });
+      okay.addEventListener('click', () => { noticeNode.hidden = true; });
+      freeNow.addEventListener('click', () => {
+        writeBrain({ provider: 'free' });
+        if (!readBrain() || readBrain().provider !== 'free') { toast("This browser won't save settings, so she can't switch here."); return; }
+        noticeNode.hidden = true;
+        toast('Free messages for now. Your key is still saved in SETTINGS.');
+        remote().use('phone');
+      });
+    }
+    // At the end of the chat, above the room she sits in over the message bar, so she never covers it. It is never
+    // part of the saved chat.
+    const end = $('#log-in .log-end');
+    if (end) end.parentNode.insertBefore(noticeNode, end);
+    else if (!noticeNode.isConnected) document.body.append(noticeNode);
+    noticeNode.querySelector('.native-notice-words').textContent = words;
+    const more = noticeNode.querySelector('.native-notice-more'), raw = noticeNode.querySelector('.native-notice-raw');
+    raw.textContent = answer || '';
+    raw.hidden = true;
+    more.hidden = !raw.textContent;
+    more.setAttribute('aria-expanded', 'false');
+    noticeNode.querySelector('.native-notice-free').hidden = !offer;
+    noticeNode.hidden = false;
+    const log = $('#log');
+    if (log) log.scrollTop = log.scrollHeight;
+  };
+  // "7 left today" next to THIS PHONE while the phone is on free messages; nothing on its own key.
+  const freeTag = () => {
+    const left = $('#native-left');
+    if (!left) return;
+    const brain = readBrain(), info = remote() ? remote().info : {};
+    const show = !!(info.native && brain && brain.provider === 'free' && freeAllowance && remote().state === 'connected');
+    left.hidden = !show;
+    if (left.parentElement) left.parentElement.classList.toggle('native-counting', show);
+    if (!show) return;
+    // A narrow phone drops the word "today" so CAPRI still fits in the header.
+    const day = make('span', 'native-left-day');
+    day.textContent = ' today';
+    left.replaceChildren(freeAllowance.left + ' left', day);
+  };
   let toastNode = null, toastTimer = 0;
   const toast = text => {
     if (!toastNode) { toastNode = make('p', 'native-toast'); toastNode.setAttribute('role', 'status'); document.body.append(toastNode); }
@@ -366,6 +618,7 @@
     if (!sheet || sheet.hidden) return;
     sheet.hidden = true;
     if (checking) { checking.abort(); checking = null; }
+    if (freeChecking) { freeChecking.abort(); freeChecking = null; }
     const app = $('#app');
     if (scrim() && !(app && app.classList.contains('menu')) && (!$('#home') || $('#home').hidden)) scrim().hidden = true;
     if (back && back.isConnected) back.focus({ preventScroll: true });
@@ -413,7 +666,8 @@
     }
     const kind = parts.provider.value;
     const company = PROVIDERS[kind].company;
-    const saved = brain && brain.provider === kind ? brain : null;
+    const keyed = readKeyed(), free = !!brain && brain.provider === 'free';
+    const saved = keyed && keyed.provider === kind ? keyed : null;
     parts.key.placeholder = saved ? 'Key saved' : 'Paste your ' + company + ' key';
     parts.get.href = PROVIDERS[kind].page;
     parts.get.textContent = 'Get a key from ' + company;
@@ -423,10 +677,24 @@
       parts.model.replaceChildren(...(saved.models.includes(saved.model) ? saved.models : [saved.model].concat(saved.models)).map(id => { const option = make('option', '', id); option.value = id; return option; }));
       parts.model.value = saved.model;
     }
-    parts.forget.hidden = !brain;
+    // The free brain: its button first, then while it's in use the allowance, his words and the Ko-fi line.
+    parts.freeChoice.textContent = free || keyed ? 'Use free brain' : 'Start free';
+    parts.freeChoice.hidden = free && phone;
+    parts.freeOn.hidden = !(free && phone);
+    parts.freeCount.hidden = free;
+    parts.freeCount.textContent = (freeAllowance ? freeAllowance.each : 15) + ' free messages a day. No key needed.';
+    parts.freeInfo.hidden = parts.freeKofi.hidden = !free;
+    parts.freeLeft.textContent = freeFailed ? "Couldn't read your free messages. Open SETTINGS again to retry." : freeAllowance ? 'Free messages today: ' + freeAllowance.left + ' of ' + freeAllowance.each + ' left' : 'Reading free messages...';
+    parts.freeReset.textContent = freeAllowance ? 'Resets ' + resetTime(freeAllowance.resets) + '.' : '';
+    parts.freePool.hidden = !freeAllowance || freeAllowance.open;
+    parts.ownKey.textContent = free ? 'Switch to your own key' : 'Use your own key';
+    parts.ownKey.hidden = parts.keyOpen;
+    parts.ownKey.setAttribute('aria-expanded', String(parts.keyOpen));
+    parts.keyPart.hidden = !parts.keyOpen;
+    parts.forget.hidden = !keyed;
     const fresh = !!parts.key.value.trim();
-    parts.useHere.textContent = phone && saved && !fresh ? 'In use' : 'Use this phone';
-    parts.useHere.disabled = phone && !!saved && !fresh;
+    parts.useHere.textContent = phone && !free && saved && !fresh ? 'In use' : 'Use this phone';
+    parts.useHere.disabled = phone && !free && !!saved && !fresh;
     // A paired iPhone Safari sets up the home screen app from here in one tap: its PC makes it a pairing link (app.js).
     parts.home.textContent = homeLinkable() ? 'Set up the home screen app' : 'Add her to your home screen';
     // Talking over her on a call (call.js), kept on this phone.
@@ -502,6 +770,26 @@
     });
     pcKey.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); pcSend.click(); } });
     const phonePart = make('div', 'native-part');
+    const freeChoice = button('Start free', 'nbtn solid wide native-free');
+    // Seen before Start free is tapped: how much is free. Once it's on, a plain line says so.
+    const freeCount = make('p', 'native-line native-free-count');
+    const freeOn = make('p', 'native-line native-free-on', 'Free messages are on.');
+    freeOn.setAttribute('role', 'status');
+    const freeInfo = make('div');
+    const freeLeft = make('p', 'native-line native-free-left');
+    freeLeft.setAttribute('role', 'status');
+    const freeReset = make('p', 'native-note native-free-reset');
+    const freePool = make('p', 'native-note native-free-pool', "Everyone's free messages for today are gone.");
+    freeInfo.append(freeLeft, freeReset, freePool);
+    // A tip that unlocks nothing, only in SETTINGS while the free brain is in use (Lachy, 12 Nov).
+    const freeKofi = make('p', 'native-note native-free-kofi', "If you'd like to help keep it free, you can support Capri on ");
+    const kofi = make('a', '', 'Ko-fi');
+    Object.assign(kofi, { href: FREE_KOFI, target: '_blank', rel: 'noopener noreferrer' });
+    freeKofi.append(kofi, '.');
+    const ownKey = button('Use your own key', 'nbtn cyan wide native-own-key');
+    ownKey.setAttribute('aria-controls', 'native-key-part');
+    const keyPart = make('div');
+    keyPart.id = 'native-key-part';
     const providerLabel = make('label', 'code-label', 'Provider');
     providerLabel.htmlFor = 'brain-provider';
     const providerField = make('span', 'field native-pick');
@@ -541,8 +829,9 @@
     const useHere = button('Use this phone', 'nbtn solid');
     const forget = button('Forget key', 'nbtn hot');
     row.append(useHere, forget);
-    phonePart.append(providerLabel, providerField, keyLabel, keyField, get, modelPart, note,
+    keyPart.append(providerLabel, providerField, keyLabel, keyField, get, modelPart, note,
       make('p', 'native-note', 'Your key stays in this browser on capriai.app. Forget key or clearing the site\'s data removes it.'), state, row);
+    phonePart.append(freeChoice, freeOn, freeCount, freeInfo, make('p', 'native-note native-free-words', FREE_WORDS), freeKofi, ownKey, keyPart);
     // Calls: talking over her stops her. A phone whose own speaker sets it off turns it off here.
     const callHead = make('h3', 'nhead', 'Calls');
     const overHer = button('Talk over her to stop her', 'nbtn wide native-over');
@@ -556,8 +845,18 @@
     words.append(title, make('h3', 'nhead', 'Her brain'), modes, pcPart, phonePart, callHead, overHer, homeHead, home, done);
     sheet.append(words);
     ($('#app') || document.body).append(sheet);
-    parts = { words, pcTab, phoneTab, pcPart, pcLine, usePc, pcBrainsPart, rungs, pcNow, pcKeyPart, pcKeyLabel, pcKey, pcState, pcOld, phonePart, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, home, callHead, overHer, overState, view: '' };
+    parts = { words, pcTab, phoneTab, pcPart, pcLine, usePc, pcBrainsPart, rungs, pcNow, pcKeyPart, pcKeyLabel, pcKey, pcState, pcOld, phonePart, freeChoice, freeOn, freeCount, freeInfo, freeLeft, freeReset, freePool, freeKofi, ownKey, keyPart, keyOpen: false, provider, key, keyField, get, modelPart, model, note, status: state, useHere, forget, home, callHead, overHer, overState, view: '' };
 
+    // A browser that saves nothing (some private modes) can't remember the choice, so it says so instead of going nowhere.
+    freeChoice.addEventListener('click', () => {
+      writeBrain({ provider: 'free' });
+      if (!readBrain() || readBrain().provider !== 'free') { toast("This browser won't save settings, so she can't start here. Try it outside private browsing."); return; }
+      key.value = '';
+      status('');
+      close();
+      remote().use('phone');
+    });
+    ownKey.addEventListener('click', () => { parts.keyOpen = true; render(); key.focus(); });
     pcTab.addEventListener('click', () => { status(''); render('pc'); });
     phoneTab.addEventListener('click', () => { status(''); render('phone'); });
     usePc.addEventListener('click', () => { close(); remote().use('pc'); });
@@ -570,21 +869,24 @@
     });
     key.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); useHere.click(); } });
     model.addEventListener('change', () => {
-      const brain = readBrain();
-      if (brain && model.value) { brain.model = model.value; writeBrain(brain); }
+      const brain = readKeyed();
+      if (brain && model.value) { brain.model = model.value; writeKeyed(brain); }
     });
+    // While the free brain is in use, Forget key only removes the saved key and she stays on the free brain.
     forget.addEventListener('click', () => {
-      writeBrain(null);
+      const free = readBrain() && readBrain().provider === 'free';
+      writeKeyed(null);
       key.value = '';
       status('Key forgotten.');
-      if (remote().info.native) remote().use('pc');
+      if (!free && remote().info.native) remote().use('pc');
       render();
     });
     useHere.addEventListener('click', async () => {
       const typed = key.value.trim();
-      const brain = readBrain();
+      const brain = readKeyed();
       if (!typed) {
         if (!brain || brain.provider !== provider.value) { status('Paste a key first.', true); key.focus(); return; }
+        if (readBrain().provider === 'free') writeBrain(brain);
         close();
         remote().use('phone');
         return;
@@ -661,8 +963,9 @@
     homeGuide = home || homeGuide;
     if (!sheet) build();
     back = document.activeElement;
-    const brain = readBrain();
-    parts.provider.value = brain ? brain.provider : parts.provider.value || ORDER[0];
+    const brain = readBrain(), keyed = readKeyed();
+    parts.provider.value = keyed ? keyed.provider : parts.provider.value || ORDER[0];
+    parts.keyOpen = !!brain && brain.provider !== 'free';
     parts.key.value = '';
     status('');
     pcStatus('');
@@ -671,7 +974,8 @@
     parts.words.scrollTop = 0;
     sheet.hidden = false;
     if (scrim()) scrim().hidden = false;
-    if (view === 'phone') parts.key.focus({ preventScroll: true });
+    if (brain && brain.provider === 'free') readFree();
+    if (view === 'phone') (parts.keyOpen ? parts.key : parts.freeChoice).focus({ preventScroll: true });
     else $('#brain-title').focus({ preventScroll: true });
   };
 
@@ -682,7 +986,7 @@
       const start = button('Use her without a PC', 'nbtn wide native-start');
       start.id = 'native-start';
       const demo = $('#try-demo');
-      const or = make('p', 'native-or', 'No PC? Bring your own key');
+      const or = make('p', 'native-or', 'No PC? Start free');
       if (demo && demo.parentNode === card) card.insertBefore(start, demo);
       else card.append(start);
       card.insertBefore(or, start);
@@ -692,7 +996,10 @@
     const tag = make('span', 'tag native-mode');
     tag.id = 'native-mode';
     tag.hidden = true;
-    if (top) top.append(tag);
+    const left = make('span', 'tag native-left');
+    left.id = 'native-left';
+    left.hidden = true;
+    if (top) top.append(tag, left);
     const settingsButton = $('#f-settings');
     if (settingsButton) settingsButton.setAttribute('aria-label', 'Settings: her brain and the home screen');
     const screen = $('#f-screen');
@@ -706,6 +1013,7 @@
     if (remote()) remote().onState((state, info) => {
       tag.hidden = state === 'unpaired' || state === 'pairing';
       tag.textContent = info.native ? 'This phone' : info.demo ? 'Demo PC' : 'Your PC';
+      freeTag();
       tag.classList.toggle('phone', !!info.native);
       if (state !== 'connected' || info.native || info.demo) { pcBrains = null; pcAsked = false; }
       else if (sheet && !sheet.hidden && !pcAsked) askBrains();

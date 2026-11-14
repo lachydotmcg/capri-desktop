@@ -371,7 +371,8 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
 - **`brain.use`** picks a rung, as clicking it in her Mainframe does, and the phone hears the new `brain.state`.
 - **State.** The PC answers `brain.get` with `brain.state`, and sends it again to that phone whenever her brains change while its session lasts.
 - **Malformed asks** (an unknown `brain`, a missing, empty or too long `key`, a bad `id`) get `error` `bad-message`, with `re` when the id was good.
-- **Phone-only mode** (`site/remote/native.js`, Capri on the phone with no PC) is not part of this protocol: its key stays on the phone and goes only to the provider the user picked, never through the relay.
+- **Phone-only mode** (`site/remote/native.js`, Capri on the phone with no PC) is not part of this protocol: your own key stays on the phone and goes only to the provider you picked, never through the relay. After the first reply that worked on a UTC day, either phone brain sends one POST of `{"first": bool, "paired": bool}` to the reactions worker's `/phone-day`, with no key, chat or id.
+- **Free phone brain.** The phone POSTs `{"messages": [{"role": "user" | "assistant", "content": text}]}` as text/plain to the reactions worker's `/free` and gets `{reply, left, each, resets}`, or 429 `{error: "used" | "pool", left, each, resets}`; `GET /free` returns `{left, each, resets, open}` and spends nothing. The worker keeps the newest 12 turns and 6,000 characters, adds its own prompt and calls Workers AI. It allows 15 messages a UTC day per salted daily hash of the connection address (IPv6 by its /64) and stops at 8,000 Neurons a day for everyone. It keeps no chat, and deletes counts older than yesterday on the next free message.
 
 **Reserved for later phases.** Do not send these in phase 1, and ignore them if received:
 

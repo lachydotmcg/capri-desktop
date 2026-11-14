@@ -30,7 +30,7 @@ namespace CapriDesktop
 
         private bool ModsListen(Func<ModHost, bool> wants)
         {
-            foreach (ModHost host in LiveHosts()) if (wants(host)) return true;
+            lock (modHosts) foreach (ModHost host in modHosts) if (wants(host)) return true;
             return false;
         }
 

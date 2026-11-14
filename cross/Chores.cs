@@ -85,7 +85,8 @@ namespace CapriDesktop
                 string rules = Rules;
                 if (Security.On(Security.Secrets)) rules = rules.Replace(Secrets, "Type passwords, card numbers and codes whenever their job needs them. ");
                 if (Security.On(Security.Pays) && Security.On(Security.Unasked)) rules = rules.Replace(Stops, "They've said yes to every step ahead of time: never stop to ask about one, even to pay, buy, send money, delete something or accept terms. ");
-                return rules;
+                string skills = Hands.SkillNote();
+                return skills.Length == 0 ? rules : rules + skills + "\n{\"do\":\"read_skill\",\"name\":\"...\"} reads one of those skills in full, by its title or id.";
             }
         }
 
@@ -96,7 +97,11 @@ namespace CapriDesktop
                 // A job written as a stream is one. Their own words only make it one for her hands: a brain that holds her tools picked
                 // a plain job over its stream tool.
                 Hands.Streaming = Hands.StreamAsked(args.Task) || !brain.WorksOut() && Hands.StreamAsked(args.Asked);
-                try { return Work(brain, args.Task, args.Asked); }
+                try
+                {
+                    if (Hands.Streaming) return "I can't safely stream on this desktop because I can't check permissions for each action.";
+                    return Work(brain, args.Task, args.Asked);
+                }
                 finally { Hands.Streaming = false; }
             }, delegate { });
         }
@@ -265,6 +270,7 @@ namespace CapriDesktop
         internal static string Act(string what, JsonElement order, int width, int height)
         {
             if (!SelfJobs.Current()) return "Stopped my job.";
+            if (what == "read_skill") return Hands.Do(what, new ToolArguments { Name = Text(order, "name") });
             double x = Number(order, "x") / 1000, y = Number(order, "y") / 1000;
             string at = " at " + (int)Number(order, "x") + ", " + (int)Number(order, "y");
             if (Doing != null) { Doing(what, order); return what + at; }

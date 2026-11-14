@@ -763,6 +763,9 @@ namespace CapriDesktop
             Bitmap made;
             if (cells.TryGetValue(key, out made)) return made;
             made = new Bitmap(canvas, canvas, PixelFormat.Format32bppPArgb);
+            // On her artist's standing set a clone glitches in on the first frame of that loop, with the glitch drawn under her.
+            double under = 0;
+            if (Companion.StandsIn(clip, idle)) { under = Companion.UnderLevel(clip, cell); clip = idle; cell = 0; }
             Bitmap strip = left && clip.HasFlipped ? clip.FlippedNow : clip.Strip;
             int width = strip.Width / clip.Count;
             float high = size * clip.Height, broad = high * width / strip.Height;
@@ -773,7 +776,9 @@ namespace CapriDesktop
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 graphics.TranslateTransform(canvas / 2f, canvas / 2f);
                 if (left) graphics.ScaleTransform(-1, 1);
-                graphics.DrawImage(strip, new RectangleF(-broad / 2f + clip.ShiftX * size, -high / 2f + clip.ShiftY * size, broad, high), new RectangleF(cell * width, 0, width, strip.Height), GraphicsUnit.Pixel);
+                RectangleF target = new RectangleF(-broad / 2f + clip.ShiftX * size, -high / 2f + clip.ShiftY * size, broad, high);
+                if (under > 0) Shatter.Under(graphics, strip, new Rectangle(cell * width, 0, width, strip.Height), target, under, (int)(key & 0x7FFFFFFF));
+                graphics.DrawImage(strip, target, new RectangleF(cell * width, 0, width, strip.Height), GraphicsUnit.Pixel);
             }
             cells[key] = made;
             return made;
@@ -829,6 +834,8 @@ namespace CapriDesktop
                     double age = now - body.Born;
                     bool grinning = (body == Swarm.Nabber && Swarm.Holding) || (body.Hauling != null && body.Hauling.Holding);
                     Clip clip = age < Swarm.GlitchIn ? glitch : grinning ? grin : Swarm.Walking(body, now) ? walk : idle;
+                    // On her artist's standing set a grinning clone stands in her loop, since her grin is her old stand.
+                    if (clip == grin && Companion.StandsIn(grin, idle)) clip = idle;
                     int which = clip == glitch ? 0 : clip == grin ? 1 : clip == walk ? 2 : 3;
                     int cell = clip == glitch ? Math.Min(clip.Count - 1, (int)(age * clip.Fps)) : (int)((now + body.Phase) * clip.Fps) % clip.Count;
                     // Every drawn frame stays in memory here, so a long loop keeps about 16 of them.

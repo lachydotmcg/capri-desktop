@@ -371,7 +371,7 @@ namespace CapriDesktop
         private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 854, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
-        private static readonly int[][] MissingRight = { new[] { 400, 428 }, new[] { 876, 904 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
+        private static readonly int[][] MissingRight = { new[] { 400, 428 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
 
         internal Mainframe(Pet owner) : base("Mainframe")
         {
@@ -379,10 +379,20 @@ namespace CapriDesktop
             Steered = true;
             Caption("MAINFRAME", 24, 15, 120, 29, MainframeTheme.Rose, 64.0 / 3, true, true);
             build = Caption("v" + typeof(Pet).Assembly.GetName().Version.ToString(), 230, 20, 62, 22, MainframeTheme.Faint, 34.0 / 3); build.Align = TextAlignment.Right;
-            minimize = Key("", 300, 20, 26, 22, () => WindowState = WindowState.Minimized); minimize.Glyph = 1;
-            close = Key("", 330, 20, 26, 22, Close); close.Glyph = 2;
-            AutomationProperties.SetName(minimize, "Minimize"); AutomationProperties.SetName(close, "Close");
-            MainframeTips.Explain(minimize, "Minimize"); MainframeTips.Explain(close, "Close");
+            // Kelv's Hyprland changes: a minimized Mainframe has no taskbar there to come back from, so it gets only Close,
+            // and Super+C closes it the way Hyprland folk expect. Super is Meta here; on a Mac Meta is Cmd and Cmd+C is copy,
+            // so this stays on Hyprland.
+            bool hyprland = OperatingSystem.IsLinux() && HyprlandDesktop.Current != null;
+            if (!hyprland)
+            {
+                minimize = Key("", 300, 20, 26, 22, () => WindowState = WindowState.Minimized); minimize.Glyph = 1;
+                AutomationProperties.SetName(minimize, "Minimize");
+                MainframeTips.Explain(minimize, "Minimize");
+            }
+            close = Key("", 330, 20, 26, 22, hyprland ? (Action)Shut : Close); close.Glyph = 2;
+            AutomationProperties.SetName(close, "Close");
+            MainframeTips.Explain(close, "Close");
+            if (hyprland) KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.C && e.KeyModifiers == KeyModifiers.Meta) { e.Handled = true; Program.Guard(Shut); } };
             more = Key("Settings", 146, 20, 84, 22, () => ShowSettings(!paged)); more.Accent = MainframeTheme.Cyan; more.Loud = true;
             foreach (Item item in items) item.Page = -1;
             Section("BRAIN", 0, 58);
@@ -582,6 +592,8 @@ namespace CapriDesktop
             Key("Open her memories", 600, 793, 136, 20, () => pet.OpenMemories());
             Toggle("Start at login", 380, 820, () => pet.StartsAtLogin, on => pet.SetLogin(on, false));
             Toggle("Show on Discord", 380, 848, () => !pet.Saved.NoDiscord, pet.SetDiscord);
+            Named("Music app", 380, 876);
+            var musicApp = Picker("Music app", 564, 879, 172, () => OperatingSystem.IsLinux() && pet.MusicApp == 2 ? 0 : pet.MusicApp, pet.SetMusicApp); musicApp.Height = 22; musicApp.Options(OperatingSystem.IsLinux() ? new[] { "Spotify", "YouTube" } : Hands.MusicSteps());
             Toggle("Remember our chats", 380, 904, () => !pet.Saved.NoMemories, pet.SetRemembering);
             var security = Key("Security: " + Security.PresetName, 408, 935, 328, 22, OpenSecurity);
             var securityNote = Caption(Security.Short, 408, 959, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;

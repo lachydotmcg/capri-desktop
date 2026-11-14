@@ -19,6 +19,8 @@ namespace CapriDesktop
             LegacyArt = Saved.LegacyStand;
             ModList = new Mods(Program.Smoke ?? folder);
             Chores.Skills = ModList.SkillsFor;
+            Hands.SkillNote = delegate { return ModList.SkillNote; };
+            Hands.ReadSkill = ModList.SkillText;
             ModList.SkinChanged = Reskinned;
             Reskinned();
             StartCodeMods();

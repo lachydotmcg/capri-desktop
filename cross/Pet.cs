@@ -46,6 +46,7 @@ namespace CapriDesktop
         [DataMember] internal bool NoMemories;
         [DataMember] internal bool NoCheckIns;
         [DataMember] internal int? PopPace;
+        [DataMember] internal int MusicApp;
         [DataMember] internal bool Watch;
         [DataMember] internal int GlanceGap;
         [DataMember] internal bool NoCaughtUp;
@@ -336,7 +337,8 @@ namespace CapriDesktop
         internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under BRAIN in Capri Mainframe.";
         internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
-        // Mac and Linux don't update themselves yet, so she checks GitHub's latest release now and then and offers its page.
+        // She checks GitHub's latest release now and then. Started from the Linux AppImage she downloads it and offers a
+        // restart (LinuxAppImageUpdater); a Mac, a tarball or a package gets its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
         private const string ReleasesPage = "https://github.com/lachydotmcg/capri-desktop/releases/latest";
         internal static readonly double[] Sizes = { 140, 170, 240, 320, 440, 560 };
@@ -453,6 +455,12 @@ namespace CapriDesktop
         private string updatePage;
         private double nextUpdate = 60;
         private bool updateChecking;
+        private bool updateInstalling;
+        private LinuxUpdateReady updateReady;
+        // Her AppImage sits somewhere she can't write, so this session only offers the release page.
+        private bool appImageReadOnly;
+        // Downloads a newer AppImage when she runs from one; null means the real one. Smoke swaps in a fake.
+        internal Func<string, LinuxUpdateReady> PrepareUpdate;
         // A check someone asked for says how it went; the one every 6 hours only speaks up for a new version.
         private bool updateAsked;
         private string updateNote;
@@ -621,7 +629,7 @@ namespace CapriDesktop
         // The mouse pressing her, so letting go of her without a release can give its capture back.
         private IPointer holder;
         // Window positions she asked for that the desktop hasn't confirmed yet, oldest first.
-        private readonly List<PixelPoint> asked = new List<PixelPoint>();
+        private MoveReports asked = new MoveReports();
         private Point pointer = new Point(-1, -1);
         private double fallSpeed;
         private double fallStep;
@@ -695,6 +703,7 @@ namespace CapriDesktop
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder);
+            StartReminders();
             if (OperatingSystem.IsMacOS()) MacWindows.Displays = () => Dispatcher.UIThread.Invoke(() => MacWindows.ReadDisplays(Screens.All, Desk.Pointer()));
             WireWatching();
             StartAwake();
@@ -791,7 +800,7 @@ namespace CapriDesktop
             Fit();
             // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
             // so she follows where it really went. A Mac moves her window right away, as asked.
-            if (OperatingSystem.IsLinux()) PositionChanged += delegate(object sender, PixelPointEventArgs e) { FollowPosition(e.Point); };
+            if (OperatingSystem.IsLinux()) PositionChanged += delegate(object sender, PixelPointEventArgs e) { if (NiriDesktop.Current?.Owns(this) != true) { if (desktopDrag || desktopReleased) DesktopPosition(e.Point); else FollowPosition(e.Point); } };
             Play(idle);
             nextGlitch = 30 + random.NextDouble() * 30;
             ContextMenu = Menu();
@@ -809,7 +818,7 @@ namespace CapriDesktop
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
             Closed += delegate { StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
-            Deactivated += delegate { if (!(Desk is HyprlandDesk)) Program.Guard(Unhold); };
+            Deactivated += delegate { if (!(Desk is HyprlandDesk) && !desktopDrag) Program.Guard(Unhold); };
             Opened += delegate
             {
                 if (opened) return;
@@ -889,8 +898,16 @@ namespace CapriDesktop
         // Like the released app, leave room at a screen edge without oscillating around one threshold.
         private void Face()
         {
+            if (MoveStuck) return;
             if (dragging || pressed || walking || falling || riding || lying || outro != null || clip == arrive || clip == leave) return;
-            SetFacing(WorkAt(Hip).Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
+            PixelRect area = WorkAt(new PixelPoint(Hip.X, Hip.Y - 1));
+            SetFacing(seat != null ? SitsLeft(Hip.X, area, Px(body.Size), FacingLeft) : area.Right - Hip.X < Px(body.Size * (FacingLeft ? 0.9 : 0.6)));
+        }
+
+        internal static bool SitsLeft(int hipX, PixelRect area, int size, bool left)
+        {
+            int middle = area.X + area.Width / 2, keep = size / 8;
+            return hipX > (left ? middle - keep : middle + keep);
         }
         internal int Headroom { get { return (int)Math.Ceiling(body.Size * (SitY - PerchTop) * DesktopScaling); } }
         internal int Feet { get { return anchor.Y + Px(body.Size * 0.99); } }
@@ -911,10 +928,10 @@ namespace CapriDesktop
 
         internal void Move(PixelPoint to, HyprlandDisplayMap target = null, long sequence = 0, long sourceAt = 0)
         {
+            if (MoveStuck) return;
             anchor = to;
             PixelPoint at = new PixelPoint(to.X + Px(FrameX), to.Y + Px(FrameY));
-            if (asked.Count >= 8) asked.RemoveAt(0);
-            asked.Add(at);
+            RecordMove(at);
             if (MoveTo != null) MoveTo(at);
             else Look.Position(this, at, target, sequence, sourceAt);
         }
@@ -923,6 +940,7 @@ namespace CapriDesktop
         // never step back to an older spot; anywhere else means the desktop put her there, and she carries on from it.
         internal void FollowPosition(PixelPoint at)
         {
+            if (LinuxMoves) { TakePosition(asked.Report(at, WindowAt, Now, MoveBusy)); return; }
             int was = asked.IndexOf(at);
             if (was >= 0) { asked.RemoveRange(0, was + 1); return; }
             asked.Clear();
@@ -1062,6 +1080,7 @@ namespace CapriDesktop
             watching.Deliver();
             CheckStyle();
             CheckSelfTools();
+            if (Program.Smoke == null) CheckReminders();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
             ShowUnreadableNotice();
@@ -1077,6 +1096,7 @@ namespace CapriDesktop
                 if (smoke != null) smoke.Tick(now);
                 return;
             }
+            TickMoveReports(now);
             if (!pressed && !dragging)
             {
                 TickMoves(now);
@@ -1148,17 +1168,44 @@ namespace CapriDesktop
             updateChecking = true;
             NotifySettings();
             Func<string> read = ReadUpdate;
+            string data = folder;
+            Func<string, LinuxUpdateReady> prepare = PrepareUpdate ?? (Program.Smoke != null ? null : (Func<string, LinuxUpdateReady>)(json => LinuxAppImageUpdater.Prepare(json, data, typeof(Pet).Assembly.GetName().Version)));
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string latest = null;
                 try { latest = read(); }
                 catch (Exception) { }
+                LinuxUpdateReady ready = null;
+                string problem = null;
+                if (latest != null && prepare != null && !updateInstalling && !appImageReadOnly)
+                {
+                    try { ready = prepare(latest); }
+                    catch (AppImageUpdateException error) { problem = error.Message; }
+                    catch (Exception) { problem = "The download didn't come through. I'll try again later."; }
+                }
+                string rolledBack = null;
+                if (ready != null)
+                    try { string log = Path.Combine(data, "updates", "update.log"); if (File.Exists(log) && LinuxAppImageUpdater.RolledBack(File.ReadAllText(log), ready.Version)) { rolledBack = log; File.AppendAllText(log, LinuxAppImageUpdater.ToldLine(ready.Version)); } }
+                    catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
                     updateChecking = false;
                     bool tell = updateAsked;
                     updateAsked = false;
-                    if (latest != null || tell) ShowUpdate(latest, tell);
+                    if (!updateInstalling) updateReady = ready;
+                    string version = latest != null || tell ? ShowUpdate(latest, tell) : null;
+                    // The page stays in her menu when the AppImage couldn't be fetched; Mainframe says why.
+                    if (problem != null && version != null && updateReady == null)
+                    {
+                        updateNote = "Capri " + version + " is out, but I couldn't download it: " + problem + " Right-click me > Get Capri " + version + ".";
+                        if (tell) UpdateNews = updateNote;
+                    }
+                    // The last restart put the old version back; that was silent, so she says it once.
+                    if (rolledBack != null && version != null && updateReady != null)
+                    {
+                        updateNote = "Capri " + version + " didn't take when I restarted, so I'm back on the old version. What happened is in " + rolledBack + ".";
+                        UpdateNews = updateNote;
+                    }
                     NotifySettings();
                 });
             });
@@ -1174,8 +1221,9 @@ namespace CapriDesktop
             }
         }
 
-        // A newer finished release puts "Get Capri X" in her menu, and she mentions it once per version.
-        internal void ShowUpdate(string latest, bool asked = false)
+        // A newer finished release puts "Get Capri X" in her menu, or "Restart Capri to update to X" once a Linux AppImage
+        // has it downloaded, and she mentions each once per version. Returns the newer version, or null.
+        internal string ShowUpdate(string latest, bool asked = false)
         {
             Release found = null;
             try { using (MemoryStream body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(latest ?? ""))) found = (Release)new DataContractJsonSerializer(typeof(Release)).ReadObject(body); }
@@ -1183,14 +1231,15 @@ namespace CapriDesktop
             Version current = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             Version released = found == null || found.Draft || found.Prerelease ? null : ReleaseVersion(found.Tag);
             string version = released == null ? null : Newer(found.Tag, current);
-            if (ContextMenu == null) return;
+            if (ContextMenu == null) return null;
             if (asked && released == null)
             {
                 updateNote = "Couldn't check for updates. Check your connection and try again.";
                 UpdateNews = updateNote;
-                return;
+                return null;
             }
             if (released != null) updateNote = null;
+            if (updateReady != null && updateReady.Version != version && !updateInstalling) updateReady = null;
             if (version == null)
             {
                 if (updateItem != null) ContextMenu.Items.Remove(updateItem);
@@ -1200,28 +1249,88 @@ namespace CapriDesktop
                     updateNote = "You're on the latest version (" + current.ToString() + ").";
                     UpdateNews = updateNote;
                 }
-                return;
+                return null;
             }
             updatePage = found.Page != null && found.Page.StartsWith("https://github.com/lachydotmcg/capri-desktop/releases/", StringComparison.Ordinal) ? found.Page : ReleasesPage;
             if (updateItem == null)
             {
                 updateItem = new MenuItem();
-                updateItem.Click += Guarded(delegate { Browse(updatePage); });
+                updateItem.Click += Guarded(delegate { if (updateReady != null) RestartUpdate(); else Browse(updatePage); });
             }
-            updateItem.Header = "Get Capri " + version;
+            string choice = updateReady != null ? "Restart Capri to update to " + version : "Get Capri " + version;
+            updateItem.Header = choice;
             if (!ContextMenu.Items.Contains(updateItem))
             {
                 int at = ContextMenu.Items.Count;
                 for (int i = ContextMenu.Items.Count - 1; i >= 0; i--) if (ContextMenu.Items[i] is Separator) { at = i; break; }
                 ContextMenu.Items.Insert(at, updateItem);
             }
-            string line = "Capri " + version + " is out. Right-click me > Get Capri " + version + ".";
+            string line = updateReady != null ? "Capri " + version + " is downloaded. Right-click me > " + choice + "." : "Capri " + version + " is out. Right-click me > " + choice + ".";
             if (asked) { updateNote = line; UpdateNews = line; }
-            if (Saved.UpdateSeen == version) return;
-            Saved.UpdateSeen = version;
+            string seen = updateReady != null ? version + " ready" : version;
+            if (Saved.UpdateSeen == seen) return version;
+            Saved.UpdateSeen = seen;
             Save();
             UpdateNews = line;
+            return version;
         }
+
+        // Her AppImage swaps itself for the downloaded one: the copy goes in beside it while she's still here, so a problem
+        // is said out loud, then she closes and a small script swaps them and starts her again.
+        private void RestartUpdate()
+        {
+            if (updateReady == null || updateInstalling) return;
+            if (fileEditor != null && !fileEditor.Clear(RestartUpdate)) return;
+            updateInstalling = true;
+            LinuxUpdateReady ready = updateReady;
+            updateNote = "Getting Capri " + ready.Version + " ready...";
+            NotifySettings();
+            int parent = Environment.ProcessId;
+            string log = Path.Combine(folder, "updates", "update.log");
+            Func<LinuxUpdateReady, int, string, Process> install = InstallUpdate;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string problem = null;
+                bool readOnly = false;
+                Process helper = null;
+                try { helper = install(ready, parent, log); }
+                catch (AppImageUpdateException error) { problem = error.Message; readOnly = error.ReadOnly; }
+                catch (Exception) { problem = "Something went wrong getting it ready."; }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    if (problem != null)
+                    {
+                        updateInstalling = false;
+                        if (readOnly)
+                        {
+                            // A restart can't ever work from there, so the release page comes back for the rest of the session.
+                            appImageReadOnly = true;
+                            updateReady = null;
+                            if (updateItem != null) updateItem.Header = "Get Capri " + ready.Version;
+                            updateNote = problem + " Right-click me > Get Capri " + ready.Version + " to download it yourself.";
+                        }
+                        else updateNote = "I couldn't update: " + problem + " I'm still on " + typeof(Pet).Assembly.GetName().Version.ToString(3) + ".";
+                        UpdateNews = updateNote;
+                        NotifySettings();
+                        return;
+                    }
+                    updateNote = "Restarting to update to Capri " + ready.Version + ".";
+                    NotifySettings();
+                    (RestartQuit ?? Quit)();
+                    if (quitting) return;
+                    // The quit was called off, so the helper must not swap her on some later, ordinary quit.
+                    try { if (helper != null && !helper.HasExited) helper.Kill(true); } catch (Exception) { }
+                    LinuxAppImageUpdater.Drop(ready.AppImage + ".capri-new");
+                    updateInstalling = false;
+                    updateNote = "I didn't close, so Capri " + ready.Version + " isn't in yet. Right-click me > Restart Capri to update to " + ready.Version + " when you're ready.";
+                    NotifySettings();
+                });
+            });
+        }
+
+        // Smoke swaps these so a test never starts the helper or closes her.
+        internal Func<LinuxUpdateReady, int, string, Process> InstallUpdate = LinuxAppImageUpdater.Install;
+        internal Action RestartQuit;
 
         // The release's version when it's newer than hers, like "0.7.6". Null for older, odd or missing tags.
         internal static string Newer(string tag, Version mine)
@@ -1230,7 +1339,7 @@ namespace CapriDesktop
             return found != null && found > new Version(mine.Major, mine.Minor, Math.Max(0, mine.Build), Math.Max(0, mine.Revision)) ? found.ToString(found.Revision > 0 ? 4 : 3) : null;
         }
 
-        private static Version ReleaseVersion(string tag)
+        internal static Version ReleaseVersion(string tag)
         {
             Version found;
             if (tag == null || !System.Text.RegularExpressions.Regex.IsMatch(tag, @"^[vV]?\d+\.\d+(\.\d+){0,2}$") || !Version.TryParse(tag.TrimStart('v', 'V'), out found)) return null;
@@ -1348,6 +1457,11 @@ namespace CapriDesktop
 
         private void Play(Clip next)
         {
+            if (next == perchArrive && !lying)
+            {
+                PixelPoint hip = Hip;
+                SetFacing(SitsLeft(hip.X, WorkAt(new PixelPoint(hip.X, hip.Y - 1)), Px(body.Size), FacingLeft));
+            }
             clip = next;
             clipStart = Now;
             idleCycle = 0;
@@ -1497,6 +1611,7 @@ namespace CapriDesktop
 
         internal void Fall()
         {
+            if (MoveStuck) { StayPut(); return; }
             ClearMoves();
             walking = false;
             seat = null;
@@ -1510,6 +1625,7 @@ namespace CapriDesktop
 
         private void Tumble(double now)
         {
+            if (MoveStuck) { StayPut(); return; }
             double step = Math.Max(0, Math.Min(0.05, now - fallStep));
             fallStep = now;
             PixelPoint hip = Hip;
@@ -1551,6 +1667,7 @@ namespace CapriDesktop
 
         internal void HoldSeat(double now)
         {
+            if (MoveStuck) return;
             if (seat == null || seat.Window == 0) return;
             Spot spot = Find(seat.Window);
             if (spot == null || !spot.Seat)
@@ -1648,6 +1765,7 @@ namespace CapriDesktop
             base.OnPointerPressed(e);
             Program.Guard(() =>
             {
+                if (DesktopPointer(e)) return;
                 if (body.HologramOn || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || outro != null) return;
                 Point at = e.GetPosition(this);
                 if (!Opaque(at)) return;
@@ -1658,6 +1776,7 @@ namespace CapriDesktop
                 e.Pointer.Capture(this);
                 holder = e.Pointer;
                 pressed = true;
+                if (DesktopDrags) desktopPress = e;
                 Desk.TrackDrag(true);
                 grabDip = new Point(at.X + FrameX, at.Y + FrameY);
                 clicks++;
@@ -1673,6 +1792,7 @@ namespace CapriDesktop
             base.OnPointerMoved(e);
             Program.Guard(() =>
             {
+                if (DesktopPointer(e)) return;
                 pointer = e.GetPosition(this);
                 if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
                 if (Desk is HyprlandDesk) return;
@@ -1680,6 +1800,7 @@ namespace CapriDesktop
                 int dx = at.X - downAt.X;
                 int dy = at.Y - downAt.Y;
                 if (!dragging && dx * dx + dy * dy < 25) return;
+                if (DesktopDrags) { StartDesktopDrag(); return; }
                 if (!dragging) Grab();
                 dragAt = at;
                 dragPending = true;
@@ -1702,6 +1823,7 @@ namespace CapriDesktop
 
         internal void DragFrame()
         {
+            if (desktopDrag) return;
             if (!pressed) return;
             if (Desk is HyprlandDesk nativeDesk)
             {
@@ -1731,6 +1853,7 @@ namespace CapriDesktop
             base.OnPointerReleased(e);
             Program.Guard(() =>
             {
+                if (DesktopPointer(e)) return;
                 if (!pressed || e.InitialPressMouseButton != MouseButton.Left) return;
                 if (Desk is HyprlandDesk native) ApplyNativeDrag(native.Desktop.SamplePointer());
                 if (dragging && Desk is not HyprlandDesk)
@@ -1752,6 +1875,7 @@ namespace CapriDesktop
         protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
         {
             base.OnPointerCaptureLost(e);
+            if (desktopDrag) return;
             Program.Guard(Unhold);
         }
 
@@ -1766,6 +1890,8 @@ namespace CapriDesktop
         // focus or being hidden lets go of her the same way.
         private void Unhold()
         {
+            if (!IsVisible || quitting) desktopReleased = false;
+            if (desktopDrag) { if (IsVisible && !quitting) return; desktopDrag = desktopReleased = false; }
             if (!pressed) return;
             pressed = false;
             dragGesture++;
@@ -2083,6 +2209,7 @@ namespace CapriDesktop
 
         internal bool Drop()
         {
+            if (MoveStuck) { dragging = false; StayPut(); Save(); return true; }
             // Her ledges are found before the drag ends, and a bug there still ends it, with a fall that looks again, so it
             // can't leave her floating where she was let go.
             Ledge target;
@@ -3026,6 +3153,7 @@ namespace CapriDesktop
         // Which step one of her sliders is on, counted from the bottom the way her menus show it, or -1 for one only Windows has.
         internal int LevelOf(string name)
         {
+            if (name == "music_app") return MusicApp;
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.InvokeAsync(delegate { return LevelOf(name); }).GetAwaiter().GetResult();
             int careKind = Array.IndexOf(Hands.CareSettings, name);
             if (careKind >= 0) return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), CareTime((CareKind)careKind)));
@@ -3082,6 +3210,7 @@ namespace CapriDesktop
                 case "size": Resize(Sizes[step]); break;
                 case "wander": SetWander(step); break;
                 case "pop_ins": SetPopPace(step); break;
+                case "music_app": SetMusicApp(step); break;
                 case "sleep": SetSleepAfter(Sleeps[step]); break;
                 case "volume": SetVolume(Volumes[step]); break;
                 case "voice_speed": SetPace(Paces[step]); break;
@@ -3813,14 +3942,19 @@ namespace CapriDesktop
             return right ? at + step : at - step;
         }
 
+        private int StrollFrom(int left, bool facingLeft) { return left + Px(body.Size * (facingLeft ? 0.41 : 0.1)) + Px(8); }
+
+        private int StrollTo(int right, bool facingLeft) { return right - Px(body.Size * (facingLeft ? 0.1 : 0.41)) - Px(8); }
+
         internal bool Stroll()
         {
+            if (MoveStuck) return false;
             if (walking || falling || dragging || outro != null || seat == null || seat.Free) return false;
             PixelPoint hip = Hip;
             PixelRect area = WorkAt(hip);
             if (seat.Y - Px(body.Size * StandY) < ScreenAt(hip).Y) return false;
-            int from = Math.Max(seat.Left, area.X) + Px(body.Size * 0.1) + Px(8);
-            int to = Math.Min(seat.Right, area.Right) - Px(body.Size * 0.41) - Px(8);
+            int from = StrollFrom(Math.Max(seat.Left, area.X), true);
+            int to = StrollTo(Math.Min(seat.Right, area.Right), false);
             int target = WalkTarget(hip.X, from, to, Px(body.Size), random.NextDouble(), random.NextDouble());
             if (target == hip.X) return false;
             SetFacing(target < hip.X);
@@ -3836,6 +3970,7 @@ namespace CapriDesktop
 
         private void Walk(double now)
         {
+            if (MoveStuck) { StayPut(); return; }
             double step = Math.Max(0, Math.Min(0.05, now - walkStep));
             walkStep = now;
             int gap = walkTo - anchor.X;
@@ -3870,11 +4005,12 @@ namespace CapriDesktop
 
         internal bool Blink()
         {
+            if (MoveStuck) return false;
             if (walking || falling || dragging || outro != null || quitting || seat == null || seat.Free) return false;
             PixelPoint hip = Hip;
             PixelRect area = WorkAt(hip);
-            int from = Math.Max(seat.Left, area.X) + Px(body.Size * 0.1) + Px(8);
-            int to = Math.Min(seat.Right, area.Right) - Px(body.Size * 0.41) - Px(8);
+            int from = StrollFrom(Math.Max(seat.Left, area.X), FacingLeft);
+            int to = StrollTo(Math.Min(seat.Right, area.Right), FacingLeft);
             int target = WalkTarget(hip.X, from, to, Px(body.Size), random.NextDouble(), random.NextDouble());
             if (target == hip.X) return false;
             Ledge spot = seat;
@@ -3884,6 +4020,7 @@ namespace CapriDesktop
 
         internal bool Wander(bool asked = false)
         {
+            if (MoveStuck) return false;
             if (outro != null || quitting) return false;
             List<Ledge> spots = new List<Ledge>();
             foreach (Ledge ledge in Ledges())
@@ -3904,6 +4041,7 @@ namespace CapriDesktop
 
         private void Hop(Ledge spot, int x)
         {
+            if (MoveStuck) { StayPut(); return; }
             if (askedHop && !MovePlace(ref spot, ref x))
             {
                 Fall();
@@ -3971,7 +4109,7 @@ namespace CapriDesktop
             bool hidden = away;
             string line = PopLines[random.Next(PopLines.Length)];
             // With Stay put, or on a Sit here spot, she says hi from where she is.
-            if (!hidden && (Saved.Wander <= 0 || (seat != null && seat.Free)))
+            if (!hidden && (MoveStuck || Saved.Wander <= 0 || (seat != null && seat.Free)))
             {
                 Blurt(PopHeard, line);
                 popAsked = asking;
@@ -4349,6 +4487,7 @@ namespace CapriDesktop
         internal bool CheckIns { get { return !Saved.NoCheckIns; } }
         internal bool CheckInsShown { get { return checkInsItem.IsChecked; } }
         internal int PopPace { get { return Math.Max(0, Math.Min(2, Saved.PopPace ?? 1)); } }
+        internal int MusicApp { get { return Math.Max(0, Math.Min(2, Saved.MusicApp)); } }
         internal double PopGap() { return PopPaces[PopPace, 0] + random.NextDouble() * PopPaces[PopPace, 1]; }
 
         internal string PopsPicked
@@ -4373,6 +4512,13 @@ namespace CapriDesktop
         {
             Saved.PopPace = Math.Max(0, Math.Min(2, pace));
             nextPopIn = -1;
+            Save();
+            Sync();
+        }
+
+        internal void SetMusicApp(int app)
+        {
+            Saved.MusicApp = Math.Max(0, Math.Min(2, app));
             Save();
             Sync();
         }
@@ -4460,6 +4606,7 @@ namespace CapriDesktop
             bool noted;
             try { noted = Hands.Heard(text, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
+            if (TimingTool(ticket, text, tool, args)) return;
             // Something that can't work here, like clones and chaos mode, which are Windows-only: she says so herself and why,
             // brain or no brain, instead of her brain joking about it. Asked for that and something she can do too, like "open
             // Spotify. Chaos mode", the rest goes ahead and she says why after it (a Codex review, 2 Nov).
@@ -5177,6 +5324,7 @@ namespace CapriDesktop
             [DataMember] internal bool NoKeepAwake;
             [DataMember] internal string Vault;
             [DataMember] internal ThinkingPick[] ThinkingPicks;
+            [DataMember] internal int MusicApp;
         }
 
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
@@ -5210,6 +5358,7 @@ namespace CapriDesktop
             saved.HuskMode = newer.HuskMode;
             saved.ThinkingPicks = newer.ThinkingPicks;
             saved.NoHuskVerbosity = newer.NoHuskVerbosity;
+            saved.MusicApp = newer.MusicApp;
             return saved;
         }
 
@@ -5217,7 +5366,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp };
         }
 
         private Settings Load()
@@ -5298,7 +5447,7 @@ namespace CapriDesktop
 
         internal void Save()
         {
-            Saved.X = anchor.X;
+            Saved.X = anchor.X + Px(body.Size * SitAcross) - Px(body.Size * SitX);
             Saved.Y = anchor.Y;
             Saved.Placed = true;
             NotifySettings();

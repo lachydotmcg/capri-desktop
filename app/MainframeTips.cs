@@ -118,6 +118,7 @@ namespace CapriDesktop
             Explain(planKey, "My plan", "Mainframe.cs", null, "My plan");
             Explain(setup, "Set up her brain", "Mainframe.cs", hint, "Set up her brain");
             for (int i = 0; i < rungs.Length; i++) Explain(rungs[i], i == 2 ? "MAX INTELLIGENCE" : i == 1 ? "MEDIUM INTELLIGENCE" : "NORMAL");
+            Explain(offRung, "No AI");
             Explain(textEntry, "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key", "Mainframe.cs", null, "Brain API key");
             Explain(textConnect, "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key", "Mainframe.cs", null, "Connect / Forget brain key");
             Explain(movePaid, "Move key to MAX INTELLIGENCE");
@@ -167,6 +168,9 @@ namespace CapriDesktop
             Explain(localAddress, "Local server address", "Mainframe.cs", FindHintLabel("Local server address"), "Local server address");
             Explain(security, "SECURITY >", "Mainframe.cs", null, "Security");
             Explain(checkIns, "Check in on me");
+            Explain(jealousAIs, "Jealous of other AIs");
+            Explain(closeAIs, "Close other AIs for me");
+            Explain(jealousApps, "Apps she may close");
             for (int i = 0; i < careTimes.Length; i++) Explain(careTimes[i], Care.Names[i], "Care.cs", null, Care.Names[i] + " time");
             Explain(clipChoose, "Save folder", "Mainframe.cs", FindHintLabel("Save folder"), "Save folder");
             Explain(clipsFolder, "Save folder", "Mainframe.cs", null, "Open clips folder");

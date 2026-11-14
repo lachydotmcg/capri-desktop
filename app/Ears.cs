@@ -736,6 +736,20 @@ namespace CapriDesktop
         private double loudest = 0.05;
         private long began;
         private long until;
+        // Her two voice speakers have a name for their voice cut lines in errors.txt. Her sound effects and test speakers don't.
+        internal string Name;
+        // A smoke check's own clock in seconds, so it can walk her speaker through gaps without waiting for them.
+        internal Func<double> Clock;
+        // Samples handed to the wave API since it last started over, against its own count of what it has played.
+        private long fed;
+        // What she played in the last second, kept after it ends: her echo can still be in the mic for that long.
+        private readonly List<SoundLevel> history = new List<SoundLevel>();
+        private struct SoundLevel
+        {
+            internal long At, End;
+            internal double Level;
+        }
+        private long Now { get { return Clock == null ? Stopwatch.GetTimestamp() : (long)(Clock() * Stopwatch.Frequency); } }
         // How loud each twelfth of a second of what she's playing is, so her ears know how much of the mic is her.
         private readonly List<double> levels = new List<double>();
         private MicAnswer answer;
@@ -746,6 +760,12 @@ namespace CapriDesktop
         [DllImport("winmm.dll")] private static extern int waveOutWrite(IntPtr device, IntPtr header, int size);
         [DllImport("winmm.dll")] private static extern int waveOutReset(IntPtr device);
         [DllImport("winmm.dll")] private static extern int waveOutClose(IntPtr device);
+        [DllImport("winmm.dll")] private static extern int waveOutGetPosition(IntPtr device, ref WaveTime time, int size);
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WaveTime
+        {
+            internal uint Type, Value, Reserved;
+        }
         [DllImport("winmm.dll")] private static extern int waveOutGetNumDevs();
         [DllImport("winmm.dll", CharSet = CharSet.Unicode)] private static extern int waveOutGetDevCaps(IntPtr id, ref OutputCaps caps, int size);
         [DllImport("winmm.dll")] private static extern int waveOutMessage(IntPtr device, int message, out int size, IntPtr unused);
@@ -892,7 +912,7 @@ namespace CapriDesktop
             string id = picked == null ? (modern == null ? WaveDefaultId : DefaultId) : picked.Id;
             int index = picked == null ? -1 : picked.Index;
             if (sampleRate == rate && string.Equals(openedId, id, StringComparison.OrdinalIgnoreCase) && openedIndex == index && (silent || device != IntPtr.Zero || (modern != null && modern.Alive))) return;
-            Close(false);
+            Close(false, "speaker reopened");
             rate = sampleRate;
             openedId = id;
             openedIndex = index;
@@ -927,10 +947,29 @@ namespace CapriDesktop
             return "Can't open your speakers (Windows error " + failed + "). Check Settings > System > Sound, then try again.";
         }
 
-        internal bool Busy { get { return Stopwatch.GetTimestamp() < Interlocked.Read(ref until) + Stopwatch.Frequency * 35 / 100; } }
+        internal bool Busy { get { long end = SoundEnd; return end > 0 && Now < end + Stopwatch.Frequency * 35 / 100; } }
 
         // Seconds of sound still to play.
-        internal double Left { get { return Math.Max(0, Interlocked.Read(ref until) - Stopwatch.GetTimestamp()) / (double)Stopwatch.Frequency; } }
+        internal double Left { get { return Math.Max(0, Interlocked.Read(ref until) - Now) / (double)Stopwatch.Frequency; } }
+        internal long SoundEnd { get { return Interlocked.Read(ref until); } }
+        // Seconds since her sound ran out by her clock: 0 while it plays, and forever once cleared.
+        internal double Ago { get { long end = SoundEnd; return end == 0 ? double.PositiveInfinity : Math.Max(0, Now - end) / (double)Stopwatch.Frequency; } }
+
+        // Seconds the speakers themselves still have to play. A device running behind her clock (Bluetooth, a busy PC) still
+        // has some after her clock says she's done, and closing it then cuts her last words.
+        internal double DeviceLeft
+        {
+            get
+            {
+                if (rate <= 0) return 0;
+                if (modern != null) return modern.Left / (double)rate;
+                if (device == IntPtr.Zero) return 0;
+                WaveTime time = new WaveTime { Type = 2 };
+                if (waveOutGetPosition(device, ref time, Marshal.SizeOf(typeof(WaveTime))) != 0) return 0;
+                long played = time.Type == 2 ? time.Value : time.Type == 4 ? time.Value / 2 : time.Type == 1 ? (long)time.Value * rate / 1000 : fed;
+                return Math.Max(0, fed - played) / (double)rate;
+            }
+        }
 
         internal void Play(short[] samples)
         {
@@ -956,9 +995,20 @@ namespace CapriDesktop
             Output picked = string.IsNullOrEmpty(Chosen) ? null : Resolve(List());
             if (!string.Equals(openedId, picked == null ? (modern == null ? WaveDefaultId : DefaultId) : picked.Id, StringComparison.OrdinalIgnoreCase) || (picked != null && openedIndex != picked.Index) || (modern != null && !modern.Alive)) Open(rate);
             Sweep();
-            long now = Stopwatch.GetTimestamp();
+            long now = Now;
             if (now >= Interlocked.Read(ref until)) { began = now; shapes.Clear(); leftover.Clear(); lock (levels) levels.Clear(); Interlocked.Exchange(ref until, now); }
+            long start = Interlocked.Read(ref until);
             Interlocked.Add(ref until, samples.Length * Stopwatch.Frequency / rate);
+            lock (history)
+            {
+                history.RemoveAll(delegate(SoundLevel level) { return level.End < now - Stopwatch.Frequency; });
+                int part = Math.Max(1, rate / 12);
+                for (int i = 0; i < samples.Length; i += part)
+                {
+                    int count = Math.Min(part, samples.Length - i);
+                    history.Add(new SoundLevel { At = start + i * Stopwatch.Frequency / rate, End = start + (i + count) * Stopwatch.Frequency / rate, Level = Loudness(samples, i, count) });
+                }
+            }
             leftover.AddRange(samples);
             int step = Math.Max(1, rate / 12);
             short[] all = leftover.ToArray();
@@ -1017,17 +1067,18 @@ namespace CapriDesktop
                 Marshal.FreeHGlobal(header.Data);
                 Marshal.FreeHGlobal(pointer);
                 if (ReopenGone()) { Send(samples); return; }
-                Clear();
+                Clear("speaker write failed");
                 string problem = "Windows' wave API " + (prepared == 0 ? "write" : "prepare") + " failed (error " + written + ", " + rate + " Hz, " + samples.Length + " samples).";
                 Brain.Log("Speakers", -1, problem);
                 throw new VoiceException(problem);
             }
             pending.Add(pointer);
+            fed += samples.Length;
         }
 
         internal int Shape()
         {
-            long now = Stopwatch.GetTimestamp();
+            long now = Now;
             if (now >= Interlocked.Read(ref until) || shapes.Count == 0) return -1;
             int index = (int)((now - began) * 12 / Stopwatch.Frequency);
             return index >= 0 && index < shapes.Count ? shapes[index] : -1;
@@ -1036,7 +1087,7 @@ namespace CapriDesktop
         // How loud she's playing now: the loudest of the last 300 ms, since the mic hears her a moment late.
         internal double Level()
         {
-            long now = Stopwatch.GetTimestamp();
+            long now = Now;
             if (now >= Interlocked.Read(ref until)) return 0;
             int index = (int)((now - began) * 12 / Stopwatch.Frequency);
             double most = 0;
@@ -1044,15 +1095,37 @@ namespace CapriDesktop
             return most;
         }
 
-        internal void Clear()
+        // Her loudest in the last second or less, after her sound has ended too.
+        internal double Level(double seconds)
         {
-            Clear(true);
+            long now = Now, since = now - (long)(seconds * Stopwatch.Frequency);
+            double most = 0;
+            lock (history) foreach (SoundLevel level in history) if (level.At <= now && level.End >= since) most = Math.Max(most, level.Level);
+            return most;
         }
 
-        private void Clear(bool cut)
+        internal void Clear()
         {
+            Clear("cleared");
+        }
+
+        internal void Clear(string reason, bool recent = false)
+        {
+            Clear(true, reason, recent);
+        }
+
+        // Sound dropped before it played goes in errors.txt with what dropped it, so a report of her voice stopping mid-reply says
+        // which part of her did it (ticket 35, #158). A stream cleared in the second after its sound also lost the rest of its turn.
+        private void Clear(bool cut, string reason, bool recent)
+        {
+            if (!string.IsNullOrEmpty(Name))
+            {
+                double left = Math.Max(Left, DeviceLeft);
+                if (left > 0.25 || recent && Ago < 1) Brain.Log("voice cut", -1, Name + ": " + left.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s left, " + (reason == null ? "" : reason + ", ") + "stopped by " + Voice.Stopper());
+            }
             if (device != IntPtr.Zero) waveOutReset(device);
             if (modern != null) modern.Clear();
+            fed = 0;
             if (cut) { MicMix.Hush(this); EndAnswer(); }
             Action hushed = Hushed;
             if (cut && !Plain && hushed != null) hushed();
@@ -1060,6 +1133,7 @@ namespace CapriDesktop
             shapes.Clear();
             leftover.Clear();
             lock (levels) levels.Clear();
+            lock (history) history.Clear();
             Interlocked.Exchange(ref until, 0);
         }
 
@@ -1079,12 +1153,12 @@ namespace CapriDesktop
 
         internal void Close()
         {
-            Close(true);
+            Close(true, "closed");
         }
 
-        internal void Close(bool cut)
+        internal void Close(bool cut, string reason = "closed")
         {
-            Clear(cut);
+            Clear(cut, reason, false);
             if (device != IntPtr.Zero) waveOutClose(device);
             device = IntPtr.Zero;
             if (modern != null) modern.Dispose();
@@ -1117,6 +1191,23 @@ namespace CapriDesktop
         // Samples handed to Windows so far.
         internal long Fed;
         internal long Played;
+        // What a clear threw away from Windows' buffer, which never counts as played.
+        private long cleared;
+
+        // Samples still to play: queued here, or handed to Windows and not drained yet.
+        internal long Left
+        {
+            get
+            {
+                lock (gate)
+                {
+                    if (flush) return 0;
+                    long queued = -headAt;
+                    foreach (short[] chunk in chunks) queued += chunk.Length;
+                    return Math.Max(0, Interlocked.Read(ref Fed) - Interlocked.Read(ref Played) - Interlocked.Read(ref cleared)) + queued;
+                }
+            }
+        }
 
         internal SoundOut(int rate) : this(rate, null, null, null) { }
 
@@ -1251,6 +1342,7 @@ namespace CapriDesktop
                         if (started) Check(client.Stop(), "stop before clear");
                         started = false;
                         Check(client.Reset(), "reset");
+                        Interlocked.Add(ref cleared, waiting);
                         waiting = 0;
                         progress = Stopwatch.GetTimestamp();
                         volumeAt = 0;
@@ -2943,8 +3035,8 @@ namespace CapriDesktop
         // The mic is open: Windows shows its mic-in-use icon.
         internal bool Listening { get { return mic.Listening; } }
 
-        // While she talks the mic stays open but nothing is decoded, so her own voice can't wake her. What it hears then still
-        // goes to Overheard, so she can tell when they talk over her.
+        // While she talks the mic stays open but nothing is decoded, so her own voice can't wake her. All it hears still goes
+        // to Overheard, so she can tell when they talk over her, and how quiet the room was before she started.
         internal bool Held { get { return held; } set { held = value; } }
         internal Action<short[]> Overheard;
 
@@ -3023,11 +3115,11 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (spotter == IntPtr.Zero || stream == IntPtr.Zero) return;
+                Action<short[]> overheard = Overheard;
+                if (overheard != null) overheard(chunk);
                 if (held)
                 {
                     heldWas = true;
-                    Action<short[]> overheard = Overheard;
-                    if (overheard != null) overheard(chunk);
                     return;
                 }
                 // What she half-heard before she spoke is dropped, so the end of her line can't finish a keyword.

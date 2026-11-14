@@ -605,6 +605,168 @@ namespace CapriDesktop
         }
     }
 
+    // The clock her moves run on: her frames, her teleport's ribbons, her glitch bars and the rest of her overlays. A window timer
+    // only fires when nothing else is waiting on her window's thread, so a thread that's never quite idle starves every one of
+    // them at once. On 12 Nov, a computer job in a full-screen game did that for 22 s: her bubble and task panel kept updating,
+    // since those arrive as posted work, but her teleport sat on its first frame, glitch bars and all, until Esc ended the job.
+    // This counts time on a worker and hands each tick over as posted work, so her moves keep going whenever her window still
+    // answers. Only one tick waits at a time, and the next is counted from when this one went out, as a window timer counts,
+    // so her rates land on Windows' 1/64 s clock the way they always have: 33 ms still takes 47 ms.
+    internal sealed class Beat : IDisposable
+    {
+        // Her window's thread, set as she starts. A beat started before then posts to the thread that started it.
+        internal static System.Threading.SynchronizationContext Ui;
+        // One thread of its own counts every beat's time, so a thread pool that's busy with her brain and her hands can't hold
+        // her moves up either.
+        private static readonly List<Beat> armed = new List<Beat>();
+        private static System.Threading.Thread counter;
+        private readonly object gate = new object();
+        private System.Threading.SynchronizationContext target;
+        private int interval = 100, generation;
+        private bool enabled, pending, disposed;
+        private long due;
+
+        internal event EventHandler Tick;
+
+        internal int Interval
+        {
+            get { lock (gate) return interval; }
+            set
+            {
+                if (value < 1) throw new ArgumentOutOfRangeException("value");
+                lock (gate)
+                {
+                    if (interval == value) return;
+                    interval = value;
+                    if (!enabled || pending || disposed) return;
+                    due = System.Diagnostics.Stopwatch.GetTimestamp();
+                    Arm();
+                }
+            }
+        }
+
+        internal bool Enabled
+        {
+            get { lock (gate) return enabled; }
+            set { if (value) Start(); else Stop(); }
+        }
+
+        internal void Start()
+        {
+            lock (gate)
+            {
+                if (enabled || disposed) return;
+                enabled = true;
+                generation++;
+                if (target == null) target = Ui ?? System.Threading.SynchronizationContext.Current;
+                due = System.Diagnostics.Stopwatch.GetTimestamp();
+                if (!pending) Arm();
+            }
+        }
+
+        internal void Stop()
+        {
+            lock (gate)
+            {
+                if (!enabled) return;
+                enabled = false;
+                generation++;
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (gate)
+            {
+                disposed = true;
+                enabled = false;
+                generation++;
+            }
+        }
+
+        // Inside the gate: the next tick, an interval after the last one went out, or straight away if that's already gone.
+        private void Arm()
+        {
+            long now = System.Diagnostics.Stopwatch.GetTimestamp(), next = due + interval * System.Diagnostics.Stopwatch.Frequency / 1000;
+            System.Threading.Interlocked.Exchange(ref due, Math.Max(next, now));
+            lock (armed)
+            {
+                if (!armed.Contains(this)) armed.Add(this);
+                if (counter == null)
+                {
+                    counter = new System.Threading.Thread(Count) { IsBackground = true, Name = "Capri beat", Priority = System.Threading.ThreadPriority.AboveNormal };
+                    counter.Start();
+                }
+                System.Threading.Monitor.Pulse(armed);
+            }
+        }
+
+        private static void Count()
+        {
+            List<Beat> ready = new List<Beat>();
+            while (true)
+            {
+                lock (armed)
+                {
+                    while (true)
+                    {
+                        long now = System.Diagnostics.Stopwatch.GetTimestamp(), next = long.MaxValue;
+                        for (int i = armed.Count - 1; i >= 0; i--)
+                        {
+                            long at = armed[i].Due;
+                            if (at <= now) { ready.Add(armed[i]); armed.RemoveAt(i); }
+                            else next = Math.Min(next, at);
+                        }
+                        if (ready.Count > 0) break;
+                        if (next == long.MaxValue) System.Threading.Monitor.Wait(armed);
+                        else System.Threading.Monitor.Wait(armed, (int)Math.Max(1, Math.Min(1000, (next - now) * 1000 / System.Diagnostics.Stopwatch.Frequency)));
+                    }
+                }
+                foreach (Beat beat in ready) beat.Fire();
+                ready.Clear();
+            }
+        }
+
+        // Read by the counting thread without the gate, which is always taken before the list and never after it.
+        private long Due { get { return System.Threading.Interlocked.Read(ref due); } }
+
+        private void Fire()
+        {
+            System.Threading.SynchronizationContext to;
+            int ticket;
+            lock (gate)
+            {
+                if (!enabled || pending || disposed) return;
+                to = target ?? Ui;
+                if (to == null) { Arm(); return; }
+                pending = true;
+                ticket = generation;
+                System.Threading.Interlocked.Exchange(ref due, System.Diagnostics.Stopwatch.GetTimestamp());
+            }
+            try { to.Post(Run, ticket); }
+            catch (Exception) { lock (gate) pending = false; }
+        }
+
+        private void Run(object ticket)
+        {
+            bool fire;
+            lock (gate) fire = enabled && !disposed && (int)ticket == generation;
+            try
+            {
+                EventHandler tick = Tick;
+                if (fire && tick != null) tick(this, EventArgs.Empty);
+            }
+            finally
+            {
+                lock (gate)
+                {
+                    pending = false;
+                    if (enabled && !disposed) Arm();
+                }
+            }
+        }
+    }
+
     internal class Overlay : Form
     {
         internal bool ClickThrough;
@@ -698,7 +860,7 @@ namespace CapriDesktop
         internal static readonly Color Caption = Color.FromArgb(168, 174, 184);
         private const int WashAlpha = 40;
         private static readonly Random random = new Random();
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private int hover;
         private float scale = 1;
         private Point centre;
@@ -1174,7 +1336,7 @@ namespace CapriDesktop
         private static readonly Color Bruise = Color.FromArgb(34, 8, 48);
         private static readonly Color Violet = Color.FromArgb(110, 30, 170);
         private static readonly Color Hot = Color.FromArgb(255, 120, 140);
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private readonly Random random = new Random();
         private Rectangle area;
@@ -1571,7 +1733,7 @@ namespace CapriDesktop
         internal const double Handoff = 0.42;
         internal static readonly Color Violet = Color.FromArgb(122, 60, 255);
         internal static readonly Color Mint = Color.FromArgb(30, 240, 138);
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch();
         private readonly Random random = new Random();
         private Bitmap picture;
@@ -1581,6 +1743,7 @@ namespace CapriDesktop
         private bool leaving;
         private float scale;
         private int seed;
+        private int used;
 
         internal Shatter() : base("Capri shatter")
         {
@@ -1624,11 +1787,17 @@ namespace CapriDesktop
             if (picture != null) { picture.Dispose(); picture = null; }
         }
 
+        internal void Rest(int now)
+        {
+            if (unchecked(now - used) >= 600000) Forget();
+        }
+
         private void Step()
         {
             double t = watch.Elapsed.TotalSeconds;
             if (picture == null || t >= (leaving ? LeaveLength : ArriveLength)) { Stop(); return; }
             Present(Frame(area.Size, picture, at, shards, t, leaving, scale, seed, (int)(t * 30)), area.Location);
+            used = Environment.TickCount;
         }
 
         private static double Smooth(double x)
@@ -1783,6 +1952,72 @@ namespace CapriDesktop
             }
         }
 
+        // How far Under can reach past the sides of her cell, in pixels of her 384-tall art.
+        internal const float UnderReach = 34;
+
+        // Her glitch on her artist's standing set, drawn under her before her frame goes on top: mint and violet ghosts of that
+        // same frame, some of its bands knocked sideways, and a few stray bars. Her own frame stays whole over it, so it shows
+        // around her edges the way the old glitch strip did. cell is her frame in strip, target where it's drawn, and strength
+        // how hard this step glitches, 0 to 1; the same seed draws the same picture.
+        internal static void Under(Graphics graphics, Bitmap strip, Rectangle cell, RectangleF target, double strength, int seed)
+        {
+            if (strength <= 0) return;
+            Random pick = new Random(seed);
+            float unit = target.Height / 384f;
+            float shift = (float)((3 + 5 * strength) * unit);
+            // Her one frame is scaled once to the size she's drawn at, and tinted from that, so the bands are plain copies. Drawn
+            // straight from her 60-frame strip with a tint, GDI+ works through far more of it than each band, and a step took a second.
+            int w = Math.Max(1, (int)Math.Ceiling(target.Width)), h = Math.Max(1, (int)Math.Ceiling(target.Height));
+            Bitmap own = new Bitmap(w, h, PixelFormat.Format32bppPArgb), green = null, violet = null;
+            try
+            {
+                Rectangle whole = new Rectangle(0, 0, w, h);
+                using (Graphics paper = Graphics.FromImage(own))
+                {
+                    paper.CompositingMode = CompositingMode.SourceCopy;
+                    paper.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    paper.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    paper.DrawImage(strip, new RectangleF(0, 0, target.Width, target.Height), cell, GraphicsUnit.Pixel);
+                }
+                green = new Bitmap(w, h, PixelFormat.Format32bppPArgb);
+                violet = new Bitmap(w, h, PixelFormat.Format32bppPArgb);
+                using (ImageAttributes tint = Tint(Mint, 0.15 + 0.75 * strength))
+                using (Graphics paper = Graphics.FromImage(green)) paper.DrawImage(own, whole, 0, 0, w, h, GraphicsUnit.Pixel, tint);
+                using (ImageAttributes tint = Tint(Violet, 0.15 + 0.75 * strength))
+                using (Graphics paper = Graphics.FromImage(violet)) paper.DrawImage(own, whole, 0, 0, w, h, GraphicsUnit.Pixel, tint);
+                // The bands go down whole pixels apart, copied pixel for pixel: a glitch's edges are meant to be hard.
+                GraphicsState kept = graphics.Save();
+                graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+                graphics.PixelOffsetMode = PixelOffsetMode.Half;
+                float left = (float)Math.Round(target.X), high = (float)Math.Round(target.Y);
+                for (int top = 0; top < h; )
+                {
+                    int tall = Math.Min(h - top, Math.Max(3, (int)(h * (0.03 + pick.NextDouble() * 0.13))));
+                    float off = pick.Next(3) == 0 ? (float)((pick.NextDouble() * 2 - 1) * 22 * unit * strength) : 0;
+                    Rectangle from = new Rectangle(0, top, w, tall);
+                    foreach (KeyValuePair<Bitmap, float> layer in new[] { new KeyValuePair<Bitmap, float>(green, off - shift), new KeyValuePair<Bitmap, float>(violet, off + shift), new KeyValuePair<Bitmap, float>(off != 0 ? own : null, off) })
+                        if (layer.Key != null) graphics.DrawImage(layer.Key, new RectangleF(left + (float)Math.Round(layer.Value), high + top, w, tall), from, GraphicsUnit.Pixel);
+                    top += tall;
+                }
+                graphics.Restore(kept);
+            }
+            finally
+            {
+                own.Dispose();
+                if (green != null) green.Dispose();
+                if (violet != null) violet.Dispose();
+            }
+            Color[] bars = { Color.White, Mint, Look.Red, Violet };
+            float middle = target.X + target.Width / 2, room = target.Width / 2 + (UnderReach - 2) * unit;
+            for (int i = 0, count = (int)Math.Round(5 * strength); i < count; i++)
+            {
+                float y = target.Y + target.Height * (float)(0.1 + pick.NextDouble() * 0.8);
+                float width = Math.Min(room * 2, target.Width * (float)(0.3 + pick.NextDouble() * 0.6));
+                float x = Math.Max(middle - room, Math.Min(middle + room - width, middle + target.Width * (float)((pick.NextDouble() - 0.5) * 0.6) - width / 2));
+                using (Brush bar = new SolidBrush(Color.FromArgb((int)(40 + 180 * strength), bars[pick.Next(bars.Length)]))) graphics.FillRectangle(bar, x, y, width, Math.Max(1.5f, (1 + pick.Next(3)) * 1.3f * unit));
+            }
+        }
+
         private static ImageAttributes Tint(Color colour, double alpha)
         {
             ImageAttributes tint = new ImageAttributes();
@@ -1838,7 +2073,7 @@ namespace CapriDesktop
         internal static Bitmap Face;
         private static Bitmap painted, minted, bruised;
         private static RectangleF paintedFrom;
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly Random random = new Random();
         private IntPtr window;
@@ -2236,7 +2471,7 @@ namespace CapriDesktop
     // there it hides for the moment she takes one.
     internal sealed class ControlGlow : Overlay
     {
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private Rectangle area;
         private bool excluded;
         private bool unseen;
@@ -2404,7 +2639,7 @@ namespace CapriDesktop
         private const int ClickTick = 15;
         // Lazy, so it's only in memory around her clicks, and a Clip, so colour mods and skins change it like the rest of her.
         internal readonly Clip ClickArt = new Clip("click", 20, 60, 1, 0, 0, true);
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly object gate = new object();
         private IntPtr window;
@@ -2743,7 +2978,7 @@ namespace CapriDesktop
         private const int MostRows = 7;
         internal const int EndingRows = 5, SnagRows = 5;
         private const string Speaker = "CAPRI: ";
-        private readonly Timer ticks = new Timer();
+        private readonly Beat ticks = new Beat();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
         private readonly List<JobStep> steps = new List<JobStep>();
         private object owner;
@@ -3079,6 +3314,30 @@ namespace CapriDesktop
         private string scrollReply;
         private RectangleF pages;
         private bool copied;
+        private Action<bool> picked;
+        private RectangleF yesButton, noButton;
+        internal bool Choosing { get { return picked != null; } }
+        internal RectangleF YesButton { get { return yesButton; } }
+        internal RectangleF NoButton { get { return noButton; } }
+
+        internal void Choose(Action<bool> answer)
+        {
+            picked = answer;
+            yesButton = noButton = RectangleF.Empty;
+            clean = false;
+        }
+
+        internal void Pick(bool yes)
+        {
+            Action<bool> answer = picked;
+            if (answer != null) answer(yes);
+            if (picked == answer) Choose(null);
+        }
+
+        internal void ClickChoice(Point point)
+        {
+            if (Choosing) Pick(yesButton.Contains(point));
+        }
         internal Action<string> Copying = delegate(string reply) { Clipboard.SetText(reply); };
         private const int Columns = 34;
         private const string Speaker = "CAPRI: ";
@@ -3120,6 +3379,7 @@ namespace CapriDesktop
             base.OnMouseUp(e);
             if (e.Button == MouseButtons.Right) { CopyReply(); return; }
             if (e.Button != MouseButtons.Left) return;
+            if (Choosing) { ClickChoice(e.Location); return; }
             if (Scrollable && pages.Contains(e.Location)) { ScrollRows(e.X < pages.Left + pages.Width / 2 ? -visibleLines : visibleLines); return; }
             if (Dismissed != null) Dismissed();
         }
@@ -3193,10 +3453,10 @@ namespace CapriDesktop
                 int above = string.IsNullOrEmpty(Prompt) && !copied ? 0 : 1;
                 float panelWidth = 24 * s + columns * cw + 14 * s;
                 totalLines = lines.Count;
-                int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above);
+                int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above - (Choosing ? 2 : 0));
                 visibleLines = Math.Min(totalLines, totalLines > room ? Math.Max(1, room - 1) : room);
                 firstLine = Math.Max(0, Math.Min(firstLine, totalLines - visibleLines));
-                float panelHeight = 13 * s + line * (above + visibleLines + (Scrollable ? 1 : 0)) + 10 * s;
+                float panelHeight = 13 * s + line * (above + visibleLines + (Scrollable ? 1 : 0) + (Choosing ? 2 : 0)) + 10 * s;
                 int width = (int)Math.Ceiling(panelWidth + margin * 2);
                 int height = (int)Math.Ceiling(top + panelHeight + tail + 4 * s);
                 bool below = head.Y - height < area.Top;
@@ -3206,7 +3466,9 @@ namespace CapriDesktop
                 at = new Point(left, y);
                 RectangleF panel = new RectangleF(margin, below ? tail + 4 * s : top, panelWidth, panelHeight);
                 panelOnScreen = new Rectangle(left + (int)panel.X, y + (int)panel.Y, (int)panel.Width, (int)panel.Height);
-                pages = Scrollable ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line, panel.Width - 38 * s, line) : RectangleF.Empty;
+                pages = Scrollable ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line - (Choosing ? line * 2 : 0), panel.Width - 38 * s, line) : RectangleF.Empty;
+                yesButton = Choosing ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line * 1.7f, (panel.Width - 58 * s) / 2, line * 1.4f) : RectangleF.Empty;
+                noButton = Choosing ? new RectangleF(yesButton.Right + 10 * s, yesButton.Top, yesButton.Width, yesButton.Height) : RectangleF.Empty;
                 float tipX = Math.Max(panel.Left + 32 * s, Math.Min(panel.Right - 10 * s, tip.X - left));
                 float tipY = below ? 0 : height - 1;
                 Bitmap image = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
@@ -3265,6 +3527,17 @@ namespace CapriDesktop
                     {
                         string paging = "< PREV   " + (firstLine + 1) + "-" + (firstLine + visibleLines) + "/" + totalLines + "   NEXT >";
                         using (Brush dim = new SolidBrush(Look.Dim)) Look.Draw(graphics, paging, text, dim, pages.Left, pages.Top);
+                    }
+                    if (Choosing)
+                    {
+                        using (Pen edge = new Pen(Look.Cyan, Math.Max(1, s)))
+                        using (Brush ink = new SolidBrush(Look.Neon))
+                        {
+                            graphics.DrawRectangle(edge, yesButton.X, yesButton.Y, yesButton.Width, yesButton.Height);
+                            graphics.DrawRectangle(edge, noButton.X, noButton.Y, noButton.Width, noButton.Height);
+                            Look.Draw(graphics, "Yes", bold, ink, yesButton.Left + 10 * s, yesButton.Top + 3 * s);
+                            Look.Draw(graphics, "No", bold, ink, noButton.Left + 10 * s, noButton.Top + 3 * s);
+                        }
                     }
                 }
                 return image;
@@ -3450,6 +3723,562 @@ namespace CapriDesktop
             float s = scale;
             Neon.Frame(e.Graphics, Size, s, 10 * s, 4 * s, 36 * s, 10 * s);
             using (Brush tick = new SolidBrush(Neon.Hot)) e.Graphics.FillRectangle(tick, 12 * s, 12 * s, 2.5f * s, Height - 24 * s);
+        }
+    }
+    internal sealed partial class Companion
+    {
+        // Her old strips that are drawn in her old standing pose, which her artist's standing set stands in for, and how hard
+        // the glitch under her is on each of their cells. Her grin has no new art: her loop plays through it, with a flicker
+        // of glitch at its start.
+        private static readonly Dictionary<string, double[]> StandIns = new Dictionary<string, double[]>
+        {
+            { "glitch", new[] { 0.5, 1.0, 0.8, 1.0, 0.6, 0.9, 0.5, 0.7, 0.3, 0.1 } },
+            { "arrive", new[] { 1.0, 1.0, 1.0, 1.0, 1.0, 0.9, 0.8, 0.9, 0.7, 0.6, 0.45, 0.3, 0.15, 0.05 } },
+            { "leave", new[] { 0.1, 0.3, 0.5, 0.7, 0.9, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 } },
+            { "wake", new[] { 1.0, 0.9, 1.0, 0.8, 0.9, 0.7, 0.8, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1 } },
+            { "grin", new[] { 0.6, 0.3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+            // Her old blinks and mouths only ever go with her old 16 cells, but drawn on their own they're her old stand too.
+            { "blink", new[] { 0.0 } },
+            { "blink_glitch", new[] { 0.3, 0.5, 0.3, 0.1 } },
+            { "mouth", new[] { 0.0 } }
+        };
+        // Her other old strips at her standing size, in other poses: asleep, held by the cursor, walking. A new strip her standing
+        // size has to go in this list or in StandIns.
+        internal static readonly string[] OtherPoses = { "sleep", "dangle", "walk" };
+        private static string standInSkin;
+        private static readonly Dictionary<string, bool> skinShips = new Dictionary<string, bool>();
+        // Every clip her window draws, while a check is listening.
+        private List<Clip> drawnLog;
+
+        internal static double UnderLevel(Clip of, int cell)
+        {
+            double[] levels;
+            if (of == null || of.Title == null || !StandIns.TryGetValue(of.Title, out levels)) return 0;
+            return levels[Math.Max(0, cell) % levels.Length];
+        }
+
+        // Whether her standing loop is drawn in place of shown: shown is one of those old strips, she's on her artist's standing
+        // set, and the skin she's wearing, if any, doesn't bring its own strip for it.
+        internal static bool StandsIn(Clip shown, Clip stand)
+        {
+            if (shown == null || shown == stand || stand.Old || shown.Title == null || !StandIns.ContainsKey(shown.Title)) return false;
+            string skin = SkinFolder;
+            if (skin == null) return true;
+            bool ships;
+            lock (skinShips)
+            {
+                if (!ReferenceEquals(skin, standInSkin)) { standInSkin = skin; skinShips.Clear(); }
+                if (!skinShips.TryGetValue(shown.Title, out ships)) skinShips[shown.Title] = ships = File.Exists(Path.Combine(skin, shown.Title + ".png"));
+            }
+            return !ships;
+        }
+
+        // Her glitch on her artist's standing set: drawn through her own RenderFrame, every step is her new frame whole on top
+        // of the underlay made from that same frame, cleared right by the lighter drawing on both facings and at two sizes;
+        // her loop picks up where it was afterwards; Legacy stand still plays the old strip. Pictures go in output.
+        private void SmokeGlitchUnder(List<string> checks, string output)
+        {
+            bool framesWas = frames.Enabled, signalsWas = signals.Enabled, motionWas = preferences.Motion, facingWas = facingLeft, veilWas = veiled, hologramWas = preferences.Hologram;
+            bool hiddenWas = hidden, dockedWas = docked, ridingWas = riding, panelWas = onPanel, fallingWas = falling, draggingWas = dragging, lyingWas = lying, walkingWas = walking;
+            int sizeWas = preferences.Size;
+            Size canvasWas = Size;
+            double startWas = clipStart, veilUntilWas = veilUntil, leanWas = leanAngle, glitchWas = nextGlitch, dizzyWas = dizzyUntil, moodWas = huskMoodAt;
+            Clip clipWas = clip, blinkWas = blinkWith;
+            Ledge seatWas = seat;
+            string speechWas = speech;
+            TalkState talkWas = talkState;
+            List<Note> notesWas = new List<Note>(notes);
+            Directory.CreateDirectory(output);
+            string worst = "";
+            // How many pixels of two pictures differ by more than slack in any channel, and where the first one is.
+            Func<Bitmap, Bitmap, int, int> apart = delegate(Bitmap a, Bitmap b, int slack)
+            {
+                int[] first = new int[a.Width * a.Height], second = new int[b.Width * b.Height];
+                Pixels(a, new Rectangle(Point.Empty, a.Size), first, false);
+                Pixels(b, new Rectangle(Point.Empty, b.Size), second, false);
+                int off = 0;
+                worst = "";
+                for (int i = 0; i < first.Length; i++)
+                    for (int shift = 0; shift < 32; shift += 8)
+                        if (Math.Abs(((first[i] >> shift) & 255) - ((second[i] >> shift) & 255)) > slack)
+                        {
+                            if (off == 0) worst = " first at " + (i % a.Width) + "," + (i / a.Width) + ": 0x" + first[i].ToString("X8") + " against 0x" + second[i].ToString("X8");
+                            off++;
+                            break;
+                        }
+                return off;
+            };
+            // What she should look like: the underlay for that step made from her standing frame, then the frame over it, from
+            // her cell cache as her window draws it.
+            Func<int, int, Bitmap> expect = delegate(int step, int cell)
+            {
+                Bitmap drawn = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb);
+                using (Graphics graphics = Graphics.FromImage(drawn))
+                {
+                    graphics.CompositingMode = CompositingMode.SourceOver;
+                    graphics.CompositingQuality = CompositingQuality.HighQuality;
+                    graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    graphics.SmoothingMode = SmoothingMode.HighQuality;
+                    graphics.TranslateTransform(Width / 2f, Height / 2f);
+                    if (facingLeft) graphics.ScaleTransform(-1, 1);
+                    Bitmap art = Art(idle);
+                    int width = art.Width / idle.Count;
+                    float tall = preferences.Size * idle.Height, wide = tall * width / art.Height;
+                    RectangleF target = new RectangleF(-wide / 2f + idle.ShiftX * preferences.Size, -tall / 2f + idle.ShiftY * preferences.Size, wide, tall);
+                    Rectangle from = new Rectangle(cell * width, 0, width, art.Height);
+                    if (step >= 0) Shatter.Under(graphics, art, from, target, UnderLevel(glitch, step), underSeed * 16 + step);
+                    if (!DrawCell(graphics, art, cell, width, wide, tall, target.X + wide / 2f, target.Y + tall / 2f, 0, 0, 0)) graphics.DrawImage(art, target, from, GraphicsUnit.Pixel);
+                }
+                return drawn;
+            };
+            Func<Bitmap> shot = delegate
+            {
+                Bitmap copy = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb);
+                int[] pixels = new int[Width * Height];
+                Pixels(bodySurface.Image, new Rectangle(Point.Empty, Size), pixels, false);
+                Pixels(copy, new Rectangle(Point.Empty, Size), pixels, true);
+                return copy;
+            };
+            try
+            {
+                frames.Stop(); signals.Stop();
+                hidden = docked = riding = onPanel = falling = dragging = lying = walking = false;
+                seat = null;
+                veiled = false; veilUntil = -1; leanAngle = 0; dizzyUntil = huskMoodAt = -100;
+                nextGlitch = double.MaxValue;
+                speech = null; talkState = TalkState.Off;
+                notes.Clear();
+                preferences.Hologram = false;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                if (idle.Old || !StandsIn(glitch)) throw new Exception("Her own art with no skin didn't put her glitch under her.");
+
+                int stepsChecked = 0, underPixels = int.MaxValue, oldOnly = int.MaxValue;
+                foreach (int size in new[] { 240, 480 })
+                    foreach (bool left in new[] { false, true })
+                    {
+                        preferences.Size = size;
+                        Size = CanvasSize(size);
+                        facingLeft = left;
+                        preferences.Motion = false;
+                        idle.Load(left);
+                        bodyCells.Clear(); drawnClip = null;
+                        Play(idle);
+                        RenderFrame();
+                        Play(glitch);
+                        string tag = (left ? "left" : "right") + "-" + size;
+                        for (int step = 0; step < glitch.Count; step++)
+                        {
+                            for (int tries = 0; tries < 3; tries++)
+                            {
+                                clipStart = clock.Elapsed.TotalSeconds - (step + 0.5) / glitch.Fps;
+                                RenderFrame();
+                                if (drawnUnder == step) break;
+                            }
+                            if (clip != glitch || drawnUnder != step || drawnClip != idle || drawnArt != Art(idle))
+                                throw new Exception("Step " + step + " of her glitch (" + tag + ") wasn't her standing frame over the underlay: clip " + clip.Title + ", drawn " + (drawnClip == null ? "none" : drawnClip.Title) + ", under " + drawnUnder);
+                            using (Bitmap got = shot())
+                            using (Bitmap wanted = expect(step, 0))
+                            using (Bitmap plain = expect(-1, 0))
+                            using (Bitmap old = Stood(glitch, step))
+                            {
+                                int off = apart(got, wanted, 2);
+                                if (off > 0) throw new Exception("Step " + step + " of her glitch (" + tag + ") isn't her standing frame over its underlay: " + off + " pixels off," + worst);
+                                // Wherever her own frame is solid, she's exactly her own frame: nothing is drawn over her.
+                                int[] her = new int[Width * Height], seen = new int[Width * Height], before = new int[Width * Height];
+                                Pixels(plain, new Rectangle(Point.Empty, Size), her, false);
+                                Pixels(got, new Rectangle(Point.Empty, Size), seen, false);
+                                Pixels(old, new Rectangle(Point.Empty, Size), before, false);
+                                int covered = 0, under = 0, oldShown = 0;
+                                for (int i = 0; i < her.Length; i++)
+                                {
+                                    if (((uint)her[i] >> 24) == 255 && Math.Abs((her[i] & 255) - (seen[i] & 255)) + Math.Abs(((her[i] >> 8) & 255) - ((seen[i] >> 8) & 255)) + Math.Abs(((her[i] >> 16) & 255) - ((seen[i] >> 16) & 255)) > 6) covered++;
+                                    if (her[i] == 0 && seen[i] != 0) under++;
+                                    if (((uint)before[i] >> 24) > 128 && ((uint)seen[i] >> 24) <= 128) oldShown++;
+                                }
+                                if (covered > 0) throw new Exception("Something was drawn over her own frame in step " + step + " (" + tag + "): " + covered + " pixels.");
+                                if (UnderLevel(glitch, step) >= 0.5 && under < 200) throw new Exception("Step " + step + " (" + tag + ") showed hardly any underlay: " + under + " pixels.");
+                                if (UnderLevel(glitch, step) >= 0.5) underPixels = Math.Min(underPixels, under);
+                                oldOnly = Math.Min(oldOnly, oldShown);
+                                if (size == 240) { got.Save(Path.Combine(output, "after-" + tag + "-" + step + ".png"), ImageFormat.Png); old.Save(Path.Combine(output, "before-" + tag + "-" + step + ".png"), ImageFormat.Png); }
+                            }
+                            stepsChecked++;
+                        }
+                        // Past its last step she's back on her loop, and the lighter drawing clears every pixel of the underlay.
+                        clipStart = clock.Elapsed.TotalSeconds - (glitch.Count + 0.2) / glitch.Fps;
+                        RenderFrame();
+                        if (clip != idle || drawnClip != idle || drawnUnder != -1) throw new Exception("Her glitch (" + tag + ") didn't end on her standing loop: " + clip.Title);
+                        using (Bitmap got = shot())
+                        using (Bitmap wanted = expect(-1, 0))
+                        {
+                            int off = apart(got, wanted, 2);
+                            if (off > 0) throw new Exception("After her glitch (" + tag + ") the lighter drawing left " + off + " pixels of it behind," + worst);
+                        }
+                    }
+                checks.Add("PASS glitch under her: on her artist's standing set each of its 10 steps is her own standing frame, untouched, over mint and violet ghosts, knocked-aside bands and bars made from that same frame, and nothing from glitch.png; facing right and left at 240 and 480 (" + stepsChecked + " steps, at least " + underPixels + " underlay pixels on a strong step, where the old strip would have shown at least " + oldOnly + " pixels of old art outside her new frame), and afterwards the lighter drawing clears every pixel of it");
+
+                // Her loop runs on under the glitch from the frame it was on and carries on from there after it.
+                preferences.Size = 240;
+                Size = CanvasSize(240);
+                facingLeft = false;
+                preferences.Motion = true;
+                Play(idle);
+                clipStart = clock.Elapsed.TotalSeconds - 10.5 / idle.Fps - 3 * idle.Count / idle.Fps;
+                double loopStart = clipStart;
+                Play(glitch);
+                double now = clock.Elapsed.TotalSeconds;
+                int during = UnderCell(now), expected = (int)((now - loopStart) * idle.Fps) % idle.Count;
+                if (during != expected || during < 10 || during > 14) throw new Exception("Under her glitch her loop didn't carry on from its frame: " + during + " against " + expected);
+                clipStart -= 0.7; underFrom -= 0.7;
+                now = clock.Elapsed.TotalSeconds;
+                int last = UnderCell(now - 0.001);
+                int back = Advance(now);
+                if (clip != idle || clipStart != underFrom || back != UnderCell(now) || (back - last + idle.Count) % idle.Count > 1)
+                    throw new Exception("After her glitch she didn't pick her loop up where it was: " + clip.Title + ", cell " + back + " after " + last);
+                checks.Add("PASS glitch under her: her standing loop keeps its frame through the glitch (frame " + during + " as it starts) and goes on from it after (frame " + back + "), with no jump back to frame 0");
+
+                // Legacy stand keeps the old strip, as it was.
+                preferences.Motion = false;
+                ToggleLegacyStand();
+                if (!idle.Old || StandsIn(glitch)) throw new Exception("Legacy stand put her glitch under her.");
+                bodyCells.Clear(); drawnClip = null;
+                Play(glitch);
+                clipStart = clock.Elapsed.TotalSeconds - 3.5 / glitch.Fps;
+                RenderFrame();
+                if (drawnClip != glitch || drawnUnder != -1 || drawnCell != 3) throw new Exception("Legacy stand didn't play the old glitch strip: " + (drawnClip == null ? "none" : drawnClip.Title) + " " + drawnCell);
+                using (Bitmap got = shot())
+                using (Bitmap old = Stood(glitch, 3))
+                {
+                    int off = apart(got, old, 2);
+                    if (off > 0) throw new Exception("Legacy stand's glitch wasn't the old strip: " + off + " pixels off," + worst);
+                    got.Save(Path.Combine(output, "legacy-glitch-3.png"), ImageFormat.Png);
+                }
+                ToggleLegacyStand();
+                if (idle.Old || !StandsIn(glitch)) throw new Exception("Turning Legacy stand off didn't put her glitch back under her.");
+                checks.Add("PASS glitch under her: with Legacy stand on she plays the old glitch strip pixel for pixel, and turning it off puts the underlay back");
+            }
+            finally
+            {
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                preferences.Size = sizeWas; Size = canvasWas; preferences.Motion = motionWas; preferences.Hologram = hologramWas;
+                facingLeft = facingWas; veiled = veilWas; veilUntil = veilUntilWas; leanAngle = leanWas; nextGlitch = glitchWas;
+                dizzyUntil = dizzyWas; huskMoodAt = moodWas;
+                hidden = hiddenWas; docked = dockedWas; riding = ridingWas; onPanel = panelWas; falling = fallingWas; dragging = draggingWas; lying = lyingWas; walking = walkingWas;
+                seat = seatWas; speech = speechWas; talkState = talkWas;
+                notes.Clear(); notes.AddRange(notesWas);
+                clip = clipWas; clipStart = startWas; blinkWith = blinkWas;
+                bodyCells.Clear(); drawnClip = null; RenderFrame();
+                if (framesWas) frames.Start();
+                if (signalsWas) signals.Start();
+            }
+        }
+
+        // Her glitch on her standing set as a film at real speed: her own RenderFrame off her real clock, about 30 times a
+        // second, with a glitch partway in, facing right then left. Each frame is her window's picture.
+        private void SmokeGlitchFilm(List<string> checks, string output)
+        {
+            bool framesWas = frames.Enabled, signalsWas = signals.Enabled, motionWas = preferences.Motion, facingWas = facingLeft;
+            double glitchWas = nextGlitch;
+            Clip clipWas = clip;
+            try
+            {
+                frames.Stop(); signals.Stop();
+                preferences.Motion = true;
+                nextGlitch = double.MaxValue;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                int saved = 0, underFrames = 0;
+                double slowest = 0;
+                foreach (bool left in new[] { false, true })
+                {
+                    facingLeft = left;
+                    idle.Load(left);
+                    string folder = Path.Combine(output, left ? "film-left" : "film-right");
+                    Directory.CreateDirectory(folder);
+                    bodyCells.Clear(); drawnClip = null;
+                    Play(idle);
+                    double began = clock.Elapsed.TotalSeconds;
+                    bool glitched = false;
+                    using (StreamWriter times = new StreamWriter(Path.Combine(folder, "times.txt")))
+                        for (int number = 0; ; number++)
+                        {
+                            double due = began + number / 30.0;
+                            while (clock.Elapsed.TotalSeconds < due) System.Threading.Thread.Sleep(1);
+                            double now = clock.Elapsed.TotalSeconds;
+                            if (now - began > 2.4) break;
+                            if (!glitched && now - began >= 0.8) { Play(glitch); glitched = true; }
+                            long drawing = System.Diagnostics.Stopwatch.GetTimestamp();
+                            RenderFrame();
+                            double took = (System.Diagnostics.Stopwatch.GetTimestamp() - drawing) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                            if (drawnUnder >= 0) { slowest = Math.Max(slowest, took); underFrames++; }
+                            using (Bitmap copy = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                            {
+                                int[] pixels = new int[Width * Height];
+                                Pixels(bodySurface.Image, new Rectangle(Point.Empty, Size), pixels, false);
+                                Pixels(copy, new Rectangle(Point.Empty, Size), pixels, true);
+                                copy.Save(Path.Combine(folder, number.ToString("000") + ".png"), ImageFormat.Png);
+                            }
+                            times.WriteLine(number + " " + (now - began).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " " + took.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + "ms " + clip.Title + " " + (drawnClip == null ? "-" : drawnClip.Title) + " " + drawnCell + " " + drawnUnder);
+                            saved++;
+                        }
+                }
+                if (underFrames < 24 || slowest > 60) throw new Exception("Her glitch didn't keep up at real speed: " + underFrames + " frames of it, the slowest " + slowest.ToString("0") + " ms.");
+                checks.Add("PASS glitch film: " + underFrames + " of its frames under her at real speed, none slower than " + slowest.ToString("0") + " ms to draw; " + saved + " frames of her own drawing at real speed, facing right then left, in " + output);
+            }
+            finally
+            {
+                preferences.Motion = motionWas; facingLeft = facingWas; nextGlitch = glitchWas; clip = clipWas;
+                bodyCells.Clear(); drawnClip = null; RenderFrame();
+                if (framesWas) frames.Start();
+                if (signalsWas) signals.Start();
+            }
+        }
+    }
+    internal sealed partial class Companion
+    {
+        // On her artist's standing set no frame of her old standing pose is ever drawn. Every strip her old standing size has
+        // to be listed (drawn as her standing loop, or another pose), so a strip added the old way fails here;
+        // then every clip is played through every cell by her own RenderFrame, both ways round, and the ways she comes back to
+        // standing run at real speed, and none of what her window drew may be one of those strips. Legacy stand still plays
+        // each of them pixel for pixel.
+        private void SmokeOldStand(List<string> checks, string output)
+        {
+            bool framesWas = frames.Enabled, signalsWas = signals.Enabled, motionWas = preferences.Motion, facingWas = facingLeft, veilWas = veiled;
+            bool ridingWas = riding, panelWas = onPanel, fallingWas = falling, draggingWas = dragging, lyingWas = lying, walkingWas = walking, hangingWas = hanging, instantWas = instant;
+            double startWas = clipStart, veilUntilWas = veilUntil, leanWas = leanAngle, glitchWas = nextGlitch;
+            Point anchorWas = anchor;
+            Clip clipWas = clip;
+            Ledge seatWas = seat;
+            string speechWas = speech;
+            Directory.CreateDirectory(output);
+            try
+            {
+                frames.Stop(); signals.Stop();
+                seat = null;
+                riding = onPanel = falling = dragging = lying = walking = hanging = false;
+                veiled = false; veilUntil = -1; leanAngle = 0; nextGlitch = double.MaxValue; speech = null;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                if (idle.Old) throw new Exception("She wasn't on her artist's standing set.");
+
+                Clip[] every = Clip.Every();
+                List<Clip> forbidden = new List<Clip>(), stoodIn = new List<Clip>();
+                List<string> sorted = new List<string>();
+                foreach (Clip strip in every)
+                {
+                    if (strip.Title == null) continue;
+                    Bitmap art = strip.Strip;
+                    if (art == null || art.Height != 384 || art.Width / strip.Count != 240 || Math.Abs(strip.Height - 1.11f) > 0.001f) continue;
+                    bool other = Array.IndexOf(OtherPoses, strip.Title) >= 0;
+                    if (!other && !StandIns.ContainsKey(strip.Title))
+                        throw new Exception("The strip " + strip.Title + " is her old standing size, but it isn't drawn as her standing loop on her new stand or listed as another pose.");
+                    if (!other) forbidden.Add(strip);
+                    if (StandIns.ContainsKey(strip.Title)) { stoodIn.Add(strip); if (!StandsIn(strip)) throw new Exception(strip.Title + " doesn't stand in on her new stand."); }
+                    sorted.Add(strip.Title + (other ? " (other pose)" : " (her loop stands in)"));
+                }
+                if (stoodIn.Count != StandIns.Count) throw new Exception("Only " + stoodIn.Count + " of the " + StandIns.Count + " standing strips were found.");
+                Func<string> drew = delegate
+                {
+                    foreach (Clip shown in drawnLog) if (forbidden.Contains(shown)) return shown.Title;
+                    return null;
+                };
+
+                drawnLog = new List<Clip>();
+                preferences.Motion = false;
+                int painted = 0;
+                foreach (bool left in new[] { false, true })
+                    foreach (Clip strip in every)
+                    {
+                        facingLeft = left;
+                        seat = null; lying = false;
+                        veiled = false; veilUntil = -1;
+                        bodyCells.Clear(); drawnClip = null;
+                        Play(strip);
+                        int steps = strip.Count * (strip == grin ? 2 : 1) + 1;
+                        for (int step = 0; step < steps && clip == strip; step++)
+                        {
+                            clipStart = clock.Elapsed.TotalSeconds - (step + 0.5) / strip.Fps;
+                            RenderFrame();
+                            veiled = false; veilUntil = -1;
+                        }
+                        painted += drawnLog.Count;
+                        string bad = drew();
+                        if (bad != null) throw new Exception("Playing " + (strip.Title ?? "dance") + (left ? " facing left" : "") + " drew her old standing strip " + bad + ".");
+                        drawnLog.Clear();
+                    }
+
+                // The ways she comes back to standing, with her own timers running them at real speed.
+                preferences.Motion = true;
+                instant = false;
+                facingLeft = false;
+                Rectangle room = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
+                Point home = new Point(room.Left + room.Width / 2 - 200, room.Bottom - 1), away = new Point(room.Left + room.Width / 2 + 200, room.Bottom - 1);
+                Action<double> run = delegate(double seconds)
+                {
+                    double until = clock.Elapsed.TotalSeconds + seconds;
+                    frames.Start();
+                    while (clock.Elapsed.TotalSeconds < until) { Application.DoEvents(); System.Threading.Thread.Sleep(2); }
+                };
+                List<string> ways = new List<string>();
+                Action<string, Action, double> way = delegate(string name, Action start, double seconds)
+                {
+                    drawnLog.Clear();
+                    seat = null; falling = false; veiled = false; veilUntil = -1;
+                    anchor = Standing(home.X, home.Y);
+                    Location = anchor;
+                    Play(idle);
+                    start();
+                    run(seconds);
+                    string bad = drew();
+                    if (bad != null) throw new Exception(name + " drew her old standing strip " + bad + ".");
+                    if (drawnLog.Count == 0) throw new Exception(name + " drew nothing to check.");
+                    ways.Add(name + " (" + drawnLog.Count + " frames)");
+                };
+                way("teleporting", delegate { Teleport(away); }, 2.2);
+                way("a hop called off", delegate { GlitchOut(delegate { }, false); Halt(); }, 0.4);
+                way("hiding and showing", delegate { ShowHidden(true); ShowHidden(false); }, 1.4);
+                way("waking from a standing nap", delegate { Play(sleep); run(0.3); WakeRest(false); }, 1.4);
+                way("standing up from a seat", delegate { Play(glitch); }, 1.0);
+                way("her grin", delegate { Play(grin); }, 4.3);
+                way("talking over her glitch", delegate { Play(glitch); run(0.2); Say("hi"); }, 0.6);
+                way("a click", delegate { Animate("glitch"); run(0.3); Animate("grin"); }, 0.8);
+                speech = null;
+                ribbons.Stop();
+                outro = null;
+                if (!StandsIn(glitch, idle) || !StandsIn(grin, idle)) throw new Exception("Her clones would glitch in or grin in her old stand.");
+                checks.Add("PASS no old stand: on her artist's standing set her strips her old standing size are " + string.Join(", ", sorted.ToArray()) + "; playing all " + every.Length + " clips through every cell both ways round drew " + painted + " frames and none from her old standing strips, and neither did " + string.Join(", ", ways.ToArray()) + "; her clones glitch in and grin in her new stand too");
+
+                // Legacy stand keeps every one of them as it was.
+                preferences.Motion = false;
+                facingLeft = false;
+                ToggleLegacyStand();
+                foreach (Clip strip in stoodIn)
+                {
+                    if (StandsIn(strip)) throw new Exception("Legacy stand still stood in for " + strip.Title + ".");
+                    bodyCells.Clear(); drawnClip = null;
+                    Play(strip);
+                    clipStart = clock.Elapsed.TotalSeconds - 3.5 / strip.Fps;
+                    RenderFrame();
+                    if (drawnClip != strip || drawnCell != 3) throw new Exception("Legacy stand didn't play " + strip.Title + " as it was: drew " + (drawnClip == null ? "nothing" : drawnClip.Title) + " " + drawnCell);
+                    using (Bitmap got = new Bitmap(bodySurface.Image))
+                    using (Bitmap old = Stood(strip, 3))
+                    {
+                        int[] a = new int[Width * Height], b = new int[Width * Height];
+                        Pixels(got, new Rectangle(Point.Empty, Size), a, false);
+                        Pixels(old, new Rectangle(Point.Empty, Size), b, false);
+                        for (int i = 0; i < a.Length; i++)
+                            for (int shift = 0; shift < 32; shift += 8)
+                                if (Math.Abs(((a[i] >> shift) & 255) - ((b[i] >> shift) & 255)) > 2) throw new Exception("Legacy stand's " + strip.Title + " wasn't its own strip at pixel " + (i % Width) + "," + (i / Width) + ".");
+                        if (strip == arrive) got.Save(Path.Combine(output, "legacy-arrive-3.png"), ImageFormat.Png);
+                    }
+                }
+                ToggleLegacyStand();
+                checks.Add("PASS no old stand: with Legacy stand on, " + stoodIn.Count + " clips (glitch, arrive, leave, wake, grin, and her old blinks and mouth) still play their own strips pixel for pixel");
+            }
+            finally
+            {
+                drawnLog = null;
+                instant = instantWas;
+                ribbons.Stop();
+                outro = null;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                preferences.Motion = motionWas; facingLeft = facingWas; veiled = veilWas; veilUntil = veilUntilWas; leanAngle = leanWas; nextGlitch = glitchWas;
+                riding = ridingWas; onPanel = panelWas; falling = fallingWas; dragging = draggingWas; lying = lyingWas; walking = walkingWas; hanging = hangingWas;
+                seat = seatWas; speech = speechWas; hidden = false;
+                anchor = anchorWas; Location = anchor;
+                clip = clipWas; clipStart = startWas;
+                bodyCells.Clear(); drawnClip = null; RenderFrame();
+                if (framesWas) frames.Start(); else frames.Stop();
+                if (signalsWas) signals.Start();
+            }
+        }
+    }
+
+    internal sealed partial class Companion
+    {
+        // Her teleporting out and back and standing up after a nap, filmed off the real app at real speed: her own timers run
+        // her, and about 30 times a second her window's picture and her ribbons' are saved with where they sit on the screen.
+        private void SmokeStandFilm(List<string> checks, string output)
+        {
+            bool framesWas = frames.Enabled, motionWas = preferences.Motion, facingWas = facingLeft, legacyWas = preferences.LegacyStand, instantWas = instant;
+            Point anchorWas = anchor;
+            Clip clipWas = clip;
+            double glitchWas = nextGlitch;
+            Action<Bitmap, Rectangle> paintedWas = Ribbons.Painted;
+            Bitmap ribbonShot = null;
+            Rectangle ribbonArea = Rectangle.Empty;
+            try
+            {
+                preferences.Motion = true;
+                instant = false;
+                nextGlitch = double.MaxValue;
+                if (preferences.LegacyStand) ToggleLegacyStand();
+                seat = null; riding = onPanel = falling = dragging = lying = walking = hanging = false;
+                Ribbons.Painted = delegate(Bitmap picture, Rectangle area)
+                {
+                    if (ribbonShot != null) ribbonShot.Dispose();
+                    ribbonShot = new Bitmap(picture);
+                    ribbonArea = area;
+                };
+                Rectangle room = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
+                Point home = new Point(room.Left + room.Width / 2 - 260, room.Bottom - 1), away = new Point(room.Left + room.Width / 2 + 260, room.Bottom - 1);
+                int saved = 0;
+                foreach (string take in new[] { "teleport", "nap" })
+                {
+                    string folder = Path.Combine(output, take);
+                    Directory.CreateDirectory(folder);
+                    facingLeft = false;
+                    anchor = Standing(home.X, home.Y);
+                    Location = anchor;
+                    ribbons.Stop();
+                    outro = null;
+                    seat = null; falling = false; hanging = false; dropAfter = false;
+                    if (hidden) ShowHidden(false);
+                    veiled = false; veilUntil = -1;
+                    Play(take == "nap" ? sleep : idle);
+                    frames.Start();
+                    double began = clock.Elapsed.TotalSeconds, length = take == "nap" ? 2.6 : 4.4;
+                    bool first = false, second = false;
+                    using (StreamWriter times = new StreamWriter(Path.Combine(folder, "times.txt")))
+                        for (int number = 0; ; number++)
+                        {
+                            double due = began + number / 30.0;
+                            while (clock.Elapsed.TotalSeconds < due) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                            double at = clock.Elapsed.TotalSeconds - began;
+                            if (at > length) break;
+                            if (take == "teleport" && !first && at >= 0.5) { first = true; Teleport(away); }
+                            if (take == "teleport" && !second && at >= 2.3) { second = true; Teleport(home); }
+                            if (take == "nap" && !first && at >= 0.6) { first = true; WakeRest(false); }
+                            Tick();
+                            string her = "-", ribbon = "-";
+                            if (bodySurface != null && !hidden)
+                            {
+                                her = "her-" + number.ToString("000") + ".png";
+                                using (Bitmap copy = new Bitmap(bodySurface.Image)) copy.Save(Path.Combine(folder, her), ImageFormat.Png);
+                            }
+                            if (ribbons.Visible && ribbonShot != null)
+                            {
+                                ribbon = "ribbons-" + number.ToString("000") + ".png";
+                                ribbonShot.Save(Path.Combine(folder, ribbon), ImageFormat.Png);
+                            }
+                            times.WriteLine(number + " " + at.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " " + clip.Title + " " + (drawnClip == null ? "-" : drawnClip.Title) + " " + drawnCell + " " + anchor.X + " " + anchor.Y + " " + her + " " + ribbonArea.X + " " + ribbonArea.Y + " " + ribbon + " " + (veiled || clock.Elapsed.TotalSeconds < veilUntil ? "veiled" : "shown") + " " + (outro != null ? "outro" : "-") + " " + (frames.Enabled ? "ticking" : "stopped") + " " + (hidden ? "hidden" : "-") + " " + (clock.Elapsed.TotalSeconds - clipStart).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
+                            saved++;
+                        }
+                }
+                checks.Add("PASS stand film: " + saved + " frames of her teleporting out and back and waking from a standing nap, at real speed, in " + output);
+            }
+            finally
+            {
+                Ribbons.Painted = paintedWas;
+                if (ribbonShot != null) ribbonShot.Dispose();
+                ribbons.Stop();
+                outro = null;
+                if (preferences.LegacyStand != legacyWas) ToggleLegacyStand();
+                preferences.Motion = motionWas; facingLeft = facingWas; nextGlitch = glitchWas; instant = instantWas;
+                seat = null; falling = false; hidden = false;
+                anchor = anchorWas; Location = anchor; veiled = false; veilUntil = -1;
+                Play(clipWas);
+                bodyCells.Clear(); drawnClip = null; RenderFrame();
+                if (!framesWas) frames.Stop();
+            }
         }
     }
 }

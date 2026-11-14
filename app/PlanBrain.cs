@@ -187,6 +187,7 @@ namespace CapriDesktop
         // arguments are their words, so nothing they say reaches a command line.
         private static Ran Start(string kind, string app, List<string> args, string input, string folder, Func<bool> cancelled)
         {
+            if (Brain.Off) { Brain.TurnAway(Plans.App(kind)); throw new BrainException(Brain.OffLine, true); }
             ProcessStartInfo start = new ProcessStartInfo();
             string line = Joined(args);
             if (app.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase))

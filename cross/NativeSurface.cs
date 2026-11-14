@@ -41,6 +41,10 @@ namespace CapriDesktop
         private long xid;
         private string title;
         private readonly string process = LinuxProcess.Identity(Environment.ProcessId);
+        // Set by the niri bridge while it runs. The surface test build leaves that bridge out.
+        internal static Action<Window> NiriRegister;
+        internal static Func<Window, PixelPoint, bool> NiriMove;
+        internal static Action<Window> NiriCancel;
 
         private NativeSurface(Window window, NativeSurfaceRole role, bool acceptsInput)
         {
@@ -60,6 +64,7 @@ namespace CapriDesktop
 
         internal static void Register(Window window, NativeSurfaceRole role, bool acceptsInput = true)
         {
+            if (NiriRegister is Action<Window> niri) { niri(window); return; }
             if (HyprlandDesktop.Current != null) bindings.Add(window, new NativeSurface(window, role, acceptsInput));
         }
 
@@ -71,6 +76,7 @@ namespace CapriDesktop
 
         internal static bool TryMove(Window window, PixelPoint position, HyprlandDisplayMap target = null, long sequence = 0, long sourceAt = 0, PixelSize? replySize = null)
         {
+            if (NiriMove?.Invoke(window, position) == true) return true;
             if (!bindings.TryGetValue(window, out NativeSurface binding)) return false;
             var state = binding.desktop.VisualSnapshot;
             if (state == null || state.Locked) return true; // No unbound intent may cross an unknown layout.
@@ -101,6 +107,7 @@ namespace CapriDesktop
 
         internal static void CancelMoves(Window window)
         {
+            NiriCancel?.Invoke(window);
             if (!bindings.TryGetValue(window, out NativeSurface binding)) return;
             Interlocked.Increment(ref binding.moveGeneration);
             Interlocked.Exchange(ref binding.pendingMove, null);
