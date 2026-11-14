@@ -64,7 +64,7 @@ namespace CapriDesktop
 #if CROSS
                     " in " + Path.GetDirectoryName(path) + ".");
 #else
-                    " in %LocalAppData%\\Capri.");
+                    " in " + (Packaged.Is ? Path.GetDirectoryName(path) : "%LocalAppData%\\Capri") + ".");
 #endif
             return saved;
         }

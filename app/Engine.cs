@@ -258,7 +258,7 @@ namespace CapriDesktop
             long have = File.Exists(part) ? new FileInfo(part).Length : 0;
             if (have > size) { File.Delete(part); have = 0; }
             bool resumed = have > 0;
-            int stalls = 0;
+            int stalls = 0, logged = 0;
             while (have < size)
             {
                 long before = have;
@@ -288,8 +288,27 @@ namespace CapriDesktop
                         }
                     }
                 }
-                catch (WebException) { if (stopped()) throw new OperationCanceledException(); }
-                catch (IOException) { if (stopped()) throw new OperationCanceledException(); }
+                catch (WebException error)
+                {
+                    using (HttpWebResponse response = error.Response as HttpWebResponse)
+                    {
+                        if (stopped()) throw new OperationCanceledException();
+                        if (have <= before && logged < 8)
+                        {
+                            Brain.Log(url, -1, "Downloading " + label + ": " + error.Status + (response == null ? "" : " (HTTP " + (int)response.StatusCode + ")"));
+                            logged++;
+                        }
+                    }
+                }
+                catch (IOException error)
+                {
+                    if (stopped()) throw new OperationCanceledException();
+                    if (have <= before && logged < 8)
+                    {
+                        Brain.Log(url, -1, "Downloading " + label + ": " + error.GetType().Name + " (0x" + error.HResult.ToString("X8") + ")");
+                        logged++;
+                    }
+                }
                 if (have < size)
                 {
                     stalls = have > before ? 0 : stalls + 1;

@@ -36,6 +36,7 @@ namespace CapriDesktop
         [STAThread]
         private static int Main(string[] args)
         {
+            if (ServicePointManager.DefaultConnectionLimit < 16) ServicePointManager.DefaultConnectionLimit = 16;
             Started = Stopwatch.GetTimestamp();
             if (args.Length > 0 && args[0] == "--smoke-child") return SmokeRun.Child(args);
             if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
@@ -2243,6 +2244,7 @@ namespace CapriDesktop
         private readonly System.Windows.Forms.Timer signals;
         private readonly EventWaitHandle restore, shown;
         private readonly string settingsPath;
+        private static int saveLogged;
         private readonly bool testing;
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private Preferences preferences;
@@ -11355,7 +11357,7 @@ namespace CapriDesktop
                     });
                 }
                 catch (OperationCanceledException) { Post(delegate { SettingUp = false; mainframe.ShowSetup(machine, pick, viaOllama, "Cancelled. It picks up where it left off."); }); }
-                catch (Exception error) { string problem = Brain.Brief(error.Message) ?? (error.Message.Length > 70 ? error.Message.Substring(0, 67) + "..." : error.Message); Post(delegate { SettingUp = false; mainframe.ShowSetup(machine, pick, viaOllama, problem); }); }
+                catch (Exception error) { if (!engine.Cancel) Brain.Log("brain setup", -1, Brain.Redacted(error.Message)); string problem = Brain.Brief(error.Message) ?? (error.Message.Length > 70 ? error.Message.Substring(0, 67) + "..." : error.Message); Post(delegate { SettingUp = false; mainframe.ShowSetup(machine, pick, viaOllama, problem); }); }
             });
         }
 
@@ -15986,7 +15988,7 @@ namespace CapriDesktop
                 return "Her settings couldn't be read, so they were reset. Add your keys and choices again in Capri Mainframe.";
             }
             Brain.Log("startup", -1, "Her settings.json couldn't be read (" + why + "), so she started with fresh settings. The old file is kept as " + UnreadableName + ".");
-            return "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
+            return Packaged.Is ? "Her settings were reset. Add your keys again in Capri Mainframe. The old file is " + Path.Combine(Path.GetDirectoryName(path), UnreadableName) + "." : "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
         }
 
         // Copies a file she couldn't read to name beside it, before anything saves over it. Null when it worked.
@@ -16028,8 +16030,14 @@ namespace CapriDesktop
                 if (File.Exists(settingsPath)) File.Replace(temporary, settingsPath, null); else File.Move(temporary, settingsPath);
                 return true;
             }
-            catch (IOException) { return false; }
-            catch (UnauthorizedAccessException) { return false; }
+            catch (IOException error) { return SaveFailed(error); }
+            catch (UnauthorizedAccessException error) { return SaveFailed(error); }
+        }
+
+        private static bool SaveFailed(Exception error)
+        {
+            if (Interlocked.Exchange(ref saveLogged, 1) == 0) Brain.Log("settings save", -1, error.GetType().Name + " (0x" + error.HResult.ToString("X8") + ")");
+            return false;
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -28308,6 +28316,193 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeFetch(List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "fetch-" + Guid.NewGuid().ToString("N")), logWas = Brain.LogPath;
+            Directory.CreateDirectory(folder);
+            string log = Path.Combine(folder, "errors.txt"), wanted = Path.Combine(folder, "wanted.bin");
+            TcpListener fake = null;
+            Func<string[]> logged = delegate { return File.Exists(log) ? File.ReadAllLines(log) : new string[0]; };
+            try
+            {
+                Brain.LogPath = log;
+                File.WriteAllText(wanted, "right");
+                string hash = Engine.Hash(wanted);
+                List<string> asked = new List<string>();
+                string url = FakeServer(new[] { "missing", "missing", "missing", "missing" }, asked, out fake, status: 404) + "/engine.zip?token=private-download-token";
+                string problem = null;
+                try { Engine.Fetch(url, Path.Combine(folder, "missing.zip"), 5, hash, "the engine", delegate { }, delegate { return false; }); }
+                catch (IOException error) { problem = error.Message; }
+                string[] lines = logged();
+                if (problem != Engine.Stalled("the engine") || Brain.Brief(problem) != "Download keeps stopping. Check your connection and retry." || lines.Length != 4 || asked.Count != 4)
+                    throw new Exception("A 404 download changed its final error or didn't log its four tries.");
+                foreach (string line in lines)
+                    if (!line.EndsWith(" | 127.0.0.1/engine.zip | - | Downloading the engine: ProtocolError (HTTP 404)", StringComparison.Ordinal) || line.Contains("token") || line.Contains("?"))
+                        throw new Exception("A failed download lost its label or status, or logged its query: " + line);
+                checks.Add("PASS four 404 download tries keep the existing stopped-download line and log the label, WebException status and HTTP code without the query");
+
+                fake.Stop();
+                File.Delete(log);
+                asked.Clear();
+                url = FakeServer(new string[16], asked, out fake);
+                problem = null;
+                try { Engine.Fetch(url, Path.Combine(folder, "dropped.zip"), 5, hash, "the engine", delegate { }, delegate { return false; }); }
+                catch (IOException error) { problem = error.Message; }
+                lines = logged();
+                if (problem != Engine.Stalled("the engine") || lines.Length != 4) throw new Exception("A dropped download didn't leave one line per failed try.");
+                foreach (string line in lines)
+                    if (!Regex.IsMatch(line, @" \| - \| Downloading the engine: (ReceiveFailure|ConnectionClosed|KeepAliveFailure|SendFailure)$")) throw new Exception("A dropped download lost its connection status: " + line);
+                checks.Add("PASS a server that closes without a response leaves four download lines naming the label and connection failure");
+
+                fake.Stop();
+                File.Delete(log);
+                asked.Clear();
+                url = FakeServer(new[] { "right", "right", "right", "right" }, asked, out fake);
+                string locked = Path.Combine(folder, "locked.zip");
+                problem = null;
+                using (FileStream held = new FileStream(locked + ".part", FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    try { Engine.Fetch(url, locked, 5, hash, "the engine", delegate { }, delegate { return false; }); }
+                    catch (IOException error) { problem = error.Message; }
+                }
+                lines = logged();
+                if (problem != Engine.Stalled("the engine") || lines.Length != 4) throw new Exception("A locked download didn't leave four failed tries.");
+                foreach (string line in lines)
+                    if (!line.EndsWith(" | - | Downloading the engine: IOException (0x80070020)", StringComparison.Ordinal) || line.Contains(folder)) throw new Exception("A download file failure lost its type or HResult, or quoted its path: " + line);
+                checks.Add("PASS download file failures log only the label, exception type and HResult");
+
+                fake.Stop();
+                File.Delete(log);
+                url = FakeServer(new[] { "right" }, asked, out fake);
+                string clean = Path.Combine(folder, "clean.zip");
+                Engine.Fetch(url, clean, 5, hash, "the engine", delegate { }, delegate { return false; });
+                if (File.ReadAllText(clean) != "right" || logged().Length != 0) throw new Exception("A clean download changed its contents or left an error line.");
+                checks.Add("PASS a clean download leaves no error line");
+
+                foreach (bool file in new[] { false, true })
+                {
+                    fake.Stop();
+                    asked.Clear();
+                    int stopped = 0;
+                    url = FakeServer(new[] { file ? "right" : "missing" }, asked, out fake, status: file ? 200 : 404, received: delegate { Interlocked.Exchange(ref stopped, 1); });
+                    bool cancelled = false;
+                    using (FileStream held = new FileStream(locked + ".part", FileMode.Open, FileAccess.Write, FileShare.None))
+                    {
+                        try { Engine.Fetch(url, locked, 5, hash, "the engine", delegate { }, delegate { return Interlocked.CompareExchange(ref stopped, 0, 0) != 0; }); }
+                        catch (OperationCanceledException) { cancelled = true; }
+                    }
+                    if (!cancelled || asked.Count != 1 || logged().Length != 0) throw new Exception("Cancelling a download logged a file or connection failure, or retried it.");
+                }
+                checks.Add("PASS cancelled download tries leave no error line for either a WebException or an IOException");
+
+                fake.Stop();
+                asked.Clear();
+                url = FakeServer(new[] { "2\r\nri\r\nx\r\n", "!206 3\r\nght\r\n0\r\n\r\n" }, asked, out fake, headers: "Transfer-Encoding: chunked\r\n");
+                string partial = Path.Combine(folder, "partial.zip");
+                Engine.Fetch(url, partial, 5, hash, "the engine", delegate { }, delegate { return false; });
+                if (File.ReadAllText(partial) != "right" || asked.Count != 2 || !Regex.IsMatch(asked[1], @"(?im)^Range:\s*bytes=2-\r?$") || logged().Length != 0)
+                    throw new Exception("A download try that received bytes left an error line or lost its progress.");
+                checks.Add("PASS download tries that fail after receiving bytes leave no error line");
+
+                fake.Stop();
+                File.Delete(log);
+                asked.Clear();
+                string contents = "0123456789";
+                File.WriteAllText(wanted, contents);
+                List<string> replies = new List<string>();
+                for (int i = 0; i < contents.Length; i++)
+                {
+                    replies.Add("!404 missing");
+                    replies.Add(contents.Substring(0, i + 1));
+                }
+                url = FakeServer(replies.ToArray(), asked, out fake);
+                string capped = Path.Combine(folder, "capped.zip");
+                Engine.Fetch(url, capped, contents.Length, Engine.Hash(wanted), "the engine", delegate { }, delegate { return false; });
+                lines = logged();
+                if (File.ReadAllText(capped) != contents || asked.Count != replies.Count || lines.Length != 8)
+                    throw new Exception("More than eight failed download tries changed the download or exceeded eight error lines.");
+                foreach (string line in lines)
+                    if (!line.EndsWith(" | - | Downloading the engine: ProtocolError (HTTP 404)", StringComparison.Ordinal)) throw new Exception("A capped download line lost its failure: " + line);
+                checks.Add("PASS ten no-progress failures between growing download replies leave eight error lines in one Fetch call");
+            }
+            finally
+            {
+                if (fake != null) fake.Stop();
+                Brain.LogPath = logWas;
+                try { Directory.Delete(folder, true); } catch (IOException) { }
+            }
+        }
+
+        private void SmokeSaveLog(List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "save-log-" + Guid.NewGuid().ToString("N")), logWas = Brain.LogPath, temporary = settingsPath + ".new";
+            int loggedWas = saveLogged;
+            byte[] kept = File.Exists(temporary) ? File.ReadAllBytes(temporary) : null;
+            Directory.CreateDirectory(folder);
+            string log = Path.Combine(folder, "errors.txt");
+            try
+            {
+                Brain.LogPath = log;
+                saveLogged = 0;
+                using (FileStream held = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None))
+                    if (SavePreferences() || SavePreferences()) throw new Exception("A locked settings file was reported as saved.");
+                string[] lines = File.Exists(log) ? File.ReadAllLines(log) : new string[0];
+                if (lines.Length != 1 || !lines[0].EndsWith(" | settings save | - | IOException (0x80070020)", StringComparison.Ordinal) || lines[0].Contains(settingsPath))
+                    throw new Exception("Repeated settings save failures didn't leave just their type and HResult once.");
+                File.Delete(temporary);
+                Directory.CreateDirectory(temporary);
+                if (SavePreferences() || File.ReadAllLines(log).Length != 1) throw new Exception("A later kind of settings failure logged a second line.");
+                File.Delete(log);
+                saveLogged = 0;
+                if (SavePreferences() || SavePreferences()) throw new Exception("Settings saved over a directory.");
+                lines = File.Exists(log) ? File.ReadAllLines(log) : new string[0];
+                if (lines.Length != 1 || !lines[0].EndsWith(" | settings save | - | UnauthorizedAccessException (0x80070005)", StringComparison.Ordinal) || lines[0].Contains(settingsPath))
+                    throw new Exception("Repeated denied settings saves didn't leave just their type and HResult once.");
+                checks.Add("PASS failed settings saves return false and log only the type and HResult once per run, across repeated saves and both failure types");
+            }
+            finally
+            {
+                if (Directory.Exists(temporary)) Directory.Delete(temporary);
+                if (kept == null) File.Delete(temporary); else File.WriteAllBytes(temporary, kept);
+                saveLogged = loggedWas;
+                Brain.LogPath = logWas;
+                try { Directory.Delete(folder, true); } catch (IOException) { }
+            }
+        }
+
+        private static void SmokeFolderNotices(List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "notices-" + Guid.NewGuid().ToString("N")), packageWas = Packaged.FullName, logWas = Brain.LogPath;
+            try
+            {
+                Brain.LogPath = null;
+                foreach (bool store in new[] { false, true })
+                {
+                    Packaged.FullName = store ? "Capri.Test_1.8.5.0_x64__abcdefghjkmnp" : null;
+                    string local = Path.Combine(folder, store ? "store" : "website");
+                    if (store) Directory.CreateDirectory(Path.Combine(local, "Packages", Packaged.Family, "LocalCache", "Local", "Capri"));
+                    string home = Packaged.Home(local);
+                    Directory.CreateDirectory(home);
+                    string settings = Path.Combine(home, "settings.json"), notice;
+                    File.WriteAllText(settings, "broken settings");
+                    ReadPreferences(settings, out notice);
+                    string expected = store ? "Her settings were reset. Add your keys again in Capri Mainframe. The old file is " + Path.Combine(home, UnreadableName) + "." : "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
+                    if (notice != expected || !File.Exists(Path.Combine(home, UnreadableName))) throw new Exception("The settings reset notice named the wrong folder: " + notice);
+                    File.WriteAllText(Path.Combine(home, "reminders.json"), "broken reminders");
+                    string told = new Reminders(home, new DateTime(2026, 11, 14)).Remind(new ToolArguments { Action = "list" });
+                    expected = "Your saved reminders couldn't be read, so I started a new list. The old file is kept as reminders.unreadable.json in " + (store ? home : "%LocalAppData%\\Capri") + ".\nYou have no reminders waiting.";
+                    if (told != expected || !File.Exists(Path.Combine(home, "reminders.unreadable.json"))) throw new Exception("The saved-list notice named the wrong folder: " + told);
+                }
+                checks.Add("PASS Store reset notices name the folder Packaged.Home uses, and website settings and saved-list notices keep their exact words");
+            }
+            finally
+            {
+                Packaged.FullName = packageWas;
+                Brain.LogPath = logWas;
+                try { Directory.Delete(folder, true); } catch (IOException) { }
+            }
+        }
+
         // The Store copy, with no package to run in. Outside a package nothing changes. With a stand-in package name, her updater
         // is off whatever a website install left, her data folder is the real one for a fresh install and the website's for someone
         // moving over, she starts with Windows through her startup task and never the Run key, and Get VB-CABLE starts no setup.
@@ -35157,6 +35352,38 @@ namespace CapriDesktop
                 catch (BrainException error) { if (error.Message != "Fake load stopped.") throw; }
                 if (!sawLoading || empty.Loading || empty.Settle() || empty.Loading) throw new Exception("Ensure or Settle left the built-in loading flag set.");
                 checks.Add("PASS the installed built-in brain keeps its menu entry, shows the loading note only while loading and clears loading on failure");
+                string logWas = Brain.LogPath, log = Path.Combine(data, "setup-errors.txt");
+                try
+                {
+                    Directory.CreateDirectory(data);
+                    Brain.LogPath = log;
+                    reset();
+                    machine = new Machine { Ram = 8L << 30 };
+                    fit = Engine.Picks[0];
+                    ollamaRunning = true;
+                    const string reason = "A test setup failed with a long reason that must reach the log before Mainframe shortens the setup line. token=setup-secret-value";
+                    Brain.Ollama = serve(new[] { "{\"error\":\"" + reason + "\"}" }, new List<string>(), null);
+                    SetUpBrain();
+                    WaitVoice(delegate { return !SettingUp; }, "The failed brain setup didn't finish.");
+                    string[] lines = File.Exists(log) ? File.ReadAllLines(log) : new string[0];
+                    if (lines.Length != 1 || !lines[0].EndsWith(" | brain setup | - | " + Brain.Redacted(reason), StringComparison.Ordinal) || lines[0].Contains("setup-secret-value") || mainframe.Status.Contains("token="))
+                        throw new Exception("A failed brain setup didn't log its full redacted reason before shortening it.");
+                    foreach (string reply in new[] { "{\"status\":\"downloading\"}", "!404 missing" })
+                    {
+                        List<string> held = new List<string>();
+                        ManualResetEvent release = new ManualResetEvent(false);
+                        gates.Add(release);
+                        Brain.Ollama = serve(new[] { reply }, held, release);
+                        SetUpBrain();
+                        WaitVoice(delegate { return requests(held) == 1; }, "The cancelled brain setup didn't reach the held server.");
+                        CancelSetup();
+                        release.Set();
+                        WaitVoice(delegate { return !SettingUp; }, "The cancelled brain setup didn't finish.");
+                        if (File.ReadAllLines(log).Length != 1) throw new Exception("Cancelling brain setup logged an error.");
+                    }
+                    checks.Add("PASS failed brain setup logs the full redacted reason before shortening it, and cancelled setup leaves no line for either a cancelled operation or a failed request");
+                }
+                finally { Brain.LogPath = logWas; }
                 foreach (string request in asked) if (!request.StartsWith("GET /api/tags ", StringComparison.Ordinal)) throw new Exception("An Ollama retry sent something other than a model list.");
             }
             finally
@@ -43027,6 +43254,9 @@ namespace CapriDesktop
             Section(checks, "SmokePlayJobs", delegate { SmokePlayJobs(checks); });
             Section(checks, "SmokeInk", delegate { SmokeInk(checks); });
             Section(checks, "SmokeUnreadableSettings", delegate { SmokeUnreadableSettings(checks, output); });
+            Section(checks, "SmokeFetch", delegate { SmokeFetch(checks, output); });
+            Section(checks, "SmokeSaveLog", delegate { SmokeSaveLog(checks, output); });
+            Section(checks, "SmokeFolderNotices", delegate { SmokeFolderNotices(checks, output); });
             Section(checks, "SmokeBrainNotes", delegate { SmokeBrainNotes(checks); });
             Section(checks, "SmokeToolCallErrors", delegate { SmokeToolCallErrors(checks); });
             Section(checks, "SmokeVoiceDetails", delegate { SmokeVoiceDetails(checks); });
@@ -46510,6 +46740,8 @@ namespace CapriDesktop
                         }
                         if (step == 0)
                         {
+                            if (ServicePointManager.DefaultConnectionLimit < 16) throw new Exception("Startup left fewer than 16 connections per host.");
+                            checks.Add("PASS startup allows at least 16 connections per host");
                             if (OnGitHub) checks.Add("LIMIT Mainframe's Auto size: GitHub's virtual screen has no real panel to compare its desktop with, so Auto stays at 100% there");
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
