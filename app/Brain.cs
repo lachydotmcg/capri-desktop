@@ -4871,29 +4871,29 @@ namespace CapriDesktop
         // bounded, so a huge line with no spaces can't hold her up.
         internal static string Redacted(string text)
         {
-            string clean = Regex.Replace(text ?? "", @"\bCAPRI(?:-[A-Z0-9]{2,12})?(?:-[0-9A-HJKMNP-TV-Z]{4}){4}\b|\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            string clean = Regex.Replace(text ?? "", @"CAPRI(?:-[A-Z0-9\u0131\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
-            clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // -u user:password, attached or quoted too, with an all-number user:group like 1000:1000 and $(id -u):$(id -g) left alone.
             // Only curl's lowercase -u takes it attached, and a $ value is a variable, so PowerShell's -UseDefaultCredentials:$true stays.
-            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)|(?-i:-u)|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|(?!\$)[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)|(?-i:-u)|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|(?!\$)[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // sshpass takes its -p only among its own options, before the command it runs, so ssh's own -p port stays.
-            clean = Regex.Replace(clean, @"(\bsshpass(?:\s+(?-i:-[fdP])\s*\S+|\s+(?-i:-[evhV])\S*)*\s+(?-i:-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\bsshpass(?:\s+(?-i:-[fdP])\s*\S+|\s+(?-i:-[evhV])\S*)*\s+(?-i:-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // A lowercase -p only, so mysql's -P port isn't taken for the password, and quoted or attached passwords count. The
             // search stops at the end of that command, so a later docker run -p 8080:80 keeps its ports.
-            clean = Regex.Replace(clean, @"(\b(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n;&|]{0,300}?(?-i:\s-p))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""';&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n;&|]{0,300}?(?-i:\s-p))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""';&|]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // A Cookie or Set-Cookie header is one on its own line (curl -v's > and < too) or quoted like curl -H "Cookie: ...", and
             // loses its value to the end of the line or its closing quote. "the cookie: SameSite=Lax" in a sentence isn't one.
-            clean = Regex.Replace(clean, @"((?:(?<![^\r\n])[ \t]*(?:[<>][ \t]*)?|(?<q>[""']))(?:set-)?cookie(?:\k<q>)?\s*:[ \t]*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|(?(q)(?:(?!\k<q>)[^\r\n])+|[^\r\n]+))", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:(?<![^\r\n])[ \t]*(?:[<>][ \t]*)?|(?<q>[""']))(?:set-)?cookie(?:\k<q>)?\s*:[ \t]*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|(?(q)(?:(?!\k<q>)[^\r\n])+|[^\r\n]+))", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // password:, secret: and token: count as a key at the end of a longer name like db_password or clientSecret, at the
             // start of a line, quoted, or after { or a comma. A quoted value goes whole, spaces and all, and keeps its quotes.
-            clean = Regex.Replace(clean, @"((?:(?<=[A-Za-z0-9_.-])|(?<![^\r\n])[ \t]*(?:-[ \t]+)?|[""']|[{,][ \t]*)(?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:(?<=[A-Za-z0-9_.-])|(?<![^\r\n])[ \t]*(?:-[ \t]+)?|[""']|[{,][ \t]*)(?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // In a sentence the next word goes only when it looks like a password itself, six or more letters and digits mixed.
-            clean = Regex.Replace(clean, @"(\b(?:password|passwd|secret|token(?!s\b)|cookie)\s*:\s*)(?=[^\s""',}]{6})(?=[^\s""',}]*?[0-9])(?=[^\s""',}]*?[A-Za-z])[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
-            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token|auth[_ -]?token|private[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?:password|passwd|secret|token(?!s\b)|cookie)\s*:\s*)(?=[^\s""',}]{6})(?=[^\s""',}]*?[0-9])(?=[^\s""',}]*?[A-Za-z])[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token|auth[_ -]?token|private[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
 
         internal static string ScreenProblem(Exception error, string provider)

@@ -46543,6 +46543,36 @@ namespace CapriDesktop
             for (int codeIndex = 0; codeIndex < codeHidden.GetLength(0); codeIndex++)
                 if (Brain.Redacted(codeHidden[codeIndex, 0]) != codeHidden[codeIndex, 1]) throw new Exception("A named Capri code could reach a log.");
             checks.Add("PASS plain and named Capri codes accept lowercase and outer spaces, reject other shapes, keep Haiku 5.5, use the worker and stay out of logs. Real Claude keys keep their model and address");
+            string[,] codeEdges = { { @"\n", "" }, { "%20", "" }, { "key", "" }, { "7", "" }, { "", "x" }, { "", "7" } };
+            foreach (string code in new[] { codeKey, namedKey })
+                for (int codeIndex = 0; codeIndex < codeEdges.GetLength(0); codeIndex++)
+                    if (Brain.Redacted(codeEdges[codeIndex, 0] + code + codeEdges[codeIndex, 1]) != codeEdges[codeIndex, 0] + "[redacted]" + codeEdges[codeIndex, 1]) throw new Exception("A Capri code beside a letter or digit could reach a log.");
+            checks.Add("PASS plain and named Capri codes stay hidden beside escaped text, letters and digits");
+            string codeLines = codeKey.ToLowerInvariant() + "\n" + namedKey.ToLowerInvariant() + "\nAPI_KEY=value\nAUTHORIZATION: Bearer value\nPRIVATE_TOKEN=value\nCOOKIE: a=b";
+            string codeClean = "[redacted]\n[redacted]\nAPI_KEY=[redacted]\nAUTHORIZATION: [redacted]\nPRIVATE_TOKEN=[redacted]\nCOOKIE: [redacted]";
+            System.Globalization.CultureInfo codeCultureWas = Thread.CurrentThread.CurrentCulture;
+            if (Brain.Redacted(codeLines) != codeClean) throw new Exception("A code or key name could reach a log in the starting culture.");
+            try
+            {
+                Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("tr-TR");
+                if (Brain.Redacted(codeLines) != codeClean) throw new Exception("A code or key name could reach a log in Turkish.");
+            }
+            finally { Thread.CurrentThread.CurrentCulture = codeCultureWas; }
+            checks.Add("PASS codes and key names stay hidden under the starting culture and tr-TR");
+            string[,] codeLetters = {
+                { "CAPRI-T\u0131-" + codeKey.Substring(6), "dotless i in its tag" },
+                { "CAPRI-T\u017F-" + codeKey.Substring(6), "long s in its tag" },
+                { codeKey.Substring(0, codeKey.Length - 1) + "\u017F", "long s in a group" }
+            };
+            for (int codeIndex = 0; codeIndex < codeLetters.GetLength(0); codeIndex++)
+            {
+                if (Brain.Redacted(codeLetters[codeIndex, 0]) != "[redacted]") throw new Exception("A Capri code with " + codeLetters[codeIndex, 1] + " could reach a log.");
+                bool codeAccepted = Cloud.IsCode(codeLetters[codeIndex, 0]);
+                checks.Add("PASS a Capri code with " + codeLetters[codeIndex, 1] + " stays hidden. Cloud.IsCode " + (codeAccepted ? "accepts" : "rejects") + " it");
+            }
+            foreach (string word in new[] { "capri-desktop", "CAPRI-0.9.0", "Capri-Setup.exe", "CAPRI-ABCD-EFGH" })
+                if (Brain.Redacted(word) != word) throw new Exception("Redaction took text that is not a Capri code.");
+            checks.Add("PASS ordinary Capri names and a two-group code stay unchanged");
             System.Collections.Generic.List<string> codeAsked = new System.Collections.Generic.List<string>(), realKeyAsked = new System.Collections.Generic.List<string>();
             System.Net.Sockets.TcpListener codeFake, realKeyFake;
             string[] codeRefusals = { "That Capri code isn't right.", "That Capri code was switched off.", "That Capri code has expired.", "That Capri code has used up its budget." };
