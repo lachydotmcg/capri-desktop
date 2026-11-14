@@ -87,6 +87,128 @@ namespace CapriDesktop
         [DataMember] internal string PaidModel;
         [DataMember] internal string SpeechModel;
         [DataMember] internal ThinkingPick[] ThinkingPicks;
+        [DataMember] internal bool RemoteOn;
+        [DataMember] internal string RemoteHost = RemoteLink.DefaultHost;
+    }
+
+    internal sealed class RemoteTurn
+    {
+        [ThreadStatic] internal static RemoteTurn Working;
+        internal Pet Pet;
+        internal RemoteLink Link;
+        internal RemoteSink Sink;
+        internal int Generation, Session, Ticket;
+        internal string Device, Id, Text;
+        internal volatile bool Closed;
+        internal bool Waiting, Blocked;
+        internal object Held;
+        internal RemoteHold Hold;
+        internal string Question;
+        internal bool Current { get { return Pet.RemoteCurrent(this); } }
+        internal const string PcOnly = "That one only works at the PC for now.";
+        internal const string Ended = "That request has ended.";
+        private const string HeldBack = "|use_computer|stream|job_control|run_terminal|terminal_job|capri_settings|mainframe|speech|quit|updates|draw|fake_crash|clone|hologram|mini_player|nap|move_yourself|animate|desktop_icons|linux_system|power|gaming_mode|mini_game|voice_chat|listen|watch_along|mod|";
+
+        internal static bool AtPc(string tool) { return !string.IsNullOrEmpty(tool) && HeldBack.IndexOf("|" + tool + "|", StringComparison.Ordinal) >= 0; }
+
+        internal static string Out(string text, int limit)
+        {
+            string safe = RemotePrivate.Mask(text ?? "");
+            safe = Brain.Scrubbed(Brain.Redacted(safe));
+            return RemoteMessages.Clip(Input(safe), limit);
+        }
+
+        internal static string Input(string text)
+        {
+            string input = text ?? "";
+            System.Text.StringBuilder kept = new System.Text.StringBuilder(input.Length);
+            for (int i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                bool pair = char.IsHighSurrogate(c) && i + 1 < input.Length && char.IsLowSurrogate(input[i + 1]);
+                System.Globalization.UnicodeCategory kind = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(input, i);
+                if (c == '\t') kept.Append(' ');
+                else if (c == '\n' || kind != System.Globalization.UnicodeCategory.Control && kind != System.Globalization.UnicodeCategory.Format && kind != System.Globalization.UnicodeCategory.Surrogate) kept.Append(input, i, pair ? 2 : 1);
+                if (pair) i++;
+            }
+            return kept.ToString();
+        }
+
+        internal static string Words(string tool, ToolArguments args)
+        {
+            switch (tool)
+            {
+                case "open_app": return "Opening an app";
+                case "open_website": return "Opening a website";
+                case "website_nickname": return "Saving a website name";
+                case "look_at_screen": return "Looking at the screen";
+                case "play_music": return "Playing music";
+                case "media":
+                    switch (args.Action)
+                    {
+                        case "resume": return "Media: resume";
+                        case "pause": return "Media: pause";
+                        case "stop": return "Media: stop";
+                        case "next": return "Media: next track";
+                        case "previous": return "Media: previous track";
+                        case "play_pause": return "Media: toggle";
+                        default: return "Media";
+                    }
+                case "app_window": return "Changing an app window";
+                case "shortcut": return "Pressing a shortcut";
+                case "list_windows": return "Checking open windows";
+                case "check_app": return "Checking installed apps";
+                case "find_file": return "Finding a file";
+                case "read_file": return "Reading a file";
+                case "remember": return "Updating a note";
+                case "watch_for": return "Watching for a change";
+                case "game_notes": return "Updating game notes";
+                case "read_skill": return "Reading a skill";
+                case "remind": return "Setting a reminder";
+                case "stopwatch": return "Stopwatch";
+                case "routine": return "Running a routine";
+                case "clip": return "Saving a clip";
+                case "app_volume": return "Changing app volume";
+                case "pc_status": return "Checking the computer";
+                case "internet_status": return "Checking the connection";
+                default: return "Using a tool";
+            }
+        }
+
+        internal void Tool(string id, string tool, string summary, string state)
+        {
+            Pet.RemoteTool(this, id, tool, summary, state);
+        }
+    }
+
+    internal sealed class RemoteHold
+    {
+        internal RemoteTurn Turn;
+        internal List<KeyValuePair<string, ToolArguments>> Calls;
+    }
+
+    internal static class RemotePrivate
+    {
+        private static readonly List<string> values = new List<string>();
+
+        internal static void Keep(ComputerJob job, ComputerAction action)
+        {
+            if (action.Action != "type" || !(action.Secret || action.Risk == "secret" || System.Text.RegularExpressions.Regex.IsMatch(job.Asked ?? "", @"(?i)\b(password|passcode|card number|security code|private key|api key)\b"))) return;
+            string value = (action.Text ?? "").Trim();
+            if (value.Length < 4) return;
+            lock (values) if (!values.Contains(value))
+            {
+                values.Add(value);
+                values.Sort(delegate(string a, string b) { return b.Length.CompareTo(a.Length); });
+            }
+        }
+
+        internal static string Mask(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            lock (values) foreach (string value in values) text = text.Replace(value, "[private]");
+            return text;
+        }
     }
 
     // The bits of GitHub's latest release she reads to tell them about an update.
@@ -650,6 +772,7 @@ namespace CapriDesktop
             if (OperatingSystem.IsLinux() && Program.Smoke == null) Listen = new Ears(folder).Listen;
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
+            if (string.IsNullOrWhiteSpace(Saved.RemoteHost)) Saved.RemoteHost = RemoteLink.DefaultHost;
             StartCare();
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
             // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
@@ -741,6 +864,9 @@ namespace CapriDesktop
                 Chores.SignHidden = delegate(bool hide) { return Dispatcher.UIThread.Invoke(new Func<bool>(delegate { return HideGlow(hide); })); };
             }
             if (Program.Smoke == null) presence = new Presence(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            Func<string, string> resume = Hands.Resume;
+            Hands.Resume = delegate(string text) { return RemoteTurn.Working == null ? resume(text) : null; };
+            Hands.NativeWork = Limbs.RemoteWork(Hands.NativeWork);
             // A cloud key they saved thinks for her instead of Ollama, on the model they picked.
             string brainKey = ReadSecret(BrainKeyFile);
             if (brainKey != null && Cloud.KindOf(brainKey) != null && !string.IsNullOrEmpty(Saved.CloudModel))
@@ -817,7 +943,9 @@ namespace CapriDesktop
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
-            Closed += delegate { StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            Closed += delegate { StopRemote(); StopNativeListening(); Unhold(); pressed = dragging = dragPending = false; frames.Stop(); Desk.Dispose(); Screens.Changed -= BindDesktopScreens; };
+            desktop.ShutdownRequested += delegate { StopRemote(); };
+            desktop.Exit += delegate { StopRemote(); };
             Deactivated += delegate { if (!(Desk is HyprlandDesk) && !desktopDrag) Program.Guard(Unhold); };
             Opened += delegate
             {
@@ -845,6 +973,7 @@ namespace CapriDesktop
                     if (Program.ConnectChatGPT) { OpenMainframe(); UsePlan(); }
                 }
             };
+            if (Saved.RemoteOn) SetRemote(true);
         }
 
         private void Unfocus(Window shown)
@@ -4568,10 +4697,485 @@ namespace CapriDesktop
             });
         }
 
-        internal void Hear(string text, bool fromVoice = false)
+        private readonly object remoteGate = new object();
+        private RemoteLink remoteLink;
+        private RemoteSink remoteSink;
+        private RemoteState remoteState;
+        private string remoteRelay, remoteProblem, remoteSaveProblem, remoteNote = "";
+        private bool remoteUnreadable, remoteDirty, remoteCode;
+        private int remoteGeneration;
+        private Action<string, string> remoteChanged;
+        private Action<string, string, string> remoteHeard;
+        private RemoteTurn remoteActive;
+        private readonly List<RemoteTurn> remoteQueue = new List<RemoteTurn>();
+        private readonly Dictionary<string, RemoteTurn> remoteNewest = new Dictionary<string, RemoteTurn>(StringComparer.Ordinal);
+        private readonly Dictionary<int, RemoteTurn> remoteTickets = new Dictionary<int, RemoteTurn>();
+        private readonly Dictionary<string, int> remoteSessions = new Dictionary<string, int>(StringComparer.Ordinal);
+        private readonly Dictionary<string, RemoteHold> remoteHolds = new Dictionary<string, RemoteHold>(StringComparer.Ordinal);
+        internal RemoteStore RemoteFiles;
+        internal Func<RemoteState, string, Action<RemoteState>, RemoteLink> RemoteMake;
+        internal Func<RemoteLink, RemoteSink> RemoteOutput;
+
+        private string RemoteHost { get { return string.IsNullOrWhiteSpace(Saved.RemoteHost) ? RemoteLink.DefaultHost : Saved.RemoteHost; } }
+
+        private bool LoadRemote()
+        {
+            if (remoteUnreadable) return false;
+            if (remoteDirty) return true;
+            if (RemoteFiles == null) RemoteFiles = new RemoteStore(Program.Smoke ?? folder);
+            RemoteState state;
+            string relay;
+            RemoteStoreResult result = RemoteFiles.Load(out state, out relay);
+            if (result == RemoteStoreResult.Unreadable)
+            {
+                StopRemote();
+                Saved.RemoteOn = false;
+                remoteUnreadable = true;
+                remoteState = null;
+                remoteRelay = null;
+                remoteProblem = "The saved phones couldn't be read. Remove all phones to start again.";
+                return false;
+            }
+            remoteState = state;
+            remoteRelay = relay;
+            return true;
+        }
+
+        private bool SaveRemote(RemoteState state, string relay, string failure)
+        {
+            if (RemoteFiles == null) RemoteFiles = new RemoteStore(Program.Smoke ?? folder);
+            remoteState = state.Copy();
+            remoteRelay = relay;
+            remoteDirty = RemoteFiles.Save(relay, state) != RemoteStoreResult.Saved;
+            if (remoteDirty) { remoteProblem = failure; return false; }
+            remoteUnreadable = false;
+            remoteProblem = null;
+            return true;
+        }
+
+        internal RemoteView ReadRemote()
+        {
+            if (remoteState == null && !remoteUnreadable && (Program.Smoke == null || RemoteMake != null)) LoadRemote();
+            RemoteLink link = remoteLink;
+            RemoteView view = new RemoteView { On = Saved.RemoteOn && link != null, Host = RemoteHost, Status = remoteProblem ?? (link == null ? "off" : link.Status), Note = remoteProblem ?? remoteNote };
+            if (link != null)
+            {
+                view.Ready = link.Ready;
+                view.Qr = link.Qr;
+                view.QrSeconds = link.QrSeconds;
+                view.Ask = link.Asking;
+                view.LinkFor = link.LinkFor;
+                view.Expired = remoteCode && view.Ask == null && view.LinkFor == null && view.QrSeconds == 0;
+                view.Phones = link.Devices();
+                foreach (RemoteDevice phone in view.Phones) if (link.IsOnline(phone.Id)) view.Online.Add(phone.Id);
+            }
+            else if (remoteState != null)
+            {
+                foreach (RemoteDevice phone in remoteState.Devices) view.Phones.Add(new RemoteDevice { Id = phone.Id, Name = phone.Name, Added = phone.Added, From = phone.From, Parent = phone.Parent });
+                view.Phones.Sort(delegate(RemoteDevice a, RemoteDevice b) { return b.Added.CompareTo(a.Added); });
+            }
+            return view;
+        }
+
+        internal void SetRemote(bool on)
+        {
+            if (!on)
+            {
+                StopRemote();
+                Saved.RemoteOn = false;
+                Save();
+                return;
+            }
+            if (quitting || MacQuit.Quitting || remoteLink != null) return;
+            Saved.RemoteOn = false;
+            if (Program.Smoke != null && RemoteMake == null) { Save(); return; }
+            string relay = RemoteLink.RelayBase(RemoteHost);
+            if (relay == null) { remoteProblem = "That relay host isn't valid."; Save(); return; }
+            if (!LoadRemote()) { Save(); return; }
+            if (remoteState == null || remoteRelay != relay)
+            {
+                bool changed = remoteState != null;
+                if (!SaveRemote(RemoteState.Fresh(), relay, changed ? "The new relay and phone store weren't saved." : "The new phone store wasn't saved.")) { Save(); return; }
+                if (changed) remoteNote = "The relay changed. Pair your phones again.";
+            }
+            else if (remoteDirty && !SaveRemote(remoteState, relay, "The paired phones weren't saved.")) { Save(); return; }
+            remoteProblem = null;
+            StartRemote(relay);
+            Save();
+        }
+
+        private void StartRemote(string relay)
+        {
+            int generation;
+            lock (remoteGate) generation = ++remoteGeneration;
+            RemoteLink link = null;
+            Action<RemoteState> saved = delegate(RemoteState state)
+            {
+                string failure = remoteSaveProblem ?? "The paired phones weren't saved.";
+                Dispatcher.UIThread.Post(delegate
+                {
+                    if (!RemoteLinkCurrent(link, generation)) return;
+                    if (!SaveRemote(state, relay, failure))
+                    {
+                        StopRemote();
+                        Saved.RemoteOn = false;
+                        Save();
+                    }
+                    else NotifySettings();
+                });
+            };
+            link = RemoteMake == null ? new RemoteLink(remoteState.Copy(), relay, Environment.MachineName, "capri/" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version, saved) : RemoteMake(remoteState.Copy(), relay, saved);
+            RemoteSink sink = RemoteOutput == null ? new RemoteLinkSink(link) : RemoteOutput(link);
+            lock (remoteGate) { remoteLink = link; remoteSink = sink; }
+            remoteChanged = delegate(string what, string about) { RemoteChanged(link, generation, what, about); };
+            remoteHeard = delegate(string device, string id, string text)
+            {
+                int session;
+                lock (remoteGate) { if (!RemoteLinkCurrent(link, generation)) return; session = RemoteSession(device); }
+                Dispatcher.UIThread.Post(delegate { RemoteHear(link, generation, session, device, id, text); });
+            };
+            link.Happened += remoteChanged;
+            link.Said += remoteHeard;
+            Saved.RemoteOn = true;
+            if (Program.Smoke == null && RemoteMake == null) link.Start();
+        }
+
+        private RemoteLink DetachRemote()
+        {
+            RemoteLink link;
+            bool cancel;
+            lock (remoteGate)
+            {
+                cancel = remoteActive != null;
+                link = remoteLink;
+                remoteLink = null;
+                remoteSink = null;
+                remoteGeneration++;
+                foreach (RemoteTurn turn in remoteNewest.Values) { turn.Closed = true; if (turn.Held != null) Security.Drop(turn.Held); }
+                remoteNewest.Clear(); remoteTickets.Clear(); remoteQueue.Clear(); remoteHolds.Clear(); remoteSessions.Clear();
+                remoteActive = null;
+            }
+            if (link != null) { link.Happened -= remoteChanged; link.Said -= remoteHeard; }
+            remoteChanged = null; remoteHeard = null; remoteCode = false;
+            if (cancel) Brain.Cancel();
+            return link;
+        }
+
+        private void StopRemote()
+        {
+            RemoteLink link = DetachRemote();
+            if (link != null) link.Stop();
+        }
+
+        internal void NewRemoteCode()
+        {
+            if (remoteLink == null) return;
+            remoteCode = remoteLink.NewCode() != null;
+            if (!remoteCode) remoteNote = "Wait for Remote to connect first.";
+            else remoteNote = "";
+            NotifySettings();
+        }
+
+        internal void CloseRemoteCode() { if (remoteLink != null) remoteLink.CloseCode(); remoteCode = false; NotifySettings(); }
+        internal void AllowRemote() { if (remoteLink != null && remoteLink.Allow()) remoteCode = false; }
+        internal void DenyRemote() { if (remoteLink != null && remoteLink.Deny()) remoteCode = false; }
+
+        internal void RevokeRemote(string id)
+        {
+            if (remoteLink != null)
+            {
+                remoteSaveProblem = "The phone removal wasn't saved.";
+                try { remoteLink.Revoke(id); }
+                finally { remoteSaveProblem = null; }
+                return;
+            }
+            if (!LoadRemote() || remoteState == null || remoteState.Find(id) == null) return;
+            RemoteState state = remoteState.Copy();
+            List<string> ids = RemoteLink.RevokeIds(state.Devices, id);
+            state.Devices.RemoveAll(delegate(RemoteDevice phone) { return ids.Contains(phone.Id); });
+            SaveRemote(state, remoteRelay, "The phone removal wasn't saved.");
+            NotifySettings();
+        }
+
+        internal void RemoveRemotePhones()
+        {
+            if (Program.Smoke != null && RemoteMake == null) return;
+            bool on = Saved.RemoteOn;
+            RemoteLink link = DetachRemote();
+            RemoteState state = link == null ? RemoteState.Fresh() : link.RemoveAll();
+            string relay = RemoteLink.RelayBase(RemoteHost);
+            Saved.RemoteOn = false;
+            if (relay == null) remoteProblem = "That relay host isn't valid.";
+            else if (SaveRemote(state, relay, "Removing all phones wasn't saved."))
+            {
+                remoteNote = "All phones were removed. Pair your phones again.";
+                if (on && !quitting && !MacQuit.Quitting) StartRemote(relay);
+            }
+            Save();
+        }
+
+        internal bool SetRemoteHost(string host)
+        {
+            string relay = RemoteLink.RelayBase(host);
+            if (relay == null) { remoteProblem = "That relay host isn't valid."; NotifySettings(); return false; }
+            if (relay == RemoteLink.RelayBase(RemoteHost)) { remoteProblem = remoteUnreadable || remoteDirty ? remoteProblem : null; NotifySettings(); return true; }
+            if (Program.Smoke != null && RemoteMake == null) return false;
+            if (!LoadRemote()) { Save(); return false; }
+            bool on = Saved.RemoteOn;
+            RemoteState before = remoteState;
+            string previousRelay = remoteRelay;
+            bool dirty = remoteDirty;
+            StopRemote();
+            Saved.RemoteOn = false;
+            if (!SaveRemote(RemoteState.Fresh(), relay, "The new relay and phone store weren't saved."))
+            {
+                remoteState = before; remoteRelay = previousRelay; remoteDirty = dirty;
+                Save();
+                return false;
+            }
+            Saved.RemoteHost = relay;
+            remoteNote = "The relay changed. Pair your phones again.";
+            if (on && !quitting && !MacQuit.Quitting) StartRemote(relay);
+            Save();
+            return true;
+        }
+
+        private bool RemoteLinkCurrent(RemoteLink link, int generation)
+        {
+            lock (remoteGate) return !quitting && !MacQuit.Quitting && link != null && remoteLink == link && remoteGeneration == generation;
+        }
+
+        private int RemoteSession(string device) { int session; return remoteSessions.TryGetValue(device, out session) ? session : 0; }
+
+        private bool RemoteSessionCurrent(RemoteTurn turn)
+        {
+            return RemoteLinkCurrent(turn.Link, turn.Generation) && RemoteSession(turn.Device) == turn.Session && turn.Link.HasSession(turn.Device);
+        }
+
+        internal bool RemoteCurrent(RemoteTurn turn)
+        {
+            lock (remoteGate)
+            {
+                RemoteTurn newest;
+                return !turn.Closed && RemoteSessionCurrent(turn) && remoteNewest.TryGetValue(turn.Device, out newest) && newest == turn;
+            }
+        }
+
+        internal string RemoteGate(RemoteTurn turn, string tool, ToolArguments args)
+        {
+            lock (remoteGate)
+            {
+                if (!turn.Current) return RemoteTurn.Ended;
+                if (turn.Held == null && Security.HoldingId != null) Security.Drop();
+                string held = Security.Gate(tool, args);
+                if (held != null) turn.Held = Security.HoldingId;
+                return held;
+            }
+        }
+
+        internal void RemoteTool(RemoteTurn turn, string id, string tool, string summary, string state)
+        {
+            lock (remoteGate)
+            {
+                if (!turn.Current) return;
+                try { turn.Sink.Tool(turn.Device, id, RemoteTurn.Out(tool, 64), RemoteTurn.Out(summary, 200), state, turn.Id); }
+                catch (Exception) { }
+            }
+        }
+
+        private void RemoteChanged(RemoteLink link, int generation, string what, string about)
+        {
+            lock (remoteGate)
+            {
+                if (!RemoteLinkCurrent(link, generation)) return;
+                bool all = what == "new-room" || what == "room-reset" || what == "left" && about == null || what == "status" && about != "online";
+                if (all || what == "left" || what == "session" || what == "removed" || what == "kicked" || what == "version")
+                {
+                    List<string> ids = all ? new List<string>(remoteNewest.Keys) : new List<string> { about };
+                    foreach (string id in ids)
+                    {
+                        if (id == null) continue;
+                        remoteSessions[id] = RemoteSession(id) + 1;
+                        RemoteTurn turn;
+                        if (remoteNewest.TryGetValue(id, out turn)) { turn.Closed = true; if (turn.Held != null) Security.Drop(turn.Held); }
+                        remoteHolds.Remove(id);
+                    }
+                    if (all) foreach (string id in new List<string>(remoteSessions.Keys)) if (!ids.Contains(id)) remoteSessions[id]++;
+                }
+            }
+            Dispatcher.UIThread.Post(delegate
+            {
+                if (!RemoteLinkCurrent(link, generation)) return;
+                if (what == "ask" || what == "allowed" || what == "paired" || what == "pair-failed" || what == "link") remoteCode = false;
+                if (what == "new-room" || what == "room-reset") remoteNote = "The Remote room changed. Pair your phones again.";
+                if (what == "pair-failed") remoteNote = "That phone wasn't paired. Try a new code.";
+                RemotePump();
+                NotifySettings();
+            });
+        }
+
+        private void RemoteHear(RemoteLink link, int generation, int session, string device, string id, string text)
+        {
+            lock (remoteGate)
+            {
+                if (!RemoteLinkCurrent(link, generation) || RemoteSession(device) != session || !link.HasSession(device)) return;
+                RemoteTurn old;
+                if (remoteNewest.TryGetValue(device, out old)) RemoteClose(old, "", false);
+                RemoteTurn turn = new RemoteTurn { Pet = this, Link = link, Sink = remoteSink, Generation = generation, Session = session, Device = device, Id = id, Text = RemoteTurn.Input(RemoteMessages.Clip(text, 8000)).Trim() };
+                RemoteHold hold;
+                if (remoteHolds.TryGetValue(device, out hold) && RemoteSessionCurrent(hold.Turn) && (Security.Agrees(turn.Text) || Security.Declines(turn.Text))) turn.Hold = hold;
+                remoteHolds.Remove(device);
+                remoteNewest[device] = turn;
+                remoteQueue.Add(turn);
+            }
+            RemotePump();
+        }
+
+        private void RemotePump()
+        {
+            RemoteTurn turn = null;
+            bool cancel = false;
+            lock (remoteGate)
+            {
+                if (remoteActive != null && !remoteActive.Closed) return;
+                if (remoteActive != null) { remoteTickets.Remove(remoteActive.Ticket); cancel = true; }
+                remoteActive = null;
+                while (remoteQueue.Count > 0 && !remoteQueue[0].Current) remoteQueue.RemoveAt(0);
+                if (remoteQueue.Count > 0) { remoteActive = turn = remoteQueue[0]; remoteQueue.RemoveAt(0); }
+            }
+            if (cancel) Brain.Cancel();
+            if (turn == null) return;
+            try { Hear(turn.Text, false, turn); }
+            catch (Exception) { RemoteClose(turn, "", true); RemoteFinish(turn); }
+            finally { if (!turn.Waiting) { RemoteClose(turn, "", false); RemoteFinish(turn); } }
+        }
+
+        private void RemoteClose(RemoteTurn turn, string text, bool busy)
+        {
+            lock (remoteGate)
+            {
+                if (turn.Closed) return;
+                bool current = turn.Current;
+                turn.Closed = true;
+                if (turn.Held != null) Security.Drop(turn.Held);
+                if (!current) return;
+                try
+                {
+                    if (busy) turn.Sink.Error(turn.Device, "busy", turn.Id);
+                    else turn.Sink.Reply(turn.Device, RemoteMessages.NewId(), turn.Id, RemoteTurn.Out(text, 16000), true);
+                }
+                catch (Exception) { }
+            }
+        }
+
+        private void RemoteFinish(RemoteTurn turn)
+        {
+            lock (remoteGate)
+            {
+                turn.Waiting = false;
+                remoteTickets.Remove(turn.Ticket);
+                if (remoteActive == turn) remoteActive = null;
+            }
+            Dispatcher.UIThread.Post(RemotePump);
+        }
+
+        private void RemoteLocal()
+        {
+            lock (remoteGate)
+            {
+                foreach (RemoteTurn turn in remoteNewest.Values) RemoteClose(turn, "", true);
+                remoteQueue.Clear(); remoteHolds.Clear(); remoteTickets.Clear();
+                remoteActive = null;
+            }
+        }
+
+        private bool RemoteReply(int ticket, string heard, string said, bool following, RemoteTurn phone)
+        {
+            if (phone == null || following) return true;
+            lock (remoteGate)
+            {
+                RemoteTurn turn;
+                if (!remoteTickets.TryGetValue(ticket, out turn) || turn != phone || heard != turn.Text || !turn.Current) { RemoteFinish(phone); return false; }
+                if (turn.Hold != null) remoteHolds[turn.Device] = turn.Hold;
+                RemoteClose(turn, said, false);
+                RemoteFinish(turn);
+                return true;
+            }
+        }
+
+        private void RemoteWaiting(int ticket)
+        {
+            lock (remoteGate) { RemoteTurn turn; if (remoteTickets.TryGetValue(ticket, out turn)) turn.Waiting = true; }
+        }
+
+        private bool RemoteEarly(string text)
+        {
+            if (SelfTools.JobRequest(text) != null || System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) return RemoteTurn.AtPc("job_control");
+            if (MainframeAsked(text)) return RemoteTurn.AtPc("mainframe");
+            string tool;
+            ToolArguments args;
+            return Hands.Heard(text, out tool, out args) && RemoteTurn.AtPc(tool);
+        }
+
+        private string ResumeRemote(RemoteTurn turn, string text)
+        {
+            RemoteHold hold = turn.Hold;
+            turn.Hold = null;
+            if (hold == null || !turn.Current) return null;
+            lock (remoteGate) if (!RemoteSessionCurrent(hold.Turn)) return null;
+            if (Security.Declines(text)) return Security.Left;
+            if (!Security.Agrees(text)) return null;
+            foreach (KeyValuePair<string, ToolArguments> call in hold.Calls)
+            {
+                if (!turn.Current) { if (turn.Held != null) Security.Drop(turn.Held); return null; }
+                if (RemoteGate(turn, call.Key, call.Value) == RemoteTurn.Ended) return null;
+            }
+            object expected = Security.HoldingId;
+            if (expected != null)
+            {
+                try { return turn.Current ? Security.Resume(text, Brain.Act, expected) : null; }
+                finally { Security.Drop(expected); if (turn.Held == expected) turn.Held = null; }
+            }
+            List<string> done = new List<string>();
+            foreach (KeyValuePair<string, ToolArguments> call in hold.Calls) if (turn.Current) done.Add(Brain.Act(call.Key, call.Value));
+            return string.Join(" ", done.ToArray());
+        }
+
+        private void KeepRemoteHold(RemoteTurn turn)
+        {
+            lock (remoteGate)
+            {
+                object id = turn.Held;
+                if (id == null) return;
+                List<KeyValuePair<string, ToolArguments>> calls = Security.HeldCalls(id);
+                string question = Security.Question;
+                if (!Security.Drop(id) || calls.Count == 0 || !turn.Current) return;
+                turn.Hold = new RemoteHold { Turn = turn, Calls = calls };
+                turn.Question = question;
+                turn.Held = null;
+            }
+        }
+
+        private static bool MainframeAsked(string text)
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:please )?(?:(?:can|could|would) you )?(?:open|show|bring up|let me see|can i see)(?: me)?(?: the| your| her| capri'?s?)? (?:capri )?main ?frame(?: window)?(?: please)?[.!?]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        internal void Hear(string text, bool fromVoice = false) { Hear(text, fromVoice, null); }
+
+        private void Hear(string text, bool fromVoice, RemoteTurn phone)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            if (phone == null) RemoteLocal();
+            else
+            {
+                if (!phone.Current) return;
+                phone.Ticket = ++asking;
+                lock (remoteGate) remoteTickets[phone.Ticket] = phone;
+                if (RemoteEarly(text)) { Reply(phone.Ticket, text, RemoteTurn.PcOnly, null, false, phone); return; }
+                if (Security.Agrees(text) && phone.Hold == null) return;
+            }
             StopListening();
             if (modSendDepth == 0 && System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
             if (!meeting.Asking)
@@ -4582,14 +5186,20 @@ namespace CapriDesktop
                 bool fromMod = modSendDepth > 0 || sent != text;
                 text = sent;
                 if (fromMod) Security.ModSaid(text); else Security.TheySaid();
+                if (phone != null && fromMod) phone.Hold = null;
             }
             ModList.LogHearing(text, true);
             Typed();
             if (meeting.Asking) { Met(text); return; }
             lastHeard = text;
             if (ModList.Heard(text)) return;
+            if (phone != null)
+            {
+                phone.Text = text;
+                if (RemoteEarly(text)) { Reply(phone.Ticket, text, RemoteTurn.PcOnly, null, false, phone); return; }
+            }
             if (SelfJobRequest(text)) return;
-            int ticket = ++asking;
+            int ticket = phone == null ? ++asking : phone.Ticket;
             bool working = SelfJobs.Active;
             if (!working) ComputerJobs.Stop();
             ownedVoice?.Cancel();
@@ -4597,15 +5207,26 @@ namespace CapriDesktop
             if (!working) Brain.Cancel();
             voice.Stop();
             string tool;
-            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:please )?(?:(?:can|could|would) you )?(?:open|show|bring up|let me see|can i see)(?: me)?(?: the| your| her| capri'?s?)? (?:capri )?main ?frame(?: window)?(?: please)?[.!?]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            if (MainframeAsked(text))
             {
-                Reply(ticket, text, MainframeTool(null));
+                Reply(ticket, text, MainframeTool(null), null, false, phone);
                 return;
             }
             ToolArguments args;
             bool noted;
             try { noted = Hands.Heard(text, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
+            if (phone != null && (noted || tool == "remind" || tool == "stopwatch" || tool == "routine"))
+            {
+                Talk.Thinking(text);
+                Ask(ticket, text, 0, 0, phone, delegate(string line)
+                {
+                    string done = Brain.Act(tool, args);
+                    Brain.Remember(line, done);
+                    return Security.Said(done);
+                });
+                return;
+            }
             if (TimingTool(ticket, text, tool, args)) return;
             // Something that can't work here, like clones and chaos mode, which are Windows-only: she says so herself and why,
             // brain or no brain, instead of her brain joking about it. Asked for that and something she can do too, like "open
@@ -4615,7 +5236,7 @@ namespace CapriDesktop
             {
                 string done = Hands.Do(tool, args);
                 Brain.Remember(text, done);
-                Reply(ticket, text, done);
+                Reply(ticket, text, done, null, false, phone);
                 return;
             }
             // Asked in other words for something only Windows has, like "can you draw on my screen?", she says so too (F69).
@@ -4623,25 +5244,26 @@ namespace CapriDesktop
             if (lacking != null)
             {
                 Brain.Remember(text, lacking);
-                Reply(ticket, text, lacking);
+                Reply(ticket, text, lacking, null, false, phone);
                 return;
             }
             // Her nap, her own moves and her animations work before she has a brain, like on Windows.
-            if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, Hands.Do(tool, args)); return; }
-            if (Think == null && Brain.Model == null && News.Matching(text) != null) { Reply(ticket, text, News.Facts); return; }
-            if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline); FindBrain(); return; }
+            if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, Hands.Do(tool, args), null, false, phone); return; }
+            if (Think == null && Brain.Model == null && News.Matching(text) != null) { Reply(ticket, text, News.Facts, null, false, phone); return; }
+            if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline, null, false, phone); FindBrain(); return; }
             Talk.Thinking(text);
             long voiceTicket = fromVoice ? voiceRecovery.Begin() : 0;
-            Ask(ticket, text, 0, voiceTicket);
+            Ask(ticket, text, 0, voiceTicket, phone);
         }
 
         // Her brain answers on the thread pool. A stuck NVIDIA model hands the message to the next one, twice at most, like on Windows.
-        private void Ask(int ticket, string text, int switches, long voiceTicket = 0)
+        private void Ask(int ticket, string text, int switches, long voiceTicket = 0, RemoteTurn phone = null, Func<string, string> work = null)
         {
-            Func<string, string> think = Think;
+            Func<string, string> think = work ?? Think;
             bool follows = FollowUps;
             int input = inputTurn;
             Cloud remote = Brain.Remote;
+            if (phone != null) phone.Waiting = true;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string said;
@@ -4649,9 +5271,14 @@ namespace CapriDesktop
                 // As on Windows, a provider's own error text goes in the BRAIN note, and she says where to find it.
                 string problem = null;
                 bool stuck = false, failed = false;
+                RemoteTurn previous = RemoteTurn.Working;
                 try
                 {
-                    if (voiceTicket != 0 && think == null)
+                    RemoteTurn.Working = phone;
+                    string resumed = phone == null ? null : ResumeRemote(phone, text);
+                    if (phone != null && !phone.Current) said = "";
+                    else if (resumed != null) said = resumed;
+                    else if (voiceTicket != 0 && think == null)
                     {
                         using (voiceRecovery.EnterPrimary(voiceTicket, Brain)) said = Brain.Ask(text, follows, out after);
                         said = voiceRecovery.Recover(Brain, voiceTicket, text, said);
@@ -4660,17 +5287,25 @@ namespace CapriDesktop
                 }
                 catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Told || error.Message == Brain.Offline ? said : error.Message; stuck = Brain.Stalled(error); failed = true; }
                 catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; stuck = Brain.Stalled(error); failed = true; }
-                finally { if (voiceTicket != 0) voiceRecovery.End(voiceTicket); }
+                finally
+                {
+                    if (phone != null) KeepRemoteHold(phone);
+                    RemoteTurn.Working = previous;
+                    if (voiceTicket != 0) voiceRecovery.End(voiceTicket);
+                }
+                if (phone != null && phone.Question != null) said = phone.Question;
+                if (phone != null && phone.Blocked) said = RemoteTurn.PcOnly;
                 if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; problem = said; failed = true; }
                 Dispatcher.UIThread.Post(delegate
                 {
+                    if (phone != null && (!phone.Current || ticket != asking)) { RemoteClose(phone, "", false); RemoteFinish(phone); return; }
                     if (ticket != asking) return;
-                    if (stuck && switches < 2 && Hop(remote)) { Ask(ticket, text, switches + 1); return; }
+                    if (stuck && switches < 2 && Hop(remote)) { Ask(ticket, text, switches + 1, 0, phone, work); return; }
                     if (problem != null) { frameProblem = problem; NotifySettings(); }
                     if (input != inputTurn) after = null;
                     if (HoldNews(ticket)) return;
                     if (ticket == newsTicket && failed) { Talk.Answer("(updated)", News.Line); selfTools.Replied(ticket); KeepNews(); return; }
-                    Reply(ticket, ticket == newsTicket ? "(updated)" : text, said, ticket == newsTicket ? null : after);
+                    Reply(ticket, ticket == newsTicket ? "(updated)" : text, said, ticket == newsTicket ? null : after, false, phone);
                 });
             });
         }
@@ -4726,8 +5361,9 @@ namespace CapriDesktop
             }
         }
 
-        private void Reply(int ticket, string heard, string said, string after = null, bool following = false)
+        private void Reply(int ticket, string heard, string said, string after = null, bool following = false, RemoteTurn phone = null)
         {
+            if (!following && phone != null) RemoteWaiting(ticket);
             int input = inputTurn, answer = answerTurn;
             followUp.Drop();
             // Her answers to them are a reply to mods; her own lines, like a check-in or a mod's, are a remark.
@@ -4736,7 +5372,7 @@ namespace CapriDesktop
             lastReply = said;
             ModsReplied(said, source);
             string spoken = Speaks ? ModsSpeaking(said) : said;
-            if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
+            if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer, phone)) TypeAlong(said, ticket); return; }
             ISpeaker speaker = Speaker;
             int speechTicket = speechGeneration;
             if (!following) Talk.Thinking(heard);
@@ -4746,7 +5382,7 @@ namespace CapriDesktop
             {
                 if (ticket != asking || shown[0]) return;
                 shown[0] = true;
-                PresentReply(ticket, heard, said, 0, after, following, input, answer, () => TypeAlong(said, ticket));
+                PresentReply(ticket, heard, said, 0, after, following, input, answer, () => TypeAlong(said, ticket), phone);
             }, TimeSpan.FromMilliseconds(speaker is OwnedSpeaker ? 95000 : VoiceWait));
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -4767,7 +5403,7 @@ namespace CapriDesktop
                     {
                         if (seconds >= 0.2 && SpeechCurrent(speaker, speechTicket)) { voice.Play(wav); ModsSpoke(spoken); }
                         else TypeAlong(said, ticket);
-                    });
+                    }, phone);
                 });
             });
         }
@@ -5325,11 +5961,18 @@ namespace CapriDesktop
             [DataMember] internal string Vault;
             [DataMember] internal ThinkingPick[] ThinkingPicks;
             [DataMember] internal int MusicApp;
+            [DataMember] internal bool RemoteOn;
+            [DataMember] internal string RemoteHost;
         }
 
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
         internal static Settings Kept(Settings saved, NewSettings newer)
         {
+            if (saved != null && newer != null && saved.RemoteHost == null)
+            {
+                saved.RemoteOn = newer.RemoteOn;
+                saved.RemoteHost = newer.RemoteHost;
+            }
             if (saved == null || newer == null || saved.VoiceProvider != null) return saved;
             saved.VoiceProvider = newer.VoiceProvider;
             saved.LocalVoiceUrl = newer.LocalVoiceUrl;
@@ -5366,7 +6009,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
 
         private Settings Load()
@@ -5465,6 +6108,7 @@ namespace CapriDesktop
         {
             if (quitting) return;
             if (fileEditor != null && !fileEditor.Clear(Quit)) return;
+            StopRemote();
             if (OperatingSystem.IsMacOS())
             {
                 macQuit.Request(0, delegate(Action leave)
@@ -5518,6 +6162,7 @@ namespace CapriDesktop
 
         private void FinishNow(int code)
         {
+            StopRemote();
             if (OperatingSystem.IsMacOS()) { macQuit.Request(code); return; }
             if (husk != null) husk.Dispose();
             StopAwake();

@@ -216,6 +216,7 @@ namespace CapriDesktop
                     if (Math.Abs(now.PointerX - x) > 3 || Math.Abs(now.PointerY - y) > 3) throw new InvalidOperationException("You moved the pointer during input completion, so I stopped.");
                     completed = now;
                 }
+                RemotePrivate.Keep(job, action);
                 Input.Execute(action, frame, Desktop, Guard, token, Complete);
                 if (completed == null) throw new InvalidOperationException("The input executor did not confirm delivery; its effect is uncertain.");
                 job.TotalSteps++;

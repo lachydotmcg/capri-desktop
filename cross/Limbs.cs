@@ -142,6 +142,11 @@ namespace CapriDesktop
             // switched off in Security holds the call so she asks first, and their yes runs it.
             brain.Act = delegate(string tool, ToolArguments args)
             {
+                RemoteTurn phone = RemoteTurn.Working;
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                if (phone != null && RemoteTurn.AtPc(tool)) phone.Blocked = true;
+                if (phone != null && phone.Blocked) return RemoteTurn.PcOnly;
+                if (args == null) args = new ToolArguments();
                 if (!VoiceActionRecovery.AllowCurrentTool()) return "That voice request ended; no action was dispatched.";
                 Func<bool> voiceGuard = VoiceActionRecovery.DispatchGuard;
                 if (voiceGuard != null)
@@ -151,14 +156,51 @@ namespace CapriDesktop
                 }
                 string unable = Hands.Unable(tool, args);
                 if (unable != null) return unable;
-                string held = Security.Gate(tool, args);
+                string held = phone == null ? Security.Gate(tool, args) : phone.Pet.RemoteGate(phone, tool, args);
                 if (held != null) return held;
-                string done = Hands.Do(tool, args);
+                if (phone != null)
+                {
+                    Func<bool> previous = args.Current;
+                    args.Current = delegate { return phone.Current && (previous == null || previous()); };
+                    if (!args.Current()) return RemoteTurn.Ended;
+                }
+                string id = phone == null ? null : RemoteMessages.NewId();
+                string summary = phone == null ? null : RemoteTurn.Words(tool, args);
+                string name = summary == "Using a tool" ? "tool" : tool;
+                if (phone != null) phone.Tool(id, name, summary, "running");
+                string done;
+                try
+                {
+                    if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                    done = Hands.Do(tool, args);
+                }
+                catch
+                {
+                    if (phone != null) phone.Tool(id, name, summary, "failed");
+                    throw;
+                }
+                if (phone != null) phone.Tool(id, name, summary, Hands.Failed(done) ? "failed" : "done");
                 if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
                 return done;
             };
             Hands.Resume = delegate(string text) { return Security.Resume(text, brain.Act); };
             if (!OnMac || Program.Smoke == null) ComputerJobs.Attach(brain);
+            Hands.NativeWork = RemoteWork(Hands.NativeWork);
+        }
+
+        internal static Func<ToolArguments, string> RemoteWork(Func<ToolArguments, string> work)
+        {
+            if (work == null) return null;
+            return delegate(ToolArguments args)
+            {
+                RemoteTurn phone = RemoteTurn.Working;
+                if (phone != null)
+                {
+                    if (!phone.Current) return RemoteTurn.Ended;
+                    if (RemoteTurn.AtPc("use_computer")) { phone.Blocked = true; return RemoteTurn.PcOnly; }
+                }
+                return work(args);
+            };
         }
 
         internal static void Open(string id, bool mac)
