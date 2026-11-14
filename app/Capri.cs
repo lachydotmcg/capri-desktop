@@ -3174,6 +3174,7 @@ namespace CapriDesktop
             Hands.JobControl = JobTool;
             Hands.Quit = QuitTool;
             Hands.Mainframe = MainframeTool;
+            Hands.Workspace = WorkspaceTool;
             Hands.Updates = UpdateTool;
             Hands.MiniPlayer = MiniPlayerTool;
             Hands.OpenClip = OpenClipTool;
@@ -6384,6 +6385,7 @@ namespace CapriDesktop
         private string MainframeTool(string page)
         {
             if (InvokeRequired) return (string)Invoke(new Func<string, string>(MainframeTool), page);
+            if (page == "workspace") return WorkspaceTool(new ToolArguments());
             return mainframe.OpenTool(page) ? "Opened Capri Mainframe." : "Couldn't find that Mainframe page.";
         }
 
@@ -22787,6 +22789,11 @@ namespace CapriDesktop
                 { "quit", "{\"action\":\"quit\"}", "You can close yourself for the evening" },
                 { "mainframe", "{}", "Your controls would be handy right now" },
                 { "mainframe", "{\"name\":\"clips\"}", "We could have a look at your clips settings" },
+                { "mainframe", "{\"name\":\"workspace\"}", "Your coding window would be handy" },
+                { "workspace", "{}", "We could bring up your coding window" },
+                { "workspace", "{\"action\":\"open\"}", "Can you open the workspace" },
+                { "workspace", "{\"action\":\"start\",\"task\":\"Build a snake game\"}", "Build me a snake game in the workspace" },
+                { "workspace", "{\"action\":\"status\"}", "Is that coding chat done yet" },
                 { "updates", "{\"action\":\"check\"}", "There might be a newer Capri available" },
                 { "updates", "{\"action\":\"status\"}", "I wonder how that update is going" },
                 { "updates", "{\"action\":\"install\"}", "Let's install the Capri update now" },
@@ -22817,7 +22824,7 @@ namespace CapriDesktop
                 { "nap", "{\"action\":\"wake\"}" }, { "move_yourself", "{\"action\":\"show\"}" }, { "animate", "{\"name\":\"blink\"}" },
                 { "draw", "{\"action\":\"clear\"}" }, { "clone", "{\"action\":\"stop\"}" }, { "hologram", "{\"action\":\"off\"}" },
                 { "desktop_icons", "{\"action\":\"back\"}" }, { "watch_along", "{\"action\":\"stop\"}" }, { "gaming_mode", "{\"action\":\"on\"}" },
-                { "clip", "{}" }, { "mini_game", "{\"name\":\"chess\"}" }, { "watch_for", "{\"action\":\"list\"}" }, { "listen", "{\"action\":\"stop\"}" },
+                { "clip", "{}" }, { "mini_game", "{\"name\":\"chess\"}" }, { "workspace", "{}" }, { "watch_for", "{\"action\":\"list\"}" }, { "listen", "{\"action\":\"stop\"}" },
                 { "fake_crash", "{\"action\":\"stop\"}" }, { "voice_chat", "{\"action\":\"status\"}" }, { "speech", "{\"action\":\"stop\"}" },
                 { "job_control", "{\"action\":\"status\"}" }, { "quit", "{\"action\":\"quit\"}" }, { "mainframe", "{}" }, { "updates", "{\"action\":\"status\"}" },
                 { "mini_player", "{\"action\":\"hide\"}" }, { "list_windows", "{}" }, { "check_app", "{\"name\":\"Spotify\"}" },
@@ -22838,7 +22845,7 @@ namespace CapriDesktop
             checks.Add("PASS text parsers know every tool in Specs, including stream, checks, clone, hologram and desktop_icons");
             Func<string, string> crashWas = Hands.Crash, frameWas = Hands.Mainframe, miniWas = Hands.MiniPlayer, clipWas = Hands.OpenClip, gamingWas = Hands.GamingMode;
             Func<string> speechWas = Hands.StopSpeech;
-            Func<ToolArguments, string> chatWas = Hands.VoiceChat, quitWas = Hands.Quit, jobWas = Hands.JobControl, updatesWas = Hands.Updates;
+            Func<ToolArguments, string> chatWas = Hands.VoiceChat, quitWas = Hands.Quit, jobWas = Hands.JobControl, updatesWas = Hands.Updates, workspaceWas = Hands.Workspace;
             Func<System.Collections.Generic.List<Tune>> sessionsWas = Hands.Sessions;
             Func<Tune, string, bool> pressWas = Hands.SessionPress;
             Func<Tune, bool> openWas = Hands.OpenPlayer;
@@ -22862,6 +22869,7 @@ namespace CapriDesktop
                 Hands.JobControl = delegate(ToolArguments args) { return ran("job_control", args.Action); };
                 Hands.Quit = delegate { return ran("quit", "quit"); };
                 Hands.Mainframe = delegate(string page) { return ran("mainframe", page); };
+                Hands.Workspace = delegate(ToolArguments args) { return ran("workspace", args.Action ?? "open"); };
                 Hands.Updates = delegate(ToolArguments args) { return ran("updates", args.Action); };
                 Hands.MiniPlayer = delegate(string action) { return ran("mini_player", action); };
                 Hands.OpenClip = delegate(string action) { return ran("clip", action); };
@@ -22885,7 +22893,7 @@ namespace CapriDesktop
                     string parsed;
                     ToolArguments parsedArgs;
                     if (!Hands.Typed(tool + json, out parsed, out parsedArgs) || parsed != tool || Hands.Written(tool + json).Count != 1) throw new Exception("An action was missing from the text parser: " + tool + json);
-                    int needs = tool == "media" ? args.Action == "open_player" ? Security.Windows : Security.Media : tool == "clip" || tool == "updates" && args.Action == "install" ? Security.Open : tool == "job_control" && args.Action == "change" ? Security.Mouse : -1;
+                    int needs = tool == "media" ? args.Action == "open_player" ? Security.Windows : Security.Media : tool == "clip" || tool == "updates" && args.Action == "install" ? Security.Open : (tool == "job_control" && args.Action == "change" || tool == "workspace" && args.Action == "start") ? Security.Mouse : -1;
                     if (Security.Needs(tool, args) != needs) throw new Exception("An action used the wrong SECURITY toggle: " + tool + json);
                     Security.Load("0000000000");
                     if ((Security.Gate(tool, args) != null) != (needs >= 0)) throw new Exception("An action skipped its SECURITY toggle: " + tool + json);
@@ -22909,7 +22917,7 @@ namespace CapriDesktop
                     if (picked.Count != 1 || picked[0] != tool + ":" + args.Action || asked.Count != 2 || !asked[0].Contains(suggestion) || !asked[0].Contains("\"tools\":"))
                         throw new Exception("A brain's action from a suggestion did not run: " + tool + json);
                 }
-                foreach (string tool in new[] { "voice_chat", "speech", "job_control", "quit", "updates", "mini_player", "fake_crash", "listen", "clip", "media" })
+                foreach (string tool in new[] { "voice_chat", "speech", "job_control", "quit", "updates", "mini_player", "fake_crash", "listen", "clip", "media", "workspace" })
                     if (Hands.Valid(tool, new ToolArguments { Action = "wrong" })) throw new Exception("A bad action was accepted: " + tool);
                 foreach (string seconds in new[] { "-1", "NaN", "Infinity", "1e99", "later" })
                     if (Hands.Valid("media", new ToolArguments { Action = "seek", Seconds = seconds })) throw new Exception("A bad seek position was accepted: " + seconds);
@@ -22946,7 +22954,7 @@ namespace CapriDesktop
             finally
             {
                 if (fake != null) fake.Stop();
-                Hands.VoiceChat = chatWas; Hands.StopSpeech = speechWas; Hands.JobControl = jobWas; Hands.Quit = quitWas; Hands.Mainframe = frameWas; Hands.Updates = updatesWas;
+                Hands.VoiceChat = chatWas; Hands.StopSpeech = speechWas; Hands.JobControl = jobWas; Hands.Quit = quitWas; Hands.Mainframe = frameWas; Hands.Updates = updatesWas; Hands.Workspace = workspaceWas;
                 Hands.MiniPlayer = miniWas; Hands.OpenClip = clipWas; Hands.Crash = crashWas; Hands.GamingMode = gamingWas; Hands.SettingOn = settingWas; Hands.SetSetting = setWas;
                 Hands.Sessions = sessionsWas; Hands.SessionPress = pressWas; Hands.OpenPlayer = openWas; Hands.GameOpen = gameWas;
                 Brain.OpenAi = addressWas; Brain.Keeping = keepingWas; Security.Drop(); Security.Load(saved, wakeWas);
@@ -23613,7 +23621,7 @@ namespace CapriDesktop
             // too, while mouse jobs, looks and what works go on to her hands (F69, pass 5).
             System.Collections.Generic.List<string[]> macGaps = new System.Collections.Generic.List<string[]>();
             macGaps.Add(new[] { "use_computer", "Mac doesn't let apps use the mouse and keyboard yet" });
-            foreach (string macTool in new[] { "shortcut:game_bar", "move_yourself:ride_cursor", "find_file", "draw", "clone", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen" }) macGaps.Add(new[] { macTool, "only on Windows for now" });
+            foreach (string macTool in new[] { "shortcut:game_bar", "move_yourself:ride_cursor", "find_file", "draw", "clone", "watch_along", "gaming_mode", "clip", "mini_game", "workspace", "watch_for", "listen" }) macGaps.Add(new[] { macTool, "only on Windows for now" });
             Hands.Kit mac = Hands.KitWithout(macGaps);
             string[,] lacking =
             {
@@ -23621,6 +23629,7 @@ namespace CapriDesktop
                 { "clip that", "Game clips are only on Windows for now, choom." },
                 { "ride my cursor", "Riding your cursor is only on Windows so far." },
                 { "let's play chess", "My mini games are only on Windows for now, choom." },
+                { "can you open the workspace?", "Workspace is only on Windows for now." },
                 { "play tic tac toe with me", "My mini games are only on Windows for now, choom." },
                 { "what did he just say", "Listening to what's playing is only on Windows for now, choom." },
                 { "watch this video with me", "Watching videos together is only on Windows for now, choom." },
@@ -23730,7 +23739,7 @@ namespace CapriDesktop
         {
             System.Collections.Generic.List<string[]> macGaps = new System.Collections.Generic.List<string[]>();
             macGaps.Add(new[] { "use_computer", "Mac doesn't let apps use the mouse and keyboard yet" });
-            foreach (string macTool in new[] { "shortcut:game_bar", "move_yourself:ride_cursor", "find_file", "draw", "clone", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen" }) macGaps.Add(new[] { macTool, "only on Windows for now" });
+            foreach (string macTool in new[] { "shortcut:game_bar", "move_yourself:ride_cursor", "find_file", "draw", "clone", "watch_along", "gaming_mode", "clip", "mini_game", "workspace", "watch_for", "listen" }) macGaps.Add(new[] { macTool, "only on Windows for now" });
             Hands.Kit mac = Hands.KitWithout(macGaps), everything = Hands.KitWithout(new System.Collections.Generic.List<string[]>());
             const string drawLine = "Drawing on your screen is only on Windows for now, choom.";
             Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
@@ -43808,6 +43817,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
+            Section(checks, "SmokeWorkspaceTool", delegate { SmokeWorkspaceTool(checks, Path.Combine(output, "workspace-tool")); });
             Section(checks, "SmokeWorkspace", delegate { SmokeWorkspace(checks, Path.Combine(output, "workspace")); });
             Section(checks, "SmokeWorkspaceFolders", delegate { SmokeWorkspaceFolders(checks, Path.Combine(output, "workspace-folders")); });
             Section(checks, "SmokeWorkspaceWindow", delegate { SmokeWorkspaceWindow(checks, Path.Combine(output, "workspace-window")); });
@@ -45022,6 +45032,231 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeWorkspaceTool(List<string> checks, string folder)
+        {
+            folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            string project = Path.Combine(folder, "project"), standin = Path.Combine(folder, "claude.cmd"), finish = Path.Combine(folder, "finish");
+            Directory.CreateDirectory(project);
+            string prefix = "@echo off\r\nsetlocal\r\nif \"%~1\"==\"--version\" (\r\necho 2.1.295 ^(Claude Code^)\r\nexit /b 0\r\n)\r\ncd > \"%~dp0cwd.txt\"\r\necho %* > \"%~dp0args.txt\"\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\n";
+            string first = HuskJson.Write(HuskJson.Map("type", "assistant", "message", HuskJson.Map("content", new List<object> { HuskJson.Map("type", "text", "text", "Working on it.") })));
+            string last = HuskJson.Write(HuskJson.Map("type", "assistant", "message", HuskJson.Map("content", new List<object> { HuskJson.Map("type", "text", "text", "Made the game.") })));
+            string done = HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "result", "Made the game."));
+            File.WriteAllText(Path.Combine(folder, "first.txt"), first + "\n", new System.Text.UTF8Encoding(false));
+            File.WriteAllText(Path.Combine(folder, "last.txt"), last + "\n" + done + "\n", new System.Text.UTF8Encoding(false));
+            File.WriteAllText(standin, prefix + "type \"%~dp0first.txt\"\r\n:wait\r\nif exist \"%~dp0finish\" goto done\r\nping -n 2 127.0.0.1 > nul\r\ngoto wait\r\n:done\r\ntype \"%~dp0last.txt\"\r\n", System.Text.Encoding.ASCII);
+            Workspace oldWork = workspace;
+            WorkspaceWindow oldWindow = workspaceWindow;
+            Func<ToolArguments, string> oldTool = Hands.Workspace;
+            string saved = Security.Saved, workingWas = working;
+            bool wakeWas = Security.On(Security.Wake), keepingWas = Brain.Keeping;
+            Job jobWas = job;
+            Func<Func<string>, string> run = delegate(Func<string> action)
+            {
+                string result = null;
+                Exception fault = null;
+                Thread thread = new Thread(delegate() { try { result = action(); } catch (Exception error) { fault = error; } }) { IsBackground = true };
+                thread.Start();
+                WaitVoice(delegate { return !thread.IsAlive; }, "The Workspace tool didn't return.");
+                if (fault != null) throw fault;
+                return result;
+            };
+            using (Workspace work = new Workspace(folder, "CapriWorkspace-" + Process.GetCurrentProcess().Id + "-tool-" + Guid.NewGuid().ToString("N")))
+            {
+                try
+                {
+                    work.Home = Path.Combine(folder, "home");
+                    work.Executable = standin;
+                    workspace = work;
+                    workspaceWindow = null;
+                    Hands.Workspace = WorkspaceTool;
+                    Brain.Keeping = false;
+                    Security.Drop();
+                    Security.Load("0000000000", false);
+                    string empty = run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); });
+                    if (empty != "Workspace hasn't been opened and has no chats." || workspaceWindow != null || work.Chats().Count != 0) throw new Exception("An empty Workspace status opened a window or made a chat.");
+                    if (run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "build there", Folder = Path.Combine(folder, "not-here") }); }) != "That folder isn't here." || workspaceWindow != null || work.Chats().Count != 0 || Directory.Exists(work.Home)) throw new Exception("An invalid first Workspace start made a window, chat or folder.");
+                    string opened = run(delegate { return DoTool("workspace", new ToolArguments()); });
+                    WorkspaceWindow window = workspaceWindow;
+                    if (opened != "Opened Workspace." || window == null || !window.Visible || work.Chats().Count != 1) throw new Exception("Workspace open didn't show its window.");
+                    if (run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); }) != "New chat: finished. No answer yet.") throw new Exception("An unused Workspace chat invented an answer.");
+                    window.WindowState = FormWindowState.Minimized;
+                    window.Hide();
+                    if (run(delegate { return DoTool("workspace", new ToolArguments { Action = "open" }); }) != "Opened Workspace." || workspaceWindow != window || !window.Visible || window.WindowState == FormWindowState.Minimized || work.Chats().Count != 1) throw new Exception("Workspace open made a second window or left it hidden.");
+                    if (run(delegate { return DoTool("mainframe", new ToolArguments { Name = "workspace" }); }) != "Opened Workspace." || workspaceWindow != window || !Hands.Valid("mainframe", new ToolArguments { Name = "workspace" })) throw new Exception("Mainframe's Workspace page missed its window.");
+                    work.Delete(window.Chat);
+                    Application.DoEvents();
+                    if (run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); }) != "No Workspace chats yet." || !Hands.Checking("workspace", new ToolArguments { Action = "status" }) || Hands.Checking("workspace", new ToolArguments { Action = "start", Task = "build" })) throw new Exception("Workspace status lost its empty state or became a remembered job.");
+                    checks.Add("PASS Workspace open and status need no toggle; opening again restores the same window, including through Mainframe");
+
+                    ToolArguments start = new ToolArguments { Action = "start", Task = "build a snake game" };
+                    string held = run(delegate { return DoTool("workspace", start); });
+                    if (!Security.IsHold(held) || Security.Holding != "workspace" || work.Chats().Count != 0 || Security.Question != "Start a Workspace chat to build a snake game? Say yes and I will.") throw new Exception("Workspace start skipped the jobs toggle.");
+                    Security.ModSaid("yes");
+                    if (run(delegate { return Security.Resume("yes", ResumeTool); }) != null || Security.Holding != "workspace" || work.Chats().Count != 0) throw new Exception("A mod answered Workspace's jobs gate.");
+                    Security.TheySaid();
+                    string resumed = run(delegate { return Security.Resume("yes", ResumeTool); });
+                    WorkspaceChat chat = window.Chat;
+                    if (resumed == null || !resumed.Contains("is running in the Workspace window. It asks there before changing anything.") || work.Chats().Count != 1 || chat.Mode != "Ask me" || chat.Live == null || chat.Live.Mode != "Ask me" || !Workspace.Same(chat.Folder, work.Home) || WorkspaceItems(chat)[0].Kind != "user" || WorkspaceItems(chat)[0].Text != start.Task || window.Input.Text.Length != 0) throw new Exception("An approved Workspace start lost its chat, folder, mode or first message.");
+                    if (File.ReadAllText(Path.Combine(folder, "cwd.txt")).Trim() != work.Home || !File.ReadAllText(Path.Combine(folder, "stdin.txt")).Contains(start.Task)) throw new Exception("Workspace start didn't send their words in its own folder.");
+                    WorkspaceTurn turn = chat.Live;
+                    File.WriteAllText(finish, "go");
+                    if (!turn.Done.WaitOne(8000)) throw new Exception("The Workspace tool's stand-in didn't finish.");
+                    File.Delete(finish);
+                    if (run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); }) != chat.Title + ": finished. Made the game." || WorkspaceStarted(chat) != "The chat finished in the Workspace window. It asks there before changing anything.") throw new Exception("Workspace status missed the last answer or a finished start still claimed to be running.");
+                    checks.Add("PASS Workspace start waits for their OK with jobs off, ignores a mod's yes, then sends the first message through the window in Ask me");
+
+                    window.NewChat();
+                    WorkspaceChat draft = window.Chat;
+                    window.PickMode("Edits only");
+                    window.Input.Text = "Keep their draft";
+                    int beforeBlack = work.Chats().Count;
+                    Security.Load(Security.Of(Security.Blackwall), true);
+                    string black = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "build another game" }); });
+                    chat = window.Chat;
+                    turn = chat.Live;
+                    if (Security.Preset != Security.Blackwall || work.Chats().Count != beforeBlack + 1 || chat == draft || draft.Mode != "Edits only" || chat.Mode != "Everything" || turn == null || turn.Mode != "Everything" || black != "The chat is running in the Workspace window. Everything mode runs without asking.") throw new Exception("Workspace start lost New chat's Blackwall mode.");
+                    File.WriteAllText(finish, "go");
+                    if (!turn.Done.WaitOne(8000)) throw new Exception("The Blackwall Workspace stand-in didn't finish.");
+                    File.Delete(finish);
+                    window.ShowChat(draft);
+                    if (window.Input.Text != "Keep their draft" || draft.Items.Count != 0) throw new Exception("Workspace start changed their unused chat or its draft.");
+                    Security.Load("0111111111", false);
+                    string custom = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "build under their custom preset" }); });
+                    chat = window.Chat;
+                    turn = chat.Live;
+                    if (Security.Preset != Security.Custom || !Computer.Bypass || chat.Mode != "Ask me" || turn == null || custom != "The chat is running in the Workspace window. It asks there before changing anything.") throw new Exception("Workspace used the bypass bits instead of New chat's preset rule.");
+                    File.WriteAllText(finish, "go");
+                    if (!turn.Done.WaitOne(8000)) throw new Exception("The Custom Workspace stand-in didn't finish.");
+                    File.Delete(finish);
+                    checks.Add("PASS Workspace uses Everything only for the Blackwall preset and Ask me for a Custom preset even with the bypass bits on");
+
+                    Security.Load(Security.Of(Security.Trusted), false);
+                    int before = work.Chats().Count;
+                    string missing = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "build there", Folder = Path.Combine(folder, "not-here") }); });
+                    if (missing != "That folder isn't here." || work.Chats().Count != before || Directory.Exists(Path.Combine(folder, "not-here"))) throw new Exception("Workspace made a missing folder or a chat in it.");
+                    string trusting = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "build in their project", Folder = project }); });
+                    chat = window.Chat;
+                    if (work.Chats().Count != before + 1 || !Workspace.Same(chat.Folder, project) || chat.Mode != "Ask me" || chat.PendingText != "build in their project" || chat.Live != null || chat.TrustItem == null || work.Trusted(project) || trusting != "The chat is waiting for folder trust in the Workspace window. It asks there before changing anything." || !run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); }).Contains("waiting for an OK")) throw new Exception("Workspace start answered folder trust or lost its pending words.");
+                    window.RefreshChat();
+                    WorkKey trustKey = window.Find("Trust");
+                    if (trustKey == null) throw new Exception("Workspace start didn't show the usual trust question.");
+                    typeof(Control).GetMethod("OnClick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(trustKey, new object[] { EventArgs.Empty });
+                    turn = chat.Live;
+                    if (turn == null) throw new Exception("Their Workspace trust click didn't start the task.");
+                    WorkspaceWait(delegate { return turn.Ready.WaitOne(0); }, "The trusted Workspace chat didn't reach Claude Code.");
+                    if (!work.Trusted(project) || File.ReadAllText(Path.Combine(folder, "cwd.txt")).Trim() != project || WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "user"; }).Count != 1) throw new Exception("Their trusted Workspace task ran in the wrong folder or sent twice.");
+                    File.WriteAllText(finish, "go");
+                    if (!turn.Done.WaitOne(8000)) throw new Exception("The project Workspace stand-in didn't finish.");
+                    File.Delete(finish);
+                    checks.Add("PASS Workspace rejects a missing folder without making anything; an existing folder uses the usual trust card and starts there only after their click");
+
+                    foreach (string task in new[] { "build a game", "read their file", "change Capri settings", "open a site" })
+                        if (Hands.CallAllowed("workspace", new ToolArguments { Action = "start", Task = task }) != Hands.CallAllowed("use_computer", new ToolArguments { Task = task })) throw new Exception("A call's Workspace task skipped the computer-job rules.");
+                    before = work.Chats().Count;
+                    if (run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "build a game", FromFriend = true, Current = delegate { return false; } }); }) != "That call request has ended." || work.Chats().Count != before) throw new Exception("An expired friend's Workspace request made a chat.");
+                    if (!Hands.CallTool("workspace") || !Hands.CallKit(Hands.KitFor()).Has("workspace") || !Hands.CallAllowed("workspace", new ToolArguments()) || !Hands.CallAllowed("workspace", new ToolArguments { Action = "status" })) throw new Exception("Workspace was missing from the call's tool list.");
+                    job = new Job("keep working");
+                    working = "Working";
+                    if (run(delegate { return AsideRun("workspace", new ToolArguments { Action = "status" }, job, asking); }) != run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); })) throw new Exception("A Workspace status was added to a mouse job.");
+                    Security.Load("0000000000", false);
+                    if (!Security.IsHold(run(delegate { return AsideRun("workspace", new ToolArguments { Action = "start", Task = "build beside their job" }, job, asking); })) || work.Chats().Count != before) throw new Exception("Workspace start beside a job skipped the jobs gate.");
+                    Security.Drop();
+                    if (run(delegate { return AsideRun("workspace", new ToolArguments { Action = "open", Asked = "open workspace" }, job, asking); }) != "Added that to my job." || work.Chats().Count != before) throw new Exception("Workspace open took the foreground from a mouse job.");
+                    job = jobWas;
+                    working = workingWas;
+                    checks.Add("PASS Workspace start uses call-job restrictions and the jobs gate beside a mouse job; status reads beside it and opening follows other foreground tools");
+
+                    Security.Load(Security.Of(Security.Trusted), false);
+                    for (int fault = 0; fault < 2; fault++)
+                    {
+                        work.Executable = fault == 0 ? Path.Combine(folder, "missing.cmd") : Path.Combine(folder, "signed-out.cmd");
+                        if (fault == 1)
+                        {
+                            string sign = HuskJson.Write(HuskJson.Map("type", "assistant", "message", HuskJson.Map("content", new List<object> { HuskJson.Map("type", "text", "text", "Please sign in to Claude Code.") }))) + "\n" + HuskJson.Write(HuskJson.Map("type", "result", "is_error", true, "result", "Please sign in to Claude Code.")) + "\n";
+                            File.WriteAllText(Path.Combine(folder, "sign.txt"), sign, new System.Text.UTF8Encoding(false));
+                            File.WriteAllText(work.Executable, prefix + "type \"%~dp0sign.txt\"\r\nexit /b 1\r\n", System.Text.Encoding.ASCII);
+                        }
+                        string failed = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "try their task" }); });
+                        WorkspaceItem error = WorkspaceItems(window.Chat).FindLast(delegate(WorkspaceItem item) { return item.Kind == "error"; });
+                        if (error == null || !Workspace.Same(window.Chat.Folder, work.Home) || failed != (fault == 0 ? "Couldn't start the chat because Claude Code is missing." : "Couldn't start the chat because Claude Code isn't signed in.") || (fault == 0 ? error.Text != Workspace.Missing || !error.Retry : !error.Text.Contains("Please sign in to Claude Code."))) throw new Exception("Workspace start hid a missing installation or sign-in failure.");
+                    }
+                    checks.Add("PASS Workspace start reports missing Claude Code and a sign-in failure in one sentence while keeping the window's usual errors");
+
+                    WorkspaceChat finished = work.HomeChat(false), waiting = work.HomeChat(false), active = work.HomeChat(false), older = work.HomeChat(false);
+                    work.Add(finished, new WorkspaceItem { Kind = "text", Text = new string('x', 997) + "\U0001F600" + new string('x', 5000) + "TAIL" });
+                    work.Add(finished, new WorkspaceItem { Kind = "result", Text = "Tool output stays out." });
+                    work.Add(waiting, new WorkspaceItem { Kind = "text", Text = "Need their OK." });
+                    work.Add(active, new WorkspaceItem { Kind = "text", Text = "Still working." });
+                    active.Live = new WorkspaceTurn { Chat = active };
+                    waiting.Live = new WorkspaceTurn { Chat = waiting };
+                    WorkspaceApproval approval = new WorkspaceApproval { Turn = waiting.Live };
+                    waiting.Live.Asks.Add(approval);
+                    lock (finished.Gate) { finished.Title = "Finished"; finished.Updated = long.MaxValue - 2; }
+                    lock (waiting.Gate) { waiting.Title = "Waiting"; waiting.Updated = long.MaxValue - 1; }
+                    lock (active.Gate) { active.Title = "Active"; active.Updated = long.MaxValue; }
+                    lock (older.Gate) { older.Title = "Older"; older.Updated = 0; }
+                    try
+                    {
+                        string status = run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); });
+                        string expected = "Active: working. Still working.\nWaiting: waiting for an OK. Need their OK.\nFinished: finished. " + new string('x', 997) + "...";
+                        if (status != expected || status.Length > 3400 || status.Contains("TAIL") || status.Contains("Tool output") || status.Contains("Older")) throw new Exception("Workspace status lost its order, states, last answer or text limit.");
+                        if (WorkspaceStarted(waiting) != "The chat is waiting for your OK in the Workspace window. It asks there before changing anything." || approval.Choice != null) throw new Exception("Workspace start answered an approval or hid its question.");
+                        approval.Choice = "allow";
+                        if (!run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); }).Contains("Waiting: working.")) throw new Exception("An answered Workspace approval still looked pending.");
+                        waiting.Live = null;
+                        waiting.Undoing = new WorkspaceUndo();
+                        if (!run(delegate { return DoTool("workspace", new ToolArguments { Action = "status" }); }).Contains("Waiting: waiting for an OK.")) throw new Exception("Workspace status missed an Undo question.");
+                    }
+                    finally { active.Live = null; waiting.Live = null; waiting.Undoing = null; approval.Answered.Dispose(); }
+                    if (WorkspaceBrief(new string('x', 996) + "\U0001F600" + new string('x', 100), 1000) != new string('x', 996) + "...") throw new Exception("Workspace status cut a character in half.");
+                    checks.Add("PASS Workspace status reads the three newest chats, distinguishes working, approval and finished, ignores tool output, and shortens a long answer without splitting a character");
+
+                    workspaceWindow.Dispose();
+                    workspaceWindow = null;
+                    foreach (WorkspaceChat old in work.Chats()) work.Delete(old);
+                    work.Executable = standin;
+                    string cold = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "start in their own folder" }); });
+                    chat = workspaceWindow.Chat;
+                    turn = chat.Live;
+                    if (work.Chats().Count != 1 || turn == null || chat.Mode != "Ask me" || !Workspace.Same(chat.Folder, work.Home) || cold != "The chat is running in the Workspace window. It asks there before changing anything.") throw new Exception("Starting an unopened Workspace made an extra empty chat.");
+                    File.WriteAllText(finish, "go");
+                    if (!turn.Done.WaitOne(8000)) throw new Exception("The unopened Workspace stand-in didn't finish.");
+                    File.Delete(finish);
+                    checks.Add("PASS Workspace start leaves their unused chat and draft alone, uses the current New chat preset, and starts an unopened window with one chat");
+
+                    int spec = -1;
+                    for (int i = 0; i < Hands.Count; i++) if (Hands.Name(i) == "workspace") spec = i;
+                    string parsed;
+                    ToolArguments args;
+                    if (spec < 0 || !Hands.Tools.Contains("\"name\":\"workspace\"") || !Hands.ClaudeTools.Contains("\"name\":\"workspace\"") || !Hands.Listing.Contains("workspace{") || !Hands.KitFor().Brief.Contains("- workspace:") || !Hands.ElevenLabsTool(spec).Contains("workspace") || !Hands.ElevenLabsTool(spec).Contains("\"response_timeout_secs\":60") || !Hands.Typed("workspace{\"action\":\"start\",\"task\":\"build\",\"folder\":\"C:\\\\their-folder\"}", out parsed, out args) || parsed != "workspace" || args.Folder != "C:\\their-folder" || args.Task != "build" || Hands.Written("workspace{\"action\":\"status\"}").Count != 1) throw new Exception("Workspace was missing from a schema, text parser or brain.");
+                    foreach (string action in new[] { "wrong", "allow", "trust", "answer" }) if (Hands.Valid("workspace", new ToolArguments { Action = action, Task = "build" })) throw new Exception("Workspace accepted an unsupported action.");
+                    if (Hands.Do("workspace", new ToolArguments { Action = "start" }) != "Couldn't find that Workspace action or task.") throw new Exception("Workspace accepted a start without words.");
+                    WorkspaceChat failedChat = new WorkspaceChat();
+                    failedChat.Items.Add(new WorkspaceItem { Kind = "error", Text = "Something failed." });
+                    if (WorkspaceStarted(failedChat) != "Couldn't start the chat; see the Workspace window.") throw new Exception("Workspace hid a failed start.");
+                    if (Hands.Valid("workspace", new ToolArguments { Action = "start" }) || Hands.Valid("workspace", new ToolArguments { Action = "start", Task = " " }) || !Hands.Valid("workspace", new ToolArguments()) || !Hands.Valid("workspace", new ToolArguments { Action = "open" }) || Security.Needs("workspace", new ToolArguments()) != -1 || Security.Needs("workspace", new ToolArguments { Action = "status" }) != -1 || Security.Needs("workspace", start) != Security.Mouse) throw new Exception("Workspace validation or SECURITY used the wrong actions.");
+                    Hands.Kit cross = Hands.KitWithout(new List<string[]> { new[] { "workspace", "only on Windows for now" } });
+                    if (cross.Has("workspace") || cross.Tools.Contains("\"name\":\"workspace\"") || cross.ClaudeTools.Contains("\"name\":\"workspace\"") || cross.Listing.Contains("workspace{") || cross.Unable("workspace", new ToolArguments()) != "Workspace is only on Windows for now." || !cross.NotHere.Contains("Workspace (only on Windows for now)") || cross.Lacking("can you open the workspace?") != "Workspace is only on Windows for now.") throw new Exception("Workspace lost its Mac and Linux gap line.");
+                    if (RemoteToolWords("workspace", new ToolArguments()) != "Opening Workspace" || RemoteToolWords("workspace", start) != "Starting a Workspace chat" || RemoteToolWords("workspace", new ToolArguments { Action = "status" }) != "Checking Workspace" || RemoteJobAction("workspace", start, Security.Mouse, null) != "starting a Workspace chat" || Security.Asking("workspace", new ToolArguments()) != "open Workspace" || Security.Asking("workspace", new ToolArguments { Action = "status" }) != "check Workspace") throw new Exception("Workspace lost its plain call or phone words.");
+                    checks.Add("PASS Workspace is in every brain and voice schema, text parser, call list, SECURITY map, status check, phone summary and Windows gap table");
+                }
+                finally
+                {
+                    Security.Drop();
+                    Security.TheySaid();
+                    job = jobWas;
+                    working = workingWas;
+                    if (workspaceWindow != null && workspaceWindow != oldWindow) workspaceWindow.Dispose();
+                    workspaceWindow = oldWindow;
+                    workspace = oldWork;
+                    Hands.Workspace = oldTool;
+                    Brain.Keeping = keepingWas;
+                    Security.Load(saved, wakeWas);
+                }
+            }
+        }
+
         private void SmokeWorkspace(List<string> checks, string folder)
         {
             folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
@@ -45541,10 +45776,11 @@ namespace CapriDesktop
                     checks.Add("PASS Workspace chats survive atomic save/load with titles, folders, sessions, modes, models, ordered items, Always allow and undo history");
 
 
-                    foreach (string phrase in new[] { "open workspace", "open your workspace", "open the workspace", "Open Workspace." }) if (!WorkspaceAsked(phrase)) throw new Exception("Workspace missed " + phrase + ".");
+                    foreach (string phrase in new[] { "open workspace", "open your workspace", "open the workspace", "Open Workspace.", "can you open the workspace", "could you open your workspace?", "would you open workspace please?", "open workspace please", "open the workspace please", "show me your workspace" }) if (!WorkspaceAsked(phrase)) throw new Exception("Workspace missed " + phrase + ".");
+                    foreach (string phrase in new[] { "open the workspace and build a game", "build me a snake game in the workspace", "can you open the workspace and send a message" }) if (WorkspaceAsked(phrase)) throw new Exception("Workspace swallowed a task: " + phrase);
                     if (WorkspaceAsked("Don't open workspace") || WorkspaceAsked("what is workspace")) throw new Exception("Workspace treated a question as an open command.");
                     SelfKnow.Topic topic = Array.Find(SelfKnow.Topics, delegate(SelfKnow.Topic found) { return found.Name == "Workspace"; });
-                    if (topic == null || !topic.Facts.Contains("beta") || !topic.Facts.Contains("plan or key") || !topic.Facts.Contains("Ask me") || !topic.Facts.Contains("Edits only") || !topic.Facts.Contains("Plan only") || !topic.Facts.Contains("Everything") || !topic.Facts.Contains("cannot undo commands")) throw new Exception("Workspace help lost its modes, billing source or undo limit.");
+                    if (topic == null || topic.Label != "workspace" || !topic.Facts.Contains("workspace tool") || !topic.Facts.Contains("status") || !topic.Facts.Contains("optional existing folder") || !topic.Facts.Contains("beta") || !topic.Facts.Contains("plan or key") || !topic.Facts.Contains("Ask me") || !topic.Facts.Contains("Edits only") || !topic.Facts.Contains("Plan only") || !topic.Facts.Contains("Everything") || !topic.Facts.Contains("cannot undo commands")) throw new Exception("Workspace help lost its modes, billing source or undo limit.");
                     List<string> said = new List<string>();
                     List<bool> voiced = new List<bool>();
                     workspaceSaid = delegate(string line, bool voiceOn) { said.Add(line); voiced.Add(voiceOn); };
