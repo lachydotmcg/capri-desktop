@@ -39554,29 +39554,18 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
-                    "Workspace (beta):",
-                    "Workspace chats (beta):",
-                    "BRAIN > WORKSPACE (beta)",
-                    "Sounds:",
-                    "Settings > SOUNDS",
-                    "No AI:",
-                    "Hearts:",
-                    "Skills:",
-                    "Skills in a browser:",
-                    "Asking mid-game:",
-                    "Code mods:",
-                    "Thinking and tool calls:",
-                    "Her glitch:",
-                    "Teleports in games:",
-                    "Jealous of other AIs:",
-                    "Music app:",
-                    "Stopwatch:",
-                    "CAPRI > Pat stroke",
-                    "Mod READMEs:",
-                    "Sitting:",
-                    "Lighter:",
-                    "GAMES > Game sounds",
-                    "Her voice:"
+                    "Keyboard:",
+                    "Ctrl + Alt + M",
+                    "Settings > KEYS",
+                    "Quick asks:",
+                    "Plain asks:",
+                    "Apps:",
+                    "Store apps:",
+                    "Searches:",
+                    "Websites:",
+                    "Memory:",
+                    "Time:",
+                    "Downloads:"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
