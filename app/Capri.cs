@@ -42415,6 +42415,24 @@ namespace CapriDesktop
                 if (RemoteJobTask("a task with no action") != "Using your computer") throw new Exception("An unknown task didn't use the safe title.");
                 lock (sent) if (string.Join("\n", sent.ToArray()).Contains(secret)) throw new Exception("A held action sent typed text to a phone.");
                 checks.Add("PASS held shutdown, close, switch, open, media, shortcut and mouse actions use the held tool and SECURITY toggle; held send, payment, delete, install, keys and confirmation use the job's risk; combined holds name each action and typed text stays out");
+                if (RemoteToolMove("move_yourself", new ToolArguments { Action = "lie_down" }) != "lie_down" ||
+                    RemoteToolMove("move_yourself", new ToolArguments { Action = "sit" }) != "sit" ||
+                    RemoteToolMove("move_yourself", new ToolArguments { Action = "sit_on" }) != "sit" ||
+                    RemoteToolMove("move_yourself", new ToolArguments { Action = "sit_up" }) != "sit" ||
+                    RemoteToolMove("animate", new ToolArguments { Name = "heart" }) != "heart" ||
+                    RemoteToolMove("animate", new ToolArguments { Name = "grin" }) != null ||
+                    RemoteToolMove("move_yourself", new ToolArguments { Action = "stand_up" }) != null ||
+                    RemoteToolMove("animate", null) != null) throw new Exception("Room moves did not match her tools.");
+                foreach (string move in new[] { "sit", "lie_down", "heart" })
+                {
+                    if (RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "done", null, move)).Text("move") != move ||
+                        RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "running", null, move)).Text("move") != null ||
+                        RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "failed", null, move)).Text("move") != null)
+                        throw new Exception("Room moves went before a tool succeeded.");
+                }
+                if (RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "done", null, "other")).Text("move") != null)
+                    throw new Exception("An unknown room move reached the phone.");
+                checks.Add("PASS room sit, lie down and heart come only from successful matching tools");
                 RemoteLink.SmokeJobs(checks);
             }
             finally
@@ -43048,6 +43066,7 @@ namespace CapriDesktop
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
+            Section(checks, "SmokeRemotePictures", delegate { SmokeRemotePictures(checks); });
             Section(checks, "SmokeRemoteJobs", delegate { SmokeRemoteJobs(checks); });
             Section(checks, "SmokeRemoteCall", delegate { SmokeRemoteCall(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });

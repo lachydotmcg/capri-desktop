@@ -112,6 +112,9 @@ namespace CapriDesktop
             check(brains == "{\"type\":\"brain.state\",\"use\":\"max\",\"name\":\"Claude - claude-haiku-5-5\",\"note\":\"Using your Anthropic key\",\"brains\":[{\"id\":\"normal\",\"key\":false},{\"id\":\"medium\",\"key\":false},{\"id\":\"max\",\"key\":true}]}", "brain.state came out as " + brains);
             string note = RemoteBrainKeys.Note("k1", "failed", "Anthropic turned down sk-ant-test-1234567890.", "sk-ant-test-1234567890");
             check(note == "{\"type\":\"brain.note\",\"re\":\"k1\",\"state\":\"failed\",\"text\":\"Anthropic turned down [key].\"}", "a note came out as " + note);
+            List<string> pictures = new List<string>();
+            try { RemoteLink.SmokePictures(pictures); check(pictures.Count == 1, "picture checks did not finish"); }
+            catch (Exception error) { check(false, "picture checks: " + error.Message); }
             foreach (string line in failed) Console.WriteLine("FAIL " + line);
             Console.WriteLine((failed.Count == 0 ? "PASS" : "FAIL") + " units: " + (checks - failed.Count) + " of " + checks + " checks (relay hosts, phone names, DPAPI round trip, pairing links, brain asks)");
             return failed.Count == 0 ? 0 : 1;
@@ -157,6 +160,11 @@ namespace CapriDesktop
                 if (what == "paired") foreach (RemoteDevice paired in link.Devices()) if (paired.Id == about && paired.From != null) line.Text("from", paired.From);
                 if (what == "link") line.Flag("shown", link.Qr != null).Text("linkFor", link.LinkFor ?? "");
                 say(line.Number("online", link.PhonesOnline));
+            };
+            link.Offer("pictures");
+            link.PictureSaid += delegate(string device, string id, string text, RemotePicture picture)
+            {
+                say(new RemoteJson.Writer().Text("e", "picture").Text("device", device).Text("id", id).Text("text", text).Text("mime", picture.Mime).Number("bytes", picture.Bytes.Length));
             };
             link.Said += delegate (string device, string id, string text) { say(new RemoteJson.Writer().Text("e", "said").Text("device", device).Text("id", id).Text("text", text)); };
             BrainDesk(link, statePath + ".keys", say);

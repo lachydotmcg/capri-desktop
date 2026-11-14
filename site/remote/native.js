@@ -121,15 +121,32 @@
     try {
       const saved = JSON.parse(get(BRAIN));
       if (!saved || !PROVIDERS[saved.provider] || typeof saved.key !== 'string' || !saved.key || typeof saved.model !== 'string') return null;
-      return { provider: saved.provider, key: saved.key, model: saved.model, models: Array.isArray(saved.models) ? saved.models.filter(id => typeof id === 'string').slice(0, 500) : [saved.model], door: saved.door === true };
+      return { provider: saved.provider, key: saved.key, model: saved.model, models: Array.isArray(saved.models) ? saved.models.filter(id => typeof id === 'string').slice(0, 500) : [saved.model], images: Array.isArray(saved.images) ? saved.images.filter(id => typeof id === 'string') : null, door: saved.door === true };
     } catch (error) { return null; }
   };
   const readBrain = () => get(FREE_ON) === '1' ? { provider: 'free' } : readKeyed();
-  const writeKeyed = brain => put(BRAIN, brain ? JSON.stringify({ provider: brain.provider, key: brain.key, model: brain.model, models: brain.models || [], door: !!brain.door }) : null);
+  const writeKeyed = brain => put(BRAIN, brain ? JSON.stringify({ provider: brain.provider, key: brain.key, model: brain.model, models: brain.models || [], images: brain.images || null, door: !!brain.door }) : null);
   const writeBrain = brain => {
     if (brain && brain.provider === 'free') { put(FREE_ON, '1'); return; }
     put(FREE_ON, null);
     writeKeyed(brain);
+  };
+  const blind = new Set();
+  const pictures = async () => {
+    const brain = readBrain();
+    if (!brain || brain.provider === 'free' || brain.provider === 'deepseek' || blind.has(brain.provider + '/' + brain.model)) return false;
+    if (brain.provider !== 'openrouter') return true;
+    if (!brain.images) {
+      const stop = new AbortController();
+      const timer = setTimeout(() => stop.abort(), 30000);
+      try {
+        const list = await listModels(brain, stop.signal);
+        brain.images = list.filter(model => model.images).map(model => model.id);
+        const current = readKeyed();
+        if (current && current.key === brain.key) writeKeyed(Object.assign(current, { images: brain.images }));
+      } finally { clearTimeout(timer); }
+    }
+    return brain.images.includes(brain.model);
   };
   const on = () => get(MODE) === 'phone' && !!readBrain();
   const use = mode => put(MODE, mode === 'phone' ? 'phone' : null);
@@ -387,7 +404,15 @@
   }
   // One reply, streamed: each new bit of her words goes to heard. Sends what the desktop sends (Brain.cs): Claude gets
   // low effort on the models that take it, OpenAI's reasoning models and Gemini low reasoning, DeepSeek no thinking.
-  const reply = async (brain, turns, heard, signal) => {
+  const reply = async (brain, turns, heard, signal, picture) => {
+    if (picture) {
+      const last = turns[turns.length - 1];
+      const data = picture.data.replace(/-/g, '+').replace(/_/g, '/');
+      const base64 = data + '='.repeat((4 - data.length % 4) % 4);
+      last.content = brain.provider === 'anthropic'
+        ? [{ type: 'image', source: { type: 'base64', media_type: picture.mime, data: base64 } }].concat(last.content ? [{ type: 'text', text: last.content }] : [])
+        : [{ type: 'image_url', image_url: { url: 'data:' + picture.mime + ';base64,' + base64 } }].concat(last.content ? [{ type: 'text', text: last.content }] : []);
+    }
     if (brain.provider === 'free') {
       const sent = await freeRequest(turns, signal);
       if (sent.error) throw failure(sent.error, '', { allowance: sent });
@@ -448,7 +473,7 @@
       else merged.push({ role: turn.role, content: turn.content });
     }
     while (merged.length && merged[0].role !== 'user') merged.shift();
-    if (!merged.length || merged[merged.length - 1].role !== 'user') merged.push({ role: 'user', content: text });
+    if (!text || !merged.length || merged[merged.length - 1].role !== 'user') merged.push({ role: 'user', content: text });
     return merged;
   };
 
@@ -467,9 +492,10 @@
       const offer = !!FREE && brain.provider !== 'free' && ['limit', 'daily', 'unfree', 'busy', 'credits'].includes(code);
       notice(words, error && (error.raw || error.detail) || '', offer);
     };
-    const ask = async (re, text) => {
+    const ask = async (re, text, picture) => {
       const brain = readBrain();
       if (!brain) { tell({ type: 'error', code: 'key', re }); toast('Paste your key in SETTINGS.'); return; }
+      if (picture && !await pictures()) { tell({ type: 'error', code: 'bad-message', re, quiet: true }); (window.CapriAttach ? CapriAttach.say : toast)("This brain can't see pictures."); return; }
       if (waiting.provider === brain.provider && waiting.until > Date.now()) {
         stop(re, brain, waiting.code, { raw: waiting.raw, wait: Math.ceil((waiting.until - Date.now()) / 1000) });
         return;
@@ -480,7 +506,7 @@
       const id = 'phone-' + re;
       tell({ type: 'chat.typing', on: true, re });
       try {
-        const spoke = await reply(brain, history(text), words => tell({ type: 'chat.reply', id, text: words, done: false, re }), job.signal);
+        const spoke = await reply(brain, history(text), words => tell({ type: 'chat.reply', id, text: words, done: false, re }), job.signal, picture);
         tell({ type: 'chat.reply', id, text: '', done: true, re });
         if (brain.door) writeKeyed(Object.assign(readKeyed() || brain, { door: true }));
         notice(null);
@@ -488,6 +514,13 @@
         if (spoke !== false) count();
       } catch (error) {
         if (!open) return;
+        const reason = String(error && (error.detail || error.raw) || '');
+        if (picture && /(?:does not|doesn't|cannot|can't) support (?:\w+ ){0,2}(?:images?|vision|multimodal)|(?:images?|vision|multimodal)(?: inputs?| content| messages?| processing)? (?:is |are )?(?:not supported|unsupported|not enabled)|(?:only supports? text|text.only model)/i.test(reason)) {
+          blind.add(brain.provider + '/' + brain.model);
+          tell({ type: 'error', code: 'bad-message', re, quiet: true });
+          (window.CapriAttach ? CapriAttach.say : toast)("This brain can't see pictures.");
+          return;
+        }
         const code = error && error.code ? error.code : 'down';
         if (error && error.wait) Object.assign(waiting, { provider: brain.provider, until: Date.now() + error.wait * 1000, code, raw: error.raw || '' });
         stop(re, brain, code, error);
@@ -507,7 +540,7 @@
       },
       send(message) {
         if (!open || !message) return false;
-        if (message.type === 'chat.send' && typeof message.text === 'string') { ask(message.id, message.text); return true; }
+        if (message.type === 'chat.send' && typeof message.text === 'string') { ask(message.id, message.text, message.picture).catch(() => { tell({ type: 'error', code: 'down', re: message.id, quiet: true }); (window.CapriAttach ? CapriAttach.say : toast)("Couldn't send the picture. Try again."); }); return true; }
         return message.type === 'revoke';
       },
       retry() { if (open && hooks) hooks.state('connected', {}); },
@@ -906,6 +939,7 @@
         if (!picked) { status('That key can\'t use any chat models.', true); return; }
         trying.model = picked;
         trying.models = list.map(found => found.id).slice(0, 500);
+        trying.images = list.filter(found => found.images).map(found => found.id);
         writeBrain(trying);
         key.value = '';
         status('');
@@ -1024,6 +1058,7 @@
 
   window.CapriNative = {
     on,
+    pictures,
     use,
     link,
     chat: fn => { if (typeof fn === 'function') chatOf = fn; },

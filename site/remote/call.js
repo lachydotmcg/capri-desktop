@@ -172,6 +172,7 @@
   bar.append(back, barMute, barEnd);
 
   // ---------- The call's state ----------
+  let listening = false;
   let state = 'off'; // 'off', 'ringing', 'on', or 'ended' while the call screen says so
   let shown = false; // the call screen is up, rather than shrunk to the call bar
   let them = { voice: true, ears: true };
@@ -204,9 +205,9 @@
   // Her loudness at the speaker for each of the last OVER_HOLD mic frames.
   const herLoud = [];
 
-  const supported = () => {
+  const supported = (listen = false) => {
     const r = remote();
-    return !!(r && r.state === 'connected' && Array.isArray(r.info.features) && r.info.features.includes('call') && C && (window.AudioContext || window.webkitAudioContext) && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    return !!(r && r.state === 'connected' && Array.isArray(r.info.features) && r.info.features.includes('call') && C && (window.AudioContext || window.webkitAudioContext) && (listen || (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)));
   };
   const live = () => state === 'ringing' || state === 'on';
   const fullScreen = () => live() && window.CapriScreen && window.CapriScreen.mode === 'full';
@@ -866,6 +867,13 @@
     captions.classList.add('long');
   };
   const draw = () => {
+    if (listening) {
+      if (window.CapriRoom) {
+        window.CapriRoom.talk(!!(sound && sound.context.state === 'running' && speaking() && sound.context.currentTime >= herStart));
+        window.CapriRoom.voiceStatus(sound && sound.context.state !== 'running' ? 'Tap Voice to hear her.' : '');
+      }
+      return;
+    }
     const app = document.getElementById('app');
     const full = fullScreen();
     const up = shown && state !== 'off' && !full;
@@ -936,7 +944,7 @@
   };
   const syncScreen = () => {
     const S = window.CapriScreen;
-    if (!live() || !S || !S.supported()) return;
+    if (listening || !live() || !S || !S.supported()) return;
     const wanted = pick.screen || screenRunning() || performance.now() < screenUntil;
     if (wanted && S.mode === 'off') {
       calling = true;
@@ -1028,11 +1036,36 @@
     // Hung up here, it closes after a moment. Dropped or failed, the screen stays to say why, with Call again.
     if (!shown) {
       state = 'off';
+      if (listening) why = '';
       if (why) tell(why);
     } else if (byHim) closeTimer = setTimeout(() => { if (state === 'ended') hide(); }, 1200);
+    if (listening) {
+      listening = false;
+      state = 'off';
+      audioSession('auto');
+      if (window.CapriRoom) window.CapriRoom.talk(false);
+    }
     draw();
   };
+  // An iPhone on silent mutes Web Audio unless the page says this is playback.
+  const audioSession = type => { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (error) {} };
+  const listen = () => {
+    if (listening) { if (sound) resume(sound.context); return true; }
+    if (live() || !supported(true)) return false;
+    listening = true;
+    shown = false;
+    speakerOn = true;
+    audioSession('playback');
+    try { openSound(); } catch (error) { listening = false; audioSession('auto'); return false; }
+    state = 'ringing';
+    if (!remote().send('call.start', { hush: true })) { over('', false); return false; }
+    ring = setTimeout(() => { if (listening && state === 'ringing') end(); }, 8000);
+    tick = setInterval(onTick, 50);
+    draw();
+    return true;
+  };
   const start = () => {
+    if (window.CapriRoom) window.CapriRoom.close();
     if (live()) { show(); return true; }
     if (!supported()) return false;
     clearTimeout(closeTimer);
@@ -1213,6 +1246,9 @@
 
   window.CapriCall = {
     supported,
+    listen,
+    stopListening: () => { if (listening) end(); },
+    get listening() { return listening; },
     start,
     end,
     get overHer() { return pick.overHer; },
