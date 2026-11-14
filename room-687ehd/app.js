@@ -331,6 +331,7 @@
     dropStarters();
     add(renderMsg(said));
     const re = id || newId();
+    if (pending.has(re)) settleReply(re, '');
     openReply(re, chat);
     toEnd();
     const body = { id: re, text: text.slice(0, 8000) };
@@ -349,7 +350,7 @@
     const attach = window.CapriAttach;
     if (attach && attach.busy) return;
     if (attach && attach.hasPicture()) {
-      const id = newId();
+      const id = attach.again() || newId();
       const picture = await attach.prepare(text, id);
       if (picture) deliver(text, picture, id);
       return;
