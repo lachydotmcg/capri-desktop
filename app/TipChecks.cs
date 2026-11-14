@@ -61,7 +61,7 @@ namespace CapriDesktop
                 finally { volume.Slide(oldVolume); }
                 if (layersKey.AccessibilityObject.Value != (layersKey.Picked ? "On" : "Off") || layersKey.AccessibleDescription != hints[layersKey].Text)
                     throw new Exception("The Layers button lost its current accessible state or its help.");
-                foreach (Control binding in new Control[] { talkKeys, muteKeys, typeKeys, hideKeys, pushKeys, gameKeys, quietKeys })
+                foreach (Control binding in new Control[] { talkKeys, muteKeys, typeKeys, hideKeys, pushKeys, gameKeys, quietKeys, frameKeys })
                     if (hints[binding].Title.IndexOf(':') >= 0) throw new Exception("A key tip cached a changeable binding as its title.");
                 checks.Add("PASS Mainframe tip state: changing a slider preserves its help and exposes its current accessible value; key-tip headings use stable setting names");
 

@@ -62,6 +62,7 @@ namespace CapriDesktop
         internal ModsWindow(Pet owner) : base("Mods")
         {
             pet = owner;
+            Steered = true;
             ShowInTaskbar = false;
             Label("MODS", 24, 15, 320, 29, MainframeTheme.Rose, 20, true).Display = true;
             Button("", 710, 20, 26, 22, Close).Glyph = 2;
