@@ -2838,6 +2838,7 @@ namespace CapriDesktop
     internal static class ModelFile
     {
         internal const string Missing = "That's no voice model Capri can run. Pick a Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx: its .tar.bz2, or the .onnx in its folder.";
+        internal const string Damaged = "Couldn't unpack that voice model. The archive may be damaged.";
         internal const string Unopened = "Capri can't open that clip. Press the arrow in the Speaker or clip box to pick it.";
         // Her free voice's folder, where sherpa-onnx is, and the folder models from an archive are unpacked into. Set at startup.
         internal static string Engine;
@@ -3002,8 +3003,11 @@ namespace CapriDesktop
             // "...zip" must never point it at the models folder itself or the one above.
             string name = Regex.Replace(Path.GetFileName(archive), @"\.(tar\.bz2|tar\.gz|tgz|tar|zip)$", "", RegexOptions.IgnoreCase).Trim().TrimEnd('.', ' ');
             if (name.Length == 0 || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) name = "voice-model";
-            string target = Path.Combine(Shelf, name);
+            string target = Path.GetFullPath(Path.Combine(Shelf, name));
             string staging = target + ".new";
+            string source = Path.GetFullPath(archive);
+            if (source.StartsWith(target + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || source.StartsWith(staging + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new VoiceException("Move that archive out of this model's folder and try again.");
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             Directory.CreateDirectory(staging);
             try
@@ -3011,20 +3015,26 @@ namespace CapriDesktop
                 if (archive.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) ZipFile.ExtractToDirectory(archive, staging);
                 else
                 {
-                    // Windows' own tar unpacks .tar.bz2, as sherpa-onnx ships its models.
-                    ProcessStartInfo start = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe"), "-xf \"" + archive + "\" -C \"" + staging + "\"");
-                    start.UseShellExecute = false;
-                    start.CreateNoWindow = true;
-                    using (Process unpacking = Process.Start(start))
+                    string plain = null;
+                    try
                     {
-                        if (!unpacking.WaitForExit(600000))
+                        string tar = archive;
+                        bool bzip = archive.EndsWith(".bz2", StringComparison.OrdinalIgnoreCase);
+                        if (bzip || archive.EndsWith(".gz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase))
                         {
-                            try { unpacking.Kill(); unpacking.WaitForExit(5000); }
-                            catch (Exception) { }
-                            throw new VoiceException("Windows took too long to unpack " + Path.GetFileName(archive) + ".");
+                            plain = Path.GetTempFileName();
+                            using (FileStream packed = new FileStream(archive, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20))
+                            using (FileStream opened = new FileStream(plain, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20))
+                            {
+                                if (bzip) Bunzip.Copy(packed, opened);
+                                else using (GZipStream gzip = new GZipStream(packed, CompressionMode.Decompress)) gzip.CopyTo(opened);
+                            }
+                            tar = plain;
                         }
-                        if (unpacking.ExitCode != 0) throw new VoiceException("Windows couldn't unpack " + Path.GetFileName(archive) + ".");
+                        using (FileStream packed = new FileStream(tar, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20)) TarReader.Unpack(packed, staging);
                     }
+                    catch (Exception problem) { throw new VoiceException(Damaged, problem.Message); }
+                    finally { if (plain != null) File.Delete(plain); }
                 }
             }
             catch (Exception)

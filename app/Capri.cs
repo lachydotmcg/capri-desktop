@@ -44205,7 +44205,7 @@ namespace CapriDesktop
             }
         }
 
-        private static void TarEntry(Stream into, string name, char kind, byte[] body, string prefix = "")
+        private static void TarEntry(Stream into, string name, char kind, byte[] body, string prefix = "", string link = "")
         {
             byte[] header = new byte[512];
             System.Text.Encoding.UTF8.GetBytes(name).CopyTo(header, 0);
@@ -44213,6 +44213,7 @@ namespace CapriDesktop
             System.Text.Encoding.ASCII.GetBytes(Convert.ToString((long)body.Length, 8).PadLeft(11, '0') + "\0").CopyTo(header, 124);
             for (int i = 148; i < 156; i++) header[i] = 32;
             header[156] = (byte)kind;
+            System.Text.Encoding.UTF8.GetBytes(link).CopyTo(header, 157);
             System.Text.Encoding.ASCII.GetBytes("ustar\0" + "00").CopyTo(header, 257);
             System.Text.Encoding.UTF8.GetBytes(prefix).CopyTo(header, 345);
             int sum = 0;
@@ -56356,22 +56357,158 @@ namespace CapriDesktop
                                 File.WriteAllBytes(vsMade, new byte[] { 1 });
                             }
                             string vsKinds = ModelFile.Kind(vsPiper) + " " + ModelFile.Kind(vsKitten) + " " + ModelFile.Kind(vsKokoroFiles) + " " + (ModelFile.Kind(vsNothing) ?? "none") + " " + (ModelFile.Kind(Path.Combine(vsModels, "gone")) ?? "none") + " " + ModelFile.Name(vsPiper + "\\") + " " + ModelFile.Kind(vsPocket) + " " + ModelFile.Name(vsPocket);
-                            string vsShelfWas = ModelFile.Shelf, vsShelf = Path.Combine(vsModels, "shelf"), vsUnpacked, vsZipped, vsRefused = null;
+                            string vsShelfWas = ModelFile.Shelf, vsShelf = Path.Combine(vsModels, "shelf"), vsUnpacked = null, vsZipped, vsRefused = null;
+                            string vsTarPath = LocalEars.TarPath;
+                            bool vsSystemBzip = LocalEars.SystemBzip;
+                            Func<ProcessStartInfo, Process> vsTarStart = LocalEars.StartTar;
+                            int vsTarCalls = 0;
                             ModelFile.Shelf = vsShelf;
                             try
                             {
-                                string vsTar = Path.Combine(vsModels, "vits-piper-en_US-test-medium.tar.bz2");
-                                using (Process vsPacking = Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe"), "-cjf \"" + vsTar + "\" -C \"" + vsModels + "\" vits-piper-en_US-test-medium") { UseShellExecute = false, CreateNoWindow = true }))
-                                    if (!vsPacking.WaitForExit(30000) || vsPacking.ExitCode != 0) throw new Exception("Couldn't make the test voice model archive with tar.");
-                                vsUnpacked = ModelFile.Unpack(vsTar);
+                                string vsPackName = "vits-piper-en_US-test-medium";
+                                byte[] vsTarPlain;
+                                using (MemoryStream vsTar = new MemoryStream())
+                                {
+                                    TarEntry(vsTar, vsPackName + "/", '5', new byte[0]);
+                                    foreach (string vsFile in new[] { "en_US-test-medium.onnx", "tokens.txt", "en_US-test-medium.onnx.json", "espeak-ng-data/phontab" })
+                                        TarEntry(vsTar, vsPackName + "/" + vsFile, vsFile == "tokens.txt" ? '\0' : '0', new byte[] { 1 });
+                                    foreach (char vsType in new[] { '1', '2', '3', '4', '6', '7' }) TarEntry(vsTar, vsPackName + "/skipped-" + vsType, vsType, new byte[0], "", "../escaped.bin");
+                                    vsTar.Write(new byte[512], 0, 512);
+                                    vsTarPlain = vsTar.ToArray();
+                                }
+                                byte[] vsBzip = Convert.FromBase64String("QlpoOTFBWSZTWdhI4KAAAkjfgOGiQEP/sAgAGgD++99ACggwAVhoDGQyGg0GjQBoAGhg0jU8kCGhhNDQyaNMTCBFIo0MaTUyZAaGnqPUDTNRO2BhvUx4c+WfZt692/dWO9t2yE/iOoJB1AKGmy2Itt00nPQ8lM6klDUEImQTUkCHsONSmxH75qeqNLtevXf5DQezkWQ5hj4hd7tU1QKbVIBTjxOOGA4KbMFN3kNeAV1XVZy6EBwU2oc85uciuRDIg1oAQKRBioqvKGBGGchA+6OKPqjMOB9fQyU8c3d3j4DoBuhHmj4o4mZTjmUmtiNJ/AwpnHJS5G2nS4ckaIz6DejOZKKF2jUdJXDYNal9ikhmpYpqUrkNQ5SFopjYjp0SUrR01qUhGrIMh/ufawkWF8kT/F3JFOFCQ2EjgoA=");
+                                using (MemoryStream vsPacked = new MemoryStream(vsBzip))
+                                using (MemoryStream vsTarOpened = new MemoryStream())
+                                {
+                                    Bunzip.Copy(vsPacked, vsTarOpened);
+                                    if (!System.Linq.Enumerable.SequenceEqual(vsTarOpened.ToArray(), vsTarPlain)) throw new Exception("The voice model bzip2 fixture changed.");
+                                }
+                                string vsTarPlainPath = Path.Combine(vsModels, vsPackName + ".tar");
+                                File.WriteAllBytes(vsTarPlainPath, vsTarPlain);
+                                LocalEars.TarPath = Path.Combine(vsModels, "missing-tar.exe");
+                                LocalEars.SystemBzip = true;
+                                LocalEars.StartTar = delegate { vsTarCalls++; throw new Exception("Voice import tried to start tar."); };
+                                foreach (string vsExtension in new[] { ".tar.bz2", ".tar", ".tar.gz", ".tgz", ".TAR.BZ2" })
+                                {
+                                    byte[] vsBytes = vsTarPlain;
+                                    if (vsExtension.EndsWith("bz2", StringComparison.OrdinalIgnoreCase)) vsBytes = vsBzip;
+                                    else if (vsExtension == ".tar.gz" || vsExtension == ".tgz")
+                                    {
+                                        using (MemoryStream vsPacked = new MemoryStream())
+                                        {
+                                            using (System.IO.Compression.GZipStream vsGzip = new System.IO.Compression.GZipStream(vsPacked, System.IO.Compression.CompressionMode.Compress, true)) vsGzip.Write(vsTarPlain, 0, vsTarPlain.Length);
+                                            vsBytes = vsPacked.ToArray();
+                                        }
+                                    }
+                                    string vsArchive = Path.Combine(vsModels, vsPackName + vsExtension);
+                                    File.WriteAllBytes(vsArchive, vsBytes);
+                                    vsUnpacked = ModelFile.Unpack(vsArchive);
+                                    if (vsTarCalls != 0 || vsUnpacked != Path.Combine(vsShelf, vsPackName) || ModelFile.Kind(vsUnpacked) != "vits"
+                                        || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsBytes) || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsTarPlainPath), vsTarPlain)
+                                        || Directory.GetFiles(vsUnpacked, "*", SearchOption.AllDirectories).Length != 4 || Directory.Exists(vsUnpacked + ".new") || File.Exists(Path.Combine(vsShelf, "escaped.bin")))
+                                        throw new Exception("Voice import changed its source, started tar or unpacked the wrong files for " + vsExtension + ".");
+                                    foreach (string vsFile in new[] { "en_US-test-medium.onnx", "tokens.txt", "en_US-test-medium.onnx.json", "espeak-ng-data/phontab" })
+                                        if (!System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsUnpacked, vsFile)), new byte[] { 1 })) throw new Exception("Voice import changed " + vsFile + ".");
+                                    checks.Add("PASS voice import " + vsExtension + ": keeps source bytes and the adjacent tar, unpacks only files and folders, and never starts tar");
+                                    LocalEars.TarPath = vsArchive;
+                                }
                                 string vsZip = Path.Combine(vsModels, "kitten-test.zip"), vsEmpty = Path.Combine(vsModels, "empty.zip");
                                 System.IO.Compression.ZipFile.CreateFromDirectory(vsKitten, vsZip);
                                 vsZipped = ModelFile.Unpack(vsZip);
                                 System.IO.Compression.ZipFile.CreateFromDirectory(vsNothing, vsEmpty);
                                 try { ModelFile.Unpack(vsEmpty); }
                                 catch (VoiceException vsError) { vsRefused = vsError.Message; }
+                                foreach (string vsProblem in new[] { "parent", "backslash-parent", "absolute", "rooted", "drive", "unc", "stream", "trailing-dot", "trailing-space", "empty-name", "prefix", "long", "pax", "checksum", "size-octal", "size-negative", "long-size", "pax-size", "pax-length", "pax-overflow", "pax-newline", "file", "header", "padding", "end", "bzip2", "bzip2-crc", "gzip", "replacement", "no-model" })
+                                {
+                                    byte[] vsTarBroken;
+                                    int vsAt;
+                                    using (MemoryStream vsTar = new MemoryStream())
+                                    {
+                                        TarEntry(vsTar, "model.onnx", '0', new byte[] { 1 });
+                                        TarEntry(vsTar, "tokens.txt", '0', new byte[] { 1 });
+                                        vsAt = (int)vsTar.Position;
+                                        string vsBadPath = vsProblem == "parent" ? "../escaped.bin" : vsProblem == "backslash-parent" ? "..\\escaped.bin" : vsProblem == "absolute" ? "/escaped.bin"
+                                            : vsProblem == "rooted" ? "\\escaped.bin" : vsProblem == "drive" ? "C:\\escaped.bin" : vsProblem == "unc" ? "\\\\server\\share\\escaped.bin" : vsProblem == "stream" ? "file:stream"
+                                            : vsProblem == "trailing-dot" ? "dir./escaped.bin" : vsProblem == "trailing-space" ? "dir /escaped.bin" : vsProblem == "empty-name" ? "" : null;
+                                        if (vsBadPath != null) TarEntry(vsTar, vsBadPath, '0', new byte[] { 7, 8, 9 });
+                                        else if (vsProblem == "prefix") TarEntry(vsTar, "escaped.bin", '0', new byte[0], "..");
+                                        else if (vsProblem == "long" || vsProblem == "long-size") TarEntry(vsTar, "LongLink", 'L', Encoding.UTF8.GetBytes("../escaped.bin\0"));
+                                        else if (vsProblem.StartsWith("pax", StringComparison.Ordinal))
+                                        {
+                                            byte[] vsPax = vsProblem == "pax-size" ? Encoding.ASCII.GetBytes("1048640 path=x\n") : vsProblem == "pax-length" ? Encoding.ASCII.GetBytes("2 path=x\n")
+                                                : vsProblem == "pax-overflow" ? Encoding.ASCII.GetBytes("999999999999999999999999999999 path=x\n") : TarPax(vsProblem == "pax" ? "../escaped.bin" : "safe.bin");
+                                            if (vsProblem == "pax-newline") vsPax[vsPax.Length - 1] = (byte)'!';
+                                            TarEntry(vsTar, "PaxHeader", 'x', vsPax);
+                                        }
+                                        else TarEntry(vsTar, "partial.bin", '0', new byte[] { 7, 8, 9 });
+                                        vsTar.Write(new byte[512], 0, 512);
+                                        vsTarBroken = vsTar.ToArray();
+                                    }
+                                    if (vsProblem == "checksum") vsTarBroken[vsAt] ^= 1;
+                                    else if (vsProblem == "size-octal" || vsProblem == "size-negative" || vsProblem == "long-size" || vsProblem == "pax-size")
+                                    {
+                                        string vsSize = vsProblem == "size-octal" ? "00000000008\0" : vsProblem == "size-negative" ? "-0000000001\0" : Convert.ToString((1 << 20) + (vsProblem == "long-size" ? 1 : 64), 8).PadLeft(11, '0') + "\0";
+                                        Encoding.ASCII.GetBytes(vsSize).CopyTo(vsTarBroken, vsAt + 124);
+                                        for (int i = 148; i < 156; i++) vsTarBroken[vsAt + i] = 32;
+                                        int vsSum = 0;
+                                        for (int i = 0; i < 512; i++) vsSum += vsTarBroken[vsAt + i];
+                                        Encoding.ASCII.GetBytes(Convert.ToString(vsSum, 8).PadLeft(6, '0') + "\0 ").CopyTo(vsTarBroken, vsAt + 148);
+                                    }
+                                    else if (vsProblem == "file" || vsProblem == "replacement" || vsProblem == "gzip") Array.Resize(ref vsTarBroken, vsAt + 513);
+                                    else if (vsProblem == "header") Array.Resize(ref vsTarBroken, vsAt + 100);
+                                    else if (vsProblem == "padding") Array.Resize(ref vsTarBroken, vsAt + 1023);
+                                    else if (vsProblem == "end") Array.Resize(ref vsTarBroken, vsAt + 1024);
+                                    else if (vsProblem == "no-model") vsTarBroken = new byte[512];
+                                    string vsExtension = ".tar";
+                                    if (vsProblem == "bzip2" || vsProblem == "bzip2-crc")
+                                    {
+                                        vsTarBroken = (byte[])vsBzip.Clone();
+                                        if (vsProblem == "bzip2") Array.Resize(ref vsTarBroken, vsTarBroken.Length - 5);
+                                        else vsTarBroken[10] ^= 1;
+                                        vsExtension = ".tar.bz2";
+                                    }
+                                    else if (vsProblem == "gzip")
+                                    {
+                                        using (MemoryStream vsPacked = new MemoryStream())
+                                        {
+                                            using (System.IO.Compression.GZipStream vsGzip = new System.IO.Compression.GZipStream(vsPacked, System.IO.Compression.CompressionMode.Compress, true)) vsGzip.Write(vsTarBroken, 0, vsTarBroken.Length);
+                                            vsTarBroken = vsPacked.ToArray();
+                                        }
+                                        vsExtension = ".tar.gz";
+                                    }
+                                    string vsBadName = vsProblem == "replacement" ? vsPackName : "bad-" + vsProblem, vsMessage = null;
+                                    string vsArchive = Path.Combine(vsModels, vsBadName + vsExtension), vsTarget = Path.Combine(vsShelf, vsBadName);
+                                    File.WriteAllBytes(vsArchive, vsTarBroken);
+                                    try { ModelFile.Unpack(vsArchive); }
+                                    catch (VoiceException vsError) { vsMessage = vsError.Message; }
+                                    if (vsMessage != (vsProblem == "no-model" ? ModelFile.Missing : ModelFile.Damaged) || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsTarBroken)
+                                        || Directory.Exists(vsTarget + ".new") || (vsProblem != "replacement" && Directory.Exists(vsTarget)) || Directory.GetDirectories(vsShelf).Length != 2
+                                        || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsUnpacked, "en_US-test-medium.onnx")), new byte[] { 1 }) || Directory.GetFiles(vsUnpacked, "*", SearchOption.AllDirectories).Length != 4
+                                        || File.Exists(Path.Combine(vsShelf, "escaped.bin")) || File.Exists(Path.Combine(vsModels, "escaped.bin")) || vsTarCalls != 0)
+                                        throw new Exception("Voice import left files, changed its source or returned the wrong error for " + vsProblem + ": " + vsMessage);
+                                    checks.Add("PASS voice import refuses " + vsProblem + ": keeps source bytes and the installed model, with no partial model or staging folder");
+                                }
+                                foreach (string vsPlace in new[] { vsUnpacked, vsUnpacked + ".new" })
+                                {
+                                    Directory.CreateDirectory(vsPlace);
+                                    string vsArchive = Path.Combine(vsPlace, vsPackName + ".tar"), vsMessage = null;
+                                    File.WriteAllBytes(vsArchive, vsTarPlain);
+                                    try { ModelFile.Unpack(vsArchive); }
+                                    catch (VoiceException vsError) { vsMessage = vsError.Message; }
+                                    if (vsMessage == null || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsTarPlain) || ModelFile.Kind(vsUnpacked) != "vits")
+                                        throw new Exception("Voice import deleted or changed a source inside " + vsPlace + ".");
+                                    File.Delete(vsArchive);
+                                    if (vsPlace != vsUnpacked) Directory.Delete(vsPlace, true);
+                                    checks.Add("PASS voice import keeps a source inside " + (vsPlace == vsUnpacked ? "the model folder" : "the staging folder") + " by refusing before cleanup");
+                                }
                             }
-                            finally { ModelFile.Shelf = vsShelfWas; }
+                            finally
+                            {
+                                ModelFile.Shelf = vsShelfWas;
+                                LocalEars.TarPath = vsTarPath;
+                                LocalEars.SystemBzip = vsSystemBzip;
+                                LocalEars.StartTar = vsTarStart;
+                            }
                             if (vsKinds != "vits kitten kokoro none none en_US-test-medium pocket pocket-tts-int8-2026-01-26" || vsUnpacked != Path.Combine(vsShelf, "vits-piper-en_US-test-medium") || ModelFile.Kind(vsUnpacked) != "vits"
                                 || !File.Exists(Path.Combine(vsUnpacked, "en_US-test-medium.onnx")) || vsZipped != Path.Combine(vsShelf, "kitten-test") || ModelFile.Kind(vsZipped) != "kitten"
                                 || vsRefused != ModelFile.Missing || Directory.GetDirectories(vsShelf).Length != 2)
