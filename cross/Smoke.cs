@@ -5601,7 +5601,7 @@ namespace CapriDesktop
                     using var data = System.Text.Json.JsonDocument.Parse(instruction);
                     int width = data.RootElement.GetProperty("width").GetInt32(), height = data.RootElement.GetProperty("height").GetInt32();
                     if (width != 1280 || height != 640) throw new Exception("Mac brain was told a different image size");
-                    return System.Text.Json.JsonSerializer.Serialize(new { action, frame = frame ?? data.RootElement.GetProperty("frame").GetString(), previous_effect = turns++ == 0 ? "none" : "verified", label = "target button", risk = "none", secret = false, x = width / 2.0, y = height / 2.0, button = "left", transition });
+                    return System.Text.Json.JsonSerializer.Serialize(new { action, frame = frame ?? data.RootElement.GetProperty("frame").GetString(), previous_effect = turns++ == 0 ? "none" : "verified", label = "target button", risk = "none", secret = false, x = width / 2.0, y = height / 2.0, button = "left", amount = 4, end_x = width * 0.75, end_y = height * 0.75, duration = 100, keys = "ESC", text = "a", transition });
                 }
                 events.Clear();
                 runner.Think = (jpeg, system, instruction) => Order(instruction);
@@ -5611,22 +5611,113 @@ namespace CapriDesktop
                 catch (InvalidOperationException error) { repeated = error.Message.Contains("already delivered"); }
                 if (!repeated || events.Count != 3 || duplicate.TotalSteps != 1 || turns != 2) throw new Exception("Mac replayed an input against unchanged pixels");
                 events.Clear(); turns = 0;
-                if (MacFingers.Inputs != ((1UL << 1) | (1UL << 3) | (1UL << 5) | (1UL << 10) | (1UL << 25))) throw new Exception("Mac owner input mask changed");
-                foreach (uint kind in new uint[] { 1, 3, 5, 10, 25 })
-                    if ((MacFingers.Inputs & (1UL << (int)kind)) == 0 || !MacFingers.Stops(kind, 0) || MacFingers.Stops(kind, Environment.ProcessId)) throw new Exception("Mac missed owner input or stopped on its own event");
-                using (var moved = new CancellationTokenSource())
+                if (MacFingers.Inputs != ((1UL << 1) | (1UL << 3) | (1UL << 10) | (1UL << 25))) throw new Exception("Mac owner input mask changed");
+                foreach (uint kind in new uint[] { 1, 3, 10, 25 })
                 {
+                    if ((MacFingers.Inputs & (1UL << (int)kind)) == 0 || !MacFingers.Stops(kind, 0) || MacFingers.Stops(kind, Environment.ProcessId)) throw new Exception("Mac missed owner input or stopped on its own event");
+                    turns = 0;
+                    using var pressed = new CancellationTokenSource();
                     runner.Think = (jpeg, system, instruction) =>
                     {
-                        if ((MacFingers.Inputs & (1UL << 5)) != 0 && MacFingers.Stops(5, 0)) moved.Cancel();
+                        if ((MacFingers.Inputs & (1UL << (int)kind)) != 0 && MacFingers.Stops(kind, 0)) pressed.Cancel();
                         return Order(instruction);
                     };
                     bool stopped = false;
-                    try { runner.Run(new ComputerJob { Task = "click the target button" }, moved.Token); }
+                    try { runner.Run(new ComputerJob { Task = "click the target button" }, pressed.Token); }
                     catch (OperationCanceledException) { stopped = true; }
-                    if (!stopped || events.Count != 0) throw new Exception("Mac clicked an old picture after the owner moved the pointer");
+                    if (!stopped || events.Count != 0) throw new Exception("Mac applied input after an owner key or button press");
                 }
-                checks.Add("PASS Mac keeps its earlier mouse-down, mouse-move and key-down stop mask and allows Capri's own input");
+                checks.Add("PASS Mac listens for four key and button events, stops on owner presses and allows Capri's own input");
+                foreach (bool playing in new[] { false, true })
+                {
+                    events.Clear(); turns = 0;
+                    using var moved = new CancellationTokenSource();
+                    MacFingers.Pause = ms => { if (ms == 20) cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40); };
+                    MacFingers.Sink = ev =>
+                    {
+                        events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At;
+                        if (ev.Kind == 2) cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40);
+                    };
+                    runner.Think = (jpeg, system, instruction) =>
+                    {
+                        cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40);
+                        if ((MacFingers.Inputs & (1UL << 5)) != 0 && MacFingers.Stops(5, 0)) moved.Cancel();
+                        return Order(instruction, turns == 0 ? "click" : "done");
+                    };
+                    ComputerJob nudged = new ComputerJob { Task = "click the target button", Game = playing ? new ComputerGameSession(1) : null };
+                    runner.Run(nudged, moved.Token);
+                    if (moved.IsCancellationRequested || nudged.TotalSteps != 1 || turns != 2 || nudged.SliceEnd != "done" ||
+                        string.Join(",", events.ConvertAll(ev => ev.Kind)) != "5,5,1,2" || events.Exists(ev => ev.At.X != -1320 || ev.At.Y != 300)) throw new Exception("Mac nudge cancelled a job or moved its click");
+                }
+                checks.Add("PASS Mac nudges during inference, before a click, at completion and between game turns keep the job running on its target");
+                foreach (string action in new[] { "scroll", "double_click", "drag", "press", "type" })
+                {
+                    events.Clear(); turns = 0;
+                    MacFingers.Point aimed = cursor;
+                    bool held = false;
+                    int nudges = 0;
+                    MacFingers.Pause = ms =>
+                    {
+                        cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40); nudges++;
+                    };
+                    MacFingers.Sink = ev =>
+                    {
+                        events.Add(ev);
+                        if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At;
+                        if (ev.Kind == 1 || ev.Kind == 22 || ev.Kind == 10)
+                        {
+                            if (cursor.X != aimed.X || cursor.Y != aimed.Y) throw new Exception("Mac did not restore its pointer before input");
+                        }
+                        if (ev.Kind == 1) held = true;
+                        if (ev.Kind == 2) held = false;
+                        if (ev.Kind == 5 && held) throw new Exception("Mac restored a held drag as a free mouse move");
+                    };
+                    runner.Think = (jpeg, system, instruction) =>
+                    {
+                        if (turns == 0)
+                        {
+                            if (action != "press" && action != "type") aimed = new MacFingers.Point(-1320, 300);
+                            cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40); nudges++;
+                        }
+                        return Order(instruction, turns == 0 ? action : "done");
+                    };
+                    ComputerJob nudged = new ComputerJob { Task = "use the target" };
+                    runner.Run(nudged, CancellationToken.None);
+                    if (nudged.TotalSteps != 1 || turns != 2 || nudges == 0 || held) throw new Exception("Mac nudge failed an input step");
+                    if (action == "scroll" && (events.Count != 3 || events[^1].Kind != 22 || events[^1].At.X != aimed.X || events[^1].At.Y != aimed.Y || events[^1].Wheel != -4)) throw new Exception("Mac nudge scrolled away from its target");
+                    if (action == "double_click" && (events.FindAll(ev => ev.Kind == 1).Count != 2 || events.Exists(ev => ev.At.X != aimed.X || ev.At.Y != aimed.Y))) throw new Exception("Mac nudge moved a double click");
+                    if (action == "drag")
+                    {
+                        if (nudges < 20 || events[^1].Kind != 2 || events[^1].At.X != -1120 || events[^1].At.Y != 400 || events.FindAll(ev => ev.Kind == 1).Count != 1) throw new Exception("Mac nudge lost the drag endpoint or release");
+                        foreach (var ev in events)
+                            if (ev.At.X < -1320 || ev.At.X > -1120 || ev.At.Y != 300 + (ev.At.X + 1320) / 2) throw new Exception("Mac drag followed the owner's pointer");
+                    }
+                }
+                checks.Add("PASS Mac restores its pointer before presses, scrolls and drags; nudged scrolls, double clicks and drag events keep their own points");
+                Hands.OnMac = false;
+                for (int phase = 0; phase < 3; phase++)
+                {
+                    events.Clear(); turns = 0; MacFingers.Pause = _ => { };
+                    MacFingers.Sink = ev =>
+                    {
+                        events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At;
+                        if (phase == 1 && ev.Kind == 2) cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40);
+                    };
+                    runner.Think = (jpeg, system, instruction) =>
+                    {
+                        if (phase == 0) cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40);
+                        return Order(instruction);
+                    };
+                    ComputerJob nudged = new ComputerJob { Task = "click the target button", Game = phase == 2 ? new ComputerGameSession(1) { ExpectedPointerX = cursor.X + 40, ExpectedPointerY = cursor.Y + 40 } : null };
+                    bool stopped = false;
+                    try { runner.Run(nudged, CancellationToken.None); }
+                    catch (InvalidOperationException error) { stopped = error.Message == (phase == 0 ? "You moved the pointer, so I stopped." : phase == 1 ? "You moved the pointer during input completion, so I stopped." : "The owner moved the pointer between game turns, so I stopped."); }
+                    if (!stopped || nudged.TotalSteps != 0 || events.Count != (phase == 1 ? 3 : 0)) throw new Exception("Mac nudge tolerance changed a Linux pointer guard");
+                }
+                Hands.OnMac = true;
+                MacFingers.Sink = ev => { events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At; };
+                events.Clear();
+                checks.Add("PASS Linux keeps all three pointer displacement stops before input, at completion and between game turns");
                 turns = 0;
                 using (var cancelled = new CancellationTokenSource())
                 {

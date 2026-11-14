@@ -63,6 +63,7 @@ namespace CapriDesktop
         [DllImport(Graphics)] private static extern void CGEventPost(uint tap, IntPtr ev);
         [DllImport(Graphics)] private static extern IntPtr CGEventCreate(IntPtr source);
         [DllImport(Graphics)] private static extern Point CGEventGetLocation(IntPtr ev);
+        [DllImport(Graphics)] private static extern void CGEventSetLocation(IntPtr ev, Point point);
         [DllImport(Graphics)] private static extern int CGGetActiveDisplayList(uint maximum, [Out] uint[] ids, out uint count);
         [DllImport(Graphics)] private static extern uint CGMainDisplayID();
         [DllImport(Graphics)] private static extern Rect CGDisplayBounds(uint id);
@@ -142,6 +143,7 @@ namespace CapriDesktop
             if (ev == IntPtr.Zero) throw new InvalidOperationException("Couldn't create a Mac input event.");
             try
             {
+                if (value.Kind == 22) CGEventSetLocation(ev, value.At);
                 CGEventSetFlags(ev, value.Flags);
                 CGEventSetIntegerValueField(ev, 42, Environment.ProcessId);
                 if (value.Count > 0) CGEventSetIntegerValueField(ev, 1, value.Count);
@@ -611,6 +613,12 @@ namespace CapriDesktop
                 Ready();
                 double x = frame.Source.PointerX, y = frame.Source.PointerY;
                 void Check() { token.ThrowIfCancellationRequested(); Ready(); guard(x, y); }
+                void Settle(bool drag = false)
+                {
+                    Check();
+                    Point at = Position();
+                    if (at.X != x || at.Y != y) Sink(new Event(drag ? 6u : 5u, new Point(x, y)));
+                }
                 Check();
                 if (action.Action == "click" || action.Action == "double_click" || action.Action == "drag" || action.Action == "scroll")
                 {
@@ -618,23 +626,24 @@ namespace CapriDesktop
                     if (!frame.Source.Target.Area.Contains(at.X, at.Y)) throw new InvalidOperationException("The point is outside the bound target window.");
                     desktop.Move(at.X, at.Y, token); x = at.X; y = at.Y; Check();
                 }
-                if (action.Action == "type") Type(action.Text, Check);
+                if (action.Action == "type") Type(action.Text, () => Settle());
                 else if (action.Action == "press")
                 {
-                    if (!Keys(JobKeys(action.Keys), Check)) throw new InvalidOperationException("That key has no Mac mapping.");
+                    if (!Keys(JobKeys(action.Keys), () => Settle())) throw new InvalidOperationException("That key has no Mac mapping.");
                 }
                 else if (action.Action == "scroll")
                 {
-                    Check(); Sink(new Event(22, new Point(x, y), Wheel: -action.Amount, Units: 0));
+                    Settle(); Sink(new Event(22, new Point(x, y), Wheel: -action.Amount, Units: 0));
                 }
                 else if (action.Action == "drag")
                 {
                     var end = frame.ToLogical(action.EndX, action.EndY);
                     if (!frame.Source.Target.Area.Contains(end.X, end.Y)) throw new InvalidOperationException("The drag ends outside the bound target window.");
-                    Drag(x, y, end.X, end.Y, action.Duration, (px, py) => { x = px; y = py; Check(); });
+                    bool dragging = false;
+                    Drag(x, y, end.X, end.Y, action.Duration, (px, py) => { x = px; y = py; Settle(dragging); dragging = true; });
                     x = end.X; y = end.Y;
                 }
-                else if (action.Action == "click" || action.Action == "double_click") Click(new Point(x, y), action.Button, action.Action == "double_click" ? 2 : 1, Check);
+                else if (action.Action == "click" || action.Action == "double_click") Click(new Point(x, y), action.Button, action.Action == "double_click" ? 2 : 1, () => Settle());
                 else throw new InvalidOperationException("That Mac input action is unavailable.");
                 token.ThrowIfCancellationRequested(); (completed ?? guard)(x, y);
             }
@@ -649,7 +658,7 @@ namespace CapriDesktop
         [DllImport(Core)] private static extern int CFRunLoopRunInMode(IntPtr mode, double seconds, [MarshalAs(UnmanagedType.I1)] bool returnAfterSourceHandled);
         [DllImport(Core)] private static extern void CFMachPortInvalidate(IntPtr port);
 
-        internal const ulong Inputs = (1UL << 1) | (1UL << 3) | (1UL << 5) | (1UL << 10) | (1UL << 25);
+        internal const ulong Inputs = (1UL << 1) | (1UL << 3) | (1UL << 10) | (1UL << 25);
         internal static bool Stops(uint kind, long source) => kind == 0xFFFFFFFE || kind == 0xFFFFFFFF || source != Environment.ProcessId;
 
         internal static string ListenProblem()
@@ -890,7 +899,7 @@ namespace CapriDesktop
                 Position = () => new Point(30, 40);
                 events.Clear();
                 new Input().Execute(new ComputerAction { Action = "double_click", X = 200, Y = 100, Button = "left" }, frame, desktop, guard, CancellationToken.None);
-                if (events.Count != 5 || events.Skip(1).Any(e => e.At.X != -860 || e.At.Y != 150)) throw new Exception("Mac job click reread the pointer");
+                if (events.Count != 7 || !events.Select(e => e.Kind).SequenceEqual(new uint[] { 5, 5, 1, 2, 5, 1, 2 }) || events.Any(e => e.At.X != -860 || e.At.Y != 150)) throw new Exception("Mac job click lost its target after a nudge");
                 Position = () => cursor;
                 foreach (int amount in new[] { 300, -300 })
                 {

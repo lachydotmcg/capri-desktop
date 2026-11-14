@@ -131,7 +131,7 @@ namespace CapriDesktop
                 token.ThrowIfCancellationRequested();
                 CheckAccount(job);
                 ComputerSnapshot source = Desktop.Snapshot(job.Binding.Output.Name);
-                if (job.Game != null && !double.IsNaN(job.Game.ExpectedPointerX) &&
+                if (!Hands.OnMac && job.Game != null && !double.IsNaN(job.Game.ExpectedPointerX) &&
                     (Math.Abs(source.PointerX - job.Game.ExpectedPointerX) > 3 || Math.Abs(source.PointerY - job.Game.ExpectedPointerY) > 3))
                     throw new InvalidOperationException("The owner moved the pointer between game turns, so I stopped.");
                 if (job.Game?.TransitionCompletion != null)
@@ -199,7 +199,7 @@ namespace CapriDesktop
                     if (Stopwatch.GetElapsedTime(frame.Taken) > TimeSpan.FromSeconds(30)) throw new InvalidOperationException("The screenshot expired before input.");
                     ComputerSnapshot current = Desktop.Snapshot(source.Output.Name);
                     ComputerJobs.Same(source, current, true);
-                    if (Math.Abs(current.PointerX - x) > 3 || Math.Abs(current.PointerY - y) > 3) throw new InvalidOperationException("You moved the pointer, so I stopped.");
+                    if (!Hands.OnMac && (Math.Abs(current.PointerX - x) > 3 || Math.Abs(current.PointerY - y) > 3)) throw new InvalidOperationException("You moved the pointer, so I stopped.");
                 }
                 Guard(source.PointerX, source.PointerY);
                 string fingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(frame.Png ?? frame.Jpeg)) + "|" + action.EffectKey(frame);
@@ -213,7 +213,7 @@ namespace CapriDesktop
                     ComputerSnapshot now = Desktop.Snapshot(source.Output.Name);
                     if (job.Game != null && action.Transition == "same_process") ComputerGameSession.CompleteTransition(source, now);
                     else ComputerJobs.Same(source, now, true);
-                    if (Math.Abs(now.PointerX - x) > 3 || Math.Abs(now.PointerY - y) > 3) throw new InvalidOperationException("You moved the pointer during input completion, so I stopped.");
+                    if (!Hands.OnMac && (Math.Abs(now.PointerX - x) > 3 || Math.Abs(now.PointerY - y) > 3)) throw new InvalidOperationException("You moved the pointer during input completion, so I stopped.");
                     completed = now;
                 }
                 RemotePrivate.Keep(job, action);
