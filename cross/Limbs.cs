@@ -157,30 +157,8 @@ namespace CapriDesktop
                 if (phone != null && RemoteTurn.AtPc(tool, args)) return phone.Refuse(tool, args);
                 string held = phone == null ? Security.Gate(tool, args) : phone.Pet.RemoteGate(phone, tool, args);
                 if (held != null) return held;
-                if (phone != null)
-                {
-                    Func<bool> previous = args.Current;
-                    args.Current = delegate { return phone.Live && (previous == null || previous()); };
-                    if (!args.Current()) return RemoteTurn.Ended;
-                }
-                string id = phone == null ? null : RemoteMessages.NewId();
-                string summary = phone == null ? null : RemoteTurn.Words(tool, args);
-                string name = summary == "Using a tool" ? "tool" : tool;
-                string move = phone == null ? null : RemoteMessages.ToolMove(tool, args);
-                if (move == "heart") move = null;
-                if (phone != null) phone.Tool(id, name, summary, "running");
-                string done;
-                try
-                {
-                    if (phone != null && !phone.Current) return RemoteTurn.Ended;
-                    done = phone != null && tool == "mod" ? phone.Pet.RemoteMod(phone, args) : Hands.Do(tool, args);
-                }
-                catch
-                {
-                    if (phone != null) phone.Tool(id, name, summary, "failed");
-                    throw;
-                }
-                if (phone != null) phone.Tool(id, name, summary, done == RemoteTurn.PcOnly || Hands.Failed(done) || move != null && MoveFailed(done) ? "failed" : "done", move);
+                string done = RemoteDo(phone, tool, args);
+                if (phone != null && done == RemoteTurn.Ended) return done;
                 if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
                 return done;
             };
@@ -188,6 +166,34 @@ namespace CapriDesktop
             if (!OnMac || Program.Smoke == null) ComputerJobs.Attach(brain);
             Hands.NativeWork = RemoteWork(Hands.NativeWork);
             Hands.Work = RemoteWork(Hands.Work);
+        }
+
+        internal static string RemoteDo(RemoteTurn phone, string tool, ToolArguments args)
+        {
+            if (phone == null) return Hands.Do(tool, args);
+            if (!phone.Current) return RemoteTurn.Ended;
+            if (args == null) args = new ToolArguments();
+            Func<bool> previous = args.Current;
+            args.Current = delegate { return phone.Live && (previous == null || previous()); };
+            if (!args.Current()) return RemoteTurn.Ended;
+            string id = RemoteMessages.NewId(), summary = RemoteTurn.Words(tool, args);
+            string name = summary == "Using a tool" ? "tool" : tool;
+            string move = RemoteMessages.ToolMove(tool, args);
+            if (move == "heart") move = null;
+            phone.Tool(id, name, summary, "running");
+            string done;
+            try
+            {
+                if (!phone.Current) return RemoteTurn.Ended;
+                done = tool == "mod" ? phone.Pet.RemoteMod(phone, args) : Hands.Do(tool, args);
+            }
+            catch
+            {
+                phone.Tool(id, name, summary, "failed");
+                throw;
+            }
+            phone.Tool(id, name, summary, done == RemoteTurn.PcOnly || Hands.Failed(done) || move != null && MoveFailed(done) ? "failed" : "done", move);
+            return done;
         }
 
         private static bool MoveFailed(string result)

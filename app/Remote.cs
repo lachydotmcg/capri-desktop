@@ -32,9 +32,6 @@ namespace CapriDesktop
             picture = null;
             if (message.PlainBytes >= 60000) return false;
             if (!message.ContainsKey("picture")) return true;
-#if CROSS
-            return false;
-#else
             RemoteJson.Map map = message.Child("picture");
             if (map == null) return false;
             string mime = map.Text("mime"), data = map.Text("data");
@@ -48,7 +45,6 @@ namespace CapriDesktop
             if (!Size(bytes, jpeg, out width, out height) || width < 1 || height < 1 || width > 1568 || height > 1568) return false;
             picture = new RemotePicture(mime, bytes);
             return true;
-#endif
         }
 
         private static bool Size(byte[] bytes, bool jpeg, out int width, out int height)
@@ -89,7 +85,22 @@ namespace CapriDesktop
         internal bool Confirm()
         {
 #if CROSS
-            return false;
+            try
+            {
+                bool jpeg = Mime == "image/jpeg";
+                int width, height;
+                if (!Size(Bytes, jpeg, out width, out height) || width < 1 || height < 1 || width > 1568 || height > 1568) return false;
+                using (System.IO.MemoryStream input = new System.IO.MemoryStream(Bytes, false))
+                using (SkiaSharp.SKCodec codec = SkiaSharp.SKCodec.Create(input))
+                {
+                    if (codec == null || codec.Info.Width != width || codec.Info.Height != height) return false;
+                    if (codec.EncodedFormat != (jpeg ? SkiaSharp.SKEncodedImageFormat.Jpeg : SkiaSharp.SKEncodedImageFormat.Png)) return false;
+                    SkiaSharp.SKImageInfo info = new SkiaSharp.SKImageInfo(width, height, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Unpremul);
+                    using (SkiaSharp.SKBitmap decoded = new SkiaSharp.SKBitmap(info))
+                        return decoded.GetPixels() != IntPtr.Zero && codec.GetPixels(info, decoded.GetPixels()) == SkiaSharp.SKCodecResult.Success;
+                }
+            }
+            catch (Exception) { return false; }
 #else
             try
             {

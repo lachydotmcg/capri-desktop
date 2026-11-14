@@ -3168,7 +3168,7 @@ namespace CapriDesktop
 #endif
 
 #if CROSS
-        internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false, bool selected = false, bool preserveWhitespace = false, bool computerAction = false)
+        internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false, bool selected = false, bool preserveWhitespace = false, bool computerAction = false, string mime = "image/jpeg")
 #else
         internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false, bool selected = false, string mime = "image/jpeg")
 #endif
@@ -3180,9 +3180,6 @@ namespace CapriDesktop
             Cloud remote = Remote;
             if (remote != null && !Sighted(remote)) throw new BrainException(Sightless(remote));
             if (!selected) model = Looker(model);
-#if CROSS
-            string mime = "image/jpeg";
-#endif
             string data = Convert.ToBase64String(jpeg);
             string parts = null;
             if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"" + mime + "\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}]";

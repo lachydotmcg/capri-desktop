@@ -98,7 +98,9 @@ namespace CapriDesktop
         internal RemoteLink Link;
         internal RemoteSink Sink;
         internal int Generation, Session, Ticket;
-        internal string Device, Id, Text;
+        internal string Device, Id, Text, Shown;
+        internal Func<bool> SessionCheck;
+        internal Action Entered;
         internal volatile bool Closed;
         internal bool Waiting, Finished, Replied;
         internal object Held;
@@ -118,6 +120,12 @@ namespace CapriDesktop
             RemoteTurn previous = Working;
             try { Working = phone; work(); }
             finally { Working = previous; finished(); }
+        }
+
+        internal void Enter()
+        {
+            Action done = Interlocked.Exchange(ref Entered, null);
+            if (done != null) done();
         }
 
         internal string Refuse(string tool, ToolArguments args)
@@ -4760,6 +4768,7 @@ namespace CapriDesktop
         private int remoteGeneration;
         private Action<string, string> remoteChanged;
         private Action<string, string, string> remoteHeard;
+        private Action<string, string, string, RemotePicture, Func<bool>, Action> remotePictured;
         private RemoteTurn remoteActive;
         private readonly List<RemoteTurn> remoteQueue = new List<RemoteTurn>();
         private readonly Dictionary<string, RemoteTurn> remoteNewest = new Dictionary<string, RemoteTurn>(StringComparer.Ordinal);
@@ -4926,8 +4935,11 @@ namespace CapriDesktop
                 lock (remoteGate) { if (!RemoteLinkCurrent(link, generation)) return; session = RemoteSession(device); }
                 Dispatcher.UIThread.Post(delegate { RemoteHear(link, generation, session, device, id, text); });
             };
+            remotePictured = delegate(string device, string id, string text, RemotePicture picture, Func<bool> current, Action done) { RemotePictureHeard(link, generation, sink, device, id, text, picture, current, done); };
             link.Happened += remoteChanged;
             link.Said += remoteHeard;
+            link.PictureSaid += remotePictured;
+            link.Offer("pictures");
             Saved.RemoteOn = true;
             if (Program.Smoke == null && RemoteMake == null) link.Start();
         }
@@ -4943,12 +4955,12 @@ namespace CapriDesktop
                 remoteLink = null;
                 remoteSink = null;
                 remoteGeneration++;
-                foreach (RemoteTurn turn in remoteNewest.Values) { turn.Closed = true; if (turn.Held != null) Security.Drop(turn.Held); }
+                foreach (RemoteTurn turn in remoteNewest.Values) { turn.Closed = true; if (turn.Held != null) Security.Drop(turn.Held); turn.Enter(); }
                 remoteNewest.Clear(); remoteTickets.Clear(); remoteQueue.Clear(); remoteHolds.Clear(); remoteSessions.Clear();
                 remoteActive = null;
             }
-            if (link != null) { link.Happened -= remoteChanged; link.Said -= remoteHeard; }
-            remoteChanged = null; remoteHeard = null; remoteCode = false;
+            if (link != null) { link.Happened -= remoteChanged; link.Said -= remoteHeard; link.PictureSaid -= remotePictured; }
+            remoteChanged = null; remoteHeard = null; remotePictured = null; remoteCode = false;
             if (cancel && !SelfJobs.Active) Brain.Cancel();
             return link;
         }
@@ -5039,7 +5051,7 @@ namespace CapriDesktop
 
         private bool RemoteSessionCurrent(RemoteTurn turn)
         {
-            return RemoteLinkCurrent(turn.Link, turn.Generation) && RemoteSession(turn.Device) == turn.Session && turn.Link.HasSession(turn.Device);
+            return RemoteLinkCurrent(turn.Link, turn.Generation) && RemoteSession(turn.Device) == turn.Session && turn.Link.HasSession(turn.Device) && (turn.SessionCheck == null || turn.SessionCheck());
         }
 
         internal bool RemoteCurrent(RemoteTurn turn, bool replied = false)
@@ -5106,7 +5118,7 @@ namespace CapriDesktop
                         if (id == null) continue;
                         remoteSessions[id] = RemoteSession(id) + 1;
                         RemoteTurn turn;
-                        if (remoteNewest.TryGetValue(id, out turn)) { turn.Closed = true; if (turn.Held != null) Security.Drop(turn.Held); }
+                        if (remoteNewest.TryGetValue(id, out turn)) { turn.Closed = true; if (turn.Held != null) Security.Drop(turn.Held); turn.Enter(); }
                         remoteHolds.Remove(id);
                     }
                     if (all) foreach (string id in new List<string>(remoteSessions.Keys)) if (!ids.Contains(id)) remoteSessions[id]++;
@@ -5123,15 +5135,56 @@ namespace CapriDesktop
             });
         }
 
-        private void RemoteHear(RemoteLink link, int generation, int session, string device, string id, string text)
+        private void RemotePictureHeard(RemoteLink link, int generation, RemoteSink sink, string device, string id, string text, RemotePicture picture, Func<bool> current, Action done)
+        {
+            Action finish = done ?? delegate { };
+            Func<bool> live = delegate { return RemoteLinkCurrent(link, generation) && (current == null || current()); };
+            int session;
+            lock (remoteGate) session = RemoteSession(device);
+            if (!live()) { finish(); return; }
+            try
+            {
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    string seen = null;
+                    BrainException problem = null;
+                    bool failed = false;
+                    if (!live()) { finish(); return; }
+                    try { seen = RemotePictures.Answer(Brain, text, picture); }
+                    catch (BrainException error) { problem = error; }
+                    catch (Exception) { failed = true; }
+                    try
+                    {
+                        Dispatcher.UIThread.Post(delegate
+                        {
+                            bool passed = false;
+                            try
+                            {
+                                if (!live()) return;
+                                if (problem != null) sink.Reply(device, RemoteMessages.NewId(), id, RemoteTurn.Out(problem.Message, 16000), true);
+                                else if (failed) sink.Error(device, "busy", id);
+                                else { RemoteHear(link, generation, session, device, id, text, seen, live, finish); passed = true; }
+                            }
+                            finally { if (!passed) finish(); }
+                        });
+                    }
+                    catch (Exception) { finish(); }
+                });
+            }
+            catch (Exception) { finish(); }
+        }
+
+        private void RemoteHear(RemoteLink link, int generation, int session, string device, string id, string text, string seen = null, Func<bool> current = null, Action done = null)
         {
             RetryRemoteSave();
             lock (remoteGate)
             {
-                if (!RemoteLinkCurrent(link, generation) || RemoteSession(device) != session || !link.HasSession(device)) return;
+                if (!RemoteLinkCurrent(link, generation) || RemoteSession(device) != session || !link.HasSession(device) || current != null && !current()) { if (done != null) done(); return; }
                 RemoteTurn old;
                 if (remoteNewest.TryGetValue(device, out old)) RemoteClose(old, "", false);
-                RemoteTurn turn = new RemoteTurn { Pet = this, Link = link, Sink = remoteSink, Generation = generation, Session = session, Device = device, Id = id, Text = RemoteTurn.Input(RemoteMessages.Clip(text, 8000)).Trim() };
+                string shown;
+                string said = RemotePictures.Turn(RemoteTurn.Input(RemoteMessages.Clip(text, 8000)), seen, string.IsNullOrWhiteSpace(text), out shown);
+                RemoteTurn turn = new RemoteTurn { Pet = this, Link = link, Sink = remoteSink, Generation = generation, Session = session, Device = device, Id = id, Text = said.Trim(), Shown = seen == null ? null : shown.Trim(), SessionCheck = current, Entered = done };
                 RemoteHold hold;
                 if (remoteHolds.TryGetValue(device, out hold) && RemoteSessionCurrent(hold.Turn) && (Security.Agrees(turn.Text) || Security.Declines(turn.Text))) turn.Hold = hold;
                 remoteHolds.Remove(device);
@@ -5150,13 +5203,14 @@ namespace CapriDesktop
                 if (remoteActive != null && !remoteActive.Closed) return;
                 if (remoteActive != null) { remoteTickets.Remove(remoteActive.Ticket); cancel = true; }
                 remoteActive = null;
-                while (remoteQueue.Count > 0 && !remoteQueue[0].Current) remoteQueue.RemoveAt(0);
+                while (remoteQueue.Count > 0 && !remoteQueue[0].Current) { RemoteTurn stale = remoteQueue[0]; remoteQueue.RemoveAt(0); stale.Enter(); }
                 if (remoteQueue.Count > 0) { remoteActive = turn = remoteQueue[0]; remoteQueue.RemoveAt(0); }
             }
             if (cancel && !SelfJobs.Active) Brain.Cancel();
             if (turn == null) return;
             try { Hear(turn.Text, false, turn); }
             catch (Exception) { RemoteEnd(turn, true); }
+            finally { turn.Enter(); }
         }
 
         private void RemoteClose(RemoteTurn turn, string text, bool busy)
@@ -5166,6 +5220,7 @@ namespace CapriDesktop
                 if (turn.Closed) return;
                 bool current = turn.Current;
                 turn.Closed = true;
+                turn.Enter();
                 if (turn.Held != null) Security.Drop(turn.Held);
                 if (!current) return;
                 try
@@ -5179,6 +5234,7 @@ namespace CapriDesktop
 
         private void RemoteFinish(RemoteTurn turn)
         {
+            turn.Enter();
             lock (remoteGate)
             {
                 turn.Waiting = false;
@@ -5294,7 +5350,7 @@ namespace CapriDesktop
         private string RemoteDirect(RemoteTurn phone, string tool, ToolArguments args)
         {
             RemoteTurn previous = RemoteTurn.Working;
-            try { RemoteTurn.Working = phone; return Hands.Do(tool, args); }
+            try { RemoteTurn.Working = phone; return Limbs.RemoteDo(phone, tool, args); }
             finally { RemoteTurn.Working = previous; }
         }
 
@@ -5526,6 +5582,7 @@ namespace CapriDesktop
                 lastReply = said;
                 ModsReplied(said, source);
                 if (!RemoteReply(ticket, heard, said, following, phone)) return;
+                if (phone != null && phone.Shown != null) heard = phone.Shown;
                 string spoken = Speaks ? ModsSpeaking(said) : said;
                 if (!Speaks || Voice.Spoken(spoken).Length == 0) { if (ShowReply(ticket, heard, said, 0, after, following, input, answer)) TypeAlong(said, ticket); return; }
                 ISpeaker speaker = Speaker;
