@@ -1815,6 +1815,7 @@ namespace CapriDesktop
         private static readonly object gate = new object();
         private static List<InstalledApp> cached;
         private static DateTime cachedAt;
+        private static Exception appsFailed;
 
         // The messages in the floating chat panel TikTok LIVE Studio puts over a game: its own small window, apart from the studio
         // itself, with its counters above and its comment box below. Empty when there's no panel up.
@@ -2078,7 +2079,7 @@ namespace CapriDesktop
             });
         }
 
-        internal static void Forget() { lock (gate) { cached = null; remembered = null; } }
+        internal static void Forget() { lock (gate) { cached = null; appsFailed = null; remembered = null; } }
 
         private static readonly string[] Swaps = { @"\bi'?m\b", "they're", @"\bi am\b", "they are", @"\bi was\b", "they were", @"\bi've\b", "they've", @"\bi'll\b", "they'll", @"\bi'd\b", "they'd", @"\bi\b", "they", @"\bmyself\b", "themselves", @"\bmy\b", "their", @"\bmine\b", "theirs", @"\bme\b", "them" };
 
@@ -4478,7 +4479,13 @@ namespace CapriDesktop
         private static string OpenApp(string wanted, Func<bool> current = null)
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
-            List<InstalledApp> found = FindApps(wanted);
+            List<InstalledApp> found;
+#if CROSS
+            found = FindApps(wanted);
+#else
+            try { found = FindApps(wanted); }
+            catch (Exception error) { return "Couldn't read their apps just now: " + error.Message; }
+#endif
             if (found.Count == 0) return "No app called " + wanted.Trim() + " is installed on this PC.";
             // When several match equally well, the one with the fewest extra words is closest to what they said.
             InstalledApp chosen = found[0];
@@ -4500,7 +4507,13 @@ namespace CapriDesktop
         {
             List<InstalledApp> apps = Apps();
             List<InstalledApp> found = FindApps(apps, wanted);
-            return found.Count == 0 && AppsPath != null ? FindApps(FreshApps(apps), wanted) : found;
+            if (found.Count == 0 && AppsPath != null)
+            {
+                apps = FreshApps(apps);
+                found = FindApps(apps, wanted);
+                lock (gate) if (found.Count == 0 && cached == apps && appsFailed != null) throw appsFailed;
+            }
+            return found;
         }
 
         private static List<InstalledApp> FreshApps(List<InstalledApp> apps)
@@ -4590,7 +4603,27 @@ namespace CapriDesktop
         private static SavedList<AppEntry> appsFile;
         private static string savedApps;
 
-        private static bool AppPath(string id) { return Regex.IsMatch(id ?? "", @"^(?:[A-Za-z]:[\\/]|\\\\|/)"); }
+        private static bool AppPath(string id)
+        {
+#if CROSS
+            return false;
+#else
+            return Regex.IsMatch(id ?? "", @"\A[A-Za-z]:\\[^""<>|*?/\x00-\x1F]+\z");
+#endif
+        }
+
+        private static bool AppId(string id)
+        {
+#if CROSS
+            return false;
+#else
+            if (AppPath(id) || Regex.IsMatch(id ?? "", @"\A[A-Za-z0-9_.{}!-]+\z")) return true;
+            if (Regex.IsMatch(id ?? "", @"\A(?:steam://rungameid/[0-9]+|uplay://launch/[0-9]+/0)\z")) return true;
+            if (Regex.IsMatch(id ?? "", @"\Acom\.epicgames\.launcher://apps/(?:[A-Za-z0-9._~-]|%[0-9A-Fa-f]{2})+\?action=launch&silent=true\z")) return true;
+            Match riot = Regex.Match(id ?? "", @"\A""([^""]+)"" --launch-product=[a-z0-9_]+ --launch-patchline=[a-z0-9_]+\z");
+            return riot.Success && AppPath(riot.Groups[1].Value) && string.Equals(Path.GetFileName(riot.Groups[1].Value), "RiotClientServices.exe", StringComparison.OrdinalIgnoreCase);
+#endif
+        }
 
         private static string AppText(List<AppEntry> entries)
         {
@@ -4608,8 +4641,10 @@ namespace CapriDesktop
             {
                 rememberedPath = AppsPath;
                 appsFile = new SavedList<AppEntry>(AppsPath, "apps");
-                remembered = appsFile.Read(item => !string.IsNullOrWhiteSpace(item.Name) && !string.IsNullOrWhiteSpace(item.Id) && item.Seen > 0 && item.Seen <= now.Ticks);
+                remembered = appsFile.Read(item => !string.IsNullOrWhiteSpace(item.Name) && item.Seen > 0, 4 * 1024 * 1024);
                 savedApps = AppText(remembered);
+                remembered.RemoveAll(item => !AppId(item.Id));
+                foreach (AppEntry item in remembered) if (item.Seen > now.Ticks) item.Seen = now.Ticks;
             }
             remembered.RemoveAll(item => item.Seen <= now.Date.AddDays(-30).Ticks || AppPath(item.Id) && !Exists(item.Id));
             Dictionary<string, AppEntry> byId = new Dictionary<string, AppEntry>(StringComparer.OrdinalIgnoreCase);
@@ -4649,7 +4684,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 DateTime now = AppsNow();
-                if (cached != null && now - cachedAt <= TimeSpan.FromMinutes(AppsPath == null || fresh ? 2 : 10)) return cached;
+                if (cached != null && now - cachedAt <= TimeSpan.FromMinutes(AppsPath == null || fresh || appsFailed != null ? 2 : 10)) return cached;
                 List<InstalledApp> apps;
                 Exception failed = null;
                 try { apps = new List<InstalledApp>(Catalog()); }
@@ -4658,11 +4693,12 @@ namespace CapriDesktop
                 string path = folder.Length == 0 ? "" : Path.Combine(folder, @"Spotify\Spotify.exe");
                 if (path.Length > 0 && Exists(path) && !apps.Exists(app => AppName(app) == "spotify")) apps.Add(new InstalledApp("Spotify", path));
                 RememberApps(apps, failed != null, now);
-                if (failed != null)
+                if (failed != null && AppsPath == null)
                 {
                     if (apps.Count == 0) throw failed;
                     return apps;
                 }
+                appsFailed = failed;
                 cached = apps;
                 cachedAt = AppsNow();
                 return cached;

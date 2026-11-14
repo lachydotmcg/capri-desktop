@@ -37835,6 +37835,152 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeAppMemory(List<string> checks, string output)
+        {
+            string folder = Path.GetFullPath(Path.Combine(output, "app-memory-" + Guid.NewGuid().ToString("N")));
+            string appsTest = Path.Combine(folder, "apps-test.json"), unreadable = Path.Combine(folder, "apps-test.unreadable.json");
+            string appsPathWas = Hands.AppsPath, logPathWas = Brain.LogPath;
+            Func<DateTime> appsNowWas = Hands.AppsNow;
+            Func<string, bool> appsExistsWas = Hands.Exists;
+            Func<List<InstalledApp>> appsCatalogWas = Hands.Catalog;
+            Action<string> runWas = Hands.Run;
+            Func<string, string> openedWas = Hands.Opened;
+            string[] names = { "cached", "cachedAt", "appsFailed", "remembered", "rememberedPath", "appsFile", "savedApps" };
+            object[] values = new object[names.Length];
+            object gate = typeof(Hands).GetField("gate", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+            lock (gate)
+            {
+                for (int a = 0; a < names.Length; a++) values[a] = typeof(Hands).GetField(names[a], BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+                Hands.Forget();
+            }
+            List<string> ran = new List<string>();
+            Hands.Run = delegate(string id) { ran.Add(id); };
+            Hands.Opened = delegate { return ""; };
+            try
+            {
+                Directory.CreateDirectory(folder);
+                Brain.LogPath = Path.Combine(folder, "errors.txt");
+                System.Collections.Generic.List<InstalledApp> appBase = new System.Collections.Generic.List<InstalledApp> { new InstalledApp("HÁDES", "base"), new InstalledApp("", "blank"), new InstalledApp("Spotify Music", "SpotifyAB.SpotifyMusic_test!Spotify") };
+                System.Collections.Generic.List<InstalledApp> appExtra = new System.Collections.Generic.List<InstalledApp> { new InstalledApp("hades", "duplicate"), new InstalledApp("", "empty"), new InstalledApp("Spotify", "steam://rungameid/1"), new InstalledApp("Celeste", "steam://rungameid/2"), new InstalledApp("CELESTE", "steam://rungameid/3") };
+                System.Collections.Generic.List<InstalledApp> appMerged = Hands.WithSteam(appBase, appExtra);
+                if (!object.ReferenceEquals(appBase, appMerged) || string.Join("|", appMerged.ConvertAll(app => app.Id).ToArray()) != "base|blank|SpotifyAB.SpotifyMusic_test!Spotify|steam://rungameid/2") throw new Exception("The one-pass app merge changed its names or order.");
+                DateTime appsNow = new DateTime(2026, 11, 13, 12, 0, 0, DateTimeKind.Utc);
+                Hands.AppsNow = delegate { return appsNow; };
+                Hands.AppsPath = appsTest;
+                string keptApp = Path.Combine(folder, "kept-app.exe"), goneApp = Path.Combine(folder, "gone-app.exe");
+                bool goneExists = true;
+                Hands.Exists = delegate(string id) { return id == keptApp || id == goneApp && goneExists; };
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Kept App", keptApp), new InstalledApp("Gone App", goneApp), new InstalledApp("Store App", "Store.App_test!App") }; };
+                File.Delete(appsTest);
+                Hands.Forget();
+                if (Hands.Do("open_app", new ToolArguments { Name = "Kept App" }) != "Opened Kept App." || !File.Exists(appsTest)) throw new Exception("A good app list wasn't remembered from a missing file.");
+                string appsSaved = File.ReadAllText(appsTest);
+                DateTime appsStamp = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                File.SetLastWriteTimeUtc(appsTest, appsStamp);
+                Hands.Forget();
+                Hands.Do("open_app", new ToolArguments { Name = "Kept App" });
+                if (File.ReadAllText(appsTest) != appsSaved || File.GetLastWriteTimeUtc(appsTest) != appsStamp) throw new Exception("An unchanged app list was written again.");
+                int appFailures = 0;
+                Hands.Catalog = delegate { appFailures++; throw new TimeoutException("Fake app timeout."); };
+                Hands.Forget();
+                if (Hands.Do("open_app", new ToolArguments { Name = "Kept App" }) != "Opened Kept App." || Hands.Do("open_app", new ToolArguments { Name = "Store App" }) != "Opened Store App.") throw new Exception("A failed app look lost remembered paths or Store apps.");
+                string couldNotLook = "Couldn't read their apps just now: Fake app timeout.";
+                int beforeMiss = ran.Count;
+                if (Hands.Do("open_app", new ToolArguments { Name = "Missing App" }) != couldNotLook || Hands.Installed("Missing App") || Hands.Do("open_app", new ToolArguments { Name = "Missing App" }) != couldNotLook || ran.Count != beforeMiss || appFailures != 1) throw new Exception("An app miss hid or repeated a failed look.");
+                if (Hands.Do("open_app", new ToolArguments { Name = "Kept App" }) != "Opened Kept App." || appFailures != 1) throw new Exception("A remembered hit repeated the same failed look.");
+                appsNow = appsNow.AddMinutes(3);
+                if (Hands.Do("open_app", new ToolArguments { Name = "Missing App" }) != couldNotLook || appFailures != 2) throw new Exception("A failed app look didn't retry after two minutes.");
+                goneExists = false;
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(); };
+                Hands.Forget();
+                if (Hands.Do("open_app", new ToolArguments { Name = "Kept App" }) != "Opened Kept App." || Hands.Installed("Gone App") || Hands.Installed("Store App")) throw new Exception("A short app look kept a missing path or Store app, or lost a good path.");
+                Hands.Catalog = delegate { throw new IOException("Fake app failure."); };
+                Hands.Forget();
+                if (Hands.Do("open_app", new ToolArguments { Name = "Store App" }) != "Opened Store App." || Hands.Installed("Gone App")) throw new Exception("Only a failed look should stand in for a Store app.");
+                File.WriteAllText(appsTest, "{broken");
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Kept App", keptApp) }; };
+                Hands.Forget();
+                if (Hands.Do("open_app", new ToolArguments { Name = "Kept App" }) != "Opened Kept App." || File.ReadAllText(appsTest).IndexOf("Kept App", StringComparison.Ordinal) < 0 || !File.Exists(unreadable)) throw new Exception("A bad saved app list stopped a good look or lost the old file.");
+                int appReads = 0;
+                Hands.Catalog = delegate { appReads++; return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Kept App", keptApp), new InstalledApp("New App", "New.App_test!App") }; };
+                Hands.Forget();
+                Hands.Do("open_app", new ToolArguments { Name = "Kept App" });
+                appsNow = appsNow.AddMinutes(3);
+                Hands.Do("open_app", new ToolArguments { Name = "Kept App" });
+                if (appReads != 1) throw new Exception("An app hit discarded a list younger than ten minutes.");
+                Hands.Do("open_app", new ToolArguments { Name = "Missing App" });
+                if (appReads != 2) throw new Exception("An app miss trusted a list older than two minutes.");
+                appsNow = appsNow.AddMinutes(3);
+                Hands.Do("open_app", new ToolArguments { Name = "Kept App" });
+                Hands.Catalog = delegate { appReads++; return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Latest App", "Latest.App_test!App") }; };
+                if (Hands.Do("open_app", new ToolArguments { Name = "Latest App" }) != "Opened Latest App." || appReads != 3) throw new Exception("A newly installed app wasn't found after an old cache missed.");
+                appsNow = appsNow.AddMinutes(11);
+                Hands.Do("open_app", new ToolArguments { Name = "Latest App" });
+                if (appReads != 4) throw new Exception("An app hit kept a list older than ten minutes.");
+                Hands.Catalog = delegate { throw new IOException("Fake app failure."); };
+                appsNow = appsNow.AddDays(31);
+                Hands.Forget();
+                if (Hands.Installed("Store App") || File.ReadAllText(appsTest) != "[]") throw new Exception("Apps unseen for thirty days stayed in memory.");
+                if (Hands.Do("open_app", new ToolArguments { Name = "Store App" }).StartsWith("No app called", StringComparison.Ordinal)) throw new Exception("An empty failed look claimed an app wasn't installed.");
+                System.Collections.Generic.List<InstalledApp> manyApps = new System.Collections.Generic.List<InstalledApp>();
+                for (int a = 0; a < 4000; a++) manyApps.Add(new InstalledApp("Saved App " + a, "Saved.App_" + a + "!App"));
+                Hands.Catalog = delegate { return manyApps; };
+                Hands.Forget();
+                Hands.Installed("Saved App 0");
+                appsNow = appsNow.AddDays(1);
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Newest App", "Newest.App_test!App"), new InstalledApp("Kept App", keptApp) }; };
+                Hands.Forget();
+                Hands.Installed("Newest App");
+                string cappedApps = File.ReadAllText(appsTest);
+                if (System.Text.RegularExpressions.Regex.Matches(cappedApps, "\"Id\"").Count != 4000 || cappedApps.IndexOf("Newest.App_test!App", StringComparison.Ordinal) < 0) throw new Exception("App memory didn't keep its newest entries within four thousand.");
+                Hands.AppsPath = null;
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(); };
+                Hands.Forget();
+                if (Hands.Installed("Kept App") || File.ReadAllText(appsTest) != cappedApps) throw new Exception("A null app path read or wrote saved apps.");
+                checks.Add("PASS app memory: one-pass names and order, missing and bad files, failed and short looks, Store fallback only on failure, unchanged saves, thirty-day expiry, four thousand entries, null path, ten-minute hits and two-minute misses");
+                File.Delete(unreadable);
+                Func<string, string, string> entry = delegate(string name, string id) { return "{\"Name\":" + Voice.Quote(name) + ",\"Id\":" + Voice.Quote(id) + ",\"Seen\":" + appsNow.Ticks + "}"; };
+                string riotId = "\"C:\\Riot Games\\Riot Client\\RiotClientServices.exe\" --launch-product=valorant --launch-patchline=live";
+                string[,] good = { { "Drive App", keptApp }, { "Store App", "Store.App_test!App" }, { "Steam App", "steam://rungameid/42" }, { "Shell App", "Microsoft.AutoGenerated.{01234567-89AB-CDEF-0123-456789ABCDEF}" }, { "Epic App", "com.epicgames.launcher://apps/fn%3Aitem%3AFortnite?action=launch&silent=true" }, { "Ubisoft App", "uplay://launch/123/0" }, { "Riot App", riotId } };
+                string[] bad = { "", "\"C:\\Tools\\cmd.exe\" /c calc", "file:///C:/Tools/app.exe", "javascript:alert(1)", "https://example.com/app", "spotify:track:42", @"\\host\share\app.exe", "C:/Tools/app.exe", "/Tools/app.exe", @"\Tools\app.exe", "steam://rungameid/42?run=1", "com.epicgames.launcher://apps/Fortnite?action=launch&silent=false", "\"C:\\Tools\\other.exe\" --launch-product=valorant --launch-patchline=live", riotId + " --other=word", "\"C:\\GOG Games\\game.exe\" -anything" };
+                List<string> entries = new List<string>();
+                for (int a = 0; a < good.GetLength(0); a++) entries.Add(entry(good[a, 0], good[a, 1]));
+                for (int a = 0; a < bad.Length; a++) entries.Add(entry("Rejected Item " + a, bad[a]));
+                File.WriteAllText(appsTest, "[" + string.Join(",", entries.ToArray()) + "]");
+                bool unsafeProbe = false;
+                Hands.Exists = delegate(string id) { if (id.StartsWith(@"\\", StringComparison.Ordinal) || id.IndexOf('/') >= 0) unsafeProbe = true; return id == keptApp; };
+                Hands.Catalog = delegate { throw new TimeoutException("Fake app timeout."); };
+                Hands.AppsPath = appsTest; Hands.Forget();
+                for (int a = 0; a < good.GetLength(0); a++)
+                {
+                    int before = ran.Count;
+                    if (Hands.Do("open_app", new ToolArguments { Name = good[a, 0] }) != "Opened " + good[a, 0] + "." || ran.Count != before + 1 || ran[before] != good[a, 1]) throw new Exception("A valid saved app id was dropped or changed: " + good[a, 0]);
+                }
+                for (int a = 0; a < bad.Length; a++)
+                {
+                    int before = ran.Count;
+                    if (Hands.Do("open_app", new ToolArguments { Name = "Rejected Item " + a }) != couldNotLook || Hands.Installed("Rejected Item " + a) || ran.Count != before) throw new Exception("An unsafe saved app id stood in or launched: " + a);
+                }
+                if (unsafeProbe || File.Exists(unreadable)) throw new Exception("A rejected app id probed a network path or marked the file unreadable.");
+                checks.Add("PASS app memory ids: drive, shell, Store, Steam, Epic, Ubisoft and fixed Riot forms survive; other commands, schemes and path forms are dropped per entry without a network probe or unreadable copy");
+                File.WriteAllText(appsTest, "[" + entry("Future App", keptApp).Replace(appsNow.Ticks.ToString(), appsNow.AddYears(5).Ticks.ToString()) + "]");
+                Hands.Forget();
+                if (Hands.Do("open_app", new ToolArguments { Name = "Future App" }) != "Opened Future App." || File.Exists(unreadable) || File.ReadAllText(appsTest).IndexOf("\"Seen\":" + appsNow.Ticks, StringComparison.Ordinal) < 0) throw new Exception("A future app date wasn't clamped and saved without an unreadable copy.");
+                appsNow = appsNow.AddDays(31); Hands.Forget();
+                if (Hands.Installed("Future App") || File.ReadAllText(appsTest) != "[]") throw new Exception("A future app date wasn't clamped to now.");
+                File.WriteAllText(appsTest, "[" + entry("Large App", "Large.App_test!App") + "]" + new string(' ', 4 * 1024 * 1024));
+                Hands.Forget();
+                if (Hands.Installed("Large App") || Hands.Do("open_app", new ToolArguments { Name = "Large App" }) != couldNotLook || File.Exists(unreadable)) throw new Exception("An app file over four MB was read or treated as damaged.");
+                checks.Add("PASS app memory dates and size: future dates clamp to now without an unreadable copy, expire normally, and files over four MB are skipped");
+            }
+            finally
+            {
+                Brain.LogPath = logPathWas; Hands.AppsPath = appsPathWas; Hands.AppsNow = appsNowWas; Hands.Exists = appsExistsWas; Hands.Catalog = appsCatalogWas; Hands.Run = runWas; Hands.Opened = openedWas;
+                lock (gate) for (int a = 0; a < names.Length; a++) typeof(Hands).GetField(names[a], BindingFlags.Static | BindingFlags.NonPublic).SetValue(null, values[a]);
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            }
+        }
+
         private static void SmokeSearch(System.Collections.Generic.List<string> checks, string output)
         {
             Func<string, string> engineWas = Hands.SearchEngine, browserWas = Hands.BrowserPath, openedWas = Hands.Opened;
@@ -42510,6 +42656,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCommentDelivery", delegate { SmokeCommentDelivery(checks); });
             Section(checks, "SmokeTypingRepeats", delegate { SmokeTypingRepeats(checks); });
             Section(checks, "SmokeComments", delegate { SmokeComments(checks); });
+            Section(checks, "SmokeAppMemory", delegate { SmokeAppMemory(checks, output); });
             Section(checks, "SmokeOpening", delegate { SmokeOpening(checks, output); });
             Section(checks, "SmokeVoiceWaits", delegate { SmokeVoiceWaits(checks); });
             Section(checks, "SmokeLineChanges", delegate { SmokeLineChanges(checks); });
@@ -49705,95 +49852,6 @@ namespace CapriDesktop
                                 }
                                 finally { Hands.Chord = chordWas; Hands.Windows = windowsWas; Hands.Steer = steerWas; Hands.Catalog = catalogWas; Hands.Foreground = foregroundWas; Hands.Typable = typableWas; Hands.Forget(); }
                                 checks.Add("PASS shortcuts: mute my mic and deafen me press Discord's keys in Discord and switch back, waiting up to 400 ms for its page to take the keyboard when it wasn't in front, screenshots, clips, recording, Live Captions, Narrator, Magnifier, colour filters, voice typing, Quick Settings and more press Windows keys, and chat about muting or captions doesn't");
-                                string appsTest = Path.Combine(output, "apps-test.json");
-                                string appsPathWas = Hands.AppsPath;
-                                Func<DateTime> appsNowWas = Hands.AppsNow;
-                                Func<string, bool> appsExistsWas = Hands.Exists;
-                                Func<System.Collections.Generic.List<InstalledApp>> appsCatalogWas = Hands.Catalog;
-                                int appsRanAt = ran.Count;
-                                try
-                                {
-                                    System.Collections.Generic.List<InstalledApp> appBase = new System.Collections.Generic.List<InstalledApp> { new InstalledApp("HÁDES", "base"), new InstalledApp("", "blank"), new InstalledApp("Spotify Music", "SpotifyAB.SpotifyMusic_test!Spotify") };
-                                    System.Collections.Generic.List<InstalledApp> appExtra = new System.Collections.Generic.List<InstalledApp> { new InstalledApp("hades", "duplicate"), new InstalledApp("", "empty"), new InstalledApp("Spotify", "steam://rungameid/1"), new InstalledApp("Celeste", "steam://rungameid/2"), new InstalledApp("CELESTE", "steam://rungameid/3") };
-                                    System.Collections.Generic.List<InstalledApp> appMerged = Hands.WithSteam(appBase, appExtra);
-                                    if (!object.ReferenceEquals(appBase, appMerged) || string.Join("|", appMerged.ConvertAll(app => app.Id).ToArray()) != "base|blank|SpotifyAB.SpotifyMusic_test!Spotify|steam://rungameid/2") throw new Exception("The one-pass app merge changed its names or order.");
-                                    DateTime appsNow = new DateTime(2026, 11, 13, 12, 0, 0, DateTimeKind.Utc);
-                                    Hands.AppsNow = delegate { return appsNow; };
-                                    Hands.AppsPath = appsTest;
-                                    string keptApp = Path.Combine(output, "kept-app.exe").Replace('\\', '/'), goneApp = Path.Combine(output, "gone-app.exe");
-                                    bool goneExists = true;
-                                    Hands.Exists = delegate(string id) { return id == keptApp || id == goneApp && goneExists; };
-                                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Kept App", keptApp), new InstalledApp("Gone App", goneApp), new InstalledApp("Store App", "Store.App_test!App") }; };
-                                    File.Delete(appsTest);
-                                    Hands.Forget();
-                                    if (Hands.Do("open_app", new ToolArguments { Name = "Kept App" }) != "Opened Kept App." || !File.Exists(appsTest)) throw new Exception("A good app list wasn't remembered from a missing file.");
-                                    string appsSaved = File.ReadAllText(appsTest);
-                                    DateTime appsStamp = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-                                    File.SetLastWriteTimeUtc(appsTest, appsStamp);
-                                    Hands.Forget();
-                                    Hands.Do("open_app", new ToolArguments { Name = "Kept App" });
-                                    if (File.ReadAllText(appsTest) != appsSaved || File.GetLastWriteTimeUtc(appsTest) != appsStamp) throw new Exception("An unchanged app list was written again.");
-                                    int appFailures = 0;
-                                    Hands.Catalog = delegate { appFailures++; throw new TimeoutException("Fake app timeout."); };
-                                    Hands.Forget();
-                                    if (Hands.Do("open_app", new ToolArguments { Name = "Kept App" }) != "Opened Kept App." || Hands.Do("open_app", new ToolArguments { Name = "Store App" }) != "Opened Store App.") throw new Exception("A failed app look lost remembered paths or Store apps.");
-                                    Hands.Do("open_app", new ToolArguments { Name = "Missing App" });
-                                    if (appFailures != 3) throw new Exception("An app miss immediately repeated a failed look.");
-                                    goneExists = false;
-                                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(); };
-                                    Hands.Forget();
-                                    if (Hands.Do("open_app", new ToolArguments { Name = "Kept App" }) != "Opened Kept App." || Hands.Installed("Gone App") || Hands.Installed("Store App")) throw new Exception("A short app look kept a missing path or Store app, or lost a good path.");
-                                    Hands.Catalog = delegate { throw new IOException("Fake app failure."); };
-                                    Hands.Forget();
-                                    if (Hands.Do("open_app", new ToolArguments { Name = "Store App" }) != "Opened Store App." || Hands.Installed("Gone App")) throw new Exception("Only a failed look should stand in for a Store app.");
-                                    File.WriteAllText(appsTest, "{broken");
-                                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Kept App", keptApp) }; };
-                                    Hands.Forget();
-                                    if (Hands.Do("open_app", new ToolArguments { Name = "Kept App" }) != "Opened Kept App." || File.ReadAllText(appsTest).IndexOf("Kept App", StringComparison.Ordinal) < 0 || !File.Exists(Path.Combine(output, "apps-test.unreadable.json"))) throw new Exception("A bad saved app list stopped a good look or lost the old file.");
-                                    int appReads = 0;
-                                    Hands.Catalog = delegate { appReads++; return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Kept App", keptApp), new InstalledApp("New App", "New.App_test!App") }; };
-                                    Hands.Forget();
-                                    Hands.Do("open_app", new ToolArguments { Name = "Kept App" });
-                                    appsNow = appsNow.AddMinutes(3);
-                                    Hands.Do("open_app", new ToolArguments { Name = "Kept App" });
-                                    if (appReads != 1) throw new Exception("An app hit discarded a list younger than ten minutes.");
-                                    Hands.Do("open_app", new ToolArguments { Name = "Missing App" });
-                                    if (appReads != 2) throw new Exception("An app miss trusted a list older than two minutes.");
-                                    appsNow = appsNow.AddMinutes(3);
-                                    Hands.Do("open_app", new ToolArguments { Name = "Kept App" });
-                                    Hands.Catalog = delegate { appReads++; return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Latest App", "Latest.App_test!App") }; };
-                                    if (Hands.Do("open_app", new ToolArguments { Name = "Latest App" }) != "Opened Latest App." || appReads != 3) throw new Exception("A newly installed app wasn't found after an old cache missed.");
-                                    appsNow = appsNow.AddMinutes(11);
-                                    Hands.Do("open_app", new ToolArguments { Name = "Latest App" });
-                                    if (appReads != 4) throw new Exception("An app hit kept a list older than ten minutes.");
-                                    Hands.Catalog = delegate { throw new IOException("Fake app failure."); };
-                                    appsNow = appsNow.AddDays(31);
-                                    Hands.Forget();
-                                    if (Hands.Installed("Store App") || File.ReadAllText(appsTest) != "[]") throw new Exception("Apps unseen for thirty days stayed in memory.");
-                                    if (Hands.Do("open_app", new ToolArguments { Name = "Store App" }).StartsWith("No app called", StringComparison.Ordinal)) throw new Exception("An empty failed look claimed an app wasn't installed.");
-                                    System.Collections.Generic.List<InstalledApp> manyApps = new System.Collections.Generic.List<InstalledApp>();
-                                    for (int a = 0; a < 4000; a++) manyApps.Add(new InstalledApp("Saved App " + a, "Saved.App_" + a + "!App"));
-                                    Hands.Catalog = delegate { return manyApps; };
-                                    Hands.Forget();
-                                    Hands.Installed("Saved App 0");
-                                    appsNow = appsNow.AddDays(1);
-                                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Newest App", "Newest.App_test!App"), new InstalledApp("Kept App", keptApp) }; };
-                                    Hands.Forget();
-                                    Hands.Installed("Newest App");
-                                    string cappedApps = File.ReadAllText(appsTest);
-                                    if (System.Text.RegularExpressions.Regex.Matches(cappedApps, "\"Id\"").Count != 4000 || cappedApps.IndexOf("Newest.App_test!App", StringComparison.Ordinal) < 0) throw new Exception("App memory didn't keep its newest entries within four thousand.");
-                                    Hands.AppsPath = null;
-                                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(); };
-                                    Hands.Forget();
-                                    if (Hands.Installed("Kept App") || File.ReadAllText(appsTest) != cappedApps) throw new Exception("A null app path read or wrote saved apps.");
-                                    checks.Add("PASS app memory: one-pass names and order, missing and bad files, failed and short looks, Store fallback only on failure, unchanged saves, thirty-day expiry, four thousand entries, null path, ten-minute hits and two-minute misses");
-                                }
-                                finally
-                                {
-                                    Hands.AppsPath = appsPathWas; Hands.AppsNow = appsNowWas; Hands.Exists = appsExistsWas; Hands.Catalog = appsCatalogWas; Hands.Forget();
-                                    ran.RemoveRange(appsRanAt, ran.Count - appsRanAt);
-                                    File.Delete(appsTest); File.Delete(appsTest + ".new"); File.Delete(Path.Combine(output, "apps-test.unreadable.json"));
-                                }
                                 string steamRoot = Path.Combine(Path.GetDirectoryName(settingsPath), "steam-test");
                                 Func<System.Collections.Generic.List<InstalledApp>> catalogBefore = Hands.Catalog;
                                 try
