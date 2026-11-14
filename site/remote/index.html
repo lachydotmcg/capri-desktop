@@ -8,7 +8,7 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0a10">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:* https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.deepseek.com https://capri-reactions.lachydotmcg.workers.dev; manifest-src 'self'; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:* https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.deepseek.com https://capri-reactions.lachydotmcg.workers.dev; manifest-src 'self'; media-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Capri">
@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="native.css">
 <link rel="stylesheet" href="jobs.css">
+<link rel="stylesheet" href="room.css">
 </head>
 <body>
 <div class="app" id="app" data-screen="boot" data-link="unpaired">
@@ -40,15 +41,44 @@
     <button class="nbtn cyan" id="banner-retry" type="button">Retry</button>
   </div>
 
+  <section class="room" id="room" aria-labelledby="room-title" hidden>
+    <header class="room-head">
+      <h2 class="nhead" id="room-title">Room camera</h2>
+      <button class="nbtn" id="room-track" type="button" hidden>Place in AR</button>
+      <button class="nbtn" id="room-close" type="button" aria-label="Close room camera">Close</button>
+    </header>
+    <div class="room-view" id="room-view">
+      <video id="room-video" muted autoplay playsinline aria-hidden="true"></video>
+      <button id="room-place" type="button" aria-label="Place Capri here" hidden></button>
+      <div class="her room-her" id="room-her" aria-hidden="true" hidden><span class="sprite" id="room-sprite"></span></div>
+      <img class="room-heart" id="room-heart" alt="" hidden>
+      <p class="room-status" id="room-status" role="status"></p>
+    </div>
+    <div class="room-controls" id="room-controls" aria-label="Capri's poses" hidden>
+      <button class="nbtn cyan" id="room-sit" type="button" aria-pressed="true">Sit</button>
+      <button class="nbtn cyan" id="room-lie" type="button" aria-pressed="false">Lie down</button>
+      <button class="nbtn cyan" id="room-love" type="button">Heart</button>
+    </div>
+    <button class="nbtn cyan room-retry" id="room-retry" type="button" hidden>Retry camera</button>
+  </section>
+
   <main class="log" id="log" aria-label="Chat with Capri">
     <div class="log-in" id="log-in"></div>
   </main>
 
   <div class="composer" id="composer">
     <p class="notice" id="notice" role="status" hidden></p>
+    <div class="room-menu" id="room-menu" role="group" aria-label="Camera options" hidden>
+      <button class="nbtn cyan" id="room-open" type="button">Room camera</button>
+      <button class="nbtn" id="room-attach" type="button">Attach image</button>
+    </div>
+    <input id="room-attach-input" type="file" accept="image/*" hidden>
     <form class="bar" id="bar" autocomplete="off">
       <span class="bar-frame" aria-hidden="true"></span>
       <textarea id="msg" name="msg" rows="1" maxlength="8000" placeholder="Message Capri" enterkeyhint="send" autocapitalize="sentences" aria-label="Message Capri"></textarea>
+      <button class="nbtn cyan icon" id="room-camera" type="button" aria-label="Camera options" aria-controls="room-menu" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4.5l2-2.5h5l2 2.5H21v12H3z"/><circle cx="12" cy="13" r="3.4"/></svg>
+      </button>
       <button class="nbtn cyan icon mic" id="mic" type="button" aria-label="Talk instead of typing" aria-pressed="false" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5a3 3 0 0 0-3 3v5a3 3 0 0 0 6 0v-5a3 3 0 0 0-3-3z"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
       </button>
@@ -269,6 +299,7 @@
 <script src="demo.js"></script>
 <script src="native.js"></script>
 <script src="capri.js"></script>
+<script src="room.js"></script>
 <script src="app.js"></script>
 <script src="screen.js"></script>
 <script src="call.js"></script>
