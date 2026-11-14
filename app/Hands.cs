@@ -2913,10 +2913,8 @@ namespace CapriDesktop
             if (Honest(result)) return result;
             if (Regex.IsMatch(result ?? "", @"^(The closest match is |I didn't find a name matching |Stopped looking for files\.|Selected .+ in File Explorer\.|Couldn't select that in File Explorer\.|Your websites:\n|I'll remember .+ as https?://|Forgot the .+ website\.|I couldn't read that browser's address\.)")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser(?: because |\.)|but (it's behind|I couldn't bring) )")) return result;
-#if !CROSS
             foreach (string browser in BrowserNames)
                 if (Regex.IsMatch(result ?? "", @"^Searched [a-z0-9.-]+ for .+ in " + Regex.Escape(browser) + @"(?:, but .+)?\.$")) return result;
-#endif
             if (Regex.IsMatch(result ?? "", @"^(Saved [\d.]+ seconds of |Turn on Clip my games |I haven't buffered any game video |Windows couldn't (find an H\.264 encoder|encode that clip)|Windows Media Foundation isn't installed|Couldn't save that clip)")) return result;
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
@@ -4623,6 +4621,7 @@ namespace CapriDesktop
             return false;
 #else
             if (AppPath(id) || Regex.IsMatch(id ?? "", @"\A[A-Za-z0-9_.{}!-]+\z")) return true;
+            if (Regex.IsMatch(id ?? "", @"\A\{[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}\}\\[^""<>|*?/\x00-\x1F]+\z")) return true;
             if (Regex.IsMatch(id ?? "", @"\A(?:steam://rungameid/[0-9]+|uplay://launch/[0-9]+/0)\z")) return true;
             if (Regex.IsMatch(id ?? "", @"\Acom\.epicgames\.launcher://apps/(?:[A-Za-z0-9._~-]|%[0-9A-Fa-f]{2})+\?action=launch&silent=true\z")) return true;
             Match riot = Regex.Match(id ?? "", @"\A""([^""]+)"" --launch-product=[a-z0-9_]+ --launch-patchline=[a-z0-9_]+\z");
@@ -5984,7 +5983,9 @@ namespace CapriDesktop
                 string played = PlayMusic(asked, "auto", askedKind, current, songOnly);
                 return played.StartsWith("Playing ", StringComparison.Ordinal) ? "Apple Music isn't installed, so p" + played.Substring(1) : played;
             }
-            if (app != "youtube" && FindApps("spotify").Count > 0)
+            bool hasSpotify = false;
+            if (app != "youtube") try { hasSpotify = FindApps("spotify").Count > 0; } catch (Exception) { }
+            if (hasSpotify)
             {
                 if (liked) named = "their Liked Songs";
                 string spotted = liked || ownPlaylist ? null : known ?? SpotifyLink(Fetch("https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString("site:open.spotify.com/" + (kind == "song" ? "track" : kind) + " " + song)), kind, song);
