@@ -75,6 +75,7 @@
   const showMenu = open => {
     menu.hidden = !open;
     camera.setAttribute('aria-expanded', String(open));
+    app.classList.toggle('room-menu-open', open);
     if (open) (room.hidden ? byId('room-open') : attach).focus();
   };
   const stopTracks = active => active?.getTracks().forEach(item => item.stop());

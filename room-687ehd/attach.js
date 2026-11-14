@@ -74,12 +74,85 @@
     reader.onerror = reader.onabort = reject;
     reader.readAsDataURL(blob);
   });
+  const dimensions = async photo => {
+    const bytes = new Uint8Array(await photo.slice(0, 262144).arrayBuffer());
+    const data = new DataView(bytes.buffer);
+    const word = (at, count) => String.fromCharCode(...bytes.slice(at, at + count));
+    let width, height, turn = 1;
+    if (bytes.length >= 24 && word(1, 3) === 'PNG') {
+      width = data.getUint32(16); height = data.getUint32(20);
+    } else if (bytes.length >= 10 && /^GIF8[79]a$/.test(word(0, 6))) {
+      width = data.getUint16(6, true); height = data.getUint16(8, true);
+    } else if (bytes.length >= 30 && word(0, 4) === 'RIFF' && word(8, 4) === 'WEBP') {
+      const kind = word(12, 4);
+      if (kind === 'VP8X') {
+        width = 1 + bytes[24] + (bytes[25] << 8) + (bytes[26] << 16);
+        height = 1 + bytes[27] + (bytes[28] << 8) + (bytes[29] << 16);
+      } else if (kind === 'VP8 ') {
+        width = data.getUint16(26, true) & 16383; height = data.getUint16(28, true) & 16383;
+      } else if (kind === 'VP8L') {
+        const bits = data.getUint32(21, true);
+        width = 1 + (bits & 16383); height = 1 + ((bits >>> 14) & 16383);
+      }
+    } else if (bytes[0] === 255 && bytes[1] === 216) {
+      let at = 2;
+      while (at + 4 <= bytes.length) {
+        if (bytes[at++] !== 255) break;
+        while (bytes[at] === 255) at++;
+        const marker = bytes[at++];
+        if (marker === 217 || marker === 218) break;
+        if (marker === 1 || marker >= 208 && marker <= 215) continue;
+        const length = data.getUint16(at), end = at + length;
+        if (length < 2 || end > bytes.length) break;
+        if (marker === 225 && word(at + 2, 6) === 'Exif\0\0') {
+          const base = at + 8, little = word(base, 2) === 'II';
+          if (base + 8 <= end) {
+            const table = base + data.getUint32(base + 4, little);
+            if (table >= base && table + 2 <= end) {
+              const count = data.getUint16(table, little);
+              for (let entry = table + 2; entry + 12 <= end && entry < table + 2 + count * 12; entry += 12) {
+                if (data.getUint16(entry, little) === 274 && data.getUint16(entry + 2, little) === 3 && data.getUint32(entry + 4, little) === 1) turn = data.getUint16(entry + 8, little);
+              }
+            }
+          }
+        }
+        if (marker >= 192 && marker <= 207 && ![196, 200, 204].includes(marker) && length >= 8) {
+          height = data.getUint16(at + 3); width = data.getUint16(at + 5);
+          break;
+        }
+        at = end;
+      }
+    }
+    if (!width || !height) return null;
+    return turn >= 5 && turn <= 8 ? { width: height, height: width } : { width, height };
+  };
+  const decode = async (photo, bounds) => {
+    if (bounds && bounds.width * bounds.height > 250000000) throw new Error('big');
+    if (bounds && window.createImageBitmap) {
+      const scale = Math.min(1, 1568 / Math.max(bounds.width, bounds.height));
+      try {
+        return await createImageBitmap(photo, { resizeWidth: Math.max(1, Math.round(bounds.width * scale)), resizeHeight: Math.max(1, Math.round(bounds.height * scale)), resizeQuality: 'high', imageOrientation: 'from-image' });
+      } catch (error) {}
+    }
+    if (bounds && bounds.width * bounds.height > 64000000 || photo.size > 128000000) throw new Error('big');
+    const decoded = new Image();
+    try {
+      decoded.src = await read(photo);
+      await new Promise((resolve, reject) => {
+        if (decoded.complete) { if (decoded.naturalWidth) resolve(); else reject(new Error('picture')); }
+        else { decoded.onload = resolve; decoded.onerror = reject; }
+      });
+      if (decoded.naturalWidth * decoded.naturalHeight > 64000000) throw new Error('big');
+      return decoded;
+    } catch (error) { decoded.removeAttribute('src'); throw error; }
+  };
   remove.addEventListener('click', () => { version++; working = false; show(null); input.focus(); });
   document.getElementById('room-attach').addEventListener('click', event => {
     if (supported()) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     document.getElementById('room-menu').hidden = true;
+    document.getElementById('app').classList.remove('room-menu-open');
     const camera = document.getElementById('room-camera');
     camera.setAttribute('aria-expanded', 'false');
     camera.focus();
@@ -96,13 +169,8 @@
     changed();
     try {
       if (count !== 1) throw new Error('picture');
-      let decoded;
-      if (window.createImageBitmap) decoded = await createImageBitmap(photo, { resizeWidth: 1568, resizeQuality: 'high', imageOrientation: 'from-image' });
-      else {
-        decoded = new Image();
-        decoded.src = await read(photo);
-        await decoded.decode();
-      }
+      const bounds = await dimensions(photo);
+      const decoded = await decode(photo, bounds);
       const width = decoded.naturalWidth || decoded.width, height = decoded.naturalHeight || decoded.height;
       const scale = Math.min(1, 1568 / Math.max(width, height));
       const canvas = document.createElement('canvas');
@@ -116,7 +184,7 @@
       const picture = await fit(canvas, '', 'x'.repeat(64));
       if (mine === version) show({ canvas, picture });
     } catch (error) {
-      if (mine === version) say("That isn't a picture I can send.");
+      if (mine === version) say(error.message === 'big' ? 'That picture is too big for me to send.' : "That isn't a picture I can send.");
     } finally {
       if (mine === version) { working = false; changed(); }
     }
@@ -137,6 +205,7 @@
     if (message.type === 'error') { failed(message.re); return; }
     if (message.type === 'chat.reply' || message.type === 'chat.typing' && message.on && !sent.native) {
       clearTimeout(sent.timer);
+      sent.received = true;
       if (current === sent.value) show(null);
       if (input.value === sent.text) input.value = '';
       working = false;
@@ -150,7 +219,7 @@
   });
   window.CapriAttach = {
     hasPicture: () => !!current,
-    get busy() { return working; },
+    get busy() { return working || [...waiting.values()].some(sent => !sent.received); },
     prepare: async (text, id) => {
       if (!current || working) return null;
       if (!supported()) { say('Update Capri on your PC to send pictures.'); return null; }
