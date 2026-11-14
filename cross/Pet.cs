@@ -4818,7 +4818,7 @@ namespace CapriDesktop
         {
             RemoteLink link = remoteLink;
             string problem = remoteDirty ? remotePendingProblem : remoteProblem;
-            RemoteView view = new RemoteView { On = Saved.RemoteOn && link != null, Host = RemoteHost, Status = problem ?? (link == null ? "off" : link.Status), Note = problem ?? remoteNote };
+            RemoteView view = new RemoteView { On = Saved.RemoteOn && link != null, Host = RemoteHost, Status = link == null ? "off" : link.Status, Note = problem ?? remoteNote };
             if (link != null)
             {
                 view.Ready = link.Ready;
@@ -4983,9 +4983,9 @@ namespace CapriDesktop
         {
             lock (remoteGate)
             {
-                bool loaded = RemoteAction();
                 string relay = RemoteLink.RelayBase(host);
-                if (relay == null) { remoteProblem = "That relay host isn't valid."; NotifySettings(); return false; }
+                if (relay == null) return false;
+                bool loaded = RemoteAction();
                 if (relay == RemoteLink.RelayBase(RemoteHost)) { NotifySettings(); return true; }
                 if (Program.Smoke != null && RemoteMake == null) return false;
                 if (!loaded) { Save(); return false; }
