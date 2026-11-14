@@ -23,7 +23,8 @@ const json = (response, status, body, headers = {}) => {
 
 const lastUser = body => {
   const turns = Array.isArray(body && body.messages) ? body.messages.filter(turn => turn.role === 'user') : [];
-  return turns.length ? String(turns[turns.length - 1].content) : '';
+  const content = turns.length ? turns[turns.length - 1].content : '';
+  return Array.isArray(content) ? content.filter(block => block.type === 'text').map(block => block.text).join(' ') : String(content);
 };
 
 // Her reply in a few parts, a little apart, so the page has to put a stream together.

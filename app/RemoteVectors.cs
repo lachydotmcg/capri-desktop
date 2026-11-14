@@ -159,7 +159,7 @@ namespace CapriDesktop
                     Expect(opened != null && Hex(opened) == entry.Text("plaintextHex"), name + " opens back to its plaintext");
                     RemoteJson.Map message = opened == null ? null : RemoteJson.Message(opened);
                     Expect(message != null && name.StartsWith(message.Text("type"), StringComparison.Ordinal), name + " reads as a message of its type");
-                    envelopes[name.Split(' ')[0]] = entry.Text("envelope");
+                    if (!envelopes.ContainsKey(name.Split(' ')[0])) envelopes[name.Split(' ')[0]] = entry.Text("envelope");
                     // The PC's own messages come out exactly as the reference writes them.
                     string ours = Ours(message);
                     if (ours != null) Same(ours, entry.Text("plaintext"), name + " is what the PC writes");

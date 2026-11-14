@@ -209,7 +209,9 @@
     let node;
     if (msg.role === 'you') {
       node = make('p', 'msg you');
-      node.append(make('span', 'sr-only', 'You: '), make('span', 'words', msg.text));
+      node.append(make('span', 'sr-only', 'You: '));
+      if (window.CapriAttach) CapriAttach.render(node, msg);
+      node.append(make('span', 'words', msg.text));
     } else if (msg.role === 'capri') {
       node = make('p', 'msg capri done');
       const caret = make('span', 'caret');
@@ -317,25 +319,40 @@
   Object.assign(errorWords, { key: 'KEY REJECTED', credits: 'NO CREDITS', limit: 'TOO MANY REQUESTS', model: 'MODEL NOT ON KEY', down: 'SERVICE DOWN', net: 'NO INTERNET', empty: 'NO REPLY' });
 
   // One message from him to her, over chat.send, whether he typed it, tapped a starter or tapped SCREEN.
-  const deliver = text => {
+  const deliver = (text, picture, id) => {
     if (linkState !== 'connected') { say(linkState === 'offline' ? 'PC offline' : 'Not connected yet'); return false; }
     const chat = current() || startChat();
     const now = Date.now();
     const said = { role: 'you', text: text.slice(0, 8000), at: now };
+    if (picture && window.CapriAttach) CapriAttach.keep(said, picture);
     chat.msgs.push(said);
     chat.last = now;
     dropStarters();
     add(renderMsg(said));
-    const re = newId();
+    const re = id || newId();
     openReply(re, chat);
     toEnd();
-    if (!CapriRemote.send('chat.send', { id: re, text: said.text })) settleReply(re, 'NOT SENT');
+    const body = { id: re, text: said.text };
+    if (picture) { body.picture = picture; CapriAttach.sent(re, input.value, picture); }
+    if (!CapriRemote.send('chat.send', body)) {
+      settleReply(re, 'NOT SENT');
+      if (picture) CapriAttach.failed(re);
+      return false;
+    }
     CapriBar.grin();
     saveChats();
     return true;
   };
-  const send = () => {
-    const text = input.value.trim();
+  const send = async () => {
+    const text = input.value.trim().slice(0, 8000);
+    const attach = window.CapriAttach;
+    if (attach && attach.busy) return;
+    if (attach && attach.hasPicture()) {
+      const id = newId();
+      const picture = await attach.prepare(text, id);
+      if (picture) deliver(text, picture, id);
+      return;
+    }
     if (!text || !deliver(text)) return;
     input.value = '';
     autosize();
@@ -424,7 +441,8 @@
     input.style.height = clamp(input.scrollHeight, 44, 132) + 'px';
   };
   const updateSend = () => {
-    const ready = !!input.value.trim() && linkState === 'connected';
+    const attach = window.CapriAttach;
+    const ready = (!!input.value.trim() || attach && attach.hasPicture()) && !(attach && attach.busy) && linkState === 'connected';
     sendButton.disabled = !ready;
     sendButton.classList.toggle('solid', ready);
   };

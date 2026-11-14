@@ -67,6 +67,8 @@ export async function buildVectors() {
       message: { type: 'hello-ok', v: 1, nonce: b.pcNonce, echo: b.phoneNonce, name: 'Test PC', app: 'capri/test', features: ['chat'] } },
     { name: 'chat.send', keys: 'session.phoneToPc', kind: 3, dir: 1, seq: 0, iv: run(0x50, 16),
       message: { type: 'chat.send', id: 'm1', text: 'Hello, Capri!' } },
+    { name: 'chat.send with picture', keys: 'session.phoneToPc', kind: 3, dir: 1, seq: 1, iv: run(0x80, 16),
+      message: { type: 'chat.send', id: 'm2', text: '', picture: { mime: 'image/png', data: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4____fwAJ-wP9KobjigAAAABJRU5ErkJggg' } } },
     { name: 'chat.typing (32-byte plaintext, so a whole block of padding)', keys: 'session.pcToPhone', kind: 3, dir: 2, seq: 0, iv: run(0x60, 16),
       message: { type: 'chat.typing', on: true } },
     { name: 'chat.reply (seq 0x01020304, non-ASCII text)', keys: 'session.pcToPhone', kind: 3, dir: 2, seq: 0x01020304, iv: run(0x70, 16),

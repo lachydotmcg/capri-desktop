@@ -20,7 +20,7 @@ const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 // args: more switches, like the call test's fake mic.
 export const launch = async ({ port, width = 390, height = 844, args = [] }) => {
   const profile = mkdtempSync(join(tmpdir(), 'capri-phone-chrome-'));
-  const chrome = spawn(chromePath(), ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--window-size=' + width + ',' + height, ...args, 'about:blank'], { stdio: 'ignore' });
+  const chrome = spawn(chromePath(), ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check', '--disable-extensions', '--disable-background-networking', '--disable-component-update', '--disable-sync', '--window-size=' + width + ',' + height, ...(process.platform === 'win32' ? ['--disable-gpu', '--no-sandbox'] : []), ...args, 'about:blank'], { stdio: 'ignore' });
   let target = null;
   for (let tries = 0; tries < 100 && !target; tries++) {
     await wait(100);
@@ -43,6 +43,7 @@ export const launch = async ({ port, width = 390, height = 844, args = [] }) => 
       if (message.error) reject(new Error(message.error.message)); else resolve(message.result);
     } else if (message.method) for (const listen of listeners) listen(message.method, message.params);
   };
+  socket.onclose = () => { for (const item of waiting.values()) item.reject(new Error('Chrome DevTools socket closed')); waiting.clear(); };
   const send = (method, params = {}) => new Promise((resolve, reject) => {
     const id = ++next;
     waiting.set(id, { resolve, reject });

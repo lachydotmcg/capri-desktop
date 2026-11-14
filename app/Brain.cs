@@ -81,6 +81,7 @@ namespace CapriDesktop
         [DataMember(Name = "thinking", EmitDefaultValue = false)] public string Thinking;
         // How much of a system prompt stays the same from one message to the next, for Claude's cache.
         internal int Steady;
+        internal string ImageMime;
         internal ChatMessage(string role, string content) { Role = role; Content = content; }
     }
 
@@ -3103,7 +3104,7 @@ namespace CapriDesktop
 #if CROSS
         internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false, bool selected = false, bool preserveWhitespace = false, bool computerAction = false)
 #else
-        internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false, bool selected = false)
+        internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false, bool selected = false, string mime = "image/jpeg")
 #endif
         {
             int ticket;
@@ -3113,12 +3114,15 @@ namespace CapriDesktop
             Cloud remote = Remote;
             if (remote != null && !Sighted(remote)) throw new BrainException(Sightless(remote));
             if (!selected) model = Looker(model);
+#if CROSS
+            string mime = "image/jpeg";
+#endif
             string data = Convert.ToBase64String(jpeg);
             string parts = null;
-            if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}]";
-            else if (remote != null && !remote.Plan || Local != null || Server != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64," + data + "\"}}]";
+            if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"" + mime + "\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}]";
+            else if (remote != null && !remote.Plan || Local != null || Server != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:" + mime + ";base64," + data + "\"}}]";
             ChatMessage asked = new ChatMessage("user", parts != null ? Parts : instruction);
-            if (parts == null) asked.Images = new[] { data };
+            if (parts == null) { asked.Images = new[] { data }; asked.ImageMime = mime; }
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), asked };
             string raw;
 #if CROSS
@@ -3128,10 +3132,15 @@ namespace CapriDesktop
 #endif
             catch (BrainException error)
             {
-                if (remote == null || !NoVision(error)) throw;
+                if (remote == null || !NoVision(error))
+                {
+                    if (error.Message.IndexOf(data, StringComparison.Ordinal) < 0 && (error.Detail ?? "").IndexOf(data, StringComparison.Ordinal) < 0) throw;
+                    throw new BrainException(error.Message.Replace(data, "[redacted]"), error.Told) { Detail = (error.Detail ?? "").Replace(data, "[redacted]"), Status = error.Status, RetryAt = error.RetryAt };
+                }
                 Unsighted = remote.Sight;
                 throw new BrainException(Sightless(remote));
             }
+            raw = raw.Replace(data, "[redacted]");
 #if CROSS
             if (preserveWhitespace) return Visible(raw).Trim();
 #endif
@@ -4561,6 +4570,12 @@ namespace CapriDesktop
                 if (parts != null) json = json.Replace("\"" + Parts + "\"", parts);
                 payload = Encoding.UTF8.GetBytes(json);
             }
+            string imageParts = parts;
+            if (imageParts == null)
+            {
+                string imageJson = Encoding.UTF8.GetString(payload);
+                if (imageJson.IndexOf("\"images\":", StringComparison.Ordinal) >= 0) imageParts = imageJson;
+            }
             lock (gate) { Check(ticket); active.Add(request); }
             System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
             int expired = 0;
@@ -4593,7 +4608,7 @@ namespace CapriDesktop
                     if (error.Response == null) throw;
                     if (sending != null && sending.Code && request.Headers["x-api-key"] == sending.Key) sending.ReadCode(error.Response.Headers);
                     Log(url, took.ElapsedMilliseconds, "HTTP " + (int)((HttpWebResponse)error.Response).StatusCode + (sending == null ? "" : " model " + sending.Model) + " body " + payload.Length + " bytes");
-                    BrainException problem = Problem(error, sign != null, sending != null ? sending.Kind : null, secret);
+                    BrainException problem = Problem(error, sign != null, sending != null ? sending.Kind : null, secret, imageParts);
                     if (sending != null && problem.RetryAt != default(DateTime))
                         lock (gate) { waitingRemote = sending; waitingSource = sending.Source; waiting = problem; }
                     throw problem;
@@ -4687,7 +4702,7 @@ namespace CapriDesktop
             if (status >= 300 && status < 400) throw new BrainException("The service's address moved. Your key wasn't sent to the new one.", true);
         }
 
-        private static BrainException Problem(WebException error, bool remote, string kind = null, string secret = null)
+        private static BrainException Problem(WebException error, bool remote, string kind = null, string secret = null, string imageParts = null)
         {
             string text = "";
             string url = error.Response.ResponseUri.AbsoluteUri;
@@ -4703,6 +4718,7 @@ namespace CapriDesktop
                 catch (ObjectDisposedException failure) { broken = failure.Message; }
             }
             if (broken != null) Log(url, -1, string.IsNullOrEmpty(secret) ? broken : broken.Replace(secret, "[redacted]"));
+            text = RedactedImages(text, imageParts);
             string said = ProblemText(text);
             if (string.IsNullOrWhiteSpace(said)) said = error.Message;
             if (!string.IsNullOrEmpty(secret)) said = said.Replace(secret, "[redacted]");
@@ -4742,9 +4758,17 @@ namespace CapriDesktop
         // cookies, and what follows an authorization header and its scheme. Counts like max_tokens=4096 and checks like
         // token == null stay readable, and so do sentences: "the secret: always test first" keeps its words. Every search is
         // bounded, so a huge line with no spaces can't hold her up.
+        internal static string RedactedImages(string text, string parts)
+        {
+            if (text == null || parts == null) return text;
+            foreach (Match data in Regex.Matches(parts, @"[A-Za-z0-9+/]{32,}={0,2}")) text = text.Replace(data.Value, "[redacted]");
+            return text;
+        }
+
         internal static string Redacted(string text)
         {
             string clean = Regex.Replace(text ?? "", @"\bCAPRI(?:-[0-9A-HJKMNP-TV-Z]{4}){4}\b|\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(""data""\s*:\s*"")[A-Za-z0-9+/_=-]{32,}("")", "$1[redacted]$2", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
             clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
