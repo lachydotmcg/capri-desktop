@@ -32,8 +32,9 @@
     laydown_talk: [own + 'laydown_talk.png', 10, 6, 'lie']
   };
   const strips = new Map();
-  let version = 0, stream, session, source, animation, heartTimer, currentClip, currentFrame;
-  let pose = 'perch', talking = false, arAvailable = false, surface, seat;
+  let version = 0, stream, session, source, transient, animation, heartTimer, currentClip, currentFrame;
+  let pose = 'perch', talking = false, arAvailable = false, surface, seat, drag;
+  let suppressTap = false, heartState = 'new', heartWanted = false;
 
   const load = name => {
     if (strips.has(name)) return;
@@ -84,20 +85,44 @@
   };
   const stopHeart = () => {
     clearTimeout(heartTimer);
+    heartTimer = null;
     heart.hidden = true;
     love.setAttribute('aria-pressed', 'false');
-    heart.removeAttribute('src');
+    heartWanted = false;
+  };
+  const finishHeart = () => {
+    if (!heartWanted || room.hidden || heartTimer) return;
+    if (heartState === 'failed' || reduced.matches) status.textContent = 'Heart.';
+    else heart.hidden = false;
+    heartTimer = setTimeout(stopHeart, 3600);
+  };
+  heart.addEventListener('load', () => { heartState = 'ready'; finishHeart(); });
+  heart.addEventListener('error', () => { heartState = 'failed'; finishHeart(); });
+  const loadHeart = () => {
+    if (heartState !== 'new') return;
+    heartState = 'loading';
+    heart.src = own + 'heart.png';
+  };
+  const stopDrag = () => {
+    const was = drag;
+    drag = null;
+    if (was && place.hasPointerCapture(was.id)) place.releasePointerCapture(was.id);
+  };
+  const cancelHits = () => {
+    source?.cancel();
+    transient?.cancel();
+    source = transient = surface = seat = null;
   };
   const closeRoom = (focus = false) => {
     version++;
+    stopDrag();
     window.CapriCall?.stopListening();
     talking = false;
     voiceNote.textContent = '';
     releaseCamera();
     const ending = session;
     session = null;
-    source?.cancel();
-    source = surface = seat = null;
+    cancelHits();
     if (ending) ending.end().catch(() => {});
     cancelAnimationFrame(animation);
     animation = 0;
@@ -118,6 +143,7 @@
       window.CapriCall?.end();
       setPose('perch');
       for (const name of Object.keys(clips)) load(name);
+      loadHeart();
     }
     const request = ++version;
     room.hidden = false;
@@ -125,7 +151,7 @@
     startVoice();
     retry.hidden = track.hidden = true;
     controls.hidden = place.hidden = her.hidden = true;
-    place.setAttribute('aria-label', 'Place Capri here');
+    place.setAttribute('aria-label', 'Drag Capri or use arrow keys');
     her.style.left = '';
     her.style.top = '';
     her.style.removeProperty('--s');
@@ -146,7 +172,7 @@
       if (request !== version) return;
       place.hidden = her.hidden = controls.hidden = false;
       track.hidden = !arAvailable;
-      status.textContent = lead + 'Tap to move Capri in the camera view.';
+      status.textContent = lead + 'Drag Capri to move her.';
       for (const item of stream.getVideoTracks()) item.addEventListener('ended', () => {
         if (request !== version) return;
         releaseCamera();
@@ -174,6 +200,7 @@
   };
   const startAR = async () => {
     const request = ++version;
+    stopDrag();
     releaseCamera();
     controls.hidden = place.hidden = her.hidden = track.hidden = true;
     stopHeart();
@@ -187,8 +214,8 @@
       session = active;
       active.addEventListener('end', () => {
         if (session !== active) return;
-        source?.cancel();
-        session = source = surface = seat = null;
+        cancelHits();
+        session = null;
         closeRoom(true);
       }, { once: true });
       active.addEventListener('visibilitychange', () => {
@@ -204,9 +231,15 @@
       const hitSource = await active.requestHitTestSource({ space: eyes });
       if (request !== version) { hitSource.cancel(); return; }
       source = hitSource;
+      try {
+        const input = await active.requestHitTestSourceForTransientInput({ profile: 'generic-touchscreen' });
+        if (request !== version) { input.cancel(); return; }
+        transient = input;
+      } catch (error) {}
+      if (request !== version) return;
       app.dataset.room = 'ar';
       place.hidden = controls.hidden = false;
-      place.setAttribute('aria-label', 'Place Capri at the center of the view');
+      place.setAttribute('aria-label', 'Place Capri at center; drag or use arrow keys');
       status.textContent = 'Aim at a surface, then tap to place Capri.';
       const frame = (now, xrFrame) => {
         if (active !== session) return;
@@ -217,6 +250,15 @@
         const hit = xrFrame.getHitTestResults(source)[0]?.getPose(world)?.transform.position;
         surface = hit ? [hit.x, hit.y, hit.z] : null;
         view.toggleAttribute('data-surface', !!surface);
+        if (drag?.moved && transient) {
+          const inputs = xrFrame.getHitTestResultsForTransientInput(transient);
+          const input = inputs.find(item => !drag.input || item.inputSource === drag.input);
+          if (input) {
+            drag.input = input.inputSource;
+            const point = input.results[0]?.getPose(world)?.transform.position;
+            if (point) seat = [point.x, point.y, point.z];
+          }
+        }
         const eye = xrFrame.getViewerPose(world)?.views[0];
         if (!seat || !eye) { her.hidden = true; return; }
         const position = project(eye.transform.inverse.matrix, seat, 1);
@@ -234,8 +276,7 @@
     } catch (error) {
       if (request !== version) return;
       session = null;
-      source?.cancel();
-      source = surface = seat = null;
+      cancelHits();
       if (active) await active.end().catch(() => {});
       if (request === version) openCamera('AR unavailable. ', false);
     }
@@ -254,17 +295,16 @@
   sit.addEventListener('click', () => setPose('perch'));
   lie.addEventListener('click', () => setPose('laydown'));
   const showHeart = () => {
+    if (heartWanted && heartState === 'loading') return;
     stopHeart();
-    if (reduced.matches) {
-      status.textContent = 'Heart.';
-      love.setAttribute('aria-pressed', 'true');
-      heartTimer = setTimeout(stopHeart, 3600);
-      return;
-    }
-    heart.src = own + 'heart.png';
-    heart.hidden = false;
+    heartWanted = true;
     love.setAttribute('aria-pressed', 'true');
-    heartTimer = setTimeout(stopHeart, 3600);
+    if (reduced.matches || heartState === 'failed') { finishHeart(); return; }
+    if (heartState === 'ready') {
+      heartState = 'new';
+      heart.removeAttribute('src');
+    }
+    loadHeart();
   };
   love.addEventListener('click', showHeart);
   voice.addEventListener('click', () => {
@@ -276,7 +316,51 @@
     if (voiceOn) startVoice();
     else { window.CapriCall?.stopListening(); talking = false; }
   });
+  const moveCamera = (x, y) => {
+    const box = view.getBoundingClientRect();
+    her.style.left = Math.max(16, Math.min(84, x / box.width * 100)) + '%';
+    her.style.top = Math.max(42, Math.min(98, y / box.height * 100)) + '%';
+  };
+  place.addEventListener('pointerdown', event => {
+    if (drag || !event.isPrimary || event.button !== 0) return;
+    suppressTap = false;
+    const box = sprite.getBoundingClientRect();
+    if (her.hidden || event.clientX < box.left || event.clientX > box.right ||
+        event.clientY < box.top || event.clientY > box.bottom) return;
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY,
+      left: her.offsetLeft, top: her.offsetTop, moved: false };
+    place.setPointerCapture(event.pointerId);
+  });
+  place.addEventListener('pointermove', event => {
+    if (!drag || drag.id !== event.pointerId) return;
+    const x = event.clientX - drag.x, y = event.clientY - drag.y;
+    if (!drag.moved && Math.hypot(x, y) <= 5) return;
+    drag.moved = suppressTap = true;
+    event.preventDefault();
+    if (!session) moveCamera(drag.left + x, drag.top + y);
+    status.textContent = '';
+  });
+  place.addEventListener('pointerup', event => {
+    if (drag?.id !== event.pointerId) return;
+    if (drag.moved) event.preventDefault();
+    stopDrag();
+  });
+  for (const type of ['pointercancel', 'lostpointercapture']) place.addEventListener(type, event => {
+    if (drag?.id === event.pointerId) stopDrag();
+  });
+  place.addEventListener('keydown', event => {
+    const directions = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    const direction = directions[event.key];
+    if (!direction) return;
+    event.preventDefault();
+    const step = event.shiftKey ? 20 : 5;
+    if (session) {
+      if (seat) seat = [seat[0] + direction[0] * step / 250, seat[1] - direction[1] * step / 250, seat[2]];
+    } else moveCamera(her.offsetLeft + direction[0] * step, her.offsetTop + direction[1] * step);
+    status.textContent = '';
+  });
   place.addEventListener('click', event => {
+    if (suppressTap && event.detail) { event.preventDefault(); event.stopImmediatePropagation(); return; }
     if (session) {
       if (!surface) return;
       seat = surface;
@@ -284,8 +368,7 @@
       const box = view.getBoundingClientRect();
       const x = event.detail ? (event.clientX - box.left) / box.width : 0.5;
       const y = event.detail ? (event.clientY - box.top) / box.height : 0.74;
-      her.style.left = Math.max(16, Math.min(84, x * 100)) + '%';
-      her.style.top = Math.max(42, Math.min(98, y * 100)) + '%';
+      moveCamera(x * box.width, y * box.height);
     }
     status.textContent = '';
   });
@@ -317,6 +400,10 @@
     else if (message.move === 'lie_down') setPose('laydown');
     else if (message.move === 'heart') showHeart();
   });
-  r?.onState(next => { if (!room.hidden && next !== 'connected') { showMenu(false); closeRoom(); } });
+  r?.onState(next => {
+    if (room.hidden) return;
+    if (next === 'connected') queueMicrotask(() => { if (!room.hidden) startVoice(); });
+    else { window.CapriCall?.stopListening(); talking = false; voiceNote.textContent = ''; }
+  });
   window.CapriRoom = { close: closeRoom, voiceStatus, talk: on => { talking = !room.hidden && !!on; } };
 })();

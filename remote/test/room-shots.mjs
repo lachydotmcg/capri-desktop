@@ -1,6 +1,6 @@
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { roomRig } from './lib/room.mjs';
+import { roomRig, dragRoom } from './lib/room.mjs';
 import { tone } from './lib/live.mjs';
 import { setPhone, SAFARI, misfitsOf } from './lib/fit.mjs';
 import assert from 'node:assert/strict';
@@ -18,6 +18,13 @@ for (const size of [[390, 844], [360, 640]]) {
     await r.open();
     await page.until("document.getElementById('room-sprite').style.backgroundImage.includes('perch.webp')", 'sitting sprite');
     await shot('sitting');
+    if (size[0] === 390) {
+      await page.send('Emulation.setTouchEmulationEnabled', {enabled:true,maxTouchPoints:1});
+      const {end} = await dragRoom(page, 'touch', -300, -200);
+      assert.ok(Math.abs(end.left - end.width * .16) <= 1 && Math.abs(end.top - end.height * .42) <= 1);
+      await shot('dragged-corner');
+      await click('room-place');
+    }
     assert.deepEqual(await misfitsOf(page), []);
     await pc.send('room', { type: 'chat.tool', id: 'lie', name: 'move_yourself', state: 'done', move: 'lie_down' });
     await page.until("document.getElementById('room-sprite').style.backgroundImage.includes('laydown.png')", 'lying sprite');
