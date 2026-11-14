@@ -31229,7 +31229,7 @@ namespace CapriDesktop
         }
 
         // F57: a strong brain works a job out itself. CS isn't open, so it opens it, hands the match to a job and only then says so;
-        // a promise with no tool behind it gets one reminder, then her line that nothing's happened yet; chat stays chat.
+        // a promise with no tool behind it gets one reminder, then her hands do a plain ask themselves; chat stays chat.
         private static void SmokeWorkingOut(System.Collections.Generic.List<string> checks)
         {
             Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
@@ -31242,7 +31242,7 @@ namespace CapriDesktop
             {
                 calls("open_app", "{\"name\":\"Counter-Strike 2\"}"), calls("use_computer", "{\"task\":\"start matchmaking\"}"), says("Queued you up, choom."),
                 says("On it, opening CS now!"), calls("open_app", "{\"name\":\"Counter-Strike 2\"}"), says("CS is up."),
-                says("On it, opening Spotify!"), says("Opening it now!"),
+                says("On it, opening Spotify!"), says("Opening it now!"), says("Spotify's up."),
                 says("Cyberpunk, obviously."),
                 says("open_app{\"name\":\"Steam\"}"), says("Steam's open."),
                 calls("use_computer", "{\"task\":\"start ranked in valorant for me\"}"), calls("use_computer", "{\"task\":\"start ranked in valorant for me\"}"), says("Queued ranked, choom.")
@@ -31268,14 +31268,26 @@ namespace CapriDesktop
                 string reminded = working.Ask("open cs");
                 if (reminded != "CS is up." || did.Count != 3 || did[2] != "open_app:Counter-Strike 2") throw new Exception("A promise with no tool behind it wasn't sent back for the tool: " + reminded + " / " + string.Join(",", did.ToArray()));
                 working.Forget();
-                string unkept = working.Ask("open spotify");
-                if (unkept != Hands.Unpromised || did.Count != 3) throw new Exception("Two promises with no tool still reached them as done: " + unkept);
+                Func<System.Collections.Generic.List<InstalledApp>> spotifyCatalog = Hands.Catalog;
+                try
+                {
+                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Spotify", "spotify-id") }; };
+                    Hands.Forget();
+                    string unkept = working.Ask("open spotify");
+                    // Two promises with no tool still leave a plain ask undone by the brain, so her hands open it, as for any other brain (Gale, 11 Nov).
+                    if (unkept != "Spotify's up." || did.Count != 4 || did[3].IndexOf("open_app:spotify", StringComparison.OrdinalIgnoreCase) != 0) throw new Exception("Two promises with no tool left a plain open undone: " + unkept + " / " + string.Join(",", did.ToArray()));
+                }
+                finally
+                {
+                    Hands.Catalog = spotifyCatalog;
+                    Hands.Forget();
+                }
                 working.Forget();
                 string chatted = working.Ask("what's your favourite game?");
-                if (chatted != "Cyberpunk, obviously." || did.Count != 3) throw new Exception("Chat turned into a job: " + chatted);
+                if (chatted != "Cyberpunk, obviously." || did.Count != 4) throw new Exception("Chat turned into a job: " + chatted);
                 working.Forget();
                 string copied = working.Ask("get steam up");
-                if (copied != "Steam's open." || did.Count != 4 || did[3] != "open_app:Steam") throw new Exception("A call written out as text didn't run: " + copied + " / " + string.Join(",", did.ToArray()));
+                if (copied != "Steam's open." || did.Count != 5 || did[4] != "open_app:Steam") throw new Exception("A call written out as text didn't run: " + copied + " / " + string.Join(",", did.ToArray()));
                 // A brain that goes straight to use_computer in a game that isn't open gets the game opened first.
                 Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
                 Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
@@ -31294,12 +31306,12 @@ namespace CapriDesktop
                     Hands.Windows = windowsWas;
                     Hands.Forget();
                 }
-                if (ranked != "Queued ranked, choom." || did.Count != 6 || did[4] != "open_app:valorant" || did[5] != "use_computer:start ranked in valorant for me")
+                if (ranked != "Queued ranked, choom." || did.Count != 7 || did[5] != "open_app:valorant" || did[6] != "use_computer:start ranked in valorant for me")
                     throw new Exception("A game that wasn't open wasn't opened before the job, or the same job ran twice: " + ranked + " / " + string.Join(",", did.ToArray()));
                 if (!Hands.Promised("Play some lofi for you while you study.") || Hands.Promised("Play the long game, it's worth it.")) throw new Exception("\"Play some lofi for you\" with no tool behind it wasn't caught as a promise, or chat was.");
                 string[] sent;
                 lock (asked) sent = asked.ToArray();
-                if (sent.Length != 14) throw new Exception("Working it out made " + sent.Length + " brain calls, not 14.");
+                if (sent.Length != 15) throw new Exception("Working it out made " + sent.Length + " brain calls, not 15.");
                 string[][] wanted =
                 {
                     new[] { "\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"open_app\"", "You hold these tools yourself", "They won't always spell it out", "Nobody tells you what's open on their PC", "{\"name\":\"list_windows\"", "start matchmaking in cs" },
@@ -31316,7 +31328,7 @@ namespace CapriDesktop
                         if (sent[i].IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Brain call " + i + " is missing " + part + ": " + sent[i].Substring(0, Math.Min(400, sent[i].Length)));
                 foreach (string body in sent) if (body.IndexOf("You are the hands of Capri", StringComparison.Ordinal) >= 0 || body.IndexOf("only the word: act", StringComparison.Ordinal) >= 0) throw new Exception("A strong brain still went through her hands' one-shot pick.");
                 foreach (string body in sent) if (body.IndexOf("No game is open", StringComparison.Ordinal) >= 0 || body.IndexOf("The game open on their PC right now", StringComparison.Ordinal) >= 0) throw new Exception("A strong brain was told about their game before it asked.");
-                checks.Add("PASS a strong brain works jobs out itself: with CS closed, \"start matchmaking\" opens CS, sees it opened, then starts the match as a job; a promise with no tool gets one reminder and then \"I haven't actually done that yet\"; calls copied as text still run; chat stays chat; a brain that goes straight to the job in a game that isn't open gets the game opened first, and the same job called twice runs once; \"play some lofi for you\" with no tool behind it counts as a promise; brains with the switch off or no cloud keep her hands' shortcuts");
+                checks.Add("PASS a strong brain works jobs out itself: with CS closed, \"start matchmaking\" opens CS, sees it opened, then starts the match as a job; a promise with no tool gets one reminder, and then her hands do a plain ask like \"open spotify\" themselves; calls copied as text still run; chat stays chat; a brain that goes straight to the job in a game that isn't open gets the game opened first, and the same job called twice runs once; \"play some lofi for you\" with no tool behind it counts as a promise; brains with the switch off or no cloud keep her hands' shortcuts");
             }
             finally
             {
@@ -42879,6 +42891,54 @@ namespace CapriDesktop
             Section(checks, "SmokePcStatus", delegate { SmokePcStatus(checks); });
             Section(checks, "SmokeInternetStatus", delegate { SmokeInternetStatus(checks); });
             Section(checks, "SmokeOpensOnce", delegate { SmokeOpensOnce(checks); });
+            Section(checks, "SmokeStoreLaunch", delegate
+            {
+                SmokeStoreLaunch(checks);
+                Func<System.Collections.Generic.List<InstalledApp>> storeCatalog = Hands.Catalog;
+                Func<string, int> storeActivation = Hands.Activation;
+                Func<string, string> storeOpened = Hands.Opened;
+                Action<string> storeRun = Hands.Run;
+                try
+                {
+                    const string notepad = "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App";
+                    int answer = 0, activated = 0, ran = 0;
+                    Hands.Activation = delegate(string id) { if (id != notepad) throw new Exception("The wrong Store app was activated."); activated++; return answer; };
+                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Notepad", notepad) }; };
+                    Hands.Opened = delegate { return ""; };
+                    Hands.Run = delegate(string id)
+                    {
+                        Hands.Start(id, delegate(string app)
+                        {
+                            ProcessStartInfo launch = Hands.Launch(app);
+                            if (app != notepad || launch.FileName != "explorer.exe" || launch.Arguments != "shell:AppsFolder\\" + notepad || !launch.UseShellExecute)
+                                throw new Exception("The Store app's fallback did not launch through Explorer.");
+                            ran++;
+                        });
+                    };
+                    Hands.Forget();
+                    foreach (int result in new[] { unchecked((int)0x80270251), unchecked((int)0x80270252), unchecked((int)0x80270253) })
+                    {
+                        answer = result;
+                        int before = ran;
+                        string opened = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                        if (ran != before + 1 || activated != ran || opened != "Opened Notepad.")
+                            throw new Exception("A blocked Store activation did not fall back to Explorer: 0x" + result.ToString("X8") + " / " + opened);
+                    }
+                    answer = unchecked((int)0x80270254);
+                    string refused = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                    if (ran != 3 || activated != 4 || refused != "Couldn't open Notepad: Windows wouldn't start it. Try opening it from the Start menu." || !Hands.Failed(refused))
+                        throw new Exception("A Store activation failure lost its refusal or opened Explorer: " + refused);
+                    checks.Add("PASS Store apps fall back to Explorer for elevation, disabled UAC and the built-in Administrator, and other activation failures keep the Windows refusal");
+                }
+                finally
+                {
+                    Hands.Catalog = storeCatalog;
+                    Hands.Activation = storeActivation;
+                    Hands.Opened = storeOpened;
+                    Hands.Run = storeRun;
+                    Hands.Forget();
+                }
+            });
             Section(checks, "SmokeHelpForTools", delegate { SmokeHelpForTools(checks); });
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });

@@ -42,6 +42,7 @@ namespace CapriDesktop
             Func<string, string, string> lookOnWas = Hands.LookOn;
             bool windowsOn = Security.On(Security.Windows);
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            string nvidiaWas = Brain.Nvidia;
             bool keepingWas = Brain.Keeping;
             TcpListener fake = null;
             try
@@ -302,7 +303,31 @@ namespace CapriDesktop
                     || !sent[0].Contains("\"move_to_screen\"") || !sent[0].Contains("To arrange a window, use app_window") || !sent[1].Contains("Monitors, left to right: main screen 1920 x 1080; screen 2 1080 x 1920, portrait")
                     || !sent[1].Contains("940 x 800 at 70, 200") || !sent[2].Contains("Snapped discord to the left half of screen 2, but it stayed 940 x 1872: that's as small as it goes."))
                     throw new Exception("Her planner didn't check where the window was, or didn't hear where it really went: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
-                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she keeps a window on top of the others and lets it go, like \"keep discord on top\"; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up");
+                // A small planner that answers "close discord" with an old remark and no tool still gets discord closed (Gale, 11 Nov).
+                fake.Stop();
+                asked.Clear();
+                Brain.OpenAi = FakeServer(new[] { says("That hill looked too peaceful."), says("Closed Discord for you.") }, asked, out fake);
+                List<string> skipped = new List<string>();
+                Brain small = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                small.Act = delegate(string name, ToolArguments args) { skipped.Add(name + ":" + args.Name + ":" + args.Action); return name == "app_window" && args.Action == "close" ? "Closed " + args.Name + "." : "No result."; };
+                string smallReply = small.Ask("close discord");
+                if (string.Join(",", skipped.ToArray()) != "app_window:discord:close" || smallReply.IndexOf("hill", StringComparison.OrdinalIgnoreCase) >= 0)
+                    throw new Exception("A planner's words without a tool left a plain close undone: " + smallReply + " / " + string.Join(",", skipped.ToArray()));
+                // On Gale's own model the same goes for a call written out as words and for reasoning cut off before its call (11 Nov).
+                string[] wordy = { "app_window: close discord", "Okay, let's break this down. The user is asking me to close discord. Looking at the tools, the correct tool call would be app_window with name: \"discord\", action:" };
+                foreach (string words in wordy)
+                {
+                    fake.Stop();
+                    asked.Clear();
+                    skipped.Clear();
+                    Brain.Nvidia = FakeServer(new[] { says(words), says(words), says(words) }, asked, out fake);
+                    Brain bolt = new Brain { Model = "nvidia/nemotron-3.5-bolt-e4b", Remote = new Cloud("nvapi-test", "nvidia/nemotron-3.5-bolt-e4b"), OwnSteps = true };
+                    bolt.Act = small.Act;
+                    string boltReply = bolt.Ask("close discord");
+                    if (string.Join(",", skipped.ToArray()) != "app_window:discord:close" || boltReply != "Closed discord.")
+                        throw new Exception("Her brain's words for a call didn't close discord: " + words + " / " + boltReply + " / " + string.Join(",", skipped.ToArray()));
+                }
+                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she keeps a window on top of the others and lets it go, like \"keep discord on top\"; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up; a planner that answers a plain \"close discord\" with only words, the call written as words or its reasoning cut off still gets it closed");
             }
             finally
             {
@@ -328,6 +353,7 @@ namespace CapriDesktop
                 Security.Drop();
                 Security.Set(Security.Windows, windowsOn);
                 Brain.OpenAi = openAiWas;
+                Brain.Nvidia = nvidiaWas;
                 Brain.MemoryPath = notesWas;
                 Brain.MemoriesPath = memoriesWas;
                 Brain.TranscriptPath = transcriptsWas;
@@ -838,6 +864,47 @@ namespace CapriDesktop
                 Brain.LogPath = logWas;
                 Brain.Keeping = keepingWas;
                 if (fake != null) fake.Stop();
+            }
+        }
+
+        // A Store app, like Windows 11's Notepad, opens through Windows' app activation and never through Explorer, and Windows saying
+        // no is said instead of "Opened" (the Saac fan, 11 Nov: with 360 Total Security, "open notepad" opened Documents).
+        private static void SmokeStoreLaunch(List<string> checks)
+        {
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<string, int> activationWas = Hands.Activation;
+            Func<string, string> openedWas = Hands.Opened;
+            Action<string> runWas = Hands.Run;
+            try
+            {
+                const string notepad = "Microsoft.WindowsNotepad_8wekyb3d8bbwe!App";
+                const string notepadPlus = @"{6D809377-6AF0-444B-8957-A3773F02200E}\Notepad++\notepad++.exe";
+                if (!Hands.Packaged(notepad) || !Hands.Packaged("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic") || Hands.Packaged(notepadPlus)
+                    || Hands.Packaged(@"C:\Games\game.exe") || Hands.Packaged("spotify:") || Hands.Packaged("https://example.com/a!b") || Hands.Packaged("fake-calculator"))
+                    throw new Exception("A Store app's id was read wrong.");
+                List<string> activated = new List<string>();
+                int answer = 0;
+                Hands.Activation = delegate(string id) { activated.Add(id); return answer; };
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Notepad", notepad), new InstalledApp("Notepad++", notepadPlus) }; };
+                Hands.Opened = delegate { return ""; };
+                Hands.Run = Hands.Start;
+                Hands.Forget();
+                string opened = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                answer = unchecked((int)0x80270254);
+                string refused = Hands.Do("open_app", new ToolArguments { Name = "notepad" });
+                if (opened != "Opened Notepad." || string.Join(",", activated.ToArray()) != notepad + "," + notepad
+                    || refused != "Couldn't open Notepad: Windows wouldn't start it. Try opening it from the Start menu." || !Hands.Failed(refused))
+                    throw new Exception("A Store app didn't open through Windows' activation, or a refusal still said it opened: " + opened + " / " + refused + " / " + string.Join(",", activated.ToArray()));
+                if (Hands.Launch(notepad).FileName != "explorer.exe") throw new Exception("A Store app's fallback launch lost Explorer.");
+                checks.Add("PASS a Store app like Notepad opens through Windows' app activation instead of Explorer, so nothing in between can turn it into a File Explorer window on Documents, and when Windows won't start it she says so instead of \"Opened\"; Store ids are told apart from program paths, launch links and addresses");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Activation = activationWas;
+                Hands.Opened = openedWas;
+                Hands.Run = runWas;
+                Hands.Forget();
             }
         }
 

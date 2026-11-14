@@ -2732,6 +2732,17 @@ namespace CapriDesktop
                     if (calls.Count == 0 && unable == null && lookup != null) calls.Add(new KeyValuePair<string, ToolArguments>("open_website", lookup));
                 }
             }
+            // A brain that takes her tools can answer a plain ask with only words and no tool: an old remark of its own (Gale, 11 Nov, on
+            // nemotron-3.5-bolt-e4b: "close Spotify" got "that hill looked too peaceful"), the call written out as words ("use_computer:
+            // open notepad") or its reasoning cut off before the call. What her hands would have done straight away for any other brain,
+            // they do now, and the words are dropped.
+            if (planning && calls.Count == 0 && !fileChat && unable == null && rest == null && Hands.Heard(request, out direct, out directArgs, true) && Hands.PlainAsk(direct) && kit.Unable(direct, directArgs) == null)
+            {
+                calls.Add(new KeyValuePair<string, ToolArguments>(direct, directArgs));
+                planned = false;
+                planText = null;
+                raw = "";
+            }
             // Asked for something that can't work here: she says so and why, after anything she could do. When none of a mixed ask
             // ran, that's the part that can't work here, unless a brain that worked the job out had its say.
             if (calls.Count == 0 && rest != null && !planned) unable = unable == null ? rest : unable + " " + rest;

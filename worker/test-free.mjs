@@ -22,7 +22,7 @@ const source = readFileSync(join(here, 'src', 'index.js'), 'utf8');
 const each = Number(source.match(/const FREE_EACH = (\d+)/)[1]);
 const pool = Number(source.match(/const FREE_POOL = (\d+)/)[1]);
 assert.equal(each, 15);
-assert.equal(pool, 8000);
+assert.equal(pool, 10000);
 const RealDate = Date;
 let now = RealDate.parse('2026-11-12T13:14:15Z');
 globalThis.Date = class extends RealDate { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } };
