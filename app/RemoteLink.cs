@@ -955,6 +955,82 @@ namespace CapriDesktop
                 finally { release.Set(); link.wire.Socket.Dispose(); next.wire.Socket.Dispose(); }
             }
         }
+
+        internal static void SmokePictureReceipts(List<string> checks)
+        {
+            RemoteState state = RemoteState.Fresh();
+            RemoteDevice device = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone" };
+            state.Devices.Add(device);
+            RemoteLink link = SmokeSession(state);
+            link.Offer("pictures");
+            RemoteKeys keys = RemoteCrypto.SessionKeys(device.Key, new byte[16], new byte[16]);
+            string data = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4____fwAJ-wP9KobjigAAAABJRU5ErkJggg";
+            Func<string, string> picture = delegate(string id) { return "{\"type\":\"chat.send\",\"id\":\"" + id + "\",\"text\":\"\",\"picture\":{\"mime\":\"image/png\",\"data\":\"" + data + "\"}}"; };
+            uint sequence = 0;
+            Action<string> send = delegate(string json)
+            {
+                byte[] envelope = RemoteCrypto.Seal(keys.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, sequence++, Encoding.UTF8.GetBytes(json));
+                link.OnBinary(RemoteCrypto.Join(device.IdBytes, envelope));
+            };
+            object rows = new object();
+            List<string> looks = new List<string>(), texts = new List<string>();
+            Action finish = null;
+            using (ManualResetEvent looking = new ManualResetEvent(false))
+            using (CancellationTokenSource stop = new CancellationTokenSource())
+            {
+                link.wire = new Wire(stop);
+                link.PictureSaid += delegate(string phone, string id, string text, RemotePicture image, Func<bool> current, Action done)
+                {
+                    lock (rows)
+                    {
+                        looks.Add(id);
+                        if (finish == null) finish = done;
+                        else done();
+                    }
+                    looking.Set();
+                };
+                link.Said += delegate(string phone, string id, string text) { lock (rows) texts.Add(id); };
+                try
+                {
+                    send(picture("receipt-a"));
+                    if (!looking.WaitOne(3000)) throw new Exception("The first picture never reached her look.");
+                    send(picture("receipt-b"));
+                    send("{\"type\":\"chat.send\",\"id\":\"receipt-text\",\"text\":\"after the second picture\"}");
+                    send(picture("receipt-b"));
+                    using (ManualResetEvent drained = new ManualResetEvent(false))
+                    {
+                        QueuePicture(delegate { drained.Set(); });
+                        if (!drained.WaitOne(5000)) throw new Exception("The queued pictures never finished decoding.");
+                    }
+                    Phone first = link.phones[device.Id];
+                    Dictionary<string, int> receipts = new Dictionary<string, int>();
+                    bool textBound = false, pictureBound = true;
+                    Outgoing item;
+                    while ((item = link.wire.Take()) != null)
+                    {
+                        RemoteJson.Map row = RemoteJson.ParseMap(item.Json);
+                        if (row == null || row.Text("type") != "chat.typing") continue;
+                        string re = row.Text("re");
+                        int count;
+                        receipts.TryGetValue(re, out count);
+                        receipts[re] = count + 1;
+                        if (re == "receipt-text" && item.Bound != null) textBound = true;
+                        if (re == "receipt-b" && item.Bound != first.Session) pictureBound = false;
+                    }
+                    int a, b, text;
+                    receipts.TryGetValue("receipt-a", out a);
+                    receipts.TryGetValue("receipt-b", out b);
+                    receipts.TryGetValue("receipt-text", out text);
+                    if (a != 1 || b != 1 || text != 1 || textBound || !pictureBound) throw new Exception("A picture waiting behind another look, or the text after it, missed its one receipt or its session.");
+                    lock (rows) if (looks.Count != 1 || texts.Count != 0) throw new Exception("A queued picture or text passed the picture still being looked at.");
+                    lock (link.gate) first.Session = new RemoteChannel(keys, RemoteCrypto.KindSession);
+                    finish();
+                    lock (rows) if (looks.Count != 1 || texts.Count != 1 || texts[0] != "receipt-text") throw new Exception("A session change dropped a queued text or let a stale or resent picture reach her.");
+                    checks.Add("PASS a picture waiting behind another look gets its receipt once decoded, its resend is never looked at, and a text queued behind it is still answered after the session changes");
+                }
+                finally { link.wire.Socket.Dispose(); }
+            }
+        }
 #endif
 
         internal static void SmokePairing(List<string> checks)

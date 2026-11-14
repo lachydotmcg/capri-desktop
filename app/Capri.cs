@@ -38926,6 +38926,7 @@ namespace CapriDesktop
         {
             RemoteLink.SmokePictureHeaders(checks);
             RemoteLink.SmokePictureOrder(checks);
+            RemoteLink.SmokePictureReceipts(checks);
             string address = Brain.Nvidia, log = Brain.LogPath, model = brain.Model, unsighted = brain.Unsighted;
             Cloud remote = brain.Remote;
             RemoteSink sink = remoteSink;
