@@ -2,7 +2,7 @@
 set -euo pipefail
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 unset WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE DISPLAY DBUS_SESSION_BUS_ADDRESS
-for project in tests/native-surface/NativeSurface.Tests.csproj tests/desktop/Capri.Desktop.Tests.csproj tests/computer/ComputerChecks.csproj tests/game-session/GameSessionChecks.csproj tests/input-cancel/InputCancelChecks.csproj tests/native-bridge/NativeBridgeChecks.csproj; do
+for project in tests/native-surface/NativeSurface.Tests.csproj tests/desktop/Capri.Desktop.Tests.csproj tests/computer/ComputerChecks.csproj tests/stream-guard/Probe.csproj tests/game-session/GameSessionChecks.csproj tests/input-cancel/InputCancelChecks.csproj tests/native-bridge/NativeBridgeChecks.csproj; do
     dotnet run --project "$root/$project" -c Release
 done
 make -C "$root/cross/native"
