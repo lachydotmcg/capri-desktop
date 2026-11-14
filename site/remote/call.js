@@ -1042,17 +1042,21 @@
     if (listening) {
       listening = false;
       state = 'off';
+      audioSession('auto');
       if (window.CapriRoom) window.CapriRoom.talk(false);
     }
     draw();
   };
+  // An iPhone on silent mutes Web Audio unless the page says this is playback.
+  const audioSession = type => { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (error) {} };
   const listen = () => {
     if (listening) { if (sound) resume(sound.context); return true; }
     if (live() || !supported(true)) return false;
     listening = true;
     shown = false;
     speakerOn = true;
-    try { openSound(); } catch (error) { listening = false; return false; }
+    audioSession('playback');
+    try { openSound(); } catch (error) { listening = false; audioSession('auto'); return false; }
     state = 'ringing';
     if (!remote().send('call.start', { hush: true })) { over('', false); return false; }
     ring = setTimeout(() => { if (listening && state === 'ringing') end(); }, 8000);
