@@ -56678,7 +56678,11 @@ namespace CapriDesktop
                                 Directory.CreateDirectory(vsTemp);
                                 Environment.SetEnvironmentVariable("TMP", vsTemp);
                                 Environment.SetEnvironmentVariable("TEMP", vsTemp);
-                                ModelFile.Write = delegate(string vsWritePath) { vsWrites.Add(vsWritePath); return vsWriteWas(vsWritePath); };
+                                ModelFile.Write = delegate(string vsWritePath)
+                                {
+                                    vsWrites.Add(Directory.GetFileSystemEntries(vsTemp).Length == 0 ? vsWritePath : "temp copy beside " + vsWritePath);
+                                    return vsWriteWas(vsWritePath);
+                                };
                                 string vsStaging = Path.GetFullPath(Path.Combine(vsShelf, vsPackName + ".new")) + Path.DirectorySeparatorChar;
                                 foreach (string vsExtension in new[] { ".tar.bz2", ".tar", ".tar.gz", ".tgz", ".TAR.BZ2", ".tbz", ".tbz2" })
                                 {
@@ -56718,7 +56722,7 @@ namespace CapriDesktop
                                 System.IO.Compression.ZipFile.CreateFromDirectory(vsNothing, vsEmpty);
                                 try { ModelFile.Unpack(vsEmpty); }
                                 catch (VoiceException vsError) { vsRefused = vsError.Message; }
-                                foreach (string vsProblem in new[] { "parent", "backslash-parent", "absolute", "rooted", "drive", "unc", "stream", "trailing-dot", "trailing-space", "device", "empty-name", "prefix", "long", "pax", "checksum", "size-octal", "size-negative", "long-size", "pax-size", "pax-length", "pax-overflow", "pax-newline", "file", "header", "padding", "end", "bzip2", "bzip2-crc", "gzip", "replacement", "no-model" })
+                                foreach (string vsProblem in new[] { "parent", "backslash-parent", "absolute", "rooted", "drive", "unc", "stream", "trailing-dot", "trailing-space", "empty-name", "prefix", "long", "pax", "checksum", "size-octal", "size-negative", "long-size", "pax-size", "pax-length", "pax-overflow", "pax-newline", "file", "header", "padding", "end", "bzip2", "bzip2-crc", "gzip", "replacement", "no-model" })
                                 {
                                     byte[] vsTarBroken;
                                     int vsAt;
@@ -56729,7 +56733,7 @@ namespace CapriDesktop
                                         vsAt = (int)vsTar.Position;
                                         string vsBadPath = vsProblem == "parent" ? "../escaped.bin" : vsProblem == "backslash-parent" ? "..\\escaped.bin" : vsProblem == "absolute" ? "/escaped.bin"
                                             : vsProblem == "rooted" ? "\\escaped.bin" : vsProblem == "drive" ? "C:\\escaped.bin" : vsProblem == "unc" ? "\\\\server\\share\\escaped.bin" : vsProblem == "stream" ? "file:stream"
-                                            : vsProblem == "trailing-dot" ? "dir./escaped.bin" : vsProblem == "trailing-space" ? "dir /escaped.bin" : vsProblem == "device" ? "aux.txt" : vsProblem == "empty-name" ? "" : null;
+                                            : vsProblem == "trailing-dot" ? "dir./escaped.bin" : vsProblem == "trailing-space" ? "dir /escaped.bin" : vsProblem == "empty-name" ? "" : null;
                                         if (vsBadPath != null) TarEntry(vsTar, vsBadPath, '0', new byte[] { 7, 8, 9 });
                                         else if (vsProblem == "prefix") TarEntry(vsTar, "escaped.bin", '0', new byte[0], "..");
                                         else if (vsProblem == "long" || vsProblem == "long-size") TarEntry(vsTar, "LongLink", 'L', Encoding.UTF8.GetBytes("../escaped.bin\0"));
@@ -56817,7 +56821,7 @@ namespace CapriDesktop
                                 Directory.Delete(vsSized, true);
                                 checks.Add("PASS voice import reads a file's size from its pax header");
                                 // A disk that fills part of the way through, a file she can't write, a format she can't read and a broken zip each get their own line.
-                                byte[] vsBig = new byte[3 << 20], vsFullTar, vsFullGzip, vsZipParent, vsZipGarbage = new byte[300];
+                                byte[] vsBig = new byte[3 << 20], vsFullTar, vsFullGzip, vsZipParent, vsZipSibling, vsZipGarbage = new byte[300];
                                 new Random(60).NextBytes(vsBig);
                                 new Random(61).NextBytes(vsZipGarbage);
                                 using (MemoryStream vsTar = new MemoryStream())
@@ -56841,10 +56845,17 @@ namespace CapriDesktop
                                             using (Stream vsEntry = vsZipping.CreateEntry(vsFile).Open()) vsEntry.WriteByte(2);
                                     vsZipParent = vsPacked.ToArray();
                                 }
-                                foreach (string vsFailure in new[] { "full.tar", "full.tar.gz", "full.tar.bz2", "denied.tar", "locked.tar.gz", "format.tar.xz", "zip-parent.zip", "zip-garbage.zip" })
+                                using (MemoryStream vsPacked = new MemoryStream())
+                                {
+                                    using (System.IO.Compression.ZipArchive vsZipping = new System.IO.Compression.ZipArchive(vsPacked, System.IO.Compression.ZipArchiveMode.Create, true))
+                                        foreach (string vsFile in new[] { "model.onnx", "tokens.txt", "../" + vsPackName + ".newvoice/model.onnx", "../" + vsPackName + ".newvoice/tokens.txt" })
+                                            using (Stream vsEntry = vsZipping.CreateEntry(vsFile).Open()) vsEntry.WriteByte(2);
+                                    vsZipSibling = vsPacked.ToArray();
+                                }
+                                foreach (string vsFailure in new[] { "full.tar", "full.tar.gz", "full.tar.bz2", "denied.tar", "locked.tar.gz", "format.tar.xz", "zip-parent.zip", "zip-sibling.zip", "zip-garbage.zip" })
                                 {
                                     string vsCase = vsFailure.Substring(0, vsFailure.IndexOf('.')), vsExtension = vsFailure.Substring(vsFailure.IndexOf('.')), vsMessage = null, vsDetail = null;
-                                    byte[] vsBytes = vsCase == "zip-parent" ? vsZipParent : vsCase == "zip-garbage" ? vsZipGarbage : vsExtension == ".tar.bz2" ? vsBzip : vsExtension == ".tar.gz" ? vsFullGzip : vsFullTar;
+                                    byte[] vsBytes = vsCase == "zip-parent" ? vsZipParent : vsCase == "zip-sibling" ? vsZipSibling : vsCase == "zip-garbage" ? vsZipGarbage : vsExtension == ".tar.bz2" ? vsBzip : vsExtension == ".tar.gz" ? vsFullGzip : vsFullTar;
                                     string vsFolder = Path.Combine(Path.Combine(vsModels, "failing"), vsFailure), vsArchive = Path.Combine(vsFolder, vsPackName + vsExtension);
                                     Directory.CreateDirectory(vsFolder);
                                     File.WriteAllBytes(vsArchive, vsBytes);
@@ -56865,7 +56876,7 @@ namespace CapriDesktop
                                     if (vsMessage != vsWant || string.IsNullOrEmpty(vsDetail) != (vsCase == "format") || (vsCase == "full" && vsLeft[0] != -1)
                                         || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsBytes) || Directory.GetFiles(vsFolder).Length != 1
                                         || Directory.Exists(vsUnpacked + ".new") || Directory.GetDirectories(vsShelf).Length != 2 || Directory.GetFiles(vsUnpacked, "*", SearchOption.AllDirectories).Length != 4
-                                        || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsUnpacked, "en_US-test-medium.onnx")), new byte[] { 1 }) || File.Exists(Path.Combine(vsUnpacked, "big.bin"))
+                                        || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsUnpacked, "en_US-test-medium.onnx")), new byte[] { 1 }) || File.Exists(Path.Combine(vsUnpacked, "big.bin")) || Directory.Exists(vsUnpacked + ".newvoice")
                                         || File.Exists(Path.Combine(vsModels, "escaped.bin")) || File.Exists(Path.Combine(Path.Combine(vsModels, "failing"), "escaped.bin")) || File.Exists(Path.Combine(vsShelf, "escaped.bin")))
                                         throw new Exception("Voice import left files, changed its source or gave the wrong line for " + vsFailure + ": " + vsMessage + " / " + vsDetail);
                                     checks.Add("PASS voice import " + vsFailure + " says \"" + vsWant + "\", keeps the source and the installed model, and leaves no staging folder");

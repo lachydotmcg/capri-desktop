@@ -3025,7 +3025,21 @@ namespace CapriDesktop
                     {
                         try
                         {
-                            using (ZipArchive zip = new ZipArchive(packed, ZipArchiveMode.Read, true)) zip.ExtractToDirectory(staging);
+                            using (ZipArchive zip = new ZipArchive(packed, ZipArchiveMode.Read, true))
+                            {
+                                // .NET Framework's own check would let "../<name>.newer/x" through.
+                                string root = Path.GetFullPath(staging).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                                foreach (ZipArchiveEntry entry in zip.Entries)
+                                {
+                                    string path;
+                                    try { path = Path.GetFullPath(Path.Combine(root, entry.FullName)); }
+                                    catch (ArgumentException problem) { throw new ArchiveException(problem.Message); }
+                                    catch (NotSupportedException problem) { throw new ArchiveException(problem.Message); }
+                                    if (path != root.TrimEnd(Path.DirectorySeparatorChar) && !path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                                        throw new ArchiveException("A zip entry would land outside its folder: " + entry.FullName);
+                                }
+                                zip.ExtractToDirectory(staging);
+                            }
                         }
                         catch (IOException problem)
                         {
@@ -3071,7 +3085,7 @@ namespace CapriDesktop
             catch (IOException problem)
             {
                 int code = problem.HResult;
-                bool full = code == unchecked((int)0x80070070) || code == unchecked((int)0x80070027) || code == unchecked((int)0x80070507);
+                bool full = code == unchecked((int)0x80070070) || code == unchecked((int)0x80070027) || code == unchecked((int)0x8007050F);
                 throw new VoiceException(full ? NoRoom : Unwritten, problem.Message);
             }
             catch (UnauthorizedAccessException problem) { throw new VoiceException(Unwritten, problem.Message); }
