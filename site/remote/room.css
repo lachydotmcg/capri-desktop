@@ -52,7 +52,7 @@
 .room-menu .nbtn { padding-inline: 10px; }
 .app[data-room] .her-layer { visibility: hidden; }
 .app[data-room] .log-end { height: 16px; }
-.app[data-room].kb .room { display: none; }
+.app[data-room="camera"].kb .room { display: none; }
 .app[data-room="ar"] { background: transparent; }
 .app[data-room="ar"] .room { position: static; z-index: auto; flex: 1 1 auto; border: 0; background: none; }
 .app[data-room="ar"] .room-head,

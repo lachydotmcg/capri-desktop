@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chromePath, launch } from './lib/cdp.mjs';
+import { HOME_SCREEN, IPHONES, misfitsOf, setPhone } from './lib/fit.mjs';
 import { startSite } from './lib/site.mjs';
 
 test('the phone room camera starts on request and releases its tracks', { skip: !chromePath() }, async () => {
@@ -22,6 +23,7 @@ test('the phone room camera starts on request and releases its tracks', { skip: 
     ` });
     await page.go('http://127.0.0.1:8981/?demo');
     await page.until("document.getElementById('app').dataset.screen === 'chat'", 'demo chat');
+    await setPhone(page, IPHONES[0], HOME_SCREEN);
     const click = id => page.run("document.getElementById('" + id + "').click()");
     const open = async () => { await click('room-camera'); await click('room-open'); };
     assert.equal(await page.run('cameraRequests.length'), 0);
@@ -30,6 +32,7 @@ test('the phone room camera starts on request and releases its tracks', { skip: 
     assert.equal(await page.run('cameraRequests.length'), 0);
     await open();
     await page.until("!document.getElementById('room-controls').hidden", 'camera controls');
+    assert.deepEqual(await misfitsOf(page), []);
     assert.deepEqual(await page.run('cameraRequests[0].constraints'), { video: { facingMode: { ideal: 'environment' } }, audio: false });
     assert.equal(await page.run("document.getElementById('msg').getBoundingClientRect().height > 0"), true);
     await click('room-lie');
