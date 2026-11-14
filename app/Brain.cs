@@ -432,10 +432,10 @@ namespace CapriDesktop
 
         internal static List<string> Models(string kind) { return new List<string>(kind == "codex" ? CodexModels : ClaudeModels); }
 
-        internal static string Shown(string kind, string id)
+        internal static string Shown(string kind, string id, bool brief = false)
         {
             if (kind == "codex") return id == "default" ? "Codex's own model" : id;
-            return id == "haiku" ? "Haiku" : id == "sonnet" ? "Sonnet" : id == "opus" ? "Opus" : id;
+            return id == "haiku" ? "Haiku" + (brief ? "" : " · fastest") : id == "sonnet" ? "Sonnet" : id == "opus" ? "Opus" + (brief ? "" : " · smartest, uses your plan fastest") : id;
         }
 
         internal static string Missing(string kind)

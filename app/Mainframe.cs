@@ -466,7 +466,7 @@ namespace CapriDesktop
                 rung.Hint = tiers[i, 1];
                 rung.Font = Type(9.5f, true);
                 rung.HintFont = Type(9f);
-                rung.AccessibleName = tiers[i, 0] + ", " + tiers[i, 1];
+                rung.AccessibleName = tiers[i, 0] + (string.IsNullOrEmpty(tiers[i, 1]) ? "" : ", " + tiers[i, 1]);
                 rung.Bounds = new Rectangle(28, 184 + 24 * i, i == 2 ? 190 : i == 1 ? 232 : 328, 24);
                 rung.CheckedChanged += delegate { if (!syncing && rungs[picked].Checked) capri.ChooseTier(picked); };
                 Controls.Add(rung);
@@ -1584,6 +1584,10 @@ namespace CapriDesktop
         internal bool PlanTicked(int index) { return ((ToolStripMenuItem)planMenu.Items[index]).Checked; }
 
         internal string PlanChoice { get { return planKey.Text; } }
+
+        internal string MaxName { get { return rungs[2].AccessibilityObject.Name; } }
+
+        internal string PlanName { get { return planKey.AccessibilityObject.Name; } }
 
         internal string[] PlanChoices { get { List<string> choices = new List<string>(); foreach (ToolStripItem item in planMenu.Items) choices.Add(item.Text); return choices.ToArray(); } }
 
@@ -3808,15 +3812,18 @@ namespace CapriDesktop
         internal void CloseThinkingExtra() { if (thinkingSheet != null && !thinkingSheet.IsDisposed) thinkingSheet.Close(); }
 
         // The cloud brain and list her model menu was last built from.
-        private Cloud menuRemote;
+        private Cloud menuRemote, forgotten;
         private string[] menuModels;
+
+        internal void ForgotText(Cloud remote) { forgotten = remote; }
 
         internal void ShowCloud(Cloud remote, List<string> found)
         {
+            if (remote != forgotten) forgotten = null;
             brainName.Text = remote.Name + (remote.Model == null ? "" : " · " + remote.Model);
-            brainNote.Text = remote.Code ? remote.CodeNote : remote.Kind == "local" ? "Running on this PC · :" + remote.Port : remote.Kind == "nvidia" ? NvidiaNote
+            brainNote.Text = remote == forgotten ? remote.Plan ? "Using your saved " + Plans.Plan(remote.Kind) + "." : "Back on your saved API key." : remote.Code ? remote.CodeNote : remote.Kind == "local" ? "Running on this PC · :" + remote.Port : remote.Kind == "nvidia" ? NvidiaNote
                 : remote.Plan ? "Using your " + Plans.Plan(remote.Kind) + " · " + remote.Name + " on this PC" : "Using your " + remote.Company + " key";
-            models.Text = remote.Code ? "Claude Haiku 5.5" : remote.Plan ? Plans.Shown(remote.Kind, remote.Model) : remote.Model;
+            models.Text = remote.Code ? "Claude Haiku 5.5" : remote.Plan ? Plans.Shown(remote.Kind, remote.Model, true) : remote.Model;
             models.Visible = remote.Model != null;
             hint.Visible = false;
             if (remote.Kind == "local") { LocalMenu(null, remote); Arrange(false); return; }

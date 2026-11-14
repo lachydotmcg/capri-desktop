@@ -11677,6 +11677,7 @@ namespace CapriDesktop
             brain.Remote = TierCloud();
             brain.Model = brain.Remote == null ? brain.Server == null ? null : preferences.ProviderModel : brain.Remote.Model;
             ShowTiers();
+            mainframe.ForgotText(brain.Remote);
             FindBrain();
         }
 
@@ -37867,6 +37868,12 @@ namespace CapriDesktop
                 mainframe.ShowCloud(brain.Remote, cloudModels);
             };
             Action settled = delegate { WaitVoice(delegate { return cloudModels != null; }, "The selected brain did not finish listing its models."); };
+            Action<string> forgetNote = delegate(string line)
+            {
+                if (!mainframe.Status.EndsWith(" | " + line, StringComparison.Ordinal)) throw new Exception("Forget did not name the source now in use: " + mainframe.Status);
+                settled();
+                if (!mainframe.Status.EndsWith(" | " + line, StringComparison.Ordinal)) throw new Exception("Refreshing models lost the note after Forget: " + mainframe.Status);
+            };
             try
             {
                 finding = true;
@@ -37965,11 +37972,20 @@ namespace CapriDesktop
                 use(3);
                 ForgetText();
                 if (preferences.PaidPlan != null || preferences.PlanModel != null || preferences.PaidKey != sealedKey || preferences.PlanPicked || preferences.Tier != 2 || brain.Remote == null || brain.Remote.Key != key) throw new Exception("Removing a plan did not leave the saved API key in use.");
-                settled();
+                forgetNote("Back on your saved API key.");
+                checks.Add("PASS Forget plan says Back on your saved API key. before and after model refresh");
                 use(2);
                 ForgetText();
                 if (preferences.PaidKey != null || preferences.PaidModel != null || preferences.PaidPlan != sealedClaude || !preferences.PlanPicked || preferences.Tier != 2 || brain.Remote == null || brain.Remote.Kind != "claudecode" || brain.Remote.Model != "sonnet") throw new Exception("Removing an API key did not leave the saved plan in use.");
+                forgetNote("Using your saved Claude plan.");
+                checks.Add("PASS Forget API key says Using your saved Claude plan. before and after model refresh");
+                use(5);
+                mainframe.PickPlan(0);
                 settled();
+                ForgetText();
+                if (preferences.PaidKey != null || preferences.PaidPlan != sealedCodex || !preferences.PlanPicked || brain.Remote == null || brain.Remote.Kind != "codex" || brain.Remote.Model != "default") throw new Exception("Removing an API key did not leave the saved ChatGPT plan in use.");
+                forgetNote("Using your saved ChatGPT plan.");
+                checks.Add("PASS Forget API key says Using your saved ChatGPT plan. before and after model refresh");
                 checks.Add("PASS removing either source leaves the other saved source and its model in use");
 
                 use(3);
@@ -38026,6 +38042,25 @@ namespace CapriDesktop
                 if (Cloud.KindOf(Plans.ClaudeKey) != "claudecode" || Cloud.KindOf(Plans.CodexKey) != "codex") throw new Exception("Her plans aren't their own kinds of brain.");
                 Cloud claudePlan = new Cloud(Plans.ClaudeKey, "haiku"), codexPlan = new Cloud(Plans.CodexKey, "default");
                 if (!claudePlan.Plan || claudePlan.Name != "Claude Code" || claudePlan.Company != "Anthropic" || codexPlan.Name != "Codex" || codexPlan.Company != "OpenAI") throw new Exception("Her plans have the wrong names.");
+                SelfKnow.Topic topic = SelfKnow.Setting("Mainframe.cs", "API key, Claude plan or ChatGPT plan");
+                if (topic == null) throw new Exception("Her My plan topic is missing.");
+                foreach (string fact in new[] {
+                    "API key, Claude plan and ChatGPT plan; switching keeps your saved key and plan.",
+                    "The plan choices run her brain on your own Claude or ChatGPT plan, with no API key.",
+                    "Claude plan runs Claude Code on this PC, and ChatGPT plan runs Codex.",
+                    "Install the app and sign in to it with your own account first:",
+                    "for Claude Code, install it from claude.com/claude-code, run claude and sign in;",
+                    "for Codex, run npm install -g @openai/codex, then codex login and sign in with ChatGPT.",
+                    "Then pick your plan here.", "Choose a model in BRAIN's model menu where the key box was:",
+                    "for Claude, Haiku is fastest and Opus uses your plan fastest; for Codex, she uses the model Codex is set to.",
+                    "She runs the app hidden with none of its own tools and saves nothing in it, and she never touches its sign-in.",
+                    "Her own tools, like opening apps and using your PC, still work.",
+                    "Replies take a few seconds longer than with a key and count toward your plan's limits.",
+                    "To stop, pick API key to use your saved key, or paste one and press Connect, or pick another tier." })
+                    if (!topic.Facts.Contains(fact)) throw new Exception("Her My plan topic lost: " + fact);
+                checks.Add("PASS My plan keeps all 0.9.1 setup, model, tool and limit guidance with the MAX source picker");
+                if (mainframe.MaxName != "MAX INTELLIGENCE" || mainframe.PlanName != "API key, Claude plan or ChatGPT plan") throw new Exception("The MAX row or its source picker has the wrong accessible name.");
+                checks.Add("PASS MAX row and source picker have separate plain accessible names with no trailing separator");
                 if (Brain.HasTools(claudePlan) || Brain.HasTools(codexPlan)) throw new Exception("A plan brain was sent native tools instead of her written ones.");
                 if (!Brain.ModelFits("claudecode", "sonnet") || Brain.ModelFits("claudecode", "gpt-5") || !Brain.ModelFits("codex", "default") || Brain.DefaultCloudModel("claudecode", Plans.Models("claudecode")) != "haiku") throw new Exception("Her plan models are wrong.");
                 Directory.CreateDirectory(runs);
@@ -38115,6 +38150,8 @@ namespace CapriDesktop
                 mainframe.LayoutScale(96, 100);
                 if (mainframe.PlanTicked(0) || !mainframe.PlanTicked(1) || mainframe.PlanTicked(2)) throw new Exception("The brain choice didn't tick the plan in use.");
                 if (mainframe.TextStatus != "tier 2 | Claude Code · haiku | Using your Claude plan · Claude Code on this PC | Haiku | Forget") throw new Exception("BRAIN showed " + mainframe.TextStatus);
+                if (string.Join("|", mainframe.BrainChoices) != "Haiku · fastest|Sonnet|Opus · smartest, uses your plan fastest") throw new Exception("The plan model menu lost its 0.9.1 guidance.");
+                checks.Add("PASS plan model menu keeps the 0.9.1 speed and plan-use guidance while the closed box stays short");
                 checks.Add("PASS your plan as her brain: Claude Code and Codex run hidden with her prompt on stdin, none of their own tools, no MCP servers, nothing saved and no API key from the environment; a screenshot goes along as a picture; signed out, out of plan and not installed each get her plain line; a reply talked over ends the app " + stoppedIn + " ms after it starts; and My plan fits MAX INTELLIGENCE's rung at 100%, 150% and 200%");
             }
             finally
