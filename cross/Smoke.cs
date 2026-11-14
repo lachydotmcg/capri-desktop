@@ -168,6 +168,7 @@ namespace CapriDesktop
                 Watching.Checks(checks);
                 RemoteCoreChecks();
                 RemoteBridgeChecks();
+                RemoteSheetChecks();
                 Vector swipe = Mainframe.Wheel(new Vector(0.04, 1), KeyModifiers.None), plain = Mainframe.Wheel(new Vector(0, -1), KeyModifiers.None), shifted = Mainframe.Wheel(new Vector(0, 1), KeyModifiers.Shift);
                 if (swipe != new Vector(0.04, 1) || plain != new Vector(0, -1) || shifted != new Vector(1, 0)
                     || !Mainframe.Precise(new Vector(0.04, 0.3)) || Mainframe.Precise(new Vector(0, -1)))
@@ -7026,6 +7027,392 @@ namespace CapriDesktop
             internal void Send(int phone, string id, string text) { RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], ++sequences[device.Id], new RemoteJson.Writer().Text("type", "chat.send").Text("id", id).Text("text", text).ToString()); }
             internal void Left(int phone) { Wire.Text(new RemoteJson.Writer().Text("t", "left").Text("device", Phones[phone].Id).ToString()); }
             public void Dispose() { if (over) return; over = true; pet.SetRemote(false); foreach (RemoteWire wire in wires) wire.Dispose(); }
+        }
+
+        private void RemoteSheetChecks()
+        {
+            Settings saved = pet.Saved;
+            Func<string, string> think = pet.Think;
+            Func<string, ToolArguments, string> act = pet.Brain.Act;
+            Cloud cloud = pet.Brain.Remote;
+            string model = pet.Brain.Model, server = pet.Brain.Server, permissions = Security.Saved, apps = Hands.AppsPath;
+            Action<string> run = Hands.Run;
+            Func<List<InstalledApp>> catalog = Hands.Catalog;
+            Func<List<OpenWindow>> windows = Hands.Windows;
+            Func<string, string> look = Hands.Look;
+            Func<string, KeyValuePair<string, ToolArguments>> request = Hands.NativeRequest;
+            RemoteStore files = pet.RemoteFiles;
+            Func<RemoteState, string, Action<RemoteState>, RemoteLink> make = pet.RemoteMake;
+            Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
+            bool streaming = Hands.Streaming;
+            Avalonia.Threading.DispatcherTimer timer = (Avalonia.Threading.DispatcherTimer)RemoteWire.Get(pet, "frames");
+            bool ticking = timer.IsEnabled;
+            string[] fields = { "remoteState", "remoteRelay", "remoteProblem", "remoteSaveProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode" };
+            Dictionary<string, object> before = new Dictionary<string, object>();
+            foreach (string field in fields) before[field] = RemoteWire.Get(pet, field);
+            Mainframe frame = null;
+            RemoteBridgeFake bridge = null;
+            timer.Stop();
+            try
+            {
+                pet.Saved = new Settings { Silent = true, VoiceProvider = Speakers.Off, RemoteHost = "ws://127.0.0.1:1", MainframeSize = 100 };
+                pet.Brain.Remote = null; pet.Brain.Server = null; pet.Brain.Model = "gemma4:e4b";
+                Hands.Streaming = false;
+                bridge = new RemoteBridgeFake(pet); bridge.Use(new RemoteFileFake());
+                frame = new Mainframe(pet); frame.Show(); frame.ShowSettings(false);
+                RemoteSheetViews(frame);
+                RemoteSheetPixels();
+                RemoteSheetControls(frame);
+                RemoteSheetStreaming(frame);
+                RemoteSheetPath(frame, bridge);
+            }
+            finally
+            {
+                try { if (frame != null) frame.Shut(); }
+                finally
+                {
+                    if (bridge != null) bridge.Dispose();
+                    RemoteWire.Set(pet, "asking", (int)RemoteWire.Get(pet, "asking") + 1);
+                    pet.Think = think; pet.Brain.Act = act; pet.Brain.Remote = cloud; pet.Brain.Server = server; pet.Brain.Model = model;
+                    Hands.Run = run; Hands.Catalog = catalog; Hands.Windows = windows; Hands.Look = look; Hands.NativeRequest = request;
+                    Hands.AppsPath = apps; Hands.Forget(); Hands.Streaming = streaming;
+                    Security.Drop(); Security.Load(permissions);
+                    pet.Saved = saved;
+                    pet.RemoteFiles = files; pet.RemoteMake = make; pet.RemoteOutput = output;
+                    foreach (string field in fields) RemoteWire.Set(pet, field, before[field]);
+                    pet.Talk.Dismiss(); pet.NotifySettings();
+                    if (ticking) timer.Start();
+                }
+            }
+        }
+
+        private void RemoteSheetViews(Mainframe frame)
+        {
+            int size = pet.Saved.MainframeSize;
+            bool streaming = Hands.Streaming;
+            try
+            {
+                foreach (KeyValuePair<string, RemoteView> sample in RemoteSheet.Samples())
+                {
+                    Hands.Streaming = sample.Key == "qr-streaming";
+                    RemoteSheetFake fake = new RemoteSheetFake(sample.Value);
+                    RemoteSheet sheet = fake.Sheet;
+                    sheet.Show(frame);
+                    try
+                    {
+                        foreach (int scale in new[] { 100, 125, 150, 200 })
+                        {
+                            pet.SetMainframeSize(scale); frame.Sync(); sheet.Sync(); sheet.UpdateLayout();
+                            string wrong = sheet.Crowded();
+                            if (wrong != null || Math.Abs(sheet.Zoom - scale / 100.0) > 0.001) throw new Exception("Remote " + sample.Key + " at " + scale + "%: " + wrong);
+                            RemoteQrBox qr = (RemoteQrBox)sheet.Rows["QR"];
+                            if (qr.IsVisible != (sample.Key == "qr") || (qr.Url != null) != qr.IsVisible) throw new Exception("Remote drew the wrong QR view: " + sample.Key);
+                            if (sample.Value.Ask != null && (((NeonCaption)sheet.Rows["Ask name"]).Text != sample.Value.Ask.Name || ((NeonCaption)sheet.Rows["Code"]).Text != sample.Value.Ask.Code)) throw new Exception("Remote lost the asking phone or digits.");
+                            if (sample.Key == "link" && ((NeonCaption)sheet.Rows["Idle"]).Text != "Pairing link sent to " + sample.Value.LinkFor) throw new Exception("Remote did not name the phone's private link.");
+                            bool picture = scale == 100 || scale != 125 && (sample.Key == "qr" || sample.Key == "asking" || sample.Key == "seven-phones" || sample.Key == "long");
+                            RemoteSheetDraw(sheet, picture ? Path.Combine(folder, "remote-" + sample.Key + "-" + scale + ".png") : null);
+                            if (qr.IsVisible)
+                            {
+                                Point? origin = qr.TranslatePoint(new Point(), sheet);
+                                if (!origin.HasValue) throw new Exception("Remote QR lost its window origin.");
+                                int unit;
+                                Rect quiet = RemoteQrBox.Pixels(RemoteQr.Encode(qr.Url).Size + 8, qr.Bounds.Size, sheet.Zoom * sheet.RenderScaling, new Point(origin.Value.X * sheet.RenderScaling, origin.Value.Y * sheet.RenderScaling), out unit);
+                                if (unit <= 0 || qr.PixelUnit != unit || qr.QuietBox != quiet) throw new Exception("Remote QR drawing disagreed with its pixel helper.");
+                            }
+                            if (sample.Key == "seven-phones")
+                            {
+                                RemoteSheetPress(sheet, "Next"); sheet.UpdateLayout();
+                                wrong = sheet.Crowded();
+                                if (wrong != null) throw new Exception("Remote phones page two at " + scale + "%: " + wrong);
+                                RemoteSheetDraw(sheet, scale == 125 ? null : Path.Combine(folder, "remote-seven-phones-page-2-" + scale + ".png"));
+                                RemoteSheetPress(sheet, "Back");
+                            }
+                        }
+                    }
+                    finally { sheet.Close(); }
+                    if (fake.Count("close") != 1) throw new Exception("A Remote sample did not close its code once.");
+                }
+                checks.Add("PASS Remote sheet views: every sample draws and fits at 100%, 125%, 150% and 200%; both phone pages fit; saved pictures cover every view, large QR, approval, seven phones and long text");
+            }
+            finally { Hands.Streaming = streaming; pet.SetMainframeSize(size); frame.Sync(); }
+        }
+
+        private void RemoteSheetPixels()
+        {
+            RemoteQr code = RemoteQr.Encode(RemoteSheet.Samples()["qr"].Qr);
+            Size size = new Size(252, 252);
+            foreach (double zoom in new[] { 1.0, 1.25, 1.5, 2.0 })
+                foreach (double dpi in new[] { 1.0, 1.25, 1.5, 2.0 })
+                    foreach (double x in new[] { 0.0, 0.25, 0.5, 0.75 })
+                        foreach (double y in new[] { 0.0, 0.25, 0.5, 0.75 })
+                        {
+                            double scale = zoom * dpi;
+                            Point origin = new Point(34 * scale + x, -184 * scale + y);
+                            int unit;
+                            Rect quiet = RemoteQrBox.Pixels(code.Size + 8, size, scale, origin, out unit);
+                            double step = unit / scale;
+                            Rect matrix = new Rect(quiet.X + 4 * step, quiet.Y + 4 * step, code.Size * step, code.Size * step);
+                            if (unit < 1 || !new Rect(size).Contains(quiet) || quiet.X < 6 || quiet.Y < 6 || quiet.Right > size.Width - 6 + 0.000001 || quiet.Bottom > size.Height - 6 + 0.000001
+                                || quiet.Right + quiet.Bottom > size.Width + size.Height - 12 + 0.000001 || Math.Abs(quiet.Width * scale - (code.Size + 8) * unit) > 0.000001 || Math.Abs(quiet.Height - quiet.Width) > 0.000001)
+                                throw new Exception("Remote QR plate or quiet square left its box at " + zoom + " / " + dpi + ".");
+                            if (Math.Abs((matrix.X - quiet.X) * scale - 4 * unit) > 0.000001 || Math.Abs((matrix.Y - quiet.Y) * scale - 4 * unit) > 0.000001
+                                || Math.Abs((quiet.Right - matrix.Right) * scale - 4 * unit) > 0.000001 || Math.Abs((quiet.Bottom - matrix.Bottom) * scale - 4 * unit) > 0.000001)
+                                throw new Exception("Remote QR did not leave four empty modules on every side.");
+                            for (int row = 0; row < code.Size; row++)
+                                for (int col = 0; col < code.Size; col++)
+                                {
+                                    double left = origin.X + (matrix.X + col * step) * scale, top = origin.Y + (matrix.Y + row * step) * scale;
+                                    double right = origin.X + (matrix.X + (col + 1) * step) * scale, bottom = origin.Y + (matrix.Y + (row + 1) * step) * scale;
+                                    if (Math.Abs(left - Math.Round(left)) > 0.000001 || Math.Abs(top - Math.Round(top)) > 0.000001 || Math.Abs(right - Math.Round(right)) > 0.000001 || Math.Abs(bottom - Math.Round(bottom)) > 0.000001
+                                        || Math.Abs(right - left - unit) > 0.000001 || Math.Abs(bottom - top - unit) > 0.000001) throw new Exception("Remote QR modules did not share whole device pixels.");
+                                }
+                        }
+            checks.Add("PASS Remote QR pixels: the drawing helper gives equal whole device pixels and four quiet modules inside the cut plate for four zooms, four render scales and fractional scrolled origins");
+        }
+
+        private void RemoteSheetControls(Mainframe frame)
+        {
+            RemoteSheetFake fake = new RemoteSheetFake(RemoteSheet.Samples()["off"]);
+            RemoteSheet sheet = fake.Sheet;
+            sheet.Show(frame);
+            try
+            {
+                NeonSwitch power = (NeonSwitch)sheet.Rows["Remote"];
+                power.Checked = true; power.Checked = false;
+                if (fake.Calls.Count != 2 || fake.Calls[0] != "on" || fake.Calls[1] != "off") throw new Exception("Remote's switch did not call on then off.");
+                fake.View = RemoteSheet.Samples()["ready"]; sheet.Sync();
+                RemoteSheetPress(sheet, "Pair");
+                string first = fake.View.Qr;
+                if (((NeonButton)sheet.Rows["Pair"]).Text != "New code") throw new Exception("Remote's pair key did not become New code.");
+                RemoteSheetPress(sheet, "Pair");
+                if (fake.Count("new") != 2 || first == fake.View.Qr) throw new Exception("Remote's pair and new-code keys lost a callback.");
+                fake.View = RemoteSheet.Samples()["asking"]; sheet.Sync();
+                RemoteSheetPress(sheet, "Allow"); RemoteSheetPress(sheet, "Deny");
+                if (fake.Count("allow") != 1 || fake.Count("deny") != 1) throw new Exception("Remote's Allow or Deny callback changed.");
+                fake.View = RemoteSheet.Samples()["seven-phones"]; sheet.Sync(); fake.Calls.Clear();
+                string one = fake.View.Phones[0].Id, two = fake.View.Phones[1].Id;
+                RemoteSheetPress(sheet, "Revoke 1"); RemoteSheetPress(sheet, "Revoke 2"); RemoteSheetPress(sheet, "Revoke 1");
+                if (fake.Calls.Count != 0 || ((NeonButton)sheet.Rows["Revoke 1"]).Text != "Sure?" || ((NeonButton)sheet.Rows["Revoke 2"]).Text != "Revoke") throw new Exception("Changing the armed phone did not start again.");
+                RemoteSheetPress(sheet, "Revoke 1");
+                if (fake.Calls.Count != 1 || fake.Calls[0] != "revoke " + one) throw new Exception("Remote did not revoke the twice-pressed phone.");
+                fake.Calls.Clear();
+                RemoteSheetPress(sheet, "Revoke 1"); RemoteSheetPress(sheet, "Remove all phones"); RemoteSheetPress(sheet, "Revoke 1");
+                if (fake.Calls.Count != 0 || ((NeonButton)sheet.Rows["Remove all phones"]).Text != "Remove all phones") throw new Exception("Remove all and Revoke did not cancel each other's first press.");
+                RemoteSheetPress(sheet, "Revoke 1");
+                if (fake.Calls.Count != 1 || fake.Calls[0] != "revoke " + one) throw new Exception("Remove all left a stale phone confirmation.");
+                fake.Calls.Clear();
+                RemoteSheetPress(sheet, "Remove all phones"); RemoteSheetPress(sheet, "Revoke 2"); RemoteSheetPress(sheet, "Remove all phones");
+                if (fake.Calls.Count != 0 || ((NeonButton)sheet.Rows["Revoke 2"]).Text != "Revoke") throw new Exception("Revoke left a stale Remove all confirmation.");
+                RemoteSheetPress(sheet, "Remove all phones");
+                if (fake.Calls.Count != 1 || fake.Count("remove") != 1) throw new Exception("Remote did not remove all on its second press.");
+                fake.Calls.Clear(); RemoteSheetPress(sheet, "Revoke 1");
+                RemoteDevice moved = fake.View.Phones[0]; fake.View.Phones[0] = fake.View.Phones[1]; fake.View.Phones[1] = moved; sheet.Sync();
+                if (((NeonButton)sheet.Rows["Revoke 2"]).Text != "Sure?") throw new Exception("Remote confirmation did not follow the phone id.");
+                RemoteSheetPress(sheet, "Revoke 2");
+                if (fake.Calls.Count != 1 || fake.Calls[0] != "revoke " + one) throw new Exception("Reordering phones revoked a different id.");
+                fake.Calls.Clear(); RemoteSheetPress(sheet, "Revoke 1"); fake.View.Phones.RemoveAll(delegate(RemoteDevice phone) { return phone.Id == two; }); sheet.Sync();
+                if (((NeonButton)sheet.Rows["Revoke 1"]).Text != "Revoke" || fake.Calls.Count != 0) throw new Exception("Removing an armed phone kept its confirmation.");
+                fake.View = RemoteSheet.Samples()["seven-phones"]; sheet.Sync();
+                RemoteSheetPress(sheet, "Next");
+                if (((NeonCaption)sheet.Rows["Page"]).Text != "Page 2 of 2" || ((NeonCaption)sheet.Rows["Phone 1"]).Text != "Phone 6" || ((NeonCaption)sheet.Rows["Phone 2"]).Text != "Phone 7"
+                    || sheet.Rows["Phone 3"].IsVisible || sheet.Rows["Phone state 3"].IsVisible || sheet.Rows["Revoke 3"].IsVisible || sheet.Rows["Next"].IsEnabled || !sheet.Rows["Back"].IsEnabled
+                    || !sheet.Rows["Phone source 2"].IsVisible || !((NeonCaption)sheet.Rows["Phone source 2"]).Text.EndsWith(fake.View.Phones[0].Name, StringComparison.Ordinal)) throw new Exception("Remote's second page lost phones, source words or empty rows.");
+                RemoteSheetPress(sheet, "Revoke 2");
+                if (fake.Calls.Count != 0) throw new Exception("Remote revoked a second-page phone on its first press.");
+                RemoteSheetPress(sheet, "Revoke 2");
+                if (fake.Calls.Count != 1 || fake.Calls[0] != "revoke " + fake.View.Phones[6].Id) throw new Exception("Remote's second page revoked the wrong phone id.");
+                RemoteSheetPress(sheet, "Back");
+                if (((NeonCaption)sheet.Rows["Phone 1"]).Text != fake.View.Phones[0].Name || sheet.Rows["Back"].IsEnabled) throw new Exception("Remote's Back key did not restore page one.");
+                NeonEntry host = (NeonEntry)sheet.Rows["Relay host"];
+                host.Box.Text = "https://relay.example/path"; RemoteSheetPress(sheet, "Save relay host"); sheet.Sync(); sheet.Sync();
+                if (((NeonCaption)sheet.Rows["Note"]).Text != "Not a relay host" || host.Box.Text != "https://relay.example/path" || fake.Count("host https://relay.example/path") != 1) throw new Exception("Remote lost a refused host or its refusal words while polling.");
+                host.Box.Text = "relay.example:8443"; fake.AcceptHost = true;
+                host.Box.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter }); sheet.Sync();
+                if (fake.View.Host != "relay.example:8443" || host.Box.Text != fake.View.Host || sheet.Rows["Note"].IsVisible || fake.Count("host relay.example:8443") != 1) throw new Exception("Remote did not clear an accepted host's refusal.");
+                host.Box.Text = "unsaved.example"; sheet.Rows["Pair"].Focus(); sheet.Sync();
+                if (host.Box.Text != "unsaved.example") throw new Exception("Remote polling replaced an unsaved host edit.");
+                RemoteSheetPress(sheet, "Close"); sheet.Close();
+                int reads = fake.Reads; sheet.Sync();
+                if (fake.Count("close") != 1 || fake.Reads != reads || ((Avalonia.Threading.DispatcherTimer)RemoteWire.Get(sheet, "clock")).IsEnabled || ((RemoteQrBox)sheet.Rows["QR"]).Url != null) throw new Exception("Remote close repeated its callback, kept polling or kept a QR.");
+                checks.Add("PASS Remote sheet controls: switch, pair, new code, Allow, Deny and one close callback; double presses, changed ids, reorder, removed ids and mutual cancellation; both pages and correct revoke ids; host refusal persists and acceptance clears it");
+            }
+            finally { sheet.Close(); }
+        }
+
+        private void RemoteSheetStreaming(Mainframe frame)
+        {
+            bool streaming = Hands.Streaming;
+            Hands.Streaming = true;
+            RemoteSheetFake fake = new RemoteSheetFake(RemoteSheet.Samples()["qr"]);
+            RemoteSheet sheet = fake.Sheet;
+            sheet.Show(frame);
+            try
+            {
+                RemoteQrBox qr = (RemoteQrBox)sheet.Rows["QR"];
+                if (qr.IsVisible || qr.Url != null || !sheet.Rows["Show QR"].IsVisible) throw new Exception("Remote exposed a streaming QR before Show QR.");
+                RemoteSheetPress(sheet, "Show QR"); RemoteSheetDraw(sheet, null);
+                if (!qr.IsVisible || qr.Url != fake.View.Qr || qr.PixelUnit < 1) throw new Exception("Show QR did not draw the streaming code.");
+                RemoteSheetPress(sheet, "Pair");
+                if (qr.IsVisible || qr.Url != null) throw new Exception("A new streaming code stayed revealed.");
+                RemoteSheetPress(sheet, "Show QR"); Hands.Streaming = false; sheet.Sync(); Hands.Streaming = true; sheet.Sync();
+                if (qr.IsVisible || qr.Url != null) throw new Exception("Changing streaming kept a revealed QR.");
+                fake.View = RemoteSheet.Samples()["link"]; sheet.Sync(); RemoteSheetDraw(sheet, null);
+                if (qr.IsVisible || qr.Url != null || sheet.Rows["Show QR"].IsVisible || ((NeonCaption)sheet.Rows["Idle"]).Text != "Pairing link sent to " + fake.View.LinkFor) throw new Exception("Remote drew a private phone link as a QR while streaming.");
+                Hands.Streaming = false; sheet.Sync();
+                if (qr.IsVisible || qr.Url != null) throw new Exception("Remote drew a private phone link after streaming.");
+                checks.Add("PASS Remote streaming: QR stays hidden until Show QR, a new code or streaming change hides it again, and a paired phone's link is named and never becomes a QR");
+            }
+            finally { sheet.Close(); Hands.Streaming = streaming; }
+        }
+
+        private void RemoteSheetPath(Mainframe frame, RemoteBridgeFake bridge)
+        {
+            Hands.Streaming = false;
+            Hands.AppsPath = null; Hands.Forget();
+            Hands.Catalog = delegate { return new List<InstalledApp>(); }; Hands.Windows = delegate { return new List<OpenWindow>(); }; Hands.Look = delegate { return "Fake screen"; };
+            Hands.NativeRequest = delegate { return default(KeyValuePair<string, ToolArguments>); };
+            int runs = 0, thoughts = 0;
+            string opened = null;
+            Hands.Run = delegate(string target) { opened = target; Interlocked.Increment(ref runs); };
+            pet.Think = delegate { Interlocked.Increment(ref thoughts); pet.Brain.Act("open_website", new ToolArguments { Site = "https://remote-sheet.example/" }); return "Opened the test website."; };
+            Security.Drop(); Security.Pick(Security.Trusted);
+            RemoteDevice other = RemoteBridgeFake.Phone("Other phone");
+            RemoteState state = RemoteState.Fresh(); state.Used = true; state.Devices.Add(other);
+            RemoteFileFake file = new RemoteFileFake();
+            if (new RemoteStore(file).Save("ws://127.0.0.1:1", state) != RemoteStoreResult.Saved) throw new Exception("Remote's sheet fake could not seed its store.");
+            bridge.Use(file);
+            pet.RemoteOutput = delegate(RemoteLink link) { return new RemoteSheetSink(link, bridge.Sink); };
+            NeonButton key = frame.Button("Remote"), mods = frame.Button("Mods"), support = frame.Button("Support");
+            if (key == null || Avalonia.Automation.AutomationProperties.GetName(key) != "Capri Remote: chat with her from your phone" || key.Text != "Remote" || key.Glyph != 0 || key.Heart
+                || Canvas.GetLeft(key) != 100 || key.Width != 88 || key.Height != 18 || Canvas.GetTop(key) != Canvas.GetTop(mods) || key.Height != mods.Height || key.Height != support.Height
+                || Canvas.GetLeft(mods) != 190 || mods.Width != 70 || Canvas.GetLeft(support) != 268 || support.Width != 88) throw new Exception("Remote's CAPRI key changed its name, words, size or neighbours.");
+            foreach (int scale in new[] { 100, 150, 200 })
+            {
+                pet.SetMainframeSize(scale); frame.ShowSettings(false); frame.UpdateLayout();
+                string wrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+                if (wrong != null || !key.IsVisible || Math.Abs(frame.Zoom - scale / 100.0) > 0.001) throw new Exception("Remote key layout at " + scale + "%: " + wrong);
+            }
+            pet.SetMainframeSize(100); frame.Sync(); frame.SavePicture(Path.Combine(folder, "remote-key-100.png"));
+            if (key.Accent != MainframeTheme.Rose || key.Picked || bridge.Starts != 0 || frame.Remote != null) throw new Exception("Remote did not start off with no sheet or connection.");
+            frame.Press("Remote");
+            RemoteSheet sheet = frame.Remote;
+            if (sheet == null || sheet.Owner != frame || bridge.Starts != 0) throw new Exception("Remote's key did not open an owned, offline sheet.");
+            sheet.WindowState = WindowState.Minimized; frame.Press("Remote");
+            frame.OpenPage(" REMOTE ");
+            MainframeWait(delegate { return sheet.WindowState == WindowState.Normal && sheet.IsActive; }, "bringing the Remote sheet forward");
+            int sheets = 0;
+            foreach (Window child in (List<Window>)RemoteWire.Get(frame, "sheets")) if (child is RemoteSheet) sheets++;
+            if (frame.Remote != sheet || sheet.WindowState != WindowState.Normal || sheets != 1 || bridge.Starts != 0) throw new Exception("Remote's second key press or page route did not reuse and restore its sheet.");
+            NeonSwitch power = (NeonSwitch)sheet.Rows["Remote"];
+            power.Checked = true; frame.Sync(); sheet.Sync();
+            if (!pet.ReadRemote().On || bridge.Starts != 1 || key.Accent != MainframeTheme.Cyan || key.Picked) throw new Exception("Remote's switch did not turn on the fake link and key.");
+            RemoteWire wire = bridge.Wire;
+            RemoteSheetPress(sheet, "Pair");
+            if (!sheet.Rows["QR"].IsVisible || pet.ReadRemote().Qr == null) throw new Exception("Remote's wired Pair key did not open a code.");
+            string pending = RemoteMessages.NewId();
+            wire.Pair(pending, "Sheet phone", new byte[16]); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); sheet.Sync();
+            if (!sheet.Rows["Allow"].IsVisible || ((NeonCaption)sheet.Rows["Ask name"]).Text != "Sheet phone" || sheet.Rows["QR"].IsVisible) throw new Exception("Remote's wired sheet did not show the asking phone.");
+            RemoteSheetPress(sheet, "Allow"); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (wire.Saved == null || wire.Saved.Devices.Count != 2) throw new Exception("Remote's wired Allow key did not pair the phone.");
+            RemoteDevice phone = wire.Saved.Devices.Find(delegate(RemoteDevice found) { return found.Name == "Sheet phone"; });
+            if (phone == null || pet.ReadRemote().Phones.Count != 2) throw new Exception("Remote's paired phone did not reach the view.");
+            wire.Text(new RemoteJson.Writer().Text("t", "ok").Text("op", "admit").Text("pending", pending).ToString());
+            RemoteKeys keys = wire.Hello(phone, new byte[16]); wire.Hello(other, new byte[16]); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); frame.Sync(); sheet.Sync(); bridge.Sink.Clear();
+            if (!key.Picked || key.Accent != MainframeTheme.Cyan || pet.ReadRemote().Online.Count != 2) throw new Exception("Remote's key did not show connected phones.");
+            const string message = "sheet-chat";
+            wire.Send(phone, keys, 0, new RemoteJson.Writer().Text("type", "chat.send").Text("id", message).Text("text", "sheet path please").ToString());
+            MainframeWait(delegate { return bridge.Sink.ReplyFor(message) != null; }, "the Remote sheet phone's answer");
+            wire.Link.Typing(phone.Id, false, message); wire.Pump();
+            List<RemoteJson.Map> delivered = new List<RemoteJson.Map>();
+            uint sequence = 0;
+            foreach (byte[] frameBytes in wire.BinaryFrames)
+            {
+                byte[] id = new byte[16]; Buffer.BlockCopy(frameBytes, 0, id, 0, 16);
+                if (RemoteCrypto.B64u(id) != phone.Id) throw new Exception("Remote sent the sheet turn to another phone.");
+                string why;
+                byte[] plain = RemoteCrypto.Open(keys.PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, sequence++, frameBytes, 16, frameBytes.Length - 16, out why);
+                RemoteJson.Map row = plain == null ? null : RemoteJson.Message(plain);
+                if (row == null) throw new Exception("Remote's sheet phone could not open its answer: " + why);
+                delivered.Add(row);
+            }
+            List<RemoteJson.Map> tools = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.tool"; });
+            List<RemoteJson.Map> replies = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply"; });
+            if (runs != 1 || thoughts != 1 || opened != "https://remote-sheet.example/" || tools.Count != 2 || tools[0].Text("name") != "open_website" || tools[0].Text("summary") != "Opening a website"
+                || tools[0].Text("state") != "running" || tools[1].Text("state") != "done" || tools[0].Text("id") != tools[1].Text("id") || tools[0].Text("re") != message || tools[1].Text("re") != message
+                || replies.Count != 1 || replies[0].Text("re") != message || replies[0].Text("text") != "Opened the test website." || !replies[0].Is("done", true) || bridge.Sink.CountFor(message) != 1 || pet.Talk.Reply != replies[0].Text("text")) throw new Exception("Remote's sheet path lost the tool, progress, answer or PC bubble.");
+            int index = pet.ReadRemote().Phones.FindIndex(delegate(RemoteDevice found) { return found.Id == phone.Id; });
+            if (index < 0 || index >= RemoteSheet.PhonesPerPage) throw new Exception("Remote's paired phone was missing from its sheet page.");
+            string revoke = "Revoke " + (index + 1);
+            RemoteSheetPress(sheet, revoke);
+            if (!wire.Link.HasSession(phone.Id)) throw new Exception("Remote's wired Revoke removed a phone on its first press.");
+            RemoteSheetPress(sheet, revoke); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); sheet.Sync();
+            if (wire.Link.HasSession(phone.Id) || pet.ReadRemote().Phones.Exists(delegate(RemoteDevice found) { return found.Id == phone.Id; }) || !wire.Link.HasSession(other.Id)) throw new Exception("Remote's wired Revoke removed the wrong phones.");
+            int sent = bridge.Sink.Count, heard = wire.Said.Count;
+            wire.Pump();
+            wire.Send(phone, keys, 1, new RemoteJson.Writer().Text("type", "chat.send").Text("id", "after-sheet-revoke").Text("text", "sheet path again").ToString());
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (runs != 1 || thoughts != 1 || bridge.Sink.Count != sent || wire.Said.Count != heard) throw new Exception("A revoked sheet phone still reached her brain, tools or answer.");
+            RemoteSheetPress(sheet, "Pair"); RemoteSheetPress(sheet, "Close");
+            if (frame.Remote != null || wire.Link.Qr != null || ((Avalonia.Threading.DispatcherTimer)RemoteWire.Get(sheet, "clock")).IsEnabled) throw new Exception("Remote's sheet close kept its field, code or timer.");
+            frame.OpenPage("remote");
+            if (frame.Remote == null || frame.Remote == sheet) throw new Exception("Remote's page route did not open a fresh sheet after closing.");
+            ((NeonSwitch)frame.Remote.Rows["Remote"]).Checked = false; frame.Sync();
+            if (key.Accent != MainframeTheme.Rose || key.Picked || pet.ReadRemote().On) throw new Exception("Remote's switch did not return the key to off.");
+            RemoteSheet last = frame.Remote; frame.Shut();
+            if (frame.Remote != null || last.IsVisible || ((Avalonia.Threading.DispatcherTimer)RemoteWire.Get(last, "clock")).IsEnabled) throw new Exception("Mainframe close did not close its Remote sheet.");
+            checks.Add("PASS Remote key: CAPRI position, size and screen-reader name; Outside, Overlap and TextFits pass at 100%, 150% and 200%; off, on and connected; one owned sheet, reuse, page route, close and owner cleanup; remote-key-100.png");
+            checks.Add("PASS Remote sheet path: switch on, Allow pairs a made-up phone, one fake website tool sends running and done plus one encrypted answer only to that phone, the PC bubble answers too, and two Revoke presses stop further input");
+        }
+
+        private static void RemoteSheetPress(RemoteSheet sheet, string name)
+        {
+            NeonButton button = sheet.Rows[name] as NeonButton;
+            if (button == null || !button.IsVisible || !button.IsEnabled) throw new Exception("No usable Remote sheet key: " + name);
+            button.Press();
+        }
+
+        private static void RemoteSheetDraw(RemoteSheet sheet, string path)
+        {
+            if (path != null)
+            {
+                sheet.SavePicture(path);
+                using (Bitmap picture = new Bitmap(path)) if (picture.PixelSize.Width != (int)Math.Ceiling(sheet.Width) || picture.PixelSize.Height != (int)Math.Ceiling(sheet.Height)) throw new Exception("Remote saved an empty or wrongly sized picture.");
+                return;
+            }
+            sheet.Top(); sheet.UpdateLayout();
+            Control surface = (Control)sheet.Content;
+            Size size = new Size(sheet.Width, sheet.Height);
+            surface.Measure(size); surface.Arrange(new Rect(size));
+            using (RenderTargetBitmap picture = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height)), new Vector(96, 96))) picture.Render(surface);
+            surface.InvalidateMeasure();
+        }
+
+        private sealed class RemoteSheetFake
+        {
+            internal RemoteView View;
+            internal readonly List<string> Calls = new List<string>();
+            internal readonly RemoteSheet Sheet;
+            internal bool AcceptHost;
+            internal int Reads;
+            private byte codes;
+            internal RemoteSheetFake(RemoteView view)
+            {
+                View = view;
+                Sheet = new RemoteSheet(delegate { Reads++; return View; }, delegate(bool on) { Calls.Add(on ? "on" : "off"); View.On = on; },
+                    delegate { Calls.Add("new"); byte[] id = new byte[16]; id[15] = ++codes; View.Qr = RemoteCrypto.QrUrl(RemoteCrypto.B64u(id), RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[32])); View.QrSeconds = 90; View.Expired = false; },
+                    delegate { Calls.Add("close"); }, delegate { Calls.Add("allow"); }, delegate { Calls.Add("deny"); }, delegate(string id) { Calls.Add("revoke " + id); }, delegate { Calls.Add("remove"); },
+                    delegate(string host) { Calls.Add("host " + host); if (AcceptHost) { View.Host = host; View.Note = ""; } return AcceptHost; });
+            }
+            internal int Count(string call) { return Calls.FindAll(delegate(string found) { return found == call; }).Count; }
+        }
+
+        private sealed class RemoteSheetSink : RemoteSink
+        {
+            private readonly RemoteSink wire, record;
+            internal RemoteSheetSink(RemoteLink link, RemoteSink record) { wire = new RemoteLinkSink(link); this.record = record; }
+            public void Reply(string device, string id, string re, string text, bool done) { wire.Reply(device, id, re, text, done); record.Reply(device, id, re, text, done); }
+            public void Tool(string device, string id, string name, string summary, string state, string re) { wire.Tool(device, id, name, summary, state, re); record.Tool(device, id, name, summary, state, re); }
+            public void Error(string device, string code, string re) { wire.Error(device, code, re); record.Error(device, code, re); }
         }
 
         private void Finish(string failure)
