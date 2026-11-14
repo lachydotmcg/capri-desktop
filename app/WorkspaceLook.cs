@@ -1807,6 +1807,76 @@ namespace CapriDesktop
             }
         }
 
+        private static List<byte[]> WorkspaceConversationPixels(WorkspaceWindow window)
+        {
+            List<byte[]> pages = new List<byte[]>();
+            int top = 0;
+            for (;;)
+            {
+                window.ScrollConversation(top);
+                using (Bitmap picture = window.DrawConversation())
+                {
+                    BitmapData data = picture.LockBits(new Rectangle(Point.Empty, picture.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                    try
+                    {
+                        byte[] pixels = new byte[Math.Abs(data.Stride) * data.Height];
+                        Marshal.Copy(data.Scan0, pixels, 0, pixels.Length);
+                        pages.Add(pixels);
+                    }
+                    finally { picture.UnlockBits(data); }
+                    if (window.AtEnd) break;
+                    top += Math.Max(1, picture.Height);
+                }
+            }
+            return pages;
+        }
+
+        private static void WorkspaceStreamDrawing(WorkspaceWindow window, WorkspaceChat chat, WorkspaceItem item, List<string> failures, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            string whole = WorkWords.AwkwardStream;
+            lock (chat.Gate) { item.Text = whole; item.Growing = false; }
+            window.RefreshChat();
+            window.ScrollToEnd();
+            int height = window.ConversationTall;
+            string plain = window.CopyText(item);
+            List<byte[]> baseline = WorkspaceConversationPixels(window);
+            for (int cut = 0; cut <= whole.Length; cut++)
+            {
+                lock (chat.Gate) { item.Text = whole.Substring(0, cut); item.Growing = true; }
+                window.RefreshChat();
+                window.ScrollToEnd();
+                using (Bitmap drawn = window.DrawConversation())
+                    if (drawn.Width == 0 || drawn.Height == 0) failures.Add("A streamed Markdown prefix drew an empty image at " + cut + ".");
+                if (cut == whole.Length / 2) shoot(window, "g-stream-growing-100", null);
+            }
+            lock (chat.Gate) item.Growing = false;
+            window.RefreshChat();
+            List<byte[]> final = WorkspaceConversationPixels(window);
+            bool same = baseline.Count == final.Count;
+            for (int page = 0; same && page < baseline.Count; page++)
+            {
+                same = baseline[page].Length == final[page].Length;
+                for (int at = 0; same && at < baseline[page].Length; at++) same = baseline[page][at] == final[page][at];
+            }
+            if (!same || height != window.ConversationTall || plain != window.CopyText(item)) failures.Add("The every-prefix Markdown reply ended different from its baseline drawing, height or copy text.");
+            try
+            {
+                window.ThinkingSeconds = delegate { return 12; };
+                lock (chat.Gate) chat.Live = new WorkspaceTurn { Chat = chat };
+                window.RefreshChat();
+                window.ScrollToEnd();
+                window.TickThinking();
+                if (!window.Thinking || window.ThinkingText.IndexOf("12", StringComparison.Ordinal) < 0) failures.Add("The Thinking picture did not show its fake elapsed clock.");
+                shoot(window, "g-thinking-clock-100", null);
+            }
+            finally
+            {
+                lock (chat.Gate) chat.Live = null;
+                window.ThinkingSeconds = null;
+                window.RefreshChat();
+            }
+        }
+
         // Her replies drawn from the Markdown reader: every kind of block and run (picture g), a table at full width and at
         // the narrowest window (picture j), the reply half streamed, and a long one. Her words copy as WorkWords gives them,
         // links open only http and https pages (through a stand-in here), show the hand and their address, and nothing is
@@ -1903,6 +1973,12 @@ namespace CapriDesktop
                 lock (live.Gate) streaming.Text = reply;
                 window.RefreshChat();
                 if (window.CopyText(streaming) != plain) failures.Add(scale + "%: the streamed reply ended different from the whole one.");
+
+                if (scale == 100)
+                {
+                    WorkspaceStreamDrawing(window, live, streaming, failures, shoot);
+                    timings.Add("Workspace draws every prefix of awkward streamed Markdown, including incomplete fences, tables, nested lists, links, emphasis, a long line and mixed scripts; its final pixels, height and copy text match the whole reply.");
+                }
 
                 // A long reply: forty times the formatted one, laid out and pictured.
                 StringBuilder longer = new StringBuilder();

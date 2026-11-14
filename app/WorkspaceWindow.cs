@@ -129,6 +129,13 @@ namespace CapriDesktop
         private readonly Dictionary<WorkspaceChat, string> drafts = new Dictionary<WorkspaceChat, string>();
         private readonly Dictionary<WorkspaceChat, int> scrolls = new Dictionary<WorkspaceChat, int>();
         private readonly Action<WorkspaceChat, WorkspaceItem> changed;
+        private readonly object changeGate = new object();
+        private readonly HashSet<WorkspaceChat> pendingChanges = new HashSet<WorkspaceChat>();
+        private readonly System.Windows.Forms.Timer changeClock = new System.Windows.Forms.Timer { Interval = 40 };
+        private bool changePosted;
+        private readonly Dictionary<WorkspaceChat, HashSet<WorkspaceItem>> pendingItems = new Dictionary<WorkspaceChat, HashSet<WorkspaceItem>>();
+        private readonly HashSet<WorkspaceChat> pendingFull = new HashSet<WorkspaceChat>();
+        internal int ChangeFlushes;
         private WorkspaceItem pageEnd;
         private WorkspaceChat chat;
         private bool filling, saving, arranging, picking;
@@ -206,16 +213,10 @@ namespace CapriDesktop
             ClientSize = new Size(Z(Wide), Z(Tall));
             MinimumSize = new Size(Z(Narrowest), Z(Shortest));
             MaximizedBounds = Screen.FromControl(this).WorkingArea;
-            changed = delegate(WorkspaceChat changedChat, WorkspaceItem item)
-            {
-                Post(delegate
-                {
-                    FillChats();
-                    if (chat == changedChat) { FillHeader(); SyncItems(); }
-                    UpdateKeys();
-                });
-            };
+            changeClock.Tick += delegate { FlushChanges(); };
+            changed = QueueChange;
             workspace.Changed += changed;
+            HandleCreated += delegate { lock (changeGate) { if (changePosted) changeClock.Start(); } };
             FormClosing += ClosingWindow;
             ResumeLayout(false);
             FillChats();
@@ -267,6 +268,47 @@ namespace CapriDesktop
         {
             try { if (!IsDisposed && IsHandleCreated) BeginInvoke(new MethodInvoker(delegate { if (!IsDisposed) action(); })); }
             catch (InvalidOperationException) { }
+        }
+
+        internal void QueueChange(WorkspaceChat changedChat, WorkspaceItem item)
+        {
+            lock (changeGate)
+            {
+                pendingChanges.Add(changedChat);
+                if (item == null) pendingFull.Add(changedChat);
+                else
+                {
+                    HashSet<WorkspaceItem> items;
+                    if (!pendingItems.TryGetValue(changedChat, out items)) pendingItems[changedChat] = items = new HashSet<WorkspaceItem>();
+                    items.Add(item);
+                }
+                if (changePosted) return;
+                changePosted = true;
+            }
+            Post(delegate { changeClock.Start(); });
+        }
+
+        internal void FlushChanges()
+        {
+            changeClock.Stop();
+            bool current, full;
+            List<WorkspaceItem> items;
+            lock (changeGate)
+            {
+                if (pendingChanges.Count == 0) { changePosted = false; return; }
+                current = pendingChanges.Contains(chat);
+                full = pendingFull.Contains(chat);
+                HashSet<WorkspaceItem> found;
+                items = chat != null && pendingItems.TryGetValue(chat, out found) ? new List<WorkspaceItem>(found) : new List<WorkspaceItem>();
+                pendingItems.Clear();
+                pendingFull.Clear();
+                pendingChanges.Clear();
+                changePosted = false;
+            }
+            ChangeFlushes++;
+            FillChats();
+            if (current) { FillHeader(); if (full || !transcript.RefreshText(items)) SyncItems(); }
+            UpdateKeys();
         }
 
         private void Try(Action action)
@@ -963,6 +1005,23 @@ namespace CapriDesktop
         internal List<string> ToolGroups { get { return transcript.Summaries(); } }
         internal Font TipFont { get { return small; } }
         internal bool Thinking { get { return transcript.Thinking; } }
+        internal Func<double> ThinkingSeconds { set { transcript.Seconds = value; } }
+        internal string ThinkingText { get { return transcript.ThinkingText; } }
+        internal Rectangle ThinkingRectangle { get { return transcript.ThinkingRectangle; } }
+        internal Rectangle ThinkingInvalidated { get { return transcript.ThinkingInvalidated; } }
+        internal void TickThinking() { transcript.TickThinking(); }
+        internal int LayoutMeasures { get { return transcript.LayoutMeasures; } }
+        internal int LayoutPasses { get { return transcript.LayoutPasses; } }
+        internal int ItemFills { get { return transcript.ItemFills; } }
+        internal int MeasuresOf(WorkspaceItem item) { return transcript.MeasuresOf(item); }
+        internal object LayoutOf(WorkspaceItem item) { return transcript.LayoutOf(item); }
+        internal bool FollowingEnd { get { return transcript.Following; } }
+        internal Bitmap DrawConversation()
+        {
+            Bitmap bitmap = new Bitmap(transcript.Width, transcript.Height);
+            transcript.DrawToBitmap(bitmap, transcript.ClientRectangle);
+            return bitmap;
+        }
         internal int TopOf(WorkspaceItem item) { return transcript.TopOf(item); }
         internal List<string> CardWords(out Point details) { return transcript.CardWords(out details); }
         internal void PressTranscript(Point at) { transcript.PressAt(at); }
@@ -1077,6 +1136,8 @@ namespace CapriDesktop
             if (disposing)
             {
                 workspace.Changed -= changed;
+                changeClock.Stop();
+                changeClock.Dispose();
                 transcript.Clear();
                 tips.Dispose();
                 if (openMenu != null && !openMenu.IsDisposed) openMenu.Dispose();
@@ -1704,7 +1765,7 @@ namespace CapriDesktop
                 // What it was last measured from, so a card that hasn't changed only moves when another arrives.
                 internal string LaidText, LaidResult, LaidDecision, LaidShape, LaidInput, LaidPaths, LaidState;
                 internal bool LaidOpen, LaidAll;
-                internal int LaidWidth = -1, LaidRound;
+                internal int LaidWidth = -1, LaidRound, Measures;
                 // A tool call: whether its result is in, came back failed or is still coming, and the question it was asked about.
                 internal bool Done, Failed, Running, Hidden;
                 internal WorkspaceItem Asked;
@@ -1769,6 +1830,43 @@ namespace CapriDesktop
             // Claude thinking between calls, and where its line sits.
             private bool thinking;
             private Rectangle thinkLine;
+            private readonly System.Windows.Forms.Timer thinkingClock = new System.Windows.Forms.Timer { Interval = 1000 };
+            internal Func<double> Seconds;
+            internal int LayoutMeasures, LayoutPasses, ItemFills;
+            internal Rectangle ThinkingInvalidated;
+            private string thinkingText = "Thinking";
+            internal string ThinkingText { get { return thinkingText; } }
+            internal Rectangle ThinkingRectangle
+            {
+                get
+                {
+                    if (thinkLine.IsEmpty) return Rectangle.Empty;
+                    Rectangle at = thinkLine;
+                    at.Offset(0, -Offset);
+                    return Rectangle.Intersect(ClientRectangle, at);
+                }
+            }
+
+            internal int MeasuresOf(WorkspaceItem item) { Block block; return known.TryGetValue(item, out block) ? block.Measures : 0; }
+            internal object LayoutOf(WorkspaceItem item) { Block block; return known.TryGetValue(item, out block) && block.Pieces.Count > 0 ? block.Pieces[0] : null; }
+
+            private void UpdateThinkingText()
+            {
+                WorkspaceTurn turn = window.chat == null ? null : window.chat.Live;
+                double elapsed = Seconds != null ? Seconds() : turn == null ? 0 : turn.Clock.Elapsed.TotalSeconds;
+                thinkingText = "Thinking " + Workspace.Took(Math.Max(0, Math.Floor(elapsed)));
+            }
+
+            internal void TickThinking()
+            {
+                ThinkingInvalidated = Rectangle.Empty;
+                if (!thinking) return;
+                UpdateThinkingText();
+                Rectangle at = ThinkingRectangle;
+                if (at.IsEmpty || !Visible || !window.Visible || window.WindowState == FormWindowState.Minimized) return;
+                ThinkingInvalidated = at;
+                Invalidate(at);
+            }
             internal string Empty = "";
             private Block picked, hovered;
             private bool dragging, earlier, newer, hoveredHead;
@@ -1789,6 +1887,7 @@ namespace CapriDesktop
                 this.opened = opened;
                 tips = WorkPaint.Tips(delegate { return window.small; });
                 shineClock.Tick += delegate { ShineTick(); };
+                thinkingClock.Tick += delegate { TickThinking(); };
                 edgeClock.Tick += delegate { EdgeTick(); };
                 tickClock.Tick += delegate { TickDone(); };
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.ResizeRedraw | ControlStyles.Selectable, true);
@@ -1825,6 +1924,9 @@ namespace CapriDesktop
                 foreach (Block block in Blocks) Drop(block);
                 Blocks.Clear();
                 known.Clear();
+                thinkingClock.Stop();
+                thinking = false;
+                thinkLine = ThinkingInvalidated = Rectangle.Empty;
                 picked = hovered = null;
                 // The copy key and its tick belong to the chat they were on, not the next one.
                 tickClock.Stop();
@@ -1843,8 +1945,31 @@ namespace CapriDesktop
                 block.Shape = "";
             }
 
+            internal bool RefreshText(List<WorkspaceItem> items)
+            {
+                if (items.Count == 0) return false;
+                bool changed = false;
+                foreach (WorkspaceItem item in items)
+                {
+                    if (item.Kind != "text") return false;
+                    if (known.ContainsKey(item)) changed = true;
+                    else if (!newer) return false;
+                }
+                if (!changed) return true;
+                bool follow = Following;
+                int was = Offset, tall = Content;
+                List<KeyValuePair<WorkspaceItem, int>> anchors = new List<KeyValuePair<WorkspaceItem, int>>();
+                foreach (Block old in Blocks)
+                    if (!old.Hidden && old.Box.Bottom > Offset && old.Box.Top < Offset + Height) anchors.Add(new KeyValuePair<WorkspaceItem, int>(old.Item, old.Box.Top - Offset));
+                slack = 0;
+                Arrange(true);
+                Hold(follow, tall, anchors, was);
+                return true;
+            }
+
             internal void Fill(List<WorkspaceItem> shown, Dictionary<string, string> results, HashSet<string> failed, Dictionary<WorkspaceItem, WorkspaceItem> asked, string live, bool hasEarlier, bool hasNewer)
             {
+                ItemFills++;
                 bool follow = Following;
                 int was = Offset, tall = Content;
                 // What they're reading: each thing on screen and where it sits, so the view can stay on it when something changes size.
@@ -1882,6 +2007,8 @@ namespace CapriDesktop
                 bool busy = false;
                 foreach (Block block in Blocks) if (block.Running || Waiting(block.Item)) busy = true;
                 thinking = live != null && !busy && !hasNewer;
+                if (thinking) { UpdateThinkingText(); thinkingClock.Start(); }
+                else { thinkingClock.Stop(); thinkingText = "Thinking"; ThinkingInvalidated = Rectangle.Empty; }
                 slack = 0;
                 Arrange(true);
                 Hold(follow, tall, anchors, was);
@@ -2020,6 +2147,7 @@ namespace CapriDesktop
             internal void Arrange(bool force)
             {
                 if (!force && laid == Width) return;
+                LayoutPasses++;
                 laid = Width;
                 int y = Z(10);
                 if (earlier || newer)
@@ -2046,13 +2174,16 @@ namespace CapriDesktop
                         continue;
                     }
                     string state = State(block);
-                    if (block.LaidWidth == Width && block.LaidRound == round && (object)block.LaidText == item.Text && (object)block.LaidResult == block.Result && block.LaidDecision == item.Decision
+                    string text = item.Text;
+                    if (block.LaidWidth == Width && block.LaidRound == round && (object)block.LaidText == text && (object)block.LaidResult == block.Result && block.LaidDecision == item.Decision
                         && (object)block.LaidInput == item.Input && block.LaidPaths == paths && block.LaidState == state
                         && block.LaidShape == block.Shape && block.LaidOpen == block.Open && block.LaidAll == block.All) Shift(block, y - block.Box.Top);
                     else
                     {
+                        LayoutMeasures++;
+                        block.Measures++;
                         Measure(block, y);
-                        block.LaidWidth = Width; block.LaidRound = round; block.LaidText = item.Text; block.LaidResult = block.Result;
+                        block.LaidWidth = Width; block.LaidRound = round; block.LaidText = text; block.LaidResult = block.Result;
                         block.LaidInput = item.Input; block.LaidPaths = paths; block.LaidState = state;
                         block.LaidDecision = item.Decision; block.LaidShape = block.Shape; block.LaidOpen = block.Open; block.LaidAll = block.All;
                     }
@@ -3420,7 +3551,7 @@ namespace CapriDesktop
                 float mid = line.Top + line.Height / 2f;
                 RectangleF icon = new RectangleF(line.Left + Z(22), mid - Z(7), Z(14), Z(14));
                 WorkPaint.ToolMark(graphics, WorkPaint.Thinking, icon, Live, window.zoom);
-                const string words = "Thinking";
+                string words = thinkingText;
                 Rectangle box = new Rectangle(line.Left + Z(44), line.Top, Math.Max(1, Math.Min(line.Width - Z(52), WorkPaint.Wide(words, window.small) + Z(2))), line.Height);
                 TextRenderer.DrawText(graphics, words, window.small, box, Live, WorkPaint.Line | TextFormatFlags.EndEllipsis);
                 Shine(graphics, line, icon, WorkPaint.Thinking, box, words, window.small, WorkPaint.Line | TextFormatFlags.EndEllipsis, Live, Color.Empty);
@@ -3534,7 +3665,7 @@ namespace CapriDesktop
 
             protected override void Dispose(bool disposing)
             {
-                if (disposing) { shineClock.Stop(); shineClock.Dispose(); edgeClock.Dispose(); tickClock.Dispose(); tips.Dispose(); DropFaces(); }
+                if (disposing) { thinkingClock.Stop(); thinkingClock.Dispose(); shineClock.Stop(); shineClock.Dispose(); edgeClock.Dispose(); tickClock.Dispose(); tips.Dispose(); DropFaces(); }
                 base.Dispose(disposing);
             }
 
