@@ -1908,25 +1908,28 @@ namespace CapriDesktop
                 Read(from, buffer, prefix);
                 int last = buffer[prefix - 1];
                 string key = Encoding.ASCII.GetString(buffer, 0, prefix);
-                if (key == "path=" || (voice && key == "size="))
+                if (key == "path=")
                 {
                     long text = count - prefix;
                     if (text < 1 || text > buffer.Length) throw Damaged();
                     Read(from, buffer, (int)text);
                     last = buffer[(int)text - 1];
-                    if (key == "path=") path = Encoding.UTF8.GetString(buffer, 0, (int)text - 1);
-                    else
+                    path = Encoding.UTF8.GetString(buffer, 0, (int)text - 1);
+                }
+                else if (voice && key == "size=" && count > prefix && count - prefix <= buffer.Length)
+                {
+                    int text = (int)(count - prefix);
+                    Read(from, buffer, text);
+                    last = buffer[text - 1];
+                    long value = 0;
+                    bool number = text > 1;
+                    for (int i = 0; number && i < text - 1; i++)
                     {
-                        if (text < 2) throw Damaged();
-                        long value = 0;
-                        for (int i = 0; i < text - 1; i++)
-                        {
-                            int digit = buffer[i] - '0';
-                            if (digit < 0 || digit > 9 || value > (long.MaxValue - digit) / 10) throw Damaged();
-                            value = value * 10 + digit;
-                        }
-                        fileSize = value;
+                        int digit = buffer[i] - '0';
+                        if (digit < 0 || digit > 9 || value > (long.MaxValue - digit) / 10) number = false;
+                        else value = value * 10 + digit;
                     }
+                    if (number) fileSize = value;
                 }
                 else if (count > prefix) last = Copy(from, null, count - prefix, buffer);
                 if (last != '\n') throw Damaged();

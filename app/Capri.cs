@@ -56810,6 +56810,7 @@ namespace CapriDesktop
                                 {
                                     TarEntry(vsTar, "PaxHeader", 'x', TarPax("1", "size"));
                                     TarEntry(vsTar, "model.onnx", '0', new byte[] { 1, 2, 3, 4, 5 });
+                                    TarEntry(vsTar, "PaxHeader", 'x', TarPax("12x", "size"));
                                     TarEntry(vsTar, "tokens.txt", '0', new byte[] { 1 });
                                     vsTar.Write(new byte[512], 0, 512);
                                     vsPaxSized = vsTar.ToArray();
@@ -56819,7 +56820,7 @@ namespace CapriDesktop
                                 if (!System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsSized, "model.onnx")), new byte[] { 1 }) || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsSized, "tokens.txt")), new byte[] { 1 }))
                                     throw new Exception("Voice import ignored a pax size.");
                                 Directory.Delete(vsSized, true);
-                                checks.Add("PASS voice import reads a file's size from its pax header");
+                                checks.Add("PASS voice import reads a file's size from its pax header and ignores one it can't read");
                                 // A disk that fills part of the way through, a file she can't write, a format she can't read and a broken zip each get their own line.
                                 byte[] vsBig = new byte[3 << 20], vsFullTar, vsFullGzip, vsZipParent, vsZipSibling, vsZipGarbage = new byte[300];
                                 new Random(60).NextBytes(vsBig);
