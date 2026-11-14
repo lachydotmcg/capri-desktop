@@ -194,6 +194,17 @@
     if (!sent) return;
     clearTimeout(sent.timer);
     waiting.delete(id);
+    if (!sent.late) {
+      if (!current) show(sent.value);
+      if (!input.value) input.value = sent.text;
+    }
+    working = false;
+    changed();
+  };
+  const late = id => {
+    const sent = waiting.get(id);
+    if (!sent) return;
+    sent.late = true;
     if (!current) show(sent.value);
     if (!input.value) input.value = sent.text;
     working = false;
@@ -206,9 +217,11 @@
     if (message.type === 'chat.reply' || message.type === 'chat.typing' && message.on && !sent.native) {
       clearTimeout(sent.timer);
       sent.received = true;
-      if (current === sent.value) show(null);
-      if (input.value === sent.text) input.value = '';
-      working = false;
+      const draft = current === sent.value;
+      if (draft) show(null);
+      if ((draft || !sent.late) && input.value === sent.text) input.value = '';
+      if (!sent.late) working = false;
+      sent.late = false;
       changed();
       if (message.type === 'chat.reply' && message.done) waiting.delete(message.re);
     }
@@ -219,7 +232,11 @@
   });
   window.CapriAttach = {
     hasPicture: () => !!current,
-    get busy() { return working || [...waiting.values()].some(sent => !sent.received); },
+    get busy() { return working || [...waiting.values()].some(sent => !sent.received && !sent.late); },
+    again: () => {
+      for (const [id, sent] of waiting) if (sent.late && sent.value === current && sent.text === input.value) return id;
+      return null;
+    },
     prepare: async (text, id) => {
       if (!current || working) return null;
       if (!supported()) { say('Update Capri on your PC to send pictures.'); return null; }
@@ -237,10 +254,12 @@
       finally { if (mine === version) { working = false; changed(); } }
     },
     sent: (id, text, picture) => {
-      waiting.set(id, { text, value: current, native: !!CapriRemote.info.native, timer: setTimeout(() => {
-        failed(id);
+      const native = !!CapriRemote.info.native;
+      waiting.set(id, { text, value: current, native, timer: setTimeout(() => {
+        if (native) failed(id);
+        else late(id);
         say('No reply. Try sending again.');
-      }, CapriRemote.info.native ? 125000 : 15000) });
+      }, native ? 125000 : 15000) });
       working = true;
       changed();
     },
