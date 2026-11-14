@@ -2844,6 +2844,7 @@ namespace CapriDesktop
         internal const string Empty = "Nothing in that archive is a voice model Capri can run.";
         internal const string Inside = "Move that archive out of the models folder and try again.";
         internal const string Format = "Capri can't unpack that format. Use .tar.bz2, .tar.gz, .tar or .zip.";
+        internal static Func<string, Stream> Write = delegate(string path) { return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20); };
         internal const string Unopened = "Capri can't open that clip. Press the arrow in the Speaker or clip box to pick it.";
         // Her free voice's folder, where sherpa-onnx is, and the folder models from an archive are unpacked into. Set at startup.
         internal static string Engine;
@@ -3033,7 +3034,7 @@ namespace CapriDesktop
                     {
                         using (Stream opened = Bunzip.Open(packed))
                         {
-                            TarReader.Unpack(opened, staging);
+                            TarReader.Unpack(opened, staging, true, Write);
                             opened.CopyTo(Stream.Null);
                         }
                     }
@@ -3041,11 +3042,11 @@ namespace CapriDesktop
                     {
                         using (GZipStream opened = new GZipStream(packed, CompressionMode.Decompress, true))
                         {
-                            TarReader.Unpack(opened, staging);
+                            TarReader.Unpack(opened, staging, true, Write);
                             opened.CopyTo(Stream.Null);
                         }
                     }
-                    else TarReader.Unpack(packed, staging);
+                    else TarReader.Unpack(packed, staging, true, Write);
                     string inside = staging;
                     string[] folders = Directory.GetDirectories(staging);
                     if (Kind(staging) == null && folders.Length == 1 && Directory.GetFiles(staging).Length == 0) inside = folders[0];

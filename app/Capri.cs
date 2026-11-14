@@ -44449,9 +44449,9 @@ namespace CapriDesktop
             into.Write(new byte[padding], 0, padding);
         }
 
-        private static byte[] TarPax(string path)
+        private static byte[] TarPax(string path, string key = "path")
         {
-            string record = " path=" + path + "\n";
+            string record = " " + key + "=" + path + "\n";
             int length = System.Text.Encoding.UTF8.GetByteCount(record) + 1;
             for (;;)
             {
@@ -56613,10 +56613,10 @@ namespace CapriDesktop
                                 LocalEars.TarPath = Path.Combine(vsModels, "missing-tar.exe");
                                 LocalEars.SystemBzip = true;
                                 LocalEars.StartTar = delegate { vsTarCalls++; throw new Exception("Voice import tried to start tar."); };
-                                foreach (string vsExtension in new[] { ".tar.bz2", ".tar", ".tar.gz", ".tgz", ".TAR.BZ2" })
+                                foreach (string vsExtension in new[] { ".tar.bz2", ".tar", ".tar.gz", ".tgz", ".TAR.BZ2", ".tbz", ".tbz2" })
                                 {
                                     byte[] vsBytes = vsTarPlain;
-                                    if (vsExtension.EndsWith("bz2", StringComparison.OrdinalIgnoreCase)) vsBytes = vsBzip;
+                                    if (vsExtension.EndsWith("bz2", StringComparison.OrdinalIgnoreCase) || vsExtension == ".tbz") vsBytes = vsBzip;
                                     else if (vsExtension == ".tar.gz" || vsExtension == ".tgz")
                                     {
                                         using (MemoryStream vsPacked = new MemoryStream())
@@ -56706,7 +56706,7 @@ namespace CapriDesktop
                                     File.WriteAllBytes(vsArchive, vsTarBroken);
                                     try { ModelFile.Unpack(vsArchive); }
                                     catch (VoiceException vsError) { vsMessage = vsError.Message; }
-                                    if (vsMessage != (vsProblem == "no-model" ? ModelFile.Missing : ModelFile.Damaged) || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsTarBroken)
+                                    if (vsMessage != (vsProblem == "no-model" ? ModelFile.Empty : ModelFile.Damaged) || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsTarBroken)
                                         || Directory.Exists(vsTarget + ".new") || (vsProblem != "replacement" && Directory.Exists(vsTarget)) || Directory.GetDirectories(vsShelf).Length != 2
                                         || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsUnpacked, "en_US-test-medium.onnx")), new byte[] { 1 }) || Directory.GetFiles(vsUnpacked, "*", SearchOption.AllDirectories).Length != 4
                                         || File.Exists(Path.Combine(vsShelf, "escaped.bin")) || File.Exists(Path.Combine(vsModels, "escaped.bin")) || vsTarCalls != 0)
@@ -56720,7 +56720,7 @@ namespace CapriDesktop
                                     File.WriteAllBytes(vsArchive, vsTarPlain);
                                     try { ModelFile.Unpack(vsArchive); }
                                     catch (VoiceException vsError) { vsMessage = vsError.Message; }
-                                    if (vsMessage == null || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsTarPlain) || ModelFile.Kind(vsUnpacked) != "vits")
+                                    if (vsMessage != ModelFile.Inside || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsTarPlain) || ModelFile.Kind(vsUnpacked) != "vits")
                                         throw new Exception("Voice import deleted or changed a source inside " + vsPlace + ".");
                                     File.Delete(vsArchive);
                                     if (vsPlace != vsUnpacked) Directory.Delete(vsPlace, true);
@@ -56736,7 +56736,7 @@ namespace CapriDesktop
                             }
                             if (vsKinds != "vits kitten kokoro none none en_US-test-medium pocket pocket-tts-int8-2026-01-26" || vsUnpacked != Path.Combine(vsShelf, "vits-piper-en_US-test-medium") || ModelFile.Kind(vsUnpacked) != "vits"
                                 || !File.Exists(Path.Combine(vsUnpacked, "en_US-test-medium.onnx")) || vsZipped != Path.Combine(vsShelf, "kitten-test") || ModelFile.Kind(vsZipped) != "kitten"
-                                || vsRefused != ModelFile.Missing || Directory.GetDirectories(vsShelf).Length != 2)
+                                || vsRefused != ModelFile.Empty || Directory.GetDirectories(vsShelf).Length != 2)
                                 throw new Exception("Voice model files weren't told apart or unpacked right: " + vsKinds + " / " + vsUnpacked + " / " + vsZipped + " / " + vsRefused + " / " + string.Join(", ", Directory.GetDirectories(vsShelf)));
                             // An archive named ".zip" or "...zip" unpacks into a folder of its own, never over the models folder or the
                             // one above it. A quoted folder pasted from Explorer, or typing that's no path at all, never stops her starting.

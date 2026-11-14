@@ -1815,8 +1815,6 @@ namespace CapriDesktop
     // Only files and folders come out, and only inside the folder she's unpacking into.
     internal static class TarReader
     {
-        internal static Func<string, Stream> Write = delegate(string path) { return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20); };
-
         private static ArchiveException Damaged() { return new ArchiveException("The ears download is damaged."); }
 
         internal static void Clean(string into)
@@ -1872,12 +1870,12 @@ namespace CapriDesktop
             return Encoding.UTF8.GetString(bytes, at, end - at);
         }
 
-        private static string Target(string root, string name)
+        private static string Target(string root, string name, bool voice)
         {
             if (string.IsNullOrEmpty(name) || name[0] == '/' || name[0] == '\\' || name.IndexOf(':') >= 0) throw Damaged();
             foreach (string part in name.Replace('\\', '/').Split('/'))
                 if (part == ".." || (part != "." && part.TrimEnd(' ', '.') != part)
-                    || Regex.IsMatch(part, @"\A(CON|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3]|CONIN\$|CONOUT\$)(?: *\.|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) throw Damaged();
+                    || (voice && Regex.IsMatch(part, @"\A(CON|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3]|CONIN\$|CONOUT\$)(?: *\.|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))) throw Damaged();
             string path;
             try { path = Path.GetFullPath(Path.Combine(root, name.Replace('/', Path.DirectorySeparatorChar))); }
             catch (ArgumentException) { throw Damaged(); }
@@ -1886,7 +1884,7 @@ namespace CapriDesktop
             return path;
         }
 
-        private static string Pax(Stream from, long size, byte[] buffer, out long fileSize)
+        private static string Pax(Stream from, long size, byte[] buffer, bool voice, out long fileSize)
         {
             string path = null;
             fileSize = -1;
@@ -1909,7 +1907,7 @@ namespace CapriDesktop
                 Read(from, buffer, prefix);
                 int last = buffer[prefix - 1];
                 string key = Encoding.ASCII.GetString(buffer, 0, prefix);
-                if (key == "path=" || key == "size=")
+                if (key == "path=" || (voice && key == "size="))
                 {
                     long text = count - prefix;
                     if (text < 1 || text > buffer.Length) throw Damaged();
@@ -1936,7 +1934,7 @@ namespace CapriDesktop
             return path;
         }
 
-        internal static void Unpack(Stream from, string into)
+        internal static void Unpack(Stream from, string into, bool voice = false, Func<string, Stream> write = null)
         {
             bool complete = false;
             try
@@ -1967,19 +1965,19 @@ namespace CapriDesktop
                         if (size > buffer.Length) throw Damaged();
                         Read(from, buffer, (int)size);
                         longName = Text(buffer, 0, (int)size);
-                        Target(root, longName);
+                        Target(root, longName, voice);
                     }
                     else if (kind == 'x')
                     {
                         long fileSize;
-                        string path = Pax(from, size, buffer, out fileSize);
-                        if (path != null) { Target(root, path); paxPath = path; }
+                        string path = Pax(from, size, buffer, voice, out fileSize);
+                        if (path != null) { Target(root, path, voice); paxPath = path; }
                         if (fileSize >= 0) paxSize = fileSize;
                     }
                     else if (kind == 'g') Copy(from, null, size, buffer);
                     else
                     {
-                        string path = Target(root, paxPath ?? longName ?? name);
+                        string path = Target(root, paxPath ?? longName ?? name, voice);
                         longName = paxPath = null;
                         if (paxSize >= 0) size = paxSize;
                         paxSize = -1;
@@ -1987,7 +1985,7 @@ namespace CapriDesktop
                         if (kind == '0' || kind == '\0')
                         {
                             Directory.CreateDirectory(Path.GetDirectoryName(path));
-                            using (Stream file = Write(path)) Copy(from, file, size, buffer);
+                            using (Stream file = write == null ? new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20) : write(path)) Copy(from, file, size, buffer);
                         }
                         else Copy(from, null, size, buffer);
                     }
