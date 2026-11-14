@@ -5,7 +5,7 @@ import { startSite, earlyAccess } from './lib/site.mjs';
 import { GOOD, startProvider } from './lib/fake-provider.mjs';
 import { jpegSize } from './lib/live.mjs';
 import * as R from './lib/capri-remote.mjs';
-import { click, type, picture, preview, line, fakePc } from './lib/attach.mjs';
+import { click, type, picture, preview, line, fakePc, headerPicture } from './lib/attach.mjs';
 
 test('phone attachments cross an encrypted PC session and stay out of saved chats', { skip: !chromePath(), timeout: 120000 }, async () => {
   const site = await startSite(8982); let page; let started = 0, closed = 0;
@@ -151,12 +151,13 @@ test('resized bitmap decoding and the missing-API fallback honour EXIF orientati
       window.savedBitmap=bitmap;
       window.createImageBitmap=async (photo,options)=>{bitmapCalls.push(options);const value=await bitmap(photo,options),close=value.close.bind(value);value.close=()=>{bitmapClosed++;close();};return value;};
       FileReader.prototype.readAsDataURL=function(...args){fileReads++;return read.apply(this,args);};
-      window.rotatedPhoto=async orientation=>{
+      window.rotatedPhoto=async (orientation,late=false)=>{
         const canvas=document.createElement('canvas');canvas.width=80;canvas.height=40;const ctx=canvas.getContext('2d');
         for(const [color,x,y] of [['red',0,0],['lime',40,0],['blue',0,20],['yellow',40,20]]){ctx.fillStyle=color;ctx.fillRect(x,y,40,20);}
         const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',1)),bytes=new Uint8Array(await blob.arrayBuffer());
         const exif=Uint8Array.from([255,225,0,34,69,120,105,102,0,0,73,73,42,0,8,0,0,0,1,0,18,1,3,0,1,0,0,0,orientation,0,0,0,0,0,0,0]);
-        const transfer=new DataTransfer();transfer.items.add(new File([bytes.slice(0,2),exif,bytes.slice(2)],'rotated.jpg',{type:'image/jpeg'}));
+        const padding=late?Array.from({length:5},()=>{const part=new Uint8Array(65537);part.set([255,226,255,255]);return part;}):[];
+        const transfer=new DataTransfer();transfer.items.add(new File([bytes.slice(0,2),exif,...padding,bytes.slice(2)],'rotated.jpg',{type:'image/jpeg'}));
         const input=document.querySelector('#room-attach-input');input.files=transfer.files;input.dispatchEvent(new Event('change',{bubbles:true}));
       };
       window.photoColors=async()=>{
@@ -174,9 +175,14 @@ test('resized bitmap decoding and the missing-API fallback honour EXIF orientati
         await click(page, '[aria-label="Remove picture"]');
       }
     }
+    await page.run('window.createImageBitmap = () => {throw new Error("Unknown headers must use Image");}; rotatedPhoto(6,true)');
+    await page.until('CapriAttach.hasPicture() && !CapriAttach.busy', 'JPEG size beyond header scan');
+    assert.deepEqual(await page.run('photoColors()'), {portrait:true,colors:expected[5].split(',')});
+    await type(page, 'long metadata'); await click(page, '#send');
+    assert.equal((await pc.next()).picture.mime, 'image/jpeg');
     assert.equal(await page.run('bitmapCalls.length'), 8);
     assert.equal(await page.run('bitmapClosed'), 8);
-    assert.equal(await page.run('fileReads'), 40);
+    assert.equal(await page.run('fileReads'), 41);
     assert.equal(await page.run('bitmapCalls.every(o=>Math.max(o.resizeWidth,o.resizeHeight)===80 && Math.min(o.resizeWidth,o.resizeHeight)===40 && o.imageOrientation==="from-image")'), true);
   } finally { if (page) await page.close(); await site.close(); }
 });
@@ -219,7 +225,7 @@ test('small and extreme pictures keep their shape without enlarging the bitmap',
         if(header){const bytes=await blob.arrayBuffer(),view=new DataView(bytes);view.setUint32(16,width);view.setUint32(20,height);blob=new Blob([bytes],{type:'image/png'});}
         const dt=new DataTransfer();dt.items.add(new File([blob],'shape.png',{type:'image/png'}));const input=document.querySelector('#room-attach-input');input.files=dt.files;input.dispatchEvent(new Event('change'));
       };`);
-    for (const [width,height] of [[640,480],[720,1280],[1080,15000],[15000,1080],[1,30000],[30000,1]]) {
+    for (const [width,height] of [[640,480],[720,1280],[1080,15000],[15000,1080],[1,30000],[30000,1],[1,40000],[40000,1]]) {
       await page.run(`pickSize(${width},${height})`);
       await page.until('CapriAttach.hasPicture() && !CapriAttach.busy', 'size preview');
       const scale=Math.min(1,1568/Math.max(width,height)), expected={width:Math.max(1,Math.round(width*scale)),height:Math.max(1,Math.round(height*scale))};
@@ -228,17 +234,24 @@ test('small and extreme pictures keep their shape without enlarging the bitmap',
       await click(page, '[aria-label="Remove picture"]');
     }
     const count=await page.run('bitmapCalls.length');
-    for (const [width,height] of [[1,40000],[40000,1],[9000,9000]]) {
+    for (const [width,height] of [[20000,20000],[25001,10000]]) {
       await page.run(`pickSize(${width},${height},true)`); await page.until('!CapriAttach.busy','header rejection');
       assert.equal(await page.run('CapriAttach.hasPicture()'),false);
+      await line(page, 'That picture is too big for me to send.');
     }
     assert.equal(await page.run('bitmapCalls.length'),count);
     await page.run('window.createImageBitmap=()=>Promise.reject(new TypeError("resizeWidth"))');
     await page.run('pickSize(4032,3024)'); await page.until('CapriAttach.hasPicture() && !CapriAttach.busy','older phone camera photo');
     assert.deepEqual(jpegSize(Buffer.from((await preview(page)).split(',')[1],'base64')),{w:1568,h:1176});
     await click(page,'[aria-label="Remove picture"]');
-    await page.run('pickSize(5000,5000,true)'); await page.until('!CapriAttach.busy','fallback budget');
+    await page.run('pickSize(8000,6000)'); await page.until('CapriAttach.hasPicture() && !CapriAttach.busy','48 MP plain photo');
+    assert.deepEqual(jpegSize(Buffer.from((await preview(page)).split(',')[1],'base64')),{w:1568,h:1176});
+    await type(page,'48 MP photo'); await click(page,'#send'); const sent=await pc.next();
+    assert.equal(sent.picture.mime,'image/jpeg'); await pc.send({type:'chat.reply',re:sent.id,id:'photo',text:'Seen.',done:true});
+    await page.until('!CapriAttach.hasPicture() && !CapriAttach.busy','48 MP sent');
+    await page.run('pickSize(9000,9000,true)'); await page.until('!CapriAttach.busy','fallback budget');
     assert.equal(await page.run('CapriAttach.hasPicture()'),false);
+    await line(page,'That picture is too big for me to send.');
   } finally { if(page) await page.close(); await site.close(); }
 });
 
@@ -269,4 +282,50 @@ test('picture refusal near misses stay retryable and a later picture success cle
     await page.until('document.querySelector("#log").innerText.includes("held success")','late success');
     await page.until('CapriNative.pictures()','blind flag cleared');
   } finally { if(provider.state.hold?.release) provider.state.hold.release(); if(page) await page.close(); await site.close(); await provider.close(); }
+});
+
+test('unknown headers use the browser and large camera headers use bounded bitmap decoding', { skip: !chromePath(), timeout: 60000 }, async () => {
+  const site = await startSite(8997); let page;
+  try {
+    page = await launch({port:9507}); const pc = await fakePc(page);
+    await page.go('http://127.0.0.1:8997/?relay=ws://127.0.0.1:8997' + pc.hash);
+    await page.until('CapriRemote.state === "connected"','camera bounds chat');
+    await page.run(`window.bitmapCalls=[];window.fileReads=0;window.imageReads=0;
+      const read=FileReader.prototype.readAsDataURL, source=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,'src');
+      FileReader.prototype.readAsDataURL=function(...args){fileReads++;return read.apply(this,args);};
+      window.createImageBitmap=async(file,options)=>{bitmapCalls.push({options,size:file.size});const c=document.createElement('canvas');c.width=options.resizeWidth;c.height=options.resizeHeight;return c;};
+      const c=document.createElement('canvas');c.width=80;c.height=40;window.decodedUrl=c.toDataURL();
+      Object.defineProperty(HTMLImageElement.prototype,'src',{configurable:true,get(){return source.get.call(this);},set(value){if(!this.isConnected&&String(value).startsWith('data:')){imageReads++;value=decodedUrl;}source.set.call(this,value);}});
+      const wide=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,'naturalWidth'), tall=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,'naturalHeight');
+      Object.defineProperty(HTMLImageElement.prototype,'naturalWidth',{configurable:true,get(){return !this.isConnected&&window.fakeSize?fakeSize[0]:wide.get.call(this);}});
+      Object.defineProperty(HTMLImageElement.prototype,'naturalHeight',{configurable:true,get(){return !this.isConnected&&window.fakeSize?fakeSize[1]:tall.get.call(this);}});
+      window.realImages=()=>{window.fakeSize=null;Object.defineProperty(HTMLImageElement.prototype,'src',source);Object.defineProperty(HTMLImageElement.prototype,'naturalWidth',wide);Object.defineProperty(HTMLImageElement.prototype,'naturalHeight',tall);};
+      window.pickUnknown=()=>{const dt=new DataTransfer();dt.items.add(new File(['unknown camera header'],'photo.heic',{type:'image/heic'}));const input=document.querySelector('#room-attach-input');input.files=dt.files;input.dispatchEvent(new Event('change'));};`);
+    await page.run('pickUnknown()'); await page.until('CapriAttach.hasPicture() && !CapriAttach.busy','unknown photo decoded');
+    assert.equal(await page.run('bitmapCalls.length'),0);
+    assert.equal(await page.run('imageReads'),1);
+    assert.deepEqual(jpegSize(Buffer.from((await preview(page)).split(',')[1],'base64')),{w:80,h:40});
+    await type(page,'unknown header photo'); await click(page,'#send'); const sent=await pc.next();
+    assert.equal(sent.picture.mime,'image/jpeg');
+    await pc.send({type:'chat.reply',re:sent.id,id:'unknown',text:'Seen.',done:true});
+    await page.until('!CapriAttach.hasPicture() && !CapriAttach.busy','unknown photo sent');
+    await headerPicture(page,16320,12240,33000000);
+    await page.until('CapriAttach.hasPicture() && !CapriAttach.busy','200 MP bitmap');
+    assert.deepEqual(await page.run('bitmapCalls.at(-1)'),{size:33000000,options:{resizeWidth:1568,resizeHeight:1176,resizeQuality:'high',imageOrientation:'from-image'}});
+    assert.equal(await page.run('fileReads'),1);
+    await click(page,'[aria-label="Remove picture"]');
+    await page.run('window.createImageBitmap=undefined');
+    await headerPicture(page,16320,12240,33000000); await page.until('!CapriAttach.busy','200 MP plain refusal');
+    await line(page,'That picture is too big for me to send.');
+    assert.equal(await page.run('CapriAttach.hasPicture()'),false);
+    assert.equal(await page.run('fileReads'),1);
+    await page.run('window.fakeSize=[8001,8000];pickUnknown();');
+    await page.until('!CapriAttach.busy','unknown natural size refusal');
+    await line(page,'That picture is too big for me to send.');
+    assert.equal(await page.run('CapriAttach.hasPicture()'),false);
+    await page.run('realImages()');
+    await picture(page,true); await page.until('!CapriAttach.busy','undecodable photo');
+    await line(page,"That isn't a picture I can send.");
+    assert.equal(await page.run('CapriAttach.hasPicture()'),false);
+  } finally {if(page) await page.close();await site.close();}
 });

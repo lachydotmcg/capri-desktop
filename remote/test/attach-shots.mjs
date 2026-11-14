@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { chromePath, launch } from './lib/cdp.mjs';
 import { ROOT, earlyAccess, startSite } from './lib/site.mjs';
 import { GOOD, startProvider } from './lib/fake-provider.mjs';
-import { click, type, picture, line, fakePc } from './lib/attach.mjs';
+import { click, type, picture, line, fakePc, headerPicture } from './lib/attach.mjs';
 
 if (!chromePath()) throw new Error('Chrome is not installed');
 const folder = join(ROOT, 'attach-shots'); mkdirSync(folder, { recursive: true });
@@ -19,6 +19,7 @@ try {
       const shot = name => page.shot(join(folder, `${width}x${height}-${name}.png`));
       await page.go(url); await page.until("document.querySelector('#app').dataset.link === 'connected'", 'phone chat');
       await picture(page, true); await line(page, "That isn't a picture I can send."); await shot('invalid');
+      await headerPicture(page,20000,20000); await line(page,'That picture is too big for me to send.'); await shot('too-big');
       await page.until("document.querySelector('#attach-note').hidden", 'notice cleared');
       await picture(page); await page.until("document.querySelector('#attach-preview img')?.naturalWidth > 0", 'preview');
       await type(page, 'Look at this photo.'); await shot('preview'); await click(page, '#send');

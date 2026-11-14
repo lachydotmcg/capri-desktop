@@ -16,6 +16,14 @@ export const picture = (page, invalid = false) => page.run(`(async () => {
   const input = document.querySelector('#room-attach-input'); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true }));
 })()`);
 
+export const headerPicture = (page, width, height, bytes = 0) => page.run(`(async () => {
+  const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1;
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const data = await blob.arrayBuffer(), view = new DataView(data); view.setUint32(16, ${width}); view.setUint32(20, ${height});
+  const transfer = new DataTransfer(); transfer.items.add(new File([data, new Uint8Array(Math.max(0, ${bytes} - data.byteLength))], 'camera.png', { type: 'image/png' }));
+  const input = document.querySelector('#room-attach-input'); input.files = transfer.files; input.dispatchEvent(new Event('change'));
+})()`);
+
 export async function fakePc(page, features = ['chat', 'pictures']) {
   const key = R.randomBytes(32), id = R.randomBytes(16), pairing = R.randomBytes(32);
   const room = R.b64u(R.randomBytes(16)), code = R.b64u(R.randomBytes(16));
