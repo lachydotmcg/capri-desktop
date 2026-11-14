@@ -2,7 +2,7 @@
 
 Plain answers for setting up and using Capri. The Help page (site/help/index.html) is made from this file, and the support chat on the website answers from it.
 
-Written for Capri 0.9.0 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
+Written for Capri 0.9.1 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
 
 Menu paths are written like this: right-click her > Open Capri Mainframe. Button and menu names are in the same words the app uses.
 
@@ -828,16 +828,16 @@ Both are in Mainframe > Settings > BRAIN.
 - Memory chooses how many recent messages she keeps: Short 8, Medium 16 or Long 32.
 - Memory size chooses how much text fits at once in Ollama or her built-in brain: Auto, 4K, 8K, 16K, 32K or 64K tokens. Tokens are pieces of text, not messages.
 
-Auto uses 4K with Short Memory and 8K with Medium or Long Memory. A bigger window needs more memory on your PC. This setting doesn't change a cloud model's window or the window in LM Studio, Jan, KoboldCpp or llama.cpp; set those in their own server.
+Auto (0.9.1) starts at 16K on a PC with about 12 GB of RAM or more, unless her brain runs on a graphics card with less than about 7 GB of its own memory. There, and on smaller PCs, it starts at 4K with Short Memory or 8K with Medium or Long Memory. It grows by itself when an ask needs more, up to 32K, and keeps a size that works until she restarts. In 0.9.0 and older, Auto used 4K with Short Memory and 8K with Medium or Long Memory, and grew to 16K at most. A bigger window needs more memory on your PC. This setting doesn't change a cloud model's window or the window in LM Studio, Jan, KoboldCpp or llama.cpp; set those in their own server.
 
 ### She says "That was too long for my brain's memory"
-Her built-in brain ran out of room for what you asked. She names the size it has now, like 4K or 8K. Chatting fits in a small window. Asking her to do something, like opening an app, sends her whole tool list as well, and that needs more than 8K.
+Her built-in brain ran out of room for what you asked. She names the size it has now, like 4K or 8K, and from 0.9.1 the size to pick, like 16K or Auto. Chatting fits in a small window. Asking her to do something, like opening an app, sends her whole tool list as well, and that needs more than 8K.
 
 1. Open Mainframe > Settings > BRAIN > Memory size.
 2. Pick 16K.
 3. Ask her again. If she says it again with 16K, pick 32K.
 
-It is the same whether you asked on the PC or from Capri Remote on your phone. On Auto she moves up to 16K by herself when a job needs it. A size you picked stays as you picked it. A bigger window needs more memory on your PC.
+It is the same whether you asked on the PC or from Capri Remote on your phone. On Auto she grows it by herself when an ask needs more: up to 32K from 0.9.1, and up to 16K before. If she adds "and this PC couldn't load one big enough", a bigger size didn't load on your PC. A size you picked stays as you picked it. A bigger window needs more memory on your PC.
 
 ### How do I get longer answers?
 Mainframe > Settings > BRAIN > Replies chooses Short, Medium or Long. Max reply gives her answer more room: Auto, 256, 2K or 8K tokens. 2K is 2048 tokens and 8K is 8192.
@@ -1746,7 +1746,7 @@ The words can have mistakes, especially with music or other sounds over the spee
 ### What is Capri Remote? (0.8.7)
 Text her, call her and watch your PC's screen from your phone's browser at https://capriai.app/remote.
 
-- Remote connects to Capri on Windows. The Mac and Linux preview has no Remote yet.
+- Remote connects to Capri on Windows. On the Mac and Linux preview it is chat only, from 0.9.1: see "Capri Remote on Mac and Linux" under "Mac and Linux preview: what works".
 - It needs Capri 0.8.7 or newer on the PC, from the website or the Microsoft Store (the Store copy has it from 0.8.9).
 - Off by default. She keeps your Remote on or off setting after a restart.
 - Keep Capri open, Remote on and your PC awake and online to use her on the PC. For chat without a PC, see "Use her without a PC" below.
@@ -2018,6 +2018,20 @@ Mods opens the Mods window and directory. Settings mods, colour sets, stacking s
 
 Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her hooks run the Capri app from where it is, so keep it in the same place after you set it up: Applications on Mac, or the folder you unpacked on Linux. If you move it, set Code/Husk Mode to Off and back on.
 
+### Capri Remote on Mac and Linux (0.9.1)
+Chat with her from your phone's browser at https://capriai.app/remote.
+
+1. Open Capri Mainframe > CAPRI > Remote.
+2. Turn Remote on.
+3. Press Pair a phone and scan the QR code with your phone's camera.
+4. Check the code on the phone matches the one under ALLOW THIS PHONE?, then press Allow. If they don't match, press Deny.
+
+- It is chat only for now. Calling her and watching the screen from your phone are Windows only.
+- From a phone she does what a typed line can, like opening apps and websites or playing music. Mouse and keyboard jobs and terminal commands only start at the computer: ask for one from the phone and she says "That one only works at the PC for now."
+- With a Security toggle off she asks on the phone first, and does it when you answer yes there.
+- PHONES lists your paired phones. Revoke removes one and Remove all phones removes every one; each turns into Sure? and needs a second press.
+- Off by default. She keeps your Remote on or off setting and your paired phones after a restart.
+
 ### Works
 - Sitting on windows (X11 and Mac) or the bottom of the screen (Wayland)
 - Chatting by typing: hover her and press the pencil, or right-click her > Talk to her
@@ -2050,7 +2064,7 @@ Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her h
 - Code mods that use Windows-only parts, like drawing on her, an options page, screenshots or global hotkeys. Other code mods, settings mods, colour sets and skins work in the Mods window.
 - No voice input on Mac. Call mode and wake words are Windows only.
 - No built-in brain. Use Ollama or an API key.
-- No keyboard shortcuts.
+- No system-wide keyboard shortcuts. The Mainframe and the Mods window work from the keyboard (0.9.1): see KEYS under Settings.
 - No mouse and keyboard jobs on Mac.
 - No automatic updates on a Mac, or on Linux from the tarball. She says when a new version is out, and right-click her > Get Capri X opens its download page. Started from the Linux AppImage she updates herself (0.9.0).
 
