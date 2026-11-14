@@ -1513,12 +1513,12 @@ namespace CapriDesktop
         }
     }
 
-    // Windows 10's tar has no bzip2 ("Can't initialize filter"), so her ears unpack that layer here. Each block's CRC is checked.
     internal sealed class ArchiveException : IOException
     {
         internal ArchiveException(string message) : base(message) { }
     }
 
+    // Windows 10's tar has no bzip2 ("Can't initialize filter"), so her ears unpack that layer here. Each block's CRC is checked.
     internal static class Bunzip
     {
         private static readonly uint[] Crcs = MakeCrcs();
@@ -1605,7 +1605,8 @@ namespace CapriDesktop
             {
                 if (parts == null) throw new ObjectDisposedException("Bunzip");
                 if (at < end) return true;
-                if (!parts.MoveNext()) return false;
+                try { if (!parts.MoveNext()) return false; }
+                catch (IndexOutOfRangeException) { throw Damaged(); }
                 at = 0;
                 end = parts.Current;
                 return true;
@@ -1880,6 +1881,7 @@ namespace CapriDesktop
             try { path = Path.GetFullPath(Path.Combine(root, name.Replace('/', Path.DirectorySeparatorChar))); }
             catch (ArgumentException) { throw Damaged(); }
             catch (NotSupportedException) { throw Damaged(); }
+            catch (PathTooLongException) { if (voice) throw; throw Damaged(); }
             if (path != root.TrimEnd(Path.DirectorySeparatorChar) && !path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw Damaged();
             return path;
         }
