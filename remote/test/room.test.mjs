@@ -354,21 +354,28 @@ test('room reports unanswered, refused, busy and voice-off PCs and shows pressed
   try {
     await page.run(`pc.noAnswer = true; const timeout = window.setTimeout; window.setTimeout = (fn, ms, ...args) => timeout(fn, ms === 8000 ? 100 : ms, ...args)`);
     await r.open();
-    await note("Your PC didn't answer. Tap Voice to try again.");
+    await note("Your PC did not answer in time. Tap Voice to try again.");
     assert.equal(await page.run('CapriCall.listening'), false);
     assert.equal(await page.run('pc.sent.at(-1).type'), 'call.stop');
     await page.run("pc.noAnswer = false; pc.answer = {type:'call.state',on:false,reason:'not-allowed'}");
     await click('room-voice');
-    await note("Your PC didn't answer. Tap Voice to try again.");
+    await note('Your PC is not taking calls. Tap Voice to try again.');
+    await page.run("pc.answer = {type:'call.state',on:false,reason:'ended'}");
+    await click('room-voice');
+    await note('Your PC ended it. Tap Voice to try again.');
     await page.run("pc.answer = {type:'call.state',on:false,reason:'busy'}");
     await click('room-voice');
-    await note('Your PC is on another call.');
+    await note("Your PC is on another phone's call. Tap Voice to try again.");
     await page.run("pc.answer = {type:'call.state',on:true,voice:false,ears:true}");
     await click('room-voice');
     await note('Her voice is off on your PC.');
     await page.run('new Promise(resolve => setTimeout(resolve,200))');
     await note('Her voice is off on your PC.');
-    assert.equal(await page.run('CapriCall.stats().micLive'), false);
+    for (const voice of [true, false, true, false]) {
+      await r.pc.send('room', {type:'call.state',on:true,voice,ears:false});
+      await note(voice ? '' : 'Her voice is off on your PC.');
+      assert.equal(await page.run('CapriCall.listening && !CapriCall.stats().micLive && cameraRequests.every(r => r.constraints.audio === false)'), true);
+    }
     const colors = () => page.run(`['room-sit','room-lie','room-voice'].map(id => {const el=document.getElementById(id);return {face:getComputedStyle(el,'::after').backgroundColor,ink:getComputedStyle(el).color};})`);
     const on = await colors();
     assert.deepEqual(on[0], on[2]);
@@ -421,5 +428,32 @@ test('room and ordinary calls share sound without ending each other or leaving t
     assert.equal(await page.run('document.querySelector(".call-room").hidden && !document.getElementById("room").hidden'), true);
     await click('room-close');
     await page.until('contexts.every(c => c.state === "closed")', 'all call sound closed');
+    await r.open();
+    await page.run('pc.answer={type:"call.state",on:false,reason:"not-allowed"}');
+    await click('f-call');
+    await page.until('CapriCall.state === "ended"','failed ordinary call');
+    await page.run('new Promise(resolve=>setTimeout(resolve,200))');
+    assert.equal(await page.run('!CapriCall.listening && !document.querySelector(".call-room").hidden && document.querySelector(".call-room").innerText.includes("Calls are off on your PC")'),true);
+    await click('room-close');
   } finally { await r.close(); }
+});
+
+test('small call layout contains the room and pressed buttons keep their fill under hover and focus', { skip: !chromePath() }, async () => {
+  const r=await roomRig({features:['chat','call','listen','pictures'],port:29883,chrome:29893});
+  const {page,click}=r;
+  try {
+    await page.send('Emulation.setDeviceMetricsOverride',{width:360,height:640,deviceScaleFactor:1,mobile:false});
+    await page.run('pc.answer={type:"call.state",on:true,voice:true,ears:false}'); await r.open();
+    assert.equal(await page.run('CapriCall.listening && !CapriCall.stats().micLive && cameraRequests.every(r=>r.constraints.audio===false)'),true);
+    assert.equal(await page.run('pc.sent.find(m=>m.type==="call.start").listen'),true);
+    await click('f-call'); await page.until('CapriCall.state === "on" && CapriCall.stats().micLive','layout call'); await page.run('CapriCall.room()');
+    assert.equal(await page.run(`(()=>{const box=id=>document.getElementById(id).getBoundingClientRect(),room=box('room'),view=box('room-view'),hint=box('room-status'),log=box('log'),bar=document.querySelector('.callbar').getBoundingClientRect();return view.height>=180&&hint.top>=view.bottom&&hint.bottom<=room.bottom&&log.top>=room.bottom&&bar.height>0&&bar.bottom<=innerHeight&&['msg','room-close','room-voice'].every(id=>{const b=box(id);return b.height>0&&b.top>=0&&b.bottom<=innerHeight;});})()`),true);
+    await page.send('Emulation.setDeviceMetricsOverride',{width:1000,height:800,deviceScaleFactor:1,mobile:false});
+    const color=()=>page.run('getComputedStyle(document.getElementById("room-sit"),"::after").backgroundColor');
+    const filled=await color(), box=await page.run('(()=>{const b=document.getElementById("room-sit").getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2};})()');
+    await page.send('Input.dispatchMouseEvent',{type:'mouseMoved',...box});
+    assert.equal(await page.run('document.getElementById("room-sit").matches(":hover")'),true);
+    assert.equal(await color(),filled);
+    await page.run('document.getElementById("room-sit").focus()'); assert.equal(await color(),filled);
+  } finally {await r.close();}
 });

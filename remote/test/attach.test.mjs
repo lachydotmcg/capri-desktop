@@ -10,7 +10,7 @@ import { click, type, picture, preview, line, fakePc } from './lib/attach.mjs';
 test('phone attachments cross an encrypted PC session and stay out of saved chats', { skip: !chromePath(), timeout: 120000 }, async () => {
   const site = await startSite(8982); let page; let started = 0, closed = 0;
   try {
-    page = await launch({ port: 9492, args: ['--disable-gpu', '--no-sandbox'] }); started++; await page.send('Network.disable');
+    page = await launch({ port: 9492 }); started++; await page.send('Network.disable');
     const pc = await fakePc(page);
     await page.go('http://127.0.0.1:8982/?relay=ws://127.0.0.1:8982' + pc.hash);
     await page.until("document.querySelector('#app').dataset.link === 'connected'", 'encrypted PC session');
@@ -27,20 +27,33 @@ test('phone attachments cross an encrypted PC session and stay out of saved chat
     await click(page, '[aria-label="Remove picture"]');
     assert.equal(await page.run('CapriAttach.hasPicture()'), false);
     await picture(page); await page.until('CapriAttach.hasPicture()', 'replacement picture');
+    await page.run('window.starter = document.querySelector(".starters button")');
     await type(page, 'a photo for you'); await click(page, '#send');
     const sent = await pc.next();
+    await click(page, '#f-screen'); await page.run('starter.click()');
+    await page.run('new Promise(resolve => setTimeout(resolve, 100))');
+    assert.equal(pc.got.filter(m => m.type === 'chat.send').length, 0);
     assert.equal(sent.text, 'a photo for you'); assert.equal(sent.picture.mime, 'image/jpeg');
     assert.ok(R.encodeMessage(sent).length < 60000);
     assert.equal(R.b64u(R.fromB64u(sent.picture.data)), sent.picture.data);
     assert.ok(Math.max(...Object.values(jpegSize(R.fromB64u(sent.picture.data)))) <= 1568);
     const made = (await preview(page)).split(',')[1];
     assert.deepEqual(Buffer.from(sent.picture.data, 'base64url'), Buffer.from(made, 'base64'));
+    await click(page, '[aria-label="Remove picture"]');
+    assert.equal(await page.run('CapriAttach.busy'), true);
+    await click(page, '#f-screen'); await page.run('starter.click()');
+    await page.run('new Promise(resolve => setTimeout(resolve, 100))');
+    assert.equal(pc.got.filter(m => m.type === 'chat.send').length, 0);
     await pc.send({ type: 'error', re: sent.id, code: 'busy', message: 'Try again.' });
     await page.until("document.querySelector('#msg').value === 'a photo for you' && CapriAttach.hasPicture()", 'failed send kept picture and text');
     await click(page, '#send'); const retry = await pc.next();
     assert.deepEqual(retry.picture, sent.picture);
     await pc.send({ type: 'chat.typing', re: retry.id, on: true });
     assert.equal(await page.run('CapriAttach.busy'), false);
+    await click(page, '#f-screen');
+    assert.match((await pc.next()).text, /Look at my screen/);
+    await page.run('starter.click()');
+    assert.ok((await pc.next()).text);
     await type(page, 'while she answers');
     assert.equal(await page.run("document.querySelector('#send').disabled"), false);
     await pc.send({ type: 'chat.reply', re: retry.id, id: 'reply-one', text: 'Got it.', done: true });
@@ -49,6 +62,7 @@ test('phone attachments cross an encrypted PC session and stay out of saved chat
     await page.until("document.querySelector('.msg.you img')?.naturalWidth > 0", 'sent photo');
     await picture(page); await page.until('CapriAttach.hasPicture()', 'picture alone'); await click(page, '#send');
     const alone = await pc.next(); assert.equal(alone.text, ''); assert.ok(alone.picture.data);
+    assert.equal(await page.run("[...document.querySelectorAll('.msg.you')].at(-1).querySelector('.words') === null"), true);
     await pc.send({ type: 'chat.reply', re: alone.id, id: 'reply-two', text: 'Another photo.', done: true });
     await page.until('!CapriAttach.hasPicture()', 'picture-only receipt');
     await new Promise(resolve => setTimeout(resolve, 400));
@@ -57,7 +71,8 @@ test('phone attachments cross an encrypted PC session and stay out of saved chat
     const indexed = await page.run(`(async () => { const saved = []; for (const info of await indexedDB.databases()) { const db = await new Promise((resolve, reject) => { const open = indexedDB.open(info.name); open.onsuccess = () => resolve(open.result); open.onerror = reject; }); for (const name of db.objectStoreNames) saved.push(await new Promise((resolve, reject) => { const get = db.transaction(name).objectStore(name).getAll(); get.onsuccess = () => resolve(get.result); get.onerror = reject; })); db.close(); } return JSON.stringify(saved); })()`);
     assert.ok(!indexed.includes(sent.picture.data)); assert.ok(!indexed.includes(alone.picture.data));
     await page.go('http://127.0.0.1:8982/?relay=ws://127.0.0.1:8982');
-    await page.until("document.querySelector('#log').innerText.includes('[picture]')", 'saved picture placeholder');
+    await page.until("document.querySelector('#log').innerText.includes('Picture')", 'saved picture placeholder');
+    assert.equal(await page.run("document.querySelector('#log').innerText.includes('[picture]')"), false);
     assert.equal(await page.run("[...document.querySelectorAll('.msg.you')].every(el => el.textContent.trim())"), true);
   } finally { if (page) { await page.close(); closed++; } await site.close(); console.log(`Attachment browsers started ${started}; closed ${closed}.`); }
 });
@@ -65,7 +80,7 @@ test('phone attachments cross an encrypted PC session and stay out of saved chat
 test('phone models receive pictures only when they can see', { skip: !chromePath(), timeout: 60000 }, async () => {
   const site = await startSite(8984), provider = await startProvider(8985); let page;
   try {
-    page = await launch({ port: 9494, args: ['--disable-gpu', '--no-sandbox'] }); await page.send('Network.disable');
+    page = await launch({ port: 9494 }); await page.send('Network.disable');
     await page.send('Page.addScriptToEvaluateOnNewDocument', { source: earlyAccess() + `localStorage.setItem('capri-remote-mode','phone'); if (!localStorage.getItem('capri-remote-brain')) localStorage.setItem('capri-remote-brain', JSON.stringify({provider:'anthropic',key:${JSON.stringify(GOOD.anthropic)},model:'claude-haiku-5-5',models:['claude-haiku-5-5'],images:true}));` });
     const url = 'http://127.0.0.1:8984/?provider=http://127.0.0.1:8985&count=http://127.0.0.1:8985/count';
     await page.go(url); await page.until("document.querySelector('#app').dataset.link === 'connected'", 'phone brain');
@@ -93,7 +108,7 @@ test('phone models receive pictures only when they can see', { skip: !chromePath
 test('old PCs open no picture picker and receive no picture', { skip: !chromePath(), timeout: 45000 }, async () => {
   const site = await startSite(8983); let page;
   try {
-    page = await launch({ port: 9493, args: ['--disable-gpu', '--no-sandbox'] }); await page.send('Network.disable'); const pc = await fakePc(page, ['chat']);
+    page = await launch({ port: 9493 }); await page.send('Network.disable'); const pc = await fakePc(page, ['chat']);
     await page.go('http://127.0.0.1:8983/?relay=ws://127.0.0.1:8983' + pc.hash);
     await page.until("document.querySelector('#app').dataset.link === 'connected'", 'old PC');
     await page.run("window.pickers = 0; document.querySelector('#room-attach-input').click = () => pickers++");
@@ -150,8 +165,8 @@ test('resized bitmap decoding and the missing-API fallback honour EXIF orientati
         return {portrait:img.naturalHeight>img.naturalWidth,colors:[[5,5],[15,5],[5,15],[15,15]].map(([x,y])=>Array.from(ctx.getImageData(x,y,1,1).data).slice(0,3).map(v=>v>128?1:0).join(''))};
       };`);
     const expected = ['100,010,001,110','010,100,110,001','110,001,010,100','001,110,100,010','100,001,010,110','001,100,110,010','110,010,001,100','010,110,100,001'];
-    for (const fallback of [false,true]) {
-      if (fallback) await page.run('window.createImageBitmap = undefined');
+    for (const fallback of ['bitmap', 'missing', 'imageOrientation', 'resizeWidth', 'resizeHeight', 'resizeQuality']) {
+      await page.run(fallback === 'bitmap' ? 'window.createImageBitmap = window.createImageBitmap' : fallback === 'missing' ? 'window.createImageBitmap = undefined' : `window.createImageBitmap = (photo, options) => {if (${JSON.stringify(fallback)} in options) throw new TypeError('Unknown option'); return savedBitmap(photo, options);}`);
       for (let orientation=1;orientation<=8;orientation++) {
         await page.run('rotatedPhoto(' + orientation + ')');
         await page.until('CapriAttach.hasPicture() && !CapriAttach.busy', 'oriented photo');
@@ -161,20 +176,20 @@ test('resized bitmap decoding and the missing-API fallback honour EXIF orientati
     }
     assert.equal(await page.run('bitmapCalls.length'), 8);
     assert.equal(await page.run('bitmapClosed'), 8);
-    assert.equal(await page.run('fileReads'), 8);
-    assert.equal(await page.run('bitmapCalls.every(o=>o.resizeWidth===1568 && o.imageOrientation==="from-image")'), true);
+    assert.equal(await page.run('fileReads'), 40);
+    assert.equal(await page.run('bitmapCalls.every(o=>Math.max(o.resizeWidth,o.resizeHeight)===80 && Math.min(o.resizeWidth,o.resizeHeight)===40 && o.imageOrientation==="from-image")'), true);
   } finally { if (page) await page.close(); await site.close(); }
 });
 
-test('OpenAI and Google image refusals keep the draft and give the sightless notice', { skip: !chromePath(), timeout: 60000 }, async () => {
+test('Provider image refusals keep the draft and give the sightless notice', { skip: !chromePath(), timeout: 60000 }, async () => {
   const site = await startSite(8992), provider = await startProvider(8993); let page;
   try {
     page = await launch({port:9502});
     await page.send('Page.addScriptToEvaluateOnNewDocument', {source:earlyAccess() + "localStorage.setItem('capri-remote-mode','phone');"});
     const url = 'http://127.0.0.1:8992/?provider=http://127.0.0.1:8993';
     await page.go(url);
-    for (const [kind,reason] of [['openai','Invalid content type. image_url is only supported by certain models.'],['google','Image input is not supported for this model.']]) {
-      await page.run('localStorage.setItem("capri-remote-brain",' + JSON.stringify(JSON.stringify({provider:kind,key:'test-only-never-a-real-key',model:'blind-test',models:['blind-test']})) + ')');
+    for (const [kind,reason] of [['openai','Invalid content type. image_url is only supported by certain models.'],['google','Image input is not supported for this model.'],['openrouter','No endpoints found that support image input']]) {
+      await page.run('localStorage.setItem("capri-remote-brain",' + JSON.stringify(JSON.stringify({provider:kind,key:'test-only-never-a-real-key',model:'blind-test',models:['blind-test'],images:['blind-test']})) + ')');
       provider.state.fail = {status:400,body:{error:{message:reason}}};
       await page.go(url); await page.until('CapriRemote.state === "connected"', kind + ' phone');
       await picture(page); await page.until('CapriAttach.hasPicture()', kind + ' picture');
@@ -187,4 +202,71 @@ test('OpenAI and Google image refusals keep the draft and give the sightless not
       assert.equal(provider.got.filter(r=>/completions/.test(r.path)).length, requests);
     }
   } finally { if (page) await page.close(); await site.close(); await provider.close(); }
+});
+
+test('small and extreme pictures keep their shape without enlarging the bitmap', { skip: !chromePath(), timeout: 60000 }, async () => {
+  const site = await startSite(8994); let page;
+  try {
+    page = await launch({port:9504}); const pc = await fakePc(page);
+    await page.go('http://127.0.0.1:8994/?relay=ws://127.0.0.1:8994' + pc.hash);
+    await page.until('CapriRemote.state === "connected"', 'size chat');
+    await page.run(`window.bitmapCalls=[]; const bitmap=createImageBitmap;
+      window.createImageBitmap=(file,options)=>{bitmapCalls.push(options);return bitmap(file,options);};
+      window.pickSize=async(width,height,header=false)=>{
+        const canvas=document.createElement('canvas');canvas.width=header?1:width;canvas.height=header?1:height;
+        const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#000';ctx.fillText('Read these words',2,12);
+        let blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+        if(header){const bytes=await blob.arrayBuffer(),view=new DataView(bytes);view.setUint32(16,width);view.setUint32(20,height);blob=new Blob([bytes],{type:'image/png'});}
+        const dt=new DataTransfer();dt.items.add(new File([blob],'shape.png',{type:'image/png'}));const input=document.querySelector('#room-attach-input');input.files=dt.files;input.dispatchEvent(new Event('change'));
+      };`);
+    for (const [width,height] of [[640,480],[720,1280],[1080,15000],[15000,1080],[1,30000],[30000,1]]) {
+      await page.run(`pickSize(${width},${height})`);
+      await page.until('CapriAttach.hasPicture() && !CapriAttach.busy', 'size preview');
+      const scale=Math.min(1,1568/Math.max(width,height)), expected={width:Math.max(1,Math.round(width*scale)),height:Math.max(1,Math.round(height*scale))};
+      assert.deepEqual(await page.run('({width:bitmapCalls.at(-1).resizeWidth,height:bitmapCalls.at(-1).resizeHeight})'), expected);
+      assert.deepEqual(jpegSize(Buffer.from((await preview(page)).split(',')[1], 'base64')), {w:expected.width,h:expected.height});
+      await click(page, '[aria-label="Remove picture"]');
+    }
+    const count=await page.run('bitmapCalls.length');
+    for (const [width,height] of [[1,40000],[40000,1],[9000,9000]]) {
+      await page.run(`pickSize(${width},${height},true)`); await page.until('!CapriAttach.busy','header rejection');
+      assert.equal(await page.run('CapriAttach.hasPicture()'),false);
+    }
+    assert.equal(await page.run('bitmapCalls.length'),count);
+    await page.run('window.createImageBitmap=()=>Promise.reject(new TypeError("resizeWidth"))');
+    await page.run('pickSize(4032,3024)'); await page.until('CapriAttach.hasPicture() && !CapriAttach.busy','older phone camera photo');
+    assert.deepEqual(jpegSize(Buffer.from((await preview(page)).split(',')[1],'base64')),{w:1568,h:1176});
+    await click(page,'[aria-label="Remove picture"]');
+    await page.run('pickSize(5000,5000,true)'); await page.until('!CapriAttach.busy','fallback budget');
+    assert.equal(await page.run('CapriAttach.hasPicture()'),false);
+  } finally { if(page) await page.close(); await site.close(); }
+});
+
+test('picture refusal near misses stay retryable and a later picture success clears blindness', { skip: !chromePath(), timeout: 60000 }, async () => {
+  const site=await startSite(8995), provider=await startProvider(8996); let page;
+  try {
+    page=await launch({port:9505});
+    await page.send('Page.addScriptToEvaluateOnNewDocument',{source:earlyAccess()+`localStorage.setItem('capri-remote-mode','phone');localStorage.setItem('capri-remote-brain',JSON.stringify({provider:'anthropic',key:${JSON.stringify(GOOD.anthropic)},model:'claude-haiku-5-5',models:['claude-haiku-5-5']}));`});
+    const url='http://127.0.0.1:8995/?provider=http://127.0.0.1:8996';
+    await page.go(url); await page.until('CapriRemote.state === "connected"','near miss phone');
+    await picture(page); await page.until('CapriAttach.hasPicture() && !CapriAttach.busy','near miss picture');
+    for (const reason of ['This model does not accept images larger than 20MB.','This model does not process images in this region.','This model does not support image output.','Image input is not supported for this model in this region.','Model does not support the requested response modalities: image','No endpoints found that support base64 image input','No endpoints found that support image URLs','Request rejected.']) {
+      provider.state.fail={status:400,body:{error:{message:reason},request:{text:'This model does not support image input.'}}};
+      const before=provider.got.length; await type(page,'try this'); await click(page,'#send');
+      await page.until('!CapriAttach.busy','near miss receipt');
+      assert.ok(provider.got.length>before,reason);
+      assert.equal(await page.run('CapriNative.pictures()'),true,reason);
+      assert.equal(await page.run('CapriAttach.hasPicture()'),true,reason);
+    }
+    provider.state.fail=null; provider.state.hold={text:'held success'};
+    await page.run(`window.photo={mime:'image/jpeg',data:document.querySelector('#attach-preview img').src.split(',')[1].replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'')}`);
+    await type(page,'held success'); await click(page,'#send');
+    const end=Date.now()+8000; while(!provider.state.hold.release){assert.ok(Date.now()<end);await new Promise(resolve=>setTimeout(resolve,30));}
+    provider.state.fail={status:400,body:{error:{message:'This model does not support image input.'}}};
+    await page.run("CapriRemote.send('chat.send',{id:'refused',text:'refused',picture:photo})"); await line(page,"This brain can't see pictures.");
+    assert.equal(await page.run('CapriNative.pictures()'),false);
+    provider.state.hold.release();
+    await page.until('document.querySelector("#log").innerText.includes("held success")','late success');
+    await page.until('CapriNative.pictures()','blind flag cleared');
+  } finally { if(provider.state.hold?.release) provider.state.hold.release(); if(page) await page.close(); await site.close(); await provider.close(); }
 });

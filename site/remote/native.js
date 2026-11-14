@@ -507,6 +507,7 @@
       tell({ type: 'chat.typing', on: true, re });
       try {
         const spoke = await reply(brain, history(text), words => tell({ type: 'chat.reply', id, text: words, done: false, re }), job.signal, picture);
+        if (picture) blind.delete(brain.provider + '/' + brain.model);
         tell({ type: 'chat.reply', id, text: '', done: true, re });
         if (brain.door) writeKeyed(Object.assign(readKeyed() || brain, { door: true }));
         notice(null);
@@ -514,8 +515,8 @@
         if (spoke !== false) count();
       } catch (error) {
         if (!open) return;
-        const reason = String(error && error.detail || '') + ' ' + String(error && error.raw || '');
-        if (picture && /(?:does not|doesn't|cannot|can't) support (?:\w+ ){0,2}(?:images?|vision|multimodal)|(?:images?|vision|multimodal)(?: inputs?| content| messages?| processing)? (?:is |are )?(?:not supported|unsupported|not enabled)|(?:only supports? text|text.only model)|image_url (?:is )?only supported by certain models|(?:image|image_url|image input|image content) (?:is |are )?(?:not supported|unsupported)|(?:not supported|unsupported|not enabled) (?:for|by|in|with) (?:this |the |selected )?model.{0,80}(?:image|vision)|(?:model|models).{0,80}(?:does not|doesn't|cannot|can't|do not) (?:accept|take|process) (?:\w+ ){0,2}images?/i.test(reason)) {
+        const reason = String(error && error.detail || '').trim();
+        if (picture && /^No endpoints found that support image input\.?$|^(?:Invalid content type\.\s*)?image_url is only supported by certain models\.?$|^(?:Image input|Images?|Vision|Multimodal input) (?:is |are )?(?:not supported|unsupported|not enabled) (?:for|by) (?:this|the selected) model\.?$|^(?:This|The selected) model (?:does not|doesn't) (?:support|accept) (?:image inputs?|images|vision|multimodal input)\.?$/i.test(reason)) {
           blind.add(brain.provider + '/' + brain.model);
           tell({ type: 'error', code: 'bad-message', re, quiet: true });
           (window.CapriAttach ? CapriAttach.say : toast)("This brain can't see pictures.");
