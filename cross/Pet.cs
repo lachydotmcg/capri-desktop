@@ -193,9 +193,9 @@ namespace CapriDesktop
             }
         }
 
-        internal void Tool(string id, string tool, string summary, string state)
+        internal void Tool(string id, string tool, string summary, string state, string move = null)
         {
-            Pet.RemoteTool(this, id, tool, summary, state);
+            Pet.RemoteTool(this, id, tool, summary, state, move);
         }
     }
 
@@ -5063,12 +5063,12 @@ namespace CapriDesktop
             }
         }
 
-        internal void RemoteTool(RemoteTurn turn, string id, string tool, string summary, string state)
+        internal void RemoteTool(RemoteTurn turn, string id, string tool, string summary, string state, string move = null)
         {
             lock (remoteGate)
             {
                 if (!turn.Current) return;
-                try { turn.Sink.Tool(turn.Device, id, RemoteTurn.Out(tool, 64), RemoteTurn.Out(summary, 200), state, turn.Id); }
+                try { turn.Sink.Tool(turn.Device, id, RemoteTurn.Out(tool, 64), RemoteTurn.Out(summary, 200), state, turn.Id, move); }
                 catch (Exception) { }
             }
         }

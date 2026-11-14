@@ -441,6 +441,15 @@ namespace CapriDesktop
             return reply.Text("text", text).Flag("done", done).ToString();
         }
 
+        internal static string ToolMove(string tool, ToolArguments args)
+        {
+            if (args == null) return null;
+            if (tool == "animate" && args.Name == "heart") return "heart";
+            if (tool != "move_yourself") return null;
+            if (args.Action == "lie_down") return "lie_down";
+            return args.Action == "sit" || args.Action == "sit_on" || args.Action == "sit_up" ? "sit" : null;
+        }
+
         internal static string Tool(string id, string name, string summary, string state, string re, string move = null)
         {
             RemoteJson.Writer tool = Typed("chat.tool").Text("id", id).Text("name", name).Text("summary", summary).Text("state", state);

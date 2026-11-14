@@ -501,18 +501,9 @@ namespace CapriDesktop
             if (sink == null) return null;
             RemoteAsker asker = RemoteAskerFor(ticket, false);
             if (asker == null || !RemoteCurrent(asker)) return null;
-            RemoteToolRun run = new RemoteToolRun { Device = asker.Device, Re = asker.Id, Id = RemoteMessages.NewId(), Name = tool ?? "tool", Summary = RemoteToolWords(tool, args), Move = RemoteToolMove(tool, args), Current = asker.Current };
+            RemoteToolRun run = new RemoteToolRun { Device = asker.Device, Re = asker.Id, Id = RemoteMessages.NewId(), Name = tool ?? "tool", Summary = RemoteToolWords(tool, args), Move = RemoteMessages.ToolMove(tool, args), Current = asker.Current };
             sink.Tool(run.Device, run.Id, run.Name, run.Summary, "running", run.Re);
             return run;
-        }
-
-        private static string RemoteToolMove(string tool, ToolArguments args)
-        {
-            if (args == null) return null;
-            if (tool == "animate" && args.Name == "heart") return "heart";
-            if (tool != "move_yourself") return null;
-            if (args.Action == "lie_down") return "lie_down";
-            return args.Action == "sit" || args.Action == "sit_on" || args.Action == "sit_up" ? "sit" : null;
         }
 
         private void RemoteToolEnd(object started, string done)

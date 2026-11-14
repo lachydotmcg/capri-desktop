@@ -166,6 +166,8 @@ namespace CapriDesktop
                 string id = phone == null ? null : RemoteMessages.NewId();
                 string summary = phone == null ? null : RemoteTurn.Words(tool, args);
                 string name = summary == "Using a tool" ? "tool" : tool;
+                string move = phone == null ? null : RemoteMessages.ToolMove(tool, args);
+                if (move == "heart") move = null;
                 if (phone != null) phone.Tool(id, name, summary, "running");
                 string done;
                 try
@@ -178,7 +180,7 @@ namespace CapriDesktop
                     if (phone != null) phone.Tool(id, name, summary, "failed");
                     throw;
                 }
-                if (phone != null) phone.Tool(id, name, summary, done == RemoteTurn.PcOnly || Hands.Failed(done) ? "failed" : "done");
+                if (phone != null) phone.Tool(id, name, summary, done == RemoteTurn.PcOnly || Hands.Failed(done) || move != null && MoveFailed(done) ? "failed" : "done", move);
                 if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
                 return done;
             };
@@ -186,6 +188,11 @@ namespace CapriDesktop
             if (!OnMac || Program.Smoke == null) ComputerJobs.Attach(brain);
             Hands.NativeWork = RemoteWork(Hands.NativeWork);
             Hands.Work = RemoteWork(Hands.Work);
+        }
+
+        private static bool MoveFailed(string result)
+        {
+            return result != null && result == Blind || Regex.IsMatch(result ?? "", @"\A(Which window\?|I can't see |I couldn't |I can see that app, but |That (?:app won't|window )|Those windows |Take that window |Window arranging |Turn Capri on in System Settings|Allow Capri to control System Events|System Events didn't answer|Lying down on a window you name is only on Windows so far\.)");
         }
 
         internal static Func<ToolArguments, string> RemoteWork(Func<ToolArguments, string> work)
