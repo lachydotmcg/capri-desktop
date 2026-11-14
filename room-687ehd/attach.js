@@ -24,7 +24,7 @@
   note.className = 'notice attach-note';
   note.hidden = true;
   note.setAttribute('role', 'status');
-  document.getElementById('log').before(note);
+  document.getElementById('bar').before(note);
   let noteTimer = 0;
   const say = text => {
     note.textContent = text;
@@ -96,15 +96,23 @@
     changed();
     try {
       if (count !== 1) throw new Error('picture');
-      const decoded = new Image();
-      decoded.src = await read(photo);
-      await decoded.decode();
-      const scale = Math.min(1, 1568 / Math.max(decoded.naturalWidth, decoded.naturalHeight));
+      let decoded;
+      if (window.createImageBitmap) decoded = await createImageBitmap(photo, { resizeWidth: 1568, resizeQuality: 'high', imageOrientation: 'from-image' });
+      else {
+        decoded = new Image();
+        decoded.src = await read(photo);
+        await decoded.decode();
+      }
+      const width = decoded.naturalWidth || decoded.width, height = decoded.naturalHeight || decoded.height;
+      const scale = Math.min(1, 1568 / Math.max(width, height));
       const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(decoded.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(decoded.naturalHeight * scale));
-      canvas.getContext('2d').drawImage(decoded, 0, 0, canvas.width, canvas.height);
-      decoded.removeAttribute('src');
+      canvas.width = Math.max(1, Math.round(width * scale));
+      canvas.height = Math.max(1, Math.round(height * scale));
+      try { canvas.getContext('2d').drawImage(decoded, 0, 0, canvas.width, canvas.height); }
+      finally {
+        if (decoded.close) decoded.close();
+        else decoded.removeAttribute('src');
+      }
       const picture = await fit(canvas, '', 'x'.repeat(64));
       if (mine === version) show({ canvas, picture });
     } catch (error) {
@@ -116,6 +124,7 @@
   const failed = id => {
     const sent = waiting.get(id);
     if (!sent) return;
+    clearTimeout(sent.timer);
     waiting.delete(id);
     if (!current) show(sent.value);
     if (!input.value) input.value = sent.text;
@@ -127,6 +136,7 @@
     if (!sent) return;
     if (message.type === 'error') { failed(message.re); return; }
     if (message.type === 'chat.reply' || message.type === 'chat.typing' && message.on && !sent.native) {
+      clearTimeout(sent.timer);
       if (current === sent.value) show(null);
       if (input.value === sent.text) input.value = '';
       working = false;
@@ -158,7 +168,10 @@
       finally { if (mine === version) { working = false; changed(); } }
     },
     sent: (id, text, picture) => {
-      waiting.set(id, { text, value: current, native: !!CapriRemote.info.native });
+      waiting.set(id, { text, value: current, native: !!CapriRemote.info.native, timer: setTimeout(() => {
+        failed(id);
+        say('No reply. Try sending again.');
+      }, CapriRemote.info.native ? 125000 : 15000) });
       working = true;
       changed();
     },

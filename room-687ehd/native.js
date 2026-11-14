@@ -80,7 +80,7 @@
     if (key.startsWith('sk-or-')) return 'openrouter';
     if (key.startsWith('sk-nous-')) return 'nous';
     if (key.startsWith('sk-ant-')) return 'anthropic';
-    if (/^CAPRI(-[0-9A-HJKMNP-TV-Z]{4}){4}$/i.test(key)) return 'code';
+    if (/^CAPRI(?:-[A-Z0-9]{2,12})?(-[0-9A-HJKMNP-TV-Z]{4}){4}$/i.test(key)) return 'code';
     if (key.startsWith('nvapi-')) return 'nvidia';
     if (/^sk-[0-9a-f]{32}$/.test(key)) return 'deepseek';
     return key.startsWith('sk-') ? 'openai' : null;
@@ -266,7 +266,7 @@
   const hideKeys = (text, key) => {
     let clean = String(text || '');
     if (key) clean = clean.split(key).join('[your key]');
-    return clean.replace(/\b(sk-[\w-]{8,}|AIza[\w-]{20,}|AQ\.[\w.-]{10,}|nvapi-[\w-]{10,}|CAPRI(-[0-9A-Z]{4}){4})/gi, '[a key]');
+    return clean.replace(/\b(sk-[\w-]{8,}|AIza[\w-]{20,}|AQ\.[\w.-]{10,}|nvapi-[\w-]{10,}|CAPRI(?:-[A-Z0-9]{2,12})?(-[0-9A-Z]{4}){4})/gi, '[a key]');
   };
   const failure = (code, detail, extra) => Object.assign(new Error(code), { code, detail: String(detail || '').slice(0, 300) }, extra || {});
   const sentence = (code, kind, allowance, wait) => {
@@ -514,8 +514,8 @@
         if (spoke !== false) count();
       } catch (error) {
         if (!open) return;
-        const reason = String(error && (error.detail || error.raw) || '');
-        if (picture && /(?:does not|doesn't|cannot|can't) support (?:\w+ ){0,2}(?:images?|vision|multimodal)|(?:images?|vision|multimodal)(?: inputs?| content| messages?| processing)? (?:is |are )?(?:not supported|unsupported|not enabled)|(?:only supports? text|text.only model)/i.test(reason)) {
+        const reason = String(error && error.detail || '') + ' ' + String(error && error.raw || '');
+        if (picture && /(?:does not|doesn't|cannot|can't) support (?:\w+ ){0,2}(?:images?|vision|multimodal)|(?:images?|vision|multimodal)(?: inputs?| content| messages?| processing)? (?:is |are )?(?:not supported|unsupported|not enabled)|(?:only supports? text|text.only model)|image_url (?:is )?only supported by certain models|(?:image|image_url|image input|image content) (?:is |are )?(?:not supported|unsupported)|(?:not supported|unsupported|not enabled) (?:for|by|in|with) (?:this |the |selected )?model.{0,80}(?:image|vision)|(?:model|models).{0,80}(?:does not|doesn't|cannot|can't|do not) (?:accept|take|process) (?:\w+ ){0,2}images?/i.test(reason)) {
           blind.add(brain.provider + '/' + brain.model);
           tell({ type: 'error', code: 'bad-message', re, quiet: true });
           (window.CapriAttach ? CapriAttach.say : toast)("This brain can't see pictures.");
