@@ -19,7 +19,15 @@ namespace CapriDesktop
 
         private RemotePicture(string mime, byte[] bytes) { Mime = mime; Bytes = bytes; }
 
-        internal static bool Read(RemoteJson.Map message, out RemotePicture picture)
+        internal static bool Read(RemoteJson.Map message, out RemotePicture picture, Action decoding = null)
+        {
+            if (!Header(message, out picture)) return false;
+            if (picture == null || picture.Confirm(decoding)) return true;
+            picture = null;
+            return false;
+        }
+
+        internal static bool Header(RemoteJson.Map message, out RemotePicture picture)
         {
             picture = null;
             if (message.PlainBytes >= 60000) return false;
@@ -36,19 +44,69 @@ namespace CapriDesktop
             bool jpeg = bytes.Length >= 4 && bytes[0] == 255 && bytes[1] == 216 && bytes[2] == 255;
             bool png = bytes.Length >= 8 && bytes[0] == 137 && bytes[1] == 80 && bytes[2] == 78 && bytes[3] == 71 && bytes[4] == 13 && bytes[5] == 10 && bytes[6] == 26 && bytes[7] == 10;
             if (mime == "image/jpeg" ? !jpeg : !png) return false;
+            int width, height;
+            if (!Size(bytes, jpeg, out width, out height) || width < 1 || height < 1 || width > 1568 || height > 1568) return false;
+            picture = new RemotePicture(mime, bytes);
+            return true;
+#endif
+        }
+
+        private static bool Size(byte[] bytes, bool jpeg, out int width, out int height)
+        {
+            width = height = 0;
+            if (!jpeg)
+            {
+                if (bytes.Length < 33 || bytes[8] != 0 || bytes[9] != 0 || bytes[10] != 0 || bytes[11] != 13 || bytes[12] != 73 || bytes[13] != 72 || bytes[14] != 68 || bytes[15] != 82) return false;
+                if (bytes[16] != 0 || bytes[17] != 0 || bytes[20] != 0 || bytes[21] != 0) return false;
+                width = bytes[18] * 256 + bytes[19];
+                height = bytes[22] * 256 + bytes[23];
+                return true;
+            }
+            int at = 2;
+            while (at < bytes.Length)
+            {
+                if (bytes[at++] != 255) return false;
+                while (at < bytes.Length && bytes[at] == 255) at++;
+                if (at >= bytes.Length) return false;
+                int marker = bytes[at++];
+                if (marker == 0 || marker == 216 || marker == 217 || marker == 218) return false;
+                if (marker == 1 || marker >= 208 && marker <= 215) continue;
+                if (bytes.Length - at < 2) return false;
+                int length = bytes[at] * 256 + bytes[at + 1];
+                if (length < 2 || length > bytes.Length - at) return false;
+                if (marker >= 192 && marker <= 207 && marker != 196 && marker != 200 && marker != 204)
+                {
+                    if (length < 8 || length != 8 + 3 * bytes[at + 7]) return false;
+                    height = bytes[at + 3] * 256 + bytes[at + 4];
+                    width = bytes[at + 5] * 256 + bytes[at + 6];
+                    return true;
+                }
+                at += length;
+            }
+            return false;
+        }
+
+        internal bool Confirm(Action decoding = null)
+        {
+#if CROSS
+            return false;
+#else
             try
             {
-                using (System.IO.MemoryStream input = new System.IO.MemoryStream(bytes, false))
+                if (decoding != null) decoding();
+                bool jpeg = Mime == "image/jpeg";
+                int width, height;
+                if (!Size(Bytes, jpeg, out width, out height)) return false;
+                using (System.IO.MemoryStream input = new System.IO.MemoryStream(Bytes, false))
                 using (System.Drawing.Image image = System.Drawing.Image.FromStream(input, false, true))
                 {
-                    if (image.Width < 1 || image.Height < 1 || image.Width > 1568 || image.Height > 1568) return false;
+                    if (image.Width != width || image.Height != height || image.Width < 1 || image.Height < 1 || image.Width > 1568 || image.Height > 1568) return false;
                     if (image.RawFormat.Guid != (jpeg ? System.Drawing.Imaging.ImageFormat.Jpeg.Guid : System.Drawing.Imaging.ImageFormat.Png.Guid)) return false;
                     using (System.Drawing.Bitmap decoded = new System.Drawing.Bitmap(image.Width, image.Height))
                     using (System.Drawing.Graphics draw = System.Drawing.Graphics.FromImage(decoded)) draw.DrawImage(image, 0, 0, image.Width, image.Height);
                 }
             }
             catch (Exception) { return false; }
-            picture = new RemotePicture(mime, bytes);
             return true;
 #endif
         }

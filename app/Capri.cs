@@ -38879,8 +38879,37 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeRoomHost(System.Collections.Generic.List<string> checks)
+        {
+            RemoteCall.SmokeListening(checks);
+            bool warm = remoteEarsWarm;
+            RemoteLink link = new RemoteLink(RemoteState.Fresh(), "ws://127.0.0.1:1", "Test PC", "test", null);
+            using (RemoteCall call = new RemoteCall(link, delegate { throw new Exception("Listening used ears."); }, delegate { }))
+            {
+                try
+                {
+                    remoteEarsWarm = false;
+                    call.Heard("phone", "{\"type\":\"call.start\",\"listen\":true}");
+                    RemoteEarsFor(call.Hearing);
+                    if (remoteEarsWarm || BadgeLead(false, call.Any, call.Hearing) != "PHONE IS LISTENING ") throw new Exception("Room listening warmed ears or showed a call badge.");
+                    call.Heard("phone", "{\"type\":\"call.stop\"}");
+                    RemoteEarsFor(call.Hearing);
+                    if (remoteEarsWarm || call.Any) throw new Exception("Stopping Room listening left ears or a call.");
+                    call.Heard("phone", "{\"type\":\"call.start\"}");
+                    RemoteEarsFor(call.Hearing);
+                    if (!remoteEarsWarm || BadgeLead(false, call.Any, call.Hearing) != "PHONE IS ON A CALL ") throw new Exception("An ordinary call after Room listening lost ears or its badge.");
+                    call.End("phone", "ended");
+                    RemoteEarsFor(call.Hearing);
+                    if (remoteEarsWarm) throw new Exception("Ending the ordinary call left ears warm.");
+                }
+                finally { remoteEarsWarm = warm; link.Stop(); }
+            }
+            checks.Add("PASS Room listening keeps ears cold and uses the listening badge; a later ordinary call warms and releases ears and uses its call badge");
+        }
+
         private void SmokeRemotePictures(System.Collections.Generic.List<string> checks)
         {
+            RemoteLink.SmokePictureHeaders(checks);
             string address = Brain.Nvidia, log = Brain.LogPath, model = brain.Model, unsighted = brain.Unsighted;
             Cloud remote = brain.Remote;
             RemoteSink sink = remoteSink;
@@ -43177,6 +43206,7 @@ namespace CapriDesktop
             Section(checks, "SmokeRemotePictures", delegate { SmokeRemotePictures(checks); });
             Section(checks, "SmokeRemoteJobs", delegate { SmokeRemoteJobs(checks); });
             Section(checks, "SmokeRemoteCall", delegate { SmokeRemoteCall(checks); });
+            Section(checks, "SmokeRoomHost", delegate { SmokeRoomHost(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
             Section(checks, "SmokeDeviceChoices", delegate { SmokeDeviceChoices(checks); });
             Section(checks, "SmokeSlowDevices", delegate { SmokeSlowDevices(checks); });
