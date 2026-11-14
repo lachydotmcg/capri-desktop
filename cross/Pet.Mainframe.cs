@@ -229,7 +229,7 @@ namespace CapriDesktop
         internal string MainframeVoiceProblem { get { return voiceProblem; } }
         internal bool MainframePulling { get { return pulling; } }
         internal string MainframeProgress { get { return pulling ? Pulling : null; } }
-        internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !ComputerJobs.Supported && !fingers; } }
+        internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !ComputerJobs.Supported && !InputReady(); } }
         internal int MainframeVoiceMode { get { return Saved.Silent || Speakers.Known(Saved.VoiceProvider) == Speakers.Off ? 0 : Speakers.Known(Saved.VoiceProvider) == Speakers.Local ? 2 : Speakers.Known(Saved.VoiceProvider) == Speakers.Owned ? 1 : 3; } }
         internal string MainframeUpdate { get { return updateChecking ? "Checking for updates..." : updateNote ?? UpdateNews ?? (updatePage == null ? "" : "An update is available."); } }
         internal string MainframeLocalAddress { get { return localVoice.Url ?? ""; } }
@@ -346,14 +346,15 @@ namespace CapriDesktop
         internal NativeMenu TrayMenu()
         {
             var menu = new NativeMenu();
-            Action fill = () => { Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; FillMenu(menu, ContextMenu.Items); };
+            Action fill = () => { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; FillMenu(menu, ContextMenu.Items); };
             fill(); menu.NeedsUpdate += (_, _) => fill(); return menu;
         }
-        private static void FillMenu(NativeMenu menu, System.Collections.IEnumerable source)
+        private void FillMenu(NativeMenu menu, System.Collections.IEnumerable source)
         {
             menu.Items.Clear();
             foreach (object value in source)
             {
+                if (OperatingSystem.IsLinux() && ReferenceEquals(source, securityMenu.Items) && value is Control && !((Control)value).IsVisible) continue;
                 var row = value as MenuItem;
                 if (row == null) { menu.Items.Add(new NativeMenuItemSeparator()); continue; }
                 var item = new NativeMenuItem(row.Header as string ?? "") { IsEnabled = row.IsEnabled, IsChecked = row.IsChecked,

@@ -15,7 +15,9 @@ namespace CapriDesktop
     {
         internal const string Device = "/dev/uinput";
         internal const string Rule = "KERNEL==\"uinput\", SUBSYSTEM==\"misc\", TAG+=\"uaccess\", OPTIONS+=\"static_node=uinput\"";
-        internal const string Setup = "echo '" + Rule + "' | sudo tee /etc/udev/rules.d/60-capri-uinput.rules && sudo udevadm control --reload && sudo udevadm trigger --name-match=uinput";
+        internal const string Setup = "echo 'uinput' | sudo tee /etc/modules-load.d/capri-uinput.conf && echo '" + Rule + "' | sudo tee /etc/udev/rules.d/60-capri-uinput.rules && sudo udevadm control --reload && sudo modprobe uinput && sudo udevadm trigger --name-match=uinput && sudo udevadm settle";
+        internal static Func<bool> Present = delegate { return File.Exists(Device); };
+        internal static Func<bool> Writable = delegate { return access(Device, 2) == 0; };
         private const int Span = 65535;
         private const ushort Syn = 0, Key = 1, Rel = 2, Abs = 3;
         private const ushort Left = 0x110, Right = 0x111, Middle = 0x112;
@@ -40,8 +42,8 @@ namespace CapriDesktop
             {
                 if (OperatingSystem.IsMacOS()) return MacFingers.Problem();
                 if (!OperatingSystem.IsLinux()) return "Using the mouse and keyboard isn't ready on this PC yet.";
-                if (!File.Exists(Device)) return "Using the mouse and keyboard isn't ready on this PC yet: there's no " + Device + ". Run sudo modprobe uinput, then ask again.";
-                if (access(Device, 2) != 0) return "Using the mouse and keyboard isn't ready on this PC yet: Capri can't write to " + Device + ". Open Capri Mainframe > Settings > KEYS > Set up mouse and keyboard, run the command it copies, then ask again.";
+                if (!Present()) return "There's no " + Device + " yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
+                if (!Writable()) return "I can't write to " + Device + " yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
                 return null;
             }
         }

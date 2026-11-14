@@ -549,7 +549,7 @@ namespace CapriDesktop
             Slider("Pop-ins", Pet.PopNames, 0, 756, () => pet.PopPace, pet.SetPopPace);
             Toggle("Dance to music", 0, 784, () => !pet.Saved.NoDance, pet.SetDanceToMusic);
             Toggle("Glitch in at startup", 0, 812, () => !pet.Saved.NoIntro, pet.SetIntro).Switch = 68;
-            if (pet.MainframeInputSetup)
+            if (OperatingSystem.IsLinux())
             {
                 Section("KEYS", 0, 854);
                 Key("Set up mouse and keyboard", 28, 881, 328, 22, pet.MainframeSetupInput);
@@ -781,7 +781,7 @@ namespace CapriDesktop
                 updateNote.Text = pet.MainframeUpdate;
                 Read(nickname, Brain.Nickname); Read(custom, pet.Brain.Model); Read(localAddress, pet.Brain.Server); Read(voiceId, pet.Saved.VoiceId);
                 more.Text = paged ? "Back" : "Settings"; advanced.Text = pet.Saved.AdvancedSettings ? "Simple Settings" : "Advanced Settings";
-                string next = paged + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null);
+                string next = paged + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null) + "|" + pet.MainframeInputSetup;
                 if (layout != next) { layout = next; ArrangePage(); }
             }
             finally { syncing = false; }
@@ -829,6 +829,7 @@ namespace CapriDesktop
         private void ArrangePage()
         {
             bool simple = !pet.Saved.AdvancedSettings;
+            bool inputSetup = pet.MainframeInputSetup;
             int tier = pet.MainframeTier, voice = pet.MainframeVoiceMode;
             double extra = Expanded ? 118 : 0, shift = extra + (tier == 0 ? 94 : 128 + (paidKey != null ? 86 : 0));
             double fold = voice == 0 ? 72 : voice == 3 && pet.MainframeVoiceKey != null ? 0 : 36;
@@ -845,7 +846,8 @@ namespace CapriDesktop
                     double anchor = y + (control is NeonHead ? 5 : 0);
                     if (simple && In(anchor, right ? FoldedRight : FoldedLeft)) show = false;
                     int[][] missing = right ? MissingRight : MissingLeft;
-                    if (!right && pet.MainframeInputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
+                    if (!right && inputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
+                    if (!right && !inputSetup && anchor >= 854 && anchor < 910) show = false;
                     y = Lift(anchor, missing, right ? FoldedRight : FoldedLeft, simple) - (control is NeonHead ? 5 : 0);
                     if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel && control != thinkingLevel && control != thinkingLabel && control != thinkingExtra && control != extraLabel) y += control == huskVerbosity ? 84 : 112;
                 }

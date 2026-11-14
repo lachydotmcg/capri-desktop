@@ -350,6 +350,7 @@ namespace CapriDesktop
                 ProviderRegression.Run(pet, folder);
                 checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, and the unkeyed server message is unchanged");
                 ChoresChecks();
+                LinuxInputChecks();
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
                 string loginText = File.Exists(pet.LoginFile) ? File.ReadAllText(pet.LoginFile) : "";
@@ -6205,6 +6206,98 @@ namespace CapriDesktop
             fail("a server that's down throws for her to explain", down);
             if (wrong.Count > 0) throw new Exception("Her own brain server went wrong: " + string.Join(", ", wrong) + " / " + said + " / " + chat);
             checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links; a provider key reaches its models and chats, while a local server sends none");
+        }
+
+        private void LinuxInputChecks()
+        {
+            if (!OperatingSystem.IsLinux() || ComputerJobs.Supported || HyprlandDesktop.Current != null) return;
+            Func<bool> present = Fingers.Present, writable = Fingers.Writable, ready = Hands.HandsReady;
+            Func<string> problem = Hands.HandsProblem;
+            bool own = Hands.OwnHands, advanced = pet.Saved.AdvancedSettings;
+            const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            object fingers = typeof(Pet).GetField("fingers", fields).GetValue(pet);
+            Desk desk = pet.Desk;
+            Func<PixelPoint?> mouse = pet.MouseAt;
+            string display = Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
+            Mainframe frame = null;
+            const string missing = "There's no /dev/uinput yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
+            const string denied = "I can't write to /dev/uinput yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
+            try
+            {
+                Fingers.Present = delegate { return false; };
+                Fingers.Writable = delegate { return false; };
+                Hands.HandsReady = delegate { return !pet.MainframeInputSetup; };
+                Hands.HandsProblem = delegate { return Fingers.Problem; };
+                if (Fingers.Problem != missing || !pet.MainframeInputSetup || Hands.OwnHands || Hands.Unable("use_computer", new ToolArguments()) != missing)
+                    throw new Exception("Missing Linux input lost its live setup row or guidance.");
+                pet.Saved.AdvancedSettings = true;
+                frame = new Mainframe(pet);
+                frame.ShowSettings(true);
+                NeonButton setup = frame.Button("Set up mouse and keyboard");
+                MenuItem menuSetup = (MenuItem)typeof(Pet).GetField("inputSetup", fields).GetValue(pet);
+                Separator menuBreak = (Separator)typeof(Pet).GetField("inputSetupBreak", fields).GetValue(pet);
+                MenuItem mouseToggle = null;
+                foreach (MenuItem item in (List<MenuItem>)typeof(Pet).GetField("securityToggles", fields).GetValue(pet)) if ((int)item.Tag == Security.Mouse) mouseToggle = item;
+                pet.TrayMenu();
+                if (setup == null || !menuSetup.IsVisible || !menuBreak.IsVisible || mouseToggle == null || mouseToggle.IsVisible)
+                    throw new Exception("Linux input setup or its mouse toggle was shown before the device was ready.");
+                string copied = null;
+                pet.CopyFingersSetup(delegate(string command) { copied = command; return Task.FromResult(0); }).GetAwaiter().GetResult();
+                if (copied != Fingers.Setup || pet.Talk.Reply != missing + " Copied the command; paste it in a terminal and type your password.")
+                    throw new Exception("Linux setup did not copy its command and explain the missing device without a reopen.");
+                Fingers.Present = delegate { return true; };
+                if (Fingers.Problem != denied || Hands.Unable("use_computer", new ToolArguments()) != denied) throw new Exception("Linux input lost its not-writable guidance.");
+                TaskCompletionSource<bool> failed = new TaskCompletionSource<bool>();
+                failed.SetException(new IOException("No clipboard."));
+                foreach (Func<string, Task> copy in new Func<string, Task>[] { null, delegate { throw new IOException("No clipboard."); }, delegate { return failed.Task; } })
+                {
+                    pet.CopyFingersSetup(copy).GetAwaiter().GetResult();
+                    if (pet.Talk.Reply != denied + " Couldn't copy the command; run this in a terminal and type your password:\n\n" + Fingers.Setup)
+                        throw new Exception("Linux setup hid its command after a missing, throwing or failed clipboard.");
+                }
+                checks.Add("PASS Linux input setup reports missing and unwritable devices, awaits clipboard copying, shows the command on clipboard failure and never asks for a reopen");
+                string commandLine = "echo 'uinput' | sudo tee /etc/modules-load.d/capri-uinput.conf && echo '" + Fingers.Rule
+                    + "' | sudo tee /etc/udev/rules.d/60-capri-uinput.rules && sudo udevadm control --reload && sudo modprobe uinput && sudo udevadm trigger --name-match=uinput && sudo udevadm settle";
+                if (Fingers.Setup != commandLine || Fingers.Setup.Contains("tee -a")) throw new Exception("Linux input setup lost its boot entry, module load, rules or repeatable writes.");
+                checks.Add("PASS Linux input setup writes the boot entry and udev rule without appending, reloads the rules, loads uinput, triggers the device and waits for udev");
+                Fingers.Writable = delegate { return true; };
+                if (Hands.Unable("use_computer", new ToolArguments()) != null || !Hands.KitFor().Has("use_computer") || !Hands.OwnHands || !Security.Has(Security.Mouse))
+                    throw new Exception("Linux tools kept their startup input failure after a live fix.");
+                frame.Sync();
+                pet.TrayMenu();
+                if (pet.MainframeInputSetup || setup.IsVisible || menuSetup.IsVisible || menuBreak.IsVisible || !mouseToggle.IsVisible)
+                    throw new Exception("Linux input setup stayed visible after a live fix.");
+                pet.CopyFingersSetup(delegate { throw new Exception("Ready input copied setup again."); }).GetAwaiter().GetResult();
+                if (pet.Talk.Reply != "My mouse and keyboard are ready. Ask again.") throw new Exception("Linux setup did not recheck input when pressed.");
+                Fingers.Writable = delegate { return false; };
+                frame.Sync();
+                pet.TrayMenu();
+                if (!pet.MainframeInputSetup || !setup.IsVisible || !menuSetup.IsVisible || !menuBreak.IsVisible || mouseToggle.IsVisible || Hands.KitFor().Has("use_computer"))
+                    throw new Exception("Linux input setup did not notice lost device access.");
+                checks.Add("PASS Linux input readiness, the open Mainframe setup row and Security menu follow repairs and lost access without restarting Capri");
+                pet.Desk = new BareDesk();
+                pet.MouseAt = delegate { return null; };
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", "wayland-smoke");
+                const string wayland = "This Wayland desktop doesn't share your mouse position. Drag me where you want me.";
+                if (Hands.MoveSelf("come_here", null) != wayland || Hands.MoveSelf("ride_cursor", null) != wayland
+                    || (string)typeof(Pet).GetMethod("NoMouse", fields).Invoke(pet, new object[] { true }) != wayland)
+                    throw new Exception("Wayland pointer limits lost their explanation or drag advice.");
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", null);
+                if (Hands.MoveSelf("come_here", null) != "Couldn't find your mouse on this desktop." || Hands.MoveSelf("ride_cursor", null) != "Couldn't find your mouse on this desktop."
+                    || (string)typeof(Pet).GetMethod("NoMouse", fields).Invoke(pet, new object[] { true }) != "Couldn't find your mouse. I've hopped off.")
+                    throw new Exception("Non-Wayland pointer guidance changed.");
+                checks.Add("PASS Linux BareDesk on Wayland explains missing pointer access and suggests dragging for come here, cursor riding and a lost cursor; other desktops keep their lines");
+            }
+            finally
+            {
+                if (frame != null) frame.Shut();
+                Fingers.Present = present; Fingers.Writable = writable; Hands.HandsReady = ready; Hands.HandsProblem = problem;
+                Hands.OwnHands = own; pet.Saved.AdvancedSettings = advanced;
+                typeof(Pet).GetField("fingers", fields).SetValue(pet, fingers);
+                pet.Desk = desk; pet.MouseAt = mouse;
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", display);
+                pet.Talk.Dismiss();
+            }
         }
 
         // Her mouse and keyboard jobs on Linux: a screenshot to her brain, one JSON step back, done with her own uinput mouse and
