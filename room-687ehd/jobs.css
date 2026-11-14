@@ -1,0 +1,59 @@
+/* Capri Remote's JOBS (jobs.js), in app.css's Night City look like the screen view: a hot rule under the title, cut
+   corners, cyan for what she's doing now and yellow while she waits for a yes. Also the JOBS tile's mark and the call's
+   round key while a job runs. */
+
+/* ---------- The page ---------- */
+.jobs { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; padding: 0 max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px)); background: var(--wine), var(--ground); outline: none; }
+.jobs-top { flex: none; display: flex; align-items: center; gap: 8px; width: 100%; max-width: 720px; height: calc(52px + env(safe-area-inset-top, 0px)); margin: 0 auto; padding-top: env(safe-area-inset-top, 0px); border-bottom: 1px solid var(--hot); }
+.jobs-title { flex: 1; min-width: 0; margin: 0; color: var(--rose); font: 600 19px/1 var(--display); font-stretch: 75%; letter-spacing: .12em; text-transform: uppercase; }
+.jobs-top .nbtn.icon { width: 40px; min-height: 40px; }
+.jobs-scroll { flex: 1; min-height: 0; width: 100%; max-width: 720px; margin: 0 auto; padding: 16px 0 24px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--dash) transparent; }
+.jobs-note { margin: 0 0 14px; color: var(--yellow); font: 15px/1.3 var(--ui); }
+.jobs-empty { margin: 4px 0 0; color: var(--faint); font: 15px/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+
+/* The job now: a card with a cut corner like her messages. Its keys stay in reach at the bottom while the steps scroll. */
+.job-live { --cut: 10px; position: relative; isolation: isolate; padding: 16px 16px 0; }
+.job-live::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--rule); clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%); }
+.job-live::after { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--field); clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut) + .586px), calc(100% - var(--cut) + .586px) 100%, 0 100%); }
+.job-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.job-task, .job-recent-task { min-width: 0; margin: 0; color: var(--white); font: 600 18px/1.3 var(--ui); font-stretch: 87.5%; overflow-wrap: anywhere; }
+.job-task { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+.job-recent-task { font-size: 16px; }
+.job-state { flex: none; padding: 5px 7px 4px; border: 1px solid currentColor; color: var(--cyan); font: 600 12px/1 var(--display); font-stretch: 75%; letter-spacing: .1em; text-transform: uppercase; }
+.job-state[data-state="asking"] { color: var(--yellow); }
+.job-state[data-state="failed"] { color: var(--rose); }
+.job-state[data-state="done"], .job-state[data-state="stopped"] { color: var(--faint); }
+.job-steps { max-height: clamp(112px, 28vh, 260px); margin: 12px 0 0; padding: 4px 0 4px 27px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--dash) transparent; -webkit-mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 8px), transparent); mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 8px), transparent); }
+.job-step { padding: 7px 4px 7px 5px; border-bottom: 1px solid var(--dash); color: var(--white); font: 15px/1.3 var(--ui); overflow-wrap: anywhere; }
+.job-step:last-child { border-bottom: 0; }
+.job-step::marker { color: var(--faint); font: 12px var(--mono); }
+.job-step[data-state="running"] { color: var(--cyan); }
+.job-step[data-state="running"]::after { content: ""; display: inline-block; width: .85ch; height: 1.05em; margin-left: 6px; vertical-align: -.2em; background: currentColor; animation: caret .8s steps(1) infinite; }
+.job-step[data-state="failed"] { color: var(--rose); }
+.job-controls { position: sticky; bottom: 0; display: grid; gap: 10px; margin: 12px 0 1px; padding: 12px 0 14px; border-top: 1px solid var(--dash); background: var(--field); }
+.job-question { margin: 0; color: var(--white); font: 600 17px/1.35 var(--ui); font-stretch: 87.5%; overflow-wrap: anywhere; }
+.job-question::before { content: "?"; display: inline-block; margin-right: 8px; padding: 0 6px; background: var(--yellow); color: var(--on-ink); font: 600 14px/20px var(--display); vertical-align: 1px; }
+.job-answers { display: flex; gap: 10px; }
+.job-answers .nbtn { flex: 1; min-height: 48px; }
+.job-stop { min-height: 50px; }
+
+/* Her last ten jobs, under a heading like the settings' own. */
+.jobs-recent-title { margin: 26px 0 0; }
+.job-recent { margin: 0; padding: 0; list-style: none; }
+.job-recent-item { padding: 14px 0; border-bottom: 1px solid var(--dash); }
+.job-recent .jobs-empty { padding: 14px 0; }
+.job-meta, .job-last { margin: 6px 0 0; color: var(--faint); font: 14px/1.3 var(--ui); overflow-wrap: anywhere; }
+.job-last { color: var(--white); }
+
+/* ---------- While a job runs: the JOBS tile's mark and the call's key ---------- */
+.feat[data-job="running"]::after, .feat[data-job="asking"]::after { content: ""; position: absolute; top: 7px; left: calc(50% + 10px); width: 7px; height: 7px; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: job-live 1.6s ease-in-out infinite; }
+.feat[data-job="asking"]::after { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+.call-top .call-jobs { position: relative; }
+.call-top .call-screen:not([hidden]) + .call-jobs { margin-left: 10px; }
+.call-top .call-jobs::after { content: ""; position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); animation: job-live 1.6s ease-in-out infinite; }
+.call-top .call-jobs[data-job="asking"]::after { background: var(--yellow); }
+@keyframes job-live { 50% { opacity: .35; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .job-step[data-state="running"]::after, .feat[data-job]::after, .call-top .call-jobs::after { animation: none; }
+}

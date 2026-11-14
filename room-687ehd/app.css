@@ -1,0 +1,399 @@
+/* Capri Remote.
+   Chrome (top bar, menu, pairing cards, the message bar) wears her Mainframe's Night City look from app/Neon.cs: her ground
+   with a wine glow at the top, corners clipped big at the top left and bottom right, a red rim with hot red strokes over
+   the big corners, rose titles, teal rules and Bahnschrift (Barlow, as on her Mac and Linux builds, where it's missing).
+   The chat is texting on a Night City phone, after Lachy's references: CONTACTS > CAPRI on top, her texts on the left in
+   her red, his on the right in cyan, each a thin-edged box with one cut corner, and her features in a row at the bottom.
+   She sits on the reply bar, big. */
+
+@font-face { font-family: "Share Tech Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("../assets/fonts/ShareTechMono-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 400; font-display: swap; src: url("fonts/BarlowSemiCondensed-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Barlow Semi Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/BarlowSemiCondensed-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap; src: url("fonts/BarlowCondensed-SemiBold.ttf") format("truetype"); }
+
+:root {
+  color-scheme: dark;
+  /* Night City (Neon.cs, look 0) */
+  --ground: #0a0a10;
+  --glow: #360e1a;
+  --band: #100c14;
+  --rule: #2c7a86;
+  --rose: #ff5d66;
+  --white: #ececf1;
+  --faint: #92828c;
+  --field: #11101c;
+  --hover: #1e1424;
+  --pressed: #2e1626;
+  --edge: #5c1824;
+  --hot: #e84246;
+  --cyan: #5ef0f6;
+  --deep: #091e21;
+  --deep-edge: #287884;
+  --on-ink: #060e12;
+  --dash: #4e1c28;
+  --brim: #781e2c;
+  --well: #0c0b14;
+  --yellow: #f4d646;
+  /* Her speech box (Talk.cs, Look) */
+  --panel: #090b0f;
+  --box-cyan: #3ad6eb;
+  --box-red: #e82440;
+  --neon: #38b0ff;
+  --ink: #e8ecf0;
+  --dim: #7a808a;
+  /* The wine glow: strong at the top, gone by 210 px, on Neon.Fade's curve */
+  --wine: linear-gradient(to bottom, #360e1a 0, #2c0d18 26px, #230c16 53px, #1b0c14 79px, #150b12 105px, #100b11 131px, #0d0a11 158px, #0b0a10 184px, #0a0a10 210px);
+  --ui: Bahnschrift, "Barlow Semi Condensed", "Arial Narrow", sans-serif;
+  --display: Bahnschrift, "Barlow Condensed", "Arial Narrow", sans-serif;
+  --mono: "Share Tech Mono", ui-monospace, Consolas, monospace;
+  --s: 208px;
+}
+
+[hidden] { display: none !important; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: none; background: var(--ground); }
+body { color: var(--white); font: 15px/1.35 var(--ui); font-stretch: 87.5%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; -webkit-font-smoothing: antialiased; }
+button, textarea { font: inherit; color: inherit; }
+button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------- The app: one screen, sized to the visible part of the viewport, so the bar rides on the keyboard ---------- */
+.app {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  overflow: hidden;
+  background: var(--wine), var(--ground);
+  touch-action: manipulation;
+}
+
+/* ---------- Top bar: CONTACTS > CAPRI over a thin hot rule, after Lachy's texting reference ---------- */
+.top { position: relative; z-index: 4; flex: none; align-self: center; display: flex; align-items: center; gap: 2px; width: 100%; max-width: 720px; height: calc(52px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); border-bottom: 1px solid var(--hot); }
+.top::after { content: ""; position: absolute; left: 0; bottom: -2px; width: 34px; height: 3px; background: var(--hot); }
+.contacts { display: inline-flex; align-items: center; gap: 9px; min-height: 44px; margin: 0 0 0 -8px; padding: 0 8px; border: 0; background: none; color: var(--white); font: 600 21px/1 var(--display); font-stretch: 75%; letter-spacing: .07em; text-transform: uppercase; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.contacts .handset { flex: none; width: 21px; height: 21px; fill: none; stroke: var(--cyan); stroke-width: 1.6; stroke-linejoin: miter; }
+.contacts:active, .contacts[aria-expanded="true"] { color: var(--cyan); }
+.crumb-sep { flex: none; width: 14px; height: 14px; fill: none; stroke: var(--rose); stroke-width: 1.8; stroke-linecap: square; stroke-linejoin: miter; }
+.crumb-name { min-width: 0; margin: 0 0 0 6px; overflow: hidden; color: var(--white); font: 600 21px/1 var(--display); font-stretch: 75%; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; text-overflow: ellipsis; }
+@media (hover: hover) { .contacts:hover { color: var(--cyan); } }
+.tag { position: relative; isolation: isolate; padding: 4px 7px 3px 7px; color: var(--yellow); font: 600 11px/1 var(--ui); font-stretch: 87.5%; letter-spacing: .14em; text-transform: uppercase; }
+.tag::before { content: ""; position: absolute; inset: 0; z-index: -2; background: rgb(244 214 70 / .55); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%); }
+.tag::after { content: ""; position: absolute; inset: 1px; z-index: -1; background: #16130b; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3.4px), calc(100% - 3.4px) 100%, 0 100%); }
+
+/* Her bare glyph buttons, like the Mainframe's minimize and close: faint, cyan when lit, a dark plate with one cut corner */
+.glyph { position: relative; isolation: isolate; display: grid; place-items: center; width: 44px; height: 44px; margin: 0; padding: 0; border: 0; background: none; color: var(--faint); cursor: pointer; }
+.glyph svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: square; stroke-linejoin: miter; }
+.glyph::before { content: ""; position: absolute; inset: 2px; z-index: -1; background: var(--hover); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%); opacity: 0; }
+.glyph:active::before { opacity: 1; background: var(--pressed); }
+.glyph:active { color: var(--cyan); }
+.glyph.close:active { color: var(--hot); }
+@media (hover: hover) {
+  .glyph:hover { color: var(--cyan); }
+  .glyph:hover::before { opacity: 1; }
+  .glyph.close:hover { color: var(--hot); }
+}
+
+/* ---------- Buttons in her look: a dark box, a red rim, the bottom right corner clipped ---------- */
+.nbtn {
+  --face: var(--field);
+  --rim: var(--edge);
+  --ink: var(--rose);
+  --cut: 6px;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 600 15px/1.1 var(--ui);
+  font-stretch: 87.5%;
+  letter-spacing: .01em;
+  text-align: center;
+  cursor: pointer;
+}
+.nbtn::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--rim); clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%); }
+.nbtn::after { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--face); clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut) + .59px), calc(100% - var(--cut) + .59px) 100%, 0 100%); }
+.nbtn:active { --face: var(--pressed); --rim: var(--hot); }
+.nbtn.cyan { --face: var(--deep); --rim: #1c545c; --ink: var(--cyan); }
+.nbtn.cyan:active { --face: #123e43; --rim: var(--cyan); }
+.nbtn.hot { --face: #220c16; --rim: var(--hot); --ink: #ffa6a2; }
+.nbtn.hot:active { --face: #48121e; --rim: #ff7c7a; }
+.nbtn.solid { --face: var(--cyan); --rim: var(--cyan); --ink: var(--on-ink); }
+.nbtn.solid:active { --face: #a0f8fb; --rim: #a0f8fb; }
+.nbtn:disabled { --face: var(--field); --rim: #341620; --ink: #705e68; cursor: default; }
+.nbtn.wide { width: 100%; }
+.nbtn.icon { flex: none; width: 44px; padding: 0; --cut: 5px; }
+.nbtn.icon svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: square; stroke-linejoin: miter; }
+@media (hover: hover) {
+  .nbtn:hover:not(:disabled) { --face: var(--hover); --rim: var(--hot); }
+  .nbtn.cyan:hover:not(:disabled) { --face: #0d2d31; --rim: var(--cyan); }
+  .nbtn.hot:hover:not(:disabled) { --face: #36101c; --rim: #ff7c7a; }
+  .nbtn.solid:hover:not(:disabled) { --face: #a0f8fb; --rim: #a0f8fb; }
+}
+
+/* ---------- Night City panels: the Mainframe's frame, with its wine glow inside ---------- */
+.nc { --big: 16px; --small: 6px; position: relative; isolation: isolate; }
+.nc::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--brim); clip-path: polygon(var(--big) 0, calc(100% - var(--small)) 0, 100% var(--small), 100% calc(100% - var(--big)), calc(100% - var(--big)) 100%, var(--small) 100%, 0 calc(100% - var(--small)), 0 var(--big)); }
+.nc::after { content: ""; position: absolute; inset: 1.2px; z-index: -1; background: var(--wine), var(--ground); clip-path: polygon(calc(var(--big) - .7px) 0, calc(100% - var(--small) + .7px) 0, 100% calc(var(--small) - .7px), 100% calc(100% - var(--big) + .7px), calc(100% - var(--big) + .7px) 100%, calc(var(--small) - .7px) 100%, 0 calc(100% - var(--small) + .7px), 0 calc(var(--big) - .7px)); }
+svg.hot { position: absolute; z-index: 1; overflow: visible; pointer-events: none; fill: none; stroke: var(--hot); stroke-width: 2; stroke-linejoin: miter; stroke-linecap: butt; }
+.hot-tl { left: 0; top: 0; }
+.hot-br { right: 0; bottom: 0; }
+
+/* Section heads, like BRAIN and VOICE: a band, a teal rule over it and a hot tick */
+.nhead { position: relative; height: 27px; margin: 0; padding-left: 14px; border-top: 1px solid var(--rule); background: var(--band); color: var(--white); font: 600 14px/26px var(--ui); font-stretch: 87.5%; letter-spacing: .07em; text-transform: uppercase; }
+.nhead::before { content: ""; position: absolute; left: 0; top: 7px; width: 2.5px; height: 12px; background: var(--hot); }
+
+/* ---------- Link banner: connecting, or the PC offline ---------- */
+.banner { position: relative; z-index: 3; flex: none; display: flex; align-items: center; gap: 12px; max-width: 720px; width: 100%; min-height: 50px; margin: 2px auto 0; padding: 4px 4px 4px 16px; border-top: 1px solid var(--rule); background: var(--band); }
+.banner::before { content: ""; position: absolute; left: 0; top: 50%; width: 2.5px; height: 16px; margin-top: -8px; background: var(--hot); }
+.banner[data-tone="wait"]::before { background: var(--yellow); }
+.banner-words { display: grid; gap: 3px; flex: 1; min-width: 0; margin: 0; }
+.banner-words strong { color: var(--white); font: 600 14px/1.1 var(--ui); font-stretch: 87.5%; letter-spacing: .07em; text-transform: uppercase; }
+.banner-words span { color: var(--faint); font: 14px/1.2 var(--ui); font-stretch: 87.5%; }
+.banner .nbtn { flex: none; min-height: 42px; padding: 0 14px; }
+
+/* ---------- The chat ---------- */
+.log {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 calc(-1 * max(16px, env(safe-area-inset-right, 0px))) 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dash) transparent;
+  /* Messages fade as they scroll up under the header or the link banner, rather than being sliced by its edge. */
+  -webkit-mask-image: linear-gradient(transparent, #000 14px);
+  mask-image: linear-gradient(transparent, #000 14px);
+}
+.log-in { display: flex; flex-direction: column; gap: 10px; max-width: calc(720px + 2 * max(16px, env(safe-area-inset-left, 0px))); margin: 0 auto; padding: 14px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
+/* Room for her above the bar: her highest pixel sitting (0.169 of her size, perch_music) to her ledge (0.79), less the
+   composer's 8 px top, plus 8 px of air, so she never covers the newest message. Fixed, so nothing moves when she does. */
+.log-end { flex: none; height: calc(var(--s) * .621); margin-top: -10px; }
+
+.chat-head { padding: 0 0 4px; color: var(--faint); font: 600 12px/1 var(--ui); font-stretch: 87.5%; letter-spacing: .12em; text-align: center; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.starters { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 6px 0 0; }
+.starters .nbtn { min-height: 42px; padding: 0 14px; font: 600 15px/1.1 var(--ui); font-stretch: 87.5%; }
+
+/* Texting, after Lachy's reference: hers on the left in her red (a deep red plate, a Hot edge, light words), his on the
+   right in cyan. A thin border and one cut corner each; the fill's cut sits 1 px inside the border's, so the corner
+   keeps its line. */
+.msg { --cut: 8px; --line: var(--hot); --fill: var(--edge); position: relative; isolation: isolate; max-width: min(84%, 34rem); margin: 0; padding: 11px 15px 12px; color: var(--white); font: 17px/1.38 var(--ui); font-stretch: 87.5%; letter-spacing: .01em; white-space: pre-wrap; overflow-wrap: anywhere; -webkit-user-select: text; user-select: text; }
+.msg::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--line); clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%); }
+.msg::after { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--fill); clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut) + .586px), calc(100% - var(--cut) + .586px) 100%, 0 100%); }
+.msg.capri { align-self: flex-start; }
+.msg.you { --line: rgb(94 240 246 / .6); --fill: var(--deep); align-self: flex-end; max-width: min(78%, 30rem); color: var(--cyan); }
+.msg .cut { color: var(--yellow); }
+.msg.quiet .cut::after { content: "[NO REPLY YET]"; color: rgb(236 236 241 / .62); }
+
+/* Her block caret: blinking while she thinks, solid while she talks */
+.caret { display: inline-block; width: .85ch; height: 1.05em; margin-left: 2px; vertical-align: -.2em; background: currentColor; }
+.msg.capri .caret { color: var(--white); }
+.caret.blink, .msg.thinking .caret { animation: caret .8s steps(1) infinite; }
+.msg.done .caret, .msg.quiet .caret { display: none; }
+@keyframes caret { 50% { opacity: 0; } }
+
+/* A tool she ran on the PC: one compact row under her box, like the steps on her desktop task panel */
+.tool { align-self: flex-start; max-width: 100%; margin: -3px 0 0 2px; color: var(--faint); font: 13px/18px var(--mono); overflow-wrap: anywhere; }
+.tool .t-name, .tool .t-state { color: var(--cyan); }
+.tool[data-status="running"] .t-name { color: var(--white); }
+.tool[data-status="failed"] .t-state { color: var(--hot); }
+.tool[data-status="cut"] .t-state { color: var(--faint); }
+.sys { align-self: center; margin: 0; color: var(--faint); font: 12px/16px var(--mono); text-align: center; }
+
+/* ---------- The reply bar she sits on ---------- */
+.composer { position: relative; z-index: 2; flex: none; padding: 8px 0 10px; }
+.app.kb .composer { padding-bottom: 8px; }
+.notice { max-width: 720px; margin: 0 auto 8px; color: var(--yellow); font: 600 13px/1.25 var(--ui); font-stretch: 87.5%; text-align: center; }
+/* She sits on its top edge with her legs over the far side, so the words start at its left end and stay in view. */
+.bar { position: relative; isolation: isolate; display: flex; align-items: flex-end; gap: 6px; max-width: 720px; min-height: 52px; margin: 0 auto; padding: 4px 4px 4px 12px; cursor: text; }
+.bar-frame { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.bar-frame::before { content: ""; position: absolute; inset: 0; background: var(--deep-edge); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+.bar-frame::after { content: ""; position: absolute; inset: 1px; background: var(--well); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7.414px), calc(100% - 7.414px) 100%, 0 100%); }
+.bar:focus-within .bar-frame::before { background: var(--cyan); }
+#msg { flex: 1 1 auto; min-width: 0; height: 44px; min-height: 44px; max-height: 132px; margin: 0; padding: 12px 2px; border: 0; border-radius: 0; background: transparent; color: var(--white); font: 16px/20px var(--ui); font-stretch: 87.5%; resize: none; outline: none; caret-color: var(--cyan); overflow-y: auto; scrollbar-width: none; }
+#msg::placeholder { color: var(--faint); opacity: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#msg::-webkit-scrollbar { display: none; }
+.mic[aria-pressed="true"] { --face: #36101c; --rim: var(--hot); --ink: #ffa6a2; }
+
+/* ---------- Her features under a thin hot rule, like the phone's row in Lachy's reference: an icon over a short name.
+   What isn't built yet stays dimmed, and a tap only says SOON ---------- */
+.actions { position: relative; z-index: 2; flex: none; align-self: center; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); width: 100%; max-width: 720px; padding: 0 0 max(2px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--hot); }
+.app.kb .actions { display: none; }
+.feat { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-width: 0; min-height: 60px; margin: 0; padding: 9px 2px 8px; border: 0; background: none; color: var(--white); font: 600 13px/1 var(--display); font-stretch: 75%; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.feat svg { flex: none; width: 25px; height: 25px; fill: none; stroke: var(--rose); stroke-width: 1.5; stroke-linecap: square; stroke-linejoin: miter; }
+.feat:active:not([aria-disabled="true"]), .feat:active:not([aria-disabled="true"]) svg { color: var(--cyan); stroke: var(--cyan); }
+.feat[aria-disabled="true"] { color: var(--faint); cursor: default; }
+.feat[aria-disabled="true"] svg { stroke: var(--faint); opacity: .7; }
+@media (hover: hover) { .feat:hover:not([aria-disabled="true"]) { color: var(--cyan); } .feat:hover:not([aria-disabled="true"]) svg { stroke: var(--cyan); } }
+.feat .soon { position: absolute; left: 50%; bottom: 4px; opacity: 0; transform: translate(-50%, 3px); transition: opacity .14s, transform .14s; pointer-events: none; }
+.feat.saying .feat-name { visibility: hidden; }
+.feat.saying .soon { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- Pairing and Allow: Mainframe cards, with her sitting on the top edge ---------- */
+.screen { position: relative; z-index: 3; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; justify-items: center; padding: calc(var(--s) * .66 + 16px) 0 max(20px, env(safe-area-inset-bottom, 0px)); }
+.card { width: 100%; max-width: 430px; padding: 24px 22px 22px 24px; }
+.card-title { margin: 0; color: var(--rose); font: 600 32px/1 var(--display); font-stretch: 75%; letter-spacing: .04em; text-transform: uppercase; text-wrap: balance; }
+.card-lead { margin: 12px 0 0; color: var(--white); font: 600 17px/1.25 var(--ui); font-stretch: 87.5%; }
+.card-note { position: relative; margin: 14px 0 0; padding: 8px 12px 8px 16px; border-top: 1px solid var(--rule); background: var(--band); color: var(--rose); font: 600 15px/1.2 var(--ui); font-stretch: 87.5%; }
+.card-note::before { content: ""; position: absolute; left: 0; top: 50%; width: 2.5px; height: 14px; margin-top: -7px; background: var(--hot); }
+.steps { display: grid; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; }
+.steps li { display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 12px; color: var(--white); font: 16px/1.25 var(--ui); font-stretch: 87.5%; }
+.step-n { position: relative; isolation: isolate; display: grid; place-items: center; width: 28px; height: 28px; color: var(--cyan); font: 600 15px/1 var(--ui); font-stretch: 87.5%; }
+.step-n::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--deep-edge); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%); }
+.step-n::after { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--deep); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 4.4px), calc(100% - 4.4px) 100%, 0 100%); }
+.facts { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 20px 0 0; padding: 12px 0 0; border-top: 1px solid rgb(44 122 134 / .55); list-style: none; color: var(--faint); font: 14px/1.2 var(--ui); font-stretch: 87.5%; }
+.facts li { display: flex; align-items: center; gap: 8px; }
+.facts li::before { content: ""; flex: none; width: 6px; height: 6px; border: 1.2px solid var(--cyan); transform: rotate(45deg); }
+.card > .nbtn.wide, .sheet-scroll > .nbtn.wide { margin-top: 20px; }
+.code-label { margin: 20px 0 8px; color: var(--faint); font: 600 12px/1 var(--ui); font-stretch: 87.5%; letter-spacing: .12em; text-transform: uppercase; }
+.code { position: relative; isolation: isolate; margin: 0; padding: 16px 8px 14px; color: var(--cyan); font: 38px/1 var(--mono); letter-spacing: .16em; text-align: center; font-variant-numeric: tabular-nums; }
+.code::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--deep-edge); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+.code::after { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--deep); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7.4px), calc(100% - 7.4px) 100%, 0 100%); }
+
+/* ---------- Early access: the gate before everything else, on the same card, with her on top ---------- */
+.gate-tag { display: inline-block; margin: 0 0 12px; }
+.gate-card .code-label { display: block; margin-top: 22px; }
+.field { position: relative; isolation: isolate; display: flex; }
+.field::before { content: ""; position: absolute; inset: 0; z-index: -2; background: var(--deep-edge); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+.field::after { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--well); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7.414px), calc(100% - 7.414px) 100%, 0 100%); }
+.field:focus-within::before { background: var(--cyan); }
+.field.bad::before { background: var(--hot); }
+.field input { flex: 1 1 auto; min-width: 0; height: 52px; margin: 0; padding: 0 14px; border: 0; border-radius: 0; background: transparent; color: var(--white); font: 20px/1 var(--mono); letter-spacing: .12em; outline: none; caret-color: var(--cyan); }
+.field input:focus-visible { outline: none; }
+.gate-wrong { margin: 10px 0 0; color: var(--rose); font: 600 13px/1 var(--ui); font-stretch: 87.5%; letter-spacing: .12em; text-transform: uppercase; }
+.gate-card > .nbtn.wide { text-transform: uppercase; letter-spacing: .08em; }
+
+/* Until the app picks its first screen, nothing shows: not the chat, and not the gate. */
+.app[data-screen="boot"] .top, .app[data-screen="boot"] .log, .app[data-screen="boot"] .composer, .app[data-screen="boot"] .actions { visibility: hidden; }
+.waiting { margin: 16px 0 0; color: var(--white); font: 16px/1.2 var(--ui); font-stretch: 87.5%; }
+.waiting .caret { color: var(--cyan); }
+.card-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.card-actions .nbtn { flex: 1 1 auto; }
+#replace-pc { overflow-wrap: anywhere; }
+/* An iPhone home screen app pastes the pairing link Safari copied for it, and says the two ways Safari gets one. */
+.routes { display: grid; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.routes li { position: relative; display: grid; gap: 6px; padding: 9px 12px 10px 16px; border-top: 1px solid var(--rule); background: var(--band); }
+.routes li::before { content: ""; position: absolute; left: 0; top: 10px; width: 2.5px; height: 12px; background: var(--hot); }
+.route-from { color: var(--faint); font: 600 12px/1 var(--ui); font-stretch: 87.5%; letter-spacing: .12em; text-transform: uppercase; }
+.route-path { color: var(--white); font: 600 16px/1.25 var(--ui); font-stretch: 87.5%; overflow-wrap: anywhere; }
+/* Safari's way: a link from her PC, copied for the home screen app (the home screen guide). */
+.home-link { margin-top: 12px; }
+.home-link .card-note { margin-top: 10px; }
+.home-link .card-note.good { color: var(--cyan); }
+.home-link .card-note.good::before { background: var(--cyan); }
+#home-link-field { margin-top: 10px; }
+#home-link-field input { font-size: 15px; letter-spacing: 0; }
+.paste { margin-top: 18px; }
+.paste .code-label { display: block; margin-bottom: 8px; }
+.paste .field input, #where-field input { font-size: 15px; letter-spacing: 0; }
+.paste .nbtn.wide { margin-top: 12px; }
+#where-field { margin-top: 12px; }
+/* Sheets (the home screen guide, SETTINGS): a card over the chat, above the scrim. The frame stays inside the phone's safe
+   area (the notch and the home bar of a home screen app) and its words scroll inside .sheet-scroll, so the frame drawn by
+   .nc's ::before and ::after always holds everything: a sheet that scrolled itself left the end of a long one outside it. */
+.sheet {
+  position: absolute;
+  z-index: 42;
+  left: calc(50% + (env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)) / 2);
+  top: calc(50% + (env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2);
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  width: min(430px, calc(100% - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-height: calc(100% - 32px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  padding: 14px 12px 12px 14px;
+  overflow-y: auto;
+}
+/* The keyboard covers the home bar, and the app already ends at the keyboard. */
+.app.kb .sheet { top: calc(50% + env(safe-area-inset-top, 0px) / 2); max-height: calc(100% - 32px - env(safe-area-inset-top, 0px)); }
+.sheet-scroll { flex: 0 1 auto; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 10px; overflow-wrap: anywhere; scrollbar-width: thin; scrollbar-color: var(--dash) transparent; -webkit-mask-image: linear-gradient(transparent, #000 10px, #000 calc(100% - 10px), transparent); mask-image: linear-gradient(transparent, #000 10px, #000 calc(100% - 10px), transparent); }
+.sheet .nhead { margin: 18px 0 0; }
+.sheet .steps { margin-top: 10px; }
+
+/* ---------- Menu drawer ---------- */
+.scrim { position: absolute; inset: 0; z-index: 40; background: rgb(5 3 8 / .64); }
+.drawer { position: absolute; z-index: 41; left: 0; top: 0; bottom: 0; width: min(340px, calc(100% - 48px)); padding: max(8px, env(safe-area-inset-top, 0px)) 0 max(8px, env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px); transform: translate3d(-105%, 0, 0); visibility: hidden; transition: transform .24s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .24s; }
+.app.menu .drawer { transform: none; visibility: visible; transition: transform .24s cubic-bezier(.2, .8, .2, 1), visibility 0s; }
+.drawer-plate { display: flex; flex-direction: column; height: 100%; }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 14px 8px 6px 22px; }
+.drawer-name { margin: 0; color: var(--rose); font: 600 27px/1 var(--display); font-stretch: 75%; letter-spacing: .05em; text-transform: uppercase; }
+.drawer-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: start; gap: 18px; padding: 6px 16px 24px 16px; scrollbar-width: thin; scrollbar-color: var(--dash) transparent; }
+.drawer-part { display: grid; gap: 10px; }
+.rows { display: grid; gap: 7px; margin: 0; padding: 0 2px; }
+.rows div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 15px/1.25 var(--ui); font-stretch: 87.5%; }
+.rows dt { color: var(--faint); }
+.rows dd { margin: 0; color: var(--white); text-align: right; overflow-wrap: anywhere; }
+.rows dd[data-tone="good"] { color: var(--cyan); }
+.rows dd[data-tone="wait"] { color: var(--yellow); }
+.rows dd[data-tone="bad"] { color: var(--hot); }
+.rows dd[data-tone="faint"] { color: var(--faint); }
+.hint { margin: 0; color: var(--faint); font: 14px/1.2 var(--ui); font-stretch: 87.5%; }
+.chats { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.chat-row { position: relative; isolation: isolate; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; min-height: 46px; margin: 0; padding: 4px 8px 4px 2px; border: 0; background: none; color: var(--white); text-align: left; cursor: pointer; }
+.chat-row::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgb(94 240 246 / .09); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%); opacity: 0; }
+.chat-row:active::before { opacity: 1; }
+@media (hover: hover) { .chat-row:hover::before { opacity: 1; } }
+.chat-row .diamond { justify-self: center; width: 9px; height: 9px; border: 1.2px solid var(--faint); transform: rotate(45deg); }
+.chat-row[aria-current="true"] .diamond { border-color: var(--cyan); background: var(--cyan); }
+.chat-name { overflow: hidden; font: 600 15px/1.2 var(--ui); font-stretch: 87.5%; white-space: nowrap; text-overflow: ellipsis; }
+.chat-row[aria-current="true"] .chat-name { color: var(--cyan); }
+.chat-date { color: var(--faint); font: 13px/1 var(--ui); font-stretch: 87.5%; white-space: nowrap; }
+.chats-empty { margin: 0; padding: 4px 2px; color: var(--faint); font: 14px/1.2 var(--ui); font-stretch: 87.5%; }
+.demo-states { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.demo-states .nbtn { min-height: 42px; padding: 0 10px; font-size: 14px; }
+.demo-states .nbtn[aria-current="true"] { --rim: var(--cyan); }
+.drawer-foot { margin: 4px 0 0; color: var(--faint); font: 12px/1.2 var(--ui); font-stretch: 87.5%; letter-spacing: .08em; text-transform: uppercase; }
+
+/* ---------- Capri: her layer covers the app, and only she takes touches ---------- */
+.her-layer { position: absolute; inset: 0; z-index: 20; overflow: hidden; pointer-events: none; }
+.her { position: absolute; left: 0; top: 0; width: var(--s); height: var(--s); pointer-events: none; will-change: transform; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.her.gone { visibility: hidden; }
+.her .sprite { position: absolute; background-repeat: no-repeat; pointer-events: none; }
+.her .sprite[data-fit="stand"] { left: 15.3%; top: -5.5%; width: 69.4%; height: 111%; }
+.her .sprite[data-fit="perch"] { left: 5.73%; top: 9.375%; width: 75%; height: 100%; }
+.her .sprite[data-fit="music"] { left: 17.71%; top: 9.375%; width: 51.04%; height: 100%; }
+.her .sprite[data-fit="square"] { left: 0; top: 0; width: 100%; height: 100%; }
+.her .sprite[data-fit="lie"] { left: 8.828%; top: 47.488%; width: 82.344%; height: 55.339%; }
+.her .sprite[data-fit="wide"] { left: 1.302%; top: 47.488%; width: 97.396%; height: 55.339%; }
+.her .hit { position: absolute; left: 0; top: 0; width: 100%; height: 110%; margin: 0; padding: 0; border: 0; background: transparent; pointer-events: auto; touch-action: none; cursor: grab; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+.her .hit:active { cursor: grabbing; }
+.her .hit:focus-visible { outline: none; }
+.her:has(.hit:focus-visible) .sprite { filter: drop-shadow(0 0 1.5px var(--cyan)) drop-shadow(0 0 1px var(--cyan)); }
+.her[data-pose="perch"] .hit { clip-path: polygon(19% 15.5%, 68% 15.5%, 68% 72.7%, 64% 72.7%, 64% 98.2%, 19% 98.2%); }
+.her[data-pose="lie"] .hit { clip-path: polygon(10% 44.5%, 90% 44.5%, 90% 92.7%, 73% 92.7%, 73% 72.7%, 40% 72.7%, 40% 81.8%, 16% 81.8%, 16% 72.7%, 10% 72.7%); }
+.her[data-pose="stand"] .hit { clip-path: polygon(25% 1.8%, 76% 1.8%, 76% 90.9%, 25% 90.9%); }
+
+/* Her quip: a small box in her texts' red, with its tail on her */
+.quip { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; will-change: transform; }
+.quip-plate { position: absolute; left: -5px; top: -5px; overflow: visible; }
+.quip-plate .fill { fill: var(--edge); }
+.quip-plate .edge { fill: none; stroke: var(--hot); stroke-width: 1; stroke-linejoin: miter; }
+.quip-words { position: relative; width: max-content; max-width: min(230px, 64vw); margin: 0; padding: 9px 13px 10px; color: var(--white); font: 600 15px/1.3 var(--ui); font-stretch: 87.5%; overflow-wrap: anywhere; }
+
+/* ---------- Small screens, landscape and motion ---------- */
+@media (max-height: 500px) {
+  .top { height: calc(44px + env(safe-area-inset-top, 0px)); }
+  .contacts, .crumb-name { font-size: 18px; }
+  .feat { min-height: 50px; padding: 6px 2px 5px; gap: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drawer, .app.menu .drawer { transition: none; }
+  .caret.blink, .msg.thinking .caret { animation: none; }
+  .feat .soon { transition: none; }
+}
