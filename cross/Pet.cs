@@ -44,6 +44,7 @@ namespace CapriDesktop
         [DataMember] internal int HuskMode;
         [DataMember] internal bool NoHuskVerbosity;
         [DataMember] internal bool NoMemories;
+        [DataMember] internal bool KeepAllHistory;
         [DataMember] internal bool NoCheckIns;
         [DataMember] internal int? PopPace;
         [DataMember] internal int MusicApp;
@@ -701,6 +702,13 @@ namespace CapriDesktop
             VoiceFx.Layers = LayersOf(Saved);
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
+            Settings retentionSettings;
+            string retentionSettingsFile = Path.Combine(folder, "cross.json");
+            if (Program.Smoke == null && !settingsReset && Retention.Readable(retentionSettingsFile, out retentionSettings))
+            {
+                bool keepEverything = Retention.KeepAll(retentionSettings.KeepAllHistory, File.Exists(Path.Combine(folder, "keep-all")), Retention.Mentions(retentionSettingsFile, "\"KeepAllHistory\""));
+                Retention.Sweep(Brain.TranscriptPath, Path.Combine(folder, "chat.json"), keepEverything, DateTime.Now);
+            }
             Limbs.Attach(Brain);
             MacFiles.Attach(Program.Smoke ?? folder);
             StartReminders();
@@ -3913,6 +3921,54 @@ namespace CapriDesktop
             Sync();
         }
 
+        internal void SetKeepAll(bool on)
+        {
+            string marker = Path.Combine(folder, "keep-all");
+            if (on)
+            {
+                // The choice keeps its own copy beside the settings, so a file that fails to save or gets reset
+                // can't turn deletion back on.
+                try { File.WriteAllText(marker, "1"); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                Saved.KeepAllHistory = true;
+                Save();
+                Settings diskOn;
+                bool durable = File.Exists(marker) || (Retention.Readable(Path.Combine(folder, "cross.json"), out diskOn) && diskOn.KeepAllHistory);
+                if (!durable) Saved.KeepAllHistory = false;
+                Sync();
+                return;
+            }
+            KeepAllOff(folder, Saved, Save, Sync, Retention.ClearMarker);
+        }
+
+        // Turning the switch off must not say off when the marker survives: the marker still keeps everything.
+        // Split from the window so the smoke can exercise the failed clear without a second Pet.
+        internal static bool KeepAllOff(string folder, Settings saved, Action save, Action sync, Func<string, bool> clearMarker)
+        {
+            string marker = Path.Combine(folder, "keep-all");
+            string settingsFile = Path.Combine(folder, "cross.json");
+            saved.KeepAllHistory = false;
+            save();
+            Settings disk;
+            bool reached = Retention.Mentions(settingsFile, "\"KeepAllHistory\"") && Retention.Readable(settingsFile, out disk) && !disk.KeepAllHistory;
+            if (!reached)
+            {
+                // The save didn't land: keep protecting rather than delete on a choice she never stored.
+                saved.KeepAllHistory = true;
+                sync();
+                return true;
+            }
+            if (!clearMarker(marker))
+            {
+                // The marker still protects them; put the choice back on rather than let the switch say off.
+                saved.KeepAllHistory = true;
+                save();
+            }
+            sync();
+            return saved.KeepAllHistory;
+        }
+
         internal bool Remembers { get { return memoriesItem.IsChecked; } }
 
         // memories.md opens in their editor, made first if it isn't there yet. Her transcripts are in the folder beside it.
@@ -5369,9 +5425,21 @@ namespace CapriDesktop
                 CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp };
         }
 
+        private bool settingsReset;
         private Settings Load()
         {
-            return ReadSettings(Path.Combine(folder, "cross.json"), out unreadableNotice, out settingsWriteBlocked);
+            string settingsFile = Path.Combine(folder, "cross.json");
+            Settings loaded = ReadSettings(settingsFile, out unreadableNotice, out settingsWriteBlocked);
+            settingsReset = unreadableNotice != null || !Retention.WholeFile(settingsFile);
+            if (settingsReset)
+            {
+                // Settings that existed but couldn't be read, or a half-written file the serializer can still read,
+                // leave the keep-all choice unknown: this PC keeps everything until they choose otherwise.
+                try { if (File.Exists(settingsFile)) File.WriteAllText(Path.Combine(folder, "keep-all"), "1"); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+            return loaded;
         }
 
         internal const string UnreadableName = "cross.unreadable.json";

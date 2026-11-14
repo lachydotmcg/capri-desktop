@@ -1035,6 +1035,7 @@ namespace CapriDesktop
         [DataMember] public int ReplyLength;
         // Remember our chats is on by default: transcripts and memories.md stay on this PC.
         [DataMember] public bool Remembers = true;
+        [DataMember] public bool KeepAllHistory;
         [DataMember] public bool ClipGames;
         [DataMember] public bool ClipMoments;
         [DataMember] public string ClipFolder;
@@ -2243,6 +2244,8 @@ namespace CapriDesktop
         private readonly System.Windows.Forms.Timer signals;
         private readonly EventWaitHandle restore, shown;
         private readonly string settingsPath;
+        // The keep-all choice lives beside the settings, so the startup read and every later save use one path.
+        private string KeepAllMarker { get { return Path.Combine(Path.GetDirectoryName(settingsPath), "keep-all"); } }
         private readonly bool testing;
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private Preferences preferences;
@@ -2951,6 +2954,13 @@ namespace CapriDesktop
             Brain.Digging = !smoke;
             if (!smoke) Brain.Keeper = brain;
             if (!smoke) brain.Load(Path.Combine(data, "chat.json"));
+            Preferences retentionSettings;
+            string keepAllMarker = KeepAllMarker;
+            if (!smoke && unreadableNotice == null && Retention.Readable(settingsPath, out retentionSettings))
+            {
+                bool keepEverything = Retention.KeepAll(retentionSettings.KeepAllHistory, File.Exists(keepAllMarker), Retention.Mentions(settingsPath, "\"KeepAllHistory\""));
+                Retention.Sweep(Brain.TranscriptPath, Path.Combine(data, "chat.json"), keepEverything, DateTime.Now);
+            }
             Voice.Loudness = Math.Max(0, Math.Min(150, preferences.Volume));
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, preferences.VoicePitch));
             VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, preferences.VoiceSpeed));
@@ -6872,6 +6882,7 @@ namespace CapriDesktop
         }
 
         internal bool Remembers { get { return preferences.Remembers; } }
+        internal bool KeepsAll { get { return preferences.KeepAllHistory; } }
 
         internal bool ClipsOn { get { return preferences.ClipGames; } }
 
@@ -6910,6 +6921,41 @@ namespace CapriDesktop
             Brain.Keeping = preferences.Remembers;
             SavePreferences();
             mainframe.Sync();
+        }
+
+        internal void SetKeepAll(bool on)
+        {
+            string marker = KeepAllMarker;
+            if (on)
+            {
+                // The choice keeps its own copy beside the settings, so a file that fails to save or gets reset
+                // can't turn deletion back on.
+                try { File.WriteAllText(marker, "1"); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                preferences.KeepAllHistory = true;
+                SavePreferences();
+                Preferences diskOn;
+                bool durable = File.Exists(marker) || (Retention.Readable(settingsPath, out diskOn) && diskOn.KeepAllHistory);
+                if (!durable) preferences.KeepAllHistory = false;
+                return;
+            }
+            preferences.KeepAllHistory = false;
+            SavePreferences();
+            Preferences disk;
+            bool reached = Retention.Mentions(settingsPath, "\"KeepAllHistory\"") && Retention.Readable(settingsPath, out disk) && !disk.KeepAllHistory;
+            if (!reached)
+            {
+                // The save didn't land: keep protecting rather than delete on a choice she never stored.
+                preferences.KeepAllHistory = true;
+                return;
+            }
+            if (!Retention.ClearMarker(marker))
+            {
+                // The marker still protects them; put the choice back on rather than let the switch say off.
+                preferences.KeepAllHistory = true;
+                SavePreferences();
+            }
         }
 
         private static readonly double[] WanderPaces = { 3, 1, 0.45, 0.18 };
@@ -15907,6 +15953,13 @@ namespace CapriDesktop
             string notice;
             Preferences value = ReadPreferences(settingsPath, out notice);
             if (notice != null) unreadableNotice = notice;
+            if (notice != null || (File.Exists(settingsPath) && !Retention.WholeFile(settingsPath)))
+            {
+                // The serializer can read a half-written file without throwing; keep the choice safe anyway.
+                try { File.WriteAllText(KeepAllMarker, "1"); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
             return value;
         }
 
