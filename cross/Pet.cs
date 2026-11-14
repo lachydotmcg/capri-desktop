@@ -2677,16 +2677,16 @@ namespace CapriDesktop
                 StackPanel face = new StackPanel();
                 face.Children.Add(new TextBlock { Text = Security.Names[i] });
                 face.Children.Add(new TextBlock { Text = Security.Lines[i], FontSize = 11, Foreground = new SolidColorBrush(Look.Dim) });
-                MenuItem item = new MenuItem { Header = face, ToggleType = MenuItemToggleType.CheckBox, Tag = i };
+                MenuItem item = new MenuItem { Header = face, ToggleType = MenuItemToggleType.CheckBox, Tag = i, IsVisible = Security.Has(i) };
                 item.Click += Guarded(delegate { Security.Set(toggle, !Security.On(toggle)); });
                 securityToggles.Add(item);
                 securityMenu.Items.Add(item);
             }
             if (OperatingSystem.IsLinux())
             {
-                inputSetupBreak = new Separator();
+                inputSetupBreak = new Separator { IsVisible = !fingers };
                 securityMenu.Items.Add(inputSetupBreak);
-                inputSetup = new MenuItem { Header = "Set up mouse and keyboard..." };
+                inputSetup = new MenuItem { Header = "Set up mouse and keyboard...", IsVisible = !fingers };
                 ToolTip.SetTip(inputSetup, "Copies the one command that lets her make her own mouse and keyboard through /dev/uinput.");
                 inputSetup.Click += Guarded(delegate { CopyFingersSetup(); });
                 securityMenu.Items.Add(inputSetup);
@@ -4001,6 +4001,7 @@ namespace CapriDesktop
                 List<string> shown = new List<string> { securityMenu.Header as string };
                 foreach (object item in securityMenu.Items)
                 {
+                    if (item is Control && !((Control)item).IsVisible) continue;
                     MenuItem entry = item as MenuItem;
                     if (entry == null) { shown.Add("-"); continue; }
                     StackPanel face = entry.Header as StackPanel;
