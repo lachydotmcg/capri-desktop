@@ -2838,11 +2838,18 @@ namespace CapriDesktop
     internal static class ModelFile
     {
         internal const string Missing = "That's no voice model Capri can run. Pick a Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx: its .tar.bz2, or the .onnx in its folder.";
-        internal const string Damaged = "Couldn't unpack that voice model. The archive may be damaged.";
+        internal const string Damaged = "That voice archive is damaged.";
+        internal const string NoRoom = "There isn't enough room to unpack that voice model.";
+        internal const string Unwritten = "Couldn't read the archive or write the voice model files.";
+        internal const string Empty = "Nothing in that archive is a voice model Capri can run.";
+        internal const string Inside = "Move that archive out of this model's folder and try again.";
+        internal const string Format = "Capri can't unpack that format. Use .tar.bz2, .tar.gz, .tar or .zip.";
         internal const string Unopened = "Capri can't open that clip. Press the arrow in the Speaker or clip box to pick it.";
         // Her free voice's folder, where sherpa-onnx is, and the folder models from an archive are unpacked into. Set at startup.
         internal static string Engine;
         internal static string Shelf;
+        // Where an unpacked file is written. The smoke test swaps in a disk that fills up.
+        internal static Func<string, Stream> Write = delegate(string path) { return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20); };
         internal delegate short[] Generate(string folder, string language, string speaker, string text, out int rate);
         internal static Generate Run;
         private static readonly object gate = new object();
@@ -2999,68 +3006,95 @@ namespace CapriDesktop
         // A .tar.bz2 or .zip they picked, unpacked into her models folder. Returns the model's folder.
         internal static string Unpack(string archive)
         {
-            // Its folder is named after the archive, and only ever sits inside her models folder: an archive named ".zip" or
-            // "...zip" must never point it at the models folder itself or the one above.
-            string name = Regex.Replace(Path.GetFileName(archive), @"\.(tar\.bz2|tar\.gz|tgz|tar|zip)$", "", RegexOptions.IgnoreCase).Trim().TrimEnd('.', ' ');
-            if (name.Length == 0 || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) name = "voice-model";
-            string target = Path.GetFullPath(Path.Combine(Shelf, name));
-            string staging = target + ".new";
-            string source = Path.GetFullPath(archive);
-            if (source.StartsWith(target + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || source.StartsWith(staging + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                throw new VoiceException("Move that archive out of this model's folder and try again.");
-            if (Directory.Exists(staging)) Directory.Delete(staging, true);
-            Directory.CreateDirectory(staging);
+            string staging = null;
+            bool clean = false;
             try
             {
-                if (archive.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) ZipFile.ExtractToDirectory(archive, staging);
-                else
+                string name = Regex.Replace(Path.GetFileName(archive), @"\.(tar\.bz2|tar\.gz|tgz|tbz2?|tar|zip)$", "", RegexOptions.IgnoreCase).Trim().TrimEnd('.', ' ');
+                if (name.Length == 0 || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) name = "voice-model";
+                string target = Path.GetFullPath(Path.Combine(Shelf, name));
+                staging = target + ".new";
+                using (FileStream packed = new FileStream(archive, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20))
                 {
-                    string plain = null;
-                    try
+                    if (Within(archive, target) || Within(archive, staging)) throw new VoiceException(Inside);
+                    if (archive.EndsWith(".xz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".zst", StringComparison.OrdinalIgnoreCase)) throw new VoiceException(Format);
+                    if (Directory.Exists(staging)) Directory.Delete(staging, true);
+                    clean = true;
+                    Directory.CreateDirectory(staging);
+                    if (archive.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                     {
-                        string tar = archive;
-                        bool bzip = archive.EndsWith(".bz2", StringComparison.OrdinalIgnoreCase);
-                        if (bzip || archive.EndsWith(".gz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase))
+                        try
                         {
-                            plain = Path.GetTempFileName();
-                            using (FileStream packed = new FileStream(archive, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20))
-                            using (FileStream opened = new FileStream(plain, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20))
-                            {
-                                if (bzip) Bunzip.Copy(packed, opened);
-                                else using (GZipStream gzip = new GZipStream(packed, CompressionMode.Decompress)) gzip.CopyTo(opened);
-                            }
-                            tar = plain;
+                            using (ZipArchive zip = new ZipArchive(packed, ZipArchiveMode.Read, true)) zip.ExtractToDirectory(staging);
                         }
-                        using (FileStream packed = new FileStream(tar, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20)) TarReader.Unpack(packed, staging);
+                        catch (IOException problem)
+                        {
+                            // An entry outside the folder, a folder entry with data, or two entries with one name.
+                            if (problem.HResult == unchecked((int)0x80131620) || problem.HResult == unchecked((int)0x80070050)) throw new ArchiveException(problem.Message);
+                            throw;
+                        }
                     }
-                    catch (Exception problem) { throw new VoiceException(Damaged, problem.Message); }
-                    finally { if (plain != null) File.Delete(plain); }
+                    else if (archive.EndsWith(".bz2", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tbz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tbz2", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using (Stream plain = Bunzip.Open(packed))
+                        {
+                            TarReader.Unpack(plain, staging, true, Write);
+                            plain.CopyTo(Stream.Null);
+                        }
+                    }
+                    else if (archive.EndsWith(".gz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase))
+                    {
+                        using (GZipStream plain = new GZipStream(packed, CompressionMode.Decompress, true))
+                        {
+                            TarReader.Unpack(plain, staging, true, Write);
+                            plain.CopyTo(Stream.Null);
+                        }
+                    }
+                    else TarReader.Unpack(packed, staging, true, Write);
+                    string inside = staging;
+                    string[] folders = Directory.GetDirectories(staging);
+                    if (Kind(staging) == null && folders.Length == 1 && Directory.GetFiles(staging).Length == 0) inside = folders[0];
+                    if (Kind(inside) == null) throw new VoiceException(Empty);
+                    lock (gate)
+                    {
+                        if (opened != null && opened.StartsWith(target + "|", StringComparison.OrdinalIgnoreCase)) Close();
+                        if (Directory.Exists(target)) Directory.Delete(target, true);
+                        Directory.Move(inside, target);
+                    }
+                    return target;
                 }
             }
-            catch (Exception)
+            catch (VoiceException) { throw; }
+            catch (ArchiveException problem) { throw new VoiceException(Damaged, problem.Message); }
+            catch (EndOfStreamException problem) { throw new VoiceException(Damaged, problem.Message); }
+            catch (InvalidDataException problem) { throw new VoiceException(Damaged, problem.Message); }
+            catch (IOException problem)
             {
-                // A failed unpack leaves nothing half-made behind.
-                try { Directory.Delete(staging, true); }
-                catch (Exception) { }
-                throw;
+                int code = problem.HResult;
+                bool full = code == unchecked((int)0x80070070) || code == unchecked((int)0x80070027) || code == unchecked((int)0x80070507);
+                throw new VoiceException(full ? NoRoom : Unwritten, problem.Message);
             }
-            // Its archive holds one folder with the model in it.
-            string inside = staging;
-            string[] folders = Directory.GetDirectories(staging);
-            if (Kind(staging) == null && folders.Length == 1 && Directory.GetFiles(staging).Length == 0) inside = folders[0];
-            if (Kind(inside) == null)
+            catch (UnauthorizedAccessException problem) { throw new VoiceException(Unwritten, problem.Message); }
+            catch (System.Security.SecurityException problem) { throw new VoiceException(Unwritten, problem.Message); }
+            finally { if (clean) TarReader.Clean(staging); }
+        }
+
+        // Through a short name, junction or subst drive as well, so cleaning up never deletes the archive they picked.
+        private static bool Within(string file, string folder)
+        {
+            for (int pass = 0; pass < 2; pass++)
             {
-                Directory.Delete(staging, true);
-                throw new VoiceException(Missing);
+                string from, inside;
+                try
+                {
+                    from = pass == 0 ? Path.GetFullPath(file) : WorkspacePaths.Final(file);
+                    inside = (pass == 0 ? Path.GetFullPath(folder) : WorkspacePaths.Final(folder)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                }
+                catch (IOException) { continue; }
+                catch (UnauthorizedAccessException) { continue; }
+                if (from.StartsWith(inside + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return true;
             }
-            lock (gate)
-            {
-                if (opened != null && opened.StartsWith(target + "|", StringComparison.OrdinalIgnoreCase)) Close();
-                if (Directory.Exists(target)) Directory.Delete(target, true);
-                Directory.Move(inside, target);
-            }
-            if (inside != staging) Directory.Delete(staging, true);
-            return target;
+            return false;
         }
 
         // Its sound for the words at its own rate. `lang` is a Kokoro model's language, like en-us or es. `voice` is a speaker
