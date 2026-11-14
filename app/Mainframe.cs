@@ -819,8 +819,9 @@ namespace CapriDesktop
             gameKeys.AccessibleName = "Her Gaming Mode key: she reacts to your game until you close it. Click, press new keys, then Confirm";
             frameKeys = Make("Mainframe: Ctrl + Alt + M", 28, 871, 328, 22, delegate { PickKeys(Companion.FrameSlot); });
             frameKeys.AccessibleName = "Her Mainframe key: it opens her Mainframe from anywhere, and closes it when it's in front. Click, press new keys, then Confirm";
-            // Only a click ends picking a key, so Enter, Esc and Tab can be her keys too. Confirm and Cancel show in KEYS' band
-            // while one is being picked.
+            // The first key pressed while picking is always taken, so Enter, Esc and Tab can be her keys too. After that Enter
+            // confirms and Esc cancels, but a key that types or moves needs a click on Confirm. Confirm and Cancel show in KEYS'
+            // band while one is being picked.
             confirmKeys = Make("Confirm", 212, 645, 78, 20, delegate { ConfirmKeys(); });
             confirmKeys.Accent = Cyan;
             confirmKeys.Loud = true;
@@ -1097,6 +1098,7 @@ namespace CapriDesktop
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 11;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
                 if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
+            // The hearing row, her Mainframe key's row and Her voice in your mic's rows push GAMES down under KEYS too.
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++)
             {
                 Controls[gameRow].Top += Row * 2 + MixRows;
