@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 
 mkdirSync('room-shots', { recursive: true });
 let opened = 0, closed = 0;
-for (const size of [[390, 844], [360, 640]]) {
+for (const size of [[390, 844], [360, 640], [360, 800]]) {
   const r = await roomRig({ port: 29884, chrome: 29894 }); opened++;
   const { page, click, pc } = r;
   const shot = name => page.shot(join('room-shots', size.join('x') + '-' + name + '.png'));
@@ -46,7 +46,7 @@ for (const size of [[390, 844], [360, 640]]) {
     await pc.voice('room', tone(24000, 2, 240));
     await page.until("document.getElementById('room-sprite').style.backgroundImage.includes('laydown_talk.png')", 'call room frames');
     const layout = await page.run(`(() => {const box=id=>document.getElementById(id).getBoundingClientRect();return {view:box('room-view').height,edge:box('room').bottom,chat:box('log').top,visible:['msg','room-close'].every(id=>{const b=box(id);return b.top>=0&&b.bottom<=innerHeight;}),bar:(()=>{const b=document.querySelector('.callbar').getBoundingClientRect();return b.height>0&&b.top>=0&&b.bottom<=innerHeight;})()};})()`);
-    assert.ok(layout.view >= 180); assert.ok(layout.chat >= layout.edge); assert.ok(layout.visible && layout.bar);
+    assert.ok(layout.view >= (size[0] < 390 ? 150 : 180)); assert.ok(layout.chat >= layout.edge); assert.ok(layout.visible && layout.bar);
     await shot('during-call');
     await page.run('CapriCall.end()');
     await page.until('CapriCall.listening', 'listening after screenshot call');

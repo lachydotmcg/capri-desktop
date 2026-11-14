@@ -83,3 +83,10 @@
 .room-head { flex-wrap: wrap; }
 .room-controls { flex-wrap: wrap; }
 .app[data-room="ar"] .room-voice-note { position: relative; z-index: 1; background: var(--band); }
+
+@media (max-width: 389px) and (min-height: 501px) {
+  .app[data-room="camera"] .room,
+  .app[data-room="camera"].on-call .room { flex-shrink: 1; min-height: min-content; }
+  .app[data-room="camera"] .room-view,
+  .app[data-room="camera"].on-call .room-view { min-height: 150px; }
+}

@@ -2,8 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { chromePath, launch } from './lib/cdp.mjs';
-import { HOME_SCREEN, IPHONES, misfitsOf, setPhone } from './lib/fit.mjs';
+import { HOME_SCREEN, SAFARI, IPHONES, misfitsOf, setPhone } from './lib/fit.mjs';
 import { startSite } from './lib/site.mjs';
+import { roomStates, roomPicture, roomLayout, checkRoom } from './lib/room-layout.mjs';
 
 test('Chrome keeps extra switches without the browser audit hook or duplicate close handler', () => {
   const source = readFileSync(new URL('./lib/cdp.mjs', import.meta.url), 'utf8');
@@ -447,7 +448,7 @@ test('small call layout contains the room and pressed buttons keep their fill un
     assert.equal(await page.run('CapriCall.listening && !CapriCall.stats().micLive && cameraRequests.every(r=>r.constraints.audio===false)'),true);
     assert.equal(await page.run('pc.sent.find(m=>m.type==="call.start").listen'),true);
     await click('f-call'); await page.until('CapriCall.state === "on" && CapriCall.stats().micLive','layout call'); await page.run('CapriCall.room()');
-    assert.equal(await page.run(`(()=>{const box=id=>document.getElementById(id).getBoundingClientRect(),room=box('room'),view=box('room-view'),hint=box('room-status'),log=box('log'),bar=document.querySelector('.callbar').getBoundingClientRect();return view.height>=180&&hint.top>=view.bottom&&hint.bottom<=room.bottom&&log.top>=room.bottom&&bar.height>0&&bar.bottom<=innerHeight&&['msg','room-close','room-voice'].every(id=>{const b=box(id);return b.height>0&&b.top>=0&&b.bottom<=innerHeight;});})()`),true);
+    checkRoom(await roomLayout(page), '360x640 call');
     await page.send('Emulation.setDeviceMetricsOverride',{width:1000,height:800,deviceScaleFactor:1,mobile:false});
     const color=()=>page.run('getComputedStyle(document.getElementById("room-sit"),"::after").backgroundColor');
     const filled=await color(), box=await page.run('(()=>{const b=document.getElementById("room-sit").getBoundingClientRect();return {x:b.x+b.width/2,y:b.y+b.height/2};})()');
@@ -457,3 +458,66 @@ test('small call layout contains the room and pressed buttons keep their fill un
     await page.run('document.getElementById("room-sit").focus()'); assert.equal(await color(),filled);
   } finally {await r.close();}
 });
+
+for (const size of [[360, 640], [360, 800]]) {
+  test('room fits every status at ' + size.join('x'), { skip: !chromePath() }, async t => {
+    const r = await roomRig({ features: ['chat', 'call', 'listen', 'pictures'], port: 29885, chrome: 29895 });
+    try {
+      await setPhone(r.page, size);
+      await r.page.run('document.fonts.ready');
+      for await (const state of roomStates(r)) for (const photo of [false, true]) {
+        if (photo) await roomPicture(r.page, true);
+        await t.test(state + (photo ? ' with picture' : ''), async t => {
+          const layout = await roomLayout(r.page);
+          t.diagnostic(JSON.stringify(layout.boxes));
+          checkRoom(layout, size.join('x') + ' ' + state + (photo ? ' with picture' : ''));
+          if (state === 'no-status') {
+            assert.equal(layout.boxes.status.shown, false, 'camera status should be empty');
+            assert.equal(layout.boxes.note.shown, false, 'voice status should be empty');
+          } else if (!['ready', 'during-call'].includes(state)) {
+            assert.ok(layout.boxes.note.shown, state + ' voice note is missing');
+            assert.ok(layout.boxes.note.lines.length >= 1, state + ' has no measured text lines');
+          }
+          assert.equal(layout.boxes.preview.shown, photo, 'picture preview visibility');
+          assert.equal(layout.boxes.callbar.shown, state === 'during-call', 'call bar visibility');
+        });
+        if (photo) await roomPicture(r.page, false);
+      }
+    } finally { await r.close(); }
+  });
+}
+
+for (const [size, mode] of [
+  [[390, 844], SAFARI], [[390, 844], HOME_SCREEN],
+  [[430, 932], SAFARI], [[430, 932], HOME_SCREEN], [[1000, 800], SAFARI]
+]) {
+  test('room keeps its original layout at ' + size.join('x') + ' ' + mode.name, { skip: !chromePath() }, async t => {
+    const r = await roomRig({ features: ['chat', 'call', 'listen', 'pictures'], port: 29885, chrome: 29895 });
+    try {
+      await setPhone(r.page, size, mode);
+      await r.page.run('document.fonts.ready');
+      let sheet;
+      r.page.on((method, params) => {
+        if (method === 'CSS.styleSheetAdded' && params.header.sourceURL.endsWith('/room.css')) sheet = params.header.styleSheetId;
+      });
+      await r.page.send('DOM.enable'); await r.page.send('CSS.enable');
+      assert.ok(sheet, 'room stylesheet is loaded');
+      const { text } = await r.page.send('CSS.getStyleSheetText', { styleSheetId: sheet });
+      const start = text.indexOf('\n@media (max-width: 389px)');
+      assert.ok(start > 0, 'small phone rules follow the original CSS');
+      const original = text.slice(0, start);
+      for await (const state of roomStates(r)) for (const photo of [false, true]) {
+        if (photo) await roomPicture(r.page, true);
+        await t.test(state + (photo ? ' with picture' : ''), async t => {
+          await r.page.send('CSS.setStyleSheetText', { styleSheetId: sheet, text: original });
+          const before = await roomLayout(r.page);
+          await r.page.send('CSS.setStyleSheetText', { styleSheetId: sheet, text });
+          const after = await roomLayout(r.page);
+          t.diagnostic('before ' + JSON.stringify(before.boxes) + '\nafter ' + JSON.stringify(after.boxes));
+          assert.deepEqual(after, before, 'every measured box and text line keeps its original bounds');
+        });
+        if (photo) await roomPicture(r.page, false);
+      }
+    } finally { await r.close(); }
+  });
+}
