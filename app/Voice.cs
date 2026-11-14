@@ -3071,7 +3071,7 @@ namespace CapriDesktop
             catch (IOException problem)
             {
                 int code = problem.HResult;
-                bool full = code == unchecked((int)0x80070070) || code == unchecked((int)0x80070027) || code == unchecked((int)0x80070507);
+                bool full = code == unchecked((int)0x80070070) || code == unchecked((int)0x80070027) || code == unchecked((int)0x8007050F);
                 throw new VoiceException(full ? NoRoom : Unwritten, problem.Message);
             }
             catch (UnauthorizedAccessException problem) { throw new VoiceException(Unwritten, problem.Message); }
