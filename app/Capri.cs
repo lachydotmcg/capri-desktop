@@ -56636,7 +56636,11 @@ namespace CapriDesktop
                                 Directory.CreateDirectory(vsTemp);
                                 Environment.SetEnvironmentVariable("TMP", vsTemp);
                                 Environment.SetEnvironmentVariable("TEMP", vsTemp);
-                                ModelFile.Write = delegate(string vsWritePath) { vsWrites.Add(vsWritePath); return vsWriteWas(vsWritePath); };
+                                ModelFile.Write = delegate(string vsWritePath)
+                                {
+                                    vsWrites.Add(Directory.GetFileSystemEntries(vsTemp).Length == 0 ? vsWritePath : "temp copy beside " + vsWritePath);
+                                    return vsWriteWas(vsWritePath);
+                                };
                                 string vsStaging = Path.GetFullPath(Path.Combine(vsShelf, vsPackName + ".new")) + Path.DirectorySeparatorChar;
                                 foreach (string vsExtension in new[] { ".tar.bz2", ".tar", ".tar.gz", ".tgz", ".TAR.BZ2", ".tbz", ".tbz2" })
                                 {
