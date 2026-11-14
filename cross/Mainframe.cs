@@ -31,7 +31,7 @@ namespace CapriDesktop
         private double lastDpi;
         private bool fitting;
         private Control keyed;
-        private Key pageHeld = Key.None;
+        private readonly HashSet<Key> keysHeld = new HashSet<Key>();
         protected bool Steered;
         private sealed class Stop
         {
@@ -43,6 +43,19 @@ namespace CapriDesktop
         internal double Zoom { get; private set; } = 1;
         internal double PageHeight { get { return Page.Height; } }
         internal bool Gliding { get { return glide.IsEnabled; } }
+
+        static MainframeWindow()
+        {
+            KeyDownEvent.AddClassHandler<NeonChoice>((row, e) => { MainframeWindow window = KeyWindow(row); if (window != null) Program.Guard(() => window.HeldKey(e)); }, RoutingStrategies.Tunnel);
+            KeyUpEvent.AddClassHandler<NeonChoice>((row, e) => { MainframeWindow window = KeyWindow(row); if (window != null) window.keysHeld.Remove(e.Key); }, RoutingStrategies.Tunnel, true);
+        }
+
+        private static MainframeWindow KeyWindow(Control control)
+        {
+            for (StyledElement at = control; at != null; at = at is Popup popup ? popup.PlacementTarget : at.Parent)
+                if (at is MainframeWindow window) return window;
+            return null;
+        }
 
         internal MainframeWindow(string title)
         {
@@ -79,10 +92,10 @@ namespace CapriDesktop
                 finally { if (t >= 1) glide.Stop(); }
             });
             KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; Program.Guard(Back); } };
-            AddHandler(KeyDownEvent, (_, e) => { if (Steered && !e.Handled) Program.Guard(() => Steer(e)); }, RoutingStrategies.Tunnel);
+            AddHandler(KeyDownEvent, (_, e) => { if (!e.Handled) Program.Guard(() => Steer(e)); }, RoutingStrategies.Tunnel);
             AddHandler(PointerPressedEvent, (_, _) => Program.Guard(Unmark), RoutingStrategies.Tunnel);
-            AddHandler(KeyUpEvent, (_, _) => { pageHeld = Key.None; }, RoutingStrategies.Tunnel);
-            Deactivated += (_, _) => { pageHeld = Key.None; };
+            AddHandler(KeyUpEvent, (_, e) => { keysHeld.Remove(e.Key); }, RoutingStrategies.Tunnel, true);
+            Deactivated += (_, _) => ReleaseKeys();
             Page.PointerPressed += (_, e) => Program.Guard(() => { if (e.GetPosition(Page).Y < 50 && e.GetCurrentPoint(Page).Properties.IsLeftButtonPressed && (e.Source == Page || e.Source is NeonCaption)) BeginMoveDrag(e); });
             AddHandler(GotFocusEvent, (_, e) => { if (e.Source is Control control) control.BringIntoView(); });
             SizeChanged += (_, _) => { surface.Clip = MainframeTheme.Cut(new Rect(Bounds.Size), 16 * Zoom, 6 * Zoom, 16 * Zoom, 6 * Zoom); rim.InvalidateVisual(); };
@@ -182,12 +195,22 @@ namespace CapriDesktop
             if (at < 0 || next < 0 || next >= stops.Count || stops[next].Row != stops[at].Row) return;
             Hold(stops[next].Control);
         }
+        internal void ReleaseKeys() { keysHeld.Clear(); }
+        private bool HeldKey(KeyEventArgs e)
+        {
+            if (e.Key != Key.Escape && (!Steered || e.Key != Key.Enter)) return false;
+            TextBox box = e.Source as TextBox;
+            if (e.Key == Key.Enter && box != null && box.AcceptsReturn) return true;
+            if (!keysHeld.Add(e.Key)) e.Handled = true;
+            return true;
+        }
         private void Steer(KeyEventArgs e)
         {
             if (e.Source is NeonChoice) return;
+            if (HeldKey(e) || !Steered) return;
             Key key = e.Key;
             KeyModifiers mods = e.KeyModifiers;
-            TextBox box = FocusManager?.GetFocusedElement() as TextBox;
+            TextBox box = e.Source as TextBox ?? FocusManager?.GetFocusedElement() as TextBox;
             if (box != null && TopLevel.GetTopLevel(box) != this) box = null;
             bool lines = box != null && box.AcceptsReturn;
             if (key == Key.Tab && (mods == KeyModifiers.None || mods == KeyModifiers.Shift) && !(lines && box.AcceptsTab))
@@ -206,16 +229,23 @@ namespace CapriDesktop
                 return;
             }
             if (box != null) return;
-            if (key == pageHeld) { e.Handled = true; return; }
-            if (PageKey(key)) { pageHeld = key; e.Handled = true; }
+            if (keysHeld.Contains(key)) { e.Handled = true; return; }
+            if (PageKey(key)) { keysHeld.Add(key); e.Handled = true; }
         }
         internal void Strike(Key key, KeyModifiers mods = KeyModifiers.None)
         {
-            Interactive target = this;
-            if (FocusManager?.GetFocusedElement() is Control focused && (focused is NeonChoice || TopLevel.GetTopLevel(focused) == this)) target = focused;
-            target.RaiseEvent(new KeyEventArgs { RoutedEvent = KeyDownEvent, Key = key, KeyModifiers = mods });
-            RaiseEvent(new KeyEventArgs { RoutedEvent = KeyUpEvent, Key = key, KeyModifiers = mods });
+            StrikeDown(key, mods);
+            StrikeUp(key, mods);
         }
+        internal KeyEventArgs StrikeDown(Key key, KeyModifiers mods = KeyModifiers.None, Control control = null)
+        {
+            Interactive target = control ?? this;
+            if (control == null && FocusManager?.GetFocusedElement() is Control focused && (focused is NeonChoice || TopLevel.GetTopLevel(focused) == this)) target = focused;
+            var e = new KeyEventArgs { RoutedEvent = KeyDownEvent, Key = key, KeyModifiers = mods };
+            target.RaiseEvent(e);
+            return e;
+        }
+        internal void StrikeUp(Key key, KeyModifiers mods = KeyModifiers.None, Control control = null) { (control ?? this).RaiseEvent(new KeyEventArgs { RoutedEvent = KeyUpEvent, Key = key, KeyModifiers = mods }); }
         internal Control HeldNow { get { return Held(); } }
         internal bool HeldMarked { get { Control held = Held(); return held != null && Marks(held); } }
         internal string HeldSection

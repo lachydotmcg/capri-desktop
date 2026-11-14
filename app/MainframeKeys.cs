@@ -140,11 +140,20 @@ namespace CapriDesktop
 
         private static void FocusMark(Graphics graphics, RectangleF around, float s, float topRight, float bottomRight, float bottomLeft)
         {
+            using (GraphicsPath path = FocusPath(around, s, topRight, bottomRight, bottomLeft)) FocusMark(graphics, path, s);
+        }
+
+        private static GraphicsPath FocusPath(RectangleF around, float s, float topRight, float bottomRight, float bottomLeft)
+        {
             float wide = 2 * Math.Max(1f, s);
             RectangleF box = new RectangleF(around.Left + wide / 2, around.Top + wide / 2, around.Width - wide, around.Height - wide);
-            using (GraphicsPath path = Cut(box, 0, topRight, bottomRight, bottomLeft))
-            using (Pen pen = new Pen(White, wide))
-                graphics.DrawPath(pen, path);
+            float trim = Math.Max(1f, s) * (1 - (float)Math.Sqrt(0.5));
+            return Cut(box, 0, topRight > 0 ? topRight - trim : 0, bottomRight > 0 ? bottomRight - trim : 0, bottomLeft > 0 ? bottomLeft - trim : 0);
+        }
+
+        private static void FocusMark(Graphics graphics, GraphicsPath path, float s)
+        {
+            using (Pen pen = new Pen(White, 2 * Math.Max(1f, s))) graphics.DrawPath(pen, path);
         }
 
         private static bool Steerable(Control control) { return control is Key || control is Toggle || control is Slider || control is Rung || control is Entry; }
@@ -328,7 +337,7 @@ namespace CapriDesktop
             Keys key = keyData & Keys.KeyCode;
             Keys with = keyData & Keys.Modifiers;
             if (WinHeld()) return false;
-            if (key == Keys.Escape && with == Keys.None) { StepBack(); return true; }
+            if (key == Keys.Escape && with == Keys.None) { if (!repeated) StepBack(); return true; }
             if (Opened() != null) return false;
             TextBoxBase box = ActiveControl as TextBoxBase;
             bool writing = box != null;
@@ -424,6 +433,7 @@ namespace CapriDesktop
             ShowSettings(false);
             try
             {
+                CheckFocusMark(checks);
                 if (Control.MouseButtons != MouseButtons.None) { checks.Add("LIMIT Mainframe keyboard: a mouse button is held"); return; }
                 if (!more.Focus() || !more.Focused) { checks.Add("LIMIT Mainframe keyboard: Windows did not give the Mainframe keyboard focus"); return; }
                 CheckPageKeys(checks);
@@ -609,6 +619,7 @@ namespace CapriDesktop
             Hold(careTimes[0]);
             Strike(Keys.Enter);
             bool dropdown = careMenu.Visible && Strike(Keys.Escape) && !careMenu.Visible && paged;
+            bool held = Strike(Keys.Escape, true) && !careMenu.Visible && paged && !modded && Visible && WindowState == FormWindowState.Normal;
             bool settings = Strike(Keys.Escape) && !paged && !modded && WindowState == FormWindowState.Normal;
             Strike(Keys.M);
             bool mods = modded && Strike(Keys.Escape) && !modded && !paged && WindowState == FormWindowState.Normal;
@@ -617,10 +628,45 @@ namespace CapriDesktop
             bool typing = Strike(Keys.Escape) && !paged;
             bool closes = Strike(Keys.Escape) && WindowState == FormWindowState.Minimized;
             Restore();
-            if (!tipFirst || !dropdown || !settings || !mods || !typing || !closes)
-                throw new Exception("Esc in her Mainframe went wrong: tip first " + tipFirst + ", dropdown " + dropdown + ", Settings " + settings + ", Mods " + mods + ", from a text box " + typing + ", closes " + closes);
-            checks.Add("PASS Mainframe Esc: it goes back one step at a time, closing an open dropdown first, then leaving Settings or Mods for her main page, a text box included, and from her main page it closes the Mainframe");
+            if (!tipFirst || !dropdown || !held || !settings || !mods || !typing || !closes)
+                throw new Exception("Esc in her Mainframe went wrong: tip first " + tipFirst + ", dropdown " + dropdown + ", held " + held + ", Settings " + settings + ", Mods " + mods + ", from a text box " + typing + ", closes " + closes);
+            checks.Add("PASS Mainframe Esc: a held press closes only the dropdown and stays in Settings; a new press leaves Settings or Mods for her main page, a text box included, and another closes the Mainframe");
             checks.Add(tipped ? "PASS Mainframe Esc and tips: with a tip showing, Esc puts the tip away and stays on the page" : "LIMIT Mainframe Esc and tips: no tip came up here to press Esc on");
+        }
+
+        private static void CheckFocusMark(List<string> checks)
+        {
+            using (Toggle toggle = new Toggle())
+                foreach (float s in new[] { 1f, 1.25f, 1.5f, 2f })
+                {
+                    toggle.Size = new Size((int)(328 * s), (int)(28 * s));
+                    float line = Math.Max(1f, s), half = (toggle.Switch * s - 4 * s) / 2, left = toggle.Width - toggle.Switch * s;
+                    RectangleF off = new RectangleF(left + line / 2, line / 2, half - line, toggle.Height - line);
+                    RectangleF on = new RectangleF(left + half + 4 * s + line / 2, line / 2, half - line, toggle.Height - line);
+                    RectangleF pair = RectangleF.FromLTRB(off.Left - line / 2, off.Top - line / 2, on.Right + line / 2, on.Bottom + line / 2);
+                    using (GraphicsPath path = toggle.MarkPath(s))
+                    {
+                        RectangleF edge = path.GetBounds();
+                        edge.Inflate(line, line);
+                        PointF[] p = path.PathPoints;
+                        double right = on.Right + on.Bottom - 5 * s + line / Math.Sqrt(2), bottom = off.Bottom - off.Left - 5 * s + line / Math.Sqrt(2);
+                        if (edge != pair || p[3].Y >= p[4].Y || p[5].X <= p[6].X
+                            || Math.Abs(p[3].X + p[3].Y + line * Math.Sqrt(2) - right) > 0.001
+                            || Math.Abs(p[4].X + p[4].Y + line * Math.Sqrt(2) - right) > 0.001
+                            || Math.Abs(p[5].Y - p[5].X + line * Math.Sqrt(2) - bottom) > 0.001
+                            || Math.Abs(p[6].Y - p[6].X + line * Math.Sqrt(2) - bottom) > 0.001)
+                            throw new Exception("Her switch's focus mark missed its plates at scale " + s + ".");
+                    }
+                    using (GraphicsPath path = FocusPath(new RectangleF(0, 0, 100 * s, 28 * s), s, 5 * s, 5 * s, 0))
+                    {
+                        PointF[] p = path.PathPoints;
+                        double top = 100 * s - 5 * s - line + line / Math.Sqrt(2);
+                        if (p[0].X != line || p[0].Y != line || Math.Abs(p[1].X - p[1].Y + line * Math.Sqrt(2) - top) > 0.001
+                            || Math.Abs(p[2].X - p[2].Y + line * Math.Sqrt(2) - top) > 0.001)
+                            throw new Exception("Her focus mark missed a square or top cut corner at scale " + s + ".");
+                    }
+                }
+            checks.Add("PASS Mainframe focus mark: its box is the OFF and ON pair's box, both bottom corners are cut, and its outer diagonals meet the plates at 100%, 125%, 150% and 200%; square and top cut corners keep their outlines too");
         }
 
         private void CheckPickingKeys(List<string> checks)

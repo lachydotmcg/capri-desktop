@@ -15,51 +15,29 @@ namespace CapriDesktop
     internal static class News
     {
 #if CROSS
-        internal const string Version = "0.9.0";
+        internal const string Version = "0.9.1";
         internal static readonly string Facts = "Capri " + Version + (OperatingSystem.IsLinux() ? " on Linux.\n" : " on Mac.\n")
+            + "Capri Remote: chat with her from your phone's browser at capriai.app/remote. Mainframe > CAPRI > Remote turns it on, and Pair a phone shows the QR code to scan. From a phone she does what a typed line can, except mouse and keyboard jobs and terminal commands.\n"
+            + "Keyboard: her Mainframe and Mods window work from the keyboard. S, M and H change pages, Tab jumps a section, the arrow keys move through options, Enter picks and Esc goes back. From nathanZW.\n"
             + (OperatingSystem.IsLinux()
-                ? "Reminders: she says your reminders and routines on Linux too.\n"
-                    + "PDFs: she reads PDF pages.\n"
-                    + "Moving: she stays put when the desktop answers late or a few pixels off, and moves on niri.\n"
-                    + "Sitting: she faces the middle of the screen when she sits, and lands already facing that way. From nathanZW.\n"
-                    + "Music app: Settings > HABITS > Music app picks Spotify or YouTube for when you don't name an app.\n"
-                    + "Stopwatch: start one, ask how long it's been and stop it.\n"
-                    + "Updates: started from the AppImage, she downloads a newer release by herself and her menu shows Restart Capri to update to the new version. If the new one doesn't start, the old one is put back. From Kelv.\n"
-                    + "Hyprland: Super+C closes Mainframe, which has no Minimize button there. From Kelv."
-                : "Reminders: she says your reminders and routines on a Mac too.\n"
-                    + "PDFs: she reads PDF pages.\n"
-                    + "Sitting: she sits on a window you name, faces the middle of the screen when she sits, and lands already facing that way. From nathanZW.\n"
-                    + "Music app: Settings > HABITS > Music app picks Spotify, YouTube or Apple Music for when you don't name an app. On Apple Music she plays your playlists and Favourite Songs. From nathanZW.\n"
-                    + "Stopwatch: start one, ask how long it's been and stop it.\n"
-                    + "Mini player: when it closes, focus goes back to the app you were in.");
-        internal static readonly string Line = OperatingSystem.IsLinux()
-            ? "I just updated to " + Version + ": I can update myself from the AppImage now, I say your reminders on Linux and I read PDF pages. Ask me what's new."
-            : "I just updated to " + Version + ": I say your reminders on a Mac now, read PDF pages and sit on a window you name. Ask me what's new.";
+                ? "Streaming: on a desktop where she has to use her fallback controls, she says she can't stream safely and doesn't start. Her other mouse and keyboard jobs are unchanged. From danielxxomg.\n"
+                : "")
+            + "Time: she no longer brings up the time when you didn't ask. From Yoplaxs.";
+        internal static readonly string Line = "I just updated to " + Version + ": you can chat with me from your phone with Capri Remote now, and my Mainframe works from the keyboard. Ask me what's new.";
 #else
-        internal const string Version = "0.9.0";
+        internal const string Version = "0.9.1";
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Workspace (beta): Mainframe > BRAIN > WORKSPACE (beta), or ask her to open workspace. Chat with your own Claude Code in her window, so install it and sign in first. A chat starts in her folder, Capri\\Workspace in your user folder, and + adds folders or files; files go with one message. Modes: Ask me, Edits only, Plan only and Everything. Undo last edits puts back Claude's file edits from a turn.\n"
-            + "Workspace chats (beta): each run of Claude Code's tool calls folds behind one line, an approval card asks in one plain sentence, each turn shows its time and cost, you can select and copy text with a copy key on messages and code, and replies show headings, lists, tables, code and links.\n"
-            + "Sounds: soft chimes when your message is sent, when she's heard you and when she's listening. Mainframe > Settings > SOUNDS turns them off, sets their volume and picks one of six sets.\n"
-            + "No AI: Mainframe > BRAIN > OFF runs her with no brain at all. Nothing is downloaded for it and nothing goes to any model.\n"
-            + "Hearts: she sends you a little finger heart whenever she feels like it, or when you ask. She has a secret emote too; both are animated by Qewiw.\n"
-            + "Skills: she knows the name of every skill that's on and reads one when it fits, in chat and mid-job, and a skill with no games line is for anything.\n"
-            + "Skills in a browser: a skill's game counts in a browser tab too, like Five Nights at Freddy's in Chrome, when you ask her to play it, and she can cut in on her own line at a jump scare.\n"
-            + "Asking mid-game: ask what's on screen during a game job and she looks at a picture taken just then; ask about the game and she knows its skill.\n"
-            + "Code mods: the Run this code mod? question is in her own look, and No is still the default.\n"
-            + "Thinking and tool calls: she keeps a brain's thinking and written-out tool calls out of her chat, her voice and the saved chat.\n"
-            + "Her glitch: she glitches under her new stand, and her old standing art only shows with Legacy stand on.\n"
-            + "Teleports in games: her teleport and glitch finish while a game job keeps her busy.\n"
-            + "Jealous of other AIs: Mainframe > Settings > CAPRI > Jealous of other AIs, off unless you turn it on. She can offer to close the other AI, and Choose apps sets which ones she may close.\n"
-            + "Music app: Mainframe > Settings > HABITS > Music app picks Spotify, YouTube or Apple Music for when you don't name an app. From nathanZW.\n"
-            + "Stopwatch: start one, ask how long it's been and stop it.\n"
-            + "Pat stroke: Mainframe > Settings > CAPRI > Pat stroke sets how long a stroke over her a head pat needs.\n"
-            + "Mod READMEs: View on a mod shows the first lines of its README, with Learn more for the rest.\n"
-            + "Sitting: she faces the middle of the screen when she sits on a window, and lands already facing that way. From nathanZW.\n"
-            + "Lighter: she uses less of your PC while she holds still, starts with about 100 MB less memory, and her local brain answers faster.\n"
-            + "Games and calls: Comments Off stops game comments in Gaming Mode too, GAMES > Game sounds lets her ignore loud bursts, and on a call she keeps what's said while she thinks or talks.\n"
-            + "Her voice: it cuts out less, she talks through her own echo and hears you talk over her from her first word.";
-        internal const string Line = "I just updated to " + Version + ": I've got a Workspace beta for your Claude Code chats, soft chimes when I've heard you, and I'm lighter on your PC. Ask me what's new.";
+            + "Keyboard: her Mainframe works from the keyboard. Ctrl + Alt + M opens it from anywhere and closes it when it's in front; change it in Mainframe > Settings > KEYS. S, M and H change pages, Tab jumps a section, the arrow keys move through options, Enter picks and Esc goes back. From nathanZW.\n"
+            + "Quick asks: open discord, switch to chrome, pause and open youtube happen straight away with a brain loaded too, and she says how it went in her own words. From YunoTheAlien.\n"
+            + "Plain asks: she closes, opens and plays what you plainly ask even when a small brain answers with only words. From Vocyn.\n"
+            + "Apps: she remembers her app list between looks, and says so when she couldn't read your apps. From YunoTheAlien.\n"
+            + "Store apps: she opens Store apps like Notepad the way Windows starts them, and says so when Windows won't start one. From Vocyn.\n"
+            + "Searches: she looks things up with the search engine your browser is set to. From YunoTheAlien.\n"
+            + "Websites: a small slip in how her brain asks for a website no longer stops her opening it. From YunoTheAlien.\n"
+            + "Memory: on Auto, Memory size starts at 16K on a PC with room and grows to 32K when an ask needs it, for her built-in brain and Ollama.\n"
+            + "Time: she no longer brings up the time when you didn't ask. From Yoplaxs.\n"
+            + "Downloads: she opens more download lanes at once, so her voice and ears downloading don't hold up her brain's download.";
+        internal const string Line = "I just updated to " + Version + ": you can drive my Mainframe from the keyboard now, quick asks like open discord happen straight away, and my memory starts bigger on a PC with room. Ask me what's new.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
