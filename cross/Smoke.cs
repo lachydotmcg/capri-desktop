@@ -2968,6 +2968,7 @@ namespace CapriDesktop
         private void KeyChecks(Mainframe frame)
         {
             KeyMarkChecks();
+            KeyMarkPictures(frame);
             bool advancedWas = pet.Saved.AdvancedSettings, introWas = pet.Saved.NoIntro;
             int typingWas = pet.Saved.Typing, bubbleWas = pet.BubbleTime, tierWas = pet.MainframeTier, voiceWas = pet.MainframeVoiceMode;
             if (frame.Mods != null) frame.Mods.Close();
@@ -3105,6 +3106,99 @@ namespace CapriDesktop
             if (!modsFirst || !modsNext || !modsBack || !modsShut || !left || !shut)
                 throw new Exception("Esc in her Mainframe went wrong: M and Tab in Mods " + modsFirst + ", next " + modsNext + ", back " + modsBack + ", Esc shut Mods " + modsShut + ", Esc left Settings " + left + ", Esc closed her Mainframe " + shut);
             checks.Add("PASS Mainframe Esc: M opens her Mods window, where Tab jumps between its sections and Esc closes it; in Settings Esc goes back to her main page, a text box included, and from her main page it closes the Mainframe");
+        }
+
+        private void KeyMarkPictures(Mainframe frame)
+        {
+            bool advancedWas = pet.Saved.AdvancedSettings, pagedWas = frame.SettingsShown;
+            int sizeWas = pet.Saved.MainframeSize;
+            double widthWas = frame.Width, heightWas = frame.Height, zoomWas = frame.Zoom;
+            Vector scrollWas = frame.Scroll.Offset;
+            PixelPoint positionWas = frame.Position;
+            Control focusWas = frame.FocusManager.GetFocusedElement() as Control;
+            System.Reflection.FieldInfo keyed = typeof(MainframeWindow).GetField("keyed", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            object keyedWas = keyed.GetValue(frame);
+            try
+            {
+                pet.SetMainframeSize(100); pet.SetAdvancedSettings(true); frame.ShowSettings(true);
+                var slider = (NeonSlider)frame.Row("Volume");
+                var steps = (NeonSlider)frame.Row("Mainframe size");
+                if (frame.Zoom != 1 || slider.Stepper || !steps.Stepper) throw new Exception("Her mark pictures need 100% and both slider kinds.");
+                Control toggle = frame.Row("Always on top");
+                KeyMarkPicture(frame, toggle, "none", false);
+                KeyMarkPicture(frame, toggle, "switch", true);
+                KeyMarkPicture(frame, frame.Button("Back"), "key", true);
+                KeyMarkPicture(frame, slider, "slider", true);
+                KeyMarkPicture(frame, steps, "steps", true);
+                KeyMarkPicture(frame, frame.Row("What should she call you?"), "entry", true);
+                frame.ShowSettings(false);
+                KeyMarkPicture(frame, frame.Row("NORMAL"), "row", true);
+                KeyMarkPicture(frame, frame.Button(""), "title", true);
+                checks.Add("PASS Mainframe mark pictures: seven kinds and an unmarked switch page saved at 100%. Saved pixels show white on all four sides, none around the unmarked switch, and no old cyan focus line.");
+            }
+            finally
+            {
+                pet.SetMainframeSize(sizeWas); pet.SetAdvancedSettings(advancedWas); frame.ShowSettings(pagedWas);
+                frame.Fit(frame.Page.Width, frame.PageHeight, zoomWas);
+                frame.Width = widthWas; frame.Height = heightWas;
+                if (focusWas != null) focusWas.Focus(); else frame.FocusManager.ClearFocus();
+                keyed.SetValue(frame, keyedWas);
+                frame.GlideTo(scrollWas); frame.Settle(); frame.UpdateLayout();
+                Look.Position(frame, positionWas);
+                frame.InvalidateVisual();
+            }
+        }
+
+        private void KeyMarkPicture(Mainframe frame, Control control, string kind, bool marked)
+        {
+            string name = "keys-mark-" + kind + "-100.png";
+            if (control == null || !control.IsVisible || !control.IsEnabled) throw new Exception("Her marked option is missing from " + name + ".");
+            frame.Width = frame.Page.Width; frame.Height = Math.Max(frame.Height, Canvas.GetTop(control) + control.Height + 28);
+            if (marked) frame.HoldRow(control); else frame.FocusManager.ClearFocus();
+            frame.Settle();
+            if (marked ? frame.HeldNow != control || !frame.HeldMarked : frame.HeldNow != null || frame.HeldMarked) throw new Exception("Her mark is wrong before saving " + name + ".");
+            string path = Path.Combine(folder, name);
+            frame.SavePicture(path);
+            RemoteSheetPicture(path, new Size(frame.Width, frame.Height), null);
+            Point? origin = control.TranslatePoint(new Point(), (Control)frame.Content);
+            if (!origin.HasValue) throw new Exception("Her marked option has no origin in " + name + ".");
+            Rect around = new Rect(origin.Value, control.Bounds.Size);
+            if (control is NeonSwitch toggle) around = new Rect(around.Right - toggle.Switch, around.Top, toggle.Switch, around.Height);
+            using (SkiaSharp.SKBitmap picture = SkiaSharp.SKBitmap.Decode(path))
+            {
+                if (around.Width < 12 || around.Height < 12 || !new Rect(new Size(picture.Width, picture.Height)).Contains(around)) throw new Exception("Her marked option is outside " + name + ".");
+                for (int i = 1; i <= 3; i++)
+                {
+                    double x = around.Left + around.Width * i / 4, y = around.Top + around.Height * i / 4;
+                    KeyMarkPixel(picture, x, around.Top + 1, marked, name);
+                    KeyMarkPixel(picture, x, around.Bottom - 2, marked, name);
+                    KeyMarkPixel(picture, around.Left + 1, y, marked, name);
+                    KeyMarkPixel(picture, around.Right - 2, y, marked, name);
+                }
+                if (kind == "switch")
+                    using (SkiaSharp.SKBitmap plain = SkiaSharp.SKBitmap.Decode(Path.Combine(folder, "keys-mark-none-100.png")))
+                    {
+                        if (plain == null || plain.Width != picture.Width || plain.Height != picture.Height) throw new Exception("Her switch pictures have different sizes.");
+                        for (int i = 1; i <= 3; i++)
+                            for (int offset = 2; offset <= 3; offset++)
+                            {
+                                int x = (int)Math.Floor(around.Left - offset), y = (int)Math.Floor(around.Top + around.Height * i / 4);
+                                if (x < 0 || y < 0 || x >= picture.Width || y >= picture.Height) throw new Exception("Her old focus line is outside " + name + ".");
+                                SkiaSharp.SKColor color = picture.GetPixel(x, y), before = plain.GetPixel(x, y);
+                                if (color.Alpha != before.Alpha || Math.Abs(color.Red - before.Red) > 3 || Math.Abs(color.Green - before.Green) > 3 || Math.Abs(color.Blue - before.Blue) > 3) throw new Exception("Her switch kept its old cyan focus line in " + name + " at " + x + "," + y);
+                            }
+                    }
+            }
+        }
+
+        private static void KeyMarkPixel(SkiaSharp.SKBitmap picture, double left, double top, bool marked, string name)
+        {
+            int x = (int)Math.Floor(left), y = (int)Math.Floor(top);
+            if (x < 0 || y < 0 || x >= picture.Width || y >= picture.Height) throw new Exception("Her saved mark pixel is outside " + name + ".");
+            SkiaSharp.SKColor color = picture.GetPixel(x, y);
+            Color white = ((ISolidColorBrush)MainframeTheme.White).Color;
+            bool line = color.Alpha == 255 && Math.Abs(color.Red - white.R) <= 6 && Math.Abs(color.Green - white.G) <= 6 && Math.Abs(color.Blue - white.B) <= 6;
+            if (line != marked) throw new Exception("Her saved mark pixel is wrong: " + name + " at " + x + "," + y);
         }
 
         private static NeonChoice KeyChoice(NeonPicker picker)
@@ -8298,7 +8392,7 @@ namespace CapriDesktop
             pet.RemoteOutput = delegate(RemoteLink link) { return new RemoteSheetSink(link, bridge.Sink); };
             NeonButton key = frame.Button("Remote"), mods = frame.Button("Mods"), support = frame.Button("Support");
             if (key == null || Avalonia.Automation.AutomationProperties.GetName(key) != "Capri Remote: chat with her from your phone" || key.Text != "Remote" || key.Glyph != 0 || key.Heart
-                || Canvas.GetLeft(key) != 100 || key.Width != 88 || key.Height != 18 || Canvas.GetTop(key) != Canvas.GetTop(mods) || key.Height != mods.Height || key.Height != support.Height
+                || Canvas.GetLeft(key) != 94 || key.Width != 88 || key.Height != 18 || Canvas.GetTop(key) != Canvas.GetTop(mods) || key.Height != mods.Height || key.Height != support.Height
                 || Canvas.GetLeft(mods) != 190 || mods.Width != 70 || Canvas.GetLeft(support) != 268 || support.Width != 88) throw new Exception("Remote's CAPRI key changed its name, words, size or neighbours.");
             foreach (int scale in new[] { 100, 150, 200 })
             {
@@ -8347,6 +8441,7 @@ namespace CapriDesktop
             const string message = "sheet-chat";
             wire.Send(phone, keys, 0, new RemoteJson.Writer().Text("type", "chat.send").Text("id", message).Text("text", "sheet path please").ToString());
             RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(message) != null; }, "the Remote sheet phone's answer");
+            RemoteBridgeWait(delegate { return pet.Talk.Reply == "Opened the test website."; }, "the Remote sheet turn's PC bubble");
             wire.Link.Typing(phone.Id, false, message); wire.Pump();
             List<RemoteJson.Map> delivered = new List<RemoteJson.Map>();
             uint sequence = 0;
@@ -8360,11 +8455,15 @@ namespace CapriDesktop
                 if (row == null) throw new Exception("Remote's sheet phone could not open its answer: " + why);
                 delivered.Add(row);
             }
+            // The link sends its own "she's typing" receipts when it sees fit, so they aren't counted. Everything else has one order.
+            List<string> order = new List<string>();
+            foreach (RemoteJson.Map row in delivered) order.Add(row.Text("type") + (row.Text("type") == "chat.typing" ? (row.Is("on", true) ? ":on" : ":off") : row.Text("state") == null ? "" : ":" + row.Text("state")));
+            delivered = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") != "chat.typing" || !row.Is("on", true); });
             List<RemoteJson.Map> tools = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.tool"; });
             List<RemoteJson.Map> replies = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply"; });
             if (runs != 1 || thoughts != 1 || opened != "https://remote-sheet.example/" || delivered.Count != 4 || delivered[0].Text("type") != "chat.tool" || delivered[1].Text("type") != "chat.tool" || delivered[2].Text("type") != "chat.reply" || delivered[3].Text("type") != "chat.typing" || !delivered[3].Is("on", false) || delivered[3].Text("re") != message || tools.Count != 2 || tools[0].Text("name") != "open_website" || tools[0].Text("summary") != "Opening a website"
                 || tools[0].Text("state") != "running" || tools[1].Text("state") != "done" || tools[0].Text("id") != tools[1].Text("id") || tools[0].Text("re") != message || tools[1].Text("re") != message
-                || replies.Count != 1 || replies[0].Text("re") != message || replies[0].Text("text") != "Opened the test website." || !replies[0].Is("done", true) || bridge.Sink.CountFor(message) != 1 || pet.Talk.Reply != replies[0].Text("text")) throw new Exception("Remote's sheet path lost the tool, progress, answer or PC bubble.");
+                || replies.Count != 1 || replies[0].Text("re") != message || replies[0].Text("text") != "Opened the test website." || !replies[0].Is("done", true) || bridge.Sink.CountFor(message) != 1 || pet.Talk.Reply != replies[0].Text("text")) throw new Exception("Remote's sheet path lost the tool, progress, answer or PC bubble: runs " + runs + ", thoughts " + thoughts + ", opened " + opened + ", frames " + string.Join(" ", order.ToArray()) + ", answers " + bridge.Sink.CountFor(message) + ", bubble " + pet.Talk.Reply);
             int index = pet.ReadRemote().Phones.FindIndex(delegate(RemoteDevice found) { return found.Id == phone.Id; });
             if (index < 0 || index >= RemoteSheet.PhonesPerPage) throw new Exception("Remote's paired phone was missing from its sheet page.");
             string revoke = "Revoke " + (index + 1);

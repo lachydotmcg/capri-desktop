@@ -428,14 +428,21 @@ namespace CapriDesktop
             FormWindowState stateWas = WindowState;
             bool pagedWas = paged, moddedWas = modded, shownWas = Visible, advancedWas = capri.AdvancedSaved;
             int frameModsWas = capri.FrameKeyMods, frameVkWas = capri.FrameKeyVk;
-            Restore();
-            ShowMods(false);
-            ShowSettings(false);
+            int sizeWas = capri.MainframeSize, dpiWas = layoutDpi, textWas = layoutText, scrollWas = pageScroll;
+            bool fallbackWas = layoutFallback;
+            Rectangle boundsWas = Bounds;
+            if (stateWas != FormWindowState.Normal && !RestoreBounds.IsEmpty) boundsWas = RestoreBounds;
+            Control heldWas = Held();
+            int cuesWas = IsHandleCreated ? (int)Native.SendMessage(Handle, 0x0129, IntPtr.Zero, IntPtr.Zero).ToInt64() : 0;
             try
             {
+                Restore();
+                ShowMods(false);
+                ShowSettings(false);
                 CheckFocusMark(checks);
                 if (Control.MouseButtons != MouseButtons.None) { checks.Add("LIMIT Mainframe keyboard: a mouse button is held"); return; }
                 if (!more.Focus() || !more.Focused) { checks.Add("LIMIT Mainframe keyboard: Windows did not give the Mainframe keyboard focus"); return; }
+                CheckMarkPictures(checks);
                 CheckPageKeys(checks);
                 CheckSectionKeys(checks);
                 CheckArrowKeys(checks);
@@ -453,16 +460,85 @@ namespace CapriDesktop
                 if (capri.AdvancedSaved != advancedWas) capri.ToggleAdvancedSettings();
                 keysNote.Text = "";
                 if (!Visible) Show();
-                if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+                if (WindowState != FormWindowState.Normal) WindowState = FormWindowState.Normal;
                 ShowMods(false);
+                LayoutScale(dpiWas, textWas, fallbackWas);
+                SizeMainframe(sizeWas);
                 ShowSettings(pagedWas);
                 if (moddedWas) ShowMods(true);
-                more.Focus();
+                Bounds = boundsWas;
+                if (heldWas != null) Hold(heldWas); else ActiveControl = null;
+                ScrollPage(scrollWas);
+                Native.SendMessage(Handle, 0x0127, new IntPtr(((cuesWas & 1) != 0 ? 1 : 2) | (1 << 16)), IntPtr.Zero);
                 dismissedHint = null;
                 DismissHint();
+                WindowState = stateWas;
                 if (!shownWas) Hide();
-                else WindowState = stateWas;
             }
+        }
+
+        private void CheckMarkPictures(List<string> checks)
+        {
+            WindowState = FormWindowState.Normal;
+            LayoutScale(96, 100);
+            SizeMainframe(100);
+            if (!capri.AdvancedSettings) capri.ToggleAdvancedSettings();
+            ShowSettings(true);
+            if (Math.Abs(Unit() - 1) > 0.001 || volume.Stepper || !frameSize.Stepper) throw new Exception("Her mark pictures need 100% and both slider kinds.");
+            CheckMarkPicture(onTop, "switch", true);
+            Native.SendMessage(Handle, 0x0127, new IntPtr(1 | (1 << 16)), IntPtr.Zero);
+            CheckMarkPicture(onTop, "none", false);
+            CheckMarkPicture(more, "key", true);
+            CheckMarkPicture(volume, "slider", true);
+            CheckMarkPicture(frameSize, "steps", true);
+            CheckMarkPicture(nickname, "entry", true);
+            ShowSettings(false);
+            CheckMarkPicture(rungs[0], "row", true);
+            CheckMarkPicture(close, "title", true);
+            checks.Add("PASS Mainframe mark pictures: seven kinds and an unmarked switch page saved at 100%. Saved pixels show white on all four sides, and none around the unmarked switch.");
+        }
+
+        private void CheckMarkPicture(Control control, string kind, bool marked)
+        {
+            if (marked) Hold(control);
+            Settle();
+            Update();
+            string name = "mainframe-mark-" + kind + ".png";
+            if (!control.Visible || !control.Enabled || (marked ? Held() != control || !HeldMarked() : HeldMarked())) throw new Exception("Her mark is wrong before saving " + name + ".");
+            Rectangle around = control.Bounds;
+            Toggle toggle = control as Toggle;
+            if (toggle != null) around = new Rectangle(control.Right - toggle.Switch, control.Top, toggle.Switch, control.Height);
+            if (around.Width < 12 || around.Height < 12 || !ClientRectangle.Contains(around)) throw new Exception("Her marked option is outside " + name + ".");
+            string path = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Brain.LogPath), name);
+            using (Bitmap picture = new Bitmap(ClientSize.Width, ClientSize.Height))
+            {
+                DrawToBitmap(picture, new Rectangle(Point.Empty, picture.Size));
+                picture.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+            }
+            using (Bitmap picture = new Bitmap(path))
+            {
+                if (picture.Size != ClientSize) throw new Exception("Her mark picture has the wrong size: " + name);
+                Color first = picture.GetPixel(0, 0);
+                bool drawn = false;
+                for (int y = 0; y < picture.Height && !drawn; y++)
+                    for (int x = 0; x < picture.Width && !drawn; x++) if (picture.GetPixel(x, y) != first) drawn = true;
+                if (!drawn) throw new Exception("Her mark picture is blank: " + name);
+                for (int i = 1; i <= 3; i++)
+                {
+                    int x = around.Left + around.Width * i / 4, y = around.Top + around.Height * i / 4;
+                    CheckMarkPixel(picture, x, around.Top + 1, marked, name);
+                    CheckMarkPixel(picture, x, around.Bottom - 2, marked, name);
+                    CheckMarkPixel(picture, around.Left + 1, y, marked, name);
+                    CheckMarkPixel(picture, around.Right - 2, y, marked, name);
+                }
+            }
+        }
+
+        private static void CheckMarkPixel(Bitmap picture, int x, int y, bool marked, string name)
+        {
+            Color color = picture.GetPixel(x, y), white = White;
+            bool line = color.A == 255 && Math.Abs(color.R - white.R) <= 6 && Math.Abs(color.G - white.G) <= 6 && Math.Abs(color.B - white.B) <= 6;
+            if (line != marked) throw new Exception("Her saved mark pixel is wrong: " + name + " at " + x + "," + y);
         }
 
         private void CheckPageKeys(List<string> checks)

@@ -495,7 +495,7 @@ namespace CapriDesktop
                 MainframeTips.Explain(nameListeningNote, "Local decoder · 20-second follow-ups · selected physical microphone");
             }
             Section("CAPRI", 0, 540);
-            remoteKey = Key("Remote", 100, 539, 88, 18, OpenRemote);
+            remoteKey = Key("Remote", 94, 539, 88, 18, OpenRemote);
             AutomationProperties.SetName(remoteKey, "Capri Remote: chat with her from your phone");
             Key("Mods", 190, 539, 70, 18, OpenMods).Accent = MainframeTheme.Cyan;
             // Shorter than a band's other keys and level with CAPRI, so its lit rim stays off the band's teal rule (Lachy, 4 Nov).

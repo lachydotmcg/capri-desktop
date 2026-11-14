@@ -6052,7 +6052,8 @@ namespace CapriDesktop
                 return played.StartsWith("Playing ", StringComparison.Ordinal) ? "Apple Music isn't installed, so p" + played.Substring(1) : played;
             }
             bool hasSpotify = false;
-            if (app != "youtube") try { hasSpotify = FindApps("spotify").Count > 0; } catch (Exception) { }
+            // A failed look at their apps still lets music go to YouTube, but it never becomes "Spotify isn't installed".
+            if (app != "youtube") try { hasSpotify = FindApps("spotify").Count > 0; } catch (Exception) { if (app == "spotify") throw; }
             if (hasSpotify)
             {
                 if (liked) named = "their Liked Songs";
