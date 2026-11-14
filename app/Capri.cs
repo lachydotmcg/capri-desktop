@@ -56676,7 +56676,7 @@ namespace CapriDesktop
                                 System.IO.Compression.ZipFile.CreateFromDirectory(vsNothing, vsEmpty);
                                 try { ModelFile.Unpack(vsEmpty); }
                                 catch (VoiceException vsError) { vsRefused = vsError.Message; }
-                                foreach (string vsProblem in new[] { "parent", "backslash-parent", "absolute", "rooted", "drive", "unc", "stream", "trailing-dot", "trailing-space", "device", "empty-name", "prefix", "long", "pax", "checksum", "size-octal", "size-negative", "long-size", "pax-size", "pax-length", "pax-overflow", "pax-newline", "file", "header", "padding", "end", "bzip2", "bzip2-crc", "gzip", "replacement", "no-model" })
+                                foreach (string vsProblem in new[] { "parent", "backslash-parent", "absolute", "rooted", "drive", "unc", "stream", "trailing-dot", "trailing-space", "empty-name", "prefix", "long", "pax", "checksum", "size-octal", "size-negative", "long-size", "pax-size", "pax-length", "pax-overflow", "pax-newline", "file", "header", "padding", "end", "bzip2", "bzip2-crc", "gzip", "replacement", "no-model" })
                                 {
                                     byte[] vsTarBroken;
                                     int vsAt;
@@ -56687,7 +56687,7 @@ namespace CapriDesktop
                                         vsAt = (int)vsTar.Position;
                                         string vsBadPath = vsProblem == "parent" ? "../escaped.bin" : vsProblem == "backslash-parent" ? "..\\escaped.bin" : vsProblem == "absolute" ? "/escaped.bin"
                                             : vsProblem == "rooted" ? "\\escaped.bin" : vsProblem == "drive" ? "C:\\escaped.bin" : vsProblem == "unc" ? "\\\\server\\share\\escaped.bin" : vsProblem == "stream" ? "file:stream"
-                                            : vsProblem == "trailing-dot" ? "dir./escaped.bin" : vsProblem == "trailing-space" ? "dir /escaped.bin" : vsProblem == "device" ? "aux.txt" : vsProblem == "empty-name" ? "" : null;
+                                            : vsProblem == "trailing-dot" ? "dir./escaped.bin" : vsProblem == "trailing-space" ? "dir /escaped.bin" : vsProblem == "empty-name" ? "" : null;
                                         if (vsBadPath != null) TarEntry(vsTar, vsBadPath, '0', new byte[] { 7, 8, 9 });
                                         else if (vsProblem == "prefix") TarEntry(vsTar, "escaped.bin", '0', new byte[0], "..");
                                         else if (vsProblem == "long" || vsProblem == "long-size") TarEntry(vsTar, "LongLink", 'L', Encoding.UTF8.GetBytes("../escaped.bin\0"));

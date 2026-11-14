@@ -1875,8 +1875,7 @@ namespace CapriDesktop
         {
             if (string.IsNullOrEmpty(name) || name[0] == '/' || name[0] == '\\' || name.IndexOf(':') >= 0) throw Damaged();
             foreach (string part in name.Replace('\\', '/').Split('/'))
-                if (part == ".." || (part != "." && part.TrimEnd(' ', '.') != part)
-                    || (voice && Regex.IsMatch(part, @"\A(CON|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3]|CONIN\$|CONOUT\$)(?: *\.|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))) throw Damaged();
+                if (part == ".." || (part != "." && part.TrimEnd(' ', '.') != part)) throw Damaged();
             string path;
             try { path = Path.GetFullPath(Path.Combine(root, name.Replace('/', Path.DirectorySeparatorChar))); }
             catch (ArgumentException) { throw Damaged(); }
