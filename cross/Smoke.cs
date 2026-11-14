@@ -2967,6 +2967,7 @@ namespace CapriDesktop
 
         private void KeyChecks(Mainframe frame)
         {
+            KeyMarkChecks();
             bool advancedWas = pet.Saved.AdvancedSettings, introWas = pet.Saved.NoIntro;
             int typingWas = pet.Saved.Typing, bubbleWas = pet.BubbleTime, tierWas = pet.MainframeTier, voiceWas = pet.MainframeVoiceMode;
             if (frame.Mods != null) frame.Mods.Close();
@@ -3065,6 +3066,7 @@ namespace CapriDesktop
             if (!flipped || !opened || !chose || !reopened || !closed)
                 throw new Exception("Enter in her Mainframe went wrong: toggle " + flipped + ", dropdown opened " + opened + ", Down and Enter chose " + chose + ", reopened " + reopened + ", Esc closed only it " + closed);
             checks.Add("PASS Mainframe Enter: it turns a switch on and off, and opens a dropdown; in the open dropdown Up and Down pick, Enter chooses and Esc closes just the dropdown, leaving Settings open");
+            HeldKeyChecks(frame);
 
             var bubble = (NeonSlider)frame.Row("Bubble");
             int toward = bubbleWas + 1 < bubble.Choices.Length ? 1 : -1;
@@ -3089,6 +3091,7 @@ namespace CapriDesktop
             bool modsNext = sheet.HeldSection != "DIRECTORY" && sheet.HeldFirst;
             sheet.Strike(Avalonia.Input.Key.Tab, KeyModifiers.Shift);
             bool modsBack = sheet.HeldSection == "DIRECTORY";
+            KeyRemoveChecks(sheet);
             sheet.Strike(Avalonia.Input.Key.Escape);
             bool modsShut = frame.Mods == null;
             frame.HoldRow(settingsKey);
@@ -3102,6 +3105,168 @@ namespace CapriDesktop
             if (!modsFirst || !modsNext || !modsBack || !modsShut || !left || !shut)
                 throw new Exception("Esc in her Mainframe went wrong: M and Tab in Mods " + modsFirst + ", next " + modsNext + ", back " + modsBack + ", Esc shut Mods " + modsShut + ", Esc left Settings " + left + ", Esc closed her Mainframe " + shut);
             checks.Add("PASS Mainframe Esc: M opens her Mods window, where Tab jumps between its sections and Esc closes it; in Settings Esc goes back to her main page, a text box included, and from her main page it closes the Mainframe");
+        }
+
+        private static NeonChoice KeyChoice(NeonPicker picker)
+        {
+            var popup = (Avalonia.Controls.Primitives.Popup)typeof(NeonPicker).GetField("popup", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(picker);
+            var surface = (Grid)popup.Child;
+            var plate = (NeonPlate)surface.Children[0];
+            var border = (Border)plate.Child;
+            var scroll = (ScrollViewer)border.Child;
+            var rows = (StackPanel)scroll.Content;
+            return (NeonChoice)rows.Children[picker.Selected];
+        }
+
+        private void HeldKeyChecks(Mainframe frame)
+        {
+            var button = new NeonButton { Text = "Key check", Width = 80, Height = 24 };
+            var entry = new NeonEntry("") { Width = 160, Height = 80 };
+            entry.Box.AcceptsReturn = true;
+            Canvas.SetLeft(button, 28); Canvas.SetTop(button, 84);
+            Canvas.SetLeft(entry, 28); Canvas.SetTop(entry, 120);
+            frame.Page.Children.Add(button); frame.Page.Children.Add(entry);
+            frame.UpdateLayout();
+            var toggle = (NeonSwitch)frame.Row("Glitch in at startup");
+            var picker = (NeonPicker)frame.Row("Typing mode");
+            bool introWas = toggle.Checked;
+            int presses = 0, choices = 0;
+            button.Click += (_, _) => presses++;
+            Action<int> chosen = _ => choices++;
+            picker.Changed += chosen;
+            try
+            {
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: toggle);
+                frame.StrikeUp(Avalonia.Input.Key.S);
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: toggle);
+                bool flipped = toggle.Checked != introWas;
+                frame.StrikeUp(Avalonia.Input.Key.Enter);
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: toggle);
+                bool fresh = toggle.Checked == introWas;
+                frame.ReleaseKeys();
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: toggle);
+                bool released = toggle.Checked != introWas;
+                frame.StrikeUp(Avalonia.Input.Key.Enter);
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: toggle);
+                frame.StrikeUp(Avalonia.Input.Key.Enter);
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: button);
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: button);
+                bool pressed = presses == 1;
+                frame.StrikeUp(Avalonia.Input.Key.Enter);
+                if (!flipped || !fresh || !released || !pressed || toggle.Checked != introWas)
+                    throw new Exception("Held Enter went wrong: one flip " + flipped + ", new press " + fresh + ", deactivation release " + released + ", one button press " + pressed);
+                checks.Add("PASS Mainframe held Enter: two key-downs flip a switch once and press a counted button once; key-up and the deactivation reset each allow a new press, and another key's release does not end the hold");
+
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: picker);
+                NeonChoice row = KeyChoice(picker);
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: row);
+                bool opened = picker.MenuOpen && choices == 0;
+                frame.StrikeUp(Avalonia.Input.Key.Enter, control: row);
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: row);
+                bool picked = !picker.MenuOpen && choices == 1;
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: picker);
+                bool stayed = !picker.MenuOpen && choices == 1;
+                frame.StrikeUp(Avalonia.Input.Key.Enter);
+                if (!opened || !picked || !stayed)
+                    throw new Exception("Held Enter in a dropdown went wrong: stayed open " + opened + ", new press chose " + picked + ", stayed closed " + stayed);
+                checks.Add("PASS Mainframe held Enter in a dropdown: opening it does not choose a row while Enter stays down; after key-up a new Enter chooses once and its repeat does not reopen the dropdown");
+
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: entry.Box);
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: entry.Box);
+                frame.StrikeUp(Avalonia.Input.Key.Enter);
+                if ((entry.Box.Text ?? "").Replace("\r", "") != "\n\n") throw new Exception("A several-line text box lost a repeated Enter.");
+                checks.Add("PASS Mainframe text entry: a several-line text box receives both Enter key-downs with no key-up between");
+
+                frame.StrikeDown(Avalonia.Input.Key.Enter, control: picker);
+                row = KeyChoice(picker);
+                frame.StrikeUp(Avalonia.Input.Key.Enter, control: row);
+                frame.StrikeDown(Avalonia.Input.Key.Escape, control: row);
+                frame.StrikeDown(Avalonia.Input.Key.Escape, control: picker);
+                bool dropdown = !picker.MenuOpen && frame.SettingsShown && frame.IsVisible && frame.WindowState != WindowState.Minimized && pet.Frame == frame;
+                frame.StrikeUp(Avalonia.Input.Key.Escape);
+                frame.StrikeDown(Avalonia.Input.Key.Escape, control: frame);
+                frame.StrikeDown(Avalonia.Input.Key.Escape, control: frame);
+                bool back = !frame.SettingsShown && frame.IsVisible && frame.WindowState != WindowState.Minimized && pet.Frame == frame;
+                frame.StrikeUp(Avalonia.Input.Key.Escape);
+                frame.ShowSettings(true);
+                frame.StrikeDown(Avalonia.Input.Key.Escape, control: frame);
+                frame.ReleaseKeys();
+                frame.ShowSettings(true);
+                frame.StrikeDown(Avalonia.Input.Key.Escape, control: frame);
+                bool reset = !frame.SettingsShown && frame.IsVisible && pet.Frame == frame;
+                frame.StrikeUp(Avalonia.Input.Key.Escape);
+                frame.ShowSettings(true);
+                if (!dropdown || !back || !reset) throw new Exception("Held Esc went wrong: dropdown only " + dropdown + ", Settings once " + back + ", deactivation release " + reset);
+                checks.Add("PASS Mainframe held Esc: two key-downs close only an open dropdown and stay in Settings, or leave Settings once and keep the Mainframe open; key-up and the deactivation reset each allow a new press");
+            }
+            finally
+            {
+                picker.CloseMenu(); picker.Changed -= chosen; frame.ReleaseKeys();
+                toggle.Checked = introWas;
+                frame.Page.Children.Remove(button); frame.Page.Children.Remove(entry);
+            }
+        }
+
+        private void KeyRemoveChecks(ModsWindow sheet)
+        {
+            Mods mods = pet.ModList;
+            if (Program.Smoke == null || Path.GetFullPath(mods.Folder) != Path.GetFullPath(Path.Combine(folder, "mods")) || mods.All.Count != 0)
+                throw new Exception("The keyboard mod check needs its own empty smoke folder.");
+            string input = Path.Combine(folder, "key-mod-inputs");
+            Directory.CreateDirectory(input);
+            try
+            {
+                if (!sheet.ImportMod(ModSample(input, "smoke-key-one", "\"wake_names\":[\"Keyone\"]")) || !sheet.ImportMod(ModSample(input, "smoke-key-two", "\"wake_names\":[\"Keytwo\"]")) || mods.All.Count != 2)
+                    throw new Exception("The keyboard mod check could not install its two made-up mods.");
+                string removed = mods.All[0].Path, kept = mods.All[1].Path;
+                NeonButton remove = null;
+                foreach (Control control in sheet.Page.Children)
+                    if (control is NeonButton button && button.Text == "Remove" && Canvas.GetTop(button) == 130) { remove = button; break; }
+                if (remove == null) throw new Exception("The Mods window has no first Remove button.");
+                sheet.StrikeDown(Avalonia.Input.Key.Enter, control: remove);
+                sheet.StrikeDown(Avalonia.Input.Key.Enter, control: remove);
+                if (mods.All.Count != 1 || File.Exists(removed) || !File.Exists(kept) || mods.All[0].Path != kept)
+                    throw new Exception("Held Enter on Remove did not leave the second made-up mod installed.");
+                sheet.StrikeUp(Avalonia.Input.Key.Enter);
+                checks.Add("PASS Mods held Enter: two key-downs on the window's Remove button delete one of its two made-up installed mods and leave the other file and row");
+            }
+            finally
+            {
+                sheet.ReleaseKeys();
+                foreach (Mod mod in mods.All.ToArray())
+                    if (mod.File.Id == "smoke-key-one" || mod.File.Id == "smoke-key-two") mods.Remove(mod);
+                sheet.Sync();
+            }
+        }
+
+        private void KeyMarkChecks()
+        {
+            var toggle = new NeonSwitch { Width = 328, Height = 28 };
+            toggle.Measure(new Size(328, 28)); toggle.Arrange(new Rect(0, 0, 328, 28));
+            Point[] p = toggle.MarkPoints;
+            double half = (toggle.Switch - 4) / 2.0, start = toggle.Bounds.Width - toggle.Switch;
+            var off = new Rect(start + 0.5, 0.5, half - 1, toggle.Bounds.Height - 1);
+            var on = new Rect(start + half + 4.5, 0.5, half - 1, toggle.Bounds.Height - 1);
+            foreach (double scale in new[] { 1.0, 1.25, 1.5, 2.0 })
+            {
+                double right = (on.Right + on.Bottom - 5 + 1 / Math.Sqrt(2)) * scale;
+                double left = (off.Bottom - off.Left - 5 + 1 / Math.Sqrt(2)) * scale;
+                if (p[0].X - 1 != off.Left - 0.5 || p[0].Y - 1 != off.Top - 0.5 || p[3].X + 1 != on.Right + 0.5 || p[4].Y + 1 != on.Bottom + 0.5
+                    || p[3].Y >= p[4].Y || p[5].X <= p[6].X
+                    || Math.Abs((p[3].X + p[3].Y + Math.Sqrt(2)) * scale - right) > 0.00001
+                    || Math.Abs((p[4].X + p[4].Y + Math.Sqrt(2)) * scale - right) > 0.00001
+                    || Math.Abs((p[5].Y - p[5].X + Math.Sqrt(2)) * scale - left) > 0.00001
+                    || Math.Abs((p[6].Y - p[6].X + Math.Sqrt(2)) * scale - left) > 0.00001)
+                    throw new Exception("Her switch's focus mark missed its plates at scale " + scale + ".");
+                Point[] step = MainframeTheme.RingPoints(new Rect(0, 0, 100, 28), tr: 5);
+                double top = (100 - 5 - 1 + 1 / Math.Sqrt(2)) * scale;
+                if (step[0] != new Point(1, 1) || Math.Abs((step[1].X - step[1].Y + Math.Sqrt(2)) * scale - top) > 0.00001
+                    || Math.Abs((step[2].X - step[2].Y + Math.Sqrt(2)) * scale - top) > 0.00001)
+                    throw new Exception("Her focus mark missed a square or top cut corner at scale " + scale + ".");
+            }
+            if (NeonSwitch.FocusLine(true, true) || !NeonSwitch.FocusLine(true, false) || NeonSwitch.FocusLine(false, false))
+                throw new Exception("Her switch's cyan focus line was drawn with the white mark or lost after a click.");
+            checks.Add("PASS Mainframe focus mark: its box is the OFF and ON pair's box, both bottom corners are cut, and its outer diagonals meet the plates at 100%, 125%, 150% and 200%; square and top cut corners match too, and the cyan line is kept only without the white mark");
         }
 
         private void HuskChecks(Mainframe frame)

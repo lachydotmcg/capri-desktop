@@ -8005,6 +8005,12 @@ namespace CapriDesktop
                 AutoCheck = false;
             }
 
+            internal GraphicsPath MarkPath(float s)
+            {
+                float wide = Switch * s;
+                return FocusPath(new RectangleF(Width - wide, 0, wide, Height), s, 0, 5 * s, 5 * s);
+            }
+
             // The width its name has before the pair, in px.
             internal int NameRoom { get { return Width - (int)Math.Ceiling((Switch + 10) * ScaleOf(this)); } }
 
@@ -8105,7 +8111,7 @@ namespace CapriDesktop
                 }
                 TextRenderer.DrawText(graphics, "OFF", small, Rectangle.Round(off), offInk, centre);
                 TextRenderer.DrawText(graphics, "ON", small, Rectangle.Round(on), onInk, centre);
-                if (Marked) FocusMark(graphics, new RectangleF(start - 4 * s, 0, wide + 4 * s, Height), s, 0, 5 * s, 0);
+                if (Marked) using (GraphicsPath mark = MarkPath(s)) FocusMark(graphics, mark, s);
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 int room = NameRoom;
                 TextRenderer.DrawText(graphics, Text, Font, new Rectangle(0, 0, room, Height), Enabled && !Dimmed ? Rose : Faint, flags);

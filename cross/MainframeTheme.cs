@@ -153,7 +153,19 @@ namespace CapriDesktop
         internal static bool Marked(Control control) { return TopLevel.GetTopLevel(control) is MainframeWindow window && window.Marks(control); }
         internal static void Ring(DrawingContext context, Rect around, double tr = 0, double br = 5, double bl = 0)
         {
-            context.DrawGeometry(null, new Pen(White, 2), Cut(new Rect(around.X + 1, around.Y + 1, Math.Max(0, around.Width - 2), Math.Max(0, around.Height - 2)), 0, tr, br, bl));
+            Ring(context, RingPoints(around, tr, br, bl));
+        }
+        internal static Point[] RingPoints(Rect around, double tr = 0, double br = 5, double bl = 0)
+        {
+            var b = new Rect(around.X + 1, around.Y + 1, Math.Max(0, around.Width - 2), Math.Max(0, around.Height - 2));
+            double trim = 1 - Math.Sqrt(0.5);
+            tr = tr > 0 ? tr - trim : 0; br = br > 0 ? br - trim : 0; bl = bl > 0 ? bl - trim : 0;
+            return new[] { b.TopLeft, new Point(b.Right - tr, b.Top), new Point(b.Right, b.Top + tr),
+                new Point(b.Right, b.Bottom - br), new Point(b.Right - br, b.Bottom), new Point(b.Left + bl, b.Bottom), new Point(b.Left, b.Bottom - bl), b.TopLeft };
+        }
+        internal static void Ring(DrawingContext context, Point[] points)
+        {
+            context.DrawGeometry(null, new Pen(White, 2), Mark(points));
         }
         internal static Geometry Mark(params Point[] points)
         {
@@ -350,6 +362,8 @@ namespace CapriDesktop
             PropertyChanged += (_, _) => InvalidateVisual();
         }
         internal void Flip() { OnClick(); }
+        internal Point[] MarkPoints { get { return MainframeTheme.RingPoints(new Rect(Bounds.Width - Switch, 0, Switch, Bounds.Height), bl: 5); } }
+        internal static bool FocusLine(bool focused, bool marked) { return focused && !marked; }
         // Its clicks and its OFF and ON halves go through Program.Guard, like a button's.
         protected override void OnClick() { Program.Guard(() => base.OnClick()); }
         protected override void OnPointerMoved(PointerEventArgs e)
@@ -395,8 +409,9 @@ namespace CapriDesktop
             context.DrawGeometry(onFill, new Pen(onRim, 1), MainframeTheme.Cut(on));
             MainframeTheme.Write(context, "OFF", off, offInk, 35.0 / 3, true, TextAlignment.Center);
             MainframeTheme.Write(context, "ON", on, onInk, 35.0 / 3, true, TextAlignment.Center);
-            if (IsKeyboardFocusWithin) context.DrawGeometry(null, new Pen(MainframeTheme.Cyan, 1), MainframeTheme.Cut(new Rect(start - 2, 0.5, Switch + 1.5, h - 1)));
-            if (MainframeTheme.Marked(this)) MainframeTheme.Ring(context, new Rect(start - 4, 0, Switch + 4, h));
+            bool marked = MainframeTheme.Marked(this);
+            if (FocusLine(IsKeyboardFocusWithin, marked)) context.DrawGeometry(null, new Pen(MainframeTheme.Cyan, 1), MainframeTheme.Cut(new Rect(start - 2, 0.5, Switch + 1.5, h - 1)));
+            if (marked) MainframeTheme.Ring(context, MarkPoints);
             double room = start - 10;
             MainframeTheme.Write(context, Text, new Rect(0, 0, room, h), MainframeTheme.Rose);
             double after = MainframeTheme.Words(Text).Width + 10;
