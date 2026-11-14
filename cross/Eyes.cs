@@ -192,22 +192,24 @@ namespace CapriDesktop
         private static bool askedToRecord;
         private static bool recordingTold;
         internal static Func<bool> ScreenAllowed = CGPreflightScreenCaptureAccess;
+        internal static Func<bool> ScreenRequest = Recordable;
         internal static Func<string[], string, bool> Take = TakeFile;
 
         internal static bool CanRecord()
         {
-            bool allowed = ScreenAllowed();
-            if (allowed) lock (captureGate) recordingTold = false;
-            return allowed;
+            return ScreenAllowed();
         }
 
         internal static string ScreenProblem()
         {
             lock (captureGate)
             {
-                bool again = recordingTold;
-                recordingTold = true;
-                return again ? "I still need Screen Recording to see your screen." : MissingFor(true, null, null);
+                if (!recordingTold)
+                {
+                    recordingTold = true;
+                    ScreenRequest();
+                }
+                return MissingFor(true, null, null);
             }
         }
 
@@ -257,7 +259,7 @@ namespace CapriDesktop
         internal static string MissingFor(bool mac, string session, string desktop)
         {
             // Said as it is when the step failed, so it's written for them, like the Linux line below.
-            if (mac) return "I need Screen Recording to see your screen. Turn Capri on in System Settings > Privacy & Security > Screen Recording, then reopen me.";
+            if (mac) return "I need Screen Recording to see your screen. Turn Capri on in System Settings > Privacy & Security > Screen Recording, then reopen me. If I'm already on that list, remove me with the minus button first.";
             string tool = Kde(desktop) ? "Spectacle for KDE" : string.Equals(session, "wayland", StringComparison.OrdinalIgnoreCase)
                 ? (desktop ?? "").ToLowerInvariant().Contains("gnome") ? "gnome-screenshot for GNOME" : "grim for your desktop" : "scrot or maim";
             return "Couldn't take a screenshot. Install " + tool + ", then ask again.";

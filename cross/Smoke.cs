@@ -5017,7 +5017,7 @@ namespace CapriDesktop
             var trusted = MacFingers.Trusted; var listening = MacFingers.Listening; var screenAllowed = Eyes.ScreenAllowed; var take = Eyes.Take;
             var launch = MacFingers.Launch; var sink = MacFingers.Sink; var pause = MacFingers.Pause;
             var position = MacFingers.Position; var displays = MacFingers.Displays; var foreground = MacFingers.Foreground;
-            var captureRun = MacFingers.CaptureRun;
+            var captureRun = MacFingers.CaptureRun; var screenRequest = Eyes.ScreenRequest;
             var macThrough = HerCursor.MacThrough; var message = Ink.Message;
             var handsReady = Hands.HandsReady; var handsProblem = Hands.HandsProblem;
             var hidden = Chores.Hidden; var signHidden = Chores.SignHidden; var track = Chores.Track;
@@ -5031,21 +5031,24 @@ namespace CapriDesktop
                 Hands.OnMac = true; Hands.HandsReady = MacFingers.JobReady; Hands.HandsProblem = MacFingers.JobProblem;
                 MacFingers.Trusted = () => true; MacFingers.Listening = () => true; Eyes.ScreenAllowed = () => true;
                 MacFingers.Pause = _ => { }; Chores.Hidden = _ => { }; Chores.SignHidden = _ => false; Chores.Track = (x, y) => { };
-                int panes = 0, captures = 0;
+                int panes = 0, captures = 0, requests = 0;
+                Eyes.ScreenRequest = () => { requests++; return false; };
+                typeof(Eyes).GetField("recordingTold", fields).SetValue(null, false);
                 MacFingers.Launch = (file, args) => { if (file != "/usr/bin/open" || args.Length != 1) throw new Exception("Mac permission command"); panes++; };
                 byte[] wallpaper = FakeScreen(SkiaSharp.SKColors.Blue);
                 Eyes.Take = (tool, path) => { captures++; File.WriteAllBytes(path, wallpaper); return true; };
                 MacFingers.JobReady();
                 Eyes.ScreenAllowed = () => false;
+                if (Hands.KitFor().Has("use_computer") || requests != 0) throw new Exception("Mac tool list asked for Screen Recording");
                 for (int attempt = 0; attempt < 2; attempt++)
                 {
                     bool refused = false;
                     try { Eyes.Screenshot(Eyes.Tools(true, null, null), true); }
                     catch (InvalidOperationException error)
                     {
-                        refused = error.Message == (attempt == 0 ? Eyes.MissingFor(true, null, null) : "I still need Screen Recording to see your screen.");
+                        refused = error.Message == Eyes.MissingFor(true, null, null);
                     }
-                    if (!refused || captures != 0) throw new Exception("Mac wallpaper reached the brain or repeated its permission instructions");
+                    if (!refused || captures != 0 || requests != 1) throw new Exception("Mac wallpaper reached the brain, lost its guidance or repeated its permission request");
                 }
                 if (Hands.KitFor().Has("use_computer") || Hands.KitFor().Tools.Contains("\"name\":\"use_computer\"") || !Hands.Unable("use_computer", new ToolArguments()).Contains("Screen Recording")) throw new Exception("Mac advertised a job without Screen Recording");
                 int probes = 0;
@@ -5058,13 +5061,13 @@ namespace CapriDesktop
                 MacFingers.JobReady();
                 MacFingers.Trusted = () => false;
                 string first = Hands.Unable("use_computer", new ToolArguments()), again = Hands.Unable("use_computer", new ToolArguments());
-                if (first != MacFingers.Permission || again == first || panes != 1 || Hands.KitFor().Has("use_computer")) throw new Exception("Mac Accessibility was silent, repeated or advertised as ready");
+                if (first != MacFingers.Permission || again != first || panes != 1 || Hands.KitFor().Has("use_computer")) throw new Exception("Mac Accessibility lost its guidance, reopened Settings or advertised as ready");
                 MacFingers.Trusted = () => true;
                 MacFingers.JobReady();
                 MacFingers.Listening = () => false;
                 typeof(MacFingers).GetField("inputPane", fields).SetValue(null, 0);
                 first = MacFingers.ListenProblem(); again = MacFingers.ListenProblem();
-                if (!first.Contains("System Settings > Privacy & Security > Input Monitoring") || again == first || panes != 2 || !MacFingers.JobReady()) throw new Exception("Mac listener failure repeated its guidance or blocked an untried tap");
+                if (!first.Contains("System Settings > Privacy & Security > Input Monitoring") || again != first || panes != 2 || !MacFingers.JobReady()) throw new Exception("Mac listener failure lost its guidance, reopened Settings or blocked an untried tap");
                 MacFingers.Listening = () => true;
                 if (!MacFingers.JobReady() || !Hands.KitFor().Has("use_computer") || Hands.Unable("use_computer", new ToolArguments()) != null || Hands.KitFor().Has("stream")) throw new Exception("Mac permission recovery or stream gap");
                 Eyes.ScreenAllowed = () => false;
@@ -5072,7 +5075,8 @@ namespace CapriDesktop
                 Eyes.ScreenAllowed = () => true;
                 checks.Add("PASS Mac captures reject missing or revoked Screen Recording before wallpaper can reach the brain");
                 checks.Add("PASS Mac job catalogs require screen and input access, recover when allowed and keep Linux capture unchanged");
-                checks.Add("PASS Mac permission guidance appears once for Accessibility, Screen Recording and a failed input listener");
+                if (requests != 1 || !Eyes.MissingFor(true, null, null).Contains("If I'm already on that list, remove me with the minus button first.")) throw new Exception("Mac Screen Recording repeated its request or lost the stale-entry guidance");
+                checks.Add("PASS Mac permission guidance stays complete on repeat calls, Settings opens once per pane and Screen Recording is requested once");
                 foreach (bool platform in new[] { true, false })
                 {
                     Hands.OnMac = platform;
@@ -5189,21 +5193,22 @@ namespace CapriDesktop
                 catch (InvalidOperationException error) { repeated = error.Message.Contains("already delivered"); }
                 if (!repeated || events.Count != 3 || duplicate.TotalSteps != 1 || turns != 2) throw new Exception("Mac replayed an input against unchanged pixels");
                 events.Clear(); turns = 0;
-                foreach (uint kind in new uint[] { 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 22, 25, 26, 27 })
+                if (MacFingers.Inputs != ((1UL << 1) | (1UL << 3) | (1UL << 5) | (1UL << 10) | (1UL << 25))) throw new Exception("Mac owner input mask changed");
+                foreach (uint kind in new uint[] { 1, 3, 5, 10, 25 })
                     if ((MacFingers.Inputs & (1UL << (int)kind)) == 0 || !MacFingers.Stops(kind, 0) || MacFingers.Stops(kind, Environment.ProcessId)) throw new Exception("Mac missed owner input or stopped on its own event");
-                using (var scrolled = new CancellationTokenSource())
+                using (var moved = new CancellationTokenSource())
                 {
                     runner.Think = (jpeg, system, instruction) =>
                     {
-                        if ((MacFingers.Inputs & (1UL << 22)) != 0 && MacFingers.Stops(22, 0)) scrolled.Cancel();
+                        if ((MacFingers.Inputs & (1UL << 5)) != 0 && MacFingers.Stops(5, 0)) moved.Cancel();
                         return Order(instruction);
                     };
                     bool stopped = false;
-                    try { runner.Run(new ComputerJob { Task = "click the target button" }, scrolled.Token); }
+                    try { runner.Run(new ComputerJob { Task = "click the target button" }, moved.Token); }
                     catch (OperationCanceledException) { stopped = true; }
-                    if (!stopped || events.Count != 0) throw new Exception("Mac clicked an old picture after the owner scrolled without moving the pointer");
+                    if (!stopped || events.Count != 0) throw new Exception("Mac clicked an old picture after the owner moved the pointer");
                 }
-                checks.Add("PASS Mac owner wheel, drag, release and modifier events revoke a pending click; Capri's own input stays allowed");
+                checks.Add("PASS Mac keeps its earlier mouse-down, mouse-move and key-down stop mask and allows Capri's own input");
                 turns = 0;
                 using (var cancelled = new CancellationTokenSource())
                 {
@@ -5270,7 +5275,7 @@ namespace CapriDesktop
                 MacFingers.Trusted = trusted; MacFingers.Listening = listening; Eyes.ScreenAllowed = screenAllowed; Eyes.Take = take;
                 MacFingers.Launch = launch; MacFingers.Sink = sink; MacFingers.Pause = pause;
                 MacFingers.Position = position; MacFingers.Displays = displays; MacFingers.Foreground = foreground;
-                MacFingers.CaptureRun = captureRun;
+                MacFingers.CaptureRun = captureRun; Eyes.ScreenRequest = screenRequest;
                 HerCursor.MacThrough = macThrough; Ink.Message = message;
                 Hands.OnMac = mac; Hands.OwnHands = own; Hands.HandsReady = handsReady; Hands.HandsProblem = handsProblem;
                 Chores.Hidden = hidden; Chores.SignHidden = signHidden; Chores.Track = track;

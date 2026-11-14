@@ -119,7 +119,7 @@ namespace CapriDesktop
             if (Allowed()) return null;
             lock (gate)
             {
-                if (opened) return "I still need Accessibility to use your mouse and keyboard.";
+                if (opened) return Permission;
                 opened = true;
                 try { Launch("/usr/bin/open", new[] { Pane }); }
                 catch (Exception error) { Brain.Log("accessibility", -1, error.Message); }
@@ -649,8 +649,7 @@ namespace CapriDesktop
         [DllImport(Core)] private static extern int CFRunLoopRunInMode(IntPtr mode, double seconds, [MarshalAs(UnmanagedType.I1)] bool returnAfterSourceHandled);
         [DllImport(Core)] private static extern void CFMachPortInvalidate(IntPtr port);
 
-        internal const ulong Inputs = (1UL << 1) | (1UL << 2) | (1UL << 3) | (1UL << 4) | (1UL << 5) | (1UL << 6) | (1UL << 7) |
-            (1UL << 10) | (1UL << 11) | (1UL << 12) | (1UL << 22) | (1UL << 25) | (1UL << 26) | (1UL << 27);
+        internal const ulong Inputs = (1UL << 1) | (1UL << 3) | (1UL << 5) | (1UL << 10) | (1UL << 25);
         internal static bool Stops(uint kind, long source) => kind == 0xFFFFFFFE || kind == 0xFFFFFFFF || source != Environment.ProcessId;
 
         internal static string ListenProblem()
@@ -662,7 +661,7 @@ namespace CapriDesktop
                 try { Launch("/usr/bin/open", new[] { "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent" }); }
                 catch (Exception error) { Brain.Log("escape", -1, error.Message); }
             }
-            return again ? "I still need Input Monitoring to run screen jobs." : "I need Input Monitoring for screen jobs. Turn Capri on in System Settings > Privacy & Security > Input Monitoring, then ask again.";
+            return "I need Input Monitoring for screen jobs. Turn Capri on in System Settings > Privacy & Security > Input Monitoring, then ask again.";
         }
 
         internal sealed class Escape : IDisposable
@@ -783,7 +782,7 @@ namespace CapriDesktop
                 if (Stops(10, Environment.ProcessId) || !Stops(10, 0) || !Stops(0xFFFFFFFE, Environment.ProcessId)) throw new Exception("Mac Esc and owner input stop");
                 Launch = (tool, args) => { if (tool != "/usr/bin/open" || args.Length != 1 || args[0] != Pane) throw new Exception("Mac accessibility pane"); panes++; };
                 Trusted = () => false; opened = false;
-                if (Problem() != Permission || Problem() == Permission || panes != 1) throw new Exception("Mac accessibility line");
+                if (Problem() != Permission || Problem() != Permission || panes != 1) throw new Exception("Mac accessibility line");
                 Trusted = () => true;
                 if (Problem() != null) throw new Exception("Mac permission refresh");
                 foreach (string chord in Shortcuts.Values)
