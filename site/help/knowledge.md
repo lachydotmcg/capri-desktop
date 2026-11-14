@@ -526,6 +526,8 @@ KEYS (bottom of the left column)
 - Type (Ctrl + Alt + T) opens her typing box from anywhere. Press it again to close it.
 - Hide/show (Ctrl + Alt + H) hides her, and shows her again.
 - Quiet (Ctrl + Alt + P), for when you focus or game: she stops what she's saying and stays on screen, but doesn't comment on your screen, pop in or check in until you press it again. She still answers when you talk or type to her. Her bubble says "Going quiet." and "I'm back, choom." Restarting her ends it.
+- Mainframe (Ctrl + Alt + M, in the version after 0.8.9, Windows): opens her Mainframe from anywhere, and closes it again when it's in front. Change it like her other keys.
+- The Mainframe works from the keyboard alone (in the version after 0.8.9): S opens Settings, M opens Mods, H goes back to the main page and A switches Simple and Advanced Settings, and none of them fire while you type in a text box. Tab and Shift + Tab jump to the next or previous section. Up and Down move through the options and on into the next section. Left and Right move a slider, or along a row of buttons. Enter flips a switch, presses a button or opens a dropdown, where Up and Down pick, Enter chooses and Esc closes it. Esc goes back one step: out of Settings or Mods, then it closes the Mainframe. The option with the keyboard has a bright rim. In KEYS, Enter on a key starts picking, Enter confirms the new keys and Esc cancels. On Mac and Linux the same keys work inside the Mainframe; there is no key to open it there, because apps can't take a system-wide shortcut.
 
 The new settings are here. Scroll down the Settings page to reach HABITS and GAMES.
 

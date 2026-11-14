@@ -30,6 +30,16 @@ namespace CapriDesktop
         private PixelRect lastArea;
         private double lastDpi;
         private bool fitting;
+        private Control keyed;
+        private Key pageHeld = Key.None;
+        protected bool Steered;
+        private sealed class Stop
+        {
+            internal Control Control;
+            internal NeonHead Head;
+            internal int Section, Row;
+            internal double Left, Middle;
+        }
         internal double Zoom { get; private set; } = 1;
         internal double PageHeight { get { return Page.Height; } }
         internal bool Gliding { get { return glide.IsEnabled; } }
@@ -68,7 +78,11 @@ namespace CapriDesktop
                 try { Scroll.Offset = from + (to - from) * eased; }
                 finally { if (t >= 1) glide.Stop(); }
             });
-            KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; Program.Guard(Close); } };
+            KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; Program.Guard(Back); } };
+            AddHandler(KeyDownEvent, (_, e) => { if (Steered && !e.Handled) Program.Guard(() => Steer(e)); }, RoutingStrategies.Tunnel);
+            AddHandler(PointerPressedEvent, (_, _) => Program.Guard(Unmark), RoutingStrategies.Tunnel);
+            AddHandler(KeyUpEvent, (_, _) => { pageHeld = Key.None; }, RoutingStrategies.Tunnel);
+            Deactivated += (_, _) => { pageHeld = Key.None; };
             Page.PointerPressed += (_, e) => Program.Guard(() => { if (e.GetPosition(Page).Y < 50 && e.GetCurrentPoint(Page).Properties.IsLeftButtonPressed && (e.Source == Page || e.Source is NeonCaption)) BeginMoveDrag(e); });
             AddHandler(GotFocusEvent, (_, e) => { if (e.Source is Control control) control.BringIntoView(); });
             SizeChanged += (_, _) => { surface.Clip = MainframeTheme.Cut(new Rect(Bounds.Size), 16 * Zoom, 6 * Zoom, 16 * Zoom, 6 * Zoom); rim.InvalidateVisual(); };
@@ -77,6 +91,152 @@ namespace CapriDesktop
             PositionChanged += (_, _) => Program.Guard(ScreenChanged);
             ScalingChanged += (_, _) => Program.Guard(ScreenChanged);
         }
+
+        protected virtual void Back() { Close(); }
+        protected virtual bool PageKey(Key key) { return false; }
+        private static bool Steerable(Control control) { return control is NeonButton || control is NeonSwitch || control is NeonSlider || control is NeonEntry; }
+        private List<Stop> Stops()
+        {
+            var heads = new List<NeonHead>();
+            var stops = new List<Stop>();
+            foreach (Canvas canvas in new[] { header, Page })
+                foreach (Control control in canvas.Children)
+                {
+                    if (!control.IsVisible || double.IsNaN(Canvas.GetLeft(control)) || double.IsNaN(Canvas.GetTop(control)) || double.IsNaN(control.Height)) continue;
+                    if (control is NeonHead head) { heads.Add(head); continue; }
+                    if (control.IsEnabled && Steerable(control)) stops.Add(new Stop { Control = control, Section = -1, Left = Canvas.GetLeft(control), Middle = Canvas.GetTop(control) + control.Height / 2 });
+                }
+            heads.Sort((one, other) => Column(one) != Column(other) ? Column(one).CompareTo(Column(other)) : Canvas.GetTop(one).CompareTo(Canvas.GetTop(other)));
+            foreach (Stop stop in stops)
+                for (int i = 0; i < heads.Count; i++)
+                    if (Column(heads[i]) == Column(stop.Control) && Canvas.GetTop(heads[i]) <= stop.Middle) { stop.Section = i; stop.Head = heads[i]; }
+            stops.Sort((one, other) => one.Section != other.Section ? one.Section.CompareTo(other.Section) : one.Middle != other.Middle ? one.Middle.CompareTo(other.Middle) : one.Left.CompareTo(other.Left));
+            int row = 0;
+            double anchor = 0;
+            for (int i = 0; i < stops.Count; i++)
+            {
+                if (i == 0 || stops[i].Section != stops[i - 1].Section || stops[i].Middle - anchor > 10) { row++; anchor = stops[i].Middle; }
+                stops[i].Row = row;
+            }
+            stops.Sort((one, other) => one.Row != other.Row ? one.Row.CompareTo(other.Row) : one.Left.CompareTo(other.Left));
+            return stops;
+        }
+        private static int Column(Control control) { return (int)(Canvas.GetLeft(control) / 380); }
+        private Control Held()
+        {
+            for (StyledElement at = FocusManager?.GetFocusedElement() as StyledElement; at != null; at = at.Parent)
+                if (at.Parent == Page || at.Parent == header) return at as Control;
+            return null;
+        }
+        private static int At(List<Stop> stops, Control control)
+        {
+            for (int i = 0; i < stops.Count; i++) if (stops[i].Control == control) return i;
+            return -1;
+        }
+        internal bool Marks(Control control) { return keyed == control && control.IsKeyboardFocusWithin; }
+        private void Unmark()
+        {
+            Control was = keyed;
+            keyed = null;
+            if (was != null) was.InvalidateVisual();
+        }
+        protected void Hold(Control control)
+        {
+            Unmark();
+            keyed = control;
+            Control target = control is NeonEntry entry ? entry.Box : control;
+            target.Focus();
+            control.InvalidateVisual();
+        }
+        protected void Land()
+        {
+            List<Stop> stops = Stops();
+            foreach (Stop stop in stops) if (stop.Section >= 0) { Hold(stop.Control); return; }
+            if (stops.Count > 0) Hold(stops[0].Control);
+        }
+        private void Step(int by)
+        {
+            List<Stop> stops = Stops();
+            if (stops.Count == 0) return;
+            int at = At(stops, Held());
+            if (at < 0 && by > 0) { Land(); return; }
+            Hold(stops[(at < 0 ? stops.Count - 1 : at + by + stops.Count) % stops.Count].Control);
+        }
+        private void Jump(int by)
+        {
+            List<Stop> stops = Stops();
+            var firsts = new List<int>();
+            for (int i = 0; i < stops.Count; i++)
+                if (stops[i].Section >= 0 && (i == 0 || stops[i].Section != stops[i - 1].Section)) firsts.Add(i);
+            if (firsts.Count == 0) { Step(by); return; }
+            int at = At(stops, Held()), now = -1;
+            if (at >= 0 && stops[at].Section >= 0)
+                for (int i = 0; i < firsts.Count; i++) if (stops[firsts[i]].Section == stops[at].Section) now = i;
+            int next = now < 0 ? (by > 0 ? 0 : firsts.Count - 1) : (now + by + firsts.Count) % firsts.Count;
+            Hold(stops[firsts[next]].Control);
+        }
+        private void Along(int by)
+        {
+            List<Stop> stops = Stops();
+            int at = At(stops, Held()), next = at + by;
+            if (at < 0 || next < 0 || next >= stops.Count || stops[next].Row != stops[at].Row) return;
+            Hold(stops[next].Control);
+        }
+        private void Steer(KeyEventArgs e)
+        {
+            if (e.Source is NeonChoice) return;
+            Key key = e.Key;
+            KeyModifiers mods = e.KeyModifiers;
+            TextBox box = FocusManager?.GetFocusedElement() as TextBox;
+            if (box != null && TopLevel.GetTopLevel(box) != this) box = null;
+            bool lines = box != null && box.AcceptsReturn;
+            if (key == Key.Tab && (mods == KeyModifiers.None || mods == KeyModifiers.Shift) && !(lines && box.AcceptsTab))
+            {
+                Jump(mods == KeyModifiers.Shift ? -1 : 1);
+                e.Handled = true;
+                return;
+            }
+            if (mods != KeyModifiers.None || lines) return;
+            if (key == Key.Up || key == Key.Down) { Step(key == Key.Up ? -1 : 1); e.Handled = true; return; }
+            if (key == Key.Left || key == Key.Right)
+            {
+                if (box != null || Held() is NeonSlider) return;
+                Along(key == Key.Left ? -1 : 1);
+                e.Handled = true;
+                return;
+            }
+            if (box != null) return;
+            if (key == pageHeld) { e.Handled = true; return; }
+            if (PageKey(key)) { pageHeld = key; e.Handled = true; }
+        }
+        internal void Strike(Key key, KeyModifiers mods = KeyModifiers.None)
+        {
+            Interactive target = this;
+            if (FocusManager?.GetFocusedElement() is Control focused && (focused is NeonChoice || TopLevel.GetTopLevel(focused) == this)) target = focused;
+            target.RaiseEvent(new KeyEventArgs { RoutedEvent = KeyDownEvent, Key = key, KeyModifiers = mods });
+            RaiseEvent(new KeyEventArgs { RoutedEvent = KeyUpEvent, Key = key, KeyModifiers = mods });
+        }
+        internal Control HeldNow { get { return Held(); } }
+        internal bool HeldMarked { get { Control held = Held(); return held != null && Marks(held); } }
+        internal string HeldSection
+        {
+            get
+            {
+                List<Stop> stops = Stops();
+                int at = At(stops, Held());
+                return at < 0 ? "nothing" : stops[at].Head == null ? "title" : stops[at].Head.Text;
+            }
+        }
+        internal bool HeldFirst
+        {
+            get
+            {
+                List<Stop> stops = Stops();
+                int at = At(stops, Held());
+                return at >= 0 && (at == 0 || stops[at - 1].Section != stops[at].Section);
+            }
+        }
+        internal void HoldRow(Control control) { Hold(control); }
 
         // Keep the same native header controls reachable while the long Linux settings page scrolls.
         protected void PinHeader(Control control)
@@ -216,6 +376,7 @@ namespace CapriDesktop
         internal Mainframe(Pet owner) : base("Mainframe")
         {
             pet = owner;
+            Steered = true;
             Caption("MAINFRAME", 24, 15, 120, 29, MainframeTheme.Rose, 64.0 / 3, true, true);
             build = Caption("v" + typeof(Pet).Assembly.GetName().Version.ToString(), 230, 20, 62, 22, MainframeTheme.Faint, 34.0 / 3); build.Align = TextAlignment.Right;
             // Kelv's Hyprland changes: a minimized Mainframe has no taskbar there to come back from, so it gets only Close,
@@ -592,6 +753,20 @@ namespace CapriDesktop
         internal bool SettingsShown { get { return paged; } }
         internal void Shut() { finishing = true; Close(); }
         internal void ShowSettings(bool on) { paged = on; layout = null; CloseMenus(); Top(); Sync(); }
+        protected override void Back()
+        {
+            if (!paged) { Close(); return; }
+            ShowSettings(false);
+            Hold(more);
+        }
+        protected override bool PageKey(Avalonia.Input.Key key)
+        {
+            if (key == Avalonia.Input.Key.S) { if (!paged) { ShowSettings(true); Land(); } return true; }
+            if (key == Avalonia.Input.Key.M) { OpenMods(); return true; }
+            if (key == Avalonia.Input.Key.H) { if (paged) ShowSettings(false); Land(); return true; }
+            if (key == Avalonia.Input.Key.A && paged) { advanced.Press(); Land(); return true; }
+            return false;
+        }
         internal void OpenPage(string name)
         {
             name = (name ?? "main").Trim().ToLowerInvariant();

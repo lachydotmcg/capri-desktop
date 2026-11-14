@@ -46,7 +46,7 @@ namespace CapriDesktop
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 2020;
+        private const int PageTall = 2048;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -135,6 +135,7 @@ namespace CapriDesktop
         private readonly Key quietKeys;
         private readonly Key pushKeys;
         private readonly Key gameKeys;
+        private readonly Key frameKeys;
         private readonly Toggle gamingMode;
         private readonly Key confirmKeys;
         private readonly Key cancelKeys;
@@ -247,6 +248,8 @@ namespace CapriDesktop
         private bool hideReady = true;
         private bool quietReady = true;
         private bool gameReady = true;
+        private string frameName = "Ctrl + Alt + M";
+        private bool frameReady = true;
         private readonly Label muteShortcut;
         private readonly Key mics;
         private readonly Key micTest;
@@ -292,7 +295,7 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1205 }, new[] { 1344, 1396 }, new[] { 1396, 1424 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 728, 1233 }, new[] { 1372, 1424 }, new[] { 1424, 1452 } };
         // Power saver's and Music app's rows stay in Simple Settings, so the right column's last band starts two rows lower, at Perch.
         // SOUNDS, under HABITS, stays in Simple Settings too, so that band ends above it.
         private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 876, 1370 }, new[] { 1622, 1810 } };
@@ -814,6 +817,8 @@ namespace CapriDesktop
             pushKeys.AccessibleName = "Her push-to-talk key: hold it to talk to her, with a game in front too. Click, press a key or a mouse button, then Confirm";
             gameKeys = Make("Gaming Mode: Ctrl + Alt + G", 28, 843, 328, 22, delegate { PickKeys(5); });
             gameKeys.AccessibleName = "Her Gaming Mode key: she reacts to your game until you close it. Click, press new keys, then Confirm";
+            frameKeys = Make("Mainframe: Ctrl + Alt + M", 28, 871, 328, 22, delegate { PickKeys(Companion.FrameSlot); });
+            frameKeys.AccessibleName = "Her Mainframe key: it opens her Mainframe from anywhere, and closes it when it's in front. Click, press new keys, then Confirm";
             // Only a click ends picking a key, so Enter, Esc and Tab can be her keys too. Confirm and Cancel show in KEYS' band
             // while one is being picked.
             confirmKeys = Make("Confirm", 212, 645, 78, 20, delegate { ConfirmKeys(); });
@@ -825,7 +830,7 @@ namespace CapriDesktop
             clearKeys = Make("Off", 160, 645, 46, 20, delegate { ClearPush(); });
             clearKeys.AccessibleName = "Turn her push-to-talk key off";
             confirmKeys.Visible = cancelKeys.Visible = clearKeys.Visible = false;
-            keysNote = Caption("", 28, 872, small, Faint);
+            keysNote = Caption("", 28, 900, small, Faint);
             keysNote.MaximumSize = new Size(328, 0);
             for (int i = afterVoice; i < Controls.Count; i++)
             {
@@ -1092,10 +1097,9 @@ namespace CapriDesktop
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 11;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
                 if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
-            // The hearing row and Her voice in your mic's rows push GAMES down under KEYS too.
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++)
             {
-                Controls[gameRow].Top += Row + MixRows;
+                Controls[gameRow].Top += Row * 2 + MixRows;
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
             }
             for (int i = first; i < Controls.Count; i++)
@@ -4481,6 +4485,13 @@ namespace CapriDesktop
             KeyLabels();
         }
 
+        internal void FrameKey(string name, bool ready)
+        {
+            frameName = name;
+            frameReady = ready;
+            KeyLabels();
+        }
+
         internal void PushKey(string name)
         {
             pushName = name;
@@ -4542,6 +4553,7 @@ namespace CapriDesktop
             pendingMods = -1;
             KeyLabels();
             if (slot == Companion.PushSlot) { KeysNote("Saved. Hold " + pushName + " to talk to her, with a game in front too.", false); return; }
+            if (slot == Companion.FrameSlot) { KeysNote("Saved. " + frameName + " opens her Mainframe." + (Companion.Swallows(mods, vk) ? " It won't type in other apps while she runs." : Companion.ByMouse(vk) ? " It still does its own job in other apps too." : ""), false); return; }
             KeysNote("Saved. " + (slot == 0 ? talkName + " starts voice chat." : slot == 1 ? muteName + " mutes your mic." : slot == 2 ? typeName + " opens her typing box." : slot == 3 ? hideName + " hides or shows her." : slot == 5 ? gameName + " turns Gaming Mode on and off." : quietName + " keeps her quiet, and lets her talk again.") + (Companion.Swallows(mods, vk) ? " It won't type in other apps while she runs." : Companion.ByMouse(vk) ? " It still does its own job in other apps too." : ""), false);
         }
 
@@ -4570,7 +4582,7 @@ namespace CapriDesktop
         // Off shows only while the push-to-talk key is being picked.
         internal bool OffShown { get { return capturing == Companion.PushSlot + 1; } }
 
-        private Control PickedKey { get { return capturing == 1 ? talkKeys : capturing == 2 ? muteKeys : capturing == 3 ? typeKeys : capturing == 4 ? hideKeys : capturing == 5 ? quietKeys : capturing == 6 ? gameKeys : capturing == 7 ? pushKeys : null; } }
+        private Control PickedKey { get { return capturing == 1 ? talkKeys : capturing == 2 ? muteKeys : capturing == 3 ? typeKeys : capturing == 4 ? hideKeys : capturing == 5 ? quietKeys : capturing == 6 ? gameKeys : capturing == 7 ? pushKeys : capturing == 8 ? frameKeys : null; } }
 
         private static bool WinHeld() { return (Native.GetKeyState(0x5B) & 0x8000) != 0 || (Native.GetKeyState(0x5C) & 0x8000) != 0; }
 
@@ -4586,8 +4598,10 @@ namespace CapriDesktop
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
+            bool repeated = (msg.LParam.ToInt64() & 0x40000000) != 0, hinted = HintUp;
             if ((keyData & Keys.KeyCode) == Keys.Escape) DismissHint();
-            if (capturing == 0) return base.ProcessCmdKey(ref msg, keyData);
+            if (capturing == 0) return (hinted && keyData == Keys.Escape) || Steer(keyData, repeated) || base.ProcessCmdKey(ref msg, keyData);
+            if (EndsPicking(keyData, repeated)) return true;
             TakeKeys(keyData, WinHeld());
             return true;
         }
@@ -4598,6 +4612,7 @@ namespace CapriDesktop
         public bool PreFilterMessage(ref Message m)
         {
             FilterHints(ref m);
+            if (HeldEnter(m)) return true;
             // An open menu takes the wheel before the page does (Ashy, 6 Nov).
             if (MenuLook.Wheel(m)) return true;
             // A wheel turn over Mainframe belongs to it, including at either end of the page (Lachy, 2 Nov).
@@ -4634,6 +4649,7 @@ namespace CapriDesktop
             quietKeys.Text = capturing == 5 ? PickingText("Quiet: ") : "Quiet: " + quietName + (quietReady ? "" : " (taken)");
             gameKeys.Text = capturing == 6 ? PickingText("Gaming Mode: ") : "Gaming Mode: " + gameName + (gameReady ? "" : " (taken)");
             pushKeys.Text = capturing == 7 ? PickingText("Push to talk: ") : "Push to talk: " + pushName;
+            frameKeys.Text = capturing == 8 ? PickingText("Mainframe: ") : "Mainframe: " + frameName + (frameReady ? "" : " (taken)");
             confirmKeys.Visible = cancelKeys.Visible = capturing != 0;
             clearKeys.Visible = OffShown;
             confirmKeys.Enabled = pendingMods >= 0;
@@ -4655,6 +4671,7 @@ namespace CapriDesktop
         internal string PushKeyShown { get { return pushKeys.Text; } }
         internal string CommentsShown { get { return commentsName.Text; } }
         internal string GameKeyShown { get { return gameKeys.Text; } }
+        internal string FrameKeyShown { get { return frameKeys.Text; } }
         internal bool GamingShown { get { return gamingMode.Checked; } }
 
         internal void ShowMic(string name)
@@ -5163,6 +5180,8 @@ namespace CapriDesktop
 
             internal void Pick(bool on) { Picked = on; AccessibilityNotifyClients(AccessibleEvents.StateChange, -1); Invalidate(); }
 
+            internal bool Marked { get { return Focused && ShowFocusCues; } }
+
             protected override AccessibleObject CreateAccessibilityInstance() { return new KeyAccess(this); }
 
             private sealed class KeyAccess : ControlAccessibleObject
@@ -5206,6 +5225,7 @@ namespace CapriDesktop
                             graphics.DrawLine(pen, x - 4.5f * s, y + 4.5f * s, x + 4.5f * s, y - 4.5f * s);
                         }
                     }
+                    if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 4 * s, 0);
                     return;
                 }
                 bool lit = hot || (Focused && ShowFocusCues);
@@ -5243,6 +5263,7 @@ namespace CapriDesktop
                 }
                 TextRenderer.DrawText(graphics, Text, Font, area, ink, flags);
                 if (Meter >= 0) using (Brush meter = new SolidBrush(Cyan)) graphics.FillRectangle(meter, 3 * s, Height - 4 * s, (float)((Width - 6 * s) * Math.Max(0, Math.Min(1, Meter))), 2 * s);
+                if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
             }
 
             private static Color Toward(Color from, Color to, float amount)
@@ -5328,6 +5349,12 @@ namespace CapriDesktop
 
             internal bool Chevron { get { return chevron; } set { chevron = value; PerformLayout(); Invalidate(); } }
 
+            internal bool Marked { get { return Box.Focused && ShowFocusCues; } }
+
+            internal bool Opens { get { return chevron && Drop != null; } }
+
+            internal void Open() { if (Drop != null) Drop(this, EventArgs.Empty); }
+
             private float Unit() { return ScaleOf(this); }
 
             private bool OnChevron(int x) { return Chevron && x >= Width - 28 * Unit(); }
@@ -5376,6 +5403,7 @@ namespace CapriDesktop
                     using (Brush fill = new SolidBrush(Well)) graphics.FillPath(fill, plate);
                     using (Pen pen = new Pen(Box.Focused ? Cyan : WellEdge, line)) graphics.DrawPath(pen, plate);
                 }
+                if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
                 if (Chevron) Mainframe.Drop(graphics, Width - 19 * s, Height / 2f, s, Cyan, hot);
             }
         }
@@ -7709,6 +7737,8 @@ namespace CapriDesktop
 
             internal bool Stepper { get { return labels.Length <= 7; } }
 
+            internal bool Marked { get { return Focused && ShowFocusCues; } }
+
             internal string[] Choices { get { return labels; } }
 
             private void Place(int wanted)
@@ -7839,6 +7869,7 @@ namespace CapriDesktop
                     using (Brush on = new SolidBrush(live ? Lit : Dash))
                         for (int i = 0; i < labels.Length; i++) graphics.FillRectangle(i == value ? on : off, left + i * (dash + gap), Height - 5.5f * s, dash, Math.Max(1, 1.5f * s));
                     if (Torn) Tear(graphics, s, flags, reach);
+                    if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 5 * s, 5 * s, 0);
                     return;
                 }
                 float travel = Width - 2 * s - Grip;
@@ -7866,6 +7897,7 @@ namespace CapriDesktop
                 graphics.SetClip(handle);
                 TextRenderer.DrawText(graphics, Shown, Font, area, Neon.Tone(40, 6, 12), flags);
                 graphics.ResetClip();
+                if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
             }
 
             protected override void OnEnabledChanged(EventArgs e) { base.OnEnabledChanged(e); Invalidate(); }
@@ -7891,6 +7923,9 @@ namespace CapriDesktop
             internal Font HintFont;
             internal string Flag;
             internal Font FlagFont;
+            internal bool Arriving;
+
+            internal bool Marked { get { return Focused && ShowFocusCues; } }
 
             internal bool Fits
             {
@@ -7913,7 +7948,7 @@ namespace CapriDesktop
             protected override void OnMouseLeave(EventArgs e) { hot = false; Invalidate(); base.OnMouseLeave(e); }
 
             // A radio button clicks itself when focus arrives by arrow key or from code. The VOICE pair picks on a real click or Space only.
-            protected override void OnEnter(EventArgs e) { if (AutoCheck) base.OnEnter(e); }
+            protected override void OnEnter(EventArgs e) { if (AutoCheck && !Arriving) base.OnEnter(e); }
 
             protected override void OnPaint(PaintEventArgs e)
             {
@@ -7931,6 +7966,7 @@ namespace CapriDesktop
                         using (Pen pen = new Pen(Color.FromArgb(190, Cyan), line)) graphics.DrawPath(pen, plate);
                     }
                 }
+                if (Marked) FocusMark(graphics, new RectangleF(0, 0, Width, Height), s, 0, 5 * s, 0);
                 float x = 12 * s, y = Height / 2f, size = 4.5f * s;
                 PointF[] diamond = { new PointF(x, y - size), new PointF(x + size, y), new PointF(x, y + size), new PointF(x - size, y) };
                 if (Checked) using (Brush mark = new SolidBrush(Cyan)) graphics.FillPolygon(mark, diamond);
@@ -7958,6 +7994,8 @@ namespace CapriDesktop
             internal Font HintFont;
             // The OFF and ON pair's width, in design px.
             internal int Switch = 172;
+
+            internal bool Marked { get { return Focused && ShowFocusCues; } }
 
             internal Toggle()
             {
@@ -8067,10 +8105,7 @@ namespace CapriDesktop
                 }
                 TextRenderer.DrawText(graphics, "OFF", small, Rectangle.Round(off), offInk, centre);
                 TextRenderer.DrawText(graphics, "ON", small, Rectangle.Round(on), onInk, centre);
-                if (Focused && ShowFocusCues)
-                    using (GraphicsPath around = Cut(new RectangleF(start - 2 * s, line / 2, wide + 2 * s - line / 2, Height - line), 0, 0, 5 * s, 0))
-                    using (Pen pen = new Pen(Cyan, line))
-                        graphics.DrawPath(pen, around);
+                if (Marked) FocusMark(graphics, new RectangleF(start - 4 * s, 0, wide + 4 * s, Height), s, 0, 5 * s, 0);
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 int room = NameRoom;
                 TextRenderer.DrawText(graphics, Text, Font, new Rectangle(0, 0, room, Height), Enabled && !Dimmed ? Rose : Faint, flags);

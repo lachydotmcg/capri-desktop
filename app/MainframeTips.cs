@@ -163,6 +163,7 @@ namespace CapriDesktop
             string[] names = { "Talk key", "Mute mic key", "Type key", "Hide / Show key", "Push to talk key", "Gaming Mode key", "Confirm keys", "Cancel keys", "Turn push to talk off" };
             for (int i = 0; i < bindings.Length; i++) Explain(bindings[i], i == 4 ? "Push to talk: not set" : "KEYS >", "Mainframe.cs", null, names[i]);
             Explain(quietKeys, "Quiet: Ctrl + Alt + P", "Mainframe.cs", null, "Quiet key");
+            Explain(frameKeys, "Mainframe: Ctrl + Alt + M", "Mainframe.cs", null, "Mainframe key");
             Explain(custom, "Custom model name", "Mainframe.cs", null, "Custom model name");
             Explain(localAddress, "Local server address", "Mainframe.cs", FindHintLabel("Local server address"), "Local server address");
             Explain(security, "SECURITY >", "Mainframe.cs", null, "Security");
@@ -250,6 +251,8 @@ namespace CapriDesktop
             DescribeHint(hint);
             hintCard.Show(this);
         }
+
+        private bool HintUp { get { return hintCard != null && !hintCard.IsDisposed && hintCard.Visible; } }
 
         private void DismissHint()
         {
