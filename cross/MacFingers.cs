@@ -13,7 +13,7 @@ namespace CapriDesktop
 {
     internal static class MacFingers
     {
-        internal const string Permission = "Turn Capri on in System Settings > Privacy & Security > Accessibility, then ask again.";
+        internal const string Permission = "I need Accessibility to use your mouse and keyboard. Turn Capri on in System Settings > Privacy & Security > Accessibility, then ask again.";
         internal const string Pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
         private const string Graphics = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
         private const string Access = "/System/Library/Frameworks/ApplicationServices.framework/ApplicationServices";
@@ -21,12 +21,14 @@ namespace CapriDesktop
         private static readonly object gate = new object();
         private static bool opened;
         internal static Func<bool> Trusted = AXIsProcessTrusted;
+        internal static Func<bool> Listening = CGPreflightListenEventAccess;
         internal static Action<string, string[]> Launch = Limbs.Launch;
         internal static Action<Event> Sink = Post;
         internal static Action<int> Pause = Thread.Sleep;
         internal static Func<Point> Position = Cursor;
         internal static Func<Display[]> Displays = Screens;
         internal static Func<int> Foreground = Focused;
+        internal static Action<ProcessStartInfo, CancellationToken> CaptureRun = (start, token) => { ComputerProcess.Bytes(start.FileName, start.ArgumentList.ToArray(), token, 5000, 4096); };
         private static int inputPane;
         private static long automationUntil;
         internal static Func<long> Now = () => Environment.TickCount64;
@@ -70,7 +72,6 @@ namespace CapriDesktop
         [DllImport(Graphics)] private static extern void CGDisplayModeRelease(IntPtr mode);
         [DllImport(Graphics)] private static extern IntPtr CGWindowListCopyWindowInfo(uint options, uint relative);
         [DllImport(Graphics)] private static extern IntPtr CGSessionCopyCurrentDictionary();
-        [DllImport(Graphics)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGPreflightScreenCaptureAccess();
         [DllImport(Graphics)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGPreflightListenEventAccess();
         [DllImport(Core)] private static extern void CFRelease(IntPtr value);
         [DllImport(Core)] private static extern nint CFArrayGetCount(IntPtr array);
@@ -92,8 +93,18 @@ namespace CapriDesktop
             get
             {
                 if (!OperatingSystem.IsMacOS()) return false;
-                return Allowed();
+                return JobReady();
             }
+        }
+
+        internal static bool JobReady()
+        {
+            return Allowed() && Eyes.CanRecord();
+        }
+
+        internal static string JobProblem()
+        {
+            return Problem() ?? (!Eyes.CanRecord() ? Eyes.ScreenProblem() : null);
         }
 
         private static bool Allowed()
@@ -108,12 +119,10 @@ namespace CapriDesktop
             if (Allowed()) return null;
             lock (gate)
             {
-                if (!opened)
-                {
-                    opened = true;
-                    try { Launch("/usr/bin/open", new[] { Pane }); }
-                    catch (Exception error) { Brain.Log("accessibility", -1, error.Message); }
-                }
+                if (opened) return Permission;
+                opened = true;
+                try { Launch("/usr/bin/open", new[] { Pane }); }
+                catch (Exception error) { Brain.Log("accessibility", -1, error.Message); }
             }
             return Permission;
         }
@@ -474,14 +483,16 @@ namespace CapriDesktop
 
         private static byte[] Capture(Display display, CancellationToken token)
         {
-            if (!CGPreflightScreenCaptureAccess()) throw new InvalidOperationException(Eyes.MissingFor(true, null, null));
+            if (!Eyes.CanRecord()) throw new InvalidOperationException(Eyes.ScreenProblem());
             string path = Path.Combine(Path.GetTempPath(), "capri-hands-" + Guid.NewGuid().ToString("N") + ".png");
             try
             {
                 ProcessStartInfo start = CaptureCommand(display, path);
-                ComputerProcess.Bytes(start.FileName, start.ArgumentList.ToArray(), token, 5000, 4096);
+                CaptureRun(start, token);
                 if (!File.Exists(path)) throw new InvalidOperationException(Eyes.MissingFor(true, null, null));
-                return File.ReadAllBytes(path);
+                byte[] picture = File.ReadAllBytes(path);
+                if (!Eyes.CanRecord()) throw new InvalidOperationException(Eyes.ScreenProblem());
+                return picture;
             }
             finally { if (File.Exists(path)) File.Delete(path); }
         }
@@ -638,17 +649,19 @@ namespace CapriDesktop
         [DllImport(Core)] private static extern int CFRunLoopRunInMode(IntPtr mode, double seconds, [MarshalAs(UnmanagedType.I1)] bool returnAfterSourceHandled);
         [DllImport(Core)] private static extern void CFMachPortInvalidate(IntPtr port);
 
+        internal const ulong Inputs = (1UL << 1) | (1UL << 3) | (1UL << 5) | (1UL << 10) | (1UL << 25);
         internal static bool Stops(uint kind, long source) => kind == 0xFFFFFFFE || kind == 0xFFFFFFFF || source != Environment.ProcessId;
 
-        private static string ListenProblem()
+        internal static string ListenProblem()
         {
-            if (CGPreflightListenEventAccess()) return "Couldn't listen for Esc, so no screen job started.";
-            if (Interlocked.Exchange(ref inputPane, 1) == 0)
+            if (Listening()) return "Couldn't listen for Esc, so no screen job started.";
+            bool again = Interlocked.Exchange(ref inputPane, 1) != 0;
+            if (!again)
             {
                 try { Launch("/usr/bin/open", new[] { "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent" }); }
                 catch (Exception error) { Brain.Log("escape", -1, error.Message); }
             }
-            return "Allow Capri under System Settings > Privacy & Security > Input Monitoring, then ask again.";
+            return "I need Input Monitoring for screen jobs. Turn Capri on in System Settings > Privacy & Security > Input Monitoring, then ask again.";
         }
 
         internal sealed class Escape : IDisposable
@@ -685,7 +698,7 @@ namespace CapriDesktop
                 };
                 try
                 {
-                    tap = CGEventTapCreate(1, 0, 1, (1UL << 1) | (1UL << 3) | (1UL << 5) | (1UL << 10) | (1UL << 25), callback, IntPtr.Zero);
+                    tap = CGEventTapCreate(1, 0, 1, Inputs, callback, IntPtr.Zero);
                     if (tap == IntPtr.Zero) return;
                     source = CFMachPortCreateRunLoopSource(IntPtr.Zero, tap, 0);
                     if (source == IntPtr.Zero) return;
@@ -792,7 +805,7 @@ namespace CapriDesktop
                 try { Drag(0, 0, 100, 100, guard: (x, y) => { if (++called == 3) throw new OperationCanceledException(); }); } catch (OperationCanceledException) { }
                 if (events[^1].Kind != 2 || events.Count(e => e.Kind == 1) != 1) throw new Exception("Mac cancelled drag release");
                 Hands.OnMac = true; Hands.HandsReady = () => Trusted(); Hands.HandsProblem = Problem; Hands.MacClipboard = true;
-                Trusted = () => false; opened = true;
+                Trusted = () => false; opened = false;
                 if (!Hands.KitFor().Missing.ContainsKey("use_computer") || Hands.Unable("use_computer", new ToolArguments()) != Permission) throw new Exception("Mac Accessibility gap");
                 Trusted = () => true;
                 Hands.Kit mac = Hands.KitFor();

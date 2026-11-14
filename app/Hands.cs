@@ -2283,7 +2283,8 @@ namespace CapriDesktop
         // Why something can't work here, in her prompts' words, and what she says when she's asked for a mouse and keyboard job anyway.
         private const string OnlyWindows = "only on Windows for now", LinuxHands = "needs uinput on Linux", NoSight = "this brain can't see pictures";
 #if CROSS
-        private const string MacHands = "needs Accessibility on Mac", MacHandsLine = "Turn Capri on in System Settings > Privacy & Security > Accessibility, then ask again.";
+        private const string MacHands = "needs Accessibility and Screen Recording on Mac", MacHandsLine = MacFingers.Permission;
+        internal const string MacScreen = "I can only look at the main display on this Mac.";
         private const string MacStream = "Live stream chat and timing aren't connected to Mac screen jobs yet.";
 #else
         private const string MacHands = "Mac doesn't let apps use the mouse and keyboard yet", MacHandsLine = "I can't use your mouse and keyboard on a Mac yet, choom.";
@@ -2317,6 +2318,11 @@ namespace CapriDesktop
             }
 #if CROSS
             if (OnMac && HandsReady != null) OwnHands = HandsReady();
+            if (OnMac)
+            {
+                missing.Add(new[] { "look_at_screen:screen", "display selection is not connected on Mac" });
+                missing.Add(new[] { "use_computer:launch", "Mac screen jobs use the app already in front" });
+            }
             if (!blind && !Watching.Quiet()) missing.Add(new[] { "watch_for", "this desktop can't take quiet screenshots" });
             if (OnMac) missing.Add(new[] { "linux_system", "Linux system tools are unavailable on macOS." });
             if (TerminalAvailable == null || !TerminalAvailable())
@@ -2393,6 +2399,8 @@ namespace CapriDesktop
             { "draw", "drawing on their screen", "Drawing on your screen is only on Windows for now, choom." },
             { "clone", "clones and chaos mode", NoClones },
 #if CROSS
+            { "look_at_screen:screen", "choosing another display for a look", MacScreen },
+            { "use_computer:launch", "opening apps inside a screen job", "Open the app and bring it to the front before asking me to use it." },
             { "clone:chaos", "chaos mode", NoCloneChaos },
             { "linux_system", "Linux system tools", "I can't use Linux system tools on a Mac." },
             { "run_terminal", "terminal commands", "I can't run terminal commands on this desktop." },
@@ -2464,6 +2472,15 @@ namespace CapriDesktop
             { "use_computer", " If it's already open and they want something done in it, like a mode, a match or accepting a match, call use_computer instead of opening it again.", "" },
             { "use_computer", " You can always see their screen and use their mouse and keyboard, and you play games on their PC yourself, so never say you can't, never ask them to show you their screen, and never offer to talk them through something instead of doing it.", " You can always see their screen, so never say you can't and never ask them to show you their screen." },
             { "use_computer", " You can use their mouse and keyboard, and you play games on their PC yourself, so never say you can't, and never offer to talk them through something instead of doing it.", "" },
+#if CROSS
+            { "look_at_screen:screen", LookingAt, " It looks at the main display on Mac. Put their visual question in focus." },
+            { "look_at_screen:screen", LookPlace, "" },
+            { "use_computer:launch", "If the job needs clicking, typing or more than one step, like opening an app and then searching, going somewhere or making something in it, call use_computer once with the whole job in their words.\n", "Open the requested app and bring it to the front first, then call use_computer with the whole job in their words.\n" },
+            { "use_computer:launch", "You play games on their PC yourself with their mouse and keyboard, so when they want you to play a game, or say let's play, in any language, that's one job: call use_computer once with their words, open or not. It opens the game, gets into a match or map and keeps playing until they stop you, so don't stop at open_app.\n", "For a game job, open the game with open_app and bring it to the front before use_computer. Then keep playing until they stop you.\n" },
+            { "use_computer:launch", "like opening an app and searching in it, or in a game:", "in the app already in front, or in a game:" },
+            { "use_computer:launch", "when they want you to play one, call this once with their words, open or not. It opens the game, gets into a match or map and keeps playing until they stop you.", "the game must already be open and in front. Call this once with their words and keep playing until they stop you." },
+            { "use_computer:launch", " If they want you to play a game, call use_computer once instead, open or not: it opens the game itself and plays it, so this alone never plays anything.", " To play a game, open it and bring it to the front, then call use_computer with their words." },
+#endif
             { "draw", ", drawing something on their screen or clicking something", " or clicking something" },
             { "shortcut:discord_mute", "Mute my mic means mute their mic, not deafen them. ", "" },
             { "move_yourself:sit_on", "sit on a window they name (like their Roblox window) or the taskbar, ", "" },
@@ -2651,6 +2668,7 @@ namespace CapriDesktop
         private static string Cannot(Kit kit, string tool, ToolArguments args)
         {
 #if CROSS
+            if (OnMac && tool == "look_at_screen" && args != null && !string.IsNullOrWhiteSpace(args.Screen)) return MacScreen;
             if (OnMac && tool == "clone" && args != null && args.Action == "spawn" && args.Count.HasValue && args.Count.Value <= 0) return NoCloneChaos;
 #endif
             string choice = args == null ? null : tool == "shortcut" ? args.Name : tool == "capri_settings" ? (Array.IndexOf(SettingActions, args.Action) >= 0 ? args.Action : args.Name) : tool == "move_yourself" || tool == "app_window" ? args.Action : null;
