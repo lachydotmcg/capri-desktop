@@ -4675,12 +4675,6 @@ namespace CapriDesktop
                 if (parts != null) json = json.Replace("\"" + Parts + "\"", parts);
                 payload = Encoding.UTF8.GetBytes(json);
             }
-            string imageParts = parts;
-            if (imageParts == null)
-            {
-                string imageJson = Encoding.UTF8.GetString(payload);
-                if (imageJson.IndexOf("\"images\":", StringComparison.Ordinal) >= 0) imageParts = imageJson;
-            }
             lock (gate) { Check(ticket); active.Add(request); }
             System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
             int expired = 0;
@@ -4713,6 +4707,12 @@ namespace CapriDesktop
                     if (error.Response == null) throw;
                     if (sending != null && sending.Code && request.Headers["x-api-key"] == sending.Key) sending.ReadCode(error.Response.Headers);
                     Log(url, took.ElapsedMilliseconds, "HTTP " + (int)((HttpWebResponse)error.Response).StatusCode + (sending == null ? "" : " model " + sending.Model) + " body " + payload.Length + " bytes");
+                    string imageParts = parts;
+                    if (imageParts == null)
+                    {
+                        string imageJson = Encoding.UTF8.GetString(payload);
+                        if (imageJson.IndexOf("\"images\":", StringComparison.Ordinal) >= 0) imageParts = imageJson;
+                    }
                     BrainException problem = Problem(error, sign != null, sending != null ? sending.Kind : null, secret, imageParts);
                     if (sending != null && problem.RetryAt != default(DateTime))
                         lock (gate) { waitingRemote = sending; waitingSource = sending.Source; waiting = problem; }
