@@ -1514,6 +1514,11 @@ namespace CapriDesktop
     }
 
     // Windows 10's tar has no bzip2 ("Can't initialize filter"), so her ears unpack that layer here. Each block's CRC is checked.
+    internal sealed class ArchiveException : IOException
+    {
+        internal ArchiveException(string message) : base(message) { }
+    }
+
     internal static class Bunzip
     {
         private static readonly uint[] Crcs = MakeCrcs();
@@ -1530,7 +1535,7 @@ namespace CapriDesktop
             return table;
         }
 
-        private static IOException Damaged() { return new IOException("The ears download is damaged."); }
+        private static ArchiveException Damaged() { return new ArchiveException("The ears download is damaged."); }
 
         private sealed class Bits
         {
@@ -1558,7 +1563,7 @@ namespace CapriDesktop
                 while (count < n)
                 {
                     int b = Next();
-                    if (b < 0) throw new IOException("The ears download ended early.");
+                    if (b < 0) throw new ArchiveException("The ears download ended early.");
                     held = (held << 8) | (uint)b;
                     count += 8;
                 }
@@ -1572,22 +1577,74 @@ namespace CapriDesktop
             internal int NextByte() { count = 0; return Next(); }
         }
 
+        internal static Stream Open(Stream from) { return new Reader(from); }
+
         internal static void Copy(Stream from, Stream to)
         {
-            Bits bits = new Bits(from);
-            byte[] output = new byte[1 << 16];
-            for (int streams = 0; ; streams++)
+            using (Stream opened = Open(from)) opened.CopyTo(to);
+        }
+
+        private sealed class Reader : Stream
+        {
+            private readonly byte[] buffer = new byte[1 << 16];
+            private IEnumerator<int> parts;
+            private int at, end;
+
+            internal Reader(Stream from) { parts = Blocks(from, buffer).GetEnumerator(); }
+            public override bool CanRead { get { return parts != null; } }
+            public override bool CanSeek { get { return false; } }
+            public override bool CanWrite { get { return false; } }
+            public override long Length { get { throw new NotSupportedException(); } }
+            public override long Position { get { throw new NotSupportedException(); } set { throw new NotSupportedException(); } }
+            public override void Flush() { }
+            public override long Seek(long offset, SeekOrigin origin) { throw new NotSupportedException(); }
+            public override void SetLength(long value) { throw new NotSupportedException(); }
+            public override void Write(byte[] bytes, int offset, int count) { throw new NotSupportedException(); }
+
+            private bool Next()
             {
-                int b = bits.NextByte();
-                if (b != 'B') { if (streams > 0) return; throw Damaged(); }
-                if (bits.Read(8) != 'Z' || bits.Read(8) != 'h') throw Damaged();
-                int level = (int)bits.Read(8) - '0';
-                if (level < 1 || level > 9) throw Damaged();
-                Unpack(bits, level * 100000, output, to);
+                if (parts == null) throw new ObjectDisposedException("Bunzip");
+                if (at < end) return true;
+                if (!parts.MoveNext()) return false;
+                at = 0;
+                end = parts.Current;
+                return true;
+            }
+
+            public override int Read(byte[] bytes, int offset, int count)
+            {
+                if (bytes == null) throw new ArgumentNullException("bytes");
+                if (offset < 0 || count < 0 || offset > bytes.Length - count) throw new ArgumentOutOfRangeException();
+                if (count == 0 || !Next()) return 0;
+                int read = Math.Min(count, end - at);
+                Array.Copy(buffer, at, bytes, offset, read);
+                at += read;
+                return read;
+            }
+
+            public override int ReadByte() { return Next() ? buffer[at++] : -1; }
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing && parts != null) { parts.Dispose(); parts = null; }
+                base.Dispose(disposing);
             }
         }
 
-        private static void Unpack(Bits bits, int most, byte[] output, Stream to)
+        private static IEnumerable<int> Blocks(Stream from, byte[] output)
+        {
+            Bits bits = new Bits(from);
+            for (int streams = 0; ; streams++)
+            {
+                int b = bits.NextByte();
+                if (b != 'B') { if (streams > 0) yield break; throw Damaged(); }
+                if (bits.Read(8) != 'Z' || bits.Read(8) != 'h') throw Damaged();
+                int level = (int)bits.Read(8) - '0';
+                if (level < 1 || level > 9) throw Damaged();
+                foreach (int count in Unpack(bits, level * 100000, output)) yield return count;
+            }
+        }
+
+        private static IEnumerable<int> Unpack(Bits bits, int most, byte[] output)
         {
             int[] tt = new int[most];
             uint combined = 0;
@@ -1597,11 +1654,11 @@ namespace CapriDesktop
                 if (high == 0x177245 && low == 0x385090)
                 {
                     if (((bits.Read(16) << 16) | bits.Read(16)) != combined) throw Damaged();
-                    return;
+                    yield break;
                 }
                 if (high != 0x314159 || low != 0x265359) throw Damaged();
                 uint blockCrc = (bits.Read(16) << 16) | bits.Read(16);
-                if (bits.Bit() != 0) throw new IOException("The ears download uses old bzip2 randomizing.");
+                if (bits.Bit() != 0) throw new ArchiveException("The ears download uses old bzip2 randomizing.");
                 int origin = (int)bits.Read(24);
 
                 byte[] used = new byte[256];
@@ -1744,10 +1801,10 @@ namespace CapriDesktop
                     {
                         crc = (crc << 8) ^ Crcs[(crc >> 24) ^ (uint)value];
                         output[filled++] = (byte)value;
-                        if (filled == output.Length) { to.Write(output, 0, filled); filled = 0; }
+                        if (filled == output.Length) { yield return filled; filled = 0; }
                     }
                 }
-                if (filled > 0) to.Write(output, 0, filled);
+                if (filled > 0) yield return filled;
                 if (~crc != blockCrc) throw Damaged();
                 combined = ((combined << 1) | (combined >> 31)) ^ blockCrc;
             }
@@ -1758,7 +1815,15 @@ namespace CapriDesktop
     // Only files and folders come out, and only inside the folder she's unpacking into.
     internal static class TarReader
     {
-        private static IOException Damaged() { return new IOException("The ears download is damaged."); }
+        internal static Func<string, Stream> Write = delegate(string path) { return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20); };
+
+        private static ArchiveException Damaged() { return new ArchiveException("The ears download is damaged."); }
+
+        internal static void Clean(string into)
+        {
+            try { if (Directory.Exists(into)) Directory.Delete(into, true); }
+            catch (Exception) { }
+        }
 
         private static void Read(Stream from, byte[] buffer, int count)
         {
@@ -1811,19 +1876,20 @@ namespace CapriDesktop
         {
             if (string.IsNullOrEmpty(name) || name[0] == '/' || name[0] == '\\' || name.IndexOf(':') >= 0) throw Damaged();
             foreach (string part in name.Replace('\\', '/').Split('/'))
-                if (part == ".." || (part != "." && part.TrimEnd(' ', '.') != part)) throw Damaged();
+                if (part == ".." || (part != "." && part.TrimEnd(' ', '.') != part)
+                    || Regex.IsMatch(part, @"\A(CON|PRN|AUX|NUL|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3]|CONIN\$|CONOUT\$)(?: *\.|$)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) throw Damaged();
             string path;
             try { path = Path.GetFullPath(Path.Combine(root, name.Replace('/', Path.DirectorySeparatorChar))); }
             catch (ArgumentException) { throw Damaged(); }
             catch (NotSupportedException) { throw Damaged(); }
-            catch (PathTooLongException) { throw Damaged(); }
             if (path != root.TrimEnd(Path.DirectorySeparatorChar) && !path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw Damaged();
             return path;
         }
 
-        private static string Pax(Stream from, long size, byte[] buffer)
+        private static string Pax(Stream from, long size, byte[] buffer, out long fileSize)
         {
             string path = null;
+            fileSize = -1;
             while (size > 0)
             {
                 long available = size, length = 0;
@@ -1842,13 +1908,26 @@ namespace CapriDesktop
                 int prefix = (int)Math.Min(5, count);
                 Read(from, buffer, prefix);
                 int last = buffer[prefix - 1];
-                if (prefix == 5 && Encoding.ASCII.GetString(buffer, 0, 5) == "path=")
+                string key = Encoding.ASCII.GetString(buffer, 0, prefix);
+                if (key == "path=" || key == "size=")
                 {
                     long text = count - prefix;
                     if (text < 1 || text > buffer.Length) throw Damaged();
                     Read(from, buffer, (int)text);
                     last = buffer[(int)text - 1];
-                    path = Encoding.UTF8.GetString(buffer, 0, (int)text - 1);
+                    if (key == "path=") path = Encoding.UTF8.GetString(buffer, 0, (int)text - 1);
+                    else
+                    {
+                        if (text < 2) throw Damaged();
+                        long value = 0;
+                        for (int i = 0; i < text - 1; i++)
+                        {
+                            int digit = buffer[i] - '0';
+                            if (digit < 0 || digit > 9 || value > (long.MaxValue - digit) / 10) throw Damaged();
+                            value = value * 10 + digit;
+                        }
+                        fileSize = value;
+                    }
                 }
                 else if (count > prefix) last = Copy(from, null, count - prefix, buffer);
                 if (last != '\n') throw Damaged();
@@ -1866,6 +1945,7 @@ namespace CapriDesktop
                 Directory.CreateDirectory(into);
                 byte[] header = new byte[512], buffer = new byte[1 << 20];
                 string longName = null, paxPath = null;
+                long paxSize = -1;
                 for (;;)
                 {
                     Read(from, header, header.Length);
@@ -1891,26 +1971,30 @@ namespace CapriDesktop
                     }
                     else if (kind == 'x')
                     {
-                        string path = Pax(from, size, buffer);
+                        long fileSize;
+                        string path = Pax(from, size, buffer, out fileSize);
                         if (path != null) { Target(root, path); paxPath = path; }
+                        if (fileSize >= 0) paxSize = fileSize;
                     }
                     else if (kind == 'g') Copy(from, null, size, buffer);
                     else
                     {
                         string path = Target(root, paxPath ?? longName ?? name);
                         longName = paxPath = null;
+                        if (paxSize >= 0) size = paxSize;
+                        paxSize = -1;
                         if (kind == '5') Directory.CreateDirectory(path);
                         if (kind == '0' || kind == '\0')
                         {
                             Directory.CreateDirectory(Path.GetDirectoryName(path));
-                            using (FileStream file = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20)) Copy(from, file, size, buffer);
+                            using (Stream file = Write(path)) Copy(from, file, size, buffer);
                         }
                         else Copy(from, null, size, buffer);
                     }
                     Copy(from, null, (512 - size % 512) % 512, buffer);
                 }
             }
-            finally { if (!complete && Directory.Exists(into)) Directory.Delete(into, true); }
+            finally { if (!complete) Clean(into); }
         }
     }
 
