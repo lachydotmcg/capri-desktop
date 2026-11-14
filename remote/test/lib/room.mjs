@@ -127,6 +127,8 @@ export async function dragRoom(page, type, dx, dy) {
   await roomPointer(page,type,'down',start.x,start.y);
   await roomPointer(page,type,'move',start.x + dx,start.y + dy);
   const live = await roomPosition(page);
+  // A finger lifted mid-flick starts a fling, and Chrome drops the tap that follows one.
+  if (type === 'touch') await new Promise(resolve => setTimeout(resolve, 120));
   await roomPointer(page,type,'up',start.x + dx,start.y + dy);
   return {start,live,end:await roomPosition(page)};
 }
