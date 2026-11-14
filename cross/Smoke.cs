@@ -7376,13 +7376,13 @@ namespace CapriDesktop
             RemoteWire.Set(RemoteWire.Get(bridge.Wire.Link, "pairing"), "Expires", 0L);
             if (!pet.ReadRemote().Expired || pet.ReadRemote().QrSeconds != 0) throw new Exception("Remote's reader missed an expired code.");
             pet.NewRemoteCode();
-            bridge.Wire.Pair("bridge-pending", "Asking phone", RemoteCrypto.Random(16));
+            bridge.Wire.Pair(RemoteMessages.NewId(), "Asking phone", RemoteCrypto.Random(16));
             view = pet.ReadRemote();
             if (view.Ask == null || view.Ask.Name != "Asking phone" || view.Ask.Channel != null) throw new Exception("Remote's reader lost the asking phone or exposed a key.");
             pet.DenyRemote(); pet.CloseRemoteCode();
             if (pet.ReadRemote().Ask != null || pet.ReadRemote().Qr != null || pet.ReadRemote().Expired) throw new Exception("Closing a code or denying left a pairing open.");
             pet.NewRemoteCode();
-            bridge.Wire.Pair("bridge-allow", "Allowed phone", RemoteCrypto.Random(16));
+            bridge.Wire.Pair(RemoteMessages.NewId(), "Allowed phone", RemoteCrypto.Random(16));
             bridge.File.Fail = "replace";
             pet.AllowRemote();
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
