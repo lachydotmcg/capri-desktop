@@ -140,6 +140,48 @@ test('an unanswered picture releases the composer and keeps the draft', { skip: 
   } finally { if (page) await page.close(); await site.close(); }
 });
 
+test('a picture resent after its timeout keeps its id and a late receipt clears the draft', { skip: !chromePath(), timeout: 60000 }, async () => {
+  const site = await startSite(8998); let page;
+  try {
+    page = await launch({port:9508});
+    const pc = await fakePc(page);
+    await page.go('http://127.0.0.1:8998/?relay=ws://127.0.0.1:8998' + pc.hash);
+    await page.until("document.querySelector('#app').dataset.link === 'connected'", 'PC link');
+    await page.run('const timeout=window.setTimeout; window.setTimeout=(fn,ms,...args)=>{if(ms===15000){window.expireAttach=fn;ms=60000;}return timeout(fn,ms,...args);}');
+    const open = "document.querySelectorAll('.msg.capri:not(.done)').length";
+    await picture(page); await page.until('CapriAttach.hasPicture()', 'first picture');
+    await type(page, 'the second picture'); await click(page, '#send'); const first = await pc.next();
+    await page.run('expireAttach()');
+    await line(page, 'No reply. Try sending again.');
+    assert.equal(await page.run('!CapriAttach.busy && CapriAttach.hasPicture()'), true);
+    await click(page, '#send'); const again = await pc.next();
+    assert.equal(again.id, first.id);
+    assert.deepEqual(again.picture, first.picture);
+    assert.equal(await page.run(open), 1);
+    await page.run('expireAttach()');
+    await page.until('!CapriAttach.busy && CapriAttach.hasPicture()', 'second timeout keeps the draft');
+    await pc.send({ type: 'chat.typing', re: first.id, on: true });
+    await page.until("!CapriAttach.busy && !CapriAttach.hasPicture() && document.querySelector('#msg').value === ''", 'late receipt clears the draft');
+    await pc.send({ type: 'chat.reply', re: first.id, id: 'late-reply', text: 'Two cups.', done: true });
+    await page.until("document.querySelector('#log').innerText.includes('Two cups.')", 'late answer');
+    assert.equal(await page.run(open), 0);
+    await picture(page); await page.until('CapriAttach.hasPicture()', 'third picture');
+    await type(page, 'one more'); await click(page, '#send'); const third = await pc.next();
+    await page.run('expireAttach()');
+    await page.until('!CapriAttach.busy && CapriAttach.hasPicture()', 'third timeout keeps the draft');
+    await type(page, 'one more, changed'); await click(page, '#send'); const changed = await pc.next();
+    assert.notEqual(changed.id, third.id);
+    assert.equal(changed.text, 'one more, changed');
+    await page.run('expireAttach()');
+    await page.until('!CapriAttach.busy && CapriAttach.hasPicture()', 'changed draft kept');
+    await page.run("attachSockets.at(-1).onclose({ code: 1006, reason: '' })");
+    await page.until("document.querySelector('#app').dataset.link === 'connected'", 'PC link again');
+    await page.until("CapriAttach.hasPicture() && !CapriAttach.busy && !document.querySelector('#send').disabled", 'composer after reconnect');
+    await click(page, '#send'); const after = await pc.next();
+    assert.notEqual(after.id, changed.id);
+  } finally { if (page) await page.close(); await site.close(); }
+});
+
 test('resized bitmap decoding and the missing-API fallback honour EXIF orientation', { skip: !chromePath(), timeout: 60000 }, async () => {
   const site = await startSite(8991); let page;
   try {
