@@ -26481,6 +26481,7 @@ namespace CapriDesktop
 
         private static void SmokeClips(System.Collections.Generic.List<string> checks)
         {
+            SmokeCaptureWait(checks);
             SmokeClipData(checks);
             using (ClipBuffer aged = new ClipBuffer(2, 8192))
             {
@@ -27092,6 +27093,10 @@ namespace CapriDesktop
 
         private static void SmokeFrames(System.Collections.Generic.List<string> checks)
         {
+            SmokeClipCapture(checks);
+            FrameGrab.CheckEmptyCapture(checks);
+            FrameGrab.CheckCaptureLoss(checks);
+            FrameGrab.CheckCaptureRetry(checks);
             Rectangle twoScreens = new Rectangle(-1920, 0, 3840, 1080);
             Rectangle acrossScreens = new Rectangle(-200, 100, 600, 700);
             if (FrameGrab.CaptureArea(acrossScreens, twoScreens) != acrossScreens || FrameGrab.CaptureArea(new Rectangle(-2020, 100, 400, 500), twoScreens) != new Rectangle(-1920, 100, 300, 500)) throw new Exception("A frame crossing monitors was cropped to one monitor.");
@@ -32422,6 +32427,7 @@ namespace CapriDesktop
 
         private void SmokeGameWatch(System.Collections.Generic.List<string> checks)
         {
+            SmokeWatchCapture(checks);
             Func<Sight> glimpseBefore = Computer.Glimpse;
             Job jobBefore = job;
             bool quittingBefore = quitting;
@@ -32435,15 +32441,16 @@ namespace CapriDesktop
                 Brain.LogPath = watchLog;
                 Computer.Glimpse = delegate
                 {
-                    if (++watchPasses == 1) throw new InvalidOperationException("missing game window");
+                    if (++watchPasses == 1) throw new InvalidOperationException(@"private window title private-process.exe C:\private-game\game.exe");
                     if (watchPasses >= 5) quitting = true;
                     return new Sight { Window = new IntPtr(-12345), Title = "Minecraft", Program = "javaw" };
                 };
                 watchCheck = new Thread(GameWatching) { IsBackground = true };
                 watchCheck.Start();
                 if (!watchCheck.Join(5000) || watchPasses < 5) throw new Exception("One failed pass ended the game watcher.");
-                if (!File.Exists(watchLog) || Array.FindAll(File.ReadAllLines(watchLog), watchLine => watchLine.Contains("| game watch |")).Length != 1) throw new Exception("A window without an owner reached game audio.");
-                checks.Add("PASS the game watcher continues after a failed pass and skips windows without an owner");
+                string[] errors = File.Exists(watchLog) ? Array.FindAll(File.ReadAllLines(watchLog), watchLine => watchLine.Contains("| game watch |")) : new string[0];
+                if (errors.Length != 1 || !errors[0].EndsWith(" | game watch | - | InvalidOperationException 0x80131509", StringComparison.Ordinal)) throw new Exception("A window without an owner reached game audio, or its failure log included private details.");
+                checks.Add("PASS the game watcher continues after a failed pass, skips windows without an owner and logs only the failure type and code");
             }
             finally
             {
