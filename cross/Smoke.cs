@@ -5428,19 +5428,26 @@ namespace CapriDesktop
                     }
                     return "held job";
                 }, delegate { });
+                int streamCaptures = 0;
+                Chores.Skills = null;
+                Chores.Doing = delegate { throw new Exception("A rejected stream dispatched an action."); };
+                Chores.Shoot = delegate { streamCaptures++; return null; };
+                string unsafeStream = Chores.Run(brain, "stream mode", null);
+                if (streamCaptures != 0 || Hands.Streaming || unsafeStream.IndexOf("can't check permissions", StringComparison.Ordinal) < 0)
+                    throw new Exception("The fallback stream continued without enforceable action permissions.");
                 int runs = 0;
                 Chores.Doing = delegate { };
                 Chores.Skills = null;
                 Chores.Shoot = delegate
                 {
                     runs++;
-                    if (Hands.Streaming != (runs == 1)) throw new Exception("A changed job kept the previous stream mode.");
-                    if (runs == 1) SelfJobs.Control(new ToolArguments { Action = "change", Task = "open a folder" });
+                    if (Hands.Streaming) throw new Exception("A plain job unexpectedly used stream mode.");
+                    if (runs == 1) SelfJobs.Control(new ToolArguments { Action = "change", Task = "stream mode" });
                     return null;
                 };
-                Chores.Run(brain, "stream mode", null);
-                if (runs != 2 || Hands.Streaming) throw new Exception("A changed stream did not run its plain task or release stream mode.");
-                checks.Add("PASS refused jobs leave stream mode alone and changing a stream to a plain task clears it for the next run");
+                string changed = Chores.Run(brain, "open a folder", null);
+                if (runs != 1 || Hands.Streaming || changed.IndexOf("can't check permissions", StringComparison.Ordinal) < 0) throw new Exception("A job changed to an unsafe stream did not stop.");
+                checks.Add("PASS refused jobs keep stream state and unsupported streams stop before capturing a screen or taking an action");
             }
             finally { Hands.Streaming = streaming; Chores.Shoot = shoot; Chores.Doing = doing; Chores.Skills = skills; }
             List<string> wrong = new List<string>();
