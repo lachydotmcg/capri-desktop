@@ -27,6 +27,7 @@ namespace CapriDesktop
         [DataMember] internal double Size = 240;
         [DataMember] internal string Model;
         [DataMember] internal string Language;
+        [DataMember] internal string Ears;
         [DataMember] internal string Nickname;
         [DataMember] internal int Replies;
         [DataMember] internal int Recall;
@@ -647,7 +648,7 @@ namespace CapriDesktop
         {
             this.desktop = desktop;
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
-            if (OperatingSystem.IsLinux() && Program.Smoke == null) Listen = new Ears(folder).Listen;
+            if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && Program.Smoke == null) Listen = new Ears(folder, () => Saved.Ears).Listen;
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             StartCare();
@@ -5109,6 +5110,30 @@ namespace CapriDesktop
         }
 
         // Her typing sound's mode: 0 Auto, only while she can't talk, 1 on and 2 off.
+        internal string EarsFolder { get { return Path.Combine(folder, "ears"); } }
+
+        // Auto first, then every model folder she found in her ears folder, by name.
+        internal string[] EarsChoices()
+        {
+            var names = new List<string> { "Auto" };
+            foreach (Ears.Hearing model in Ears.Models(EarsFolder)) names.Add(model.Name);
+            return names.ToArray();
+        }
+
+        internal void SetEars(string name)
+        {
+            Saved.Ears = name == "Auto" ? null : name;
+            Save();
+            Sync();
+        }
+
+        internal void OpenEars()
+        {
+            try { Directory.CreateDirectory(EarsFolder); }
+            catch (Exception error) when (error is IOException || error is UnauthorizedAccessException) { }
+            Browse(EarsFolder);
+        }
+
         internal void SetTypingMode(int mode)
         {
             Saved.Typing = Math.Max(0, Math.Min(2, mode));

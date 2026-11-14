@@ -171,6 +171,31 @@ namespace CapriDesktop
                     || !Mainframe.Precise(new Vector(0.04, 0.3)) || Mainframe.Precise(new Vector(0, -1)))
                     throw new Exception("Her Mainframe wheel dropped a direction: " + swipe + " / " + plain + " / " + shifted);
                 checks.Add("PASS Mainframe wheel: a trackpad swipe with a little sideways drift still scrolls up and down and moves as it comes, a wheel notch glides, and Shift turns the wheel sideways");
+                string earsTest = Path.Combine(Path.GetTempPath(), "capri-ears-" + Guid.NewGuid().ToString("N"));
+                try
+                {
+                    foreach (string[] pack in new[] {
+                        new[] { "parakeet-tdt-0.6b-v2-int8", "encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", "tokens.txt" },
+                        new[] { "parakeet-tdt-0.6b-ultra-int8", "encoder.int8.onnx", "decoder.int8.onnx", "joiner.int8.onnx", "tokens.txt" },
+                        new[] { "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17", "model.onnx", "model.int8.onnx", "tokens.txt" },
+                        new[] { "half-a-model", "encoder.onnx", "tokens.txt" },
+                        new[] { "sherpa-onnx-v1.13.8-osx-arm64-static-no-tts", "README.md" } })
+                    {
+                        Directory.CreateDirectory(Path.Combine(earsTest, pack[0]));
+                        for (int i = 1; i < pack.Length; i++) File.WriteAllText(Path.Combine(earsTest, pack[0], pack[i]), "");
+                    }
+                    List<Ears.Hearing> heard = Ears.Models(earsTest);
+                    Ears.Hearing ja = Ears.Pick(heard, "ja"), en = Ears.Pick(heard, "en"), de = Ears.Pick(heard, "de"), tr = Ears.Pick(heard, "tr");
+                    string[] jaArgs = ja == null ? new string[0] : Ears.Arguments(ja, "ja", "voice.wav");
+                    if (heard.Count != 3 || ja == null || !ja.Name.Contains("sense-voice") || Path.GetFileName(ja.Voice) != "model.int8.onnx"
+                        || en == null || en.Name != "parakeet-tdt-0.6b-v2-int8" || de == null || de.Name != "parakeet-tdt-0.6b-ultra-int8" || tr != null
+                        || Array.IndexOf(jaArgs, "--sense-voice-language=ja") < 0 || Array.IndexOf(Ears.Arguments(ja, "tr", "voice.wav"), "--sense-voice-language=auto") < 0
+                        || Array.IndexOf(Ears.Arguments(en, "en", "voice.wav"), "--joiner=" + Path.Combine(earsTest, en.Name, "joiner.int8.onnx")) < 0
+                        || Ears.Pick(heard, "ja", "parakeet-tdt-0.6b-ultra-int8").Name != "parakeet-tdt-0.6b-ultra-int8" || Ears.Pick(heard, "ja", "a-folder-you-deleted") != ja)
+                        throw new Exception("Her ears picked the wrong model folder: " + heard.Count + " / " + (ja == null ? "-" : ja.Name) + " / " + (en == null ? "-" : en.Name) + " / " + (de == null ? "-" : de.Name) + " / " + string.Join(" ", jaArgs));
+                }
+                finally { try { Directory.Delete(earsTest, true); } catch (IOException) { } }
+                checks.Add("PASS her own ears: she finds the speech models you put in her ears folder and hears each language with the one that knows it, SenseVoice for Japanese and Parakeet for English, unless you picked one that's still there");
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1604,7 +1629,7 @@ namespace CapriDesktop
             }
             if (step == 30)
             {
-                if (OperatingSystem.IsLinux() && !LinuxTalk()) return false;
+                if ((OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) && !TalkTurn()) return false;
                 MainframeChecks();
                 MiniPlayer.Checks(pet, folder, checks);
                 Finish(null);
@@ -1613,7 +1638,7 @@ namespace CapriDesktop
             return false;
         }
 
-        private bool LinuxTalk()
+        private bool TalkTurn()
         {
             const string words = "Tell me a short joke.";
             const string reply = "That came through TALK.";
@@ -1695,7 +1720,8 @@ namespace CapriDesktop
             pet.Saved.ListenCapri = nameBeforeVoice;
             pet.Listen = null;
             pet.Talk.Dismiss();
-            checks.Add("PASS Linux TALK: waits for name listening to release the mic, hears quiet speech with gaps, stops at silence, drops a cancelled turn, submits once and shows a waiting line after the reply");
+            if (OperatingSystem.IsMacOS() && !File.Exists(Path.Combine(AppContext.BaseDirectory, "capri-mic"))) throw new Exception("Her Mac mic helper isn't next to her app.");
+            checks.Add("PASS " + (OperatingSystem.IsMacOS() ? "Mac TALK: her mic helper ships with her, she" : "Linux TALK: she") + " waits for name listening to release the mic, hears quiet speech with gaps, stops at silence, drops a cancelled turn, submits once and shows a waiting line after the reply");
             return true;
         }
 
@@ -2792,6 +2818,16 @@ namespace CapriDesktop
                 if (frame.WindowState != WindowState.Normal || frame.SettingsShown) throw new Exception("Asking for her Mainframe did not open the main page.");
                 pet.SetAdvancedSettings(false); Hands.Do("mainframe", new ToolArguments { Name = "moves" });
                 if (!frame.SettingsShown || !pet.Saved.AdvancedSettings || !frame.Row("Wander").IsVisible) throw new Exception("A tool page did not unfold its advanced rows.");
+                if (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux())
+                {
+                    // Open ears folder ends 50 below the top of her ears picker, and the MOVES heading starts 32 above Wander.
+                    Control earsRow = frame.Row("Her ears"), wander = frame.Row("Wander");
+                    if (!earsRow.IsVisible || Canvas.GetTop(earsRow) + 50 > Canvas.GetTop(wander) - 32)
+                        throw new Exception("Her ears rows are hidden under MOVES: " + Canvas.GetTop(earsRow) + " / " + Canvas.GetTop(wander));
+                    pet.SetAdvancedSettings(false);
+                    if (earsRow.IsVisible || !frame.Row("Volume").IsVisible) throw new Exception("Simple Settings didn't fold her ears with the rest of VOICE.");
+                    pet.SetAdvancedSettings(true);
+                }
                 pet.Talk.Dismiss();
                 checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps the pet running and closes the Mac and Linux window");
                 MainframePictures(frame, voice);
