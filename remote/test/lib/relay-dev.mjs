@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 export const RELAY_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'relay');
 
-const freePort = () =>
+export const freePort = () =>
   new Promise((resolve, reject) => {
     const server = createServer();
     server.unref();

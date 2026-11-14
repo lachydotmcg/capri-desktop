@@ -54,6 +54,15 @@ out/cross/Capri --smoke out/cross-smoke
 
 On Windows, use `out\cross\Capri.exe` instead. CI runs all three on every pull request.
 
+For a focused Capri Remote check with Node.js 22+ and Chrome installed, run:
+
+```bash
+npm --prefix remote/relay ci
+node remote/test/cross-host-smoke.mjs out/cross/Capri out/cross-remote-smoke
+```
+
+Run it from the checkout on a Mac or a Linux desktop (or inside the Linux smoke test's Xvfb session). Use a new output folder. The check pairs a fresh Chrome profile with the built Capri app, compares both confirmation codes, sends a chat through the local relay to a disposable brain server, checks the complete reply in Chrome, and verifies that Capri saved the phone. The relay, test phone profile and pairing state are discarded afterward.
+
 ## House rules
 
 - **Match the code around you.** No code comments, plain names, and the same layout as the file you're in.
