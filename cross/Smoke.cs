@@ -6101,15 +6101,140 @@ namespace CapriDesktop
             checks.Add("PASS Remote core QR: known pairing text makes a 49-module matrix with finder, timing and alignment modules; version one's unmasked matrix holds HELLO WORLD's exact byte-mode payload");
 
             string vectors = RemoteVectors.Find();
-            if (vectors == null) throw new Exception("Remote core needs remote/test/vectors.json. Run smoke from the checkout.");
-            int count;
-            List<string> wrong = RemoteVectors.Check(File.ReadAllText(vectors), out count);
-            if (wrong.Count > 0 || count == 0) throw new Exception("Remote protocol vectors failed: " + (wrong.Count == 0 ? "no checks" : wrong[0]));
-            checks.Add("PASS Remote core protocol vectors: all " + count + " checks in remote/test/vectors.json");
+            if (vectors == null)
+            {
+                if (string.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Remote core needs remote/test/vectors.json. Run smoke from the checkout.");
+                checks.Add("SKIP Remote core protocol vectors: remote/test/vectors.json was not found. Run smoke from the checkout to include them.");
+            }
+            else
+            {
+                int count;
+                List<string> wrong = RemoteVectors.Check(File.ReadAllText(vectors), out count);
+                if (wrong.Count > 0 || count == 0) throw new Exception("Remote protocol vectors failed: " + (wrong.Count == 0 ? "no checks" : wrong[0]));
+                checks.Add("PASS Remote core protocol vectors: all " + count + " checks in remote/test/vectors.json");
+            }
             RemotePairChecks();
             RemoteLink.SmokePairing(checks);
             RemoteLink.SmokeJobs(checks);
             RemoteStoreChecks();
+
+            string diskRoot = Path.Combine(folder, "remote-core-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(diskRoot);
+            try
+            {
+                string data = Path.Combine(diskRoot, "data");
+                Directory.CreateDirectory(data);
+                RemoteStore disk = new RemoteStore(data);
+                RemoteState loaded;
+                string savedRelay;
+                if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Missing || loaded != null || savedRelay != null || disk.Problem != null) throw new Exception("Remote disk did not report a missing file.");
+                string path = Path.Combine(data, RemoteDisk.Name);
+                string stale = Path.Combine(data, ".remote-state-" + Guid.NewGuid().ToString("N"));
+                string kept = Path.Combine(data, "keep");
+                File.WriteAllText(stale, "unfinished Remote file");
+                File.WriteAllText(kept, "keep");
+                if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Missing || !File.Exists(stale)) throw new Exception("Remote disk read or removed a leftover temporary file.");
+                checks.Add("PASS Remote core disk missing: no record is Missing, and Load leaves temporary files alone");
+
+                RemoteState saved = RemoteState.Fresh();
+                saved.Used = true;
+                saved.Devices.Add(new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone\u2019s caf\u00e9 \uD83D\uDE00", Added = new DateTime(2026, 11, 14, 0, 0, 0, DateTimeKind.Utc) });
+                if (disk.Save(" https://" + RemoteLink.DefaultHost.ToUpperInvariant() + "/ ", saved) != RemoteStoreResult.Saved || disk.Problem != null) throw new Exception("Remote disk did not save its first record.");
+                UnixFileMode mode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(path) != mode) throw new Exception("Remote disk did not create a user-only file.");
+                if (new RemoteStore(data).Load(out loaded, out savedRelay) != RemoteStoreResult.Read || savedRelay != RemoteLink.RelayBase(null)
+                    || loaded.ToJson() != saved.ToJson() || loaded.Devices[0].Name != saved.Devices[0].Name
+                    || !File.ReadAllText(path).Contains(saved.Devices[0].Name)) throw new Exception("Remote disk lost its state, relay or phone name.");
+                if (File.Exists(stale) || File.ReadAllText(kept) != "keep") throw new Exception("Remote disk did not clear only its leftover temporary files.");
+                checks.Add("PASS Remote core disk round-trip: a fresh store reads the same state and relay, including a curly apostrophe, accent and emoji");
+
+                RemoteState replacement = RemoteState.Fresh();
+                File.WriteAllText(stale, "another unfinished Remote file");
+                if (disk.Save("relay.example:8443", replacement) != RemoteStoreResult.Saved || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read
+                    || loaded.ToJson() != replacement.ToJson() || savedRelay != "wss://relay.example:8443" || Directory.GetFiles(data, ".remote-state-*").Length != 0
+                    || File.ReadAllText(kept) != "keep") throw new Exception("Remote disk did not replace the whole record or clear its temporary files.");
+                checks.Add("PASS Remote core disk replacement: the next save replaces the whole record and leaves no temporary files");
+                if (!OperatingSystem.IsWindows())
+                {
+                    foreach (UnixFileMode extra in new[] { UnixFileMode.GroupRead, UnixFileMode.GroupWrite, UnixFileMode.OtherRead, UnixFileMode.OtherWrite })
+                    {
+                        File.SetUnixFileMode(path, mode | extra);
+                        if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != replacement.ToJson()
+                            || savedRelay != "wss://relay.example:8443" || File.GetUnixFileMode(path) != mode) throw new Exception("Remote disk refused or did not tighten a broad file mode.");
+                    }
+                    File.SetUnixFileMode(path, UnixFileMode.None);
+                    if (disk.Save("relay.example:8443", replacement) != RemoteStoreResult.Saved || File.GetUnixFileMode(path) != mode) throw new Exception("Remote disk refused to replace a file with the wrong mode.");
+                    checks.Add("PASS Remote core disk mode: saves use exactly user read and write, loads tighten group and other access, and a wrong mode does not block saving");
+                }
+                else checks.Add("SKIP Remote core disk mode: Windows has no Unix file modes.");
+
+                string record = File.ReadAllText(path);
+                foreach (byte[] damaged in new[] { new byte[] { 0xc3, 0x28 }, Encoding.UTF8.GetBytes("{"), Encoding.UTF8.GetBytes("{}"), Encoding.UTF8.GetBytes(record.Replace("\"v\":1", "\"v\":2")), Encoding.UTF8.GetBytes(record.Replace("\"devices\":", "\"missing\":")) })
+                {
+                    File.WriteAllBytes(path, damaged);
+                    if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Unreadable || loaded != null || savedRelay != null || disk.Problem != "The Remote file is damaged."
+                        || RemoteVectors.Hex(File.ReadAllBytes(path)) != RemoteVectors.Hex(damaged)) throw new Exception("Remote disk hid or changed damaged bytes.");
+                }
+                if (disk.Save(null, saved) != RemoteStoreResult.Saved || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != saved.ToJson()) throw new Exception("Remote disk could not replace a damaged record.");
+                checks.Add("PASS Remote core disk damage: invalid UTF-8, JSON and schema stay Unreadable with their bytes unchanged; Save can replace them");
+
+                string absent = Path.Combine(diskRoot, "not-yet", "data");
+                RemoteStore first = new RemoteStore(absent);
+                if (first.Load(out loaded, out savedRelay) != RemoteStoreResult.Missing || Directory.Exists(absent)
+                    || first.Save(null, saved) != RemoteStoreResult.Saved || first.Load(out loaded, out savedRelay) != RemoteStoreResult.Read
+                    || loaded.ToJson() != saved.ToJson() || savedRelay != RemoteLink.RelayBase(null)) throw new Exception("Remote disk did not create its missing folder on Save.");
+                checks.Add("PASS Remote core disk first save: a missing folder stays missing on Load and is created by Save");
+
+                string blocked = Path.Combine(diskRoot, "blocked");
+                Directory.CreateDirectory(Path.Combine(blocked, RemoteDisk.Name));
+                RemoteStore cannot = new RemoteStore(blocked);
+                if (cannot.Load(out loaded, out savedRelay) != RemoteStoreResult.Unreadable || loaded != null || savedRelay != null
+                    || cannot.Problem != "Cannot read the Remote file right now. Check access to the file and try again."
+                    || cannot.Save(null, saved) != RemoteStoreResult.WriteFailed || cannot.Problem != "Cannot save the Remote file right now. Check access to the folder and try again."
+                    || !Directory.Exists(Path.Combine(blocked, RemoteDisk.Name)) || Directory.GetFiles(blocked, ".remote-state-*").Length != 0) throw new Exception("Remote disk hid an access failure or left a failed save's temporary file.");
+                checks.Add("PASS Remote core disk failure: an unusable file name reports access trouble and a failed move removes its temporary file");
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    UnixFileMode folderMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute;
+                    File.SetUnixFileMode(data, folderMode);
+                    if (disk.Save(null, saved) != RemoteStoreResult.Saved || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read
+                        || loaded.ToJson() != saved.ToJson() || File.GetUnixFileMode(data) != folderMode) throw new Exception("Remote disk refused or changed a group-writable folder.");
+
+                    string target = Path.Combine(diskRoot, "linked-record");
+                    byte[] original = File.ReadAllBytes(path);
+                    File.WriteAllBytes(target, original);
+                    File.Delete(path);
+                    File.CreateSymbolicLink(path, target);
+                    if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != saved.ToJson()) throw new Exception("Remote disk refused to read through a file link.");
+                    if (disk.Save("relay.example:8443", replacement) != RemoteStoreResult.Saved || new FileInfo(path).LinkTarget != null
+                        || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != replacement.ToJson()
+                        || RemoteVectors.Hex(File.ReadAllBytes(target)) != RemoteVectors.Hex(original)) throw new Exception("Remote disk wrote through a file link.");
+
+                    string alias = Path.Combine(diskRoot, "linked-data");
+                    Directory.CreateSymbolicLink(alias, data);
+                    RemoteStore linked = new RemoteStore(alias);
+                    if (linked.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != replacement.ToJson()
+                        || linked.Save(null, saved) != RemoteStoreResult.Saved || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != saved.ToJson()) throw new Exception("Remote disk refused a linked data folder.");
+
+                    string parent = Path.Combine(diskRoot, "parent");
+                    Directory.CreateDirectory(parent);
+                    alias = Path.Combine(diskRoot, "linked-parent");
+                    Directory.CreateSymbolicLink(alias, parent);
+                    RemoteStore nested = new RemoteStore(Path.Combine(alias, "data"));
+                    if (nested.Save(null, saved) != RemoteStoreResult.Saved || nested.Load(out loaded, out savedRelay) != RemoteStoreResult.Read
+                        || loaded.ToJson() != saved.ToJson() || !File.Exists(Path.Combine(parent, "data", RemoteDisk.Name))) throw new Exception("Remote disk refused a linked ancestor.");
+                    try
+                    {
+                        File.SetUnixFileMode(parent, UnixFileMode.UserExecute);
+                        if (nested.Save(null, saved) != RemoteStoreResult.Saved || nested.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != saved.ToJson()) throw new Exception("Remote disk needed to list an ancestor folder.");
+                    }
+                    finally { File.SetUnixFileMode(parent, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); }
+                    checks.Add("PASS Remote core disk paths: group-writable folders, linked files and folders, and an ancestor with no read permission work; Save replaces a file link and keeps its target bytes");
+                }
+            }
+            finally { Directory.Delete(diskRoot, true); }
         }
 
         private void RemotePairChecks()
@@ -6207,32 +6332,39 @@ namespace CapriDesktop
             if (store.Save(host, state) != RemoteStoreResult.Saved || new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read
                 || relay != RemoteLink.RelayBase(null) || read.ToJson() != state.ToJson()) throw new Exception("Remote store lost state across restart.");
             string good = file.Text;
+            string damagedProblem = "The Remote file is damaged.";
+            string readProblem = "Cannot read the Remote file right now. Check access to the file and try again.";
             foreach (string damaged in new[] { "{", good.Replace("\"v\":1", "\"v\":2"), good.Replace(state.Token, "bad"), good.Replace(RemoteCrypto.B64u(child.Key), "bad"), good.Replace("\"devices\":", "\"missing\":"), good.Replace(child.Added.ToString("o"), "bad-date") })
             {
                 file.Text = damaged;
                 int writes = file.Writes;
-                if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem == null || file.Text != damaged || file.Writes != writes) throw new Exception("Remote store hid or replaced damaged state.");
+                if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != damagedProblem || file.Text != damaged || file.Writes != writes) throw new Exception("Remote store hid or replaced damaged state.");
             }
             file.Text = good; file.Denied = true;
-            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || file.Text != good) throw new Exception("Remote store hid an unreadable file.");
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || file.Text != good) throw new Exception("Remote store hid an unreadable file.");
             file.Denied = false;
+            file.Fail = "read";
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || file.Text != good) throw new Exception("Remote store treated a read failure as damage.");
             file.Fail = "read-close";
-            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || file.Text != good) throw new Exception("Remote store returned state after a failed read close.");
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || file.Text != good) throw new Exception("Remote store returned state after a failed read close.");
             foreach (string failure in new[] { "begin", "write", "flush", "replace" })
             {
                 file.Fail = failure;
-                if (store.Save(null, RemoteState.Fresh()) != RemoteStoreResult.WriteFailed || store.Problem == null || file.Text != good || file.Pending != null
+                if (store.Save(null, RemoteState.Fresh()) != RemoteStoreResult.WriteFailed || store.Problem != "Cannot save the Remote file right now. Check access to the folder and try again." || file.Text != good || file.Pending != null
                     || failure == "write" && file.Written == 0) throw new Exception("Remote store left a partial file after " + failure + ".");
             }
             file.Fail = null;
             if (store.Load(out read, out relay) != RemoteStoreResult.Read || read.ToJson() != state.ToJson() || store.Problem != null) throw new Exception("Remote store could not read after a failed write.");
             RemoteFileFake empty = new RemoteFileFake { Fail = "write" };
             if (new RemoteStore(empty).Save(null, state) != RemoteStoreResult.WriteFailed || empty.Written == 0 || new RemoteStore(empty).Load(out read, out relay) != RemoteStoreResult.Missing) throw new Exception("Remote store created a partial first record.");
-            if (store.Save("ws://relay.example", state) != RemoteStoreResult.WriteFailed || file.Text != good) throw new Exception("An invalid relay replaced Remote state.");
+            if (store.Save("ws://relay.example", state) != RemoteStoreResult.WriteFailed || store.Problem != "The Remote state or relay is invalid." || file.Text != good) throw new Exception("An invalid relay replaced Remote state.");
             if (store.Load(out read, out relay) != RemoteStoreResult.Read || relay == RemoteLink.RelayBase("relay.example:8443")) throw new Exception("Remote store lost its relay identity.");
-            using (RemoteWire wire = new RemoteWire(state.Copy(), saved => { if (store.Save(null, saved) != RemoteStoreResult.Saved) throw new Exception("Remote revoke did not save."); }))
+            RemoteStoreResult revoked = RemoteStoreResult.Missing;
+            int revokes = 0;
+            using (RemoteWire wire = new RemoteWire(state.Copy(), saved => { revokes++; revoked = store.Save(null, saved); }))
             {
                 wire.Link.Revoke(parent.Id);
+                if (revokes != 1 || revoked != RemoteStoreResult.Saved) throw new Exception("Remote revoke did not save.");
                 if (store.Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 0) throw new Exception("Remote store restored a revoked child.");
                 RemoteState fresh = wire.Link.RemoveAll();
                 if (store.Save(null, fresh) != RemoteStoreResult.Saved || store.Load(out read, out relay) != RemoteStoreResult.Read || read.Room == state.Room || read.Token == state.Token || read.Devices.Count != 0) throw new Exception("Remote store did not keep Remove all's new room.");
@@ -6254,6 +6386,7 @@ namespace CapriDesktop
             internal override Stream Read()
             {
                 if (Denied) throw new UnauthorizedAccessException("Cannot read the fake Remote file.");
+                if (Fail == "read") throw new IOException("Fake Remote read failed (5).");
                 return Text == null ? null : new RemoteInput(this);
             }
             protected override Stream Begin()
@@ -6317,7 +6450,7 @@ namespace CapriDesktop
             internal RemoteWire(RemoteState state, Action<RemoteState> save = null)
             {
                 Link = new RemoteLink(state, "ws://127.0.0.1:1", "Test PC", "test", delegate(RemoteState saved) { Saved = saved.Copy(); Saves++; save?.Invoke(saved); });
-                wire = Activator.CreateInstance(typeof(RemoteLink).GetNestedType("Wire", System.Reflection.BindingFlags.NonPublic), Own, null, new object[] { stop }, null);
+                wire = Activator.CreateInstance((Type)Member(typeof(RemoteLink), "Wire", System.Reflection.MemberTypes.NestedType), Own, null, new object[] { stop }, null);
                 Set(Link, "wire", wire); Set(Link, "started", true); Set(Link, "run", stop);
                 Link.Said += (phone, id, text) => Said.Add(new[] { phone, id, text });
                 Link.Happened += (what, about) => Events.Add(what + " " + about);
@@ -6326,9 +6459,15 @@ namespace CapriDesktop
                 Text(new RemoteJson.Writer().Text("t", "ready").Texts("devices", ids).Texts("online", new string[0]).ToString());
             }
 
-            internal static object Get(object target, string name) { return target.GetType().GetField(name, Own).GetValue(target); }
-            internal static void Set(object target, string name, object value) { target.GetType().GetField(name, Own).SetValue(target, value); }
-            private static object Call(object target, string name, params object[] args) { return target.GetType().GetMethod(name, Own).Invoke(target, args); }
+            private static System.Reflection.MemberInfo Member(Type type, string name, System.Reflection.MemberTypes kind)
+            {
+                System.Reflection.MemberInfo[] found = type.GetMember(name, kind, Own);
+                if (found.Length != 1) throw new Exception("Remote smoke needs one member: " + type.FullName + "." + name + ".");
+                return found[0];
+            }
+            internal static object Get(object target, string name) { return ((System.Reflection.FieldInfo)Member(target.GetType(), name, System.Reflection.MemberTypes.Field)).GetValue(target); }
+            internal static void Set(object target, string name, object value) { ((System.Reflection.FieldInfo)Member(target.GetType(), name, System.Reflection.MemberTypes.Field)).SetValue(target, value); }
+            private static object Call(object target, string name, params object[] args) { return ((System.Reflection.MethodInfo)Member(target.GetType(), name, System.Reflection.MemberTypes.Method)).Invoke(target, args); }
             internal void Text(string json) { Call(Link, "OnText", wire, Encoding.UTF8.GetBytes(json)); }
 
             internal RemoteKeys Pair(string pending, string name, byte[] nonce)

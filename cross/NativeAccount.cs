@@ -3,11 +3,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
-using Microsoft.Win32.SafeHandles;
 
 namespace CapriDesktop
 {
@@ -49,7 +47,9 @@ namespace CapriDesktop
                 {
                     state = null;
                     relay = null;
-                    Problem = error.Message;
+                    Problem = error is IOException || error is UnauthorizedAccessException
+                        ? "Cannot read the Remote file right now. Check access to the file and try again."
+                        : "The Remote file is damaged.";
                     return RemoteStoreResult.Unreadable;
                 }
             }
@@ -66,12 +66,16 @@ namespace CapriDesktop
                     if (relay == null || state == null) throw new FormatException("Invalid Remote state or relay.");
                     string json = state.ToJson();
                     ReadState(json);
-                    file.Save(JsonSerializer.Serialize(new { v = 1, host = relay, state = JsonSerializer.Deserialize<JsonElement>(json) }));
+                    StringBuilder record = new StringBuilder("{\"v\":1,\"host\":");
+                    RemoteJson.Quote(record, relay);
+                    record.Append(",\"state\":").Append(json).Append('}');
+                    file.Save(record.ToString());
                     return RemoteStoreResult.Saved;
                 }
                 catch (Exception error)
                 {
-                    Problem = error.Message;
+                    Problem = error is FormatException ? "The Remote state or relay is invalid."
+                        : "Cannot save the Remote file right now. Check access to the folder and try again.";
                     return RemoteStoreResult.WriteFailed;
                 }
             }
@@ -129,139 +133,57 @@ namespace CapriDesktop
     {
         internal const string Name = "remote-state";
         private readonly string folder;
-        private SafeFileHandle directory;
         private string temp;
-        private static bool Mac { get { return OperatingSystem.IsMacOS(); } }
-        private static int NoFollow { get { return Mac ? 0x100 : 0x20000; } }
-        private static int CloseExec { get { return Mac ? 0x1000000 : 0x80000; } }
-        private static int DirectoryFlag { get { return Mac ? 0x100000 : 0x10000; } }
-        private static int NonBlock { get { return Mac ? 4 : 0x800; } }
         private const UnixFileMode Private = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-        [DllImport("libc", SetLastError = true)] private static extern int open(string path, int flags);
-        [DllImport("libc", SetLastError = true)] private static extern int openat(int directory, string path, int flags, uint mode);
-        [DllImport("libc", EntryPoint = "openat", SetLastError = true)] private static extern int createat(int directory, string path, int flags, IntPtr a, IntPtr b, IntPtr c, IntPtr d, IntPtr e, uint mode);
-        [DllImport("libc", SetLastError = true)] private static extern int renameat(int from, string source, int to, string target);
-        [DllImport("libc", SetLastError = true)] private static extern int unlinkat(int directory, string path, int flags);
-        [DllImport("libc", SetLastError = true)] private static extern int fsync(int fd);
-        [DllImport("libc", SetLastError = true)] private static extern IntPtr acl_init(int count);
-        [DllImport("libc", SetLastError = true)] private static extern IntPtr acl_get_fd(int fd);
-        [DllImport("libc", SetLastError = true)] private static extern int acl_get_entry(IntPtr acl, int id, out IntPtr entry);
-        [DllImport("libc", SetLastError = true)] private static extern int acl_set_fd(int fd, IntPtr acl);
-        [DllImport("libc")] private static extern int acl_free(IntPtr acl);
 
         internal RemoteDisk(string folder) { this.folder = Path.GetFullPath(folder); }
 
-        private static void PrivateAcl(SafeFileHandle handle, bool clear)
-        {
-            if (!Mac) return;
-            IntPtr acl = clear ? acl_init(0) : acl_get_fd(handle.DangerousGetHandle().ToInt32());
-            if (acl == IntPtr.Zero)
-            {
-                if (!clear && Marshal.GetLastPInvokeError() == 2) return;
-                throw new IOException("Cannot check Remote file access.");
-            }
-            try
-            {
-                IntPtr entry;
-                if (clear ? acl_set_fd(handle.DangerousGetHandle().ToInt32(), acl) != 0 : acl_get_entry(acl, 0, out entry) != -1 || Marshal.GetLastPInvokeError() != 22)
-                    throw new IOException("The Remote file and folder must have no extra access rules.");
-            }
-            finally { acl_free(acl); }
-        }
-
-        private static SafeFileHandle Handle(int fd)
-        {
-            if (fd < 0)
-            {
-                int error = Marshal.GetLastPInvokeError();
-                if (error == 2) throw new FileNotFoundException("Remote file was not found.");
-                throw new IOException("Cannot open the Remote file (" + error + ").");
-            }
-            return new SafeFileHandle(new IntPtr(fd), true);
-        }
-
-        private SafeFileHandle Folder()
-        {
-            if (!OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException("Remote files need macOS or Linux.");
-            int flags = NoFollow | CloseExec | DirectoryFlag;
-            SafeFileHandle current = Handle(open("/", flags));
-            try
-            {
-                foreach (string part in folder.Split('/', StringSplitOptions.RemoveEmptyEntries))
-                {
-                    SafeFileHandle next = Handle(openat(current.DangerousGetHandle().ToInt32(), part, flags, 0));
-                    current.Dispose();
-                    current = next;
-                }
-                if ((File.GetUnixFileMode(current) & (UnixFileMode.GroupWrite | UnixFileMode.OtherWrite)) != 0)
-                    throw new IOException("The Remote folder must be writable only by you.");
-                PrivateAcl(current, false);
-                return current;
-            }
-            catch { current.Dispose(); throw; }
-        }
-
-        private static FileStream ReadAt(SafeFileHandle directory)
-        {
-            int fd = openat(directory.DangerousGetHandle().ToInt32(), Name, NoFollow | CloseExec | NonBlock, 0);
-            if (fd < 0 && Marshal.GetLastPInvokeError() == 2) return null;
-            SafeFileHandle handle = Handle(fd);
-            try
-            {
-                if (File.GetUnixFileMode(handle) != Private) throw new IOException("The Remote file must be readable and writable only by you.");
-                PrivateAcl(handle, false);
-                FileStream input = new FileStream(handle, FileAccess.Read);
-                if (!input.CanSeek) { input.Dispose(); throw new IOException("The Remote file must be a regular file."); }
-                return input;
-            }
-            catch { handle.Dispose(); throw; }
-        }
-
         internal override Stream Read()
         {
-            SafeFileHandle held;
-            try { held = Folder(); }
+            FileStream input;
+            try { input = new FileStream(Path.Combine(folder, Name), FileMode.Open, FileAccess.Read, FileShare.Read); }
             catch (FileNotFoundException) { return null; }
-            using (held) return ReadAt(held);
+            catch (DirectoryNotFoundException) { return null; }
+            if (!OperatingSystem.IsWindows())
+                try { File.SetUnixFileMode(input.SafeFileHandle, Private); }
+                catch (Exception) { }
+            return input;
         }
 
         protected override Stream Begin()
         {
-            directory = Folder();
-            string name = ".remote-state-" + Guid.NewGuid().ToString("N");
-            int flags = 1 | NoFollow | CloseExec | (Mac ? 0x200 | 0x800 : 0x40 | 0x80);
-            int fd = directory.DangerousGetHandle().ToInt32();
-            SafeFileHandle handle = Handle(Mac && RuntimeInformation.ProcessArchitecture == Architecture.Arm64
-                ? createat(fd, name, flags, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0x180)
-                : openat(fd, name, flags, 0x180));
+            Directory.CreateDirectory(folder);
+            try
+            {
+                foreach (string stale in Directory.GetFiles(folder, ".remote-state-*"))
+                    try { File.Delete(stale); }
+                    catch (Exception) { }
+            }
+            catch (Exception) { }
+            string name = Path.Combine(folder, ".remote-state-" + Guid.NewGuid().ToString("N"));
+            FileStreamOptions options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write };
+            if (!OperatingSystem.IsWindows()) options.UnixCreateMode = Private;
+            FileStream output = new FileStream(name, options);
             temp = name;
             try
             {
-                File.SetUnixFileMode(handle, Private);
-                PrivateAcl(handle, true);
-                return new FileStream(handle, FileAccess.Write);
+                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(output.SafeFileHandle, Private);
+                return output;
             }
-            catch { handle.Dispose(); throw; }
+            catch { output.Dispose(); throw; }
         }
 
         protected override void Commit()
         {
-            using (FileStream previous = ReadAt(directory)) { }
-            int fd = directory.DangerousGetHandle().ToInt32();
-            if (renameat(fd, temp, fd, Name) != 0) throw new IOException("Cannot replace the Remote file.");
+            File.Move(temp, Path.Combine(folder, Name), true);
             temp = null;
-            if (fsync(fd) != 0) throw new IOException("Cannot flush the Remote folder.");
         }
 
         protected override void Cancel()
         {
-            try { if (temp != null && directory != null) unlinkat(directory.DangerousGetHandle().ToInt32(), temp, 0); }
-            finally
-            {
-                temp = null;
-                if (directory != null) directory.Dispose();
-                directory = null;
-            }
+            try { if (temp != null) File.Delete(temp); }
+            catch (Exception) { }
+            finally { temp = null; }
         }
     }
 
