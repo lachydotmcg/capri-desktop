@@ -617,7 +617,7 @@ namespace CapriDesktop
                 {
                     Check();
                     Point at = Position();
-                    if (at.X != x || at.Y != y) Sink(new Event(drag ? 6u : 5u, new Point(x, y)));
+                    if (Math.Abs(at.X - x) > 0.5 || Math.Abs(at.Y - y) > 0.5) Sink(new Event(drag ? 6u : 5u, new Point(x, y)));
                 }
                 Check();
                 if (action.Action == "click" || action.Action == "double_click" || action.Action == "drag" || action.Action == "scroll")
@@ -626,10 +626,10 @@ namespace CapriDesktop
                     if (!frame.Source.Target.Area.Contains(at.X, at.Y)) throw new InvalidOperationException("The point is outside the bound target window.");
                     desktop.Move(at.X, at.Y, token); x = at.X; y = at.Y; Check();
                 }
-                if (action.Action == "type") Type(action.Text, () => Settle());
+                if (action.Action == "type") Type(action.Text, Check);
                 else if (action.Action == "press")
                 {
-                    if (!Keys(JobKeys(action.Keys), () => Settle())) throw new InvalidOperationException("That key has no Mac mapping.");
+                    if (!Keys(JobKeys(action.Keys), Check)) throw new InvalidOperationException("That key has no Mac mapping.");
                 }
                 else if (action.Action == "scroll")
                 {

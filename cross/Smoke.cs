@@ -5619,7 +5619,7 @@ namespace CapriDesktop
                     using var data = System.Text.Json.JsonDocument.Parse(instruction);
                     int width = data.RootElement.GetProperty("width").GetInt32(), height = data.RootElement.GetProperty("height").GetInt32();
                     if (width != 1280 || height != 640) throw new Exception("Mac brain was told a different image size");
-                    return System.Text.Json.JsonSerializer.Serialize(new { action, frame = frame ?? data.RootElement.GetProperty("frame").GetString(), previous_effect = turns++ == 0 ? "none" : "verified", label = "target button", risk = "none", secret = false, x = width / 2.0, y = height / 2.0, button = "left", amount = 4, end_x = width * 0.75, end_y = height * 0.75, duration = 100, keys = "ESC", text = "a", transition });
+                    return System.Text.Json.JsonSerializer.Serialize(new { action, frame = frame ?? data.RootElement.GetProperty("frame").GetString(), previous_effect = turns++ == 0 ? "none" : "verified", label = "target button", risk = "none", secret = false, x = width / 2.0, y = height / 2.0, button = "left", amount = 4, end_x = width * 0.75, end_y = height * 0.75, duration = 100, keys = "CTRL+C", text = "abc", transition });
                 }
                 events.Clear();
                 runner.Think = (jpeg, system, instruction) => Order(instruction);
@@ -5668,12 +5668,13 @@ namespace CapriDesktop
                         string.Join(",", events.ConvertAll(ev => ev.Kind)) != "5,5,1,2" || events.Exists(ev => ev.At.X != -1320 || ev.At.Y != 300)) throw new Exception("Mac nudge cancelled a job or moved its click");
                 }
                 checks.Add("PASS Mac nudges during inference, before a click, at completion and between game turns keep the job running on its target");
-                foreach (string action in new[] { "scroll", "double_click", "drag", "press", "type" })
+                foreach (string action in new[] { "click", "scroll", "double_click", "drag", "press", "type" })
                 {
                     events.Clear(); turns = 0;
                     MacFingers.Point aimed = cursor;
-                    bool held = false;
-                    int nudges = 0;
+                    bool held = false, keyboard = action == "press" || action == "type";
+                    int nudges = 0, reads = 0;
+                    MacFingers.Position = delegate { reads++; return cursor; };
                     MacFingers.Pause = ms =>
                     {
                         cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40); nudges++;
@@ -5682,7 +5683,7 @@ namespace CapriDesktop
                     {
                         events.Add(ev);
                         if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At;
-                        if (ev.Kind == 1 || ev.Kind == 22 || ev.Kind == 10)
+                        if (ev.Kind == 1 || ev.Kind == 22)
                         {
                             if (cursor.X != aimed.X || cursor.Y != aimed.Y) throw new Exception("Mac did not restore its pointer before input");
                         }
@@ -5694,7 +5695,7 @@ namespace CapriDesktop
                     {
                         if (turns == 0)
                         {
-                            if (action != "press" && action != "type") aimed = new MacFingers.Point(-1320, 300);
+                            if (!keyboard) aimed = new MacFingers.Point(-1320, 300);
                             cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40); nudges++;
                         }
                         return Order(instruction, turns == 0 ? action : "done");
@@ -5702,8 +5703,10 @@ namespace CapriDesktop
                     ComputerJob nudged = new ComputerJob { Task = "use the target" };
                     runner.Run(nudged, CancellationToken.None);
                     if (nudged.TotalSteps != 1 || turns != 2 || nudges == 0 || held) throw new Exception("Mac nudge failed an input step");
+                    if (keyboard && (reads != 0 || events.Count != (action == "type" ? 6 : 4) || events.Exists(ev => ev.Kind != 10 && ev.Kind != 11))) throw new Exception("Mac typing or keys settled or moved the pointer");
+                    if (!keyboard && (reads == 0 || events[0].Kind != 5 || events[1].Kind != 5)) throw new Exception("Mac mouse input did not settle first");
                     if (action == "scroll" && (events.Count != 3 || events[^1].Kind != 22 || events[^1].At.X != aimed.X || events[^1].At.Y != aimed.Y || events[^1].Wheel != -4)) throw new Exception("Mac nudge scrolled away from its target");
-                    if (action == "double_click" && (events.FindAll(ev => ev.Kind == 1).Count != 2 || events.Exists(ev => ev.At.X != aimed.X || ev.At.Y != aimed.Y))) throw new Exception("Mac nudge moved a double click");
+                    if ((action == "click" || action == "double_click") && (events.FindAll(ev => ev.Kind == 1).Count != (action == "click" ? 1 : 2) || events.FindAll(ev => ev.Kind == 2).Count != (action == "click" ? 1 : 2) || events.Exists(ev => ev.At.X != aimed.X || ev.At.Y != aimed.Y))) throw new Exception("Mac nudge moved a click or its release");
                     if (action == "drag")
                     {
                         if (nudges < 20 || events[^1].Kind != 2 || events[^1].At.X != -1120 || events[^1].At.Y != 400 || events.FindAll(ev => ev.Kind == 1).Count != 1) throw new Exception("Mac nudge lost the drag endpoint or release");
@@ -5711,7 +5714,20 @@ namespace CapriDesktop
                             if (ev.At.X < -1320 || ev.At.X > -1120 || ev.At.Y != 300 + (ev.At.X + 1320) / 2) throw new Exception("Mac drag followed the owner's pointer");
                     }
                 }
-                checks.Add("PASS Mac restores its pointer before presses, scrolls and drags; nudged scrolls, double clicks and drag events keep their own points");
+                MacFingers.Position = () => cursor;
+                checks.Add("PASS Mac typing and key presses never settle or post pointer moves during owner movement");
+                checks.Add("PASS Mac mouse presses, scrolls and drags settle first and keep their points through owner movement during holds");
+                MacFingers.Sink = ev => { events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At; };
+                foreach (var offset in new[] { new { X = 0.25, Y = -0.25, Count = 3 }, new { X = -0.5, Y = 0.5, Count = 3 }, new { X = 0.75, Y = 0.0, Count = 4 }, new { X = 0.0, Y = -0.75, Count = 4 } })
+                {
+                    events.Clear(); turns = 0;
+                    MacFingers.Pause = ms => { if (ms == 20) cursor = new MacFingers.Point(cursor.X + offset.X, cursor.Y + offset.Y); };
+                    runner.Think = (jpeg, system, instruction) => Order(instruction, turns == 0 ? "click" : "done");
+                    ComputerJob nudged = new ComputerJob { Task = "click the target button" };
+                    runner.Run(nudged, CancellationToken.None);
+                    if (nudged.TotalSteps != 1 || turns != 2 || events.Count != offset.Count || events.Exists(ev => ev.At.X != -1320 || ev.At.Y != 300)) throw new Exception("Mac fractional settling moved a click or posted a redundant move");
+                }
+                checks.Add("PASS Mac settling ignores offsets up to half a point and restores larger offsets on either axis");
                 Hands.OnMac = false;
                 for (int phase = 0; phase < 3; phase++)
                 {
