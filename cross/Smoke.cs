@@ -6981,14 +6981,14 @@ namespace CapriDesktop
                 || !RemoteMessages.IdOk("a_Z-09") || RemoteMessages.IdOk("a b") || RemoteMessages.IdOk(new string('a', 65))) throw new Exception("Remote protocol messages changed.");
             checks.Add("PASS Remote core JSON: values and text round-trip, malformed JSON and UTF-8 fail, and control and chat messages keep their protocol fields");
 
-            if (RemoteMessages.ToolMove("move_yourself", new ToolArguments { Action = "lie_down" }) != "lie_down" ||
-                RemoteMessages.ToolMove("move_yourself", new ToolArguments { Action = "sit" }) != "sit" ||
-                RemoteMessages.ToolMove("move_yourself", new ToolArguments { Action = "sit_on" }) != "sit" ||
-                RemoteMessages.ToolMove("move_yourself", new ToolArguments { Action = "sit_up" }) != "sit" ||
-                RemoteMessages.ToolMove("animate", new ToolArguments { Name = "heart" }) != "heart" ||
-                RemoteMessages.ToolMove("animate", new ToolArguments { Name = "grin" }) != null ||
-                RemoteMessages.ToolMove("move_yourself", new ToolArguments { Action = "stand_up" }) != null ||
-                RemoteMessages.ToolMove("animate", null) != null) throw new Exception("Room moves did not match her tools.");
+            if (RemoteMessages.ToolMove("move_yourself", "lie_down", null) != "lie_down" ||
+                RemoteMessages.ToolMove("move_yourself", "sit", null) != "sit" ||
+                RemoteMessages.ToolMove("move_yourself", "sit_on", null) != "sit" ||
+                RemoteMessages.ToolMove("move_yourself", "sit_up", null) != "sit" ||
+                RemoteMessages.ToolMove("animate", null, "heart") != "heart" ||
+                RemoteMessages.ToolMove("animate", null, "grin") != null ||
+                RemoteMessages.ToolMove("move_yourself", "stand_up", null) != null ||
+                RemoteMessages.ToolMove("animate", null, null) != null) throw new Exception("Room moves did not match her tools.");
             foreach (string move in new[] { "sit", "lie_down", "heart" })
             {
                 if (RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "done", null, move)).Text("move") != move ||

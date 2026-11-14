@@ -492,7 +492,7 @@ namespace CapriDesktop
             if (sink == null) return null;
             RemoteAsker asker = RemoteAskerFor(ticket, false);
             if (asker == null || !RemoteCurrent(asker)) return null;
-            RemoteToolRun run = new RemoteToolRun { Device = asker.Device, Re = asker.Id, Id = RemoteMessages.NewId(), Name = tool ?? "tool", Summary = RemoteToolWords(tool, args), Move = RemoteMessages.ToolMove(tool, args), Current = asker.Current };
+            RemoteToolRun run = new RemoteToolRun { Device = asker.Device, Re = asker.Id, Id = RemoteMessages.NewId(), Name = tool ?? "tool", Summary = RemoteToolWords(tool, args), Move = args == null ? null : RemoteMessages.ToolMove(tool, args.Action, args.Name), Current = asker.Current };
             sink.Tool(run.Device, run.Id, run.Name, run.Summary, "running", run.Re);
             return run;
         }

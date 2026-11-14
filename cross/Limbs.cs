@@ -178,7 +178,7 @@ namespace CapriDesktop
             if (!args.Current()) return RemoteTurn.Ended;
             string id = RemoteMessages.NewId(), summary = RemoteTurn.Words(tool, args);
             string name = summary == "Using a tool" ? "tool" : tool;
-            string move = RemoteMessages.ToolMove(tool, args);
+            string move = RemoteMessages.ToolMove(tool, args.Action, args.Name);
             if (move == "heart") move = null;
             phone.Tool(id, name, summary, "running");
             string done;
