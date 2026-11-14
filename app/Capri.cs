@@ -6943,7 +6943,7 @@ namespace CapriDesktop
             preferences.KeepAllHistory = false;
             SavePreferences();
             Preferences disk;
-            bool reached = Retention.Readable(settingsPath, out disk) && !disk.KeepAllHistory;
+            bool reached = Retention.Mentions(settingsPath, "\"KeepAllHistory\"") && Retention.Readable(settingsPath, out disk) && !disk.KeepAllHistory;
             if (!reached)
             {
                 // The save didn't land: keep protecting rather than delete on a choice she never stored.

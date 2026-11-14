@@ -85,9 +85,70 @@ namespace CapriDesktop
 
         internal static bool Mentions(string path, string token)
         {
-            try { return File.ReadAllText(path).IndexOf(token, StringComparison.Ordinal) >= 0; }
-            catch (IOException) { return true; }
-            catch (UnauthorizedAccessException) { return true; }
+            string text;
+            try { text = File.ReadAllText(path); }
+            catch (IOException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
+            if (token == null) return false;
+            string name = token;
+            if (name.Length >= 2 && name[0] == '"' && name[name.Length - 1] == '"') name = name.Substring(1, name.Length - 2);
+            if (name.Length == 0) return false;
+            int at = 0;
+            while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
+            if (at >= text.Length || text[at] != '{') return false;
+            at++;
+            while (true)
+            {
+                while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
+                if (at >= text.Length || text[at] == '}') return false;
+                int start = at;
+                if (!SkipString(text, ref at)) return false;
+                if (at - start - 2 == name.Length && string.CompareOrdinal(text, start + 1, name, 0, name.Length) == 0) return true;
+                while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
+                if (at >= text.Length || text[at] != ':') return false;
+                at++;
+                if (!SkipValue(text, ref at)) return false;
+                while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
+                if (at >= text.Length) return false;
+                if (text[at] == ',') { at++; continue; }
+                return false;
+            }
+        }
+
+        private static bool SkipString(string text, ref int at)
+        {
+            if (at >= text.Length || text[at] != '"') return false;
+            at++;
+            while (at < text.Length)
+            {
+                char c = text[at];
+                if (c == '\\') { at += 2; continue; }
+                if (c == '"') { at++; return true; }
+                at++;
+            }
+            return false;
+        }
+
+        private static bool SkipValue(string text, ref int at)
+        {
+            while (at < text.Length && char.IsWhiteSpace(text[at])) at++;
+            if (at >= text.Length) return false;
+            if (text[at] == '"') return SkipString(text, ref at);
+            if (text[at] == '{' || text[at] == '[')
+            {
+                int depth = 0;
+                while (at < text.Length)
+                {
+                    char c = text[at];
+                    if (c == '"') { if (!SkipString(text, ref at)) return false; continue; }
+                    if (c == '{' || c == '[') { depth++; at++; continue; }
+                    if (c == '}' || c == ']') { depth--; at++; if (depth == 0) return true; continue; }
+                    at++;
+                }
+                return false;
+            }
+            while (at < text.Length && text[at] != ',' && text[at] != '}' && text[at] != ']') at++;
+            return at < text.Length;
         }
 
         // Reads a settings file only when it is whole, so a half-written one can't hand back a silent default and let

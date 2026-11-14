@@ -3947,10 +3947,11 @@ namespace CapriDesktop
         internal static bool KeepAllOff(string folder, Settings saved, Action save, Action sync, Func<string, bool> clearMarker)
         {
             string marker = Path.Combine(folder, "keep-all");
+            string settingsFile = Path.Combine(folder, "cross.json");
             saved.KeepAllHistory = false;
             save();
             Settings disk;
-            bool reached = Retention.Readable(Path.Combine(folder, "cross.json"), out disk) && !disk.KeepAllHistory;
+            bool reached = Retention.Mentions(settingsFile, "\"KeepAllHistory\"") && Retention.Readable(settingsFile, out disk) && !disk.KeepAllHistory;
             if (!reached)
             {
                 // The save didn't land: keep protecting rather than delete on a choice she never stored.

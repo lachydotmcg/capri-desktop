@@ -1064,6 +1064,33 @@ namespace CapriDesktop
                     Directory.Delete(deniedDir, true);
                 }
                 checks.Add("PASS keep all history: the switch, its marker or a settings file from before the choice all keep everything, a marker she cannot delete leaves the switch on, and half-written or trailing-comma settings are left alone");
+                string mentionDir = Path.Combine(folder, "mention-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(mentionDir);
+                string mentionConfig = Path.Combine(mentionDir, "cross.json");
+                File.WriteAllText(mentionConfig, "{\"ClipFolder\":\"KeepAllHistory\"}");
+                bool mentionValue = !Retention.Mentions(mentionConfig, "\"KeepAllHistory\"");
+                File.WriteAllText(mentionConfig, "{\"Note\":\"\\\"KeepAllHistory\\\":false\"}");
+                bool mentionQuoted = !Retention.Mentions(mentionConfig, "\"KeepAllHistory\"");
+                File.WriteAllText(mentionConfig, "{\"KeepAllHistory\":false}");
+                bool mentionKey = Retention.Mentions(mentionConfig, "\"KeepAllHistory\"");
+                File.WriteAllText(mentionConfig, "{\"Nested\":{\"KeepAllHistory\":false}}");
+                bool mentionNested = !Retention.Mentions(mentionConfig, "\"KeepAllHistory\"");
+                bool mentionMissing = !Retention.Mentions(Path.Combine(mentionDir, "missing.json"), "\"KeepAllHistory\"");
+                Directory.Delete(mentionDir, true);
+                string legacyDir = Path.Combine(folder, "legacy-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(legacyDir);
+                string legacyMarker = Path.Combine(legacyDir, "keep-all");
+                File.WriteAllText(legacyMarker, "1");
+                string legacyConfig = Path.Combine(legacyDir, "cross.json");
+                File.WriteAllText(legacyConfig, "{\"Language\":\"en\"}");
+                Settings legacy = new Settings { KeepAllHistory = false };
+                Action legacySave = delegate { File.WriteAllText(legacyConfig, "{\"Language\":\"en\"}"); };
+                bool legacyEffective = Pet.KeepAllOff(legacyDir, legacy, legacySave, delegate { }, delegate(string path) { try { if (File.Exists(path)) File.Delete(path); } catch (IOException) { } return !File.Exists(path); });
+                bool legacyKept = legacyEffective && legacy.KeepAllHistory && File.Exists(legacyMarker);
+                Directory.Delete(legacyDir, true);
+                if (!mentionValue || !mentionQuoted || !mentionKey || !mentionNested || !mentionMissing || !legacyKept)
+                    throw new Exception("Keep all history read a value as the choice or cleared its marker after a save that never wrote the choice: value " + mentionValue + ", quoted " + mentionQuoted + ", key " + mentionKey + ", nested " + mentionNested + ", missing " + mentionMissing + ", legacy " + legacyKept);
+                checks.Add("PASS keep all history: only the top-level choice counts, a missing or unreadable settings file keeps everything, and a save that never wrote the choice leaves the marker on");
                 // Her recall cache keeps a bounded set of days and forgets the ones she no longer has; the shared word
                 // set is bounded too, so a long history can't grow it until the app closes.
                 string dugDir = Path.Combine(folder, "dug-" + Guid.NewGuid().ToString("N"));
