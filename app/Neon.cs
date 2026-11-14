@@ -312,6 +312,7 @@ namespace CapriDesktop
         internal Color Accent = Neon.Rose;
         internal bool Solid;
         internal int Glyph;
+        internal float Unit;
         private bool hot;
         private bool down;
 
@@ -335,7 +336,7 @@ namespace CapriDesktop
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            float s = DeviceDpi / 96f;
+            float s = Unit > 0 ? Unit : DeviceDpi / 96f;
             Graphics graphics = e.Graphics;
             Neon.Behind(graphics, this, 210 * s);
             graphics.SmoothingMode = SmoothingMode.AntiAlias;
