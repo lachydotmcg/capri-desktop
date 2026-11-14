@@ -100,6 +100,15 @@ namespace CapriDesktop
         internal void Tick(double now)
         {
             if (finished) return;
+            string relay = Environment.GetEnvironmentVariable("CAPRI_SMOKE_REMOTE_RELAY");
+            if (relay != null)
+            {
+                string failure = null;
+                try { RemoteSocketChecks(relay); }
+                catch (Exception error) { failure = error.Message; }
+                Finish(failure, false);
+                return;
+            }
             if (started < 0) started = now;
             if (stepStart < 0) stepStart = now;
             if (now - started > 180) { Finish("Timed out at step " + step + "."); return; }
@@ -6412,6 +6421,57 @@ namespace CapriDesktop
             }
         }
 
+        private void RemoteSocketChecks(string relay)
+        {
+            string provider = Environment.GetEnvironmentVariable("CAPRI_SMOKE_REMOTE_PROVIDER");
+            if (RemoteLink.RelayBase(relay) != relay || !relay.StartsWith("ws://127.0.0.1:", StringComparison.Ordinal)
+                || !Uri.TryCreate(provider, UriKind.Absolute, out Uri address) || address.Scheme != "http" || address.Host != "127.0.0.1"
+                || Directory.Exists(Path.Combine(folder, "remote-socket"))) throw new Exception("Remote socket smoke needs loopback addresses and a fresh smoke folder.");
+            string path = Path.Combine(folder, "remote-socket");
+            Directory.CreateDirectory(path);
+            var frames = (Avalonia.Threading.DispatcherTimer)RemoteWire.Get(pet, "frames");
+            frames.Stop();
+            RemoteLink link = null;
+            try
+            {
+                pet.Saved = new Settings { Silent = true, VoiceProvider = Speakers.Off, RemoteHost = relay };
+                pet.RemoteFiles = new RemoteStore(path);
+                pet.RemoteMake = (state, host, save) => link = new RemoteLink(state, host, Environment.MachineName, "capri/" + typeof(Pet).Assembly.GetName().Version, save);
+                pet.Brain.Remote = null;
+                pet.Brain.SetServer(provider, null);
+                pet.Brain.Model = "remote-socket-test";
+                pet.SetRemote(true);
+                if (link == null) throw new Exception("Remote socket smoke did not create the host link.");
+                link.Start();
+                SocketWait(() => pet.ReadRemote().Ready, "the desktop relay connection");
+                pet.NewRemoteCode();
+                SocketWait(() => pet.ReadRemote().Qr != null, "the desktop pairing URL");
+                File.WriteAllText(Path.Combine(path, "qr"), pet.ReadRemote().Qr);
+                SocketWait(() => pet.ReadRemote().Ask != null, "the phone's pairing request");
+                string code = pet.ReadRemote().Ask.Code;
+                File.WriteAllText(Path.Combine(path, "code"), code);
+                string allow = Path.Combine(path, "allow");
+                SocketWait(() => File.Exists(allow) && File.ReadAllText(allow) == code, "matching browser and desktop codes");
+                pet.AllowRemote();
+                SocketWait(() => pet.ReadRemote().Online.Count == 1, "the paired phone session");
+                SocketWait(() => File.Exists(Path.Combine(path, "replied")), "the phone's completed chat reply");
+                if (new RemoteStore(path).Load(out RemoteState state, out string host) != RemoteStoreResult.Read || host != relay || state.Devices.Count != 1)
+                    throw new Exception("Remote socket smoke did not save the paired phone.");
+                checks.Add("PASS Remote socket: the desktop paired a browser phone, saved it and answered its chat through the loopback relay");
+            }
+            finally
+            {
+                pet.SetRemote(false);
+            }
+        }
+
+        private static void SocketWait(Func<bool> ready, string what)
+        {
+            Stopwatch wait = Stopwatch.StartNew();
+            while (!ready() && wait.ElapsedMilliseconds < 15000) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(10); }
+            if (!ready()) throw new Exception("Remote socket smoke timed out waiting for " + what + ".");
+        }
+
         private void RemoteCoreChecks()
         {
             string words = "Phone \"one\"\n\t\\\u0001 \uD83D\uDE00 \uD800";
@@ -8606,7 +8666,7 @@ namespace CapriDesktop
             public void Error(string device, string code, string re) { wire.Error(device, code, re); record.Error(device, code, re); }
         }
 
-        private void Finish(string failure)
+        private void Finish(string failure, bool systemQuit = true)
         {
             if (finished) return;
             finished = true;
@@ -8624,7 +8684,8 @@ namespace CapriDesktop
             lines.Insert(0, "Capri cross-platform smoke test on " + System.Runtime.InteropServices.RuntimeInformation.OSDescription);
             if (failure != null) lines.Add("FAIL " + failure);
             File.WriteAllLines(Path.Combine(folder, "smoke-test.txt"), lines);
-            if (failure != null || !SystemQuit(lines)) pet.Finish(1);
+            if (!systemQuit) pet.Finish(failure == null ? 0 : 1);
+            else if (failure != null || !SystemQuit(lines)) pet.Finish(1);
         }
 
         // Last of all, because it ends her. A Mac's Quit and logging out close her windows this way, and one window saying no leaves
