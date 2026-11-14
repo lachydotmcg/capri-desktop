@@ -4983,7 +4983,8 @@ namespace CapriDesktop
         private static void MainframeEnter(Mainframe frame, string row, string text)
         {
             var entry = (NeonEntry)frame.Row(row); entry.Box.Text = text;
-            entry.Box.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter });
+            frame.StrikeDown(Key.Enter, control: entry.Box);
+            frame.StrikeUp(Key.Enter, control: entry.Box);
         }
 
         private void MainframeConnections(Mainframe frame)
