@@ -56,7 +56,7 @@ test('the phone room camera starts on request and releases its tracks', { skip: 
     await site.close();
   }
 });
-import { roomRig } from './lib/room.mjs';
+import { roomRig, roomPosition, roomPointer, dragRoom } from './lib/room.mjs';
 import { tone } from './lib/live.mjs';
 import { verifyArt } from './lib/room-art.mjs';
 
@@ -90,7 +90,7 @@ test('room voice, tool moves, teardown and AR use the call audio without a mic',
     await page.until("document.getElementById('room-sprite').style.backgroundImage.includes('perch_talk.png')", 'sitting talk frames');
     await move('heart');
     assert.equal(await value('room-love'), 'true');
-    assert.equal(await page.run("document.getElementById('room-heart').hidden"), false);
+    await page.until("!document.getElementById('room-heart').hidden", 'heart shown');
     await page.send('Emulation.setEmulatedMedia', { features: [{name:'prefers-reduced-motion',value:'reduce'}] });
     await move('heart');
     assert.equal(await value('room-love'), 'true');
@@ -123,10 +123,17 @@ test('room voice, tool moves, teardown and AR use the call audio without a mic',
     await quiet();
     await r.open();
     await pc.voice('room', tone(24000, 2, 220));
+    const requests = await page.run('cameraRequests.length');
     await r.state('offline');
-    await quiet();
+    await page.until("contexts.every(c => c.state === 'closed') && CapriCall.stats().playing === 0 && !CapriCall.listening", 'voice stopped on link loss');
+    assert.equal(await page.run("document.getElementById('room').hidden"), false);
+    assert.equal(await page.run("cameraRequests.at(-1).stream.getVideoTracks()[0].readyState"), 'live');
+    await page.until("!document.getElementById('room-sprite').style.backgroundImage.includes('_talk')", 'quiet frames on link loss');
     await r.state('connected');
-    await r.open();
+    await page.until('CapriCall.listening', 'room voice reconnected');
+    await pc.voice('room', tone(24000, 1, 220));
+    await page.until("document.getElementById('room-sprite').style.backgroundImage.includes('_talk')", 'talk frames reconnected');
+    assert.equal(await page.run('cameraRequests.length'), requests);
     await page.run("document.getElementById('app').dataset.screen='pair'");
     await page.until("document.getElementById('room').hidden", 'room closed with chat');
     await quiet();
@@ -142,7 +149,7 @@ test('room voice, tool moves, teardown and AR use the call audio without a mic',
     await page.run("Object.defineProperty(document,'hidden',{configurable:true,value:true});document.dispatchEvent(new Event('visibilitychange'))");
     await quiet();
     await page.run("Object.defineProperty(document,'hidden',{configurable:true,value:false})");
-    assert.deepEqual(await page.run('({ends:xrState.ends,cancels:xrState.cancels})'), { ends: 1, cancels: 1 });
+    assert.deepEqual(await page.run('({ends:xrState.ends,cancels:xrState.cancels,transientCancels:xrState.transientCancels})'), { ends: 1, cancels: 1, transientCancels: 1 });
     await r.open();
     await page.run('xrState.hold = true');
     await click('room-track');
@@ -187,5 +194,145 @@ test('room gives plain voice status, remembers Voice and keeps phone mode silent
     await r.open();
     assert.equal(await r.page.run("document.getElementById('room-voice').getAttribute('aria-pressed')"), 'false');
     assert.equal(await r.page.run('contexts.length'), 0);
+  } finally { await r.close(); }
+});
+
+test('room drags with mouse, touch and pen, keeps her frames, and uses transient AR hits', { skip: !chromePath() }, async () => {
+  const r = await roomRig({port:29886,chrome:29896});
+  const { page, click } = r;
+  const near = (actual, expected) => assert.ok(Math.abs(actual - expected) <= 1, actual + ' != ' + expected);
+  const tap = async (x, y, type = 'mouse') => {
+    await roomPointer(page,type,'down',x,y); await roomPointer(page,type,'up',x,y);
+  };
+  try {
+    await setPhone(page, [390,844], HOME_SCREEN);
+    await page.send('Emulation.setTouchEmulationEnabled', {enabled:true,maxTouchPoints:1});
+    await r.open();
+    await page.until("document.getElementById('room-sprite').dataset.fit === 'perch'", 'drag art');
+    assert.equal(await page.run("document.getElementById('room-status').textContent"), 'Drag Capri to move her.');
+    assert.match(await page.run("document.getElementById('room-place').getAttribute('aria-label')"), /Drag.*arrow keys/);
+    await page.run("window.placeTaps=0; document.addEventListener('click',e=>{if(e.target.id==='room-place')placeTaps++;})");
+    for (const type of ['mouse','touch','pen']) {
+      await click('room-place');
+      const taps = await page.run('placeTaps');
+      const {start,live,end} = await dragRoom(page,type,30,-18);
+      near(live.left,start.left + 30); near(live.top,start.top - 18);
+      near(end.left,live.left); near(end.top,live.top);
+      assert.equal(await page.run('placeTaps'), taps);
+      const before = await roomPosition(page);
+      await tap(before.x,before.y,type);
+      const after = await roomPosition(page);
+      const box = await page.run("(() => {const b=document.getElementById('room-view').getBoundingClientRect();return {left:b.left,top:b.top};})()");
+      near(after.left,Math.max(after.width * .16,Math.min(after.width * .84,before.x - box.left)));
+      near(after.top,Math.max(after.height * .42,Math.min(after.height * .98,before.y - box.top)));
+      assert.equal(await page.run('placeTaps'), taps + 1);
+    }
+    await click('room-place');
+    let start = await roomPosition(page);
+    await roomPointer(page,'mouse','down',start.x,start.y);
+    await roomPointer(page,'mouse','move',start.x + 3,start.y + 2);
+    await roomPointer(page,'mouse','up',start.x + 3,start.y + 2);
+    assert.equal(await page.run('placeTaps'), 8);
+    const box = await page.run("(() => {const b=document.getElementById('room-view').getBoundingClientRect();return {left:b.left,top:b.top,width:b.width,height:b.height};})()");
+    await tap(box.left + box.width * .8,box.top + box.height * .9);
+    let pos = await roomPosition(page);
+    near(pos.left,box.width * .8); near(pos.top,box.height * .9);
+    await click('room-place');
+    for (const [dx,dy,x,y] of [[-1000,-1000,.16,.42],[1000,1000,.84,.98]]) {
+      const {end} = await dragRoom(page,'mouse',dx,dy);
+      near(end.left,end.width * x); near(end.top,end.height * y);
+    }
+    await click('room-place');
+    await page.run("document.getElementById('room-place').focus()");
+    start = await roomPosition(page);
+    for (const [key,code,modifiers] of [['ArrowRight',39,0],['ArrowUp',38,8]]) {
+      await page.send('Input.dispatchKeyEvent',{type:'keyDown',key,code:key,windowsVirtualKeyCode:code,modifiers});
+      await page.send('Input.dispatchKeyEvent',{type:'keyUp',key,code:key,windowsVirtualKeyCode:code,modifiers});
+    }
+    pos = await roomPosition(page); near(pos.left,start.left + 5); near(pos.top,start.top - 20);
+    for (const [pose,clip] of [['room-sit','perch_talk.png'],['room-lie','laydown_talk.png']]) {
+      await click('room-place'); await click(pose); await r.pc.voice('room', tone(24000, 3, 220));
+      await page.until("document.getElementById('room-sprite').style.backgroundImage.includes(" + JSON.stringify(clip) + ")", 'drag talking art');
+      await click('room-love');
+      await page.until("!document.getElementById('room-heart').hidden", 'drag heart');
+      start = await roomPosition(page);
+      await roomPointer(page,'mouse','down',start.x,start.y);
+      await roomPointer(page,'mouse','move',start.x + 20,start.y - 10);
+      const frame = await page.run("document.getElementById('room-sprite').style.backgroundPosition");
+      await page.until("document.getElementById('room-sprite').style.backgroundPosition !== " + JSON.stringify(frame), 'frames playing during drag');
+      assert.equal(await page.run("document.getElementById('room-heart').hidden"), false);
+      assert.equal(await page.run("document.getElementById('" + pose + "').getAttribute('aria-pressed')"), 'true');
+      assert.equal(await page.run("document.getElementById('room-sprite').style.backgroundImage.includes(" + JSON.stringify(clip) + ")"), true);
+      await roomPointer(page,'mouse','up',start.x + 20,start.y - 10);
+    }
+    await page.run('xrState.hit = [0.2,0.6,-2]');
+    await click('room-track');
+    await page.until("document.getElementById('app').dataset.room === 'ar' && document.getElementById('room-view').hasAttribute('data-surface')", 'drag AR');
+    assert.equal(await page.run('xrState.profile'), 'generic-touchscreen');
+    await click('room-place');
+    await page.until("document.getElementById('room-her').style.left === '55%'", 'AR seat');
+    start = await roomPosition(page);
+    await roomPointer(page,'touch','down',start.x,start.y);
+    await roomPointer(page,'touch','move',start.x + 25,start.y + 10);
+    await page.run('xrState.touch = [0.8,0.2,-2]');
+    await page.until("document.getElementById('room-her').style.left === '70%'", 'transient finger hit');
+    assert.equal(await page.run("document.getElementById('room-her').style.top"), '45%');
+    await page.run('xrState.touch = null; xrState.hit = [-0.5,0.6,-2]');
+    await page.run('new Promise(resolve=>setTimeout(resolve,100))');
+    assert.equal(await page.run("document.getElementById('room-her').style.left"), '70%');
+    await roomPointer(page,'touch','up',start.x + 25,start.y + 10);
+    await page.run('new Promise(resolve=>setTimeout(resolve,100))');
+    assert.equal(await page.run("document.getElementById('room-her').style.left"), '70%');
+    await click('room-close');
+    assert.equal(await page.run('xrState.transientCancels'), 1);
+    for (const setting of ['noTransient','rejectTransient']) {
+      await page.run('xrState.' + setting + ' = true');
+      await r.open(); await click('room-track');
+      await page.until("document.getElementById('app').dataset.room === 'ar' && document.getElementById('room-view').hasAttribute('data-surface')", 'AR without transient hits');
+      await click('room-place');
+      await page.until("!document.getElementById('room-her').hidden", 'AR fallback seat');
+      const left = await page.run("document.getElementById('room-her').style.left");
+      await dragRoom(page,'touch',20,10);
+      assert.equal(await page.run("document.getElementById('room-her').style.left"), left);
+      assert.equal(await page.run("document.getElementById('room-status').textContent"), '');
+      await click('room-close');
+      await page.run('xrState.' + setting + ' = false');
+    }
+    await r.open(); await page.run('xrState.holdTransient = true'); await click('room-track');
+    await page.until('typeof xrState.releaseTransient === "function"', 'late transient source');
+    await click('room-close'); await page.run('xrState.releaseTransient()');
+    await page.until('xrState.transientCancels === 2', 'late transient source cancelled');
+  } finally { await r.close(); }
+});
+
+test('room preloads the heart and gives it a full turn after a slow load', { skip: !chromePath() }, async () => {
+  const r = await roomRig({heart:true,port:29887,chrome:29897});
+  try {
+    await r.open(); await r.heart.ready;
+    assert.equal(await r.page.run("document.getElementById('room-heart').hidden"), true);
+    await r.click('room-love'); await r.click('room-love');
+    await r.page.run('new Promise(resolve=>setTimeout(resolve,3800))');
+    assert.equal(r.heart.requests.length, 1);
+    assert.equal(await r.page.run("document.getElementById('room-heart').hidden"), true);
+    await r.heart.finish();
+    await r.page.until("!document.getElementById('room-heart').hidden", 'loaded heart shown');
+    await r.page.run('new Promise(resolve=>setTimeout(resolve,3300))');
+    assert.equal(await r.page.run("document.getElementById('room-heart').hidden"), false);
+    await r.page.until("document.getElementById('room-heart').hidden", 'full heart time finished');
+    await r.click('room-love');
+    await r.page.until("!document.getElementById('room-heart').hidden", 'heart plays again');
+    await r.click('room-close');
+    assert.equal(await r.page.run("document.getElementById('room-heart').hidden"), true);
+  } finally { await r.close(); }
+});
+
+test('room gives a plain status if the heart cannot load', { skip: !chromePath() }, async () => {
+  const r = await roomRig({heart:true,port:29888,chrome:29898});
+  try {
+    await r.open(); await r.heart.ready; await r.click('room-love');
+    await r.heart.finish(true);
+    await r.page.until("document.getElementById('room-status').textContent === 'Heart.'", 'failed heart status');
+    assert.equal(await r.page.run("document.getElementById('room-heart').hidden"), true);
+    assert.equal(await r.page.run("document.getElementById('room-love').getAttribute('aria-pressed')"), 'true');
   } finally { await r.close(); }
 });

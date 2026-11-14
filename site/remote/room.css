@@ -20,7 +20,7 @@
 .room-view video, .room-heart, #room-place { position: absolute; inset: 0; width: 100%; height: 100%; }
 .room-view video, .room-heart { object-fit: cover; pointer-events: none; }
 .room-heart { object-fit: contain; }
-.room-view #room-place { padding: 0; border: 0; background: none; cursor: crosshair; }
+.room-view #room-place { padding: 0; border: 0; background: none; cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 #room-place:focus-visible { outline-offset: -2px; }
 .room-status {
   position: absolute;
