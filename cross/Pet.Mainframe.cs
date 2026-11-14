@@ -229,7 +229,7 @@ namespace CapriDesktop
         internal string MainframeVoiceProblem { get { return voiceProblem; } }
         internal bool MainframePulling { get { return pulling; } }
         internal string MainframeProgress { get { return pulling ? Pulling : null; } }
-        internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !ComputerJobs.Supported && !InputReady(); } }
+        internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !ComputerJobs.Supported && !(Program.Smoke == null ? InputReady() : fingers); } }
         internal int MainframeVoiceMode { get { return Saved.Silent || Speakers.Known(Saved.VoiceProvider) == Speakers.Off ? 0 : Speakers.Known(Saved.VoiceProvider) == Speakers.Local ? 2 : Speakers.Known(Saved.VoiceProvider) == Speakers.Owned ? 1 : 3; } }
         internal string MainframeUpdate { get { return updateChecking ? "Checking for updates..." : updateNote ?? UpdateNews ?? (updatePage == null ? "" : "An update is available."); } }
         internal string MainframeLocalAddress { get { return localVoice.Url ?? ""; } }

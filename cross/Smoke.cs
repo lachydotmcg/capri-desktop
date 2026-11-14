@@ -6231,18 +6231,33 @@ namespace CapriDesktop
             Func<string> problem = Hands.HandsProblem;
             bool own = Hands.OwnHands, advanced = pet.Saved.AdvancedSettings;
             const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
-            object fingers = typeof(Pet).GetField("fingers", fields).GetValue(pet);
+            System.Reflection.FieldInfo input = typeof(Pet).GetField("fingers", fields);
+            object fingers = input.GetValue(pet);
             Desk desk = pet.Desk;
             Func<PixelPoint?> mouse = pet.MouseAt;
             string display = Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
             Mainframe frame = null;
             const string missing = "There's no /dev/uinput yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
             const string denied = "I can't write to /dev/uinput yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
+            const string run = " Run this in a terminal and type your password:\n\n";
             try
             {
+                int probes = 0;
+                Fingers.Present = delegate { probes++; return true; };
+                Fingers.Writable = delegate { probes++; return true; };
+                foreach (bool available in new[] { false, true })
+                {
+                    input.SetValue(pet, available);
+                    Hands.OwnHands = available;
+                    if (pet.MainframeInputSetup != !available || probes != 0 || Hands.OwnHands != available || (bool)input.GetValue(pet) != available)
+                        throw new Exception("The Linux Mainframe probed input or changed readiness during smoke.");
+                }
+                checks.Add("PASS Linux input Mainframe keeps smoke readiness without probing the device");
+                input.SetValue(pet, false);
+                Hands.OwnHands = false;
                 Fingers.Present = delegate { return false; };
                 Fingers.Writable = delegate { return false; };
-                Hands.HandsReady = delegate { return !pet.MainframeInputSetup; };
+                Hands.HandsReady = delegate { return (bool)typeof(Pet).GetMethod("InputReady", fields).Invoke(pet, null); };
                 Hands.HandsProblem = delegate { return Fingers.Problem; };
                 if (Fingers.Problem != missing || !pet.MainframeInputSetup || Hands.OwnHands || Hands.Unable("use_computer", new ToolArguments()) != missing)
                     throw new Exception("Missing Linux input lost its live setup row or guidance.");
@@ -6259,19 +6274,53 @@ namespace CapriDesktop
                     throw new Exception("Linux input setup or its mouse toggle was shown before the device was ready.");
                 string copied = null;
                 pet.CopyFingersSetup(delegate(string command) { copied = command; return Task.FromResult(0); }).GetAwaiter().GetResult();
-                if (copied != Fingers.Setup || pet.Talk.Reply != missing + " Copied the command; paste it in a terminal and type your password.")
-                    throw new Exception("Linux setup did not copy its command and explain the missing device without a reopen.");
+                if (copied != Fingers.Setup || pet.Talk.Reply != missing + run + Fingers.Setup)
+                    throw new Exception("Linux setup hid its command after a successful clipboard copy.");
+                checks.Add("PASS Linux input setup shows its command after a successful clipboard copy");
+                pet.Talk.Dismiss();
+                pet.CopyFingersSetup(delegate { return Task.FromResult(0); }).GetAwaiter().GetResult();
+                if (pet.Talk.Reply != missing + run + Fingers.Setup)
+                    throw new Exception("Linux setup hid its command after a silent clipboard no-op.");
+                checks.Add("PASS Linux input setup shows its command after a silent clipboard no-op");
                 Fingers.Present = delegate { return true; };
                 if (Fingers.Problem != denied || Hands.Unable("use_computer", new ToolArguments()) != denied) throw new Exception("Linux input lost its not-writable guidance.");
                 TaskCompletionSource<bool> failed = new TaskCompletionSource<bool>();
                 failed.SetException(new IOException("No clipboard."));
                 foreach (Func<string, Task> copy in new Func<string, Task>[] { null, delegate { throw new IOException("No clipboard."); }, delegate { return failed.Task; } })
                 {
+                    pet.Talk.Dismiss();
                     pet.CopyFingersSetup(copy).GetAwaiter().GetResult();
-                    if (pet.Talk.Reply != denied + " Couldn't copy the command; run this in a terminal and type your password:\n\n" + Fingers.Setup)
+                    if (pet.Talk.Reply != denied + run + Fingers.Setup)
                         throw new Exception("Linux setup hid its command after a missing, throwing or failed clipboard.");
                 }
-                checks.Add("PASS Linux input setup reports missing and unwritable devices, awaits clipboard copying, shows the command on clipboard failure and never asks for a reopen");
+                checks.Add("PASS Linux input setup shows its command with a missing, throwing or failed clipboard");
+                TaskCompletionSource<bool> pending = new TaskCompletionSource<bool>();
+                SynchronizationContext context = SynchronizationContext.Current;
+                Task copying;
+                int replies = 0;
+                string answered = null;
+                try
+                {
+                    SynchronizationContext.SetSynchronizationContext(null);
+                    copying = pet.CopyFingersSetup(delegate { return pending.Task; }, delegate(string line) { replies++; answered = line; throw new IOException("No reply."); });
+                }
+                finally { SynchronizationContext.SetSynchronizationContext(context); }
+                if (copying.IsCompleted || replies != 0) throw new Exception("Linux setup did not wait for clipboard copying.");
+                pending.SetResult(true);
+                if (!copying.Wait(3000) || copying.Status != TaskStatus.RanToCompletion || replies != 1 || answered != denied + run + Fingers.Setup)
+                    throw new Exception("Linux setup let a reply failure escape after awaiting the clipboard.");
+                checks.Add("PASS Linux input setup contains a reply failure after awaiting the clipboard");
+                bool probed = false, triedCopy = false;
+                Fingers.Present = delegate { probed = true; throw new IOException("No input probe."); };
+                pet.CopyFingersSetup(delegate { triedCopy = true; return Task.FromResult(0); }).GetAwaiter().GetResult();
+                if (!probed || triedCopy) throw new Exception("Linux setup did not contain a readiness failure before copying.");
+                Fingers.Present = delegate { return true; };
+                Fingers.Writable = delegate { return true; };
+                replies = 0;
+                pet.CopyFingersSetup(delegate { triedCopy = true; return Task.FromResult(0); }, delegate { replies++; throw new IOException("No ready reply."); }).GetAwaiter().GetResult();
+                if (triedCopy || replies != 1) throw new Exception("Linux setup did not contain a ready reply failure.");
+                Fingers.Writable = delegate { return false; };
+                checks.Add("PASS Linux input setup contains readiness and ready reply failures");
                 string commandLine = "echo 'uinput' | sudo tee /etc/modules-load.d/capri-uinput.conf && echo '" + Fingers.Rule
                     + "' | sudo tee /etc/udev/rules.d/60-capri-uinput.rules && sudo udevadm control --reload && sudo modprobe uinput && sudo udevadm trigger --name-match=uinput && sudo udevadm settle";
                 if (Fingers.Setup != commandLine || Fingers.Setup.Contains("tee -a")) throw new Exception("Linux input setup lost its boot entry, module load, rules or repeatable writes.");
@@ -6286,6 +6335,7 @@ namespace CapriDesktop
                 pet.CopyFingersSetup(delegate { throw new Exception("Ready input copied setup again."); }).GetAwaiter().GetResult();
                 if (pet.Talk.Reply != "My mouse and keyboard are ready. Ask again.") throw new Exception("Linux setup did not recheck input when pressed.");
                 Fingers.Writable = delegate { return false; };
+                if (Hands.KitFor().Has("use_computer")) throw new Exception("Linux tools kept input after losing device access.");
                 frame.Sync();
                 pet.TrayMenu();
                 if (!pet.MainframeInputSetup || !setup.IsVisible || !menuSetup.IsVisible || !menuBreak.IsVisible || mouseToggle.IsVisible || Hands.KitFor().Has("use_computer"))
@@ -6309,7 +6359,7 @@ namespace CapriDesktop
                 if (frame != null) frame.Shut();
                 Fingers.Present = present; Fingers.Writable = writable; Hands.HandsReady = ready; Hands.HandsProblem = problem;
                 Hands.OwnHands = own; pet.Saved.AdvancedSettings = advanced;
-                typeof(Pet).GetField("fingers", fields).SetValue(pet, fingers);
+                input.SetValue(pet, fingers);
                 pet.Desk = desk; pet.MouseAt = mouse;
                 Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", display);
                 pet.Talk.Dismiss();

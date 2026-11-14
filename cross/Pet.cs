@@ -1513,9 +1513,9 @@ namespace CapriDesktop
             return fingers;
         }
 
-        internal async void CopyFingersSetup()
+        internal Task CopyFingersSetup()
         {
-            await CopyFingersSetup(delegate(string command)
+            return CopyFingersSetup(delegate(string command)
             {
                 Avalonia.Input.Platform.IClipboard board = Clipboard;
                 if (board == null) throw new InvalidOperationException();
@@ -1523,21 +1523,25 @@ namespace CapriDesktop
             });
         }
 
-        internal async Task CopyFingersSetup(Func<string, Task> copy)
+        internal async Task CopyFingersSetup(Func<string, Task> copy, Action<string> answer = null)
         {
             if (!OperatingSystem.IsLinux()) return;
-            if (HyprlandDesktop.Current != null)
+            try
             {
-                Talk.Answer("(mouse setup)", ComputerJobs.Available ? "Native compositor input is ready." : "Check the bundled native input helper and compositor protocol support. No global input setup was applied.");
-                return;
+                if (answer == null) answer = delegate(string line) { Talk.Answer("(mouse setup)", line); };
+                if (HyprlandDesktop.Current != null)
+                {
+                    answer(ComputerJobs.Available ? "Native compositor input is ready." : "Check the bundled native input helper and compositor protocol support. No global input setup was applied.");
+                    return;
+                }
+                string problem = Fingers.Problem;
+                Hands.OwnHands = fingers = problem == null;
+                if (fingers) { answer("My mouse and keyboard are ready. Ask again."); return; }
+                try { if (copy != null) await copy(Fingers.Setup); }
+                catch (Exception) { }
+                answer(problem + " Run this in a terminal and type your password:\n\n" + Fingers.Setup);
             }
-            string problem = Fingers.Problem;
-            Hands.OwnHands = fingers = problem == null;
-            if (fingers) { Talk.Answer("(mouse setup)", "My mouse and keyboard are ready. Ask again."); return; }
-            bool copied = false;
-            try { if (copy != null) { await copy(Fingers.Setup); copied = true; } }
             catch (Exception) { }
-            Talk.Answer("(mouse setup)", problem + (copied ? " Copied the command; paste it in a terminal and type your password." : " Couldn't copy the command; run this in a terminal and type your password:\n\n" + Fingers.Setup));
         }
 
         private HerCursor herPointer;
