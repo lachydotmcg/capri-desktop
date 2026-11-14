@@ -335,6 +335,7 @@ Each envelope holds one UTF-8 JSON object with a string `type`. Ignore unknown t
   - Updates with the same `id` replace each other.
   - `state` is `running`, `done` or `failed`.
   - `summary` is at most 200 characters of plain words, like "Searching the web for train times". It never contains tool arguments that could hold secrets.
+- **Room moves:** `chat.tool` may include `move` on `state: "done"`: `sit`, `lie_down` or `heart`. These come from successful `move_yourself` (`sit`, `sit_on`, `sit_up`, `lie_down`) or `animate` (`heart`) tools. No arguments or text are sent in this field. Older phones ignore it.
 - **`chat.typing`:**
   - From the PC: Capri is thinking or typing.
   - From the phone: its user is typing. The PC may ignore this.
@@ -425,6 +426,7 @@ A PC that lists `brains` in `hello-ok.features` lets a paired phone see which of
   - Errors carry the line id as `re`: `too-long`, `bad-message` (a part out of order or at another rate), `not-allowed` (no call), `busy` (her ears couldn't run).
   - The PC's own ears hear the line, the PC answers `call.heard`, and the words go to her as if said at the PC. Her answer comes back as `chat.reply` with `re` set to the line id.
   - `call.cancel` drops a line that's still coming in.
+- **Room listening:** a phone can use the existing `call` feature and `call.start` for voice alone, without opening its mic or call screen. Voice off, leaving the room or hiding the page sends `call.stop` and releases playback. Starting an ordinary call closes the room before starting the usual call. No extra feature or call field is needed. PCs without `call` keep the room silent.
 - **Her voice:** while she speaks, `call.voice` parts of a quarter second: mono 16-bit little-endian PCM at her speaker's rate, halved until it's 24 kHz or less. They're numbered from 0 in each call. `call.hush` means she stopped mid-line: drop whatever hasn't played.
   - A PC that lists `hush` voices its answer to a line or message from a phone whose `call.start` had `hush: true` a sentence at a time: each sentence's parts go as soon as it's voiced, while the next is made, so a pause can come between them. Other phones get each answer's parts at once.
 - **Interrupt:** the phone's `call.hush` stops her answer to `re` on the PC at once, with whatever of it is still to be voiced or sent, and the PC answers with its own `call.hush`. If she's saying something else by then, nothing changes and nothing comes back. A `call.hush` without a good `re` gets `bad-message`. Either way the phone drops her voice until it pauses for a second or the PC's `call.hush` comes. A PC that doesn't list `hush` never gets `call.hush`: the phone only drops her voice itself.

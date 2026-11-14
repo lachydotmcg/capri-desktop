@@ -34,7 +34,7 @@ namespace CapriDesktop
 
         private sealed class RemoteToolRun
         {
-            internal string Device, Re, Id, Name, Summary;
+            internal string Device, Re, Id, Name, Summary, Move;
         }
 
         private RemoteSettings RemotePrefs
@@ -438,16 +438,25 @@ namespace CapriDesktop
             if (sink == null) return null;
             RemoteAsker asker = RemoteAskerFor(ticket, false);
             if (asker == null) return null;
-            RemoteToolRun run = new RemoteToolRun { Device = asker.Device, Re = asker.Id, Id = RemoteMessages.NewId(), Name = tool ?? "tool", Summary = RemoteToolWords(tool, args) };
+            RemoteToolRun run = new RemoteToolRun { Device = asker.Device, Re = asker.Id, Id = RemoteMessages.NewId(), Name = tool ?? "tool", Summary = RemoteToolWords(tool, args), Move = RemoteToolMove(tool, args) };
             sink.Tool(run.Device, run.Id, run.Name, run.Summary, "running", run.Re);
             return run;
+        }
+
+        private static string RemoteToolMove(string tool, ToolArguments args)
+        {
+            if (args == null) return null;
+            if (tool == "animate" && args.Name == "heart") return "heart";
+            if (tool != "move_yourself") return null;
+            if (args.Action == "lie_down") return "lie_down";
+            return args.Action == "sit" || args.Action == "sit_on" || args.Action == "sit_up" ? "sit" : null;
         }
 
         private void RemoteToolEnd(object started, string done)
         {
             RemoteToolRun run = started as RemoteToolRun;
             RemoteSink sink = remoteSink;
-            if (run != null && sink != null) sink.Tool(run.Device, run.Id, run.Name, run.Summary, Hands.Failed(done) ? "failed" : "done", run.Re);
+            if (run != null && sink != null) sink.Tool(run.Device, run.Id, run.Name, run.Summary, Hands.Failed(done) ? "failed" : "done", run.Re, run.Move);
         }
 
         // The phone's message a ticket answers, if any. take: her answer is going, so the ticket is done with.
@@ -1160,7 +1169,7 @@ namespace CapriDesktop
 
             public void Error(string device, string code, string re) { lock (sent) sent.Add("error " + device + " " + re + " " + code); }
 
-            public void Tool(string device, string id, string name, string summary, string state, string re) { lock (sent) sent.Add("tool " + device + " " + re + " " + name + " " + state + ": " + summary); }
+            public void Tool(string device, string id, string name, string summary, string state, string re, string move = null) { lock (sent) sent.Add("tool " + device + " " + re + " " + name + " " + state + ": " + summary); }
 
             internal int Count { get { lock (sent) return sent.Count; } }
 
@@ -1270,7 +1279,7 @@ namespace CapriDesktop
     internal interface RemoteSink
     {
         void Reply(string device, string id, string re, string text, bool done);
-        void Tool(string device, string id, string name, string summary, string state, string re);
+        void Tool(string device, string id, string name, string summary, string state, string re, string move = null);
         void Error(string device, string code, string re);
     }
 
@@ -1284,7 +1293,7 @@ namespace CapriDesktop
         // fails goes in her log and her work carries on.
         public void Reply(string device, string id, string re, string text, bool done) { Guard(delegate { link.Reply(device, id, re, text, done); }); }
 
-        public void Tool(string device, string id, string name, string summary, string state, string re) { Guard(delegate { link.Tool(device, id, name, summary, state, re); }); }
+        public void Tool(string device, string id, string name, string summary, string state, string re, string move = null) { Guard(delegate { link.Tool(device, id, name, summary, state, re, move); }); }
 
         public void Error(string device, string code, string re) { Guard(delegate { link.Error(device, code, re); }); }
 

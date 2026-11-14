@@ -7,6 +7,20 @@
   const view = byId('room-view'), video = byId('room-video'), place = byId('room-place'), status = byId('room-status');
   const her = byId('room-her'), sprite = byId('room-sprite'), heart = byId('room-heart');
   const controls = byId('room-controls'), sit = byId('room-sit'), lie = byId('room-lie'), love = byId('room-love');
+  const voice = byId('room-voice'), voiceNote = byId('room-voice-note');
+  let voiceOn = true, oldVoice = false;
+  try { voiceOn = localStorage.getItem('capri-room-voice') !== 'off'; } catch (error) {}
+  voice.setAttribute('aria-pressed', String(voiceOn));
+  const voiceStatus = text => { if (!room.hidden && voiceOn) voiceNote.textContent = text; };
+  const startVoice = () => {
+    const r = window.CapriRemote, call = window.CapriCall;
+    if (!voiceOn || !r || r.info.native || r.info.demo || r.state !== 'connected') return;
+    if (!r.info.features?.includes('call')) {
+      if (!oldVoice) { voiceStatus('Her voice needs a newer Capri on your PC.'); oldVoice = true; }
+      return;
+    }
+    if (!call?.listen()) voiceStatus('Tap Voice to hear her.');
+  };
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const config = window.CAPRI_CONFIG || {};
   const shared = config.sprites || '../assets/sprites/';
@@ -14,8 +28,8 @@
   const clips = {
     perch: [shared + 'perch.webp', 10, 6, 'perch'],
     perch_talk: [own + 'perch_talk.png', 60, 1, 'music'],
-    laydown: [own + 'laydown.webp', 10, 6, 'lie'],
-    laydown_talk: [own + 'laydown_talk.webp', 10, 6, 'lie']
+    laydown: [own + 'laydown.png', 10, 6, 'lie'],
+    laydown_talk: [own + 'laydown_talk.png', 10, 6, 'lie']
   };
   const strips = new Map();
   let version = 0, stream, session, source, animation, heartTimer, currentClip, currentFrame;
@@ -71,10 +85,14 @@
   const stopHeart = () => {
     clearTimeout(heartTimer);
     heart.hidden = true;
+    love.setAttribute('aria-pressed', 'false');
     heart.removeAttribute('src');
   };
   const closeRoom = (focus = false) => {
     version++;
+    window.CapriCall?.stopListening();
+    talking = false;
+    voiceNote.textContent = '';
     releaseCamera();
     const ending = session;
     session = null;
@@ -97,12 +115,14 @@
   };
   const openCamera = async (lead = '', focus = true) => {
     if (room.hidden) {
+      window.CapriCall?.end();
       setPose('perch');
       for (const name of Object.keys(clips)) load(name);
     }
     const request = ++version;
     room.hidden = false;
     app.dataset.room = 'camera';
+    startVoice();
     retry.hidden = track.hidden = true;
     controls.hidden = place.hidden = her.hidden = true;
     place.setAttribute('aria-label', 'Place Capri here');
@@ -167,6 +187,7 @@
       session = active;
       active.addEventListener('end', () => {
         if (session !== active) return;
+        source?.cancel();
         session = source = surface = seat = null;
         closeRoom(true);
       }, { once: true });
@@ -181,7 +202,7 @@
       const world = await active.requestReferenceSpace('local');
       const eyes = await active.requestReferenceSpace('viewer');
       const hitSource = await active.requestHitTestSource({ space: eyes });
-      if (request !== version) return;
+      if (request !== version) { hitSource.cancel(); return; }
       source = hitSource;
       app.dataset.room = 'ar';
       place.hidden = controls.hidden = false;
@@ -213,6 +234,8 @@
     } catch (error) {
       if (request !== version) return;
       session = null;
+      source?.cancel();
+      source = surface = seat = null;
       if (active) await active.end().catch(() => {});
       if (request === version) openCamera('AR unavailable. ', false);
     }
@@ -230,12 +253,28 @@
   track.addEventListener('click', () => { close.focus(); startAR(); });
   sit.addEventListener('click', () => setPose('perch'));
   lie.addEventListener('click', () => setPose('laydown'));
-  love.addEventListener('click', () => {
-    if (reduced.matches) { status.textContent = '♥'; return; }
+  const showHeart = () => {
     stopHeart();
-    heart.src = own + 'heart.webp';
+    if (reduced.matches) {
+      status.textContent = 'Heart.';
+      love.setAttribute('aria-pressed', 'true');
+      heartTimer = setTimeout(stopHeart, 3600);
+      return;
+    }
+    heart.src = own + 'heart.png';
     heart.hidden = false;
+    love.setAttribute('aria-pressed', 'true');
     heartTimer = setTimeout(stopHeart, 3600);
+  };
+  love.addEventListener('click', showHeart);
+  voice.addEventListener('click', () => {
+    if (voiceOn && voiceNote.textContent === 'Tap Voice to hear her.') { startVoice(); return; }
+    voiceOn = !voiceOn;
+    voice.setAttribute('aria-pressed', String(voiceOn));
+    try { localStorage.setItem('capri-room-voice', voiceOn ? 'on' : 'off'); } catch (error) {}
+    voiceNote.textContent = '';
+    if (voiceOn) startVoice();
+    else { window.CapriCall?.stopListening(); talking = false; }
   });
   place.addEventListener('click', event => {
     if (session) {
@@ -255,12 +294,13 @@
     if (!menu.hidden && !menu.contains(event.target) && !camera.contains(event.target)) showMenu(false);
   });
   document.addEventListener('keydown', event => {
-    if (event.key !== 'Escape' || menu.hidden) return;
+    if (event.key !== 'Escape') return;
+    if (menu.hidden) { if (!room.hidden) closeRoom(true); return; }
     showMenu(false);
     camera.focus();
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && !session) closeRoom();
+    if (document.hidden) closeRoom();
   });
   addEventListener('pagehide', () => closeRoom());
   new MutationObserver(() => {
@@ -270,5 +310,13 @@
     arAvailable = supported;
     if (stream && !controls.hidden) track.hidden = !supported;
   }).catch(() => {});
-  window.CapriRoom = { talk: on => { talking = !!on; } };
+  const r = window.CapriRemote;
+  r?.onMessage(message => {
+    if (room.hidden || message.type !== 'chat.tool' || message.state !== 'done') return;
+    if (message.move === 'sit') setPose('perch');
+    else if (message.move === 'lie_down') setPose('laydown');
+    else if (message.move === 'heart') showHeart();
+  });
+  r?.onState(next => { if (!room.hidden && next !== 'connected') { showMenu(false); closeRoom(); } });
+  window.CapriRoom = { close: closeRoom, voiceStatus, talk: on => { talking = !room.hidden && !!on; } };
 })();

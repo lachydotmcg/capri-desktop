@@ -72,3 +72,9 @@
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--ground);
 }
+
+.room-voice-note { flex: none; margin: 0; padding: 4px 8px; color: var(--white); }
+.room-voice-note:empty { display: none; }
+.room-head { flex-wrap: wrap; }
+.room-controls { flex-wrap: wrap; }
+.app[data-room="ar"] .room-voice-note { position: relative; z-index: 1; background: var(--band); }

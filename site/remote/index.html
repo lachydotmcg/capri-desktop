@@ -8,7 +8,7 @@
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0a0a10">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:* https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.deepseek.com https://capri-reactions.lachydotmcg.workers.dev; manifest-src 'self'; media-src blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' wss: ws://127.0.0.1:* ws://localhost:* http://127.0.0.1:* http://localhost:* https://api.anthropic.com https://api.openai.com https://generativelanguage.googleapis.com https://openrouter.ai https://api.deepseek.com https://capri-reactions.lachydotmcg.workers.dev; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Capri">
@@ -57,8 +57,10 @@
     <div class="room-controls" id="room-controls" aria-label="Capri's poses" hidden>
       <button class="nbtn cyan" id="room-sit" type="button" aria-pressed="true">Sit</button>
       <button class="nbtn cyan" id="room-lie" type="button" aria-pressed="false">Lie down</button>
-      <button class="nbtn cyan" id="room-love" type="button">Heart</button>
+      <button class="nbtn cyan" id="room-love" type="button" aria-pressed="false">Heart</button>
+      <button class="nbtn" id="room-voice" type="button" aria-pressed="true">Voice</button>
     </div>
+    <p class="room-voice-note" id="room-voice-note" role="status"></p>
     <button class="nbtn cyan room-retry" id="room-retry" type="button" hidden>Retry camera</button>
   </section>
 

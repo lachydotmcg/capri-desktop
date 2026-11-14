@@ -370,9 +370,9 @@ namespace CapriDesktop
 
         internal void Typing(string device, bool on, string re) { Send(device, RemoteMessages.Typing(on, re), re, true, null); }
 
-        internal void Tool(string device, string id, string name, string summary, string toolState, string re)
+        internal void Tool(string device, string id, string name, string summary, string toolState, string re, string move = null)
         {
-            Send(device, RemoteMessages.Tool(id, RemoteMessages.Clip(name, 64), RemoteMessages.Clip(summary, 200), toolState, re), re, false, id);
+            Send(device, RemoteMessages.Tool(id, RemoteMessages.Clip(name, 64), RemoteMessages.Clip(summary, 200), toolState, re, move), re, false, id);
         }
 
         internal void Error(string device, string code, string re)
