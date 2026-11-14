@@ -8,9 +8,20 @@ const freeOutput = 27273 / 1000000;
 
 const codeInput = 0.10;
 const codeOutput = 0.50;
+const codeLongInput = 0.50;
+const codeLongOutput = 2.50;
+const codeLongPrompt = 100000;
+const codeWindow = 1000000;
+const codeMostOut = 128000;
 const codeRead = 0.1;
 const codeWrite5 = 1.25;
 const codeWrite60 = 2;
+const codeSearch = 10000;
+const codeOtherInput = 10;
+const codeOtherOutput = 50;
+const codeAtOnce = 4;
+const codeWait = 840000;
+const codeFlightAge = 900000;
 const codeModel = 'claude-haiku-5-5';
 const codeLetters = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
@@ -26,7 +37,10 @@ const equal = async (given, secret) => {
   return crypto.subtle.verify('HMAC', key, tag, text.encode(given));
 };
 
-const normalCode = code => String(code || '').trim().toUpperCase();
+const normalCode = code => {
+  const match = /^CAPRI-(?:([A-Z0-9]{2,12})-)?([0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){3})$/.exec(String(code || '').trim().toUpperCase());
+  return match ? { plain: 'CAPRI-' + match[2], tag: match[1] || '' } : null;
+};
 
 const makeCode = () => {
   const bytes = crypto.getRandomValues(new Uint8Array(10));
@@ -43,6 +57,11 @@ const makeCode = () => {
   return 'CAPRI-' + text.match(/.{4}/g).join('-');
 };
 
+const codeStale = (env, old) => [
+  env.DB.prepare('UPDATE codes SET spent = spent + (SELECT COALESCE(SUM(guess), 0) FROM code_flights WHERE code = codes.id AND started <= ?), requests = requests + (SELECT COUNT(*) FROM code_flights WHERE code = codes.id AND started <= ?), used = MAX(used, (SELECT MAX(started) FROM code_flights WHERE code = codes.id AND started <= ?)) WHERE id IN (SELECT code FROM code_flights WHERE started <= ?)').bind(old, old, old, old),
+  env.DB.prepare('DELETE FROM code_flights WHERE started <= ?').bind(old)
+];
+
 const codes = async (request, env, path) => {
   const reply = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
   if (!env.CODES_SECRET) return reply({ error: 'Codes secret is not set.' }, 503);
@@ -53,119 +72,232 @@ const codes = async (request, env, path) => {
   if (different) return reply({ error: 'Not authorised.' }, 401);
   if (!env.SALT) return reply({ error: "Capri codes aren't ready." }, 503);
   if (path === '/codes' && request.method === 'GET') {
-    const { results } = await env.DB.prepare('SELECT id, name, budget, spent, expires, off, requests, used FROM codes ORDER BY id DESC').all();
-    return reply({ codes: results.map(row => ({ id: row.id, name: row.name, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires, off: row.off, requests: row.requests, used: row.used })) });
+    await env.DB.batch(codeStale(env, Date.now() - codeFlightAge));
+    const { results } = await env.DB.prepare('SELECT id, name, kind, tag, budget, spent, expires, off, requests, used FROM codes ORDER BY id DESC').all();
+    return reply({ codes: results.map(row => ({ id: row.id, name: row.name, kind: row.kind, tag: row.tag, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: row.kind === 'staff' && row.budget === 0 ? null : Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires, off: row.off, requests: row.requests, used: row.used })) });
   }
-  if (request.method !== 'POST' || !['/codes', '/codes/off', '/codes/on'].includes(path)) return reply({ error: 'Not found' }, 404);
+  if (request.method !== 'POST' || !['/codes', '/codes/off', '/codes/on', '/codes/limit', '/codes/days'].includes(path)) return reply({ error: 'Not found' }, 404);
   const sent = await request.json().catch(() => null);
   if (!sent || typeof sent !== 'object' || Array.isArray(sent)) return reply({ error: 'Bad request' }, 400);
   if (path !== '/codes') {
     if (!Number.isSafeInteger(sent.id) || sent.id <= 0) return reply({ error: 'Give a code id.' }, 400);
+    if (path === '/codes/limit') {
+      const budget = typeof sent.dollars === 'number' ? Math.round(sent.dollars * 1000000) : 0;
+      if (typeof sent.dollars !== 'number' || sent.dollars < 0 || !Number.isSafeInteger(budget) || (sent.dollars !== 0 && budget <= 0)) return reply({ error: 'Give a positive dollar limit.' }, 400);
+      const found = await env.DB.prepare('SELECT kind FROM codes WHERE id = ?').bind(sent.id).first();
+      if (!found) return reply({ error: 'No such code.' }, 404);
+      if (budget === 0 && found.kind !== 'staff') return reply({ error: 'Give a positive dollar limit.' }, 400);
+      const row = await env.DB.prepare('UPDATE codes SET budget = ? WHERE id = ? RETURNING spent').bind(budget, sent.id).first();
+      return row ? reply({ id: sent.id, dollars: budget / 1000000, spent: row.spent / 1000000, left: budget === 0 ? null : Math.max(0, budget - row.spent) / 1000000 }) : reply({ error: 'No such code.' }, 404);
+    }
+    if (path === '/codes/days') {
+      const days = sent.days;
+      const expires = sent.never === true ? 0 : Math.round(Date.now() + days * 86400000);
+      if ((sent.never === true && days !== undefined) || (sent.never !== true && (typeof days !== 'number' || !Number.isFinite(days) || days <= 0 || !Number.isSafeInteger(expires) || expires < 0 || expires > 8640000000000000))) return reply({ error: 'Give days above zero, or never.' }, 400);
+      const result = await env.DB.prepare('UPDATE codes SET expires = ? WHERE id = ?').bind(expires, sent.id).run();
+      return result.meta.changes ? reply({ id: sent.id, expires }) : reply({ error: 'No such code.' }, 404);
+    }
     const off = path === '/codes/off' ? 1 : 0;
     const result = await env.DB.prepare('UPDATE codes SET off = ? WHERE id = ?').bind(off, sent.id).run();
     return result.meta.changes ? reply({ id: sent.id, off }) : reply({ error: 'No such code.' }, 404);
   }
   const name = typeof sent.name === 'string' ? sent.name.trim() : '';
-  const budget = typeof sent.dollars === 'number' ? Math.round(sent.dollars * 1000000) : 0;
+  const kind = sent.kind === undefined ? 'giveaway' : sent.kind;
+  if (!['giveaway', 'staff'].includes(kind)) return reply({ error: 'Give a code kind of giveaway or staff.' }, 400);
+  const tag = sent.tag === undefined ? name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12) : typeof sent.tag === 'string' ? sent.tag.toUpperCase() : null;
+  if (sent.tag !== undefined && (tag === null || tag.length < 2 || tag.length > 12 || /[^A-Za-z0-9]/.test(sent.tag))) return reply({ error: 'Give a tag of 2 to 12 letters or numbers.' }, 400);
+  const dollars = sent.dollars === undefined && kind === 'staff' ? 0 : sent.dollars;
+  const budget = typeof dollars === 'number' ? Math.round(dollars * 1000000) : 0;
+  if (typeof dollars !== 'number' || dollars < 0 || !Number.isSafeInteger(budget) || (budget <= 0 && (kind !== 'staff' || dollars !== 0))) return reply({ error: 'Give a positive dollar limit.' }, 400);
   const days = sent.days === undefined ? 0 : sent.days;
   const created = Date.now();
   const expires = days === 0 ? 0 : Math.round(created + days * 86400000);
-  if (!name || name.length > 80 || !Number.isSafeInteger(budget) || budget <= 0 || typeof days !== 'number' || !Number.isFinite(days) || days < 0 || !Number.isSafeInteger(expires) || expires < 0 || expires > 8640000000000000) return reply({ error: 'Give a name, a positive dollar budget and days of zero or more.' }, 400);
+  if (!name || name.length > 80 || typeof days !== 'number' || !Number.isFinite(days) || days < 0 || !Number.isSafeInteger(expires) || expires < 0 || expires > 8640000000000000) return reply({ error: 'Give a name and days of zero or more.' }, 400);
   const code = makeCode();
-  const hash = await sha256(normalCode(code) + ':' + env.SALT);
-  const row = await env.DB.prepare('INSERT INTO codes (hash, name, budget, expires, created) VALUES (?, ?, ?, ?, ?) RETURNING id').bind(hash, name, budget, expires, created).first();
-  return reply({ id: row.id, code, name, dollars: budget / 1000000, expires });
+  const hash = await sha256(code + ':' + env.SALT);
+  const storedTag = tag.length >= 2 ? tag : '';
+  const row = await env.DB.prepare('INSERT INTO codes (hash, name, kind, tag, budget, expires, created) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id').bind(hash, name, kind, storedTag, budget, expires, created).first();
+  return reply({ id: row.id, code, ...(storedTag ? { named: 'CAPRI-' + storedTag + code.slice(5) } : {}), name, kind, tag: storedTag, dollars: budget / 1000000, expires });
 };
 
 const codeCost = usage => {
+  usage = usage && typeof usage === 'object' ? usage : {};
   const tokens = count => typeof count === 'number' && Number.isFinite(count) && count > 0 ? count : 0;
   const writes = usage.cache_creation;
-  const five = writes ? tokens(writes.ephemeral_5m_input_tokens) : tokens(usage.cache_creation_input_tokens);
-  const hour = writes ? tokens(writes.ephemeral_1h_input_tokens) : 0;
-  return Math.ceil(codeInput * (tokens(usage.input_tokens) + tokens(usage.cache_read_input_tokens) * codeRead + five * codeWrite5 + hour * codeWrite60) + codeOutput * tokens(usage.output_tokens));
+  const hour = tokens(writes && writes.ephemeral_1h_input_tokens);
+  const five = Math.max(tokens(writes && writes.ephemeral_5m_input_tokens), tokens(usage.cache_creation_input_tokens) - hour);
+  const input = tokens(usage.input_tokens), read = tokens(usage.cache_read_input_tokens);
+  const long = input + read + five + hour > codeLongPrompt;
+  const searches = tokens(usage.server_tool_use && usage.server_tool_use.web_search_requests);
+  let cost = (long ? codeLongInput : codeInput) * (input + read * codeRead + five * codeWrite5 + hour * codeWrite60) + (long ? codeLongOutput : codeOutput) * tokens(usage.output_tokens) + codeSearch * searches;
+  for (const part of Array.isArray(usage.iterations) ? usage.iterations : []) {
+    if (!part || typeof part !== 'object' || part.type === 'message') continue;
+    const writes = part.cache_creation;
+    const written = Math.max(tokens(part.cache_creation_input_tokens), tokens(writes && writes.ephemeral_5m_input_tokens) + tokens(writes && writes.ephemeral_1h_input_tokens));
+    cost += codeOtherInput * (tokens(part.input_tokens) + tokens(part.cache_read_input_tokens) + written) + codeOtherOutput * tokens(part.output_tokens);
+  }
+  return Math.min(Number.MAX_SAFE_INTEGER, Math.ceil(cost));
+};
+
+const codeGuess = output => Math.ceil(codeWindow * codeLongInput * codeWrite60 + output * codeLongOutput);
+
+const codeContent = (value, depth = 0) => {
+  if (depth > 20) return false;
+  if (!value || typeof value !== 'object') return true;
+  if (Array.isArray(value)) return value.every(item => codeContent(item, depth + 1));
+  if (value.type === 'image') {
+    const source = value.source;
+    return !!source && source.type === 'base64' && typeof source.data === 'string' && ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(source.media_type) && Object.keys(source).every(name => ['type', 'data', 'media_type'].includes(name)) && Object.keys(value).every(name => ['type', 'source', 'cache_control'].includes(name));
+  }
+  if (value.type === 'document' || 'source' in value || 'file_id' in value) return false;
+  return Object.entries(value).every(([name, item]) => (value.type === 'tool_use' && name === 'input') || codeContent(item, depth + 1));
+};
+
+const codeRefused = (status, error) => {
+  if ([401, 402, 403].includes(status)) return true;
+  if (!error) return false;
+  if (status === 429) return error.type === 'rate_limit_error' && error.details?.error_code === 'enforced_spend_limit_reached';
+  return status === 400 && error.type === 'invalid_request_error' && typeof error.message === 'string' && /^(You have reached your specified (?:workspace )?API usage limits\b|Your credit balance is too low\b)/.test(error.message);
+};
+
+const codeLive = 'off = 0 AND (expires = 0 OR expires > ?)';
+const codeUnlimited = "kind = 'staff' AND budget = 0";
+const codeReserved = '(SELECT COALESCE(SUM(guess), 0) FROM code_flights WHERE code = codes.id)';
+const codeCount = '(SELECT COUNT(*) FROM code_flights WHERE code = codes.id)';
+
+const codeUnavailable = (row, now) => {
+  if (!row) return "That Capri code isn't right.";
+  if (row.off) return 'That Capri code was switched off.';
+  if (row.expires && row.expires <= now) return 'That Capri code has expired.';
+  if ((row.kind !== 'staff' || row.budget > 0) && row.spent >= row.budget) return 'That Capri code has used up its budget.';
+  return '';
 };
 
 const codeBrain = async (request, env, ctx, path) => {
   const headers = new Headers({ 'Cache-Control': 'no-store', 'capri-code-left': '0.00', 'capri-code-expires': '' });
   const fail = (status, type, message) => Response.json({ type: 'error', error: { type, message } }, { status, headers });
   if (!env.SALT) return fail(503, 'api_error', "Capri codes aren't ready.");
-  const hash = await sha256(normalCode(request.headers.get('x-api-key')) + ':' + env.SALT);
-  const row = await env.DB.prepare('SELECT id, budget, spent, expires, off FROM codes WHERE hash = ?').bind(hash).first();
-  if (!row) return fail(401, 'authentication_error', "That Capri code isn't right.");
-  headers.set('capri-code-left', (Math.max(0, row.budget - row.spent) / 1000000).toFixed(2));
+  const code = normalCode(request.headers.get('x-api-key'));
+  if (!code) return fail(401, 'authentication_error', "That Capri code isn't right.");
+  const hash = await sha256(code.plain + ':' + env.SALT);
+  const row = await env.DB.prepare('SELECT id, kind, tag, budget, spent, expires, off FROM codes WHERE hash = ?').bind(hash).first();
+  if (!row || (code.tag && code.tag !== row.tag)) return fail(401, 'authentication_error', "That Capri code isn't right.");
+  const limited = row.kind !== 'staff' || row.budget > 0;
+  headers.set('capri-code-left', limited ? (Math.max(0, row.budget - row.spent) / 1000000).toFixed(2) : '');
   headers.set('capri-code-expires', row.expires ? new Date(row.expires).toISOString() : '');
-  if (row.off) return fail(403, 'permission_error', 'That Capri code was switched off.');
-  if (row.expires && row.expires <= Date.now()) return fail(403, 'permission_error', 'That Capri code has expired.');
-  if (row.spent >= row.budget) return fail(403, 'permission_error', 'That Capri code has used up its budget.');
-  if (path === '/brain/v1/models' && request.method === 'GET') return Response.json({ data: [{ type: 'model', id: codeModel, display_name: 'Claude Haiku 5.5' }], has_more: false, first_id: codeModel, last_id: codeModel }, { headers });
-  if (path !== '/brain/v1/messages' || request.method !== 'POST') return fail(404, 'not_found_error', 'Not found');
-  if (!env.ANTHROPIC_API_KEY) return fail(503, 'api_error', "Capri codes aren't ready.");
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return fail(400, 'invalid_request_error', 'Bad request');
-  body.model = codeModel;
-  delete body.temperature;
-  delete body.top_p;
-  delete body.top_k;
-  delete body.fallbacks;
-  if (body.thinking && body.thinking.type === 'enabled') body.thinking = { type: 'adaptive' };
-  if (body.thinking && body.thinking.type === 'disabled' && body.output_config && ['xhigh', 'max'].includes(body.output_config.effort)) body.output_config.effort = 'high';
-  const upstream = new Headers({ 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY });
-  for (const name of ['anthropic-version', 'anthropic-beta']) if (request.headers.has(name)) upstream.set(name, request.headers.get(name));
-  let response;
-  try { response = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: upstream, body: JSON.stringify(body), redirect: 'manual' }); }
-  catch { return fail(502, 'api_error', "Couldn't reach Claude. Try again."); }
-  const returned = new Headers(response.headers);
-  for (const name of [...returned.keys()]) if (name.startsWith('access-control-') || ['content-length', 'content-encoding', 'transfer-encoding'].includes(name)) returned.delete(name);
-  for (const [name, value] of headers) returned.set(name, value);
-  const options = { status: response.status, statusText: response.statusText, headers: returned };
-  let usage = {};
-  const count = next => {
-    if (!next || typeof next !== 'object') return;
-    usage = { ...usage, ...next, ...(next.cache_creation ? { cache_creation: { ...usage.cache_creation, ...next.cache_creation } } : {}) };
-  };
-  const charge = () => env.DB.prepare('UPDATE codes SET spent = spent + ?, requests = requests + 1, used = ? WHERE id = ?').bind(codeCost(usage), Date.now(), row.id).run();
-  if (!response.ok) {
-    const bytes = await response.arrayBuffer();
-    ctx.waitUntil(charge());
-    return new Response(bytes, options);
+  const unavailable = codeUnavailable(row, Date.now());
+  if (unavailable) return fail(403, 'permission_error', unavailable);
+  const models = path === '/brain/v1/models' && request.method === 'GET';
+  if (!models && (path !== '/brain/v1/messages' || request.method !== 'POST')) return fail(404, 'not_found_error', 'Not found');
+  const kinds = row.kind === 'staff' ? ['staff', 'giveaway'] : ['giveaway', 'staff'];
+  if (!env.CODES_KEY_STAFF || !env.CODES_KEY_GIVEAWAY || env.CODES_KEY_STAFF === env.CODES_KEY_GIVEAWAY) return fail(503, 'api_error', "Capri codes aren't ready.");
+  if (models) return Response.json({ data: [{ type: 'model', id: codeModel, display_name: 'Claude Haiku 5.5' }], has_more: false, first_id: codeModel, last_id: codeModel }, { headers });
+  const keys = kinds.map(kind => [kind, kind === 'staff' ? env.CODES_KEY_STAFF : env.CODES_KEY_GIVEAWAY]);
+  const sent = await request.json().catch(() => null);
+  if (!sent || typeof sent !== 'object' || Array.isArray(sent)) return fail(400, 'invalid_request_error', 'Bad request');
+  if (sent.stream === true) return fail(400, 'invalid_request_error', 'Capri codes answer in one piece. Leave stream off.');
+  if (!Number.isSafeInteger(sent.max_tokens) || sent.max_tokens <= 0 || sent.max_tokens > codeMostOut) return fail(400, 'invalid_request_error', 'Give a valid max_tokens value.');
+  if (!codeContent(sent.system) || !codeContent(sent.messages)) return fail(400, 'invalid_request_error', 'Capri codes accept text and images sent directly.');
+  const body = { model: codeModel }, dropped = new Set();
+  const drop = (name, fallback) => dropped.add(/^[a-z][a-z0-9_.-]{0,79}$/.test(name) && name.trim() === name && !/capri-|sk-ant-/i.test(name) && ![env.CODES_SECRET, env.SALT, env.ANTHROPIC_API_KEY, env.CODES_KEY_STAFF, env.CODES_KEY_GIVEAWAY].some(secret => secret && name.toLowerCase().includes(secret.toLowerCase())) ? name : fallback);
+  for (const name of Object.keys(sent)) if (!['model', 'max_tokens', 'system', 'messages', 'stop_sequences', 'tool_choice', 'tools', 'thinking', 'output_config'].includes(name)) drop(name, 'body');
+  for (const name of ['max_tokens', 'system', 'messages', 'stop_sequences', 'tool_choice']) if (name in sent) body[name] = sent[name];
+  if ('tools' in sent) {
+    const tools = Array.isArray(sent.tools) ? sent.tools.filter(tool => {
+      if (tool && typeof tool === 'object' && !Array.isArray(tool) && ((typeof tool.name === 'string' && tool.input_schema && typeof tool.input_schema === 'object' && !Array.isArray(tool.input_schema) && (!('type' in tool) || tool.type === 'custom')) || (tool.type === 'computer_toolset_20260801' && Object.keys(tool).length === 1))) return true;
+      drop(tool && typeof tool.type === 'string' ? tool.type : 'tools', 'tools');
+      return false;
+    }) : [];
+    if (!Array.isArray(sent.tools) || !sent.tools.length) dropped.add('tools');
+    if (tools.length) body.tools = tools;
   }
-  if (body.stream === true && response.body) {
-    const decoder = new TextDecoder();
-    let pending = '', data = [];
-    const event = () => {
-      if (!data.length) return;
-      try {
-        const sent = JSON.parse(data.join('\n'));
-        if (sent.type === 'message_start') count(sent.message && sent.message.usage);
-        if (sent.type === 'message_delta') count(sent.usage);
-      } catch { }
-      data = [];
-    };
-    const read = (text, end = false) => {
-      pending += text;
-      let match;
-      while ((match = /\r\n|\r(?!$)|\n/.exec(pending))) {
-        const line = pending.slice(0, match.index);
-        pending = pending.slice(match.index + match[0].length);
-        if (!line) event();
-        else if (line.startsWith('data:')) data.push(line.slice(5).replace(/^ /, ''));
-      }
-      if (end) {
-        if (pending.startsWith('data:')) data.push(pending.slice(5).replace(/^ /, '').replace(/\r$/, ''));
-        event();
-      }
-    };
-    const stream = new TransformStream({
-      transform(chunk, controller) { controller.enqueue(chunk); read(decoder.decode(chunk, { stream: true })); },
-      flush() { read(decoder.decode(), true); }
-    });
-    ctx.waitUntil(response.body.pipeTo(stream.writable).catch(() => {}).then(charge));
-    return new Response(stream.readable, options);
+  if (sent.thinking && typeof sent.thinking === 'object' && !Array.isArray(sent.thinking)) {
+    const thinking = sent.thinking;
+    body.thinking = {};
+    if ('type' in thinking) body.thinking.type = thinking.type === 'enabled' ? 'adaptive' : thinking.type;
+    if (typeof thinking.display === 'string') body.thinking.display = thinking.display;
+    if (thinking.block_binding && typeof thinking.block_binding === 'object' && !Array.isArray(thinking.block_binding)) {
+      if (typeof thinking.block_binding.prefix_mismatch_behavior === 'string') body.thinking.block_binding = { prefix_mismatch_behavior: thinking.block_binding.prefix_mismatch_behavior };
+      if (!Object.keys(thinking.block_binding).length) dropped.add('thinking.block_binding');
+      for (const name of Object.keys(thinking.block_binding)) if (name !== 'prefix_mismatch_behavior' || typeof thinking.block_binding[name] !== 'string') drop('thinking.block_binding.' + name, 'thinking.block_binding');
+    } else if ('block_binding' in thinking) dropped.add('thinking.block_binding');
+    for (const name of Object.keys(thinking)) if (!['type', 'display', 'block_binding'].includes(name) || (name === 'display' && typeof thinking.display !== 'string')) drop('thinking.' + name, 'thinking');
+  } else if ('thinking' in sent) dropped.add('thinking');
+  if (sent.output_config && typeof sent.output_config === 'object' && !Array.isArray(sent.output_config)) {
+    if ('effort' in sent.output_config) body.output_config = { effort: body.thinking && body.thinking.type === 'disabled' && ['xhigh', 'max'].includes(sent.output_config.effort) ? 'high' : sent.output_config.effort };
+    if (!Object.keys(sent.output_config).length) dropped.add('output_config');
+    for (const name of Object.keys(sent.output_config)) if (name !== 'effort') drop('output_config.' + name, 'output_config');
+  } else if ('output_config' in sent) dropped.add('output_config');
+  const version = request.headers.get('anthropic-version') || '';
+  const upstream = new Headers({ 'Content-Type': 'application/json', 'anthropic-version': /^\d{4}-\d{2}-\d{2}$/.test(version) ? version : '2023-06-01' });
+  for (const beta of (request.headers.get('anthropic-beta') || '').split(',').map(name => name.trim()).filter(Boolean)) {
+    if (beta === 'thinking-binding-controls-2026-08-01') upstream.set('anthropic-beta', beta);
+    else drop(beta, 'anthropic-beta');
   }
-  const text = await response.text();
-  try { count(JSON.parse(text).usage); } catch { }
-  ctx.waitUntil(charge());
-  return new Response(text, options);
+  if (dropped.size) console.log([...dropped].join(', '));
+  const work = (async () => {
+    const started = Date.now(), flight = crypto.randomUUID(), guess = codeGuess(body.max_tokens), wire = JSON.stringify(body);
+    const taken = await env.DB.batch([
+      ...codeStale(env, started - codeFlightAge),
+      env.DB.prepare(`INSERT INTO code_flights (id, code, started, guess) SELECT ?, id, ?, ? FROM codes WHERE id = ? AND ${codeLive} AND ((${codeUnlimited}) OR (${codeCount} < ? AND budget - spent - ${codeReserved} >= ?))`).bind(flight, started, guess, row.id, started, codeAtOnce, guess),
+      env.DB.prepare(`SELECT id, kind, off, expires, budget, spent, ${codeCount} AS flights FROM codes WHERE id = ?`).bind(row.id)
+    ]);
+    const current = taken[3].results[0];
+    const blocked = fresh => {
+      const reason = codeUnavailable(fresh, Date.now());
+      if (reason) return fail(403, 'permission_error', reason);
+      if (fresh.flights >= codeAtOnce) return fail(429, 'rate_limit_error', 'That Capri code is busy. Try again in a moment.');
+      return fail(403, 'permission_error', 'That Capri code has too little budget left for this request.');
+    };
+    if (!taken[2].meta.changes) return blocked(current);
+    const signal = AbortSignal.timeout(Math.max(1, started + codeWait - Date.now()));
+    let cost = 0;
+    try {
+      if (current.expires && current.expires <= Date.now()) return blocked(current);
+      for (const [index, [name, key]] of keys.entries()) {
+        if (index) {
+          const fresh = await env.DB.prepare(`SELECT id, kind, off, expires, budget, spent, ${codeCount} AS flights FROM codes WHERE id = ? AND ${codeLive} AND EXISTS (SELECT 1 FROM code_flights WHERE id = ?) AND ((${codeUnlimited}) OR budget - spent >= ${codeReserved})`).bind(row.id, Date.now(), flight).first();
+          if (!fresh || (fresh.expires && fresh.expires <= Date.now())) return fail(403, 'permission_error', 'That Capri code can no longer start this request.');
+        }
+        if (signal.aborted || Date.now() >= started + codeWait) return fail(502, 'api_error', "Couldn't reach Claude. Try again.");
+        const asked = new Headers(upstream);
+        asked.set('x-api-key', key);
+        let response, bytes, reply;
+        cost = guess;
+        try {
+          response = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: asked, body: wire, redirect: 'manual', signal });
+          if ([401, 402, 403].includes(response.status)) {
+            if (response.body) response.body.cancel().catch(() => {});
+          } else {
+            bytes = await response.arrayBuffer();
+            try { reply = JSON.parse(new TextDecoder().decode(bytes)); } catch { }
+          }
+        } catch { return fail(502, 'api_error', "Couldn't reach Claude. Try again."); }
+        const refusal = reply?.type === 'error' ? reply.error : null;
+        if (codeRefused(response.status, refusal)) {
+          cost = 0;
+          console.log('codes ' + name + ' ' + response.status);
+          continue;
+        }
+        const usage = reply?.usage;
+        if (usage && [usage.input_tokens, usage.output_tokens].every(value => Number.isSafeInteger(value) && value >= 0)) cost = codeCost(usage);
+        else if ((response.status === 429 && refusal?.type === 'rate_limit_error') || response.status === 413) cost = 0;
+        const returned = new Headers();
+        for (const name of ['content-type', 'request-id', 'retry-after']) if (response.headers.has(name)) returned.set(name, response.headers.get(name));
+        for (const [name, value] of headers) returned.set(name, value);
+        return new Response(response.status === 204 || response.status === 205 || response.status === 304 ? null : bytes, { status: response.status, statusText: response.statusText, headers: returned });
+      }
+      console.log('codes all refused');
+      return fail(402, 'billing_error', 'Capri codes have run out for now.');
+    } finally {
+      await env.DB.batch([
+        env.DB.prepare('UPDATE codes SET spent = MAX(0, spent + ? - CASE WHEN EXISTS (SELECT 1 FROM code_flights WHERE id = ?) THEN 0 ELSE ? END), requests = requests + CASE WHEN EXISTS (SELECT 1 FROM code_flights WHERE id = ?) THEN 1 ELSE 0 END, used = MAX(used, ?) WHERE id = ?').bind(cost, flight, guess, flight, started, row.id),
+        env.DB.prepare('DELETE FROM code_flights WHERE id = ?').bind(flight)
+      ]);
+    }
+  })();
+  ctx.waitUntil(work);
+  return work;
 };
 
 const counters = { '/star': 'stars', '/download': 'downloads' };
