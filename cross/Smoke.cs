@@ -651,6 +651,7 @@ namespace CapriDesktop
                 TerminalSecurityChecks();
                 MacNativeChecks();
                 MacFingers.Checks(checks);
+                MacClickChecks();
                 MacRoutes.Checks(checks);
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
@@ -5009,6 +5010,274 @@ namespace CapriDesktop
                 || trustedPrompt.IndexOf("SECURITY", StringComparison.Ordinal) >= 0 || openPrompt.IndexOf("Call the tool.\nThey've set her SECURITY settings to ask first before you open apps, games or sites. Still call the tool as soon as they ask", StringComparison.Ordinal) < 0)
                 throw new Exception("Security asked about something Mac and Linux don't have, or her prompt didn't follow it: " + mouseFree + " / " + lockdownNote);
             checks.Add("PASS Security gates: with each of the five toggles off she holds the call and asks (\"Open spotify? Say yes and I will.\", \"Lock your PC? Say yes and I will.\"), nothing runs until a yes, a yes runs it once through her own hands, a no leaves it alone and a new message drops it; two held calls are one question and one yes; in text chat her question goes out word for word and the next message's yes does it; mouse and keyboard jobs, which Mac and Linux don't have yet, never ask; and her brain is told to still call a tool that's off and let her ask");
+        }
+
+        private void MacClickChecks()
+        {
+            var trusted = MacFingers.Trusted; var listening = MacFingers.Listening; var screenAllowed = Eyes.ScreenAllowed; var take = Eyes.Take;
+            var launch = MacFingers.Launch; var sink = MacFingers.Sink; var pause = MacFingers.Pause;
+            var position = MacFingers.Position; var displays = MacFingers.Displays; var foreground = MacFingers.Foreground;
+            var captureRun = MacFingers.CaptureRun;
+            var macThrough = HerCursor.MacThrough; var message = Ink.Message;
+            var handsReady = Hands.HandsReady; var handsProblem = Hands.HandsProblem;
+            var hidden = Chores.Hidden; var signHidden = Chores.SignHidden; var track = Chores.Track;
+            bool mac = Hands.OnMac, own = Hands.OwnHands;
+            var fields = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
+            object opened = typeof(MacFingers).GetField("opened", fields).GetValue(null), inputPane = typeof(MacFingers).GetField("inputPane", fields).GetValue(null);
+            object recordingTold = typeof(Eyes).GetField("recordingTold", fields).GetValue(null);
+            object automationUntil = typeof(MacFingers).GetField("automationUntil", fields).GetValue(null);
+            try
+            {
+                Hands.OnMac = true; Hands.HandsReady = MacFingers.JobReady; Hands.HandsProblem = MacFingers.JobProblem;
+                MacFingers.Trusted = () => true; MacFingers.Listening = () => true; Eyes.ScreenAllowed = () => true;
+                MacFingers.Pause = _ => { }; Chores.Hidden = _ => { }; Chores.SignHidden = _ => false; Chores.Track = (x, y) => { };
+                int panes = 0, captures = 0;
+                MacFingers.Launch = (file, args) => { if (file != "/usr/bin/open" || args.Length != 1) throw new Exception("Mac permission command"); panes++; };
+                byte[] wallpaper = FakeScreen(SkiaSharp.SKColors.Blue);
+                Eyes.Take = (tool, path) => { captures++; File.WriteAllBytes(path, wallpaper); return true; };
+                MacFingers.JobReady();
+                Eyes.ScreenAllowed = () => false;
+                for (int attempt = 0; attempt < 2; attempt++)
+                {
+                    bool refused = false;
+                    try { Eyes.Screenshot(Eyes.Tools(true, null, null), true); }
+                    catch (InvalidOperationException error)
+                    {
+                        refused = error.Message == (attempt == 0 ? Eyes.MissingFor(true, null, null) : "I still need Screen Recording to see your screen.");
+                    }
+                    if (!refused || captures != 0) throw new Exception("Mac wallpaper reached the brain or repeated its permission instructions");
+                }
+                if (Hands.KitFor().Has("use_computer") || Hands.KitFor().Tools.Contains("\"name\":\"use_computer\"") || !Hands.Unable("use_computer", new ToolArguments()).Contains("Screen Recording")) throw new Exception("Mac advertised a job without Screen Recording");
+                int probes = 0;
+                Eyes.ScreenAllowed = () => ++probes == 1;
+                bool revoked = false;
+                try { Eyes.Screenshot(Eyes.Tools(true, null, null), true); }
+                catch (InvalidOperationException error) { revoked = error.Message == Eyes.MissingFor(true, null, null); }
+                if (!revoked || captures != 1) throw new Exception("Mac accepted a capture after Screen Recording was revoked");
+                Eyes.ScreenAllowed = () => true;
+                MacFingers.JobReady();
+                MacFingers.Trusted = () => false;
+                string first = Hands.Unable("use_computer", new ToolArguments()), again = Hands.Unable("use_computer", new ToolArguments());
+                if (first != MacFingers.Permission || again == first || panes != 1 || Hands.KitFor().Has("use_computer")) throw new Exception("Mac Accessibility was silent, repeated or advertised as ready");
+                MacFingers.Trusted = () => true;
+                MacFingers.JobReady();
+                MacFingers.Listening = () => false;
+                typeof(MacFingers).GetField("inputPane", fields).SetValue(null, 0);
+                first = MacFingers.ListenProblem(); again = MacFingers.ListenProblem();
+                if (!first.Contains("System Settings > Privacy & Security > Input Monitoring") || again == first || panes != 2 || !MacFingers.JobReady()) throw new Exception("Mac listener failure repeated its guidance or blocked an untried tap");
+                MacFingers.Listening = () => true;
+                if (!MacFingers.JobReady() || !Hands.KitFor().Has("use_computer") || Hands.Unable("use_computer", new ToolArguments()) != null || Hands.KitFor().Has("stream")) throw new Exception("Mac permission recovery or stream gap");
+                Eyes.ScreenAllowed = () => false;
+                if (Eyes.Screenshot(Eyes.Tools(false, "x11", null), false).Length != wallpaper.Length || captures != 2) throw new Exception("Mac permission checks changed Linux capture");
+                Eyes.ScreenAllowed = () => true;
+                checks.Add("PASS Mac captures reject missing or revoked Screen Recording before wallpaper can reach the brain");
+                checks.Add("PASS Mac job catalogs require screen and input access, recover when allowed and keep Linux capture unchanged");
+                checks.Add("PASS Mac permission guidance appears once for Accessibility, Screen Recording and a failed input listener");
+                foreach (bool platform in new[] { true, false })
+                {
+                    Hands.OnMac = platform;
+                    Hands.Kit kit = Hands.KitFor();
+                    if (kit.Has("look_at_screen:screen") == platform || kit.Has("use_computer:launch") == platform) throw new Exception("Mac capture and launcher gaps changed Linux");
+                    using var tools = System.Text.Json.JsonDocument.Parse(kit.Tools);
+                    foreach (var tool in tools.RootElement.EnumerateArray())
+                    {
+                        var function = tool.GetProperty("function");
+                        string name = function.GetProperty("name").GetString(), description = function.GetProperty("description").GetString();
+                        if (name == "look_at_screen" && function.GetProperty("parameters").GetProperty("properties").TryGetProperty("screen", out _) == platform) throw new Exception("Mac advertised an unavailable display selector");
+                        if (name == "use_computer" && description.Contains("It opens the game") == platform) throw new Exception("Mac advertised the Linux game launcher");
+                    }
+                    if (platform && (kit.Handing.Contains("It opens the game") || Hands.Unable("look_at_screen", new ToolArguments { Screen = "2" }) != Hands.MacScreen)) throw new Exception("Mac missing routes lost their explanation");
+                }
+                Hands.OnMac = true;
+                checks.Add("PASS Mac tool descriptions match primary-display looks and jobs in the front app; Linux keeps its display selector and launcher wording");
+
+                bool ignores = false;
+                int nativeCalls = 0;
+                Ink.Message = (receiver, selector, value) =>
+                {
+                    if (receiver != new IntPtr(12)) throw new Exception("Mac pointer used the wrong native window");
+                    nativeCalls++;
+                    if (selector == "setIgnoresMouseEvents:") ignores = value.Value;
+                    else if (selector == "setHidesOnDeactivate:" && value != false) throw new Exception("Mac pointer hid on app focus");
+                    return ignores;
+                };
+                HerCursor.MacThrough = (window, through) => Ink.Through(new PlatformHandle(new IntPtr(12), "NSWindow"), through);
+                if (!HerCursor.ClicksThrough(null) || !ignores || nativeCalls != 3 || !HerCursor.ClicksThrough(null, false) || ignores || nativeCalls != 5) throw new Exception("Mac pointer or control frame intercepted clicks");
+                HerCursor.MacThrough = (window, through) => { throw new Exception("Linux pointer used the Mac click-through route"); };
+                Hands.OnMac = false;
+                if (HerCursor.ClicksThrough(null) || HerCursor.Corner(new PixelPoint(756, 491), 2) != new PixelPoint(576, 311)) throw new Exception("Mac pointer fixes changed Linux");
+                Hands.OnMac = true;
+                foreach (int scale in new[] { 1, 2, 3 })
+                    if (HerCursor.Corner(new PixelPoint(756, 491), scale) != new PixelPoint(666, 401) || HerCursor.Corner(new PixelPoint(-1320, 300), scale) != new PixelPoint(-1410, 210)) throw new Exception("Mac pointer tip used backing pixels instead of desktop points");
+                checks.Add("PASS Mac pointer and control frame use native click-through and the pointer tip stays on its point at 1x, 2x and 3x");
+
+                var events = new List<MacFingers.Event>();
+                MacFingers.Point cursor = new MacFingers.Point(0, 0);
+                MacFingers.Position = () => cursor; MacFingers.Foreground = () => 17;
+                MacFingers.Sink = ev => { events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At; };
+                ComputerSnapshot source = null;
+                byte[] picture = null;
+                int grabs = 0;
+                MacFingers.Desktop desktop = null;
+                foreach (bool second in new[] { false, true })
+                    foreach (int scale in new[] { 1, 2, 3 })
+                    {
+                        ComputerRect screen = second ? new ComputerRect(-1920, 0, 1920, 1080) : new ComputerRect(0, 0, 1512, 982);
+                        ComputerRect room = second ? new ComputerRect(-1720, 100, 800, 400) : new ComputerRect(252, 100, 756, 400);
+                        var display = new MacFingers.Display(7, second ? 2 : 1, screen, screen.Width * scale, screen.Height * scale);
+                        MacFingers.Displays = () => new[] { display };
+                        source = new ComputerSnapshot("mac-check", "mac-layout", new ComputerTarget("0x7", 17, "birth", "game", room, 7, 0), display.Output, cursor.X, cursor.Y, true);
+                        using (var pixels = new SkiaSharp.SKBitmap(display.PixelsWide, display.PixelsHigh))
+                        {
+                            pixels.Erase(SkiaSharp.SKColors.Black);
+                            using (var canvas = new SkiaSharp.SKCanvas(pixels))
+                            using (var paint = new SkiaSharp.SKPaint { Color = SkiaSharp.SKColors.Cyan })
+                                canvas.DrawRect(new SkiaSharp.SKRect((second ? 200 : 252) * scale, 100 * scale, (second ? 1000 : 1008) * scale, 500 * scale), paint);
+                            using (var image = SkiaSharp.SKImage.FromBitmap(pixels))
+                            using (var png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) picture = png.ToArray();
+                        }
+                        MacFingers.CaptureRun = (start, token) =>
+                        {
+                            token.ThrowIfCancellationRequested();
+                            if (start.FileName != "/usr/sbin/screencapture" || start.ArgumentList.Count != 6 || start.ArgumentList[2] != display.Index.ToString()) throw new Exception("Mac captured another display");
+                            grabs++; File.WriteAllBytes(start.ArgumentList[5], picture);
+                        };
+                        desktop = new MacFingers.Desktop(read: output => source with { PointerX = cursor.X, PointerY = cursor.Y });
+                        ComputerFrame whole = desktop.Capture(desktop.Snapshot(), false, CancellationToken.None);
+                        var center = whole.ToLogical(whole.Width / 2.0, whole.Height / 2.0);
+                        if (whole.Width != 1280 || center.X != (second ? -960 : 756) || center.Y != (second ? 540 : 491)) throw new Exception("Mac full display pixels became the wrong point");
+                        ComputerFrame frame = desktop.Capture(desktop.Snapshot(), true, CancellationToken.None);
+                        if (frame.Area != room || frame.Width != Math.Min(1280, room.Width * scale) || frame.Height != (int)Math.Round(400.0 * frame.Width / room.Width)) throw new Exception("Mac crop size differs from its frame metadata");
+                        using (var pixels = SkiaSharp.SKBitmap.Decode(frame.Png))
+                            if (pixels.GetPixel(frame.Width / 2, frame.Height / 2) != SkiaSharp.SKColors.Cyan) throw new Exception("Mac window crop used the wrong display origin or pixel scale");
+                        events.Clear();
+                        new MacFingers.Input().Execute(new ComputerAction { Action = "click", X = frame.Width / 2.0, Y = frame.Height / 2.0, Button = "left" }, frame, desktop,
+                            (x, y) => { if (x != cursor.X || y != cursor.Y) throw new Exception("Mac click guard lost its point"); }, CancellationToken.None);
+                        if (events.Count != 3 || events[1].Kind != 1 || events[2].Kind != 2 || events[1].At.X != (second ? -1320 : 630) || events[1].At.Y != 300) throw new Exception("Mac crop coordinates became the wrong click");
+                        ProcessStartInfo command = MacFingers.CaptureCommand(display, "fake.png");
+                        if (command.FileName != "/usr/sbin/screencapture" || string.Join(" ", command.ArgumentList) != "-x -D " + display.Index + " -t png fake.png") throw new Exception("Mac selected the wrong capture command");
+                    }
+                checks.Add("PASS Mac 1x, 2x and 3x captures map a 1280-wide image and window crops to points, including the display at (-1920, 0)");
+                int beforeGrabs = grabs;
+                Eyes.ScreenAllowed = () => false;
+                bool blocked = false;
+                try { desktop.Capture(desktop.Snapshot(), true, CancellationToken.None); }
+                catch (InvalidOperationException error) { blocked = error.Message.Contains("Screen Recording"); }
+                if (!blocked || grabs != beforeGrabs) throw new Exception("Mac job captured without Screen Recording");
+                probes = 0; Eyes.ScreenAllowed = () => ++probes == 1;
+                blocked = false;
+                try { desktop.Capture(desktop.Snapshot(), true, CancellationToken.None); }
+                catch (InvalidOperationException error) { blocked = error.Message.Contains("Screen Recording"); }
+                if (!blocked || grabs != beforeGrabs + 1) throw new Exception("Mac job accepted a screenshot after Screen Recording was revoked");
+                Eyes.ScreenAllowed = () => true;
+                checks.Add("PASS Mac job capture checks Screen Recording before and after the fake screencapture command");
+
+                ComputerRunner runner = new ComputerRunner { Desktop = desktop, Input = new MacFingers.Input(), Account = () => "mac-account" };
+                int turns = 0;
+                string Order(string instruction, string action = "click", string frame = null, string transition = "none")
+                {
+                    using var data = System.Text.Json.JsonDocument.Parse(instruction);
+                    int width = data.RootElement.GetProperty("width").GetInt32(), height = data.RootElement.GetProperty("height").GetInt32();
+                    if (width != 1280 || height != 640) throw new Exception("Mac brain was told a different image size");
+                    return System.Text.Json.JsonSerializer.Serialize(new { action, frame = frame ?? data.RootElement.GetProperty("frame").GetString(), previous_effect = turns++ == 0 ? "none" : "verified", label = "target button", risk = "none", secret = false, x = width / 2.0, y = height / 2.0, button = "left", transition });
+                }
+                events.Clear();
+                runner.Think = (jpeg, system, instruction) => Order(instruction);
+                ComputerJob duplicate = new ComputerJob { Task = "click the target button" };
+                bool repeated = false;
+                try { runner.Run(duplicate, CancellationToken.None); }
+                catch (InvalidOperationException error) { repeated = error.Message.Contains("already delivered"); }
+                if (!repeated || events.Count != 3 || duplicate.TotalSteps != 1 || turns != 2) throw new Exception("Mac replayed an input against unchanged pixels");
+                events.Clear(); turns = 0;
+                foreach (uint kind in new uint[] { 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, 22, 25, 26, 27 })
+                    if ((MacFingers.Inputs & (1UL << (int)kind)) == 0 || !MacFingers.Stops(kind, 0) || MacFingers.Stops(kind, Environment.ProcessId)) throw new Exception("Mac missed owner input or stopped on its own event");
+                using (var scrolled = new CancellationTokenSource())
+                {
+                    runner.Think = (jpeg, system, instruction) =>
+                    {
+                        if ((MacFingers.Inputs & (1UL << 22)) != 0 && MacFingers.Stops(22, 0)) scrolled.Cancel();
+                        return Order(instruction);
+                    };
+                    bool stopped = false;
+                    try { runner.Run(new ComputerJob { Task = "click the target button" }, scrolled.Token); }
+                    catch (OperationCanceledException) { stopped = true; }
+                    if (!stopped || events.Count != 0) throw new Exception("Mac clicked an old picture after the owner scrolled without moving the pointer");
+                }
+                checks.Add("PASS Mac owner wheel, drag, release and modifier events revoke a pending click; Capri's own input stays allowed");
+                turns = 0;
+                using (var cancelled = new CancellationTokenSource())
+                {
+                    runner.Think = (jpeg, system, instruction) => { cancelled.Cancel(); return Order(instruction); };
+                    bool stopped = false;
+                    try { runner.Run(new ComputerJob { Task = "click the target button" }, cancelled.Token); }
+                    catch (OperationCanceledException) { stopped = true; }
+                    if (!stopped || events.Count != 0) throw new Exception("Mac applied an answer after cancellation");
+                }
+                turns = 0;
+                runner.Think = (jpeg, system, instruction) => Order(instruction, frame: "older-frame");
+                bool stale = false;
+                try { runner.Run(new ComputerJob { Task = "click the target button" }, CancellationToken.None); }
+                catch (InvalidOperationException error) { stale = error.Message.Contains("old screenshot"); }
+                if (!stale || events.Count != 0) throw new Exception("Mac used coordinates from another frame");
+                ComputerSnapshot before = source;
+                turns = 0;
+                runner.Think = (jpeg, system, instruction) => { source = source with { Target = source.Target with { Area = new ComputerRect(-1600, 100, 800, 400) } }; return Order(instruction); };
+                stale = false;
+                try { runner.Run(new ComputerJob { Task = "click the target button" }, CancellationToken.None); }
+                catch (InvalidOperationException error) { stale = error.Message.Contains("geometry changed"); }
+                if (!stale || events.Count != 0) throw new Exception("Mac used a point after its window moved");
+                source = before; turns = 0;
+                MacFingers.Sink = ev =>
+                {
+                    events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At;
+                    if (ev.Kind == 2) source = source with { Target = source.Target with { Address = "0x8" } };
+                };
+                runner.Think = (jpeg, system, instruction) => Order(instruction, turns == 0 ? "click" : "done", transition: turns == 0 ? "same_process" : "none");
+                ComputerJob game = new ComputerJob { Task = "play the game", Game = new ComputerGameSession(1) };
+                runner.Run(game, CancellationToken.None);
+                if (game.TotalSteps != 1 || events.Count != 3 || turns != 2 || game.Binding.Target.Address != "0x8" || game.Game.TransitionCompletion != null) throw new Exception("Mac stopped or replayed a declared game window transition");
+                ComputerSnapshot after = source;
+                Hands.OnMac = false;
+                bool linuxRejected = false;
+                try { ComputerGameSession.CompleteTransition(before, after); }
+                catch (InvalidOperationException) { linuxRejected = true; }
+                ComputerGameSession.CompleteTransition(before, after with { FocusEpoch = before.FocusEpoch + 1 });
+                Hands.OnMac = true;
+                bool otherProcess = false;
+                try { ComputerGameSession.CompleteTransition(before, after with { Target = after.Target with { Pid = 18 } }); }
+                catch (InvalidOperationException) { otherProcess = true; }
+                if (!linuxRejected || !otherProcess) throw new Exception("Mac transition changed Linux or allowed another process");
+                checks.Add("PASS Mac declared game window transitions accept epoch zero without replaying input; Linux still requires its focus event");
+                checks.Add("PASS Mac runner rejects duplicate inputs, old frame IDs, moved windows and answers arriving after cancellation through fakes");
+
+                events.Clear();
+                MacFingers.Sink = events.Add;
+                MacFingers.Pause = ms => { if (ms == 30) throw new IOException("fake click failure"); };
+                try { MacFingers.Click("left", 1); } catch (IOException) { }
+                if (events.Count != 2 || events[1].Kind != 2) throw new Exception("Mac click failure held the button");
+                events.Clear(); MacFingers.Pause = _ => { };
+                MacFingers.Sink = ev => { events.Add(ev); if (ev.Kind == 10 && ev.Key == 8) throw new IOException("fake key failure"); };
+                try { MacFingers.Keys("cmd+c"); } catch (IOException) { }
+                if (events.Count != 4 || events[2].Kind != 11 || events[3].Kind != 11 || events[3].Key != 55 || events[3].Flags != 0) throw new Exception("Mac chord failure held a key");
+                events.Clear(); MacFingers.Sink = events.Add;
+                int guards = 0;
+                try { MacFingers.Drag(0, 0, 100, 100, guard: (x, y) => { if (++guards == 2) throw new IOException("fake drag failure"); }); } catch (IOException) { }
+                if (events.Count != 3 || events[2].Kind != 2) throw new Exception("Mac drag failure held the button");
+                checks.Add("PASS Mac clicks, drags and chords release pressed input when a fake step throws");
+            }
+            finally
+            {
+                MacFingers.Trusted = trusted; MacFingers.Listening = listening; Eyes.ScreenAllowed = screenAllowed; Eyes.Take = take;
+                MacFingers.Launch = launch; MacFingers.Sink = sink; MacFingers.Pause = pause;
+                MacFingers.Position = position; MacFingers.Displays = displays; MacFingers.Foreground = foreground;
+                MacFingers.CaptureRun = captureRun;
+                HerCursor.MacThrough = macThrough; Ink.Message = message;
+                Hands.OnMac = mac; Hands.OwnHands = own; Hands.HandsReady = handsReady; Hands.HandsProblem = handsProblem;
+                Chores.Hidden = hidden; Chores.SignHidden = signHidden; Chores.Track = track;
+                typeof(MacFingers).GetField("opened", fields).SetValue(null, opened); typeof(MacFingers).GetField("inputPane", fields).SetValue(null, inputPane);
+                typeof(Eyes).GetField("recordingTold", fields).SetValue(null, recordingTold);
+                typeof(MacFingers).GetField("automationUntil", fields).SetValue(null, automationUntil);
+            }
         }
 
         private void MacNativeChecks()

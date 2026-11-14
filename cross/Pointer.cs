@@ -240,6 +240,7 @@ namespace CapriDesktop
         internal double TickMilliseconds { get { return ticks.Interval.TotalMilliseconds; } }
         internal void ReloadArt() { ClickArt.Reload(); face.InvalidateVisual(); }
         private bool passThrough;
+        internal static Func<Window, bool, bool> MacThrough = Ink.Through;
         internal readonly CursorBolts Bolts = new CursorBolts();
 
         internal HerCursor()
@@ -279,8 +280,7 @@ namespace CapriDesktop
         internal void Point(PixelPoint at)
         {
             tip = at;
-            double scale = RenderScaling > 0 ? RenderScaling : 1;
-            Look.Position(this, new PixelPoint(at.X - (int)Math.Round(Reach * scale), at.Y - (int)Math.Round(Reach * scale)));
+            Look.Position(this, Corner(at, RenderScaling));
             if (!IsVisible)
             {
                 Show();
@@ -288,6 +288,12 @@ namespace CapriDesktop
             }
             if (!ticks.IsEnabled) ticks.Start();
             face.InvalidateVisual();
+        }
+
+        internal static PixelPoint Corner(PixelPoint at, double scale)
+        {
+            if (Hands.OnMac || !(scale > 0)) scale = 1;
+            return new PixelPoint(at.X - (int)Math.Round(Reach * scale), at.Y - (int)Math.Round(Reach * scale));
         }
 
         internal void Tap()
@@ -371,6 +377,7 @@ namespace CapriDesktop
         // Her sign uses it too. True once clicks go through the window.
         internal static bool ClicksThrough(Window window, bool through = true)
         {
+            if (Hands.OnMac) return MacThrough(window, through);
             if (!OperatingSystem.IsLinux()) return false;
             try
             {

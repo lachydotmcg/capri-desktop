@@ -133,7 +133,7 @@ namespace CapriDesktop
             if (OnMac && Program.Smoke == null)
             {
                 Hands.HandsReady = () => MacFingers.Available;
-                Hands.HandsProblem = MacFingers.Problem;
+                Hands.HandsProblem = MacFingers.JobProblem;
                 Hands.MacClipboard = OperatingSystem.IsMacOSVersionAtLeast(26);
                 Chores.Shoot = MacFingers.Picture;
             }

@@ -374,7 +374,7 @@ namespace CapriDesktop
             bool mac = OperatingSystem.IsMacOS();
             if (mac)
             {
-                string problem = MacFingers.Problem();
+                string problem = MacFingers.JobProblem();
                 if (problem != null) return problem;
                 if (Hands.Streaming || Hands.StreamAsked(job.Task) || Hands.StreamAsked(job.Asked)) return "Live stream chat and timing aren't connected to Mac screen jobs yet.";
             }

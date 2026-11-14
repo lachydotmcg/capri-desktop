@@ -92,8 +92,8 @@ namespace CapriDesktop
             if (desktop == null)
             {
                 if (!string.IsNullOrWhiteSpace(screen) || ScreenSelection.HasHint(focus))
-                    throw new InvalidOperationException("I can't select that display on this desktop. Requested display selection requires the native Hyprland connection.");
-                byte[] picture = Screenshot(quiet ? QuietTools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")) : Tools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")));
+                    throw new InvalidOperationException(OperatingSystem.IsMacOS() ? Hands.MacScreen : "I can't select that display on this desktop. Requested display selection requires the native Hyprland connection.");
+                byte[] picture = Screenshot(quiet ? QuietTools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")) : Tools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")), OperatingSystem.IsMacOS());
                 CheckTicket(ticket);
                 return new EyesObservation(picture, null, ticket);
             }
@@ -190,6 +190,26 @@ namespace CapriDesktop
         [DllImport(Graphics)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGPreflightScreenCaptureAccess();
         [DllImport(Graphics)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CGRequestScreenCaptureAccess();
         private static bool askedToRecord;
+        private static bool recordingTold;
+        internal static Func<bool> ScreenAllowed = CGPreflightScreenCaptureAccess;
+        internal static Func<string[], string, bool> Take = TakeFile;
+
+        internal static bool CanRecord()
+        {
+            bool allowed = ScreenAllowed();
+            if (allowed) lock (captureGate) recordingTold = false;
+            return allowed;
+        }
+
+        internal static string ScreenProblem()
+        {
+            lock (captureGate)
+            {
+                bool again = recordingTold;
+                recordingTold = true;
+                return again ? "I still need Screen Recording to see your screen." : MissingFor(true, null, null);
+            }
+        }
 
         // Without Screen Recording a Mac screenshot is just the wallpaper, so she'd skip every glance without saying why. The first
         // time, Mac asks them; until they allow it and open her again, she says once that she can't watch.
@@ -198,7 +218,7 @@ namespace CapriDesktop
             if (!OperatingSystem.IsMacOS()) return true;
             try
             {
-                if (CGPreflightScreenCaptureAccess()) return true;
+                if (CanRecord()) return true;
                 if (askedToRecord) return false;
                 askedToRecord = true;
                 try { ForgetOldBuild(); }
@@ -237,7 +257,7 @@ namespace CapriDesktop
         internal static string MissingFor(bool mac, string session, string desktop)
         {
             // Said as it is when the step failed, so it's written for them, like the Linux line below.
-            if (mac) return "Couldn't take a screenshot. Allow Capri under System Settings > Privacy & Security > Screen Recording, then open Capri again. If Capri is already on that list, remove it with the minus button first.";
+            if (mac) return "I need Screen Recording to see your screen. Turn Capri on in System Settings > Privacy & Security > Screen Recording, then reopen me.";
             string tool = Kde(desktop) ? "Spectacle for KDE" : string.Equals(session, "wayland", StringComparison.OrdinalIgnoreCase)
                 ? (desktop ?? "").ToLowerInvariant().Contains("gnome") ? "gnome-screenshot for GNOME" : "grim for your desktop" : "scrot or maim";
             return "Couldn't take a screenshot. Install " + tool + ", then ask again.";
@@ -292,17 +312,17 @@ namespace CapriDesktop
             return quiet;
         }
 
-        private static byte[] Screenshot(List<string[]> tools)
+        internal static byte[] Screenshot(List<string[]> tools, bool mac)
         {
-            bool mac = OperatingSystem.IsMacOS();
+            if (mac && !CanRecord()) throw new InvalidOperationException(ScreenProblem());
             foreach (string[] tool in tools)
             {
                 string path = Path.Combine(Path.GetTempPath(), "capri-screen-" + Guid.NewGuid().ToString("N") + (mac ? ".jpg" : ".png"));
+                byte[] shot = null;
                 try
                 {
                     if (!Take(tool, path)) continue;
-                    byte[] shot = File.ReadAllBytes(path);
-                    if (shot.Length > 0) return shot;
+                    shot = File.ReadAllBytes(path);
                 }
                 catch (Exception) { }
                 finally
@@ -310,12 +330,14 @@ namespace CapriDesktop
                     try { File.Delete(path); }
                     catch (Exception) { }
                 }
+                if (mac && !CanRecord()) throw new InvalidOperationException(ScreenProblem());
+                if (shot != null && shot.Length > 0) return shot;
             }
             return null;
         }
 
         // A tool that isn't installed throws when it starts, so the next one gets a turn.
-        private static bool Take(string[] tool, string path)
+        private static bool TakeFile(string[] tool, string path)
         {
             ProcessStartInfo start = new ProcessStartInfo(tool[0]) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
             for (int i = 1; i < tool.Length; i++) start.ArgumentList.Add(tool[i] == "{0}" ? path : tool[i]);
