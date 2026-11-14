@@ -31,7 +31,7 @@ export const startSite = port => new Promise((resolve, reject) => {
     }
   });
   server.on('error', reject);
-  server.listen(port, '127.0.0.1', () => resolve({ asked, close: () => new Promise(done => server.close(done)) }));
+  server.listen(port, '127.0.0.1', () => resolve({ asked, port: server.address().port, close: () => new Promise(done => server.close(done)) }));
 });
 
 // The page's early access, passed the way the page keeps it (with the hash in app.js, never the password), and its home

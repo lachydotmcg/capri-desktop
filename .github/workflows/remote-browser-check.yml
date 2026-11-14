@@ -1,0 +1,40 @@
+name: Remote browser integration
+on: push
+permissions:
+  contents: read
+jobs:
+  remote:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install Linux display and build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends libwayland-dev libxkbcommon-dev libxcb1-dev pkg-config xvfb xauth openbox xcompmgr libice6 libsm6 libfontconfig1
+      - name: Install the local relay and build Capri
+        run: |
+          npm --prefix remote/relay ci
+          dotnet build cross/Capri.Cross.csproj -c Release -o out/cross
+      - name: Pair and chat on Mac
+        if: runner.os == 'macOS'
+        run: node remote/test/cross-host-smoke.mjs out/cross/Capri out/remote-check
+      - name: Pair and chat on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; node remote/test/cross-host-smoke.mjs out/cross/Capri out/remote-check'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: remote-report-${{ matrix.os }}
+          path: out/remote-check/smoke-test.txt
