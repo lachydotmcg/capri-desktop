@@ -9560,6 +9560,7 @@ namespace CapriDesktop
             voicePreview = null;
             if (preferences.Silent) return;
             preferences.Silent = true;
+            RemoteVoiceState();
             BargeIn("voice off");
             Hush("voice off");
             qwen.Stop();
@@ -9579,6 +9580,7 @@ namespace CapriDesktop
         {
             if (!preferences.Silent) return;
             preferences.Silent = false;
+            RemoteVoiceState();
             SavePreferences();
             mainframe.Sync();
             ShowVoice();
@@ -9597,6 +9599,7 @@ namespace CapriDesktop
             }
             bool wasSilent = preferences.Silent;
             if (!keepVoiceOff) preferences.Silent = false;
+            if (wasSilent && !preferences.Silent) RemoteVoiceState();
             if (wasSilent)
             {
                 preferences.Quiet = !paid;
@@ -12903,6 +12906,7 @@ namespace CapriDesktop
             if (Cloudy(address, api)) preferences.CloudVoice = VoiceServer.CloudName(api);
             bool wasSilent = preferences.Silent;
             if (!keepVoiceOff) preferences.Silent = false;
+            if (wasSilent && !preferences.Silent) RemoteVoiceState();
             if (wasSilent || (voice.Key != null && !preferences.Quiet))
             {
                 preferences.Quiet = true;
@@ -39212,6 +39216,225 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeRoomHost(System.Collections.Generic.List<string> checks)
+        {
+            RemoteCall.SmokeListening(checks);
+            bool warm = remoteEarsWarm, silent = preferences.Silent;
+            RemoteCall savedCall = remoteCall;
+            RemoteLink link = new RemoteLink(RemoteState.Fresh(), "ws://127.0.0.1:1", "Test PC", "test", null);
+            using (RemoteCall call = new RemoteCall(link, delegate { throw new Exception("Listening used ears."); }, delegate { }))
+            {
+                try
+                {
+                    remoteEarsWarm = false;
+                    call.Heard("phone", "{\"type\":\"call.start\",\"listen\":true}");
+                    RemoteEarsFor(call.Hearing);
+                    if (remoteEarsWarm || BadgeLead(false, call.Any, call.Hearing) != "PHONE IS LISTENING ") throw new Exception("Room listening warmed ears or showed a call badge.");
+                    call.Heard("phone", "{\"type\":\"call.stop\"}");
+                    RemoteEarsFor(call.Hearing);
+                    if (remoteEarsWarm || call.Any) throw new Exception("Stopping Room listening left ears or a call.");
+                    call.Heard("phone", "{\"type\":\"call.start\"}");
+                    RemoteEarsFor(call.Hearing);
+                    if (!remoteEarsWarm || BadgeLead(false, call.Any, call.Hearing) != "PHONE IS ON A CALL ") throw new Exception("An ordinary call after Room listening lost ears or its badge.");
+                    call.End("phone", "ended");
+                    RemoteEarsFor(call.Hearing);
+                    if (remoteEarsWarm) throw new Exception("Ending the ordinary call left ears warm.");
+                    remoteCall = call;
+                    call.VoiceOn = delegate { return !preferences.Silent; };
+                    call.Heard("phone", "{\"type\":\"call.start\",\"listen\":true}");
+                    call.Heard("other", "{\"type\":\"call.start\",\"listen\":true}");
+                    System.Collections.Generic.List<string> states = new System.Collections.Generic.List<string>();
+                    call.Sending = delegate(string device, string json) { if (RemoteJson.ParseMap(json).Text("type") == "call.state") states.Add(device + " " + json); };
+                    preferences.Silent = false;
+                    Silence(false);
+                    Unsilence();
+                    if (states.Count != 4 || !states.Contains("phone {\"type\":\"call.state\",\"on\":true,\"voice\":false,\"ears\":false}") || !states.Contains("other {\"type\":\"call.state\",\"on\":true,\"voice\":false,\"ears\":false}") || !states.Contains("phone {\"type\":\"call.state\",\"on\":true,\"voice\":true,\"ears\":false}") || !states.Contains("other {\"type\":\"call.state\",\"on\":true,\"voice\":true,\"ears\":false}") || call.Hearing) throw new Exception("Switching her voice left a listener with stale voice state or opened ears.");
+                }
+                finally { remoteEarsWarm = warm; preferences.Silent = silent; remoteCall = savedCall; link.Stop(); }
+            }
+            checks.Add("PASS Room listening keeps ears cold and uses the listening badge; an ordinary call uses ears and its badge; PC voice switches send the acceptance state to every listener");
+        }
+
+        private void SmokeRemotePictures(System.Collections.Generic.List<string> checks)
+        {
+            RemoteLink.SmokePictureHeaders(checks);
+            RemoteLink.SmokePictureOrder(checks);
+            RemoteLink.SmokePictureReceipts(checks);
+            string address = Brain.Nvidia, log = Brain.LogPath, model = brain.Model, unsighted = brain.Unsighted;
+            Cloud remote = brain.Remote;
+            RemoteSink sink = remoteSink;
+            Func<string, string> think = Think, animate = Hands.Animate;
+            Func<string, byte[]> speak = Speak, free = FreeSpeak;
+            bool noAi = preferences.NoAi, silent = preferences.Silent, quiet = preferences.Quiet, served = preferences.ServerVoice;
+            string captured = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "remote-picture-check-" + Guid.NewGuid().ToString("N") + ".txt");
+            System.Net.Sockets.TcpListener server = null;
+            System.Collections.Generic.List<string> requests = new System.Collections.Generic.List<string>();
+            System.Collections.Generic.List<string> voiced = new System.Collections.Generic.List<string>();
+            ManualResetEvent hold = new ManualResetEvent(false);
+            RemoteTap tap = new RemoteTap();
+            try
+            {
+                Brain.LogPath = captured;
+                Brain.Nvidia = FakeServer(new[] { LocalReply("A small picture.") }, requests, out server);
+                Brain selected = new Brain { Model = Brain.NvidiaDefault, Remote = new Cloud("nvapi-test", Brain.NvidiaDefault), ChatPath = captured + ".chat" };
+                string answer = null;
+                RemotePicture received = null;
+                RemoteLink.SmokePictures(checks, delegate(string text, RemotePicture picture) { received = picture; answer = RemotePictureAnswer(selected, text, picture); });
+                if (answer != "A small picture." || requests.Count != 1 || !requests[0].Contains("\"type\":\"image_url\"") || !requests[0].Contains("data:image/png;base64,") || !requests[0].Contains("Describe this picture.") || !requests[0].Contains("untrusted data")) throw new Exception("The remote picture did not reach the real host's brain request.");
+                string encoded = Convert.ToBase64String(received.Bytes);
+                string claudeInput = PlanBrain.Streamed("read this", new System.Collections.Generic.List<string> { encoded }, received.Mime);
+                if (!claudeInput.Contains("\"media_type\":\"image/png\"") || !claudeInput.Contains(encoded)) throw new Exception("The Claude plan lost its in-memory PNG input.");
+                if (Brain.Redacted("data:image/png;base64," + encoded).Contains(encoded) || Brain.Redacted("{\"media_type\":\"image/png\",\"data\":\"" + encoded + "\"}").Contains(encoded)) throw new Exception("A picture escaped error redaction.");
+                server.Stop();
+                requests.Clear();
+                Brain.Nvidia = FakeServer(new[] { LocalReply("A red cup marked TEA."), LocalReply("It is red."), LocalReply("The cup was red."), LocalReply("A blue bowl.") }, requests, out server, release: hold);
+                remoteSink = tap;
+                preferences.NoAi = preferences.Silent = preferences.Quiet = preferences.ServerVoice = false;
+                brain.Model = Brain.NvidiaDefault;
+                brain.Remote = selected.Remote;
+                brain.Unsighted = null;
+                Speak = FreeSpeak = delegate(string words) { lock (voiced) voiced.Add(words); return null; };
+                string given = null;
+                Think = delegate(string words) { given = words; return selected.Ask(words); };
+                int before = asking;
+                RemotePictureHeard("phoneA", "picture-words", "what colour is the cup?", received);
+                WaitVoice(delegate { lock (requests) return requests.Count == 1; }, "The phone picture never reached the look.");
+                if (asking != before) throw new Exception("A picture started its turn before its look finished.");
+                hold.Set();
+                WaitVoice(delegate { return reply != null && tap.Count > 0; }, "The picture turn never answered its phone.");
+                string expected = "what colour is the cup? [picture]\n\nThey sent a picture from their phone. You looked at it. You see: A red cup marked TEA.";
+                if (given != expected || heard != "what colour is the cup? [picture]" || reply != "It is red." || tap.Take() != "reply phoneA picture-words done: It is red.") throw new Exception("The picture lost its words, look, shown line or reply ticket.");
+                lock (voiced) if (!voiced.Contains("It is red.")) throw new Exception("The picture answer missed her normal speech path.");
+                string kept = File.ReadAllText(selected.ChatPath);
+                if (selected.History.Count != 2 || selected.History[0].Content != expected || !kept.Contains("[picture]") || !kept.Contains("A red cup marked TEA.") || kept.Contains(encoded) || requests[1].Contains(encoded) || heard.Contains(encoded)) throw new Exception("The picture turn kept bytes or lost its text.");
+                if (!requests[0].Contains("Their message, in their own words:") || !requests[0].Contains("what colour is the cup?")) throw new Exception("The look lost their own words.");
+                CloseTalk();
+                RemoteHear("phoneA", "picture-follow", "what colour was it?");
+                WaitVoice(delegate { return reply != null && tap.Count > 0; }, "The picture follow-up got no reply.");
+                if (tap.Take() != "reply phoneA picture-follow done: The cup was red." || !requests[2].Contains("A red cup marked TEA.")) throw new Exception("A follow-up lost what she saw in the phone picture.");
+                CloseTalk();
+                Hands.Animate = delegate { return "Grinned."; };
+                Think = delegate(string words) { given = words; string result = DoTool("animate", new ToolArguments { Name = "grin" }); selected.Remember(words, result); return result; };
+                RemotePictureHeard("phoneA", "picture-empty", "", received);
+                WaitVoice(delegate { return reply != null && tap.Count >= 3; }, "A picture without words got no tool or answer.");
+                if (given != "[picture]\n\nThey sent a picture from their phone. You looked at it. You see: A blue bowl.\nReact to the picture." || heard != "[picture]" || tap.Take() != "tool phoneA picture-empty animate running: Animating | tool phoneA picture-empty animate done: Animating | reply phoneA picture-empty done: Grinned.") throw new Exception("A picture without words lost its reaction, mark, tool or reply ticket.");
+                if (File.ReadAllText(selected.ChatPath).Contains(encoded)) throw new Exception("A picture's bytes reached the saved conversation.");
+                CloseTalk();
+                server.Stop();
+                int seenRequests = requests.Count;
+                foreach (string refusal in new[] { "off", "blind", "codex" })
+                {
+                    preferences.NoAi = refusal == "off";
+                    brain.Remote = refusal == "codex" ? new Cloud(Plans.CodexKey, "default") : selected.Remote;
+                    brain.Unsighted = refusal == "blind" ? brain.Remote.Sight : null;
+                    before = asking;
+                    RemotePictureHeard("phoneA", "picture-" + refusal, "read this", received);
+                    WaitVoice(delegate { return tap.Count > 0; }, "A refused picture got no reply.");
+                    string line = refusal == "off" ? Brain.OffLine : Brain.Sightless(brain.Remote);
+                    if (tap.Take() != "reply phoneA picture-" + refusal + " done: " + RemoteOut(line) || asking != before || requests.Count != seenRequests || selected.History.Count != 6) throw new Exception("A refused picture changed its line or started a turn.");
+                }
+                preferences.NoAi = false;
+                brain.Remote = selected.Remote;
+                brain.Unsighted = null;
+                string failure = "!400 {\"error\":{\"message\":\"invalid image " + encoded + "\"}}";
+                Brain.Nvidia = FakeServer(new[] { failure, failure }, requests, out server);
+                BrainException problem = null;
+                try { RemotePictureAnswer(selected, "read this", received); }
+                catch (BrainException error) { problem = error; }
+                if (problem == null || problem.Message.Contains(encoded) || problem.Detail.Contains(encoded)) throw new Exception("The provider echoed picture bytes into an error.");
+                before = asking;
+                RemotePictureHeard("phoneA", "picture-error", "read this", received);
+                WaitVoice(delegate { return tap.Count > 0; }, "A failed picture look got no reply.");
+                if (tap.Take() != "reply phoneA picture-error done: " + RemoteOut(problem.Message) || asking != before || selected.History.Count != 6 || !File.Exists(captured) || File.ReadAllText(captured).Contains(encoded)) throw new Exception("A failed look started a turn or echoed picture bytes into the phone or log.");
+                server.Stop();
+                requests.Clear();
+                hold.Reset();
+                Brain.Nvidia = FakeServer(new[] { LocalReply("An ordered picture.") }, requests, out server, release: hold);
+                Think = delegate { return "In order."; };
+                RemoteLink savedLink = remoteLink;
+                try
+                {
+                    RemoteLink.SmokePictureTurns(delegate(RemoteLink link, string device, Action<string> send)
+                    {
+                        remoteLink = link;
+                        int turnBefore = asking, pictureTurn = -1;
+                        string pictureShown = null;
+                        bool textSent = false, pictureFinished = false;
+                        Exception orderFailure = null;
+                        link.PictureSaid += delegate(string phone, string id, string text, RemotePicture picture, Func<bool> current, Action done)
+                        {
+                            RemotePictureHeard(phone, id, text, picture, current, delegate
+                            {
+                                pictureTurn = asking;
+                                pictureShown = heard;
+                                pictureFinished = true;
+                                done();
+                            });
+                        };
+                        link.Said += delegate(string phone, string id, string text)
+                        {
+                            if (!pictureFinished || pictureTurn <= turnBefore || pictureShown != "read this [picture]" || asking != pictureTurn) orderFailure = new Exception("Text passed the picture's turn in her real chat path.");
+                            RemoteHeard(phone, id, text);
+                            textSent = true;
+                        };
+                        before = asking;
+                        send("{\"type\":\"chat.send\",\"id\":\"order-picture\",\"text\":\"read this\",\"picture\":{\"mime\":\"image/png\",\"data\":\"" + RemoteCrypto.B64u(received.Bytes) + "\"}}");
+                        send("{\"type\":\"chat.send\",\"id\":\"order-follow\",\"text\":\"the next message\"}");
+                        WaitVoice(delegate { lock (requests) return requests.Count == 1; }, "The ordered picture never reached her look.");
+                        if (textSent || asking != before || tap.Count != 0) throw new Exception("Text reached her while the earlier picture was still looking.");
+                        hold.Set();
+                        WaitVoice(delegate { return textSent && heard == "the next message"; }, "The text after a picture never reached her.");
+                        if (orderFailure != null) throw orderFailure;
+                        WaitVoice(delegate { return tap.Count >= 2; }, "The ordered messages did not close both reply tickets.");
+                        string replies = tap.Take();
+                        if (!replies.Contains("reply " + device + " order-picture done:") || !replies.Contains("reply " + device + " order-follow done:")) throw new Exception("An ordered message lost its phone or reply ticket.");
+                        CloseTalk();
+                    });
+                }
+                finally { remoteLink = savedLink; }
+                server.Stop(); requests.Clear(); hold.Reset();
+                Brain.Nvidia = FakeServer(new[] { LocalReply("An old picture.") }, requests, out server, release: hold);
+                try
+                {
+                    RemoteLink.SmokePictureTurns(delegate(RemoteLink link, string device, Action<string> send)
+                    {
+                        remoteLink = link;
+                        int turnBefore = asking;
+                        bool finished = false;
+                        link.PictureSaid += delegate(string phone, string id, string text, RemotePicture picture, Func<bool> current, Action done)
+                        {
+                            RemotePictureHeard(phone, id, text, picture, current, delegate { finished = true; done(); });
+                        };
+                        send("{\"type\":\"chat.send\",\"id\":\"old-picture\",\"text\":\"read this\",\"picture\":{\"mime\":\"image/png\",\"data\":\"" + RemoteCrypto.B64u(received.Bytes) + "\"}}");
+                        WaitVoice(delegate { lock (requests) return requests.Count == 1; }, "The stale-session picture never reached her look.");
+                        link.Revoke(device);
+                        hold.Set();
+                        WaitVoice(delegate { return finished; }, "The stale-session look did not finish.");
+                        if (asking != turnBefore || tap.Count != 0) throw new Exception("A revoked phone's look reached her turn or sent an answer.");
+                    });
+                }
+                finally { remoteLink = savedLink; }
+                checks.Add("PASS a stale picture look cannot start a turn or send an answer");
+                checks.Add("PASS a sealed picture then text sent back to back enter her real chat path in that order; the picture starts its turn first and both reply tickets close");
+                checks.Add("PASS Remote pictures reach the brain as typed image blocks; echoed bytes stay out of errors and logs");
+                checks.Add("PASS phone pictures join normal turns with words, a look, speech, tools, reply tickets and follow-up history; kept lines have [picture] and no image bytes");
+                checks.Add("PASS pictures wait for their look; AI off, blind, Codex and failed looks never start a turn");
+            }
+            finally
+            {
+                hold.Set();
+                Brain.Nvidia = address; Brain.LogPath = log;
+                brain.Remote = remote; brain.Model = model; brain.Unsighted = unsighted;
+                remoteSink = sink; Think = think; Hands.Animate = animate; Speak = speak; FreeSpeak = free;
+                preferences.NoAi = noAi; preferences.Silent = silent; preferences.Quiet = quiet; preferences.ServerVoice = served;
+                if (server != null) server.Stop();
+                if (File.Exists(captured)) File.Delete(captured);
+                if (File.Exists(captured + ".chat")) File.Delete(captured + ".chat");
+                lock (remoteGate) { remoteTickets.Clear(); remoteAsides.Clear(); }
+                CloseTalk();
+            }
+        }
+
         private static void WaitVoice(Func<bool> done, string problem)
         {
             Stopwatch waited = Stopwatch.StartNew();
@@ -42748,6 +42971,24 @@ namespace CapriDesktop
                 if (RemoteJobTask("a task with no action") != "Using your computer") throw new Exception("An unknown task didn't use the safe title.");
                 lock (sent) if (string.Join("\n", sent.ToArray()).Contains(secret)) throw new Exception("A held action sent typed text to a phone.");
                 checks.Add("PASS held shutdown, close, switch, open, media, shortcut and mouse actions use the held tool and SECURITY toggle; held send, payment, delete, install, keys and confirmation use the job's risk; combined holds name each action and typed text stays out");
+                if (RemoteToolMove("move_yourself", new ToolArguments { Action = "lie_down" }) != "lie_down" ||
+                    RemoteToolMove("move_yourself", new ToolArguments { Action = "sit" }) != "sit" ||
+                    RemoteToolMove("move_yourself", new ToolArguments { Action = "sit_on" }) != "sit" ||
+                    RemoteToolMove("move_yourself", new ToolArguments { Action = "sit_up" }) != "sit" ||
+                    RemoteToolMove("animate", new ToolArguments { Name = "heart" }) != "heart" ||
+                    RemoteToolMove("animate", new ToolArguments { Name = "grin" }) != null ||
+                    RemoteToolMove("move_yourself", new ToolArguments { Action = "stand_up" }) != null ||
+                    RemoteToolMove("animate", null) != null) throw new Exception("Room moves did not match her tools.");
+                foreach (string move in new[] { "sit", "lie_down", "heart" })
+                {
+                    if (RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "done", null, move)).Text("move") != move ||
+                        RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "running", null, move)).Text("move") != null ||
+                        RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "failed", null, move)).Text("move") != null)
+                        throw new Exception("Room moves went before a tool succeeded.");
+                }
+                if (RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "done", null, "other")).Text("move") != null)
+                    throw new Exception("An unknown room move reached the phone.");
+                checks.Add("PASS room sit, lie down and heart come only from successful matching tools");
                 RemoteLink.SmokeJobs(checks);
             }
             finally
@@ -43381,8 +43622,10 @@ namespace CapriDesktop
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
+            Section(checks, "SmokeRemotePictures", delegate { SmokeRemotePictures(checks); });
             Section(checks, "SmokeRemoteJobs", delegate { SmokeRemoteJobs(checks); });
             Section(checks, "SmokeRemoteCall", delegate { SmokeRemoteCall(checks); });
+            Section(checks, "SmokeRoomHost", delegate { SmokeRoomHost(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
             Section(checks, "SmokeDeviceChoices", delegate { SmokeDeviceChoices(checks); });
             Section(checks, "SmokeSlowDevices", delegate { SmokeSlowDevices(checks); });

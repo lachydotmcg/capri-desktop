@@ -61,6 +61,8 @@ namespace CapriDesktop
                 string system;
                 List<string> pictures;
                 string prompt = Prompt(messages, kind == "codex", out system, out pictures);
+                ChatMessage imageMessage = messages.Find(delegate(ChatMessage message) { return message.ImageMime != null; });
+                string mime = imageMessage == null ? "image/jpeg" : imageMessage.ImageMime;
                 List<string> args = new List<string>();
                 if (kind == "codex")
                 {
@@ -92,7 +94,7 @@ namespace CapriDesktop
                 {
                     List<string> asked = new List<string>(args);
                     lock (dropped) foreach (string flag in Newer) if (!dropped.Contains(flag)) asked.Add(flag);
-                    claude = Start(kind, app, asked, Streamed(prompt, pictures), run, cancelled);
+                    claude = Start(kind, app, asked, Streamed(prompt, pictures, mime), run, cancelled);
                     // An older Claude Code that doesn't know one of the newer flags runs again without it, and keeps running without it.
                     Match unknown = Regex.Match(claude.Errors + claude.Output, @"unknown option '(--[a-z-]+)'");
                     if (!unknown.Success || Array.IndexOf(Newer, unknown.Groups[1].Value) < 0) break;
@@ -109,7 +111,7 @@ namespace CapriDesktop
                     said = HuskJson.Get(row, "result") as string ?? "";
                     failed = HuskJson.Get(row, "is_error") is bool && (bool)HuskJson.Get(row, "is_error");
                 }
-                if (said == null || failed || said.Trim().Length == 0) throw Problem(kind, (said ?? "") + "\n" + claude.Errors);
+                if (said == null || failed || said.Trim().Length == 0) throw Problem(kind, Brain.RedactedImages((said ?? "") + "\n" + claude.Errors, string.Join(" ", pictures.ToArray())));
                 return said.Trim();
             }
             finally
@@ -155,10 +157,10 @@ namespace CapriDesktop
         }
 
         // Claude Code's stream-json input: one message from them, with any screenshots as pictures.
-        internal static string Streamed(string prompt, List<string> pictures)
+        internal static string Streamed(string prompt, List<string> pictures, string mime = "image/jpeg")
         {
             List<object> blocks = new List<object>();
-            foreach (string picture in pictures) blocks.Add(HuskJson.Map("type", "image", "source", HuskJson.Map("type", "base64", "media_type", "image/jpeg", "data", picture)));
+            foreach (string picture in pictures) blocks.Add(HuskJson.Map("type", "image", "source", HuskJson.Map("type", "base64", "media_type", mime, "data", picture)));
             blocks.Add(HuskJson.Map("type", "text", "text", prompt));
             return HuskJson.Write(HuskJson.Map("type", "user", "message", HuskJson.Map("role", "user", "content", blocks))) + "\n";
         }
