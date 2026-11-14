@@ -1617,6 +1617,7 @@ namespace CapriDesktop
         internal static Func<string, string> Opened = BringOpened;
         internal static Func<string, string> BrowserPath = FindBrowser;
         internal static Func<string, string> SearchEngine = ReadSearchEngine;
+        internal static Func<string, string> ProfileRoot = SearchRoot;
         internal static Func<string> DefaultBrowser = ReadDefaultBrowser;
         internal static Func<DateTime> SearchNow = delegate { return DateTime.UtcNow; };
         internal static Action<string, string> Browse = StartBrowser;
@@ -2912,6 +2913,10 @@ namespace CapriDesktop
             if (Honest(result)) return result;
             if (Regex.IsMatch(result ?? "", @"^(The closest match is |I didn't find a name matching |Stopped looking for files\.|Selected .+ in File Explorer\.|Couldn't select that in File Explorer\.|Your websites:\n|I'll remember .+ as https?://|Forgot the .+ website\.|I couldn't read that browser's address\.)")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser(?: because |\.)|but (it's behind|I couldn't bring) )")) return result;
+#if !CROSS
+            foreach (string browser in BrowserNames)
+                if (Regex.IsMatch(result ?? "", @"^Searched [a-z0-9.-]+ for .+ in " + Regex.Escape(browser) + @"(?:, but .+)?\.$")) return result;
+#endif
             if (Regex.IsMatch(result ?? "", @"^(Saved [\d.]+ seconds of |Turn on Clip my games |I haven't buffered any game video |Windows couldn't (find an H\.264 encoder|encode that clip)|Windows Media Foundation isn't installed|Couldn't save that clip)")) return result;
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
@@ -5124,15 +5129,31 @@ namespace CapriDesktop
         private static string ReadDefaultBrowser()
         {
 #if !CROSS
-            try
-            {
-                using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice"))
-                    return DefaultBrowserName(key == null ? null : key.GetValue("ProgId") as string);
-            }
-            catch (Exception) { }
+            return DefaultBrowserChoice(ReadBrowserChoice);
+#else
+            return null;
 #endif
+        }
+
+#if !CROSS
+        internal static string DefaultBrowserChoice(Func<string, string> read)
+        {
+            const string path = @"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\";
+            foreach (string choice in new[] { @"UserChoiceLatest\ProgId", "UserChoiceLatest", "UserChoice" })
+            {
+                string id = null;
+                try { id = read(path + choice); } catch (Exception) { }
+                if (!string.IsNullOrWhiteSpace(id)) return DefaultBrowserName(id);
+            }
             return null;
         }
+
+        private static string ReadBrowserChoice(string path)
+        {
+            using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(path))
+                return key == null ? null : key.GetValue("ProgId") as string;
+        }
+#endif
 
         internal static string DefaultBrowserName(string id)
         {
@@ -5146,20 +5167,32 @@ namespace CapriDesktop
             return null;
         }
 
-        private static string ReadSearchEngine(string browser)
+        private static string SearchRoot(string browser)
+        {
+#if !CROSS
+            string folder = browser == "Chrome" ? @"Google\Chrome\User Data" : browser == "Edge" ? @"Microsoft\Edge\User Data" : browser == "Brave" ? @"BraveSoftware\Brave-Browser\User Data" : browser == "Vivaldi" ? @"Vivaldi\User Data" : browser == "Opera" ? @"Opera Software\Opera Stable" : browser == "Opera GX" ? @"Opera Software\Opera GX Stable" : null;
+            return folder == null ? null : Path.Combine(Environment.GetFolderPath(browser == "Opera" || browser == "Opera GX" ? Environment.SpecialFolder.ApplicationData : Environment.SpecialFolder.LocalApplicationData), folder);
+#else
+            return null;
+#endif
+        }
+
+        internal static string ReadSearchEngine(string browser)
         {
 #if !CROSS
             try
             {
-                string folder = browser == "Chrome" ? @"Google\Chrome\User Data" : browser == "Edge" ? @"Microsoft\Edge\User Data" : browser == "Brave" ? @"BraveSoftware\Brave-Browser\User Data" : browser == "Vivaldi" ? @"Vivaldi\User Data" : browser == "Opera" ? @"Opera Software\Opera Stable" : browser == "Opera GX" ? @"Opera Software\Opera GX Stable" : null;
-                if (folder == null) return null;
-                string root = Path.Combine(Environment.GetFolderPath(browser == "Opera" || browser == "Opera GX" ? Environment.SpecialFolder.ApplicationData : Environment.SpecialFolder.LocalApplicationData), folder);
+                string root = ProfileRoot(browser);
+                if (string.IsNullOrWhiteSpace(root)) return null;
                 string state = Path.Combine(root, "Local State");
                 bool hasState = File.Exists(state);
                 string stateText = hasState ? ReadSearchFile(state) : null;
                 if (hasState && stateText == null) return null;
                 string profile = SearchProfile(stateText);
-                return profile == null ? null : SearchTemplate(ReadSearchFile(Path.Combine(Path.Combine(root, profile), "Preferences")));
+                if (profile == null) return null;
+                string folder = Path.Combine(root, profile);
+                if ((browser == "Opera" || browser == "Opera GX") && !File.Exists(Path.Combine(folder, "Secure Preferences")) && !File.Exists(Path.Combine(folder, "Preferences"))) folder = root;
+                return SearchTemplate(ReadSearchFile(Path.Combine(folder, "Secure Preferences"))) ?? SearchTemplate(ReadSearchFile(Path.Combine(folder, "Preferences")));
             }
             catch (Exception) { }
 #endif
@@ -5167,16 +5200,20 @@ namespace CapriDesktop
         }
 
 #if !CROSS
-        private static string ReadSearchFile(string path)
+        internal static string ReadSearchFile(string path)
         {
-            using (FileStream input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            try
             {
-                if (input.Length > 4 * 1024 * 1024) return null;
-                byte[] bytes = new byte[(int)input.Length];
-                int offset = 0, got;
-                while (offset < bytes.Length && (got = input.Read(bytes, offset, bytes.Length - offset)) > 0) offset += got;
-                return offset == bytes.Length && input.Length == bytes.Length ? Encoding.UTF8.GetString(bytes) : null;
+                using (FileStream input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                {
+                    if (input.Length > 4 * 1024 * 1024) return null;
+                    byte[] bytes = new byte[(int)input.Length];
+                    int offset = 0, got;
+                    while (offset < bytes.Length && (got = input.Read(bytes, offset, bytes.Length - offset)) > 0) offset += got;
+                    return offset == bytes.Length && input.Length == bytes.Length ? Encoding.UTF8.GetString(bytes) : null;
+                }
             }
+            catch (Exception) { return null; }
         }
 #endif
 
@@ -5212,6 +5249,7 @@ namespace CapriDesktop
         }
 
         private const string BrowserWords = @"(?:google )?chrome|(?:microsoft )?edge|(?:mozilla )?firefox|opera[ _]gx|opera|brave|vivaldi";
+        private static readonly string[] BrowserNames = { "Chrome", "Edge", "Firefox", "Opera GX", "Opera", "Brave", "Vivaldi" };
 
         internal static string BrowserName(string browser)
         {
@@ -5219,8 +5257,7 @@ namespace CapriDesktop
             if (plain == "google chrome") plain = "chrome";
             if (plain == "microsoft edge") plain = "edge";
             if (plain == "mozilla firefox") plain = "firefox";
-            string[] choices = { "Chrome", "Edge", "Firefox", "Opera GX", "Opera", "Brave", "Vivaldi" };
-            foreach (string choice in choices) if (plain == choice.ToLowerInvariant()) return choice;
+            foreach (string choice in BrowserNames) if (plain == choice.ToLowerInvariant()) return choice;
             return null;
         }
 
@@ -5250,15 +5287,6 @@ namespace CapriDesktop
             if (searching.Success && Site(searching.Groups[1].Value)) return new ToolArguments { Site = searching.Groups[1].Value, Search = searching.Groups[2].Value.Trim(), Browser = browser };
             Match searchingOn = Regex.Match(text, @"^search(?: for)?\s+(.+?)\s+on\s+(\S+)$", RegexOptions.IgnoreCase);
             if (searchingOn.Success && Site(searchingOn.Groups[2].Value)) return new ToolArguments { Site = searchingOn.Groups[2].Value, Search = searchingOn.Groups[1].Value.Trim(), Browser = browser };
-            if (browser != null)
-            {
-                Match lookup = Regex.Match(text, @"^(google|look up)\s+(.+)$", RegexOptions.IgnoreCase);
-                if (lookup.Success && !Regex.IsMatch(lookup.Groups[2].Value, @"^(it|this|that|something|stuff|for me)$", RegexOptions.IgnoreCase))
-                    return new ToolArguments { Site = string.Equals(lookup.Groups[1].Value, "google", StringComparison.OrdinalIgnoreCase) ? "google" : null, Search = lookup.Groups[2].Value.Trim(), Browser = browser };
-                string online = Regex.Replace(text, @"\s+online\b", "", RegexOptions.IgnoreCase);
-                if (online != text && MiniName(online) != null || Regex.IsMatch(text, LookupWords, RegexOptions.IgnoreCase) && !Regex.IsMatch(Regex.Replace(text, @"\bnear me\b", ""), @"\b(my|your|you|me|i)\b", RegexOptions.IgnoreCase))
-                    return new ToolArguments { Search = text, Browser = browser };
-            }
             return null;
         }
 
