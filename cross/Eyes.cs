@@ -202,15 +202,22 @@ namespace CapriDesktop
 
         internal static string ScreenProblem()
         {
+            bool open;
             lock (captureGate)
             {
-                if (!recordingTold)
+                open = !recordingTold;
+                if (open)
                 {
                     recordingTold = true;
                     ScreenRequest();
                 }
-                return MissingFor(true, null, null);
             }
+            if (open)
+            {
+                try { MacFingers.Launch("/usr/bin/open", new[] { "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture" }); }
+                catch (Exception error) { Brain.Log("screen", -1, error.Message); }
+            }
+            return MissingFor(true, null, null);
         }
 
         // Without Screen Recording a Mac screenshot is just the wallpaper, so she'd skip every glance without saying why. The first

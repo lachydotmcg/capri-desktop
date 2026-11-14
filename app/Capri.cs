@@ -198,6 +198,7 @@ namespace CapriDesktop
             fresh.TextKey = old.TextKey; fresh.TextModel = old.TextModel;
             fresh.NvidiaKey = old.NvidiaKey; fresh.NvidiaModel = old.NvidiaModel;
             fresh.PaidKey = old.PaidKey; fresh.PaidModel = old.PaidModel;
+            fresh.PaidPlan = old.PaidPlan; fresh.PlanModel = old.PlanModel; fresh.PlanPicked = old.PlanPicked;
             // Which tier is picked and that the keys are already split: without them, a MEDIUM Gemini or OpenRouter key would
             // be split again as a paid one, over the MAX key (a Codex review, 2 Nov).
             fresh.Tier = old.Tier; fresh.Tiered = old.Tiered; fresh.NvidiaGlm = old.NvidiaGlm;
@@ -990,6 +991,9 @@ namespace CapriDesktop
         [DataMember] public string NvidiaModel;
         [DataMember] public string PaidKey;
         [DataMember] public string PaidModel;
+        [DataMember(EmitDefaultValue = false)] public string PaidPlan;
+        [DataMember(EmitDefaultValue = false)] public string PlanModel;
+        [DataMember(EmitDefaultValue = false)] public bool PlanPicked;
         [DataMember] public int Tier;
         [DataMember] public bool Tiered;
         [DataMember] public ThinkingPick[] ThinkingPicks;
@@ -11400,6 +11404,7 @@ namespace CapriDesktop
             brain.Model = name;
             Cloud remote = brain.Remote;
             if (remote != null) remote.Model = name;
+            mainframe.ForgotText(null);
             if (!keep) return;
             if (remote != null) Keep(remote);
             else if (preferences.ProviderOn && brain.Server != null)
@@ -11449,7 +11454,11 @@ namespace CapriDesktop
 
         private void SplitKeys()
         {
-            if (preferences.Tiered) return;
+            if (preferences.Tiered)
+            {
+                if (SplitPlan() && !testing) SavePreferences();
+                return;
+            }
             string textKey = Voice.Unprotect(preferences.TextKey);
             bool nvidia = textKey != null && Cloud.KindOf(textKey) == "nvidia";
             if (nvidia)
@@ -11464,15 +11473,27 @@ namespace CapriDesktop
             }
             preferences.Tier = textKey == null ? 0 : nvidia ? 1 : 2;
             preferences.Tiered = true;
+            SplitPlan();
             if (!testing) SavePreferences();
+        }
+
+        private bool SplitPlan()
+        {
+            if (Plans.KindOf(Voice.Unprotect(preferences.PaidKey)) == null) return false;
+            preferences.PaidPlan = preferences.PaidKey;
+            preferences.PlanModel = preferences.PaidModel;
+            preferences.PlanPicked = true;
+            preferences.PaidKey = null;
+            preferences.PaidModel = null;
+            return true;
         }
 
         private Cloud TierCloud()
         {
             if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) return null;
             if (preferences.Tier == 0 && preferences.BrainPort > 0 && preferences.BrainPort <= 65535 && !string.IsNullOrEmpty(preferences.LocalModel)) return new Cloud(preferences.BrainPort, preferences.LocalModel, preferences.BrainAddress);
-            string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null);
-            string model = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PaidModel;
+            string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PlanPicked ? preferences.PaidPlan : preferences.PaidKey : null);
+            string model = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PlanPicked ? preferences.PlanModel : preferences.PaidModel;
             string kind = Cloud.KindOf(key);
             if (kind == null || preferences.Tier == 1 && !Cloud.MediumKind(kind)) return null;
             bool fits = Brain.ModelFits(kind, model) && (preferences.Tier != 1 || kind != "openrouter" || model.EndsWith(":free", StringComparison.Ordinal));
@@ -11481,14 +11502,14 @@ namespace CapriDesktop
 
         private void Mirror()
         {
-            preferences.TextKey = preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null;
-            preferences.TextModel = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.Tier == 2 ? preferences.PaidModel : null;
+            preferences.TextKey = preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PlanPicked ? preferences.PaidPlan : preferences.PaidKey : null;
+            preferences.TextModel = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.Tier == 2 ? preferences.PlanPicked ? preferences.PlanModel : preferences.PaidModel : null;
         }
 
         private void ShowTiers()
         {
-            string nvidia = Voice.Unprotect(preferences.NvidiaKey), paid = Voice.Unprotect(preferences.PaidKey), plan = Plans.KindOf(paid);
-            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : plan != null ? Plans.Plan(plan) : Voice.Tail(paid), Cloud.KindOf(nvidia), plan != null);
+            string nvidia = Voice.Unprotect(preferences.NvidiaKey), paid = Voice.Unprotect(preferences.PaidKey), plan = preferences.PlanPicked ? Plans.KindOf(Voice.Unprotect(preferences.PaidPlan)) : null;
+            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : Voice.Tail(paid), Cloud.KindOf(nvidia), plan);
             mainframe.ShowNoAi(preferences.NoAi);
             RemoteBrainsShown();
         }
@@ -11497,16 +11518,17 @@ namespace CapriDesktop
         {
             if (remote.Kind == "local") { preferences.BrainPort = remote.Port; preferences.BrainAddress = remote.Host; preferences.LocalModel = remote.Model; }
             else if (preferences.Tier == 1) preferences.NvidiaModel = remote.Model;
+            else if (remote.Plan) preferences.PlanModel = remote.Model;
             else preferences.PaidModel = remote.Model;
             Mirror();
             SavePreferences();
         }
 
-        internal void ChooseTier(int tier)
+        internal void ChooseTier(int tier, bool force = false)
         {
             ++brainLook;
-            if (tier == preferences.Tier && !preferences.NoAi) return;
-            if (AfterLine(delegate { ChooseTier(tier); })) return;
+            if (tier == preferences.Tier && !preferences.NoAi && !force) return;
+            if (AfterLine(delegate { ChooseTier(tier, force); })) return;
             // Picking any brain switches No AI off.
             preferences.NoAi = false;
             Brain.Off = false;
@@ -11578,8 +11600,21 @@ namespace CapriDesktop
             ConnectText(key, 2);
         }
 
-        // MAX INTELLIGENCE on their own Claude or ChatGPT plan, through Claude Code or Codex on this PC (Lachy, 6 Nov).
-        internal void UsePlan(string kind) { ConnectText(kind == "codex" ? Plans.CodexKey : Plans.ClaudeKey, 2); }
+        internal void UseApiKey()
+        {
+            if (AfterLine(UseApiKey)) return;
+            preferences.PlanPicked = false;
+            ChooseTier(2, true);
+        }
+
+        internal void UsePlan(string kind)
+        {
+            if (!Plans.Is(kind)) return;
+            if (Plans.KindOf(Voice.Unprotect(preferences.PaidPlan)) != kind) { ConnectText(kind == "codex" ? Plans.CodexKey : Plans.ClaudeKey, 2); return; }
+            if (AfterLine(delegate { UsePlan(kind); })) return;
+            preferences.PlanPicked = true;
+            ChooseTier(2, true);
+        }
 
         private void ConnectText(string key, int targetTier)
         {
@@ -11598,6 +11633,7 @@ namespace CapriDesktop
 
         private void TextProblem(string problem, bool connecting)
         {
+            problem = Brain.Redacted(Brain.Scrubbed(problem));
             problem = Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem);
             Cloud remote = brain.Remote;
             if (connecting && remote != null && remote.Kind != "local") problem = (remote.Plan ? "Still using your " + Plans.Plan(remote.Kind) + ". " : "Still using your " + remote.Company + " key. ") + problem;
@@ -11623,16 +11659,26 @@ namespace CapriDesktop
                 preferences.NvidiaKey = null;
                 preferences.NvidiaModel = null;
             }
+            else if (preferences.PlanPicked)
+            {
+                preferences.PaidPlan = null;
+                preferences.PlanModel = null;
+                preferences.PlanPicked = false;
+            }
             else
             {
                 preferences.PaidKey = null;
                 preferences.PaidModel = null;
+                preferences.PlanPicked = Plans.KindOf(Voice.Unprotect(preferences.PaidPlan)) != null;
             }
-            preferences.Tier = 0;
+            preferences.Tier = preferences.Tier == 2 && (preferences.PlanPicked ? preferences.PaidPlan : preferences.PaidKey) != null ? 2 : 0;
             LoadProvider();
             Mirror();
             SavePreferences();
+            brain.Remote = TierCloud();
+            brain.Model = brain.Remote == null ? brain.Server == null ? null : preferences.ProviderModel : brain.Remote.Model;
             ShowTiers();
+            mainframe.ForgotText(preferences.Tier == 2 && brain.Remote != null && !brain.Remote.Code && brain.Remote.Kind != "local" ? brain.Remote : null);
             FindBrain();
         }
 
@@ -11666,7 +11712,8 @@ namespace CapriDesktop
                         brain.SetServer(null, null);
                         brain.Remote = remote;
                         if (pickedTier == 1) preferences.NvidiaKey = Voice.Protect(key);
-                        else preferences.PaidKey = Voice.Protect(key);
+                        else if (probe.Plan) { preferences.PaidPlan = Voice.Protect(key); preferences.PlanPicked = true; }
+                        else { preferences.PaidKey = Voice.Protect(key); preferences.PlanPicked = false; }
                         preferences.Tier = pickedTier;
                         Keep(remote);
                         ShowTiers();
@@ -37857,11 +37904,207 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokePlanChoice(System.Collections.Generic.List<string> checks, string output, Action<string, bool> claudeSays)
+        {
+            Preferences wasPreferences = preferences;
+            Cloud wasRemote = brain.Remote;
+            Engine wasLocal = brain.Local;
+            string wasModel = brain.Model, wasOpenAi = Brain.OpenAi;
+            System.Collections.Generic.List<string> wasModels = cloudModels;
+            Func<string, string> wasThink = Think;
+            bool wasFinding = finding, wasOff = Brain.Off;
+            System.Net.Sockets.TcpListener server = null;
+            string key = "sk-proj-plan-choice-saved-key", sealedKey = Voice.Protect(key), sealedClaude = Voice.Protect(Plans.ClaudeKey), sealedCodex = Voice.Protect(Plans.CodexKey);
+            string catalog = "{\"data\":[{\"id\":\"gpt-90-mini\"},{\"id\":\"gpt-90\"}]}";
+            bool refuse = false;
+            Func<string, string> quoted = delegate(string value) { return value == null ? "null" : Voice.Quote(value); };
+            Func<string, Preferences> read = delegate(string text)
+            {
+                using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes(text))) return (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream);
+            };
+            Action<int> use = delegate(int state)
+            {
+                ++brainLook; ++cloudListing; ++providerListing; ++asking;
+                CloseTalk();
+                bool hasKey = state != 1 && state != 4, hasPlan = state != 0;
+                preferences = new Preferences { Tier = 2, Tiered = true, Silent = true, MainframeSize = 100, PaidKey = hasKey ? sealedKey : null, PaidModel = hasKey ? "gpt-90-mini" : null, PaidPlan = hasPlan ? state >= 4 ? sealedCodex : sealedClaude : null, PlanModel = hasPlan ? state >= 4 ? "default" : "sonnet" : null, PlanPicked = state == 1 || state >= 3 };
+                brain.SetServer(null, null);
+                brain.Remote = TierCloud(); brain.Local = null; brain.Model = brain.Remote.Model;
+                cloudModels = brain.Remote.Plan ? Plans.Models(brain.Remote.Kind) : new System.Collections.Generic.List<string> { "gpt-90-mini", "gpt-90" };
+                Mirror();
+                ShowTiers();
+                mainframe.ShowCloud(brain.Remote, cloudModels);
+            };
+            Action settled = delegate { WaitVoice(delegate { return cloudModels != null; }, "The selected brain did not finish listing its models."); };
+            Action<string> forgetNote = delegate(string line)
+            {
+                if (!mainframe.Status.EndsWith(" | " + line, StringComparison.Ordinal)) throw new Exception("Forget did not name the source now in use: " + mainframe.Status);
+                settled();
+                if (!mainframe.Status.EndsWith(" | " + line, StringComparison.Ordinal)) throw new Exception("Refreshing models lost the note after Forget: " + mainframe.Status);
+            };
+            try
+            {
+                finding = true;
+                Brain.Off = false;
+                Think = delegate { return "Connected."; };
+                foreach (string kind in new[] { "openai", "claudecode", "codex", null })
+                {
+                    string saved = kind == null ? null : kind == "openai" ? sealedKey : kind == "codex" ? sealedCodex : sealedClaude;
+                    string model = kind == null ? null : kind == "openai" ? "gpt-90-mini" : kind == "codex" ? "default" : "sonnet";
+                    int tier = kind == null ? 0 : 2;
+                    preferences = read("{\"Tier\":" + tier + ",\"Tiered\":true,\"PaidKey\":" + quoted(saved) + ",\"PaidModel\":" + quoted(model) + ",\"TextKey\":" + quoted(saved) + ",\"TextModel\":" + quoted(model) + "}");
+                    SplitKeys();
+                    Mirror();
+                    Cloud remote = TierCloud();
+                    bool plan = Plans.Is(kind);
+                    if (preferences.Tier != tier || preferences.PlanPicked != plan || preferences.TextKey != saved || preferences.TextModel != model) throw new Exception("Updating changed the selected 0.9.1 brain.");
+                    if (kind == null ? remote != null : remote == null || remote.Kind != kind || remote.Model != model) throw new Exception("A 0.9.1 brain did not keep its key, plan or model.");
+                    if (plan ? preferences.PaidPlan != saved || preferences.PlanModel != model || preferences.PaidKey != null || preferences.PaidModel != null : preferences.PaidKey != saved || preferences.PaidModel != model || preferences.PaidPlan != null) throw new Exception("Migration replaced a saved credential.");
+                    if (SplitPlan()) throw new Exception("The plan migration ran twice.");
+                    ShowTiers();
+                    if (mainframe.PlanChoice != (plan ? Plans.Plan(kind) : "API key")) throw new Exception("Updating picked the wrong MAX choice.");
+                    checks.Add("PASS 0.9.1 saved " + (kind ?? "no brain") + " settings keep the same brain and model without another key or sign-in");
+                }
+                preferences = read("{\"Tier\":2,\"Tiered\":true}");
+                SplitKeys();
+                ShowTiers();
+                if (TierCloud() != null || preferences.Tier != 2 || preferences.PlanPicked || !mainframe.PlanTicked(0)) throw new Exception("An empty 0.9.1 MAX setup changed its brain.");
+                foreach (string mediumKey in new[] { "nvapi-plan-choice-saved", "AIza-plan-choice-saved", "sk-or-plan-choice-saved" })
+                {
+                    string saved = Voice.Protect(mediumKey), kind = Cloud.KindOf(mediumKey), model = kind == "google" ? "gemini-90-flash" : kind == "openrouter" ? "example/chat:free" : "kept-model";
+                    preferences = read("{\"Tier\":1,\"Tiered\":true,\"NvidiaKey\":" + quoted(saved) + ",\"NvidiaModel\":" + quoted(model) + ",\"TextKey\":" + quoted(saved) + ",\"TextModel\":" + quoted(model) + "}");
+                    SplitKeys();
+                    Mirror();
+                    Cloud remote = TierCloud();
+                    if (preferences.Tier != 1 || preferences.NvidiaKey != saved || preferences.NvidiaModel != model || preferences.PlanPicked || remote == null || remote.Key != mediumKey || remote.Model != model) throw new Exception("The plan migration changed a saved MEDIUM brain.");
+                }
+                preferences = new Preferences();
+                ShowTiers();
+                if (preferences.PlanPicked || !mainframe.PlanTicked(0) || string.Join(",", mainframe.PlanChoices) != "API key,Claude plan,ChatGPT plan") throw new Exception("A fresh MAX setup did not default to API key with all three choices.");
+                checks.Add("PASS fresh MAX defaults to API key; empty MAX and MEDIUM settings keep their choices");
+
+                System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                Brain.OpenAi = FakeServer(new string[80], asked, out server, respond: delegate(string request)
+                {
+                    if (refuse) return "!401 {\"error\":{\"message\":\"Key rejected\"}}";
+                    return request.StartsWith("GET ", StringComparison.Ordinal) ? catalog : "{\"choices\":[{\"message\":{\"content\":\"Key says hi.\"}}]}";
+                });
+                for (int state = 0; state < 6; state++)
+                {
+                    use(state);
+                    Cloud active = TierCloud();
+                    string expected = state == 1 || state == 3 ? "Plan says hi." : state >= 4 ? "Codex says hi." : "Key says hi.";
+                    string said = new Brain { Remote = active, Model = active.Model }.Aside("You are Capri.", "say hi", 90);
+                    if (said != expected || active.Plan != preferences.PlanPicked) throw new Exception("A saved API key and plan state used the wrong brain.");
+                }
+                checks.Add("PASS key only, plan only, both with key picked and both with plan picked route replies to the selected API, Claude Code or Codex stand-in");
+
+                use(0);
+                mainframe.PickPlan(1);
+                WaitVoice(delegate { return brain.Remote != null && brain.Remote.Kind == "claudecode" && cloudModels != null; }, "Connecting a plan did not finish.");
+                ++asking; CloseTalk();
+                if (preferences.PaidKey != sealedKey || preferences.PaidModel != "gpt-90-mini" || !preferences.PlanPicked) throw new Exception("Connecting a plan replaced the saved API key or model.");
+                ChooseModel("opus");
+                string keptPlan = preferences.PaidPlan;
+                mainframe.PickPlan(0);
+                if (brain.Remote == null || brain.Remote.Key != key || brain.Remote.Model != "gpt-90-mini" || preferences.PaidPlan != keptPlan || preferences.PlanModel != "opus" || preferences.PlanPicked) throw new Exception("Returning to API key did not use its saved key and model straight away.");
+                settled();
+                mainframe.PickPlan(1);
+                if (brain.Remote == null || brain.Remote.Kind != "claudecode" || brain.Remote.Model != "opus" || preferences.PaidKey != sealedKey) throw new Exception("Returning to the saved plan lost its model or the key.");
+                settled();
+                mainframe.PickPlan(0);
+                settled();
+                mainframe.PickPlan(2);
+                WaitVoice(delegate { return brain.Remote != null && brain.Remote.Kind == "codex" && cloudModels != null; }, "Connecting the ChatGPT plan did not finish.");
+                ++asking; CloseTalk();
+                if (preferences.PaidKey != sealedKey || preferences.PaidModel != "gpt-90-mini") throw new Exception("Connecting the ChatGPT plan replaced the saved API key.");
+                mainframe.PickPlan(0);
+                settled();
+                if (brain.Remote.Key != key || preferences.PlanPicked || Plans.KindOf(Voice.Unprotect(preferences.PaidPlan)) != "codex") throw new Exception("Returning from ChatGPT plan lost a saved choice.");
+                checks.Add("PASS connecting either plan and switching both ways keeps the saved key and each active source's model");
+
+                use(3);
+                SavePreferences();
+                preferences = LoadPreferences();
+                SplitKeys();
+                if (!preferences.PlanPicked || preferences.PaidKey != sealedKey || preferences.PaidPlan != sealedClaude || TierCloud().Kind != "claudecode") throw new Exception("The saved key and plan did not survive a restart.");
+                string written = File.ReadAllText(settingsPath);
+                if (written.Contains(key) || written.Contains(Plans.ClaudeKey) || written.Contains(Plans.CodexKey)) throw new Exception("A saved brain credential was written in plain text.");
+                mainframe.PickPlan(0);
+                settled();
+                preferences = LoadPreferences();
+                SplitKeys();
+                if (preferences.PlanPicked || preferences.PaidPlan != sealedClaude || TierCloud().Key != key) throw new Exception("The saved API choice did not survive a restart.");
+                checks.Add("PASS both credentials and either choice round-trip through settings.json with the existing protected key blobs");
+
+                use(3);
+                ForgetText();
+                if (preferences.PaidPlan != null || preferences.PlanModel != null || preferences.PaidKey != sealedKey || preferences.PlanPicked || preferences.Tier != 2 || brain.Remote == null || brain.Remote.Key != key) throw new Exception("Removing a plan did not leave the saved API key in use.");
+                forgetNote("Back on your saved API key.");
+                checks.Add("PASS Forget plan says Back on your saved API key. before and after model refresh");
+                ChooseModel("gpt-90");
+                mainframe.ShowCloud(brain.Remote, cloudModels);
+                if (brain.Remote.Model != "gpt-90" || mainframe.Status.EndsWith(" | Back on your saved API key.", StringComparison.Ordinal)) throw new Exception("The note after Forget stayed after another model was picked: " + mainframe.Status);
+                checks.Add("PASS the note after Forget goes once another model is picked");
+                use(2);
+                ForgetText();
+                if (preferences.PaidKey != null || preferences.PaidModel != null || preferences.PaidPlan != sealedClaude || !preferences.PlanPicked || preferences.Tier != 2 || brain.Remote == null || brain.Remote.Kind != "claudecode" || brain.Remote.Model != "sonnet") throw new Exception("Removing an API key did not leave the saved plan in use.");
+                forgetNote("Using your saved Claude plan.");
+                checks.Add("PASS Forget API key says Using your saved Claude plan. before and after model refresh");
+                use(5);
+                mainframe.PickPlan(0);
+                settled();
+                ForgetText();
+                if (preferences.PaidKey != null || preferences.PaidPlan != sealedCodex || !preferences.PlanPicked || brain.Remote == null || brain.Remote.Kind != "codex" || brain.Remote.Model != "default") throw new Exception("Removing an API key did not leave the saved ChatGPT plan in use.");
+                forgetNote("Using your saved ChatGPT plan.");
+                checks.Add("PASS Forget API key says Using your saved ChatGPT plan. before and after model refresh");
+                checks.Add("PASS removing either source leaves the other saved source and its model in use");
+
+                use(3);
+                refuse = true;
+                ConnectText("sk-proj-plan-choice-refused-key");
+                WaitVoice(delegate { return mainframe.Status.Contains("Still using your Claude plan."); }, "A rejected API key did not explain that the plan stayed in use.");
+                if (!preferences.PlanPicked || preferences.PaidKey != sealedKey || preferences.PaidPlan != sealedClaude || brain.Remote.Kind != "claudecode") throw new Exception("A rejected replacement changed a saved source.");
+                use(2);
+                try { new Brain { Remote = brain.Remote, Model = brain.Model }.Aside("You are Capri.", "say hi", 90); throw new Exception("A refused saved API key answered through another brain."); }
+                catch (BrainException rejected) { if (!rejected.Told || rejected.Message.IndexOf("key", StringComparison.OrdinalIgnoreCase) < 0) throw new Exception("A refused API key hid its problem."); }
+                if (preferences.PlanPicked || preferences.PaidPlan != sealedClaude || brain.Remote.Key != key) throw new Exception("A refused API key silently switched to the saved plan.");
+                refuse = false;
+                claudeSays("{\"type\":\"result\",\"is_error\":true,\"result\":\"OAuth session expired\"}", false);
+                use(5);
+                mainframe.PickPlan(1);
+                WaitVoice(delegate { return mainframe.Status.Contains("Still using your ChatGPT plan."); }, "A failed plan connection did not explain which brain stayed in use.");
+                if (!preferences.PlanPicked || preferences.PaidKey != sealedKey || preferences.PaidPlan != sealedCodex || brain.Remote.Kind != "codex") throw new Exception("A failed plan connection replaced a saved choice.");
+                use(3);
+                try { new Brain { Remote = brain.Remote, Model = brain.Model }.Aside("You are Capri.", "say hi", 90); throw new Exception("An expired plan answered through another brain."); }
+                catch (BrainException expired) { if (!expired.Told || expired.Message != "Claude Code isn't signed in. Run claude and sign in.") throw new Exception("An expired plan hid its sign-in problem."); }
+                if (!preferences.PlanPicked || preferences.PaidKey != sealedKey || brain.Remote.Kind != "claudecode") throw new Exception("An expired plan silently switched to the saved API key.");
+                BrainException secret = PlanBrain.Problem("claudecode", "Failed: " + key + " Bearer private-plan-token");
+                if (secret.Message.Contains(key) || secret.Message.Contains("private-plan-token") || Brain.Scrubbed(key).Contains(key) || mainframe.TextStatus.Contains(key)) throw new Exception("An inactive key or plan token reached an error or label.");
+                claudeSays("{\"type\":\"result\",\"is_error\":false,\"result\":\"Plan says hi.\"}", false);
+                checks.Add("PASS refused API keys and expired plans explain the failure without switching to the other source; stored inactive keys and plan tokens stay out of errors and labels");
+                mainframe.CheckPlanPages(checks, output, use);
+            }
+            finally
+            {
+                if (server != null) server.Stop();
+                ++brainLook; ++cloudListing; ++providerListing; ++asking;
+                CloseTalk();
+                preferences = wasPreferences;
+                brain.Remote = wasRemote; brain.Local = wasLocal; brain.Model = wasModel; cloudModels = wasModels;
+                Think = wasThink; finding = wasFinding; Brain.Off = wasOff; Brain.OpenAi = wasOpenAi;
+                LoadProvider();
+                ShowTiers();
+                if (wasRemote != null) mainframe.ShowCloud(wasRemote, wasModels);
+                SavePreferences();
+            }
+        }
+
         // Their plan as her brain: Claude Code and Codex run hidden with her prompt on stdin, none of their own tools, no MCP servers,
         // nothing saved and no API key from the environment; a screenshot goes along as a picture; a signed-out app, a used-up plan
         // and a missing app each get her plain line; a reply they talk over ends the app at once; and My plan sits on MAX
         // INTELLIGENCE's rung with the plan in use ticked.
-        private void SmokePlanBrain(System.Collections.Generic.List<string> checks)
+        private void SmokePlanBrain(System.Collections.Generic.List<string> checks, string output)
         {
             string claudeWas = PlanBrain.ClaudeOverride, codexWas = PlanBrain.CodexOverride, folderWas = PlanBrain.FolderOverride;
             string keyWas = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
@@ -37871,6 +38114,25 @@ namespace CapriDesktop
                 if (Cloud.KindOf(Plans.ClaudeKey) != "claudecode" || Cloud.KindOf(Plans.CodexKey) != "codex") throw new Exception("Her plans aren't their own kinds of brain.");
                 Cloud claudePlan = new Cloud(Plans.ClaudeKey, "haiku"), codexPlan = new Cloud(Plans.CodexKey, "default");
                 if (!claudePlan.Plan || claudePlan.Name != "Claude Code" || claudePlan.Company != "Anthropic" || codexPlan.Name != "Codex" || codexPlan.Company != "OpenAI") throw new Exception("Her plans have the wrong names.");
+                SelfKnow.Topic topic = SelfKnow.Setting("Mainframe.cs", "API key, Claude plan or ChatGPT plan");
+                if (topic == null) throw new Exception("Her My plan topic is missing.");
+                foreach (string fact in new[] {
+                    "API key, Claude plan and ChatGPT plan; switching keeps your saved key and plan.",
+                    "The plan choices run her brain on your own Claude or ChatGPT plan, with no API key.",
+                    "Claude plan runs Claude Code on this PC, and ChatGPT plan runs Codex.",
+                    "Install the app and sign in to it with your own account first:",
+                    "for Claude Code, install it from claude.com/claude-code, run claude and sign in;",
+                    "for Codex, run npm install -g @openai/codex, then codex login and sign in with ChatGPT.",
+                    "Then pick your plan here.", "Choose a model in BRAIN's model menu where the key box was:",
+                    "for Claude, Haiku is fastest and Opus uses your plan fastest; for Codex, she uses the model Codex is set to.",
+                    "She runs the app hidden with none of its own tools and saves nothing in it, and she never touches its sign-in.",
+                    "Her own tools, like opening apps and using your PC, still work.",
+                    "Replies take a few seconds longer than with a key and count toward your plan's limits.",
+                    "To stop, pick API key to use your saved key, or paste one and press Connect, or pick another tier." })
+                    if (!topic.Facts.Contains(fact)) throw new Exception("Her My plan topic lost: " + fact);
+                checks.Add("PASS My plan keeps all 0.9.1 setup, model, tool and limit guidance with the MAX source picker");
+                if (mainframe.MaxName != "MAX INTELLIGENCE" || mainframe.PlanName != "API key, Claude plan or ChatGPT plan") throw new Exception("The MAX row or its source picker has the wrong accessible name.");
+                checks.Add("PASS MAX row and source picker have separate plain accessible names with no trailing separator");
                 if (Brain.HasTools(claudePlan) || Brain.HasTools(codexPlan)) throw new Exception("A plan brain was sent native tools instead of her written ones.");
                 if (!Brain.ModelFits("claudecode", "sonnet") || Brain.ModelFits("claudecode", "gpt-5") || !Brain.ModelFits("codex", "default") || Brain.DefaultCloudModel("claudecode", Plans.Models("claudecode")) != "haiku") throw new Exception("Her plan models are wrong.");
                 Directory.CreateDirectory(runs);
@@ -37932,6 +38194,8 @@ namespace CapriDesktop
                 if (sent.IndexOf("<instructions>", StringComparison.Ordinal) < 0 || sent.IndexOf("You are Capri.", StringComparison.Ordinal) < 0 || sent.IndexOf("say hi", StringComparison.Ordinal) < 0) throw new Exception("Codex wasn't sent her rules and message: " + sent);
                 onCodex.See(new byte[] { 1, 2, 3 }, "Look", "What's on screen?", 90);
                 if (File.ReadAllText(Path.Combine(root, "codex-args.txt")).IndexOf(" -i ", StringComparison.Ordinal) < 0) throw new Exception("Her screenshot didn't reach Codex.");
+                claudeSays("{\"type\":\"result\",\"is_error\":false,\"result\":\"Plan says hi.\"}", false);
+                SmokePlanChoice(checks, output, claudeSays);
                 // Talked over: the app ends at once.
                 claudeSays("{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"Too late.\"}", true);
                 Stopwatch stopping = Stopwatch.StartNew();
@@ -37950,14 +38214,16 @@ namespace CapriDesktop
                 foreach (int dpi in new[] { 96, 144, 192 })
                 {
                     mainframe.LayoutScale(dpi, 100);
-                    mainframe.ShowTiers(2, null, Plans.Plan("claudecode"), null, true);
+                    mainframe.ShowTiers(2, null, null, null, "claudecode");
                     mainframe.ShowCloud(claudePlan, Plans.Models("claudecode"));
                     string problem = mainframe.TiersProblem;
                     if (problem != null) throw new Exception("BRAIN with My plan doesn't fit at " + dpi + " DPI: " + problem);
                 }
                 mainframe.LayoutScale(96, 100);
-                if (!mainframe.PlanTicked(0) || mainframe.PlanTicked(1)) throw new Exception("My plan didn't tick the plan in use.");
-                if (mainframe.TextStatus != "tier 2 | Claude Code · haiku | Using your Claude plan · Claude Code on this PC | Using your Claude plan | Forget") throw new Exception("BRAIN showed " + mainframe.TextStatus);
+                if (mainframe.PlanTicked(0) || !mainframe.PlanTicked(1) || mainframe.PlanTicked(2)) throw new Exception("The brain choice didn't tick the plan in use.");
+                if (mainframe.TextStatus != "tier 2 | Claude Code · haiku | Using your Claude plan · Claude Code on this PC | Haiku | Forget") throw new Exception("BRAIN showed " + mainframe.TextStatus);
+                if (string.Join("|", mainframe.BrainChoices) != "Haiku · fastest|Sonnet|Opus · smartest, uses your plan fastest") throw new Exception("The plan model menu lost its 0.9.1 guidance.");
+                checks.Add("PASS plan model menu keeps the 0.9.1 speed and plan-use guidance while the closed box stays short");
                 checks.Add("PASS your plan as her brain: Claude Code and Codex run hidden with her prompt on stdin, none of their own tools, no MCP servers, nothing saved and no API key from the environment; a screenshot goes along as a picture; signed out, out of plan and not installed each get her plain line; a reply talked over ends the app " + stoppedIn + " ms after it starts; and My plan fits MAX INTELLIGENCE's rung at 100%, 150% and 200%");
             }
             finally
@@ -43164,7 +43430,7 @@ namespace CapriDesktop
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
-            Section(checks, "SmokePlanBrain", delegate { SmokePlanBrain(checks); });
+            Section(checks, "SmokePlanBrain", delegate { SmokePlanBrain(checks, Path.Combine(output, "plan-choice")); });
             Section(checks, "SmokeLeaks", delegate { SmokeLeaks(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
@@ -44273,7 +44539,7 @@ namespace CapriDesktop
             }
         }
 
-        private static void TarEntry(Stream into, string name, char kind, byte[] body, string prefix = "")
+        private static void TarEntry(Stream into, string name, char kind, byte[] body, string prefix = "", string link = "")
         {
             byte[] header = new byte[512];
             System.Text.Encoding.UTF8.GetBytes(name).CopyTo(header, 0);
@@ -44281,6 +44547,7 @@ namespace CapriDesktop
             System.Text.Encoding.ASCII.GetBytes(Convert.ToString((long)body.Length, 8).PadLeft(11, '0') + "\0").CopyTo(header, 124);
             for (int i = 148; i < 156; i++) header[i] = 32;
             header[156] = (byte)kind;
+            System.Text.Encoding.UTF8.GetBytes(link).CopyTo(header, 157);
             System.Text.Encoding.ASCII.GetBytes("ustar\0" + "00").CopyTo(header, 257);
             System.Text.Encoding.UTF8.GetBytes(prefix).CopyTo(header, 345);
             int sum = 0;
@@ -44292,15 +44559,32 @@ namespace CapriDesktop
             into.Write(new byte[padding], 0, padding);
         }
 
-        private static byte[] TarPax(string path)
+        private static byte[] TarPax(string path, string key = "path")
         {
-            string record = " path=" + path + "\n";
+            string record = " " + key + "=" + path + "\n";
             int length = System.Text.Encoding.UTF8.GetByteCount(record) + 1;
             for (;;)
             {
                 byte[] bytes = System.Text.Encoding.UTF8.GetBytes(length.ToString(System.Globalization.CultureInfo.InvariantCulture) + record);
                 if (bytes.Length == length) return bytes;
                 length = bytes.Length;
+            }
+        }
+
+        private sealed class FillingDisk : FileStream
+        {
+            private readonly long[] left;
+
+            internal FillingDisk(string path, long[] left) : base(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096) { this.left = left; }
+
+            public override void Write(byte[] array, int offset, int count)
+            {
+                int room = (int)Math.Max(0, Math.Min(count, left[0]));
+                base.Write(array, offset, room);
+                if (room == count) { left[0] -= count; return; }
+                base.Flush();
+                left[0] = -1;
+                throw new IOException("There is not enough space on the disk.", unchecked((int)0x80070070));
             }
         }
 
@@ -49551,7 +49835,7 @@ namespace CapriDesktop
                                 Directory.CreateDirectory(startCheck);
                                 Brain.LogPath = Path.Combine(startCheck, "errors.txt");
                                 string startSettings = Path.Combine(startCheck, "settings.json"), startMark = Path.Combine(startCheck, Program.StartMarker);
-                                File.WriteAllText(startSettings, "{\"Size\":300,\"Watch\":true,\"Tier\":1,\"Tiered\":true,\"NvidiaGlm\":true,\"NvidiaKey\":\"kept-nvidia\",\"PaidKey\":\"kept-paid\",\"VoiceKey\":\"kept-voice-key\",\"VoiceId\":\"kept-voice\",\"ServerUrl\":\"https://api.fish.audio\",\"ServerKey\":\"kept-server\",\"TalkMods\":2,\"TalkVk\":75}");
+                                File.WriteAllText(startSettings, "{\"Size\":300,\"Watch\":true,\"Tier\":1,\"Tiered\":true,\"NvidiaGlm\":true,\"NvidiaKey\":\"kept-nvidia\",\"PaidKey\":\"kept-paid\",\"PaidPlan\":\"kept-plan\",\"PlanModel\":\"sonnet\",\"PlanPicked\":true,\"VoiceKey\":\"kept-voice-key\",\"VoiceId\":\"kept-voice\",\"ServerUrl\":\"https://api.fish.audio\",\"ServerKey\":\"kept-server\",\"TalkMods\":2,\"TalkVk\":75}");
                                 bool firstStart = Program.Starting(startCheck);
                                 bool marked = File.Exists(startMark) && File.Exists(startSettings);
                                 // One start that never settled only warns: Task Manager or a stuck shutdown can do that once.
@@ -49562,6 +49846,7 @@ namespace CapriDesktop
                                 using (FileStream stream = File.OpenRead(startSettings)) afterReset = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream);
                                 bool movedAside = File.ReadAllText(Path.Combine(startCheck, "settings.crashed.json")).Contains("300") && afterReset.Size == 240 && !afterReset.Watch
                                     && afterReset.NvidiaKey == "kept-nvidia" && afterReset.PaidKey == "kept-paid" && afterReset.Tier == 1 && afterReset.Tiered && afterReset.NvidiaGlm && afterReset.VoiceKey == "kept-voice-key" && afterReset.VoiceId == "kept-voice"
+                                    && afterReset.PaidPlan == "kept-plan" && afterReset.PlanModel == "sonnet" && afterReset.PlanPicked
                                     && afterReset.ServerUrl == "https://api.fish.audio" && afterReset.ServerKey == "kept-server" && afterReset.TalkMods == 2 && afterReset.TalkVk == 75 && afterReset.MuteVk == 0x4E
                                     && File.ReadAllLines(startMark)[1] == "0";
                                 File.Delete(startMark);
@@ -56424,25 +56709,261 @@ namespace CapriDesktop
                                 File.WriteAllBytes(vsMade, new byte[] { 1 });
                             }
                             string vsKinds = ModelFile.Kind(vsPiper) + " " + ModelFile.Kind(vsKitten) + " " + ModelFile.Kind(vsKokoroFiles) + " " + (ModelFile.Kind(vsNothing) ?? "none") + " " + (ModelFile.Kind(Path.Combine(vsModels, "gone")) ?? "none") + " " + ModelFile.Name(vsPiper + "\\") + " " + ModelFile.Kind(vsPocket) + " " + ModelFile.Name(vsPocket);
-                            string vsShelfWas = ModelFile.Shelf, vsShelf = Path.Combine(vsModels, "shelf"), vsUnpacked, vsZipped, vsRefused = null;
+                            string vsShelfWas = ModelFile.Shelf, vsShelf = Path.Combine(vsModels, "shelf"), vsUnpacked = null, vsZipped, vsRefused = null;
+                            string vsTarPath = LocalEars.TarPath;
+                            bool vsSystemBzip = LocalEars.SystemBzip;
+                            Func<ProcessStartInfo, Process> vsTarStart = LocalEars.StartTar;
+                            int vsTarCalls = 0;
+                            string vsTemp = Path.Combine(vsModels, "temp"), vsTmpWas = Environment.GetEnvironmentVariable("TMP"), vsTempWas = Environment.GetEnvironmentVariable("TEMP");
+                            Func<string, Stream> vsWriteWas = ModelFile.Write;
+                            List<string> vsWrites = new List<string>();
                             ModelFile.Shelf = vsShelf;
                             try
                             {
-                                string vsTar = Path.Combine(vsModels, "vits-piper-en_US-test-medium.tar.bz2");
-                                using (Process vsPacking = Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe"), "-cjf \"" + vsTar + "\" -C \"" + vsModels + "\" vits-piper-en_US-test-medium") { UseShellExecute = false, CreateNoWindow = true }))
-                                    if (!vsPacking.WaitForExit(30000) || vsPacking.ExitCode != 0) throw new Exception("Couldn't make the test voice model archive with tar.");
-                                vsUnpacked = ModelFile.Unpack(vsTar);
+                                string vsPackName = "vits-piper-en_US-test-medium";
+                                byte[] vsTarPlain;
+                                using (MemoryStream vsTar = new MemoryStream())
+                                {
+                                    TarEntry(vsTar, vsPackName + "/", '5', new byte[0]);
+                                    foreach (string vsFile in new[] { "en_US-test-medium.onnx", "tokens.txt", "en_US-test-medium.onnx.json", "espeak-ng-data/phontab" })
+                                        TarEntry(vsTar, vsPackName + "/" + vsFile, vsFile == "tokens.txt" ? '\0' : '0', new byte[] { 1 });
+                                    foreach (char vsType in new[] { '1', '2', '3', '4', '6', '7' }) TarEntry(vsTar, vsPackName + "/skipped-" + vsType, vsType, new byte[0], "", "../escaped.bin");
+                                    vsTar.Write(new byte[512], 0, 512);
+                                    vsTarPlain = vsTar.ToArray();
+                                }
+                                byte[] vsBzip = Convert.FromBase64String("QlpoOTFBWSZTWdhI4KAAAkjfgOGiQEP/sAgAGgD++99ACggwAVhoDGQyGg0GjQBoAGhg0jU8kCGhhNDQyaNMTCBFIo0MaTUyZAaGnqPUDTNRO2BhvUx4c+WfZt692/dWO9t2yE/iOoJB1AKGmy2Itt00nPQ8lM6klDUEImQTUkCHsONSmxH75qeqNLtevXf5DQezkWQ5hj4hd7tU1QKbVIBTjxOOGA4KbMFN3kNeAV1XVZy6EBwU2oc85uciuRDIg1oAQKRBioqvKGBGGchA+6OKPqjMOB9fQyU8c3d3j4DoBuhHmj4o4mZTjmUmtiNJ/AwpnHJS5G2nS4ckaIz6DejOZKKF2jUdJXDYNal9ikhmpYpqUrkNQ5SFopjYjp0SUrR01qUhGrIMh/ufawkWF8kT/F3JFOFCQ2EjgoA=");
+                                using (MemoryStream vsPacked = new MemoryStream(vsBzip))
+                                using (MemoryStream vsTarOpened = new MemoryStream())
+                                {
+                                    Bunzip.Copy(vsPacked, vsTarOpened);
+                                    if (!System.Linq.Enumerable.SequenceEqual(vsTarOpened.ToArray(), vsTarPlain)) throw new Exception("The voice model bzip2 fixture changed.");
+                                }
+                                string vsTarPlainPath = Path.Combine(vsModels, vsPackName + ".tar");
+                                File.WriteAllBytes(vsTarPlainPath, vsTarPlain);
+                                LocalEars.TarPath = Path.Combine(vsModels, "missing-tar.exe");
+                                LocalEars.SystemBzip = true;
+                                LocalEars.StartTar = delegate { vsTarCalls++; throw new Exception("Voice import tried to start tar."); };
+                                Directory.CreateDirectory(vsTemp);
+                                Environment.SetEnvironmentVariable("TMP", vsTemp);
+                                Environment.SetEnvironmentVariable("TEMP", vsTemp);
+                                ModelFile.Write = delegate(string vsWritePath)
+                                {
+                                    vsWrites.Add(Directory.GetFileSystemEntries(vsTemp).Length == 0 ? vsWritePath : "temp copy beside " + vsWritePath);
+                                    return vsWriteWas(vsWritePath);
+                                };
+                                string vsStaging = Path.GetFullPath(Path.Combine(vsShelf, vsPackName + ".new")) + Path.DirectorySeparatorChar;
+                                foreach (string vsExtension in new[] { ".tar.bz2", ".tar", ".tar.gz", ".tgz", ".TAR.BZ2", ".tbz", ".tbz2" })
+                                {
+                                    byte[] vsBytes = vsTarPlain;
+                                    if (vsExtension.EndsWith("bz2", StringComparison.OrdinalIgnoreCase) || vsExtension == ".tbz") vsBytes = vsBzip;
+                                    else if (vsExtension == ".tar.gz" || vsExtension == ".tgz")
+                                    {
+                                        using (MemoryStream vsPacked = new MemoryStream())
+                                        {
+                                            using (System.IO.Compression.GZipStream vsGzip = new System.IO.Compression.GZipStream(vsPacked, System.IO.Compression.CompressionMode.Compress, true)) vsGzip.Write(vsTarPlain, 0, vsTarPlain.Length);
+                                            vsBytes = vsPacked.ToArray();
+                                        }
+                                    }
+                                    string vsArchive = Path.Combine(vsModels, vsPackName + vsExtension);
+                                    File.WriteAllBytes(vsArchive, vsBytes);
+                                    vsUnpacked = ModelFile.Unpack(vsArchive);
+                                    if (vsTarCalls != 0 || vsUnpacked != Path.Combine(vsShelf, vsPackName) || ModelFile.Kind(vsUnpacked) != "vits"
+                                        || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsBytes) || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsTarPlainPath), vsTarPlain)
+                                        || Directory.GetFiles(vsUnpacked, "*", SearchOption.AllDirectories).Length != 4 || Directory.Exists(vsUnpacked + ".new") || File.Exists(Path.Combine(vsShelf, "escaped.bin")))
+                                        throw new Exception("Voice import changed its source, started tar or unpacked the wrong files for " + vsExtension + ".");
+                                    foreach (string vsFile in new[] { "en_US-test-medium.onnx", "tokens.txt", "en_US-test-medium.onnx.json", "espeak-ng-data/phontab" })
+                                        if (!System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsUnpacked, vsFile)), new byte[] { 1 })) throw new Exception("Voice import changed " + vsFile + ".");
+                                    checks.Add("PASS voice import " + vsExtension + ": keeps source bytes and the adjacent tar, unpacks only files and folders, and never starts tar");
+                                    if (vsWrites.Count != 4 || !vsWrites.TrueForAll(delegate(string vsWritten) { return vsWritten.StartsWith(vsStaging, StringComparison.OrdinalIgnoreCase); })
+                                        || Directory.GetFileSystemEntries(vsTemp).Length != 0)
+                                        throw new Exception("Voice import made a temporary tar or wrote outside its staging folder for " + vsExtension + ": " + string.Join(", ", vsWrites.ToArray()));
+                                    checks.Add("PASS voice import " + vsExtension + ": unpacks straight into its staging folder with no temporary tar");
+                                    vsWrites.Clear();
+                                    LocalEars.TarPath = vsArchive;
+                                }
+                                Environment.SetEnvironmentVariable("TMP", vsTmpWas);
+                                Environment.SetEnvironmentVariable("TEMP", vsTempWas);
+                                ModelFile.Write = vsWriteWas;
                                 string vsZip = Path.Combine(vsModels, "kitten-test.zip"), vsEmpty = Path.Combine(vsModels, "empty.zip");
                                 System.IO.Compression.ZipFile.CreateFromDirectory(vsKitten, vsZip);
                                 vsZipped = ModelFile.Unpack(vsZip);
                                 System.IO.Compression.ZipFile.CreateFromDirectory(vsNothing, vsEmpty);
                                 try { ModelFile.Unpack(vsEmpty); }
                                 catch (VoiceException vsError) { vsRefused = vsError.Message; }
+                                foreach (string vsProblem in new[] { "parent", "backslash-parent", "absolute", "rooted", "drive", "unc", "stream", "trailing-dot", "trailing-space", "empty-name", "prefix", "long", "pax", "checksum", "size-octal", "size-negative", "long-size", "pax-size", "pax-length", "pax-overflow", "pax-newline", "file", "header", "padding", "end", "bzip2", "bzip2-crc", "gzip", "replacement", "no-model" })
+                                {
+                                    byte[] vsTarBroken;
+                                    int vsAt;
+                                    using (MemoryStream vsTar = new MemoryStream())
+                                    {
+                                        TarEntry(vsTar, "model.onnx", '0', new byte[] { 1 });
+                                        TarEntry(vsTar, "tokens.txt", '0', new byte[] { 1 });
+                                        vsAt = (int)vsTar.Position;
+                                        string vsBadPath = vsProblem == "parent" ? "../escaped.bin" : vsProblem == "backslash-parent" ? "..\\escaped.bin" : vsProblem == "absolute" ? "/escaped.bin"
+                                            : vsProblem == "rooted" ? "\\escaped.bin" : vsProblem == "drive" ? "C:\\escaped.bin" : vsProblem == "unc" ? "\\\\server\\share\\escaped.bin" : vsProblem == "stream" ? "file:stream"
+                                            : vsProblem == "trailing-dot" ? "dir./escaped.bin" : vsProblem == "trailing-space" ? "dir /escaped.bin" : vsProblem == "empty-name" ? "" : null;
+                                        if (vsBadPath != null) TarEntry(vsTar, vsBadPath, '0', new byte[] { 7, 8, 9 });
+                                        else if (vsProblem == "prefix") TarEntry(vsTar, "escaped.bin", '0', new byte[0], "..");
+                                        else if (vsProblem == "long" || vsProblem == "long-size") TarEntry(vsTar, "LongLink", 'L', Encoding.UTF8.GetBytes("../escaped.bin\0"));
+                                        else if (vsProblem.StartsWith("pax", StringComparison.Ordinal))
+                                        {
+                                            byte[] vsPax = vsProblem == "pax-size" ? Encoding.ASCII.GetBytes("1048640 path=x\n") : vsProblem == "pax-length" ? Encoding.ASCII.GetBytes("2 path=x\n")
+                                                : vsProblem == "pax-overflow" ? Encoding.ASCII.GetBytes("999999999999999999999999999999 path=x\n") : TarPax(vsProblem == "pax" ? "../escaped.bin" : "safe.bin");
+                                            if (vsProblem == "pax-newline") vsPax[vsPax.Length - 1] = (byte)'!';
+                                            TarEntry(vsTar, "PaxHeader", 'x', vsPax);
+                                        }
+                                        else TarEntry(vsTar, "partial.bin", '0', new byte[] { 7, 8, 9 });
+                                        vsTar.Write(new byte[512], 0, 512);
+                                        vsTarBroken = vsTar.ToArray();
+                                    }
+                                    if (vsProblem == "checksum") vsTarBroken[vsAt] ^= 1;
+                                    else if (vsProblem == "size-octal" || vsProblem == "size-negative" || vsProblem == "long-size" || vsProblem == "pax-size")
+                                    {
+                                        string vsSize = vsProblem == "size-octal" ? "00000000008\0" : vsProblem == "size-negative" ? "-0000000001\0" : Convert.ToString((1 << 20) + (vsProblem == "long-size" ? 1 : 64), 8).PadLeft(11, '0') + "\0";
+                                        Encoding.ASCII.GetBytes(vsSize).CopyTo(vsTarBroken, vsAt + 124);
+                                        for (int i = 148; i < 156; i++) vsTarBroken[vsAt + i] = 32;
+                                        int vsSum = 0;
+                                        for (int i = 0; i < 512; i++) vsSum += vsTarBroken[vsAt + i];
+                                        Encoding.ASCII.GetBytes(Convert.ToString(vsSum, 8).PadLeft(6, '0') + "\0 ").CopyTo(vsTarBroken, vsAt + 148);
+                                    }
+                                    else if (vsProblem == "file" || vsProblem == "replacement" || vsProblem == "gzip") Array.Resize(ref vsTarBroken, vsAt + 513);
+                                    else if (vsProblem == "header") Array.Resize(ref vsTarBroken, vsAt + 100);
+                                    else if (vsProblem == "padding") Array.Resize(ref vsTarBroken, vsAt + 1023);
+                                    else if (vsProblem == "end") Array.Resize(ref vsTarBroken, vsAt + 1024);
+                                    else if (vsProblem == "no-model") vsTarBroken = new byte[512];
+                                    string vsExtension = ".tar";
+                                    if (vsProblem == "bzip2" || vsProblem == "bzip2-crc")
+                                    {
+                                        vsTarBroken = (byte[])vsBzip.Clone();
+                                        if (vsProblem == "bzip2") Array.Resize(ref vsTarBroken, vsTarBroken.Length - 5);
+                                        else vsTarBroken[10] ^= 1;
+                                        vsExtension = ".tar.bz2";
+                                    }
+                                    else if (vsProblem == "gzip")
+                                    {
+                                        using (MemoryStream vsPacked = new MemoryStream())
+                                        {
+                                            using (System.IO.Compression.GZipStream vsGzip = new System.IO.Compression.GZipStream(vsPacked, System.IO.Compression.CompressionMode.Compress, true)) vsGzip.Write(vsTarBroken, 0, vsTarBroken.Length);
+                                            vsTarBroken = vsPacked.ToArray();
+                                        }
+                                        vsExtension = ".tar.gz";
+                                    }
+                                    string vsBadName = vsProblem == "replacement" ? vsPackName : "bad-" + vsProblem, vsMessage = null;
+                                    string vsArchive = Path.Combine(vsModels, vsBadName + vsExtension), vsTarget = Path.Combine(vsShelf, vsBadName);
+                                    File.WriteAllBytes(vsArchive, vsTarBroken);
+                                    try { ModelFile.Unpack(vsArchive); }
+                                    catch (VoiceException vsError) { vsMessage = vsError.Message; }
+                                    if (vsMessage != (vsProblem == "no-model" ? ModelFile.Empty : ModelFile.Damaged) || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsTarBroken)
+                                        || Directory.Exists(vsTarget + ".new") || (vsProblem != "replacement" && Directory.Exists(vsTarget)) || Directory.GetDirectories(vsShelf).Length != 2
+                                        || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsUnpacked, "en_US-test-medium.onnx")), new byte[] { 1 }) || Directory.GetFiles(vsUnpacked, "*", SearchOption.AllDirectories).Length != 4
+                                        || File.Exists(Path.Combine(vsShelf, "escaped.bin")) || File.Exists(Path.Combine(vsModels, "escaped.bin")) || vsTarCalls != 0)
+                                        throw new Exception("Voice import left files, changed its source or returned the wrong error for " + vsProblem + ": " + vsMessage);
+                                    checks.Add("PASS voice import refuses " + vsProblem + ": keeps source bytes and the installed model, with no partial model or staging folder");
+                                }
+                                foreach (string vsPlace in new[] { vsUnpacked, vsUnpacked + ".new" })
+                                {
+                                    Directory.CreateDirectory(vsPlace);
+                                    string vsArchive = Path.Combine(vsPlace, vsPackName + ".tar"), vsMessage = null;
+                                    File.WriteAllBytes(vsArchive, vsTarPlain);
+                                    try { ModelFile.Unpack(vsArchive); }
+                                    catch (VoiceException vsError) { vsMessage = vsError.Message; }
+                                    if (vsMessage != ModelFile.Inside || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsTarPlain) || ModelFile.Kind(vsUnpacked) != "vits")
+                                        throw new Exception("Voice import deleted or changed a source inside " + vsPlace + ".");
+                                    File.Delete(vsArchive);
+                                    if (vsPlace != vsUnpacked) Directory.Delete(vsPlace, true);
+                                    checks.Add("PASS voice import keeps a source inside " + (vsPlace == vsUnpacked ? "the model folder" : "the staging folder") + " by refusing before cleanup");
+                                }
+                                byte[] vsPaxSized;
+                                using (MemoryStream vsTar = new MemoryStream())
+                                {
+                                    TarEntry(vsTar, "PaxHeader", 'x', TarPax("1", "size"));
+                                    TarEntry(vsTar, "model.onnx", '0', new byte[] { 1, 2, 3, 4, 5 });
+                                    TarEntry(vsTar, "PaxHeader", 'x', TarPax("12x", "size"));
+                                    TarEntry(vsTar, "tokens.txt", '0', new byte[] { 1 });
+                                    vsTar.Write(new byte[512], 0, 512);
+                                    vsPaxSized = vsTar.ToArray();
+                                }
+                                File.WriteAllBytes(Path.Combine(vsModels, "pax-sized.tar"), vsPaxSized);
+                                string vsSized = ModelFile.Unpack(Path.Combine(vsModels, "pax-sized.tar"));
+                                if (!System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsSized, "model.onnx")), new byte[] { 1 }) || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsSized, "tokens.txt")), new byte[] { 1 }))
+                                    throw new Exception("Voice import ignored a pax size.");
+                                Directory.Delete(vsSized, true);
+                                checks.Add("PASS voice import reads a file's size from its pax header and ignores one it can't read");
+                                // A disk that fills part of the way through, a file she can't write, a format she can't read and a broken zip each get their own line.
+                                byte[] vsBig = new byte[3 << 20], vsFullTar, vsFullGzip, vsZipParent, vsZipSibling, vsZipGarbage = new byte[300];
+                                new Random(60).NextBytes(vsBig);
+                                new Random(61).NextBytes(vsZipGarbage);
+                                using (MemoryStream vsTar = new MemoryStream())
+                                {
+                                    TarEntry(vsTar, vsPackName + "/", '5', new byte[0]);
+                                    TarEntry(vsTar, vsPackName + "/en_US-test-medium.onnx", '0', new byte[] { 2 });
+                                    TarEntry(vsTar, vsPackName + "/big.bin", '0', vsBig);
+                                    foreach (string vsFile in new[] { "tokens.txt", "en_US-test-medium.onnx.json", "espeak-ng-data/phontab" }) TarEntry(vsTar, vsPackName + "/" + vsFile, '0', new byte[] { 2 });
+                                    vsTar.Write(new byte[512], 0, 512);
+                                    vsFullTar = vsTar.ToArray();
+                                }
+                                using (MemoryStream vsPacked = new MemoryStream())
+                                {
+                                    using (System.IO.Compression.GZipStream vsGzip = new System.IO.Compression.GZipStream(vsPacked, System.IO.Compression.CompressionMode.Compress, true)) vsGzip.Write(vsFullTar, 0, vsFullTar.Length);
+                                    vsFullGzip = vsPacked.ToArray();
+                                }
+                                using (MemoryStream vsPacked = new MemoryStream())
+                                {
+                                    using (System.IO.Compression.ZipArchive vsZipping = new System.IO.Compression.ZipArchive(vsPacked, System.IO.Compression.ZipArchiveMode.Create, true))
+                                        foreach (string vsFile in new[] { "model.onnx", "tokens.txt", "../escaped.bin" })
+                                            using (Stream vsEntry = vsZipping.CreateEntry(vsFile).Open()) vsEntry.WriteByte(2);
+                                    vsZipParent = vsPacked.ToArray();
+                                }
+                                using (MemoryStream vsPacked = new MemoryStream())
+                                {
+                                    using (System.IO.Compression.ZipArchive vsZipping = new System.IO.Compression.ZipArchive(vsPacked, System.IO.Compression.ZipArchiveMode.Create, true))
+                                        foreach (string vsFile in new[] { "model.onnx", "tokens.txt", "../" + vsPackName + ".newvoice/model.onnx", "../" + vsPackName + ".newvoice/tokens.txt" })
+                                            using (Stream vsEntry = vsZipping.CreateEntry(vsFile).Open()) vsEntry.WriteByte(2);
+                                    vsZipSibling = vsPacked.ToArray();
+                                }
+                                foreach (string vsFailure in new[] { "full.tar", "full.tar.gz", "full.tar.bz2", "denied.tar", "locked.tar.gz", "format.tar.xz", "zip-parent.zip", "zip-sibling.zip", "zip-garbage.zip" })
+                                {
+                                    string vsCase = vsFailure.Substring(0, vsFailure.IndexOf('.')), vsExtension = vsFailure.Substring(vsFailure.IndexOf('.')), vsMessage = null, vsDetail = null;
+                                    byte[] vsBytes = vsCase == "zip-parent" ? vsZipParent : vsCase == "zip-sibling" ? vsZipSibling : vsCase == "zip-garbage" ? vsZipGarbage : vsExtension == ".tar.bz2" ? vsBzip : vsExtension == ".tar.gz" ? vsFullGzip : vsFullTar;
+                                    string vsFolder = Path.Combine(Path.Combine(vsModels, "failing"), vsFailure), vsArchive = Path.Combine(vsFolder, vsPackName + vsExtension);
+                                    Directory.CreateDirectory(vsFolder);
+                                    File.WriteAllBytes(vsArchive, vsBytes);
+                                    long[] vsLeft = { vsExtension == ".tar.bz2" ? 2 : (1 << 20) + (1 << 19) };
+                                    ModelFile.Write = delegate(string vsWritePath)
+                                    {
+                                        if (vsCase == "denied") throw new UnauthorizedAccessException("Access to the path is denied.");
+                                        if (vsCase == "locked") throw new IOException("The process cannot access the file because it is being used by another process.", unchecked((int)0x80070020));
+                                        return new FillingDisk(vsWritePath, vsLeft);
+                                    };
+                                    try
+                                    {
+                                        try { ModelFile.Unpack(vsArchive); }
+                                        catch (VoiceException vsError) { vsMessage = vsError.Message; vsDetail = vsError.Detail; }
+                                    }
+                                    finally { ModelFile.Write = vsWriteWas; }
+                                    string vsWant = vsCase == "full" ? ModelFile.NoRoom : vsCase == "denied" || vsCase == "locked" ? ModelFile.Unwritten : vsCase == "format" ? ModelFile.Format : ModelFile.Damaged;
+                                    if (vsMessage != vsWant || string.IsNullOrEmpty(vsDetail) != (vsCase == "format") || (vsCase == "full" && vsLeft[0] != -1)
+                                        || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(vsArchive), vsBytes) || Directory.GetFiles(vsFolder).Length != 1
+                                        || Directory.Exists(vsUnpacked + ".new") || Directory.GetDirectories(vsShelf).Length != 2 || Directory.GetFiles(vsUnpacked, "*", SearchOption.AllDirectories).Length != 4
+                                        || !System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(vsUnpacked, "en_US-test-medium.onnx")), new byte[] { 1 }) || File.Exists(Path.Combine(vsUnpacked, "big.bin")) || Directory.Exists(vsUnpacked + ".newvoice")
+                                        || File.Exists(Path.Combine(vsModels, "escaped.bin")) || File.Exists(Path.Combine(Path.Combine(vsModels, "failing"), "escaped.bin")) || File.Exists(Path.Combine(vsShelf, "escaped.bin")))
+                                        throw new Exception("Voice import left files, changed its source or gave the wrong line for " + vsFailure + ": " + vsMessage + " / " + vsDetail);
+                                    checks.Add("PASS voice import " + vsFailure + " says \"" + vsWant + "\", keeps the source and the installed model, and leaves no staging folder");
+                                }
                             }
-                            finally { ModelFile.Shelf = vsShelfWas; }
+                            finally
+                            {
+                                Environment.SetEnvironmentVariable("TMP", vsTmpWas);
+                                Environment.SetEnvironmentVariable("TEMP", vsTempWas);
+                                ModelFile.Write = vsWriteWas;
+                                ModelFile.Shelf = vsShelfWas;
+                                LocalEars.TarPath = vsTarPath;
+                                LocalEars.SystemBzip = vsSystemBzip;
+                                LocalEars.StartTar = vsTarStart;
+                            }
                             if (vsKinds != "vits kitten kokoro none none en_US-test-medium pocket pocket-tts-int8-2026-01-26" || vsUnpacked != Path.Combine(vsShelf, "vits-piper-en_US-test-medium") || ModelFile.Kind(vsUnpacked) != "vits"
                                 || !File.Exists(Path.Combine(vsUnpacked, "en_US-test-medium.onnx")) || vsZipped != Path.Combine(vsShelf, "kitten-test") || ModelFile.Kind(vsZipped) != "kitten"
-                                || vsRefused != ModelFile.Missing || Directory.GetDirectories(vsShelf).Length != 2)
+                                || vsRefused != ModelFile.Empty || Directory.GetDirectories(vsShelf).Length != 2)
                                 throw new Exception("Voice model files weren't told apart or unpacked right: " + vsKinds + " / " + vsUnpacked + " / " + vsZipped + " / " + vsRefused + " / " + string.Join(", ", Directory.GetDirectories(vsShelf)));
                             // An archive named ".zip" or "...zip" unpacks into a folder of its own, never over the models folder or the
                             // one above it. A quoted folder pasted from Explorer, or typing that's no path at all, never stops her starting.

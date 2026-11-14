@@ -41,7 +41,7 @@ namespace CapriDesktop
             {
                 if (riding) return "Already riding your cursor.";
                 PixelPoint? cursor = ReadMoveMouse();
-                if (cursor == null) return "Couldn't find your mouse on this desktop.";
+                if (cursor == null) return NoMouse(false);
                 StopMoves();
                 ComeBack();
                 Halt();
@@ -84,6 +84,13 @@ namespace CapriDesktop
         {
             try { return MouseAt != null ? MouseAt() : Mouse(); }
             catch (Exception) { return null; }
+        }
+
+        private string NoMouse(bool hopped)
+        {
+            if (OperatingSystem.IsLinux() && Desk is BareDesk && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null)
+                return "This Wayland desktop doesn't share your mouse position. Drag me where you want me.";
+            return hopped ? "Couldn't find your mouse. I've hopped off." : "Couldn't find your mouse on this desktop.";
         }
 
         private void ClearMoves()
@@ -176,7 +183,7 @@ namespace CapriDesktop
                 if (cursor == null)
                 {
                     HopOff();
-                    Talk.Notice("(move)", "Couldn't find your mouse. I've hopped off.");
+                    Talk.Notice("(move)", NoMouse(true));
                 }
                 else FollowCursor(cursor.Value, true);
             }

@@ -587,6 +587,8 @@ namespace CapriDesktop
         private MenuItem discordItem;
         private MenuItem securityMenu;
         private bool fingers;
+        private MenuItem inputSetup;
+        private Separator inputSetupBreak;
         private readonly List<MenuItem> securityPicks = new List<MenuItem>();
         private readonly List<MenuItem> securityToggles = new List<MenuItem>();
         private MenuItem memoriesItem;
@@ -797,6 +799,7 @@ namespace CapriDesktop
             fingers = Program.Smoke == null && (OperatingSystem.IsMacOS() ? MacFingers.Available : ComputerJobs.Supported || Fingers.Problem == null);
             Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && (OperatingSystem.IsMacOS() && Program.Smoke == null ? MacFingers.Available : fingers)) || toggle == Security.Personal || toggle == Security.ModTools || (toggle == Security.Terminal && TerminalJobs.Supported); };
             Hands.OwnHands = fingers;
+            if (OperatingSystem.IsLinux() && Program.Smoke == null) { Hands.HandsReady = InputReady; Hands.HandsProblem = delegate { return Fingers.Problem; }; }
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
             LoginFile = Program.Smoke != null ? Path.Combine(Program.Smoke, OperatingSystem.IsMacOS() ? "capri.plist" : "capri.desktop") : Limbs.LoginFile();
@@ -1504,18 +1507,41 @@ namespace CapriDesktop
 
         internal string UpdatePage { get { return updatePage; } }
 
-        internal void CopyFingersSetup()
+        private bool InputReady()
         {
-            if (HyprlandDesktop.Current != null)
+            if (OperatingSystem.IsLinux()) Hands.OwnHands = fingers = ComputerJobs.Supported || Fingers.Problem == null;
+            return fingers;
+        }
+
+        internal Task CopyFingersSetup()
+        {
+            return CopyFingersSetup(delegate(string command)
             {
-                Talk.Answer("(mouse setup)", ComputerJobs.Available ? "Native compositor input is ready." : "Check the bundled native input helper and compositor protocol support. No global input setup was applied.");
-                return;
+                Avalonia.Input.Platform.IClipboard board = Clipboard;
+                if (board == null) throw new InvalidOperationException();
+                return board.SetTextAsync(command);
+            });
+        }
+
+        internal async Task CopyFingersSetup(Func<string, Task> copy, Action<string> answer = null)
+        {
+            if (!OperatingSystem.IsLinux()) return;
+            try
+            {
+                if (answer == null) answer = delegate(string line) { Talk.Answer("(mouse setup)", line); };
+                if (HyprlandDesktop.Current != null)
+                {
+                    answer(ComputerJobs.Available ? "Native compositor input is ready." : "Check the bundled native input helper and compositor protocol support. No global input setup was applied.");
+                    return;
+                }
+                string problem = Fingers.Problem;
+                Hands.OwnHands = fingers = problem == null;
+                if (fingers) { answer("My mouse and keyboard are ready. Ask again."); return; }
+                try { if (copy != null) await copy(Fingers.Setup); }
+                catch (Exception) { }
+                answer(problem + " Run this in a terminal and type your password:\n\n" + Fingers.Setup);
             }
-            Avalonia.Input.Platform.IClipboard board = Clipboard;
-            if (board == null) return;
-            try { board.SetTextAsync(Fingers.Setup); }
-            catch (Exception) { return; }
-            Talk.Answer("(mouse setup)", "Copied a command for you. Paste it in a terminal, type your password, then close and open me again so I can use your mouse and keyboard.");
+            catch (Exception) { }
         }
 
         private HerCursor herPointer;
@@ -2646,23 +2672,24 @@ namespace CapriDesktop
             securityMenu.Items.Add(new Separator());
             for (int i = 0; i < Security.Count; i++)
             {
-                if (!Security.Has(i)) continue;
+                if (!Security.Has(i) && !(OperatingSystem.IsLinux() && i == Security.Mouse)) continue;
                 int toggle = i;
                 StackPanel face = new StackPanel();
                 face.Children.Add(new TextBlock { Text = Security.Names[i] });
                 face.Children.Add(new TextBlock { Text = Security.Lines[i], FontSize = 11, Foreground = new SolidColorBrush(Look.Dim) });
-                MenuItem item = new MenuItem { Header = face, ToggleType = MenuItemToggleType.CheckBox, Tag = i };
+                MenuItem item = new MenuItem { Header = face, ToggleType = MenuItemToggleType.CheckBox, Tag = i, IsVisible = Security.Has(i) };
                 item.Click += Guarded(delegate { Security.Set(toggle, !Security.On(toggle)); });
                 securityToggles.Add(item);
                 securityMenu.Items.Add(item);
             }
-            if (Program.Smoke == null && !fingers && OperatingSystem.IsLinux())
+            if (OperatingSystem.IsLinux())
             {
-                securityMenu.Items.Add(new Separator());
-                MenuItem setup = new MenuItem { Header = "Set up mouse and keyboard..." };
-                ToolTip.SetTip(setup, "Copies the one command that lets her make her own mouse and keyboard through /dev/uinput.");
-                setup.Click += Guarded(delegate { CopyFingersSetup(); });
-                securityMenu.Items.Add(setup);
+                inputSetupBreak = new Separator { IsVisible = !fingers };
+                securityMenu.Items.Add(inputSetupBreak);
+                inputSetup = new MenuItem { Header = "Set up mouse and keyboard...", IsVisible = !fingers };
+                ToolTip.SetTip(inputSetup, "Copies the one command that lets her make her own mouse and keyboard through /dev/uinput.");
+                inputSetup.Click += Guarded(delegate { CopyFingersSetup(); });
+                securityMenu.Items.Add(inputSetup);
             }
             settings.Items.Add(securityMenu);
             settings.Items.Add(notes);
@@ -2718,7 +2745,7 @@ namespace CapriDesktop
             menu.Items.Add(update);
             menu.Items.Add(new Separator());
             menu.Items.Add(quit);
-            menu.Opening += delegate { Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; };
+            menu.Opening += delegate { if (OperatingSystem.IsLinux() && Program.Smoke == null) InputReady(); Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; };
             return menu;
         }
 
@@ -2739,7 +2766,8 @@ namespace CapriDesktop
             discordItem.IsChecked = !Saved.NoDiscord;
             securityMenu.Header = "Security: " + Security.PresetName;
             for (int i = 0; i < securityPicks.Count; i++) securityPicks[i].IsChecked = i == Security.Preset;
-            foreach (MenuItem item in securityToggles) item.IsChecked = Security.On((int)item.Tag);
+            foreach (MenuItem item in securityToggles) { item.IsChecked = Security.On((int)item.Tag); if (OperatingSystem.IsLinux()) item.IsVisible = Security.Has((int)item.Tag); }
+            if (inputSetup != null) inputSetup.IsVisible = inputSetupBreak.IsVisible = !fingers;
             memoriesItem.IsChecked = !Saved.NoMemories;
             checkInsItem.IsChecked = !Saved.NoCheckIns;
             for (int i = 0; i < popPicks.Count; i++) popPicks[i].IsChecked = i == PopPace;
@@ -3064,7 +3092,7 @@ namespace CapriDesktop
             if (action == "come_here")
             {
                 PixelPoint? mouse = MouseAt != null ? MouseAt() : Mouse();
-                if (mouse == null) return "Couldn't find your mouse on this desktop.";
+                if (mouse == null) return NoMouse(false);
                 Teleport(mouse.Value);
                 return "Teleporting to your mouse.";
             }
@@ -3973,6 +4001,7 @@ namespace CapriDesktop
                 List<string> shown = new List<string> { securityMenu.Header as string };
                 foreach (object item in securityMenu.Items)
                 {
+                    if (item is Control && !((Control)item).IsVisible) continue;
                     MenuItem entry = item as MenuItem;
                     if (entry == null) { shown.Add("-"); continue; }
                     StackPanel face = entry.Header as StackPanel;

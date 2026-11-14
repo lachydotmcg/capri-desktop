@@ -2317,7 +2317,7 @@ namespace CapriDesktop
                 missing.Add(new[] { "watch_for", NoSight });
             }
 #if CROSS
-            if (OnMac && HandsReady != null) OwnHands = HandsReady();
+            if (HandsReady != null) OwnHands = HandsReady();
             if (OnMac)
             {
                 missing.Add(new[] { "look_at_screen:screen", "display selection is not connected on Mac" });
@@ -2685,7 +2685,7 @@ namespace CapriDesktop
             {
 #if CROSS
                 if (why == MacStream) return why;
-                if (why == MacHands && HandsProblem != null) return HandsProblem() ?? MacHandsLine;
+                if ((why == MacHands || why == LinuxHands) && HandsProblem != null) return HandsProblem() ?? (why == MacHands ? MacHandsLine : LinuxHandsLine);
 #endif
                 return why == MacHands ? MacHandsLine : LinuxHandsLine;
             }

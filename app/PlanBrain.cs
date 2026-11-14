@@ -166,7 +166,7 @@ namespace CapriDesktop
         // What went wrong, in her words: signed out, out of plan for now, or the app's own reason.
         internal static BrainException Problem(string kind, string output)
         {
-            string text = Regex.Replace(output ?? "", @"\s+", " ").Trim();
+            string text = Regex.Replace(Brain.Redacted(Brain.Scrubbed(output)), @"\s+", " ").Trim();
             string app = Plans.App(kind);
             if (Regex.IsMatch(text, @"not (?:logged|signed) in|log ?in|sign ?in|authenticat|oauth|unauthori[sz]ed|invalid api key|\b401\b|credential", RegexOptions.IgnoreCase))
                 return new BrainException(kind == "codex" ? "Codex isn't signed in. Run codex login first." : "Claude Code isn't signed in. Run claude and sign in.", true);

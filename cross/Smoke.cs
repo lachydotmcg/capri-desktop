@@ -350,6 +350,7 @@ namespace CapriDesktop
                 ProviderRegression.Run(pet, folder);
                 checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, and the unkeyed server message is unchanged");
                 ChoresChecks();
+                LinuxInputChecks();
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
                 string loginText = File.Exists(pet.LoginFile) ? File.ReadAllText(pet.LoginFile) : "";
@@ -5280,6 +5281,7 @@ namespace CapriDesktop
                 want.Add("-");
                 foreach (int i in new[] { Security.Open, Security.Media, Security.Shortcuts, Security.Windows, Security.Power, Security.Personal, Security.ModTools, Security.Terminal })
                     if (Security.Has(i)) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
+                if (OperatingSystem.IsLinux() && !Security.Has(Security.Mouse)) { want.Add("-"); want.Add("Set up mouse and keyboard..."); }
                 return string.Join(" | ", want);
             };
             string[] presetBits = { "000000000000100", "111000000000100", "111111100000110", "111111111110011" };
@@ -5305,7 +5307,7 @@ namespace CapriDesktop
             bool reloaded = Security.Preset == Security.Custom && !Security.On(Security.Open) && Security.On(Security.Media);
             pet.ClickSecurity(-1, Security.Open);
             bool back = Security.Preset == Security.Trusted && pet.Saved.Permissions == "1111111000" && pet.SecurityShown == menu(Security.Trusted, Security.MaskOf(Security.Trusted));
-            bool windowsOnly = customShown.IndexOf("mouse and keyboard", StringComparison.Ordinal) < 0 && customShown.IndexOf("Hey Capri", StringComparison.Ordinal) < 0 && customShown.IndexOf("passwords", StringComparison.Ordinal) < 0 && customShown.IndexOf("Pay, buy", StringComparison.Ordinal) < 0;
+            bool windowsOnly = customShown.IndexOf(Security.Names[Security.Mouse], StringComparison.Ordinal) < 0 && customShown.IndexOf("Hey Capri", StringComparison.Ordinal) < 0 && customShown.IndexOf("passwords", StringComparison.Ordinal) < 0 && customShown.IndexOf("Pay, buy", StringComparison.Ordinal) < 0;
             bool lines = Security.PresetLine(Security.Trusted) == (Security.Has(Security.Terminal) ? "She does what you ask, and asks first before paying, terminal commands or anything you didn't mention." : "She does what you ask without asking first.") && Security.PresetLine(Security.Blackwall) == "She never asks before doing what you ask." && Security.PresetLine(Security.Guarded) == "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.";
             Settings older = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(new MemoryStream(Encoding.UTF8.GetBytes("{\"Model\":\"qwen3:8b\",\"Watch\":true}")));
             Security.Load(older.Permissions);
@@ -5443,6 +5445,7 @@ namespace CapriDesktop
             var fields = System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic;
             object opened = typeof(MacFingers).GetField("opened", fields).GetValue(null), inputPane = typeof(MacFingers).GetField("inputPane", fields).GetValue(null);
             object recordingTold = typeof(Eyes).GetField("recordingTold", fields).GetValue(null);
+            object captureGate = typeof(Eyes).GetField("captureGate", fields).GetValue(null);
             object automationUntil = typeof(MacFingers).GetField("automationUntil", fields).GetValue(null);
             try
             {
@@ -5450,50 +5453,66 @@ namespace CapriDesktop
                 MacFingers.Trusted = () => true; MacFingers.Listening = () => true; Eyes.ScreenAllowed = () => true;
                 MacFingers.Pause = _ => { }; Chores.Hidden = _ => { }; Chores.SignHidden = _ => false; Chores.Track = (x, y) => { };
                 int panes = 0, captures = 0, requests = 0;
+                const string screenLine = "I need Screen Recording to see your screen. Turn Capri on in System Settings > Privacy & Security > Screen Recording, then reopen me. If I'm already on that list, remove me with the minus button first.";
+                string pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture";
+                bool launchLocked = false, requestFirst = true, rightPane = true;
                 Eyes.ScreenRequest = () => { requests++; return false; };
                 typeof(Eyes).GetField("recordingTold", fields).SetValue(null, false);
-                MacFingers.Launch = (file, args) => { if (file != "/usr/bin/open" || args.Length != 1) throw new Exception("Mac permission command"); panes++; };
+                MacFingers.Launch = (file, args) =>
+                {
+                    panes++; rightPane &= file == "/usr/bin/open" && args.Length == 1 && args[0] == pane;
+                    launchLocked |= Monitor.IsEntered(captureGate); requestFirst &= requests == 1;
+                };
                 byte[] wallpaper = FakeScreen(SkiaSharp.SKColors.Blue);
                 Eyes.Take = (tool, path) => { captures++; File.WriteAllBytes(path, wallpaper); return true; };
-                MacFingers.JobReady();
+                if (!MacFingers.JobReady() || Eyes.Screenshot(Eyes.Tools(true, null, null), true).Length != wallpaper.Length || requests != 0 || panes != 0) throw new Exception("An allowed Mac capture requested access or opened Settings");
                 Eyes.ScreenAllowed = () => false;
-                if (Hands.KitFor().Has("use_computer") || requests != 0) throw new Exception("Mac tool list asked for Screen Recording");
+                Eyes.Tools(true, null, null); Eyes.QuietTools(true, null, null);
+                if (Eyes.CanRecord() || MacFingers.JobReady() || Hands.KitFor().Has("use_computer") || Hands.KitFor().Tools.Contains("\"name\":\"use_computer\"") || requests != 0 || panes != 0) throw new Exception("Mac permission probes or tool lists opened Settings or asked for Screen Recording");
+                checks.Add("PASS Mac permission probes and tool lists do not open Settings or request Screen Recording");
                 for (int attempt = 0; attempt < 2; attempt++)
                 {
                     bool refused = false;
                     try { Eyes.Screenshot(Eyes.Tools(true, null, null), true); }
                     catch (InvalidOperationException error)
                     {
-                        refused = error.Message == Eyes.MissingFor(true, null, null);
+                        refused = error.Message == screenLine;
                     }
-                    if (!refused || captures != 0 || requests != 1) throw new Exception("Mac wallpaper reached the brain, lost its guidance or repeated its permission request");
+                    if (!refused || captures != 1 || requests != 1 || panes != 1) throw new Exception("Mac wallpaper reached the brain, lost its guidance or repeated its permission request or pane");
                 }
-                if (Hands.KitFor().Has("use_computer") || Hands.KitFor().Tools.Contains("\"name\":\"use_computer\"") || !Hands.Unable("use_computer", new ToolArguments()).Contains("Screen Recording")) throw new Exception("Mac advertised a job without Screen Recording");
+                if (!rightPane || launchLocked || !requestFirst) throw new Exception("Mac Screen Recording opened the wrong pane, ran before requesting access or held the capture lock");
+                checks.Add("PASS Mac Screen Recording opens its pane once after the first request and outside the capture lock");
+                if (Eyes.CanRecord() || MacFingers.JobReady() || Hands.KitFor().Has("use_computer") || Hands.KitFor().Tools.Contains("\"name\":\"use_computer\"") || Hands.Unable("use_computer", new ToolArguments()) != screenLine || requests != 1 || panes != 1) throw new Exception("Mac permission probes reopened Settings or a job lost its Screen Recording guidance");
+                Eyes.ScreenAllowed = () => true;
+                if (!Eyes.CanRecord() || !MacFingers.JobReady() || !Hands.KitFor().Has("use_computer") || Hands.Unable("use_computer", new ToolArguments()) != null || Eyes.Screenshot(Eyes.Tools(true, null, null), true).Length != wallpaper.Length || requests != 1 || panes != 1) throw new Exception("Mac permission recovery still refused a capture, requested access or reopened Settings");
+                checks.Add("PASS Mac allowed screen captures and later permission probes keep Settings closed");
                 int probes = 0;
                 Eyes.ScreenAllowed = () => ++probes == 1;
                 bool revoked = false;
                 try { Eyes.Screenshot(Eyes.Tools(true, null, null), true); }
-                catch (InvalidOperationException error) { revoked = error.Message == Eyes.MissingFor(true, null, null); }
-                if (!revoked || captures != 1) throw new Exception("Mac accepted a capture after Screen Recording was revoked");
+                catch (InvalidOperationException error) { revoked = error.Message == screenLine; }
+                if (!revoked || captures != 3 || requests != 1 || panes != 1) throw new Exception("Mac accepted a revoked capture or reopened Screen Recording Settings");
                 Eyes.ScreenAllowed = () => true;
                 MacFingers.JobReady();
+                pane = MacFingers.Pane;
                 MacFingers.Trusted = () => false;
                 string first = Hands.Unable("use_computer", new ToolArguments()), again = Hands.Unable("use_computer", new ToolArguments());
-                if (first != MacFingers.Permission || again != first || panes != 1 || Hands.KitFor().Has("use_computer")) throw new Exception("Mac Accessibility lost its guidance, reopened Settings or advertised as ready");
+                if (first != MacFingers.Permission || again != first || panes != 2 || Hands.KitFor().Has("use_computer")) throw new Exception("Mac Accessibility lost its guidance, reopened Settings or advertised as ready");
                 MacFingers.Trusted = () => true;
                 MacFingers.JobReady();
                 MacFingers.Listening = () => false;
                 typeof(MacFingers).GetField("inputPane", fields).SetValue(null, 0);
+                pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent";
                 first = MacFingers.ListenProblem(); again = MacFingers.ListenProblem();
-                if (!first.Contains("System Settings > Privacy & Security > Input Monitoring") || again != first || panes != 2 || !MacFingers.JobReady()) throw new Exception("Mac listener failure lost its guidance, reopened Settings or blocked an untried tap");
+                if (!first.Contains("System Settings > Privacy & Security > Input Monitoring") || again != first || panes != 3 || !MacFingers.JobReady()) throw new Exception("Mac listener failure lost its guidance, reopened Settings or blocked an untried tap");
                 MacFingers.Listening = () => true;
                 if (!MacFingers.JobReady() || !Hands.KitFor().Has("use_computer") || Hands.Unable("use_computer", new ToolArguments()) != null || Hands.KitFor().Has("stream")) throw new Exception("Mac permission recovery or stream gap");
-                Eyes.ScreenAllowed = () => false;
-                if (Eyes.Screenshot(Eyes.Tools(false, "x11", null), false).Length != wallpaper.Length || captures != 2) throw new Exception("Mac permission checks changed Linux capture");
+                Eyes.ScreenAllowed = () => { throw new Exception("Linux probed Mac Screen Recording"); };
+                if (Eyes.Screenshot(Eyes.Tools(false, "x11", null), false).Length != wallpaper.Length || captures != 4 || requests != 1 || panes != 3) throw new Exception("Mac permission checks changed Linux capture");
                 Eyes.ScreenAllowed = () => true;
                 checks.Add("PASS Mac captures reject missing or revoked Screen Recording before wallpaper can reach the brain");
                 checks.Add("PASS Mac job catalogs require screen and input access, recover when allowed and keep Linux capture unchanged");
-                if (requests != 1 || !Eyes.MissingFor(true, null, null).Contains("If I'm already on that list, remove me with the minus button first.")) throw new Exception("Mac Screen Recording repeated its request or lost the stale-entry guidance");
+                if (!rightPane || requests != 1 || panes != 3 || Eyes.MissingFor(true, null, null) != screenLine) throw new Exception("Mac Screen Recording repeated its request or lost the stale-entry guidance");
                 checks.Add("PASS Mac permission guidance stays complete on repeat calls, Settings opens once per pane and Screen Recording is requested once");
                 foreach (bool platform in new[] { true, false })
                 {
@@ -5601,7 +5620,7 @@ namespace CapriDesktop
                     using var data = System.Text.Json.JsonDocument.Parse(instruction);
                     int width = data.RootElement.GetProperty("width").GetInt32(), height = data.RootElement.GetProperty("height").GetInt32();
                     if (width != 1280 || height != 640) throw new Exception("Mac brain was told a different image size");
-                    return System.Text.Json.JsonSerializer.Serialize(new { action, frame = frame ?? data.RootElement.GetProperty("frame").GetString(), previous_effect = turns++ == 0 ? "none" : "verified", label = "target button", risk = "none", secret = false, x = width / 2.0, y = height / 2.0, button = "left", transition });
+                    return System.Text.Json.JsonSerializer.Serialize(new { action, frame = frame ?? data.RootElement.GetProperty("frame").GetString(), previous_effect = turns++ == 0 ? "none" : "verified", label = "target button", risk = "none", secret = false, x = width / 2.0, y = height / 2.0, button = "left", amount = 4, end_x = width * 0.75, end_y = height * 0.75, duration = 100, keys = "CTRL+C", text = "abc", transition });
                 }
                 events.Clear();
                 runner.Think = (jpeg, system, instruction) => Order(instruction);
@@ -5611,22 +5630,129 @@ namespace CapriDesktop
                 catch (InvalidOperationException error) { repeated = error.Message.Contains("already delivered"); }
                 if (!repeated || events.Count != 3 || duplicate.TotalSteps != 1 || turns != 2) throw new Exception("Mac replayed an input against unchanged pixels");
                 events.Clear(); turns = 0;
-                if (MacFingers.Inputs != ((1UL << 1) | (1UL << 3) | (1UL << 5) | (1UL << 10) | (1UL << 25))) throw new Exception("Mac owner input mask changed");
-                foreach (uint kind in new uint[] { 1, 3, 5, 10, 25 })
-                    if ((MacFingers.Inputs & (1UL << (int)kind)) == 0 || !MacFingers.Stops(kind, 0) || MacFingers.Stops(kind, Environment.ProcessId)) throw new Exception("Mac missed owner input or stopped on its own event");
-                using (var moved = new CancellationTokenSource())
+                if (MacFingers.Inputs != ((1UL << 1) | (1UL << 3) | (1UL << 10) | (1UL << 25))) throw new Exception("Mac owner input mask changed");
+                foreach (uint kind in new uint[] { 1, 3, 10, 25 })
                 {
+                    if ((MacFingers.Inputs & (1UL << (int)kind)) == 0 || !MacFingers.Stops(kind, 0) || MacFingers.Stops(kind, Environment.ProcessId)) throw new Exception("Mac missed owner input or stopped on its own event");
+                    turns = 0;
+                    using var pressed = new CancellationTokenSource();
                     runner.Think = (jpeg, system, instruction) =>
                     {
-                        if ((MacFingers.Inputs & (1UL << 5)) != 0 && MacFingers.Stops(5, 0)) moved.Cancel();
+                        if ((MacFingers.Inputs & (1UL << (int)kind)) != 0 && MacFingers.Stops(kind, 0)) pressed.Cancel();
                         return Order(instruction);
                     };
                     bool stopped = false;
-                    try { runner.Run(new ComputerJob { Task = "click the target button" }, moved.Token); }
+                    try { runner.Run(new ComputerJob { Task = "click the target button" }, pressed.Token); }
                     catch (OperationCanceledException) { stopped = true; }
-                    if (!stopped || events.Count != 0) throw new Exception("Mac clicked an old picture after the owner moved the pointer");
+                    if (!stopped || events.Count != 0) throw new Exception("Mac applied input after an owner key or button press");
                 }
-                checks.Add("PASS Mac keeps its earlier mouse-down, mouse-move and key-down stop mask and allows Capri's own input");
+                checks.Add("PASS Mac listens for four key and button events, stops on owner presses and allows Capri's own input");
+                foreach (bool playing in new[] { false, true })
+                {
+                    events.Clear(); turns = 0;
+                    using var moved = new CancellationTokenSource();
+                    MacFingers.Pause = ms => { if (ms == 20) cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40); };
+                    MacFingers.Sink = ev =>
+                    {
+                        events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At;
+                        if (ev.Kind == 2) cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40);
+                    };
+                    runner.Think = (jpeg, system, instruction) =>
+                    {
+                        cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40);
+                        if ((MacFingers.Inputs & (1UL << 5)) != 0 && MacFingers.Stops(5, 0)) moved.Cancel();
+                        return Order(instruction, turns == 0 ? "click" : "done");
+                    };
+                    ComputerJob nudged = new ComputerJob { Task = "click the target button", Game = playing ? new ComputerGameSession(1) : null };
+                    runner.Run(nudged, moved.Token);
+                    if (moved.IsCancellationRequested || nudged.TotalSteps != 1 || turns != 2 || nudged.SliceEnd != "done" ||
+                        string.Join(",", events.ConvertAll(ev => ev.Kind)) != "5,5,1,2" || events.Exists(ev => ev.At.X != -1320 || ev.At.Y != 300)) throw new Exception("Mac nudge cancelled a job or moved its click");
+                }
+                checks.Add("PASS Mac nudges during inference, before a click, at completion and between game turns keep the job running on its target");
+                foreach (string action in new[] { "click", "scroll", "double_click", "drag", "press", "type" })
+                {
+                    events.Clear(); turns = 0;
+                    MacFingers.Point aimed = cursor;
+                    bool held = false, keyboard = action == "press" || action == "type";
+                    int nudges = 0, reads = 0;
+                    MacFingers.Position = delegate { reads++; return cursor; };
+                    MacFingers.Pause = ms =>
+                    {
+                        cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40); nudges++;
+                    };
+                    MacFingers.Sink = ev =>
+                    {
+                        events.Add(ev);
+                        if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At;
+                        if (ev.Kind == 1 || ev.Kind == 22)
+                        {
+                            if (cursor.X != aimed.X || cursor.Y != aimed.Y) throw new Exception("Mac did not restore its pointer before input");
+                        }
+                        if (ev.Kind == 1) held = true;
+                        if (ev.Kind == 2) held = false;
+                        if (ev.Kind == 5 && held) throw new Exception("Mac restored a held drag as a free mouse move");
+                    };
+                    runner.Think = (jpeg, system, instruction) =>
+                    {
+                        if (turns == 0)
+                        {
+                            if (!keyboard) aimed = new MacFingers.Point(-1320, 300);
+                            cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40); nudges++;
+                        }
+                        return Order(instruction, turns == 0 ? action : "done");
+                    };
+                    ComputerJob nudged = new ComputerJob { Task = "use the target" };
+                    runner.Run(nudged, CancellationToken.None);
+                    if (nudged.TotalSteps != 1 || turns != 2 || nudges == 0 || held) throw new Exception("Mac nudge failed an input step");
+                    if (keyboard && (reads != 0 || events.Count != (action == "type" ? 6 : 4) || events.Exists(ev => ev.Kind != 10 && ev.Kind != 11))) throw new Exception("Mac typing or keys settled or moved the pointer");
+                    if (!keyboard && (reads == 0 || events[0].Kind != 5 || events[1].Kind != 5)) throw new Exception("Mac mouse input did not settle first");
+                    if (action == "scroll" && (events.Count != 3 || events[^1].Kind != 22 || events[^1].At.X != aimed.X || events[^1].At.Y != aimed.Y || events[^1].Wheel != -4)) throw new Exception("Mac nudge scrolled away from its target");
+                    if ((action == "click" || action == "double_click") && (events.FindAll(ev => ev.Kind == 1).Count != (action == "click" ? 1 : 2) || events.FindAll(ev => ev.Kind == 2).Count != (action == "click" ? 1 : 2) || events.Exists(ev => ev.At.X != aimed.X || ev.At.Y != aimed.Y))) throw new Exception("Mac nudge moved a click or its release");
+                    if (action == "drag")
+                    {
+                        if (nudges < 20 || events[^1].Kind != 2 || events[^1].At.X != -1120 || events[^1].At.Y != 400 || events.FindAll(ev => ev.Kind == 1).Count != 1) throw new Exception("Mac nudge lost the drag endpoint or release");
+                        foreach (var ev in events)
+                            if (ev.At.X < -1320 || ev.At.X > -1120 || ev.At.Y != 300 + (ev.At.X + 1320) / 2) throw new Exception("Mac drag followed the owner's pointer");
+                    }
+                }
+                MacFingers.Position = () => cursor;
+                checks.Add("PASS Mac typing and key presses never settle or post pointer moves during owner movement");
+                checks.Add("PASS Mac mouse presses, scrolls and drags settle first and keep their points through owner movement during holds");
+                MacFingers.Sink = ev => { events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At; };
+                foreach (var offset in new[] { new { X = 0.25, Y = -0.25, Count = 3 }, new { X = -0.5, Y = 0.5, Count = 3 }, new { X = 0.75, Y = 0.0, Count = 4 }, new { X = 0.0, Y = -0.75, Count = 4 } })
+                {
+                    events.Clear(); turns = 0;
+                    MacFingers.Pause = ms => { if (ms == 20) cursor = new MacFingers.Point(cursor.X + offset.X, cursor.Y + offset.Y); };
+                    runner.Think = (jpeg, system, instruction) => Order(instruction, turns == 0 ? "click" : "done");
+                    ComputerJob nudged = new ComputerJob { Task = "click the target button" };
+                    runner.Run(nudged, CancellationToken.None);
+                    if (nudged.TotalSteps != 1 || turns != 2 || events.Count != offset.Count || events.Exists(ev => ev.At.X != -1320 || ev.At.Y != 300)) throw new Exception("Mac fractional settling moved a click or posted a redundant move");
+                }
+                checks.Add("PASS Mac settling ignores offsets up to half a point and restores larger offsets on either axis");
+                Hands.OnMac = false;
+                for (int phase = 0; phase < 3; phase++)
+                {
+                    events.Clear(); turns = 0; MacFingers.Pause = _ => { };
+                    MacFingers.Sink = ev =>
+                    {
+                        events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At;
+                        if (phase == 1 && ev.Kind == 2) cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40);
+                    };
+                    runner.Think = (jpeg, system, instruction) =>
+                    {
+                        if (phase == 0) cursor = new MacFingers.Point(cursor.X + 40, cursor.Y + 40);
+                        return Order(instruction);
+                    };
+                    ComputerJob nudged = new ComputerJob { Task = "click the target button", Game = phase == 2 ? new ComputerGameSession(1) { ExpectedPointerX = cursor.X + 40, ExpectedPointerY = cursor.Y + 40 } : null };
+                    bool stopped = false;
+                    try { runner.Run(nudged, CancellationToken.None); }
+                    catch (InvalidOperationException error) { stopped = error.Message == (phase == 0 ? "You moved the pointer, so I stopped." : phase == 1 ? "You moved the pointer during input completion, so I stopped." : "The owner moved the pointer between game turns, so I stopped."); }
+                    if (!stopped || nudged.TotalSteps != 0 || events.Count != (phase == 1 ? 3 : 0)) throw new Exception("Mac nudge tolerance changed a Linux pointer guard");
+                }
+                Hands.OnMac = true;
+                MacFingers.Sink = ev => { events.Add(ev); if (ev.Kind == 5 || ev.Kind == 6) cursor = ev.At; };
+                events.Clear();
+                checks.Add("PASS Linux keeps all three pointer displacement stops before input, at completion and between game turns");
                 turns = 0;
                 using (var cancelled = new CancellationTokenSource())
                 {
@@ -6097,6 +6223,148 @@ namespace CapriDesktop
             fail("a server that's down throws for her to explain", down);
             if (wrong.Count > 0) throw new Exception("Her own brain server went wrong: " + string.Join(", ", wrong) + " / " + said + " / " + chat);
             checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links; a provider key reaches its models and chats, while a local server sends none");
+        }
+
+        private void LinuxInputChecks()
+        {
+            if (!OperatingSystem.IsLinux() || ComputerJobs.Supported || HyprlandDesktop.Current != null) return;
+            Func<bool> present = Fingers.Present, writable = Fingers.Writable, ready = Hands.HandsReady;
+            Func<string> problem = Hands.HandsProblem;
+            bool own = Hands.OwnHands, advanced = pet.Saved.AdvancedSettings;
+            const System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            System.Reflection.FieldInfo input = typeof(Pet).GetField("fingers", fields);
+            object fingers = input.GetValue(pet);
+            Desk desk = pet.Desk;
+            Func<PixelPoint?> mouse = pet.MouseAt;
+            string display = Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
+            Mainframe frame = null;
+            const string missing = "There's no /dev/uinput yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
+            const string denied = "I can't write to /dev/uinput yet; use Set up mouse and keyboard in Capri Mainframe > Settings > KEYS, then run its command and ask again.";
+            const string run = " Run this in a terminal and type your password:\n\n";
+            try
+            {
+                int probes = 0;
+                Fingers.Present = delegate { probes++; return true; };
+                Fingers.Writable = delegate { probes++; return true; };
+                foreach (bool available in new[] { false, true })
+                {
+                    input.SetValue(pet, available);
+                    Hands.OwnHands = available;
+                    if (pet.MainframeInputSetup != !available || probes != 0 || Hands.OwnHands != available || (bool)input.GetValue(pet) != available)
+                        throw new Exception("The Linux Mainframe probed input or changed readiness during smoke.");
+                }
+                checks.Add("PASS Linux input Mainframe keeps smoke readiness without probing the device");
+                input.SetValue(pet, false);
+                Hands.OwnHands = false;
+                Fingers.Present = delegate { return false; };
+                Fingers.Writable = delegate { return false; };
+                Hands.HandsReady = delegate { return (bool)typeof(Pet).GetMethod("InputReady", fields).Invoke(pet, null); };
+                Hands.HandsProblem = delegate { return Fingers.Problem; };
+                if (Fingers.Problem != missing || !pet.MainframeInputSetup || Hands.OwnHands || Hands.Unable("use_computer", new ToolArguments()) != missing)
+                    throw new Exception("Missing Linux input lost its live setup row or guidance.");
+                pet.Saved.AdvancedSettings = true;
+                frame = new Mainframe(pet);
+                frame.ShowSettings(true);
+                NeonButton setup = frame.Button("Set up mouse and keyboard");
+                MenuItem menuSetup = (MenuItem)typeof(Pet).GetField("inputSetup", fields).GetValue(pet);
+                Separator menuBreak = (Separator)typeof(Pet).GetField("inputSetupBreak", fields).GetValue(pet);
+                MenuItem mouseToggle = null;
+                foreach (MenuItem item in (List<MenuItem>)typeof(Pet).GetField("securityToggles", fields).GetValue(pet)) if ((int)item.Tag == Security.Mouse) mouseToggle = item;
+                pet.TrayMenu();
+                if (setup == null || !menuSetup.IsVisible || !menuBreak.IsVisible || mouseToggle == null || mouseToggle.IsVisible)
+                    throw new Exception("Linux input setup or its mouse toggle was shown before the device was ready.");
+                string copied = null;
+                pet.CopyFingersSetup(delegate(string command) { copied = command; return Task.FromResult(0); }).GetAwaiter().GetResult();
+                if (copied != Fingers.Setup || pet.Talk.Reply != missing + run + Fingers.Setup)
+                    throw new Exception("Linux setup hid its command after a successful clipboard copy.");
+                checks.Add("PASS Linux input setup shows its command after a successful clipboard copy");
+                pet.Talk.Dismiss();
+                pet.CopyFingersSetup(delegate { return Task.FromResult(0); }).GetAwaiter().GetResult();
+                if (pet.Talk.Reply != missing + run + Fingers.Setup)
+                    throw new Exception("Linux setup hid its command after a silent clipboard no-op.");
+                checks.Add("PASS Linux input setup shows its command after a silent clipboard no-op");
+                Fingers.Present = delegate { return true; };
+                if (Fingers.Problem != denied || Hands.Unable("use_computer", new ToolArguments()) != denied) throw new Exception("Linux input lost its not-writable guidance.");
+                TaskCompletionSource<bool> failed = new TaskCompletionSource<bool>();
+                failed.SetException(new IOException("No clipboard."));
+                foreach (Func<string, Task> copy in new Func<string, Task>[] { null, delegate { throw new IOException("No clipboard."); }, delegate { return failed.Task; } })
+                {
+                    pet.Talk.Dismiss();
+                    pet.CopyFingersSetup(copy).GetAwaiter().GetResult();
+                    if (pet.Talk.Reply != denied + run + Fingers.Setup)
+                        throw new Exception("Linux setup hid its command after a missing, throwing or failed clipboard.");
+                }
+                checks.Add("PASS Linux input setup shows its command with a missing, throwing or failed clipboard");
+                TaskCompletionSource<bool> pending = new TaskCompletionSource<bool>();
+                SynchronizationContext context = SynchronizationContext.Current;
+                Task copying;
+                int replies = 0;
+                string answered = null;
+                try
+                {
+                    SynchronizationContext.SetSynchronizationContext(null);
+                    copying = pet.CopyFingersSetup(delegate { return pending.Task; }, delegate(string line) { replies++; answered = line; throw new IOException("No reply."); });
+                }
+                finally { SynchronizationContext.SetSynchronizationContext(context); }
+                if (copying.IsCompleted || replies != 0) throw new Exception("Linux setup did not wait for clipboard copying.");
+                pending.SetResult(true);
+                if (!copying.Wait(3000) || copying.Status != TaskStatus.RanToCompletion || replies != 1 || answered != denied + run + Fingers.Setup)
+                    throw new Exception("Linux setup let a reply failure escape after awaiting the clipboard.");
+                checks.Add("PASS Linux input setup contains a reply failure after awaiting the clipboard");
+                bool probed = false, triedCopy = false;
+                Fingers.Present = delegate { probed = true; throw new IOException("No input probe."); };
+                pet.CopyFingersSetup(delegate { triedCopy = true; return Task.FromResult(0); }).GetAwaiter().GetResult();
+                if (!probed || triedCopy) throw new Exception("Linux setup did not contain a readiness failure before copying.");
+                Fingers.Present = delegate { return true; };
+                Fingers.Writable = delegate { return true; };
+                replies = 0;
+                pet.CopyFingersSetup(delegate { triedCopy = true; return Task.FromResult(0); }, delegate { replies++; throw new IOException("No ready reply."); }).GetAwaiter().GetResult();
+                if (triedCopy || replies != 1) throw new Exception("Linux setup did not contain a ready reply failure.");
+                Fingers.Writable = delegate { return false; };
+                checks.Add("PASS Linux input setup contains readiness and ready reply failures");
+                string commandLine = "echo 'uinput' | sudo tee /etc/modules-load.d/capri-uinput.conf && echo '" + Fingers.Rule
+                    + "' | sudo tee /etc/udev/rules.d/60-capri-uinput.rules && sudo udevadm control --reload && sudo modprobe uinput && sudo udevadm trigger --name-match=uinput && sudo udevadm settle";
+                if (Fingers.Setup != commandLine || Fingers.Setup.Contains("tee -a")) throw new Exception("Linux input setup lost its boot entry, module load, rules or repeatable writes.");
+                checks.Add("PASS Linux input setup writes the boot entry and udev rule without appending, reloads the rules, loads uinput, triggers the device and waits for udev");
+                Fingers.Writable = delegate { return true; };
+                if (Hands.Unable("use_computer", new ToolArguments()) != null || !Hands.KitFor().Has("use_computer") || !Hands.OwnHands || !Security.Has(Security.Mouse))
+                    throw new Exception("Linux tools kept their startup input failure after a live fix.");
+                frame.Sync();
+                pet.TrayMenu();
+                if (pet.MainframeInputSetup || setup.IsVisible || menuSetup.IsVisible || menuBreak.IsVisible || !mouseToggle.IsVisible)
+                    throw new Exception("Linux input setup stayed visible after a live fix.");
+                pet.CopyFingersSetup(delegate { throw new Exception("Ready input copied setup again."); }).GetAwaiter().GetResult();
+                if (pet.Talk.Reply != "My mouse and keyboard are ready. Ask again.") throw new Exception("Linux setup did not recheck input when pressed.");
+                Fingers.Writable = delegate { return false; };
+                if (Hands.KitFor().Has("use_computer")) throw new Exception("Linux tools kept input after losing device access.");
+                frame.Sync();
+                pet.TrayMenu();
+                if (!pet.MainframeInputSetup || !setup.IsVisible || !menuSetup.IsVisible || !menuBreak.IsVisible || mouseToggle.IsVisible || Hands.KitFor().Has("use_computer"))
+                    throw new Exception("Linux input setup did not notice lost device access.");
+                checks.Add("PASS Linux input readiness, the open Mainframe setup row and Security menu follow repairs and lost access without restarting Capri");
+                pet.Desk = new BareDesk();
+                pet.MouseAt = delegate { return null; };
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", "wayland-smoke");
+                const string wayland = "This Wayland desktop doesn't share your mouse position. Drag me where you want me.";
+                if (Hands.MoveSelf("come_here", null) != wayland || Hands.MoveSelf("ride_cursor", null) != wayland
+                    || (string)typeof(Pet).GetMethod("NoMouse", fields).Invoke(pet, new object[] { true }) != wayland)
+                    throw new Exception("Wayland pointer limits lost their explanation or drag advice.");
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", null);
+                if (Hands.MoveSelf("come_here", null) != "Couldn't find your mouse on this desktop." || Hands.MoveSelf("ride_cursor", null) != "Couldn't find your mouse on this desktop."
+                    || (string)typeof(Pet).GetMethod("NoMouse", fields).Invoke(pet, new object[] { true }) != "Couldn't find your mouse. I've hopped off.")
+                    throw new Exception("Non-Wayland pointer guidance changed.");
+                checks.Add("PASS Linux BareDesk on Wayland explains missing pointer access and suggests dragging for come here, cursor riding and a lost cursor; other desktops keep their lines");
+            }
+            finally
+            {
+                if (frame != null) frame.Shut();
+                Fingers.Present = present; Fingers.Writable = writable; Hands.HandsReady = ready; Hands.HandsProblem = problem;
+                Hands.OwnHands = own; pet.Saved.AdvancedSettings = advanced;
+                input.SetValue(pet, fingers);
+                pet.Desk = desk; pet.MouseAt = mouse;
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", display);
+                pet.Talk.Dismiss();
+            }
         }
 
         // Her mouse and keyboard jobs on Linux: a screenshot to her brain, one JSON step back, done with her own uinput mouse and
