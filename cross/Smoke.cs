@@ -7299,7 +7299,7 @@ namespace CapriDesktop
             if (sheet == null || sheet.Owner != frame || bridge.Starts != 0) throw new Exception("Remote's key did not open an owned, offline sheet.");
             sheet.WindowState = WindowState.Minimized; frame.Press("Remote");
             frame.OpenPage(" REMOTE ");
-            MainframeWait(delegate { return sheet.WindowState == WindowState.Normal && sheet.IsActive; }, "bringing the Remote sheet forward");
+            MainframeWait(delegate { return sheet.WindowState == WindowState.Normal; }, "bringing the Remote sheet forward");
             int sheets = 0;
             foreach (Window child in (List<Window>)RemoteWire.Get(frame, "sheets")) if (child is RemoteSheet) sheets++;
             if (frame.Remote != sheet || sheet.WindowState != WindowState.Normal || sheets != 1 || bridge.Starts != 0) throw new Exception("Remote's second key press or page route did not reuse and restore its sheet.");

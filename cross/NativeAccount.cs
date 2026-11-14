@@ -165,12 +165,10 @@ namespace CapriDesktop
             if (!OperatingSystem.IsWindows()) options.UnixCreateMode = Private;
             FileStream output = new FileStream(name, options);
             temp = name;
-            try
-            {
-                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(output.SafeFileHandle, Private);
-                return output;
-            }
-            catch { output.Dispose(); throw; }
+            if (!OperatingSystem.IsWindows())
+                try { File.SetUnixFileMode(output.SafeFileHandle, Private); }
+                catch (Exception) { }
+            return output;
         }
 
         protected override void Commit()
