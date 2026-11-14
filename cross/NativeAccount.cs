@@ -16,6 +16,7 @@ namespace CapriDesktop
         private readonly object gate = new object();
         private readonly RemoteStoreFile file;
         internal string Problem { get; private set; }
+        internal bool Damaged { get; private set; }
 
         internal RemoteStore(string folder) : this(new RemoteDisk(folder)) { }
 
@@ -28,6 +29,7 @@ namespace CapriDesktop
                 state = null;
                 relay = null;
                 Problem = null;
+                Damaged = false;
                 try
                 {
                     using Stream input = file.Read();
@@ -47,7 +49,8 @@ namespace CapriDesktop
                 {
                     state = null;
                     relay = null;
-                    Problem = error is IOException || error is UnauthorizedAccessException
+                    Damaged = !(error is IOException || error is UnauthorizedAccessException);
+                    Problem = !Damaged
                         ? "Cannot read the Remote file right now. Check access to the file and try again."
                         : "The Remote file is damaged.";
                     return RemoteStoreResult.Unreadable;

@@ -144,8 +144,6 @@ namespace CapriDesktop
             {
                 RemoteTurn phone = RemoteTurn.Working;
                 if (phone != null && !phone.Current) return RemoteTurn.Ended;
-                if (phone != null && RemoteTurn.AtPc(tool)) phone.Blocked = true;
-                if (phone != null && phone.Blocked) return RemoteTurn.PcOnly;
                 if (args == null) args = new ToolArguments();
                 if (!VoiceActionRecovery.AllowCurrentTool()) return "That voice request ended; no action was dispatched.";
                 Func<bool> voiceGuard = VoiceActionRecovery.DispatchGuard;
@@ -156,12 +154,13 @@ namespace CapriDesktop
                 }
                 string unable = Hands.Unable(tool, args);
                 if (unable != null) return unable;
+                if (phone != null && RemoteTurn.AtPc(tool, args)) return phone.Refuse(tool, args);
                 string held = phone == null ? Security.Gate(tool, args) : phone.Pet.RemoteGate(phone, tool, args);
                 if (held != null) return held;
                 if (phone != null)
                 {
                     Func<bool> previous = args.Current;
-                    args.Current = delegate { return phone.Current && (previous == null || previous()); };
+                    args.Current = delegate { return phone.Live && (previous == null || previous()); };
                     if (!args.Current()) return RemoteTurn.Ended;
                 }
                 string id = phone == null ? null : RemoteMessages.NewId();
@@ -172,20 +171,21 @@ namespace CapriDesktop
                 try
                 {
                     if (phone != null && !phone.Current) return RemoteTurn.Ended;
-                    done = Hands.Do(tool, args);
+                    done = phone != null && tool == "mod" ? phone.Pet.RemoteMod(phone, args) : Hands.Do(tool, args);
                 }
                 catch
                 {
                     if (phone != null) phone.Tool(id, name, summary, "failed");
                     throw;
                 }
-                if (phone != null) phone.Tool(id, name, summary, Hands.Failed(done) ? "failed" : "done");
+                if (phone != null) phone.Tool(id, name, summary, done == RemoteTurn.PcOnly || Hands.Failed(done) ? "failed" : "done");
                 if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
                 return done;
             };
             Hands.Resume = delegate(string text) { return Security.Resume(text, brain.Act); };
             if (!OnMac || Program.Smoke == null) ComputerJobs.Attach(brain);
             Hands.NativeWork = RemoteWork(Hands.NativeWork);
+            Hands.Work = RemoteWork(Hands.Work);
         }
 
         internal static Func<ToolArguments, string> RemoteWork(Func<ToolArguments, string> work)
@@ -197,9 +197,20 @@ namespace CapriDesktop
                 if (phone != null)
                 {
                     if (!phone.Current) return RemoteTurn.Ended;
-                    if (RemoteTurn.AtPc("use_computer")) { phone.Blocked = true; return RemoteTurn.PcOnly; }
+                    return RemoteTurn.PcOnly;
                 }
                 return work(args);
+            };
+        }
+
+        internal static Func<string, string, string> RemoteWork(Func<string, string, string> work)
+        {
+            if (work == null) return null;
+            return delegate(string task, string asked)
+            {
+                RemoteTurn phone = RemoteTurn.Working;
+                if (phone != null) return phone.Current ? RemoteTurn.PcOnly : RemoteTurn.Ended;
+                return work(task, asked);
             };
         }
 

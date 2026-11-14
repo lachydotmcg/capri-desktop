@@ -6340,15 +6340,15 @@ namespace CapriDesktop
             {
                 file.Text = damaged;
                 int writes = file.Writes;
-                if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != damagedProblem || file.Text != damaged || file.Writes != writes) throw new Exception("Remote store hid or replaced damaged state.");
+                if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != damagedProblem || !store.Damaged || file.Text != damaged || file.Writes != writes) throw new Exception("Remote store hid or replaced damaged state.");
             }
             file.Text = good; file.Denied = true;
-            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || file.Text != good) throw new Exception("Remote store hid an unreadable file.");
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || store.Damaged || file.Text != good) throw new Exception("Remote store hid an unreadable file.");
             file.Denied = false;
             file.Fail = "read";
-            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || file.Text != good) throw new Exception("Remote store treated a read failure as damage.");
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || store.Damaged || file.Text != good) throw new Exception("Remote store treated a read failure as damage.");
             file.Fail = "read-close";
-            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || file.Text != good) throw new Exception("Remote store returned state after a failed read close.");
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || store.Damaged || file.Text != good) throw new Exception("Remote store returned state after a failed read close.");
             foreach (string failure in new[] { "begin", "write", "flush", "replace" })
             {
                 file.Fail = failure;
@@ -6356,7 +6356,7 @@ namespace CapriDesktop
                     || failure == "write" && file.Written == 0) throw new Exception("Remote store left a partial file after " + failure + ".");
             }
             file.Fail = null;
-            if (store.Load(out read, out relay) != RemoteStoreResult.Read || read.ToJson() != state.ToJson() || store.Problem != null) throw new Exception("Remote store could not read after a failed write.");
+            if (store.Load(out read, out relay) != RemoteStoreResult.Read || read.ToJson() != state.ToJson() || store.Problem != null || store.Damaged) throw new Exception("Remote store could not read after a failed write.");
             RemoteFileFake empty = new RemoteFileFake { Fail = "write" };
             if (new RemoteStore(empty).Save(null, state) != RemoteStoreResult.WriteFailed || empty.Written == 0 || new RemoteStore(empty).Load(out read, out relay) != RemoteStoreResult.Missing) throw new Exception("Remote store created a partial first record.");
             if (store.Save("ws://relay.example", state) != RemoteStoreResult.WriteFailed || store.Problem != "The Remote state or relay is invalid." || file.Text != good) throw new Exception("An invalid relay replaced Remote state.");
@@ -6557,9 +6557,11 @@ namespace CapriDesktop
             Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
             var timer = (Avalonia.Threading.DispatcherTimer)RemoteWire.Get(pet, "frames");
             bool ticking = timer.IsEnabled, wrapped = (bool)RemoteWire.Get(pet, "modWrapped");
-            string[] remoteFields = { "remoteState", "remoteRelay", "remoteProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode" };
+            string[] remoteFields = { "remoteState", "remoteRelay", "remoteProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode", "remoteLoaded", "remoteReadFailed", "remotePendingProblem" };
             Dictionary<string, object> remoteBefore = new Dictionary<string, object>();
             foreach (string field in remoteFields) remoteBefore[field] = RemoteWire.Get(pet, field);
+            int pool, io; ThreadPool.GetMinThreads(out pool, out io);
+            ThreadPool.SetMinThreads(Math.Max(pool, 8), io);
             IDisposable host = null;
             timer.Stop();
             using (RemoteBridgeFake bridge = new RemoteBridgeFake(pet))
@@ -6576,9 +6578,15 @@ namespace CapriDesktop
                 Hands.Windows = delegate { return new List<OpenWindow>(); };
                 Hands.Run = delegate { Interlocked.Increment(ref runs); if (fails) throw new IOException("private-result-text"); };
                 Hands.Look = delegate { return "private-screen-result"; };
-                Hands.NativeWork = Limbs.RemoteWork(delegate { Interlocked.Increment(ref runs); return "native work ran"; });
+                Hands.NativeWork = Limbs.RemoteWork(new Func<ToolArguments, string>(delegate { Interlocked.Increment(ref runs); return "native work ran"; }));
                 Hands.NativeTerminal = delegate { Interlocked.Increment(ref runs); return "terminal ran"; };
-                Hands.RunModTool = delegate { Interlocked.Increment(ref runs); return "mod ran"; };
+                Hands.RunModTool = delegate(string name, string text)
+                {
+                    if (RemoteTurn.Working == null || !RemoteTurn.Working.Current) throw new Exception("A mod tool lost its phone context.");
+                    if (name == "work-mod") return Hands.Work("a screen request from a mod", text);
+                    Interlocked.Increment(ref runs); return "mod ran";
+                };
+                Hands.ModTools = delegate { return new[] { new[] { "bridge-mod", "A fake mod tool.", "text" }, new[] { "work-mod", "A fake screen request.", "text" } }; };
                 Hands.NativeRequest = delegate(string text)
                 {
                     const string lead = "remote boundary ";
@@ -6588,12 +6596,12 @@ namespace CapriDesktop
                 int pcRuns = runs;
                 if (Hands.NativeWork(new ToolArguments { Task = "a fake PC native job" }) != "native work ran" || runs != pcRuns + 1 || bridge.Sink.Count != 0) throw new Exception("The phone native boundary changed a PC native job.");
                 bridge.Send(0, "chat-one", "bridge hello");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("chat-one") != null; }, "a phone answer");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("chat-one") != null; }, "a phone answer");
                 RemoteJson.Map reply = bridge.Sink.ReplyFor("chat-one");
                 if (reply.Text("device") != bridge.Phones[0].Id || reply.Text("text") != "Answer: bridge hello" || pet.Talk.Reply != reply.Text("text") || bridge.Sink.CountFor("chat-one") != 1) throw new Exception("A phone answer lost its message, owner or PC bubble.");
                 int sent = bridge.Sink.Count;
                 pet.Talk.Dismiss(); pet.Hear("desktop hello");
-                MainframeWait(delegate { return pet.Talk.Reply == "Answer: desktop hello"; }, "a desktop answer");
+                RemoteBridgeWait(delegate { return pet.Talk.Reply == "Answer: desktop hello"; }, "a desktop answer");
                 int ticket = (int)RemoteWire.Get(pet, "asking");
                 pet.ShowReply(ticket, "reminder", "A reminder.", 0, null, false, (int)RemoteWire.Get(pet, "inputTurn"), (int)RemoteWire.Get(pet, "answerTurn"));
                 pet.ShowReply(ticket, "(settings)", "A notice.", 0, null, false, (int)RemoteWire.Get(pet, "inputTurn"), (int)RemoteWire.Get(pet, "answerTurn"));
@@ -6606,7 +6614,7 @@ namespace CapriDesktop
                     pet.Think = delegate { pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App", Text = "private-argument-text" }); return "Tried the app."; };
                     string id = fail ? "tool-failed" : "tool-done";
                     bridge.Send(0, id, "try the bridge app");
-                    MainframeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "phone tool progress");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "phone tool progress");
                     List<RemoteJson.Map> tools = bridge.Sink.ToolsFor(id);
                     if (tools.Count != 2 || tools[0].Text("state") != "running" || tools[1].Text("state") != (fail ? "failed" : "done") || tools[0].Text("id") != tools[1].Text("id") || tools[0].Text("name") != "open_app" || tools[0].Text("summary") != "Opening an app"
                         || tools.Exists(delegate(RemoteJson.Map row) { string words = row.Text("name") + " " + row.Text("summary"); return words.Contains("private-") || words.Contains("Bridge App") || row.Text("device") != bridge.Phones[0].Id; })) throw new Exception("Remote tool progress leaked data or lost its running/result pair.");
@@ -6617,7 +6625,7 @@ namespace CapriDesktop
                 bool phoneReminder = false;
                 Hands.Remind = delegate { phoneReminder = RemoteTurn.Working != null && RemoteTurn.Working.Current; return "Set the reminder."; };
                 bridge.Send(0, "early-reminder", "remind me in 20 minutes to drink water");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("early-reminder") != null; }, "an early reminder tool");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("early-reminder") != null; }, "an early reminder tool");
                 if (!phoneReminder || bridge.Sink.ToolsFor("early-reminder").Count != 2 || bridge.Sink.ReplyFor("early-reminder").Text("text") != "Set the reminder.") throw new Exception("An early timer or reminder worker lost its phone context.");
                 checks.Add("PASS Remote bridge: the early reminder worker keeps its phone context and uses the same tool progress and accepted reply path");
 
@@ -6633,7 +6641,7 @@ namespace CapriDesktop
                     int tries = 0;
                     pet.Think = delegate { if (Interlocked.Increment(ref tries) == 1) throw new WebException("Test timeout.", WebExceptionStatus.Timeout); pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" }); return "The retry answered."; };
                     bridge.Send(0, "retry-owner", "try the fake model again");
-                    MainframeWait(delegate { return bridge.Sink.ReplyFor("retry-owner") != null; }, "a retried phone turn");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("retry-owner") != null; }, "a retried phone turn");
                     if (tries != 2 || bridge.Sink.CountFor("retry-owner") != 1 || bridge.Sink.ToolsFor("retry-owner").Count != 2 || bridge.Sink.ReplyFor("retry-owner").Text("device") != bridge.Phones[0].Id) throw new Exception("A model retry lost its phone owner or dispatched without context.");
                 }
                 finally { pet.Brain.Remote = cloud; pet.Brain.Model = model; RemoteWire.Set(pet, "cloudModels", models); stalled.Clear(); stalled.AddRange(stalledBefore); }
@@ -6643,24 +6651,24 @@ namespace CapriDesktop
                 Security.Set(Security.Open, false);
                 int before = runs;
                 bridge.Send(0, "open-ask", "open the bridge app for the phone");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("open-ask") != null; }, "a phone permission question");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("open-ask") != null; }, "a phone permission question");
                 if (runs != before || bridge.Sink.ReplyFor("open-ask").Text("text") != "Open Bridge App?" + Security.Yes || bridge.Sink.ToolsFor("open-ask").Count != 0 || Security.HoldingId != null) throw new Exception("A phone permission question ran early or escaped its owner.");
                 bridge.Send(1, "wrong-yes", "yes");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("wrong-yes") != null; }, "another phone's yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("wrong-yes") != null; }, "another phone's yes");
                 if (runs != before) throw new Exception("Another phone approved a held tool.");
                 bridge.Send(0, "right-yes", "yes");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("right-yes") != null; }, "the owning phone's yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("right-yes") != null; }, "the owning phone's yes");
                 if (runs != before + 1 || bridge.Sink.ToolsFor("right-yes").Count != 2 || bridge.Sink.ReplyFor("right-yes").Text("device") != bridge.Phones[0].Id) throw new Exception("The owning phone's yes did not resume through her hands once.");
                 bridge.Send(0, "second-yes", "yes");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("second-yes") != null; }, "a second yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("second-yes") != null; }, "a second yes");
                 if (runs != before + 1) throw new Exception("A second yes ran a phone tool again.");
                 bridge.Send(0, "next-ask", "ask to open the bridge app again");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("next-ask") != null; }, "a second phone question");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("next-ask") != null; }, "a second phone question");
                 pet.Think = delegate { return "A different topic."; };
                 bridge.Send(0, "unrelated", "a different topic");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("unrelated") != null; }, "unrelated phone chat");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("unrelated") != null; }, "unrelated phone chat");
                 bridge.Send(0, "late-yes", "yes");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("late-yes") != null; }, "an obsolete yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("late-yes") != null; }, "an obsolete yes");
                 if (runs != before + 1) throw new Exception("Unrelated chat left a phone approval usable.");
                 Security.Set(Security.Open, true);
                 checks.Add("PASS Remote bridge: Open off asks that phone, another phone cannot consume the question, its own yes runs once through Security.Resume, and repeated or unrelated answers run nothing");
@@ -6671,50 +6679,29 @@ namespace CapriDesktop
                 before = runs;
                 pet.Think = delegate { return pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" }); };
                 bridge.Send(0, "veto", "try a vetoed tool");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("veto") != null; }, "a mod veto");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("veto") != null; }, "a mod veto");
                 if (runs != before || bridge.Sink.ReplyFor("veto").Text("text") != "The test mod stopped that." || bridge.Sink.ToolsFor("veto").Count != 0) throw new Exception("Remote bypassed the real mods' veto wrapper.");
                 int heard = 0;
                 pet.Think = delegate { Interlocked.Increment(ref heard); return "A taken line reached the brain."; };
                 modType.GetField("sending", RemoteWire.Own).SetValue(host, new Action<CapriMessage>(delegate(CapriMessage message) { message.Cancel = true; }));
                 bridge.Send(0, "mod-taken", "a phone line taken by a mod");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("mod-taken") != null; }, "a taken phone request");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("mod-taken") != null; }, "a taken phone request");
                 if (heard != 0 || bridge.Sink.ReplyFor("mod-taken").Text("text") != "") throw new Exception("A mod-taken line left its phone waiting.");
                 host.Dispose(); host = null;
                 bridge.Send(0, "blank-line", "   ");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("blank-line") != null; }, "a blank phone request");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("blank-line") != null; }, "a blank phone request");
                 if (heard != 0 || bridge.Sink.ReplyFor("blank-line").Text("text") != "") throw new Exception("A blank phone request did not close empty.");
                 checks.Add("PASS Remote bridge: the installed mods' ToolUsing veto still stops a phone tool before dispatch");
                 checks.Add("PASS Remote bridge: a mod-taken line and a whitespace-only message close empty without calling the brain");
 
-                string held = (string)typeof(RemoteTurn).GetField("HeldBack", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic).GetRawConstantValue();
-                int family = 0;
-                foreach (string tool in held.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries))
-                {
-                    string early = "early-" + family, worker = "worker-" + family++;
-                    before = runs;
-                    int asks = 0;
-                    pet.Think = delegate { Interlocked.Increment(ref asks); return "Wrong early answer."; };
-                    bridge.Send(0, early, "remote boundary " + tool);
-                    MainframeWait(delegate { return bridge.Sink.ReplyFor(early) != null; }, "an early held-back tool");
-                    if (asks != 0 || runs != before || bridge.Sink.ReplyFor(early).Text("text") != RemoteTurn.PcOnly || bridge.Sink.ToolsFor(early).Count != 0) throw new Exception("An early held-back tool started: " + tool);
-                    pet.Think = delegate { pet.Brain.Act(tool, new ToolArguments { Name = "Bridge App", Task = "private-task", Text = "private-argument", Action = "on" }); return "Wrong worker answer."; };
-                    bridge.Send(0, worker, "a tool chosen on the worker");
-                    MainframeWait(delegate { return bridge.Sink.ReplyFor(worker) != null; }, "a held-back worker tool");
-                    if (runs != before || bridge.Sink.ReplyFor(worker).Text("text") != RemoteTurn.PcOnly || bridge.Sink.ToolsFor(worker).Count != 0) throw new Exception("A held-back worker tool started: " + tool);
-                }
-                foreach (string text in new[] { "stop", "stop your job", "open Capri Mainframe" })
-                {
-                    string id = "early-extra-" + family++;
-                    bridge.Send(0, id, text);
-                    MainframeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "an early self command");
-                    if (bridge.Sink.ReplyFor(id).Text("text") != RemoteTurn.PcOnly) throw new Exception("An early self command missed the phone boundary.");
-                }
-                before = runs;
-                pet.Think = delegate { return Hands.NativeWork(new ToolArguments { Task = "an indirect native job" }); };
-                bridge.Send(0, "native-fallback", "try an indirect native fallback");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("native-fallback") != null; }, "an indirect native fallback");
-                if (runs != before || bridge.Sink.ReplyFor("native-fallback").Text("text") != RemoteTurn.PcOnly) throw new Exception("An ordinary tool fell back to a phone native job.");
-                checks.Add("PASS Remote bridge: every entry in the four-family held-back list stops at both Hear and Limbs; early stop/job/Mainframe commands and an indirect native fallback start nothing");
+                RemoteTurn previous = RemoteTurn.Working, sample = new RemoteTurn();
+                bool enteredContext = false, leftContext = false;
+                try { RemoteTurn.Run(sample, delegate { enteredContext = RemoteTurn.Working == sample; }, delegate { leftContext = RemoteTurn.Working == previous; throw new IOException("Fake hold cleanup failed."); }); }
+                catch (IOException) { }
+                if (!enteredContext || !leftContext || RemoteTurn.Working != previous) throw new Exception("A throwing cleanup kept the phone context on the worker.");
+                checks.Add("PASS Remote bridge context: the previous worker context is restored before hold cleanup, including when cleanup throws");
+                RemoteBridgeTools(bridge, delegate { return runs; });
+                RemoteBridgeAnswers(bridge, delegate { return runs; });
 
                 Security.Pick(Security.Blackwall);
                 SkillDesk desk = new SkillDesk();
@@ -6732,7 +6719,7 @@ namespace CapriDesktop
                 Brain.Secrets = delegate { return new[] { key }; };
                 pet.Think = delegate { return value + " " + key + " sk-phone-test-key"; };
                 bridge.Send(0, "private-reply", "reply with the test values");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("private-reply") != null; }, "a masked phone answer");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("private-reply") != null; }, "a masked phone answer");
                 string clean = bridge.Sink.ReplyFor("private-reply").Text("text");
                 if (clean.Contains(value) || clean.Contains(key) || clean.Contains("sk-phone-test-key") || !clean.Contains("[private]") || !clean.Contains("[redacted]") || !pet.Talk.Reply.Contains(value)) throw new Exception("A private native value or known key reached a phone.");
                 if (RemoteTurn.Out(new string('x', 20000) + value, 16000).Length > 16000 || RemoteTurn.Out("a\u0001\t\u202eb", 16000) != "a b") throw new Exception("Phone output lost its length or control-character bound.");
@@ -6740,9 +6727,11 @@ namespace CapriDesktop
                 Security.Pick(Security.Trusted);
                 checks.Add("PASS Remote bridge: a PC native job's fake input types once and records its private value; later phone text masks it, redacts keys, scrubs a known key and bounds clean output while the PC bubble keeps its text");
 
+                RemoteBridgeTickets(bridge);
                 RemoteBridgeOverlap(bridge);
                 RemoteBridgeStale(bridge, delegate { return runs; });
                 RemoteBridgeLife(bridge);
+                RemoteBridgeQuit(bridge);
             }
             finally
             {
@@ -6760,36 +6749,343 @@ namespace CapriDesktop
                 pet.RemoteFiles = files; pet.RemoteMake = make; pet.RemoteOutput = output;
                 foreach (string field in remoteFields) RemoteWire.Set(pet, field, remoteBefore[field]);
                 pet.Talk.Dismiss(); pet.NotifySettings();
+                ThreadPool.SetMinThreads(pool, io);
                 if (ticking) timer.Start();
             }
+        }
+
+        private static void RemoteBridgeWait(Func<bool> ready, string what)
+        {
+            Stopwatch wait = Stopwatch.StartNew();
+            while (!ready() && wait.ElapsedMilliseconds < 30000) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+            if (!ready()) throw new Exception("Remote did not finish " + what + ".");
+        }
+
+        private void RemoteBridgeTools(RemoteBridgeFake bridge, Func<int> runs)
+        {
+            bool mac = Hands.OnMac, hands = Hands.OwnHands;
+            Func<bool> ready = Hands.HandsReady, available = Hands.TerminalAvailable;
+            Func<string, string, string> work = Hands.Work;
+            Func<ToolArguments, string> draw = Hands.Draw, terminal = Hands.NativeTerminal, job = Hands.NativeTerminalJob, control = Hands.JobControl;
+            Func<ToolArguments, string> quit = Hands.Quit, updates = Hands.Updates;
+            Func<string, string> animate = Hands.Animate;
+            Func<int, bool> has = Security.Has;
+            Action close = pet.SelfClose;
+            string permissions = Security.Saved;
+            try
+            {
+                Hands.OnMac = false; Hands.OwnHands = true; Hands.HandsReady = delegate { return true; }; Hands.TerminalAvailable = delegate { return true; };
+                Security.Has = delegate { return true; };
+                Hands.Work = Limbs.RemoteWork(new Func<string, string, string>(delegate { throw new Exception("A phone started Hands.Work."); }));
+                Security.Pick(Security.Blackwall);
+                string[] tools = { "use_computer", "stream", "job_control", "run_terminal" };
+                for (int i = 0; i < tools.Length; i++)
+                {
+                    string tool = tools[i], id = "held-worker-" + i;
+                    int before = runs();
+                    pet.Think = delegate
+                    {
+                        string result = pet.Brain.Act(tool, new ToolArguments { Task = "private-task", Action = "change", Command = "private-command" });
+                        if (result != RemoteTurn.PcOnly) throw new Exception("A held call returned the wrong result: " + tool);
+                        pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" });
+                        return "I tried that and opened the app.";
+                    };
+                    bridge.Send(0, id, "choose a held tool on the worker");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a held call and a later ordinary tool");
+                    List<RemoteJson.Map> progress = bridge.Sink.ToolsFor(id);
+                    if (runs() != before + 1 || bridge.Sink.ReplyFor(id).Text("text") != "I tried that and opened the app." || progress.Count != 4 || progress[1].Text("state") != "failed" || progress[3].Text("state") != "done") throw new Exception("A held call stopped the turn, replaced her answer or finished as done: " + tool);
+                    string early = "held-early-" + i;
+                    int asked = 0;
+                    pet.Think = delegate { Interlocked.Increment(ref asked); return "The early call reached the brain."; };
+                    bridge.Send(0, early, tool == "job_control" ? "change the job to a different task" : "remote boundary " + tool);
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(early) != null; }, "an early held call");
+                    progress = bridge.Sink.ToolsFor(early);
+                    if (asked != 0 || runs() != before + 1 || bridge.Sink.ReplyFor(early).Text("text") != RemoteTurn.PcOnly || progress.Count != 2 || progress[1].Text("state") != "failed") throw new Exception("An early held call escaped its boundary: " + tool);
+                }
+                Hands.OnMac = true;
+                foreach (string route in new[] { "music", "work", "native", "computer", "terminal", "mod" })
+                {
+                    string id = "held-route-" + route;
+                    int before = runs();
+                    Hands.Draw = delegate(ToolArguments args)
+                    {
+                        if (route == "work") return Hands.Work("a screen request from a drawing", args.Asked);
+                        if (route == "native") return Hands.NativeWork(args);
+                        if (route == "computer") return ComputerJobs.Run("a direct native job", args.Asked);
+                        return TerminalJobs.Run(args);
+                    };
+                    pet.Think = delegate
+                    {
+                        string result = route == "music" ? pet.Brain.Act("play_music", new ToolArguments { App = "applemusic", Song = "my bridge playlist", Kind = "playlist" })
+                            : route == "mod" ? pet.Brain.Act("mod", new ToolArguments { Name = "work-mod", Text = "a mod request" })
+                            : pet.Brain.Act("draw", new ToolArguments { Task = "private-task", Description = "a screen request", Asked = "run a terminal command", Command = "private-command" });
+                        if (result != RemoteTurn.PcOnly) throw new Exception("A side door returned the wrong result: " + route);
+                        pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" });
+                        return "I tried that route and opened the app.";
+                    };
+                    bridge.Send(0, id, "try a side door");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a held side door");
+                    List<RemoteJson.Map> progress = bridge.Sink.ToolsFor(id);
+                    if (runs() != before + 1 || bridge.Sink.ReplyFor(id).Text("text") != "I tried that route and opened the app." || progress.Count != 4 || progress[1].Text("state") != "failed" || progress[3].Text("state") != "done") throw new Exception("A side door started work or poisoned later tools: " + route);
+                }
+                int allowed = 0;
+                Hands.JobControl = delegate(ToolArguments args) { Interlocked.Increment(ref allowed); return "Job " + args.Action; };
+                Hands.NativeTerminalJob = delegate(ToolArguments args) { Interlocked.Increment(ref allowed); return "Terminal " + args.Action; };
+                Hands.Quit = delegate { Interlocked.Increment(ref allowed); return "Quit checked."; };
+                Hands.Updates = delegate { Interlocked.Increment(ref allowed); return "Updates checked."; };
+                Hands.Animate = delegate { Interlocked.Increment(ref allowed); return "Animation checked."; };
+                pet.Think = delegate
+                {
+                    foreach (string action in new[] { "status", "stop" }) if (pet.Brain.Act("job_control", new ToolArguments { Action = action }) != "Job " + action) throw new Exception("A phone job action was held back.");
+                    foreach (string action in new[] { "status", "read", "stop" }) if (pet.Brain.Act("terminal_job", new ToolArguments { Action = action, Asked = "inspect the job" }) != "Terminal " + action) throw new Exception("A phone terminal control was held back.");
+                    if (pet.Brain.Act("quit", new ToolArguments { Action = "quit" }) != "Quit checked." || pet.Brain.Act("updates", new ToolArguments { Action = "status" }) != "Updates checked." || pet.Brain.Act("animate", new ToolArguments { Name = "grin" }) != "Animation checked.") throw new Exception("An ordinary self tool was held back.");
+                    return "The ordinary tools ran.";
+                };
+                bridge.Send(0, "allowed-tools", "use ordinary tools");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("allowed-tools") != null; }, "ordinary phone tools");
+                if (allowed != 8 || bridge.Sink.ToolsFor("allowed-tools").Count != 16 || bridge.Sink.ReplyFor("allowed-tools").Text("text") != "The ordinary tools ran.") throw new Exception("Phone tool control added a refusal.");
+                pet.Think = delegate { return pet.Brain.Act("mod", new ToolArguments { Name = "bridge-mod", Text = "fake" }); };
+                int mods = runs();
+                bridge.Send(0, "allowed-mod", "use a mod tool");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("allowed-mod") != null; }, "a phone mod tool");
+                if (runs() != mods + 1 || bridge.Sink.ReplyFor("allowed-mod").Text("text") != "mod ran") throw new Exception("A mod tool was held back.");
+                int direct = allowed;
+                bridge.Send(0, "job-status-phrase", "job status");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("job-status-phrase") != null; }, "a direct job status");
+                bridge.Send(0, "job-stop-phrase", "stop your job");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("job-stop-phrase") != null; }, "a direct job stop");
+                if (allowed != direct + 2 || bridge.Sink.ReplyFor("job-status-phrase").Text("text") != "Job status" || bridge.Sink.ReplyFor("job-stop-phrase").Text("text") != "Job stop") throw new Exception("An early job control lost its phone context or answer.");
+                foreach (string text in new[] { "stop", "cancel" })
+                {
+                    bridge.Send(0, "plain-" + text, text);
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("plain-" + text) != null; }, "a plain phone stop");
+                    if (bridge.Sink.ReplyFor("plain-" + text).Text("text") != "" || bridge.Sink.CountFor("plain-" + text) != 1) throw new Exception("A plain phone stop gained a refusal or stayed open.");
+                }
+                Hands.Quit = quit;
+                int closes = 0;
+                pet.SelfClose = delegate { closes++; };
+                pet.Think = delegate { return pet.Brain.Act("quit", new ToolArguments { Action = "quit" }); };
+                bridge.Send(0, "quit-after-reply", "quit after your answer");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("quit-after-reply") != null; }, "a deferred phone quit");
+                pet.selfTools.Tick((int)RemoteWire.Get(pet, "asking"), true);
+                if (closes != 1 || bridge.Sink.ReplyFor("quit-after-reply").Text("text") != "I'll quit after this reply.") throw new Exception("Closing the phone answer cancelled its ordinary deferred tool.");
+                foreach (bool platform in new[] { false, true })
+                {
+                    Hands.OnMac = platform;
+                    foreach (string missing in new[] { "gaming_mode", "stream", "use_computer", "run_terminal", "clone", "linux_system" })
+                    {
+                        Hands.OwnHands = false; Hands.HandsReady = delegate { return false; }; Hands.TerminalAvailable = delegate { return false; };
+                        ToolArguments args = new ToolArguments { Task = "a screen task", Action = "on" };
+                        string reason = Hands.Unable(missing, args);
+                        if (reason == null) continue;
+                        string id = "missing-" + platform + "-" + missing;
+                        pet.Think = delegate { return pet.Brain.Act(missing, args); };
+                        bridge.Send(0, id, "let the brain try an unavailable tool");
+                        RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "an unavailable phone tool");
+                        if (bridge.Sink.ReplyFor(id).Text("text") != reason || reason == RemoteTurn.PcOnly) throw new Exception("A missing tool lost its true platform reason.");
+                        bridge.Send(0, id + "-early", "remote boundary " + missing);
+                        RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id + "-early") != null; }, "an early unavailable phone tool");
+                        if (bridge.Sink.ReplyFor(id + "-early").Text("text") != reason) throw new Exception("An early missing tool gained a PC-only reason.");
+                    }
+                }
+                checks.Add("PASS Remote bridge boundaries: only mouse and keyboard starts, job change and terminal starts are held; each call fails alone and later tools and her own answer survive; direct phrases, real Apple Music fallback, Hands.Work, NativeWork, ComputerJobs and TerminalJobs starts keep the boundary");
+                checks.Add("PASS Remote bridge ordinary tools: job status and stop, terminal status/read/stop, mod tools, quit, updates and animate run; plain stop and cancel keep their PC meaning; unavailable tools keep their own reason in dispatch and early phrases on both platforms");
+            }
+            finally
+            {
+                Hands.OnMac = mac; Hands.OwnHands = hands; Hands.HandsReady = ready; Hands.TerminalAvailable = available; Hands.Work = work;
+                Hands.Draw = draw; Hands.NativeTerminal = terminal; Hands.NativeTerminalJob = job; Hands.JobControl = control;
+                Hands.Quit = quit; Hands.Updates = updates; Hands.Animate = animate; Security.Has = has; Security.Drop(); Security.Load(permissions);
+                pet.SelfClose = close;
+            }
+        }
+
+        private void RemoteBridgeAnswers(RemoteBridgeFake bridge, Func<int> runs)
+        {
+            int heard = 0;
+            pet.Think = delegate(string text) { if (RemoteTurn.Working == null || !RemoteTurn.Working.Current) throw new Exception("A phone answer became local."); Interlocked.Increment(ref heard); return "Heard " + text; };
+            foreach (string word in new[] { "yes", "ok", "sure" })
+            {
+                bridge.Send(0, "bare-" + word, word);
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("bare-" + word) != null; }, "a bare phone agreement");
+                if (bridge.Sink.ReplyFor("bare-" + word).Text("text") != "Heard " + word) throw new Exception("A bare phone agreement was swallowed.");
+            }
+            if (heard != 3) throw new Exception("A bare phone agreement skipped her brain.");
+            foreach (string word in new[] { "cancel", "stop", "no", "no thanks" })
+            {
+                Security.Set(Security.Open, false);
+                int before = runs();
+                pet.Think = delegate { pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" }); return "Ask first."; };
+                bridge.Send(0, "decline-ask-" + word, "ask before opening an app");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("decline-ask-" + word) != null; }, "a question to decline");
+                bridge.Send(0, "decline-" + word, word);
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("decline-" + word) != null; }, "a declined phone question");
+                if (bridge.Sink.ReplyFor("decline-" + word).Text("text") != Security.Left || runs() != before) throw new Exception("A phone decline kept the approval or got a refusal.");
+                pet.Think = delegate { return "No question is waiting."; };
+                bridge.Send(0, "decline-late-" + word, "yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("decline-late-" + word) != null; }, "yes after a phone decline");
+                if (runs() != before || bridge.Sink.ToolsFor("decline-late-" + word).Count != 0 || Security.HoldingId != null) throw new Exception("A declined approval ran on a later yes.");
+            }
+            Security.Set(Security.Open, true);
+            Meeting meeting = (Meeting)RemoteWire.Get(pet, "meeting");
+            pet.GetToKnow();
+            try
+            {
+                int asked = 0, before = runs();
+                pet.Think = delegate
+                {
+                    if (RemoteTurn.Working == null || !RemoteTurn.Working.Current) throw new Exception("The meeting converted a phone turn into a PC turn.");
+                    Interlocked.Increment(ref asked);
+                    pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" });
+                    return "The phone skipped the meeting.";
+                };
+                bridge.Send(0, "meeting-phone", "could you help with this task?");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("meeting-phone") != null; }, "a phone turn during the meeting");
+                if (asked != 1 || runs() != before + 1 || !pet.GettingToKnow || bridge.Sink.CountFor("meeting-phone") != 1 || bridge.Sink.ReplyFor("meeting-phone").Text("text") != "The phone skipped the meeting.") throw new Exception("The meeting swallowed or rerouted a phone line.");
+            }
+            finally { meeting.Stop(); }
+            checks.Add("PASS Remote bridge answers: bare yes, ok and sure reach the brain; cancel, stop and usual declines clear the phone approval and later yes runs nothing; an open get-to-know box never turns the phone line into PC input");
+        }
+
+        private void RemoteBridgeTickets(RemoteBridgeFake bridge)
+        {
+            using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+            {
+                pet.Think = delegate(string text) { if (text == "move while thinking") { entered.Set(); if (!release.Wait(30000)) throw new Exception("The thinking check was not released."); } return "Answer " + text; };
+                bridge.Send(0, "ticket-thinking", "move while thinking");
+                RemoteBridgeWait(delegate { return entered.IsSet; }, "thinking before a moved ticket");
+                bridge.Send(1, "after-thinking", "next after thinking");
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                RemoteWire.Set(pet, "asking", (int)RemoteWire.Get(pet, "asking") + 1);
+                release.Set();
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("ticket-thinking") != null && bridge.Sink.ReplyFor("after-thinking") != null; }, "a moved thinking ticket and its queued phone");
+                if (bridge.Sink.CountFor("ticket-thinking") != 1 || bridge.Sink.ReplyFor("ticket-thinking").Text("text") != "" || bridge.Sink.ReplyFor("after-thinking").Text("text") != "Answer next after thinking") throw new Exception("A moved thinking ticket stayed open or stalled the queue.");
+            }
+            ISpeaker speaker = (ISpeaker)RemoteWire.Get(pet, "elevenLabs");
+            bool silent = pet.Saved.Silent;
+            string provider = pet.Saved.VoiceProvider;
+            foreach (string stage in new[] { "speech", "show" })
+            using (RemoteBridgeSpeaker voice = new RemoteBridgeSpeaker())
+            {
+                try
+                {
+                    voice.Hold = stage == "speech";
+                    if (stage == "show") voice.Before = delegate { Avalonia.Threading.Dispatcher.UIThread.Post(delegate { RemoteWire.Set(pet, "asking", (int)RemoteWire.Get(pet, "asking") + 1); }); };
+                    RemoteWire.Set(pet, "elevenLabs", voice); pet.Saved.Silent = false; pet.Saved.VoiceProvider = Speakers.ElevenLabs;
+                    pet.Think = delegate(string text) { return text == "first spoken phone" ? "The first spoken answer." : "The next spoken answer."; };
+                    string id = "ticket-" + stage, next = "after-" + stage;
+                    bridge.Send(0, id, "first spoken phone");
+                    RemoteBridgeWait(delegate { return voice.Entered.IsSet; }, "speech preparation");
+                    if (bridge.Sink.ReplyFor(id) == null || bridge.Sink.ReplyFor(id).Text("text") != "The first spoken answer." || voice.Hold && voice.Finished.IsSet) throw new Exception("A phone waited for its speech preparation.");
+                    if (stage == "show") { RemoteBridgeWait(delegate { return voice.Finished.IsSet; }, "speech before showing"); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+                    RemoteTurn turn = ((Dictionary<string, RemoteTurn>)RemoteWire.Get(pet, "remoteNewest"))[bridge.Phones[0].Id];
+                    if (stage == "speech") RemoteWire.Set(pet, "asking", (int)RemoteWire.Get(pet, "asking") + 1);
+                    pet.ShowReply(turn.Ticket, turn.Text, "A stale bubble.", 0, null, false, (int)RemoteWire.Get(pet, "inputTurn"), (int)RemoteWire.Get(pet, "answerTurn"), turn);
+                    bridge.Send(1, next, "next spoken phone");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(next) != null; }, "the next phone while speech changes");
+                    voice.Release.Set();
+                    RemoteBridgeWait(delegate { return voice.Finished.IsSet; }, "released speech preparation");
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    if (bridge.Sink.CountFor(id) != 1 || bridge.Sink.CountFor(next) != 1 || bridge.Sink.ReplyFor(next).Text("text") != "The next spoken answer." || !turn.Closed || !turn.Finished || turn.Waiting) throw new Exception("A moved speech or showing ticket duplicated a reply or blocked another phone.");
+                }
+                finally { voice.Release.Set(); RemoteWire.Set(pet, "elevenLabs", speaker); pet.Saved.Silent = silent; pet.Saved.VoiceProvider = provider; }
+            }
+            RemoteBridgeJobCancel(bridge);
+            checks.Add("PASS Remote bridge completion: tickets moved during thinking, speech preparation and just before showing close once and serve the next phone; the phone has its words while fake speech is still blocked; later bubbles and voice cannot change its answer");
+        }
+
+        private void RemoteBridgeJobCancel(RemoteBridgeFake bridge)
+        {
+            using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+            {
+                Exception problem = null;
+                Thread job = new Thread(delegate()
+                {
+                    try { SelfJobs.Run(new ToolArguments { Task = "the PC's own fake job" }, delegate { entered.Set(); if (!release.Wait(30000)) throw new Exception("The PC job was not released."); return "PC job ended."; }, delegate { }); }
+                    catch (Exception error) { problem = error; }
+                }) { IsBackground = true };
+                job.Start();
+                try
+                {
+                    RemoteBridgeWait(delegate { return entered.IsSet; }, "the PC's fake job");
+                    foreach (bool detach in new[] { false, true })
+                    using (ManualResetEventSlim thinking = new ManualResetEventSlim(), finish = new ManualResetEventSlim(), done = new ManualResetEventSlim())
+                    {
+                        pet.Think = delegate(string text)
+                        {
+                            if (text != "hold the phone worker") return "The replacement answered.";
+                            thinking.Set();
+                            try { if (!finish.Wait(30000)) throw new Exception("The phone worker was not released."); return "Old worker ended."; }
+                            finally { done.Set(); }
+                        };
+                        string id = detach ? "job-detach" : "job-pump";
+                        bridge.Send(0, id, "hold the phone worker");
+                        RemoteBridgeWait(delegate { return thinking.IsSet; }, "a phone beside a PC job");
+                        int cancels = (int)RemoteWire.Get(pet.Brain, "cancelled");
+                        if (detach) pet.SetRemote(false);
+                        else
+                        {
+                            bridge.Send(0, id + "-new", "a replacement phone turn");
+                            RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id + "-new") != null; }, "a replacement beside a PC job");
+                        }
+                        if ((int)RemoteWire.Get(pet.Brain, "cancelled") != cancels || !SelfJobs.Active) throw new Exception("Remote cancelled the brain during her own running job.");
+                        finish.Set();
+                        RemoteBridgeWait(delegate { return done.IsSet; }, "the old phone worker beside a PC job");
+                    }
+                }
+                finally { release.Set(); if (!job.Join(30000)) throw new Exception("The PC job did not end."); SelfJobs.Stop(); }
+                if (problem != null) throw problem;
+            }
+            bridge.Online();
+            checks.Add("PASS Remote bridge cancellation: replacement and detach keep the same running-job guard as Hear and leave her PC job's brain alone");
+        }
+
+        private sealed class RemoteBridgeSpeaker : ISpeaker, IDisposable
+        {
+            internal readonly ManualResetEventSlim Entered = new ManualResetEventSlim(), Release = new ManualResetEventSlim(), Finished = new ManualResetEventSlim();
+            internal bool Hold;
+            internal Action Before;
+            public string Name { get { return "Remote check"; } }
+            public bool Ready { get { return true; } }
+            public byte[] Speak(string text)
+            {
+                if (text == "The first spoken answer.")
+                {
+                    Entered.Set();
+                    try { if (Hold && !Release.Wait(30000)) throw new Exception("The fake voice was not released."); if (Before != null) Before(); }
+                    finally { Finished.Set(); }
+                }
+                return Voice.Wave(new short[1], 24000);
+            }
+            public void Dispose() { Release.Set(); }
         }
 
         private void RemoteBridgeOverlap(RemoteBridgeFake bridge)
         {
             using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
             {
-                pet.Think = delegate(string text) { if (text == "first phone") { entered.Set(); if (!release.Wait(3000)) throw new Exception("The overlap check was not released."); } return "Reply to " + text; };
+                pet.Think = delegate(string text) { if (text == "first phone") { entered.Set(); if (!release.Wait(30000)) throw new Exception("The overlap check was not released."); } return "Reply to " + text; };
                 bridge.Send(0, "overlap-one", "first phone");
-                MainframeWait(delegate { return entered.IsSet; }, "the first phone's worker");
+                RemoteBridgeWait(delegate { return entered.IsSet; }, "the first phone's worker");
                 int sent = bridge.Sink.Count, ticket = (int)RemoteWire.Get(pet, "asking");
                 pet.ShowReply(ticket, "first phone", "A local notice.", 0, null, false, (int)RemoteWire.Get(pet, "inputTurn"), (int)RemoteWire.Get(pet, "answerTurn"));
                 if (bridge.Sink.Count != sent) throw new Exception("An unrelated local reply borrowed a phone's ticket or words.");
                 bridge.Send(1, "overlap-two", "second phone");
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
                 release.Set();
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("overlap-one") != null && bridge.Sink.ReplyFor("overlap-two") != null; }, "two overlapping phones");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("overlap-one") != null && bridge.Sink.ReplyFor("overlap-two") != null; }, "two overlapping phones");
                 if (bridge.Sink.ReplyFor("overlap-one").Text("device") != bridge.Phones[0].Id || bridge.Sink.ReplyFor("overlap-one").Text("text") != "Reply to first phone" || bridge.Sink.ReplyFor("overlap-two").Text("device") != bridge.Phones[1].Id || bridge.Sink.ReplyFor("overlap-two").Text("text") != "Reply to second phone") throw new Exception("Two phones received each other's answers.");
             }
             using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
             {
-                pet.Think = delegate(string text) { if (text == "older phone line") { entered.Set(); if (!release.Wait(3000)) throw new Exception("The replaced turn was not released."); } return "Reply to " + text; };
+                pet.Think = delegate(string text) { if (text == "older phone line") { entered.Set(); if (!release.Wait(30000)) throw new Exception("The replaced turn was not released."); } return "Reply to " + text; };
                 bridge.Send(0, "older-line", "older phone line");
-                MainframeWait(delegate { return entered.IsSet; }, "a replaceable phone worker");
+                RemoteBridgeWait(delegate { return entered.IsSet; }, "a replaceable phone worker");
                 RemoteTurn older = (RemoteTurn)RemoteWire.Get(pet, "remoteActive");
                 bridge.Send(0, "newer-line", "newer phone line");
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("older-line") != null; }, "the old message's close");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("older-line") != null; }, "the old message's close");
                 release.Set();
-                MainframeWait(delegate { return bridge.Sink.ReplyFor("newer-line") != null && !older.Waiting; }, "the same phone's newer answer");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("newer-line") != null && !older.Waiting; }, "the same phone's newer answer");
                 if (bridge.Sink.ReplyFor("older-line").Text("text") != "" || bridge.Sink.CountFor("older-line") != 1 || bridge.Sink.ReplyFor("newer-line").Text("text") != "Reply to newer phone line") throw new Exception("A same-phone replacement answered an old request again.");
             }
             checks.Add("PASS Remote bridge: two overlapping phones keep their own answers; a newer same-phone message closes the older request once and takes its reply");
@@ -6805,13 +7101,13 @@ namespace CapriDesktop
                     pet.Think = delegate
                     {
                         entered.Set();
-                        if (!release.Wait(3000)) throw new Exception("The stale phone worker was not released.");
+                        if (!release.Wait(30000)) throw new Exception("The stale phone worker was not released.");
                         try { return pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" }); }
                         finally { done.Set(); }
                     };
                     string id = "stale-" + change;
                     bridge.Send(0, id, "wait before using the app");
-                    MainframeWait(delegate { return entered.IsSet; }, "a stale phone worker");
+                    RemoteBridgeWait(delegate { return entered.IsSet; }, "a stale phone worker");
                     RemoteTurn older = (RemoteTurn)RemoteWire.Get(pet, "remoteActive");
                     int before = runs(), messages = bridge.Sink.Count;
                     if (change == "revoke") pet.RevokeRemote(bridge.Phones[0].Id);
@@ -6821,7 +7117,7 @@ namespace CapriDesktop
                     if (change == "off") pet.SetRemote(false);
                     if (change == "quit") { RemoteWire.Set(pet, "quitting", true); typeof(Pet).GetMethod("StopRemote", RemoteWire.Own).Invoke(pet, null); }
                     release.Set();
-                    MainframeWait(delegate { return done.IsSet && !older.Waiting && RemoteWire.Get(pet, "remoteActive") == null; }, "stale phone cleanup");
+                    RemoteBridgeWait(delegate { return done.IsSet && !older.Waiting && RemoteWire.Get(pet, "remoteActive") == null; }, "stale phone cleanup");
                     Avalonia.Threading.Dispatcher.UIThread.RunJobs();
                     if (runs() != before || bridge.Sink.Count != messages || bridge.Sink.CountFor(id) != 0) throw new Exception("A " + change + " phone worker dispatched or answered after it ended.");
                     if ((change == "off" || change == "quit") && RemoteWire.Get(pet, "remoteLink") != null) throw new Exception("Remote kept a link after " + change + ".");
@@ -6858,8 +7154,11 @@ namespace CapriDesktop
             if (bridge.Starts != starts || pet.ReadRemote().On) throw new Exception("A smoke run connected without supplied fakes.");
             bridge.Install();
             bridge.Use(new RemoteFileFake());
+            int reads = bridge.Store.Reads;
+            for (int i = 0; i < 100; i++) pet.ReadRemote();
+            if (reads != 1 || bridge.Store.Reads != reads) throw new Exception("Reading an empty Remote view kept opening the store.");
             pet.SetRemote(true);
-            if (!pet.ReadRemote().On || bridge.File.Writes < 1 || bridge.WritesAtStart < 1 || bridge.Made.Room == null) throw new Exception("Remote started before its first store save.");
+            if (!pet.ReadRemote().On || bridge.File.Writes < 1 || bridge.WritesAtStart < 1 || bridge.Made.Room == null) throw new Exception("Remote lost its first saved store.");
             pet.NewRemoteCode();
             RemoteView view = pet.ReadRemote();
             if (!view.Ready || view.Status != "online" || view.Qr == null || view.QrSeconds <= 0 || view.Host != "ws://127.0.0.1:1") throw new Exception("Remote's reader missed its link or pairing data.");
@@ -6873,9 +7172,13 @@ namespace CapriDesktop
             if (pet.ReadRemote().Ask != null || pet.ReadRemote().Qr != null || pet.ReadRemote().Expired) throw new Exception("Closing a code or denying left a pairing open.");
             pet.NewRemoteCode();
             bridge.Wire.Pair("bridge-allow", "Allowed phone", RemoteCrypto.Random(16));
+            bridge.File.Fail = "replace";
             pet.AllowRemote();
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            if (pet.ReadRemote().Phones.Count != 1 || pet.ReadRemote().Phones[0].Key != null) throw new Exception("Pairing approval did not reach the reader safely.");
+            if (!pet.ReadRemote().On || !pet.Saved.RemoteOn || pet.ReadRemote().Phones.Count != 1 || pet.ReadRemote().Phones[0].Key != null || pet.ReadRemote().Status != "The paired phones weren't saved.") throw new Exception("A failed Allow save turned Remote off or hid the unsaved phone.");
+            bridge.File.Fail = null; pet.CloseRemoteCode();
+            RemoteState read; string relay;
+            if (new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 1 || pet.ReadRemote().Status != "online") throw new Exception("The next Remote action did not retry Allow's save.");
             bridge.Online();
             string room = bridge.Made.Room, record = bridge.File.Text;
             view = pet.ReadRemote();
@@ -6903,41 +7206,89 @@ namespace CapriDesktop
             if (bridge.Made.Room == state.Room || bridge.Made.Devices.Count != 0 || pet.ReadRemote().Note != "The relay changed. Pair your phones again.") throw new Exception("A saved file for another relay reused its paired phones.");
             file = new RemoteFileFake(); new RemoteStore(file).Save("ws://127.0.0.1:1", state);
             bridge.Use(file); pet.SetRemote(true); pet.SetRemote(false); pet.RevokeRemote(parent.Id);
-            RemoteState read; string relay;
             if (new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 0) throw new Exception("Offline revoke missed a child phone.");
 
+            foreach (string retry in new[] { "turn-on", "sheet", "launch" })
+            {
+                file = new RemoteFileFake(); new RemoteStore(file).Save("ws://127.0.0.1:1", state); file.Denied = true;
+                bridge.Use(file); pet.Saved.RemoteOn = true; starts = bridge.Starts;
+                pet.SetRemote(true);
+                reads = bridge.Store.Reads;
+                for (int i = 0; i < 100; i++) pet.ReadRemote();
+                if ((bool)RemoteWire.Get(pet, "remoteUnreadable") || !pet.Saved.RemoteOn || pet.ReadRemote().On || bridge.Starts != starts || bridge.Store.Reads != reads || pet.ReadRemote().Status != "The saved phones couldn't be opened right now. Try again.") throw new Exception("A passing read error latched, changed the saved On choice or polled the disk.");
+                file.Denied = false;
+                if (retry == "turn-on") pet.SetRemote(true);
+                else if (retry == "sheet") pet.DenyRemote();
+                else typeof(Pet).GetMethod("LoadRemote", RemoteWire.Own).Invoke(pet, new object[] { true });
+                if (!pet.Saved.RemoteOn || (bool)RemoteWire.Get(pet, "remoteReadFailed") || bridge.Store.Reads <= reads || pet.ReadRemote().Phones.Count != 2 || pet.ReadRemote().Status.Contains("couldn't")) throw new Exception("A passing read error could not retry at " + retry + ".");
+            }
             file = new RemoteFileFake { Text = "unreadable phones" };
             bridge.Use(file); starts = bridge.Starts; pet.SetRemote(true);
-            if (pet.ReadRemote().On || bridge.Starts != starts || file.Text != "unreadable phones" || file.Writes != 0 || !pet.ReadRemote().Status.Contains("couldn't be read")) throw new Exception("Remote overwrote an unreadable phone store.");
-            if (pet.SetRemoteHost("wss://other.example") || file.Writes != 0) throw new Exception("Changing a host bypassed unreadable-store recovery.");
+            reads = bridge.Store.Reads;
+            if (pet.ReadRemote().On || pet.Saved.RemoteOn || bridge.Starts != starts || file.Text != "unreadable phones" || file.Writes != 0 || pet.ReadRemote().Status != "The saved phones couldn't be read. Remove all phones to start again.") throw new Exception("Remote overwrote a damaged phone store.");
+            if (!pet.SetRemoteHost("ws://127.0.0.1:1/") || pet.SetRemoteHost("wss://other.example") || file.Writes != 0 || bridge.Store.Reads != reads) throw new Exception("Changing a host bypassed the damaged-store latch or changed equivalent-host handling.");
             pet.RemoveRemotePhones();
-            if (file.Writes != 1 || new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 0 || pet.ReadRemote().On) throw new Exception("Remove all did not recover an unreadable store while keeping Remote off.");
+            if (file.Writes != 1 || new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 0 || pet.ReadRemote().On) throw new Exception("Remove all did not recover a damaged store while keeping Remote off.");
 
             file = new RemoteFileFake { Fail = "replace" };
-            bridge.Use(file); starts = bridge.Starts; pet.SetRemote(true);
-            if (pet.ReadRemote().On || bridge.Starts != starts || file.Text != null || pet.ReadRemote().Status != "The new phone store wasn't saved.") throw new Exception("A first-save failure started Remote or claimed it saved.");
-            file.Fail = null; pet.SetRemote(true);
-            if (!pet.ReadRemote().On || file.Writes < 1) throw new Exception("A failed initial save could not be retried.");
+            bridge.Use(file); pet.SetRemote(true);
+            room = bridge.Made.Room;
+            if (!pet.ReadRemote().On || !pet.Saved.RemoteOn || file.Text != null || pet.ReadRemote().Status != "The new phone store wasn't saved.") throw new Exception("A first-save failure turned Remote off or claimed it saved.");
+            file.Fail = null; pet.NewRemoteCode();
+            if (!pet.ReadRemote().On || file.Writes != 1 || bridge.Made.Room != room || pet.ReadRemote().Status != "online") throw new Exception("A failed initial save could not be retried in place.");
             bridge.Online();
             room = bridge.Made.Room; record = bridge.File.Text;
-            oldSave = bridge.Save; oldState = bridge.Made.Copy();
             bridge.File.Fail = "replace";
-            if (pet.SetRemoteHost("wss://cannot-save.example") || pet.ReadRemote().On || bridge.File.Text != record || pet.ReadRemote().Status != "The new relay and phone store weren't saved.") throw new Exception("A failed host save claimed a new relay.");
-            bridge.File.Fail = null; pet.SetRemote(true);
-            if (bridge.Made.Room != room || pet.ReadRemote().Phones.Count != 2 || bridge.File.Text != record) throw new Exception("Retrying after a rejected host erased the old phones.");
+            if (pet.SetRemoteHost("wss://cannot-save.example") || !pet.ReadRemote().On || pet.ReadRemote().Host != "wss://cannot-save.example" || pet.ReadRemote().Phones.Count != 0 || bridge.File.Text != record || pet.ReadRemote().Status != "The new relay and phone store weren't saved.") throw new Exception("A failed host save turned Remote off or claimed it saved.");
+            room = bridge.Made.Room;
+            bridge.File.Fail = null; pet.CloseRemoteCode();
+            if (!pet.ReadRemote().On || new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || relay != "wss://cannot-save.example" || read.Room != room || read.Devices.Count != 0 || pet.ReadRemote().Status != "online") throw new Exception("The next action did not retry the changed relay in memory.");
+
+            bridge.Online();
+            oldSave = bridge.Save; oldState = bridge.Made.Copy();
+            oldSave(oldState);
+            pet.RevokeRemote(bridge.Phones[0].Id);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Find(bridge.Phones[0].Id) != null || read.Devices.Count != 1) throw new Exception("A pre-revoke queued copy restored the phone.");
+            changed = bridge.File.Text; writes = bridge.File.Writes;
+            oldSave(oldState);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (bridge.File.Text != changed || bridge.File.Writes != writes) throw new Exception("An older same-link copy landed after the newer save.");
+
             bridge.Online();
             record = bridge.File.Text;
             bridge.File.Fail = "replace"; pet.RevokeRemote(bridge.Phones[0].Id);
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            if (pet.ReadRemote().On || bridge.File.Text != record || pet.ReadRemote().Status != "The phone removal wasn't saved.") throw new Exception("A failed live revoke save claimed it was saved.");
+            const string removal = "The phone removal wasn't saved. It will be paired again next time Capri opens.";
+            if (!pet.ReadRemote().On || !pet.Saved.RemoteOn || pet.ReadRemote().Phones.Count != 1 || bridge.File.Text != record || pet.ReadRemote().Status != removal) throw new Exception("A failed live revoke turned Remote off or hid its unsaved removal.");
+            Action[] actions = { pet.NewRemoteCode, pet.CloseRemoteCode, pet.AllowRemote, pet.DenyRemote, delegate { pet.SetRemoteHost("ws://127.0.0.1:1/"); }, delegate { pet.SetRemoteHost("wss://bad.example/path"); }, delegate { pet.RevokeRemote("missing"); }, delegate { pet.SetRemote(true); } };
+            foreach (Action action in actions)
+            {
+                int attempts = bridge.Store.Saves;
+                action(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                if (bridge.Store.Saves <= attempts || !pet.ReadRemote().On || bridge.File.Text != record || pet.ReadRemote().Status != removal) throw new Exception("A later Remote action skipped an unsaved removal retry or hid its warning.");
+            }
+            int tries = bridge.Store.Saves; pet.SetRemote(false);
+            if (bridge.Store.Saves <= tries || pet.ReadRemote().On || pet.ReadRemote().Status != removal) throw new Exception("Stopping Remote skipped an unsaved removal retry.");
+            bridge.File.Fail = null; pet.CloseRemoteCode();
+            if (new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Find(bridge.Phones[0].Id) != null || (bool)RemoteWire.Get(pet, "remoteDirty")) throw new Exception("An unsaved removal was not retried after stopping.");
+            pet.SetRemote(true);
+            if (pet.ReadRemote().Phones.Count != 1) throw new Exception("A removed phone came back after the retry.");
+
+            bridge.Online();
+            pet.RevokeRemote(bridge.Phones[0].Id); pet.SetRemote(false);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Find(bridge.Phones[0].Id) != null) throw new Exception("Stopping before a posted revoke save lost the removal.");
             bridge.Online();
             oldSave = bridge.Save; oldState = bridge.Made.Copy(); record = bridge.File.Text;
             bridge.File.Fail = "replace"; pet.RemoveRemotePhones();
-            if (pet.ReadRemote().On || bridge.File.Text != record || pet.ReadRemote().Status != "Removing all phones wasn't saved.") throw new Exception("A failed remove-all save kept Remote on or claimed success.");
-            bridge.File.Fail = null; pet.RemoveRemotePhones();
+            if (!pet.ReadRemote().On || !pet.Saved.RemoteOn || pet.ReadRemote().Phones.Count != 0 || bridge.File.Text != record || pet.ReadRemote().Status != "Removing all phones wasn't saved. They will be paired again next time Capri opens.") throw new Exception("A failed remove-all save turned Remote off or hid its unsaved removal.");
+            bridge.File.Fail = null; pet.CloseRemoteCode();
             changed = bridge.File.Text; oldSave(oldState);
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-            if (bridge.File.Text != changed || new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Room == oldState.Room || read.Devices.Count != 0) throw new Exception("An old save restored phones after remove-all.");
+            if (bridge.File.Text != changed || new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Room == oldState.Room || read.Devices.Count != 0) throw new Exception("An old save restored phones after remove-all's retry.");
+            checks.Add("PASS Remote bridge storage: empty views never poll; passing open errors keep On and retry at turn-on, a sheet action or launch; damaged data stays latched until remove-all; Allow, first-store, revoke and remove-all save failures keep Remote on with pending retries, including every action and stop; unsaved removals stay visible until saved");
+            checks.Add("PASS Remote bridge save order: queued pre-revoke copies and copies delivered after the newer same-link save are dropped; stop before a posted removal still saves it; old links cannot overwrite a changed relay or remove-all");
             Settings fresh = new Settings();
             Pet.NewSettings newer = Pet.Newest(new Settings { RemoteOn = true, RemoteHost = "wss://kept.example" });
             Settings kept = Pet.Kept(new Settings { VoiceProvider = null, RemoteHost = null }, newer);
@@ -6950,8 +7301,52 @@ namespace CapriDesktop
                 Settings back = (Settings)serializer.ReadObject(stream);
                 if (fresh.RemoteOn || fresh.RemoteHost != RemoteLink.DefaultHost || !back.RemoteOn || back.RemoteHost != "wss://kept.example" || !kept.RemoteOn || kept.RemoteHost != back.RemoteHost || !older.RemoteOn || older.RemoteHost != back.RemoteHost || current.RemoteOn || current.RemoteHost != RemoteLink.DefaultHost) throw new Exception("Remote settings lost their default, kept or saved values.");
             }
-            checks.Add("PASS Remote bridge lifecycle: smoke requires fakes; missing state saves before starting; good and equivalent-relay state stays; changed relays rotate; old saves cannot cross links; unreadable data stays untouched until remove-all; failed initial, host, revoke and remove-all saves stay off and say what was not saved");
+            checks.Add("PASS Remote bridge lifecycle: smoke requires fakes; missing state is kept and saved; good and equivalent-relay state stays; changed relays rotate; old saves cannot cross links; damaged data stays untouched until remove-all; failed saves keep live phones working and say what was not saved");
             checks.Add("PASS Remote bridge view and settings: status, readiness, QR, asking phone, safe paired devices, online state, host and note follow the link; pair, close, allow, deny and offline cascading revoke work; On and Host default, save and survive Kept/Newest");
+        }
+
+        private void RemoteBridgeQuit(RemoteBridgeFake bridge)
+        {
+            NativeFileEditor before = (NativeFileEditor)RemoteWire.Get(pet, "fileEditor");
+            NativeEditorDocument first = new NativeEditorDocument("phone-quit-one.md", delegate { return new WrittenNote(Path.Combine(folder, "phone-quit-one.md"), "", new object()); });
+            NativeEditorDocument second = new NativeEditorDocument("phone-quit-two.md", delegate { return new WrittenNote(Path.Combine(folder, "phone-quit-two.md"), "", new object()); });
+            NativeFileEditor editor = new NativeFileEditor(new[] { first, second }) { Motion = false };
+            try
+            {
+                bridge.Online();
+                editor.Open(0);
+                RemoteBridgeWait(delegate { return !editor.Busy && first.Path != null; }, "the quit check's editor");
+                editor.Draft = "Keep this unsaved phone quit check.";
+                editor.Ask();
+                if (!editor.Dirty || !editor.Guarding) throw new Exception("The quit check did not have a cancellable draft.");
+                RemoteLink old = bridge.Wire.Link;
+                RemoteWire.Set(pet, "fileEditor", editor);
+                pet.Quit();
+                if (!(bool)RemoteWire.Get(old, "stopped") || !pet.ReadRemote().On || !pet.Saved.RemoteOn || (bool)RemoteWire.Get(pet, "quitting") || !editor.Guarding) throw new Exception("A cancellable quit did not stop and restore Remote.");
+                editor.GuardKeep();
+                if (!pet.ReadRemote().On || editor.Guarding) throw new Exception("Keeping the draft left Remote off.");
+                checks.Add("PASS Remote bridge quit: starting quit stops the old link, the file editor can keep the app open, and Remote returns while the draft is kept; no irreversible quit is invoked");
+            }
+            finally
+            {
+                RemoteWire.Set(pet, "fileEditor", before);
+                editor.GuardKeep();
+                var discard = editor.GuardDiscard();
+                RemoteBridgeWait(delegate { return discard.IsCompleted; }, "discarding only the quit check's draft");
+                editor.Ask();
+            }
+        }
+
+        private sealed class RemoteBridgeStore : RemoteStoreFile
+        {
+            private readonly RemoteFileFake file;
+            private MemoryStream pending;
+            internal int Reads, Saves;
+            internal RemoteBridgeStore(RemoteFileFake file) { this.file = file; }
+            internal override Stream Read() { Reads++; return file.Read(); }
+            protected override Stream Begin() { Saves++; return pending = new MemoryStream(); }
+            protected override void Commit() { file.Save(Encoding.UTF8.GetString(pending.ToArray())); }
+            protected override void Cancel() { pending = null; }
         }
 
         private sealed class RemoteBridgeInput : IComputerInput
@@ -6989,6 +7384,7 @@ namespace CapriDesktop
             private bool over;
             internal readonly RemoteBridgeSink Sink = new RemoteBridgeSink();
             internal RemoteFileFake File;
+            internal RemoteBridgeStore Store;
             internal RemoteWire Wire;
             internal RemoteState Made;
             internal RemoteDevice[] Phones;
@@ -7011,8 +7407,10 @@ namespace CapriDesktop
                 pet.SetRemote(false);
                 RemoteWire.Set(pet, "remoteState", null); RemoteWire.Set(pet, "remoteRelay", null); RemoteWire.Set(pet, "remoteProblem", null);
                 RemoteWire.Set(pet, "remoteUnreadable", false); RemoteWire.Set(pet, "remoteDirty", false); RemoteWire.Set(pet, "remoteNote", "");
+                RemoteWire.Set(pet, "remoteLoaded", false); RemoteWire.Set(pet, "remoteReadFailed", false); RemoteWire.Set(pet, "remotePendingProblem", null);
                 pet.Saved.RemoteHost = "ws://127.0.0.1:1";
-                File = file; pet.RemoteFiles = new RemoteStore(file); Sink.Clear(); pet.Talk.Dismiss();
+                File = file; Store = new RemoteBridgeStore(file); pet.RemoteFiles = new RemoteStore(Store); Sink.Clear(); pet.Talk.Dismiss();
+                typeof(Pet).GetMethod("LoadRemote", RemoteWire.Own).Invoke(pet, new object[] { false });
             }
             internal void Online()
             {
@@ -7024,7 +7422,7 @@ namespace CapriDesktop
                 Use(file); pet.SetRemote(true); Connect(0); Connect(1); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Sink.Clear();
             }
             internal void Connect(int phone) { RemoteDevice device = Phones[phone]; keys[device.Id] = Wire.Hello(device, RemoteCrypto.Random(16)); sequences[device.Id] = 0; }
-            internal void Send(int phone, string id, string text) { RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], ++sequences[device.Id], new RemoteJson.Writer().Text("type", "chat.send").Text("id", id).Text("text", text).ToString()); }
+            internal void Send(int phone, string id, string text) { RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], sequences[device.Id]++, new RemoteJson.Writer().Text("type", "chat.send").Text("id", id).Text("text", text).ToString()); }
             internal void Left(int phone) { Wire.Text(new RemoteJson.Writer().Text("t", "left").Text("device", Phones[phone].Id).ToString()); }
             public void Dispose() { if (over) return; over = true; pet.SetRemote(false); foreach (RemoteWire wire in wires) wire.Dispose(); }
         }
@@ -7047,7 +7445,7 @@ namespace CapriDesktop
             bool streaming = Hands.Streaming;
             Avalonia.Threading.DispatcherTimer timer = (Avalonia.Threading.DispatcherTimer)RemoteWire.Get(pet, "frames");
             bool ticking = timer.IsEnabled;
-            string[] fields = { "remoteState", "remoteRelay", "remoteProblem", "remoteSaveProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode" };
+            string[] fields = { "remoteState", "remoteRelay", "remoteProblem", "remotePendingProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode", "remoteLoaded", "remoteReadFailed" };
             Dictionary<string, object> before = new Dictionary<string, object>();
             foreach (string field in fields) before[field] = RemoteWire.Get(pet, field);
             Mainframe frame = null;
