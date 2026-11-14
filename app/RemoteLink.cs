@@ -45,8 +45,11 @@ namespace CapriDesktop
 
         // A phone said something to Capri: its device id, the chat.send id (every answer's re) and the text.
         internal event Action<string, string, string> Said;
-        internal event Action<string, string, string, RemotePicture> PictureSaid;
-        private Action pictureDecoding;
+        internal event Action<string, string, string, RemotePicture, Func<bool>, Action> PictureSaid;
+        private Action<string> pictureDecoding;
+        private static readonly object pictureGate = new object();
+        private static readonly Queue<Action> pictures = new Queue<Action>();
+        private static bool pictureWorking;
 
         private readonly object gate = new object();
         private readonly string relay, pcName, app;
@@ -395,7 +398,10 @@ namespace CapriDesktop
                 foreach (Part open in parts) if (open.Phone == phone && open.Id == id) part = open;
                 if (part == null)
                 {
-                    part = new Part { Phone = phone, Id = id, Re = re };
+                    Ask ask;
+                    RemoteChannel bound = re != null && asks.TryGetValue(device + " " + re, out ask) ? ask.Bound : null;
+                    if (bound != null && bound != phone.Session) return;
+                    part = new Part { Phone = phone, Id = id, Re = re, Bound = bound };
                     parts.Add(part);
                 }
                 part.Words.Append(text ?? "");
@@ -419,6 +425,8 @@ namespace CapriDesktop
                 Outgoing item = Outgoing.Message(phone, json);
                 item.Stale = stale;
                 item.ToolId = toolId;
+                Ask ask;
+                if (re != null && asks.TryGetValue(device + " " + re, out ask)) item.Bound = ask.Bound;
                 Push(item);
                 Touch(phone, re);
             }
@@ -622,25 +630,23 @@ namespace CapriDesktop
             {
                 return RemoteJson.Message(Encoding.UTF8.GetBytes("{\"type\":\"chat.send\",\"picture\":{\"mime\":\"" + mime + "\",\"data\":\"" + RemoteCrypto.B64u(bytes) + "\"}}"));
             };
-            int decodes = 0;
-            Action decoding = delegate { decodes++; };
             RemotePicture picture;
             byte[] jpeg = { 255, 216, 255, 192, 0, 11, 8, 46, 224, 46, 224, 1, 1, 17, 0 };
             byte[] png = { 137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 46, 224, 0, 0, 46, 224, 8, 2, 0, 0, 0, 0, 0, 0, 0 };
-            if (RemotePicture.Read(message("image/jpeg", jpeg), out picture, decoding) || RemotePicture.Read(message("image/png", png), out picture, decoding) || decodes != 0) throw new Exception("A 12000 by 12000 header reached a decoder.");
+            if (RemotePicture.Header(message("image/jpeg", jpeg), out picture) || RemotePicture.Header(message("image/png", png), out picture)) throw new Exception("A 12000 by 12000 header reached a decoder.");
             foreach (byte[] bytes in new[] { jpeg, png })
                 for (int n = 0; n < bytes.Length; n++)
                 {
                     byte[] cut = new byte[n];
                     Buffer.BlockCopy(bytes, 0, cut, 0, n);
-                    if (RemotePicture.Read(message(bytes == jpeg ? "image/jpeg" : "image/png", cut), out picture, decoding) || decodes != 0) throw new Exception("A truncated header reached a decoder.");
+                    if (RemotePicture.Header(message(bytes == jpeg ? "image/jpeg" : "image/png", cut), out picture)) throw new Exception("A truncated header reached a decoder.");
                 }
             jpeg[7] = jpeg[9] = 0;
             jpeg[8] = jpeg[10] = 2;
             png[18] = png[22] = 0;
             png[19] = png[23] = 2;
-            if (RemotePicture.Read(message("image/jpeg", jpeg), out picture, decoding) || RemotePicture.Read(message("image/png", png), out picture, decoding) || decodes != 2) throw new Exception("A small header without image data passed decoding.");
-            if (RemotePicture.Read(message("image/gif", png), out picture, decoding) || decodes != 2) throw new Exception("An unsupported picture type reached a decoder.");
+            if (RemotePicture.Read(message("image/jpeg", jpeg), out picture) || RemotePicture.Read(message("image/png", png), out picture)) throw new Exception("A small header without image data passed decoding.");
+            if (RemotePicture.Header(message("image/gif", png), out picture)) throw new Exception("An unsupported picture type reached a decoder.");
             foreach (int size in new[] { 1568, 1569 })
             foreach (bool asJpeg in new[] { false, true })
             {
@@ -651,9 +657,9 @@ namespace CapriDesktop
                     image.Save(output, asJpeg ? System.Drawing.Imaging.ImageFormat.Jpeg : System.Drawing.Imaging.ImageFormat.Png);
                     bytes = output.ToArray();
                 }
-                int before = decodes;
-                bool valid = RemotePicture.Read(message(asJpeg ? "image/jpeg" : "image/png", bytes), out picture, decoding);
-                if (valid != (size == 1568) || decodes != before + (size == 1568 ? 1 : 0)) throw new Exception("The 1568 pixel boundary failed before decoding.");
+                bool valid = RemotePicture.Header(message(asJpeg ? "image/jpeg" : "image/png", bytes), out picture);
+                if (valid && !picture.Confirm()) throw new Exception("A valid boundary picture failed decoding.");
+                if (valid != (size == 1568)) throw new Exception("The 1568 pixel boundary failed before decoding.");
             }
             checks.Add("PASS JPEG and PNG headers reject 12000 by 12000, truncated and 1569 pixel pictures without decoding; 1568 decodes and small fake images fail");
         }
@@ -691,16 +697,17 @@ namespace CapriDesktop
             state.Devices.Add(device);
             RemoteLink link = SmokeSession(state);
             link.Offer("pictures");
-            int reached = 0;
+            int reached = 0, decodes = 0;
             Exception failure = null;
             ManualResetEvent decodedPicture = new ManualResetEvent(false), release = new ManualResetEvent(false), finished = new ManualResetEvent(false);
             link.pictureDecoding = delegate
             {
                 if (Monitor.IsEntered(link.gate)) throw new Exception("Picture decoding held the link lock.");
+                Interlocked.Increment(ref decodes);
                 decodedPicture.Set();
                 if (!release.WaitOne(5000)) throw new Exception("The picture decoder was not released.");
             };
-            link.PictureSaid += delegate(string phone, string id, string text, RemotePicture picture)
+            link.PictureSaid += delegate(string phone, string id, string text, RemotePicture picture, Func<bool> current, Action done)
             {
                 try
                 {
@@ -709,7 +716,7 @@ namespace CapriDesktop
                     if (answer != null) answer(text, picture);
                 }
                 catch (Exception error) { failure = error; }
-                finally { finished.Set(); }
+                finally { done(); finished.Set(); }
             };
             RemoteKeys keys = RemoteCrypto.SessionKeys(device.Key, new byte[16], new byte[16]);
             uint sequence = 0;
@@ -724,7 +731,7 @@ namespace CapriDesktop
                 {
                     string valid = json("picture-ok", RemoteCrypto.B64u(bytes), "");
                     string big = json("picture-big", RemoteCrypto.B64u(bytes), ",\"extra\":\"" + new string('x', 60000) + "\"");
-                    foreach (string message in new[] { valid, json("picture-bad", RemoteCrypto.B64u(new byte[] { 1, 2, 3 }), ""), json("picture-padding", RemoteCrypto.B64u(bytes) + "=", ""), json("picture-dimensions", RemoteCrypto.B64u(tooWide), ""), big })
+                    foreach (string message in new[] { valid, valid, json("picture-bad", RemoteCrypto.B64u(new byte[] { 1, 2, 3 }), ""), json("picture-padding", RemoteCrypto.B64u(bytes) + "=", ""), json("picture-dimensions", RemoteCrypto.B64u(tooWide), ""), big })
                     {
                         byte[] envelope = RemoteCrypto.Seal(keys.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, sequence++, Encoding.UTF8.GetBytes(message));
                         link.OnBinary(RemoteCrypto.Join(device.IdBytes, envelope));
@@ -752,10 +759,15 @@ namespace CapriDesktop
                         if (row.Text("code") == "bad-message") bad++;
                         if (row.Text("type") == "pong" && item.Phone == second) pong++;
                     }
-                    if (bad != 4 || pong != 1) throw new Exception("A held picture blocked a refusal or another phone's ping.");
+                    if (bad != 4 || pong != 1 || decodes != 1) throw new Exception("A held picture blocked a refusal or another phone's ping.");
                     release.Set();
                     if (!finished.WaitOne(5000)) throw new Exception("The picture worker never dispatched the picture.");
                     if (failure != null) throw failure;
+                    using (ManualResetEvent drained = new ManualResetEvent(false))
+                    {
+                        QueuePicture(delegate { drained.Set(); });
+                        if (!drained.WaitOne(5000)) throw new Exception("A duplicate picture never finished decoding.");
+                    }
                     string boundary = json("picture-boundary", RemoteCrypto.B64u(bytes), ",\"extra\":\"\"");
                     boundary = boundary.Insert(boundary.Length - 2, new string('x', 59999 - Encoding.UTF8.GetByteCount(boundary)));
                     RemotePicture atLimit;
@@ -768,6 +780,10 @@ namespace CapriDesktop
                         if (message != null && message.Text("type") == "chat.typing" && message.Text("re") == "picture-ok") receipts++;
                     }
                     if (reached != 1 || bad != 4 || receipts != 1) throw new Exception("Invalid or oversized pictures reached the brain, or lost their bad-message reply.");
+                    link.Reply(device.Id, "picture-answer", "picture-ok", "The picture answer.", true);
+                    link.FlushParts(link.phones[device.Id]);
+                    Outgoing queuedAnswer = link.wire.Take();
+                    if (queuedAnswer == null || queuedAnswer.Phone.Device.Id != device.Id || queuedAnswer.Re != "picture-ok" || queuedAnswer.Bound == null) throw new Exception("A picture answer lost its phone or session.");
                     link.pictureDecoding = null;
                     byte[] empty = new byte[33];
                     Buffer.BlockCopy(bytes, 0, empty, 0, empty.Length);
@@ -787,12 +803,156 @@ namespace CapriDesktop
                     if (!RemotePicture.Header(RemoteJson.Message(Encoding.UTF8.GetBytes(valid)), out stale)) throw new Exception("The valid picture lost its header.");
                     Phone first = link.phones[device.Id];
                     Heard pending = new Heard { Device = device.Id, Id = "picture-old-session", Text = "", Picture = stale, Phone = first, Session = first.Session };
+                    Func<bool> oldSession = link.SessionCurrent(pending), otherSession = link.SessionCurrent(new Heard { Device = other.Id, Phone = second, Session = second.Session });
                     first.Session = new RemoteChannel(keys, RemoteCrypto.KindSession);
+                    if (link.Frames(queuedAnswer).Count != 0) throw new Exception("A queued picture answer went to a replacement session.");
+                    if (oldSession() || !otherSession()) throw new Exception("A session check crossed phone boundaries or accepted its old session.");
                     link.ConfirmPicture(pending);
                     if (reached != 1 || link.wire.Take() != null) throw new Exception("A picture from an old session got a receipt or reached the brain.");
+                    decodedPicture.Reset(); release.Reset();
+                    link.pictureDecoding = delegate
+                    {
+                        decodedPicture.Set();
+                        if (!release.WaitOne(5000)) throw new Exception("The stale picture decoder was not released.");
+                    };
+                    byte[] changing = RemoteCrypto.Seal(keys.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 0, Encoding.UTF8.GetBytes(json("picture-changing-session", RemoteCrypto.B64u(bytes), "")));
+                    link.OnBinary(RemoteCrypto.Join(device.IdBytes, changing));
+                    if (!decodedPicture.WaitOne(3000)) throw new Exception("The stale picture worker never started.");
+                    first.Session = new RemoteChannel(keys, RemoteCrypto.KindSession);
+                    using (ManualResetEvent drained = new ManualResetEvent(false))
+                    {
+                        QueuePicture(delegate { drained.Set(); });
+                        release.Set();
+                        if (!drained.WaitOne(5000)) throw new Exception("The stale picture worker never finished.");
+                    }
+                    if (reached != 1 || link.wire.Take() != null || link.seen.ContainsKey(device.Id + " picture-changing-session")) throw new Exception("A session replaced during decoding got a receipt or dispatch.");
                     checks.Add("PASS Sealed remote pictures reach the host once after decoding; refusals get only errors, another phone stays live during decoding and old sessions cannot dispatch");
                 }
                 finally { release.Set(); link.Stop(); }
+            }
+        }
+#endif
+
+#if !CROSS
+        internal static void SmokePictureTurns(Action<RemoteLink, string, Action<string>> run)
+        {
+            RemoteState state = RemoteState.Fresh();
+            RemoteDevice device = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone" };
+            state.Devices.Add(device);
+            RemoteLink link = SmokeSession(state);
+            link.Offer("pictures");
+            RemoteKeys keys = RemoteCrypto.SessionKeys(device.Key, new byte[16], new byte[16]);
+            uint sequence = 0;
+            using (CancellationTokenSource stop = new CancellationTokenSource())
+            {
+                link.wire = new Wire(stop);
+                try
+                {
+                    run(link, device.Id, delegate(string json)
+                    {
+                        byte[] envelope = RemoteCrypto.Seal(keys.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, sequence++, Encoding.UTF8.GetBytes(json));
+                        link.OnBinary(RemoteCrypto.Join(device.IdBytes, envelope));
+                    });
+                }
+                finally { link.wire.Socket.Dispose(); }
+            }
+        }
+
+        internal static void SmokePictureOrder(List<string> checks)
+        {
+            RemoteState state = RemoteState.Fresh();
+            RemoteDevice first = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "First" };
+            RemoteDevice second = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Second" };
+            RemoteDevice third = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Third" };
+            state.Devices.Add(first);
+            state.Devices.Add(second);
+            RemoteState other = RemoteState.Fresh();
+            other.Devices.Add(third);
+            RemoteLink link = SmokeSession(state), next = SmokeSession(other);
+            link.Offer("pictures"); next.Offer("pictures");
+            string data = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4____fwAJ-wP9KobjigAAAABJRU5ErkJggg";
+            Func<string, string> picture = delegate(string id) { return "{\"type\":\"chat.send\",\"id\":\"" + id + "\",\"text\":\"\",\"picture\":{\"mime\":\"image/png\",\"data\":\"" + data + "\"}}"; };
+            Action<RemoteLink, RemoteDevice, uint, string> send = delegate(RemoteLink target, RemoteDevice phone, uint n, string json)
+            {
+                RemoteKeys keys = RemoteCrypto.SessionKeys(phone.Key, new byte[16], new byte[16]);
+                byte[] envelope = RemoteCrypto.Seal(keys.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, n, Encoding.UTF8.GetBytes(json));
+                target.OnBinary(RemoteCrypto.Join(phone.IdBytes, envelope));
+            };
+            object rows = new object();
+            List<string> decodes = new List<string>(), turns = new List<string>();
+            Action finish = null;
+            int live = 0;
+            Exception failure = null;
+            using (ManualResetEvent entered = new ManualResetEvent(false))
+            using (ManualResetEvent release = new ManualResetEvent(false))
+            using (ManualResetEvent arrived = new ManualResetEvent(false))
+            using (CancellationTokenSource stop = new CancellationTokenSource())
+            {
+                link.wire = new Wire(stop); next.wire = new Wire(stop);
+                Action<string> decoding = delegate(string id)
+                {
+                    lock (rows) decodes.Add(id);
+                    if (id != "order-a") return;
+                    entered.Set();
+                    if (!release.WaitOne(5000)) failure = new Exception("The ordered picture decoder was not released.");
+                };
+                link.pictureDecoding = next.pictureDecoding = decoding;
+                Action<string, string, string, RemotePicture, Func<bool>, Action> pictured = delegate(string phone, string id, string text, RemotePicture image, Func<bool> current, Action done)
+                {
+                    lock (rows)
+                    {
+                        turns.Add(id);
+                        if (id == "order-a") finish = done;
+                        else done();
+                        if (turns.Contains("order-b") && turns.Contains("order-c")) arrived.Set();
+                    }
+                };
+                link.PictureSaid += pictured; next.PictureSaid += pictured;
+                link.Said += delegate(string phone, string id, string text) { lock (rows) turns.Add(id); };
+                link.LiveHeard += delegate { Interlocked.Increment(ref live); };
+                try
+                {
+                    send(link, first, 0, picture("order-a"));
+                    if (!entered.WaitOne(3000)) throw new Exception("The first ordered decode never started.");
+                    send(link, first, 1, "{\"type\":\"chat.send\",\"id\":\"order-text\",\"text\":\"after the picture\"}");
+                    send(link, second, 0, "{\"type\":\"chat.send\",\"id\":\"other-text\",\"text\":\"from another phone\"}");
+                    send(link, second, 1, picture("order-b"));
+                    send(next, third, 0, picture("order-c"));
+                    send(link, first, 2, picture("order-d"));
+                    send(link, first, 3, "{\"type\":\"call.audio\",\"id\":\"order-audio\"}");
+                    send(link, first, 4, "{\"type\":\"ping\",\"n\":9}");
+                    lock (rows) if (decodes.Count != 1 || turns.Count != 1 || turns[0] != "other-text" || live != 1) throw new Exception("A waiting picture allowed parallel decoding, chat reordering or blocked call audio.");
+                    bool pong = false;
+                    Outgoing outgoing;
+                    while ((outgoing = link.wire.Take()) != null)
+                        if (outgoing.Phone.Device.Id == first.Id && RemoteJson.ParseMap(outgoing.Json).Text("type") == "pong") pong = true;
+                    if (!pong) throw new Exception("A picture held up its phone's pong.");
+                    release.Set();
+                    if (!arrived.WaitOne(5000)) throw new Exception("A waiting picture turn held up another phone or link.");
+                    Stopwatch waiting = Stopwatch.StartNew();
+                    while (true)
+                    {
+                        lock (rows) if (decodes.Count == 4) break;
+                        if (waiting.ElapsedMilliseconds > 3000) throw new Exception("A queued picture was never decoded.");
+                        Thread.Sleep(5);
+                    }
+                    lock (rows)
+                    {
+                        if (string.Join(",", decodes) != "order-a,order-b,order-c,order-d" || finish == null || turns.Contains("order-text") || turns.Contains("order-d")) throw new Exception("Pictures lost arrival order or a later message passed a waiting picture turn.");
+                    }
+                    finish();
+                    waiting.Restart();
+                    while (true)
+                    {
+                        lock (rows) if (turns.Contains("order-d") && turns.Contains("other-text")) break;
+                        if (waiting.ElapsedMilliseconds > 3000) throw new Exception("A queued picture or text was lost.");
+                        Thread.Sleep(5);
+                    }
+                    lock (rows) if (turns.IndexOf("order-a") > turns.IndexOf("order-text") || turns.IndexOf("order-text") > turns.IndexOf("order-d")) throw new Exception("One phone's messages reached her out of order.");
+                    if (failure != null) throw failure;
+                    checks.Add("PASS pictures decode one at a time across links in arrival order; each phone keeps picture and text order while call audio, pongs and other phones stay live");
+                }
+                finally { release.Set(); link.wire.Socket.Dispose(); next.wire.Socket.Dispose(); }
             }
         }
 #endif
@@ -1533,7 +1693,11 @@ namespace CapriDesktop
                         return;
                     }
                     Heard item = new Heard { Device = phone.Device.Id, Id = id, Text = text, Picture = picture, Phone = phone, Session = phone.Session };
-                    if (picture != null || Receive(item)) said.Add(item);
+                    item.Ready = picture == null;
+                    item.Valid = true;
+                    phone.Chat.Enqueue(item);
+                    if (picture != null) QueuePicture(delegate { ConfirmPicture(item); });
+                    said.Add(item);
                     return;
                 }
                 case "ping":
@@ -1577,28 +1741,128 @@ namespace CapriDesktop
             seen[key] = now;
             Outgoing receipt = Outgoing.Message(item.Phone, RemoteMessages.Typing(true, item.Id));
             receipt.Stale = true;
+            receipt.Bound = item.Picture == null ? null : item.Session;
             Push(receipt);
-            asks[key] = new Ask { Phone = item.Phone, Re = item.Id, Opened = now, Sent = now };
+            asks[key] = new Ask { Phone = item.Phone, Re = item.Id, Opened = now, Sent = now, Bound = receipt.Bound };
             Arm(1000);
             return true;
         }
 
+        private static void QueuePicture(Action decode)
+        {
+            lock (pictureGate)
+            {
+                pictures.Enqueue(decode);
+                if (pictureWorking) return;
+                pictureWorking = true;
+                Thread worker = new Thread(DecodePictures);
+                worker.IsBackground = true;
+                worker.Start();
+            }
+        }
+
+        private static void DecodePictures()
+        {
+            while (true)
+            {
+                Action decode;
+                lock (pictureGate)
+                {
+                    if (pictures.Count == 0) { pictureWorking = false; return; }
+                    decode = pictures.Dequeue();
+                }
+                try { decode(); }
+                catch (Exception) { }
+            }
+        }
+
+        private bool Current(Heard item)
+        {
+            return !stopped && Live(item.Device) == item.Phone && item.Phone.Session == item.Session && !item.Phone.Kicked && item.Phone.Online;
+        }
+
+        private Func<bool> SessionCurrent(Heard item)
+        {
+            return delegate { lock (gate) return Current(item); };
+        }
+
         private void ConfirmPicture(Heard item)
         {
-            bool valid = item.Picture.Confirm(pictureDecoding);
+            bool valid = false;
+            lock (gate) if (!Current(item)) { item.Ready = true; item.Valid = false; }
+            if (!item.Ready)
+            {
+                try
+                {
+                    Action<string> decoding = pictureDecoding;
+                    if (decoding != null) decoding(item.Id);
+                    valid = item.Picture.Confirm();
+                }
+                catch (Exception) { }
+                lock (gate)
+                {
+                    item.Ready = true;
+                    item.Valid = valid;
+                    if (Current(item) && !valid)
+                    {
+                        Outgoing refused = Outgoing.Message(item.Phone, RemoteMessages.Error("bad-message", item.Id));
+                        refused.Bound = item.Session;
+                        Push(refused);
+                    }
+                }
+            }
+            Deliver(item.Phone);
+        }
+
+        private void FinishChat(Heard item)
+        {
             lock (gate)
             {
-                if (stopped || Live(item.Device) != item.Phone || item.Phone.Session != item.Session || item.Phone.Kicked || !item.Phone.Online) return;
-                if (!valid)
-                {
-                    Push(Outgoing.Message(item.Phone, RemoteMessages.Error("bad-message", item.Id)));
-                    return;
-                }
-                if (!Receive(item)) return;
+                if (item.Phone.Chatting != item) return;
+                item.Phone.Chatting = null;
+                item.Phone.Delivering = false;
             }
-            Action<string, string, string, RemotePicture> pictured = PictureSaid;
-            try { if (pictured != null) pictured(item.Device, item.Id, item.Text, item.Picture); }
-            catch (Exception) { }
+            Deliver(item.Phone);
+        }
+
+        private void Deliver(Phone phone)
+        {
+            lock (gate)
+            {
+                if (phone.Delivering) return;
+                phone.Delivering = true;
+            }
+            while (true)
+            {
+                Heard item;
+                lock (gate)
+                {
+                    if (phone.Chat.Count == 0 || !phone.Chat.Peek().Ready)
+                    {
+                        phone.Chatting = null;
+                        phone.Delivering = false;
+                        return;
+                    }
+                    item = phone.Chat.Dequeue();
+                    if (!Current(item) || !item.Valid || !Receive(item)) continue;
+                    phone.Chatting = item;
+                }
+                if (item.Picture != null)
+                {
+                    Action<string, string, string, RemotePicture, Func<bool>, Action> pictured = PictureSaid;
+                    try
+                    {
+                        if (pictured != null) { pictured(item.Device, item.Id, item.Text, item.Picture, SessionCurrent(item), delegate { FinishChat(item); }); return; }
+                    }
+                    catch (Exception) { }
+                }
+                else
+                {
+                    Action<string, string, string> heard = Said;
+                    try { if (heard != null) heard(item.Device, item.Id, item.Text); }
+                    catch (Exception) { }
+                }
+            }
         }
 
         private void Kick(Phone phone, List<Note> notes)
@@ -1636,6 +1900,7 @@ namespace CapriDesktop
             {
                 Phone phone = item.Phone;
                 if ((item.Channel != null || item.Job) && item.Round != phone.Hellos || item.Job && !phone.Online) return frames;
+                if (item.Bound != null && (item.Bound != phone.Session || !phone.Online || phone.Kicked)) return frames;
                 RemoteChannel channel = item.Channel ?? phone.Session;
                 if (channel == null)
                 {
@@ -1707,7 +1972,9 @@ namespace CapriDesktop
                 Part part = parts[i];
                 if (only != null && part.Phone != only) continue;
                 parts.RemoveAt(i--);
-                Push(Outgoing.Reply(part.Phone, part.Id, part.Re, part.Words.ToString(), part.Done));
+                Outgoing reply = Outgoing.Reply(part.Phone, part.Id, part.Re, part.Words.ToString(), part.Done);
+                reply.Bound = part.Bound;
+                Push(reply);
             }
         }
 
@@ -1741,11 +2008,12 @@ namespace CapriDesktop
                 foreach (KeyValuePair<string, Ask> pair in asks)
                 {
                     Ask ask = pair.Value;
-                    if (now - ask.Opened > AskMs || ask.Phone.Removed) done.Add(pair.Key);
+                    if (now - ask.Opened > AskMs || ask.Phone.Removed || ask.Bound != null && ask.Bound != ask.Phone.Session) done.Add(pair.Key);
                     else if (now - ask.Sent >= TypingMs && ask.Phone.Session != null)
                     {
                         Outgoing typing = Outgoing.Message(ask.Phone, RemoteMessages.Typing(true, ask.Re));
                         typing.Stale = true;
+                        typing.Bound = ask.Bound;
                         Push(typing);
                         ask.Sent = now;
                     }
@@ -1880,20 +2148,7 @@ namespace CapriDesktop
                     try { happened(note.What, note.About); }
                     catch (Exception) { }
                 }
-            Action<string, string, string> heard = Said;
-            if (said != null)
-                foreach (Heard item in said)
-                {
-                    try
-                    {
-                        if (item.Picture != null)
-                        {
-                            ThreadPool.QueueUserWorkItem(delegate { ConfirmPicture(item); });
-                        }
-                        else if (heard != null) heard(item.Device, item.Id, item.Text);
-                    }
-                    catch (Exception) { }
-                }
+            if (said != null) foreach (Heard item in said) Deliver(item.Phone);
         }
 
         private sealed class Heard
@@ -1902,6 +2157,7 @@ namespace CapriDesktop
             internal RemotePicture Picture;
             internal Phone Phone;
             internal RemoteChannel Session;
+            internal bool Ready, Valid;
         }
 
         private struct Note
@@ -1934,6 +2190,9 @@ namespace CapriDesktop
         {
             internal readonly RemoteDevice Device;
             internal readonly byte[] IdBytes;
+            internal readonly Queue<Heard> Chat = new Queue<Heard>();
+            internal Heard Chatting;
+            internal bool Delivering;
             internal readonly List<Outgoing> Kept = new List<Outgoing>();
             internal readonly List<KeyValuePair<string, string>> Jobs = new List<KeyValuePair<string, string>>();
             internal long JobAt;
@@ -1959,6 +2218,7 @@ namespace CapriDesktop
             internal Phone Phone;
             internal string Re;
             internal long Opened, Sent;
+            internal RemoteChannel Bound;
         }
 
         // Reply text gathering for its next frame.
@@ -1966,6 +2226,7 @@ namespace CapriDesktop
         {
             internal Phone Phone;
             internal string Id, Re;
+            internal RemoteChannel Bound;
             internal readonly StringBuilder Words = new StringBuilder();
             internal bool Done;
         }
@@ -2002,7 +2263,7 @@ namespace CapriDesktop
         {
             internal string Text, Json, ReplyId, Re, ToolId;
             internal Phone Phone;
-            internal RemoteChannel Channel, Then;
+            internal RemoteChannel Channel, Then, Bound;
             internal StringBuilder Words;
             internal bool Done, Stale, Close, Job;
             internal int Round;

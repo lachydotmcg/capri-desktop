@@ -108,6 +108,12 @@ namespace CapriDesktop
 
         private void RemoteLiveChanged() { Post(RemoteBadgeShow); }
 
+        private void RemoteVoiceState()
+        {
+            RemoteCall call = remoteCall;
+            if (call != null) call.VoiceState(!preferences.Silent);
+        }
+
         // How soon her first words reached a phone after its line ended, in her log for each answer on a call.
         private static void RemoteTimed(long ms, string words) { Brain.Log("call", ms, words); }
 
@@ -711,16 +717,17 @@ namespace CapriDesktop
             RemoteMonitor monitor = null;
             foreach (RemoteWatcher one in watching) if (monitor == null && one.Monitor != null) monitor = one.Monitor;
             Rectangle area = monitor != null ? Screen.FromRectangle(monitor.Bounds).WorkingArea : Screen.PrimaryScreen.WorkingArea;
-            string lead = BadgeLead(watching.Count > 0, calling.Count > 0, hearing);
+            string lead = BadgeLead(watching.Count > 0, calling.Count > 0, hearing, phones.Count);
             string who = phones.Count > 1 ? phones.Count + " PHONES" : (name ?? "PHONE").ToUpperInvariant();
             if (remoteBadge == null || remoteBadge.IsDisposed) remoteBadge = new RemoteBadge();
             remoteBadge.Put(lead, who, area);
         }
 
-        private static string BadgeLead(bool watching, bool calling, bool hearing)
+        private static string BadgeLead(bool watching, bool calling, bool hearing, int phones = 1)
         {
-            if (calling && !hearing) return "PHONE IS LISTENING ";
-            return watching && calling ? "PHONE WATCHING AND ON A CALL " : watching ? "PHONE IS WATCHING " : "PHONE IS ON A CALL ";
+            string phone = phones > 1 ? "PHONES " : "PHONE ";
+            if (watching && calling) return phone + (hearing ? "WATCHING AND ON A CALL " : "WATCHING AND LISTENING ");
+            return phone + (phones > 1 ? "ARE " : "IS ") + (watching ? "WATCHING " : hearing ? "ON A CALL " : "LISTENING ");
         }
 
         // ---------- Smoke ----------
@@ -730,18 +737,27 @@ namespace CapriDesktop
         private void SmokeRemoteLive(List<string> checks, string output)
         {
             foreach (float zoom in new[] { 1f, 1.5f, 2f })
-                using (Bitmap badges = new Bitmap((int)(2800 * zoom), (int)(50 * zoom)))
+                using (Bitmap badges = new Bitmap((int)(7000 * zoom), (int)(50 * zoom)))
                 using (Graphics draw = Graphics.FromImage(badges))
                 {
                     int at = 0;
-                    foreach (string kind in new[] { "watch", "call", "both", "listen" })
-                        using (Bitmap badge = RemoteBadge.Draw(BadgeLead(kind == "watch" || kind == "both", kind != "watch", kind == "call" || kind == "both"), "LACHY'S PIXEL 9 PRO XL", zoom))
+                    string[] kinds = { "watch", "call", "both", "listen", "watch-listen" };
+                    string[] leads = { "IS WATCHING ", "IS ON A CALL ", "WATCHING AND ON A CALL ", "IS LISTENING ", "WATCHING AND LISTENING " };
+                    foreach (int phones in new[] { 1, 3 })
+                    for (int n = 0; n < kinds.Length; n++)
+                    {
+                        string kind = kinds[n] + (phones > 1 ? "-phones" : "");
+                        string lead = BadgeLead(n == 0 || n == 2 || n == 4, n != 0, n == 1 || n == 2, phones);
+                        string expected = phones == 1 ? "PHONE " + leads[n] : "PHONES " + leads[n].Replace("IS ", "ARE ");
+                        if (lead != expected) throw new Exception("The " + kind + " badge hid an activity.");
+                        using (Bitmap badge = RemoteBadge.Draw(lead, phones == 1 ? "LACHY'S PIXEL 9 PRO XL" : "3 PHONES", zoom))
                         {
                             if (badge.Width < 200 * zoom || badge.Height < 20 * zoom || badge.Width > 700 * zoom || badge.Height > badges.Height) throw new Exception("The " + kind + " badge came out " + badge.Width + " x " + badge.Height + " at " + (int)(zoom * 100) + "%.");
                             badge.Save(Path.Combine(output, "remote-" + kind + "-" + (int)(zoom * 100) + ".png"), ImageFormat.Png);
                             draw.DrawImageUnscaled(badge, at, 0);
                             at += (int)(700 * zoom);
                         }
+                    }
                     badges.Save(Path.Combine(output, "remote-badges-" + (int)(zoom * 100) + ".png"), ImageFormat.Png);
                 }
             List<RemoteMonitor> monitors = RemoteDesktop.List();

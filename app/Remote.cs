@@ -19,10 +19,10 @@ namespace CapriDesktop
 
         private RemotePicture(string mime, byte[] bytes) { Mime = mime; Bytes = bytes; }
 
-        internal static bool Read(RemoteJson.Map message, out RemotePicture picture, Action decoding = null)
+        internal static bool Read(RemoteJson.Map message, out RemotePicture picture)
         {
             if (!Header(message, out picture)) return false;
-            if (picture == null || picture.Confirm(decoding)) return true;
+            if (picture == null || picture.Confirm()) return true;
             picture = null;
             return false;
         }
@@ -86,14 +86,13 @@ namespace CapriDesktop
             return false;
         }
 
-        internal bool Confirm(Action decoding = null)
+        internal bool Confirm()
         {
 #if CROSS
             return false;
 #else
             try
             {
-                if (decoding != null) decoding();
                 bool jpeg = Mime == "image/jpeg";
                 int width, height;
                 if (!Size(Bytes, jpeg, out width, out height)) return false;

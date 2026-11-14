@@ -26,19 +26,18 @@ namespace CapriDesktop
         private RemoteAsker remoteHearing;
         private int remoteHearingFrom;
         private string remoteNote = "";
-#if !CROSS
-        private readonly HashSet<string> remotePictures = new HashSet<string>();
-#endif
 
         private sealed class RemoteAsker
         {
             internal string Device, Id, Text, Shown;
             internal bool Answered;
+            internal Func<bool> Current;
         }
 
         private sealed class RemoteToolRun
         {
             internal string Device, Re, Id, Name, Summary, Move;
+            internal Func<bool> Current;
         }
 
         private RemoteSettings RemotePrefs
@@ -313,24 +312,36 @@ namespace CapriDesktop
         // ---------- A phone's message in, her answer out ----------
 
 #if !CROSS
-        private void RemotePictureHeard(string device, string id, string text, RemotePicture picture)
+        private void RemotePictureHeard(string device, string id, string text, RemotePicture picture, Func<bool> current = null, Action done = null)
         {
             RemoteSink sink = remoteSink;
-            if (sink == null) return;
-            bool busy;
-            lock (remoteGate) busy = !remotePictures.Add(device);
-            if (busy) { sink.Error(device, "busy", id); return; }
+            if (current == null) current = delegate { return remoteSink == sink; };
+            Action finish = done ?? delegate { };
+            if (sink == null) { finish(); return; }
             ThreadPool.QueueUserWorkItem(delegate
             {
+                string seen = null;
+                BrainException problem = null;
+                bool failed = false;
                 try
                 {
+                    if (!current()) { finish(); return; }
                     if (preferences.NoAi) throw new BrainException(Brain.OffLine);
-                    string seen = RemotePictureAnswer(brain, text, picture);
-                    Post(delegate { if (remoteSink == sink) RemoteHear(device, id, text, seen); });
+                    seen = RemotePictureAnswer(brain, text, picture);
                 }
-                catch (BrainException error) { sink.Reply(device, RemoteMessages.NewId(), id, RemoteOut(error.Message), true); }
-                catch (Exception) { sink.Error(device, "busy", id); }
-                finally { lock (remoteGate) remotePictures.Remove(device); }
+                catch (BrainException error) { problem = error; }
+                catch (Exception) { failed = true; }
+                Post(delegate
+                {
+                    try
+                    {
+                        if (remoteSink != sink || !current()) return;
+                        if (problem != null) sink.Reply(device, RemoteMessages.NewId(), id, RemoteOut(problem.Message), true);
+                        else if (failed) sink.Error(device, "busy", id);
+                        else RemoteHear(device, id, text, seen, current);
+                    }
+                    finally { finish(); }
+                });
             });
         }
 
@@ -345,7 +356,7 @@ namespace CapriDesktop
 
         private void RemoteHeard(string device, string id, string text) { Post(delegate { RemoteHear(device, id, text); }); }
 
-        private void RemoteHear(string device, string id, string text, string seen = null)
+        private void RemoteHear(string device, string id, string text, string seen = null, Func<bool> current = null)
         {
             RemoteSink sink = remoteSink;
             if (sink == null) return;
@@ -357,7 +368,7 @@ namespace CapriDesktop
                 said = shown + "\n\nThey sent a picture from their phone. You looked at it. You see: " + seen;
                 if (string.IsNullOrWhiteSpace(text)) said += "\nReact to the picture.";
             }
-            RemoteAsker asker = new RemoteAsker { Device = device, Id = id, Text = said.Trim(), Shown = shown.Trim() };
+            RemoteAsker asker = new RemoteAsker { Device = device, Id = id, Text = said.Trim(), Shown = shown.Trim(), Current = current };
             bool beside = MidJob(job);
             int before = asking;
             lock (remoteGate)
@@ -387,10 +398,12 @@ namespace CapriDesktop
                 }
             }
             if (asked) RemoteDrop(asking, asker);
-            else if (pushedOut != null) sink.Error(pushedOut.Device, "busy", pushedOut.Id);
+            else if (pushedOut != null && RemoteCurrent(pushedOut)) sink.Error(pushedOut.Device, "busy", pushedOut.Id);
             // A quick command took it with nothing to say back, like stop listening: the phone's waiting reply closes empty.
-            else if (!beside) sink.Reply(device, RemoteMessages.NewId(), id, "", true);
+            else if (!beside && RemoteCurrent(asker)) sink.Reply(device, RemoteMessages.NewId(), id, "", true);
         }
+
+        private static bool RemoteCurrent(RemoteAsker asker) { return asker.Current == null || asker.Current(); }
 
         // Begin's hook: her answer to a phone's message goes back to that phone as one finished reply. An ask she heard again,
         // like a stuck model's retry or more for a job that had just ended, still answers the phone that sent it.
@@ -405,7 +418,7 @@ namespace CapriDesktop
             // What she's saying now answers this phone, so its Interrupt can stop it (RemoteLive.cs).
             remoteSaying = asker;
             remoteSayingTicket = ticket;
-            sink.Reply(asker.Device, RemoteMessages.NewId(), asker.Id, RemoteOut(said), true);
+            if (RemoteCurrent(asker)) sink.Reply(asker.Device, RemoteMessages.NewId(), asker.Id, RemoteOut(said), true);
         }
 
         // Begin only answers her newest ask, so a phone's message from before this ticket won't get its answer now. Its
@@ -430,6 +443,7 @@ namespace CapriDesktop
             }
             foreach (RemoteAsker asker in dropped)
             {
+                if (!RemoteCurrent(asker)) continue;
                 if (newer != null && newer.Device == asker.Device) sink.Reply(asker.Device, RemoteMessages.NewId(), asker.Id, "", true);
                 else sink.Error(asker.Device, "busy", asker.Id);
             }
@@ -476,7 +490,7 @@ namespace CapriDesktop
                         asker = remoteAsides[i];
                         remoteAsides.RemoveAt(i);
                     }
-            if (asker != null) sink.Reply(asker.Device, RemoteMessages.NewId(), asker.Id, RemoteOut(line), true);
+            if (asker != null && RemoteCurrent(asker)) sink.Reply(asker.Device, RemoteMessages.NewId(), asker.Id, RemoteOut(line), true);
         }
 
         // DoTool's hooks, on whatever thread the tool runs: a tool she uses for a phone's message shows on that phone as
@@ -486,8 +500,8 @@ namespace CapriDesktop
             RemoteSink sink = remoteSink;
             if (sink == null) return null;
             RemoteAsker asker = RemoteAskerFor(ticket, false);
-            if (asker == null) return null;
-            RemoteToolRun run = new RemoteToolRun { Device = asker.Device, Re = asker.Id, Id = RemoteMessages.NewId(), Name = tool ?? "tool", Summary = RemoteToolWords(tool, args), Move = RemoteToolMove(tool, args) };
+            if (asker == null || !RemoteCurrent(asker)) return null;
+            RemoteToolRun run = new RemoteToolRun { Device = asker.Device, Re = asker.Id, Id = RemoteMessages.NewId(), Name = tool ?? "tool", Summary = RemoteToolWords(tool, args), Move = RemoteToolMove(tool, args), Current = asker.Current };
             sink.Tool(run.Device, run.Id, run.Name, run.Summary, "running", run.Re);
             return run;
         }
@@ -505,7 +519,7 @@ namespace CapriDesktop
         {
             RemoteToolRun run = started as RemoteToolRun;
             RemoteSink sink = remoteSink;
-            if (run != null && sink != null) sink.Tool(run.Device, run.Id, run.Name, run.Summary, Hands.Failed(done) ? "failed" : "done", run.Re, run.Move);
+            if (run != null && sink != null && (run.Current == null || run.Current())) sink.Tool(run.Device, run.Id, run.Name, run.Summary, Hands.Failed(done) ? "failed" : "done", run.Re, run.Move);
         }
 
         // The phone's message a ticket answers, if any. take: her answer is going, so the ticket is done with.

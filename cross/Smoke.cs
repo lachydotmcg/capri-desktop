@@ -6960,9 +6960,8 @@ namespace CapriDesktop
             if (!wire.Events.Contains("paired " + phone.Id)) throw new Exception("Remote did not report pairing.");
             RemoteKeys keys = wire.Hello(phone, nonce);
             if (!wire.Link.HasSession(phone.Id) || !wire.Link.IsOnline(phone.Id)) throw new Exception("Remote hello did not start a session.");
-            int pictureDecodes = 0;
             RemotePicture refused;
-            if (Array.IndexOf(wire.Link.FeaturesNow, "pictures") >= 0 || Array.IndexOf(wire.Link.FeaturesNow, "call") >= 0 || RemotePicture.Read(RemoteJson.ParseMap("{\"type\":\"chat.send\",\"picture\":{\"mime\":\"image/png\",\"data\":\"bad\"}}"), out refused, delegate { pictureDecodes++; }) || pictureDecodes != 0) throw new Exception("The cross host offered calls or pictures, or decoded a phone picture.");
+            if (Array.IndexOf(wire.Link.FeaturesNow, "pictures") >= 0 || Array.IndexOf(wire.Link.FeaturesNow, "call") >= 0 || RemotePicture.Read(RemoteJson.ParseMap("{\"type\":\"chat.send\",\"picture\":{\"mime\":\"image/png\",\"data\":\"bad\"}}"), out refused)) throw new Exception("The cross host offered calls or pictures, or decoded a phone picture.");
             sink.Tool(phone.Id, "t1", "open_app", "Opening an app", "running", "m1");
             wire.Pump();
             byte[] tool = wire.BinaryFrames[0];
