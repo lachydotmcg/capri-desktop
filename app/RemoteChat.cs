@@ -13,6 +13,7 @@ namespace CapriDesktop
     // and her answer to it, the tools she uses for it and her typing go back to that phone. Her other lines, like a reminder
     // or a comment on the screen, stay on the PC. The connection is app/RemoteLink.cs and the Mainframe's REMOTE sheet is
     // app/MainframeRemote.cs. Remote stays off until it's turned on there, and never runs in her smoke test.
+#if !CROSS
     internal sealed partial class Companion
     {
         private readonly object remoteGate = new object();
@@ -1265,6 +1266,7 @@ namespace CapriDesktop
             checks.Add("PASS a phone's message goes in like her TYPE box: her answer goes back to its message, tools she uses for it show running then done or failed, a line typed on the PC stays on the PC, an answer beside a job finds its phone, a message she moves on from closes (empty for the same phone's next message, busy for a line typed on the PC), and the same words heard again still answer the phone");
         }
     }
+#endif
 
     // Where the chat bridge sends a phone's answers: her link, or the smoke test's tap.
     internal interface RemoteSink

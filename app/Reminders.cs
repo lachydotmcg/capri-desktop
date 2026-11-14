@@ -36,12 +36,19 @@ namespace CapriDesktop
 #endif
         }
 
-        internal List<T> Read(Predicate<T> readable)
+        internal List<T> Read(Predicate<T> readable, int most = 0)
         {
             if (!File.Exists(path)) return new List<T>();
             List<T> saved = null;
             Exception error = null;
-            try { using (FileStream input = File.OpenRead(path)) saved = (List<T>)new DataContractJsonSerializer(typeof(List<T>)).ReadObject(input); }
+            try
+            {
+                using (FileStream input = File.OpenRead(path))
+                {
+                    if (most > 0 && input.Length > most) return new List<T>();
+                    saved = (List<T>)new DataContractJsonSerializer(typeof(List<T>)).ReadObject(input);
+                }
+            }
             catch (Exception reading) { error = reading; }
             if (saved == null) saved = new List<T>();
             int count = saved.Count;
@@ -57,7 +64,7 @@ namespace CapriDesktop
 #if CROSS
                     " in " + Path.GetDirectoryName(path) + ".");
 #else
-                    " in %LocalAppData%\\Capri.");
+                    " in " + (Packaged.Is ? Path.GetDirectoryName(path) : "%LocalAppData%\\Capri") + ".");
 #endif
             return saved;
         }

@@ -406,7 +406,7 @@ namespace CapriDesktop
         internal string Source { get { return Kind + (Kind == "local" ? "|" + Host : "") + "|" + Model; } }
         internal string Sight { get { return Kind == "local" || Kind == "google" || Kind == "openrouter" ? Source : Model; } }
 
-        internal static bool IsCode(string key) { return Regex.IsMatch((key ?? "").Trim().ToUpperInvariant(), @"\ACAPRI(-[0-9A-HJKMNP-TV-Z]{4}){4}\z"); }
+        internal static bool IsCode(string key) { return Regex.IsMatch((key ?? "").Trim().ToUpperInvariant(), @"\ACAPRI(?:-[A-Z0-9]{2,12})?(-[0-9A-HJKMNP-TV-Z]{4}){4}\z"); }
 
         internal void ReadCode(WebHeaderCollection headers)
         {
@@ -641,6 +641,7 @@ namespace CapriDesktop
     {
         internal readonly bool Told;
         internal int Status;
+        internal bool Careful;
         internal string Detail;
         internal DateTime RetryAt;
         internal BrainException(string message, bool told = false) : base(told ? message : Brain.Plain(message) ?? message) { Told = told || Brain.Plain(message) != null; }
@@ -1086,29 +1087,115 @@ namespace CapriDesktop
             return wordy == 1 ? "\nThey picked longer replies: use up to four sentences, under 70 words." : wordy >= 2 ? "\nThey picked long replies: use up to a short paragraph, under 140 words." : "";
         }
 
-        // Auto memory grows when an ask outgrows it, like a 6,073-token ask on Auto's 4,096 that failed for a tester (3 Nov), and
-        // stays grown until she restarts.
-        internal static int Grown;
-        internal static int Window { get { return MemorySize > 0 ? MemorySize : Math.Max(System.Threading.Volatile.Read(ref Grown), Recall > 8 ? 8192 : 4096); } }
+        // Auto starts at 16K with at least 11 GiB RAM and under 1 or at least 7 GiB video memory, otherwise 4K or 8K with longer
+        // Memory. Grown keeps her built-in brain's growth for this run, like a 6,073-token ask on Auto's 4,096 that failed for a
+        // tester (3 Nov). Auto grows up to 32K; a failed load past 16K keeps the old size and stops trying past 16K this run.
+        // Ollama keeps its own growth after a send works. A size they picked is used as picked.
+        internal static long Ram, Vram;
+        internal static int Grown, OllamaGrown;
+        internal static volatile bool NoBigger;
+        private static readonly object memoryGate = new object();
+        private static readonly object ollamaMemoryGate = new object();
+        internal static int AutoStart(long ram, long vram, int recall) { return ram >= (11L << 30) && (vram < (1L << 30) || vram >= (7L << 30)) ? 16384 : recall > 8 ? 8192 : 4096; }
+        internal static int Window { get { return MemorySize > 0 ? MemorySize : Math.Max(AutoStart(System.Threading.Interlocked.Read(ref Ram), System.Threading.Interlocked.Read(ref Vram), Recall), System.Threading.Volatile.Read(ref Grown)); } }
+        private static int OllamaWindow { get { return MemorySize > 0 ? MemorySize : Math.Max(AutoStart(System.Threading.Interlocked.Read(ref Ram), System.Threading.Interlocked.Read(ref Vram), Recall), System.Threading.Volatile.Read(ref OllamaGrown)); } }
 
         // llama-server's words for an ask longer than its window: "request (6073 tokens) exceeds the available context size (4096
         // tokens), try increasing it".
         private static readonly Regex Overflow = new Regex(@"exceeds the available context size", RegexOptions.IgnoreCase);
-        private const int AutoMost = 16384;
+        private const int AutoMost = 32768;
 
-        // The window an ask that overflowed needs on Auto memory: the next memory size that fits it and room for its reply, up to 16K.
+        // The window an ask that overflowed needs on Auto memory: the next memory size that fits it and room for its reply, up to 32K.
         // 0 when they picked a size or the ask is too long even for that.
         internal static int Room(string problem, int was, int reply)
         {
             if (MemorySize > 0) return 0;
-            Match sized = Regex.Match(problem ?? "", @"\((\d+) tokens\) exceeds");
-            long asked;
-            long need = sized.Success && long.TryParse(sized.Groups[1].Value, out asked) ? asked + Math.Min(reply, 2048) : 2L * was;
-            foreach (int size in MemorySizes) if (size > was && size >= need && size <= AutoMost) return size;
+            long need = Need(problem, reply);
+            if (need == 0) need = 2L * was;
+            foreach (int size in MemorySizes) if (size > was && size >= need && size <= (NoBigger ? 16384 : AutoMost)) return size;
             return 0;
         }
 
-        internal static string TooLong(int window) { return "That was too long for my brain's " + window / 1024 + "K memory. Pick a bigger Memory size " + BrainMenu + "."; }
+        // The tokens an overflowed ask needs with room for its reply, from llama-server's own count. 0 when it gave no count.
+        private static long Need(string problem, int reply)
+        {
+            Match sized = Regex.Match(problem ?? "", @"\((\d+) tokens\) exceeds");
+            long asked;
+            if (!sized.Success || !long.TryParse(sized.Groups[1].Value, out asked)) return 0;
+            int spare = Math.Min(reply, 2048);
+            return asked > long.MaxValue - spare ? long.MaxValue : asked + spare;
+        }
+
+        // Her line for an ask that doesn't fit. With a size they picked it names the smallest size that does.
+        internal static string TooLong(int window, string problem = null, int reply = 0)
+        {
+            if (MemorySize == 0 && NoBigger) return "That was too long for my brain's " + window / 1024 + "K memory, and this PC couldn't load one big enough.";
+            string pick = "a bigger";
+            long need = Need(problem, reply);
+            if (MemorySize > 0 && need > 0)
+                foreach (int size in MemorySizes)
+                    if (size > window && size >= need) { pick = size / 1024 + "K" + (size <= AutoMost ? " or Auto" : "") + " for"; break; }
+            return "That was too long for my brain's " + window / 1024 + "K memory. Pick " + pick + " Memory size " + BrainMenu + ".";
+        }
+
+        private static long Letters(string text)
+        {
+            if (text == null) return 0;
+            long letters = text.Length;
+            foreach (char letter in text) if (letter > '\u2e7f') letters += 2;
+            return letters;
+        }
+
+        private static int OllamaRoom(IEnumerable<ChatMessage> messages, string tools, int reply, out int before, out int grown)
+        {
+            lock (ollamaMemoryGate)
+            {
+                before = grown = System.Threading.Volatile.Read(ref OllamaGrown);
+                int was = OllamaWindow;
+                if (MemorySize > 0) return was;
+                long letters = Letters(tools);
+                foreach (ChatMessage message in messages)
+                {
+                    letters += Letters(message.Content) + Letters(message.Thinking);
+                    if (message.Calls != null) letters += Letters(Encoding.UTF8.GetString(Json(message.Calls)));
+                    if (message.Images != null) letters += 3L * 1024 * message.Images.Length;
+                }
+                long need = (letters + 2) / 3 + Math.Min(reply, 2048);
+                if (need > was)
+                    foreach (int size in MemorySizes)
+                        if (size > was && size <= AutoMost && (size >= need || size == AutoMost))
+                        {
+                            System.Threading.Interlocked.Exchange(ref OllamaGrown, grown = size);
+                            Log(Ollama, -1, "An ask needs more than Ollama's " + was + "-token memory, using " + size);
+                            break;
+                        }
+                return OllamaWindow;
+            }
+        }
+
+        internal ChatReply OllamaAsk(ChatRequest asking, string tools, int timeout, int ticket = -1)
+        {
+            int before, grown;
+            asking.Options.Context = OllamaRoom(asking.Messages, tools, asking.Options.Limit, out before, out grown);
+            try
+            {
+                ChatReply chat = Send<ChatReply>(Ollama + "/api/chat", asking, timeout, tools, null, null, ticket);
+                if (chat.Error != null) throw new BrainException(chat.Error);
+                return chat;
+            }
+            catch (Exception error)
+            {
+                WebException web = error as WebException;
+                if (grown > before && (web == null || web.Status != WebExceptionStatus.RequestCanceled))
+                    lock (ollamaMemoryGate) System.Threading.Interlocked.CompareExchange(ref OllamaGrown, before, grown);
+                throw;
+            }
+        }
+
+        private ChatOptions OllamaOptions(string model, int reply)
+        {
+            return new ChatOptions { Limit = reply, Context = OllamaWindow, Gpu = ollamaCpu == model ? (int?)0 : null };
+        }
 
         internal static int ReplyLimit(int automatic, bool job = false)
         {
@@ -2648,8 +2735,9 @@ namespace CapriDesktop
             // A brain that takes her tools can answer a plain ask with only words and no tool: an old remark of its own (Gale, 11 Nov, on
             // nemotron-3.5-bolt-e4b: "close Spotify" got "that hill looked too peaceful"), the call written out as words ("use_computer:
             // open notepad") or its reasoning cut off before the call. What her hands would have done straight away for any other brain,
-            // they do now, and the words are dropped.
-            if (planning && calls.Count == 0 && !fileChat && unable == null && rest == null && Hands.Heard(request, out direct, out directArgs, true) && Hands.PlainAsk(direct) && kit.Unable(direct, directArgs) == null)
+            // they do now, and the words are dropped. A question it answered stays its answer: her hands only search for one when it
+            // says it can't know.
+            if (planning && calls.Count == 0 && !fileChat && unable == null && rest == null && Hands.Heard(request, out direct, out directArgs, true) && Hands.PlainAsk(direct) && !Hands.Knew(direct, directArgs, request, Clean(raw)) && kit.Unable(direct, directArgs) == null)
             {
                 calls.Add(new KeyValuePair<string, ToolArguments>(direct, directArgs));
                 planned = false;
@@ -3587,7 +3675,17 @@ namespace CapriDesktop
             Engine local = Local;
             if (local != null)
             {
-                local.Ensure(LocalPick);
+                // An ask that meets another ask's growth past 16K as it fails waits for the old size to come back, then goes on at it.
+                int careful = local.Careful;
+                try { local.Ensure(LocalPick); }
+                catch (BrainException error)
+                {
+                    if (!error.Careful) throw;
+                    lock (memoryGate) { }
+                    local.Ensure(LocalPick);
+                    careful = 0;
+                }
+                if (careful == 0) careful = local.Careful;
                 string lost;
                 bool garbled = false, crashed = false;
                 try { string answer = Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); local.Proven(); return answer; }
@@ -3595,6 +3693,15 @@ namespace CapriDesktop
                 {
                     if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
                     if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                    if (error.Status == 503 && careful != 0)
+                    {
+                        lock (memoryGate) { }
+                        if (Window < careful)
+                        {
+                            local.Ensure(LocalPick);
+                            return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                        }
+                    }
                     garbled = error.Message == Gibberish;
                     if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
                     lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
@@ -3615,15 +3722,13 @@ namespace CapriDesktop
                 return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
             }
             string thinking = Ollama + "|" + model;
-            ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = new ChatOptions { Limit = ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing), Context = Window, Gpu = ollamaCpu == model ? (int?)0 : null } };
-            ChatReply chat = Send<ChatReply>(Ollama + "/api/chat", asking, 180000, listed, null, null, ticket);
-            if (chat.Error != null) throw new BrainException(chat.Error);
+            ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = OllamaOptions(model, ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing)) };
+            ChatReply chat = OllamaAsk(asking, listed, 180000, ticket);
             if (thinker != thinking && ReplyLimit(limit + 2048, job || routing) > asking.Options.Limit && chat.Stopped == "length" && chat.Message != null && (!string.IsNullOrEmpty(chat.Message.Thinking) || (chat.Message.Content ?? "").IndexOf("<think>", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 thinker = thinking;
                 asking.Options.Limit = ReplyLimit(limit + 2048, job || routing);
-                chat = Send<ChatReply>(Ollama + "/api/chat", asking, 180000, listed, null, null, ticket);
-                if (chat.Error != null) throw new BrainException(chat.Error);
+                chat = OllamaAsk(asking, listed, 180000, ticket);
             }
             if (chat.Message != null && chat.Message.Calls == null && Garbled(chat.Message.Content, limit > 400))
             {
@@ -3631,17 +3736,14 @@ namespace CapriDesktop
                 Log(Ollama, -1, "Ollama's graphics card garbled the brain's reply, asking again on the CPU");
                 ollamaCpu = model;
                 asking.Options.Gpu = 0;
-                chat = Send<ChatReply>(Ollama + "/api/chat", asking, 180000, listed, null, null, ticket);
-                if (chat.Error != null) throw new BrainException(chat.Error);
+                chat = OllamaAsk(asking, listed, 180000, ticket);
                 if (chat.Message != null && chat.Message.Calls == null && Garbled(chat.Message.Content, limit > 400)) throw new BrainException(Gibberish, true);
             }
             if (routing && chat.Stopped == "length" && chat.Message != null && Unfinished(chat.Message.Content, chat.Message.Calls != null, chat.Message.Thinking))
                 chat = Longer(chat, asking.Options.Limit, reply => reply.Stopped == "length", Whole, delegate(int room)
                 {
                     asking.Options.Limit = room;
-                    ChatReply again = Send<ChatReply>(Ollama + "/api/chat", asking, Math.Max(180000, room * 150), listed, null, null, ticket);
-                    if (again.Error != null) throw new BrainException(again.Error);
-                    return again;
+                    return OllamaAsk(asking, listed, Math.Max(180000, room * 150), ticket);
                 });
             if (chat.Message == null) return null;
             if (routing && chat.Stopped == "length") return CutShort(chat.Message.Content, Whole(chat), calls);
@@ -3650,18 +3752,43 @@ namespace CapriDesktop
         }
 
         // An ask longer than her built-in brain's window restarts it once with a window that fits, on Auto memory. A size they picked,
-        // or an ask too long even for 16K, says how to give her more instead of llama-server's own words.
+        // or an ask too long even for 32K, says how to give her more instead of llama-server's own words.
         private string Roomier(Engine local, BrainException error, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools, bool job)
         {
-            int was = Window;
-            int room = Room(error.Detail ?? error.Message, was, ReplyLimit(limit, job || routing));
-            if (room == 0) throw new BrainException(TooLong(was), true);
-            Log(local.Address, -1, "An ask outgrew the brain's " + was + "-token memory, restarting it with " + room);
-            int before = System.Threading.Interlocked.Exchange(ref Grown, room);
-            try { local.Ensure(LocalPick); }
-            catch (BrainException) { System.Threading.Interlocked.Exchange(ref Grown, before); throw; }
+            string problem = error.Detail ?? error.Message;
+            Match sized = Regex.Match(problem, @"available context size \((\d+) tokens\)", RegexOptions.IgnoreCase);
+            int was;
+            if (!sized.Success || !int.TryParse(sized.Groups[1].Value, out was) || was <= 0) was = Window;
+            int reply = ReplyLimit(limit, job || routing);
+            lock (memoryGate)
+            {
+                int room = Room(problem, was, reply);
+                if (room == 0) throw new BrainException(TooLong(was, problem, reply), true);
+                if (room > Window)
+                {
+                    Log(local.Address, -1, "An ask outgrew the brain's " + was + "-token memory, restarting it with " + room);
+                    local.Careful = room > 16384 ? room : 0;
+                    int before = System.Threading.Interlocked.Exchange(ref Grown, room);
+                    try
+                    {
+                        local.Ensure(LocalPick);
+                        if (room > 16384 && local.Loading && !local.Settle()) throw new BrainException("Brain crashed loading. Close games, press Refresh.");
+                    }
+                    catch (BrainException)
+                    {
+                        System.Threading.Interlocked.CompareExchange(ref Grown, before, room);
+                        if (room <= 16384) throw;
+                        NoBigger = true;
+                        local.Ensure(LocalPick);
+                        throw new BrainException(TooLong(Window), true);
+                    }
+                    catch { System.Threading.Interlocked.CompareExchange(ref Grown, before, room); throw; }
+                    finally { local.Careful = 0; }
+                }
+                else local.Ensure(LocalPick);
+            }
             try { return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); }
-            catch (BrainException again) { if (Overflow.IsMatch(again.Detail ?? again.Message)) throw new BrainException(TooLong(room), true); throw; }
+            catch (BrainException again) { if (Overflow.IsMatch(again.Detail ?? again.Message)) throw new BrainException(TooLong(Window), true); throw; }
         }
 
         // What each model takes for reasoning_effort, learned from errors. Empty means it takes none at all.
@@ -4096,7 +4223,7 @@ namespace CapriDesktop
                 Engine local = Local;
                 if (local != null) local.Ensure(LocalPick);
                 else if (Server != null) return;
-                else Send<ChatReply>(Ollama + "/api/chat", new ChatRequest { Model = model, Messages = new ChatMessage[0] }, 180000);
+                else Send<ChatReply>(Ollama + "/api/chat", new ChatRequest { Model = model, Messages = new ChatMessage[0], Options = OllamaOptions(model, 90) }, 180000);
             }
             catch (WebException) { } catch (BrainException) { } catch (IOException) { } catch (SerializationException) { }
         }
@@ -4334,7 +4461,7 @@ namespace CapriDesktop
         // it as their words.
         private static string ForYou(string parts) { return "(For you, not from them:" + parts + "\n)\n\n"; }
 
-        internal static string Now() { return "\nRight now it's " + DateTime.Now.ToString("dddd d MMMM yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture) + " where they are, so answer the time or date from this line without searching for it."; }
+        internal static string Now() { return "\nIf the time or date is needed, it's " + DateTime.Now.ToString("dddd d MMMM yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture) + " where they are, so there's no need to search for it."; }
 
         internal const string Gibberish = "My brain sent gibberish. Pick another model in Capri Mainframe.";
         internal const string Wordless = "My brain sent an empty reply. Try again or pick another model in Capri Mainframe.";
@@ -4744,29 +4871,29 @@ namespace CapriDesktop
         // bounded, so a huge line with no spaces can't hold her up.
         internal static string Redacted(string text)
         {
-            string clean = Regex.Replace(text ?? "", @"\bCAPRI(?:-[0-9A-HJKMNP-TV-Z]{4}){4}\b|\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            string clean = Regex.Replace(text ?? "", @"CAPRI(?:-[A-Z0-9\u0131\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
-            clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // -u user:password, attached or quoted too, with an all-number user:group like 1000:1000 and $(id -u):$(id -g) left alone.
             // Only curl's lowercase -u takes it attached, and a $ value is a variable, so PowerShell's -UseDefaultCredentials:$true stays.
-            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)|(?-i:-u)|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|(?!\$)[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)|(?-i:-u)|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|(?!\$)[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // sshpass takes its -p only among its own options, before the command it runs, so ssh's own -p port stays.
-            clean = Regex.Replace(clean, @"(\bsshpass(?:\s+(?-i:-[fdP])\s*\S+|\s+(?-i:-[evhV])\S*)*\s+(?-i:-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\bsshpass(?:\s+(?-i:-[fdP])\s*\S+|\s+(?-i:-[evhV])\S*)*\s+(?-i:-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // A lowercase -p only, so mysql's -P port isn't taken for the password, and quoted or attached passwords count. The
             // search stops at the end of that command, so a later docker run -p 8080:80 keeps its ports.
-            clean = Regex.Replace(clean, @"(\b(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n;&|]{0,300}?(?-i:\s-p))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""';&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n;&|]{0,300}?(?-i:\s-p))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""';&|]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // A Cookie or Set-Cookie header is one on its own line (curl -v's > and < too) or quoted like curl -H "Cookie: ...", and
             // loses its value to the end of the line or its closing quote. "the cookie: SameSite=Lax" in a sentence isn't one.
-            clean = Regex.Replace(clean, @"((?:(?<![^\r\n])[ \t]*(?:[<>][ \t]*)?|(?<q>[""']))(?:set-)?cookie(?:\k<q>)?\s*:[ \t]*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|(?(q)(?:(?!\k<q>)[^\r\n])+|[^\r\n]+))", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:(?<![^\r\n])[ \t]*(?:[<>][ \t]*)?|(?<q>[""']))(?:set-)?cookie(?:\k<q>)?\s*:[ \t]*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|(?(q)(?:(?!\k<q>)[^\r\n])+|[^\r\n]+))", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // password:, secret: and token: count as a key at the end of a longer name like db_password or clientSecret, at the
             // start of a line, quoted, or after { or a comma. A quoted value goes whole, spaces and all, and keeps its quotes.
-            clean = Regex.Replace(clean, @"((?:(?<=[A-Za-z0-9_.-])|(?<![^\r\n])[ \t]*(?:-[ \t]+)?|[""']|[{,][ \t]*)(?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:(?<=[A-Za-z0-9_.-])|(?<![^\r\n])[ \t]*(?:-[ \t]+)?|[""']|[{,][ \t]*)(?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             // In a sentence the next word goes only when it looks like a password itself, six or more letters and digits mixed.
-            clean = Regex.Replace(clean, @"(\b(?:password|passwd|secret|token(?!s\b)|cookie)\s*:\s*)(?=[^\s""',}]{6})(?=[^\s""',}]*?[0-9])(?=[^\s""',}]*?[A-Za-z])[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
-            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token|auth[_ -]?token|private[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?:password|passwd|secret|token(?!s\b)|cookie)\s*:\s*)(?=[^\s""',}]{6})(?=[^\s""',}]*?[0-9])(?=[^\s""',}]*?[A-Za-z])[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token|auth[_ -]?token|private[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
 
         internal static string ScreenProblem(Exception error, string provider)

@@ -556,7 +556,9 @@ namespace CapriDesktop
 #endif
                 case "open_app": return "open " + Plain(a.Name, "that app");
                 case "open_website":
+                    Hands.WebsiteArgs(a);
                     string site = Plain(a.Site, "that site");
+                    if (string.IsNullOrWhiteSpace(a.Site) && !string.IsNullOrWhiteSpace(a.Search)) return "search for " + Plain(a.Search, "that");
                     return string.IsNullOrWhiteSpace(a.Search) ? "open " + site : "search " + Regex.Replace(site, @"^(https?://)?(www\.)?|\.(com|org|net|tv)(/.*)?$", "", RegexOptions.IgnoreCase) + " for " + Plain(a.Search, "that");
                 case "media":
                     switch (a.Action)
@@ -1312,8 +1314,8 @@ namespace CapriDesktop
 #if !CROSS
               "A saved website nickname goes in site, with no search words when opening it. " +
 #endif
-              "Set browser only when they named a browser; otherwise leave it out for their default.",
-              "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}},\"required\":[\"site\"]}", "open websites and search Google, YouTube and other sites", "open sites and search Google or YouTube" },
+              "Set browser only when they named a browser; otherwise leave it out for their default. No site named: leave site out, it uses their browser's search engine; a site or engine they named goes in site.",
+              "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}}}", "open websites and search Google, YouTube and other sites", "open sites and search Google or YouTube" },
 #if !CROSS
             { "media", "Control their music, video or PC volume when they ask, suggest or hint at it. Pause, resume, skip, seek to seconds from the start, like or unlike the current Spotify song, open the player that's playing, or read the song or volume. Seek and likes need a player that supports them.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"play_pause\",\"pause\",\"resume\",\"next\",\"previous\",\"seek\",\"like\",\"unlike\",\"open_player\",\"volume_up\",\"volume_down\",\"volume_set\",\"mute\",\"unmute\",\"now_playing\",\"volume_now\"]},\"seconds\":{\"type\":\"string\",\"description\":\"For seek, seconds from the start, like 90 for 1:30\"},\"level\":{\"type\":\"string\",\"description\":\"For volume_set, 0 to 100. For volume_up or volume_down, how many percent, only if they said\"}},\"required\":[\"action\"]}", "control music and volume, seek, like songs or open the player", "control music and volume, seek, like songs or open the player" },
@@ -1614,10 +1616,16 @@ namespace CapriDesktop
         private static readonly Regex Opener = new Regex(@"^((great|nice|cool|sweet|perfect|awesome|amazing|alright|alr|aight|bet|thanks|thank you|thx|ty|so|and|now|also|oh|wait|um|uh|hmm|lol|lmao|bro|dude|bruh)[\s,!.]+)+(?=((hey|yo|ok|okay)[\s,]+)?(capri\b|(can|could|would|will) (you|u)\b|please\b|pls\b|plz\b))", RegexOptions.IgnoreCase);
 
         internal static Func<List<InstalledApp>> Catalog = ReadCatalog;
+        internal static string AppsPath;
+        internal static Func<DateTime> AppsNow = delegate { return DateTime.UtcNow; };
         internal static Func<string, bool> Exists = File.Exists;
         internal static Action<string> Run = Start;
         internal static Func<string, string> Opened = BringOpened;
         internal static Func<string, string> BrowserPath = FindBrowser;
+        internal static Func<string, string> SearchEngine = ReadSearchEngine;
+        internal static Func<string, string> ProfileRoot = SearchRoot;
+        internal static Func<string> DefaultBrowser = ReadDefaultBrowser;
+        internal static Func<DateTime> SearchNow = delegate { return DateTime.UtcNow; };
         internal static Action<string, string> Browse = StartBrowser;
         internal static Func<IntPtr> Foreground = Native.GetForegroundWindow;
         internal static Action<byte> Press = Tap;
@@ -1814,6 +1822,7 @@ namespace CapriDesktop
         private static readonly object gate = new object();
         private static List<InstalledApp> cached;
         private static DateTime cachedAt;
+        private static Exception appsFailed;
 
         // The messages in the floating chat panel TikTok LIVE Studio puts over a game: its own small window, apart from the studio
         // itself, with its counters above and its comment box below. Empty when there's no panel up.
@@ -1893,6 +1902,7 @@ namespace CapriDesktop
         internal static string Do(string tool, ToolArguments args)
         {
             if (args == null) args = new ToolArguments();
+            if (tool == "open_website") WebsiteArgs(args);
             try
             {
                 // Something that can't work here gets her line saying so and why, before anything runs.
@@ -2079,7 +2089,7 @@ namespace CapriDesktop
             });
         }
 
-        internal static void Forget() { lock (gate) cached = null; }
+        internal static void Forget() { lock (gate) { cached = null; appsFailed = null; remembered = null; } }
 
         private static readonly string[] Swaps = { @"\bi'?m\b", "they're", @"\bi am\b", "they are", @"\bi was\b", "they were", @"\bi've\b", "they've", @"\bi'll\b", "they'll", @"\bi'd\b", "they'd", @"\bi\b", "they", @"\bmyself\b", "themselves", @"\bmy\b", "their", @"\bmine\b", "theirs", @"\bme\b", "them" };
 
@@ -2888,7 +2898,16 @@ namespace CapriDesktop
             string text = Asked(said);
             string plain = Regex.Replace(text, @"^(do|did) (you|u) (know|have any idea)\b|\byou know\b|^(tell|show|get|find) me\b|\b(near me|where i (am|live)|in my (area|city|town|suburb))\b", "", RegexOptions.IgnoreCase);
             if (text.Length < 4 || ClockAsk.IsMatch(text) || !Question.IsMatch((said ?? "").Trim()) || !Unknown.IsMatch((reply ?? "").Replace('’', '\'')) || Regex.IsMatch(plain, @"\b(screen|song|playing|track|you|your|yourself|u|ur|capri|me|my|i|i'm|im)\b", RegexOptions.IgnoreCase) || Regex.IsMatch(reply ?? "", @"\bscreen\b", RegexOptions.IgnoreCase)) return null;
-            return new ToolArguments { Site = "google", Search = text };
+            return new ToolArguments { Search = text };
+        }
+
+        // A question her hands would only search the web for is her brain's to answer. Its words stay, unless they say it can't
+        // know or are a tool call written out as words.
+        internal static bool Knew(string tool, ToolArguments args, string said, string reply)
+        {
+            if (tool != "open_website" || args == null || !string.IsNullOrEmpty(args.Site) || string.IsNullOrEmpty(args.Search)) return false;
+            if (!Question.IsMatch((said ?? "").Trim()) && !Question.IsMatch(Asked(said))) return false;
+            return !string.IsNullOrWhiteSpace(reply) && !Unknown.IsMatch(reply.Replace('’', '\'')) && !Regex.IsMatch(reply, @"\b[a-z]+(?:_[a-z]+)+\b");
         }
 
         // A clicking job that's clearly music goes straight to the song. A bare title stays the job a brain asked for: "play
@@ -2911,15 +2930,22 @@ namespace CapriDesktop
             // What isn't here goes out as she said it, like her line that clones are Windows-only.
             if (Honest(result)) return result;
             if (Regex.IsMatch(result ?? "", @"^(The closest match is |I didn't find a name matching |Stopped looking for files\.|Selected .+ in File Explorer\.|Couldn't select that in File Explorer\.|Your websites:\n|I'll remember .+ as https?://|Forgot the .+ website\.|I couldn't read that browser's address\.)")) return result;
-            if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser because |but (it's behind|I couldn't bring) )")) return result;
+            if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser(?: because |\.)|but (it's behind|I couldn't bring) )")) return result;
+            foreach (string browser in BrowserNames)
+                if (Regex.IsMatch(result ?? "", @"^Searched [a-z0-9.-]+ for .+ in " + Regex.Escape(browser) + @"(?:, but .+)?\.$")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Saved [\d.]+ seconds of |Turn on Clip my games |I haven't buffered any game video |Windows couldn't (find an H\.264 encoder|encode that clip)|Windows Media Foundation isn't installed|Couldn't save that clip)")) return result;
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
             if (Regex.IsMatch(result ?? "", @"^(One of me wasn't|There's (?:two|\d+ more) of me|Got rid of|I don't have any clones|Messing with your icons|Poof\. Your icons|Put your icons back|Your icons are already|I'm already in there|Couldn't get at your desktop|Couldn't put all your icons back|Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.|Gaming Mode|Moved my HUD|Put my HUD|My HUD)")) return result;
             // So do her stopwatch's lines, or a second brain call could round or reword its time.
             if (Regex.IsMatch(result ?? "", @"^(Started your stopwatch|Stopped your stopwatch|Your stopwatch )")) return result;
-            Match searched = Regex.Match(result ?? "", @"^Searched google\.com for (.+)\.$");
-            return searched.Success ? "Pulled up \"" + searched.Groups[1].Value + "\" on Google for you, choom." : null;
+            Match searched = Regex.Match(result ?? "", @"^Searched ([a-z0-9.-]+) for (.+)\.$");
+            if (!searched.Success) return null;
+            string host = searched.Groups[1].Value;
+            if (Regex.IsMatch(host, @"^(youtube\.com|twitch\.tv|reddit\.com|en\.wikipedia\.org|open\.spotify\.com|roblox\.com|github\.com)$")) return null;
+            string engine = Regex.IsMatch(host, @"^google\.(com|[a-z]{2}|co\.[a-z]{2}|com\.[a-z]{2})$") ? "Google"
+                : host == "duckduckgo.com" || host == "html.duckduckgo.com" ? "DuckDuckGo" : host == "search.brave.com" ? "Brave Search" : host == "bing.com" ? "Bing" : null;
+            return "Pulled up \"" + searched.Groups[2].Value + "\"" + (engine == null ? "" : " on " + engine) + " for you, choom.";
         }
 
         // A diagram's result lists what's written on it. Mac and Linux have no ink, so it never comes up there.
@@ -3599,6 +3625,11 @@ namespace CapriDesktop
             if (args.App == null && (args.Action == "volume_up" || args.Action == "volume_down") && Regex.IsMatch(said ?? "", @"\bspotify\b", RegexOptions.IgnoreCase)) args.App = "spotify";
         }
 
+        internal static bool Plain(string tool, ToolArguments args)
+        {
+            return tool == "open_app" || tool == "app_window" || tool == "media" || tool == "open_website" && args != null && string.IsNullOrEmpty(args.Search);
+        }
+
         internal static bool Heard(string said, out string tool, out ToolArguments args, bool brainy = false)
         {
 #if CROSS
@@ -3834,7 +3865,7 @@ namespace CapriDesktop
             string miniWeb = Regex.Replace(text, @"\s+online\b", "", RegexOptions.IgnoreCase);
             if (miniWeb != text && MiniName(miniWeb) != null)
             {
-                tool = "open_website"; args.Site = "google"; args.Search = text; return true;
+                tool = "open_website"; args.Search = text; return true;
             }
 #if !CROSS
             ToolArguments miniMove = MiniInput(text);
@@ -3916,9 +3947,9 @@ namespace CapriDesktop
                 if (Site(target)) { tool = "open_website"; args.Site = target; return true; }
                 return false;
             }
-            found = Regex.Match(text, @"^(?:google|look up)\s+(.+)$", RegexOptions.IgnoreCase);
-            if (found.Success && !Regex.IsMatch(found.Groups[1].Value, @"^(it|this|that|something|stuff|for me)$", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = "google"; args.Search = found.Groups[1].Value.Trim(); return true; }
-            if (Regex.IsMatch(text, LookupWords, RegexOptions.IgnoreCase) && !Regex.IsMatch(Regex.Replace(text, @"\bnear me\b", ""), @"\b(my|your|you|me|i)\b", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = "google"; args.Search = text; return true; }
+            found = Regex.Match(text, @"^(google|look up)\s+(.+)$", RegexOptions.IgnoreCase);
+            if (found.Success && !Regex.IsMatch(found.Groups[2].Value, @"^(it|this|that|something|stuff|for me)$", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = string.Equals(found.Groups[1].Value, "google", StringComparison.OrdinalIgnoreCase) ? "google" : null; args.Search = found.Groups[2].Value.Trim(); return true; }
+            if (Regex.IsMatch(text, LookupWords, RegexOptions.IgnoreCase) && !Regex.IsMatch(Regex.Replace(text, @"\bnear me\b", ""), @"\b(my|your|you|me|i)\b", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Search = text; return true; }
             found = Regex.Match(text, @"^(?:play|shuffle|put on|blast)\s+(.+?)(\s+on\s+(spotify|youtube|apple\s+music))?$", RegexOptions.IgnoreCase);
             if (found.Success)
             {
@@ -4297,7 +4328,7 @@ namespace CapriDesktop
                 return args.Action == "now" || Regex.IsMatch(args.Action ?? "", @"\A(set|up|down|mute|unmute)\z") && Named(args.Name) && (args.Action == "set" ? leveled : string.IsNullOrEmpty(args.Level) || leveled);
             }
 #endif
-            if (tool == "open_website") return Named(args.Site) && (string.IsNullOrEmpty(args.Browser) || BrowserName(args.Browser) != null);
+            if (tool == "open_website") { WebsiteArgs(args); return Named(args.Site) || Named(args.Search); }
             if (tool == "look_at_screen") return true;
             if (tool == "media")
             {
@@ -4368,11 +4399,15 @@ namespace CapriDesktop
             if (want.Length == 0) return false;
             try
             {
-                foreach (InstalledApp app in Apps())
+                List<InstalledApp> apps = Apps();
+                foreach (InstalledApp app in apps)
                     if (Score(app, want) >= 3) return true;
 #if CROSS
                 if (want == "minecraft" && Apps().Exists(MinecraftLauncher)) return true;
 #endif
+                if (AppsPath != null)
+                    foreach (InstalledApp app in FreshApps(apps))
+                        if (Score(app, want) >= 3) return true;
             }
             catch (Exception) { }
             return false;
@@ -4441,16 +4476,20 @@ namespace CapriDesktop
             try
             {
                 List<InstalledApp> apps = Apps();
-                // Each "in", "on" or "into" in turn, and the most words after it that name a game they have: "hop on bedwars in
-                // roblox for me" is roblox.
-                foreach (Match place in Regex.Matches(Plain(job), @"\b(?:in|on|into)\s+(?:the\s+)?(?=([\p{L}\p{Nd}]+(?: [\p{L}\p{Nd}]+){0,3}))"))
+                for (int pass = 0; pass < (AppsPath == null ? 1 : 2); pass++)
                 {
-                    string[] words = place.Groups[1].Value.Split(' ');
-                    for (int count = words.Length; count > 0; count--)
+                    if (pass > 0) apps = FreshApps(apps);
+                    // Each "in", "on" or "into" in turn, and the most words after it that name a game they have: "hop on bedwars in
+                    // roblox for me" is roblox.
+                    foreach (Match place in Regex.Matches(Plain(job), @"\b(?:in|on|into)\s+(?:the\s+)?(?=([\p{L}\p{Nd}]+(?: [\p{L}\p{Nd}]+){0,3}))"))
                     {
-                        string named = string.Join(" ", words, 0, count);
-                        string wanted = Nickname(named) ?? named;
-                        if (wanted.Length >= 3 && apps.Exists(app => Score(app, wanted) >= 2)) return Showing(wanted) ? null : wanted;
+                        string[] words = place.Groups[1].Value.Split(' ');
+                        for (int count = words.Length; count > 0; count--)
+                        {
+                            string named = string.Join(" ", words, 0, count);
+                            string wanted = Nickname(named) ?? named;
+                            if (wanted.Length >= 3 && apps.Exists(app => Score(app, wanted) >= 2)) return Showing(wanted) ? null : wanted;
+                        }
                     }
                 }
             }
@@ -4461,9 +4500,13 @@ namespace CapriDesktop
         private static string OpenApp(string wanted, Func<bool> current = null)
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
-            List<InstalledApp> found = Match(Apps(), wanted);
-            string nicknamed = found.Count == 0 ? Nickname(wanted) : null;
-            if (nicknamed != null) found = Match(Apps(), nicknamed);
+            List<InstalledApp> found;
+#if CROSS
+            found = FindApps(wanted);
+#else
+            try { found = FindApps(wanted); }
+            catch (Exception error) { return "Couldn't read their apps just now: " + error.Message; }
+#endif
             if (found.Count == 0) return "No app called " + wanted.Trim() + " is installed on this PC.";
             // When several match equally well, the one with the fewest extra words is closest to what they said.
             InstalledApp chosen = found[0];
@@ -4475,6 +4518,36 @@ namespace CapriDesktop
             catch (InvalidOperationException) { return "Couldn't open " + openedName + ": Windows wouldn't start it. Try opening it from the Start menu."; }
             catch (System.ComponentModel.Win32Exception) { return "Couldn't open " + openedName + ": Windows wouldn't start it. Try opening it from the Start menu."; }
             return "Opened " + openedName + (current == null ? Opened(openedName) : "") + ".";
+        }
+
+        private static List<InstalledApp> FindApps(List<InstalledApp> apps, string wanted)
+        {
+            List<InstalledApp> found = Match(apps, wanted);
+            string nicknamed = found.Count == 0 ? Nickname(wanted) : null;
+            return nicknamed == null ? found : Match(apps, nicknamed);
+        }
+
+        private static List<InstalledApp> FindApps(string wanted)
+        {
+            List<InstalledApp> apps = Apps();
+            List<InstalledApp> found = FindApps(apps, wanted);
+            if (found.Count == 0 && AppsPath != null)
+            {
+                apps = FreshApps(apps);
+                found = FindApps(apps, wanted);
+                lock (gate) if (found.Count == 0 && cached == apps && appsFailed != null) throw appsFailed;
+            }
+            return found;
+        }
+
+        private static List<InstalledApp> FreshApps(List<InstalledApp> apps)
+        {
+            lock (gate)
+            {
+                if (AppsPath == null) return apps;
+                if (cached != apps) return cached != null && AppsNow() - cachedAt <= TimeSpan.FromMinutes(2) ? cached : apps;
+                return AppsNow() - cachedAt <= TimeSpan.FromMinutes(2) ? apps : Apps(true);
+            }
         }
 
         internal static List<InstalledApp> Match(List<InstalledApp> apps, string wanted)
@@ -4535,13 +4608,108 @@ namespace CapriDesktop
             return name;
         }
 
-        private static string Plain(string text) { return Regex.Replace(Regex.Replace((text ?? "").Normalize(NormalizationForm.FormD).ToLowerInvariant(), @"\p{M}", ""), @"[^\p{L}\p{Nd}]+", " ").Trim(); }
+        private static readonly Regex PlainMarks = new Regex(@"\p{M}");
+        private static readonly Regex PlainWords = new Regex(@"[^\p{L}\p{Nd}]+");
 
-        private static List<InstalledApp> Apps()
+        private static string Plain(string text) { return PlainWords.Replace(PlainMarks.Replace((text ?? "").Normalize(NormalizationForm.FormD).ToLowerInvariant(), ""), " ").Trim(); }
+
+        // Remember good app lists and merge each name once (YunoTheAlien, 13 Nov).
+        [DataContract]
+        private sealed class AppEntry
+        {
+            [DataMember] internal string Name;
+            [DataMember] internal string Id;
+            [DataMember] internal long Seen;
+        }
+
+        private static List<AppEntry> remembered;
+        private static string rememberedPath;
+        private static SavedList<AppEntry> appsFile;
+        private static string savedApps;
+
+        private static bool AppPath(string id)
+        {
+#if CROSS
+            return false;
+#else
+            return Regex.IsMatch(id ?? "", @"\A[A-Za-z]:\\[^""<>|*?/\x00-\x1F]+\z");
+#endif
+        }
+
+        private static bool AppId(string id)
+        {
+#if CROSS
+            return false;
+#else
+            if (AppPath(id) || Regex.IsMatch(id ?? "", @"\A[A-Za-z0-9_.{}!-]+\z")) return true;
+            if (Regex.IsMatch(id ?? "", @"\A\{[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}\}\\[^""<>|*?/\x00-\x1F]+\z")) return true;
+            if (Regex.IsMatch(id ?? "", @"\A(?:steam://rungameid/[0-9]+|uplay://launch/[0-9]+/0)\z")) return true;
+            if (Regex.IsMatch(id ?? "", @"\Acom\.epicgames\.launcher://apps/(?:[A-Za-z0-9._~-]|%[0-9A-Fa-f]{2})+\?action=launch&silent=true\z")) return true;
+            Match riot = Regex.Match(id ?? "", @"\A""([^""]+)"" --launch-product=[a-z0-9_]+ --launch-patchline=[a-z0-9_]+\z");
+            return riot.Success && AppPath(riot.Groups[1].Value) && string.Equals(Path.GetFileName(riot.Groups[1].Value), "RiotClientServices.exe", StringComparison.OrdinalIgnoreCase);
+#endif
+        }
+
+        private static string AppText(List<AppEntry> entries)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                new DataContractJsonSerializer(typeof(List<AppEntry>)).WriteObject(stream, entries);
+                return Encoding.UTF8.GetString(stream.ToArray());
+            }
+        }
+
+        private static void RememberApps(List<InstalledApp> apps, bool failed, DateTime now)
+        {
+            if (AppsPath == null) return;
+            if (remembered == null || rememberedPath != AppsPath)
+            {
+                rememberedPath = AppsPath;
+                appsFile = new SavedList<AppEntry>(AppsPath, "apps");
+                remembered = appsFile.Read(item => !string.IsNullOrWhiteSpace(item.Name) && item.Seen > 0, 4 * 1024 * 1024);
+                savedApps = AppText(remembered);
+                remembered.RemoveAll(item => !AppId(item.Id));
+                foreach (AppEntry item in remembered) if (item.Seen > now.Ticks) item.Seen = now.Ticks;
+            }
+            remembered.RemoveAll(item => item.Seen <= now.Date.AddDays(-30).Ticks || AppPath(item.Id) && !Exists(item.Id));
+            Dictionary<string, AppEntry> byId = new Dictionary<string, AppEntry>(StringComparer.OrdinalIgnoreCase);
+            foreach (AppEntry item in remembered) byId[item.Id] = item;
+            if (!failed)
+                foreach (InstalledApp app in apps)
+                {
+                    if (AppName(app).Length == 0 || AppPath(app.Id) && !Exists(app.Id)) continue;
+                    AppEntry item;
+                    if (!byId.TryGetValue(app.Id, out item))
+                    {
+                        item = new AppEntry { Id = app.Id };
+                        remembered.Add(item); byId.Add(item.Id, item);
+                    }
+                    item.Name = app.Name; item.Seen = now.Date.Ticks;
+                }
+            if (remembered.Count > 4000)
+            {
+                List<AppEntry> recent = new List<AppEntry>(remembered);
+                recent.Sort(delegate(AppEntry a, AppEntry b) { return b.Seen.CompareTo(a.Seen); });
+                HashSet<AppEntry> kept = new HashSet<AppEntry>(recent.GetRange(0, 4000));
+                remembered.RemoveAll(item => !kept.Contains(item));
+            }
+            HashSet<string> listed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (InstalledApp app in apps) listed.Add(app.Id);
+            foreach (AppEntry item in remembered)
+                if ((failed || AppPath(item.Id)) && listed.Add(item.Id)) apps.Add(new InstalledApp(item.Name, item.Id));
+            string next = AppText(remembered);
+            if (next == savedApps) return;
+            try { appsFile.Write(remembered, ".new"); savedApps = next; }
+            catch (Exception) { }
+            finally { try { File.Delete(AppsPath + ".new"); } catch (Exception) { } }
+        }
+
+        private static List<InstalledApp> Apps(bool fresh = false)
         {
             lock (gate)
             {
-                if (cached != null && DateTime.UtcNow - cachedAt <= TimeSpan.FromMinutes(2)) return cached;
+                DateTime now = AppsNow();
+                if (cached != null && now - cachedAt <= TimeSpan.FromMinutes(AppsPath == null || fresh || appsFailed != null ? 2 : 10)) return cached;
                 List<InstalledApp> apps;
                 Exception failed = null;
                 try { apps = new List<InstalledApp>(Catalog()); }
@@ -4549,13 +4717,15 @@ namespace CapriDesktop
                 string folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
                 string path = folder.Length == 0 ? "" : Path.Combine(folder, @"Spotify\Spotify.exe");
                 if (path.Length > 0 && Exists(path) && !apps.Exists(app => AppName(app) == "spotify")) apps.Add(new InstalledApp("Spotify", path));
-                if (failed != null)
+                RememberApps(apps, failed != null, now);
+                if (failed != null && AppsPath == null)
                 {
                     if (apps.Count == 0) throw failed;
                     return apps;
                 }
+                appsFailed = failed;
                 cached = apps;
-                cachedAt = DateTime.UtcNow;
+                cachedAt = AppsNow();
                 return cached;
             }
         }
@@ -4597,8 +4767,13 @@ namespace CapriDesktop
         // library, and from her other launchers' lists the same way. One already in All apps by that name isn't listed twice.
         internal static List<InstalledApp> WithSteam(List<InstalledApp> apps, List<InstalledApp> steam)
         {
+            HashSet<string> names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (InstalledApp app in apps) names.Add(AppName(app));
             foreach (InstalledApp game in steam)
-                if (AppName(game).Length > 0 && !apps.Exists(app => AppName(app) == AppName(game))) apps.Add(game);
+            {
+                string name = AppName(game);
+                if (name.Length > 0 && names.Add(name)) apps.Add(game);
+            }
             return apps;
         }
 
@@ -4889,6 +5064,234 @@ namespace CapriDesktop
             return info;
         }
 
+        // Unnamed searches use the engine their browser states (YunoTheAlien, 13 Nov).
+        [DataContract]
+        private sealed class SearchSettings
+        {
+            [DataMember(Name = "default_search_provider_data")] internal SearchProvider Provider;
+        }
+
+        [DataContract]
+        private sealed class SearchProvider
+        {
+            [DataMember(Name = "template_url_data")] internal SearchUrl Template;
+        }
+
+        [DataContract]
+        private sealed class SearchUrl
+        {
+            [DataMember(Name = "url")] internal string Url;
+        }
+
+        [DataContract]
+        private sealed class BrowserState
+        {
+            [DataMember(Name = "profile")] internal BrowserProfile Profile;
+        }
+
+        [DataContract]
+        private sealed class BrowserProfile
+        {
+            [DataMember(Name = "last_used")] internal string Last;
+        }
+
+        private sealed class Engine
+        {
+            internal string Url;
+            internal DateTime At;
+        }
+
+        private static readonly object searchGate = new object();
+        private static readonly Dictionary<string, Engine> engines = new Dictionary<string, Engine>();
+
+        internal static void ForgetSearch() { lock (searchGate) engines.Clear(); }
+
+        private static T SearchJson<T>(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || text.Length > 4 * 1024 * 1024) return default(T);
+            using (MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes(text))) return (T)new DataContractJsonSerializer(typeof(T)).ReadObject(input);
+        }
+
+        internal static string SearchTemplate(string text)
+        {
+            try
+            {
+                SearchSettings settings = SearchJson<SearchSettings>(text);
+                return settings == null || settings.Provider == null || settings.Provider.Template == null ? null : settings.Provider.Template.Url;
+            }
+            catch (Exception) { return null; }
+        }
+
+        internal static string SearchProfile(string text)
+        {
+            try
+            {
+                BrowserState state = SearchJson<BrowserState>(text);
+                string profile = state == null || state.Profile == null ? null : state.Profile.Last;
+                if (string.IsNullOrWhiteSpace(profile)) return "Default";
+                return profile != "." && profile != ".." && Regex.IsMatch(profile, @"^[^\\/:*?""<>|\x00-\x1F]+$") ? profile : null;
+            }
+            catch (Exception) { return null; }
+        }
+
+        internal static string EngineTemplate(string template)
+        {
+            if (string.IsNullOrWhiteSpace(template) || !Regex.IsMatch(template, @"\Ahttps?://", RegexOptions.IgnoreCase) || !template.Contains("{searchTerms}")) return null;
+            try
+            {
+                int hostAt = template.IndexOf("://", StringComparison.Ordinal) + 3;
+                int hostEnd = template.IndexOfAny(new[] { '/', '?', '#' }, hostAt);
+                if (hostEnd < 0) hostEnd = template.Length;
+                if (hostEnd == hostAt) return null;
+                if (Regex.IsMatch(Uri.UnescapeDataString(template.Substring(hostAt, hostEnd - hostAt)), @"[{}]")) return null;
+                int fragmentAt = template.IndexOf('#');
+                string fragment = fragmentAt < 0 ? "" : template.Substring(fragmentAt);
+                string address = fragmentAt < 0 ? template : template.Substring(0, fragmentAt);
+                int queryAt = address.IndexOf('?');
+                string path = queryAt < 0 ? address : address.Substring(0, queryAt);
+                if (Regex.IsMatch(Uri.UnescapeDataString((path + fragment).Replace("{searchTerms}", "caprisearch")), @"[{}]")) return null;
+                List<string> parts = new List<string>();
+                if (queryAt >= 0)
+                    foreach (string part in address.Substring(queryAt + 1).Split('&'))
+                        if (!Regex.IsMatch(Uri.UnescapeDataString(part.Replace("{searchTerms}", "caprisearch")), @"[{}]")) parts.Add(part);
+                string cleaned = path + (parts.Count == 0 ? "" : "?" + string.Join("&", parts.ToArray())) + fragment;
+                Uri uri;
+                if (!cleaned.Contains("{searchTerms}") || !Uri.TryCreate(cleaned.Replace("{searchTerms}", "caprisearch"), UriKind.Absolute, out uri) || (uri.Scheme != "http" && uri.Scheme != "https") || uri.Host.Length == 0 || uri.UserInfo.Length > 0) return null;
+                return cleaned;
+            }
+            catch (Exception) { return null; }
+        }
+
+        private static string SearchAddress(string search, string browser)
+        {
+            string words = Uri.EscapeDataString(search.Trim());
+#if !CROSS
+            try
+            {
+                string name = string.IsNullOrWhiteSpace(browser) ? BrowserName(DefaultBrowser()) : BrowserName(browser);
+                if (name != null && name != "Firefox")
+                {
+                    string template;
+                    lock (searchGate)
+                    {
+                        Engine engine;
+                        DateTime now = SearchNow();
+                        if (!engines.TryGetValue(name, out engine) || now - engine.At >= TimeSpan.FromMinutes(10))
+                        {
+                            string read = null;
+                            try { read = EngineTemplate(SearchEngine(name)); } catch (Exception) { }
+                            engine = new Engine { Url = read, At = now }; engines[name] = engine;
+                        }
+                        template = engine.Url;
+                    }
+                    Uri uri;
+                    if (template != null && Uri.TryCreate(template.Replace("{searchTerms}", words), UriKind.Absolute, out uri) && (uri.Scheme == "http" || uri.Scheme == "https") && uri.Host.Length > 0 && uri.UserInfo.Length == 0) return uri.AbsoluteUri;
+                }
+            }
+            catch (Exception) { }
+#endif
+            return Searches[1, 1] + words;
+        }
+
+        private static string ReadDefaultBrowser()
+        {
+#if !CROSS
+            return DefaultBrowserChoice(ReadBrowserChoice);
+#else
+            return null;
+#endif
+        }
+
+#if !CROSS
+        internal static string DefaultBrowserChoice(Func<string, string> read)
+        {
+            const string path = @"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\";
+            foreach (string choice in new[] { @"UserChoiceLatest\ProgId", "UserChoiceLatest", "UserChoice" })
+            {
+                string id = null;
+                try { id = read(path + choice); } catch (Exception) { }
+                if (!string.IsNullOrWhiteSpace(id)) return DefaultBrowserName(id);
+            }
+            return null;
+        }
+
+        private static string ReadBrowserChoice(string path)
+        {
+            using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(path))
+                return key == null ? null : key.GetValue("ProgId") as string;
+        }
+#endif
+
+        internal static string DefaultBrowserName(string id)
+        {
+            if (Regex.IsMatch(id ?? "", @"^ChromeHTML(?:\.|$)", RegexOptions.IgnoreCase)) return "Chrome";
+            if (Regex.IsMatch(id ?? "", @"^MSEdgeHTM(?:\.|$)", RegexOptions.IgnoreCase)) return "Edge";
+            if (Regex.IsMatch(id ?? "", @"^BraveHTML(?:\.|$)", RegexOptions.IgnoreCase)) return "Brave";
+            if (Regex.IsMatch(id ?? "", @"^VivaldiHTM(?:\.|$)", RegexOptions.IgnoreCase)) return "Vivaldi";
+            if (Regex.IsMatch(id ?? "", @"^OperaGX", RegexOptions.IgnoreCase)) return "Opera GX";
+            if (Regex.IsMatch(id ?? "", @"^OperaStable(?:\.|$)", RegexOptions.IgnoreCase)) return "Opera";
+            if (Regex.IsMatch(id ?? "", @"^FirefoxURL(?:-|$)", RegexOptions.IgnoreCase)) return "Firefox";
+            return null;
+        }
+
+        private static string SearchRoot(string browser)
+        {
+#if !CROSS
+            string folder = browser == "Chrome" ? @"Google\Chrome\User Data" : browser == "Edge" ? @"Microsoft\Edge\User Data" : browser == "Brave" ? @"BraveSoftware\Brave-Browser\User Data" : browser == "Vivaldi" ? @"Vivaldi\User Data" : browser == "Opera" ? @"Opera Software\Opera Stable" : browser == "Opera GX" ? @"Opera Software\Opera GX Stable" : null;
+            return folder == null ? null : Path.Combine(Environment.GetFolderPath(browser == "Opera" || browser == "Opera GX" ? Environment.SpecialFolder.ApplicationData : Environment.SpecialFolder.LocalApplicationData), folder);
+#else
+            return null;
+#endif
+        }
+
+        internal static string ReadSearchEngine(string browser)
+        {
+#if !CROSS
+            try
+            {
+                string root = ProfileRoot(browser);
+                if (string.IsNullOrWhiteSpace(root)) return null;
+                string state = Path.Combine(root, "Local State");
+                bool hasState = File.Exists(state);
+                string stateText = hasState ? ReadSearchFile(state) : null;
+                if (hasState && stateText == null) return null;
+                string profile = SearchProfile(stateText);
+                if (profile == null) return null;
+                string folder = Path.Combine(root, profile);
+                if ((browser == "Opera" || browser == "Opera GX") && !File.Exists(Path.Combine(folder, "Secure Preferences")) && !File.Exists(Path.Combine(folder, "Preferences"))) folder = root;
+                return SearchTemplate(ReadSearchFile(Path.Combine(folder, "Secure Preferences"))) ?? SearchTemplate(ReadSearchFile(Path.Combine(folder, "Preferences")));
+            }
+            catch (Exception) { }
+#endif
+            return null;
+        }
+
+#if !CROSS
+        internal static string ReadSearchFile(string path)
+        {
+            try
+            {
+                using (FileStream input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                {
+                    if (input.Length > 4 * 1024 * 1024) return null;
+                    byte[] bytes = new byte[(int)input.Length];
+                    int offset = 0, got;
+                    while (offset < bytes.Length && (got = input.Read(bytes, offset, bytes.Length - offset)) > 0) offset += got;
+                    return offset == bytes.Length && input.Length == bytes.Length ? Encoding.UTF8.GetString(bytes) : null;
+                }
+            }
+            catch (Exception) { return null; }
+        }
+#endif
+
+        // Keep a page when her website call has a misplaced address or browser name (YunoTheAlien, 13 Nov).
+        internal static void WebsiteArgs(ToolArguments args)
+        {
+            if (args == null || Named(args.Site)) return;
+            if (Named(args.Name) && Site(args.Name)) args.Site = args.Name.Trim();
+            else if (Named(args.Search) && Site(args.Search)) { args.Site = args.Search.Trim(); args.Search = null; }
+        }
+
         private static string OpenSite(string site, string search, string browser = null)
         {
             string address = null;
@@ -4898,7 +5301,7 @@ namespace CapriDesktop
                 site = Websites.Find(nickname);
                 if (string.IsNullOrWhiteSpace(search)) address = site;
             }
-            if (address == null) address = Address(site, search);
+            if (address == null) address = Address(site, search, browser);
             if (address == null) return "That isn't a website.";
             string browserName = BrowserName(browser);
             string browserPath = browserName == null ? null : BrowserPath(browserName);
@@ -4907,25 +5310,27 @@ namespace CapriDesktop
             string host = new Uri(address).Host;
             if (host.StartsWith("www.", StringComparison.Ordinal)) host = host.Substring(4);
             string result = address.TrimEnd('/') == "https://" + Home ? "Opened your own website, " + Home : string.IsNullOrWhiteSpace(search) ? "Opened " + host : "Searched " + host + " for " + search.Trim();
-            if (browserName == null) return result + ".";
+            if (browserName == null) return result + (string.IsNullOrWhiteSpace(browser) ? "." : " in your default browser.");
             if (browserPath == null) return result + " in your default browser because " + browserName + " isn't installed.";
             return result + " in " + browserName + Opened(browserName) + ".";
         }
 
-        private const string BrowserWords = @"chrome|edge|firefox|opera gx|opera|brave|vivaldi";
+        private const string BrowserWords = @"(?:google )?chrome|(?:microsoft )?edge|(?:mozilla )?firefox|opera[ _]gx|opera|brave|vivaldi";
+        private static readonly string[] BrowserNames = { "Chrome", "Edge", "Firefox", "Opera GX", "Opera", "Brave", "Vivaldi" };
 
         internal static string BrowserName(string browser)
         {
-            string plain = (browser ?? "").Trim().ToLowerInvariant();
-            string[] choices = { "Chrome", "Edge", "Firefox", "Opera", "Opera GX", "Brave", "Vivaldi" };
-            foreach (string choice in choices) if (plain == choice.ToLowerInvariant()) return choice;
+            string plain = Regex.Replace(Plain(browser), @"^the | (browser|stable)$", "");
+            if (plain == "google chrome") plain = "chrome";
+            if (plain == "microsoft edge") plain = "edge";
+            if (plain == "mozilla firefox") plain = "firefox";
+            foreach (string choice in BrowserNames) if (plain == choice.ToLowerInvariant()) return choice;
             return null;
         }
 
         private static string BrowserApp(string name)
         {
-            string plain = Regex.Replace(Plain(name), @"^(google|microsoft|mozilla) | (browser|stable)$", "");
-            return BrowserName(plain);
+            return BrowserName(name);
         }
 
         // "open youtube in chrome", "in firefox open reddit", "search for cats on youtube in edge". Only the end or the start of what they said can name a browser, so "chrome hearts" stays a search.
@@ -5078,12 +5483,13 @@ namespace CapriDesktop
             return bestWindow;
         }
 
-        internal static string Address(string site, string search)
+        internal static string Address(string site, string search, string browser = null)
         {
             string host = Regex.Replace((site ?? "").Trim().ToLowerInvariant(), @"^(https?://)?(www\.)?", "");
             bool searching = !string.IsNullOrWhiteSpace(search);
             if (searching)
             {
+                if (host.Length == 0) return SearchAddress(search, browser);
                 for (int i = 0; i < Searches.GetLength(0); i++)
                 {
                     string key = Searches[i, 0];
@@ -5645,7 +6051,9 @@ namespace CapriDesktop
                 string played = PlayMusic(asked, "auto", askedKind, current, songOnly);
                 return played.StartsWith("Playing ", StringComparison.Ordinal) ? "Apple Music isn't installed, so p" + played.Substring(1) : played;
             }
-            if (app != "youtube" && Match(Apps(), "spotify").Count > 0)
+            bool hasSpotify = false;
+            if (app != "youtube") try { hasSpotify = FindApps("spotify").Count > 0; } catch (Exception) { }
+            if (hasSpotify)
             {
                 if (liked) named = "their Liked Songs";
                 string spotted = liked || ownPlaylist ? null : known ?? SpotifyLink(Fetch("https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString("site:open.spotify.com/" + (kind == "song" ? "track" : kind) + " " + song)), kind, song);
@@ -5721,11 +6129,17 @@ namespace CapriDesktop
             try
             {
                 InstalledApp chosen = null;
-                foreach (InstalledApp app in Apps())
+                List<InstalledApp> apps = Apps();
+                for (int pass = 0; pass < (AppsPath == null ? 1 : 2); pass++)
                 {
-                    string name = AppName(app);
-                    if (name != "apple music" && !name.StartsWith("apple music ", StringComparison.Ordinal)) continue;
-                    if (chosen == null || WebApp(chosen) && !WebApp(app) || WebApp(chosen) == WebApp(app) && name.Length < AppName(chosen).Length) chosen = app;
+                    if (pass > 0) apps = FreshApps(apps);
+                    foreach (InstalledApp app in apps)
+                    {
+                        string name = AppName(app);
+                        if (name != "apple music" && !name.StartsWith("apple music ", StringComparison.Ordinal)) continue;
+                        if (chosen == null || WebApp(chosen) && !WebApp(app) || WebApp(chosen) == WebApp(app) && name.Length < AppName(chosen).Length) chosen = app;
+                    }
+                    if (chosen != null) return chosen;
                 }
                 return chosen;
             }
@@ -6225,9 +6639,7 @@ namespace CapriDesktop
             List<InstalledApp> found;
             try
             {
-                found = Match(Apps(), wanted);
-                string nicknamed = found.Count == 0 ? Nickname(wanted) : null;
-                if (nicknamed != null) found = Match(Apps(), nicknamed);
+                found = FindApps(wanted);
             }
             catch (Exception error) { return "Couldn't read their apps just now: " + error.Message; }
             InstalledApp chosen = null;
