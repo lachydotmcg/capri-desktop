@@ -2842,13 +2842,14 @@ namespace CapriDesktop
         internal const string NoRoom = "There isn't enough room to unpack that voice model.";
         internal const string Unwritten = "Couldn't read the archive or write the voice model files.";
         internal const string Empty = "Nothing in that archive is a voice model Capri can run.";
-        internal const string Inside = "Move that archive out of the models folder and try again.";
+        internal const string Inside = "Move that archive out of this model's folder and try again.";
         internal const string Format = "Capri can't unpack that format. Use .tar.bz2, .tar.gz, .tar or .zip.";
-        internal static Func<string, Stream> Write = delegate(string path) { return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20); };
         internal const string Unopened = "Capri can't open that clip. Press the arrow in the Speaker or clip box to pick it.";
         // Her free voice's folder, where sherpa-onnx is, and the folder models from an archive are unpacked into. Set at startup.
         internal static string Engine;
         internal static string Shelf;
+        // Where an unpacked file is written. The smoke test swaps in a disk that fills up.
+        internal static Func<string, Stream> Write = delegate(string path) { return new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20); };
         internal delegate short[] Generate(string folder, string language, string speaker, string text, out int rate);
         internal static Generate Run;
         private static readonly object gate = new object();
@@ -3015,35 +3016,38 @@ namespace CapriDesktop
                 staging = target + ".new";
                 using (FileStream packed = new FileStream(archive, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20))
                 {
-                    string source = WorkspacePaths.Final(archive);
-                    foreach (string folder in new[] { Shelf, target, staging })
-                    {
-                        string path = WorkspacePaths.Final(folder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-                        if (string.Equals(source, path, StringComparison.OrdinalIgnoreCase) || source.StartsWith(path + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                            throw new VoiceException(Inside);
-                    }
+                    if (Within(archive, target) || Within(archive, staging)) throw new VoiceException(Inside);
                     if (archive.EndsWith(".xz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".zst", StringComparison.OrdinalIgnoreCase)) throw new VoiceException(Format);
                     if (Directory.Exists(staging)) Directory.Delete(staging, true);
                     clean = true;
                     Directory.CreateDirectory(staging);
                     if (archive.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                     {
-                        using (ZipArchive zip = new ZipArchive(packed, ZipArchiveMode.Read, true)) zip.ExtractToDirectory(staging);
+                        try
+                        {
+                            using (ZipArchive zip = new ZipArchive(packed, ZipArchiveMode.Read, true)) zip.ExtractToDirectory(staging);
+                        }
+                        catch (IOException problem)
+                        {
+                            // An entry outside the folder, a folder entry with data, or two entries with one name.
+                            if (problem.HResult == unchecked((int)0x80131620) || problem.HResult == unchecked((int)0x80070050)) throw new ArchiveException(problem.Message);
+                            throw;
+                        }
                     }
                     else if (archive.EndsWith(".bz2", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tbz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tbz2", StringComparison.OrdinalIgnoreCase))
                     {
-                        using (Stream opened = Bunzip.Open(packed))
+                        using (Stream plain = Bunzip.Open(packed))
                         {
-                            TarReader.Unpack(opened, staging, true, Write);
-                            opened.CopyTo(Stream.Null);
+                            TarReader.Unpack(plain, staging, true, Write);
+                            plain.CopyTo(Stream.Null);
                         }
                     }
                     else if (archive.EndsWith(".gz", StringComparison.OrdinalIgnoreCase) || archive.EndsWith(".tgz", StringComparison.OrdinalIgnoreCase))
                     {
-                        using (GZipStream opened = new GZipStream(packed, CompressionMode.Decompress, true))
+                        using (GZipStream plain = new GZipStream(packed, CompressionMode.Decompress, true))
                         {
-                            TarReader.Unpack(opened, staging, true, Write);
-                            opened.CopyTo(Stream.Null);
+                            TarReader.Unpack(plain, staging, true, Write);
+                            plain.CopyTo(Stream.Null);
                         }
                     }
                     else TarReader.Unpack(packed, staging, true, Write);
@@ -3062,15 +3066,35 @@ namespace CapriDesktop
             }
             catch (VoiceException) { throw; }
             catch (ArchiveException problem) { throw new VoiceException(Damaged, problem.Message); }
+            catch (EndOfStreamException problem) { throw new VoiceException(Damaged, problem.Message); }
             catch (InvalidDataException problem) { throw new VoiceException(Damaged, problem.Message); }
             catch (IOException problem)
             {
-                int code = problem.HResult & 0xffff;
-                throw new VoiceException(code == 39 || code == 112 ? NoRoom : Unwritten, problem.Message);
+                int code = problem.HResult;
+                bool full = code == unchecked((int)0x80070070) || code == unchecked((int)0x80070027) || code == unchecked((int)0x80070507);
+                throw new VoiceException(full ? NoRoom : Unwritten, problem.Message);
             }
             catch (UnauthorizedAccessException problem) { throw new VoiceException(Unwritten, problem.Message); }
             catch (System.Security.SecurityException problem) { throw new VoiceException(Unwritten, problem.Message); }
             finally { if (clean) TarReader.Clean(staging); }
+        }
+
+        // Through a short name, junction or subst drive as well, so cleaning up never deletes the archive they picked.
+        private static bool Within(string file, string folder)
+        {
+            for (int pass = 0; pass < 2; pass++)
+            {
+                string from, inside;
+                try
+                {
+                    from = pass == 0 ? Path.GetFullPath(file) : WorkspacePaths.Final(file);
+                    inside = (pass == 0 ? Path.GetFullPath(folder) : WorkspacePaths.Final(folder)).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                }
+                catch (IOException) { continue; }
+                catch (UnauthorizedAccessException) { continue; }
+                if (from.StartsWith(inside + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
         }
 
         // Its sound for the words at its own rate. `lang` is a Kokoro model's language, like en-us or es. `voice` is a speaker
