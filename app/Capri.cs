@@ -198,6 +198,7 @@ namespace CapriDesktop
             fresh.TextKey = old.TextKey; fresh.TextModel = old.TextModel;
             fresh.NvidiaKey = old.NvidiaKey; fresh.NvidiaModel = old.NvidiaModel;
             fresh.PaidKey = old.PaidKey; fresh.PaidModel = old.PaidModel;
+            fresh.PaidPlan = old.PaidPlan; fresh.PlanModel = old.PlanModel; fresh.PlanPicked = old.PlanPicked;
             // Which tier is picked and that the keys are already split: without them, a MEDIUM Gemini or OpenRouter key would
             // be split again as a paid one, over the MAX key (a Codex review, 2 Nov).
             fresh.Tier = old.Tier; fresh.Tiered = old.Tiered; fresh.NvidiaGlm = old.NvidiaGlm;
@@ -990,6 +991,9 @@ namespace CapriDesktop
         [DataMember] public string NvidiaModel;
         [DataMember] public string PaidKey;
         [DataMember] public string PaidModel;
+        [DataMember(EmitDefaultValue = false)] public string PaidPlan;
+        [DataMember(EmitDefaultValue = false)] public string PlanModel;
+        [DataMember(EmitDefaultValue = false)] public bool PlanPicked;
         [DataMember] public int Tier;
         [DataMember] public bool Tiered;
         [DataMember] public ThinkingPick[] ThinkingPicks;
@@ -11449,7 +11453,11 @@ namespace CapriDesktop
 
         private void SplitKeys()
         {
-            if (preferences.Tiered) return;
+            if (preferences.Tiered)
+            {
+                if (SplitPlan() && !testing) SavePreferences();
+                return;
+            }
             string textKey = Voice.Unprotect(preferences.TextKey);
             bool nvidia = textKey != null && Cloud.KindOf(textKey) == "nvidia";
             if (nvidia)
@@ -11464,15 +11472,27 @@ namespace CapriDesktop
             }
             preferences.Tier = textKey == null ? 0 : nvidia ? 1 : 2;
             preferences.Tiered = true;
+            SplitPlan();
             if (!testing) SavePreferences();
+        }
+
+        private bool SplitPlan()
+        {
+            if (Plans.KindOf(Voice.Unprotect(preferences.PaidKey)) == null) return false;
+            preferences.PaidPlan = preferences.PaidKey;
+            preferences.PlanModel = preferences.PaidModel;
+            preferences.PlanPicked = true;
+            preferences.PaidKey = null;
+            preferences.PaidModel = null;
+            return true;
         }
 
         private Cloud TierCloud()
         {
             if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) return null;
             if (preferences.Tier == 0 && preferences.BrainPort > 0 && preferences.BrainPort <= 65535 && !string.IsNullOrEmpty(preferences.LocalModel)) return new Cloud(preferences.BrainPort, preferences.LocalModel, preferences.BrainAddress);
-            string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null);
-            string model = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PaidModel;
+            string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PlanPicked ? preferences.PaidPlan : preferences.PaidKey : null);
+            string model = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PlanPicked ? preferences.PlanModel : preferences.PaidModel;
             string kind = Cloud.KindOf(key);
             if (kind == null || preferences.Tier == 1 && !Cloud.MediumKind(kind)) return null;
             bool fits = Brain.ModelFits(kind, model) && (preferences.Tier != 1 || kind != "openrouter" || model.EndsWith(":free", StringComparison.Ordinal));
@@ -11481,14 +11501,14 @@ namespace CapriDesktop
 
         private void Mirror()
         {
-            preferences.TextKey = preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null;
-            preferences.TextModel = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.Tier == 2 ? preferences.PaidModel : null;
+            preferences.TextKey = preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PlanPicked ? preferences.PaidPlan : preferences.PaidKey : null;
+            preferences.TextModel = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.Tier == 2 ? preferences.PlanPicked ? preferences.PlanModel : preferences.PaidModel : null;
         }
 
         private void ShowTiers()
         {
-            string nvidia = Voice.Unprotect(preferences.NvidiaKey), paid = Voice.Unprotect(preferences.PaidKey), plan = Plans.KindOf(paid);
-            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : plan != null ? Plans.Plan(plan) : Voice.Tail(paid), Cloud.KindOf(nvidia), plan != null);
+            string nvidia = Voice.Unprotect(preferences.NvidiaKey), paid = Voice.Unprotect(preferences.PaidKey), plan = preferences.PlanPicked ? Plans.KindOf(Voice.Unprotect(preferences.PaidPlan)) : null;
+            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : Voice.Tail(paid), Cloud.KindOf(nvidia), plan);
             mainframe.ShowNoAi(preferences.NoAi);
             RemoteBrainsShown();
         }
@@ -11497,16 +11517,17 @@ namespace CapriDesktop
         {
             if (remote.Kind == "local") { preferences.BrainPort = remote.Port; preferences.BrainAddress = remote.Host; preferences.LocalModel = remote.Model; }
             else if (preferences.Tier == 1) preferences.NvidiaModel = remote.Model;
+            else if (remote.Plan) preferences.PlanModel = remote.Model;
             else preferences.PaidModel = remote.Model;
             Mirror();
             SavePreferences();
         }
 
-        internal void ChooseTier(int tier)
+        internal void ChooseTier(int tier, bool force = false)
         {
             ++brainLook;
-            if (tier == preferences.Tier && !preferences.NoAi) return;
-            if (AfterLine(delegate { ChooseTier(tier); })) return;
+            if (tier == preferences.Tier && !preferences.NoAi && !force) return;
+            if (AfterLine(delegate { ChooseTier(tier, force); })) return;
             // Picking any brain switches No AI off.
             preferences.NoAi = false;
             Brain.Off = false;
@@ -11578,8 +11599,21 @@ namespace CapriDesktop
             ConnectText(key, 2);
         }
 
-        // MAX INTELLIGENCE on their own Claude or ChatGPT plan, through Claude Code or Codex on this PC (Lachy, 6 Nov).
-        internal void UsePlan(string kind) { ConnectText(kind == "codex" ? Plans.CodexKey : Plans.ClaudeKey, 2); }
+        internal void UseApiKey()
+        {
+            if (AfterLine(UseApiKey)) return;
+            preferences.PlanPicked = false;
+            ChooseTier(2, true);
+        }
+
+        internal void UsePlan(string kind)
+        {
+            if (!Plans.Is(kind)) return;
+            if (Plans.KindOf(Voice.Unprotect(preferences.PaidPlan)) != kind) { ConnectText(kind == "codex" ? Plans.CodexKey : Plans.ClaudeKey, 2); return; }
+            if (AfterLine(delegate { UsePlan(kind); })) return;
+            preferences.PlanPicked = true;
+            ChooseTier(2, true);
+        }
 
         private void ConnectText(string key, int targetTier)
         {
@@ -11598,6 +11632,7 @@ namespace CapriDesktop
 
         private void TextProblem(string problem, bool connecting)
         {
+            problem = Brain.Redacted(Brain.Scrubbed(problem));
             problem = Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem);
             Cloud remote = brain.Remote;
             if (connecting && remote != null && remote.Kind != "local") problem = (remote.Plan ? "Still using your " + Plans.Plan(remote.Kind) + ". " : "Still using your " + remote.Company + " key. ") + problem;
@@ -11623,15 +11658,24 @@ namespace CapriDesktop
                 preferences.NvidiaKey = null;
                 preferences.NvidiaModel = null;
             }
+            else if (preferences.PlanPicked)
+            {
+                preferences.PaidPlan = null;
+                preferences.PlanModel = null;
+                preferences.PlanPicked = false;
+            }
             else
             {
                 preferences.PaidKey = null;
                 preferences.PaidModel = null;
+                preferences.PlanPicked = Plans.KindOf(Voice.Unprotect(preferences.PaidPlan)) != null;
             }
-            preferences.Tier = 0;
+            preferences.Tier = preferences.Tier == 2 && (preferences.PlanPicked ? preferences.PaidPlan : preferences.PaidKey) != null ? 2 : 0;
             LoadProvider();
             Mirror();
             SavePreferences();
+            brain.Remote = TierCloud();
+            brain.Model = brain.Remote == null ? brain.Server == null ? null : preferences.ProviderModel : brain.Remote.Model;
             ShowTiers();
             FindBrain();
         }
@@ -11666,7 +11710,8 @@ namespace CapriDesktop
                         brain.SetServer(null, null);
                         brain.Remote = remote;
                         if (pickedTier == 1) preferences.NvidiaKey = Voice.Protect(key);
-                        else preferences.PaidKey = Voice.Protect(key);
+                        else if (probe.Plan) { preferences.PaidPlan = Voice.Protect(key); preferences.PlanPicked = true; }
+                        else { preferences.PaidKey = Voice.Protect(key); preferences.PlanPicked = false; }
                         preferences.Tier = pickedTier;
                         Keep(remote);
                         ShowTiers();
@@ -37790,11 +37835,188 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokePlanChoice(System.Collections.Generic.List<string> checks, string output, Action<string, bool> claudeSays)
+        {
+            Preferences wasPreferences = preferences;
+            Cloud wasRemote = brain.Remote;
+            Engine wasLocal = brain.Local;
+            string wasModel = brain.Model, wasOpenAi = Brain.OpenAi;
+            System.Collections.Generic.List<string> wasModels = cloudModels;
+            Func<string, string> wasThink = Think;
+            bool wasFinding = finding, wasOff = Brain.Off;
+            System.Net.Sockets.TcpListener server = null;
+            string key = "sk-proj-plan-choice-saved-key", sealedKey = Voice.Protect(key), sealedClaude = Voice.Protect(Plans.ClaudeKey), sealedCodex = Voice.Protect(Plans.CodexKey);
+            string catalog = "{\"data\":[{\"id\":\"gpt-90-mini\"},{\"id\":\"gpt-90\"}]}";
+            bool refuse = false;
+            Func<string, string> quoted = delegate(string value) { return value == null ? "null" : Voice.Quote(value); };
+            Func<string, Preferences> read = delegate(string text)
+            {
+                using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes(text))) return (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream);
+            };
+            Action<int> use = delegate(int state)
+            {
+                ++brainLook; ++cloudListing; ++providerListing; ++asking;
+                CloseTalk();
+                bool hasKey = state != 1 && state != 4, hasPlan = state != 0;
+                preferences = new Preferences { Tier = 2, Tiered = true, Silent = true, MainframeSize = 100, PaidKey = hasKey ? sealedKey : null, PaidModel = hasKey ? "gpt-90-mini" : null, PaidPlan = hasPlan ? state >= 4 ? sealedCodex : sealedClaude : null, PlanModel = hasPlan ? state >= 4 ? "default" : "sonnet" : null, PlanPicked = state == 1 || state >= 3 };
+                brain.SetServer(null, null);
+                brain.Remote = TierCloud(); brain.Local = null; brain.Model = brain.Remote.Model;
+                cloudModels = brain.Remote.Plan ? Plans.Models(brain.Remote.Kind) : new System.Collections.Generic.List<string> { "gpt-90-mini", "gpt-90" };
+                Mirror();
+                ShowTiers();
+                mainframe.ShowCloud(brain.Remote, cloudModels);
+            };
+            Action settled = delegate { WaitVoice(delegate { return cloudModels != null; }, "The selected brain did not finish listing its models."); };
+            try
+            {
+                finding = true;
+                Brain.Off = false;
+                Think = delegate { return "Connected."; };
+                foreach (string kind in new[] { "openai", "claudecode", "codex", null })
+                {
+                    string saved = kind == null ? null : kind == "openai" ? sealedKey : kind == "codex" ? sealedCodex : sealedClaude;
+                    string model = kind == null ? null : kind == "openai" ? "gpt-90-mini" : kind == "codex" ? "default" : "sonnet";
+                    int tier = kind == null ? 0 : 2;
+                    preferences = read("{\"Tier\":" + tier + ",\"Tiered\":true,\"PaidKey\":" + quoted(saved) + ",\"PaidModel\":" + quoted(model) + ",\"TextKey\":" + quoted(saved) + ",\"TextModel\":" + quoted(model) + "}");
+                    SplitKeys();
+                    Mirror();
+                    Cloud remote = TierCloud();
+                    bool plan = Plans.Is(kind);
+                    if (preferences.Tier != tier || preferences.PlanPicked != plan || preferences.TextKey != saved || preferences.TextModel != model) throw new Exception("Updating changed the selected 0.9.1 brain.");
+                    if (kind == null ? remote != null : remote == null || remote.Kind != kind || remote.Model != model) throw new Exception("A 0.9.1 brain did not keep its key, plan or model.");
+                    if (plan ? preferences.PaidPlan != saved || preferences.PlanModel != model || preferences.PaidKey != null || preferences.PaidModel != null : preferences.PaidKey != saved || preferences.PaidModel != model || preferences.PaidPlan != null) throw new Exception("Migration replaced a saved credential.");
+                    if (SplitPlan()) throw new Exception("The plan migration ran twice.");
+                    ShowTiers();
+                    if (mainframe.PlanChoice != (plan ? Plans.Plan(kind) : "API key")) throw new Exception("Updating picked the wrong MAX choice.");
+                    checks.Add("PASS 0.9.1 saved " + (kind ?? "no brain") + " settings keep the same brain and model without another key or sign-in");
+                }
+                preferences = read("{\"Tier\":2,\"Tiered\":true}");
+                SplitKeys();
+                ShowTiers();
+                if (TierCloud() != null || preferences.Tier != 2 || preferences.PlanPicked || !mainframe.PlanTicked(0)) throw new Exception("An empty 0.9.1 MAX setup changed its brain.");
+                foreach (string mediumKey in new[] { "nvapi-plan-choice-saved", "AIza-plan-choice-saved", "sk-or-plan-choice-saved" })
+                {
+                    string saved = Voice.Protect(mediumKey), kind = Cloud.KindOf(mediumKey), model = kind == "google" ? "gemini-90-flash" : kind == "openrouter" ? "example/chat:free" : "kept-model";
+                    preferences = read("{\"Tier\":1,\"Tiered\":true,\"NvidiaKey\":" + quoted(saved) + ",\"NvidiaModel\":" + quoted(model) + ",\"TextKey\":" + quoted(saved) + ",\"TextModel\":" + quoted(model) + "}");
+                    SplitKeys();
+                    Mirror();
+                    Cloud remote = TierCloud();
+                    if (preferences.Tier != 1 || preferences.NvidiaKey != saved || preferences.NvidiaModel != model || preferences.PlanPicked || remote == null || remote.Key != mediumKey || remote.Model != model) throw new Exception("The plan migration changed a saved MEDIUM brain.");
+                }
+                preferences = new Preferences();
+                ShowTiers();
+                if (preferences.PlanPicked || !mainframe.PlanTicked(0) || string.Join(",", mainframe.PlanChoices) != "API key,Claude plan,ChatGPT plan") throw new Exception("A fresh MAX setup did not default to API key with all three choices.");
+                checks.Add("PASS fresh MAX defaults to API key; empty MAX and MEDIUM settings keep their choices");
+
+                System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                Brain.OpenAi = FakeServer(new string[80], asked, out server, respond: delegate(string request)
+                {
+                    if (refuse) return "!401 {\"error\":{\"message\":\"Key rejected\"}}";
+                    return request.StartsWith("GET ", StringComparison.Ordinal) ? catalog : "{\"choices\":[{\"message\":{\"content\":\"Key says hi.\"}}]}";
+                });
+                for (int state = 0; state < 6; state++)
+                {
+                    use(state);
+                    Cloud active = TierCloud();
+                    string expected = state == 1 || state == 3 ? "Plan says hi." : state >= 4 ? "Codex says hi." : "Key says hi.";
+                    string said = new Brain { Remote = active, Model = active.Model }.Aside("You are Capri.", "say hi", 90);
+                    if (said != expected || active.Plan != preferences.PlanPicked) throw new Exception("A saved API key and plan state used the wrong brain.");
+                }
+                checks.Add("PASS key only, plan only, both with key picked and both with plan picked route replies to the selected API, Claude Code or Codex stand-in");
+
+                use(0);
+                mainframe.PickPlan(1);
+                WaitVoice(delegate { return brain.Remote != null && brain.Remote.Kind == "claudecode" && cloudModels != null; }, "Connecting a plan did not finish.");
+                ++asking; CloseTalk();
+                if (preferences.PaidKey != sealedKey || preferences.PaidModel != "gpt-90-mini" || !preferences.PlanPicked) throw new Exception("Connecting a plan replaced the saved API key or model.");
+                ChooseModel("opus");
+                string keptPlan = preferences.PaidPlan;
+                mainframe.PickPlan(0);
+                if (brain.Remote == null || brain.Remote.Key != key || brain.Remote.Model != "gpt-90-mini" || preferences.PaidPlan != keptPlan || preferences.PlanModel != "opus" || preferences.PlanPicked) throw new Exception("Returning to API key did not use its saved key and model straight away.");
+                settled();
+                mainframe.PickPlan(1);
+                if (brain.Remote == null || brain.Remote.Kind != "claudecode" || brain.Remote.Model != "opus" || preferences.PaidKey != sealedKey) throw new Exception("Returning to the saved plan lost its model or the key.");
+                settled();
+                mainframe.PickPlan(0);
+                settled();
+                mainframe.PickPlan(2);
+                WaitVoice(delegate { return brain.Remote != null && brain.Remote.Kind == "codex" && cloudModels != null; }, "Connecting the ChatGPT plan did not finish.");
+                ++asking; CloseTalk();
+                if (preferences.PaidKey != sealedKey || preferences.PaidModel != "gpt-90-mini") throw new Exception("Connecting the ChatGPT plan replaced the saved API key.");
+                mainframe.PickPlan(0);
+                settled();
+                if (brain.Remote.Key != key || preferences.PlanPicked || Plans.KindOf(Voice.Unprotect(preferences.PaidPlan)) != "codex") throw new Exception("Returning from ChatGPT plan lost a saved choice.");
+                checks.Add("PASS connecting either plan and switching both ways keeps the saved key and each active source's model");
+
+                use(3);
+                SavePreferences();
+                preferences = LoadPreferences();
+                SplitKeys();
+                if (!preferences.PlanPicked || preferences.PaidKey != sealedKey || preferences.PaidPlan != sealedClaude || TierCloud().Kind != "claudecode") throw new Exception("The saved key and plan did not survive a restart.");
+                string written = File.ReadAllText(settingsPath);
+                if (written.Contains(key) || written.Contains(Plans.ClaudeKey) || written.Contains(Plans.CodexKey)) throw new Exception("A saved brain credential was written in plain text.");
+                mainframe.PickPlan(0);
+                settled();
+                preferences = LoadPreferences();
+                SplitKeys();
+                if (preferences.PlanPicked || preferences.PaidPlan != sealedClaude || TierCloud().Key != key) throw new Exception("The saved API choice did not survive a restart.");
+                checks.Add("PASS both credentials and either choice round-trip through settings.json with the existing protected key blobs");
+
+                use(3);
+                ForgetText();
+                if (preferences.PaidPlan != null || preferences.PlanModel != null || preferences.PaidKey != sealedKey || preferences.PlanPicked || preferences.Tier != 2 || brain.Remote == null || brain.Remote.Key != key) throw new Exception("Removing a plan did not leave the saved API key in use.");
+                settled();
+                use(2);
+                ForgetText();
+                if (preferences.PaidKey != null || preferences.PaidModel != null || preferences.PaidPlan != sealedClaude || !preferences.PlanPicked || preferences.Tier != 2 || brain.Remote == null || brain.Remote.Kind != "claudecode" || brain.Remote.Model != "sonnet") throw new Exception("Removing an API key did not leave the saved plan in use.");
+                settled();
+                checks.Add("PASS removing either source leaves the other saved source and its model in use");
+
+                use(3);
+                refuse = true;
+                ConnectText("sk-proj-plan-choice-refused-key");
+                WaitVoice(delegate { return mainframe.Status.Contains("Still using your Claude plan."); }, "A rejected API key did not explain that the plan stayed in use.");
+                if (!preferences.PlanPicked || preferences.PaidKey != sealedKey || preferences.PaidPlan != sealedClaude || brain.Remote.Kind != "claudecode") throw new Exception("A rejected replacement changed a saved source.");
+                use(2);
+                try { new Brain { Remote = brain.Remote, Model = brain.Model }.Aside("You are Capri.", "say hi", 90); throw new Exception("A refused saved API key answered through another brain."); }
+                catch (BrainException rejected) { if (!rejected.Told || rejected.Message.IndexOf("key", StringComparison.OrdinalIgnoreCase) < 0) throw new Exception("A refused API key hid its problem."); }
+                if (preferences.PlanPicked || preferences.PaidPlan != sealedClaude || brain.Remote.Key != key) throw new Exception("A refused API key silently switched to the saved plan.");
+                refuse = false;
+                claudeSays("{\"type\":\"result\",\"is_error\":true,\"result\":\"OAuth session expired\"}", false);
+                use(5);
+                mainframe.PickPlan(1);
+                WaitVoice(delegate { return mainframe.Status.Contains("Still using your ChatGPT plan."); }, "A failed plan connection did not explain which brain stayed in use.");
+                if (!preferences.PlanPicked || preferences.PaidKey != sealedKey || preferences.PaidPlan != sealedCodex || brain.Remote.Kind != "codex") throw new Exception("A failed plan connection replaced a saved choice.");
+                use(3);
+                try { new Brain { Remote = brain.Remote, Model = brain.Model }.Aside("You are Capri.", "say hi", 90); throw new Exception("An expired plan answered through another brain."); }
+                catch (BrainException expired) { if (!expired.Told || expired.Message != "Claude Code isn't signed in. Run claude and sign in.") throw new Exception("An expired plan hid its sign-in problem."); }
+                if (!preferences.PlanPicked || preferences.PaidKey != sealedKey || brain.Remote.Kind != "claudecode") throw new Exception("An expired plan silently switched to the saved API key.");
+                BrainException secret = PlanBrain.Problem("claudecode", "Failed: " + key + " Bearer private-plan-token");
+                if (secret.Message.Contains(key) || secret.Message.Contains("private-plan-token") || Brain.Scrubbed(key).Contains(key) || mainframe.TextStatus.Contains(key)) throw new Exception("An inactive key or plan token reached an error or label.");
+                claudeSays("{\"type\":\"result\",\"is_error\":false,\"result\":\"Plan says hi.\"}", false);
+                checks.Add("PASS refused API keys and expired plans explain the failure without switching to the other source; stored inactive keys and plan tokens stay out of errors and labels");
+                mainframe.CheckPlanPages(checks, output, use);
+            }
+            finally
+            {
+                if (server != null) server.Stop();
+                ++brainLook; ++cloudListing; ++providerListing; ++asking;
+                CloseTalk();
+                preferences = wasPreferences;
+                brain.Remote = wasRemote; brain.Local = wasLocal; brain.Model = wasModel; cloudModels = wasModels;
+                Think = wasThink; finding = wasFinding; Brain.Off = wasOff; Brain.OpenAi = wasOpenAi;
+                LoadProvider();
+                ShowTiers();
+                if (wasRemote != null) mainframe.ShowCloud(wasRemote, wasModels);
+                SavePreferences();
+            }
+        }
+
         // Their plan as her brain: Claude Code and Codex run hidden with her prompt on stdin, none of their own tools, no MCP servers,
         // nothing saved and no API key from the environment; a screenshot goes along as a picture; a signed-out app, a used-up plan
         // and a missing app each get her plain line; a reply they talk over ends the app at once; and My plan sits on MAX
         // INTELLIGENCE's rung with the plan in use ticked.
-        private void SmokePlanBrain(System.Collections.Generic.List<string> checks)
+        private void SmokePlanBrain(System.Collections.Generic.List<string> checks, string output)
         {
             string claudeWas = PlanBrain.ClaudeOverride, codexWas = PlanBrain.CodexOverride, folderWas = PlanBrain.FolderOverride;
             string keyWas = Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
@@ -37865,6 +38087,8 @@ namespace CapriDesktop
                 if (sent.IndexOf("<instructions>", StringComparison.Ordinal) < 0 || sent.IndexOf("You are Capri.", StringComparison.Ordinal) < 0 || sent.IndexOf("say hi", StringComparison.Ordinal) < 0) throw new Exception("Codex wasn't sent her rules and message: " + sent);
                 onCodex.See(new byte[] { 1, 2, 3 }, "Look", "What's on screen?", 90);
                 if (File.ReadAllText(Path.Combine(root, "codex-args.txt")).IndexOf(" -i ", StringComparison.Ordinal) < 0) throw new Exception("Her screenshot didn't reach Codex.");
+                claudeSays("{\"type\":\"result\",\"is_error\":false,\"result\":\"Plan says hi.\"}", false);
+                SmokePlanChoice(checks, output, claudeSays);
                 // Talked over: the app ends at once.
                 claudeSays("{\"type\":\"result\",\"subtype\":\"success\",\"is_error\":false,\"result\":\"Too late.\"}", true);
                 Stopwatch stopping = Stopwatch.StartNew();
@@ -37883,14 +38107,14 @@ namespace CapriDesktop
                 foreach (int dpi in new[] { 96, 144, 192 })
                 {
                     mainframe.LayoutScale(dpi, 100);
-                    mainframe.ShowTiers(2, null, Plans.Plan("claudecode"), null, true);
+                    mainframe.ShowTiers(2, null, null, null, "claudecode");
                     mainframe.ShowCloud(claudePlan, Plans.Models("claudecode"));
                     string problem = mainframe.TiersProblem;
                     if (problem != null) throw new Exception("BRAIN with My plan doesn't fit at " + dpi + " DPI: " + problem);
                 }
                 mainframe.LayoutScale(96, 100);
-                if (!mainframe.PlanTicked(0) || mainframe.PlanTicked(1)) throw new Exception("My plan didn't tick the plan in use.");
-                if (mainframe.TextStatus != "tier 2 | Claude Code · haiku | Using your Claude plan · Claude Code on this PC | Using your Claude plan | Forget") throw new Exception("BRAIN showed " + mainframe.TextStatus);
+                if (mainframe.PlanTicked(0) || !mainframe.PlanTicked(1) || mainframe.PlanTicked(2)) throw new Exception("The brain choice didn't tick the plan in use.");
+                if (mainframe.TextStatus != "tier 2 | Claude Code · haiku | Using your Claude plan · Claude Code on this PC | Haiku | Forget") throw new Exception("BRAIN showed " + mainframe.TextStatus);
                 checks.Add("PASS your plan as her brain: Claude Code and Codex run hidden with her prompt on stdin, none of their own tools, no MCP servers, nothing saved and no API key from the environment; a screenshot goes along as a picture; signed out, out of plan and not installed each get her plain line; a reply talked over ends the app " + stoppedIn + " ms after it starts; and My plan fits MAX INTELLIGENCE's rung at 100%, 150% and 200%");
             }
             finally
@@ -43096,7 +43320,7 @@ namespace CapriDesktop
             Section(checks, "SmokeControlSign", delegate { SmokeControlSign(checks); });
             Section(checks, "SmokeLongMenus", delegate { SmokeLongMenus(checks); });
             Section(checks, "SmokeSaid", delegate { SmokeSaid(checks); });
-            Section(checks, "SmokePlanBrain", delegate { SmokePlanBrain(checks); });
+            Section(checks, "SmokePlanBrain", delegate { SmokePlanBrain(checks, Path.Combine(output, "plan-choice")); });
             Section(checks, "SmokeLeaks", delegate { SmokeLeaks(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
@@ -49484,7 +49708,7 @@ namespace CapriDesktop
                                 Directory.CreateDirectory(startCheck);
                                 Brain.LogPath = Path.Combine(startCheck, "errors.txt");
                                 string startSettings = Path.Combine(startCheck, "settings.json"), startMark = Path.Combine(startCheck, Program.StartMarker);
-                                File.WriteAllText(startSettings, "{\"Size\":300,\"Watch\":true,\"Tier\":1,\"Tiered\":true,\"NvidiaGlm\":true,\"NvidiaKey\":\"kept-nvidia\",\"PaidKey\":\"kept-paid\",\"VoiceKey\":\"kept-voice-key\",\"VoiceId\":\"kept-voice\",\"ServerUrl\":\"https://api.fish.audio\",\"ServerKey\":\"kept-server\",\"TalkMods\":2,\"TalkVk\":75}");
+                                File.WriteAllText(startSettings, "{\"Size\":300,\"Watch\":true,\"Tier\":1,\"Tiered\":true,\"NvidiaGlm\":true,\"NvidiaKey\":\"kept-nvidia\",\"PaidKey\":\"kept-paid\",\"PaidPlan\":\"kept-plan\",\"PlanModel\":\"sonnet\",\"PlanPicked\":true,\"VoiceKey\":\"kept-voice-key\",\"VoiceId\":\"kept-voice\",\"ServerUrl\":\"https://api.fish.audio\",\"ServerKey\":\"kept-server\",\"TalkMods\":2,\"TalkVk\":75}");
                                 bool firstStart = Program.Starting(startCheck);
                                 bool marked = File.Exists(startMark) && File.Exists(startSettings);
                                 // One start that never settled only warns: Task Manager or a stuck shutdown can do that once.
@@ -49495,6 +49719,7 @@ namespace CapriDesktop
                                 using (FileStream stream = File.OpenRead(startSettings)) afterReset = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream);
                                 bool movedAside = File.ReadAllText(Path.Combine(startCheck, "settings.crashed.json")).Contains("300") && afterReset.Size == 240 && !afterReset.Watch
                                     && afterReset.NvidiaKey == "kept-nvidia" && afterReset.PaidKey == "kept-paid" && afterReset.Tier == 1 && afterReset.Tiered && afterReset.NvidiaGlm && afterReset.VoiceKey == "kept-voice-key" && afterReset.VoiceId == "kept-voice"
+                                    && afterReset.PaidPlan == "kept-plan" && afterReset.PlanModel == "sonnet" && afterReset.PlanPicked
                                     && afterReset.ServerUrl == "https://api.fish.audio" && afterReset.ServerKey == "kept-server" && afterReset.TalkMods == 2 && afterReset.TalkVk == 75 && afterReset.MuteVk == 0x4E
                                     && File.ReadAllLines(startMark)[1] == "0";
                                 File.Delete(startMark);

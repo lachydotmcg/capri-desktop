@@ -435,7 +435,7 @@ namespace CapriDesktop
         internal static string Shown(string kind, string id)
         {
             if (kind == "codex") return id == "default" ? "Codex's own model" : id;
-            return id == "haiku" ? "Haiku · fastest" : id == "sonnet" ? "Sonnet" : id == "opus" ? "Opus · smartest, uses your plan fastest" : id;
+            return id == "haiku" ? "Haiku" : id == "sonnet" ? "Sonnet" : id == "opus" ? "Opus" : id;
         }
 
         internal static string Missing(string kind)
