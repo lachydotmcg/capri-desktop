@@ -6960,6 +6960,9 @@ namespace CapriDesktop
             if (!wire.Events.Contains("paired " + phone.Id)) throw new Exception("Remote did not report pairing.");
             RemoteKeys keys = wire.Hello(phone, nonce);
             if (!wire.Link.HasSession(phone.Id) || !wire.Link.IsOnline(phone.Id)) throw new Exception("Remote hello did not start a session.");
+            int pictureDecodes = 0;
+            RemotePicture refused;
+            if (Array.IndexOf(wire.Link.FeaturesNow, "pictures") >= 0 || Array.IndexOf(wire.Link.FeaturesNow, "call") >= 0 || RemotePicture.Read(RemoteJson.ParseMap("{\"type\":\"chat.send\",\"picture\":{\"mime\":\"image/png\",\"data\":\"bad\"}}"), out refused, delegate { pictureDecodes++; }) || pictureDecodes != 0) throw new Exception("The cross host offered calls or pictures, or decoded a phone picture.");
             sink.Tool(phone.Id, "t1", "open_app", "Opening an app", "running", "m1");
             wire.Pump();
             byte[] tool = wire.BinaryFrames[0];
@@ -6970,7 +6973,13 @@ namespace CapriDesktop
             wire.Send(phone, keys, 0, chat);
             wire.Send(phone, keys, 1, chat);
             if (wire.Said.Count != 1 || wire.Said[0][0] != phone.Id || wire.Said[0][1] != "m1" || wire.Said[0][2] != "Hello") throw new Exception("Remote chat lost its source or deduplication.");
-            wire.Send(phone, keys, 3, chat);
+            wire.Send(phone, keys, 2, "{\"type\":\"chat.send\",\"id\":\"no-pictures\",\"text\":\"\",\"picture\":{\"mime\":\"image/png\",\"data\":\"bad\"}}");
+            wire.Pump();
+            byte[] refusal = wire.BinaryFrames[wire.BinaryFrames.Count - 1];
+            plain = RemoteCrypto.Open(keys.PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, 2, refusal, 16, refusal.Length - 16, out why);
+            RemoteJson.Map badPicture = plain == null ? null : RemoteJson.Message(plain);
+            if (badPicture == null || badPicture.Text("type") != "error" || badPicture.Text("code") != "bad-message" || badPicture.Text("re") != "no-pictures" || wire.Said.Count != 1) throw new Exception("The cross host did not refuse a picture before receipt and dispatch.");
+            wire.Send(phone, keys, 4, chat);
             if (wire.Link.HasSession(phone.Id)) throw new Exception("Remote kept an out-of-order session.");
             byte[] later = new byte[16]; later[0] = 1;
             RemoteKeys fresh = wire.Hello(phone, later);
@@ -8116,7 +8125,7 @@ namespace CapriDesktop
             internal int Count { get { lock (rows) return rows.Count; } }
             private void Add(string device, string json) { RemoteJson.Map row = RemoteJson.ParseMap(json); row["device"] = device; lock (rows) rows.Add(row); }
             public void Reply(string device, string id, string re, string text, bool done) { Add(device, RemoteMessages.Reply(id, re, text, done)); }
-            public void Tool(string device, string id, string name, string summary, string state, string re) { Add(device, RemoteMessages.Tool(id, name, summary, state, re)); }
+            public void Tool(string device, string id, string name, string summary, string state, string re, string move = null) { Add(device, RemoteMessages.Tool(id, name, summary, state, re, move)); }
             public void Error(string device, string code, string re) { Add(device, RemoteMessages.Error(code, re)); }
             internal RemoteJson.Map ReplyFor(string re) { lock (rows) return rows.Find(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply" && row.Text("re") == re; }); }
             internal int CountFor(string re) { lock (rows) return rows.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply" && row.Text("re") == re; }).Count; }
@@ -8877,7 +8886,7 @@ namespace CapriDesktop
             private readonly RemoteSink wire, record;
             internal RemoteSheetSink(RemoteLink link, RemoteSink record) { wire = new RemoteLinkSink(link); this.record = record; }
             public void Reply(string device, string id, string re, string text, bool done) { wire.Reply(device, id, re, text, done); record.Reply(device, id, re, text, done); }
-            public void Tool(string device, string id, string name, string summary, string state, string re) { wire.Tool(device, id, name, summary, state, re); record.Tool(device, id, name, summary, state, re); }
+            public void Tool(string device, string id, string name, string summary, string state, string re, string move = null) { wire.Tool(device, id, name, summary, state, re, move); record.Tool(device, id, name, summary, state, re, move); }
             public void Error(string device, string code, string re) { wire.Error(device, code, re); record.Error(device, code, re); }
         }
 

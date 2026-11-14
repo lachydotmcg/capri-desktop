@@ -113,10 +113,10 @@ namespace CapriDesktop
             string note = RemoteBrainKeys.Note("k1", "failed", "Anthropic turned down sk-ant-test-1234567890.", "sk-ant-test-1234567890");
             check(note == "{\"type\":\"brain.note\",\"re\":\"k1\",\"state\":\"failed\",\"text\":\"Anthropic turned down [key].\"}", "a note came out as " + note);
             List<string> pictures = new List<string>();
-            try { RemoteLink.SmokePictures(pictures); check(pictures.Count == 1, "picture checks did not finish"); }
-            catch (Exception error) { check(false, "picture checks: " + error.Message); }
+            try { RemoteLink.SmokePictureHeaders(pictures); RemoteLink.SmokePictures(pictures); RemoteCall.SmokeListening(pictures); check(pictures.Count == 3, "picture and listening checks did not finish"); }
+            catch (Exception error) { check(false, "picture and listening checks: " + error.Message); }
             foreach (string line in failed) Console.WriteLine("FAIL " + line);
-            Console.WriteLine((failed.Count == 0 ? "PASS" : "FAIL") + " units: " + (checks - failed.Count) + " of " + checks + " checks (relay hosts, phone names, DPAPI round trip, pairing links, brain asks)");
+            Console.WriteLine((failed.Count == 0 ? "PASS" : "FAIL") + " units: " + (checks - failed.Count) + " of " + checks + " checks (relay hosts, phone names, DPAPI round trip, pairing links, brain asks, pictures, listening)");
             return failed.Count == 0 ? 0 : 1;
         }
 
