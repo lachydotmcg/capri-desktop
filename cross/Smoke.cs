@@ -8347,6 +8347,7 @@ namespace CapriDesktop
             const string message = "sheet-chat";
             wire.Send(phone, keys, 0, new RemoteJson.Writer().Text("type", "chat.send").Text("id", message).Text("text", "sheet path please").ToString());
             RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(message) != null; }, "the Remote sheet phone's answer");
+            RemoteBridgeWait(delegate { return pet.Talk.Reply == "Opened the test website."; }, "the Remote sheet turn's PC bubble");
             wire.Link.Typing(phone.Id, false, message); wire.Pump();
             List<RemoteJson.Map> delivered = new List<RemoteJson.Map>();
             uint sequence = 0;
@@ -8360,11 +8361,15 @@ namespace CapriDesktop
                 if (row == null) throw new Exception("Remote's sheet phone could not open its answer: " + why);
                 delivered.Add(row);
             }
+            // The link sends its own "she's typing" receipts when it sees fit, so they aren't counted. Everything else has one order.
+            List<string> order = new List<string>();
+            foreach (RemoteJson.Map row in delivered) order.Add(row.Text("type") + (row.Text("type") == "chat.typing" ? (row.Is("on", true) ? ":on" : ":off") : row.Text("state") == null ? "" : ":" + row.Text("state")));
+            delivered = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") != "chat.typing" || !row.Is("on", true); });
             List<RemoteJson.Map> tools = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.tool"; });
             List<RemoteJson.Map> replies = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply"; });
             if (runs != 1 || thoughts != 1 || opened != "https://remote-sheet.example/" || delivered.Count != 4 || delivered[0].Text("type") != "chat.tool" || delivered[1].Text("type") != "chat.tool" || delivered[2].Text("type") != "chat.reply" || delivered[3].Text("type") != "chat.typing" || !delivered[3].Is("on", false) || delivered[3].Text("re") != message || tools.Count != 2 || tools[0].Text("name") != "open_website" || tools[0].Text("summary") != "Opening a website"
                 || tools[0].Text("state") != "running" || tools[1].Text("state") != "done" || tools[0].Text("id") != tools[1].Text("id") || tools[0].Text("re") != message || tools[1].Text("re") != message
-                || replies.Count != 1 || replies[0].Text("re") != message || replies[0].Text("text") != "Opened the test website." || !replies[0].Is("done", true) || bridge.Sink.CountFor(message) != 1 || pet.Talk.Reply != replies[0].Text("text")) throw new Exception("Remote's sheet path lost the tool, progress, answer or PC bubble.");
+                || replies.Count != 1 || replies[0].Text("re") != message || replies[0].Text("text") != "Opened the test website." || !replies[0].Is("done", true) || bridge.Sink.CountFor(message) != 1 || pet.Talk.Reply != replies[0].Text("text")) throw new Exception("Remote's sheet path lost the tool, progress, answer or PC bubble: runs " + runs + ", thoughts " + thoughts + ", opened " + opened + ", frames " + string.Join(" ", order.ToArray()) + ", answers " + bridge.Sink.CountFor(message) + ", bubble " + pet.Talk.Reply);
             int index = pet.ReadRemote().Phones.FindIndex(delegate(RemoteDevice found) { return found.Id == phone.Id; });
             if (index < 0 || index >= RemoteSheet.PhonesPerPage) throw new Exception("Remote's paired phone was missing from its sheet page.");
             string revoke = "Revoke " + (index + 1);
