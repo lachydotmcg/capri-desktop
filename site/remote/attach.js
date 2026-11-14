@@ -123,17 +123,18 @@
         at = end;
       }
     }
-    if (!width || !height || width * height > 64000000 || Math.max(width, height) > 32768) throw new Error('picture');
+    if (!width || !height) return null;
     return turn >= 5 && turn <= 8 ? { width: height, height: width } : { width, height };
   };
   const decode = async (photo, bounds) => {
-    const scale = Math.min(1, 1568 / Math.max(bounds.width, bounds.height));
-    if (window.createImageBitmap) {
+    if (bounds && bounds.width * bounds.height > 250000000) throw new Error('big');
+    if (bounds && window.createImageBitmap) {
+      const scale = Math.min(1, 1568 / Math.max(bounds.width, bounds.height));
       try {
         return await createImageBitmap(photo, { resizeWidth: Math.max(1, Math.round(bounds.width * scale)), resizeHeight: Math.max(1, Math.round(bounds.height * scale)), resizeQuality: 'high', imageOrientation: 'from-image' });
       } catch (error) {}
     }
-    if (bounds.width * bounds.height > 16000000 || Math.max(bounds.width, bounds.height) > 16384) throw new Error('picture');
+    if (bounds && bounds.width * bounds.height > 64000000 || photo.size > 128000000) throw new Error('big');
     const decoded = new Image();
     try {
       decoded.src = await read(photo);
@@ -141,6 +142,7 @@
         if (decoded.complete) { if (decoded.naturalWidth) resolve(); else reject(new Error('picture')); }
         else { decoded.onload = resolve; decoded.onerror = reject; }
       });
+      if (decoded.naturalWidth * decoded.naturalHeight > 64000000) throw new Error('big');
       return decoded;
     } catch (error) { decoded.removeAttribute('src'); throw error; }
   };
@@ -167,7 +169,6 @@
     changed();
     try {
       if (count !== 1) throw new Error('picture');
-      if (photo.size > 32000000) throw new Error('picture');
       const bounds = await dimensions(photo);
       const decoded = await decode(photo, bounds);
       const width = decoded.naturalWidth || decoded.width, height = decoded.naturalHeight || decoded.height;
@@ -183,7 +184,7 @@
       const picture = await fit(canvas, '', 'x'.repeat(64));
       if (mine === version) show({ canvas, picture });
     } catch (error) {
-      if (mine === version) say("That isn't a picture I can send.");
+      if (mine === version) say(error.message === 'big' ? 'That picture is too big for me to send.' : "That isn't a picture I can send.");
     } finally {
       if (mine === version) { working = false; changed(); }
     }
