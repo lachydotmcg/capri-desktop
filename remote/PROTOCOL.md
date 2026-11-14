@@ -315,7 +315,7 @@ Each envelope holds one UTF-8 JSON object with a string `type`. Ignore unknown t
 | `pair-deny` | PC | pair | `v`, `reason`: `denied`, `busy` or `bad-request` |
 | `hello` | phone | hello | `v`, `nonce` (phone nonce), `name`, `app` |
 | `hello-ok` | PC | hello | `v`, `nonce` (PC nonce), `echo` (the phone nonce), `name`, `app`, `features` (phase 1: `["chat"]`) |
-| `chat.send` | phone | session | `id`, `text` (1 to 8,000 characters) |
+| `chat.send` | phone | session | `id`, `text` (0 to 8,000 characters; empty only with `picture`), optional `picture` (`mime`, `data`, section 8.5) |
 | `chat.reply` | PC | session | `id`, `text`, `done`, `re` (optional) |
 | `chat.tool` | PC | session | `id`, `name`, `summary`, `state`, `re` (optional) |
 | `chat.typing` | either | session | `on`, `re` (optional) |
@@ -474,6 +474,18 @@ A PC that lists `jobs` in `hello-ok.features` lets every paired phone follow, st
 - **Bad commands.** `job.stop` or `job.answer` for anything other than the current job, or an answer when it is not `asking`, gets `error` with `code: "bad-message"` and `re` set to the command's job `id` when valid. A missing or malformed id, or a non-boolean `yes`, also gets `bad-message`.
 - **Unknown values.** Ignore unknown types and fields, as in section 8.
 
+### 8.5 Pictures (feature `pictures`)
+
+A PC lists `pictures` in `hello-ok.features` only when its host can deliver a picture to her current brain. Windows supports it for local/API vision brains and the Claude plan. The Codex plan returns the existing sightless response because its current image input requires a disk file. Mac and Linux do not advertise it yet and reject a picture with `bad-message`. A phone must not open its Attach image picker or send a picture to a PC that did not list `pictures`; it says "Update Capri on your PC to send pictures."
+
+- `chat.send.picture` is one object: `{"mime":"image/jpeg","data":"<base64url JPEG bytes>"}`. `image/png` with PNG bytes is also accepted. `data` is canonical, unpadded base64url as in section 2. There is exactly one picture; an array, null, mismatched MIME, invalid encoding, wrong signature or undecodable image gets `error` `bad-message`, with `re` when the id is valid, before it reaches her brain.
+- `text` is still required, at most 8,000 UTF-16 code units, and may be empty when a valid picture is present. The existing message id and duplicate rules apply to the whole message.
+- Both dimensions are 1 to 1568 pixels. The phone decodes the selected file, draws it through a canvas, and encodes JPEG. This drops the original file's location and other metadata. It first limits the long side to 1568, then reduces JPEG quality and dimensions until the whole UTF-8 JSON message, including text and field names, is strictly below 60,000 bytes (sections 4.1, 6.3 and 10). No parts or new frame types are needed.
+- The picture and text share one session envelope, one sequence number and one receipt. At 59,999 plaintext bytes the envelope is 60,056 bytes, or 60,072 bytes with the device id, within the relay's unchanged 65,536-byte limit. The JSON budget includes base64url's expansion; there is no separate upload limit.
+- The PC checks the original plaintext byte count, MIME, first bytes, decoded image and pixel bounds before acknowledging or dispatching the turn. It supplies the bytes in the existing brain image block for that turn. The existing sightless-brain response applies. The picture is never written to disk, chat history, memory files or error logs.
+- The phone preview has a Remove picture button. Their sent message shows its picture above the text. Preview and sent pictures live only in page memory; saved chat history holds text alone. Failed sends retain the draft picture and text.
+- Phone-only mode bypasses the PC protocol. A provider that supports images receives the same JPEG in its image content block for that turn alone. A model without image support gets no request; the draft stays and the page says "This brain can't see pictures."
+
 ## 9. Rules for each side
 
 ### PC (`app/`)
@@ -535,6 +547,7 @@ Limits and upgrade bindings live in `remote/relay/wrangler.jsonc`:
 Fixed in code:
 
 - Text frames are at most 16 KiB.
+- Picture messages use the existing strictly less than 60,000-byte plaintext budget, including text, JSON and base64url. Their decoded long side is at most 1568 pixels (section 8.5); the phone reduces quality or dimensions to fit. Relay frame and rate limits are unchanged.
 - At most 8 connections may be signing in at once per room. A ninth pushes out the oldest, so sockets held open without signing in cannot lock out a real client, which signs in within one round trip.
 - At most 2 phones may wait for Allow at once.
 - Address limits count an IPv6 address by its /64, and an IPv4 address written as IPv6 as that IPv4 address. A missing limit binding skips its check.
@@ -690,6 +703,15 @@ keys      session.phoneToPc   kind 3   dir 1   seq 0
 iv        505152535455565758595a5b5c5d5e5f
 plaintext 7b2274797065223a22636861742e73656e64222c226964223a226d31222c2274657874223a2248656c6c6f2c20436170726921227d
 envelope  0103010000000000505152535455565758595a5b5c5d5e5f30ddbf9970f302f27573ec703596c368bde7f8e2875028b53a3424a0850a7b3a2b5acc9f6ef8c29308ad7defb7d1a21daa1c6f052ea3f4973c209cc69417818090270aa9fcd639c1810a793965249fbd79a02323bccfea157477aae499732eba
+```
+
+**Envelope: chat.send with picture**
+
+```text
+keys      session.phoneToPc   kind 3   dir 1   seq 1
+iv        808182838485868788898a8b8c8d8e8f
+plaintext 7b2274797065223a22636861742e73656e64222c226964223a226d32222c2274657874223a22222c2270696374757265223a7b226d696d65223a22696d6167652f706e67222c2264617461223a226956424f5277304b47676f414141414e5355684555674141414145414141414243415941414141664663534a4141414144556c45515652346e4750345f5f5f5f6677414a2d7750394b6f626a696741414141424a52553545726b4a676767227d7d
+envelope  0103010000000001808182838485868788898a8b8c8d8e8f8b81a80611e1796649fc185c2c7c0b380cd2bec567ca32d7a76069e1779cbf0e915ce3c597d6e6ea5067dd733a58fde77af4ac1efd2f8c2e0bd900808371b27b9114adbf482877f0d8d197e0c227adbb93a7ec609a6d26e1f60986b34a5b1f168e83f19eeb0632f72530c34a28287c10d99350775fba880248d18475066a083aee9281afe784c2009aa4d9498b9ea96545a7fd47318ad04f9a76467776b4a2468f3e997a9a2f95849616a9ffd8019b8dd1b95231b6d37c1cd2c1c8374b33cba60b7f524e2597a61dd936572f93561cb6
 ```
 
 **Envelope: chat.typing (32-byte plaintext, so a whole block of padding)**

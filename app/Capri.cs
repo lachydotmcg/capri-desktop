@@ -41470,6 +41470,7 @@ namespace CapriDesktop
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeRemoteBrains", delegate { SmokeRemoteBrains(checks); });
             Section(checks, "SmokeRemote", delegate { SmokeRemote(checks, output); });
+            Section(checks, "SmokeRemotePictures", delegate { SmokeRemotePictures(checks); });
             Section(checks, "SmokeRemoteJobs", delegate { SmokeRemoteJobs(checks); });
             Section(checks, "SmokeRemoteCall", delegate { SmokeRemoteCall(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });

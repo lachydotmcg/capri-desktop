@@ -50,6 +50,7 @@ export const launch = async ({ port, width = 390, height = 844, args = [] }) => 
       if (message.error) reject(new Error(message.error.message)); else resolve(message.result);
     } else if (message.method) for (const listen of listeners) listen(message.method, message.params);
   };
+  socket.onclose = () => { for (const item of waiting.values()) item.reject(new Error('Chrome DevTools socket closed')); waiting.clear(); };
   const send = (method, params = {}) => new Promise((resolve, reject) => {
     if (socket.readyState !== WebSocket.OPEN) { reject(new Error('Chrome is closed')); return; }
     const id = ++next;
