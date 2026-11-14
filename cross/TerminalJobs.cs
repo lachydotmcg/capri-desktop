@@ -52,6 +52,8 @@ namespace CapriDesktop
 
         internal static string Run(ToolArguments args)
         {
+            RemoteTurn phone = RemoteTurn.Working;
+            if (phone != null) return phone.Current ? RemoteTurn.PcOnly : RemoteTurn.Ended;
             if (!Available) return "Native terminal jobs are unavailable: the packaged Python supervisor is missing.";
             if (string.IsNullOrWhiteSpace(args.Command) || args.Command.Length > 16000 || args.Command.Contains('\0')) return "Invalid command: supply a nonempty shell command of at most 16000 characters.";
             string denied = Intent(args);

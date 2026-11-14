@@ -340,12 +340,13 @@ namespace CapriDesktop
         private readonly Dictionary<string, Action<int>> changes = new Dictionary<string, Action<int>>();
         private readonly List<Window> sheets = new List<Window>();
         internal ModsWindow Mods { get; private set; }
+        internal RemoteSheet Remote { get; private set; }
         private readonly DispatcherTimer status = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         // Support's heart beats twice every 7 seconds while her main page shows, and its rim lights with it (Lachy, 4 Nov).
         private const double BeatMs = 7000;
         private readonly DispatcherTimer heartbeat = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         private readonly Stopwatch beatClock = Stopwatch.StartNew();
-        private readonly NeonButton support;
+        private readonly NeonButton support, remoteKey;
         private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote, nameListeningNote;
         private readonly NeonButton more, advanced, minimize, close, setup, refresh, textConnect, voiceConnect, customVoice, showHide;
         private readonly NeonCaption build;
@@ -464,6 +465,8 @@ namespace CapriDesktop
                 MainframeTips.Explain(nameListeningNote, "Local decoder · 20-second follow-ups · selected physical microphone");
             }
             Section("CAPRI", 0, 540);
+            remoteKey = Key("Remote", 100, 539, 88, 18, OpenRemote);
+            AutomationProperties.SetName(remoteKey, "Capri Remote: chat with her from your phone");
             Key("Mods", 190, 539, 70, 18, OpenMods).Accent = MainframeTheme.Cyan;
             // Shorter than a band's other keys and level with CAPRI, so its lit rim stays off the band's teal rule (Lachy, 4 Nov).
             support = Key("Support", 268, 539, 88, 18, () => { if (Program.Smoke == null) Pet.Browse("https://ko-fi.com/lachysdev"); });
@@ -725,6 +728,10 @@ namespace CapriDesktop
                 speechModels.Options(pet.MainframeSpeechModels);
                 if (paidKey != null && pet.MainframeTier != 1) paidKey = null;
                 foreach (Action read in readers) read();
+                RemoteView remote = pet.ReadRemote();
+                remoteKey.Accent = remote.On ? MainframeTheme.Cyan : MainframeTheme.Rose;
+                remoteKey.Picked = remote.On && remote.Online.Count > 0;
+                remoteKey.InvalidateVisual();
                 if (Array.IndexOf(pet.MainframeModels, pet.Brain.Model) < 0 && pet.Brain.Model != null) models.Text = pet.Brain.Model;
                 if (Array.IndexOf(pet.MainframeVoiceIds, pet.Saved.VoiceId) < 0) voicePicker.Text = "Voices";
                 for (int i = 0; i < brains.Length; i++) { brains[i].Checked = i == pet.MainframeTier; brains[i].InvalidateVisual(); }
@@ -771,6 +778,7 @@ namespace CapriDesktop
         {
             name = (name ?? "main").Trim().ToLowerInvariant();
             if (name == "mods") { OpenMods(); return; }
+            if (name == "remote") { OpenRemote(); return; }
             ShowSettings(!string.IsNullOrEmpty(name) && name != "main" && name != "brain" && name != "voice");
             if (paged && name != "settings" && !pet.Saved.AdvancedSettings) { pet.SetAdvancedSettings(true); ShowSettings(true); }
             if (name == "layers") { OpenLayers(); return; }
@@ -933,6 +941,17 @@ namespace CapriDesktop
                 ShowSheet(sheet);
             }
             else { Mods.WindowState = WindowState.Normal; Mods.Activate(); }
+        }
+        internal void OpenRemote()
+        {
+            if (Remote == null)
+            {
+                RemoteSheet sheet = new RemoteSheet(pet.ReadRemote, pet.SetRemote, pet.NewRemoteCode, pet.CloseRemoteCode, pet.AllowRemote, pet.DenyRemote, pet.RevokeRemote, pet.RemoveRemotePhones, pet.SetRemoteHost, Zoom);
+                Remote = sheet;
+                sheet.Closed += delegate { Remote = null; };
+                ShowSheet(sheet);
+            }
+            else { Remote.WindowState = WindowState.Normal; Remote.Activate(); }
         }
     }
 }

@@ -166,6 +166,9 @@ namespace CapriDesktop
                 FakeCrash.WindowChecks(checks);
                 ProviderErrorChecks();
                 Watching.Checks(checks);
+                RemoteCoreChecks();
+                RemoteBridgeChecks();
+                RemoteSheetChecks();
                 Vector swipe = Mainframe.Wheel(new Vector(0.04, 1), KeyModifiers.None), plain = Mainframe.Wheel(new Vector(0, -1), KeyModifiers.None), shifted = Mainframe.Wheel(new Vector(0, 1), KeyModifiers.Shift);
                 if (swipe != new Vector(0.04, 1) || plain != new Vector(0, -1) || shifted != new Vector(1, 0)
                     || !Mainframe.Precise(new Vector(0.04, 0.3)) || Mainframe.Precise(new Vector(0, -1)))
@@ -6148,6 +6151,2195 @@ namespace CapriDesktop
                 }
                 scene.Save(Path.Combine(folder, name));
             }
+        }
+
+        private void RemoteCoreChecks()
+        {
+            string words = "Phone \"one\"\n\t\\\u0001 \uD83D\uDE00 \uD800";
+            string json = new RemoteJson.Writer().Text("words", words).Number("n", 17).Flag("ok", true)
+                .Texts("names", new[] { "one", "two" }).Objects("items", new[] { new RemoteJson.Writer().Text("id", "first") }).ToString();
+            RemoteJson.Map read = RemoteJson.ParseMap(json);
+            double n;
+            if (read == null || read.Text("words") != words || !read.Number("n", out n) || n != 17 || !read.Is("ok", true)
+                || read.Items("names").Count != 2 || ((RemoteJson.Map)read.Items("items")[0]).Text("id") != "first") throw new Exception("Remote JSON lost a value.");
+            foreach (string bad in new[] { "{", "{}x", "{\"n\":01}", "{\"n\":1e}", "{\"x\":\"\\q\"}", "{\"x\":\"\n\"}", "{\"x\":true,}", "[1,]", new string('[', 66) + "0" + new string(']', 66) })
+            {
+                bool failed = false;
+                try { RemoteJson.Parse(bad); }
+                catch (FormatException) { failed = true; }
+                if (!failed) throw new Exception("Remote JSON accepted damaged text.");
+            }
+            if (RemoteJson.Message(new byte[] { 0xc3, 0x28 }) != null || RemoteJson.Message(Encoding.UTF8.GetBytes("[]")) != null
+                || RemoteJson.Message(Encoding.UTF8.GetBytes("{\"type\":7}")) != null) throw new Exception("Remote accepted an invalid protocol message.");
+            if (RemoteMessages.Auth("token") != "{\"t\":\"auth\",\"token\":\"token\"}" || RemoteMessages.CodeCancel() != "{\"t\":\"code-cancel\"}"
+                || RemoteMessages.Ping != "{\"t\":\"ping\"}" || RemoteMessages.Pong != "{\"t\":\"pong\"}"
+                || RemoteMessages.Typing(true, "m1") != "{\"type\":\"chat.typing\",\"on\":true,\"re\":\"m1\"}"
+                || RemoteJson.ParseMap(RemoteMessages.Reply("r1", "m1", words, true)).Text("text") != words
+                || RemoteJson.ParseMap(RemoteMessages.Tool("t1", "open_app", "Opening an app", "done", "m1")).Text("re") != "m1"
+                || !RemoteMessages.IdOk("a_Z-09") || RemoteMessages.IdOk("a b") || RemoteMessages.IdOk(new string('a', 65))) throw new Exception("Remote protocol messages changed.");
+            checks.Add("PASS Remote core JSON: values and text round-trip, malformed JSON and UTF-8 fail, and control and chat messages keep their protocol fields");
+
+            byte[] ikm = RemoteVectors.FromHex("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
+            byte[] hkdf = RemoteCrypto.Hkdf(ikm, RemoteVectors.FromHex("000102030405060708090a0b0c"), RemoteVectors.FromHex("f0f1f2f3f4f5f6f7f8f9"), 42);
+            if (RemoteVectors.Hex(hkdf) != "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865") throw new Exception("Remote HKDF missed RFC 5869.");
+            byte[] key = RemoteVectors.FromHex("505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f");
+            byte[] nonce = RemoteVectors.FromHex("707172737475767778797a7b7c7d7e7f");
+            RemoteKeys pair = RemoteCrypto.PairKeys(key, nonce), hello = RemoteCrypto.HelloKeys(key, nonce), session = RemoteCrypto.SessionKeys(key, nonce, new byte[16]);
+            if (RemoteCrypto.Confirm(key, nonce) != "318 338" || RemoteVectors.Hex(pair.PhoneToPc.Enc) == RemoteVectors.Hex(pair.PcToPhone.Enc)
+                || RemoteVectors.Hex(pair.PhoneToPc.Enc) == RemoteVectors.Hex(hello.PhoneToPc.Enc) || RemoteVectors.Hex(hello.PhoneToPc.Enc) == RemoteVectors.Hex(session.PhoneToPc.Enc)) throw new Exception("Remote key contexts or confirmation changed.");
+            foreach (string bad in new[] { "A", "AA=", "A+", "A/", "AB", "AA\n" })
+                if (RemoteCrypto.FromB64u(bad) != null) throw new Exception("Remote accepted invalid base64url.");
+            if (RemoteCrypto.FromB64u(RemoteCrypto.B64u(key), 16) != null || RemoteVectors.Hex(RemoteCrypto.FromB64u(RemoteCrypto.B64u(key), 32)) != RemoteVectors.Hex(key)) throw new Exception("Remote base64url changed a key.");
+            byte[] sealedText = RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 0, Encoding.UTF8.GetBytes(RemoteMessages.PongFor(9)), new byte[16]);
+            byte[] opened = RemoteCrypto.Open(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 0, sealedText);
+            if (opened == null || Encoding.UTF8.GetString(opened) != RemoteMessages.PongFor(9)) throw new Exception("Remote could not open its envelope.");
+            foreach (string reason in new[] { "length", "mac", "version", "context", "seq", "padding" })
+            {
+                byte[] frame = reason == "padding" ? RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 0, new byte[] { 42 }, new byte[16]) : (byte[])sealedText.Clone();
+                if (reason == "length") Array.Resize(ref frame, 4);
+                else if (reason == "mac") frame[frame.Length - 1] ^= 1;
+                else
+                {
+                    if (reason == "version") frame[0] = 2;
+                    if (reason == "context") frame[2] = RemoteCrypto.PcToPhone;
+                    if (reason == "seq") frame[7] = 1;
+                    if (reason == "padding") frame[RemoteCrypto.HeaderBytes + RemoteCrypto.IvBytes - 1] ^= 1;
+                    using var mac = new System.Security.Cryptography.HMACSHA256(session.PhoneToPc.Mac);
+                    byte[] tag = mac.ComputeHash(frame, 0, frame.Length - RemoteCrypto.TagBytes);
+                    Buffer.BlockCopy(tag, 0, frame, frame.Length - tag.Length, tag.Length);
+                }
+                string why;
+                if (RemoteCrypto.Open(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 0, frame, 0, frame.Length, out why) != null || why != reason) throw new Exception("Remote did not reject " + reason + ".");
+            }
+            RemoteChannel channel = new RemoteChannel(session, RemoteCrypto.KindSession);
+            if (channel.Open(sealedText, 0, sealedText.Length) == null || channel.Open(sealedText, 0, sealedText.Length) != null) throw new Exception("Remote accepted a replay.");
+            byte[] skipped = RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 2, Encoding.UTF8.GetBytes(RemoteMessages.PongFor(2)));
+            byte[] next = RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 1, Encoding.UTF8.GetBytes(RemoteMessages.PongFor(1)));
+            byte[] badJson = RemoteCrypto.Seal(session.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, 1, Encoding.UTF8.GetBytes("[]"));
+            if (channel.Open(skipped, 0, skipped.Length) != null || channel.Open(badJson, 0, badJson.Length) != null || channel.Open(next, 0, next.Length) == null || channel.Open(skipped, 0, skipped.Length) == null) throw new Exception("Remote advanced a failed sequence.");
+            HashSet<uint> sequences = new HashSet<uint>();
+            Parallel.For(0, 16, delegate(int i) { byte[] frame = channel.Seal(RemoteMessages.PongFor(i)); lock (sequences) sequences.Add(RemoteCrypto.SeqOf(frame, 0)); });
+            if (sequences.Count != 16 || !sequences.Contains(0) || !sequences.Contains(15)) throw new Exception("Remote reused an outgoing sequence.");
+            RemoteWire.Set(channel, "sent", uint.MaxValue);
+            bool exhausted = false;
+            try { channel.Seal(RemoteMessages.PongFor(0)); }
+            catch (InvalidOperationException) { exhausted = true; }
+            if (!exhausted) throw new Exception("Remote wrapped an outgoing sequence.");
+            checks.Add("PASS Remote core crypto: RFC keys, separate contexts, confirmation, strict base64url, envelopes, all six rejection reasons, ordered receive, concurrent send and sequence exhaustion");
+
+            string url = RemoteCrypto.QrUrl("EBESExQVFhcYGRobHB0eHw", "QEFCQ0RFRkdISUpLTE1OTw", "UFFSU1RVVldYWVpbXF1eX2BhYmNkZWZnaGlqa2xtbm8");
+            RemoteQr qr = RemoteQr.Encode(url);
+            if (qr.Version != 8 || qr.Size != 49 || qr.Correction != RemoteQr.Level.Medium || qr.Mask < 0 || qr.Mask > 7 || qr.Dark(-1, 0) || qr.Dark(49, 0)) throw new Exception("Remote's known pairing QR changed size.");
+            foreach (int[] corner in new[] { new[] { 0, 0 }, new[] { 42, 0 }, new[] { 0, 42 } })
+                for (int y = 0; y < 7; y++)
+                    for (int x = 0; x < 7; x++)
+                        if (qr.Dark(corner[0] + x, corner[1] + y) != (x == 0 || x == 6 || y == 0 || y == 6 || x >= 2 && x <= 4 && y >= 2 && y <= 4)) throw new Exception("Remote QR lost a finder module.");
+            for (int at = 8; at < 41; at++)
+                if (qr.Dark(at, 6) != (at % 2 == 0) || qr.Dark(6, at) != (at % 2 == 0)) throw new Exception("Remote QR lost a timing module.");
+            foreach (int y in new[] { 6, 24, 42 })
+                foreach (int x in new[] { 6, 24, 42 })
+                    if (!(x == 6 && y == 6 || x == 42 && y == 6 || x == 6 && y == 42))
+                        for (int dy = -2; dy <= 2; dy++)
+                            for (int dx = -2; dx <= 2; dx++)
+                                if (qr.Dark(x + dx, y + dy) != (Math.Max(Math.Abs(dx), Math.Abs(dy)) != 1)) throw new Exception("Remote QR lost an alignment module.");
+            RemoteQr small = RemoteQr.Encode("HELLO WORLD");
+            if (small.Size != 21 || small.Correction != RemoteQr.Level.Quartile) throw new Exception("Remote's short QR changed capacity.");
+            byte[] payload = RemoteVectors.FromHex("40b48454c4c4f20574f524c440");
+            int bit = 0;
+            for (int right = 20; right >= 1; right -= 2)
+            {
+                if (right == 6) right = 5;
+                for (int row = 0; row < 21; row++)
+                    for (int column = 0; column < 2; column++)
+                    {
+                        int x = right - column, y = ((right + 1) & 2) == 0 ? 20 - row : row;
+                        if (x <= 8 && y <= 8 || x >= 13 && y <= 8 || x <= 8 && y >= 13 || x == 6 || y == 6) continue;
+                        bool mask = small.Mask == 0 ? (x + y) % 2 == 0 : small.Mask == 1 ? y % 2 == 0 : small.Mask == 2 ? x % 3 == 0
+                            : small.Mask == 3 ? (x + y) % 3 == 0 : small.Mask == 4 ? (x / 3 + y / 2) % 2 == 0 : small.Mask == 5 ? x * y % 2 + x * y % 3 == 0
+                            : small.Mask == 6 ? (x * y % 2 + x * y % 3) % 2 == 0 : ((x + y) % 2 + x * y % 3) % 2 == 0;
+                        if (bit < payload.Length * 8 && (small.Dark(x, y) ^ mask) != ((payload[bit / 8] >> (7 - bit % 8) & 1) != 0)) throw new Exception("Remote QR matrix lost the known text's bytes.");
+                        bit++;
+                    }
+            }
+            if (bit != 208) throw new Exception("Remote QR matrix lost data modules.");
+            checks.Add("PASS Remote core QR: known pairing text makes a 49-module matrix with finder, timing and alignment modules; version one's unmasked matrix holds HELLO WORLD's exact byte-mode payload");
+
+            string vectors = RemoteVectors.Find();
+            if (vectors == null)
+            {
+                if (string.Equals(Environment.GetEnvironmentVariable("GITHUB_ACTIONS"), "true", StringComparison.OrdinalIgnoreCase))
+                    throw new Exception("Remote core needs remote/test/vectors.json. Run smoke from the checkout.");
+                checks.Add("SKIP Remote core protocol vectors: remote/test/vectors.json was not found. Run smoke from the checkout to include them.");
+            }
+            else
+            {
+                int count;
+                List<string> wrong = RemoteVectors.Check(File.ReadAllText(vectors), out count);
+                if (wrong.Count > 0 || count == 0) throw new Exception("Remote protocol vectors failed: " + (wrong.Count == 0 ? "no checks" : wrong[0]));
+                checks.Add("PASS Remote core protocol vectors: all " + count + " checks in remote/test/vectors.json");
+            }
+            RemotePairChecks();
+            RemoteLink.SmokePairing(checks);
+            RemoteLink.SmokeJobs(checks);
+            RemoteStoreChecks();
+
+            string diskRoot = Path.Combine(folder, "remote-core-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(diskRoot);
+            try
+            {
+                string data = Path.Combine(diskRoot, "data");
+                Directory.CreateDirectory(data);
+                RemoteStore disk = new RemoteStore(data);
+                RemoteState loaded;
+                string savedRelay;
+                if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Missing || loaded != null || savedRelay != null || disk.Problem != null) throw new Exception("Remote disk did not report a missing file.");
+                string path = Path.Combine(data, RemoteDisk.Name);
+                string stale = Path.Combine(data, ".remote-state-" + Guid.NewGuid().ToString("N"));
+                string kept = Path.Combine(data, "keep");
+                File.WriteAllText(stale, "unfinished Remote file");
+                File.WriteAllText(kept, "keep");
+                if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Missing || !File.Exists(stale)) throw new Exception("Remote disk read or removed a leftover temporary file.");
+                checks.Add("PASS Remote core disk missing: no record is Missing, and Load leaves temporary files alone");
+
+                RemoteState saved = RemoteState.Fresh();
+                saved.Used = true;
+                saved.Devices.Add(new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone\u2019s caf\u00e9 \uD83D\uDE00", Added = new DateTime(2026, 11, 14, 0, 0, 0, DateTimeKind.Utc) });
+                if (disk.Save(" https://" + RemoteLink.DefaultHost.ToUpperInvariant() + "/ ", saved) != RemoteStoreResult.Saved || disk.Problem != null) throw new Exception("Remote disk did not save its first record.");
+                UnixFileMode mode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(path) != mode) throw new Exception("Remote disk did not create a user-only file.");
+                if (new RemoteStore(data).Load(out loaded, out savedRelay) != RemoteStoreResult.Read || savedRelay != RemoteLink.RelayBase(null)
+                    || loaded.ToJson() != saved.ToJson() || loaded.Devices[0].Name != saved.Devices[0].Name
+                    || !File.ReadAllText(path).Contains(saved.Devices[0].Name)) throw new Exception("Remote disk lost its state, relay or phone name.");
+                if (File.Exists(stale) || File.ReadAllText(kept) != "keep") throw new Exception("Remote disk did not clear only its leftover temporary files.");
+                checks.Add("PASS Remote core disk round-trip: a fresh store reads the same state and relay, including a curly apostrophe, accent and emoji");
+
+                RemoteState replacement = RemoteState.Fresh();
+                File.WriteAllText(stale, "another unfinished Remote file");
+                if (disk.Save("relay.example:8443", replacement) != RemoteStoreResult.Saved || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read
+                    || loaded.ToJson() != replacement.ToJson() || savedRelay != "wss://relay.example:8443" || Directory.GetFiles(data, ".remote-state-*").Length != 0
+                    || File.ReadAllText(kept) != "keep") throw new Exception("Remote disk did not replace the whole record or clear its temporary files.");
+                checks.Add("PASS Remote core disk replacement: the next save replaces the whole record and leaves no temporary files");
+                if (!OperatingSystem.IsWindows())
+                {
+                    foreach (UnixFileMode extra in new[] { UnixFileMode.GroupRead, UnixFileMode.GroupWrite, UnixFileMode.OtherRead, UnixFileMode.OtherWrite })
+                    {
+                        File.SetUnixFileMode(path, mode | extra);
+                        if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != replacement.ToJson()
+                            || savedRelay != "wss://relay.example:8443" || File.GetUnixFileMode(path) != mode) throw new Exception("Remote disk refused or did not tighten a broad file mode.");
+                    }
+                    File.SetUnixFileMode(path, UnixFileMode.None);
+                    if (disk.Save("relay.example:8443", replacement) != RemoteStoreResult.Saved || File.GetUnixFileMode(path) != mode) throw new Exception("Remote disk refused to replace a file with the wrong mode.");
+                    checks.Add("PASS Remote core disk mode: saves use exactly user read and write, loads tighten group and other access, and a wrong mode does not block saving");
+                }
+                else checks.Add("SKIP Remote core disk mode: Windows has no Unix file modes.");
+
+                string record = File.ReadAllText(path);
+                foreach (byte[] damaged in new[] { new byte[] { 0xc3, 0x28 }, Encoding.UTF8.GetBytes("{"), Encoding.UTF8.GetBytes("{}"), Encoding.UTF8.GetBytes(record.Replace("\"v\":1", "\"v\":2")), Encoding.UTF8.GetBytes(record.Replace("\"devices\":", "\"missing\":")) })
+                {
+                    File.WriteAllBytes(path, damaged);
+                    if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Unreadable || loaded != null || savedRelay != null || disk.Problem != "The Remote file is damaged."
+                        || RemoteVectors.Hex(File.ReadAllBytes(path)) != RemoteVectors.Hex(damaged)) throw new Exception("Remote disk hid or changed damaged bytes.");
+                }
+                if (disk.Save(null, saved) != RemoteStoreResult.Saved || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != saved.ToJson()) throw new Exception("Remote disk could not replace a damaged record.");
+                checks.Add("PASS Remote core disk damage: invalid UTF-8, JSON and schema stay Unreadable with their bytes unchanged; Save can replace them");
+
+                string absent = Path.Combine(diskRoot, "not-yet", "data");
+                RemoteStore first = new RemoteStore(absent);
+                if (first.Load(out loaded, out savedRelay) != RemoteStoreResult.Missing || Directory.Exists(absent)
+                    || first.Save(null, saved) != RemoteStoreResult.Saved || first.Load(out loaded, out savedRelay) != RemoteStoreResult.Read
+                    || loaded.ToJson() != saved.ToJson() || savedRelay != RemoteLink.RelayBase(null)) throw new Exception("Remote disk did not create its missing folder on Save.");
+                checks.Add("PASS Remote core disk first save: a missing folder stays missing on Load and is created by Save");
+
+                string blocked = Path.Combine(diskRoot, "blocked");
+                Directory.CreateDirectory(Path.Combine(blocked, RemoteDisk.Name));
+                RemoteStore cannot = new RemoteStore(blocked);
+                if (cannot.Load(out loaded, out savedRelay) != RemoteStoreResult.Unreadable || loaded != null || savedRelay != null
+                    || cannot.Problem != "Cannot read the Remote file right now. Check access to the file and try again."
+                    || cannot.Save(null, saved) != RemoteStoreResult.WriteFailed || cannot.Problem != "Cannot save the Remote file right now. Check access to the folder and try again."
+                    || !Directory.Exists(Path.Combine(blocked, RemoteDisk.Name)) || Directory.GetFiles(blocked, ".remote-state-*").Length != 0) throw new Exception("Remote disk hid an access failure or left a failed save's temporary file.");
+                checks.Add("PASS Remote core disk failure: an unusable file name reports access trouble and a failed move removes its temporary file");
+
+                if (!OperatingSystem.IsWindows())
+                {
+                    UnixFileMode folderMode = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.GroupExecute;
+                    File.SetUnixFileMode(data, folderMode);
+                    if (disk.Save(null, saved) != RemoteStoreResult.Saved || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read
+                        || loaded.ToJson() != saved.ToJson() || File.GetUnixFileMode(data) != folderMode) throw new Exception("Remote disk refused or changed a group-writable folder.");
+
+                    string target = Path.Combine(diskRoot, "linked-record");
+                    byte[] original = File.ReadAllBytes(path);
+                    File.WriteAllBytes(target, original);
+                    File.Delete(path);
+                    File.CreateSymbolicLink(path, target);
+                    if (disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != saved.ToJson()) throw new Exception("Remote disk refused to read through a file link.");
+                    if (disk.Save("relay.example:8443", replacement) != RemoteStoreResult.Saved || new FileInfo(path).LinkTarget != null
+                        || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != replacement.ToJson()
+                        || RemoteVectors.Hex(File.ReadAllBytes(target)) != RemoteVectors.Hex(original)) throw new Exception("Remote disk wrote through a file link.");
+
+                    string alias = Path.Combine(diskRoot, "linked-data");
+                    Directory.CreateSymbolicLink(alias, data);
+                    RemoteStore linked = new RemoteStore(alias);
+                    if (linked.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != replacement.ToJson()
+                        || linked.Save(null, saved) != RemoteStoreResult.Saved || disk.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != saved.ToJson()) throw new Exception("Remote disk refused a linked data folder.");
+
+                    string parent = Path.Combine(diskRoot, "parent");
+                    Directory.CreateDirectory(parent);
+                    alias = Path.Combine(diskRoot, "linked-parent");
+                    Directory.CreateSymbolicLink(alias, parent);
+                    RemoteStore nested = new RemoteStore(Path.Combine(alias, "data"));
+                    if (nested.Save(null, saved) != RemoteStoreResult.Saved || nested.Load(out loaded, out savedRelay) != RemoteStoreResult.Read
+                        || loaded.ToJson() != saved.ToJson() || !File.Exists(Path.Combine(parent, "data", RemoteDisk.Name))) throw new Exception("Remote disk refused a linked ancestor.");
+                    try
+                    {
+                        File.SetUnixFileMode(parent, UnixFileMode.UserExecute);
+                        if (nested.Save(null, saved) != RemoteStoreResult.Saved || nested.Load(out loaded, out savedRelay) != RemoteStoreResult.Read || loaded.ToJson() != saved.ToJson()) throw new Exception("Remote disk needed to list an ancestor folder.");
+                    }
+                    finally { File.SetUnixFileMode(parent, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute); }
+                    checks.Add("PASS Remote core disk paths: group-writable folders, linked files and folders, and an ancestor with no read permission work; Save replaces a file link and keeps its target bytes");
+                }
+            }
+            finally { Directory.Delete(diskRoot, true); }
+        }
+
+        private void RemotePairChecks()
+        {
+            RemoteState state = RemoteState.Fresh();
+            using RemoteWire wire = new RemoteWire(state);
+            if (!wire.Link.Ready || wire.Link.Status != "online" || string.Join(",", wire.Link.FeaturesNow) != "chat,pair") throw new Exception("Remote text core offered unsupported features.");
+            RemoteView view = new RemoteView { On = true, Ready = wire.Link.Ready, Status = wire.Link.Status };
+            RemoteSink sink = new RemoteLinkSink(wire.Link);
+            byte[] nonce = new byte[16];
+            string pending = RemoteMessages.NewId();
+            RemoteKeys pair = wire.Pair(pending, "First phone", nonce);
+            RemoteAsk ask = wire.Link.Asking;
+            if (ask == null || ask.Pending != pending || ask.Name != "First phone" || wire.Link.Qr != null || state.Devices.Count != 0) throw new Exception("Remote admitted before Allow.");
+            if (!wire.Link.Allow() || wire.Link.Allow()) throw new Exception("Remote Allow was not one-shot.");
+            wire.Pump();
+            RemoteJson.Map admit = wire.Controls.Find(item => item.Text("t") == "admit");
+            byte[] env = admit == null ? null : RemoteCrypto.FromB64u(admit.Text("env"));
+            byte[] plain = RemoteCrypto.Open(pair.PcToPhone, RemoteCrypto.KindPair, RemoteCrypto.PcToPhone, 0, env);
+            RemoteJson.Map allowed = plain == null ? null : RemoteJson.Message(plain);
+            RemoteDevice phone = allowed == null ? null : state.Find(allowed.Text("device"));
+            if (phone == null || wire.Saved == null || wire.Saved.Find(phone.Id) == null || RemoteCrypto.B64u(phone.Key) != allowed.Text("key")
+                || wire.Saved.ToJson().Contains(allowed.Text("token")) || RemoteCrypto.Hash(RemoteCrypto.FromB64u(allowed.Text("token"), 32)) != admit.Text("tokenHash")) throw new Exception("Remote Allow lost its state or token boundary.");
+            wire.Text(new RemoteJson.Writer().Text("t", "ok").Text("op", "admit").Text("pending", pending).ToString());
+            if (!wire.Events.Contains("paired " + phone.Id)) throw new Exception("Remote did not report pairing.");
+            RemoteKeys keys = wire.Hello(phone, nonce);
+            if (!wire.Link.HasSession(phone.Id) || !wire.Link.IsOnline(phone.Id)) throw new Exception("Remote hello did not start a session.");
+            sink.Tool(phone.Id, "t1", "open_app", "Opening an app", "running", "m1");
+            wire.Pump();
+            byte[] tool = wire.BinaryFrames[0];
+            string why;
+            plain = RemoteCrypto.Open(keys.PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, 0, tool, 16, tool.Length - 16, out why);
+            if (plain == null || RemoteJson.Message(plain).Text("type") != "chat.tool") throw new Exception("Remote link sink did not use the session.");
+            string chat = new RemoteJson.Writer().Text("type", "chat.send").Text("id", "m1").Text("text", "Hello").ToString();
+            wire.Send(phone, keys, 0, chat);
+            wire.Send(phone, keys, 1, chat);
+            if (wire.Said.Count != 1 || wire.Said[0][0] != phone.Id || wire.Said[0][1] != "m1" || wire.Said[0][2] != "Hello") throw new Exception("Remote chat lost its source or deduplication.");
+            wire.Send(phone, keys, 3, chat);
+            if (wire.Link.HasSession(phone.Id)) throw new Exception("Remote kept an out-of-order session.");
+            byte[] later = new byte[16]; later[0] = 1;
+            RemoteKeys fresh = wire.Hello(phone, later);
+            if (RemoteVectors.Hex(fresh.PhoneToPc.Enc) == RemoteVectors.Hex(keys.PhoneToPc.Enc)) throw new Exception("Remote reused session keys.");
+            wire.Text(new RemoteJson.Writer().Text("t", "left").Text("device", phone.Id).ToString());
+            if (wire.Link.HasSession(phone.Id) || wire.Link.IsOnline(phone.Id)) throw new Exception("Remote kept a departed session.");
+            fresh = wire.Hello(phone, later);
+            wire.Link.Revoke(phone.Id);
+            wire.Send(phone, fresh, 0, chat);
+            if (wire.Link.HasSession(phone.Id) || wire.Said.Count != 1 || wire.Saved.Devices.Count != 0) throw new Exception("Remote accepted a revoked phone.");
+            wire.Pump();
+            if (!wire.Controls.Exists(item => item.Text("t") == "revoke" && item.Text("device") == phone.Id)) throw new Exception("Remote did not tell the relay about revoke.");
+
+            pending = RemoteMessages.NewId();
+            pair = wire.Pair(pending, "Denied phone", nonce);
+            int saves = wire.Saves;
+            if (!wire.Link.Deny() || wire.Link.Deny() || wire.Link.Asking != null) throw new Exception("Remote Deny did not clear approval.");
+            wire.Pump();
+            RemoteJson.Map denied = wire.Controls.Find(item => item.Text("t") == "deny");
+            plain = RemoteCrypto.Open(pair.PcToPhone, RemoteCrypto.KindPair, RemoteCrypto.PcToPhone, 0, denied == null ? null : RemoteCrypto.FromB64u(denied.Text("env")));
+            if (plain == null || RemoteJson.Message(plain).Text("reason") != "denied" || wire.Saves != saves || state.Devices.Count != 0) throw new Exception("Remote Deny admitted or saved a phone.");
+            pending = RemoteMessages.NewId();
+            wire.Pair(pending, "Timed out phone", nonce);
+            wire.Text(new RemoteJson.Writer().Text("t", "pending-left").Text("id", pending).Text("reason", "timeout").ToString());
+            if (wire.Link.Asking != null || wire.Link.Allow() || !wire.Events.Contains("ask-ended timeout")) throw new Exception("Remote kept a relay-expired approval.");
+            string first = wire.Link.NewCode();
+            string second = wire.Link.NewCode();
+            if (first == null || first == second || wire.Link.Qr != second) throw new Exception("Remote reused a pairing code.");
+            object pairing = RemoteWire.Get(wire.Link, "pairing");
+            object expired = Activator.CreateInstance(pairing.GetType(), RemoteWire.Own, null, new[] { RemoteWire.Get(pairing, "Code"), RemoteWire.Get(pairing, "Key"), (object)(-1L), state.Room }, null);
+            RemoteWire.Set(wire.Link, "pairing", expired);
+            if (wire.Link.QrSeconds != 0) throw new Exception("Remote showed time left on an expired QR.");
+            wire.Link.CloseCode();
+            wire.Pump();
+            if (wire.Link.Qr != null || !wire.Controls.Exists(item => item.Text("t") == "code-cancel")) throw new Exception("Remote did not close its code.");
+            wire.Link.NewCode();
+            wire.Link.Stop();
+            saves = wire.Saves;
+            wire.Text("{\"t\":\"ready\",\"devices\":[],\"online\":[]}");
+            if (wire.Link.Status != "off" || wire.Link.Qr != null || wire.Saves != saves) throw new Exception("Remote changed after Stop.");
+            checks.Add("PASS Remote core pairing and sessions: desktop Allow and Deny, saved keys, token hashes, hello features and fresh keys, chat source and deduplication, sequence failure, leave, revoke, relay timeout, QR expiry, replacement and close, and Stop");
+        }
+
+        private void RemoteStoreChecks()
+        {
+            RemoteFileFake file = new RemoteFileFake();
+            RemoteStore store = new RemoteStore(file);
+            RemoteState read;
+            string relay;
+            if (store.Load(out read, out relay) != RemoteStoreResult.Missing || read != null || relay != null || store.Problem != null) throw new Exception("Remote store did not report missing state.");
+            RemoteState state = RemoteState.Fresh();
+            state.Used = true;
+            RemoteDevice parent = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone", Added = new DateTime(2026, 11, 14, 0, 0, 0, DateTimeKind.Utc) };
+            RemoteDevice child = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Home screen", Added = parent.Added, From = parent.Name, Parent = parent.Id };
+            state.Devices.Add(parent); state.Devices.Add(child);
+            string host = " https://" + RemoteLink.DefaultHost.ToUpperInvariant() + "/ ";
+            if (store.Save(host, state) != RemoteStoreResult.Saved || new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read
+                || relay != RemoteLink.RelayBase(null) || read.ToJson() != state.ToJson()) throw new Exception("Remote store lost state across restart.");
+            string good = file.Text;
+            string damagedProblem = "The Remote file is damaged.";
+            string readProblem = "Cannot read the Remote file right now. Check access to the file and try again.";
+            foreach (string damaged in new[] { "{", good.Replace("\"v\":1", "\"v\":2"), good.Replace(state.Token, "bad"), good.Replace(RemoteCrypto.B64u(child.Key), "bad"), good.Replace("\"devices\":", "\"missing\":"), good.Replace(child.Added.ToString("o"), "bad-date") })
+            {
+                file.Text = damaged;
+                int writes = file.Writes;
+                if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != damagedProblem || !store.Damaged || file.Text != damaged || file.Writes != writes) throw new Exception("Remote store hid or replaced damaged state.");
+            }
+            file.Text = good; file.Denied = true;
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || store.Damaged || file.Text != good) throw new Exception("Remote store hid an unreadable file.");
+            file.Denied = false;
+            file.Fail = "read";
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || store.Damaged || file.Text != good) throw new Exception("Remote store treated a read failure as damage.");
+            file.Fail = "read-close";
+            if (store.Load(out read, out relay) != RemoteStoreResult.Unreadable || read != null || relay != null || store.Problem != readProblem || store.Damaged || file.Text != good) throw new Exception("Remote store returned state after a failed read close.");
+            foreach (string failure in new[] { "begin", "write", "flush", "replace" })
+            {
+                file.Fail = failure;
+                if (store.Save(null, RemoteState.Fresh()) != RemoteStoreResult.WriteFailed || store.Problem != "Cannot save the Remote file right now. Check access to the folder and try again." || file.Text != good || file.Pending != null
+                    || failure == "write" && file.Written == 0) throw new Exception("Remote store left a partial file after " + failure + ".");
+            }
+            file.Fail = null;
+            if (store.Load(out read, out relay) != RemoteStoreResult.Read || read.ToJson() != state.ToJson() || store.Problem != null || store.Damaged) throw new Exception("Remote store could not read after a failed write.");
+            RemoteFileFake empty = new RemoteFileFake { Fail = "write" };
+            if (new RemoteStore(empty).Save(null, state) != RemoteStoreResult.WriteFailed || empty.Written == 0 || new RemoteStore(empty).Load(out read, out relay) != RemoteStoreResult.Missing) throw new Exception("Remote store created a partial first record.");
+            if (store.Save("ws://relay.example", state) != RemoteStoreResult.WriteFailed || store.Problem != "The Remote state or relay is invalid." || file.Text != good) throw new Exception("An invalid relay replaced Remote state.");
+            if (store.Load(out read, out relay) != RemoteStoreResult.Read || relay == RemoteLink.RelayBase("relay.example:8443")) throw new Exception("Remote store lost its relay identity.");
+            RemoteStoreResult revoked = RemoteStoreResult.Missing;
+            int revokes = 0;
+            using (RemoteWire wire = new RemoteWire(state.Copy(), saved => { revokes++; revoked = store.Save(null, saved); }))
+            {
+                wire.Link.Revoke(parent.Id);
+                if (revokes != 1 || revoked != RemoteStoreResult.Saved) throw new Exception("Remote revoke did not save.");
+                if (store.Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 0) throw new Exception("Remote store restored a revoked child.");
+                RemoteState fresh = wire.Link.RemoveAll();
+                if (store.Save(null, fresh) != RemoteStoreResult.Saved || store.Load(out read, out relay) != RemoteStoreResult.Read || read.Room == state.Room || read.Token == state.Token || read.Devices.Count != 0) throw new Exception("Remote store did not keep Remove all's new room.");
+                RemoteState changed = RemoteState.Fresh();
+                if (store.Save("relay.example:8443", changed) != RemoteStoreResult.Saved || new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read
+                    || relay != "wss://relay.example:8443" || read.Room != changed.Room || read.Token != changed.Token || read.Devices.Count != 0) throw new Exception("Remote store mixed relay states.");
+                string kept = file.Text;
+                if (store.Save("wss://RELAY.EXAMPLE:8443/", read) != RemoteStoreResult.Saved || file.Text != kept) throw new Exception("An equivalent relay changed the Remote record.");
+            }
+            checks.Add("PASS Remote core store: missing, saved and read, damaged, unreadable and failed writes stay distinct; partial writes and failed replace keep the old record; restart, relay identity, cascading revoke and Remove all keep the complete state");
+        }
+
+        private sealed class RemoteFileFake : RemoteStoreFile
+        {
+            internal string Text, Fail;
+            internal bool Denied;
+            internal int Writes, Written;
+            internal MemoryStream Pending;
+            internal override Stream Read()
+            {
+                if (Denied) throw new UnauthorizedAccessException("Cannot read the fake Remote file.");
+                if (Fail == "read") throw new IOException("Fake Remote read failed (5).");
+                return Text == null ? null : new RemoteInput(this);
+            }
+            protected override Stream Begin()
+            {
+                Written = 0;
+                if (Fail == "begin") throw new IOException("Cannot create the fake Remote file.");
+                return Pending = new RemoteOutput(this);
+            }
+            protected override void Commit()
+            {
+                if (Fail == "replace") throw new IOException("Cannot replace the fake Remote file.");
+                Text = Encoding.UTF8.GetString(Pending.ToArray());
+                Writes++;
+            }
+            protected override void Cancel() { Pending = null; }
+
+            private sealed class RemoteInput : MemoryStream
+            {
+                private readonly RemoteFileFake file;
+                internal RemoteInput(RemoteFileFake file) : base(Encoding.UTF8.GetBytes(file.Text)) { this.file = file; }
+                protected override void Dispose(bool disposing)
+                {
+                    base.Dispose(disposing);
+                    if (disposing && file.Fail == "read-close") throw new IOException("Cannot close the fake Remote file.");
+                }
+            }
+
+            private sealed class RemoteOutput : MemoryStream
+            {
+                private readonly RemoteFileFake file;
+                internal RemoteOutput(RemoteFileFake file) { this.file = file; }
+                public override void Write(byte[] buffer, int offset, int count)
+                {
+                    count = file.Fail == "write" ? Math.Min(9, count) : count;
+                    base.Write(buffer, offset, count);
+                    file.Written += count;
+                    if (file.Fail == "write") throw new IOException("The fake Remote write stopped part way.");
+                }
+                public override void Write(ReadOnlySpan<byte> buffer) { byte[] bytes = buffer.ToArray(); Write(bytes, 0, bytes.Length); }
+                public override void Flush()
+                {
+                    if (file.Fail == "flush") throw new IOException("Cannot flush the fake Remote file.");
+                    base.Flush();
+                }
+            }
+        }
+
+        private sealed class RemoteWire : IDisposable
+        {
+            internal const System.Reflection.BindingFlags Own = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+            internal readonly RemoteLink Link;
+            internal readonly List<RemoteJson.Map> Controls = new List<RemoteJson.Map>();
+            internal readonly List<byte[]> BinaryFrames = new List<byte[]>();
+            internal readonly List<string[]> Said = new List<string[]>();
+            internal readonly List<string> Events = new List<string>();
+            internal RemoteState Saved;
+            internal int Saves;
+            private readonly CancellationTokenSource stop = new CancellationTokenSource();
+            private readonly object wire;
+
+            internal RemoteWire(RemoteState state, Action<RemoteState> save = null)
+            {
+                Link = new RemoteLink(state, "ws://127.0.0.1:1", "Test PC", "test", delegate(RemoteState saved) { Saved = saved.Copy(); Saves++; save?.Invoke(saved); });
+                wire = Activator.CreateInstance((Type)Member(typeof(RemoteLink), "Wire", System.Reflection.MemberTypes.NestedType), Own, null, new object[] { stop }, null);
+                Set(Link, "wire", wire); Set(Link, "started", true); Set(Link, "run", stop);
+                Link.Said += (phone, id, text) => Said.Add(new[] { phone, id, text });
+                Link.Happened += (what, about) => Events.Add(what + " " + about);
+                List<string> ids = new List<string>();
+                foreach (RemoteDevice phone in state.Devices) ids.Add(phone.Id);
+                Text(new RemoteJson.Writer().Text("t", "ready").Texts("devices", ids).Texts("online", new string[0]).ToString());
+            }
+
+            private static System.Reflection.MemberInfo Member(Type type, string name, System.Reflection.MemberTypes kind)
+            {
+                System.Reflection.MemberInfo[] found = type.GetMember(name, kind, Own);
+                if (found.Length != 1) throw new Exception("Remote smoke needs one member: " + type.FullName + "." + name + ".");
+                return found[0];
+            }
+            internal static object Get(object target, string name) { return ((System.Reflection.FieldInfo)Member(target.GetType(), name, System.Reflection.MemberTypes.Field)).GetValue(target); }
+            internal static void Set(object target, string name, object value) { ((System.Reflection.FieldInfo)Member(target.GetType(), name, System.Reflection.MemberTypes.Field)).SetValue(target, value); }
+            private static object Call(object target, string name, params object[] args) { return ((System.Reflection.MethodInfo)Member(target.GetType(), name, System.Reflection.MemberTypes.Method)).Invoke(target, args); }
+            internal void Text(string json) { Call(Link, "OnText", wire, Encoding.UTF8.GetBytes(json)); }
+
+            internal RemoteKeys Pair(string pending, string name, byte[] nonce)
+            {
+                string url = Link.NewCode();
+                byte[] key = RemoteCrypto.FromB64u(url.Substring(url.IndexOf("&k=", StringComparison.Ordinal) + 3), 32);
+                RemoteKeys keys = RemoteCrypto.PairKeys(key, nonce);
+                string request = new RemoteJson.Writer().Text("type", "pair-request").Number("v", 1).Text("name", name).Text("app", "test").ToString();
+                byte[] envelope = RemoteCrypto.Seal(keys.PhoneToPc, RemoteCrypto.KindPair, RemoteCrypto.PhoneToPc, 0, Encoding.UTF8.GetBytes(request));
+                Pump();
+                Text(new RemoteJson.Writer().Text("t", "pending").Text("id", pending).Text("nonce", RemoteCrypto.B64u(nonce)).Text("env", RemoteCrypto.B64u(envelope)).ToString());
+                if (Link.Asking == null || Link.Asking.Code != RemoteCrypto.Confirm(key, nonce)) throw new Exception("Remote pairing confirmation changed.");
+                return keys;
+            }
+
+            internal RemoteKeys Hello(RemoteDevice phone, byte[] nonce)
+            {
+                Pump();
+                Text(new RemoteJson.Writer().Text("t", "joined").Text("device", phone.Id).ToString());
+                RemoteKeys hello = RemoteCrypto.HelloKeys(phone.Key, phone.IdBytes);
+                byte[] frame = RemoteCrypto.Seal(hello.PhoneToPc, RemoteCrypto.KindHello, RemoteCrypto.PhoneToPc, 0,
+                    Encoding.UTF8.GetBytes(new RemoteJson.Writer().Text("type", "hello").Number("v", 1).Text("nonce", RemoteCrypto.B64u(nonce)).ToString()));
+                Call(Link, "OnBinary", RemoteCrypto.Join(phone.IdBytes, frame));
+                Pump();
+                if (BinaryFrames.Count != 1) throw new Exception("Remote hello did not send one response.");
+                frame = BinaryFrames[0];
+                string reason;
+                byte[] opened = RemoteCrypto.Open(hello.PcToPhone, RemoteCrypto.KindHello, RemoteCrypto.PcToPhone, 0, frame, 16, frame.Length - 16, out reason);
+                RemoteJson.Map response = opened == null ? null : RemoteJson.Message(opened);
+                if (response == null || response.Text("type") != "hello-ok" || response.Text("echo") != RemoteCrypto.B64u(nonce)
+                    || response.Items("features").Count != 2 || !response.Items("features").Contains("chat") || !response.Items("features").Contains("pair")) throw new Exception("Remote hello lost its nonce or text features.");
+                return RemoteCrypto.SessionKeys(phone.Key, nonce, RemoteCrypto.FromB64u(response.Text("nonce"), 16));
+            }
+
+            internal void Send(RemoteDevice phone, RemoteKeys keys, uint sequence, string json)
+            {
+                byte[] frame = RemoteCrypto.Seal(keys.PhoneToPc, RemoteCrypto.KindSession, RemoteCrypto.PhoneToPc, sequence, Encoding.UTF8.GetBytes(json));
+                Call(Link, "OnBinary", RemoteCrypto.Join(phone.IdBytes, frame));
+            }
+
+            internal void Pump()
+            {
+                Controls.Clear(); BinaryFrames.Clear();
+                object item;
+                while ((item = Call(wire, "Take")) != null)
+                {
+                    if (!(bool)Get(item, "Close"))
+                        foreach (var frame in (List<KeyValuePair<byte[], System.Net.WebSockets.WebSocketMessageType>>)Call(Link, "Frames", item))
+                            if (frame.Value == System.Net.WebSockets.WebSocketMessageType.Text) Controls.Add(RemoteJson.ParseMap(Encoding.UTF8.GetString(frame.Key)));
+                            else BinaryFrames.Add(frame.Key);
+                    Call(item, "Finish");
+                }
+            }
+
+            public void Dispose()
+            {
+                Link.Stop();
+                stop.Cancel();
+                ((IDisposable)Get(wire, "Socket")).Dispose();
+                ((IDisposable)Get(wire, "Signal")).Dispose();
+                ((IDisposable)Get(wire, "Sending")).Dispose();
+                stop.Dispose();
+            }
+        }
+
+        private void RemoteBridgeChecks()
+        {
+            Stopwatch time = Stopwatch.StartNew();
+            Settings saved = pet.Saved;
+            Func<string, string> think = pet.Think;
+            Func<string, ToolArguments, string> act = pet.Brain.Act;
+            Action<string> run = Hands.Run;
+            Func<List<InstalledApp>> catalog = Hands.Catalog;
+            Func<List<OpenWindow>> windows = Hands.Windows;
+            Func<string, string> look = Hands.Look;
+            Func<string[]> secrets = Brain.Secrets;
+            Func<string, KeyValuePair<string, ToolArguments>> request = Hands.NativeRequest;
+            Func<ToolArguments, string> native = Hands.NativeWork;
+            Func<ToolArguments, string> terminal = Hands.NativeTerminal;
+            Func<ToolArguments, string> remind = Hands.Remind;
+            Func<string, string, string> modRun = Hands.RunModTool;
+            Func<string[][]> modList = Hands.ModTools;
+            string appsPath = Hands.AppsPath, permissions = Security.Saved;
+            RemoteStore files = pet.RemoteFiles;
+            Func<RemoteState, string, Action<RemoteState>, RemoteLink> make = pet.RemoteMake;
+            Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
+            var timer = (Avalonia.Threading.DispatcherTimer)RemoteWire.Get(pet, "frames");
+            bool ticking = timer.IsEnabled, wrapped = (bool)RemoteWire.Get(pet, "modWrapped");
+            string[] remoteFields = { "remoteState", "remoteRelay", "remoteProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode", "remoteLoaded", "remoteReadFailed", "remotePendingProblem" };
+            Dictionary<string, object> remoteBefore = new Dictionary<string, object>();
+            foreach (string field in remoteFields) remoteBefore[field] = RemoteWire.Get(pet, field);
+            int pool, io; ThreadPool.GetMinThreads(out pool, out io);
+            ThreadPool.SetMinThreads(Math.Max(pool, 8), io);
+            IDisposable host = null;
+            timer.Stop();
+            using (RemoteBridgeFake bridge = new RemoteBridgeFake(pet))
+            try
+            {
+                pet.Saved = new Settings { Silent = true, VoiceProvider = Speakers.Off, RemoteHost = "ws://127.0.0.1:1" };
+                pet.Think = delegate(string text) { return "Answer: " + text; };
+                Security.Drop(); Security.Pick(Security.Trusted);
+                int runs = 0;
+                bool fails = false;
+                Hands.AppsPath = null;
+                Hands.Forget();
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Bridge App", "bridge-app") }; };
+                Hands.Windows = delegate { return new List<OpenWindow>(); };
+                Hands.Run = delegate { Interlocked.Increment(ref runs); if (fails) throw new IOException("private-result-text"); };
+                Hands.Look = delegate { return "private-screen-result"; };
+                Hands.NativeWork = Limbs.RemoteWork(new Func<ToolArguments, string>(delegate { Interlocked.Increment(ref runs); return "native work ran"; }));
+                Hands.NativeTerminal = delegate { Interlocked.Increment(ref runs); return "terminal ran"; };
+                Hands.RunModTool = delegate(string name, string text)
+                {
+                    if (RemoteTurn.Working == null || !RemoteTurn.Working.Current) throw new Exception("A mod tool lost its phone context.");
+                    if (name == "work-mod") return Hands.Work("a screen request from a mod", text);
+                    Interlocked.Increment(ref runs); return "mod ran";
+                };
+                Hands.ModTools = delegate { return new[] { new[] { "bridge-mod", "A fake mod tool.", "text" }, new[] { "work-mod", "A fake screen request.", "text" } }; };
+                Hands.NativeRequest = delegate(string text)
+                {
+                    const string lead = "remote boundary ";
+                    return text.StartsWith(lead, StringComparison.Ordinal) ? new KeyValuePair<string, ToolArguments>(text.Substring(lead.Length), new ToolArguments { Task = "private-task", Text = "private-argument", Name = "Bridge App", Action = "on" }) : default(KeyValuePair<string, ToolArguments>);
+                };
+                bridge.Online();
+                int pcRuns = runs;
+                if (Hands.NativeWork(new ToolArguments { Task = "a fake PC native job" }) != "native work ran" || runs != pcRuns + 1 || bridge.Sink.Count != 0) throw new Exception("The phone native boundary changed a PC native job.");
+                bridge.Send(0, "chat-one", "bridge hello");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("chat-one") != null; }, "a phone answer");
+                RemoteJson.Map reply = bridge.Sink.ReplyFor("chat-one");
+                if (reply.Text("device") != bridge.Phones[0].Id || reply.Text("text") != "Answer: bridge hello" || pet.Talk.Reply != reply.Text("text") || bridge.Sink.CountFor("chat-one") != 1) throw new Exception("A phone answer lost its message, owner or PC bubble.");
+                int sent = bridge.Sink.Count;
+                pet.Talk.Dismiss(); pet.Hear("desktop hello");
+                RemoteBridgeWait(delegate { return pet.Talk.Reply == "Answer: desktop hello"; }, "a desktop answer");
+                if (bridge.Sink.Count != sent) throw new Exception("Desktop chat reached a phone.");
+                checks.Add("PASS Remote bridge: a typed phone turn answers its phone once with its message id and shows the PC bubble; desktop chat stays local");
+
+                foreach (bool fail in new[] { false, true })
+                {
+                    fails = fail;
+                    pet.Think = delegate { pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App", Text = "private-argument-text" }); return "Tried the app."; };
+                    string id = fail ? "tool-failed" : "tool-done";
+                    bridge.Send(0, id, "try the bridge app");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "phone tool progress");
+                    List<RemoteJson.Map> tools = bridge.Sink.ToolsFor(id);
+                    if (tools.Count != 2 || tools[0].Text("state") != "running" || tools[1].Text("state") != (fail ? "failed" : "done") || tools[0].Text("id") != tools[1].Text("id") || tools[0].Text("name") != "open_app" || tools[0].Text("summary") != "Opening an app"
+                        || tools.Exists(delegate(RemoteJson.Map row) { string words = row.Text("name") + " " + row.Text("summary"); return words.Contains("private-") || words.Contains("Bridge App") || row.Text("device") != bridge.Phones[0].Id; })) throw new Exception("Remote tool progress leaked data or lost its running/result pair.");
+                }
+                fails = false;
+                checks.Add("PASS Remote bridge: tools send running then done or failed with the same id and fixed labels, without arguments, target names or results");
+
+                bool phoneReminder = false;
+                Hands.Remind = delegate { phoneReminder = RemoteTurn.Working != null && RemoteTurn.Working.Current; return "Set the reminder."; };
+                bridge.Send(0, "early-reminder", "remind me in 20 minutes to drink water");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("early-reminder") != null; }, "an early reminder tool");
+                if (!phoneReminder || bridge.Sink.ToolsFor("early-reminder").Count != 2 || bridge.Sink.ReplyFor("early-reminder").Text("text") != "Set the reminder.") throw new Exception("An early timer or reminder worker lost its phone context.");
+                checks.Add("PASS Remote bridge: the early reminder worker keeps its phone context and uses the same tool progress and accepted reply path");
+
+                Cloud cloud = pet.Brain.Remote;
+                string model = pet.Brain.Model;
+                object models = RemoteWire.Get(pet, "cloudModels");
+                List<string> stalled = (List<string>)RemoteWire.Get(pet, "stalled");
+                List<string> stalledBefore = new List<string>(stalled);
+                try
+                {
+                    pet.Brain.Remote = new Cloud("nvapi-bridge-fake", "bridge-stalled-model"); pet.Brain.Model = "bridge-stalled-model";
+                    RemoteWire.Set(pet, "cloudModels", null);
+                    int tries = 0;
+                    pet.Think = delegate { if (Interlocked.Increment(ref tries) == 1) throw new WebException("Test timeout.", WebExceptionStatus.Timeout); pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" }); return "The retry answered."; };
+                    bridge.Send(0, "retry-owner", "try the fake model again");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("retry-owner") != null; }, "a retried phone turn");
+                    if (tries != 2 || bridge.Sink.CountFor("retry-owner") != 1 || bridge.Sink.ToolsFor("retry-owner").Count != 2 || bridge.Sink.ReplyFor("retry-owner").Text("device") != bridge.Phones[0].Id) throw new Exception("A model retry lost its phone owner or dispatched without context.");
+                }
+                finally { pet.Brain.Remote = cloud; pet.Brain.Model = model; RemoteWire.Set(pet, "cloudModels", models); stalled.Clear(); stalled.AddRange(stalledBefore); }
+                checks.Add("PASS Remote bridge: a fake stalled model retries with the same phone context, tool progress and original message id");
+
+                pet.Think = delegate { pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" }); return "A model cannot approve this."; };
+                Security.Set(Security.Open, false);
+                int before = runs;
+                bridge.Send(0, "open-ask", "open the bridge app for the phone");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("open-ask") != null; }, "a phone permission question");
+                if (runs != before || bridge.Sink.ReplyFor("open-ask").Text("text") != "Open Bridge App?" + Security.Yes || bridge.Sink.ToolsFor("open-ask").Count != 0 || Security.HoldingId != null) throw new Exception("A phone permission question ran early or escaped its owner.");
+                bridge.Send(1, "wrong-yes", "yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("wrong-yes") != null; }, "another phone's yes");
+                if (runs != before) throw new Exception("Another phone approved a held tool.");
+                bridge.Send(0, "right-yes", "yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("right-yes") != null; }, "the owning phone's yes");
+                if (runs != before + 1 || bridge.Sink.ToolsFor("right-yes").Count != 2 || bridge.Sink.ReplyFor("right-yes").Text("device") != bridge.Phones[0].Id) throw new Exception("The owning phone's yes did not resume through her hands once.");
+                bridge.Send(0, "second-yes", "yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("second-yes") != null; }, "a second yes");
+                if (runs != before + 1) throw new Exception("A second yes ran a phone tool again.");
+                bridge.Send(0, "next-ask", "ask to open the bridge app again");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("next-ask") != null; }, "a second phone question");
+                pet.Think = delegate { return "A different topic."; };
+                bridge.Send(0, "unrelated", "a different topic");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("unrelated") != null; }, "unrelated phone chat");
+                bridge.Send(0, "late-yes", "yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("late-yes") != null; }, "an obsolete yes");
+                if (runs != before + 1) throw new Exception("Unrelated chat left a phone approval usable.");
+                Security.Set(Security.Open, true);
+                checks.Add("PASS Remote bridge: Open off asks that phone, another phone cannot consume the question, its own yes runs once through Security.Resume, and repeated or unrelated answers run nothing");
+
+                Type modType = typeof(Pet).GetNestedType("ModHost", System.Reflection.BindingFlags.NonPublic);
+                host = (IDisposable)Activator.CreateInstance(modType, RemoteWire.Own, null, new object[] { pet, "remote-bridge-veto" }, null);
+                modType.GetField("toolUsing", RemoteWire.Own).SetValue(host, new Action<CapriToolCall>(delegate(CapriToolCall call) { call.Cancel = true; call.Reason = "The test mod stopped that."; }));
+                before = runs;
+                pet.Think = delegate { return pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" }); };
+                bridge.Send(0, "veto", "try a vetoed tool");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("veto") != null; }, "a mod veto");
+                if (runs != before || bridge.Sink.ReplyFor("veto").Text("text") != "The test mod stopped that." || bridge.Sink.ToolsFor("veto").Count != 0) throw new Exception("Remote bypassed the real mods' veto wrapper.");
+                int heard = 0;
+                pet.Think = delegate { Interlocked.Increment(ref heard); return "A taken line reached the brain."; };
+                modType.GetField("sending", RemoteWire.Own).SetValue(host, new Action<CapriMessage>(delegate(CapriMessage message) { message.Cancel = true; }));
+                bridge.Send(0, "mod-taken", "a phone line taken by a mod");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("mod-taken") != null; }, "a taken phone request");
+                if (heard != 0 || bridge.Sink.ReplyFor("mod-taken").Text("text") != "") throw new Exception("A mod-taken line left its phone waiting.");
+                host.Dispose(); host = null;
+                bridge.Send(0, "blank-line", "   ");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("blank-line") != null; }, "a blank phone request");
+                if (heard != 0 || bridge.Sink.ReplyFor("blank-line").Text("text") != "") throw new Exception("A blank phone request did not close empty.");
+                checks.Add("PASS Remote bridge: the installed mods' ToolUsing veto still stops a phone tool before dispatch");
+                checks.Add("PASS Remote bridge: a mod-taken line and a whitespace-only message close empty without calling the brain");
+
+                RemoteTurn previous = RemoteTurn.Working, sample = new RemoteTurn();
+                bool enteredContext = false, leftContext = false;
+                try { RemoteTurn.Run(sample, delegate { enteredContext = RemoteTurn.Working == sample; }, delegate { leftContext = RemoteTurn.Working == previous; throw new IOException("Fake hold cleanup failed."); }); }
+                catch (IOException) { }
+                if (!enteredContext || !leftContext || RemoteTurn.Working != previous) throw new Exception("A throwing cleanup kept the phone context on the worker.");
+                checks.Add("PASS Remote bridge context: the previous worker context is restored before hold cleanup, including when cleanup throws");
+                RemoteBridgeTools(bridge, delegate { return runs; });
+                RemoteBridgeAnswers(bridge, delegate { return runs; });
+
+                Security.Pick(Security.Blackwall);
+                SkillDesk desk = new SkillDesk();
+                RemoteBridgeInput input = new RemoteBridgeInput();
+                ComputerRunner runner = new ComputerRunner { Desktop = desk, Input = input, Account = delegate { return "remote-private-check"; } };
+                const string value = "native-private-value-4829", key = "unusual-known-key-value-924821";
+                int turns = 0;
+                runner.Think = delegate
+                {
+                    return turns++ == 0 ? new RemoteJson.Writer().Text("action", "type").Text("frame", desk.Frame.Id).Text("previous_effect", "none").Text("label", "Type a private value").Text("risk", "secret").Flag("secret", true).Text("text", value).ToString()
+                        : new RemoteJson.Writer().Text("action", "done").Text("frame", desk.Frame.Id).Text("previous_effect", "verified").Text("label", "Typed it").Text("risk", "none").Flag("secret", false).ToString();
+                };
+                runner.Run(new ComputerJob { Task = "Type the password", Asked = "Type the password" }, CancellationToken.None);
+                if (input.Types != 1 || RemotePrivate.Mask(value) != "[private]") throw new Exception("Native typing did not record its private value.");
+                Brain.Secrets = delegate { return new[] { key }; };
+                pet.Think = delegate { return value + " " + key + " sk-phone-test-key"; };
+                bridge.Send(0, "private-reply", "reply with the test values");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("private-reply") != null; }, "a masked phone answer");
+                string clean = bridge.Sink.ReplyFor("private-reply").Text("text");
+                if (clean.Contains(value) || clean.Contains(key) || clean.Contains("sk-phone-test-key") || !clean.Contains("[private]") || !clean.Contains("[redacted]") || !pet.Talk.Reply.Contains(value)) throw new Exception("A private native value or known key reached a phone.");
+                if (RemoteTurn.Out(new string('x', 20000) + value, 16000).Length > 16000 || RemoteTurn.Out("a\u0001\t\u202eb", 16000) != "a b") throw new Exception("Phone output lost its length or control-character bound.");
+                Brain.Secrets = secrets;
+                Security.Pick(Security.Trusted);
+                checks.Add("PASS Remote bridge: a PC native job's fake input types once and records its private value; later phone text masks it, redacts keys, scrubs a known key and bounds clean output while the PC bubble keeps its text");
+
+                RemoteBridgeTickets(bridge);
+                RemoteBridgeOverlap(bridge);
+                RemoteBridgeStale(bridge, delegate { return runs; });
+                RemoteBridgeLife(bridge);
+                RemoteBridgeQuit(bridge);
+            }
+            finally
+            {
+                bridge.Dispose();
+                if (host != null) host.Dispose();
+                typeof(Pet).GetMethod("StopModWatch", RemoteWire.Own).Invoke(pet, null);
+                RemoteWire.Set(pet, "modWrapped", wrapped);
+                RemoteWire.Set(pet, "quitting", false);
+                RemoteWire.Set(pet, "asking", (int)RemoteWire.Get(pet, "asking") + 1);
+                pet.Brain.Act = act; pet.Think = think; pet.Saved = saved;
+                Hands.Run = run; Hands.Catalog = catalog; Hands.Windows = windows; Hands.Look = look; Hands.NativeRequest = request;
+                Hands.NativeWork = native; Hands.NativeTerminal = terminal; Hands.RunModTool = modRun; Hands.ModTools = modList; Hands.Remind = remind;
+                Hands.AppsPath = appsPath; Hands.Forget(); Brain.Secrets = secrets;
+                Security.Drop(); Security.Load(permissions);
+                pet.RemoteFiles = files; pet.RemoteMake = make; pet.RemoteOutput = output;
+                foreach (string field in remoteFields) RemoteWire.Set(pet, field, remoteBefore[field]);
+                pet.Talk.Dismiss(); pet.NotifySettings();
+                ThreadPool.SetMinThreads(pool, io);
+                if (ticking) timer.Start();
+            }
+            checks.Add("INFO Remote bridge: " + time.ElapsedMilliseconds + " ms");
+        }
+
+        private static void RemoteBridgeWait(Func<bool> ready, string what)
+        {
+            Stopwatch wait = Stopwatch.StartNew();
+            while (!ready() && wait.ElapsedMilliseconds < 30000) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Yield(); }
+            if (!ready()) throw new Exception("Remote did not finish " + what + ".");
+        }
+
+        private void RemoteBridgeLocal(RemoteBridgeFake bridge)
+        {
+            RemoteTurn active = (RemoteTurn)RemoteWire.Get(pet, "remoteActive");
+            if (active == null || active.Closed) throw new Exception("The local output check had no waiting phone turn.");
+            string[] fields = { "reminders", "reminderAt", "reminderLine", "reminderProblem", "ReminderCover", "ReminderSays" };
+            Dictionary<string, object> before = new Dictionary<string, object>();
+            foreach (string field in fields) before[field] = RemoteWire.Get(pet, field);
+            string path = Path.Combine(folder, "remote-reminder");
+            try
+            {
+                Directory.CreateDirectory(path);
+                DateTime now = new DateTime(2026, 11, 10, 12, 0, 0);
+                Reminders reminders = new Reminders(path, now) { Now = delegate { return now; } };
+                if (!reminders.Remind(new ToolArguments { Text = "the bridge check", When = "in 1 minute" }).StartsWith("I'll remind you", StringComparison.Ordinal)) throw new Exception("The bridge reminder was not saved.");
+                now = now.AddMinutes(1);
+                bool covered = false;
+                RemoteWire.Set(pet, "reminders", reminders);
+                RemoteWire.Set(pet, "reminderAt", 0.0);
+                RemoteWire.Set(pet, "reminderLine", null);
+                RemoteWire.Set(pet, "ReminderCover", new Action<bool>(delegate(bool on) { covered = on; }));
+                RemoteWire.Set(pet, "ReminderSays", Delegate.CreateDelegate(typeof(Action<string>), pet, typeof(Pet).GetMethod("ReminderSay", RemoteWire.Own)));
+                int sent = bridge.Sink.Count;
+                pet.Talk.Dismiss();
+                if (!(bool)typeof(Pet).GetMethod("CheckReminders", RemoteWire.Own).Invoke(pet, null) || pet.Talk.Reply != "Reminder: the bridge check" || !covered) throw new Exception("The bridge reminder did not take the real due-reminder path.");
+                if (bridge.Sink.Count != sent) throw new Exception("A due reminder reached a phone.");
+                pet.Talk.Dismiss(); RemoteWire.Set(pet, "reminderAt", 0.0);
+                if ((bool)typeof(Pet).GetMethod("CheckReminders", RemoteWire.Own).Invoke(pet, null) || covered) throw new Exception("The bridge reminder repeated or kept its cover.");
+                pet.Talk.Notice("(settings)", "A bridge notice.");
+                if (pet.Talk.Reply != "A bridge notice." || bridge.Sink.Count != sent || !active.Current) throw new Exception("A real notice missed the PC bubble, reached a phone or ended its turn.");
+                checks.Add("PASS Remote bridge local output: while a phone waits, a saved due reminder runs CheckReminders and ReminderSay once, and Talk.Notice shows a notice; both reach the PC bubble, neither sends to either phone, and the phone turn stays current");
+            }
+            finally
+            {
+                foreach (string field in fields) RemoteWire.Set(pet, field, before[field]);
+                pet.Talk.Dismiss();
+                if (Directory.Exists(path)) Directory.Delete(path, true);
+            }
+        }
+
+        private void RemoteBridgeTools(RemoteBridgeFake bridge, Func<int> runs)
+        {
+            bool mac = Hands.OnMac, hands = Hands.OwnHands;
+            Func<bool> ready = Hands.HandsReady, available = Hands.TerminalAvailable;
+            Func<string, string, string> work = Hands.Work;
+            Func<ToolArguments, string> draw = Hands.Draw, terminal = Hands.NativeTerminal, job = Hands.NativeTerminalJob, control = Hands.JobControl;
+            Func<ToolArguments, string> quit = Hands.Quit, updates = Hands.Updates;
+            Func<string, string> animate = Hands.Animate;
+            Func<int, bool> has = Security.Has;
+            Action close = pet.SelfClose;
+            string permissions = Security.Saved;
+            try
+            {
+                Hands.OnMac = false; Hands.OwnHands = true; Hands.HandsReady = delegate { return true; }; Hands.TerminalAvailable = delegate { return true; };
+                Security.Has = delegate { return true; };
+                Hands.Work = Limbs.RemoteWork(new Func<string, string, string>(delegate { throw new Exception("A phone started Hands.Work."); }));
+                Security.Pick(Security.Blackwall);
+                string[] tools = { "use_computer", "stream", "job_control", "run_terminal" };
+                for (int i = 0; i < tools.Length; i++)
+                {
+                    string tool = tools[i], id = "held-worker-" + i;
+                    int before = runs();
+                    pet.Think = delegate
+                    {
+                        string result = pet.Brain.Act(tool, new ToolArguments { Task = "private-task", Action = "change", Command = "private-command" });
+                        if (result != RemoteTurn.PcOnly) throw new Exception("A held call returned the wrong result: " + tool);
+                        pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" });
+                        return "I tried that and opened the app.";
+                    };
+                    bridge.Send(0, id, "choose a held tool on the worker");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a held call and a later ordinary tool");
+                    List<RemoteJson.Map> progress = bridge.Sink.ToolsFor(id);
+                    if (runs() != before + 1 || bridge.Sink.ReplyFor(id).Text("text") != "I tried that and opened the app." || progress.Count != 4 || progress[1].Text("state") != "failed" || progress[3].Text("state") != "done") throw new Exception("A held call stopped the turn, replaced her answer or finished as done: " + tool);
+                    string early = "held-early-" + i;
+                    int asked = 0;
+                    pet.Think = delegate { Interlocked.Increment(ref asked); return "The early call reached the brain."; };
+                    bridge.Send(0, early, tool == "job_control" ? "change the job to a different task" : "remote boundary " + tool);
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(early) != null; }, "an early held call");
+                    progress = bridge.Sink.ToolsFor(early);
+                    if (asked != 0 || runs() != before + 1 || bridge.Sink.ReplyFor(early).Text("text") != RemoteTurn.PcOnly || progress.Count != 2 || progress[1].Text("state") != "failed") throw new Exception("An early held call escaped its boundary: " + tool);
+                }
+                Hands.OnMac = true;
+                foreach (string route in new[] { "music", "work", "native", "computer", "terminal", "mod" })
+                {
+                    string id = "held-route-" + route;
+                    int before = runs();
+                    Hands.Draw = delegate(ToolArguments args)
+                    {
+                        if (route == "work") return Hands.Work("a screen request from a drawing", args.Asked);
+                        if (route == "native") return Hands.NativeWork(args);
+                        if (route == "computer") return ComputerJobs.Run("a direct native job", args.Asked);
+                        return TerminalJobs.Run(args);
+                    };
+                    pet.Think = delegate
+                    {
+                        string result = route == "music" ? pet.Brain.Act("play_music", new ToolArguments { App = "applemusic", Song = "my bridge playlist", Kind = "playlist" })
+                            : route == "mod" ? pet.Brain.Act("mod", new ToolArguments { Name = "work-mod", Text = "a mod request" })
+                            : pet.Brain.Act("draw", new ToolArguments { Task = "private-task", Description = "a screen request", Asked = "run a terminal command", Command = "private-command" });
+                        if (result != RemoteTurn.PcOnly) throw new Exception("A side door returned the wrong result: " + route);
+                        pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" });
+                        return "I tried that route and opened the app.";
+                    };
+                    bridge.Send(0, id, "try a side door");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a held side door");
+                    List<RemoteJson.Map> progress = bridge.Sink.ToolsFor(id);
+                    if (runs() != before + 1 || bridge.Sink.ReplyFor(id).Text("text") != "I tried that route and opened the app." || progress.Count != 4 || progress[1].Text("state") != "failed" || progress[3].Text("state") != "done") throw new Exception("A side door started work or poisoned later tools: " + route);
+                }
+                int allowed = 0;
+                Hands.JobControl = delegate(ToolArguments args) { Interlocked.Increment(ref allowed); return "Job " + args.Action; };
+                Hands.NativeTerminalJob = delegate(ToolArguments args) { Interlocked.Increment(ref allowed); return "Terminal " + args.Action; };
+                Hands.Quit = delegate { Interlocked.Increment(ref allowed); return "Quit checked."; };
+                Hands.Updates = delegate { Interlocked.Increment(ref allowed); return "Updates checked."; };
+                Hands.Animate = delegate { Interlocked.Increment(ref allowed); return "Animation checked."; };
+                pet.Think = delegate
+                {
+                    foreach (string action in new[] { "status", "stop" }) if (pet.Brain.Act("job_control", new ToolArguments { Action = action }) != "Job " + action) throw new Exception("A phone job action was held back.");
+                    foreach (string action in new[] { "status", "read", "stop" }) if (pet.Brain.Act("terminal_job", new ToolArguments { Action = action, Asked = "inspect the job" }) != "Terminal " + action) throw new Exception("A phone terminal control was held back.");
+                    if (pet.Brain.Act("quit", new ToolArguments { Action = "quit" }) != "Quit checked." || pet.Brain.Act("updates", new ToolArguments { Action = "status" }) != "Updates checked." || pet.Brain.Act("animate", new ToolArguments { Name = "grin" }) != "Animation checked.") throw new Exception("An ordinary self tool was held back.");
+                    return "The ordinary tools ran.";
+                };
+                bridge.Send(0, "allowed-tools", "use ordinary tools");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("allowed-tools") != null; }, "ordinary phone tools");
+                if (allowed != 8 || bridge.Sink.ToolsFor("allowed-tools").Count != 16 || bridge.Sink.ReplyFor("allowed-tools").Text("text") != "The ordinary tools ran.") throw new Exception("Phone tool control added a refusal.");
+                pet.Think = delegate { return pet.Brain.Act("mod", new ToolArguments { Name = "bridge-mod", Text = "fake" }); };
+                int mods = runs();
+                bridge.Send(0, "allowed-mod", "use a mod tool");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("allowed-mod") != null; }, "a phone mod tool");
+                if (runs() != mods + 1 || bridge.Sink.ReplyFor("allowed-mod").Text("text") != "mod ran") throw new Exception("A mod tool was held back.");
+                int direct = allowed;
+                bridge.Send(0, "job-status-phrase", "job status");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("job-status-phrase") != null; }, "a direct job status");
+                bridge.Send(0, "job-stop-phrase", "stop your job");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("job-stop-phrase") != null; }, "a direct job stop");
+                if (allowed != direct + 2 || bridge.Sink.ReplyFor("job-status-phrase").Text("text") != "Job status" || bridge.Sink.ReplyFor("job-stop-phrase").Text("text") != "Job stop") throw new Exception("An early job control lost its phone context or answer.");
+                foreach (string text in new[] { "stop", "cancel" })
+                {
+                    bridge.Send(0, "plain-" + text, text);
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("plain-" + text) != null; }, "a plain phone stop");
+                    if (bridge.Sink.ReplyFor("plain-" + text).Text("text") != "" || bridge.Sink.CountFor("plain-" + text) != 1) throw new Exception("A plain phone stop gained a refusal or stayed open.");
+                }
+                Hands.Quit = quit;
+                int closes = 0;
+                pet.SelfClose = delegate { closes++; };
+                pet.Think = delegate { return pet.Brain.Act("quit", new ToolArguments { Action = "quit" }); };
+                bridge.Send(0, "quit-after-reply", "quit after your answer");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("quit-after-reply") != null; }, "a deferred phone quit");
+                pet.selfTools.Tick((int)RemoteWire.Get(pet, "asking"), true);
+                if (closes != 1 || bridge.Sink.ReplyFor("quit-after-reply").Text("text") != "I'll quit after this reply.") throw new Exception("Closing the phone answer cancelled its ordinary deferred tool.");
+                foreach (bool platform in new[] { false, true })
+                {
+                    Hands.OnMac = platform;
+                    foreach (string missing in new[] { "gaming_mode", "stream", "use_computer", "run_terminal", "clone", "linux_system" })
+                    {
+                        Hands.OwnHands = false; Hands.HandsReady = delegate { return false; }; Hands.TerminalAvailable = delegate { return false; };
+                        ToolArguments args = new ToolArguments { Task = "a screen task", Action = "on" };
+                        string reason = Hands.Unable(missing, args);
+                        if (reason == null) continue;
+                        string id = "missing-" + platform + "-" + missing;
+                        pet.Think = delegate { return pet.Brain.Act(missing, args); };
+                        bridge.Send(0, id, "let the brain try an unavailable tool");
+                        RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "an unavailable phone tool");
+                        if (bridge.Sink.ReplyFor(id).Text("text") != reason || reason == RemoteTurn.PcOnly) throw new Exception("A missing tool lost its true platform reason.");
+                        bridge.Send(0, id + "-early", "remote boundary " + missing);
+                        RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id + "-early") != null; }, "an early unavailable phone tool");
+                        if (bridge.Sink.ReplyFor(id + "-early").Text("text") != reason) throw new Exception("An early missing tool gained a PC-only reason.");
+                    }
+                }
+                checks.Add("PASS Remote bridge boundaries: only mouse and keyboard starts, job change and terminal starts are held; each call fails alone and later tools and her own answer survive; direct phrases, real Apple Music fallback, Hands.Work, NativeWork, ComputerJobs and TerminalJobs starts keep the boundary");
+                checks.Add("PASS Remote bridge ordinary tools: job status and stop, terminal status/read/stop, mod tools, quit, updates and animate run; plain stop and cancel keep their PC meaning; unavailable tools keep their own reason in dispatch and early phrases on both platforms");
+            }
+            finally
+            {
+                Hands.OnMac = mac; Hands.OwnHands = hands; Hands.HandsReady = ready; Hands.TerminalAvailable = available; Hands.Work = work;
+                Hands.Draw = draw; Hands.NativeTerminal = terminal; Hands.NativeTerminalJob = job; Hands.JobControl = control;
+                Hands.Quit = quit; Hands.Updates = updates; Hands.Animate = animate; Security.Has = has; Security.Drop(); Security.Load(permissions);
+                pet.SelfClose = close;
+            }
+        }
+
+        private void RemoteBridgeAnswers(RemoteBridgeFake bridge, Func<int> runs)
+        {
+            int heard = 0;
+            pet.Think = delegate(string text) { if (RemoteTurn.Working == null || !RemoteTurn.Working.Current) throw new Exception("A phone answer became local."); Interlocked.Increment(ref heard); return "Heard " + text; };
+            foreach (string word in new[] { "yes", "ok", "sure" })
+            {
+                bridge.Send(0, "bare-" + word, word);
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("bare-" + word) != null; }, "a bare phone agreement");
+                if (bridge.Sink.ReplyFor("bare-" + word).Text("text") != "Heard " + word) throw new Exception("A bare phone agreement was swallowed.");
+            }
+            if (heard != 3) throw new Exception("A bare phone agreement skipped her brain.");
+            foreach (string word in new[] { "cancel", "stop", "no", "no thanks" })
+            {
+                string tag = word.Replace(" ", "-");
+                Security.Set(Security.Open, false);
+                int before = runs();
+                pet.Think = delegate { pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" }); return "Ask first."; };
+                bridge.Send(0, "decline-ask-" + tag, "ask before opening an app");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("decline-ask-" + tag) != null; }, "a question to decline");
+                bridge.Send(0, "decline-" + tag, word);
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("decline-" + tag) != null; }, "a declined phone question");
+                if (bridge.Sink.ReplyFor("decline-" + tag).Text("text") != Security.Left || runs() != before) throw new Exception("A phone decline kept the approval or got a refusal.");
+                pet.Think = delegate { return "No question is waiting."; };
+                bridge.Send(0, "decline-late-" + tag, "yes");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("decline-late-" + tag) != null; }, "yes after a phone decline");
+                if (runs() != before || bridge.Sink.ToolsFor("decline-late-" + tag).Count != 0 || Security.HoldingId != null) throw new Exception("A declined approval ran on a later yes.");
+            }
+            Security.Set(Security.Open, true);
+            Meeting meeting = (Meeting)RemoteWire.Get(pet, "meeting");
+            pet.GetToKnow();
+            try
+            {
+                int asked = 0, before = runs();
+                pet.Think = delegate
+                {
+                    if (RemoteTurn.Working == null || !RemoteTurn.Working.Current) throw new Exception("The meeting converted a phone turn into a PC turn.");
+                    Interlocked.Increment(ref asked);
+                    pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" });
+                    return "The phone skipped the meeting.";
+                };
+                bridge.Send(0, "meeting-phone", "could you help with this task?");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("meeting-phone") != null; }, "a phone turn during the meeting");
+                if (asked != 1 || runs() != before + 1 || !pet.GettingToKnow || bridge.Sink.CountFor("meeting-phone") != 1 || bridge.Sink.ReplyFor("meeting-phone").Text("text") != "The phone skipped the meeting.") throw new Exception("The meeting swallowed or rerouted a phone line.");
+            }
+            finally { meeting.Stop(); }
+            checks.Add("PASS Remote bridge answers: bare yes, ok and sure reach the brain; cancel, stop and usual declines clear the phone approval and later yes runs nothing; an open get-to-know box never turns the phone line into PC input");
+        }
+
+        private void RemoteBridgeTickets(RemoteBridgeFake bridge)
+        {
+            using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+            {
+                pet.Think = delegate(string text) { if (text == "move while thinking") { entered.Set(); if (!release.Wait(30000)) throw new Exception("The thinking check was not released."); } return "Answer " + text; };
+                bridge.Send(0, "ticket-thinking", "move while thinking");
+                RemoteBridgeWait(delegate { return entered.IsSet; }, "thinking before a moved ticket");
+                bridge.Send(1, "after-thinking", "next after thinking");
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                RemoteWire.Set(pet, "asking", (int)RemoteWire.Get(pet, "asking") + 1);
+                release.Set();
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("ticket-thinking") != null && bridge.Sink.ReplyFor("after-thinking") != null; }, "a moved thinking ticket and its queued phone");
+                if (bridge.Sink.CountFor("ticket-thinking") != 1 || bridge.Sink.ReplyFor("ticket-thinking").Text("text") != "" || bridge.Sink.ReplyFor("after-thinking").Text("text") != "Answer next after thinking") throw new Exception("A moved thinking ticket stayed open or stalled the queue.");
+            }
+            ISpeaker speaker = (ISpeaker)RemoteWire.Get(pet, "elevenLabs");
+            bool silent = pet.Saved.Silent;
+            string provider = pet.Saved.VoiceProvider;
+            foreach (string stage in new[] { "speech", "show" })
+            using (RemoteBridgeSpeaker voice = new RemoteBridgeSpeaker())
+            {
+                try
+                {
+                    voice.Hold = stage == "speech";
+                    if (stage == "show") voice.Before = delegate { Avalonia.Threading.Dispatcher.UIThread.Post(delegate { RemoteWire.Set(pet, "asking", (int)RemoteWire.Get(pet, "asking") + 1); }); };
+                    RemoteWire.Set(pet, "elevenLabs", voice); pet.Saved.Silent = false; pet.Saved.VoiceProvider = Speakers.ElevenLabs;
+                    pet.Think = delegate(string text) { return text == "first spoken phone" ? "The first spoken answer." : "The next spoken answer."; };
+                    string id = "ticket-" + stage, next = "after-" + stage;
+                    bridge.Send(0, id, "first spoken phone");
+                    RemoteBridgeWait(delegate { return voice.Entered.IsSet; }, "speech preparation");
+                    if (bridge.Sink.ReplyFor(id) == null || bridge.Sink.ReplyFor(id).Text("text") != "The first spoken answer." || voice.Hold && voice.Finished.IsSet) throw new Exception("A phone waited for its speech preparation.");
+                    if (stage == "show") { RemoteBridgeWait(delegate { return voice.Finished.IsSet; }, "speech before showing"); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+                    RemoteTurn turn = ((Dictionary<string, RemoteTurn>)RemoteWire.Get(pet, "remoteNewest"))[bridge.Phones[0].Id];
+                    if (stage == "speech") RemoteWire.Set(pet, "asking", (int)RemoteWire.Get(pet, "asking") + 1);
+                    pet.ShowReply(turn.Ticket, turn.Text, "A stale bubble.", 0, null, false, (int)RemoteWire.Get(pet, "inputTurn"), (int)RemoteWire.Get(pet, "answerTurn"), turn);
+                    bridge.Send(1, next, "next spoken phone");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(next) != null; }, "the next phone while speech changes");
+                    voice.Release.Set();
+                    RemoteBridgeWait(delegate { return voice.Finished.IsSet; }, "released speech preparation");
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    if (bridge.Sink.CountFor(id) != 1 || bridge.Sink.CountFor(next) != 1 || bridge.Sink.ReplyFor(next).Text("text") != "The next spoken answer." || !turn.Closed || !turn.Finished || turn.Waiting) throw new Exception("A moved speech or showing ticket duplicated a reply or blocked another phone.");
+                }
+                finally { voice.Release.Set(); RemoteWire.Set(pet, "elevenLabs", speaker); pet.Saved.Silent = silent; pet.Saved.VoiceProvider = provider; }
+            }
+            RemoteBridgeJobCancel(bridge);
+            checks.Add("PASS Remote bridge completion: tickets moved during thinking, speech preparation and just before showing close once and serve the next phone; the phone has its words while fake speech is still blocked; later bubbles and voice cannot change its answer");
+        }
+
+        private void RemoteBridgeJobCancel(RemoteBridgeFake bridge)
+        {
+            using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+            {
+                Exception problem = null;
+                Thread job = new Thread(delegate()
+                {
+                    try { SelfJobs.Run(new ToolArguments { Task = "the PC's own fake job" }, delegate { entered.Set(); if (!release.Wait(30000)) throw new Exception("The PC job was not released."); return "PC job ended."; }, delegate { }); }
+                    catch (Exception error) { problem = error; }
+                }) { IsBackground = true };
+                job.Start();
+                try
+                {
+                    RemoteBridgeWait(delegate { return entered.IsSet; }, "the PC's fake job");
+                    foreach (bool detach in new[] { false, true })
+                    using (ManualResetEventSlim thinking = new ManualResetEventSlim(), finish = new ManualResetEventSlim(), done = new ManualResetEventSlim())
+                    {
+                        pet.Think = delegate(string text)
+                        {
+                            if (text != "hold the phone worker") return "The replacement answered.";
+                            thinking.Set();
+                            try { if (!finish.Wait(30000)) throw new Exception("The phone worker was not released."); return "Old worker ended."; }
+                            finally { done.Set(); }
+                        };
+                        string id = detach ? "job-detach" : "job-pump";
+                        bridge.Send(0, id, "hold the phone worker");
+                        RemoteBridgeWait(delegate { return thinking.IsSet; }, "a phone beside a PC job");
+                        int cancels = (int)RemoteWire.Get(pet.Brain, "cancelled");
+                        if (detach) pet.SetRemote(false);
+                        else
+                        {
+                            bridge.Send(0, id + "-new", "a replacement phone turn");
+                            RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id + "-new") != null; }, "a replacement beside a PC job");
+                        }
+                        if ((int)RemoteWire.Get(pet.Brain, "cancelled") != cancels || !SelfJobs.Active) throw new Exception("Remote cancelled the brain during her own running job.");
+                        finish.Set();
+                        RemoteBridgeWait(delegate { return done.IsSet; }, "the old phone worker beside a PC job");
+                    }
+                }
+                finally { release.Set(); if (!job.Join(30000)) throw new Exception("The PC job did not end."); SelfJobs.Stop(); }
+                if (problem != null) throw problem;
+            }
+            bridge.Online();
+            checks.Add("PASS Remote bridge cancellation: replacement and detach keep the same running-job guard as Hear and leave her PC job's brain alone");
+        }
+
+        private sealed class RemoteBridgeSpeaker : ISpeaker, IDisposable
+        {
+            internal readonly ManualResetEventSlim Entered = new ManualResetEventSlim(), Release = new ManualResetEventSlim(), Finished = new ManualResetEventSlim();
+            internal bool Hold;
+            internal Action Before;
+            public string Name { get { return "Remote check"; } }
+            public bool Ready { get { return true; } }
+            public byte[] Speak(string text)
+            {
+                if (text == "The first spoken answer.")
+                {
+                    Entered.Set();
+                    try { if (Hold && !Release.Wait(30000)) throw new Exception("The fake voice was not released."); if (Before != null) Before(); }
+                    finally { Finished.Set(); }
+                }
+                return Voice.Wave(new short[1], 24000);
+            }
+            public void Dispose() { Release.Set(); }
+        }
+
+        private void RemoteBridgeOverlap(RemoteBridgeFake bridge)
+        {
+            using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+            {
+                pet.Think = delegate(string text) { if (text == "first phone") { entered.Set(); if (!release.Wait(30000)) throw new Exception("The overlap check was not released."); } return "Reply to " + text; };
+                bridge.Send(0, "overlap-one", "first phone");
+                RemoteBridgeWait(delegate { return entered.IsSet; }, "the first phone's worker");
+                int sent = bridge.Sink.Count, ticket = (int)RemoteWire.Get(pet, "asking");
+                pet.ShowReply(ticket, "first phone", "A local notice.", 0, null, false, (int)RemoteWire.Get(pet, "inputTurn"), (int)RemoteWire.Get(pet, "answerTurn"));
+                if (bridge.Sink.Count != sent) throw new Exception("An unrelated local reply borrowed a phone's ticket or words.");
+                RemoteBridgeLocal(bridge);
+                bridge.Send(1, "overlap-two", "second phone");
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                release.Set();
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("overlap-one") != null && bridge.Sink.ReplyFor("overlap-two") != null; }, "two overlapping phones");
+                if (bridge.Sink.ReplyFor("overlap-one").Text("device") != bridge.Phones[0].Id || bridge.Sink.ReplyFor("overlap-one").Text("text") != "Reply to first phone" || bridge.Sink.ReplyFor("overlap-two").Text("device") != bridge.Phones[1].Id || bridge.Sink.ReplyFor("overlap-two").Text("text") != "Reply to second phone") throw new Exception("Two phones received each other's answers.");
+            }
+            using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+            {
+                pet.Think = delegate(string text) { if (text == "older phone line") { entered.Set(); if (!release.Wait(30000)) throw new Exception("The replaced turn was not released."); } return "Reply to " + text; };
+                bridge.Send(0, "older-line", "older phone line");
+                RemoteBridgeWait(delegate { return entered.IsSet; }, "a replaceable phone worker");
+                RemoteTurn older = (RemoteTurn)RemoteWire.Get(pet, "remoteActive");
+                bridge.Send(0, "newer-line", "newer phone line");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("older-line") != null; }, "the old message's close");
+                release.Set();
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("newer-line") != null && !older.Waiting; }, "the same phone's newer answer");
+                if (bridge.Sink.ReplyFor("older-line").Text("text") != "" || bridge.Sink.CountFor("older-line") != 1 || bridge.Sink.ReplyFor("newer-line").Text("text") != "Reply to newer phone line") throw new Exception("A same-phone replacement answered an old request again.");
+            }
+            checks.Add("PASS Remote bridge: two overlapping phones keep their own answers; a newer same-phone message closes the older request once and takes its reply");
+        }
+
+        private void RemoteBridgeStale(RemoteBridgeFake bridge, Func<int> runs)
+        {
+            foreach (string change in new[] { "revoke", "left", "session", "replace", "off", "quit" })
+            {
+                bridge.Online();
+                using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim(), done = new ManualResetEventSlim())
+                {
+                    pet.Think = delegate
+                    {
+                        entered.Set();
+                        if (!release.Wait(30000)) throw new Exception("The stale phone worker was not released.");
+                        try { return pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" }); }
+                        finally { done.Set(); }
+                    };
+                    string id = "stale-" + change;
+                    bridge.Send(0, id, "wait before using the app");
+                    RemoteBridgeWait(delegate { return entered.IsSet; }, "a stale phone worker");
+                    RemoteTurn older = (RemoteTurn)RemoteWire.Get(pet, "remoteActive");
+                    int before = runs(), messages = bridge.Sink.Count;
+                    if (change == "revoke") pet.RevokeRemote(bridge.Phones[0].Id);
+                    if (change == "left") bridge.Left(0);
+                    if (change == "session") bridge.Connect(0);
+                    if (change == "replace") pet.SetRemoteHost("wss://replacement.example");
+                    if (change == "off") pet.SetRemote(false);
+                    if (change == "quit") { RemoteWire.Set(pet, "quitting", true); typeof(Pet).GetMethod("StopRemote", RemoteWire.Own).Invoke(pet, null); }
+                    release.Set();
+                    RemoteBridgeWait(delegate { return done.IsSet && !older.Waiting && RemoteWire.Get(pet, "remoteActive") == null; }, "stale phone cleanup");
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    if (runs() != before || bridge.Sink.Count != messages || bridge.Sink.CountFor(id) != 0) throw new Exception("A " + change + " phone worker dispatched or answered after it ended.");
+                    if ((change == "off" || change == "quit") && RemoteWire.Get(pet, "remoteLink") != null) throw new Exception("Remote kept a link after " + change + ".");
+                    RemoteWire.Set(pet, "quitting", false);
+                }
+            }
+            foreach (string change in new[] { "left", "revoke", "replace", "off", "quit" })
+            {
+                bridge.Online();
+                int asked = 0;
+                pet.Think = delegate { Interlocked.Increment(ref asked); return "A stale event was heard."; };
+                string id = "queued-" + change;
+                RemoteLink source = bridge.Wire.Link;
+                bridge.Send(0, id, "queued phone text");
+                if (change == "left") bridge.Left(0);
+                if (change == "revoke") pet.RevokeRemote(bridge.Phones[0].Id);
+                if (change == "replace") pet.SetRemoteHost("wss://replacement.example");
+                if (change == "off") pet.SetRemote(false);
+                if (change == "quit") { RemoteWire.Set(pet, "quitting", true); typeof(Pet).GetMethod("StopRemote", RemoteWire.Own).Invoke(pet, null); }
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                if (asked != 0 || bridge.Sink.CountFor(id) != 0) throw new Exception("An already queued phone event survived " + change + ".");
+                if ((change == "off" || change == "quit" || change == "replace") && !(bool)RemoteWire.Get(source, "stopped")) throw new Exception("The old fake link was not stopped after " + change + ".");
+                RemoteWire.Set(pet, "quitting", false);
+            }
+            checks.Add("PASS Remote bridge: revoked, disconnected, reconnected, replaced-link, off and quitting workers start no tool and send no reply; already queued events are rejected on the UI thread and discarded links are stopped");
+        }
+
+        private void RemoteBridgeLife(RemoteBridgeFake bridge)
+        {
+            pet.SetRemote(false);
+            pet.RemoteMake = null;
+            int starts = bridge.Starts;
+            pet.SetRemote(true);
+            if (bridge.Starts != starts || pet.ReadRemote().On) throw new Exception("A smoke run connected without supplied fakes.");
+            bridge.Install();
+            bridge.Use(new RemoteFileFake());
+            int reads = bridge.Store.Reads;
+            bridge.File.Denied = true;
+            for (int i = 0; i < 100; i++) pet.ReadRemote();
+            if (reads != 1 || bridge.Store.Reads != reads || pet.ReadRemote().Status != "off" || !string.IsNullOrEmpty(pet.ReadRemote().Note)) throw new Exception("Reading an empty Remote view opened the store or invented a problem.");
+            bridge.File.Denied = false;
+            pet.SetRemote(true);
+            if (!pet.ReadRemote().On || bridge.File.Writes < 1 || bridge.WritesAtStart < 1 || bridge.Made.Room == null) throw new Exception("Remote lost its first saved store.");
+            RemoteWire.Set(pet, "remoteProblem", "A link note.");
+            foreach (string status in new[] { "off", "connecting", "online", "retrying", "replaced" })
+            {
+                RemoteWire.Set(bridge.Wire.Link, "status", status);
+                if (pet.ReadRemote().Status != status || pet.ReadRemote().Note != "A link note.") throw new Exception("A Remote problem replaced the link's status word.");
+            }
+            RemoteWire.Set(bridge.Wire.Link, "status", "online"); RemoteWire.Set(pet, "remoteProblem", null);
+            pet.NewRemoteCode();
+            RemoteView view = pet.ReadRemote();
+            if (!view.Ready || view.Status != "online" || view.Qr == null || view.QrSeconds <= 0 || view.Host != "ws://127.0.0.1:1") throw new Exception("Remote's reader missed its link or pairing data.");
+            RemoteWire.Set(RemoteWire.Get(bridge.Wire.Link, "pairing"), "Expires", 0L);
+            if (!pet.ReadRemote().Expired || pet.ReadRemote().QrSeconds != 0) throw new Exception("Remote's reader missed an expired code.");
+            pet.NewRemoteCode();
+            bridge.Wire.Pair("bridge-pending", "Asking phone", RemoteCrypto.Random(16));
+            view = pet.ReadRemote();
+            if (view.Ask == null || view.Ask.Name != "Asking phone" || view.Ask.Channel != null) throw new Exception("Remote's reader lost the asking phone or exposed a key.");
+            pet.DenyRemote(); pet.CloseRemoteCode();
+            if (pet.ReadRemote().Ask != null || pet.ReadRemote().Qr != null || pet.ReadRemote().Expired) throw new Exception("Closing a code or denying left a pairing open.");
+            pet.NewRemoteCode();
+            bridge.Wire.Pair("bridge-allow", "Allowed phone", RemoteCrypto.Random(16));
+            bridge.File.Fail = "replace";
+            pet.AllowRemote();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (!pet.ReadRemote().On || !pet.Saved.RemoteOn || pet.ReadRemote().Phones.Count != 1 || pet.ReadRemote().Phones[0].Key != null || pet.ReadRemote().Status != "online" || pet.ReadRemote().Note != "The paired phones weren't saved.") throw new Exception("A failed Allow save changed the link word or hid the unsaved phone's note.");
+            bridge.File.Fail = null; pet.CloseRemoteCode();
+            RemoteState read; string relay;
+            if (new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 1 || pet.ReadRemote().Status != "online" || !string.IsNullOrEmpty(pet.ReadRemote().Note)) throw new Exception("The next Remote action did not retry Allow's save or clear its note.");
+            bridge.Online();
+            string room = bridge.Made.Room, record = bridge.File.Text;
+            view = pet.ReadRemote();
+            if (view.Phones.Count != 2 || view.Online.Count != 2 || view.Phones.Exists(delegate(RemoteDevice phone) { return phone.Key != null; })) throw new Exception("Remote's view lost online phones or exposed stored keys.");
+            pet.SetRemote(false); pet.SetRemote(true);
+            if (bridge.Made.Room != room || bridge.File.Text != record) throw new Exception("Remote did not keep a good saved room.");
+            int writes = bridge.File.Writes;
+            if (!pet.SetRemoteHost("ws://127.0.0.1:1/") || bridge.Made.Room != room || bridge.File.Writes != writes) throw new Exception("An equivalent host reset paired phones.");
+            Action<RemoteState> oldSave = bridge.Save;
+            RemoteState oldState = bridge.Made.Copy();
+            oldSave(oldState);
+            if (!pet.SetRemoteHost("wss://other.example") || bridge.Made.Room == room || pet.ReadRemote().Phones.Count != 0) throw new Exception("A new relay kept the old room or phones.");
+            string changed = bridge.File.Text;
+            oldSave(oldState);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (bridge.File.Text != changed || pet.ReadRemote().Host != "wss://other.example") throw new Exception("An old link's queued save changed a newer relay.");
+            string note = pet.ReadRemote().Note;
+            reads = bridge.Store.Reads; writes = bridge.Store.Saves;
+            if (pet.SetRemoteHost("wss://bad.example/path") || pet.ReadRemote().Host != "wss://other.example" || pet.ReadRemote().Status != "online" || pet.ReadRemote().Note != note || bridge.Store.Reads != reads || bridge.Store.Saves != writes) throw new Exception("An invalid host changed the relay, note or store.");
+
+            RemoteState state = RemoteState.Fresh(); state.Used = true;
+            RemoteDevice parent = RemoteBridgeFake.Phone("Parent"), child = RemoteBridgeFake.Phone("Child"); child.Parent = parent.Id;
+            state.Devices.Add(parent); state.Devices.Add(child);
+            RemoteFileFake file = new RemoteFileFake();
+            new RemoteStore(file).Save("wss://old.example", state);
+            bridge.Use(file); pet.SetRemote(true);
+            if (bridge.Made.Room == state.Room || bridge.Made.Devices.Count != 0 || pet.ReadRemote().Note != "The relay changed. Pair your phones again.") throw new Exception("A saved file for another relay reused its paired phones.");
+            file = new RemoteFileFake(); new RemoteStore(file).Save("ws://127.0.0.1:1", state);
+            bridge.Use(file); pet.SetRemote(true); pet.SetRemote(false); pet.RevokeRemote(parent.Id);
+            if (new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 0) throw new Exception("Offline revoke missed a child phone.");
+
+            foreach (string retry in new[] { "turn-on", "sheet", "launch" })
+            {
+                file = new RemoteFileFake(); new RemoteStore(file).Save("ws://127.0.0.1:1", state); file.Denied = true;
+                bridge.Use(file); pet.Saved.RemoteOn = true; starts = bridge.Starts;
+                pet.SetRemote(true);
+                reads = bridge.Store.Reads;
+                for (int i = 0; i < 100; i++) pet.ReadRemote();
+                if ((bool)RemoteWire.Get(pet, "remoteUnreadable") || !pet.Saved.RemoteOn || pet.ReadRemote().On || bridge.Starts != starts || bridge.Store.Reads != reads || pet.ReadRemote().Status != "off" || pet.ReadRemote().Note != "The saved phones couldn't be opened right now. Try again.") throw new Exception("A passing read error latched, changed the link word or polled the disk.");
+                file.Denied = false;
+                if (retry == "turn-on") pet.SetRemote(true);
+                else if (retry == "sheet") pet.DenyRemote();
+                else typeof(Pet).GetMethod("LoadRemote", RemoteWire.Own).Invoke(pet, new object[] { true });
+                if (!pet.Saved.RemoteOn || (bool)RemoteWire.Get(pet, "remoteReadFailed") || bridge.Store.Reads <= reads || pet.ReadRemote().Phones.Count != 2 || pet.ReadRemote().Status != (retry == "turn-on" ? "online" : "off") || !string.IsNullOrEmpty(pet.ReadRemote().Note)) throw new Exception("A passing read error could not retry at " + retry + ".");
+            }
+            file = new RemoteFileFake { Text = "unreadable phones" };
+            bridge.Use(file); starts = bridge.Starts; pet.SetRemote(true);
+            reads = bridge.Store.Reads;
+            if (pet.ReadRemote().On || pet.Saved.RemoteOn || bridge.Starts != starts || file.Text != "unreadable phones" || file.Writes != 0 || pet.ReadRemote().Status != "off" || pet.ReadRemote().Note != "The saved phones couldn't be read. Remove all phones to start again.") throw new Exception("Remote overwrote a damaged phone store or lost its off status and note.");
+            if (!pet.SetRemoteHost("ws://127.0.0.1:1/") || pet.SetRemoteHost("wss://other.example") || file.Writes != 0 || bridge.Store.Reads != reads || pet.ReadRemote().Status != "off" || pet.ReadRemote().Note != "The saved phones couldn't be read. Remove all phones to start again.") throw new Exception("Changing a host bypassed the damaged-store latch or lost its note.");
+            pet.RemoveRemotePhones();
+            if (file.Writes != 1 || new RemoteStore(file).Load(out read, out relay) != RemoteStoreResult.Read || read.Devices.Count != 0 || pet.ReadRemote().On) throw new Exception("Remove all did not recover a damaged store while keeping Remote off.");
+
+            file = new RemoteFileFake { Fail = "replace" };
+            bridge.Use(file); pet.SetRemote(true);
+            room = bridge.Made.Room;
+            if (!pet.ReadRemote().On || !pet.Saved.RemoteOn || file.Text != null || pet.ReadRemote().Status != "online" || pet.ReadRemote().Note != "The new phone store wasn't saved.") throw new Exception("A first-save failure changed the link word or lost its note.");
+            file.Fail = null; pet.NewRemoteCode();
+            if (!pet.ReadRemote().On || file.Writes != 1 || bridge.Made.Room != room || pet.ReadRemote().Status != "online") throw new Exception("A failed initial save could not be retried in place.");
+            bridge.Online();
+            room = bridge.Made.Room; record = bridge.File.Text;
+            bridge.File.Fail = "replace";
+            if (pet.SetRemoteHost("wss://cannot-save.example") || !pet.ReadRemote().On || pet.ReadRemote().Host != "wss://cannot-save.example" || pet.ReadRemote().Phones.Count != 0 || bridge.File.Text != record || pet.ReadRemote().Status != "online" || pet.ReadRemote().Note != "The new relay and phone store weren't saved.") throw new Exception("A failed host save changed the link word or lost its note.");
+            room = bridge.Made.Room;
+            bridge.File.Fail = null; pet.CloseRemoteCode();
+            if (!pet.ReadRemote().On || new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || relay != "wss://cannot-save.example" || read.Room != room || read.Devices.Count != 0 || pet.ReadRemote().Status != "online") throw new Exception("The next action did not retry the changed relay in memory.");
+
+            bridge.Online();
+            oldSave = bridge.Save; oldState = bridge.Made.Copy();
+            oldSave(oldState);
+            pet.RevokeRemote(bridge.Phones[0].Id);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Find(bridge.Phones[0].Id) != null || read.Devices.Count != 1) throw new Exception("A pre-revoke queued copy restored the phone.");
+            changed = bridge.File.Text; writes = bridge.File.Writes;
+            oldSave(oldState);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (bridge.File.Text != changed || bridge.File.Writes != writes) throw new Exception("An older same-link copy landed after the newer save.");
+
+            bridge.Online();
+            record = bridge.File.Text;
+            bridge.File.Fail = "replace"; pet.RevokeRemote(bridge.Phones[0].Id);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            const string removal = "The phone removal wasn't saved. It will be paired again next time Capri opens.";
+            if (!pet.ReadRemote().On || !pet.Saved.RemoteOn || pet.ReadRemote().Phones.Count != 1 || bridge.File.Text != record || pet.ReadRemote().Status != "online" || pet.ReadRemote().Note != removal) throw new Exception("A failed live revoke changed the link word or hid its note.");
+            int tries = bridge.Store.Saves;
+            if (pet.SetRemoteHost("wss://bad.example/path") || bridge.Store.Saves != tries || pet.ReadRemote().Status != "online" || pet.ReadRemote().Note != removal) throw new Exception("An invalid host changed a pending removal note.");
+            Action[] actions = { pet.NewRemoteCode, pet.CloseRemoteCode, pet.AllowRemote, pet.DenyRemote, delegate { pet.SetRemoteHost("ws://127.0.0.1:1/"); }, delegate { pet.RevokeRemote("missing"); }, delegate { pet.SetRemote(true); } };
+            foreach (Action action in actions)
+            {
+                int attempts = bridge.Store.Saves;
+                action(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                if (bridge.Store.Saves <= attempts || !pet.ReadRemote().On || bridge.File.Text != record || pet.ReadRemote().Status != "online" || pet.ReadRemote().Note != removal) throw new Exception("A later Remote action skipped an unsaved removal retry or changed its status and note.");
+            }
+            tries = bridge.Store.Saves; pet.SetRemote(false);
+            if (bridge.Store.Saves <= tries || pet.ReadRemote().On || pet.ReadRemote().Status != "off" || pet.ReadRemote().Note != removal) throw new Exception("Stopping Remote skipped an unsaved removal retry or hid its note.");
+            bridge.File.Fail = null; pet.CloseRemoteCode();
+            if (new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Find(bridge.Phones[0].Id) != null || (bool)RemoteWire.Get(pet, "remoteDirty")) throw new Exception("An unsaved removal was not retried after stopping.");
+            pet.SetRemote(true);
+            if (pet.ReadRemote().Phones.Count != 1) throw new Exception("A removed phone came back after the retry.");
+
+            bridge.Online();
+            pet.RevokeRemote(bridge.Phones[0].Id); pet.SetRemote(false);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Find(bridge.Phones[0].Id) != null) throw new Exception("Stopping before a posted revoke save lost the removal.");
+            bridge.Online();
+            oldSave = bridge.Save; oldState = bridge.Made.Copy(); record = bridge.File.Text;
+            bridge.File.Fail = "replace"; pet.RemoveRemotePhones();
+            if (!pet.ReadRemote().On || !pet.Saved.RemoteOn || pet.ReadRemote().Phones.Count != 0 || bridge.File.Text != record || pet.ReadRemote().Status != "online" || pet.ReadRemote().Note != "Removing all phones wasn't saved. They will be paired again next time Capri opens.") throw new Exception("A failed remove-all save changed the link word or hid its note.");
+            bridge.File.Fail = null; pet.CloseRemoteCode();
+            changed = bridge.File.Text; oldSave(oldState);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (bridge.File.Text != changed || new RemoteStore(bridge.File).Load(out read, out relay) != RemoteStoreResult.Read || read.Room == oldState.Room || read.Devices.Count != 0) throw new Exception("An old save restored phones after remove-all's retry.");
+            checks.Add("PASS Remote bridge storage: empty views never poll; passing open errors keep On and retry at turn-on, a sheet action or launch; damaged data stays latched until remove-all; Allow, first-store, revoke and remove-all save failures keep Remote on with pending retries, including every action and stop; unsaved removals stay visible until saved");
+            checks.Add("PASS Remote bridge save order: queued pre-revoke copies and copies delivered after the newer same-link save are dropped; stop before a posted removal still saves it; old links cannot overwrite a changed relay or remove-all");
+            Settings fresh = new Settings();
+            Pet.NewSettings newer = Pet.Newest(new Settings { RemoteOn = true, RemoteHost = "wss://kept.example" });
+            Settings kept = Pet.Kept(new Settings { VoiceProvider = null, RemoteHost = null }, newer);
+            Settings older = Pet.Kept(new Settings { VoiceProvider = Speakers.Off, RemoteHost = null }, newer);
+            Settings current = Pet.Kept(new Settings { VoiceProvider = Speakers.Off, RemoteOn = false, RemoteHost = RemoteLink.DefaultHost }, newer);
+            using (MemoryStream stream = new MemoryStream())
+            {
+                var serializer = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings));
+                serializer.WriteObject(stream, new Settings { RemoteOn = true, RemoteHost = "wss://kept.example" }); stream.Position = 0;
+                Settings back = (Settings)serializer.ReadObject(stream);
+                if (fresh.RemoteOn || fresh.RemoteHost != RemoteLink.DefaultHost || !back.RemoteOn || back.RemoteHost != "wss://kept.example" || !kept.RemoteOn || kept.RemoteHost != back.RemoteHost || !older.RemoteOn || older.RemoteHost != back.RemoteHost || current.RemoteOn || current.RemoteHost != RemoteLink.DefaultHost) throw new Exception("Remote settings lost their default, kept or saved values.");
+            }
+            checks.Add("PASS Remote bridge lifecycle: smoke requires fakes; missing state is kept and saved; good and equivalent-relay state stays; changed relays rotate; old saves cannot cross links; damaged data stays untouched until remove-all; failed saves keep live phones working and say what was not saved");
+            checks.Add("PASS Remote bridge view and settings: status, readiness, QR, asking phone, safe paired devices, online state, host and note follow the link; pair, close, allow, deny and offline cascading revoke work; On and Host default, save and survive Kept/Newest");
+        }
+
+        private void RemoteBridgeQuit(RemoteBridgeFake bridge)
+        {
+            NativeFileEditor before = (NativeFileEditor)RemoteWire.Get(pet, "fileEditor");
+            NativeEditorDocument first = new NativeEditorDocument("phone-quit-one.md", delegate { return new WrittenNote(Path.Combine(folder, "phone-quit-one.md"), "", new object()); });
+            NativeEditorDocument second = new NativeEditorDocument("phone-quit-two.md", delegate { return new WrittenNote(Path.Combine(folder, "phone-quit-two.md"), "", new object()); });
+            NativeFileEditor editor = new NativeFileEditor(new[] { first, second }) { Motion = false };
+            try
+            {
+                bridge.Online();
+                editor.Open(0);
+                RemoteBridgeWait(delegate { return !editor.Busy && first.Path != null; }, "the quit check's editor");
+                editor.Draft = "Keep this unsaved phone quit check.";
+                editor.Ask();
+                if (!editor.Dirty || !editor.Guarding) throw new Exception("The quit check did not have a cancellable draft.");
+                RemoteLink old = bridge.Wire.Link;
+                RemoteWire.Set(pet, "fileEditor", editor);
+                pet.Quit();
+                if (!(bool)RemoteWire.Get(old, "stopped") || !pet.ReadRemote().On || !pet.Saved.RemoteOn || (bool)RemoteWire.Get(pet, "quitting") || !editor.Guarding) throw new Exception("A cancellable quit did not stop and restore Remote.");
+                editor.GuardKeep();
+                if (!pet.ReadRemote().On || editor.Guarding) throw new Exception("Keeping the draft left Remote off.");
+                checks.Add("PASS Remote bridge quit: starting quit stops the old link, the file editor can keep the app open, and Remote returns while the draft is kept; no irreversible quit is invoked");
+            }
+            finally
+            {
+                RemoteWire.Set(pet, "fileEditor", before);
+                editor.GuardKeep();
+                var discard = editor.GuardDiscard();
+                RemoteBridgeWait(delegate { return discard.IsCompleted; }, "discarding only the quit check's draft");
+                editor.Ask();
+            }
+        }
+
+        private sealed class RemoteBridgeStore : RemoteStoreFile
+        {
+            private readonly RemoteFileFake file;
+            private MemoryStream pending;
+            internal int Reads, Saves;
+            internal RemoteBridgeStore(RemoteFileFake file) { this.file = file; }
+            internal override Stream Read() { Reads++; return file.Read(); }
+            protected override Stream Begin() { Saves++; return pending = new MemoryStream(); }
+            protected override void Commit() { file.Save(Encoding.UTF8.GetString(pending.ToArray())); }
+            protected override void Cancel() { pending = null; }
+        }
+
+        private sealed class RemoteBridgeInput : IComputerInput
+        {
+            internal int Types;
+            public void Execute(ComputerAction action, ComputerFrame frame, IComputerDesktop desktop, Action<double, double> guard, CancellationToken token, Action<double, double> completed = null)
+            {
+                guard(0, 0);
+                if (action.Action != "type") throw new Exception("The private-value fake received a different action.");
+                Types++;
+                completed(0, 0);
+            }
+        }
+
+        private sealed class RemoteBridgeSink : RemoteSink
+        {
+            private readonly List<RemoteJson.Map> rows = new List<RemoteJson.Map>();
+            internal int Count { get { lock (rows) return rows.Count; } }
+            private void Add(string device, string json) { RemoteJson.Map row = RemoteJson.ParseMap(json); row["device"] = device; lock (rows) rows.Add(row); }
+            public void Reply(string device, string id, string re, string text, bool done) { Add(device, RemoteMessages.Reply(id, re, text, done)); }
+            public void Tool(string device, string id, string name, string summary, string state, string re) { Add(device, RemoteMessages.Tool(id, name, summary, state, re)); }
+            public void Error(string device, string code, string re) { Add(device, RemoteMessages.Error(code, re)); }
+            internal RemoteJson.Map ReplyFor(string re) { lock (rows) return rows.Find(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply" && row.Text("re") == re; }); }
+            internal int CountFor(string re) { lock (rows) return rows.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply" && row.Text("re") == re; }).Count; }
+            internal List<RemoteJson.Map> ToolsFor(string re) { lock (rows) return rows.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.tool" && row.Text("re") == re; }); }
+            internal void Clear() { lock (rows) rows.Clear(); }
+        }
+
+        private sealed class RemoteBridgeFake : IDisposable
+        {
+            private readonly Pet pet;
+            private readonly List<RemoteWire> wires = new List<RemoteWire>();
+            private readonly Dictionary<string, RemoteKeys> keys = new Dictionary<string, RemoteKeys>();
+            private readonly Dictionary<string, uint> sequences = new Dictionary<string, uint>();
+            private bool over;
+            internal readonly RemoteBridgeSink Sink = new RemoteBridgeSink();
+            internal RemoteFileFake File;
+            internal RemoteBridgeStore Store;
+            internal RemoteWire Wire;
+            internal RemoteState Made;
+            internal RemoteDevice[] Phones;
+            internal Action<RemoteState> Save;
+            internal int Starts, WritesAtStart;
+            internal RemoteBridgeFake(Pet pet) { this.pet = pet; Install(); }
+            internal static RemoteDevice Phone(string name) { return new RemoteDevice { Id = RemoteCrypto.B64u(RemoteCrypto.Random(16)), Key = RemoteCrypto.Random(32), Name = name, Added = DateTime.UtcNow }; }
+            internal void Install()
+            {
+                pet.RemoteMake = delegate(RemoteState state, string relay, Action<RemoteState> save)
+                {
+                    Starts++; WritesAtStart = File.Writes; Save = save; Made = state.Copy();
+                    Wire = new RemoteWire(state, save); wires.Add(Wire); keys.Clear(); sequences.Clear();
+                    return Wire.Link;
+                };
+                pet.RemoteOutput = delegate { return Sink; };
+            }
+            internal void Use(RemoteFileFake file)
+            {
+                pet.SetRemote(false);
+                RemoteWire.Set(pet, "remoteState", null); RemoteWire.Set(pet, "remoteRelay", null); RemoteWire.Set(pet, "remoteProblem", null);
+                RemoteWire.Set(pet, "remoteUnreadable", false); RemoteWire.Set(pet, "remoteDirty", false); RemoteWire.Set(pet, "remoteNote", "");
+                RemoteWire.Set(pet, "remoteLoaded", false); RemoteWire.Set(pet, "remoteReadFailed", false); RemoteWire.Set(pet, "remotePendingProblem", null);
+                pet.Saved.RemoteHost = "ws://127.0.0.1:1";
+                File = file; Store = new RemoteBridgeStore(file); pet.RemoteFiles = new RemoteStore(Store); Sink.Clear(); pet.Talk.Dismiss();
+                typeof(Pet).GetMethod("LoadRemote", RemoteWire.Own).Invoke(pet, new object[] { false });
+            }
+            internal void Online()
+            {
+                RemoteState state = RemoteState.Fresh(); state.Used = true;
+                Phones = new[] { Phone("First phone"), Phone("Second phone") };
+                state.Devices.AddRange(Phones);
+                RemoteFileFake file = new RemoteFileFake();
+                if (new RemoteStore(file).Save("ws://127.0.0.1:1", state) != RemoteStoreResult.Saved) throw new Exception("The bridge fake could not seed its store.");
+                Use(file); pet.SetRemote(true); Connect(0); Connect(1); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Sink.Clear();
+            }
+            internal void Connect(int phone) { RemoteDevice device = Phones[phone]; keys[device.Id] = Wire.Hello(device, RemoteCrypto.Random(16)); sequences[device.Id] = 0; }
+            internal void Send(int phone, string id, string text) { if (!RemoteMessages.IdOk(id)) throw new Exception("The phone check used an invalid message id."); RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], sequences[device.Id]++, new RemoteJson.Writer().Text("type", "chat.send").Text("id", id).Text("text", text).ToString()); }
+            internal void Left(int phone) { Wire.Text(new RemoteJson.Writer().Text("t", "left").Text("device", Phones[phone].Id).ToString()); }
+            public void Dispose() { if (over) return; over = true; pet.SetRemote(false); foreach (RemoteWire wire in wires) wire.Dispose(); }
+        }
+
+        private void RemoteSheetChecks()
+        {
+            Stopwatch time = Stopwatch.StartNew();
+            Settings saved = pet.Saved;
+            Func<string, string> think = pet.Think;
+            Func<string, ToolArguments, string> act = pet.Brain.Act;
+            Cloud cloud = pet.Brain.Remote;
+            string model = pet.Brain.Model, server = pet.Brain.Server, permissions = Security.Saved, apps = Hands.AppsPath;
+            Action<string> run = Hands.Run;
+            Func<List<InstalledApp>> catalog = Hands.Catalog;
+            Func<List<OpenWindow>> windows = Hands.Windows;
+            Func<string, string> look = Hands.Look;
+            Func<string, KeyValuePair<string, ToolArguments>> request = Hands.NativeRequest;
+            RemoteStore files = pet.RemoteFiles;
+            Func<RemoteState, string, Action<RemoteState>, RemoteLink> make = pet.RemoteMake;
+            Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
+            bool streaming = Hands.Streaming;
+            Avalonia.Threading.DispatcherTimer timer = (Avalonia.Threading.DispatcherTimer)RemoteWire.Get(pet, "frames");
+            bool ticking = timer.IsEnabled;
+            string[] fields = { "remoteState", "remoteRelay", "remoteProblem", "remotePendingProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode", "remoteLoaded", "remoteReadFailed" };
+            Dictionary<string, object> before = new Dictionary<string, object>();
+            foreach (string field in fields) before[field] = RemoteWire.Get(pet, field);
+            Mainframe frame = null;
+            RemoteBridgeFake bridge = null;
+            int pool, io; ThreadPool.GetMinThreads(out pool, out io);
+            ThreadPool.SetMinThreads(Math.Max(pool, 8), io);
+            timer.Stop();
+            try
+            {
+                pet.Saved = new Settings { Silent = true, VoiceProvider = Speakers.Off, RemoteHost = "ws://127.0.0.1:1", MainframeSize = 100 };
+                pet.Brain.Remote = null; pet.Brain.Server = null; pet.Brain.Model = "gemma4:e4b";
+                Hands.Streaming = false;
+                bridge = new RemoteBridgeFake(pet); bridge.Use(new RemoteFileFake());
+                frame = new Mainframe(pet); frame.Show(); frame.ShowSettings(false);
+                RemoteSheetViews(frame);
+                RemoteSheetPixels();
+                RemoteSheetControls(frame);
+                RemoteSheetKeys(frame);
+                RemoteSheetNotes(frame);
+                RemoteSheetStreaming(frame);
+                RemoteSheetFailures(frame);
+                RemoteSheetCrowded(frame);
+                RemoteSheetPath(frame, bridge);
+            }
+            finally
+            {
+                try { if (frame != null) frame.Shut(); }
+                finally
+                {
+                    if (bridge != null) bridge.Dispose();
+                    RemoteWire.Set(pet, "asking", (int)RemoteWire.Get(pet, "asking") + 1);
+                    pet.Think = think; pet.Brain.Act = act; pet.Brain.Remote = cloud; pet.Brain.Server = server; pet.Brain.Model = model;
+                    Hands.Run = run; Hands.Catalog = catalog; Hands.Windows = windows; Hands.Look = look; Hands.NativeRequest = request;
+                    Hands.AppsPath = apps; Hands.Forget(); Hands.Streaming = streaming;
+                    Security.Drop(); Security.Load(permissions);
+                    pet.Saved = saved;
+                    pet.RemoteFiles = files; pet.RemoteMake = make; pet.RemoteOutput = output;
+                    foreach (string field in fields) RemoteWire.Set(pet, field, before[field]);
+                    pet.Talk.Dismiss(); pet.NotifySettings();
+                    ThreadPool.SetMinThreads(pool, io);
+                    if (ticking) timer.Start();
+                }
+            }
+            checks.Add("INFO Remote sheet: " + time.ElapsedMilliseconds + " ms");
+        }
+
+        private void RemoteSheetViews(Mainframe frame)
+        {
+            int size = pet.Saved.MainframeSize;
+            bool streaming = Hands.Streaming;
+            try
+            {
+                foreach (KeyValuePair<string, RemoteView> sample in RemoteSheet.Samples())
+                {
+                    Hands.Streaming = sample.Key == "qr-streaming";
+                    RemoteSheetFake fake = new RemoteSheetFake(sample.Value);
+                    RemoteSheet sheet = fake.Sheet;
+                    sheet.Show(frame);
+                    try
+                    {
+                        foreach (int scale in new[] { 100, 125, 150, 200 })
+                        {
+                            pet.SetMainframeSize(scale); frame.Sync(); sheet.Sync(); sheet.UpdateLayout();
+                            string wrong = sheet.Crowded();
+                            if (wrong != null || Math.Abs(sheet.Zoom - scale / 100.0) > 0.001) throw new Exception("Remote " + sample.Key + " at " + scale + "%: " + wrong);
+                            RemoteQrBox qr = (RemoteQrBox)sheet.Rows["QR"];
+                            if (qr.IsVisible != (sample.Key == "qr") || (qr.Url != null) != qr.IsVisible) throw new Exception("Remote drew the wrong QR view: " + sample.Key);
+                            if (sample.Value.Ask != null && (((NeonCaption)sheet.Rows["Ask name"]).Text != sample.Value.Ask.Name || ((NeonCaption)sheet.Rows["Code"]).Text != sample.Value.Ask.Code)) throw new Exception("Remote lost the asking phone or digits.");
+                            if (sample.Key == "link" && ((NeonCaption)sheet.Rows["Idle"]).Text != "Pairing link sent to " + sample.Value.LinkFor) throw new Exception("Remote did not name the phone's private link.");
+                            bool picture = scale == 100 || scale != 125 && (sample.Key == "qr" || sample.Key == "asking" || sample.Key == "seven-phones" || sample.Key == "long");
+                            RemoteSheetDraw(sheet, picture ? Path.Combine(folder, "remote-" + sample.Key + "-" + scale + ".png") : null);
+                            if (qr.IsVisible)
+                            {
+                                Point? origin = qr.TranslatePoint(new Point(), sheet);
+                                if (!origin.HasValue) throw new Exception("Remote QR lost its window origin.");
+                                int unit;
+                                Rect quiet = RemoteQrBox.Pixels(RemoteQr.Encode(qr.Url).Size + 8, qr.Bounds.Size, sheet.Zoom * sheet.RenderScaling, new Point(origin.Value.X * sheet.RenderScaling, origin.Value.Y * sheet.RenderScaling), out unit);
+                                if (unit <= 0 || qr.PixelUnit != unit || qr.QuietBox != quiet) throw new Exception("Remote QR drawing disagreed with its pixel helper.");
+                            }
+                            if (sample.Key == "seven-phones")
+                            {
+                                RemoteSheetPress(sheet, "Next"); sheet.UpdateLayout();
+                                wrong = sheet.Crowded();
+                                if (wrong != null) throw new Exception("Remote phones page two at " + scale + "%: " + wrong);
+                                RemoteSheetDraw(sheet, scale == 125 ? null : Path.Combine(folder, "remote-seven-phones-page-2-" + scale + ".png"));
+                                RemoteSheetPress(sheet, "Back");
+                            }
+                        }
+                    }
+                    finally { sheet.Close(); }
+                    if (fake.Count("close") != 1) throw new Exception("A Remote sample did not close its code once.");
+                }
+                checks.Add("PASS Remote sheet views: every sample draws and fits at 100%, 125%, 150% and 200%; both phone pages fit; saved pictures cover every view, large QR, approval, seven phones and long text");
+                checks.Add("PASS Remote saved pictures: every PNG has more than one colour; saved QRs match every encoded module centre and every pixel across all four quiet borders");
+            }
+            finally { Hands.Streaming = streaming; pet.SetMainframeSize(size); frame.Sync(); }
+        }
+
+        private void RemoteSheetPixels()
+        {
+            RemoteQr code = RemoteQr.Encode(RemoteSheet.Samples()["qr"].Qr);
+            Size size = new Size(252, 252);
+            foreach (double zoom in new[] { 1.0, 1.25, 1.5, 2.0 })
+                foreach (double dpi in new[] { 1.0, 1.25, 1.5, 2.0 })
+                    foreach (double x in new[] { 0.0, 0.25, 0.5, 0.75 })
+                        foreach (double y in new[] { 0.0, 0.25, 0.5, 0.75 })
+                        {
+                            double scale = zoom * dpi;
+                            Point origin = new Point(34 * scale + x, -184 * scale + y);
+                            int unit;
+                            Rect quiet = RemoteQrBox.Pixels(code.Size + 8, size, scale, origin, out unit);
+                            double step = unit / scale;
+                            Rect matrix = new Rect(quiet.X + 4 * step, quiet.Y + 4 * step, code.Size * step, code.Size * step);
+                            if (unit < 1 || !new Rect(size).Contains(quiet) || quiet.X < 6 || quiet.Y < 6 || quiet.Right > size.Width - 6 + 0.000001 || quiet.Bottom > size.Height - 6 + 0.000001
+                                || quiet.Right + quiet.Bottom > size.Width + size.Height - 12 + 0.000001 || Math.Abs(quiet.Width * scale - (code.Size + 8) * unit) > 0.000001 || Math.Abs(quiet.Height - quiet.Width) > 0.000001)
+                                throw new Exception("Remote QR plate or quiet square left its box at " + zoom + " / " + dpi + ".");
+                            if (Math.Abs((matrix.X - quiet.X) * scale - 4 * unit) > 0.000001 || Math.Abs((matrix.Y - quiet.Y) * scale - 4 * unit) > 0.000001
+                                || Math.Abs((quiet.Right - matrix.Right) * scale - 4 * unit) > 0.000001 || Math.Abs((quiet.Bottom - matrix.Bottom) * scale - 4 * unit) > 0.000001)
+                                throw new Exception("Remote QR did not leave four empty modules on every side.");
+                            for (int row = 0; row < code.Size; row++)
+                                for (int col = 0; col < code.Size; col++)
+                                {
+                                    double left = origin.X + (matrix.X + col * step) * scale, top = origin.Y + (matrix.Y + row * step) * scale;
+                                    double right = origin.X + (matrix.X + (col + 1) * step) * scale, bottom = origin.Y + (matrix.Y + (row + 1) * step) * scale;
+                                    if (Math.Abs(left - Math.Round(left)) > 0.000001 || Math.Abs(top - Math.Round(top)) > 0.000001 || Math.Abs(right - Math.Round(right)) > 0.000001 || Math.Abs(bottom - Math.Round(bottom)) > 0.000001
+                                        || Math.Abs(right - left - unit) > 0.000001 || Math.Abs(bottom - top - unit) > 0.000001) throw new Exception("Remote QR modules did not share whole device pixels.");
+                                }
+                        }
+            checks.Add("PASS Remote QR pixels: the drawing helper gives equal whole device pixels and four quiet modules inside the cut plate for four zooms, four render scales and fractional scrolled origins");
+        }
+
+        private void RemoteSheetControls(Mainframe frame)
+        {
+            RemoteSheetFake fake = new RemoteSheetFake(RemoteSheet.Samples()["off"]);
+            RemoteSheet sheet = fake.Sheet;
+            sheet.Show(frame);
+            try
+            {
+                NeonSwitch power = (NeonSwitch)sheet.Rows["Remote"];
+                power.Checked = true; power.Checked = false;
+                if (fake.Calls.Count != 2 || fake.Calls[0] != "on" || fake.Calls[1] != "off") throw new Exception("Remote's switch did not call on then off.");
+                fake.View = RemoteSheet.Samples()["ready"]; sheet.Sync();
+                RemoteSheetPress(sheet, "Pair");
+                string first = fake.View.Qr;
+                if (((NeonButton)sheet.Rows["Pair"]).Text != "New code") throw new Exception("Remote's pair key did not become New code.");
+                RemoteSheetPress(sheet, "Pair");
+                if (fake.Count("new") != 2 || first == fake.View.Qr) throw new Exception("Remote's pair and new-code keys lost a callback.");
+                fake.View = RemoteSheet.Samples()["asking"]; sheet.Sync();
+                RemoteSheetPress(sheet, "Allow"); RemoteSheetPress(sheet, "Deny");
+                if (fake.Count("allow") != 1 || fake.Count("deny") != 1) throw new Exception("Remote's Allow or Deny callback changed.");
+                fake.View = RemoteSheet.Samples()["seven-phones"]; sheet.Sync(); fake.Calls.Clear();
+                string one = fake.View.Phones[0].Id, two = fake.View.Phones[1].Id;
+                RemoteSheetPress(sheet, "Revoke 1"); RemoteSheetPress(sheet, "Revoke 2"); RemoteSheetPress(sheet, "Revoke 1");
+                if (fake.Calls.Count != 0 || ((NeonButton)sheet.Rows["Revoke 1"]).Text != "Sure?" || ((NeonButton)sheet.Rows["Revoke 2"]).Text != "Revoke") throw new Exception("Changing the armed phone did not start again.");
+                RemoteSheetPress(sheet, "Revoke 1");
+                if (fake.Calls.Count != 1 || fake.Calls[0] != "revoke " + one) throw new Exception("Remote did not revoke the twice-pressed phone.");
+                fake.Calls.Clear();
+                RemoteSheetPress(sheet, "Revoke 1"); RemoteSheetPress(sheet, "Remove all phones"); RemoteSheetPress(sheet, "Revoke 1");
+                if (fake.Calls.Count != 0 || ((NeonButton)sheet.Rows["Remove all phones"]).Text != "Remove all phones") throw new Exception("Remove all and Revoke did not cancel each other's first press.");
+                RemoteSheetPress(sheet, "Revoke 1");
+                if (fake.Calls.Count != 1 || fake.Calls[0] != "revoke " + one) throw new Exception("Remove all left a stale phone confirmation.");
+                fake.Calls.Clear();
+                RemoteSheetPress(sheet, "Remove all phones"); RemoteSheetPress(sheet, "Revoke 2"); RemoteSheetPress(sheet, "Remove all phones");
+                if (fake.Calls.Count != 0 || ((NeonButton)sheet.Rows["Revoke 2"]).Text != "Revoke") throw new Exception("Revoke left a stale Remove all confirmation.");
+                RemoteSheetPress(sheet, "Remove all phones");
+                if (fake.Calls.Count != 1 || fake.Count("remove") != 1) throw new Exception("Remote did not remove all on its second press.");
+                fake.Calls.Clear(); RemoteSheetPress(sheet, "Revoke 1");
+                RemoteDevice moved = fake.View.Phones[0]; fake.View.Phones[0] = fake.View.Phones[1]; fake.View.Phones[1] = moved; sheet.Sync();
+                if (((NeonButton)sheet.Rows["Revoke 2"]).Text != "Sure?") throw new Exception("Remote confirmation did not follow the phone id.");
+                RemoteSheetPress(sheet, "Revoke 2");
+                if (fake.Calls.Count != 1 || fake.Calls[0] != "revoke " + one) throw new Exception("Reordering phones revoked a different id.");
+                fake.Calls.Clear(); RemoteSheetPress(sheet, "Revoke 1"); fake.View.Phones.RemoveAll(delegate(RemoteDevice phone) { return phone.Id == two; }); sheet.Sync();
+                if (((NeonButton)sheet.Rows["Revoke 1"]).Text != "Revoke" || fake.Calls.Count != 0) throw new Exception("Removing an armed phone kept its confirmation.");
+                fake.View = RemoteSheet.Samples()["seven-phones"]; sheet.Sync();
+                RemoteSheetPress(sheet, "Next");
+                if (((NeonCaption)sheet.Rows["Page"]).Text != "Page 2 of 2" || ((NeonCaption)sheet.Rows["Phone 1"]).Text != "Phone 6" || ((NeonCaption)sheet.Rows["Phone 2"]).Text != "Phone 7"
+                    || sheet.Rows["Phone 3"].IsVisible || sheet.Rows["Phone state 3"].IsVisible || sheet.Rows["Revoke 3"].IsVisible || sheet.Rows["Next"].IsEnabled || !sheet.Rows["Back"].IsEnabled
+                    || !sheet.Rows["Phone source 2"].IsVisible || !((NeonCaption)sheet.Rows["Phone source 2"]).Text.EndsWith(fake.View.Phones[0].Name, StringComparison.Ordinal)) throw new Exception("Remote's second page lost phones, source words or empty rows.");
+                RemoteSheetPress(sheet, "Revoke 2");
+                if (fake.Calls.Count != 0) throw new Exception("Remote revoked a second-page phone on its first press.");
+                RemoteSheetPress(sheet, "Revoke 2");
+                if (fake.Calls.Count != 1 || fake.Calls[0] != "revoke " + fake.View.Phones[6].Id) throw new Exception("Remote's second page revoked the wrong phone id.");
+                RemoteSheetPress(sheet, "Back");
+                if (((NeonCaption)sheet.Rows["Phone 1"]).Text != fake.View.Phones[0].Name || sheet.Rows["Back"].IsEnabled) throw new Exception("Remote's Back key did not restore page one.");
+                NeonEntry host = (NeonEntry)sheet.Rows["Relay host"];
+                host.Box.Text = "https://relay.example/path"; RemoteSheetPress(sheet, "Save relay host"); sheet.Sync(); sheet.Sync();
+                if (((NeonCaption)sheet.Rows["Host note"]).Text != "Not a relay host" || !sheet.Rows["Host note"].IsVisible || host.Box.Text != "https://relay.example/path" || fake.Count("host https://relay.example/path") != 1) throw new Exception("Remote lost a refused host or its refusal words while polling.");
+                host.Box.Text = "relay.example:8443"; fake.AcceptHost = true;
+                host.Box.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter }); sheet.Sync();
+                if (fake.View.Host != "relay.example:8443" || host.Box.Text != fake.View.Host || sheet.Rows["Host note"].IsVisible || sheet.Rows["Note"].IsVisible || fake.Count("host relay.example:8443") != 1) throw new Exception("Remote did not clear an accepted host's refusal.");
+                host.Box.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyUpEvent, Key = Key.Enter });
+                RemoteSheetPress(sheet, "Close"); sheet.Close();
+                int reads = fake.Reads; sheet.Sync();
+                if (fake.Count("close") != 1 || fake.Reads != reads || ((Avalonia.Threading.DispatcherTimer)RemoteWire.Get(sheet, "clock")).IsEnabled || ((RemoteQrBox)sheet.Rows["QR"]).Url != null) throw new Exception("Remote close repeated its callback, kept polling or kept a QR.");
+                checks.Add("PASS Remote sheet controls: switch, pair, new code, Allow, Deny and one close callback; double presses, changed ids, reorder, removed ids and mutual cancellation; both pages and correct revoke ids; host refusal persists and acceptance clears it");
+            }
+            finally { sheet.Close(); }
+        }
+
+        private static void RemoteSheetKey(Control control, Key key, bool up = false)
+        {
+            control.RaiseEvent(new KeyEventArgs { RoutedEvent = up ? InputElement.KeyUpEvent : InputElement.KeyDownEvent, Key = key });
+        }
+
+        private static void RemoteSheetFocus(RemoteSheet sheet, Control control)
+        {
+            if (sheet.FocusManager == null || !control.Focus() || !control.IsFocused || !control.IsKeyboardFocusWithin) throw new Exception("Remote could not set managed keyboard focus.");
+        }
+
+        private void RemoteSheetKeys(Mainframe frame)
+        {
+            RemoteSheetFake fake = new RemoteSheetFake(RemoteSheet.Samples()["seven-phones"]);
+            fake.RemovePhones = true;
+            RemoteSheet sheet = fake.Sheet;
+            sheet.Show(frame);
+            try
+            {
+                string[] order = { "Close", "Remote", "Pair", "Show QR", "Allow", "Deny", "Revoke 1", "Revoke 2", "Revoke 3", "Revoke 4", "Revoke 5", "Back", "Next", "Remove all phones", "Relay host", "Save relay host" };
+                for (int i = 0; i < order.Length; i++) if (sheet.Rows[order[i]].TabIndex != i) throw new Exception("Remote tab order changed at " + order[i] + ".");
+                NeonEntry host = (NeonEntry)sheet.Rows["Relay host"];
+                if (host.Box.TabIndex != host.TabIndex) throw new Exception("Remote's host box lost its tab position.");
+                NeonButton revoke = (NeonButton)sheet.Rows["Revoke 1"];
+                string one = fake.View.Phones[0].Id, two = fake.View.Phones[1].Id, three = fake.View.Phones[2].Id;
+                for (int i = 0; i < 3; i++) RemoteSheetKey(revoke, Key.Enter);
+                if (fake.Calls.Count != 0 || revoke.Text != "Sure?") throw new Exception("Held Enter revoked the first phone.");
+                RemoteSheetKey(revoke, Key.Enter, true); RemoteSheetKey(revoke, Key.Enter);
+                for (int i = 0; i < 3; i++) RemoteSheetKey(revoke, Key.Enter);
+                if (fake.Calls.Count != 1 || fake.Count("revoke " + one) != 1 || fake.View.Phones[0].Id != two || revoke.Text != "Revoke") throw new Exception("Held Enter armed or revoked the phone that slid into the row.");
+                RemoteSheetKey(revoke, Key.Enter, true); RemoteSheetKey(revoke, Key.Enter);
+                if (revoke.Text != "Sure?" || fake.Calls.Count != 1) throw new Exception("Enter up did not release the Revoke hold.");
+                revoke.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(InputElement.LostFocusEvent));
+                RemoteSheetKey(revoke, Key.Enter); RemoteSheetKey(revoke, Key.Enter);
+                if (fake.Calls.Count != 2 || fake.Count("revoke " + two) != 1 || fake.View.Phones[0].Id != three || revoke.Text != "Revoke") throw new Exception("Lost focus did not release the Revoke hold once.");
+                RemoteSheetKey(revoke, Key.Enter, true); RemoteSheetKey(revoke, Key.Enter); RemoteSheetKey(revoke, Key.Enter, true);
+                RemoteSheetFocus(sheet, revoke);
+                RemoteSheetKey(revoke, Key.Space); RemoteSheetKey(revoke, Key.Space);
+                if (fake.Calls.Count != 2) throw new Exception("Revoke pressed before Space up.");
+                RemoteSheetKey(revoke, Key.Space, true);
+                if (fake.Calls.Count != 3 || fake.Count("revoke " + three) != 1 || revoke.Text != "Revoke") throw new Exception("Space did not revoke once on release.");
+                NeonButton remove = (NeonButton)sheet.Rows["Remove all phones"];
+                for (int i = 0; i < 3; i++) RemoteSheetKey(remove, Key.Enter);
+                if (fake.Count("remove") != 0 || remove.Text != "Sure?") throw new Exception("Held Enter removed all phones on its first press.");
+                RemoteSheetKey(remove, Key.Enter, true); RemoteSheetKey(remove, Key.Enter);
+                for (int i = 0; i < 3; i++) RemoteSheetKey(remove, Key.Enter);
+                if (fake.Count("remove") != 1 || fake.View.Phones.Count != 0 || remove.Text != "Remove all phones") throw new Exception("Held Enter repeated or rearmed Remove all.");
+                RemoteSheetKey(remove, Key.Enter, true); RemoteSheetKey(remove, Key.Enter);
+                remove.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(InputElement.LostFocusEvent)); RemoteSheetKey(remove, Key.Enter); RemoteSheetKey(remove, Key.Enter);
+                if (fake.Count("remove") != 2 || remove.Text != "Remove all phones") throw new Exception("Lost focus did not release Remove all once.");
+                RemoteSheetKey(remove, Key.Enter, true); RemoteSheetKey(remove, Key.Enter); RemoteSheetKey(remove, Key.Enter, true);
+                RemoteSheetFocus(sheet, remove); RemoteSheetKey(remove, Key.Space); RemoteSheetKey(remove, Key.Space);
+                if (fake.Count("remove") != 2) throw new Exception("Remove all pressed before Space up.");
+                RemoteSheetKey(remove, Key.Space, true);
+                if (fake.Count("remove") != 3 || remove.Text != "Remove all phones") throw new Exception("Space did not remove all once on release.");
+                NeonSwitch power = (NeonSwitch)sheet.Rows["Remote"];
+                for (int i = 0; i < 3; i++) RemoteSheetKey(power, Key.Enter);
+                if (fake.Count("off") != 1 || fake.Count("on") != 0 || power.Checked) throw new Exception("Held Enter repeated Remote off.");
+                RemoteSheetKey(power, Key.Enter, true); RemoteSheetKey(power, Key.Enter);
+                if (fake.Count("on") != 1 || !power.Checked) throw new Exception("Enter up did not release Remote.");
+                power.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(InputElement.LostFocusEvent)); RemoteSheetKey(power, Key.Enter); RemoteSheetKey(power, Key.Enter);
+                if (fake.Count("off") != 2 || power.Checked) throw new Exception("Lost focus did not release Remote once.");
+                RemoteSheetKey(power, Key.Enter, true); RemoteSheetFocus(sheet, power);
+                RemoteSheetKey(power, Key.Space); RemoteSheetKey(power, Key.Space);
+                if (fake.Count("on") != 1) throw new Exception("Remote pressed before Space up.");
+                RemoteSheetKey(power, Key.Space, true);
+                if (fake.Count("on") != 2 || !power.Checked) throw new Exception("Space did not switch Remote once on release.");
+                fake.AcceptHost = true; host.Box.Text = "keys.example";
+                for (int i = 0; i < 3; i++) RemoteSheetKey(host.Box, Key.Enter);
+                if (fake.Count("host keys.example") != 1) throw new Exception("Held host Enter saved more than once.");
+                RemoteSheetKey(host.Box, Key.Enter, true); RemoteSheetKey(host.Box, Key.Enter);
+                if (fake.Count("host keys.example") != 2) throw new Exception("Enter up did not release the host box.");
+                host.Box.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(InputElement.LostFocusEvent)); RemoteSheetKey(host.Box, Key.Enter); RemoteSheetKey(host.Box, Key.Enter);
+                if (fake.Count("host keys.example") != 3) throw new Exception("Lost focus did not release host Enter once.");
+                RemoteSheetKey(host.Box, Key.Enter, true);
+                fake.RemovePhones = false;
+                foreach (string name in new[] { "Pair", "Allow", "Deny", "Save relay host" })
+                {
+                    fake.View = RemoteSheet.Samples()[name == "Allow" || name == "Deny" ? "asking" : "ready"]; sheet.Sync();
+                    Control control = sheet.Rows[name];
+                    string call = name == "Pair" ? "new" : name == "Allow" ? "allow" : name == "Deny" ? "deny" : "host " + (host.Box.Text ?? "");
+                    int before = fake.Count(call);
+                    RemoteSheetKey(control, Key.Enter); RemoteSheetKey(control, Key.Enter); RemoteSheetKey(control, Key.Enter);
+                    if (fake.Count(call) != before + 1) throw new Exception("Held Enter repeated " + name + ".");
+                    RemoteSheetKey(control, Key.Enter, true); RemoteSheetKey(control, Key.Enter);
+                    if (fake.Count(call) != before + 2) throw new Exception("Enter up did not release " + name + ".");
+                    control.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(InputElement.LostFocusEvent)); RemoteSheetKey(control, Key.Enter); RemoteSheetKey(control, Key.Enter);
+                    if (fake.Count(call) != before + 3) throw new Exception("Lost focus did not release " + name + " once.");
+                    RemoteSheetKey(control, Key.Enter, true);
+                }
+                for (int row = 2; row <= RemoteSheet.PhonesPerPage; row++)
+                {
+                    fake.View = RemoteSheet.Samples()["seven-phones"]; sheet.Sync();
+                    NeonButton button = (NeonButton)sheet.Rows["Revoke " + row];
+                    string call = "revoke " + fake.View.Phones[row - 1].Id;
+                    int before = fake.Count(call);
+                    RemoteSheetKey(button, Key.Enter); RemoteSheetKey(button, Key.Enter);
+                    if (button.Text != "Sure?" || fake.Count(call) != before) throw new Exception("Held Enter confirmed another Revoke row.");
+                    RemoteSheetKey(button, Key.Enter, true); RemoteSheetKey(button, Key.Enter); RemoteSheetKey(button, Key.Enter);
+                    if (button.Text != "Revoke" || fake.Count(call) != before + 1) throw new Exception("Another Revoke row repeated its confirmation.");
+                    RemoteSheetKey(button, Key.Enter, true);
+                }
+                fake.View = RemoteSheet.Samples()["seven-phones"]; sheet.Sync();
+                int reads = fake.Reads;
+                RemoteSheetKey(sheet.Rows["Next"], Key.Enter); RemoteSheetKey(sheet.Rows["Next"], Key.Enter);
+                if (fake.Reads != reads + 1 || ((NeonCaption)sheet.Rows["Page"]).Text != "Page 2 of 2") throw new Exception("Held Next did not move once.");
+                RemoteSheetKey(sheet.Rows["Next"], Key.Enter, true); reads = fake.Reads;
+                RemoteSheetKey(sheet.Rows["Back"], Key.Enter); RemoteSheetKey(sheet.Rows["Back"], Key.Enter);
+                if (fake.Reads != reads + 1 || ((NeonCaption)sheet.Rows["Page"]).Text != "Page 1 of 2") throw new Exception("Held Back did not move once.");
+                RemoteSheetKey(sheet.Rows["Back"], Key.Enter, true);
+                Hands.Streaming = true; fake.View = RemoteSheet.Samples()["qr"]; sheet.Sync(); reads = fake.Reads;
+                RemoteSheetKey(sheet.Rows["Show QR"], Key.Enter); RemoteSheetKey(sheet.Rows["Show QR"], Key.Enter);
+                if (fake.Reads != reads + 1 || !sheet.Rows["QR"].IsVisible) throw new Exception("Held Show QR did not reveal once.");
+                RemoteSheetKey(sheet.Rows["Show QR"], Key.Enter, true);
+                checks.Add("PASS Remote sheet keys: real routed Enter downs hold Revoke as phones slide, Remove all, Remote, the host box and every button; key up and lost focus release holds; Space presses Revoke, Remove all and Remote once on release; tab indices follow creation order");
+            }
+            finally { sheet.Close(); Hands.Streaming = false; }
+            RemoteSheetFake closing = new RemoteSheetFake(RemoteSheet.Samples()["off"]);
+            closing.Sheet.Show(frame);
+            try
+            {
+                Control close = closing.Sheet.Rows["Close"];
+                RemoteSheetKey(close, Key.Enter); RemoteSheetKey(close, Key.Enter); RemoteSheetKey(close, Key.Enter, true);
+                if (closing.Count("close") != 1 || closing.Sheet.IsVisible) throw new Exception("Keyboard Close did not close once.");
+            }
+            finally { closing.Sheet.Close(); }
+        }
+
+        private static void RemoteSheetLines(RemoteSheet sheet, string status, string note, bool refused)
+        {
+            if (((NeonCaption)sheet.Rows["Status"]).Text != status || ((NeonCaption)sheet.Rows["Note"]).Text != note || sheet.Rows["Note"].IsVisible != !string.IsNullOrEmpty(note)
+                || sheet.Rows["Host note"].IsVisible != refused || refused && ((NeonCaption)sheet.Rows["Host note"]).Text != "Not a relay host") throw new Exception("Remote mixed its status, note or host refusal.");
+            int copies = 0;
+            foreach (Control control in sheet.Rows.Values) { NeonCaption caption = control as NeonCaption; if (caption != null && caption.IsVisible && caption.Text == note) copies++; }
+            if (!string.IsNullOrEmpty(note) && copies != 1) throw new Exception("Remote repeated a note outside its note line.");
+            if (refused && Canvas.GetTop(sheet.Rows["Note"]) < Canvas.GetTop(sheet.Rows["Host note"]) + sheet.Rows["Host note"].Height) throw new Exception("Remote's note and host refusal overlap.");
+        }
+
+        private void RemoteSheetNotes(Mainframe frame)
+        {
+            RemoteSheetFake fake = new RemoteSheetFake(RemoteSheet.Samples()["online-note"]);
+            fake.View.Status = "unknown";
+            RemoteSheet sheet = fake.Sheet;
+            sheet.Show(frame);
+            try
+            {
+                RemoteSheetLines(sheet, "OFF", fake.View.Note, false);
+                fake.View.Status = "online"; sheet.Sync();
+                string status = "ONLINE \u00b7 1 PHONE CONNECTED";
+                NeonEntry host = (NeonEntry)sheet.Rows["Relay host"];
+                fake.RefusedNote = "A changed reader note.";
+                host.Box.Text = "https://bad.example/path"; RemoteSheetPress(sheet, "Save relay host");
+                for (int i = 0; i < 3; i++) { sheet.Sync(); RemoteSheetLines(sheet, status, fake.RefusedNote, true); }
+                fake.View.Note = "Another reader note."; sheet.Sync(); RemoteSheetLines(sheet, status, fake.View.Note, true);
+                string text = host.Box.Text;
+                host.Box.Text = text + "x"; host.Box.Text = text; sheet.Sync(); RemoteSheetLines(sheet, status, fake.View.Note, false);
+                RemoteSheetPress(sheet, "Save relay host"); RemoteSheetLines(sheet, status, fake.RefusedNote, true);
+                fake.View.Host = "saved.example"; sheet.Sync(); RemoteSheetLines(sheet, status, fake.View.Note, false);
+                host.Box.Text = "accepted.example"; RemoteSheetPress(sheet, "Save relay host"); RemoteSheetLines(sheet, status, fake.RefusedNote, true);
+                fake.AcceptHost = true; RemoteSheetPress(sheet, "Save relay host"); RemoteSheetLines(sheet, status, "", false);
+                RemoteSheetFocus(sheet, host.Box); host.Box.Text = "editing.example";
+                fake.View.Host = "changed-while-editing.example"; sheet.Sync();
+                if (host.Box.Text != "editing.example") throw new Exception("Remote replaced a focused edit when the saved host changed.");
+                RemoteSheetFocus(sheet, sheet.Rows["Pair"]); sheet.Sync();
+                if (host.Box.Text != fake.View.Host) throw new Exception("Remote did not pick up the changed saved host after the edit lost focus.");
+                RemoteView phones = RemoteSheet.Samples()["seven-phones"]; fake.View = phones; sheet.Sync();
+                if (((NeonCaption)sheet.Rows["Phone state 1"]).Text != "CONNECTED" || ((NeonCaption)sheet.Rows["Phone state 2"]).Text != "ADDED " + phones.Phones[1].Added.ToLocalTime().ToString("d MMM", System.Globalization.CultureInfo.CurrentCulture).ToUpperInvariant()) throw new Exception("Remote changed CONNECTED or the ADDED date.");
+                checks.Add("PASS Remote sheet lines: unknown status is OFF; notes appear once; refusal survives changed notes and polling, and clears on edits, changed saved host or accepted save; focused edits survive a changed saved host; phones say CONNECTED or ADDED with the local date");
+            }
+            finally { sheet.Close(); }
+        }
+
+        private void RemoteSheetStreaming(Mainframe frame)
+        {
+            bool streaming = Hands.Streaming;
+            Hands.Streaming = true;
+            RemoteSheetFake fake = new RemoteSheetFake(RemoteSheet.Samples()["qr"]);
+            RemoteSheet sheet = fake.Sheet;
+            sheet.Show(frame);
+            try
+            {
+                RemoteQrBox qr = (RemoteQrBox)sheet.Rows["QR"];
+                if (qr.IsVisible || qr.Url != null || !sheet.Rows["Show QR"].IsVisible) throw new Exception("Remote exposed a streaming QR before Show QR.");
+                RemoteSheetPress(sheet, "Show QR"); RemoteSheetDraw(sheet, null);
+                if (!qr.IsVisible || qr.Url != fake.View.Qr || qr.PixelUnit < 1) throw new Exception("Show QR did not draw the streaming code.");
+                RemoteSheetPress(sheet, "Pair");
+                if (qr.IsVisible || qr.Url != null) throw new Exception("A new streaming code stayed revealed.");
+                RemoteSheetPress(sheet, "Show QR"); Hands.Streaming = false; sheet.Sync(); Hands.Streaming = true; sheet.Sync();
+                if (qr.IsVisible || qr.Url != null) throw new Exception("Changing streaming kept a revealed QR.");
+                fake.View = RemoteSheet.Samples()["link"]; sheet.Sync(); RemoteSheetDraw(sheet, null);
+                if (qr.IsVisible || qr.Url != null || sheet.Rows["Show QR"].IsVisible || ((NeonCaption)sheet.Rows["Idle"]).Text != "Pairing link sent to " + fake.View.LinkFor) throw new Exception("Remote drew a private phone link as a QR while streaming.");
+                Hands.Streaming = false; sheet.Sync();
+                if (qr.IsVisible || qr.Url != null) throw new Exception("Remote drew a private phone link after streaming.");
+                checks.Add("PASS Remote streaming: QR stays hidden until Show QR, a new code or streaming change hides it again, and a paired phone's link is named and never becomes a QR");
+            }
+            finally { sheet.Close(); Hands.Streaming = streaming; }
+        }
+
+        private void RemoteSheetFailures(Mainframe frame)
+        {
+            bool streaming = Hands.Streaming;
+            foreach (bool hidden in new[] { false, true })
+            {
+                Hands.Streaming = hidden;
+                RemoteSheetFake fake = new RemoteSheetFake(RemoteSheet.Samples()["qr"]);
+                RemoteSheet sheet = fake.Sheet;
+                sheet.Show(frame);
+                try
+                {
+                    if (hidden) RemoteSheetPress(sheet, "Show QR");
+                    RemoteQrBox qr = (RemoteQrBox)sheet.Rows["QR"];
+                    if (!qr.IsVisible || qr.Url == null) throw new Exception("The reader failure check had no visible QR.");
+                    fake.ThrowRead = true;
+                    bool failed = false;
+                    try { sheet.Sync(); }
+                    catch (IOException) { failed = true; }
+                    if (!failed || qr.IsVisible || qr.Url != null || sheet.Rows["QR note"].IsVisible || sheet.Rows["Show QR"].IsVisible) throw new Exception("A throwing Remote reader kept a QR or reveal caption.");
+                    fake.ThrowRead = false; sheet.Sync();
+                    if (qr.IsVisible == hidden || (qr.Url != null) == hidden || sheet.Rows["Show QR"].IsVisible != hidden) throw new Exception("A recovered Remote reader reused a streaming reveal.");
+                }
+                finally { sheet.Close(); Hands.Streaming = streaming; }
+            }
+            checks.Add("PASS Remote sheet reader failures: visible and streaming-revealed QRs are cleared before the reader error escapes; recovery works and streaming requires a fresh reveal");
+        }
+
+        private void RemoteSheetCrowded(Mainframe frame)
+        {
+            RemoteSheetFake fake = new RemoteSheetFake(RemoteSheet.Samples()["long"]);
+            RemoteSheet sheet = fake.Sheet;
+            sheet.Show(frame);
+            try
+            {
+                if (sheet.Crowded() != null) throw new Exception("Remote rejected the long names that use ellipses.");
+                NeonCaption name = (NeonCaption)sheet.Rows["Phone 1"];
+                if (!name.Ellipsis || MainframeTheme.Words(name.Text, name.Size, name.Bold).Width <= name.Width) throw new Exception("The long-name check did not need an ellipsis.");
+                NeonCaption about = (NeonCaption)sheet.Rows["About"];
+                string text = about.Text;
+                double width = about.Width;
+                about.Text = "One two three four five six seven eight nine ten"; about.Width = 90;
+                string wrong = sheet.Crowded();
+                if (wrong == null || !wrong.StartsWith("Text:", StringComparison.Ordinal)) throw new Exception("Remote accepted a caption wrapped into a one-line box.");
+                about.Text = text; about.Width = width;
+                NeonSwitch power = (NeonSwitch)sheet.Rows["Remote"];
+                width = power.Width;
+                power.Width = power.Switch + 10 + MainframeTheme.Words(power.Text).Width + 10 + MainframeTheme.Words(power.Hint, 34.0 / 3).Width - 1;
+                wrong = sheet.Crowded();
+                if (wrong == null || !wrong.StartsWith("Text:", StringComparison.Ordinal) || !wrong.Contains(power.Hint)) throw new Exception("Remote accepted a switch too narrow for its hint.");
+                power.Width = width;
+                if (sheet.Crowded() != null) throw new Exception("Remote's restored long-name layout did not fit.");
+                checks.Add("PASS Remote sheet text checks: wrapped captions in one-line boxes and dropped switch hints are reported; long names with ellipses fit");
+            }
+            finally { sheet.Close(); }
+        }
+
+        private void RemoteSheetPath(Mainframe frame, RemoteBridgeFake bridge)
+        {
+            Hands.Streaming = false;
+            Hands.AppsPath = null; Hands.Forget();
+            Hands.Catalog = delegate { return new List<InstalledApp>(); }; Hands.Windows = delegate { return new List<OpenWindow>(); }; Hands.Look = delegate { return "Fake screen"; };
+            Hands.NativeRequest = delegate { return default(KeyValuePair<string, ToolArguments>); };
+            int runs = 0, thoughts = 0;
+            string opened = null;
+            Hands.Run = delegate(string target) { opened = target; Interlocked.Increment(ref runs); };
+            pet.Think = delegate { Interlocked.Increment(ref thoughts); pet.Brain.Act("open_website", new ToolArguments { Site = "https://remote-sheet.example/" }); return "Opened the test website."; };
+            Security.Drop(); Security.Pick(Security.Trusted);
+            RemoteDevice other = RemoteBridgeFake.Phone("Other phone");
+            RemoteState state = RemoteState.Fresh(); state.Used = true; state.Devices.Add(other);
+            RemoteFileFake file = new RemoteFileFake();
+            if (new RemoteStore(file).Save("ws://127.0.0.1:1", state) != RemoteStoreResult.Saved) throw new Exception("Remote's sheet fake could not seed its store.");
+            bridge.Use(file);
+            pet.RemoteOutput = delegate(RemoteLink link) { return new RemoteSheetSink(link, bridge.Sink); };
+            NeonButton key = frame.Button("Remote"), mods = frame.Button("Mods"), support = frame.Button("Support");
+            if (key == null || Avalonia.Automation.AutomationProperties.GetName(key) != "Capri Remote: chat with her from your phone" || key.Text != "Remote" || key.Glyph != 0 || key.Heart
+                || Canvas.GetLeft(key) != 100 || key.Width != 88 || key.Height != 18 || Canvas.GetTop(key) != Canvas.GetTop(mods) || key.Height != mods.Height || key.Height != support.Height
+                || Canvas.GetLeft(mods) != 190 || mods.Width != 70 || Canvas.GetLeft(support) != 268 || support.Width != 88) throw new Exception("Remote's CAPRI key changed its name, words, size or neighbours.");
+            foreach (int scale in new[] { 100, 150, 200 })
+            {
+                pet.SetMainframeSize(scale); frame.ShowSettings(false); frame.UpdateLayout();
+                string wrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+                if (wrong != null || !key.IsVisible || Math.Abs(frame.Zoom - scale / 100.0) > 0.001) throw new Exception("Remote key layout at " + scale + "%: " + wrong);
+            }
+            pet.SetMainframeSize(100); frame.Sync();
+            string picture = Path.Combine(folder, "remote-key-100.png");
+            frame.SavePicture(picture); RemoteSheetPicture(picture, new Size(frame.Width, frame.Height), null);
+            if (key.Accent != MainframeTheme.Rose || key.Picked || bridge.Starts != 0 || frame.Remote != null) throw new Exception("Remote did not start off with no sheet or connection.");
+            pet.SetMainframeSize(150); frame.Sync();
+            RemoteSheet opening = null;
+            Size openingSize = new Size();
+            double openingZoom = 0;
+            using (Window.WindowOpenedEvent.AddClassHandler<RemoteSheet>(delegate(RemoteSheet shown, Avalonia.Interactivity.RoutedEventArgs e)
+            {
+                opening = shown; openingSize = new Size(shown.Width, shown.Height); openingZoom = shown.Zoom;
+                if (shown.Owner != null) throw new Exception("Remote's opening check ran after ownership and opening Sync.");
+            })) frame.OpenRemote();
+            RemoteSheet sheet = frame.Remote;
+            if (sheet == null || sheet.Owner != frame || bridge.Starts != 0 || opening != sheet || openingZoom != 1.5 || sheet.Zoom != 1.5 || openingSize != new Size(sheet.Width, sheet.Height)) throw new Exception("OpenRemote did not fit its offline sheet at 150% before opening Sync.");
+            sheet.Sync();
+            if (openingSize != new Size(sheet.Width, sheet.Height)) throw new Exception("Remote changed size on its first poll after opening.");
+            sheet.WindowState = WindowState.Minimized; frame.Press("Remote");
+            frame.OpenPage(" REMOTE ");
+            int sheets = 0;
+            foreach (Window child in (List<Window>)RemoteWire.Get(frame, "sheets")) if (child is RemoteSheet) sheets++;
+            if (frame.Remote != sheet || sheet.WindowState != WindowState.Normal || sheets != 1 || bridge.Starts != 0) throw new Exception("Remote's second key press or page route did not reuse and restore its sheet.");
+            NeonSwitch power = (NeonSwitch)sheet.Rows["Remote"];
+            power.Checked = true; frame.Sync(); sheet.Sync();
+            if (!pet.ReadRemote().On || bridge.Starts != 1 || key.Accent != MainframeTheme.Cyan || key.Picked) throw new Exception("Remote's switch did not turn on the fake link and key.");
+            RemoteWire wire = bridge.Wire;
+            RemoteSheetPress(sheet, "Pair");
+            if (!sheet.Rows["QR"].IsVisible || pet.ReadRemote().Qr == null) throw new Exception("Remote's wired Pair key did not open a code.");
+            string pending = RemoteMessages.NewId();
+            wire.Pair(pending, "Sheet phone", new byte[16]); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); sheet.Sync();
+            if (!sheet.Rows["Allow"].IsVisible || ((NeonCaption)sheet.Rows["Ask name"]).Text != "Sheet phone" || sheet.Rows["QR"].IsVisible) throw new Exception("Remote's wired sheet did not show the asking phone.");
+            RemoteSheetPress(sheet, "Allow"); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (wire.Saved == null || wire.Saved.Devices.Count != 2) throw new Exception("Remote's wired Allow key did not pair the phone.");
+            RemoteDevice phone = wire.Saved.Devices.Find(delegate(RemoteDevice found) { return found.Name == "Sheet phone"; });
+            if (phone == null || pet.ReadRemote().Phones.Count != 2) throw new Exception("Remote's paired phone did not reach the view.");
+            wire.Text(new RemoteJson.Writer().Text("t", "ok").Text("op", "admit").Text("pending", pending).ToString());
+            RemoteKeys keys = wire.Hello(phone, new byte[16]); wire.Hello(other, new byte[16]); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); frame.Sync(); sheet.Sync(); bridge.Sink.Clear();
+            if (!key.Picked || key.Accent != MainframeTheme.Cyan || pet.ReadRemote().Online.Count != 2) throw new Exception("Remote's key did not show connected phones.");
+            const string message = "sheet-chat";
+            wire.Send(phone, keys, 0, new RemoteJson.Writer().Text("type", "chat.send").Text("id", message).Text("text", "sheet path please").ToString());
+            RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(message) != null; }, "the Remote sheet phone's answer");
+            wire.Link.Typing(phone.Id, false, message); wire.Pump();
+            List<RemoteJson.Map> delivered = new List<RemoteJson.Map>();
+            uint sequence = 0;
+            foreach (byte[] frameBytes in wire.BinaryFrames)
+            {
+                byte[] id = new byte[16]; Buffer.BlockCopy(frameBytes, 0, id, 0, 16);
+                if (RemoteCrypto.B64u(id) != phone.Id) throw new Exception("Remote sent the sheet turn to another phone.");
+                string why;
+                byte[] plain = RemoteCrypto.Open(keys.PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, sequence++, frameBytes, 16, frameBytes.Length - 16, out why);
+                RemoteJson.Map row = plain == null ? null : RemoteJson.Message(plain);
+                if (row == null) throw new Exception("Remote's sheet phone could not open its answer: " + why);
+                delivered.Add(row);
+            }
+            List<RemoteJson.Map> tools = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.tool"; });
+            List<RemoteJson.Map> replies = delivered.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply"; });
+            if (runs != 1 || thoughts != 1 || opened != "https://remote-sheet.example/" || delivered.Count != 4 || delivered[0].Text("type") != "chat.tool" || delivered[1].Text("type") != "chat.tool" || delivered[2].Text("type") != "chat.reply" || delivered[3].Text("type") != "chat.typing" || !delivered[3].Is("on", false) || delivered[3].Text("re") != message || tools.Count != 2 || tools[0].Text("name") != "open_website" || tools[0].Text("summary") != "Opening a website"
+                || tools[0].Text("state") != "running" || tools[1].Text("state") != "done" || tools[0].Text("id") != tools[1].Text("id") || tools[0].Text("re") != message || tools[1].Text("re") != message
+                || replies.Count != 1 || replies[0].Text("re") != message || replies[0].Text("text") != "Opened the test website." || !replies[0].Is("done", true) || bridge.Sink.CountFor(message) != 1 || pet.Talk.Reply != replies[0].Text("text")) throw new Exception("Remote's sheet path lost the tool, progress, answer or PC bubble.");
+            int index = pet.ReadRemote().Phones.FindIndex(delegate(RemoteDevice found) { return found.Id == phone.Id; });
+            if (index < 0 || index >= RemoteSheet.PhonesPerPage) throw new Exception("Remote's paired phone was missing from its sheet page.");
+            string revoke = "Revoke " + (index + 1);
+            RemoteSheetPress(sheet, revoke);
+            if (!wire.Link.HasSession(phone.Id)) throw new Exception("Remote's wired Revoke removed a phone on its first press.");
+            RemoteSheetPress(sheet, revoke); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); sheet.Sync();
+            if (wire.Link.HasSession(phone.Id) || pet.ReadRemote().Phones.Exists(delegate(RemoteDevice found) { return found.Id == phone.Id; }) || !wire.Link.HasSession(other.Id)) throw new Exception("Remote's wired Revoke removed the wrong phones.");
+            int sent = bridge.Sink.Count, heard = wire.Said.Count;
+            wire.Pump();
+            wire.Send(phone, keys, 1, new RemoteJson.Writer().Text("type", "chat.send").Text("id", "after-sheet-revoke").Text("text", "sheet path again").ToString());
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (runs != 1 || thoughts != 1 || bridge.Sink.Count != sent || wire.Said.Count != heard) throw new Exception("A revoked sheet phone still reached her brain, tools or answer.");
+            RemoteSheetWiredNotes(sheet, bridge);
+            RemoteSheetPress(sheet, "Pair"); RemoteSheetPress(sheet, "Close");
+            if (frame.Remote != null || bridge.Wire.Link.Qr != null || ((Avalonia.Threading.DispatcherTimer)RemoteWire.Get(sheet, "clock")).IsEnabled) throw new Exception("Remote's sheet close kept its field, code or timer.");
+            frame.OpenPage("remote");
+            if (frame.Remote == null || frame.Remote == sheet) throw new Exception("Remote's page route did not open a fresh sheet after closing.");
+            ((NeonSwitch)frame.Remote.Rows["Remote"]).Checked = false; frame.Sync();
+            if (key.Accent != MainframeTheme.Rose || key.Picked || pet.ReadRemote().On) throw new Exception("Remote's switch did not return the key to off.");
+            RemoteSheet last = frame.Remote; frame.Shut();
+            if (frame.Remote != null || last.IsVisible || ((Avalonia.Threading.DispatcherTimer)RemoteWire.Get(last, "clock")).IsEnabled) throw new Exception("Mainframe close did not close its Remote sheet.");
+            checks.Add("PASS Remote key: CAPRI position, size and screen-reader name; Outside, Overlap and TextFits pass at 100%, 150% and 200%; off, on and connected; one owned sheet, reuse, page route, close and owner cleanup; remote-key-100.png");
+            checks.Add("PASS Remote sheet path: switch on, Allow pairs a made-up phone, one fake website tool sends running and done plus one encrypted answer only to that phone, the PC bubble answers too, and two Revoke presses stop further input");
+            checks.Add("PASS Remote sheet opening: OpenRemote uses the Mainframe's 150% zoom and final dimensions before the managed opening event, ownership and opening Sync; reuse needs no native activation event");
+        }
+
+        private void RemoteSheetWiredNotes(RemoteSheet sheet, RemoteBridgeFake bridge)
+        {
+            NeonEntry host = (NeonEntry)sheet.Rows["Relay host"];
+            RemoteSheetFocus(sheet, sheet.Rows["Pair"]);
+            const string note = "A wired reader note.", status = "ONLINE \u00b7 1 PHONE CONNECTED";
+            RemoteWire.Set(pet, "remoteNote", note);
+            sheet.Sync(); host.Box.Text = "https://bad.example/path"; RemoteSheetPress(sheet, "Save relay host");
+            for (int i = 0; i < 3; i++) { sheet.Sync(); RemoteSheetLines(sheet, status, note, true); }
+            RemoteWire.Set(pet, "remoteNote", "A later wired note."); sheet.Sync(); RemoteSheetLines(sheet, status, "A later wired note.", true);
+            host.Box.Text = "ws://127.0.0.1:1/"; sheet.Sync(); RemoteSheetLines(sheet, status, "A later wired note.", false);
+            RemoteSheetPress(sheet, "Save relay host"); RemoteSheetLines(sheet, status, "A later wired note.", false);
+            host.Box.Text = "https://bad.example/path"; RemoteSheetPress(sheet, "Save relay host"); RemoteSheetLines(sheet, status, "A later wired note.", true);
+            if (!pet.SetRemoteHost("wss://changed-sheet.example")) throw new Exception("The wired sheet could not change its saved host.");
+            sheet.Sync();
+            RemoteSheetLines(sheet, "ONLINE \u00b7 NO PHONES CONNECTED", "The relay changed. Pair your phones again.", false);
+            if (host.Box.Text != "wss://changed-sheet.example" || bridge.Wire.Link.Status != pet.ReadRemote().Status) throw new Exception("The wired sheet missed its new saved host or link status.");
+            checks.Add("PASS Remote sheet wired notes: a refused host keeps the real link word and one reader note through polling and changed notes; edits, an equivalent accepted save and a changed saved host clear the refusal");
+        }
+
+        private static void RemoteSheetPress(RemoteSheet sheet, string name)
+        {
+            NeonButton button = sheet.Rows[name] as NeonButton;
+            if (button == null || !button.IsVisible || !button.IsEnabled) throw new Exception("No usable Remote sheet key: " + name);
+            button.Press();
+        }
+
+        private static void RemoteSheetDraw(RemoteSheet sheet, string path)
+        {
+            sheet.Top(); sheet.UpdateLayout();
+            Control surface = (Control)sheet.Content;
+            Size size = new Size(RemoteSheet.Wide * sheet.Zoom, RemoteSheet.Tall * sheet.Zoom);
+            Geometry clip = surface.Clip;
+            try
+            {
+                surface.Clip = MainframeTheme.Cut(new Rect(size), 16 * sheet.Zoom, 6 * sheet.Zoom, 16 * sheet.Zoom, 6 * sheet.Zoom);
+                surface.Measure(size); surface.Arrange(new Rect(size));
+                using (RenderTargetBitmap picture = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(size.Width), (int)Math.Ceiling(size.Height)), new Vector(96, 96)))
+                {
+                    picture.Render(surface);
+                    if (path != null) { picture.Save(path); RemoteSheetPicture(path, size, sheet); }
+                }
+            }
+            finally { surface.Clip = clip; surface.InvalidateMeasure(); }
+        }
+
+        private static void RemoteSheetPicture(string path, Size size, RemoteSheet sheet)
+        {
+            using (SkiaSharp.SKBitmap picture = SkiaSharp.SKBitmap.Decode(path))
+            {
+                if (picture == null || picture.Width != (int)Math.Ceiling(size.Width) || picture.Height != (int)Math.Ceiling(size.Height)) throw new Exception("Remote saved a wrongly sized picture: " + Path.GetFileName(path));
+                SkiaSharp.SKColor first = picture.GetPixel(0, 0);
+                bool drawn = false;
+                for (int y = 0; y < picture.Height && !drawn; y++)
+                    for (int x = 0; x < picture.Width && !drawn; x++) if (picture.GetPixel(x, y) != first) drawn = true;
+                if (!drawn) throw new Exception("Remote saved a blank picture: " + Path.GetFileName(path));
+                RemoteQrBox qr = sheet == null ? null : (RemoteQrBox)sheet.Rows["QR"];
+                if (qr == null || !qr.IsVisible || qr.Url == null) return;
+                Point? origin = qr.TranslatePoint(new Point(), sheet);
+                if (!origin.HasValue) throw new Exception("The saved Remote QR has no origin.");
+                RemoteQr code = RemoteQr.Encode(qr.Url);
+                double scale = sheet.Zoom * sheet.RenderScaling;
+                int unit;
+                Rect quiet = RemoteQrBox.Pixels(code.Size + 8, qr.Bounds.Size, scale, new Point(origin.Value.X * sheet.RenderScaling, origin.Value.Y * sheet.RenderScaling), out unit);
+                if (unit < 1 || qr.PixelUnit != unit || qr.QuietBox != quiet) throw new Exception("The saved Remote QR disagrees with the drawing helper.");
+                double step = unit / sheet.RenderScaling;
+                Rect paper = new Rect(origin.Value.X + quiet.X * sheet.Zoom, origin.Value.Y + quiet.Y * sheet.Zoom, quiet.Width * sheet.Zoom, quiet.Height * sheet.Zoom);
+                Rect matrix = new Rect(paper.X + 4 * step, paper.Y + 4 * step, code.Size * step, code.Size * step);
+                if (!new Rect(new Size(picture.Width, picture.Height)).Contains(paper)) throw new Exception("The saved Remote QR or its quiet border was clipped.");
+                for (int y = -4; y < code.Size + 4; y++)
+                    for (int x = -4; x < code.Size + 4; x++)
+                    {
+                        bool dark = x >= 0 && y >= 0 && x < code.Size && y < code.Size && code.Dark(x, y);
+                        RemoteSheetPixel(picture, (int)Math.Floor(matrix.X + (x + 0.5) * step), (int)Math.Floor(matrix.Y + (y + 0.5) * step), dark, path);
+                    }
+                for (int y = (int)Math.Ceiling(paper.Top - 0.5); y + 0.5 < paper.Bottom; y++)
+                    for (int x = (int)Math.Ceiling(paper.Left - 0.5); x + 0.5 < paper.Right; x++)
+                        if (x + 0.5 < matrix.Left || x + 0.5 >= matrix.Right || y + 0.5 < matrix.Top || y + 0.5 >= matrix.Bottom) RemoteSheetPixel(picture, x, y, false, path);
+            }
+        }
+
+        private static void RemoteSheetPixel(SkiaSharp.SKBitmap picture, int x, int y, bool dark, string path)
+        {
+            if (x < 0 || y < 0 || x >= picture.Width || y >= picture.Height) throw new Exception("A saved Remote QR pixel was outside the picture.");
+            SkiaSharp.SKColor color = picture.GetPixel(x, y);
+            if (color.Alpha != 255 || (dark ? color.Red > 40 || color.Green > 40 || color.Blue > 40 : color.Red < 220 || color.Green < 220 || color.Blue < 220)) throw new Exception("A saved Remote QR module or quiet pixel is wrong: " + Path.GetFileName(path) + " at " + x + "," + y);
+        }
+
+        private sealed class RemoteSheetFake
+        {
+            internal RemoteView View;
+            internal readonly List<string> Calls = new List<string>();
+            internal readonly RemoteSheet Sheet;
+            internal bool AcceptHost, RemovePhones, ThrowRead;
+            internal string RefusedNote;
+            internal int Reads;
+            private byte codes;
+            internal RemoteSheetFake(RemoteView view)
+            {
+                View = view;
+                Sheet = new RemoteSheet(delegate { Reads++; if (ThrowRead) throw new IOException("The fake Remote reader failed."); return View; }, delegate(bool on) { Calls.Add(on ? "on" : "off"); View.On = on; },
+                    delegate { Calls.Add("new"); byte[] id = new byte[16]; id[15] = ++codes; View.Qr = RemoteCrypto.QrUrl(RemoteCrypto.B64u(id), RemoteCrypto.B64u(new byte[16]), RemoteCrypto.B64u(new byte[32])); View.QrSeconds = 90; View.Expired = false; },
+                    delegate { Calls.Add("close"); }, delegate { Calls.Add("allow"); }, delegate { Calls.Add("deny"); }, delegate(string id) { Calls.Add("revoke " + id); if (RemovePhones) { View.Phones.RemoveAll(delegate(RemoteDevice phone) { return phone.Id == id; }); View.Online.Remove(id); } }, delegate { Calls.Add("remove"); if (RemovePhones) { View.Phones.Clear(); View.Online.Clear(); } },
+                    delegate(string host) { Calls.Add("host " + host); if (AcceptHost) { View.Host = host; View.Note = ""; } else if (RefusedNote != null) View.Note = RefusedNote; return AcceptHost; });
+            }
+            internal int Count(string call) { return Calls.FindAll(delegate(string found) { return found == call; }).Count; }
+        }
+
+        private sealed class RemoteSheetSink : RemoteSink
+        {
+            private readonly RemoteSink wire, record;
+            internal RemoteSheetSink(RemoteLink link, RemoteSink record) { wire = new RemoteLinkSink(link); this.record = record; }
+            public void Reply(string device, string id, string re, string text, bool done) { wire.Reply(device, id, re, text, done); record.Reply(device, id, re, text, done); }
+            public void Tool(string device, string id, string name, string summary, string state, string re) { wire.Tool(device, id, name, summary, state, re); record.Tool(device, id, name, summary, state, re); }
+            public void Error(string device, string code, string re) { wire.Error(device, code, re); record.Error(device, code, re); }
         }
 
         private void Finish(string failure)
