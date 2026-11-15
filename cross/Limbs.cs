@@ -176,8 +176,8 @@ namespace CapriDesktop
             string unable = Hands.Unable(tool, args);
             if (unable != null) return unable;
             Func<bool> previous = args.Current;
-            args.Current = delegate { return phone.Live && (previous == null || previous()); };
-            if (!args.Current()) return RemoteTurn.Ended;
+            if (tool != "use_computer" && tool != "stream") args.Current = phone.Guard(previous);
+            if (!phone.Current || args.Current != null && !args.Current()) return RemoteTurn.Ended;
             string id = RemoteMessages.NewId(), summary = RemoteTurn.Words(tool, args);
             string name = summary == "Using a tool" ? "tool" : tool;
             string move = RemoteMessages.ToolMove(tool, args.Action, args.Name);
@@ -209,11 +209,8 @@ namespace CapriDesktop
             return delegate(ToolArguments args)
             {
                 RemoteTurn phone = RemoteTurn.Working;
-                if (phone != null)
-                {
-                    if (!phone.Current) return RemoteTurn.Ended;
-                    return RemoteTurn.PcOnly;
-                }
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
+                if (phone != null && args != null) args.Current = phone.WorkGuard(args.Current);
                 return work(args);
             };
         }
@@ -224,7 +221,7 @@ namespace CapriDesktop
             return delegate(string task, string asked)
             {
                 RemoteTurn phone = RemoteTurn.Working;
-                if (phone != null) return phone.Current ? RemoteTurn.PcOnly : RemoteTurn.Ended;
+                if (phone != null && !phone.Current) return RemoteTurn.Ended;
                 return work(task, asked);
             };
         }

@@ -287,12 +287,12 @@ export class FakePc {
       return;
     }
     const job = this.jobs.find(row => ['running', 'asking'].includes(row.state));
-    if (!job || job.id !== message.id || message.type === 'job.answer' && (job.state !== 'asking' || typeof message.yes !== 'boolean')) {
+    if (!job || job.id !== message.id || message.type === 'job.answer' && (job.state !== 'asking' || typeof message.yes !== 'boolean' || job.ask_id && message.ask_id !== job.ask_id)) {
       await this.send(deviceId, { type: 'error', code: 'bad-message', re: message.id });
       return;
     }
     if (message.type === 'job.stop' || message.type === 'job.answer' && !message.yes) await this.jobState({ ...job, state: 'stopped', ended: Date.now() });
-    else if (message.type === 'job.answer') await this.jobState({ ...job, state: 'running', ask: undefined });
+    else if (message.type === 'job.answer') await this.jobState({ ...job, state: 'running', ask: undefined, ask_id: undefined });
   }
 
   async send(deviceId, message) {
