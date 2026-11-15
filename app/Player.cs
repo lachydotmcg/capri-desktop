@@ -279,9 +279,27 @@ namespace CapriDesktop
 
         private static string Clean(string text) { return Regex.Replace(text ?? "", @"[\s\u0000-\u001F\u007F]+", " ").Trim(); }
 
+        private static GlobalSystemMediaTransportControlsSession SessionFor(Tune tune)
+        {
+            if (tune == null) return null;
+            GlobalSystemMediaTransportControlsSession kept = tune.Session as GlobalSystemMediaTransportControlsSession;
+            if (kept == null || string.IsNullOrEmpty(tune.App)) return kept;
+            try
+            {
+                GlobalSystemMediaTransportControlsSessionManager sessions = Manager();
+                if (sessions == null) return kept;
+                GlobalSystemMediaTransportControlsSession current = sessions.GetCurrentSession();
+                if (current != null && string.Equals(current.SourceAppUserModelId, tune.App, StringComparison.OrdinalIgnoreCase)) return current;
+                foreach (GlobalSystemMediaTransportControlsSession session in sessions.GetSessions())
+                    if (string.Equals(session.SourceAppUserModelId, tune.App, StringComparison.OrdinalIgnoreCase)) return session;
+            }
+            catch (Exception) { manager = null; }
+            return kept;
+        }
+
         internal static Tune Refresh(Tune tune)
         {
-            GlobalSystemMediaTransportControlsSession session = tune == null ? null : tune.Session as GlobalSystemMediaTransportControlsSession;
+            GlobalSystemMediaTransportControlsSession session = SessionFor(tune);
             if (session == null) return null;
             try { return Describe(session); }
             catch (Exception) { return null; }
@@ -338,7 +356,9 @@ namespace CapriDesktop
         private static bool SendNow(Tune tune, string what)
         {
             if (what == "like" || what == "unlike") return LikeOnSpotify(what == "like");
-            GlobalSystemMediaTransportControlsSession session = tune == null ? null : tune.Session as GlobalSystemMediaTransportControlsSession;
+            GlobalSystemMediaTransportControlsSession session = SessionFor(tune);
+            if (tune != null && what.StartsWith("seek:", StringComparison.Ordinal))
+                session = tune.Session as GlobalSystemMediaTransportControlsSession;
             if (session != null)
             {
                 try
