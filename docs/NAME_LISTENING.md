@@ -58,5 +58,5 @@ unchanged. Continuous ASR has a greater CPU cost than a small dedicated hotword
 model, remains bounded to the existing two-CPU decoder policy, and stays disabled
 until the user enables it.
 
-Linux TALK uses the upstream English Parakeet pack and sherpa-onnx. Listen for
+Linux TALK uses the upstream English or European Parakeet pack, by her language, and sherpa-onnx. Listen for
 Capri uses its separate pinned Moonshine setup; the TALK pack does not replace it.

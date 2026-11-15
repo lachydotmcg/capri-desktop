@@ -787,7 +787,7 @@ namespace CapriDesktop
         {
             this.desktop = desktop;
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
-            if (OperatingSystem.IsLinux() && Program.Smoke == null) Listen = new Ears(folder).Listen;
+            if (OperatingSystem.IsLinux() && Program.Smoke == null) Listen = new Ears(folder, () => Brain.LanguageCode(Saved == null ? null : Saved.Language)).Listen;
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             if (string.IsNullOrWhiteSpace(Saved.RemoteHost)) Saved.RemoteHost = RemoteLink.DefaultHost;

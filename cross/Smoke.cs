@@ -1634,6 +1634,8 @@ namespace CapriDesktop
                     short[] said = Ears.Words(sound, CancellationToken.None).GetAwaiter().GetResult();
                     if (said.Length != 17600 || said[1920] != 288) throw new Exception("She missed quiet speech with gaps or didn't stop at silence.");
                 }
+                if (Ears.ModelFor("en") != "parakeet-tdt-0.6b-v2-int8" || Ears.ModelFor("fr") != "parakeet-tdt-0.6b-ultra-int8" || Ears.ModelFor("ja") != "parakeet-tdt-0.6b-v2-int8")
+                    throw new Exception("TALK picked the wrong Parakeet pack for her language.");
                 thinkBeforeVoice = pet.Think;
                 silentBeforeVoice = pet.Saved.Silent;
                 pet.Saved.Silent = true;

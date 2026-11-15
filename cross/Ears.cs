@@ -19,23 +19,35 @@ namespace CapriDesktop
         private const int Frame = Rate / 50;
         private const uint SpeechWindow = (1u << 15) - 1;
         private const uint CloseOnExec = 1;
-        private const string Model = "parakeet-tdt-0.6b-v2-int8";
+        // NVIDIA's Parakeet v2 hears English; Ultra hears 25 European languages and works out which one, like her ears on Windows.
+        private const string English = "parakeet-tdt-0.6b-v2-int8", European = "parakeet-tdt-0.6b-ultra-int8";
+        private static readonly string[] Heard = { "bg", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "de", "el", "hu", "it", "lv", "lt", "mt", "pl", "pt", "ro", "sk", "sl", "es", "sv", "ru", "uk" };
         private const string Recorder = "parec";
         private const string Recognizer = "sherpa-onnx-offline";
-        private readonly string folder;
+        private readonly string root;
+        private readonly Func<string> language;
 
-        internal Ears(string data) { folder = Path.Combine(data, "ears", Model); }
+        // Her language is asked at each TALK, so a change in the Mainframe takes effect at the next thing she hears.
+        internal Ears(string data, Func<string> language = null)
+        {
+            root = Path.Combine(data, "ears");
+            this.language = language;
+        }
+
+        // The pack that hears their language: v2 for English, Ultra for its other languages. A language neither hears keeps v2.
+        internal static string ModelFor(string code) { return code != "en" && Array.IndexOf(Heard, code) >= 0 ? European : English; }
 
         internal async Task<string> Listen(Action decoding, CancellationToken stop)
         {
             stop.ThrowIfCancellationRequested();
-            string mic = Find(Recorder), engine = Find(Recognizer, Path.GetDirectoryName(folder));
+            string model = ModelFor(language == null ? "en" : language() ?? "en"), folder = Path.Combine(root, model);
+            string mic = Find(Recorder), engine = Find(Recognizer, root);
             if (mic == null) throw new IOException("Install parec (PulseAudio tools) so I can hear your mic.");
             if (engine == null) throw new IOException("Extract sherpa-onnx into Capri/ears under your config folder, or put sherpa-onnx-offline on PATH, so I can hear your words.");
             string encoder = Path.Combine(folder, "encoder.int8.onnx"), decoder = Path.Combine(folder, "decoder.int8.onnx");
             string joiner = Path.Combine(folder, "joiner.int8.onnx"), tokens = Path.Combine(folder, "tokens.txt");
             if (!File.Exists(encoder) || !File.Exists(decoder) || !File.Exists(joiner) || !File.Exists(tokens))
-                throw new IOException("Put my English Parakeet model files in Capri/ears/" + Model + " under your config folder.");
+                throw new IOException("Put my " + (model == English ? "English" : "European") + " Parakeet model files in Capri/ears/" + model + " under your config folder.");
 
             short[] samples = await Record(mic, stop).ConfigureAwait(false);
             if (samples.Length == 0) return "";
