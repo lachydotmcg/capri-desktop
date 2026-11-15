@@ -5510,6 +5510,7 @@ namespace CapriDesktop
             try
             {
                 pet.Think = null; pet.Brain.Model = null; pet.Brain.Provider = new FileToolBrain(); Security.Changed = null;
+                MacFiles.Attach(Path.GetDirectoryName(path), pet.Brain);
                 Security.Set(Security.Open, true);
                 foreach (string words in new[] { "find blue notebook.txt", "show it to me", "stop searching for files", "read \"" + path + "\"", "remember offline is example.com/offline", "what websites do you know", "open offline", "forget the offline website" })
                 {
@@ -5522,6 +5523,12 @@ namespace CapriDesktop
                 RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a read without a brain");
                 List<ChatMessage> history = pet.Brain.History;
                 if (pet.Talk.Reply != listed || history[history.Count - 1].Content != listed) throw new Exception("A read without a brain showed or kept her brain's next-step words: " + pet.Talk.Reply);
+                pet.Brain.Attachments.Clear();
+                string heard = null;
+                pet.Talk.Dismiss();
+                MacFiles.Drop(new[] { path }, words => { heard = words; pet.Hear(words); });
+                RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a drop without a brain");
+                if (heard != Files.Dropped || pet.Talk.Reply != listed || pet.Brain.Attachments.Waiting || !pet.Brain.Attachments.Message("").Contains("made up")) throw new Exception("A drop without a brain wasn't read and listed like Windows: " + pet.Talk.Reply);
                 Hands.Websites.Do(new ToolArguments { Action = "save", Name = "offline", Site = "example.com/offline" });
                 Security.Set(Security.Open, false);
                 pet.Talk.Dismiss(); pet.Hear("open offline");
@@ -5535,6 +5542,7 @@ namespace CapriDesktop
             finally
             {
                 pet.Talk.Dismiss(); pet.Think = think; pet.Brain.Model = model; pet.Brain.Provider = provider;
+                pet.Brain.Attachments.Clear();
                 Security.Drop(); Security.Load(permissions); Security.Changed = changed;
             }
         }
@@ -5654,6 +5662,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross reading: chosen paths, data framing, text and PDF continuation, DOCX, XLSX, pictures, Windows refusals, scanned-page and picture OCR limits, missing Poppler and chat clear");
                 checks.Add("PASS cross nicknames: save, reload, list, fake open and forget preserve Windows answers, and platform help describes the available actions");
                 checks.Add("PASS cross reads without a brain show and keep her cleaned line, like Windows");
+                checks.Add("PASS cross drops are heard without their paths, and without a brain she reads and lists them, like Windows");
             }
             finally
             {

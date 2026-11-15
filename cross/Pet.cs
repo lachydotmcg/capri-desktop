@@ -5462,6 +5462,7 @@ namespace CapriDesktop
                 });
                 return;
             }
+            if (Think == null && Brain.Model == null && Brain.Attachments.Waiting) { Talk.Thinking(text); Ask(ticket, text, 0, 0, phone); return; }
             if (Think == null && Brain.Model == null && News.Matching(text) != null) { Reply(ticket, text, News.Facts, null, false, phone); return; }
             if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline, null, false, phone); FindBrain(); return; }
             Talk.Thinking(text);

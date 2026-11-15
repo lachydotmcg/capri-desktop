@@ -64,15 +64,13 @@ namespace CapriDesktop
 
         internal static string Give(IEnumerable<string> files)
         {
-            var paths = new List<string>();
-            foreach (string file in files)
-            {
-                string path = Full(file);
-                if (path == null) continue;
-                Attachments.Give(new[] { path });
-                paths.Add(Voice.Quote(path));
-            }
-            return paths.Count == 0 ? null : "Read the files I handed you:\n" + string.Join("\n", paths);
+            string names = Attachments.Give(files);
+            return names.Length == 0 ? null : names;
+        }
+
+        internal static void Drop(IEnumerable<string> files, Action<string> hear)
+        {
+            if (Give(files) != null) hear(Files.Dropped);
         }
 
         internal static void Drops(Control target, Action<string> hear)
@@ -94,8 +92,7 @@ namespace CapriDesktop
                     if (path != null) paths.Add(path);
                 }
                 e.Handled = true;
-                string words = Give(paths);
-                if (words != null) hear(words);
+                Drop(paths, hear);
             });
         }
 
@@ -455,7 +452,9 @@ namespace CapriDesktop
                 File.WriteAllText(path, "read \"" + hidden + "\"");
                 Read(path, null, null);
                 if (Read(hidden, null, null) != noFile) throw new Exception("File contents granted another path.");
-                if (!Give(new[] { hidden }).Contains(Voice.Quote(hidden))) throw new Exception("A dropped file lost its quoted path.");
+                string dropped = null;
+                Drop(new[] { hidden, "relative.txt" }, words => dropped = words);
+                if (dropped != Files.Dropped || Give(new[] { "relative.txt" }) != null) throw new Exception("A dropped file was heard with its path, or a relative path was handed.");
                 Read(Path.Combine(folder, ".", "hidden.txt"), null, null);
                 if (!Attachments.Message("").Contains("private")) throw new Exception("A handed full path was not readable.");
                 if (Read(hidden, null, far + 1) != "hidden.txt is a text file. Showing text from offset " + (far + 1) + ".") throw new Exception("A text offset differed from Windows.");
