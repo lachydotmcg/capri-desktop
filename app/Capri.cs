@@ -15065,7 +15065,7 @@ namespace CapriDesktop
                         else if (ticket == asking && remote != null && remote.Code && brain.Remote == remote) mainframe.ShowCloud(remote, cloudModels);
                         if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
                         said = CallLine(ticket, said);
-                        if (typed == null && CallHands(ticket)) callSession.Keep(callUserVersion, callRecord, said, Brain.Recall, delegate { return ticket == asking; });
+                        if (typed == null && CallHands(ticket) && !brain.PictureReply) callSession.Keep(callUserVersion, callRecord, said, Brain.Recall, delegate { return ticket == asking; });
                         Answer(ticket, said, state, quiet, problem == null);
                         if (said == Brain.Offline) FindBrain();
                     });

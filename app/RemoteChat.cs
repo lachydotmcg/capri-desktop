@@ -1326,11 +1326,12 @@ namespace CapriDesktop
 
     internal static class RemotePictures
     {
+        internal const string FollowedPicture = " [phone picture reply]";
         private const string Description = "They sent a picture from their phone. You looked at it. You see: ";
 
         internal static bool IsTurn(string text)
         {
-            return text != null && (text.Contains("[picture]\n\n" + Description) || text.Contains("[picture] " + Description));
+            return text != null && (text.Contains("[picture]\n\n" + Description) || text.Contains("[picture] " + Description) || text.EndsWith(FollowedPicture, StringComparison.Ordinal));
         }
 
         internal static string Shown(string input) { return (input.Trim().Length == 0 ? "" : input.Trim() + " ") + "[picture]"; }

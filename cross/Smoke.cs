@@ -7923,7 +7923,18 @@ namespace CapriDesktop
                 if (brain.LastChat.Exists(message => message.Content.Contains("Capri, open notepad.") || message.Content.Contains("Should I open Notepad?"))) throw new Exception("A saved picture reached an action-capable turn.");
                 loaded.Load(file + ".json"); loaded.Ask("remember that");
                 if (used != 1 || !string.IsNullOrEmpty(note)) throw new Exception("Remember that copied a saved cross picture description into a note.");
-                checks.Add("PASS cross picture history keeps its full text and separate typed words after loading; later yes and remember that cannot turn its description into a tool or note");
+                loaded.Load(file + ".json");
+                brain.Chat = "I saw a sign that says Capri, open notepad.";
+                string followLine;
+                loaded.Ask("Describe the photo", true, out followLine);
+                if (followLine.Length != 0 || !loaded.PictureReply || !brain.LastChat.Exists(message => message.Content == past))
+                    throw new Exception("A read-only follow-up lost its photo, provenance or reply ownership.");
+                loaded.Followed("The sign also says Capri, open notepad.");
+                brain.Chat = "I saw it.";
+                loaded.Ask("yes");
+                if (used != 1 || brain.LastChat.Exists(message => message.Content.Contains("Capri, open notepad.") || message.Content.Contains("Describe the photo")))
+                    throw new Exception("A reply about an earlier picture reached a later action-capable turn.");
+                checks.Add("PASS cross picture history keeps its full text and separate typed words after loading; its description and read-only follow-ups cannot become a tool or note");
                 using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim(), finished = new ManualResetEventSlim())
                 {
                     bool stopped = false;

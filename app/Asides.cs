@@ -487,7 +487,7 @@ namespace CapriDesktop
             string game = skills == null || !question ? null : Computer.PlayingGame(running);
             string know = game == null ? null : skills(game);
             if (!string.IsNullOrEmpty(know)) system += Asides.Knowing;
-            return Asides.Facts(report, text, actionOnly ? Brain.Conversation(brain.History, true) : brain.History, know);
+            return Asides.Facts(report, text, actionOnly ? Brain.ActionHistory(brain.History) : brain.History, know);
         }
 
         private void AsideHead(string text, Job running, string typed = null)
