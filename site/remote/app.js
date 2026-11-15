@@ -689,7 +689,8 @@
   $('#f-call').addEventListener('click', () => {
     if (window.CapriCall && CapriCall.start()) return;
     if (linkState !== 'connected') say(linkState === 'offline' ? 'PC offline' : 'Not connected yet');
-    else say(CapriRemote.info.demo ? 'Calls aren\'t in the demo' : 'Calls need a newer Capri on the PC');
+    else if (CapriRemote.info.demo) say('Calls aren\'t in the demo');
+    else say(Array.isArray(CapriRemote.info.features) && CapriRemote.info.features.includes('call') ? "This browser can't make calls" : "Calls aren't on Mac or Linux PCs yet");
   });
   $('#close-chat').addEventListener('click', openMenu);
   for (const button of actions.querySelectorAll('.feat[aria-disabled="true"]')) {

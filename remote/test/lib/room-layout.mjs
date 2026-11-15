@@ -32,7 +32,7 @@ export async function* roomStates(r) {
   await page.run('CapriCall.stopListening()');
   await r.state('connected', { features: ['chat', 'pictures'] });
   await page.run('CapriRoom.startVoice()');
-  await note('Her voice needs a newer Capri on your PC.');
+  await note("Her voice isn't on Mac or Linux PCs yet.");
   yield 'newer-pc';
   await page.run('pc.answer = {type:"call.state",on:true,voice:true,ears:true}');
   await r.state('connected', { features: ['chat', 'call', 'listen', 'pictures'] });
