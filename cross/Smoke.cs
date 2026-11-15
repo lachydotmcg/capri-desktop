@@ -170,6 +170,7 @@ namespace CapriDesktop
                 Watching.Checks(checks);
                 RemoteCoreChecks();
                 RemoteBridgeChecks();
+                RemoteBrainChecks();
                 RemoteSheetChecks();
                 Vector swipe = Mainframe.Wheel(new Vector(0.04, 1), KeyModifiers.None), plain = Mainframe.Wheel(new Vector(0, -1), KeyModifiers.None), shifted = Mainframe.Wheel(new Vector(0, 1), KeyModifiers.Shift);
                 if (swipe != new Vector(0.04, 1) || plain != new Vector(0, -1) || shifted != new Vector(1, 0)
@@ -9302,7 +9303,26 @@ namespace CapriDesktop
                 string json = new RemoteJson.Writer().Text("type", "chat.send").Text("id", id).Text("text", text).ToString();
                 SendJson(phone, id, json.Substring(0, json.Length - 1) + ",\"picture\":" + new RemoteJson.Writer().Text("mime", mime).Text("data", data) + "}");
             }
-            private void SendJson(int phone, string id, string json) { if (!RemoteMessages.IdOk(id)) throw new Exception("The phone check used an invalid message id."); RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], sequences[device.Id]++, json); }
+            internal void SendJson(int phone, string id, string json) { if (!RemoteMessages.IdOk(id)) throw new Exception("The phone check used an invalid message id."); RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], sequences[device.Id]++, json); }
+            internal List<RemoteJson.Map> ReadBrains(Dictionary<string, uint> received, List<string> heard)
+            {
+                Wire.Pump();
+                List<RemoteJson.Map> rows = new List<RemoteJson.Map>();
+                foreach (byte[] frame in Wire.BinaryFrames)
+                {
+                    byte[] id = new byte[16]; Buffer.BlockCopy(frame, 0, id, 0, 16);
+                    string device = RemoteCrypto.B64u(id), why;
+                    uint sequence; received.TryGetValue(device, out sequence);
+                    byte[] plain = RemoteCrypto.Open(keys[device].PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, sequence, frame, 16, frame.Length - 16, out why);
+                    RemoteJson.Map row = plain == null ? null : RemoteJson.Message(plain);
+                    if (row == null) throw new Exception("The brain check could not open a phone frame.");
+                    received[device] = sequence + 1;
+                    heard.Add(Encoding.UTF8.GetString(plain));
+                    row["device"] = device;
+                    rows.Add(row);
+                }
+                return rows;
+            }
             internal List<RemoteJson.Map> Read(int phone, ref uint sequence)
             {
                 RemoteDevice device = Phones[phone];
@@ -9323,6 +9343,291 @@ namespace CapriDesktop
             }
             internal void Left(int phone) { Wire.Text(new RemoteJson.Writer().Text("t", "left").Text("device", Phones[phone].Id).ToString()); }
             public void Dispose() { if (over) return; over = true; pet.SetRemote(false); foreach (RemoteWire wire in wires) wire.Dispose(); }
+        }
+
+        private sealed class RemoteBrainChecker : IDisposable
+        {
+            internal readonly ManualResetEventSlim Entered = new ManualResetEventSlim();
+            internal readonly ManualResetEventSlim Release = new ManualResetEventSlim();
+            internal string Hold, Refuse, Echo, Broken, ModelKey;
+            internal int Calls, Active, Most;
+            internal bool Free;
+
+            internal List<string> Check(string key, bool free)
+            {
+                Interlocked.Increment(ref Calls);
+                int active = Interlocked.Increment(ref Active);
+                Most = Math.Max(Most, active);
+                Free = free;
+                try
+                {
+                    Brain.Log("their fake models", -1, key + " " + Uri.EscapeDataString(key) + " " + key.Substring(key.Length - 4));
+                    Brain.Crashed("Their fake crash text " + key + " " + key.Substring(key.Length - 4));
+                    if (Cloud.IsCode(key)) Brain.Log("their fake code", -1, key.ToUpperInvariant() + " " + key.Substring(key.Length - 4).ToUpperInvariant());
+                    if (key == Hold) { Entered.Set(); if (!Release.Wait(10000)) throw new Exception("The fake key check was not released."); }
+                    if (key == Refuse) throw new BrainException(Brain.Rejected("NVIDIA"), true);
+                    if (key == Echo) throw new BrainException("Their provider refused " + key + " ending " + key.Substring(key.Length - 4), true);
+                    if (key == Broken) throw new IOException("Their test provider repeated " + key + " " + key.Substring(key.Length - 4));
+                    return key == ModelKey ? new List<string> { key + "-model", "their-chat-model" } : new List<string> { "their-chat-model" };
+                }
+                finally { Interlocked.Decrement(ref Active); }
+            }
+
+            internal void WaitFor(string key) { Hold = key; Entered.Reset(); Release.Reset(); }
+            public void Dispose() { Release.Set(); Entered.Dispose(); Release.Dispose(); }
+        }
+
+        private static RemoteJson.Map RemoteBrainRow(List<RemoteJson.Map> rows, string type, string re = null)
+        {
+            return rows.FindLast(delegate(RemoteJson.Map row) { return row.Text("type") == type && (re == null || row.Text("re") == re); });
+        }
+
+        private static void RemoteBrainNote(List<RemoteJson.Map> rows, string id, string state, string text)
+        {
+            RemoteJson.Map note = RemoteBrainRow(rows, "brain.note", id);
+            if (note == null || note.Text("state") != state || note.Text("text") != text) throw new Exception("A phone got " + (note == null ? "no" : "the wrong") + " brain key note for " + id + ".");
+        }
+
+        private void RemoteBrainShown(Mainframe frame, List<RemoteJson.Map> rows, string device, bool medium, bool max)
+        {
+            frame.Sync();
+            RemoteJson.Map state = RemoteBrainRow(rows, "brain.state");
+            string name = ((NeonCaption)RemoteWire.Get(frame, "brainName")).Text;
+            string note = ((NeonCaption)RemoteWire.Get(frame, "brainNote")).Text;
+            if (note.StartsWith("Key saved, ends ", StringComparison.Ordinal)) note = RemoteBrainKeys.Saved;
+            if (state == null || state.Text("device") != device || state.Text("use") != RemoteBrainKeys.Brains[pet.MainframeTier]
+                || state.Text("name") != RemoteMessages.Clip(name, 64) || state.Text("note") != RemoteMessages.Clip(note, 200)) throw new Exception("The phone's brain state did not match the Mainframe.");
+            List<object> brains = state.Items("brains");
+            if (brains.Count != 3) throw new Exception("The phone did not get three brain rungs.");
+            bool[] keys = { false, medium, max };
+            for (int i = 0; i < 3; i++)
+            {
+                RemoteJson.Map brain = brains[i] as RemoteJson.Map;
+                if (brain == null || brain.Count != 2 || brain.Text("id") != RemoteBrainKeys.Brains[i] || !brain.Is("key", keys[i])) throw new Exception("A phone got the wrong saved-key flag.");
+            }
+            if (rows.Exists(delegate(RemoteJson.Map row) { return row.Text("device") != device; })) throw new Exception("A phone that did not ask got her brain state.");
+        }
+
+        private void RemoteBrainChecks()
+        {
+            Settings saved = pet.Saved;
+            Cloud cloud = pet.Brain.Remote;
+            IBrainProvider provider = pet.Brain.Provider;
+            string model = pet.Brain.Model, chat = pet.Brain.ChatPath, log = Brain.LogPath, memories = Brain.MemoriesPath, transcript = Brain.TranscriptPath, memory = Brain.MemoryPath, smoke = Program.Smoke;
+            Func<string, string> think = pet.Think;
+            Func<string, bool, List<string>> check = pet.BrainKeyCheck;
+            Func<long> now = pet.RemoteBrainNow;
+            RemoteStore files = pet.RemoteFiles;
+            Func<RemoteState, string, Action<RemoteState>, RemoteLink> make = pet.RemoteMake;
+            Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
+            string[] fields = { "remoteState", "remoteRelay", "remoteProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode", "remoteLoaded", "remoteReadFailed", "remotePendingProblem", "brainRequests", "brainPending", "pcPending", "cloudRequests", "cloudListing", "cloudModels", "frameModels", "frameProblem", "asking" };
+            var before = new Dictionary<string, object>();
+            foreach (string field in fields) before[field] = RemoteWire.Get(pet, field);
+            var timer = (Avalonia.Threading.DispatcherTimer)RemoteWire.Get(pet, "frames");
+            bool ticking = timer.IsEnabled;
+            string data = Path.Combine(folder, "remote-brain-data");
+            string free = "nvapi-their-free+K4p7", paid = "sk-their-paid-P8v2", typed = "sk-their-typed-Q5w3", refused = "nvapi-their-refused-R8q5", echoed = "nvapi-their-echoed-J4w6", broken = "nvapi-their-broken-T6u9", slow = "nvapi-their-slow-S3c6", second = "nvapi-their-second-B9m4", changed = "nvapi-their-changed-C7n2", unknown = "their-unknown-U7x2";
+            var secrets = new List<string> { free, paid, typed, refused, echoed, broken, slow, second, changed, unknown };
+            string code = "capri-test-2345-6789-abcd-efgh";
+            secrets.Add(code); secrets.Add(code.ToUpperInvariant());
+            var heard = new List<string>();
+            var received = new Dictionary<string, uint>();
+            int turns = 0;
+            long time = 0;
+            Mainframe frame = null;
+            timer.Stop();
+            using (RemoteBrainChecker checker = new RemoteBrainChecker())
+            using (RemoteBridgeFake bridge = new RemoteBridgeFake(pet))
+            try
+            {
+                Directory.CreateDirectory(data); Program.Smoke = data;
+                foreach (string name in new[] { "brain-key", "brain-free-key", "brain-paid-key" }) File.Delete(Path.Combine(data, name));
+                pet.Saved = new Settings { Silent = true, VoiceProvider = Speakers.Off, BrainTier = 0, RemoteHost = "ws://127.0.0.1:1", MainframeSize = 100 };
+                pet.Brain.Remote = null; pet.Brain.Provider = null; pet.Brain.Model = "their-local-model";
+                pet.Brain.ChatPath = Path.Combine(data, "chat.json"); Brain.LogPath = Path.Combine(data, "brain.log");
+                Brain.MemoriesPath = Path.Combine(data, "memories.md"); Brain.MemoryPath = Path.Combine(data, "me.md"); Brain.TranscriptPath = Path.Combine(data, "transcripts");
+                pet.Think = delegate { Interlocked.Increment(ref turns); return "Their test answer."; };
+                pet.BrainKeyCheck = checker.Check; pet.RemoteBrainNow = delegate { return time; };
+                checker.Refuse = refused; checker.Echo = echoed; checker.Broken = broken; checker.ModelKey = free;
+                bridge.Online();
+                frame = new Mainframe(pet); frame.Show();
+                Func<List<RemoteJson.Map>> read = delegate { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return bridge.ReadBrains(received, heard); };
+                Action<string, string, string> key = delegate(string id, string brain, string text) { bridge.SendJson(0, "brain-ask", new RemoteJson.Writer().Text("type", "brain.key").Text("id", id).Text("brain", brain).Text("key", text).ToString()); };
+                Action<string> use = delegate(string brain) { bridge.SendJson(0, "brain-ask", new RemoteJson.Writer().Text("type", "brain.use").Text("brain", brain).ToString()); };
+                Action get = delegate { bridge.SendJson(0, "brain-ask", "{\"type\":\"brain.get\"}"); };
+                if (Array.IndexOf(bridge.Wire.Link.FeaturesNow, "brains") < 0 || Array.IndexOf(bridge.Wire.Link.FeaturesNow, "call") >= 0) throw new Exception("The cross host did not offer brains without calls.");
+                get(); RemoteBrainShown(frame, read(), bridge.Phones[0].Id, false, false);
+                use("medium"); RemoteBrainShown(frame, read(), bridge.Phones[0].Id, false, false);
+                if (pet.MainframeTier != 1) throw new Exception("A phone did not pick the medium rung.");
+                frame.PickBrainTier(2); RemoteBrainShown(frame, read(), bridge.Phones[0].Id, false, false);
+                checks.Add("PASS cross brains: hello offers brains and no call; get and use match the Mainframe; a PC rung change reaches the phone that asked and no other phone");
+
+                pet.Talk.Dismiss();
+                int ticket = (int)RemoteWire.Get(pet, "asking");
+                checker.WaitFor(free); key("free-key", "medium", "  " + free + "  ");
+                RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "the fake free key check");
+                RemoteBrainNote(read(), "free-key", "checking", RemoteBrainKeys.Checking);
+                if (!checker.Free) throw new Exception("A medium key did not use the free model check.");
+                if (pet.Talk.Thinks || (int)RemoteWire.Get(pet, "asking") != ticket) throw new Exception("A phone's key took over her bubble or her answer on the PC.");
+                checker.Release.Set(); RemoteBridgeWait(delegate { return !pet.MainframeConnecting; }, "the free key save");
+                List<RemoteJson.Map> rows = read(); RemoteBrainNote(rows, "free-key", "saved", RemoteBrainKeys.Saved);
+                RemoteBrainShown(frame, rows, bridge.Phones[0].Id, true, false);
+                if (pet.Brain.Model != "their-chat-model") throw new Exception("A model name that echoed the key reached her brain.");
+                if (pet.MainframeTier != 1 || pet.MainframeBrainKey != free || File.ReadAllText(Path.Combine(data, "brain-free-key")) != free || File.ReadAllText(Path.Combine(data, "brain-key")) != free) throw new Exception("A phone's free key missed the Mainframe store.");
+                string notice = RemoteBrainKeys.Notice(bridge.Phones[0].Name, 1);
+                if (pet.ReadRemote().Note != notice || pet.Talk.Reply != notice) throw new Exception("The PC did not see which phone saved which brain key.");
+                if (!OperatingSystem.IsWindows() && (File.GetUnixFileMode(Path.Combine(data, "brain-free-key")) & (UnixFileMode.GroupRead | UnixFileMode.GroupWrite | UnixFileMode.OtherRead | UnixFileMode.OtherWrite)) != 0) throw new Exception("The phone key store was not private.");
+
+                key("paid-key", "max", paid); RemoteBridgeWait(delegate { return !pet.MainframeConnecting && pet.MainframeBrainKey == paid; }, "the paid key save");
+                rows = read(); RemoteBrainNote(rows, "paid-key", "saved", RemoteBrainKeys.Saved);
+                RemoteBrainShown(frame, rows, bridge.Phones[0].Id, true, true);
+                if (checker.Free || File.ReadAllText(Path.Combine(data, "brain-paid-key")) != paid) throw new Exception("A max key missed the paid Mainframe store.");
+                checker.WaitFor(typed); MainframeEnter(frame, "Brain API key", typed);
+                RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "the held key typed on the PC");
+                int calls = checker.Calls; key("pc-pending", "max", second);
+                RemoteBrainNote(read(), "pc-pending", "failed", RemoteBrainKeys.StillChecking);
+                if (checker.Calls != calls) throw new Exception("A phone's key was checked beside a key typed on the PC.");
+                checker.Release.Set(); RemoteBridgeWait(delegate { return !pet.MainframeConnecting && pet.MainframeBrainKey == typed; }, "a key typed on the PC");
+                RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, true);
+                key("code-key", "max", code);
+                RemoteBridgeWait(delegate { return !pet.MainframeConnecting && pet.MainframeBrainKey == code.ToUpperInvariant(); }, "a made-up Capri code");
+                rows = read(); RemoteBrainNote(rows, "code-key", "saved", RemoteBrainKeys.Saved);
+                RemoteBrainShown(frame, rows, bridge.Phones[0].Id, true, true);
+                if (File.ReadAllText(Path.Combine(data, "brain-paid-key")) != code.ToUpperInvariant() || File.ReadAllText(Path.Combine(data, "brain-key")) != code) throw new Exception("A phone code did not keep the key box's stored spelling.");
+                MainframeEnter(frame, "Brain API key", "");
+                RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, false);
+                if (pet.MainframeTier != 2 || pet.MainframeBrainKey != null || File.Exists(Path.Combine(data, "brain-paid-key")) || File.Exists(Path.Combine(data, "brain-key"))) throw new Exception("The PC's Forget did not reach the phone or the key store.");
+                checks.Add("PASS cross brain keys: checking then saved, with no thinking bubble or new answer ticket on the PC; the free and paid Mainframe stores, Capri code spelling and private file mode; a PC notice names the phone and brain; a phone's key gets the still-checking words while a key typed on the PC is checked; typing and forgetting on the PC notify a watching phone even when its saved-key flags stay the same");
+
+                foreach (string rejected in new[] { refused, echoed, broken })
+                {
+                    key("refused-key", "medium", rejected);
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    RemoteBridgeWait(delegate { return !pet.MainframeConnecting && checker.Active == 0; }, "a refused fake key");
+                    rows = read(); RemoteBrainNote(rows, "refused-key", "failed", pet.MainframeBrainNote);
+                    if (pet.MainframeBrainKey != null || File.ReadAllText(Path.Combine(data, "brain-free-key")) != free || File.Exists(Path.Combine(data, "brain-key"))) throw new Exception("A refused key reached the Mainframe store.");
+                }
+                calls = checker.Calls;
+                key("unknown-key", "max", "\n" + unknown + "\t" + new string(' ', RemoteBrainKeys.MostKey)); RemoteBrainNote(read(), "unknown-key", "failed", Pet.NotAKey);
+                pet.Talk.Answer("A PC question.", "Her answer on the PC.");
+                key("short-key", "max", "key"); RemoteBrainNote(read(), "short-key", "failed", Pet.NotAKey);
+                if (pet.Talk.Reply != "Her answer on the PC.") throw new Exception("An unknown phone key replaced her answer on the PC.");
+                key("wrong-rung", "medium", paid); RemoteBrainNote(read(), "wrong-rung", "failed", RemoteBrainKeys.PaidNote);
+                foreach (string plan in new[] { Plans.ClaudeKey, Plans.CodexKey })
+                {
+                    key("plan-key", "max", plan); RemoteBrainNote(read(), "plan-key", "failed", RemoteBrainKeys.PlanHere);
+                }
+                if (checker.Calls != calls || File.Exists(Path.Combine(data, "brain-paid-key")) || File.ReadAllText(Path.Combine(data, "brain-free-key")) != free) throw new Exception("A paid, plan or unknown key reached the checker or store.");
+                RemoteWire.Set(pet, "frameProblem", null); pet.Brain.Provider = new RemotePictureBrain(); pet.Saved.NativePlan = true; pet.Brain.Model = "their-plan-model"; pet.NotifySettings();
+                RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, false);
+                if (pet.MainframeBrainNote != "ChatGPT plan \u00b7 retained account") throw new Exception("The retained plan did not keep its Mainframe note.");
+                pet.Brain.Provider = null; pet.Saved.NativePlan = false; pet.NotifySettings(); read();
+                checks.Add("PASS cross key refusals: provider refusals, one repeating the key and its last four, and ordinary failures use the Mainframe note without saving; unknown keys, trimmed first like the key box even with a newline, a tab or padding past 400, a short junk key that leaves the note's words whole, paid keys under medium and PC-only plans use their fixed words; retained-plan state matches the Mainframe");
+
+                checker.WaitFor(changed); key("changed-key", "max", changed);
+                RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "the held key check");
+                RemoteBrainNote(read(), "changed-key", "checking", RemoteBrainKeys.Checking);
+                calls = checker.Calls; key("second-key", "max", second);
+                RemoteBrainNote(read(), "second-key", "failed", RemoteBrainKeys.StillChecking);
+                if (checker.Calls != calls || checker.Most != 1) throw new Exception("Two phone keys were checked at once.");
+                frame.PickBrainTier(0); RemoteBrainNote(read(), "changed-key", "failed", RemoteBrainKeys.TakenOver);
+                checker.Release.Set(); RemoteBridgeWait(delegate { return !pet.MainframeConnecting; }, "the dropped key result"); read();
+                if (pet.MainframeTier != 0 || pet.MainframeBrainKey != null || File.Exists(Path.Combine(data, "brain-paid-key"))) throw new Exception("A late key undid the PC rung choice.");
+
+                checker.WaitFor(slow); key("slow-key", "max", slow);
+                RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "the timed key check");
+                RemoteBrainNote(read(), "slow-key", "checking", RemoteBrainKeys.Checking);
+                time += 90001;
+                typeof(Pet).GetMethod("RemoteBrainTick", RemoteWire.Own).Invoke(pet, null);
+                RemoteBrainNote(read(), "slow-key", "failed", RemoteBrainKeys.TooSlow);
+                calls = checker.Calls; key("after-timeout", "max", second);
+                RemoteBridgeWait(delegate { return pet.MainframeBrainKey == second; }, "a key sent again after the timeout");
+                RemoteBrainNote(read(), "after-timeout", "saved", RemoteBrainKeys.Saved);
+                if (checker.Calls != calls + 1 || !pet.MainframeConnecting) throw new Exception("A key sent again after the timeout waited for the timed-out check.");
+                checker.Release.Set(); RemoteBridgeWait(delegate { return !pet.MainframeConnecting; }, "the timed-out key result"); read();
+                if (pet.MainframeTier != 2 || pet.MainframeBrainKey != second || File.ReadAllText(Path.Combine(data, "brain-paid-key")) != second || File.ReadAllText(Path.Combine(data, "brain-key")) != second) throw new Exception("A timed-out key was saved later.");
+                checker.Most = 0;
+                checks.Add("PASS cross pending keys: one fake check at a time; a PC rung change gets the changed-on-PC words; advancing the test clock gets the 90-second timeout words, and a key sent again is checked and saved while the timed-out check still runs; both late results leave her brain and store alone");
+
+                string[] malformed = {
+                    "{\"type\":\"brain.use\",\"brain\":\"other\"}",
+                    "{\"type\":\"brain.use\",\"brain\":\"other\",\"id\":\"use-id\"}",
+                    "{\"type\":\"brain.key\",\"brain\":\"max\",\"id\":\"bad id\",\"key\":\"their-key\"}",
+                    "{\"type\":\"brain.key\",\"brain\":\"normal\",\"id\":\"normal-id\",\"key\":\"their-key\"}",
+                    "{\"type\":\"brain.key\",\"brain\":\"max\",\"id\":\"missing-id\"}",
+                    "{\"type\":\"brain.key\",\"brain\":\"max\",\"id\":\"empty-id\",\"key\":\"\"}",
+                    new RemoteJson.Writer().Text("type", "brain.key").Text("brain", "max").Text("id", "long-id").Text("key", new string('x', 401)).ToString(),
+                    "{\"type\":\"brain.key\",\"brain\":\"max\",\"id\":\"control-id\",\"key\":\"a\\nb\"}"
+                };
+                string[] references = { null, null, null, "normal-id", "missing-id", "empty-id", "long-id", "control-id" };
+                calls = checker.Calls;
+                for (int i = 0; i < malformed.Length; i++)
+                {
+                    bridge.SendJson(0, "brain-ask", malformed[i]); rows = read();
+                    if (rows.Count != 1 || rows[0].Text("type") != "error" || rows[0].Text("code") != "bad-message" || rows[0].Text("re") != references[i]) throw new Exception("A malformed brain ask missed bad-message or its good id.");
+                }
+                if (checker.Calls != calls) throw new Exception("A malformed ask checked a key.");
+                checks.Add("PASS cross malformed brain asks: unknown rungs, bad ids, wrong key rungs, missing, empty, long and control-character keys get bad-message with re only for a brain.key's good id, never for brain.use, as on Windows");
+
+                foreach (bool pending in new[] { false, true }) foreach (string ending in new[] { "left", "session", "revoke", "off", "quit" })
+                {
+                    bridge.Online(); received.Clear(); read();
+                    string stale = "nvapi-their-" + ending + (pending ? "-pending-D2h8" : "-queued-E5j9"); secrets.Add(stale);
+                    int tier = pet.MainframeTier;
+                    string keptKey = pet.MainframeBrainKey, keptModel = pet.Brain.Model;
+                    string[] stores = { "brain-key", "brain-free-key", "brain-paid-key" };
+                    string[] stored = new string[stores.Length];
+                    for (int i = 0; i < stores.Length; i++) { string path = Path.Combine(data, stores[i]); stored[i] = File.Exists(path) ? File.ReadAllText(path) : null; }
+                    calls = checker.Calls;
+                    if (pending)
+                    {
+                        checker.WaitFor(stale); key("stale-key", "max", stale);
+                        RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "a key before its phone ends");
+                        RemoteBrainNote(read(), "stale-key", "checking", RemoteBrainKeys.Checking);
+                    }
+                    else { get(); use(tier == 0 ? "max" : "normal"); key("stale-key", "max", stale); }
+                    if (ending == "left") bridge.Left(0);
+                    else if (ending == "session") { bridge.Connect(0); received.Remove(bridge.Phones[0].Id); }
+                    else if (ending == "revoke") pet.RevokeRemote(bridge.Phones[0].Id);
+                    else if (ending == "off") pet.SetRemote(false);
+                    else RemoteWire.Set(pet, "quitting", true);
+                    if (pending) { checker.Release.Set(); RemoteBridgeWait(delegate { return !pet.MainframeConnecting; }, "an ended phone's key result"); }
+                    rows = read();
+                    if (ending == "revoke") rows.RemoveAll(delegate(RemoteJson.Map row) { return row.Text("type") == "revoke"; });
+                    if (rows.Count != 0 || checker.Calls != calls + (pending ? 1 : 0) || pet.MainframeTier != tier || pet.MainframeBrainKey != keptKey || pet.Brain.Model != keptModel || RemoteWire.Get(pet, "phoneKey") != null) throw new Exception("An ended phone's brain ask or key result changed her brain or got a reply.");
+                    for (int i = 0; i < stores.Length; i++) { string path = Path.Combine(data, stores[i]); if ((File.Exists(path) ? File.ReadAllText(path) : null) != stored[i]) throw new Exception("An ended phone changed a key store."); }
+                    RemoteWire.Set(pet, "quitting", false);
+                    frame.PickBrainTier(tier == 0 ? 2 : 0);
+                    if (read().Count != 0) throw new Exception("A new or ended phone session kept its brain subscription.");
+                }
+                checks.Add("PASS cross ended brain asks: left, replaced session, revoke, Remote off and quitting drop queued get, use and key asks and held key results; no frame, saved key or brain change; subscriptions end with the session");
+
+                foreach (string text in heard) foreach (string secret in secrets)
+                    if (text.Contains(secret) || text.Contains(secret.Substring(secret.Length - 4))) throw new Exception("A phone frame contained a key or its suffix.");
+                foreach (string path in Directory.GetFiles(data, "*", SearchOption.AllDirectories))
+                {
+                    string text = Encoding.UTF8.GetString(File.ReadAllBytes(path));
+                    bool store = path == Path.Combine(data, "brain-key") || path == Path.Combine(data, "brain-free-key") || path == Path.Combine(data, "brain-paid-key");
+                    foreach (string secret in secrets) if (!store && secret != typed && (text.Contains(secret) || text.Contains(Uri.EscapeDataString(secret)) || text.Contains(secret.Substring(secret.Length - 4)))) throw new Exception("A key reached a file outside the Mainframe key store.");
+                }
+                if (turns != 0 || checker.Most != 1) throw new Exception("A brain key reached chat or another key check.");
+                checks.Add("PASS cross key privacy: all decrypted frames omit each key and its last four characters, even after a refusal that repeated them; fake provider logs, crash text and errors are scrubbed; every smoke data file except the Mainframe key stores is free of phone key text, including chat, notes, memories, logs and transcripts; no chat brain call");
+            }
+            finally
+            {
+                checker.Release.Set();
+                RemoteBridgeWait(delegate { return checker.Active == 0 && !pet.MainframeConnecting; }, "the final fake key result");
+                RemoteWire.Set(pet, "quitting", false);
+                if (frame != null) frame.Shut();
+                bridge.Dispose();
+                pet.Saved = saved; pet.Brain.Remote = cloud; pet.Brain.Provider = provider; pet.Brain.Model = model; pet.Brain.ChatPath = chat;
+                Brain.LogPath = log; Brain.MemoriesPath = memories; Brain.TranscriptPath = transcript; Brain.MemoryPath = memory; Program.Smoke = smoke;
+                pet.BrainKeyCheck = check; pet.RemoteBrainNow = now; pet.Think = think;
+                pet.RemoteFiles = files; pet.RemoteMake = make; pet.RemoteOutput = output;
+                foreach (string field in fields) RemoteWire.Set(pet, field, before[field]);
+                pet.Talk.Dismiss(); pet.NotifySettings();
+                if (ticking) timer.Start();
+            }
         }
 
         private void RemoteSheetChecks()

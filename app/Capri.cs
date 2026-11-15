@@ -45668,8 +45668,9 @@ namespace CapriDesktop
                     Security.TheySaid();
                     string resumed = run(delegate { return Security.Resume("yes", ResumeTool); });
                     WorkspaceChat chat = window.Chat;
-                    if (resumed == null || !resumed.Contains("is running in the Workspace window. It asks there before changing anything.") || work.Chats().Count != 1 || chat.Mode != "Ask me" || chat.Live == null || chat.Live.Mode != "Ask me" || !Workspace.Same(chat.Folder, work.Home) || WorkspaceItems(chat)[0].Kind != "user" || WorkspaceItems(chat)[0].Text != start.Task || window.Input.Text.Length != 0) throw new Exception("An approved Workspace start lost its chat, folder, mode or first message.");
-                    if (File.ReadAllText(Path.Combine(folder, "cwd.txt")).Trim() != work.Home || !File.ReadAllText(Path.Combine(folder, "stdin.txt")).Contains(start.Task)) throw new Exception("Workspace start didn't send their words in its own folder.");
+                    string snake = Path.Combine(work.Home, start.Task);
+                    if (resumed == null || !resumed.Contains("is running in the Workspace window. It asks there before changing anything.") || work.Chats().Count != 1 || chat.Mode != "Ask me" || chat.Live == null || chat.Live.Mode != "Ask me" || !Workspace.Same(chat.Folder, snake) || WorkspaceItems(chat)[0].Kind != "user" || WorkspaceItems(chat)[0].Text != start.Task || window.Input.Text.Length != 0) throw new Exception("An approved Workspace start lost its chat, folder, mode or first message.");
+                    if (File.ReadAllText(Path.Combine(folder, "cwd.txt")).Trim() != snake || !File.ReadAllText(Path.Combine(folder, "stdin.txt")).Contains(start.Task)) throw new Exception("Workspace start didn't send their words in its own folder.");
                     WorkspaceTurn turn = chat.Live;
                     File.WriteAllText(finish, "go");
                     if (!turn.Done.WaitOne(30000)) throw new Exception("The Workspace tool's stand-in didn't finish.");
@@ -45752,7 +45753,7 @@ namespace CapriDesktop
                         }
                         string failed = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "try their task" }); });
                         WorkspaceItem error = WorkspaceItems(window.Chat).FindLast(delegate(WorkspaceItem item) { return item.Kind == "error"; });
-                        if (error == null || !Workspace.Same(window.Chat.Folder, work.Home) || failed != (fault == 0 ? "Couldn't start the chat because Claude Code is missing." : "Couldn't start the chat because Claude Code isn't signed in.") || (fault == 0 ? error.Text != Workspace.Missing || !error.Retry : !error.Text.Contains("Please sign in to Claude Code."))) throw new Exception("Workspace start hid a missing installation or sign-in failure.");
+                        if (error == null || !Workspace.Same(window.Chat.Folder, fault == 0 ? work.Home : Path.Combine(work.Home, "try their task")) || failed != (fault == 0 ? "Couldn't start the chat because Claude Code is missing." : "Couldn't start the chat because Claude Code isn't signed in.") || (fault == 0 ? error.Text != Workspace.Missing || !error.Retry : !error.Text.Contains("Please sign in to Claude Code."))) throw new Exception("Workspace start hid a missing installation or sign-in failure.");
                     }
                     checks.Add("PASS Workspace start reports missing Claude Code and a sign-in failure in one sentence while keeping the window's usual errors");
 
@@ -45794,7 +45795,7 @@ namespace CapriDesktop
                     string cold = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "start in their own folder" }); });
                     chat = workspaceWindow.Chat;
                     turn = chat.Live;
-                    if (work.Chats().Count != 1 || turn == null || chat.Mode != "Ask me" || !Workspace.Same(chat.Folder, work.Home) || cold != "The chat is running in the Workspace window. It asks there before changing anything.") throw new Exception("Starting an unopened Workspace made an extra empty chat.");
+                    if (work.Chats().Count != 1 || turn == null || chat.Mode != "Ask me" || !Workspace.Same(chat.Folder, Path.Combine(work.Home, "start in their own folder")) || cold != "The chat is running in the Workspace window. It asks there before changing anything.") throw new Exception("Starting an unopened Workspace made an extra empty chat.");
                     File.WriteAllText(finish, "go");
                     if (!turn.Done.WaitOne(30000)) throw new Exception("The unopened Workspace stand-in didn't finish.");
                     File.Delete(finish);

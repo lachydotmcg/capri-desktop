@@ -449,7 +449,7 @@ namespace CapriDesktop
         {
             List<string> all = new List<string>(Features);
             all.AddRange(offered);
-            if (BrainAsked != null && !all.Contains(RemoteBrainKeys.Feature)) all.Add(RemoteBrainKeys.Feature);
+            if ((BrainAsked != null || BrainRequested != null) && !all.Contains(RemoteBrainKeys.Feature)) all.Add(RemoteBrainKeys.Feature);
             if (!all.Contains(PairFeature)) all.Add(PairFeature);
             return all.ToArray();
         }

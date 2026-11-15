@@ -829,7 +829,7 @@ namespace CapriDesktop
         {
             string standin = Path.Combine(folder, "claude.cmd");
             File.WriteAllText(Path.Combine(folder, "result.txt"), HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "session_id", session, "duration_ms", 40, "result", "Done.")) + "\n", new UTF8Encoding(false));
-            File.WriteAllText(standin, "@echo off\r\nsetlocal\r\nif \"%~1\"==\"--version\" (\r\necho 2.1.295 ^(Claude Code^)\r\nexit /b 0\r\n)\r\necho %* > \"%~dp0args.txt\"\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\ntype \"%~dp0result.txt\"\r\n", Encoding.ASCII);
+            File.WriteAllText(standin, "@echo off\r\nsetlocal\r\nif \"%~1\"==\"--version\" (\r\necho 2.1.295 ^(Claude Code^)\r\nexit /b 0\r\n)\r\ncd > \"%~dp0cwd.txt\"\r\necho %* > \"%~dp0args.txt\"\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\ntype \"%~dp0result.txt\"\r\n", Encoding.ASCII);
             return standin;
         }
 
@@ -839,6 +839,119 @@ namespace CapriDesktop
             lock (chat.Gate) { if (!work.Send(chat, text, false)) throw new Exception("Workspace didn't take a message."); turn = chat.Live; }
             if (turn != null && !turn.Done.WaitOne(8000)) throw new Exception("Workspace's stand-in turn didn't end.");
             return turn;
+        }
+
+        private static void WorkspaceChatHomes(List<string> checks, string folder)
+        {
+            string home = Path.Combine(folder, "home"), spare = Path.Combine(folder, "spare");
+            string data = Path.Combine(folder, "data"), session = Guid.NewGuid().ToString();
+            RoomUnder(folder, Path.Combine(folder, "fallback", "workspace"));
+            string real = Workspace.HomeFolder();
+            bool realHome = Directory.Exists(real);
+            Directory.CreateDirectory(folder);
+            try
+            {
+                string exe = WorkspaceStandin(folder, session), firstId, legacyId = Guid.NewGuid().ToString("N");
+                using (Workspace work = new Workspace(data, null) { Home = home, HomeFallback = spare, Executable = exe })
+                using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+                {
+                    Action<WorkspaceChat, string> checkHome = delegate(WorkspaceChat chat, string name)
+                    {
+                        string expected = Path.Combine(home, name);
+                        if (!Workspace.Same(chat.Folder, expected) || !Directory.Exists(expected) || !work.Trusted(chat) || chat.TrustItem != null ||
+                            !Workspace.Same(File.ReadAllText(Path.Combine(folder, "cwd.txt")).TrimEnd(), expected))
+                            throw new Exception("Workspace didn't run in its own folder: " + expected);
+                        window.ShowChat(chat);
+                        if (window.Header != expected) throw new Exception("The header did not show the chat's own folder.");
+                        ProcessStartInfo opened = null;
+                        window.RevealPath = delegate(ProcessStartInfo start) { opened = start; };
+                        window.OpenChatFolder(chat);
+                        if (opened == null || opened.FileName != "explorer.exe" || opened.Arguments != PlanBrain.Quoted(expected))
+                            throw new Exception("Open folder didn't use the chat's own folder.");
+                    };
+                    WorkspaceChat first = work.HomeChat(false);
+                    firstId = first.Id;
+                    if (!work.IsHome(first) || !Workspace.Same(first.Folder, home) || Directory.Exists(home)) throw new Exception("An unused Workspace chat made a folder.");
+                    WorkspaceSent(work, first, "Build a clock.");
+                    checkHome(first, "Build a clock");
+                    WorkspaceChat second = work.HomeChat(false);
+                    WorkspaceSent(work, second, "Build a map.");
+                    checkHome(second, "Build a map");
+
+                    string existing = Path.Combine(home, "Existing");
+                    Directory.CreateDirectory(existing);
+                    string keep = Path.Combine(existing, "keep.txt");
+                    File.WriteAllText(keep, "keep");
+                    string attachment = Path.Combine(folder, "Brief.txt");
+                    File.WriteAllText(attachment, "brief");
+                    string[] titles = { "  ...a<b>c:d\"e/f\\g|h?i*j...  ", "CON.txt", " ... ", new string('x', 200), "", "Existing", "Build a map.", new string('x', 200) };
+                    string[] names = { "abcdefghij", "Chat CON.txt", "Chat", new string('x', 40), "Brief.txt", "Existing 2", "Build a map 2", new string('x', 38) + " 2" };
+                    for (int i = 0; i < titles.Length; i++)
+                    {
+                        WorkspaceChat chat = work.HomeChat(false);
+                        if (titles[i].Length == 0) work.AddFiles(chat, new[] { attachment });
+                        WorkspaceSent(work, chat, titles[i]);
+                        checkHome(chat, names[i]);
+                    }
+                    if (File.ReadAllText(keep) != "keep") throw new Exception("A new Workspace chat used an existing folder.");
+
+                    WorkspaceChat picked = work.HomeChat(false);
+                    work.Rehome(picked, new[] { first.Folder });
+                    if (work.Trusted(picked) || !work.Send(picked, "Use this folder", false) || picked.TrustItem == null || picked.Running)
+                        throw new Exception("Picking another chat's folder skipped its trust question.");
+                    WorkspaceChat extra = work.HomeChat(false);
+                    work.AddFolders(extra, new[] { existing });
+                    if (!work.Send(extra, "Use files from here", false) || extra.TrustItem == null || extra.Running || work.Untrusted(extra).Count != 1)
+                        throw new Exception("An existing Workspace child folder skipped its trust question.");
+
+                    WorkspaceChat tool = window.Start("Build a snake game", null);
+                    WorkspaceWait(delegate { return !tool.Running; }, "Workspace start didn't finish.");
+                    checkHome(tool, "Build a snake game");
+                    work.Delete(tool);
+                    if (!Directory.Exists(tool.Folder)) throw new Exception("Deleting a chat removed its folder.");
+                    work.Flush(first);
+                    Workspace.Atomic(Path.Combine(work.Root, "chats", legacyId + ".json"), HuskJson.Write(HuskJson.Map(
+                        "id", legacyId, "title", "A saved chat", "folder", home, "session", session,
+                        "items", new List<object> { new WorkspaceItem { Kind = "user", Text = "An earlier question" }.Json() })));
+                }
+                using (Workspace loaded = new Workspace(data, null) { Home = home, HomeFallback = spare, Executable = exe })
+                {
+                    WorkspaceChat first = loaded.Chats().Find(delegate(WorkspaceChat chat) { return chat.Id == firstId; });
+                    if (first == null || !loaded.Trusted(first) || !Workspace.Same(first.Folder, Path.Combine(home, "Build a clock"))) throw new Exception("Workspace lost ownership of a saved chat's folder.");
+                    WorkspaceChat legacy = loaded.Chats().Find(delegate(WorkspaceChat chat) { return chat.Id == legacyId; });
+                    if (legacy == null || WorkspaceSent(loaded, legacy, "Continue the saved chat") == null || !Workspace.Same(legacy.Folder, home) ||
+                        !Workspace.Same(File.ReadAllText(Path.Combine(folder, "cwd.txt")).TrimEnd(), home) ||
+                        !File.ReadAllText(Path.Combine(folder, "args.txt")).Replace("\"", "").Contains("--resume " + session))
+                        throw new Exception("Workspace moved or couldn't resume a shared-folder chat.");
+                }
+                using (Workspace loaded = new Workspace(data, null) { Home = home, HomeFallback = spare, Executable = exe })
+                {
+                    WorkspaceChat chat = loaded.Chats().Find(delegate(WorkspaceChat found) { return found.Id == firstId; });
+                    string replaced = chat.Folder;
+                    Directory.Move(replaced, replaced + " moved");
+                    Directory.CreateDirectory(replaced);
+                    if (loaded.Trusted(chat)) throw new Exception("Workspace trusted a replacement for a chat's own folder.");
+                    loaded.Trust(chat, true);
+                    File.Delete(Path.Combine(folder, "cwd.txt"));
+                    WorkspaceSent(loaded, chat, "Run in the replacement");
+                    if (File.Exists(Path.Combine(folder, "cwd.txt")) ||
+                        !WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "error" && item.Text.Contains("has changed"); }))
+                        throw new Exception("Workspace launched Claude Code in a replacement directory.");
+                }
+                string blocked = Path.Combine(folder, "blocked");
+                File.WriteAllText(blocked, "file in the way");
+                using (Workspace work = new Workspace(Path.Combine(folder, "fallback"), null) { Home = blocked, HomeFallback = spare, Executable = exe })
+                {
+                    WorkspaceChat chat = work.HomeChat(false);
+                    if (WorkspaceSent(work, chat, "Build a clock") == null || !work.Trusted(chat) ||
+                        !Workspace.Same(chat.Folder, Path.Combine(spare, "Build a clock")) ||
+                        !Workspace.Same(File.ReadAllText(Path.Combine(folder, "cwd.txt")).TrimEnd(), chat.Folder))
+                        throw new Exception("Workspace didn't make a chat folder under the fallback.");
+                }
+                if (!realHome && Directory.Exists(real)) throw new Exception("A smoke run made the real folder for her chats.");
+                checks.Add("PASS Workspace makes separate named chat folders, skips collisions, asks about picked children, opens each chat's folder, keeps saved sessions and uses the fallback when needed");
+            }
+            finally { Directory.Delete(folder, true); }
         }
 
         // Folders after the first ride to Claude Code with --add-dir, each new one asks for trust, an untrusted one keeps the
@@ -927,6 +1040,7 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS Workspace keeps each chat's folders, files and which files went out, across a restart");
             }
+            WorkspaceChatHomes(checks, Path.Combine(folder, "homes"));
             SmokeWorkspaceArguments(checks, folder);
             SmokeWorkspaceInside(checks, folder);
         }

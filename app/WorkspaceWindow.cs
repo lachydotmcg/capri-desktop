@@ -231,6 +231,7 @@ namespace CapriDesktop
         internal Func<string, bool> Confirm;
         internal Func<string[]> PickFolders, PickFiles;
         internal Func<string, string> PathAlias;
+        internal Action<ProcessStartInfo> RevealPath;
         internal float Zoom { get { return zoom; } }
         internal int ItemCount { get { return transcript.Blocks.Count; } }
         internal WorkspaceChat Chat { get { return chat; } }
@@ -457,7 +458,7 @@ namespace CapriDesktop
         {
             WorkspaceChat unused = fresh ? null : workspace.Chats().Find(delegate(WorkspaceChat found)
             {
-                lock (found.Gate) return found.Items.Count == 0 && found.Folders.Count == 0 && found.Files.Count == 0 && found.Live == null && workspace.IsHome(found.Folder);
+                lock (found.Gate) return found.Items.Count == 0 && found.Folders.Count == 0 && found.Files.Count == 0 && found.Live == null && workspace.IsHome(found);
             });
             WorkspaceChat made = unused ?? workspace.HomeChat(blackwall != null && blackwall());
             if (!string.IsNullOrEmpty(folder)) workspace.Rehome(made, new[] { folder });
@@ -552,7 +553,7 @@ namespace CapriDesktop
                     FillChats();
                     SelectChat(made);
                 }
-                else if (rest.Count > 0 && CanRehome && workspace.IsHome(chat.Folder) && chat.Folders.Count == 0)
+                else if (rest.Count > 0 && CanRehome && workspace.IsHome(chat) && chat.Folders.Count == 0)
                 {
                     // Nothing's been asked in her folder yet, so folders given now are where they want to work instead.
                     workspace.Rehome(chat, rest);
@@ -789,7 +790,7 @@ namespace CapriDesktop
             Font own = new Font(Font, FontStyle.Regular);
             menu.Font = own;
             menu.Items.Add("Rename", null, delegate { Post(BeginRename); });
-            menu.Items.Add("Open folder in Explorer", null, delegate { OpenFolder(picked.Folder, null); });
+            menu.Items.Add("Open folder in Explorer", null, delegate { OpenChatFolder(picked); });
             menu.Items.Add("Delete chat", null, delegate { Post(delegate { DeleteChat(picked); }); });
             menu.Closed += delegate { Post(delegate { menu.Dispose(); own.Dispose(); }); };
             openMenu = menu;
@@ -815,12 +816,15 @@ namespace CapriDesktop
             ask.Ask(question, "Delete chat", Neon.Hot, "Keep it", delegate(bool yes) { if (yes) remove(); });
         }
 
+        internal void OpenChatFolder(WorkspaceChat opened) { OpenFolder(opened.Folder, null); }
+
         private void OpenFolder(string folder, string file)
         {
             Try(delegate
             {
                 string args = file != null ? "/select," + PlanBrain.Quoted(file) : PlanBrain.Quoted(folder);
-                Process.Start(new ProcessStartInfo("explorer.exe", args) { UseShellExecute = true });
+                ProcessStartInfo start = new ProcessStartInfo("explorer.exe", args) { UseShellExecute = true };
+                if (RevealPath != null) RevealPath(start); else Process.Start(start);
             });
         }
 
@@ -981,7 +985,7 @@ namespace CapriDesktop
             base.OnMouseDown(e);
             if (chat == null || e.Button != MouseButtons.Left) return;
             if (titleBox.Contains(e.Location)) BeginRename();
-            else if (folderBox.Contains(e.Location)) OpenFolder(chat.Folder, null);
+            else if (folderBox.Contains(e.Location)) OpenChatFolder(chat);
         }
 
         protected override void OnMouseMove(MouseEventArgs e)

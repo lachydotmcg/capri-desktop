@@ -52,7 +52,9 @@ namespace CapriDesktop
         internal readonly List<string> Folders = new List<string>(), Files = new List<string>();
         internal readonly HashSet<string> Sent = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         internal volatile WorkspaceTurn Live;
-        internal bool Deleted, TrustAsked, SaveWarning;
+        internal bool Deleted, TrustAsked, SaveWarning, HomePending;
+        internal string HomeIdentity = "";
+        internal volatile bool HomeSaved;
         internal string PendingText;
         internal WorkspaceItem TrustItem;
         internal WorkspaceUndo Undoing;
@@ -129,7 +131,8 @@ namespace CapriDesktop
         // Her own folder for chats started without picking one: Capri\Workspace in their profile folder, the same on every PC.
         // Not Documents, which is often inside OneDrive, where Claude Code's fast small writes (.git, node_modules) would be
         // uploaded and fought over. Only made when a chat first needs it, and never emptied or deleted by her.
-        internal string Home = HomeFolder();
+        private static readonly string defaultHome = HomeFolder(), defaultFallback = Spare();
+        internal string Home = defaultHome, HomeFallback;
         internal int ApprovalWait = 600000;
         internal Action<WorkspaceChat, WorkspaceItem> Changed;
         internal Action<WorkspaceChat> Finished;
@@ -172,7 +175,9 @@ namespace CapriDesktop
                     string id = HuskJson.Text(row, "id");
                     if (!Key(id) || !string.Equals(Path.GetFileNameWithoutExtension(file), id, StringComparison.Ordinal)) throw new FormatException("Invalid chat id.");
                     WorkspaceChat chat = new WorkspaceChat { Id = id, Title = HuskJson.Text(row, "title"), Folder = HuskJson.Text(row, "folder"), Session = HuskJson.Text(row, "session"),
-                        Mode = Mode(HuskJson.Text(row, "mode")), Model = Model(HuskJson.Text(row, "model")), TrustAsked = true.Equals(HuskJson.Get(row, "trustAsked")) };
+                        Mode = Mode(HuskJson.Text(row, "mode")), Model = Model(HuskJson.Text(row, "model")), TrustAsked = true.Equals(HuskJson.Get(row, "trustAsked")),
+                        HomePending = true.Equals(HuskJson.Get(row, "homePending")), HomeIdentity = HuskJson.Text(row, "homeIdentity") };
+                    chat.HomeSaved = chat.HomeIdentity.Length > 0;
                     long updated;
                     if (long.TryParse(HuskJson.Text(row, "updated"), NumberStyles.None, CultureInfo.InvariantCulture, out updated)) chat.Updated = updated;
                     List<object> items = HuskJson.List(HuskJson.Get(row, "items")), turns = HuskJson.List(HuskJson.Get(row, "turns")), allowed = HuskJson.List(HuskJson.Get(row, "allowed"));
@@ -226,11 +231,11 @@ namespace CapriDesktop
 
         internal WorkspaceChat NewChat(string folder, bool blackwall) { return NewChat(folder, blackwall, true); }
 
-        private WorkspaceChat NewChat(string folder, bool blackwall, bool there)
+        private WorkspaceChat NewChat(string folder, bool blackwall, bool picked)
         {
             folder = Path.GetFullPath(folder);
-            if (there && !Directory.Exists(folder)) throw new IOException("That folder isn't here.");
-            WorkspaceChat chat = new WorkspaceChat { Folder = folder, Title = new DirectoryInfo(folder).Name, Mode = blackwall ? BlackwallMode : "Ask me" };
+            if (picked && !Directory.Exists(folder)) throw new IOException("That folder isn't here.");
+            WorkspaceChat chat = new WorkspaceChat { Folder = folder, Title = picked ? new DirectoryInfo(folder).Name : "New chat", Mode = blackwall ? BlackwallMode : "Ask me", HomePending = !picked };
             if (chat.Title.Length == 0) chat.Title = folder;
             lock (gate)
             {
@@ -284,7 +289,7 @@ namespace CapriDesktop
 
         internal void Flush(WorkspaceChat chat) { WriteChat(chat, true); }
 
-        private void WriteChat(WorkspaceChat chat, bool force)
+        private bool WriteChat(WorkspaceChat chat, bool force)
         {
             lock (chat.SaveGate)
             {
@@ -292,7 +297,8 @@ namespace CapriDesktop
                 long revision;
                 lock (chat.Gate)
                 {
-                    if (chat.Deleted || !force && (chat.Revision == chat.SavedRevision || chat.Running && Stopwatch.GetTimestamp() - chat.LastSave < Stopwatch.Frequency / 2)) return;
+                    if (chat.Deleted) return false;
+                    if (!force && (chat.Revision == chat.SavedRevision || chat.Running && Stopwatch.GetTimestamp() - chat.LastSave < Stopwatch.Frequency / 2)) return true;
                     List<object> items = new List<object>(), allowed = new List<object>(), turns = new List<object>();
                     foreach (WorkspaceItem item in chat.Items) if (!item.Growing) items.Add(item.Json());
                     foreach (string tool in chat.Allowed) allowed.Add(tool);
@@ -305,7 +311,7 @@ namespace CapriDesktop
                     chat.LastSave = Stopwatch.GetTimestamp();
                     copy = HuskJson.Map("id", chat.Id, "title", chat.Title, "folder", chat.Folder,
                         "session", chat.Session, "mode", chat.Mode == BlackwallMode ? "Everything" : chat.Mode, "model", chat.Model, "updated", chat.Updated.ToString(CultureInfo.InvariantCulture),
-                        "trustAsked", chat.TrustAsked, "items", items, "allowed", allowed, "turns", turns, "folders", folders, "files", files, "sent", sent);
+                        "trustAsked", chat.TrustAsked, "homePending", chat.HomePending, "homeIdentity", chat.HomeIdentity, "items", items, "allowed", allowed, "turns", turns, "folders", folders, "files", files, "sent", sent);
                 }
                 string text = HuskJson.Write(copy);
                 Exception failed = null;
@@ -318,6 +324,7 @@ namespace CapriDesktop
                 lock (chat.Gate)
                 {
                     chat.SavedRevision = revision;
+                    if (failed == null && chat.HomeIdentity.Length > 0 && chat.HomeIdentity == HuskJson.Text(copy, "homeIdentity")) chat.HomeSaved = true;
                     if (failed != null && !chat.SaveWarning && !chat.Deleted)
                     {
                         chat.SaveWarning = true;
@@ -326,6 +333,7 @@ namespace CapriDesktop
                     }
                 }
                 if (warning != null) Notify(chat, warning);
+                return failed == null;
             }
         }
 
@@ -355,22 +363,84 @@ namespace CapriDesktop
 
         private static string Spare() { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri", "Workspace"); }
 
+        private string FallbackHome()
+        {
+            return HomeFallback ?? (Same(Home, defaultHome) ? defaultFallback : Home);
+        }
+
         internal bool IsHome(string folder)
         {
-            try { return Home != null && folder != null && Same(Tidy(folder), Tidy(Home)); }
+            try { return folder != null && (Same(Tidy(folder), Tidy(Home)) || Same(Tidy(folder), Tidy(FallbackHome()))); }
             catch (Exception) { return false; }
         }
 
-        // Makes her folder when the first message in it goes. If the profile folder can't take it, it goes in local app data.
-        internal string MakeHome()
+        internal bool IsHome(WorkspaceChat chat)
         {
-            try { Directory.CreateDirectory(Home); }
-            catch (Exception)
+            lock (chat.Gate)
             {
-                Home = Spare();
-                Directory.CreateDirectory(Home);
+                if (IsHome(chat.Folder)) return true;
+                if (string.IsNullOrEmpty(chat.HomeIdentity)) return false;
+                try { return IsHome(Path.GetDirectoryName(chat.Folder)) && chat.HomeIdentity == WorkspacePaths.DirectoryIdentity(chat.Folder); }
+                catch (Exception) { return false; }
             }
-            return Home;
+        }
+
+        private static string HomeName(string title)
+        {
+            StringBuilder cleaned = new StringBuilder();
+            char[] invalid = Path.GetInvalidFileNameChars();
+            foreach (char letter in title)
+                if (Array.IndexOf(invalid, letter) < 0) cleaned.Append(letter);
+            string name = HomePrefix(cleaned.ToString().Trim(' ', '.'), 40);
+            string stem = name.Split('.')[0].TrimEnd(' ');
+            if (Regex.IsMatch(stem, @"\A(?:CON|PRN|AUX|NUL|CONIN\$|CONOUT\$|COM[1-9\u00b9\u00b2\u00b3]|LPT[1-9\u00b9\u00b2\u00b3])\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+                name = "Chat " + HomePrefix(name, 35);
+            return name.Length == 0 ? "Chat" : name;
+        }
+
+        private static string HomePrefix(string name, int length)
+        {
+            int end = Math.Min(name.Length, length);
+            if (end > 0 && char.IsHighSurrogate(name[end - 1])) end--;
+            return name.Substring(0, end).TrimEnd(' ', '.');
+        }
+
+        private static SafeFileHandle MakeChatHome(string root, string name, out string folder)
+        {
+            Directory.CreateDirectory(root);
+            using (SafeFileHandle parent = WorkspacePaths.OpenDirectory(WorkspacePaths.Final(root), 3))
+            {
+                if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0)
+                    throw new IOException("The Workspace folder points to another folder.");
+                for (int number = 1; ; number++)
+                {
+                    string suffix = number == 1 ? "" : " " + number.ToString(CultureInfo.InvariantCulture);
+                    string leaf = HomePrefix(name, 40 - suffix.Length) + suffix;
+                    folder = Path.Combine(root, leaf);
+                    SafeFileHandle made = WorkspacePaths.CreateDirectory(parent, leaf);
+                    if (made != null) return made;
+                }
+            }
+        }
+
+        private void AssignChatHome(WorkspaceChat chat)
+        {
+            string name = HomeName(chat.Title), fallback = FallbackHome(), folder;
+            SafeFileHandle made;
+            try { made = MakeChatHome(chat.Folder, name, out folder); }
+            catch (Exception error)
+            {
+                if (Same(chat.Folder, fallback) || !(error is IOException || error is UnauthorizedAccessException || error is System.ComponentModel.Win32Exception)) throw;
+                made = MakeChatHome(fallback, name, out folder);
+            }
+            using (made)
+            {
+                try { chat.HomeIdentity = WorkspacePaths.DirectoryIdentity(made); }
+                catch (IOException error) { throw new IOException("Couldn't verify the new Workspace folder at " + folder + ".", error); }
+                chat.Folder = folder;
+                chat.HomePending = false;
+                Save(chat);
+            }
         }
 
         // A chat in her folder is named from its first message: the first words, up to about 40 letters, cut at a word, on
@@ -383,7 +453,9 @@ namespace CapriDesktop
             if (cut)
             {
                 int at = words.LastIndexOf(' ', 40);
-                words = at >= 12 ? words.Substring(0, at) : words.Substring(0, 40);
+                int end = at >= 12 ? at : 40;
+                if (char.IsHighSurrogate(words[end - 1])) end--;
+                words = words.Substring(0, end);
             }
             words = words.TrimEnd(' ', '.', ',', ';', ':', '!', '?', '-', '\u2013', '\u2014', '(', '"', '\'');
             // A title made from a longer message looks cut: the dots sit tight against the last word.
@@ -394,11 +466,7 @@ namespace CapriDesktop
         // folder itself isn't made until a message goes: opening Workspace leaves nothing behind on the PC.
         internal WorkspaceChat HomeChat(bool blackwall)
         {
-            WorkspaceChat chat = NewChat(Home, blackwall, false);
-            lock (chat.Gate) chat.Title = "New chat";
-            Save(chat);
-            Notify(chat, null);
-            return chat;
+            return NewChat(Home, blackwall, false);
         }
 
         // Until the first message the folder Claude Code runs in can change: the first picked folder takes its place and the
@@ -420,6 +488,9 @@ namespace CapriDesktop
                 string old = chat.Folder, oldName = new DirectoryInfo(old).Name;
                 List<string> rest = new List<string>(chat.Folders);
                 chat.Folder = folders[0];
+                chat.HomePending = false;
+                chat.HomeIdentity = "";
+                chat.HomeSaved = false;
                 chat.Folders.Clear();
                 List<string> joining = folders.GetRange(1, folders.Count - 1);
                 joining.AddRange(rest);
@@ -444,7 +515,11 @@ namespace CapriDesktop
         internal List<string> Untrusted(WorkspaceChat chat)
         {
             List<string> untrusted = new List<string>();
-            foreach (string folder in AllFolders(chat)) if (!Trusted(folder)) untrusted.Add(folder);
+            lock (chat.Gate)
+            {
+                if (!IsHome(chat) && !Trusted(chat.Folder)) untrusted.Add(chat.Folder);
+                foreach (string folder in chat.Folders) if (!Trusted(folder)) untrusted.Add(folder);
+            }
             return untrusted;
         }
 
@@ -466,7 +541,11 @@ namespace CapriDesktop
             if (yes)
             {
                 List<string> folders = new List<string>();
-                foreach (string each in AllFolders(chat)) folders.Add(WorkspacePaths.Final(each));
+                lock (chat.Gate)
+                {
+                    if (!IsHome(chat)) folders.Add(WorkspacePaths.Final(chat.Folder));
+                    foreach (string each in chat.Folders) folders.Add(WorkspacePaths.Final(each));
+                }
                 lock (trustGate)
                 {
                     HashSet<string> copy = new HashSet<string>(trusted, StringComparer.OrdinalIgnoreCase);
@@ -706,13 +785,13 @@ namespace CapriDesktop
                 HuskJson.Map("matcher", "*", "hooks", new List<object> { hook }) })));
         }
 
-        private void ReadVersion(string exe, string folder)
+        private void ReadVersion(string exe, WorkspaceChat chat)
         {
             lock (versionGate)
             {
                 if (versionRead) return;
                 versionRead = true;
-                using (Process process = new Process { StartInfo = StartInfo(exe, new List<string> { "--version" }, folder) })
+                using (Process process = new Process { StartInfo = StartInfo(exe, new List<string> { "--version" }, chat.Folder) })
                 using (ManualResetEvent read = new ManualResetEvent(false))
                 {
                     StringBuilder text = new StringBuilder();
@@ -724,7 +803,7 @@ namespace CapriDesktop
                     process.ErrorDataReceived += delegate { };
                     try
                     {
-                        process.Start();
+                        StartProcess(process, chat);
                         process.BeginOutputReadLine();
                         process.BeginErrorReadLine();
                         process.StandardInput.Close();
@@ -772,6 +851,15 @@ namespace CapriDesktop
                 }
                 string exe = Executable == null ? PlanBrain.Find("claude") : File.Exists(Executable) ? Executable : null;
                 if (exe == null) { Add(chat, new WorkspaceItem { Kind = "error", Text = Missing, Retry = true }); return false; }
+                if (chat.HomePending)
+                {
+                    try { AssignChatHome(chat); }
+                    catch (Exception error)
+                    {
+                        Add(chat, new WorkspaceItem { Kind = "error", Text = error.Message, Retry = true });
+                        return false;
+                    }
+                }
                 turn = new WorkspaceTurn { Chat = chat, Mode = chat.Mode, LaunchMode = chat.Mode, Model = chat.Model, Session = chat.Session, Trusted = Trusted(chat) };
                 turn.Extra.AddRange(chat.Folders);
                 for (int i = chat.Items.Count - 1; i >= 0; i--)
@@ -779,7 +867,7 @@ namespace CapriDesktop
                 chat.Live = turn;
                 try
                 {
-                    if (IsHome(chat.Folder) && !Directory.Exists(chat.Folder)) chat.Folder = MakeHome();
+                    if (IsHome(chat.Folder) && !Directory.Exists(chat.Folder)) Directory.CreateDirectory(chat.Folder);
                     if (!Directory.Exists(chat.Folder)) throw new IOException("That folder isn't here.");
                     foreach (string extra in turn.Extra) if (!Directory.Exists(extra)) throw new IOException("That folder isn't here: " + extra);
                     BeginUndo(chat, turn.Id);
@@ -843,6 +931,12 @@ namespace CapriDesktop
             return start;
         }
 
+        private static void StartProcess(Process process, WorkspaceChat chat)
+        {
+            if (chat.HomeIdentity.Length == 0) process.Start();
+            else WorkspacePaths.StartInDirectory(process, chat.Folder, chat.HomeIdentity);
+        }
+
         private static void Tail(StringBuilder text, string line)
         {
             text.Append(line).Append('\n');
@@ -855,7 +949,9 @@ namespace CapriDesktop
             int code = -1;
             try
             {
-                ReadVersion(exe, chat.Folder);
+                if (chat.HomeIdentity.Length > 0 && !chat.HomeSaved && !WriteChat(chat, true))
+                    throw new IOException("Couldn't save the chat's folder at " + chat.Folder + ".");
+                if (!turn.Stopped && !chat.Deleted) ReadVersion(exe, chat);
                 Atomic(turn.Settings, Settings(chat, turn.Id, Packaged.Launcher(System.Windows.Forms.Application.ExecutablePath), turn.Wrapper));
                 bool renewed = false;
                 while (true)
@@ -967,7 +1063,7 @@ namespace CapriDesktop
                     lock (turn.ProcessGate)
                     {
                         if (turn.Stopped) return -1;
-                        process.Start();
+                        StartProcess(process, turn.Chat);
                         turn.Process = process;
                         turn.Job = job;
                         if (!job.Bind(process)) throw new IOException("Workspace couldn't track Claude Code's processes.");
@@ -1992,6 +2088,121 @@ namespace CapriDesktop
                 || (path.StartsWith("/", StringComparison.Ordinal) && !path.StartsWith("//", StringComparison.Ordinal)))
                 return Path.GetFullPath(Path.Combine(Path.GetPathRoot(cwd), path.TrimStart('\\', '/')));
             return Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(cwd, path));
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct FileIdentity
+        {
+            internal uint Attributes, CreatedLow, CreatedHigh, AccessedLow, AccessedHigh, WrittenLow, WrittenHigh;
+            internal uint Volume, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetFileInformationByHandle(SafeFileHandle file, out FileIdentity identity);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ObjectName
+        {
+            internal ushort Length, Capacity;
+            internal IntPtr Buffer;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ObjectAttributes
+        {
+            internal int Length;
+            internal IntPtr Parent, Name;
+            internal uint Attributes;
+            internal IntPtr Security, Quality;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct IoStatus
+        {
+            internal IntPtr Status, Information;
+        }
+
+        [DllImport("ntdll.dll")]
+        private static extern int NtCreateFile(out SafeFileHandle file, uint access, ref ObjectAttributes attributes, out IoStatus io,
+            IntPtr allocation, uint flags, uint share, uint disposition, uint options, IntPtr extra, uint extraLength);
+
+        [DllImport("ntdll.dll")]
+        private static extern int RtlNtStatusToDosError(int status);
+
+        internal static SafeFileHandle CreateDirectory(SafeFileHandle root, string leaf)
+        {
+            IntPtr buffer = Marshal.StringToHGlobalUni(leaf), name = IntPtr.Zero;
+            try
+            {
+                ObjectName text = new ObjectName { Length = (ushort)(leaf.Length * 2), Capacity = (ushort)((leaf.Length + 1) * 2), Buffer = buffer };
+                name = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(ObjectName)));
+                Marshal.StructureToPtr(text, name, false);
+                ObjectAttributes attributes = new ObjectAttributes
+                {
+                    Length = Marshal.SizeOf(typeof(ObjectAttributes)), Parent = root.DangerousGetHandle(), Name = name, Attributes = 0x40
+                };
+                SafeFileHandle made;
+                IoStatus io;
+                int status = NtCreateFile(out made, 0x80, ref attributes, out io, IntPtr.Zero, 0x80, 1, 2, 0x00200001, IntPtr.Zero, 0);
+                if (status >= 0 && made != null && !made.IsInvalid) return made;
+                if (made != null) made.Dispose();
+                int error = RtlNtStatusToDosError(status);
+                if (error == 80 || error == 183) return null;
+                throw new System.ComponentModel.Win32Exception(error);
+            }
+            finally
+            {
+                if (name != IntPtr.Zero) Marshal.FreeHGlobal(name);
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        internal static SafeFileHandle OpenDirectory(string path, uint share)
+        {
+            SafeFileHandle directory = CreateFile(path, 0xA0, share, IntPtr.Zero, 3, 0x02200000, IntPtr.Zero);
+            try { DirectoryIdentity(directory); return directory; }
+            catch { directory.Dispose(); throw; }
+        }
+
+        internal static string DirectoryIdentity(string path)
+        {
+            using (SafeFileHandle directory = OpenDirectory(path, 7)) return DirectoryIdentity(directory);
+        }
+
+        internal static string DirectoryIdentity(SafeFileHandle file)
+        {
+            FileIdentity identity;
+            if (file.IsInvalid || !GetFileInformationByHandle(file, out identity)) throw new IOException("Couldn't read the Workspace folder.");
+            FileAttributes attributes = (FileAttributes)identity.Attributes;
+            if ((attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != FileAttributes.Directory)
+                throw new IOException("The Workspace folder points to another location.");
+            return string.Format(CultureInfo.InvariantCulture, "{0:x8}{1:x8}{2:x8}{3:x8}{4:x8}",
+                identity.Volume, identity.IndexHigh, identity.IndexLow, identity.CreatedHigh, identity.CreatedLow);
+        }
+
+        internal static void StartInDirectory(Process process, string path, string identity)
+        {
+            string canonical = Final(path);
+            Stack<string> parents = new Stack<string>();
+            for (string folder = canonical; !string.IsNullOrEmpty(Path.GetDirectoryName(folder)); folder = Path.GetDirectoryName(folder))
+                parents.Push(folder);
+            List<SafeFileHandle> pinned = new List<SafeFileHandle>();
+            try
+            {
+                while (parents.Count > 0)
+                {
+                    string folder = parents.Pop();
+                    pinned.Add(OpenDirectory(folder, parents.Count == 0 ? 1u : 3u));
+                }
+                if (pinned.Count == 0 || DirectoryIdentity(pinned[pinned.Count - 1]) != identity)
+                    throw new IOException("The chat's folder at " + path + " has changed.");
+                process.StartInfo.WorkingDirectory = canonical;
+                process.Start();
+            }
+            finally
+            {
+                for (int i = pinned.Count - 1; i >= 0; i--) pinned[i].Dispose();
+            }
         }
 
         internal static string Final(string path)

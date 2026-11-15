@@ -710,6 +710,9 @@ namespace CapriDesktop
         // The keys she has saved, so a line in errors.txt never keeps one whole, whatever its shape (Scrubbed).
         internal static Func<string[]> Secrets = delegate { return new string[0]; };
         [ThreadStatic] private static bool scrubbing;
+#if CROSS
+        [ThreadStatic] internal static Func<string, string> CleanSecret;
+#endif
         internal volatile string Model;
         internal volatile Engine Local;
         internal volatile Pick LocalPick;
@@ -4850,6 +4853,9 @@ namespace CapriDesktop
 
         internal static string Redacted(string text)
         {
+#if CROSS
+            if (CleanSecret != null) text = CleanSecret(text);
+#endif
             string clean = Regex.Replace(text ?? "", @"CAPRI(?:-[A-Z0-9\u0131\u017F]{2,12})?(?:-[0-9A-HJKMNP-TV-Z\u017F]{4}){4}|\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             clean = Regex.Replace(clean, @"(""data""\s*:\s*"")[A-Za-z0-9+/_=-]{32,}("")", "$1[redacted]$2", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
@@ -4968,6 +4974,9 @@ namespace CapriDesktop
         // ordinary words with it.
         internal static string Scrubbed(string text)
         {
+#if CROSS
+            if (CleanSecret != null) text = CleanSecret(text);
+#endif
             if (string.IsNullOrEmpty(text) || scrubbing) return text ?? "";
             string[] keys;
             scrubbing = true;
