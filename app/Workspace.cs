@@ -92,24 +92,27 @@ namespace CapriDesktop
         internal Process Process;
         internal WorkspaceJob Job;
         internal volatile bool Stopped, Result, Failed;
-        internal bool TextSeen, SessionSeen, StopRecorded, Trusted, Uncovered, Partials;
+        internal bool TextSeen, SessionSeen, StopRecorded, Trusted, Uncovered, Partials, Streamed;
         internal string Message = "";
         internal Timer StreamTimer;
         internal int Attempt, Active;
         internal long ResultAt;
     }
 
+    // One main-conversation message as it streams: its text blocks in the order they started, and finished text that
+    // arrived before its block began streaming, by its place among the message's text blocks.
     internal sealed class WorkspaceMessage
     {
         internal readonly Dictionary<int, WorkspaceText> Blocks = new Dictionary<int, WorkspaceText>();
         internal readonly List<WorkspaceText> Texts = new List<WorkspaceText>();
+        internal readonly Dictionary<int, WorkspaceItem> Ahead = new Dictionary<int, WorkspaceItem>();
+        internal int Finished;
     }
 
     internal sealed class WorkspaceText
     {
         internal readonly StringBuilder Text = new StringBuilder();
         internal WorkspaceItem Item;
-        internal int Index = -1;
         internal bool Final, Dirty;
     }
 
@@ -986,7 +989,7 @@ namespace CapriDesktop
         {
             lock (turn.Chat.Gate)
             {
-                if (!turn.Partials || code == 0 || turn.Stopped || turn.Result || turn.TextSeen || turn.SessionSeen || turn.Tools.Count > 0 || turn.Asks.Count > 0) return false;
+                if (!turn.Partials || code == 0 || turn.Stopped || turn.Result || turn.TextSeen || turn.Streamed || turn.SessionSeen || turn.Tools.Count > 0 || turn.Asks.Count > 0) return false;
                 string errors;
                 lock (turn.Errors) errors = turn.Errors.ToString();
                 if (!RejectedPartials(errors) && !RejectedPartials(turn.Output.ToString()) && !RejectedPartials(turn.Fault)) return false;
@@ -1002,7 +1005,7 @@ namespace CapriDesktop
                 EndStreams(turn);
                 turn.Messages.Clear();
                 turn.Message = "";
-                turn.Result = turn.Failed = turn.TextSeen = turn.SessionSeen = false;
+                turn.Result = turn.Failed = turn.TextSeen = turn.Streamed = turn.SessionSeen = false;
                 turn.ResultText = "";
                 turn.Fault = null;
                 turn.Output.Clear();
@@ -1040,17 +1043,23 @@ namespace CapriDesktop
             {
                 Dictionary<string, object> block = HuskJson.Get(part, "content_block") as Dictionary<string, object>;
                 if (HuskJson.Text(block, "type") != "text" || message.Blocks.ContainsKey(index)) return;
-                string first = HuskJson.Text(block, "text");
-                text = new WorkspaceText { Item = new WorkspaceItem { Kind = "text", Turn = turn.Id, Growing = true } };
-                text.Text.Append(first);
-                WorkspaceText pending = message.Texts.Find(delegate(WorkspaceText found) { return found.Index < 0 && found.Final; });
-                int at = pending == null ? -1 : turn.Chat.Items.IndexOf(pending.Item);
-                if (at < 0) turn.Chat.Items.Add(text.Item); else turn.Chat.Items.Insert(at, text.Item);
+                turn.Streamed = true;
+                WorkspaceItem ahead;
+                if (message.Ahead.TryGetValue(message.Texts.Count, out ahead))
+                {
+                    text = new WorkspaceText { Item = ahead, Final = true };
+                    message.Ahead.Remove(message.Texts.Count);
+                }
+                else
+                {
+                    string first = HuskJson.Text(block, "text");
+                    text = new WorkspaceText { Item = new WorkspaceItem { Kind = "text", Text = first, Turn = turn.Id, Growing = true } };
+                    text.Text.Append(first);
+                    turn.Chat.Items.Add(text.Item);
+                    Notify(turn.Chat, null);
+                }
                 message.Texts.Add(text);
-                text.Index = index;
                 message.Blocks[index] = text;
-                turn.TextSeen = true;
-                if (!BindText(turn, message, text)) { text.Item.Text = first; Notify(turn.Chat, text.Item); }
                 if (turn.StreamTimer == null && !ManualStreams)
                     turn.StreamTimer = new Timer(delegate(object state)
                     {
@@ -1065,43 +1074,7 @@ namespace CapriDesktop
                 if (type != "content_block_delta" || text.Final || HuskJson.Text(delta, "type") != "text_delta") return;
                 text.Text.Append(HuskJson.Text(delta, "text"));
                 text.Dirty = true;
-                BindText(turn, message, text);
             }
-        }
-
-        private bool BindText(WorkspaceTurn turn, WorkspaceMessage message, WorkspaceText text)
-        {
-            if (text.Final || text.Text.Length == 0 || !message.Texts.Exists(delegate(WorkspaceText found) { return found.Final && found.Index < 0; })) return false;
-            string prefix = text.Text.ToString();
-            WorkspaceText pending = message.Texts.Find(delegate(WorkspaceText found) { return found.Final && found.Index < 0 && found.Item.Text == prefix; });
-            if (pending == null)
-            {
-                foreach (WorkspaceText found in message.Texts)
-                {
-                    if (!found.Final || found.Index >= 0 || !found.Item.Text.StartsWith(prefix, StringComparison.Ordinal)) continue;
-                    if (pending != null) return false;
-                    pending = found;
-                }
-            }
-            if (pending == null) return false;
-            turn.Chat.Items.Remove(pending.Item);
-            if (text.Item.Text.Length == 0)
-            {
-                int at = turn.Chat.Items.IndexOf(text.Item);
-                if (at >= 0) turn.Chat.Items[at] = pending.Item;
-                text.Item = pending.Item;
-            }
-            else
-            {
-                text.Item.Text = pending.Item.Text;
-                text.Item.Growing = false;
-            }
-            text.Final = true;
-            text.Dirty = false;
-            message.Texts.Remove(pending);
-            Save(turn.Chat);
-            Notify(turn.Chat, null);
-            return true;
         }
 
         internal void PublishStreams(WorkspaceTurn turn)
@@ -1122,6 +1095,13 @@ namespace CapriDesktop
 
         internal void EndStreams(WorkspaceTurn turn)
         {
+            EndStreams(turn, turn.Result && !turn.Failed);
+        }
+
+        // A turn that ended well has had every real block finished, so a stream still unfinished then was abandoned, as when
+        // Claude Code retries a request, and goes. After Stop or a failure what streamed is all there is, so it stays.
+        internal void EndStreams(WorkspaceTurn turn, bool succeeded)
+        {
             lock (turn.Chat.Gate)
             {
                 if (turn.StreamTimer != null) { turn.StreamTimer.Dispose(); turn.StreamTimer = null; }
@@ -1132,42 +1112,34 @@ namespace CapriDesktop
                 {
                     if (!text.Item.Growing) continue;
                     text.Item.Growing = false;
-                    saved = true;
-                    if (text.Text.Length == 0) { turn.Chat.Items.Remove(text.Item); Notify(turn.Chat, null); }
-                    else Notify(turn.Chat, text.Item);
+                    text.Final = true;
+                    if (succeeded || text.Text.Length == 0) { turn.Chat.Items.Remove(text.Item); Notify(turn.Chat, null); }
+                    else { saved = true; Notify(turn.Chat, text.Item); }
                 }
                 if (saved) { turn.Chat.Updated = DateTime.UtcNow.Ticks; Save(turn.Chat); }
             }
         }
 
-        private void FinishedText(WorkspaceTurn turn, WorkspaceMessage message, string value, bool whole, HashSet<WorkspaceText> used)
+        // Claude Code repeats each streamed text block in a finished row, in block order, so a message's next finished text
+        // belongs to its next text block whatever either says.
+        private void FinishedText(WorkspaceTurn turn, WorkspaceMessage message, string value)
         {
-            WorkspaceText text = null;
-            int best = -1;
-            foreach (WorkspaceText candidate in message.Texts)
+            int place = message.Finished++;
+            if (place >= message.Texts.Count)
             {
-                if (used.Contains(candidate) || candidate.Final && (!whole || candidate.Index < 0)) continue;
-                string prefix = candidate.Final ? candidate.Item.Text : candidate.Text.ToString();
-                if ((prefix.Length == 0 && value.Length > 0) || !value.StartsWith(prefix, StringComparison.Ordinal) || candidate.Final && value != prefix) continue;
-                int score = prefix == value ? int.MaxValue : prefix.Length;
-                if (score > best) { text = candidate; best = score; }
+                WorkspaceItem item = new WorkspaceItem { Kind = "text", Text = value, Turn = turn.Id };
+                message.Ahead[place] = item;
+                Add(turn.Chat, item);
+                return;
             }
-            if (text == null)
-            {
-                text = new WorkspaceText { Item = new WorkspaceItem { Kind = "text", Text = value, Turn = turn.Id }, Final = true };
-                message.Texts.Add(text);
-                Add(turn.Chat, text.Item);
-            }
-            else if (!text.Final)
-            {
-                text.Item.Text = value;
-                text.Item.Growing = text.Dirty = false;
-                text.Final = true;
-                turn.Chat.Updated = DateTime.UtcNow.Ticks;
-                Save(turn.Chat);
-                Notify(turn.Chat, text.Item);
-            }
-            used.Add(text);
+            WorkspaceText text = message.Texts[place];
+            if (text.Final) return;
+            text.Item.Text = value;
+            text.Item.Growing = text.Dirty = false;
+            text.Final = true;
+            turn.Chat.Updated = DateTime.UtcNow.Ticks;
+            Save(turn.Chat);
+            Notify(turn.Chat, text.Item);
         }
 
         private static bool Restart(WorkspaceTurn turn, int attempt)
@@ -1198,7 +1170,6 @@ namespace CapriDesktop
                 List<object> blocks = HuskJson.List(HuskJson.Get(message, "content"));
                 string idMessage = HuskJson.Text(message, "id");
                 WorkspaceMessage streamed = type == "assistant" && idMessage.Length > 0 && !(HuskJson.Get(row, "parent_tool_use_id") is string) ? Message(turn, idMessage) : null;
-                HashSet<WorkspaceText> used = new HashSet<WorkspaceText>();
                 if (blocks != null) foreach (object block in blocks)
                 {
                     Dictionary<string, object> content = block as Dictionary<string, object>;
@@ -1209,7 +1180,7 @@ namespace CapriDesktop
                         turn.TextSeen = true;
                         string value = HuskJson.Text(content, "text");
                         if (streamed == null) Add(chat, new WorkspaceItem { Kind = "text", Text = value, Turn = turn.Id });
-                        else FinishedText(turn, streamed, value, blocks.Count > 1, used);
+                        else FinishedText(turn, streamed, value);
                     }
                     else if (kind == "tool_use")
                     {
@@ -1228,10 +1199,10 @@ namespace CapriDesktop
                 }
                 if (type == "result")
                 {
-                    EndStreams(turn);
                     turn.ResultText = HuskJson.Text(row, "result");
                     if (turn.ResultText.Length == 0) turn.ResultText = Content(HuskJson.Get(row, "errors"));
                     turn.Failed = true.Equals(HuskJson.Get(row, "is_error")) || HuskJson.Text(row, "subtype").StartsWith("error", StringComparison.Ordinal);
+                    EndStreams(turn, !turn.Failed);
                     if (!turn.TextSeen && !turn.Failed && turn.ResultText.Length > 0) Add(chat, new WorkspaceItem { Kind = "text", Text = turn.ResultText, Turn = turn.Id });
                     string cost = "";
                     object price = HuskJson.Get(row, "total_cost_usd") ?? HuskJson.Get(row, "cost_usd");
@@ -1246,7 +1217,7 @@ namespace CapriDesktop
                 {
                     string error = Content(HuskJson.Get(row, "error") ?? HuskJson.Get(row, "message"));
                     Tail(turn.Output, error);
-                    if ((turn.Session.Length == 0 || !Expired(error)) && !(turn.Partials && !turn.TextSeen && !turn.SessionSeen && RejectedPartials(error))) Add(chat, new WorkspaceItem { Kind = "error", Text = error, Turn = turn.Id });
+                    if ((turn.Session.Length == 0 || !Expired(error)) && !(turn.Partials && !turn.TextSeen && !turn.Streamed && !turn.SessionSeen && RejectedPartials(error))) Add(chat, new WorkspaceItem { Kind = "error", Text = error, Turn = turn.Id });
                 }
             }
         }
