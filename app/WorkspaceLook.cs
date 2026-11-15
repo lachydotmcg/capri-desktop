@@ -2431,7 +2431,9 @@ namespace CapriDesktop
 
                     foreach (Size size in new[] { new Size(10, 10), new Size(WorkspaceWindow.Narrowest, WorkspaceWindow.Shortest), new Size(1600, 1000), new Size(WorkspaceWindow.Wide, WorkspaceWindow.Tall) })
                     {
-                        window.ClientSize = size;
+                        // Size, not ClientSize: setting a client size under the minimum keeps the asked-for 10 x 10 as the
+                        // client size until Windows next reports it, so the keys get placed for a window that isn't there.
+                        window.Size = size;
                         Application.DoEvents();
                         string crowded = window.Crowded();
                         if (crowded != null || window.Width < WorkspaceWindow.Narrowest) throw new Exception("Workspace at " + size + ": " + (crowded ?? "smaller than its smallest"));
