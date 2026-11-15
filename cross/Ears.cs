@@ -41,8 +41,8 @@ namespace CapriDesktop
             string language = Brain.LanguageCode(Brain.Language ?? "English");
             Hearing model = Pick(Models(folder), language, chosen == null ? null : chosen());
             if (model == null)
-                throw new IOException(language == "en" ? "Put my English Parakeet model in " + (mac ? Path.Combine(folder, English) : "Capri/ears/" + English + " under your config folder") + "."
-                    : "I don't have ears for " + (Brain.Language ?? "English") + " yet. Extract a sherpa-onnx model that hears it, like SenseVoice for Chinese, Japanese and Korean, into " + place + ".");
+                throw new IOException("Put my English Parakeet model in " + (mac ? Path.Combine(folder, English) : "Capri/ears/" + English + " under your config folder")
+                    + (language == "en" ? "." : ", or a sherpa-onnx model that hears " + (Brain.Language ?? "English") + ", like SenseVoice for Chinese, Japanese and Korean."));
 
             short[] samples = await Record(mic, mac, stop).ConfigureAwait(false);
             if (samples.Length == 0) return "";
@@ -101,16 +101,20 @@ namespace CapriDesktop
             }
         }
 
+        // Her 15 seconds start at the first audio, so a slow click on Allow in the Mac mic prompt doesn't cut the line short. Until
+        // then she waits up to two minutes for the prompt, or for parec to connect, and if that runs out she says she was still
+        // waiting instead of blaming your mic settings.
         private static async Task<short[]> Record(string mic, bool mac, CancellationToken stop)
         {
             using var limit = CancellationTokenSource.CreateLinkedTokenSource(stop);
-            limit.CancelAfter(TimeSpan.FromSeconds(15));
+            limit.CancelAfter(TimeSpan.FromMinutes(2));
+            bool started = false;
             try
             {
                 using Process run = mac ? Start(mic) : Start(mic, "--raw", "--format=s16le", "--rate=16000", "--channels=1", "--latency-msec=50", "--client-name=Capri");
                 using var kill = limit.Token.Register(() => Stop(run));
                 Task errors = run.StandardError.BaseStream.CopyToAsync(Stream.Null, limit.Token);
-                try { return await Words(run.StandardOutput.BaseStream, limit.Token).ConfigureAwait(false); }
+                try { return await Words(run.StandardOutput.BaseStream, limit.Token, () => { started = true; limit.CancelAfter(TimeSpan.FromSeconds(15)); }).ConfigureAwait(false); }
                 finally
                 {
                     Stop(run);
@@ -120,9 +124,16 @@ namespace CapriDesktop
             catch (Exception error) when (error is IOException || error is Win32Exception || error is OperationCanceledException)
             {
                 stop.ThrowIfCancellationRequested();
-                throw new IOException(mac ? "I couldn't hear your default mic. Let me use it in System Settings > Privacy & Security > Microphone, then try TALK again."
-                    : "I couldn't hear your default mic. Check your sound settings and try TALK again.");
+                throw new IOException(Lost(mac, !started && limit.IsCancellationRequested));
             }
+        }
+
+        internal static string Lost(bool mac, bool waited)
+        {
+            if (waited) return mac ? "I was still waiting for you to let me use the mic. Once you've allowed it, click TALK again."
+                : "I waited two minutes and your mic never sent me any sound. Check your sound settings and try TALK again.";
+            return mac ? "I couldn't hear your default mic. Let me use it in System Settings > Privacy & Security > Microphone, then try TALK again."
+                : "I couldn't hear your default mic. Check your sound settings and try TALK again.";
         }
 
         internal sealed class Hearing
@@ -169,19 +180,21 @@ namespace CapriDesktop
         }
 
         // The model that hears the fewest languages, her own language among them, knows it best, so English stays on Parakeet v2
-        // even with SenseVoice beside it. A model she can't place is only a last resort.
+        // even with SenseVoice beside it. A model she can't place comes next. With no model for her language she still
+        // hears you with the one that hears the most, so the English pack alone keeps TALK working with Language set to German.
         internal static Hearing Pick(List<Hearing> models, string language, string chosen = null)
         {
             // The model you picked under VOICE > Her ears hears every language, while its folder is still there.
             if (chosen != null) foreach (Hearing model in models) if (model.Name == chosen) return model;
-            Hearing best = null, unknown = null;
+            Hearing best = null, unknown = null, widest = null;
             foreach (Hearing model in models)
             {
                 if (model.Hears == null) { if (unknown == null) unknown = model; continue; }
+                if (widest == null || model.Hears.Length > widest.Hears.Length) widest = model;
                 if (Array.IndexOf(model.Hears, language) < 0) continue;
                 if (best == null || model.Hears.Length < best.Hears.Length) best = model;
             }
-            return best ?? unknown;
+            return best ?? unknown ?? widest;
         }
 
         internal static string[] Arguments(Hearing model, string language, string audio)
@@ -211,7 +224,7 @@ namespace CapriDesktop
             return plain;
         }
 
-        internal static async Task<short[]> Words(Stream mic, CancellationToken stop)
+        internal static async Task<short[]> Words(Stream mic, CancellationToken stop, Action started = null)
         {
             short[] samples = new short[12 * Rate];
             byte[] frame = new byte[Frame * 2];
@@ -221,6 +234,7 @@ namespace CapriDesktop
             while (used < samples.Length)
             {
                 await mic.ReadExactlyAsync(frame, stop).ConfigureAwait(false);
+                if (used == 0) started?.Invoke();
                 long energy = 0;
                 for (int i = 0; i < Frame; i++)
                 {

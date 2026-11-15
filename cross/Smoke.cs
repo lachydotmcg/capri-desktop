@@ -188,14 +188,15 @@ namespace CapriDesktop
                     Ears.Hearing ja = Ears.Pick(heard, "ja"), en = Ears.Pick(heard, "en"), de = Ears.Pick(heard, "de"), tr = Ears.Pick(heard, "tr");
                     string[] jaArgs = ja == null ? new string[0] : Ears.Arguments(ja, "ja", "voice.wav");
                     if (heard.Count != 3 || ja == null || !ja.Name.Contains("sense-voice") || Path.GetFileName(ja.Voice) != "model.int8.onnx"
-                        || en == null || en.Name != "parakeet-tdt-0.6b-v2-int8" || de == null || de.Name != "parakeet-tdt-0.6b-ultra-int8" || tr != null
+                        || en == null || en.Name != "parakeet-tdt-0.6b-v2-int8" || de == null || de.Name != "parakeet-tdt-0.6b-ultra-int8" || tr == null || tr.Name != "parakeet-tdt-0.6b-ultra-int8"
+                        || Ears.Pick(heard.FindAll(model => model.Name == "parakeet-tdt-0.6b-v2-int8"), "de")?.Name != "parakeet-tdt-0.6b-v2-int8" || Ears.Pick(new List<Ears.Hearing>(), "de") != null
                         || Array.IndexOf(jaArgs, "--sense-voice-language=ja") < 0 || Array.IndexOf(Ears.Arguments(ja, "tr", "voice.wav"), "--sense-voice-language=auto") < 0
                         || Array.IndexOf(Ears.Arguments(en, "en", "voice.wav"), "--joiner=" + Path.Combine(earsTest, en.Name, "joiner.int8.onnx")) < 0
                         || Ears.Pick(heard, "ja", "parakeet-tdt-0.6b-ultra-int8").Name != "parakeet-tdt-0.6b-ultra-int8" || Ears.Pick(heard, "ja", "a-folder-you-deleted") != ja)
                         throw new Exception("Her ears picked the wrong model folder: " + heard.Count + " / " + (ja == null ? "-" : ja.Name) + " / " + (en == null ? "-" : en.Name) + " / " + (de == null ? "-" : de.Name) + " / " + string.Join(" ", jaArgs));
                 }
                 finally { try { Directory.Delete(earsTest, true); } catch (IOException) { } }
-                checks.Add("PASS her own ears: she finds the speech models you put in her ears folder and hears each language with the one that knows it, SenseVoice for Japanese and Parakeet for English, unless you picked one that's still there");
+                checks.Add("PASS her own ears: she finds the speech models you put in her ears folder and hears each language with the one that knows it, SenseVoice for Japanese and Parakeet for English, unless you picked one that's still there, and with no model for her language she keeps TALK on the widest one she has");
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1652,8 +1653,12 @@ namespace CapriDesktop
                     for (int i = frame * 640; i < (frame + 1) * 640; i += 2) { pcm[i] = 32; pcm[i + 1] = 1; }
                 using (var sound = new MemoryStream(pcm))
                 {
-                    short[] said = Ears.Words(sound, CancellationToken.None).GetAwaiter().GetResult();
+                    int started = 0;
+                    short[] said = Ears.Words(sound, CancellationToken.None, () => started++).GetAwaiter().GetResult();
                     if (said.Length != 17600 || said[1920] != 288) throw new Exception("She missed quiet speech with gaps or didn't stop at silence.");
+                    if (started != 1) throw new Exception("Her 15 seconds didn't start once at the first audio: " + started);
+                    if (!Ears.Lost(true, true).Contains("still waiting") || Ears.Lost(true, true).Contains("System Settings") || !Ears.Lost(true, false).Contains("System Settings"))
+                        throw new Exception("A slow Allow and a mic she can't use got the same words.");
                 }
                 thinkBeforeVoice = pet.Think;
                 silentBeforeVoice = pet.Saved.Silent;
@@ -1721,7 +1726,7 @@ namespace CapriDesktop
             pet.Listen = null;
             pet.Talk.Dismiss();
             if (OperatingSystem.IsMacOS() && !File.Exists(Path.Combine(AppContext.BaseDirectory, "capri-mic"))) throw new Exception("Her Mac mic helper isn't next to her app.");
-            checks.Add("PASS " + (OperatingSystem.IsMacOS() ? "Mac TALK: her mic helper ships with her, she" : "Linux TALK: she") + " waits for name listening to release the mic, hears quiet speech with gaps, stops at silence, drops a cancelled turn, submits once and shows a waiting line after the reply");
+            checks.Add("PASS " + (OperatingSystem.IsMacOS() ? "Mac TALK: her mic helper ships with her, she" : "Linux TALK: she") + " waits for name listening to release the mic, hears quiet speech with gaps, stops at silence, starts her 15 seconds at the first audio and says she was still waiting when nobody answered the mic prompt, drops a cancelled turn, submits once and shows a waiting line after the reply");
             return true;
         }
 

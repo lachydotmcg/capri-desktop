@@ -160,7 +160,7 @@ Her ears folder on a Mac is `~/Library/Application Support/Capri/ears/`. **Mainf
 Capri doesn't download or ship these models. You pick one, check its licence and extract it into her ears folder, one folder per model, keeping the folder name it comes with.
 
 - She tells models apart by their files: a transducer like Parakeet has an encoder, a decoder and a joiner, and SenseVoice has one `model.onnx` next to `tokens.txt`.
-- She hears each language with the model that knows it best: Parakeet v2 for English, Parakeet Ultra or v3 for the other European languages and SenseVoice for Chinese, Japanese, Korean and Cantonese. A model she can't place by its name is a last resort.
+- She hears each language with the model that knows it best: Parakeet v2 for English, Parakeet Ultra or v3 for the other European languages and SenseVoice for Chinese, Japanese, Korean and Cantonese. A model she can't place by its name comes next, and with no model for your language she still hears you with the one that hears the most.
 - **Mainframe > Settings > VOICE > Her ears** shows what she found. Leave it on **Auto**, or pick one model to hear every language with.
 - For Japanese, Chinese or Korean, use the [SenseVoice int8 model from 2024-07-17](https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17.tar.bz2), then pick your language under **YOU > Language**. The 2025-09-09 SenseVoice is tuned for Cantonese and hears Japanese as Cantonese.
 
