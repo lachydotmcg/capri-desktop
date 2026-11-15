@@ -45421,10 +45421,12 @@ namespace CapriDesktop
                     work.Parse(feed, piece);
                     work.PublishStreams(feed);
                     Application.DoEvents();
-                    if (window.ChangeFlushes != paced && since.Elapsed.TotalMilliseconds < slow * 3) throw new Exception("Workspace showed a growing piece " + since.ElapsedMilliseconds + " ms after an update that took " + slow.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms.");
+                    // The window waits at most a second, and its clock can fire up to a 15.6 ms tick early.
+                    double due = Math.Min(slow * 3, 1000) - 16;
+                    if (window.ChangeFlushes != paced && since.Elapsed.TotalMilliseconds < due) throw new Exception("Workspace showed a growing piece " + since.ElapsedMilliseconds + " ms after an update that took " + slow.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms.");
                     while (window.ChangeFlushes == paced && since.ElapsedMilliseconds < 5000) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
                     double waited = since.Elapsed.TotalMilliseconds;
-                    if (window.ChangeFlushes == paced || waited < slow * 3 - 2) throw new Exception("Workspace did not pace a growing piece after a " + slow.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms update: it waited " + waited.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms.");
+                    if (window.ChangeFlushes == paced || waited < due) throw new Exception("Workspace did not pace a growing piece after a " + slow.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms update: it waited " + waited.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms.");
                     window.ForgetLayout(changing);
                     work.Parse(feed, piece);
                     work.PublishStreams(feed);
