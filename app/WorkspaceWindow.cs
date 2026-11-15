@@ -121,7 +121,7 @@ namespace CapriDesktop
                     return "Couldn't start the chat; see the Workspace window.";
                 }
                 string state = chat.PendingText != null ? "is waiting for folder trust" : Workspace.Pending(chat) ? "is waiting for your OK" : chat.Running ? "is running" : "finished";
-                string mode = chat.Mode == "Everything" ? "Everything mode runs without asking." : "It asks there before changing anything.";
+                string mode = chat.Mode == Workspace.BlackwallMode ? "Blackwall Mode runs without asking." : "It asks there before changing anything.";
                 return "The chat " + state + " in the Workspace window. " + mode;
             }
         }
@@ -672,6 +672,8 @@ namespace CapriDesktop
         {
             HeaderFills++;
             composer.Fill(chat);
+            string modeHint = Workspace.ModeHint(chat);
+            tips.SetToolTip(composer.Mode, modeHint.Length == 0 ? Composer.Hint : modeHint);
             bool untrusted = chat != null && !workspace.Trusted(chat);
             trust.Text = chat != null && Workspace.AllFolders(chat).Count > 1 ? "Trust folders" : "Trust folder";
             trust.Visible = untrusted && chat.TrustItem == null;
@@ -717,8 +719,12 @@ namespace CapriDesktop
         {
             if (chat == null || picked == chat.Mode) return;
             WorkspaceChat target = chat;
-            // Everything switches at once, like the Mainframe's Blackwall: its menu row already says it runs anything without asking.
-            Try(delegate { workspace.Change(target, null, picked, null); });
+            Try(delegate
+            {
+                workspace.Change(target, null, picked, null);
+                string modeHint = Workspace.ModeHint(target);
+                if (modeHint.Length > 0) tips.Show(modeHint, composer.Mode, composer.Mode.Width / 2, -Z(22), 5500);
+            });
             FillHeader();
             composer.Input.Focus();
         }

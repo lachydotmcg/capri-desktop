@@ -299,8 +299,8 @@ namespace CapriDesktop
 
                     window.ShowChat(chat);
                     window.ScrollToEnd();
-                    window.PickMode("Everything");
-                    if (window.Asking != null || chat.Mode != "Everything") throw new Exception("Everything asked first or didn't switch.");
+                    window.PickMode("Blackwall Mode");
+                    if (window.Asking != null || chat.Mode != "Blackwall Mode") throw new Exception("Blackwall Mode asked first or didn't switch.");
                     shoot(window, "07-everything", null);
                     window.PickMode("Ask me");
 
@@ -1042,12 +1042,12 @@ namespace CapriDesktop
                         Native.SendMessage(mode.Handle, 0x020A, new IntPtr(120 << 16), IntPtr.Zero);
                         Native.SendMessage(mode.Handle, 0x0102, new IntPtr('E'), IntPtr.Zero);
                         if (layout.Mode != before) throw new Exception("Workspace changed mode on scroll or typing.");
-                        window.PickMode("Everything");
-                        if (layout.Mode != "Everything" || mode.Text != "Everything" || confirmations != 0) throw new Exception("Workspace asked before Everything, or didn't switch.");
+                        window.PickMode("Blackwall Mode");
+                        if (layout.Mode != "Blackwall Mode" || mode.Text != "Blackwall Mode" || confirmations != 0) throw new Exception("Workspace asked before Blackwall Mode, or didn't switch.");
                         window.Confirm = null;
                         window.PickMode("Ask me");
-                        window.PickMode("Everything");
-                        if (window.Asking != null || layout.Mode != "Everything") throw new Exception("Workspace's own card asked before Everything.");
+                        window.PickMode("Blackwall Mode");
+                        if (window.Asking != null || layout.Mode != "Blackwall Mode") throw new Exception("Workspace's own card asked before Blackwall Mode.");
                         window.PickMode("Plan only");
                         window.PickModel("Haiku");
                         if (layout.Mode != "Plan only" || layout.Model != "Haiku" || mode.Text != "Plan only" || model.Text != "Haiku") throw new Exception("Workspace's pickers didn't save or show their choice.");
@@ -1087,7 +1087,7 @@ namespace CapriDesktop
                 approval.Ask.Answered.Dispose();
                 approval.Ask = null;
                 checks.Add("PASS Workspace window and Mainframe button fit at 100%, 125%, 150% and 200% and at the smallest size; code is in her mono, messages copy, tool results open, drafts and pickers save, scrolling follows only at the end, Enter sends and Shift+Enter adds a line");
-                checks.Add("PASS Workspace ignores mode scrolling and typing, and switches to Everything at once with no question, like the Mainframe's Blackwall");
+                checks.Add("PASS Workspace ignores mode scrolling and typing, and switches to Blackwall Mode at once with no question, like the Mainframe's Blackwall");
 
                 WorkspaceChat longChat = work.NewChat(third, false);
                 lock (longChat.Gate) for (int i = 0; i < 1000; i++) longChat.Items.Add(new WorkspaceItem { Kind = "text", Text = "Item " + i });

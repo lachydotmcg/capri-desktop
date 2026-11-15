@@ -43826,6 +43826,7 @@ namespace CapriDesktop
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
             Section(checks, "SmokeWorkspaceTool", delegate { SmokeWorkspaceTool(checks, Path.Combine(output, "workspace-tool")); });
             Section(checks, "SmokeWorkspace", delegate { SmokeWorkspace(checks, Path.Combine(output, "workspace")); });
+            Section(checks, "SmokeWorkspaceLiveModes", delegate { SmokeWorkspaceLiveModes(checks, Path.Combine(output, "workspace-live-modes")); });
             Section(checks, "SmokeWorkspaceStream", delegate { SmokeWorkspaceStream(checks, Path.Combine(output, "workspace-stream")); });
             Section(checks, "SmokeWorkspaceFolders", delegate { SmokeWorkspaceFolders(checks, Path.Combine(output, "workspace-folders")); });
             Section(checks, "SmokeWorkspaceWindow", delegate { SmokeWorkspaceWindow(checks, Path.Combine(output, "workspace-window")); });
@@ -45081,6 +45082,65 @@ namespace CapriDesktop
             return text.ToString(0, size);
         }
 
+        private void SmokeWorkspaceLiveModes(List<string> checks, string output)
+        {
+            string data = Path.Combine(output, Guid.NewGuid().ToString("N"));
+            string project = Path.Combine(data, "project");
+            Directory.CreateDirectory(project);
+            string pipe = "CapriWorkspaceModes-" + Guid.NewGuid().ToString("N");
+            using (Workspace work = new Workspace(data, pipe))
+            {
+                WorkspaceChat chat = work.NewChat(project, false);
+                WorkspaceTurn turn = new WorkspaceTurn { Chat = chat, Mode = "Ask me", LaunchMode = "Ask me" };
+                chat.Live = turn;
+                work.ApprovalWait = 3000;
+                work.BeginUndo(chat, turn.Id);
+                Func<string, Dictionary<string, object>, string> decision = delegate(string tool, Dictionary<string, object> input)
+                {
+                    return WorkspaceChoice(work.Permission(HuskJson.Map("chat", chat.Id, "turn", turn.Id, "tool_name", tool, "tool_input", input, "cwd", project)));
+                };
+                string edit = null, command = null;
+                using (CountdownEvent pending = new CountdownEvent(2))
+                {
+                    work.Waiting = delegate { pending.Signal(); };
+                    Thread write = new Thread(delegate() { edit = decision("Write", HuskJson.Map("file_path", Path.Combine(project, "new.txt"))); }) { IsBackground = true };
+                    Thread run = new Thread(delegate() { command = decision("Bash", HuskJson.Map("command", "echo test")); }) { IsBackground = true };
+                    write.Start();
+                    run.Start();
+                    try
+                    {
+                        if (!pending.Wait(2000)) throw new Exception("Workspace didn't ask about both waiting tools.");
+                        work.Change(chat, null, "Edits only", null);
+                        if (!write.Join(2000) || edit != "allow" || !Workspace.Pending(chat)) throw new Exception("Edits only did not allow only the waiting edit.");
+                        work.Change(chat, null, Workspace.BlackwallMode, null);
+                        if (!run.Join(2000) || command != "allow" || Workspace.Pending(chat) || decision("Bash", HuskJson.Map()) != "allow") throw new Exception("Blackwall Mode left a command waiting.");
+                    }
+                    finally
+                    {
+                        lock (chat.Gate) foreach (WorkspaceApproval ask in turn.Asks) work.Answer(chat, ask, false, false, null);
+                        write.Join(3500);
+                        run.Join(3500);
+                    }
+                }
+                work.Waiting = delegate(WorkspaceChat current, WorkspaceApproval ask) { work.Answer(current, ask, false, false, null); };
+                work.Change(chat, null, "Ask me", null);
+                if (decision("Bash", HuskJson.Map()) != "deny") throw new Exception("Ask me inherited permission from Blackwall Mode.");
+                work.Change(chat, null, "Plan only", null);
+                if (Workspace.ModeHint(chat).Length == 0 || decision("Bash", HuskJson.Map()) != "deny") throw new Exception("Plan only allowed a new command in the running turn.");
+                turn.LaunchMode = "Plan only";
+                work.Change(chat, null, Workspace.BlackwallMode, null);
+                if (Workspace.ModeHint(chat).Length == 0 || work.Permission(HuskJson.Map("chat", chat.Id, "turn", turn.Id, "tool_name", "Bash", "tool_input", HuskJson.Map(), "cwd", project)).Count != 0) throw new Exception("Workspace overrode a running Claude Code Plan turn.");
+                chat.Live = null;
+                work.Flush(chat);
+                string saved = Path.Combine(work.Root, "chats", chat.Id + ".json");
+                Dictionary<string, object> row = HuskJson.Read(File.ReadAllText(saved)) as Dictionary<string, object>;
+                if (HuskJson.Text(row, "mode") != "Everything" || Workspace.Mode("Everything") != Workspace.BlackwallMode
+                    || !Workspace.Arguments(Workspace.BlackwallMode, "", "Default", "", true).Contains("bypassPermissions"))
+                    throw new Exception("Blackwall Mode lost compatibility with older saved chats.");
+            }
+            checks.Add("PASS Workspace changes waiting and later approvals immediately, keeps the active Claude Code Plan boundary and reads and writes the legacy Blackwall mode.");
+        }
+
         private void SmokeWorkspaceStream(List<string> checks, string folder)
         {
             folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
@@ -45626,7 +45686,7 @@ namespace CapriDesktop
                     string black = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "build another game" }); });
                     chat = window.Chat;
                     turn = chat.Live;
-                    if (Security.Preset != Security.Blackwall || work.Chats().Count != beforeBlack + 1 || chat == draft || draft.Mode != "Edits only" || chat.Mode != "Everything" || turn == null || turn.Mode != "Everything" || black != "The chat is running in the Workspace window. Everything mode runs without asking.") throw new Exception("Workspace start lost New chat's Blackwall mode.");
+                    if (Security.Preset != Security.Blackwall || work.Chats().Count != beforeBlack + 1 || chat == draft || draft.Mode != "Edits only" || chat.Mode != "Blackwall Mode" || turn == null || turn.Mode != "Blackwall Mode" || black != "The chat is running in the Workspace window. Blackwall Mode runs without asking.") throw new Exception("Workspace start lost New chat's Blackwall mode.");
                     File.WriteAllText(finish, "go");
                     if (!turn.Done.WaitOne(30000)) throw new Exception("The Blackwall Workspace stand-in didn't finish.");
                     File.Delete(finish);
@@ -45640,7 +45700,7 @@ namespace CapriDesktop
                     File.WriteAllText(finish, "go");
                     if (!turn.Done.WaitOne(30000)) throw new Exception("The Custom Workspace stand-in didn't finish.");
                     File.Delete(finish);
-                    checks.Add("PASS Workspace uses Everything only for the Blackwall preset and Ask me for a Custom preset even with the bypass bits on");
+                    checks.Add("PASS Workspace uses Blackwall Mode only for the Blackwall preset and Ask me for a Custom preset even with the bypass bits on");
 
                     Security.Load(Security.Of(Security.Trusted), false);
                     int before = work.Chats().Count;
@@ -45787,7 +45847,7 @@ namespace CapriDesktop
             {
                 foreach (string permission in Workspace.Modes)
                 {
-                    string expected = permission == "Edits only" ? "acceptEdits" : permission == "Plan only" ? "plan" : permission == "Everything" ? "bypassPermissions" : "default";
+                    string expected = permission == "Edits only" ? "acceptEdits" : permission == "Plan only" ? "plan" : permission == "Blackwall Mode" ? "bypassPermissions" : "default";
                     for (int flags = 0; flags < 8; flags++)
                     {
                         string resume = (flags & 1) != 0 ? session : "", modelName = (flags & 2) != 0 ? "Opus" : "Default", settings = (flags & 4) != 0 ? Path.Combine(folder, "turn settings.json") : "";
@@ -45811,7 +45871,7 @@ namespace CapriDesktop
                 {
                     work.ApprovalWait = 100;
                     WorkspaceChat chat = work.NewChat(project, false), black = work.NewChat(project, true);
-                    if (chat.Mode != "Ask me" || black.Mode != "Everything" || chat.Title != "project") throw new Exception("Workspace new-chat defaults changed.");
+                    if (chat.Mode != "Ask me" || black.Mode != "Blackwall Mode" || chat.Title != "project") throw new Exception("Workspace new-chat defaults changed.");
                     work.Delete(black);
                     chat.TrustAsked = true;
                     work.Executable = standin;
@@ -46031,7 +46091,7 @@ namespace CapriDesktop
                                 : i == 7 || i == 8 ? HuskJson.Map("command", "echo test") : i >= 10 ? HuskJson.Map("pattern", i == 10 ? "*.txt" : "../*.txt") : HuskJson.Map();
                             count = asked;
                             Dictionary<string, object> answer = hook(names[i], toolInput);
-                            bool quiet = permission == "Everything" || (permission == "Ask me" || permission == "Edits only") && (i == 0 || i == 10) || permission == "Edits only" && i == 2 || permission == "Ask me" && i == 9;
+                            bool quiet = permission == "Blackwall Mode" || (permission == "Ask me" || permission == "Edits only") && (i == 0 || i == 10) || permission == "Edits only" && i == 2 || permission == "Ask me" && i == 9;
                             if (permission == "Plan only")
                             {
                                 if (answer == null || answer.Count != 0 || asked != count) throw new Exception("Workspace gave a decision in Plan only.");
@@ -46041,8 +46101,9 @@ namespace CapriDesktop
                     }
                     turn.Mode = "Ask me";
                     choice = 0;
-                    work.Change(approvals, null, "Everything", null);
-                    if (WorkspaceChoice(hook("ChangedMidTurn", HuskJson.Map())) != "deny") throw new Exception("Workspace changed its running approval mode.");
+                    work.Change(approvals, null, Workspace.BlackwallMode, null);
+                    if (WorkspaceChoice(hook("ChangedMidTurn", HuskJson.Map())) != "allow") throw new Exception("Blackwall Mode left the running turn asking.");
+                    work.Change(approvals, null, "Ask me", null);
                     Dictionary<string, object> stale = WorkspaceHook.Exchange(pipe, approvals.Id, Guid.NewGuid().ToString("N"), HuskJson.Map("tool_name", "Read", "tool_input", HuskJson.Map(), "cwd", project), 1000);
                     if (WorkspaceChoice(stale) != "deny" || WorkspaceChoice(WorkspaceHook.Exchange("", approvals.Id, turn.Id, HuskJson.Map(), 100)) != "deny") throw new Exception("Workspace allowed a missing pipe or stale turn.");
                     using (MemoryStream emptyInput = new MemoryStream())
@@ -46134,7 +46195,7 @@ namespace CapriDesktop
                     }
                     checks.Add("PASS Workspace denies a server PID mismatch, reserves the first pipe instance and rebuilds hook answers without updatedInput");
 
-                    turn.Mode = "Everything";
+                    turn.Mode = "Blackwall Mode";
                     string edited = Path.Combine(project, "edited.txt"), created = Path.Combine(project, "created.txt"), notebook = Path.Combine(project, "notes.ipynb"), multi = Path.Combine(project, "multi.txt"), commandFile = Path.Combine(project, "command.txt");
                     File.WriteAllText(edited, "Before"); File.WriteAllText(notebook, "Notebook before"); File.WriteAllText(multi, "Multi before");
                     if (WorkspaceChoice(hook("Edit", HuskJson.Map("file_path", "edited.txt"))) != "allow") throw new Exception("Workspace denied its edit snapshot.");
@@ -46298,7 +46359,7 @@ namespace CapriDesktop
                     foreach (string phrase in new[] { "open the workspace and build a game", "build me a snake game in the workspace", "can you open the workspace and send a message" }) if (WorkspaceAsked(phrase)) throw new Exception("Workspace swallowed a task: " + phrase);
                     if (WorkspaceAsked("Don't open workspace") || WorkspaceAsked("what is workspace")) throw new Exception("Workspace treated a question as an open command.");
                     SelfKnow.Topic topic = Array.Find(SelfKnow.Topics, delegate(SelfKnow.Topic found) { return found.Name == "Workspace"; });
-                    if (topic == null || topic.Label != "workspace" || !topic.Facts.Contains("workspace tool") || !topic.Facts.Contains("status") || !topic.Facts.Contains("optional existing folder") || !topic.Facts.Contains("beta") || !topic.Facts.Contains("plan or key") || !topic.Facts.Contains("Ask me") || !topic.Facts.Contains("Edits only") || !topic.Facts.Contains("Plan only") || !topic.Facts.Contains("Everything") || !topic.Facts.Contains("cannot undo commands")) throw new Exception("Workspace help lost its modes, billing source or undo limit.");
+                    if (topic == null || topic.Label != "workspace" || !topic.Facts.Contains("workspace tool") || !topic.Facts.Contains("status") || !topic.Facts.Contains("optional existing folder") || !topic.Facts.Contains("beta") || !topic.Facts.Contains("plan or key") || !topic.Facts.Contains("Ask me") || !topic.Facts.Contains("Edits only") || !topic.Facts.Contains("Plan only") || !topic.Facts.Contains("Blackwall Mode") || !topic.Facts.Contains("cannot undo commands")) throw new Exception("Workspace help lost its modes, billing source or undo limit.");
                     List<string> said = new List<string>();
                     List<bool> voiced = new List<bool>();
                     workspaceSaid = delegate(string line, bool voiceOn) { said.Add(line); voiced.Add(voiceOn); };

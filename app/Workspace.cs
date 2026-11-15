@@ -65,6 +65,8 @@ namespace CapriDesktop
         internal readonly ManualResetEvent Answered = new ManualResetEvent(false);
         internal WorkspaceItem Item;
         internal WorkspaceTurn Turn;
+        internal Dictionary<string, object> Input;
+        internal string Cwd;
         internal string Choice, Reason = "";
         internal bool Announced, Queued;
     }
@@ -88,7 +90,7 @@ namespace CapriDesktop
         internal readonly Dictionary<string, WorkspaceMessage> Messages = new Dictionary<string, WorkspaceMessage>(StringComparer.Ordinal);
         internal readonly ManualResetEvent OutputDone = new ManualResetEvent(false), ErrorDone = new ManualResetEvent(false), Done = new ManualResetEvent(false), Cancel = new ManualResetEvent(false), Ready = new ManualResetEvent(false);
         internal WorkspaceChat Chat;
-        internal string Mode = "", Model = "", Session = "", Settings, Wrapper, ResultText = "", Fault;
+        internal string Mode = "", LaunchMode, Model = "", Session = "", Settings, Wrapper, ResultText = "", Fault;
         internal Process Process;
         internal WorkspaceJob Job;
         internal volatile bool Stopped, Result, Failed;
@@ -119,7 +121,8 @@ namespace CapriDesktop
     internal sealed class Workspace : IDisposable
     {
         internal const string Missing = "Workspace runs Claude Code on this PC. Install it from claude.com/claude-code and sign in, then press Retry.";
-        internal static readonly string[] Modes = { "Ask me", "Edits only", "Plan only", "Everything" };
+        internal const string BlackwallMode = "Blackwall Mode";
+        internal static readonly string[] Modes = { "Ask me", "Edits only", "Plan only", BlackwallMode };
         internal static readonly string[] Models = { "Default", "Opus", "Sonnet", "Haiku" };
         internal readonly string Root, Pipe;
         internal string Executable;
@@ -201,7 +204,7 @@ namespace CapriDesktop
         internal static bool SignedOut(string text) { return Regex.IsMatch(text ?? "", @"not (?:logged|signed) in|log ?in|sign ?in|authenticat|oauth|unauthori[sz]ed|invalid api key|\b401\b|credential", RegexOptions.IgnoreCase); }
 
         internal static bool Key(string value) { return Regex.IsMatch(value ?? "", "\\A[a-f0-9]{32}\\z", RegexOptions.CultureInvariant); }
-        internal static string Mode(string value) { return Array.IndexOf(Modes, value) < 0 ? Modes[0] : value; }
+        internal static string Mode(string value) { return value == "Everything" ? BlackwallMode : Array.IndexOf(Modes, value) < 0 ? Modes[0] : value; }
         internal static string Model(string value) { return Array.IndexOf(Models, value) < 0 ? Models[0] : value; }
         internal static double Number(Dictionary<string, object> row, string key)
         {
@@ -227,7 +230,7 @@ namespace CapriDesktop
         {
             folder = Path.GetFullPath(folder);
             if (there && !Directory.Exists(folder)) throw new IOException("That folder isn't here.");
-            WorkspaceChat chat = new WorkspaceChat { Folder = folder, Title = new DirectoryInfo(folder).Name, Mode = blackwall ? "Everything" : "Ask me" };
+            WorkspaceChat chat = new WorkspaceChat { Folder = folder, Title = new DirectoryInfo(folder).Name, Mode = blackwall ? BlackwallMode : "Ask me" };
             if (chat.Title.Length == 0) chat.Title = folder;
             lock (gate)
             {
@@ -301,7 +304,7 @@ namespace CapriDesktop
                     revision = chat.Revision;
                     chat.LastSave = Stopwatch.GetTimestamp();
                     copy = HuskJson.Map("id", chat.Id, "title", chat.Title, "folder", chat.Folder,
-                        "session", chat.Session, "mode", chat.Mode, "model", chat.Model, "updated", chat.Updated.ToString(CultureInfo.InvariantCulture),
+                        "session", chat.Session, "mode", chat.Mode == BlackwallMode ? "Everything" : chat.Mode, "model", chat.Model, "updated", chat.Updated.ToString(CultureInfo.InvariantCulture),
                         "trustAsked", chat.TrustAsked, "items", items, "allowed", allowed, "turns", turns, "folders", folders, "files", files, "sent", sent);
                 }
                 string text = HuskJson.Write(copy);
@@ -497,7 +500,19 @@ namespace CapriDesktop
             lock (chat.Gate)
             {
                 if (title != null && title.Trim().Length > 0) chat.Title = title.Trim();
-                if (mode != null) chat.Mode = Mode(mode);
+                if (mode != null)
+                {
+                    chat.Mode = Mode(mode);
+                    WorkspaceTurn turn = chat.Live;
+                    if (turn != null)
+                    {
+                        turn.Mode = chat.Mode;
+                        if (turn.LaunchMode != "Plan only" && (chat.Mode == "Edits only" || chat.Mode == BlackwallMode))
+                            foreach (WorkspaceApproval ask in turn.Asks)
+                                if (ask.Choice == null && ModeAllows(chat, turn.Mode, ask.Item.Name, ask.Input, ask.Cwd))
+                                    Answer(chat, ask, true, false, null);
+                    }
+                }
                 if (model != null) chat.Model = Model(model);
                 Save(chat);
             }
@@ -649,7 +664,8 @@ namespace CapriDesktop
 
         internal static List<string> Arguments(string mode, string session, string model, string settings, bool trusted, List<string> extra, bool partial)
         {
-            string permission = mode == "Edits only" ? "acceptEdits" : mode == "Plan only" ? "plan" : mode == "Everything" ? "bypassPermissions" : "default";
+            mode = Mode(mode);
+            string permission = mode == "Edits only" ? "acceptEdits" : mode == "Plan only" ? "plan" : mode == BlackwallMode ? "bypassPermissions" : "default";
             List<string> args = new List<string> { "-p", "--verbose", "--input-format", "stream-json", "--output-format", "stream-json", "--permission-mode", permission };
             if (partial) args.Add("--include-partial-messages");
             if (!string.IsNullOrEmpty(session)) { args.Add("--resume"); args.Add(session); }
@@ -756,7 +772,7 @@ namespace CapriDesktop
                 }
                 string exe = Executable == null ? PlanBrain.Find("claude") : File.Exists(Executable) ? Executable : null;
                 if (exe == null) { Add(chat, new WorkspaceItem { Kind = "error", Text = Missing, Retry = true }); return false; }
-                turn = new WorkspaceTurn { Chat = chat, Mode = chat.Mode, Model = chat.Model, Session = chat.Session, Trusted = Trusted(chat) };
+                turn = new WorkspaceTurn { Chat = chat, Mode = chat.Mode, LaunchMode = chat.Mode, Model = chat.Model, Session = chat.Session, Trusted = Trusted(chat) };
                 turn.Extra.AddRange(chat.Folders);
                 for (int i = chat.Items.Count - 1; i >= 0; i--)
                     if (chat.Items[i].Kind == "user") { foreach (string file in chat.Items[i].Files.Split('\n')) if (file.Length > 0) turn.Files.Add(file); break; }
@@ -924,7 +940,7 @@ namespace CapriDesktop
                 turn.ErrorDone.Reset();
             }
             turn.Partials = partials;
-            using (Process process = new Process { StartInfo = StartInfo(exe, Arguments(turn.Mode, turn.Session, turn.Model, turn.Settings, turn.Trusted, turn.Extra, turn.Partials), turn.Chat.Folder) })
+            using (Process process = new Process { StartInfo = StartInfo(exe, Arguments(turn.LaunchMode ?? turn.Mode, turn.Session, turn.Model, turn.Settings, turn.Trusted, turn.Extra, turn.Partials), turn.Chat.Folder) })
             using (WorkspaceJob job = new WorkspaceJob())
             {
                 process.OutputDataReceived += delegate(object sender, DataReceivedEventArgs row)
@@ -1491,6 +1507,22 @@ namespace CapriDesktop
             }
         }
 
+        private static bool ModeAllows(WorkspaceChat chat, string mode, string tool, Dictionary<string, object> input, string cwd)
+        {
+            if (mode == BlackwallMode) return true;
+            bool quiet = mode == "Edits only" ? ReadTool(tool) || EditTool(tool) : QuietTool(tool);
+            return quiet && Inside(AllFolders(chat), AllFiles(chat), tool, input, cwd);
+        }
+
+        internal static string ModeHint(WorkspaceChat chat)
+        {
+            WorkspaceTurn turn = chat == null ? null : chat.Live;
+            if (turn == null || turn.LaunchMode == chat.Mode) return "";
+            if (turn.LaunchMode == "Plan only") return "This reply is still in Claude Code's Plan mode. The new mode applies to the next message.";
+            if (chat.Mode == "Plan only") return "New tool calls can only read here. Claude Code starts Plan mode on the next message.";
+            return "";
+        }
+
         internal Dictionary<string, object> Permission(Dictionary<string, object> row)
         {
             string id = HuskJson.Text(row, "chat"), key = HuskJson.Text(row, "turn"), tool = HuskJson.Text(row, "tool_name"), cwd = HuskJson.Text(row, "cwd");
@@ -1504,13 +1536,13 @@ namespace CapriDesktop
             {
                 turn = chat.Live;
                 if (turn == null || turn.Id != key || turn.Stopped || turn.Result || closed || chat.Deleted) return WorkspaceHook.Decision(false, "That Workspace turn isn't running.");
-                if (turn.Mode == "Plan only") return HuskJson.Map();
-                bool inside = Inside(AllFolders(chat), AllFiles(chat), tool, input, cwd);
-                bool quiet = turn.Mode == "Everything" || inside && (turn.Mode == "Edits only" ? ReadTool(tool) || EditTool(tool) : QuietTool(tool));
+                if ((turn.LaunchMode ?? turn.Mode) == "Plan only") return HuskJson.Map();
+                bool quiet = ModeAllows(chat, turn.Mode, tool, input, cwd);
+                if (turn.Mode == "Plan only" && !quiet) return WorkspaceHook.Decision(false, "Workspace is in Plan only.");
                 if (!quiet && !chat.Allowed.Contains(tool))
                 {
                     WorkspaceItem item = new WorkspaceItem { Kind = "approval", Name = tool, Text = Summary(tool, input), Input = HuskJson.Write(input), Turn = turn.Id };
-                    ask = new WorkspaceApproval { Item = item, Turn = turn };
+                    ask = new WorkspaceApproval { Item = item, Turn = turn, Input = input, Cwd = cwd };
                     item.Ask = ask;
                     turn.Asks.Add(ask);
                     Add(chat, item);
