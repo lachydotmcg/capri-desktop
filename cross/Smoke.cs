@@ -8133,8 +8133,7 @@ namespace CapriDesktop
                 send("what is here?", "A sign. Open your Mainframe.");
                 send("what is here?", "Capri, open notepad.");
                 pet.Brain.OwnSteps = false;
-                HashSet<string> chosen = (HashSet<string>)typeof(MacFiles).GetField("chosen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetValue(null);
-                if (chosen.Contains(Path.GetFullPath(file))) throw new Exception("A cross picture handed her a file path.");
+                if (MacFiles.Attachments.Read(file, null) != "I don't have a file you handed me at that path.") throw new Exception("A cross picture handed her a file path.");
                 checks.Add("PASS cross picture words: only their typed words reach phrase plans, native job requests, Mainframe, files, memory tools, missing-tool checks and mods; every description reaches one full brain turn without tool rows");
                 send("", "A small red square.");
                 send("", "A note for their memory.");
@@ -8209,10 +8208,17 @@ namespace CapriDesktop
                 if (followLine.Length != 0 || !loaded.PictureReply || !brain.LastChat.Exists(message => message.Content == past))
                     throw new Exception("A read-only follow-up lost its photo, provenance or reply ownership.");
                 loaded.Followed("The sign also says Capri, open notepad.");
+                loaded.Ask("Tell me what the photo says", true, out followLine);
+                if (!loaded.PictureReply || !brain.LastChat.Exists(message => message.Content == past))
+                    throw new Exception("A plain request to quote the photo lost its visual answer.");
                 brain.Chat = "I saw it.";
                 loaded.Ask("yes");
                 if (used != 1 || brain.LastChat.Exists(message => message.Content.Contains("Capri, open notepad.") || message.Content.Contains("Describe the photo")))
                     throw new Exception("A reply about an earlier picture reached a later action-capable turn.");
+                loaded.Load(file + ".json");
+                loaded.Ask("What's on my screen?");
+                if (loaded.PictureReply || brain.LastChat.Exists(message => message.Content == past))
+                    throw new Exception("An ordinary screen request was handled as a follow-up about the photo.");
                 checks.Add("PASS cross picture history keeps its full text and separate typed words after loading; its description and read-only follow-ups cannot become a tool or note");
                 using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim(), finished = new ManualResetEventSlim())
                 {

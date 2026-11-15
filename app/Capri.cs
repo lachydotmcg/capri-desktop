@@ -39787,7 +39787,9 @@ namespace CapriDesktop
                 before = asking;
                 RemotePictureHeard("phoneA", "picture-error", "read this", received);
                 WaitVoice(delegate { return tap.Count > 0; }, "A failed picture look got no reply.");
-                if (tap.Take() != "reply phoneA picture-error done: " + RemoteOut(problem.Message) || asking != before || selected.History.Count != 6 || !File.Exists(captured) || File.ReadAllText(captured).Contains(encoded)) throw new Exception("A failed look started a turn or echoed picture bytes into the phone or log.");
+                bool safeLog;
+                lock (typeof(Brain)) safeLog = File.Exists(captured) && !File.ReadAllText(captured).Contains(encoded);
+                if (tap.Take() != "reply phoneA picture-error done: " + RemoteOut(problem.Message) || asking != before || selected.History.Count != 6 || !safeLog) throw new Exception("A failed look started a turn or echoed picture bytes into the phone or log.");
                 server.Stop();
                 requests.Clear();
                 hold.Reset();

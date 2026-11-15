@@ -2515,10 +2515,13 @@ namespace CapriDesktop
             }
             bool picture = typed != null;
             bool previousPicture = recent.Count == 2 && (recent[0].Typed != null || RemotePictures.IsTurn(recent[0].Content));
-            bool asksAboutPicture = (picture || previousPicture || chat.Exists(RemotePictures.IsTurn))
-                && Regex.IsMatch(input, @"\b(picture|photo|image)\b", RegexOptions.IgnoreCase)
-                && !Hands.Wants(input);
-            bool pictureQuestion = !picture && (asksAboutPicture || previousPicture && !Hands.Requested(input));
+            bool namesPicture = (picture || previousPicture || chat.Exists(RemotePictures.IsTurn))
+                && Regex.IsMatch(input, @"\b(picture|photo|image)\b", RegexOptions.IgnoreCase);
+            bool quotePicture = namesPicture && Regex.IsMatch(input, @"\A(?:please\s+)?tell me what (?:the|this|that|my|your) (?:picture|photo|image) (?:says|shows)(?:\s+please)?[.!?]*\z", RegexOptions.IgnoreCase);
+            bool implicitQuestion = previousPicture && !Hands.Requested(input);
+            bool wantsTools = (namesPicture || implicitQuestion) && !quotePicture && Hands.Wants(input);
+            bool asksAboutPicture = namesPicture && !wantsTools;
+            bool pictureQuestion = !picture && (asksAboutPicture || implicitQuestion && !wantsTools);
             List<ChatMessage> pictureMessages = null;
             if (picture || pictureQuestion)
             {
