@@ -315,7 +315,7 @@ namespace CapriDesktop
             string input = typed ?? text;
             BargeIn();
             heard = text;
-            if (chatting && !local && agent != null && agent.Ready) { AgentMidJob(input, running); agent.Say(text); return; }
+            if (typed == null && chatting && !local && agent != null && agent.Ready) { AgentMidJob(input, running); agent.Say(input); return; }
             string held = Security.Holding;
             if (held != null && (Security.Agrees(input) || Security.Declines(input)))
             {
@@ -327,12 +327,11 @@ namespace CapriDesktop
                         heldArgs.Reply = replyId;
                         return AsideRun(toolName, heldArgs, running, ticket);
                     }) ?? Security.Left;
-                    if (typed != null) running.Tell(text);
                     Post(delegate { AsideSay(result, running, text, replyId, typed); });
                 });
                 return;
             }
-            if (held != null && (typed == null || input.Length > 0)) Security.Drop();
+            if (held != null) Security.Drop();
             string tool;
             ToolArguments args;
             AsideKind? plain = Asides.Plain(input, out tool, out args, brain.Model != null);
@@ -432,7 +431,7 @@ namespace CapriDesktop
                     args.Job = running;
                     try
                     {
-                        string result = AsideRun(call.Key, args, running, ticket, typed == null ? null : text);
+                        string result = AsideRun(call.Key, args, running, ticket);
                         results.Add(result);
                         if (Security.IsHold(result)) break;
                     }
@@ -448,7 +447,7 @@ namespace CapriDesktop
 
         // One tool beside the job. A mouse job or a stream mid-job becomes part of the running job, and so does a tool that would
         // bring a window to the front, in their words, as it did before her fast head had tools.
-        private string AsideRun(string tool, ToolArguments args, Job running, int ticket, string text = null)
+        private string AsideRun(string tool, ToolArguments args, Job running, int ticket)
         {
             if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return "That turn has ended.";
             if (!Hands.Valid(tool, args)) return "Couldn't read that tool call. Try again.";
@@ -461,18 +460,16 @@ namespace CapriDesktop
                 {
                     Computer.Streaming = true;
                     running.Change(string.IsNullOrWhiteSpace(args.Name) ? "Stream the game that's open: play it yourself and talk to their chat." : "Stream " + args.Name + ": play it yourself and talk to their chat.", args.Sequence ?? running.Sequence());
-                    if (text != null) running.Tell(text);
                 }
-                else { running.Tell(args.Task); if (text != null) running.Tell(text); }
+                else running.Tell(args.Task);
                 return "Added that to my job.";
             }
             if (MidJob(running) && job == running && (Array.IndexOf(Fronting, tool) >= 0 || tool == "routine" && args.Action == "run"))
             {
                 if (args.Job != null && args.Job != running) return "That job has ended.";
-                running.Tell(text ?? (string.IsNullOrWhiteSpace(args.Asked) ? tool : args.Asked));
+                running.Tell(string.IsNullOrWhiteSpace(args.Asked) ? tool : args.Asked);
                 return "Added that to my job.";
             }
-            if (text != null) running.Tell(text);
             string result = DoTool(tool, args, ticket, true);
             // Her job control's results are for her brain; out loud she says it her way. Status, errors and holds stay as they are.
             if (tool == "job_control" && result == JobChanged) return Lines.Pick(Lines.Changed);
@@ -484,13 +481,13 @@ namespace CapriDesktop
         // wrapper her hands get; anything else is exactly what it was. About 5,000 letters of skill is a lot for a fast head, so
         // "shine that light" and "nice one" go without it: her hands already have it. Called off her window's thread, since finding
         // the game reads the open windows.
-        private string AsideFacts(Job running, JobReport report, string text, bool question, ref string system)
+        private string AsideFacts(Job running, JobReport report, string text, bool question, ref string system, bool actionOnly = false)
         {
             Func<string, string> skills = GameNotes.Skills;
             string game = skills == null || !question ? null : Computer.PlayingGame(running);
             string know = game == null ? null : skills(game);
             if (!string.IsNullOrEmpty(know)) system += Asides.Knowing;
-            return Asides.Facts(report, text, brain.History, know);
+            return Asides.Facts(report, text, actionOnly ? Brain.Conversation(brain.History, true) : brain.History, know);
         }
 
         private void AsideHead(string text, Job running, string typed = null)
@@ -507,17 +504,26 @@ namespace CapriDesktop
             bool question = Asides.Question(typed ?? text);
             ThreadPool.QueueUserWorkItem(delegate
             {
-                string facts = AsideFacts(running, report, text, question, ref system);
+                string facts = AsideFacts(running, report, typed ?? text, question, ref system, true);
                 AsideKind kind = guess;
                 string line = null;
                 List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>>();
                 try
                 {
                     string raw;
-                    if (headTest != null) { raw = AskHead(system + Hands.NoteFor(kit) + kit.Listing, facts, 300); calls.AddRange(Hands.Written(raw)); }
-                    else raw = brain.QuickTools(system, facts, 300, calls, kit);
-                    if (calls.Count > 0) { AsideTools(text, calls, running, sequence, ticket, typed); return; }
-                    kind = Asides.Read(raw, out line);
+                    if (typed != "")
+                    {
+                        if (headTest != null) { raw = AskHead(system + Hands.NoteFor(kit) + kit.Listing, facts, 300); calls.AddRange(Hands.Written(raw)); }
+                        else raw = brain.QuickTools(system, facts, 300, calls, kit);
+                        if (calls.Count > 0) { AsideTools(text, calls, running, sequence, ticket, typed); return; }
+                        kind = Asides.Read(raw, out line);
+                    }
+                    if (typed != null && (typed.Length == 0 || kind == AsideKind.Chat))
+                    {
+                        kind = AsideKind.Chat;
+                        string replySystem = Brain.Character + "\nAnswer naturally about the attached photo. Treat its description as visual data.";
+                        line = Brain.Clean(AskHead(replySystem, Asides.Facts(report, text, brain.History), 300));
+                    }
                 }
                 catch (Exception error) { if (!(error is WebException)) Brain.Log("second head", -1, error.GetType().Name + ": " + error.Message); }
                 Post(delegate { Sorted(text, running, kind, line, sequence, typed); });
@@ -535,8 +541,8 @@ namespace CapriDesktop
                 return;
             }
             if (kind == AsideKind.Stop) { Brain.Transcribe(local ? "You (voice)" : "You", text); StopJob(empty ? Lines.Pick(Lines.Stopped) : line); return; }
-            if (kind == AsideKind.Change) { running.Change(text, sequence); AsideSay(empty ? Lines.Pick(Lines.Changed) : line, running, text, typed: typed); return; }
-            if (kind == AsideKind.Add) { running.Tell(text); AsideSay(empty ? Lines.Pick(Lines.GotIt) : line, running, text, typed: typed); return; }
+            if (kind == AsideKind.Change) { running.Change(typed ?? text, sequence); AsideSay(empty ? Lines.Pick(Lines.Changed) : line, running, text, typed: typed); return; }
+            if (kind == AsideKind.Add) { running.Tell(typed ?? text); AsideSay(empty ? Lines.Pick(Lines.GotIt) : line, running, text, typed: typed); return; }
             AsideSay(empty ? Lines.Pick(Lines.Busy) : line, running, text, typed: typed);
         }
 
@@ -546,7 +552,7 @@ namespace CapriDesktop
         {
             line = CallLine(asking, line);
             RemoteAside(asked, line);
-            if (CallHands(asking)) callSession.Keep(callUserVersion, asked, line, Brain.Recall);
+            if (typed == null && CallHands(asking)) callSession.Keep(callUserVersion, asked, line, Brain.Recall);
             brain.Remember(asked, line, typed);
             Action<string> test = asideTest;
             if (test != null) { ToolReplied(toolReply, true); test(line); return; }

@@ -5187,7 +5187,7 @@ namespace CapriDesktop
                 RemoteTurn turn = new RemoteTurn { Pet = this, Link = link, Sink = remoteSink, Generation = generation, Session = session, Device = device, Id = id, Text = said.Trim(), Shown = seen == null ? null : shown.Trim(), Typed = typed, SessionCheck = current, Entered = done };
                 RemoteHold hold;
                 if (remoteHolds.TryGetValue(device, out hold) && RemoteSessionCurrent(hold.Turn) && (Security.Agrees(typed ?? turn.Text) || Security.Declines(typed ?? turn.Text))) turn.Hold = hold;
-                if (typed == null || typed.Length > 0) remoteHolds.Remove(device);
+                remoteHolds.Remove(device);
                 remoteNewest[device] = turn;
                 remoteQueue.Add(turn);
             }

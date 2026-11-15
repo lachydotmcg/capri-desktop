@@ -1326,6 +1326,13 @@ namespace CapriDesktop
 
     internal static class RemotePictures
     {
+        private const string Description = "They sent a picture from their phone. You looked at it. You see: ";
+
+        internal static bool IsTurn(string text)
+        {
+            return text != null && (text.Contains("[picture]\n\n" + Description) || text.Contains("[picture] " + Description));
+        }
+
         internal static string Shown(string input) { return (input.Trim().Length == 0 ? "" : input.Trim() + " ") + "[picture]"; }
 
         internal static string Sent(string text, string typed, string sent)
@@ -1348,7 +1355,7 @@ namespace CapriDesktop
             shown = input;
             if (seen == null) return input;
             shown = Shown(input);
-            return shown + "\n\nThey sent a picture from their phone. You looked at it. You see: " + seen + (empty ? "\nReact to the picture." : "");
+            return shown + "\n\n" + Description + seen + (empty ? "\nReact to the picture." : "");
         }
     }
 
