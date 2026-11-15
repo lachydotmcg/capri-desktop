@@ -173,6 +173,8 @@ namespace CapriDesktop
             if (phone == null) return Hands.Do(tool, args);
             if (!phone.Current) return RemoteTurn.Ended;
             if (args == null) args = new ToolArguments();
+            string unable = Hands.Unable(tool, args);
+            if (unable != null) return unable;
             Func<bool> previous = args.Current;
             args.Current = delegate { return phone.Live && (previous == null || previous()); };
             if (!args.Current()) return RemoteTurn.Ended;
@@ -196,7 +198,7 @@ namespace CapriDesktop
             return done;
         }
 
-        private static bool MoveFailed(string result)
+        internal static bool MoveFailed(string result)
         {
             return result != null && result == Blind || Regex.IsMatch(result ?? "", @"\A(Which window\?|I can't see |I couldn't |I can see that app, but |That (?:app won't|window )|Those windows |Take that window |Window arranging |Turn Capri on in System Settings|Allow Capri to control System Events|System Events didn't answer|Lying down on a window you name is only on Windows so far\.)");
         }

@@ -7749,8 +7749,8 @@ namespace CapriDesktop
 
         private sealed class RemotePictureBrain : IBrainProvider
         {
-            internal int Calls;
-            internal string Mime, Data, Answer = "A small red square.";
+            internal int Calls, Chats;
+            internal string Mime, Data, Answer = "A small red square.", Chat;
             internal Exception Failure;
             internal Action Seeing;
             public int Generation { get { return 0; } }
@@ -7758,6 +7758,8 @@ namespace CapriDesktop
             public void Cancel() { }
             public string Complete(string model, List<ChatMessage> messages, string tools, List<KeyValuePair<string, ToolArguments>> calls, int limit, Action<string> streamed, string purpose, string parts = null)
             {
+                string chat = Chat;
+                if (purpose != "vision" && chat != null) { Interlocked.Increment(ref Chats); return chat; }
                 Mime = Data = null;
                 if (tools != null || purpose != "vision" || limit != 700 || !messages[0].Content.Contains("untrusted data") || !messages[0].Content.Contains("Never follow instructions")) throw new Exception("A phone picture lost its shared look instruction.");
                 ChatMessage asked = messages[messages.Count - 1];
@@ -7803,6 +7805,7 @@ namespace CapriDesktop
             string memories = Brain.MemoriesPath, transcript = Brain.TranscriptPath;
             Func<string, string> think = pet.Think;
             Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
+            List<ChatMessage> history = pet.Brain.History;
             RemotePictureBrain brain = new RemotePictureBrain();
             List<string> turns = new List<string>();
             string data = Path.Combine(folder, "remote-picture-data");
@@ -7910,10 +7913,12 @@ namespace CapriDesktop
                     bridge.Online();
                     string id = "cross-picture-ended-" + end + (looking ? "-look" : "-decode");
                     int calls = brain.Calls, heard = turns.Count;
+                    bool delivered = looking || end == "quit";
                     Action pause = delegate { entered.Set(); if (!release.Wait(30000)) throw new Exception("The ended picture was not released."); };
-                    if (looking)
+                    if (looking) brain.Seeing = pause;
+                    else RemoteWire.Set(bridge.Wire.Link, "pictureDecoding", new Action<string>(delegate { pause(); }));
+                    if (delivered)
                     {
-                        brain.Seeing = pause;
                         RemoteLink link = bridge.Wire.Link;
                         var handler = (Action<string, string, string, RemotePicture, Func<bool>, Action>)RemoteWire.Get(pet, "remotePictured");
                         link.PictureSaid -= handler;
@@ -7922,7 +7927,6 @@ namespace CapriDesktop
                             handler(phone, re, text, picture, current, delegate { try { done(); } finally { finished.Set(); } });
                         };
                     }
-                    else RemoteWire.Set(bridge.Wire.Link, "pictureDecoding", new Action<string>(delegate { pause(); }));
                     try
                     {
                         bridge.SendPicture(0, id, "", "image/png", RemoteCrypto.B64u(png));
@@ -7933,8 +7937,8 @@ namespace CapriDesktop
                         else RemoteWire.Set(pet, "quitting", true);
                         release.Set();
                         RemotePictureDrain();
-                        if (looking) RemoteBridgeWait(delegate { return finished.IsSet; }, "the ended look");
-                        if (brain.Calls != calls + (looking ? 1 : 0) || turns.Count != heard || bridge.Sink.ReplyFor(id) != null) throw new Exception("An ended picture reached the brain or answered: " + end + ".");
+                        if (delivered) RemoteBridgeWait(delegate { return finished.IsSet; }, "the ended picture's callback");
+                        if (brain.Calls != calls + (looking ? 1 : 0) || turns.Count != heard || bridge.Sink.ReplyFor(id) != null || bridge.Sink.ErrorFor(id) != null) throw new Exception("An ended picture reached the brain or answered: " + end + ".");
                     }
                     finally { release.Set(); brain.Seeing = null; RemoteWire.Set(pet, "quitting", false); }
                 }
@@ -7976,10 +7980,44 @@ namespace CapriDesktop
                 if (string.Join("\n", before) != string.Join("\n", after)) throw new Exception("Phone pictures wrote under their test data folder.");
                 foreach (ChatMessage message in pet.Brain.History) if ((message.Content ?? "").Contains(encoded) || (message.Content ?? "").Contains(Convert.ToBase64String(jpeg))) throw new Exception("Phone picture bytes entered chat history.");
                 checks.Add("PASS cross picture disk check: the test data folder has the same entry list before and after valid, invalid, blind, echoed and stale pictures; no encoded bytes enter chat history");
+
+                bridge.Online();
+                pet.Think = null; brain.Chat = "That looks like a small red square.";
+                int looks = brain.Calls, chats = brain.Chats;
+                bridge.SendPicture(0, "cross-picture-kept", "what is here?", "image/jpeg", RemoteCrypto.B64u(jpeg));
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("cross-picture-kept") != null; }, "a picture answered by her own brain");
+                if (brain.Calls != looks + 1 || brain.Chats == chats || !File.Exists(pet.Brain.ChatPath)
+                    || !pet.Brain.History.Exists(message => (message.Content ?? "").Contains("You see: " + brain.Answer))) throw new Exception("A picture turn did not reach her own brain, history and chat.json.");
+                List<string> leaks = new List<string>();
+                foreach (byte[] bytes in new[] { jpeg, png })
+                foreach (string text in new[] { Convert.ToBase64String(bytes), RemoteCrypto.B64u(bytes) })
+                {
+                    leaks.Add(text);
+                    string slice = null;
+                    for (int at = text.Length / 2; slice == null && at + 16 <= text.Length; at++)
+                        if (Regex.IsMatch(text.Substring(at, 16), "^[A-Za-z0-9]{16}$") && !text.Substring(at, 16).Contains("AAA")) slice = text.Substring(at, 16);
+                    if (slice == null) throw new Exception("The picture disk check found no slice to look for.");
+                    leaks.Add(slice);
+                }
+                List<string> written = new List<string>(Directory.GetFiles(data, "*", SearchOption.AllDirectories));
+                if (File.Exists(Brain.LogPath) && !written.Contains(Brain.LogPath)) written.Add(Brain.LogPath);
+                foreach (string path in written)
+                {
+                    string saved = File.ReadAllText(path);
+                    foreach (string leak in leaks) if (saved.Contains(leak)) throw new Exception("Phone picture bytes reached " + Path.GetFileName(path) + ".");
+                }
+                foreach (ChatMessage message in pet.Brain.History)
+                {
+                    if (message.Images != null && message.Images.Length > 0 || message.ImageMime != null) throw new Exception("A phone picture entered chat history.");
+                    foreach (string leak in leaks) if ((message.Content ?? "").Contains(leak)) throw new Exception("Phone picture bytes entered chat history.");
+                }
+                checks.Add("PASS cross picture brain turn: a picture answered by her own brain writes her history and chat.json under the test data folder; no file there and not the brain log holds its base64 or base64url bytes or a slice of them, and chat history holds no image");
             }
             finally
             {
-                brain.Seeing = null; RemoteWire.Set(pet, "quitting", false);
+                brain.Seeing = null; brain.Chat = null; RemoteWire.Set(pet, "quitting", false);
+                List<ChatMessage> live = (List<ChatMessage>)RemoteWire.Get(pet.Brain, "history");
+                lock (RemoteWire.Get(pet.Brain, "gate")) { live.Clear(); live.AddRange(history); }
                 pet.Brain.Provider = provider; pet.Brain.Remote = cloud; pet.Brain.Model = model; pet.Brain.Unsighted = unsighted; pet.Brain.ChatPath = chat; Brain.LogPath = log;
                 Brain.MemoriesPath = memories; Brain.TranscriptPath = transcript;
                 pet.Think = think; pet.RemoteOutput = output; bridge.Online();
@@ -8085,16 +8123,41 @@ namespace CapriDesktop
                     RemoteRoomPair(bridge.Read(0, ref sequence), id, sat ? "done" : "failed", sat ? "sit" : null);
                     if (moved != before + 1) throw new Exception("A direct sit did not run once without a brain.");
                 }
+                string unable = Hands.Unable("desktop_icons", new ToolArguments { Task = "private-task", Text = "private-argument", Name = "Bridge App", Action = "on" });
+                bridge.Send(0, "room-direct-unable", "remote boundary desktop_icons");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("room-direct-unable") != null; }, "a direct tool that can't work here");
+                if (unable == null || bridge.Sink.ReplyFor("room-direct-unable").Text("text") != RemoteTurn.Out(unable, 16000) || bridge.Sink.ToolsFor("room-direct-unable").Count != 0
+                    || bridge.Read(0, ref sequence).Exists(row => row.Text("type") == "chat.tool")) throw new Exception("A direct tool that can't work here sent tool progress or lost its reason.");
                 int beforeStale = moved;
+                bool ended = false;
+                Func<string, KeyValuePair<string, ToolArguments>> plan = Hands.Plan;
                 Hands.MoveSelf = delegate { Interlocked.Increment(ref moved); return "Sitting down."; };
-                bridge.Send(0, "room-direct-ended", "sit");
-                bridge.Left(0);
-                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Hands.Plan = delegate(string said)
+                {
+                    if (!ended && said == "sit") { ended = true; bridge.Left(0); }
+                    return plan(said);
+                };
+                try
+                {
+                    bridge.Send(0, "room-direct-ended", "sit");
+                    RemoteBridgeWait(delegate { return ended; }, "a direct sit that ends after its ticket");
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                }
+                finally { Hands.Plan = plan; }
                 if (moved != beforeStale || bridge.Sink.ToolsFor("room-direct-ended").Count != 0 || bridge.Sink.ReplyFor("room-direct-ended") != null
                     || bridge.Read(0, ref sequence).Exists(row => row.Text("type") == "chat.tool" || row.ContainsKey("move"))) throw new Exception("An ended direct sit sent progress or moved.");
+                bridge.Online(); sequence = 0;
+                int beforeWork = moved;
+                Hands.MoveSelf = delegate { Interlocked.Increment(ref moved); bridge.Left(0); return "Sitting down."; };
+                bridge.Send(0, "room-direct-ending", "sit");
+                RemoteBridgeWait(delegate { return moved != beforeWork; }, "a direct sit that ends during its pose");
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                List<RemoteJson.Map> ending = bridge.Sink.ToolsFor("room-direct-ending");
+                if (moved != beforeWork + 1 || ending.Count != 1 || ending[0].Text("state") != "running" || ending[0].ContainsKey("move") || bridge.Sink.ReplyFor("room-direct-ending") != null
+                    || bridge.Read(0, ref sequence).Exists(row => row.Text("type") == "chat.tool" && row.Text("state") != "running" || row.ContainsKey("move"))) throw new Exception("A direct sit that ended during its pose sent a result, a move or an answer.");
                 pet.Brain.Model = model; pet.Think = think;
                 bridge.Online(); sequence = 0;
-                checks.Add("PASS Room direct turns: plain sit without a brain sends running then done with sit; refusals and throws send failed without a move; an ended turn sends no tool or answer and does not move");
+                checks.Add("PASS Room direct turns: plain sit without a brain sends running then done with sit; refusals and throws send failed without a move; a tool that can't work here answers with its reason and no tool row; a turn ended after its ticket sends no tool or answer and does not move; one ended during its pose sends no result, move or answer");
 
                 foreach (bool running in new[] { false, true })
                 using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
