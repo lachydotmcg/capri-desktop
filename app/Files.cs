@@ -243,6 +243,7 @@ namespace CapriDesktop
             }
 #if CROSS
             catch (BrainException error) { result.Line = error.Message; }
+            catch (UnauthorizedAccessException) { result.Line = Hands.OnMac ? "Allow Capri to read this file in System Settings > Privacy & Security > Files and Folders." : "I don't have access to that file."; }
             catch (Exception) { result.Line = "I couldn't read " + result.Name + ". It may be unavailable, damaged or a format this computer can't read yet."; }
 #else
             catch (Exception) { result.Line = "I couldn't read " + result.Name + ". It may be unavailable, damaged or a format Windows can't read yet."; }

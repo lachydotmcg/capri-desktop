@@ -5626,6 +5626,11 @@ namespace CapriDesktop
                     if (!Hands.Typed("read_file{\"path\":" + Voice.Quote(path) + ",\"page\":5,\"offset\":24000}", out tool, out args) || args.Page != 5 || args.Offset != 24000) throw new Exception("Written read_file lost page or offset.");
                     if (Files.Open(binary, null).Line != "I can't read that kind of file yet: program.exe." || Files.Open(damaged, null).Readable || Files.Open(Path.Combine(root, "missing.txt"), null).Line != "I couldn't find the file missing.txt.") throw new Exception("Windows file refusals were bypassed.");
                     if (Files.Open(word, null).Text != "Word contents\n" || !Files.Open(book, null).Text.Contains("A1: cell contents") || Files.Open(word, null, null, 5).Text != "contents\n") throw new Exception("Shared document readers changed their text or offsets.");
+                    var reading = MacFiles.Run;
+                    MacFiles.Run = (_, _, _, _) => throw new UnauthorizedAccessException();
+                    string refused = Files.Open(path, null).Line;
+                    MacFiles.Run = reading;
+                    if (refused != (platform ? "Allow Capri to read this file in System Settings > Privacy & Security > Files and Folders." : "I don't have access to that file.")) throw new Exception("A file she may not read lost its how-to-fix line: " + refused);
                     ReadFile image = Files.Open(picture, jpeg => jpeg.Length > 0 ? "A blue picture." : null);
                     if (image.Text != "A blue picture." || Files.Open(picture, null).Line != "picture.png is a picture. The selected brain couldn't see it, and OCR isn't available on this PC.") throw new Exception("Picture reading lost vision or its exact OCR limit.");
                     ReadFile first = Files.Open(pdf, null, 1), fifth = Files.Open(pdf, null, 5);
@@ -5677,6 +5682,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross drops are heard without their paths, and without a brain she reads and lists them, like Windows");
                 checks.Add("PASS cross Security without a brain: another message drops a held nickname open, so a late yes opens nothing");
                 checks.Add("PASS cross help: ordinary file questions and messages naming a path get no app-help facts");
+                checks.Add("PASS cross reading: a file she may not read says how to allow it on Mac, or that she has no access on Linux");
             }
             finally
             {
