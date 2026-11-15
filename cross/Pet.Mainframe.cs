@@ -215,6 +215,7 @@ namespace CapriDesktop
         private string[] frameModels = Array.Empty<string>();
         private int brainRequests;
         private int brainPending;
+        private int pcPending;
         private int cloudRequests;
         private int localRequests;
         private string frameProblem;
@@ -515,7 +516,7 @@ namespace CapriDesktop
                 if (!changed) BrainSend(device, current, RemoteBrainState());
                 return;
             }
-            if (phoneKey != null || brainPending > 0) { BrainKeyNote(device, current, ask.Id, "failed", RemoteBrainKeys.StillChecking, ask.Key); return; }
+            if (phoneKey != null || pcPending > 0) { BrainKeyNote(device, current, ask.Id, "failed", RemoteBrainKeys.StillChecking, ask.Key); return; }
             string key = ask.Key;
             string kind = Cloud.KindOf(key);
             string problem = Plans.Is(kind) ? RemoteBrainKeys.PlanHere : kind != null && ask.Tier == 1 && !Cloud.MediumKind(kind) ? RemoteBrainKeys.PaidNote : null;

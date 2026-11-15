@@ -5753,7 +5753,7 @@ namespace CapriDesktop
             if (phone != null) phone.Request = request;
             brainPending++;
             int ticket = -1;
-            if (phone == null) { ticket = ++asking; Talk.Thinking(BrainKeyHeard); }
+            if (phone == null) { pcPending++; ticket = ++asking; Talk.Thinking(BrainKeyHeard); }
             Func<string, bool, List<string>> check = BrainKeyCheck;
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -5797,7 +5797,7 @@ namespace CapriDesktop
                     lock (remoteGate)
                     {
                         brainPending--;
-                        if (phone == null) { finish(); return; }
+                        if (phone == null) { pcPending--; finish(); return; }
                         RemoteBrainTick();
                         if (phoneKey != phone) { NotifySettings(); return; }
                         if (remoteLink == null || !remoteLink.BrainDo(phone.Current, finish)) { DropPhoneKey(null); NotifySettings(); }

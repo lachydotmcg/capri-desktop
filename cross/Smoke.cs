@@ -8992,7 +8992,7 @@ namespace CapriDesktop
             RemoteStore files = pet.RemoteFiles;
             Func<RemoteState, string, Action<RemoteState>, RemoteLink> make = pet.RemoteMake;
             Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
-            string[] fields = { "remoteState", "remoteRelay", "remoteProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode", "remoteLoaded", "remoteReadFailed", "remotePendingProblem", "brainRequests", "brainPending", "cloudRequests", "cloudListing", "cloudModels", "frameModels", "frameProblem", "asking" };
+            string[] fields = { "remoteState", "remoteRelay", "remoteProblem", "remoteNote", "remoteUnreadable", "remoteDirty", "remoteCode", "remoteLoaded", "remoteReadFailed", "remotePendingProblem", "brainRequests", "brainPending", "pcPending", "cloudRequests", "cloudListing", "cloudModels", "frameModels", "frameProblem", "asking" };
             var before = new Dictionary<string, object>();
             foreach (string field in fields) before[field] = RemoteWire.Get(pet, field);
             var timer = (Avalonia.Threading.DispatcherTimer)RemoteWire.Get(pet, "frames");
@@ -9054,8 +9054,12 @@ namespace CapriDesktop
                 rows = read(); RemoteBrainNote(rows, "paid-key", "saved", RemoteBrainKeys.Saved);
                 RemoteBrainShown(frame, rows, bridge.Phones[0].Id, true, true);
                 if (checker.Free || File.ReadAllText(Path.Combine(data, "brain-paid-key")) != paid) throw new Exception("A max key missed the paid Mainframe store.");
-                MainframeEnter(frame, "Brain API key", typed);
-                RemoteBridgeWait(delegate { return !pet.MainframeConnecting && pet.MainframeBrainKey == typed; }, "a key typed on the PC");
+                checker.WaitFor(typed); MainframeEnter(frame, "Brain API key", typed);
+                RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "the held key typed on the PC");
+                int calls = checker.Calls; key("pc-pending", "max", second);
+                RemoteBrainNote(read(), "pc-pending", "failed", RemoteBrainKeys.StillChecking);
+                if (checker.Calls != calls) throw new Exception("A phone's key was checked beside a key typed on the PC.");
+                checker.Release.Set(); RemoteBridgeWait(delegate { return !pet.MainframeConnecting && pet.MainframeBrainKey == typed; }, "a key typed on the PC");
                 RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, true);
                 key("code-key", "max", code);
                 RemoteBridgeWait(delegate { return !pet.MainframeConnecting && pet.MainframeBrainKey == code.ToUpperInvariant(); }, "a made-up Capri code");
@@ -9065,7 +9069,7 @@ namespace CapriDesktop
                 MainframeEnter(frame, "Brain API key", "");
                 RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, false);
                 if (pet.MainframeTier != 2 || pet.MainframeBrainKey != null || File.Exists(Path.Combine(data, "brain-paid-key")) || File.Exists(Path.Combine(data, "brain-key"))) throw new Exception("The PC's Forget did not reach the phone or the key store.");
-                checks.Add("PASS cross brain keys: checking then saved, with no thinking bubble or new answer ticket on the PC; the free and paid Mainframe stores, Capri code spelling and private file mode; a PC notice names the phone and brain; typing and forgetting on the PC notify a watching phone even when its saved-key flags stay the same");
+                checks.Add("PASS cross brain keys: checking then saved, with no thinking bubble or new answer ticket on the PC; the free and paid Mainframe stores, Capri code spelling and private file mode; a PC notice names the phone and brain; a phone's key gets the still-checking words while a key typed on the PC is checked; typing and forgetting on the PC notify a watching phone even when its saved-key flags stay the same");
 
                 foreach (string rejected in new[] { refused, echoed, broken })
                 {
@@ -9075,7 +9079,7 @@ namespace CapriDesktop
                     rows = read(); RemoteBrainNote(rows, "refused-key", "failed", pet.MainframeBrainNote);
                     if (pet.MainframeBrainKey != null || File.ReadAllText(Path.Combine(data, "brain-free-key")) != free || File.Exists(Path.Combine(data, "brain-key"))) throw new Exception("A refused key reached the Mainframe store.");
                 }
-                int calls = checker.Calls;
+                calls = checker.Calls;
                 key("unknown-key", "max", "\n" + unknown + "\t" + new string(' ', RemoteBrainKeys.MostKey)); RemoteBrainNote(read(), "unknown-key", "failed", Pet.NotAKey);
                 key("short-key", "max", "key"); RemoteBrainNote(read(), "short-key", "failed", Pet.NotAKey);
                 key("wrong-rung", "medium", paid); RemoteBrainNote(read(), "wrong-rung", "failed", RemoteBrainKeys.PaidNote);
