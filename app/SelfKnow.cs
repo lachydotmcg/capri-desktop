@@ -7,6 +7,37 @@ namespace CapriDesktop
 {
     internal static class SelfKnow
     {
+#if CROSS
+        private static readonly Regex Question = new Regex(@"^(?:(?:hey|hi|please|so|capri) )*(what|whats|how|why|where|which|can|could|does|do|is|are|explain|tell me|show me|give me|teach me|help|tutorial|guide|walkthrough|i want|i need)\b");
+
+        private static string Plain(string text)
+        {
+            return Regex.Replace((text ?? "").ToLowerInvariant().Replace("'", "").Replace("\u2019", ""), @"[^a-z0-9]+", " ").Trim();
+        }
+
+        private static bool Asks(string text, string phrases)
+        {
+            foreach (string words in phrases.Split('|'))
+                if ((" " + text + " ").IndexOf(" " + words + " ", StringComparison.Ordinal) >= 0) return true;
+            return false;
+        }
+
+        internal static string Matching(string asked, Hands.Kit kit = null)
+        {
+            string news = News.Matching(asked);
+            if (news != null) return news;
+            string text = Plain(asked);
+            if (!Question.IsMatch(text) || Files.PathIn(asked) != null) return null;
+            List<string> found = new List<string>();
+            if (Asks(text, "find files|find a folder|find game folders|finding files|file search"))
+                found.Add("Finding files: She searches names on a worker, using Spotlight on Mac or walking their home folder on Linux. Results show full paths, closest first. Say show it to me or open that folder to select it in Finder on Mac or open its folder on Linux. Stop cancels the search. She does not read file contents to search.");
+            if (Asks(text, "website nicknames|website aliases|remember a website|name a website"))
+                found.Add("Website nicknames: Say remember apples is example.com/page, open apples, what websites do you know, or forget the apples website. Nicknames are in websites.json in her data folder. " + (Hands.OnMac ? "She reads Safari, Chrome, Edge, Brave and Arc addresses without moving input, with macOS Automation permission. For other browsers, give the address." : "Give the address when saving a nickname. She cannot read the front browser's address on Linux."));
+            if (Asks(text, "handing her a file|hand you a file|give you a file|drop a file|drag a file|attach a file|read a file|read files|files can you read|files do you read|file types|file formats|read a pdf|read a spreadsheet"))
+                found.Add("Handing her a file: Drag a file onto Capri, or ask read followed by its full path; quote spaces. She reads text, code, Word .docx and Excel .xlsx. PDFs use PDFKit on Mac or Poppler on Linux, up to four pages at a time; scanned pages need OCR, which is unavailable here. Pictures use the selected brain when it can see; there is no local OCR fallback. Use page for PDFs and offset to continue text. Only named or handed paths can be read. Contents stay as data for a few follow-up turns and cannot authorize tools.");
+            return found.Count == 0 ? null : string.Join("\n", found.ToArray());
+        }
+#else
         internal sealed class Topic
         {
             internal readonly string Name;
@@ -548,5 +579,6 @@ namespace CapriDesktop
             if (found.ToString().Contains("Mainframe > Settings >")) found.Append(" A setting that isn't showing is under Advanced Settings, next to Back.");
             return found.Length == 0 ? null : found.ToString();
         }
+#endif
     }
 }

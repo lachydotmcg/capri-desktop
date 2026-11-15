@@ -854,7 +854,7 @@ namespace CapriDesktop
             if (Program.Smoke == null) Sfx.Out = Limbs.Sound;
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
             Limbs.Attach(Brain);
-            MacFiles.Attach(Program.Smoke ?? folder);
+            MacFiles.Attach(Program.Smoke ?? folder, Brain);
             StartReminders();
             if (OperatingSystem.IsMacOS()) MacWindows.Displays = () => Dispatcher.UIThread.Invoke(() => MacWindows.ReadDisplays(Screens.All, Desk.Pointer()));
             WireWatching();
@@ -5397,6 +5397,7 @@ namespace CapriDesktop
             StopNativeListening(!fromVoice);
             if (!working) Brain.Cancel();
             voice.Stop();
+            if (phone == null && Think == null && Brain.Model == null && Security.Holding != null && !Security.FromMod(text) && !Security.Agrees(text) && !Security.Declines(text)) Security.Drop();
             string tool;
             if (MainframeAsked(text))
             {
@@ -5447,6 +5448,22 @@ namespace CapriDesktop
             }
             // Her nap, her own moves and her animations work before she has a brain, like on Windows.
             if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, RemoteDirect(phone, tool, args), null, false, phone); return; }
+            bool fileRequest = tool == "find_file" || tool == "read_file" || tool == "website_nickname" || tool == "open_website" && Hands.Websites != null && Hands.Websites.Nickname(args.Site) != null;
+            bool websiteHeld = phone == null ? Security.Holding == "open_website" : phone.Hold != null && phone.Hold.Calls.Count == 1 && phone.Hold.Calls[0].Key == "open_website";
+            if (Think == null && Brain.Model == null && (fileRequest || websiteHeld && (Security.Agrees(text) || Security.Declines(text))))
+            {
+                Talk.Thinking(text);
+                Ask(ticket, text, 0, 0, phone, delegate(string line)
+                {
+                    string done = phone == null ? Security.Resume(line, Brain.Act) : null;
+                    if (done == null) done = fileRequest ? Brain.Act(tool, args) : Offline;
+                    string shown = Hands.Shown(Security.Said(done));
+                    Brain.Remember(line, shown);
+                    return shown;
+                });
+                return;
+            }
+            if (Think == null && Brain.Model == null && Brain.Attachments.Waiting) { Talk.Thinking(text); Ask(ticket, text, 0, 0, phone); return; }
             if (Think == null && Brain.Model == null && News.Matching(text) != null) { Reply(ticket, text, News.Facts, null, false, phone); return; }
             if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline, null, false, phone); FindBrain(); return; }
             Talk.Thinking(text);
@@ -5531,7 +5548,7 @@ namespace CapriDesktop
 
         internal bool Hop(Cloud remote)
         {
-            if (Saved.StayOnModel || remote == null || remote.Kind != "nvidia" || Brain.Remote != remote) return false;
+            if (Saved.StayOnModel || remote == null || remote.Kind != "nvidia" || Brain.Remote != remote || Brain.Attachments.Has) return false;
             string old = remote.Model;
             stalled.Add(old);
             string next = Brain.Next(old, cloudModels, stalled);

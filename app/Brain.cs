@@ -750,9 +750,7 @@ namespace CapriDesktop
         internal Func<string, ToolArguments, string> Act;
         // Her tools here for a brain that can or can't see. Checks hand her another computer's, like a Mac's.
         internal Func<bool, Hands.Kit> Kit = Hands.KitFor;
-#if !CROSS
         internal readonly Files Attachments = new Files();
-#endif
         private volatile string toolless;
         private volatile string unstreamed;
         private volatile string thinker;
@@ -2453,7 +2451,6 @@ namespace CapriDesktop
             int ticket;
             lock (gate) ticket = cancelled;
             string model = Model;
-#if !CROSS
             bool droppedFiles = Attachments.Next(text, FileSight);
             if (model == null)
             {
@@ -2461,22 +2458,15 @@ namespace CapriDesktop
                 if (offlinePath != null) ReadFile(offlinePath);
                 if (droppedFiles || offlinePath != null) return Hands.Shown(Attachments.Summary);
             }
-#endif
             if (model == null) throw new BrainException(Offline);
             Func<string, ToolArguments, string> act = Act;
             bool fileChat = false;
-#if !CROSS
             fileChat = Attachments.Has;
             if (droppedFiles && text == Files.Dropped) act = null;
-#endif
             // Her tools here, for this brain: what works on this computer, and looking only when it can see.
             Hands.Kit kit = Kit(Blind);
             string self = null;
-#if !CROSS
             self = SelfKnow.Matching(text, kit);
-#else
-            self = News.Matching(text);
-#endif
             string selfGuide = self == null ? "" : "\nFor this app-help question, use the attached facts about yourself in your own voice and their language. Explain the relevant controls in enough short sentences to be useful; for a tutorial give its six brief steps, instead of the usual short reply and no-list format. These facts describe this version, not which settings they currently have on.";
             int answerBudget = self == null ? Budget : Math.Max(Budget, self.StartsWith("What's new:", StringComparison.Ordinal) ? 900 : 360);
             List<ChatMessage> messages = new List<ChatMessage>();
@@ -2505,13 +2495,11 @@ namespace CapriDesktop
                 chat = history.ConvertAll(message => message.Content);
             }
             messages.Add(new ChatMessage("user", turn + text + Recalled(text, chat) + (self == null ? "" : "\n\n(Facts about yourself in this version of Capri, to use in your own words:\n" + self + "\n)")));
-#if !CROSS
             if (Attachments.Has)
             {
                 messages[0].Content += Files.Note;
                 messages[messages.Count - 1].Content = Attachments.Message(messages[messages.Count - 1].Content);
             }
-#endif
             List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>>();
             string raw = null;
             string direct;
@@ -2750,10 +2738,8 @@ namespace CapriDesktop
 #endif
                     if (call.Key == "media") Hands.Aim(call.Value, request);
                     string result;
-#if !CROSS
                     if (call.Key == "read_file") result = ReadFile(call.Value.Path, call.Value.Page, call.Value.Offset);
                     else
-#endif
                         result = act(call.Key, call.Value);
                     results.Add(result);
                     facts.Add(call.Key + ": " + Voice.Quote(result ?? "No result."));
@@ -2781,7 +2767,9 @@ namespace CapriDesktop
                 stopped = results.Exists(Computer.Stopped);
                 if (callReply != null) spoken = callReply();
                 if (spoken != null) raw = spoken;
-                else if (calls.Exists(fileCall => fileCall.Key == "read_file"))
+                else
+#endif
+                if (calls.Exists(fileCall => fileCall.Key == "read_file"))
                 {
                     List<ChatMessage> fileMessages = new List<ChatMessage>();
                     fileMessages.Add(new ChatMessage("system", Character + Files.Note + "\nThe tools have already run. Answer their request using the file contents and results. Keep failures clear."));
@@ -2792,7 +2780,6 @@ namespace CapriDesktop
                     catch (WebException fileReplyError) { if (fileReplyError.Status == WebExceptionStatus.RequestCanceled) throw; raw = done; }
                 }
                 else
-#endif
                 if (pulled != null) raw = pulled;
                 // Her own last line, from the brain that did the steps, unless it hands them the credit, a step failed and the line
                 // doesn't say so (F69, pass 4), or it ended with no words at all, which said "My brain sent an empty reply" after a
@@ -2978,9 +2965,7 @@ namespace CapriDesktop
                     }
                     string result;
                     if (!Hands.Valid(call.Key, args)) result = "That didn't work: that " + call.Key + " call was missing what it needs.";
-#if !CROSS
                     else if (call.Key == "read_file") result = ReadFile(args.Path, args.Page, args.Offset);
-#endif
                     else result = act(call.Key, args);
                     calls.Add(new KeyValuePair<string, ToolArguments>(call.Key, args));
                     results.Add(result);
@@ -3152,7 +3137,6 @@ namespace CapriDesktop
             return raw;
         }
 
-#if !CROSS
         internal string ReadFile(string path, int? page = null, long? offset = null) { return Attachments.Read(path, FileSight, page, offset); }
 
         private string FileSight(byte[] jpeg)
@@ -3165,7 +3149,6 @@ namespace CapriDesktop
             catch (BrainException) { return null; }
             catch (WebException fileError) { if (fileError.Status == WebExceptionStatus.RequestCanceled) throw; return null; }
         }
-#endif
 
 #if CROSS
         internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false, bool selected = false, bool preserveWhitespace = false, bool computerAction = false, string mime = "image/jpeg")
@@ -4257,9 +4240,7 @@ namespace CapriDesktop
         internal void Forget()
         {
             lock (gate) { history.Clear(); Kept(); }
-#if !CROSS
             Attachments.Clear();
-#endif
         }
 
         internal string ChatPath;
