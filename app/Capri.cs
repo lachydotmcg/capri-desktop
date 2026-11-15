@@ -2288,7 +2288,16 @@ namespace CapriDesktop
         private IntPtr exploreWindow;
         private Point exploreFrom, exploreTo;
         private double exploreMoved;
-        private Point anchor;
+        private Point position;
+        private Point anchor
+        {
+            get { return position; }
+            set
+            {
+                if (stoodOn.HasValue && position != value) stoodOn = null;
+                position = value;
+            }
+        }
         private Point pointerStart;
         private Point anchorStart;
         private bool pressed;
@@ -3567,8 +3576,10 @@ namespace CapriDesktop
             if (ink.Moving && Math.Abs(ink.Tip.X - hip.X) < preferences.Size * 4 && Math.Abs(ink.Tip.Y - hip.Y) < preferences.Size * 4) left = ink.Tip.X < hip.X;
             if (left == facingLeft) return;
             bool aside = asideAt == anchor;
+            int? stood = stoodOn;
             facingLeft = left;
             anchor = new Point(anchor.X + hip.X - Hip().X, anchor.Y);
+            stoodOn = stood;
             if (aside) asideAt = anchor;
             Location = anchor;
             Static(false, null);
@@ -6601,8 +6612,8 @@ namespace CapriDesktop
             walkCarry += preferences.Size * 0.42 * step;
             int move = (int)walkCarry;
             walkCarry -= move;
-            if (Math.Abs(gap) <= move) { anchor.X = walkTo; EndWalk(); return; }
-            anchor.X += Math.Sign(gap) * move;
+            if (Math.Abs(gap) <= move) { anchor = new Point(walkTo, anchor.Y); EndWalk(); return; }
+            anchor = new Point(anchor.X + Math.Sign(gap) * move, anchor.Y);
             leanAngle = leanAngle * 0.85 + Math.Sign(gap) * 2.5 * 0.15;
         }
 
@@ -8792,7 +8803,7 @@ namespace CapriDesktop
             fallSpeed += preferences.Size * 11 * step;
             int drop = (int)Math.Ceiling(fallSpeed * step);
             if (hip.Y + drop >= fallTo.Y) Land(fallTo);
-            else anchor.Y += drop;
+            else anchor = new Point(anchor.X, anchor.Y + drop);
         }
 
         private void Land(Ledge ledge, bool arriving = false)
@@ -18049,7 +18060,15 @@ namespace CapriDesktop
                     Rescreen();
                     DpiChanged();
                     if (anchor != midAir) throw new Exception("A display or DPI change moved her from where she stood off the taskbar: " + anchor + " from " + midAir + ".");
-                    checks.Add("PASS standing anywhere but where she stood up off the taskbar, display and DPI changes leave her where she is");
+                    lie(awayFloor, area.Left + area.Width / 3, false);
+                    CheckIdle(now, 0);
+                    if (lying || seat != null || feet() != awayFloor.Y) throw new Exception("She didn't stand on the old taskbar line for the move check.");
+                    anchor = new Point(anchor.X + gap, anchor.Y);
+                    Point moved = anchor;
+                    Rescreen();
+                    DpiChanged();
+                    if (anchor != moved) throw new Exception("A display or DPI change moved her to the taskbar after she moved off it at the same height.");
+                    checks.Add("PASS standing anywhere but where she stood up off the taskbar, even after moving at the same height, display and DPI changes leave her where she is");
                 });
             }
             finally
