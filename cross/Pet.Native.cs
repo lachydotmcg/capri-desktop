@@ -58,7 +58,7 @@ namespace CapriDesktop
                 Voice.Silence = SpeechAudio.Stop;
                 SpeechAudio.Failed += problem => Dispatcher.UIThread.Post(() => { voiceProblem = problem; NotifySettings(); });
             }
-            if (Saved.NativePlan)
+            if (Saved.NativePlan && !Saved.NoAi)
             {
                 if (OperatingSystem.IsLinux()) SelectPlan();
                 else
@@ -89,6 +89,7 @@ namespace CapriDesktop
         internal void UsePlan()
         {
             if (!TerminalJobs.Supported) return;
+            if (Saved.NoAi) SetNoAi(false);
             if (accountConnecting) { frameProblem = "Sign-in is already open in your browser."; NotifySettings(); return; }
             if (!File.Exists(Saved.PlanPython)) { frameProblem = "ChatGPT plan needs its Python environment from tools/plan-requirements.lock; set PlanPython to that environment's Python executable."; NotifySettings(); Talk.Answer("(ChatGPT plan)", frameProblem); return; }
             string directory;

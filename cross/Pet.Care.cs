@@ -85,7 +85,11 @@ namespace CapriDesktop
             if (quitting || careChecking || now < careAt) return;
             careAt = now + 0.5;
             careChecking = true;
-            bool games = CareOn(CareKind.Game) && now >= careGameAt;
+            // On Linux her Discord status looks for a game too, while Discord shows it. A Mac's window list is an Automation
+            // request, so there only Game check-ins look.
+            bool shown = OperatingSystem.IsLinux() && presence != null && !Saved.NoDiscord && presence.Status.StartsWith("Showing", StringComparison.Ordinal);
+            if (!shown && !CareOn(CareKind.Game)) { careGame = null; careGameAt = now; }
+            bool games = (CareOn(CareKind.Game) || shown) && now >= careGameAt;
             if (games) careGameAt = now + 15;
             Func<double> read = Idle;
             ThreadPool.QueueUserWorkItem(delegate

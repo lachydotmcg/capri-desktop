@@ -822,6 +822,28 @@ namespace CapriDesktop
                 if (!ipcNames.Contains(Path.Combine(ipcFolder, "discord-ipc-3")) || !discordOff || !discordOn || Array.IndexOf(new[] { "Plugged in", "Chatting", "Dancing to music", "Taking a break" }, pet.Doing) < 0)
                     throw new Exception("Her Discord status went wrong: " + string.Join(", ", ipcNames) + " / off " + discordOff + " / on " + discordOn + " / " + pet.Doing);
                 checks.Add("PASS Discord status: Settings > Show on Discord turns it off and on, she says what she's doing in plain words, and she finds Discord's socket in its temp folder");
+                var doings = new (PresenceState State, string Words)[]
+                {
+                    (new PresenceState { Working = true, Away = true, Chatting = true, Cloned = true }, "Using the computer"),
+                    (new PresenceState { Working = true, Streaming = true, PlayingGame = true }, "Streaming"),
+                    (new PresenceState { Working = true, PlayingGame = true, VoiceChat = true }, "Playing a game"),
+                    (new PresenceState { Cloned = true, VoiceChat = true, GameOpen = true }, "Multiplying"),
+                    (new PresenceState { VoiceChat = true, GameOpen = true, Chatting = true }, "Voice chatting"),
+                    (new PresenceState { GameOpen = true, Away = true, Chatting = true }, "Gaming"),
+                    (new PresenceState { Away = true, Chatting = true, Dancing = true }, "Taking a break"),
+                    (new PresenceState { Chatting = true, Dancing = true, Asleep = true }, "Chatting"),
+                    (new PresenceState { Dancing = true, Music = true, Asleep = true }, "Dancing to music"),
+                    (new PresenceState { Dancing = true }, "Dancing"),
+                    (new PresenceState { Asleep = true, Music = true }, "Asleep"),
+                    (new PresenceState { Streaming = true, PlayingGame = true, Music = true }, "Plugged in")
+                };
+                foreach (var doing in doings)
+                    if (doing.State.Words != doing.Words || doing.Words != "Plugged in" && Presence.Look(doing.Words) == "plugged") throw new Exception("Her Discord status said " + doing.State.Words + " for " + doing.Words + ", or has no art for it.");
+                if (Presence.Header("Voice chatting") != 2 || Presence.Header("Gaming") != 3 || Presence.Badge("Using the computer") != "cursor" || Presence.Badge("Playing a game") != "controller") throw new Exception("Her Discord status lost Windows' headers or badges.");
+                string onJob = null;
+                SelfJobs.Run(new ToolArguments { Task = "presence job" }, args => { onJob = pet.Doing; return "done"; }, delegate { });
+                if (onJob != "Using the computer" || pet.Doing == "Using the computer") throw new Exception("Her Discord status didn't follow her job: " + onJob + " / " + pet.Doing);
+                checks.Add("PASS Discord status uses Windows' words and order: Using the computer, Streaming and Playing a game on her jobs, Multiplying with clones, Voice chatting on TALK, Gaming with a game open, then the rest");
                 string details = pet.ErrorDetails();
                 if (!details.StartsWith("Capri v", StringComparison.Ordinal) || details.IndexOf(" | brain: ", StringComparison.Ordinal) < 0 || details.IndexOf(" | voice: ", StringComparison.Ordinal) < 0)
                     throw new Exception("Her error details were wrong: " + details);
@@ -5043,7 +5065,7 @@ namespace CapriDesktop
         {
             pet.SetLanguage("English"); pet.SetMainframeSize(100);
             string[] brainRows = { "Code/Husk Mode", "Thinking", "Extra request JSON", "Verbosity", "Stay on my model", "Replies", "Memory", "Memory size", "Max reply", "Bubble", "Follow-up messages" };
-            foreach (int tier in new[] { 0, 1, 2 })
+            foreach (int tier in new[] { -1, 0, 1, 2 })
                 foreach (int mode in new[] { 0, 2, 3 })
                     foreach (bool savedKey in new[] { false, true })
                     {
@@ -5076,7 +5098,18 @@ namespace CapriDesktop
             if (frame.Scroll.Offset.Y <= 0 || frame.Scroll.Offset.Y + frame.Scroll.Viewport.Height > frame.Scroll.Extent.Height + 1) throw new Exception("The Mainframe glide left its page or could not reach its bottom.");
             frame.Row("Volume").BringIntoView();
             frame.Top();
-            checks.Add("PASS Mainframe layout: main, Simple and Advanced fit at 100%, 150% and 200% with every brain and voice tier; Barlow labels, hints, flags, choices and cues fit; a short page glides to its end");
+            bool advancedWas = pet.Saved.AdvancedSettings; double heightWas = frame.Height;
+            pet.SetAdvancedSettings(false); pet.SetMainframeSize(100); frame.ShowSettings(false); voice.Key = null; frame.PickVoiceTier(0);
+            frame.PickBrainTier(0); pet.Brain.Model = "gemma4:e4b"; frame.Sync(); frame.UpdateLayout();
+            Control offRow = frame.Row("No AI"), normalRow = frame.Row("NORMAL"), voiceOff = frame.Row("OFF");
+            double voiceAt = Canvas.GetTop(voiceOff);
+            bool rowsRight = offRow.IsVisible && Canvas.GetTop(offRow) == 184 && Canvas.GetTop(normalRow) == 208 && Canvas.GetTop(frame.Row("MAX INTELLIGENCE")) == 256 && voiceAt == 326;
+            frame.PickBrainTier(-1); frame.UpdateLayout();
+            if (!rowsRight || Canvas.GetTop(normalRow) != 208 || Canvas.GetTop(voiceOff) != voiceAt || frame.Button("Set up her brain") != null)
+                throw new Exception("BRAIN's OFF row is out of place, or No AI moved VOICE or opened her setup: " + Canvas.GetTop(offRow) + " / " + Canvas.GetTop(normalRow) + " / " + voiceAt + " / " + Canvas.GetTop(voiceOff));
+            frame.PickBrainTier(0); pet.Brain.Model = "gemma4:e4b"; pet.SetAdvancedSettings(advancedWas); frame.Height = heightWas; frame.Sync(); frame.Top();
+            checks.Add("PASS BRAIN's OFF row sits under the tier note and above NORMAL, so only what's under it moves, by exactly one row; No AI keeps NORMAL's page height and no setup");
+            checks.Add("PASS Mainframe layout: main, Simple and Advanced fit at 100%, 150% and 200% with every brain tier, OFF too, and every voice tier; Barlow labels, hints, flags, choices and cues fit; a short page glides to its end");
         }
 
         // Code mods on Mac and Linux: the same files, hooks and approve box as Windows, and parts only Windows has refused by name.
@@ -5345,6 +5378,44 @@ namespace CapriDesktop
                     if (SettingsCopy().BrainTier != 2 || pet.Brain.Remote.Kind != "openai") throw new Exception("MAX did not keep the paid key.");
                     frame.PickBrainTier(1); if (pet.Brain.Remote?.Key != keys[2]) throw new Exception("Switching tiers lost the free key.");
                     frame.PickBrainTier(2); if (pet.Brain.Remote?.Key != "sk-mainframe-paid") throw new Exception("Switching tiers lost the paid key.");
+                    int sent = server.Requests.Count;
+                    bool silentWas = pet.Saved.Silent, thought = false; pet.Saved.Silent = true;
+                    Func<string, string> thinkWas = pet.Think;
+                    try
+                    {
+                        pet.Think = delegate { thought = true; return "A brain answered under No AI."; };
+                        frame.PickBrainTier(-1);
+                        if (!pet.MainframeNoAi || !Brain.Off || pet.Brain.Remote != null || pet.Brain.Model != null || !SettingsCopy().NoAi || pet.MainframeTier != 2 || frame.Row("Brain API key").IsVisible || ((NeonRung)frame.Row("MAX INTELLIGENCE")).Checked || !((NeonRung)frame.Row("No AI")).Checked)
+                            throw new Exception("OFF did not switch her brain off, hide the key box and keep her tier.");
+                        typeof(Pet).GetField("noAiSaid", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).SetValue(pet, -1.0);
+                        pet.Talk.Dismiss(); pet.Hear("what's the capital of France?");
+                        MainframeWait(() => pet.Talk.Reply != null, "her No AI line");
+                        string first = pet.Talk.Reply;
+                        pet.Talk.Dismiss(); pet.Hear("how are you today?");
+                        for (int i = 0; i < 20; i++) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+                        pet.MainframeRefresh();
+                        if (first != Brain.OffLine || pet.Talk.Reply != null || thought || server.Requests.Count != sent) throw new Exception("No AI asked something of a brain, or said its line again too soon: " + first + " / " + pet.Talk.Reply + " / " + thought + " / " + (server.Requests.Count - sent));
+                        pet.Think = thinkWas;
+                        pet.Talk.Dismiss(); pet.UseServer("ftp://not-a-provider", null); pet.UseServer("http://127.0.0.1:1", null);
+                        MainframeWait(() => pet.Talk.Reply != null && pet.Talk.Reply.StartsWith("Can't reach", StringComparison.Ordinal), "a provider that isn't there under No AI");
+                        if (!pet.MainframeNoAi || !Brain.Off || pet.Brain.Remote != null || pet.Brain.Server != null || pet.Brain.Model != null || pet.MainframeTier != 2) throw new Exception("A provider that didn't connect switched No AI off or changed her brain.");
+                        pet.UseServer(server.Address, null);
+                        MainframeWait(() => pet.Brain.Server == server.Address, "a provider under No AI");
+                        if (pet.MainframeNoAi || Brain.Off || pet.MainframeTier != 0 || pet.Brain.Remote != null || pet.Brain.Model == null || SettingsCopy().NoAi || SettingsCopy().CloudModel != null) throw new Exception("A provider connected under No AI didn't land on NORMAL without a cloud key.");
+                        pet.LeaveServer(); MainframeWait(() => pet.Brain.Model != null, "Ollama after the provider");
+                        string modelWas = pet.Saved.Model;
+                        server.Held.Reset(); server.Release.Reset(); server.Hold = "/api/pull";
+                        pet.PullBrain("pull-under-no-ai:1b");
+                        MainframeWait(() => server.Held.IsSet, "a download in flight");
+                        frame.PickBrainTier(-1); server.Release.Set();
+                        MainframeWait(() => !pet.MainframePulling, "the download No AI stopped");
+                        if (!pet.MainframeNoAi || pet.Brain.Model != null || pet.Saved.Model != modelWas || pet.MainframeProblem != null) throw new Exception("No AI let a download in flight finish as her brain or report on it.");
+                        frame.PickBrainTier(2);
+                        if (pet.MainframeNoAi || Brain.Off || pet.Brain.Remote?.Key != "sk-mainframe-paid" || SettingsCopy().NoAi) throw new Exception("Picking MAX after OFF did not bring her paid brain back.");
+                    }
+                    finally { pet.Think = thinkWas; pet.Saved.Silent = silentWas; if (pet.MainframeNoAi) pet.SetNoAi(false); pet.Talk.Dismiss(); }
+                    checks.Add("PASS BRAIN's OFF row (No AI): no brain and no request at all, her line once and not again within ten minutes, the key box hidden, the tier and its key kept, and MAX brings them back");
+                    checks.Add("PASS No AI stays on through a provider that doesn't connect, a working one lands on NORMAL with no cloud key, and turning it on stops a download in flight without a word");
                     MainframeEnter(frame, "Brain API key", ""); if (pet.Brain.Remote != null || pet.MainframeTier != 2) throw new Exception("Forget did not clear the chosen tier's key.");
                     if (pet.MainframeModels.Length != 0) throw new Exception("A cloud tier without a key offered local models.");
                     pet.MainframePickModel("local-wrong");
@@ -5384,6 +5455,21 @@ namespace CapriDesktop
                     if (pet.Saved.ServerModel != "server-other") throw new Exception("The Mainframe did not save its server model.");
                     MainframeEnter(frame, "Local server address", ""); MainframeWait(() => pet.Brain.Server == null && pet.Brain.Model != null && Array.IndexOf(pet.MainframeModels, Pet.Starter) >= 0, "returning to Ollama");
                     if (!server.Requests.Exists(line => line.Contains("/api/pull") && line.Contains(Pet.Starter))) throw new Exception("Set up did not use the existing model download.");
+                    frame.ShowSettings(false); NeonButton providerKey = frame.Button("Provider");
+                    if (providerKey == null || Avalonia.Automation.AutomationProperties.GetName(providerKey) != "OpenAI-compatible provider address and key") throw new Exception("BRAIN has no Provider key.");
+                    var provider = new MainframeSheet(pet, "BRAIN PROVIDER", "provider"); provider.Show(frame);
+                    try
+                    {
+                        var providerAddress = (NeonEntry)provider.Rows["Address"]; var providerSecret = (NeonEntry)provider.Rows["Key"];
+                        providerAddress.Box.Text = server.Address; providerSecret.Box.Text = "provider-mainframe-key";
+                        ((NeonButton)provider.Rows["Connect"]).Press();
+                        MainframeWait(() => pet.Brain.Server == server.Address && pet.Brain.ServerKey == "provider-mainframe-key" && pet.Saved.BrainServer == server.Address, "her provider with a key");
+                        if (providerSecret.Box.Text.Length != 0 || providerSecret.Box.PasswordChar == '\0') throw new Exception("The provider key stayed in its box or showed.");
+                        ((NeonButton)provider.Rows["Forget"]).Press();
+                        if (pet.Brain.Server != null || pet.Brain.ServerKey != null || pet.Saved.BrainServer != null) throw new Exception("Forget did not drop the provider.");
+                    }
+                    finally { provider.Close(); }
+                    checks.Add("PASS BRAIN > Provider opens BRAIN PROVIDER, which connects an OpenAI-compatible address with a masked key on the Brain menu's own provider path and forgets it");
                     checks.Add("PASS Mainframe connections: local download and refresh, NVIDIA, Gemini and free OpenRouter, paid keys, tier switching, ElevenLabs keys and voices, and her own brain server use loopback fakes");
                 }
                 finally
