@@ -9075,7 +9075,7 @@ namespace CapriDesktop
                     if (pet.MainframeBrainKey != null || File.ReadAllText(Path.Combine(data, "brain-free-key")) != free || File.Exists(Path.Combine(data, "brain-key"))) throw new Exception("A refused key reached the Mainframe store.");
                 }
                 int calls = checker.Calls;
-                key("unknown-key", "max", unknown); RemoteBrainNote(read(), "unknown-key", "failed", Pet.NotAKey);
+                key("unknown-key", "max", "\n" + unknown + "\t" + new string(' ', RemoteBrainKeys.MostKey)); RemoteBrainNote(read(), "unknown-key", "failed", Pet.NotAKey);
                 key("wrong-rung", "medium", paid); RemoteBrainNote(read(), "wrong-rung", "failed", RemoteBrainKeys.PaidNote);
                 foreach (string plan in new[] { Plans.ClaudeKey, Plans.CodexKey })
                 {
@@ -9086,7 +9086,7 @@ namespace CapriDesktop
                 RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, false);
                 if (pet.MainframeBrainNote != "ChatGPT plan \u00b7 retained account") throw new Exception("The retained plan did not keep its Mainframe note.");
                 pet.Brain.Provider = null; pet.Saved.NativePlan = false; pet.NotifySettings(); read();
-                checks.Add("PASS cross key refusals: provider and ordinary failures use the Mainframe note without saving; unknown keys, paid keys under medium and PC-only plans use their fixed words; retained-plan state matches the Mainframe");
+                checks.Add("PASS cross key refusals: provider and ordinary failures use the Mainframe note without saving; unknown keys, trimmed first like the key box even with a newline, a tab or padding past 400, paid keys under medium and PC-only plans use their fixed words; retained-plan state matches the Mainframe");
 
                 checker.WaitFor(changed); key("changed-key", "max", changed);
                 RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "the held key check");
@@ -9119,9 +9119,9 @@ namespace CapriDesktop
                     "{\"type\":\"brain.key\",\"brain\":\"max\",\"id\":\"missing-id\"}",
                     "{\"type\":\"brain.key\",\"brain\":\"max\",\"id\":\"empty-id\",\"key\":\"\"}",
                     new RemoteJson.Writer().Text("type", "brain.key").Text("brain", "max").Text("id", "long-id").Text("key", new string('x', 401)).ToString(),
-                    "{\"type\":\"brain.key\",\"brain\":\"max\",\"id\":\"control-id\",\"key\":\"\\nnot-a-key\"}"
+                    "{\"type\":\"brain.key\",\"brain\":\"max\",\"id\":\"control-id\",\"key\":\"a\\nb\"}"
                 };
-                string[] references = { null, "use-id", null, "normal-id", "missing-id", "empty-id", "long-id", "control-id" };
+                string[] references = { null, null, null, "normal-id", "missing-id", "empty-id", "long-id", "control-id" };
                 calls = checker.Calls;
                 for (int i = 0; i < malformed.Length; i++)
                 {
@@ -9129,7 +9129,7 @@ namespace CapriDesktop
                     if (rows.Count != 1 || rows[0].Text("type") != "error" || rows[0].Text("code") != "bad-message" || rows[0].Text("re") != references[i]) throw new Exception("A malformed brain ask missed bad-message or its good id.");
                 }
                 if (checker.Calls != calls) throw new Exception("A malformed ask checked a key.");
-                checks.Add("PASS cross malformed brain asks: unknown rungs, bad ids, wrong key rungs, missing, empty, long and control-character keys get bad-message with re only for a good id");
+                checks.Add("PASS cross malformed brain asks: unknown rungs, bad ids, wrong key rungs, missing, empty, long and control-character keys get bad-message with re only for a brain.key's good id, never for brain.use, as on Windows");
 
                 foreach (bool pending in new[] { false, true }) foreach (string ending in new[] { "left", "session", "revoke", "off", "quit" })
                 {
