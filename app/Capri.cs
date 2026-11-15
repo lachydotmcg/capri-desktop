@@ -45316,8 +45316,8 @@ namespace CapriDesktop
                     // second piece (about a 40 ms publish at twice the pace Claude writes), each update timed with its repaint.
                     string reply = WorkspaceLongReply(50000);
                     Control drawn = window.Named("Conversation");
-                    int laid = window.LaidWords, publishes = 0, lateCount = 0;
-                    double worst = 0, late = 0, latePaint = 0, early = 0, all = 0;
+                    int laid = window.LaidWords, publishes = 0, lateCount = 0, headers = window.HeaderFills, lookups = window.PathLookups;
+                    double worst = 0, late = 0, latePaint = 0, early = 0, all = 0, latePieces = 0, earlyPieces = 0;
                     int earlyCount = 0;
                     Stopwatch took = Stopwatch.StartNew();
                     for (int at = 0, n = 0; at < reply.Length; at += 16, n++)
@@ -45326,22 +45326,28 @@ namespace CapriDesktop
                         if (n % 2 == 0 && at + 16 < reply.Length) continue;
                         work.PublishStreams(feed);
                         window.FlushChanges();
+                        int pieces = window.PiecesDrawn;
                         Stopwatch paint = Stopwatch.StartNew();
                         drawn.Refresh();
                         double one = window.LastChange + paint.Elapsed.TotalMilliseconds;
+                        pieces = window.PiecesDrawn - pieces;
                         publishes++;
                         all += one;
                         worst = Math.Max(worst, one);
-                        if (at >= reply.Length * 9 / 10) { late += one; latePaint += paint.Elapsed.TotalMilliseconds; lateCount++; }
-                        if (at < reply.Length / 10) { early += one; earlyCount++; }
+                        if (at >= reply.Length * 9 / 10) { late += one; latePaint += paint.Elapsed.TotalMilliseconds; latePieces += pieces; lateCount++; }
+                        if (at < reply.Length / 10) { early += one; earlyPieces += pieces; earlyCount++; }
                     }
                     took.Stop();
                     int ran = window.LayoutMeasures - measured, passes = window.LayoutPasses - layouts, blocksLaid = window.LaidWords - laid, blocks = WorkWords.Read(reply).Count;
                     Stopwatch reading = Stopwatch.StartNew();
                     WorkWords.Read(reply);
                     reading.Stop();
-                    if (changing.Text != reply || ran != publishes || passes != publishes || blocksLaid > blocks + 3 * publishes || late / Math.Max(1, lateCount) > 3 * early / Math.Max(1, earlyCount) + 10 || window.ItemFills != fills || cost.Revision != revision || window.MeasuresOf(cached) != oldMeasures || !object.ReferenceEquals(cachedLayout, window.LayoutOf(cached)) || !window.AtEnd || !window.FollowingEnd) throw new Exception("Workspace laid out its whole growing reply again, rebuilt paging, saved pieces or lost following while streaming: " + blocksLaid + " blocks laid for " + blocks + " in " + publishes + " updates.");
-                    checks.Add("PASS Workspace 50,000-character reply in " + publishes + " updates: " + blocksLaid + " Markdown blocks laid for its " + blocks + ", " + (all / publishes).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms an update with its repaint on average, " + (early / Math.Max(1, earlyCount)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms in the first tenth, " + (late / Math.Max(1, lateCount)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms in the last (" + (latePaint / Math.Max(1, lateCount)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms of it the repaint), " + worst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms at worst, " + took.ElapsedMilliseconds + " ms feed; reading all of it takes " + reading.ElapsedMilliseconds + " ms; earlier layouts and paging reused");
+                    earlyPieces /= Math.Max(1, earlyCount);
+                    latePieces /= Math.Max(1, lateCount);
+                    if (changing.Text != reply || ran != publishes || passes != publishes || blocksLaid > blocks + 3 * publishes || window.ItemFills != fills || cost.Revision != revision || window.MeasuresOf(cached) != oldMeasures || !object.ReferenceEquals(cachedLayout, window.LayoutOf(cached)) || !window.AtEnd || !window.FollowingEnd) throw new Exception("Workspace laid out its whole growing reply again, rebuilt paging, saved pieces or lost following while streaming: " + blocksLaid + " blocks laid for " + blocks + " in " + publishes + " updates.");
+                    if (latePieces > 2 * earlyPieces + 20) throw new Exception("Workspace drew pieces of its growing reply outside the view: " + latePieces.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " a repaint near the end against " + earlyPieces.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " near the start.");
+                    if (window.HeaderFills != headers || window.PathLookups != lookups) throw new Exception("Workspace refilled its header, chat list and keys or looked up the chat's folders for words arriving in a reply: " + (window.HeaderFills - headers) + " header fills and " + (window.PathLookups - lookups) + " folder lookups in " + publishes + " updates.");
+                    checks.Add("PASS Workspace 50,000-character reply in " + publishes + " updates: " + blocksLaid + " Markdown blocks laid for its " + blocks + ", " + earlyPieces.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " pieces drawn a repaint in the first tenth and " + latePieces.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " in the last, " + (all / publishes).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms an update with its repaint on average, " + (early / Math.Max(1, earlyCount)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms in the first tenth, " + (late / Math.Max(1, lateCount)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms in the last (" + (latePaint / Math.Max(1, lateCount)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms of it the repaint), " + worst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms at worst, " + took.ElapsedMilliseconds + " ms feed; reading all of it takes " + reading.ElapsedMilliseconds + " ms; earlier layouts and paging reused, and no header, chat list or folder lookups for its words");
                     string piece = WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", " more"));
                     int flushes = window.ChangeFlushes;
                     for (int i = 0; i < 100; i++) window.QueueChange(cost, changing);
@@ -45353,6 +45359,10 @@ namespace CapriDesktop
                     work.PublishStreams(feed);
                     window.FlushChanges();
                     if (window.ItemFills != fills || window.LayoutMeasures != measured + ran + 1) throw new Exception("Workspace rebuilt this transcript for another chat's change.");
+                    int otherHeaders = window.HeaderFills, otherLookups = window.PathLookups, otherPasses = window.LayoutPasses;
+                    window.QueueChange(other, new WorkspaceItem { Kind = "text", Text = "Another chat's words.", Growing = true });
+                    window.FlushChanges();
+                    if (window.HeaderFills != otherHeaders || window.PathLookups != otherLookups || window.LayoutPasses != otherPasses || window.ItemFills != fills) throw new Exception("Workspace refilled this chat for words arriving in another chat's reply.");
                     window.ScrollConversation(100);
                     int scrolled = window.Scrolled;
                     work.Parse(feed, piece);

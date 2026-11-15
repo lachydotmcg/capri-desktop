@@ -136,7 +136,7 @@ namespace CapriDesktop
         private long changeCalm;
         private readonly Dictionary<WorkspaceChat, HashSet<WorkspaceItem>> pendingItems = new Dictionary<WorkspaceChat, HashSet<WorkspaceItem>>();
         private readonly HashSet<WorkspaceChat> pendingFull = new HashSet<WorkspaceChat>();
-        internal int ChangeFlushes;
+        internal int ChangeFlushes, HeaderFills, PathLookups;
         internal double LastChange, ChangeMs;
         private WorkspaceItem pageEnd;
         private WorkspaceChat chat;
@@ -311,13 +311,16 @@ namespace CapriDesktop
         internal void FlushChanges()
         {
             changeClock.Stop();
-            bool current, full;
+            bool current, full, growing;
             List<WorkspaceItem> items;
             lock (changeGate)
             {
                 if (pendingChanges.Count == 0) { changePosted = false; return; }
                 current = pendingChanges.Contains(chat);
                 full = pendingFull.Contains(chat);
+                growing = pendingFull.Count == 0;
+                foreach (HashSet<WorkspaceItem> each in pendingItems.Values)
+                    foreach (WorkspaceItem item in each) if (item.Kind != "text" || !item.Growing) growing = false;
                 HashSet<WorkspaceItem> found;
                 items = chat != null && pendingItems.TryGetValue(chat, out found) ? new List<WorkspaceItem>(found) : new List<WorkspaceItem>();
                 pendingItems.Clear();
@@ -327,9 +330,15 @@ namespace CapriDesktop
             }
             ChangeFlushes++;
             long started = Stopwatch.GetTimestamp();
-            FillChats();
-            if (current) { FillHeader(); if (full || !transcript.RefreshText(items)) SyncItems(); }
-            UpdateKeys();
+            // Words arriving in a reply change nothing else, so the chat list, header and keys stay, and its folders aren't
+            // looked up on disk again.
+            if (!growing || current && !transcript.RefreshText(items, true))
+            {
+                transcript.ForgetPaths();
+                FillChats();
+                if (current) { FillHeader(); if (full || !transcript.RefreshText(items, false)) SyncItems(); }
+                UpdateKeys();
+            }
             long took = Stopwatch.GetTimestamp() - started;
             LastChange = took * 1000.0 / Stopwatch.Frequency;
             ChangeMs += LastChange;
@@ -497,6 +506,7 @@ namespace CapriDesktop
         // Everything Shorten and the trust card read, so the conversation knows when its cards need laying out again.
         internal string PathsSeen()
         {
+            PathLookups++;
             if (chat == null) return PathAlias == null ? "" : "alias";
             int untrusted;
             try { untrusted = workspace.Untrusted(chat).Count; } catch (Exception) { untrusted = -1; }
@@ -568,6 +578,7 @@ namespace CapriDesktop
 
         private void FillHeader()
         {
+            HeaderFills++;
             composer.Fill(chat);
             bool untrusted = chat != null && !workspace.Trusted(chat);
             trust.Text = chat != null && Workspace.AllFolders(chat).Count > 1 ? "Trust folders" : "Trust folder";
@@ -1041,6 +1052,7 @@ namespace CapriDesktop
         internal int MeasuresOf(WorkspaceItem item) { return transcript.MeasuresOf(item); }
         internal object LayoutOf(WorkspaceItem item) { return transcript.LayoutOf(item); }
         internal int LaidWords { get { return transcript.LaidWords; } }
+        internal int PiecesDrawn { get { return transcript.PiecesDrawn; } }
         internal string LayoutSignature(WorkspaceItem item) { return transcript.Signature(item); }
         internal void LayOutWhole(WorkspaceItem item) { transcript.Forget(item); transcript.Arrange(true); }
         internal void ForgetLayout(WorkspaceItem item) { transcript.Forget(item); }
@@ -1866,8 +1878,10 @@ namespace CapriDesktop
             private Rectangle thinkLine;
             private readonly System.Windows.Forms.Timer thinkingClock = new System.Windows.Forms.Timer { Interval = 1000 };
             internal Func<double> Seconds;
-            internal int LayoutMeasures, LayoutPasses, ItemFills, LaidWords;
+            internal int LayoutMeasures, LayoutPasses, ItemFills, LaidWords, PiecesDrawn;
             internal Rectangle ThinkingInvalidated;
+            // What PathsSeen gave the last layout, kept for a reply's growing words so they don't look up its folders again.
+            private string lastPaths;
             private string thinkingText = "Thinking";
             internal string ThinkingText { get { return thinkingText; } }
             internal Rectangle ThinkingRectangle
@@ -1989,6 +2003,7 @@ namespace CapriDesktop
                 copyHot = false;
                 Offset = 0;
                 laid = -1;
+                lastPaths = null;
             }
 
             private void Drop(Block block)
@@ -1999,7 +2014,7 @@ namespace CapriDesktop
                 block.Shape = "";
             }
 
-            internal bool RefreshText(List<WorkspaceItem> items)
+            internal bool RefreshText(List<WorkspaceItem> items, bool samePaths)
             {
                 if (items.Count == 0) return false;
                 bool changed = false;
@@ -2016,10 +2031,12 @@ namespace CapriDesktop
                 foreach (Block old in Blocks)
                     if (!old.Hidden && old.Box.Bottom > Offset && old.Box.Top < Offset + Height) anchors.Add(new KeyValuePair<WorkspaceItem, int>(old.Item, old.Box.Top - Offset));
                 slack = 0;
-                Arrange(true);
+                Arrange(true, samePaths);
                 Hold(follow, tall, anchors, was);
                 return true;
             }
+
+            internal void ForgetPaths() { lastPaths = null; }
 
             internal void Fill(List<WorkspaceItem> shown, Dictionary<string, string> results, HashSet<string> failed, Dictionary<WorkspaceItem, WorkspaceItem> asked, string live, bool hasEarlier, bool hasNewer)
             {
@@ -2198,7 +2215,9 @@ namespace CapriDesktop
             private int Inset { get { return Z(8); } }
             private int Edge { get { return Width - Z(16); } }
 
-            internal void Arrange(bool force)
+            internal void Arrange(bool force) { Arrange(force, false); }
+
+            private void Arrange(bool force, bool samePaths)
             {
                 if (!force && laid == Width) return;
                 LayoutPasses++;
@@ -2211,7 +2230,8 @@ namespace CapriDesktop
                     if (newer) Newer.Bounds = new Rectangle(x, y, Math.Max(Z(110), Newer.Needs), Z(28));
                     y += Z(40);
                 }
-                string paths = window.PathsSeen();
+                string paths = samePaths && lastPaths != null ? lastPaths : window.PathsSeen();
+                lastPaths = paths;
                 Group();
                 for (int i = 0; i < Blocks.Count; i++)
                 {
@@ -3556,6 +3576,7 @@ namespace CapriDesktop
                 foreach (Piece piece in block.Pieces)
                 {
                     if (piece.Box.Bottom < seen.Top || piece.Box.Top > seen.Bottom) continue;
+                    PiecesDrawn++;
                     if (piece.Code)
                     {
                         int pad = Z(10), top = 0;
