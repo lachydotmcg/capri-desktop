@@ -5517,6 +5517,11 @@ namespace CapriDesktop
                     RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a file phrase without a brain");
                     if (pet.Talk.Reply == Pet.Offline || Hands.Failed(pet.Talk.Reply) || Security.IsHold(pet.Talk.Reply)) throw new Exception("A file phrase needed a brain: " + words);
                 }
+                const string listed = "blue notebook.txt is a text file. More text is available.";
+                pet.Talk.Dismiss(); pet.Hear("read \"" + path + "\"");
+                RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a read without a brain");
+                List<ChatMessage> history = pet.Brain.History;
+                if (pet.Talk.Reply != listed || history[history.Count - 1].Content != listed) throw new Exception("A read without a brain showed or kept her brain's next-step words: " + pet.Talk.Reply);
                 Hands.Websites.Do(new ToolArguments { Action = "save", Name = "offline", Site = "example.com/offline" });
                 Security.Set(Security.Open, false);
                 pet.Talk.Dismiss(); pet.Hear("open offline");
@@ -5648,6 +5653,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross file tools: both brain lists, direct phrases, Security gates and phone eligibility match Windows; name and description search, reveal, open and stop use fakes");
                 checks.Add("PASS cross reading: chosen paths, data framing, text and PDF continuation, DOCX, XLSX, pictures, Windows refusals, scanned-page and picture OCR limits, missing Poppler and chat clear");
                 checks.Add("PASS cross nicknames: save, reload, list, fake open and forget preserve Windows answers, and platform help describes the available actions");
+                checks.Add("PASS cross reads without a brain show and keep her cleaned line, like Windows");
             }
             finally
             {

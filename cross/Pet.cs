@@ -5456,8 +5456,9 @@ namespace CapriDesktop
                 {
                     string done = phone == null ? Security.Resume(line, Brain.Act) : null;
                     if (done == null) done = fileRequest ? Brain.Act(tool, args) : Offline;
-                    Brain.Remember(line, done);
-                    return Security.Said(done);
+                    string shown = Hands.Shown(Security.Said(done));
+                    Brain.Remember(line, shown);
+                    return shown;
                 });
                 return;
             }
