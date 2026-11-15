@@ -34,16 +34,18 @@ namespace CapriDesktop
 
     internal sealed class ModsWindow : MainframeWindow
     {
-        internal const int Wide = 760, Tall = 884;
+        internal const int Wide = 760, Tall = 916;
         private const int Cards = 2, Rows = 4;
+        private static readonly string DownloadFolder = Path.Combine(Path.GetTempPath(), "capri-mod-downloads");
         private readonly Pet pet;
         private readonly NeonEntry search;
-        private readonly NeonButton refresh, back, next, installedBack, installedNext;
+        private readonly NeonButton refresh, back, next, installedBack, installedNext, update;
         private readonly NeonCaption directoryNote, status, page, installedPage;
         private readonly NeonButton[] kinds = new NeonButton[4];
+        private readonly NeonButton[] sorts = new NeonButton[ModDirectory.Sorts.Length];
         private readonly ModPreview[] previews = new ModPreview[Cards];
         private readonly NeonCaption[] titles = new NeonCaption[Cards], authors = new NeonCaption[Cards], details = new NeonCaption[Cards], metas = new NeonCaption[Cards], numbers = new NeonCaption[Cards];
-        private readonly NeonButton[] downloads = new NeonButton[Cards];
+        private readonly NeonButton[] downloads = new NeonButton[Cards], views = new NeonButton[Cards];
         private readonly NeonPicker[] ratings = new NeonPicker[Cards];
         private readonly NeonCaption[] names = new NeonCaption[Rows], abouts = new NeonCaption[Rows];
         private readonly NeonButton[] switches = new NeonButton[Rows], removes = new NeonButton[Rows];
@@ -52,11 +54,15 @@ namespace CapriDesktop
         private readonly HashSet<string> fetching = new HashSet<string>();
         private readonly HashSet<string> failed = new HashSet<string>();
         private List<ModListing> listings = new List<ModListing>(), shown = new List<ModListing>();
-        private int first, installedFirst, kind, ticket;
-        private bool closed, syncing, working, loading, statsLive;
+        // Newer copies of installed mods found by the last look, waiting for the second press of Update mods.
+        private List<ModListing> updates;
+        private int first, installedFirst, kind, order, ticket;
+        private bool closed, syncing, working, loading, statsLive, looking, updating;
         internal string StatusText { get { return status.Text; } }
         internal string DirectoryText { get { return directoryNote.Text; } }
-        internal bool Working { get { return working || loading; } }
+        internal bool Working { get { return working || loading || looking; } }
+        internal string UpdateText { get { return update.Text; } }
+        internal ReadmeWindow Readme { get; private set; }
         internal bool PreviewsPending { get { return fetching.Count != 0; } }
         internal string PageText { get { return page.Text; } }
         internal string InstalledPageText { get { return installedPage.Text; } }
@@ -79,10 +85,16 @@ namespace CapriDesktop
                 int choice = i;
                 kinds[i] = Button(ModDirectory.Kinds[i], 28 + i * 84, 120, 76, 24, delegate { PickKind(choice); });
             }
-            directoryNote = Label("Browse mods, or import a file.", 28, 152, 328, 32);
+            Label("SORT BY", 28, 152, 76, 24);
+            for (int i = 0; i < sorts.Length; i++)
+            {
+                int choice = i;
+                sorts[i] = Button(ModDirectory.Sorts[i], 112 + i * 84, 152, 76, 24, delegate { PickSort(choice); });
+            }
+            directoryNote = Label("Browse mods, or import a file.", 28, 184, 328, 32);
             for (int i = 0; i < Cards; i++)
             {
-                int card = i, y = 194 + i * 306;
+                int card = i, y = 226 + i * 306;
                 previews[i] = Put(Page, new ModPreview(), 28, y, 328, 128, "Mod preview");
                 titles[i] = Label("", 28, y + 136, 328, 20, MainframeTheme.White, 44.0 / 3, true);
                 authors[i] = Label("", 28, y + 158, 328, 18, MainframeTheme.Cyan);
@@ -91,16 +103,17 @@ namespace CapriDesktop
                 numbers[i] = Label("", 28, y + 238, 328, 18);
                 downloads[i] = Button("Download", 28, y + 262, 100, 28, delegate { Install(card); });
                 downloads[i].Accent = MainframeTheme.Cyan;
-                ratings[i] = Put(Page, new NeonPicker(), 136, y + 262, 220, 28, "Rate mod");
+                views[i] = Button("View", 136, y + 262, 76, 28, delegate { View(card); });
+                ratings[i] = Put(Page, new NeonPicker(), 220, y + 262, 136, 28, "Rate mod");
                 ratings[i].Check = false;
                 ratings[i].Options(new[] { "1 star", "2 stars", "3 stars", "4 stars", "5 stars" });
                 ratings[i].Changed += delegate(int stars) { Rate(card, stars + 1); };
             }
-            back = Button("Back", 28, 808, 60, 24, delegate { first -= Cards; FillDirectory(); });
-            page = Label("", 96, 808, 192, 24); page.Align = TextAlignment.Center;
-            next = Button("Next", 296, 808, 60, 24, delegate { first += Cards; FillDirectory(); });
-            Button("View on GitHub", 28, 846, 156, 28, delegate { if (Program.Smoke == null) Pet.Browse(ModDirectory.Page); });
-            NeonButton import = Button("Import mod", 408, 84, 160, 28, delegate { });
+            back = Button("Back", 28, 840, 60, 24, delegate { first -= Cards; FillDirectory(); });
+            page = Label("", 96, 840, 192, 24); page.Align = TextAlignment.Center;
+            next = Button("Next", 296, 840, 60, 24, delegate { first += Cards; FillDirectory(); });
+            Button("View on GitHub", 28, 878, 156, 28, delegate { if (Program.Smoke == null) Pet.Browse(ModDirectory.Page); });
+            NeonButton import = Button("Import mod", 408, 84, 104, 28, delegate { });
             import.Accent = MainframeTheme.Cyan;
             import.Click += async delegate
             {
@@ -120,7 +133,8 @@ namespace CapriDesktop
                 }
                 catch (Exception) { if (!closed) Say("Couldn't open the mod picker."); }
             };
-            Button("Mods folder", 576, 84, 160, 28, delegate
+            update = Button("Update mods", 520, 84, 104, 28, UpdateMods);
+            Button("Mods folder", 632, 84, 104, 28, delegate
             {
                 try { Directory.CreateDirectory(pet.ModList.Folder); if (Program.Smoke == null) Pet.Browse(pet.ModList.Folder); }
                 catch (Exception error) { Say("Couldn't open the mods folder. " + error.Message); }
@@ -156,6 +170,8 @@ namespace CapriDesktop
             Closed += delegate
             {
                 closed = true; pet.SettingsChanged -= Sync;
+                ModDirectory.Forget(updates);
+                if (Readme != null) Readme.Close();
                 foreach (NeonPicker rating in ratings) rating.CloseMenu();
                 foreach (Bitmap picture in pictures.Values) picture.Dispose();
                 pictures.Clear();
@@ -184,7 +200,7 @@ namespace CapriDesktop
             syncing = true;
             try
             {
-                FillInstalled(); FillDirectory();
+                FillInstalled(); FillDirectory(); ShowUpdateKey();
                 refresh.IsEnabled = !loading && !working;
                 string[] now = pet.ModList.ColoursNow;
                 for (int i = 0; i < colours.Length; i++) if (!colours[i].Box.IsKeyboardFocusWithin) colours[i].Box.Text = now[i] ?? "";
@@ -219,11 +235,14 @@ namespace CapriDesktop
                     listings = found ?? new List<ModListing>(); first = 0;
                     DirectorySays(problem ?? (listings.Count == 0 ? "No mods in the directory yet." : "Pick a mod to download."));
                     FillDirectory();
+                    // Marks the cards of installed mods with a newer copy, without saying anything.
+                    if (found != null && found.Count > 0) LookForUpdates(listings);
                 });
             });
         }
 
         internal void PickKind(int choice) { kind = choice; first = 0; FillDirectory(); }
+        internal void PickSort(int choice) { order = choice; first = 0; FillDirectory(); }
         // Avalonia raises TextChanged after the new text renders, so a search from here fills the cards at once.
         internal void Search(string words) { search.Box.Text = words; first = 0; FillDirectory(); }
         internal void NextPage() { first += Cards; FillDirectory(); }
@@ -238,31 +257,33 @@ namespace CapriDesktop
 
         private void FillDirectory()
         {
-            shown = ModDirectory.Filter(listings, search.Box.Text, kind);
+            shown = ModDirectory.Sort(ModDirectory.Filter(listings, search.Box.Text, kind), order);
             first = Math.Max(0, Math.Min(first, Math.Max(0, (shown.Count - 1) / Cards) * Cards));
             for (int i = 0; i < kinds.Length; i++) { kinds[i].Picked = i == kind; kinds[i].InvalidateVisual(); }
+            for (int i = 0; i < sorts.Length; i++) { sorts[i].Picked = i == order; sorts[i].InvalidateVisual(); }
             for (int i = 0; i < Cards; i++)
             {
                 ModListing mod = first + i < shown.Count ? shown[first + i] : null;
-                previews[i].IsVisible = titles[i].IsVisible = metas[i].IsVisible = numbers[i].IsVisible = downloads[i].IsVisible = ratings[i].IsVisible = mod != null;
+                previews[i].IsVisible = titles[i].IsVisible = metas[i].IsVisible = numbers[i].IsVisible = downloads[i].IsVisible = views[i].IsVisible = ratings[i].IsVisible = mod != null;
                 authors[i].IsVisible = mod != null && mod.Author.Length > 0;
                 details[i].IsVisible = mod != null && mod.About.Length > 0;
                 if (mod == null) { previews[i].Picture = null; continue; }
-                bool installed = pet.ModList.All.Exists(m => m.File.Id == mod.Id);
+                bool installed = pet.ModList.All.Exists(m => m.File.Id == mod.Id), newer = installed && UpdateFor(mod.Id) != null;
                 titles[i].Text = mod.Title;
                 authors[i].Text = mod.Author.Length > 0 ? "by " + mod.Author : "";
                 details[i].Text = mod.About;
                 ToolTip.SetTip(previews[i], new TextBlock { Text = mod.Title + (mod.Author.Length > 0 ? "\nby " + mod.Author : "") + (mod.About.Length > 0 ? "\n" + mod.About : ""), MaxWidth = 328, TextWrapping = TextWrapping.Wrap, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size, Foreground = MainframeTheme.White });
-                metas[i].Text = mod.Kind + (installed ? " Installed." : "");
+                metas[i].Text = mod.Kind + (newer ? " Update available." : installed ? " Installed." : "");
+                metas[i].Ink = newer ? MainframeTheme.Cyan : MainframeTheme.Faint;
                 numbers[i].Text = statsLive ? ModDirectory.DownloadLine(mod) + "  |  " + ModDirectory.RatingLine(mod) : loading ? "Loading counts and ratings..." : "Counts and ratings unavailable.";
-                downloads[i].Text = installed ? "Reinstall" : "Download";
+                downloads[i].Text = newer ? "Update" : installed ? "Reinstall" : "Download";
                 downloads[i].IsEnabled = !working;
                 ratings[i].IsEnabled = !working && statsLive && installed;
                 ratings[i].Text = "Rate this mod";
                 Bitmap picture = null;
                 if (mod.PreviewSha != null) pictures.TryGetValue(mod.PreviewSha, out picture);
                 previews[i].Picture = picture;
-                foreach (Control control in new Control[] { titles[i], authors[i], details[i], metas[i], numbers[i], downloads[i], ratings[i], previews[i] }) control.InvalidateVisual();
+                foreach (Control control in new Control[] { titles[i], authors[i], details[i], metas[i], numbers[i], downloads[i], views[i], ratings[i], previews[i] }) control.InvalidateVisual();
                 if (picture == null && mod.PreviewSha != null) LoadPreview(mod);
             }
             page.Text = shown.Count == 0 ? "No matching mods" : "Page " + (first / Cards + 1) + " of " + ((shown.Count + Cards - 1) / Cards);
@@ -419,18 +440,26 @@ namespace CapriDesktop
         {
             if (closed || working || first + card >= shown.Count) return;
             ModListing mod = shown[first + card];
-            working = true; Say("Downloading " + mod.Title + "..."); Sync();
+            ModListing waiting = pet.ModList.All.Exists(m => m.File.Id == mod.Id) ? UpdateFor(mod.Id) : null;
+            string ready = waiting != null && waiting.Fetched != null && File.Exists(waiting.Fetched) ? waiting.Fetched : null;
+            if (ready != null) waiting.Fetched = null;
+            working = true; Say((waiting != null ? "Updating " : "Downloading ") + mod.Title + "..."); Sync();
             ThreadPool.QueueUserWorkItem(delegate
             {
-                string file = null, problem = null;
-                try { file = ModDirectory.Download(mod, Path.Combine(Path.GetTempPath(), "capri-mod-downloads")); }
-                catch (Exception error) { problem = error is ModException ? error.Message : "Couldn't download that mod."; }
+                string file = ready, problem = null;
+                if (file == null)
+                {
+                    try { file = ModDirectory.Download(mod, DownloadFolder); }
+                    catch (Exception error) { problem = error is ModException ? error.Message : "Couldn't download that mod."; }
+                }
                 Dispatcher.UIThread.Post(delegate
                 {
                     try
                     {
                         if (closed) return;
                         if (problem != null) Say(problem);
+                        // An update isn't a new download, so only installs and reinstalls are counted.
+                        else if (waiting != null) UpdateMod(file, mod.Id);
                         else if (ImportMod(file))
                         {
                             mod.Downloads++;
@@ -440,6 +469,174 @@ namespace CapriDesktop
                     finally { if (file != null) ModDirectory.Clean(file); working = false; Sync(); }
                 });
             });
+        }
+
+        // An update from a directory card: like an import, but every mod stays on or off as it was.
+        internal bool UpdateMod(string file, string id)
+        {
+            try
+            {
+                Mod mod = pet.ModList.Update(file, Ask);
+                if (mod == null) { Say("Not updated. The old one is still in."); Sync(); return false; }
+                UpdateDone(id, file);
+                Say(mod.File.Name + " is updated" + (mod.File.Version != null ? " to " + mod.File.Version : "") + (mod.On ? "." : ". It's still off.")); Sync();
+                return true;
+            }
+            catch (Exception error)
+            {
+                if (!(error is ModException || error is IOException || error is UnauthorizedAccessException)) throw;
+                Brain.Log("mods", -1, Path.GetFileName(file) + ": " + error.Message);
+                Say(error.Message); Sync(); return false;
+            }
+        }
+
+        private ModListing UpdateFor(string id)
+        {
+            return updates == null ? null : updates.Find(listing => string.Equals(listing.Id, id, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // A mod got its update from its card, so it's no longer waiting. Its kept download goes unless it was the one used.
+        private void UpdateDone(string id, string used)
+        {
+            if (updates == null) return;
+            List<ModListing> gone = updates.FindAll(listing => string.Equals(listing.Id, id, StringComparison.OrdinalIgnoreCase));
+            foreach (ModListing listing in gone) if (listing.Fetched == used) listing.Fetched = null;
+            ModDirectory.Forget(gone);
+            updates.RemoveAll(listing => gone.Contains(listing));
+        }
+
+        private void ShowUpdateKey()
+        {
+            int waiting = updates == null ? 0 : updates.Count;
+            update.Text = updating ? "Updating..." : looking ? "Looking..." : waiting > 0 ? "Update " + waiting : "Update mods";
+            update.Accent = waiting > 0 && !updating && !looking ? MainframeTheme.Cyan : MainframeTheme.Rose;
+            update.IsEnabled = !updating && !looking && !working;
+            AutomationProperties.SetName(update, waiting > 0 ? "Get updates for " + ModDirectory.Names(updates) : "Update your installed mods from the mods directory");
+            update.InvalidateVisual();
+        }
+
+        // Update mods: the first press looks in the mods directory for newer copies of installed mods and says which, and the
+        // second gets them. Each goes in like an import, so a code mod still asks, and every mod stays on or off as it was.
+        internal void UpdateMods()
+        {
+            if (closed || looking || updating || working) return;
+            if (updates != null && updates.Count > 0) { GetUpdates(new List<ModListing>(updates)); return; }
+            LookForUpdates(null);
+        }
+
+        // Looks for newer copies of installed mods. Given the listings the window has just loaded, it's quiet: it only marks
+        // their cards.
+        private void LookForUpdates(List<ModListing> loaded)
+        {
+            if (closed || looking || updating) return;
+            bool quiet = loaded != null;
+            looking = true;
+            if (!quiet) Say("Looking in the mods directory for updates...");
+            Sync();
+            List<Mod> installed = new List<Mod>(pet.ModList.All);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                List<ModListing> found = null;
+                string problem = null;
+                try { found = ModDirectory.Newer(ModDirectory.Updates(loaded ?? ModDirectory.Browse(), installed), installed, DownloadFolder); }
+                catch (Exception error) { problem = error is ModException ? error.Message : "Couldn't reach the mods directory: " + error.Message; }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    if (closed) { ModDirectory.Forget(found); return; }
+                    looking = false;
+                    if (problem == null)
+                    {
+                        if (updates != null) ModDirectory.Forget(updates.FindAll(listing => !found.Contains(listing)));
+                        updates = found;
+                    }
+                    Sync();
+                    if (quiet) return;
+                    if (problem != null) Say(problem);
+                    else if (found.Count == 0) Say("Your mods are up to date.");
+                    else Say((found.Count == 1 ? "There's an update for " : "There are updates for ") + ModDirectory.Names(found) + ". Press " + update.Text + " to get " + (found.Count == 1 ? "it." : "them."));
+                });
+            });
+        }
+
+        private void GetUpdates(List<ModListing> pending)
+        {
+            updating = working = true;
+            Sync();
+            List<ModListing> done = new List<ModListing>(), kept = new List<ModListing>();
+            string reason = null;
+            Action next = null;
+            next = delegate
+            {
+                // A mod removed since the look isn't put back.
+                while (pending.Count > 0 && !pet.ModList.All.Exists(mod => string.Equals(mod.File.Id, pending[0].Id, StringComparison.OrdinalIgnoreCase)))
+                {
+                    ModDirectory.Forget(new List<ModListing> { pending[0] });
+                    pending.RemoveAt(0);
+                }
+                if (pending.Count == 0)
+                {
+                    updating = working = false;
+                    updates = null;
+                    string said = done.Count == 0 ? "" : "Updated " + ModDirectory.Names(done) + ".";
+                    if (kept.Count > 0) said += (said.Length > 0 ? " " : "") + "Kept the old " + ModDirectory.Names(kept) + (reason != null ? ": " + reason : ".");
+                    Say(said.Length > 0 ? said : "Nothing needed updating.");
+                    Sync();
+                    return;
+                }
+                ModListing listing = pending[0];
+                pending.RemoveAt(0);
+                Say("Updating " + listing.Title + "...");
+                string ready = listing.Fetched != null && File.Exists(listing.Fetched) ? listing.Fetched : null;
+                listing.Fetched = null;
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    string file = ready, problem = null;
+                    if (file == null)
+                    {
+                        try { file = ModDirectory.Download(listing, DownloadFolder); }
+                        catch (Exception error) { problem = error is ModException ? error.Message : "couldn't download it: " + error.Message; }
+                    }
+                    Dispatcher.UIThread.Post(delegate
+                    {
+                        if (closed)
+                        {
+                            if (file != null) ModDirectory.Clean(file);
+                            ModDirectory.Forget(pending);
+                            return;
+                        }
+                        if (file == null) { kept.Add(listing); reason = reason ?? problem; }
+                        else
+                        {
+                            try
+                            {
+                                if (pet.ModList.Update(file, Ask) != null) done.Add(listing);
+                                else kept.Add(listing);
+                            }
+                            catch (Exception error)
+                            {
+                                if (!(error is ModException || error is IOException || error is UnauthorizedAccessException)) throw;
+                                Brain.Log("mods", -1, listing.FileName + ": " + error.Message);
+                                kept.Add(listing);
+                                reason = reason ?? error.Message;
+                            }
+                            finally { ModDirectory.Clean(file); }
+                        }
+                        next();
+                    });
+                });
+            };
+            next();
+        }
+
+        // One mod's README at a time, over the mods window, and viewing another mod swaps it.
+        internal void View(int card)
+        {
+            if (closed || first + card >= shown.Count) return;
+            if (Readme != null) Readme.Close();
+            ReadmeWindow made = new ReadmeWindow(pet, shown[first + card]);
+            Readme = made;
+            made.Closed += delegate { if (Readme == made) Readme = null; };
+            made.Show(this);
         }
 
         internal void Rate(int card, int stars)
@@ -463,12 +660,14 @@ namespace CapriDesktop
             });
         }
 
-        internal string Crowded()
+        internal string Crowded() { return Crowded(Page, Wide, Tall); }
+
+        internal static string Crowded(Canvas page, int wide, int tall)
         {
-            Rect pageBox = new Rect(0, 0, Wide, Tall);
-            for (int i = 0; i < Page.Children.Count; i++)
+            Rect pageBox = new Rect(0, 0, wide, tall);
+            for (int i = 0; i < page.Children.Count; i++)
             {
-                Control a = Page.Children[i];
+                Control a = page.Children[i];
                 if (!a.IsVisible) continue;
                 Rect box = Box(a);
                 if (!pageBox.Contains(box)) return "Outside: " + NameOf(a);
@@ -477,9 +676,9 @@ namespace CapriDesktop
                 NeonEntry entry = a as NeonEntry;
                 string wrong = caption != null ? caption.TextFits() : button != null ? button.TextFits() : entry != null ? entry.TextFits() : null;
                 if (wrong != null) return "Text: " + wrong;
-                for (int j = i + 1; j < Page.Children.Count; j++)
+                for (int j = i + 1; j < page.Children.Count; j++)
                 {
-                    Control b = Page.Children[j]; if (!b.IsVisible) continue;
+                    Control b = page.Children[j]; if (!b.IsVisible) continue;
                     Rect overlap = box.Intersect(Box(b));
                     if (overlap.Width > 0.5 && overlap.Height > 0.5) return NameOf(a) + " / " + NameOf(b);
                 }
@@ -499,6 +698,72 @@ namespace CapriDesktop
         {
             return Avalonia.Automation.AutomationProperties.GetName(control) ?? (control as NeonCaption == null ? control.GetType().Name : ((NeonCaption)control).Text);
         }
+    }
+
+    // View on a mods window card, like Windows (issue #221): the mod's name, author and kind over the first few useful lines of
+    // its README, or its description when it has none or GitHub doesn't answer in time. Learn more opens its folder on GitHub.
+    internal sealed class ReadmeWindow : MainframeWindow
+    {
+        internal const int Wide = 520, Tall = 376;
+        private readonly ModListing listing;
+        private readonly NeonCaption body;
+        private bool closed;
+        internal bool Loading { get; private set; }
+        internal bool FromReadme { get; private set; }
+        internal string BodyText { get { return body.Text; } }
+        internal string PageShown { get { return ModDirectory.Page + "/tree/HEAD/mods/" + listing.Folder; } }
+
+        internal ReadmeWindow(Pet owner, ModListing listing) : base("View mod")
+        {
+            this.listing = listing;
+            Steered = true;
+            ShowInTaskbar = false;
+            Label("VIEW MOD", 24, 15, 320, 29, MainframeTheme.Rose, 20, true).Display = true;
+            NeonButton shut = Put(Page, new NeonButton { Glyph = 2 }, Wide - 50, 20, 26, 22, "Close");
+            shut.Click += delegate { Close(); };
+            Label(listing.Title, 28, 52, 464, 22, MainframeTheme.White, 44.0 / 3, true);
+            Label(string.IsNullOrEmpty(listing.Author) ? "" : "by " + listing.Author, 28, 76, 464, 18, MainframeTheme.Cyan);
+            Label(listing.Kind + " " + Math.Max(1, listing.Size / 1024) + " KB.", 28, 96, 464, 18);
+            body = Label("", 28, 122, 464, 200, MainframeTheme.White);
+            body.Top = true;
+            NeonButton more = Put(Page, new NeonButton { Text = "Learn more", Accent = MainframeTheme.Cyan, Loud = true }, 28, 332, 130, 26, "Learn more");
+            more.Click += delegate { if (Program.Smoke == null) Pet.Browse(PageShown); };
+            Closed += delegate { closed = true; };
+            Fit(Wide, Tall, Pet.FrameSize(owner.Saved.MainframeSize) == 0 ? 1 : owner.Saved.MainframeSize / 100.0);
+            Read();
+        }
+
+        private NeonCaption Label(string text, int x, int y, int width, int height, IBrush ink = null, double size = MainframeTheme.Size, bool bold = false)
+        {
+            return Put(Page, new NeonCaption { Text = text, Ink = ink ?? MainframeTheme.Faint, Size = size, Bold = bold, Ellipsis = true }, x, y, width, height);
+        }
+
+        // A README read earlier this session, or a mod without one, shows straight away.
+        private void Read()
+        {
+            List<string> kept = ModDirectory.ReadmeKept(listing);
+            if (kept != null || listing.ReadmeName == null) { ShowLines(kept); return; }
+            Loading = true;
+            body.Text = "Reading its README...";
+            body.Ink = MainframeTheme.Faint;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                List<string> lines = null;
+                try { lines = ModDirectory.Readme(listing); }
+                catch (Exception) { }
+                Dispatcher.UIThread.Post(delegate { if (!closed) ShowLines(lines); Loading = false; });
+            });
+        }
+
+        private void ShowLines(List<string> lines)
+        {
+            FromReadme = lines != null && lines.Count > 0;
+            body.Text = FromReadme ? string.Join("\n", lines) : string.IsNullOrEmpty(listing.About) ? "This mod has no description yet." : listing.About;
+            body.Ink = MainframeTheme.White;
+            body.InvalidateVisual();
+        }
+
+        internal string Crowded() { return ModsWindow.Crowded(Page, Wide, Tall); }
     }
 
     internal sealed class RemoteSheet : MainframeWindow

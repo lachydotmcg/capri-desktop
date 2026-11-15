@@ -119,7 +119,7 @@ namespace CapriDesktop
                 new Typeface(display ? Display : Text, FontStyle.Normal, bold ? FontWeight.SemiBold : FontWeight.Normal), size, ink ?? White);
         }
 
-        internal static void Write(DrawingContext context, string text, Rect box, IBrush ink, double size = Size, bool bold = false, TextAlignment align = TextAlignment.Left, bool display = false)
+        internal static void Write(DrawingContext context, string text, Rect box, IBrush ink, double size = Size, bool bold = false, TextAlignment align = TextAlignment.Left, bool display = false, bool top = false)
         {
             if (box.Width <= 0 || box.Height <= 0) return;
             var words = Words(text, size, bold, ink, display);
@@ -127,7 +127,7 @@ namespace CapriDesktop
             words.MaxTextHeight = box.Height;
             words.Trimming = TextTrimming.CharacterEllipsis;
             words.TextAlignment = align;
-            using (context.PushClip(box)) context.DrawText(words, new Point(box.X, box.Y + Math.Max(0, (box.Height - words.Height) / 2)));
+            using (context.PushClip(box)) context.DrawText(words, new Point(box.X, box.Y + (top ? 0 : Math.Max(0, (box.Height - words.Height) / 2))));
         }
         internal static string Fitted(string text, double width, double size = Size, bool bold = false, bool display = false)
         {
@@ -258,9 +258,9 @@ namespace CapriDesktop
         internal string Text { get { return text; } set { value = value ?? ""; if (text == value) return; text = value; InvalidateVisual(); } }
         internal IBrush Ink = MainframeTheme.Rose;
         internal double Size = MainframeTheme.Size;
-        internal bool Bold, Display, Ellipsis;
+        internal bool Bold, Display, Ellipsis, Top;
         internal TextAlignment Align;
-        public override void Render(DrawingContext context) { MainframeTheme.Write(context, Text, new Rect(Bounds.Size), Ink, Size, Bold, Align, Display); }
+        public override void Render(DrawingContext context) { MainframeTheme.Write(context, Text, new Rect(Bounds.Size), Ink, Size, Bold, Align, Display, Top); }
         internal string TextFits()
         {
             var text = MainframeTheme.Words(Ellipsis ? MainframeTheme.Fitted(Text, Width, Size, Bold, Display) : Text, Size, Bold, Ink, Display);

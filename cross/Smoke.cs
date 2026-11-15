@@ -4654,7 +4654,7 @@ namespace CapriDesktop
 
         private void ModDirectoryChecks(ModsWindow sheet, string input, string blue, string skin)
         {
-            Func<string, long, byte[]> get = ModDirectory.Get;
+            Func<string, long, byte[]> get = ModDirectory.Get, soon = ModDirectory.GetSoon;
             Func<string, string, byte[]> post = ModDirectory.Post;
             Dictionary<string, byte[]> blobs = new Dictionary<string, byte[]>();
             byte[] preview = ModPreviewBytes(); string previewSha = ModDirectory.BlobSha(preview);
@@ -4669,10 +4669,12 @@ namespace CapriDesktop
                 tree.Append("{\"path\":\"mods/" + folders[i] + "/" + Path.GetFileName(files[i]) + "\",\"type\":\"blob\",\"sha\":\"" + sha + "\",\"size\":" + bytes.Length + "},");
                 tree.Append("{\"path\":\"mods/" + folders[i] + "/preview.png\",\"type\":\"blob\",\"sha\":\"" + previewSha + "\",\"size\":" + preview.Length + "}");
             }
+            byte[] readme = Encoding.UTF8.GetBytes("# Colors: Blue & Bright\n\nBlue hair for her, with brighter accents.\n\n- Kind: Settings\n- Made by: Vocyn\n");
+            tree.Append(",{\"path\":\"mods/a-blue-hair/README.md\",\"type\":\"blob\",\"sha\":\"" + ModDirectory.BlobSha(readme) + "\",\"size\":" + readme.Length + "}");
             tree.Append(",{\"path\":\"mods/../escape.capri-mod\",\"type\":\"blob\",\"sha\":\"" + previewSha + "\",\"size\":10}]}");
             byte[] json = Encoding.UTF8.GetBytes(tree.ToString());
             List<ModListing> parsed = ModDirectory.Parse(json);
-            if (parsed.Count != 4 || parsed[0].PreviewSha != previewSha || parsed[1].KindIndex != 3 || parsed[2].KindIndex != 2 || ModDirectory.Filter(parsed, "blue hair", 1).Count != 1) throw new Exception("The directory did not parse its tree, previews and kinds.");
+            if (parsed.Count != 4 || parsed[0].PreviewSha != previewSha || parsed[0].ReadmeName != "README.md" || parsed[1].ReadmeName != null || parsed[1].KindIndex != 3 || parsed[2].KindIndex != 2 || ModDirectory.Filter(parsed, "blue hair", 1).Count != 1) throw new Exception("The directory did not parse its tree, previews and kinds.");
             string about = "A blue colour set for her hair.";
             string indexText = "{\"format\":1,\"mods\":[{\"folder\":\"a-blue-hair\",\"file\":\"" + Path.GetFileName(blue) + "\",\"name\":\"Colors: Blue & Bright\",\"author\":\"Vocyn\",\"about\":\"" + about + "\",\"kind\":\"code\",\"sha\":\"wrong\",\"size\":1}"
                 + ",{\"folder\":\"b-sample-skin\",\"file\":\"wrong.capri-skin\",\"name\":\"Wrong file\",\"author\":\"Wrong\",\"about\":\"Wrong\"}"
@@ -4688,10 +4690,20 @@ namespace CapriDesktop
             {
                 if (url.Contains("/trees/")) return json;
                 if (url == ModDirectory.IndexPage) { Interlocked.Increment(ref indexGets); indexLimit = most; if (indexDown) throw new System.Net.WebException("stand-in"); return indexJson; }
-                if (url == ModDirectory.StatsPage) return Encoding.UTF8.GetBytes("{\"mods\":[{\"folder\":\"a-blue-hair\",\"downloads\":12,\"rating\":4.5,\"votes\":2}]}");
+                if (url == ModDirectory.StatsPage) return Encoding.UTF8.GetBytes("{\"mods\":[{\"folder\":\"a-blue-hair\",\"downloads\":12,\"rating\":4.5,\"votes\":2},{\"folder\":\"d-names\",\"downloads\":40,\"rating\":3,\"votes\":1},{\"folder\":\"c-code-sample\",\"downloads\":0,\"rating\":5,\"votes\":1}]}");
                 if (url.EndsWith("/preview.png", StringComparison.Ordinal)) return preview;
                 if (url.Contains("/blobs/")) { Interlocked.Increment(ref fetched); return blobs[url.Substring(url.LastIndexOf('/') + 1)]; }
                 throw new Exception("Unexpected mods request: " + url);
+            };
+            int readmeGets = 0;
+            bool readmeDown = false;
+            ModDirectory.ForgetReadmes();
+            ModDirectory.GetSoon = delegate(string url, long most)
+            {
+                if (url != "https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/mods/a-blue-hair/README.md") throw new Exception("Unexpected README request: " + url);
+                Interlocked.Increment(ref readmeGets);
+                if (readmeDown) throw new System.Net.WebException("stand-in");
+                return readme;
             };
             ModDirectory.Post = delegate(string url, string body)
             {
@@ -4733,6 +4745,33 @@ namespace CapriDesktop
                 if (sheet.TitleOf(0) != "A Blue Hair" || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.DirectoryText != "Pick a mod to download.") throw new Exception("Losing the index left old text or an error in the Mods window.");
                 sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the named directory again");
                 checks.Add("PASS mods index cards: names, by author and descriptions show; search matches author and description words together, and losing the index quietly clears its text");
+                sheet.PickSort(1);
+                if (sheet.TitleOf(0) != "D Names" || sheet.TitleOf(1) != "Colors: Blue & Bright") throw new Exception("Sorting by Downloads didn't put the most downloaded first: " + sheet.TitleOf(0) + " / " + sheet.TitleOf(1));
+                sheet.PickSort(2);
+                string rated1 = sheet.TitleOf(0), rated2 = sheet.TitleOf(1);
+                sheet.NextPage();
+                if (rated1 != "Code: Sample" || rated2 != "Colors: Blue & Bright" || sheet.TitleOf(0) != "D Names" || sheet.TitleOf(1) != "B Sample Skin") throw new Exception("Sorting by Top rated didn't put the best rated first and unrated last: " + rated1 + " / " + rated2 + " / " + sheet.TitleOf(0) + " / " + sheet.TitleOf(1));
+                sheet.PickSort(0);
+                if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.TitleOf(1) != "B Sample Skin" || sheet.PageText != "Page 1 of 2") throw new Exception("Sorting A to Z again didn't go back to the first page in name order.");
+                checks.Add("PASS mods directory sort: A to Z, Downloads and Top rated order the cards like Windows, unrated last, each from page 1");
+                sheet.View(0);
+                ReadmeWindow reading = sheet.Readme;
+                MainframeWait(delegate { return reading != null && !reading.Loading; }, "a mod's README");
+                if (!reading.FromReadme || reading.BodyText != "Blue hair for her, with brighter accents." || readmeGets != 1 || reading.PageShown != ModDirectory.Page + "/tree/HEAD/mods/a-blue-hair" || reading.Crowded() != null)
+                    throw new Exception("View didn't show the README's useful lines: " + reading.BodyText + " | " + readmeGets + " | " + reading.Crowded());
+                sheet.View(0);
+                if (sheet.Readme == reading || sheet.Readme.Loading || !sheet.Readme.FromReadme || readmeGets != 1) throw new Exception("Viewing a mod again didn't swap the window or reread a README it had kept.");
+                sheet.View(1);
+                if (sheet.Readme.FromReadme || sheet.Readme.BodyText != "This mod has no description yet." || readmeGets != 1) throw new Exception("A mod without a README or a description showed the wrong text: " + sheet.Readme.BodyText);
+                readmeDown = true; ModDirectory.ForgetReadmes();
+                sheet.View(0);
+                reading = sheet.Readme;
+                MainframeWait(delegate { return !reading.Loading; }, "a README that doesn't answer");
+                readmeDown = false;
+                if (reading.FromReadme || reading.BodyText != about || readmeGets != 2) throw new Exception("A README that didn't answer didn't fall back to the mod's description: " + reading.BodyText);
+                reading.Close();
+                MainframeWait(delegate { return sheet.Readme == null; }, "closing a README");
+                checks.Add("PASS mods directory View: a card's README shows its useful lines once a session, and a mod with no README, or one GitHub doesn't answer for, shows its description");
                 sheet.NextPage();
                 if (sheet.TitleOf(0) != "Code: Sample" || sheet.AuthorOf(0) != "by Sample Author") throw new Exception("The directory did not change page.");
                 sheet.PickKind(2);
@@ -4758,6 +4797,23 @@ namespace CapriDesktop
                 sheet.RemoveMod(0);
                 if (pet.ModList.All.Count != 4 || sheet.InstalledPageText != "Page 1 of 1") throw new Exception("Removing the last installed page did not bring the list back.");
                 foreach (Mod extra in pet.ModList.All.ToArray()) if (extra.File.Id.StartsWith("smoke-extra-", StringComparison.Ordinal)) pet.ModList.Remove(extra);
+                string older = Path.Combine(input, "older"); Directory.CreateDirectory(older);
+                if (!sheet.ImportMod(ModSample(older, "smoke-directory-names", "\"version\":\"0.1\",\"wake_names\":[\"Vee\"]"))) throw new Exception("An older copy of a directory mod didn't import: " + sheet.StatusText);
+                pet.ModList.Set(pet.ModList.All.Find(m => m.File.Id == "smoke-directory-names"), false, null);
+                int fetchedBefore = fetched, countedBefore = counted;
+                sheet.UpdateMods(); MainframeWait(delegate { return !sheet.Working; }, "a look for mod updates");
+                if (sheet.UpdateText != "Update 1" || sheet.StatusText != "There's an update for D Names. Press Update 1 to get it." || fetched != fetchedBefore + 1) throw new Exception("Update mods didn't find the newer copy: " + sheet.UpdateText + " | " + sheet.StatusText);
+                sheet.Search("names");
+                if (sheet.DownloadText(0) != "Update" || sheet.MetaOf(0) != "SETTINGS. Update available.") throw new Exception("A card with an update didn't say so: " + sheet.DownloadText(0) + " | " + sheet.MetaOf(0));
+                sheet.Search("");
+                sheet.UpdateMods(); MainframeWait(delegate { return !sheet.Working; }, "getting mod updates");
+                Mod updated = pet.ModList.All.Find(m => m.File.Id == "smoke-directory-names");
+                if (sheet.StatusText != "Updated D Names." || sheet.UpdateText != "Update mods" || fetched != fetchedBefore + 1 || counted != countedBefore || updated == null || updated.On || updated.File.Version != null)
+                    throw new Exception("Getting an update didn't use its download, keep it off and leave the count alone: " + sheet.StatusText + " | " + sheet.UpdateText);
+                sheet.UpdateMods(); MainframeWait(delegate { return !sheet.Working; }, "a second look for mod updates");
+                if (sheet.StatusText != "Your mods are up to date." || fetched != fetchedBefore + 1) throw new Exception("An updated mod still looked out of date: " + sheet.StatusText);
+                pet.ModList.Set(updated, true, null);
+                checks.Add("PASS mods updates: Update mods finds a newer directory copy and marks its card, the second press gets it from the kept download with the mod still off and no download counted, and then they're up to date");
                 sheet.ImportMod(skin);
                 StringBuilder fullIndex = new StringBuilder("{\"format\":1,\"mods\":[");
                 for (int i = 0; i < folders.Length; i++)
@@ -4782,7 +4838,7 @@ namespace CapriDesktop
             finally
             {
                 try { MainframeWait(delegate { return !sheet.PreviewsPending && !sheet.Working; }, "pending mod requests"); }
-                finally { ModDirectory.Get = get; ModDirectory.Post = post; }
+                finally { ModDirectory.Get = get; ModDirectory.GetSoon = soon; ModDirectory.Post = post; ModDirectory.ForgetReadmes(); }
             }
         }
 
@@ -4861,6 +4917,26 @@ namespace CapriDesktop
                 if (sheet.ImportMod(write("windowsy", "chat", "public class M : ICapriMod { public void Start(ICapriHost h) { h.Ui.SetOptions(\"x\", null); } public bool Heard(string w) { return false; } public void Stop() { } }"))
                     || asked != null || sheet.StatusText.IndexOf("only Windows has (Ui.SetOptions)", StringComparison.Ordinal) < 0 || mods.All.Count != 0)
                     throw new Exception("A code mod using a Windows-only part wasn't refused by name before asking: " + sheet.StatusText);
+                if (!sheet.ImportMod(write("own-names", null, "public class M : ICapriMod { class Prefs { public string Window = \"w\"; public string Art() { return \"a\"; } } Prefs settings = new Prefs(); public string Font { get { return \"Barlow\"; } }\n"
+                    + "public void Start(ICapriHost h) { string Image = settings.Window + settings.Art() + Font; int Graphics = Image.Length; if (Graphics < 0) throw new InvalidOperationException(); } public bool Heard(string w) { return false; } public void Stop() { } }"))
+                    || asked == null || !pet.ModRunningNow("own-names"))
+                    throw new Exception("A code mod with its own Font, Image, Graphics, Art or settings.Window was taken for Windows-only parts: " + sheet.StatusText);
+                mods.Remove(mods.All.Find(mod => mod.File.Id == "own-names"));
+                checks.Add("PASS mods code: a mod's own names like Font, Image, Graphics, Art() or settings.Window aren't taken for Windows-only parts, and it runs");
+                asked = null;
+                string deep = write("too-deep", null, "public class M : ICapriMod { public void Start(ICapriHost h) { var x = " + new string('(', 60000) + "Font" + new string(')', 60000) + "; } public bool Heard(string w) { return false; } public void Stop() { } }");
+                Stopwatch deepTime = Stopwatch.StartNew();
+                if (sheet.ImportMod(deep) || asked != null || sheet.StatusText != "That code mod nests too deeply to read safely." || mods.All.Exists(mod => mod.File.Id == "too-deep") || deepTime.ElapsedMilliseconds > 2000)
+                    throw new Exception("A code mod nested 60,000 deep wasn't refused quickly before asking: " + sheet.StatusText + " (" + deepTime.ElapsedMilliseconds + " ms)");
+                string deepDropped = Path.Combine(mods.Folder, "too-deep" + Mods.CodeExtension);
+                File.Copy(deep, deepDropped, true);
+                deepTime.Restart();
+                mods.Load();
+                bool deepListed = mods.All.Exists(mod => mod.File.Id == "too-deep"), deepNamed = mods.Problems.Exists(problem => problem.Contains("nests too deeply"));
+                File.Delete(deepDropped);
+                mods.Load();
+                if (deepListed || !deepNamed || deepTime.ElapsedMilliseconds > 2000) throw new Exception("A code mod nested too deep in her mods folder wasn't skipped with its reason when she loaded her mods.");
+                checks.Add("PASS mods code: a code mod nested 60,000 deep is refused at once with a plain reason, imported or dropped into her mods folder, instead of overflowing her stack");
                 if (sheet.ImportMod(write("sneaky", null, "public class M : ICapriMod { public void Start(ICapriHost h) { h.Chat.Sending += delegate(CapriMessage m) { }; } public bool Heard(string w) { return false; } public void Stop() { } }"))
                     || mods.Running != 0 || sheet.StatusText.IndexOf("didn't ask for the chat permission", StringComparison.Ordinal) < 0)
                     throw new Exception("A code mod used a hook it didn't ask for: " + sheet.StatusText);
