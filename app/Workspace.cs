@@ -93,7 +93,7 @@ namespace CapriDesktop
         internal WorkspaceJob Job;
         internal volatile bool Stopped, Result, Failed;
         internal bool TextSeen, SessionSeen, StopRecorded, Trusted, Uncovered, Partials, Streamed;
-        internal string Message = "";
+        internal string Message = "", Latest = "";
         internal Timer StreamTimer;
         internal int Attempt, Active;
         internal long ResultAt;
@@ -1004,7 +1004,7 @@ namespace CapriDesktop
             {
                 EndStreams(turn);
                 turn.Messages.Clear();
-                turn.Message = "";
+                turn.Message = turn.Latest = "";
                 turn.Result = turn.Failed = turn.TextSeen = turn.Streamed = turn.SessionSeen = false;
                 turn.ResultText = "";
                 turn.Fault = null;
@@ -1044,6 +1044,7 @@ namespace CapriDesktop
                 Dictionary<string, object> block = HuskJson.Get(part, "content_block") as Dictionary<string, object>;
                 if (HuskJson.Text(block, "type") != "text" || message.Blocks.ContainsKey(index)) return;
                 turn.Streamed = true;
+                turn.Latest = turn.Message;
                 WorkspaceItem ahead;
                 if (message.Ahead.TryGetValue(message.Texts.Count, out ahead))
                 {
@@ -1099,7 +1100,8 @@ namespace CapriDesktop
         }
 
         // A turn that ended well has had every real block finished, so a stream still unfinished then was abandoned, as when
-        // Claude Code retries a request, and goes. After Stop or a failure what streamed is all there is, so it stays.
+        // Claude Code retries a request, and goes. After Stop or a failure what streamed is all there is, so it stays, unless
+        // a newer message has words: then it was a request Claude Code retried, and the retry took its place.
         internal void EndStreams(WorkspaceTurn turn, bool succeeded)
         {
             lock (turn.Chat.Gate)
@@ -1107,13 +1109,13 @@ namespace CapriDesktop
                 if (turn.StreamTimer != null) { turn.StreamTimer.Dispose(); turn.StreamTimer = null; }
                 PublishStreams(turn);
                 bool saved = false;
-                foreach (WorkspaceMessage message in turn.Messages.Values)
-                foreach (WorkspaceText text in message.Texts)
+                foreach (KeyValuePair<string, WorkspaceMessage> message in turn.Messages)
+                foreach (WorkspaceText text in message.Value.Texts)
                 {
                     if (!text.Item.Growing) continue;
                     text.Item.Growing = false;
                     text.Final = true;
-                    if (succeeded || text.Text.Length == 0) { turn.Chat.Items.Remove(text.Item); Notify(turn.Chat, null); }
+                    if (succeeded || message.Key != turn.Latest || text.Text.Length == 0) { turn.Chat.Items.Remove(text.Item); Notify(turn.Chat, null); }
                     else { saved = true; Notify(turn.Chat, text.Item); }
                 }
                 if (saved) { turn.Chat.Updated = DateTime.UtcNow.Ticks; Save(turn.Chat); }
@@ -1180,7 +1182,7 @@ namespace CapriDesktop
                         turn.TextSeen = true;
                         string value = HuskJson.Text(content, "text");
                         if (streamed == null) Add(chat, new WorkspaceItem { Kind = "text", Text = value, Turn = turn.Id });
-                        else FinishedText(turn, streamed, value);
+                        else { turn.Latest = idMessage; FinishedText(turn, streamed, value); }
                     }
                     else if (kind == "tool_use")
                     {

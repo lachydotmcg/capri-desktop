@@ -45208,10 +45208,12 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS Workspace settles a streamed reply on its finished text, once in the window and the saved chat, when the finished text drops a trailing line break, corrects a word or adds more");
 
-                // A message that streams and never gets a finished row, then its replacement: gone after a turn that ends
-                // well, kept after Stop or a failed turn.
+                // A message that streams and never gets a finished row, then the retry that replaces it: streamed, sent only as
+                // a finished row, or cut off in turn. Only the retry stays, after a turn that ends well, Stop or a failed turn.
+                for (int retry = 0; retry < 3; retry++)
                 for (int ending = 0; ending < 3; ending++)
                 {
+                    if (retry == 2 && ending == 0) continue;
                     WorkspaceChat chat = work.NewChat(project, false);
                     WorkspaceTurn turn = new WorkspaceTurn { Chat = chat };
                     chat.Live = turn;
@@ -45220,12 +45222,16 @@ namespace CapriDesktop
                     work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
                     work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", cut)));
                     work.PublishStreams(turn);
-                    work.Parse(turn, WorkspaceEvent("message_start", "message", HuskJson.Map("id", "replacement")));
-                    work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
-                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", whole)));
-                    work.Parse(turn, WorkspaceEvent("content_block_stop", "index", 0));
-                    work.Parse(turn, WorkspaceTextRow("replacement", whole, null));
-                    work.Parse(turn, WorkspaceEvent("message_stop"));
+                    if (retry != 1)
+                    {
+                        work.Parse(turn, WorkspaceEvent("message_start", "message", HuskJson.Map("id", "replacement")));
+                        work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
+                        work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", whole)));
+                        work.PublishStreams(turn);
+                    }
+                    if (retry == 0) work.Parse(turn, WorkspaceEvent("content_block_stop", "index", 0));
+                    if (retry != 2) work.Parse(turn, WorkspaceTextRow("replacement", whole, null));
+                    if (retry == 0) work.Parse(turn, WorkspaceEvent("message_stop"));
                     if (WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "text"; }).Count != 2) throw new Exception("Workspace did not show the unfinished stream while the turn ran.");
                     if (ending == 0) work.Parse(turn, HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "duration_ms", 900, "total_cost_usd", 0.01)));
                     else if (ending == 1)
@@ -45238,13 +45244,11 @@ namespace CapriDesktop
                     work.Flush(chat);
                     List<WorkspaceItem> texts = WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "text"; });
                     string saved = File.ReadAllText(Path.Combine(work.Root, "chats", chat.Id + ".json"));
-                    bool kept = ending != 0;
-                    if (texts.Count != (kept ? 2 : 1) || texts[texts.Count - 1].Text != whole || kept && texts[0].Text != cut || texts.Exists(delegate(WorkspaceItem item) { return item.Growing; })
-                        || saved.IndexOf(whole, StringComparison.Ordinal) < 0 || saved.IndexOf(whole, StringComparison.Ordinal) != saved.LastIndexOf(whole, StringComparison.Ordinal)
-                        || (saved.IndexOf(cut, StringComparison.Ordinal) >= 0) != kept || saved.IndexOf(cut, StringComparison.Ordinal) != saved.LastIndexOf(cut, StringComparison.Ordinal))
-                        throw new Exception("Workspace " + (kept ? "lost" : "kept") + " a stream that never finished after " + (ending == 0 ? "a turn that ended well." : ending == 1 ? "Stop." : "a failed turn."));
+                    if (texts.Count != 1 || texts[0].Text != whole || texts[0].Growing
+                        || saved.IndexOf(whole, StringComparison.Ordinal) < 0 || saved.IndexOf(whole, StringComparison.Ordinal) != saved.LastIndexOf(whole, StringComparison.Ordinal) || saved.IndexOf(cut, StringComparison.Ordinal) >= 0)
+                        throw new Exception("Workspace kept a stream its retry replaced, or lost the retry, after " + (ending == 0 ? "a turn that ended well" : ending == 1 ? "Stop" : "a failed turn") + (retry == 0 ? ", with a streamed retry." : retry == 1 ? ", with a retry sent only as a finished row." : ", with a retry cut off in turn."));
                 }
-                checks.Add("PASS Workspace drops a stream that never got its finished row once the turn ends well, and keeps it once in the window and the saved chat after Stop or a failed turn");
+                checks.Add("PASS Workspace keeps only the retry of a stream that never got its finished row, whether the retry streamed, came only as a finished row or was cut off in turn, and whether the turn ended well, was stopped or failed; the retry shows and saves once");
 
                 for (int ending = 0; ending < 3; ending++)
                 {
