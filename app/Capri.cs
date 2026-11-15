@@ -40559,18 +40559,19 @@ namespace CapriDesktop
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
                 foreach (string fact in new[] {
-                    "Keyboard:",
-                    "Ctrl + Alt + M",
-                    "Settings > KEYS",
-                    "Quick asks:",
-                    "Plain asks:",
-                    "Apps:",
-                    "Store apps:",
-                    "Searches:",
-                    "Websites:",
-                    "Memory:",
-                    "Time:",
-                    "Downloads:"
+                    "Room camera (preview):",
+                    "Photos:",
+                    "Workspace (beta):",
+                    "Blackwall Mode",
+                    "Games:",
+                    "Uninstall:",
+                    "Voices:",
+                    "MAX INTELLIGENCE:",
+                    "Taskbar:",
+                    "File Editor:",
+                    "Music controls:",
+                    "Error details:",
+                    "Help > Copy error details"
                 })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
