@@ -98,7 +98,7 @@ namespace CapriDesktop
         internal RemoteLink Link;
         internal RemoteSink Sink;
         internal int Generation, Session, Ticket;
-        internal string Device, Id, Text, Shown;
+        internal string Device, Id, Text, Shown, Typed;
         internal Func<bool> SessionCheck;
         internal Action Entered;
         internal volatile bool Closed;
@@ -5185,11 +5185,11 @@ namespace CapriDesktop
                 if (!RemoteLinkCurrent(link, generation) || RemoteSession(device) != session || !link.HasSession(device) || current != null && !current()) { if (done != null) done(); return; }
                 RemoteTurn old;
                 if (remoteNewest.TryGetValue(device, out old)) RemoteClose(old, "", false);
-                string shown;
-                string said = RemotePictures.Turn(RemoteTurn.Input(RemoteMessages.Clip(text, 8000)), seen, string.IsNullOrWhiteSpace(text), out shown);
-                RemoteTurn turn = new RemoteTurn { Pet = this, Link = link, Sink = remoteSink, Generation = generation, Session = session, Device = device, Id = id, Text = said.Trim(), Shown = seen == null ? null : shown.Trim(), SessionCheck = current, Entered = done };
+                string shown, typed;
+                string said = RemotePictures.Turn(RemoteTurn.Input(RemoteMessages.Clip(text, 8000)), seen, string.IsNullOrWhiteSpace(text), out shown, out typed);
+                RemoteTurn turn = new RemoteTurn { Pet = this, Link = link, Sink = remoteSink, Generation = generation, Session = session, Device = device, Id = id, Text = said.Trim(), Shown = seen == null ? null : shown.Trim(), Typed = typed, SessionCheck = current, Entered = done };
                 RemoteHold hold;
-                if (remoteHolds.TryGetValue(device, out hold) && RemoteSessionCurrent(hold.Turn) && (Security.Agrees(turn.Text) || Security.Declines(turn.Text))) turn.Hold = hold;
+                if (remoteHolds.TryGetValue(device, out hold) && RemoteSessionCurrent(hold.Turn) && (Security.Agrees(typed ?? turn.Text) || Security.Declines(typed ?? turn.Text))) turn.Hold = hold;
                 remoteHolds.Remove(device);
                 remoteNewest[device] = turn;
                 remoteQueue.Add(turn);
@@ -5283,10 +5283,11 @@ namespace CapriDesktop
 
         private bool RemoteEarly(RemoteTurn phone, string text)
         {
-            if (phone.Hold != null && Security.Declines(text)) return false;
-            ToolArguments args = SelfTools.JobRequest(text);
+            string input = phone.Typed ?? text;
+            if (phone.Hold != null && Security.Declines(input)) return false;
+            ToolArguments args = SelfTools.JobRequest(input);
             string tool = args == null ? null : "job_control";
-            if (tool == null && !Hands.Heard(text, out tool, out args)) return false;
+            if (tool == null && !Hands.Heard(input, out tool, out args)) return false;
             if (Hands.Unable(tool, args) != null || !RemoteTurn.AtPc(tool, args)) return false;
             Reply(phone.Ticket, text, phone.Refuse(tool, args), null, false, phone);
             return true;
@@ -5361,6 +5362,8 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            string typed = phone == null ? null : phone.Typed;
+            string input = typed ?? text;
             if (phone == null) RemoteLocal();
             else
             {
@@ -5370,29 +5373,31 @@ namespace CapriDesktop
                 if (RemoteEarly(phone, text)) return;
             }
             StopListening();
-            if (modSendDepth == 0 && !(phone != null && phone.Hold != null && Security.Declines(text)) && System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
+            if (modSendDepth == 0 && !(phone != null && phone.Hold != null && Security.Declines(input)) && System.Text.RegularExpressions.Regex.IsMatch(input, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
             if (!meeting.Asking || phone != null)
             {
                 // A code mod can change or take what they said first, like on Windows.
-                string sent = ModsSending(text);
+                string sent = ModsSending(input);
                 if (sent == null) return;
-                bool fromMod = modSendDepth > 0 || sent != text;
-                text = sent;
-                if (fromMod) Security.ModSaid(text); else Security.TheySaid();
+                bool fromMod = modSendDepth > 0 || sent != input;
+                text = RemotePictures.Sent(text, typed, sent);
+                if (typed != null) phone.Typed = typed = sent;
+                input = sent;
+                if (fromMod) Security.ModSaid(input); else Security.TheySaid();
                 if (phone != null && fromMod) phone.Hold = null;
             }
-            ModList.LogHearing(text, true);
+            ModList.LogHearing(input, true);
             Typed();
-            if (meeting.Asking && phone == null) { Met(text); return; }
-            lastHeard = text;
-            if (ModList.Heard(text)) return;
+            if (meeting.Asking && phone == null) { Met(input); return; }
+            lastHeard = input;
+            if (ModList.Heard(input)) return;
             if (phone != null)
             {
                 phone.Text = text;
                 if (RemoteEarly(phone, text)) return;
-                if (phone.Hold != null && Security.Declines(text)) { Ask(phone.Ticket, text, 0, 0, phone); return; }
+                if (phone.Hold != null && Security.Declines(input)) { Ask(phone.Ticket, text, 0, 0, phone); return; }
             }
-            if (phone == null && SelfJobRequest(text)) return;
+            if (phone == null && SelfJobRequest(input)) return;
             int ticket = phone == null ? ++asking : phone.Ticket;
             bool working = SelfJobs.Active;
             if (!working) ComputerJobs.Stop();
@@ -5402,21 +5407,23 @@ namespace CapriDesktop
             voice.Stop();
             if (phone == null && Think == null && Brain.Model == null && Security.Holding != null && !Security.FromMod(text) && !Security.Agrees(text) && !Security.Declines(text)) Security.Drop();
             string tool;
-            if (MainframeAsked(text))
+            if (MainframeAsked(input))
             {
-                Reply(ticket, text, MainframeTool(null), null, false, phone);
+                string done = typed == null ? MainframeTool(null) : RemoteDirect(phone, "mainframe", new ToolArguments());
+                if (typed != null) Brain.Remember(text, done, typed);
+                Reply(ticket, text, done, null, false, phone);
                 return;
             }
             ToolArguments args;
-            ToolArguments job = phone == null ? null : SelfTools.JobRequest(text);
+            ToolArguments job = phone == null ? null : SelfTools.JobRequest(input);
             if (job != null)
             {
-                job.Asked = text;
+                job.Asked = input;
                 Ask(ticket, text, 0, 0, phone, delegate { return Brain.Act("job_control", job); });
                 return;
             }
             bool noted;
-            try { noted = Hands.Heard(text, out tool, out args) && tool == "remember"; }
+            try { noted = Hands.Heard(input, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
             if (phone != null && (noted || tool == "remind" || tool == "stopwatch" || tool == "routine"))
             {
@@ -5424,7 +5431,7 @@ namespace CapriDesktop
                 Ask(ticket, text, 0, 0, phone, delegate(string line)
                 {
                     string done = Brain.Act(tool, args);
-                    Brain.Remember(line, done);
+                    Brain.Remember(line, done, typed);
                     return Security.Said(done);
                 });
                 return;
@@ -5434,18 +5441,18 @@ namespace CapriDesktop
             // brain or no brain, instead of her brain joking about it. Asked for that and something she can do too, like "open
             // Spotify. Chaos mode", the rest goes ahead and she says why after it (a Codex review, 2 Nov).
             string doable;
-            if (noted || (tool != null && Hands.Unable(tool, args) != null && Hands.KitFor().Rest(text, out doable) == null))
+            if (noted || (tool != null && Hands.Unable(tool, args) != null && Hands.KitFor().Rest(input, out doable) == null))
             {
                 string done = RemoteDirect(phone, tool, args);
-                Brain.Remember(text, done);
+                Brain.Remember(text, done, typed);
                 Reply(ticket, text, done, null, false, phone);
                 return;
             }
             // Asked in other words for something only Windows has, like "can you draw on my screen?", she says so too (F69).
-            string lacking = Hands.KitFor().Lacking(text);
+            string lacking = Hands.KitFor().Lacking(input);
             if (lacking != null)
             {
-                Brain.Remember(text, lacking);
+                Brain.Remember(text, lacking, typed);
                 Reply(ticket, text, lacking, null, false, phone);
                 return;
             }
@@ -5453,21 +5460,21 @@ namespace CapriDesktop
             if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, RemoteDirect(phone, tool, args), null, false, phone); return; }
             bool fileRequest = tool == "find_file" || tool == "read_file" || tool == "website_nickname" || tool == "open_website" && Hands.Websites != null && Hands.Websites.Nickname(args.Site) != null;
             bool websiteHeld = phone == null ? Security.Holding == "open_website" : phone.Hold != null && phone.Hold.Calls.Count == 1 && phone.Hold.Calls[0].Key == "open_website";
-            if (Think == null && Brain.Model == null && (fileRequest || websiteHeld && (Security.Agrees(text) || Security.Declines(text))))
+            if (Think == null && Brain.Model == null && (fileRequest || websiteHeld && (Security.Agrees(input) || Security.Declines(input))))
             {
                 Talk.Thinking(text);
                 Ask(ticket, text, 0, 0, phone, delegate(string line)
                 {
-                    string done = phone == null ? Security.Resume(line, Brain.Act) : null;
+                    string done = phone == null ? Security.Resume(input, Brain.Act) : null;
                     if (done == null) done = fileRequest ? Brain.Act(tool, args) : Offline;
                     string shown = Hands.Shown(Security.Said(done));
-                    Brain.Remember(line, shown);
+                    Brain.Remember(line, shown, typed);
                     return shown;
                 });
                 return;
             }
             if (Think == null && Brain.Model == null && Brain.Attachments.Waiting) { Talk.Thinking(text); Ask(ticket, text, 0, 0, phone); return; }
-            if (Think == null && Brain.Model == null && News.Matching(text) != null) { Reply(ticket, text, News.Facts, null, false, phone); return; }
+            if (Think == null && Brain.Model == null && News.Matching(input) != null) { Reply(ticket, text, News.Facts, null, false, phone); return; }
             if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline, null, false, phone); FindBrain(); return; }
             Talk.Thinking(text);
             long voiceTicket = fromVoice ? voiceRecovery.Begin() : 0;
@@ -5496,15 +5503,15 @@ namespace CapriDesktop
                     {
                         try
                         {
-                            string resumed = phone == null ? null : ResumeRemote(phone, text);
+                            string resumed = phone == null ? null : ResumeRemote(phone, phone.Typed ?? text);
                             if (phone != null && !phone.Current) said = "";
-                            else if (resumed != null) said = resumed;
+                            else if (resumed != null) { said = resumed; if (phone.Typed != null) Brain.Remember(text, said, phone.Typed); }
                             else if (voiceTicket != 0 && think == null)
                             {
-                                using (voiceRecovery.EnterPrimary(voiceTicket, Brain)) said = Brain.Ask(text, follows, out after);
+                                using (voiceRecovery.EnterPrimary(voiceTicket, Brain)) said = Brain.Ask(text, follows, out after, typed: phone == null ? null : phone.Typed);
                                 said = voiceRecovery.Recover(Brain, voiceTicket, text, said);
                             }
-                            else said = think == null ? Brain.Ask(text, follows, out after) : think(text);
+                            else said = think == null ? Brain.Ask(text, follows, out after, typed: phone == null ? null : phone.Typed) : think(text);
                         }
                         catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Told || error.Message == Brain.Offline ? said : error.Message; stuck = Brain.Stalled(error); failed = true; }
                         catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; stuck = Brain.Stalled(error); failed = true; }
@@ -5597,7 +5604,9 @@ namespace CapriDesktop
                 int input = inputTurn, answer = answerTurn;
                 followUp.Drop();
                 // Her answers to them are a reply to mods; her own lines, like a check-in or a mod's, are a remark.
-                string source = string.IsNullOrEmpty(heard) || heard.StartsWith("(", StringComparison.Ordinal) || heard == "startup" || heard == "pets you" ? "remark" : "reply";
+                string words = phone == null ? heard : phone.Typed ?? heard;
+                string source = string.IsNullOrEmpty(words) || words.StartsWith("(", StringComparison.Ordinal) || words == "startup" || words == "pets you" ? "remark" : "reply";
+                if (phone != null && phone.Typed == "") source = "reply";
                 said = ModsReplying(said, source);
                 lastReply = said;
                 ModsReplied(said, source);

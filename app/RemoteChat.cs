@@ -26,6 +26,9 @@ namespace CapriDesktop
         private RemoteAsker remoteHearing;
         private int remoteHearingFrom;
         private string remoteNote = "";
+        private string pictureShown, pictureText, pictureTyped;
+
+        private string ModLastHeard { get { return pictureTyped != null && (heard == pictureShown || heard == pictureText) ? pictureTyped : heard; } }
 
         private sealed class RemoteAsker
         {
@@ -357,8 +360,8 @@ namespace CapriDesktop
         {
             RemoteSink sink = remoteSink;
             if (sink == null) return;
-            string shown;
-            string said = RemotePictures.Turn(RemoteInput(text), seen, string.IsNullOrWhiteSpace(text), out shown);
+            string shown, typed;
+            string said = RemotePictures.Turn(RemoteInput(text), seen, string.IsNullOrWhiteSpace(text), out shown, out typed);
             RemoteAsker asker = new RemoteAsker { Device = device, Id = id, Text = said.Trim(), Shown = shown.Trim(), Current = current };
             bool beside = MidJob(job);
             int before = asking;
@@ -367,7 +370,7 @@ namespace CapriDesktop
                 remoteHearing = asker;
                 remoteHearingFrom = before;
             }
-            try { Hear(said, shown, "> you: "); if (seen != null && beside) heard = shown; }
+            try { Hear(said, shown, "> you: ", typed: typed); if (seen != null && beside) heard = shown; }
             finally { lock (remoteGate) remoteHearing = null; }
             bool asked = false;
             RemoteAsker pushedOut = null;
@@ -1325,6 +1328,22 @@ namespace CapriDesktop
 
     internal static class RemotePictures
     {
+        internal const string FollowedPicture = " [phone picture reply]";
+        private const string Description = "They sent a picture from their phone. You looked at it. You see: ";
+
+        internal static bool IsTurn(string text)
+        {
+            return text != null && (text.Contains("[picture]\n\n" + Description) || text.Contains("[picture] " + Description) || text.EndsWith(FollowedPicture, StringComparison.Ordinal));
+        }
+
+        internal static string Shown(string input) { return (input.Trim().Length == 0 ? "" : input.Trim() + " ") + "[picture]"; }
+
+        internal static string Sent(string text, string typed, string sent)
+        {
+            if (typed == null) return sent;
+            return (string.IsNullOrWhiteSpace(sent) ? "" : sent.Trim() + " ") + text.Substring(typed.Length + (typed.Length == 0 ? 0 : 1));
+        }
+
         internal static string Answer(Brain selected, string text, RemotePicture picture)
         {
             if (selected.Remote != null && selected.Remote.Kind == "codex") throw new BrainException(Brain.Sightless(selected.Remote));
@@ -1333,12 +1352,13 @@ namespace CapriDesktop
             catch (BrainException error) { if (selected.Remote == null && Brain.NoVision(error)) throw new BrainException(Brain.NoEyes); throw; }
         }
 
-        internal static string Turn(string input, string seen, bool empty, out string shown)
+        internal static string Turn(string input, string seen, bool empty, out string shown, out string typed)
         {
+            typed = seen == null ? null : input.Trim();
             shown = input;
             if (seen == null) return input;
-            shown = (input.Trim().Length == 0 ? "" : input.Trim() + " ") + "[picture]";
-            return shown + "\n\nThey sent a picture from their phone. You looked at it. You see: " + seen + (empty ? "\nReact to the picture." : "");
+            shown = Shown(input);
+            return shown + "\n\n" + Description + seen + (empty ? "\nReact to the picture." : "");
         }
     }
 
