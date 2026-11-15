@@ -546,6 +546,7 @@ namespace CapriDesktop
             switch (tool)
             {
                 case "use_computer": return "Using the computer";
+                case "workspace": return args != null && args.Action == "status" ? "Checking Workspace" : Hands.WorkspaceStarts(args) ? "Starting a Workspace chat" : "Opening Workspace";
                 case "look_at_screen": return "Looking at the screen";
                 case "open_app": return "Opening an app";
                 case "open_website": return "Opening a website";
@@ -692,6 +693,7 @@ namespace CapriDesktop
                     }
                 case Security.Mouse:
                     if (tool == "stream") return "starting a live stream";
+                    if (tool == "workspace") return "starting a Workspace chat";
                     if (tool == "job_control") return "changing this job";
                     return "using your mouse and keyboard for this job";
                 case Security.Sends: return "sending, posting or deleting";
@@ -1055,7 +1057,7 @@ namespace CapriDesktop
             RemoteQr qr = RemoteQr.Encode(url);
             if (qr.Version != 8 || qr.Correction != RemoteQr.Level.Medium || !qr.Dark(0, 0) || !qr.Dark(6, 6) || qr.Dark(7, 7)) throw new Exception("A pairing QR came out as version " + qr.Version + " " + qr.Correction + ".");
             ToolArguments secret = new ToolArguments { Site = "example.com/?token=hunter2", Task = "type hunter2", Action = "hunter2" };
-            foreach (string tool in new[] { "open_website", "use_computer", "media", "some_new_tool" })
+            foreach (string tool in new[] { "open_website", "use_computer", "workspace", "media", "some_new_tool" })
                 if (RemoteToolWords(tool, secret).Contains("hunter2")) throw new Exception("A tool summary carried its arguments.");
             if (RemoteToolWords("media", new ToolArguments { Action = "resume" }) != "Media: resume") throw new Exception("Media's summary lost its action.");
             if (RemoteOut("my key is sk-abcdefghijklmnopqrstuvwxyz123456").Contains("abcdefghijklmnop")) throw new Exception("A key in her reply went to the phone.");

@@ -442,7 +442,7 @@ namespace CapriDesktop
         }
 
         // Tools that bring a window to the front would take the job's window from under its mouse.
-        private static readonly string[] Fronting = { "open_app", "open_website", "play_music", "app_window", "mainframe", "mini_game" };
+        private static readonly string[] Fronting = { "open_app", "open_website", "play_music", "app_window", "mainframe", "mini_game", "workspace" };
 
         // One tool beside the job. A mouse job or a stream mid-job becomes part of the running job, and so does a tool that would
         // bring a window to the front, in their words, as it did before her fast head had tools.
@@ -463,7 +463,7 @@ namespace CapriDesktop
                 else running.Tell(args.Task);
                 return "Added that to my job.";
             }
-            if (MidJob(running) && job == running && (Array.IndexOf(Fronting, tool) >= 0 || tool == "routine" && args.Action == "run"))
+            if (MidJob(running) && job == running && (Array.IndexOf(Fronting, tool) >= 0 && (tool != "workspace" || args.Action != "status" && !Hands.WorkspaceStarts(args)) || tool == "routine" && args.Action == "run"))
             {
                 if (args.Job != null && args.Job != running) return "That job has ended.";
                 running.Tell(string.IsNullOrWhiteSpace(args.Asked) ? tool : args.Asked);
