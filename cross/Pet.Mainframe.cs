@@ -503,7 +503,7 @@ namespace CapriDesktop
         private void RemoteBrainAsk(string device, RemoteJson.Map message, Func<bool> current)
         {
             string re;
-            RemoteBrainKeys.Ask ask = RemoteBrainKeys.Read(device, message, out re, true);
+            RemoteBrainKeys.Ask ask = RemoteBrainKeys.Read(device, message, out re);
             if (ask == null) { BrainSend(device, current, RemoteMessages.Error("bad-message", re)); return; }
             remoteBrains[device] = current;
             RemoteBrainTick();

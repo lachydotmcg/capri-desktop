@@ -54,32 +54,17 @@ namespace CapriDesktop
         // which could never be a key and would break the header it goes out in.
         internal static Ask Read(string device, RemoteJson.Map message, out string re)
         {
-            return Read(device, message, out re, false);
-        }
-
-        internal static Ask Read(string device, RemoteJson.Map message, out string re, bool pasted)
-        {
             re = null;
             string type = message == null ? null : message.Text("type");
             if (!Owns(type)) return null;
             Ask ask = new Ask { Device = device, Type = type };
             if (type == "brain.get") return ask;
             ask.Tier = Tier(message.Text("brain"));
-            if (type == "brain.use")
-            {
-                if (pasted && RemoteMessages.IdOk(message.Text("id"))) re = message.Text("id");
-                return ask.Tier >= 0 ? ask : null;
-            }
+            if (type == "brain.use") return ask.Tier >= 0 ? ask : null;
             string id = message.Text("id");
             if (!RemoteMessages.IdOk(id)) return null;
             re = ask.Id = id;
-            string key = message.Text("key") ?? "";
-            if (pasted)
-            {
-                if (key.Length > MostKey) return null;
-                foreach (char c in key) if (char.IsControl(c)) return null;
-            }
-            key = key.Trim();
+            string key = (message.Text("key") ?? "").Trim();
             if (ask.Tier < 1 || key.Length == 0 || key.Length > MostKey) return null;
             foreach (char c in key) if (char.IsControl(c)) return null;
             ask.Key = key;
