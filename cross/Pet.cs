@@ -5397,6 +5397,7 @@ namespace CapriDesktop
             StopNativeListening(!fromVoice);
             if (!working) Brain.Cancel();
             voice.Stop();
+            if (phone == null && Think == null && Brain.Model == null && Security.Holding != null && !Security.FromMod(text) && !Security.Agrees(text) && !Security.Declines(text)) Security.Drop();
             string tool;
             if (MainframeAsked(text))
             {

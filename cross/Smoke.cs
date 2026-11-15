@@ -5505,7 +5505,7 @@ namespace CapriDesktop
 
         private void BrainlessFileChecks(string path)
         {
-            var think = pet.Think; var provider = pet.Brain.Provider; var changed = Security.Changed;
+            var think = pet.Think; var provider = pet.Brain.Provider; var changed = Security.Changed; var opener = Hands.Run;
             string model = pet.Brain.Model, permissions = Security.Saved;
             try
             {
@@ -5529,6 +5529,7 @@ namespace CapriDesktop
                 MacFiles.Drop(new[] { path }, words => { heard = words; pet.Hear(words); });
                 RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a drop without a brain");
                 if (heard != Files.Dropped || pet.Talk.Reply != listed || pet.Brain.Attachments.Waiting || !pet.Brain.Attachments.Message("").Contains("made up")) throw new Exception("A drop without a brain wasn't read and listed like Windows: " + pet.Talk.Reply);
+                string opened = null; Hands.Run = value => opened = value;
                 Hands.Websites.Do(new ToolArguments { Action = "save", Name = "offline", Site = "example.com/offline" });
                 Security.Set(Security.Open, false);
                 pet.Talk.Dismiss(); pet.Hear("open offline");
@@ -5536,12 +5537,21 @@ namespace CapriDesktop
                 if (pet.Talk.Reply != "Open offline? Say yes and I will.") throw new Exception("An offline nickname open lost its Security gate.");
                 pet.Talk.Dismiss(); pet.Hear("yes");
                 RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "an offline website approval");
-                if (!pet.Talk.Reply.StartsWith("Opened ", StringComparison.Ordinal) || Security.Holding != null) throw new Exception("An offline nickname approval needed a brain.");
+                if (!pet.Talk.Reply.StartsWith("Opened ", StringComparison.Ordinal) || Security.Holding != null || opened != "https://example.com/offline") throw new Exception("An offline nickname approval needed a brain.");
+                pet.Talk.Dismiss(); pet.Hear("open offline");
+                RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a second offline website gate");
+                pet.Talk.Dismiss(); pet.Hear("the sky is blue");
+                RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "another message without a brain");
+                bool dropped = Security.Holding == null;
+                opened = null;
+                pet.Talk.Dismiss(); pet.Hear("yes");
+                RemoteBridgeWait(() => !pet.Talk.Thinks && pet.Talk.Reply != null, "a late yes without a brain");
+                if (!dropped || opened != null) throw new Exception("A held nickname open outlived another message and opened on a late yes.");
                 Hands.Websites.Do(new ToolArguments { Action = "forget", Name = "offline" });
             }
             finally
             {
-                pet.Talk.Dismiss(); pet.Think = think; pet.Brain.Model = model; pet.Brain.Provider = provider;
+                pet.Talk.Dismiss(); pet.Think = think; pet.Brain.Model = model; pet.Brain.Provider = provider; Hands.Run = opener;
                 pet.Brain.Attachments.Clear();
                 Security.Drop(); Security.Load(permissions); Security.Changed = changed;
             }
@@ -5663,6 +5673,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross nicknames: save, reload, list, fake open and forget preserve Windows answers, and platform help describes the available actions");
                 checks.Add("PASS cross reads without a brain show and keep her cleaned line, like Windows");
                 checks.Add("PASS cross drops are heard without their paths, and without a brain she reads and lists them, like Windows");
+                checks.Add("PASS cross Security without a brain: another message drops a held nickname open, so a late yes opens nothing");
             }
             finally
             {
