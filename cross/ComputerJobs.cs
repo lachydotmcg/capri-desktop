@@ -289,7 +289,7 @@ namespace CapriDesktop
                 try { handler(job, state); } catch { }
         }
         internal static bool IsCurrent(ComputerJob job) { lock (gate) return job != null && (runningJob == job || pending == job || followed == job); }
-        private static bool gameRunning;
+        private static bool gameRunning, streamRunning;
         internal static string Follow(ComputerJob job, Func<string> work)
         {
             lock (gate) followed = job;
@@ -305,6 +305,7 @@ namespace CapriDesktop
 
         internal static bool Active { get { lock (gate) return running != null; } }
         internal static bool GameRunning { get { lock (gate) return running != null && gameRunning; } }
+        internal static bool StreamRunning { get { lock (gate) return running != null && streamRunning; } }
         private static long revocation;
         private static Task<bool> protocols;
         private static string protocolSession;
@@ -474,6 +475,8 @@ namespace CapriDesktop
                 if (admission != revocation) return "That paused job was stopped. Start a new request.";
                 dropped = pending;
                 running = cancel; runningJob = job; gameRunning = job.Game != null; pending = null;
+                // Hands.Streaming can outlast a stream, so the job's own words say whether this one is.
+                streamRunning = Hands.StreamAsked(job.Task) || Hands.StreamAsked(job.Asked);
             }
             string state = "failed";
             Brain vision = null;

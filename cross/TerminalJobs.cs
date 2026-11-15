@@ -25,6 +25,8 @@ namespace CapriDesktop
         internal static Func<string> Context = () => "local";
         private static string root;
         private static bool retiring;
+        // Set where jobs start and where the monitor reads them, so asking costs no file read and no lock.
+        private static volatile bool busy;
         static TerminalJobs() { AppDomain.CurrentDomain.ProcessExit += (_, _) => Shutdown(); }
         private static readonly Timer monitor = new Timer(_ => CheckContext(), null, Timeout.Infinite, Timeout.Infinite);
         private static readonly UnixFileMode Private = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute;
@@ -112,7 +114,7 @@ namespace CapriDesktop
                 }
                 if (mac && !visible) foreach (string flag in new[] { "-B", "-E", "-S" }) info.ArgumentList.Add(flag);
                 if (!mac || !visible) { info.ArgumentList.Add(Worker); info.ArgumentList.Add(directory); }
-                try { job.Launcher = Process.Start(info); jobs.Add(id, job); monitor.Change(500, 500); }
+                try { job.Launcher = Process.Start(info); jobs.Add(id, job); busy = true; monitor.Change(500, 500); }
                 catch { System.IO.Directory.Delete(directory, true); throw; }
             }
             // Called on the model worker; bound initial observation, never block the UI for a job.
@@ -147,13 +149,14 @@ namespace CapriDesktop
         }
         private static void WritePrivate(string path, string text) { File.WriteAllText(path, text); File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite); }
         private static void Stop(Job job) { WritePrivate(Path.Combine(job.Directory, "stop"), "stop\n"); }
+        internal static bool Busy => busy;
         internal static bool StopAll() { lock (gate) { if (retiring) return false; var active = jobs.Values.Where(Active).ToArray(); foreach (Job job in active) Stop(job); return active.Length > 0; } }
         internal static void Shutdown()
         {
             lock (gate)
             {
                 if (retiring) return;
-                retiring = true; monitor.Change(Timeout.Infinite, Timeout.Infinite);
+                retiring = true; busy = false; monitor.Change(Timeout.Infinite, Timeout.Infinite);
                 foreach (Job job in jobs.Values)
                 {
                     try
@@ -179,6 +182,7 @@ namespace CapriDesktop
             {
                 if (retiring) return;
                 var active = jobs.Values.Where(Active).ToArray();
+                busy = active.Length > 0;
                 if (active.Length == 0) { monitor.Change(Timeout.Infinite, Timeout.Infinite); return; }
                 string context;
                 try { context = Context(); }

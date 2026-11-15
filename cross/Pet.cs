@@ -102,6 +102,7 @@ namespace CapriDesktop
         [DataMember] internal string BrainProvider;
         [DataMember] internal ProviderModelPick[] ProviderModels;
         [DataMember] internal ProviderEndpoint[] ProviderEndpoints;
+        [DataMember] internal bool NoAi;
         [DataMember] internal string FreeModel;
         [DataMember] internal string PaidModel;
         [DataMember] internal string SpeechModel;
@@ -731,6 +732,8 @@ namespace CapriDesktop
         // What she says about a new version once she's free.
         internal string UpdateNews;
         private bool pulling;
+        // No AI stops a download in flight, like Windows cancelling her setup.
+        private volatile bool pullStopped;
         private string pullingName = Starter;
         private volatile int pulled = -1;
         private bool dancing;
@@ -1071,6 +1074,7 @@ namespace CapriDesktop
             RestoreBrainTier();
             RestoreOwnBrain();
             RestoreCustomEndpoint();
+            if (Saved.NoAi) Brain.Model = null;
             KeepAdoptedProvider();
             voice.Key = ReadVoiceKey();
             // Her keys, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
@@ -1428,7 +1432,12 @@ namespace CapriDesktop
             CheckStyle();
             CheckSelfTools();
             if (Program.Smoke == null && !CheckReminders() && !CheckWeather()) CheckMail();
-            if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
+            if (presence != null && now >= nextStatus)
+            {
+                nextStatus = now + 1;
+                presence.Crowd = clones == null ? 0 : clones.Shown + 1;
+                presence.Show(Saved.NoDiscord ? null : Doing);
+            }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
             ShowUnreadableNotice();
             if (UpdateNews != null && !away && !dragging && Talk.Quiet) { Talk.Answer("(update)", UpdateNews); UpdateNews = null; }
@@ -1482,11 +1491,20 @@ namespace CapriDesktop
         {
             get
             {
-                if (away) return "Taking a break";
-                if (!Talk.Quiet) return "Chatting";
-                if (clip == dance || clip == perchDance) return musicOn ? "Dancing to music" : "Dancing";
-                if (Asleep) return "Asleep";
-                return "Plugged in";
+                return new PresenceState
+                {
+                    Working = SelfJobs.Active || ComputerJobs.Active || TerminalJobs.Busy,
+                    Streaming = ComputerJobs.StreamRunning,
+                    PlayingGame = ComputerJobs.GameRunning,
+                    Cloned = clones != null,
+                    VoiceChat = Listening,
+                    GameOpen = careGame != null && (OperatingSystem.IsLinux() || CareOn(CareKind.Game)),
+                    Away = away,
+                    Chatting = !Talk.Quiet,
+                    Dancing = clip == dance || clip == perchDance,
+                    Music = musicOn,
+                    Asleep = Asleep
+                }.Words;
             }
         }
 
@@ -2464,7 +2482,7 @@ namespace CapriDesktop
             newsQuiet = quiet;
             if (!newsPending || !greetTried || newsTicket == asking) return;
             if (NewsBusy(quiet) || !Talk.Quiet || !Talk.Finished) return;
-            if (Think == null && Brain.Model == null)
+            if (Brainless)
             {
                 Talk.Answer("(updated)", News.Line);
                 KeepNews();
@@ -4212,6 +4230,7 @@ namespace CapriDesktop
 
         private void RefreshBrains()
         {
+            if (Saved.NoAi) { ShowNoAi(); return; }
             if (Brain.Provider != null) { ShowPlanModel(); return; }
             if (MainframeTier > 0 && Brain.Remote == null) { NotifySettings(); return; }
             if (Brain.Remote != null) { ShowCloud(); ListCloud(); return; }
@@ -4238,6 +4257,20 @@ namespace CapriDesktop
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate { if (request == localRequests && MainframeTier == 0 && Brain.Server == server && Brain.Remote == null) ShowBrains(found); });
             });
+        }
+
+        // No AI: the Brain menu says so, and turning her brain back on brings back the one she had.
+        private void ShowNoAi()
+        {
+            frameModels = Array.Empty<string>();
+            frameProblem = null;
+            NotifySettings();
+            brainMenu.Items.Clear();
+            brainMenu.Items.Add(new MenuItem { Header = "OFF · No AI · no brain at all", IsEnabled = false });
+            brainMenu.Items.Add(new Separator());
+            MenuItem back = new MenuItem { Header = "Turn her brain back on" };
+            back.Click += Guarded(delegate { SetNoAi(false); });
+            brainMenu.Items.Add(back);
         }
 
         internal void ShowBrains(string[] found)
@@ -4404,8 +4437,9 @@ namespace CapriDesktop
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] found = null;
-                try { found = Brain.ServerModels(server, key); }
+                try { Brain.Probing = true; found = Brain.ServerModels(server, key); }
                 catch (Exception) { }
+                finally { Brain.Probing = false; }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (ticket != asking || quitting) { report?.Invoke("Provider check cancelled."); return; }
@@ -4454,6 +4488,7 @@ namespace CapriDesktop
                 }
                 else saved = WriteServerPair(ServerPairFile, server, key);
                 if (!saved) { say("Couldn't save the provider address and key."); return; }
+                bool leftNoAi = LeaveNoAi();
                 StopProviderWork();
                 ++localRequests;
                 Brain.SetServer(server, key);
@@ -4461,13 +4496,28 @@ namespace CapriDesktop
                 WriteSecret(ServerKeyFile, null, "provider key");
                 if (Brain.Remote == null) Brain.Model = model;
                 Saved.ServerModel = model;
-                if (!replacesNamed) Save();
+                if (!replacesNamed || leftNoAi) Save();
                 if (MainframeTier == 0) ShowServer(found);
                 else NotifySettings();
                 if (report != null)
                     report(Brain.Remote == null ? "Provider connected." : "Provider saved. Your cloud key is still in use.");
                 else say(key == null ? "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : "") : "I'm thinking with " + model + " on " + server + " with your key now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
             });
+        }
+
+        // No AI stays on until a provider connects. Then, like Windows' provider, she's on NORMAL with it, and no tier's cloud
+        // key comes back.
+        private bool LeaveNoAi()
+        {
+            if (!Saved.NoAi) return false;
+            Saved.NoAi = false;
+            Brain.Off = false;
+            Saved.BrainTier = 0;
+            Brain.Remote = null;
+            Saved.CloudModel = null;
+            cloudModels = null;
+            WriteSecret(BrainKeyFile, null, "brain key");
+            return true;
         }
 
         private void StopProviderWork()
@@ -4650,15 +4700,17 @@ namespace CapriDesktop
 
         internal void PullBrain(string tag)
         {
+            if (Saved.NoAi) SetNoAi(false);
             if (pulling) return;
             pulling = true;
+            pullStopped = false;
             pulled = -1;
             pullingName = tag;
             Talk.Answer(BrainHeard, "Downloading my brain, " + tag + ". It can be a few GB. BRAIN in Capri Mainframe shows its progress.");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem = null;
-                try { Brain.Pull(tag, delegate(string status, long done, long total) { pulled = (int)(done * 100 / Math.Max(1, total)); }, delegate { return false; }); }
+                try { Brain.Pull(tag, delegate(string status, long done, long total) { pulled = (int)(done * 100 / Math.Max(1, total)); }, delegate { return pullStopped; }); }
                 catch (Exception error)
                 {
                     System.Net.WebException web = error as System.Net.WebException;
@@ -4668,6 +4720,7 @@ namespace CapriDesktop
                 {
                     pulling = false;
                     pulled = -1;
+                    if (Saved.NoAi) { NotifySettings(); return; }
                     if (MainframeTier == 0) frameProblem = problem;
                     NotifySettings();
                     if (problem != null) { Talk.Notice(BrainHeard, problem); return; }
@@ -4675,7 +4728,7 @@ namespace CapriDesktop
                     LeaveOwnBrain();
                     string currentServer, currentKey;
                     Brain.GetServer(out currentServer, out currentKey);
-                    if (MainframeTier == 0 && Brain.Remote == null && currentServer == null) Brain.Model = tag;
+                    if (MainframeTier == 0 && !Saved.NoAi && Brain.Remote == null && currentServer == null) Brain.Model = tag;
                     Save();
                     Talk.Notice(BrainHeard, "My brain's in. Talk to me, choom.");
                 });
@@ -5417,7 +5470,7 @@ namespace CapriDesktop
 
         internal void FindBrain()
         {
-            if (Brain.Provider != null || MainframeTier != 0) return;
+            if (Saved.NoAi || Brain.Provider != null || MainframeTier != 0) return;
             if (Program.Smoke != null && BrainKeyCheck != null) return;
             string saved = Saved.Model;
             string server;
@@ -5442,7 +5495,7 @@ namespace CapriDesktop
                 {
                     string currentServer, currentKey;
                     Brain.GetServer(out currentServer, out currentKey);
-                    if (MainframeTier != 0 || Brain.Model != null || model == null || currentServer != server || currentKey != serverKey ||
+                    if (Saved.NoAi || MainframeTier != 0 || Brain.Model != null || model == null || currentServer != server || currentKey != serverKey ||
                         EndpointIdOf(Saved.BrainProvider) != EndpointIdOf(provider)) return;
                     Brain.Model = model;
                     if (server == null) Saved.Model = model;
@@ -6553,7 +6606,7 @@ namespace CapriDesktop
             if (!working) Brain.Cancel();
             voice.Stop();
             if (sorry) { Reply(ticket, text, Lines.Pick(Sulks.SorryLines)); return; }
-            if (phone == null && Think == null && Brain.Model == null && Security.Holding != null && !Security.FromMod(text) && !Security.Agrees(text) && !Security.Declines(text)) Security.Drop();
+            if (phone == null && Brainless && Security.Holding != null && !Security.FromMod(text) && !Security.Agrees(text) && !Security.Declines(text)) Security.Drop();
             string tool;
             if (MainframeAsked(input))
             {
@@ -6605,11 +6658,11 @@ namespace CapriDesktop
                 return;
             }
             // Her nap, her own moves and her animations work before she has a brain, like on Windows.
-            if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, RemoteDirect(phone, tool, args), null, false, phone); return; }
-            bool fileRequest = tool == "find_file" || tool == "read_file" || tool == "website_nickname" || tool == "open_website" && Hands.Websites != null && Hands.Websites.Nickname(args.Site) != null;
+            if ((Hands.OnMac && (tool == "clone" || tool == "hologram")) || tool == "mainframe" || (OperatingSystem.IsMacOS() && tool == "draw" && string.IsNullOrEmpty(args.Description)) || (Brainless && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, RemoteDirect(phone, tool, args), null, false, phone); return; }
+            bool fileRequest = tool == "find_file" || tool == "read_file" && !Saved.NoAi || tool == "website_nickname" || tool == "open_website" && Hands.Websites != null && Hands.Websites.Nickname(args.Site) != null;
             bool websiteHeld = phone == null ? Security.Holding == "open_website" : phone.Hold != null && phone.Hold.Calls.Count == 1 && phone.Hold.Calls[0].Key == "open_website";
             bool modHeld = phone == null && Security.Holding == "import_mod";
-            if (Think == null && Brain.Model == null && (fileRequest || (websiteHeld || modHeld) && (Security.Agrees(input) || Security.Declines(input))))
+            if (Brainless && (fileRequest || (websiteHeld || modHeld) && (Security.Agrees(input) || Security.Declines(input))))
             {
                 Talk.Thinking(text);
                 Ask(ticket, text, 0, 0, phone, delegate(string line)
@@ -6622,12 +6675,30 @@ namespace CapriDesktop
                 });
                 return;
             }
+            if (Brainless && News.Matching(input) != null) { Reply(ticket, text, News.Facts, null, false, phone); return; }
+            // As on Windows, with No AI on only what needs no brain gets past here: her moves, file search, website nicknames and the news.
+            if (Saved.NoAi) { NoAiLine(ticket, text, phone); return; }
             if (Think == null && Brain.Model == null && Brain.Attachments.Waiting) { Talk.Thinking(text); Ask(ticket, text, 0, 0, phone); return; }
-            if (Think == null && Brain.Model == null && News.Matching(input) != null) { Reply(ticket, text, News.Facts, null, false, phone); return; }
             if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline, null, false, phone); FindBrain(); return; }
             Talk.Thinking(text);
             long voiceTicket = fromVoice ? voiceRecovery.Begin() : 0;
             Ask(ticket, text, 0, voiceTicket, phone);
+        }
+
+        // No AI turns away whatever thinks for her, the smoke test's stand-in brain too.
+        private bool Brainless { get { return Saved.NoAi || Think == null && Brain.Model == null; } }
+
+        private double noAiSaid = -1;
+        internal const double NoAiGap = 600;
+
+        // Something that needs a brain, with No AI on: her line the first time, then at most once in ten minutes, never a nag.
+        // A phone still gets its answer, so its turn ends.
+        private void NoAiLine(int ticket, string text, RemoteTurn phone)
+        {
+            double now = Now;
+            if (phone == null && noAiSaid >= 0 && now - noAiSaid < NoAiGap) { Talk.Dismiss(false); return; }
+            noAiSaid = now;
+            Reply(ticket, text, Brain.OffLine, null, false, phone);
         }
 
         // Her brain answers on the thread pool. A stuck NVIDIA model hands the message to the next one, twice at most, like on Windows.
@@ -6907,6 +6978,7 @@ namespace CapriDesktop
             if (phone == null) RemoteBrainTakenOver();
             key = (key ?? "").Trim();
             if (key.Length == 0) return;
+            if (Saved.NoAi) SetNoAi(false);
             string kind = Cloud.KindOf(key);
             if (kind == null) { frameProblem = NotAKey; if (phone != null) DropPhoneKey(NotAKey); NotifySettings(); if (phone == null) Talk.Answer(BrainKeyHeard, NotAKey); return; }
             frameProblem = null;
@@ -7566,6 +7638,7 @@ namespace CapriDesktop
             [DataMember] internal string BrainProvider;
             [DataMember] internal ProviderModelPick[] ProviderModels;
             [DataMember] internal ProviderEndpoint[] ProviderEndpoints;
+            [DataMember] internal bool NoAi;
             [DataMember] internal string FreeModel;
             [DataMember] internal string PaidModel;
             [DataMember] internal string SpeechModel;
@@ -7650,6 +7723,7 @@ namespace CapriDesktop
             saved.MemorySize = newer.MemorySize;
             saved.ReplyLength = newer.ReplyLength;
             saved.BrainTier = newer.BrainTier;
+            saved.NoAi = newer.NoAi;
             saved.FreeModel = newer.FreeModel;
             saved.PaidModel = newer.PaidModel;
             saved.SpeechModel = newer.SpeechModel;
@@ -7675,7 +7749,7 @@ namespace CapriDesktop
         internal static NewSettings Newest(Settings saved)
         {
             return new NewSettings { NoChimes = saved.NoChimes, NoChimeSent = saved.NoChimeSent, NoChimeHeard = saved.NoChimeHeard, NoChimeListening = saved.NoChimeListening, ChimeVolume = saved.ChimeVolume, ChimeSet = saved.ChimeSet, VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, FishVoiceId = saved.FishVoiceId, OpenAiVoiceId = saved.OpenAiVoiceId, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
-                MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, ProviderEndpoints = saved.ProviderEndpoints, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
+                MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, NoAi = saved.NoAi, BrainProvider = saved.BrainProvider, ProviderModels = saved.ProviderModels, ProviderEndpoints = saved.ProviderEndpoints, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
                 CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, LegacyStand = saved.LegacyStand, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, ListenCapriHold = saved.ListenCapriHold, ListenCapriHoldContext = saved.ListenCapriHoldContext, Vault = saved.Vault, NoHuskVerbosity = saved.NoHuskVerbosity, HuskMode = saved.HuskMode, ThinkingPicks = saved.ThinkingPicks, MusicApp = saved.MusicApp, Lite = saved.Lite, LiteWatch = saved.LiteWatch, RemoteOn = saved.RemoteOn, RemoteHost = string.IsNullOrWhiteSpace(saved.RemoteHost) ? RemoteLink.DefaultHost : saved.RemoteHost };
         }
 
@@ -7896,7 +7970,8 @@ namespace CapriDesktop
                 secret = sameOrigin ? oldKey : null;
             }
             if (!EndpointKeySafe(server, secret)) { report("Use https:// for a provider elsewhere. A key over plain http isn't safe."); return; }
-            bool active = connect || IsActiveEndpoint(previous);
+            // No AI keeps its provider set, so only Connect checks it then, and saving its name or address doesn't switch No AI off.
+            bool active = connect || !Saved.NoAi && IsActiveEndpoint(previous);
             if (active)
             {
                 CheckServer(server, secret, report, found =>
@@ -7979,6 +8054,7 @@ namespace CapriDesktop
             }
             if (found != null)
             {
+                if (LeaveNoAi()) Save();
                 StopProviderWork();
                 ++localRequests;
                 Brain.Remote = null;
