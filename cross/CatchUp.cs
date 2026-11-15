@@ -51,6 +51,7 @@ namespace CapriDesktop
         private static void PdfReply(MacFiles.Reply reply)
         {
             if (reply.TimedOut) throw new BrainException("Reading that PDF took too long. Try a smaller file.", true);
+            if (reply.Error.Contains("pdf_locked")) throw new BrainException("That PDF is locked. Unlock it first.", true);
             if (reply.Code != 0) throw new BrainException(Hands.OnMac ? "I couldn't read that PDF. Check its file access in System Settings > Privacy & Security > Files and Folders." : "I couldn't read that PDF page. It may be locked, damaged or past the last page.", true);
         }
 
@@ -467,7 +468,11 @@ namespace CapriDesktop
                 if (!Files.Open(pdf, null, 1, 0).Line.Contains(CatchUp.ScannedPdf)) throw new Exception("A scanned PDF page claimed text.");
                 MacFiles.Run = (start, _, _, _) => new MacFiles.Reply { TimedOut = start.FileName != "/bin/test" };
                 if (!Files.Open(pdf, null, 1, 0).Line.Contains("too long")) throw new Exception("A PDF timeout was hidden.");
+                Hands.OnMac = true;
+                MacFiles.Run = (start, _, _, _) => start.FileName == "/bin/test" ? new MacFiles.Reply() : new MacFiles.Reply { Code = 1, Error = "execution error: Error: pdf_locked (-2700)" };
+                if (Files.Open(pdf, null, 1, 0).Line != "That PDF is locked. Unlock it first.") throw new Exception("A locked PDF on a Mac lost its unlock line.");
                 checks.Add("PASS PDF text: a small PDF routes through PDFKit on Mac or pdftotext on Linux with quoted paths and data framing; missing pdftotext names apt, dnf or pacman");
+                checks.Add("PASS a locked PDF on a Mac says to unlock it");
             }
             finally
             {
