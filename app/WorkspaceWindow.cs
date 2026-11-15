@@ -132,10 +132,12 @@ namespace CapriDesktop
         private readonly object changeGate = new object();
         private readonly HashSet<WorkspaceChat> pendingChanges = new HashSet<WorkspaceChat>();
         private readonly System.Windows.Forms.Timer changeClock = new System.Windows.Forms.Timer { Interval = 40 };
-        private bool changePosted;
+        private bool changePosted, changeUrgent;
+        private long changeCalm;
         private readonly Dictionary<WorkspaceChat, HashSet<WorkspaceItem>> pendingItems = new Dictionary<WorkspaceChat, HashSet<WorkspaceItem>>();
         private readonly HashSet<WorkspaceChat> pendingFull = new HashSet<WorkspaceChat>();
         internal int ChangeFlushes;
+        internal double LastChange, ChangeMs;
         private WorkspaceItem pageEnd;
         private WorkspaceChat chat;
         private bool filling, saving, arranging, picking;
@@ -282,10 +284,28 @@ namespace CapriDesktop
                     if (!pendingItems.TryGetValue(changedChat, out items)) pendingItems[changedChat] = items = new HashSet<WorkspaceItem>();
                     items.Add(item);
                 }
-                if (changePosted) return;
+                bool urgent = item == null || !item.Growing;
+                if (changePosted && (changeUrgent || !urgent)) return;
                 changePosted = true;
+                changeUrgent |= urgent;
             }
-            Post(delegate { changeClock.Start(); });
+            Post(PaceChanges);
+        }
+
+        // Anything but a growing reply shows at once. A growing reply waits three times as long as the last change took
+        // to show, so however long it gets it never takes more than a quarter of the window's time.
+        private void PaceChanges()
+        {
+            long wait;
+            lock (changeGate)
+            {
+                if (pendingChanges.Count == 0) return;
+                wait = changeUrgent ? 0 : (changeCalm - Stopwatch.GetTimestamp()) * 1000 / Stopwatch.Frequency;
+            }
+            if (wait <= 0) { FlushChanges(); return; }
+            changeClock.Stop();
+            changeClock.Interval = (int)Math.Min(1000, Math.Max(1, wait));
+            changeClock.Start();
         }
 
         internal void FlushChanges()
@@ -303,12 +323,17 @@ namespace CapriDesktop
                 pendingItems.Clear();
                 pendingFull.Clear();
                 pendingChanges.Clear();
-                changePosted = false;
+                changePosted = changeUrgent = false;
             }
             ChangeFlushes++;
+            long started = Stopwatch.GetTimestamp();
             FillChats();
             if (current) { FillHeader(); if (full || !transcript.RefreshText(items)) SyncItems(); }
             UpdateKeys();
+            long took = Stopwatch.GetTimestamp() - started;
+            LastChange = took * 1000.0 / Stopwatch.Frequency;
+            ChangeMs += LastChange;
+            lock (changeGate) changeCalm = Stopwatch.GetTimestamp() + took * 3;
         }
 
         private void Try(Action action)
@@ -1015,6 +1040,10 @@ namespace CapriDesktop
         internal int ItemFills { get { return transcript.ItemFills; } }
         internal int MeasuresOf(WorkspaceItem item) { return transcript.MeasuresOf(item); }
         internal object LayoutOf(WorkspaceItem item) { return transcript.LayoutOf(item); }
+        internal int LaidWords { get { return transcript.LaidWords; } }
+        internal string LayoutSignature(WorkspaceItem item) { return transcript.Signature(item); }
+        internal void LayOutWhole(WorkspaceItem item) { transcript.Forget(item); transcript.Arrange(true); }
+        internal void ForgetLayout(WorkspaceItem item) { transcript.Forget(item); }
         internal bool FollowingEnd { get { return transcript.Following; } }
         internal Bitmap DrawConversation()
         {
@@ -1779,6 +1808,11 @@ namespace CapriDesktop
                 internal readonly List<Seg> Segs = new List<Seg>();
                 // Links in her words: where each is drawn and where it goes.
                 internal readonly List<KeyValuePair<Rectangle, string>> Links = new List<KeyValuePair<Rectangle, string>>();
+                // A growing reply: the text it was last read from, how many of its blocks more words can't change, and how
+                // far the lists and the page had got after them.
+                internal string KeptText;
+                internal int KeptWords, KeptPieces, KeptParts, KeptSegs, KeptLinks, KeptBottom;
+                internal WordBlock KeptBefore;
             }
 
             // One drawn stretch of selectable text: its part, where it starts in that part's characters, and its box. A code
@@ -1832,7 +1866,7 @@ namespace CapriDesktop
             private Rectangle thinkLine;
             private readonly System.Windows.Forms.Timer thinkingClock = new System.Windows.Forms.Timer { Interval = 1000 };
             internal Func<double> Seconds;
-            internal int LayoutMeasures, LayoutPasses, ItemFills;
+            internal int LayoutMeasures, LayoutPasses, ItemFills, LaidWords;
             internal Rectangle ThinkingInvalidated;
             private string thinkingText = "Thinking";
             internal string ThinkingText { get { return thinkingText; } }
@@ -1849,6 +1883,26 @@ namespace CapriDesktop
 
             internal int MeasuresOf(WorkspaceItem item) { Block block; return known.TryGetValue(item, out block) ? block.Measures : 0; }
             internal object LayoutOf(WorkspaceItem item) { Block block; return known.TryGetValue(item, out block) && block.Pieces.Count > 0 ? block.Pieces[0] : null; }
+            internal void Forget(WorkspaceItem item) { Block block; if (known.TryGetValue(item, out block)) { block.KeptWords = 0; block.LaidWidth = -1; } }
+
+            internal string Signature(WorkspaceItem item)
+            {
+                Block block;
+                if (!known.TryGetValue(item, out block)) return "";
+                int top = block.Box.Top;
+                Func<Rectangle, string> at = delegate(Rectangle box) { return box.X + "," + (box.Y - top) + "," + box.Width + "," + box.Height; };
+                StringBuilder text = new StringBuilder();
+                text.Append(block.Box.Height).Append('/').Append(block.Box.Width).Append('\n');
+                foreach (Piece piece in block.Pieces)
+                    text.Append(piece.Text).Append('|').Append(at(piece.Box)).Append('|').Append(piece.Font == null ? "" : piece.Font.Name + piece.Font.Size + piece.Font.Style).Append('|').Append(piece.Ink.ToArgb()).Append('|').Append(piece.Tag)
+                        .Append('|').Append(piece.Code).Append(piece.Line).Append(piece.Right).Append(piece.Strike).Append(piece.Under).Append(piece.Checked).Append('|').Append(piece.Back.ToArgb()).Append('|').Append(piece.RowTall)
+                        .Append('|').Append(piece.Rows == null ? "" : string.Join("\n", piece.Rows.ToArray())).Append('|').Append(piece.Across == null ? "" : string.Join(",", piece.Across.ConvertAll(delegate(int n) { return n.ToString(); }).ToArray()))
+                        .Append('|').Append(piece.Down == null ? "" : string.Join(",", piece.Down.ConvertAll(delegate(int n) { return n.ToString(); }).ToArray())).Append('\n');
+                foreach (WordBlock part in block.Parts) text.Append(part.Kind).Append(':').Append(part.From).Append(':').Append(part.Length).Append('\n');
+                foreach (Seg seg in block.Segs) text.Append(seg.Part).Append('@').Append(seg.Start).Append('|').Append(seg.Text).Append('|').Append(at(seg.Box)).Append('|').Append(seg.Map == null ? "" : string.Join(",", Array.ConvertAll(seg.Map, delegate(int n) { return n.ToString(); }))).Append('\n');
+                foreach (KeyValuePair<Rectangle, string> link in block.Links) text.Append(at(link.Key)).Append('>').Append(link.Value).Append('\n');
+                return text.ToString();
+            }
 
             private void UpdateThinkingText()
             {
@@ -2238,6 +2292,7 @@ namespace CapriDesktop
             {
                 string state = block.Hidden + "|" + block.Running + block.Done + block.Failed + "|" + Status(block);
                 if (block.Group != null) state += "|" + opened.Contains(block.Item) + "|" + block.Words + block.Trouble + "|" + block.Doing;
+                if (block.Item.Growing) state += "|growing";
                 return state;
             }
 
@@ -2747,9 +2802,25 @@ namespace CapriDesktop
             {
                 List<WordBlock> words = WorkWords.Read(text);
                 WordBlock before = null;
-                int beforeBottom = y;
-                foreach (WordBlock word in words)
+                int beforeBottom = y, origin = y, first = 0, stable = 0;
+                if (block.KeptWords > 0)
                 {
+                    first = block.KeptWords;
+                    before = block.KeptBefore;
+                    beforeBottom = y = origin + block.KeptBottom;
+                }
+                if (block.Item.Growing && words.Count > 0)
+                {
+                    // Every block but the last, or the last two when the text stops mid-line or after a table, reads the same
+                    // however the reply goes on (WorkWords' Streams check), so their layout is kept for the next piece.
+                    char end = text[text.Length - 1];
+                    stable = words.Count - (words.Count > 1 && (end != '\n' && end != '\r' || words[words.Count - 2].Kind == WordKind.Table) ? 2 : 1);
+                    block.KeptText = text;
+                }
+                for (int w = first; w < words.Count; w++)
+                {
+                    WordBlock word = words[w];
+                    LaidWords++;
                     if (before != null) y += Space(before, word);
                     int indent = Math.Min(word.Depth * Step, Math.Max(0, width - Z(120)));
                     int left = x + indent, room = width - indent;
@@ -2819,6 +2890,16 @@ namespace CapriDesktop
                     }
                     before = word;
                     beforeBottom = y;
+                    if (w < stable)
+                    {
+                        block.KeptWords = w + 1;
+                        block.KeptPieces = block.Pieces.Count;
+                        block.KeptParts = block.Parts.Count;
+                        block.KeptSegs = block.Segs.Count;
+                        block.KeptLinks = block.Links.Count;
+                        block.KeptBefore = word;
+                        block.KeptBottom = y - origin;
+                    }
                 }
                 if (words.Count == 0) y = Words(block, " ", window.Font, Neon.White, x, y, width);
                 return y;
@@ -3225,8 +3306,29 @@ namespace CapriDesktop
                 return y;
             }
 
+            private bool Resume(Block block, int y)
+            {
+                WorkspaceItem item = block.Item;
+                string text = item.Text, kept = block.KeptText;
+                if (item.Kind != "text" || !item.Growing || block.KeptWords == 0 || kept == null || block.LaidWidth != Width || block.LaidRound != round
+                    || text.Length < kept.Length || string.CompareOrdinal(text, 0, kept, 0, kept.Length) != 0) return false;
+                Shift(block, y - block.Box.Top);
+                return true;
+            }
+
             private void Measure(Block block, int y)
             {
+                if (Resume(block, y))
+                {
+                    block.Pieces.RemoveRange(block.KeptPieces, block.Pieces.Count - block.KeptPieces);
+                    block.Parts.RemoveRange(block.KeptParts, block.Parts.Count - block.KeptParts);
+                    block.Segs.RemoveRange(block.KeptSegs, block.Segs.Count - block.KeptSegs);
+                    block.Links.RemoveRange(block.KeptLinks, block.Links.Count - block.KeptLinks);
+                    int bottom = Reply(block, block.Item.Text, Inset + Z(14), y, Edge - Inset - Z(14));
+                    block.Box = new Rectangle(Inset, y, Edge - Inset, bottom - y);
+                    return;
+                }
+                block.KeptWords = 0;
                 block.Pieces.Clear();
                 block.Parts.Clear();
                 block.Segs.Clear();
@@ -3399,13 +3501,17 @@ namespace CapriDesktop
                 WorkPaint.Rail(e.Graphics, WorkPaint.Track(ClientRectangle, window.zoom), Height, Content, Offset, dragging || railHot);
             }
 
+            // What is being painted, in the conversation's own places, so a long reply draws only the pieces in it.
+            private Rectangle seen;
+
             private void Draw(Graphics graphics, Rectangle area)
             {
                 WorkPaint.Behind(graphics, this);
                 GraphicsState state = graphics.Save();
                 graphics.TranslateTransform(0, -Offset);
                 Rectangle view = new Rectangle(area.Left, area.Top + Offset, area.Width, area.Height);
-                foreach (Block block in Blocks) if (block.Box.IntersectsWith(Rectangle.Inflate(view, 0, Z(8)))) PaintBlock(graphics, block);
+                seen = Rectangle.Inflate(view, 0, Z(8));
+                foreach (Block block in Blocks) if (block.Box.IntersectsWith(seen)) PaintBlock(graphics, block);
                 if (!thinkLine.IsEmpty && thinkLine.IntersectsWith(view)) PaintThinking(graphics);
                 PaintCopyKey(graphics);
                 graphics.Restore(state);
@@ -3441,6 +3547,7 @@ namespace CapriDesktop
                 // Grounds first (a well's plate), then the selection over them, then the words over that.
                 foreach (Piece piece in block.Pieces)
                 {
+                    if (piece.Box.Bottom < seen.Top || piece.Box.Top > seen.Bottom) continue;
                     if (piece.Code) WorkPaint.Plate(graphics, piece.Box, 6 * s, Neon.Well, Neon.WellEdge, line);
                     else if (piece.Tag == "run" && piece.Back.A > 0) WorkPaint.Plate(graphics, new Rectangle(piece.Box.Left - Z(3), piece.Box.Top + Z(2), piece.Box.Width + Z(6), piece.Box.Height - Z(4)), 3 * s, piece.Back, Neon.WellEdge, Math.Max(1f, s));
                     else if (piece.Tag == "table") PaintTable(graphics, piece);
@@ -3448,6 +3555,7 @@ namespace CapriDesktop
                 PaintSelection(graphics, block);
                 foreach (Piece piece in block.Pieces)
                 {
+                    if (piece.Box.Bottom < seen.Top || piece.Box.Top > seen.Bottom) continue;
                     if (piece.Code)
                     {
                         int pad = Z(10), top = 0;
