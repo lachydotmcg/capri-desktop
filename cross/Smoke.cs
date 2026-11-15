@@ -160,6 +160,7 @@ namespace CapriDesktop
                 UnreadableChecks();
                 MacWindows.Checks(checks);
                 Pet.CatchUpChecks(pet, checks);
+                if (pet.Brain.Attachments.Has || MacFiles.Attachments != pet.Brain.Attachments) throw new Exception("The PDF check left a file in her chat.");
                 UpdateCheckChecks();
                 LinuxAppImageUpdater.Checks(checks);
                 OfflineChecks();

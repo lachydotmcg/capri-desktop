@@ -313,6 +313,8 @@ namespace CapriDesktop
             var routine = Hands.Routine;
             var clock = Stopwatches.Clock;
             var run = MacFiles.Run;
+            var attachments = MacFiles.Attachments;
+            var readFile = Hands.ReadFile;
             var macRun = MacWindows.Run;
             var executable = CatchUp.Executable;
             var release = CatchUp.Release;
@@ -437,6 +439,8 @@ namespace CapriDesktop
                 foreach (int value in offsets) data.Append(value.ToString("0000000000", CultureInfo.InvariantCulture) + " 00000 n \n");
                 data.Append("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF\n");
                 File.WriteAllText(pdf, data.ToString(), Encoding.ASCII);
+                MacFiles.Attachments = new Files();
+                Hands.ReadFile = MacFiles.Read;
                 MacFiles.Choose(pdf);
                 CatchUp.Executable = name => "/usr/bin/" + name;
                 foreach (bool platform in new[] { true, false })
@@ -480,7 +484,7 @@ namespace CapriDesktop
                 pet.reminders = saved; pet.ReminderCover = cover; pet.ReminderSays = says; pet.reminderAt = at; pet.reminderLine = shown;
                 pet.ReminderSpeaker = speaker; pet.ReminderWork = work; pet.ReminderPost = post; pet.ReminderPlay = play; pet.Saved.Silent = silent;
                 Hands.Plan = plan; Hands.Remind = remind; Hands.Routine = routine; Stopwatches.Clock = clock;
-                MacFiles.Run = run; MacWindows.Run = macRun; CatchUp.Executable = executable; CatchUp.Release = release; Hands.OnMac = mac;
+                MacFiles.Run = run; MacFiles.Attachments = attachments; Hands.ReadFile = readFile; MacWindows.Run = macRun; CatchUp.Executable = executable; CatchUp.Release = release; Hands.OnMac = mac;
                 Directory.Delete(folder, true);
             }
         }
