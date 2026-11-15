@@ -362,6 +362,7 @@ namespace CapriDesktop
             SmokeWorkspaceTitles(checks, folder, projects, pipe, alias, shoot);
             SmokeWorkspaceEdits(checks, folder, projects, pipe, alias, shoot);
             SmokeWorkspaceTools(checks, folder, projects, pipe, alias, shoot);
+            SmokeWorkspaceFailures(checks, folder, projects, pipe, alias, shoot);
             bool shown = mainframe.Visible;
             FormWindowState state = mainframe.WindowState;
             try
@@ -1383,6 +1384,113 @@ namespace CapriDesktop
             File.WriteAllText(standin, "@echo off\r\nsetlocal\r\nif \"%~1\"==\"--version\" (\r\necho 2.1.295 ^(Claude Code^)\r\necho version>>\"%~dp0version.txt\"\r\nexit /b 0\r\n)\r\n> \"%~dp0raw.txt\" echo %*\r\nfindstr \"^\" > \"%~dp0stdin.txt\"\r\n"
                 + (wait ? ":wait\r\nif exist \"%~dp0finish\" goto done\r\nping -n 2 127.0.0.1 > nul\r\ngoto wait\r\n:done\r\n" : "") + "type \"%~dp0result.txt\"\r\n", Encoding.ASCII);
             return standin;
+        }
+
+        private void SmokeWorkspaceFailures(List<string> checks, string folder, string projects, string pipe, Func<string, string> alias, Action<WorkspaceWindow, string, ToolStripDropDown> shoot)
+        {
+            string fixture = Path.Combine(folder, "fault"), project = Path.Combine(projects, "clock");
+            Directory.CreateDirectory(fixture);
+            Directory.CreateDirectory(project);
+            string session = Guid.NewGuid().ToString(), exe = WorkspaceStandin(fixture, session), chatId;
+            string success = File.ReadAllText(exe), result = Path.Combine(fixture, "result.txt"), normal = File.ReadAllText(result);
+            string stdin = Path.Combine(fixture, "stdin.txt"), attached = Path.Combine(project, "brief.txt");
+            string quota = "You've hit your usage limit. Resets 5pm (Australia/Sydney).",
+                signedOut = "OAuth session expired. Please sign in to Claude Code.", unknown = "The service ended this turn.";
+            File.WriteAllText(attached, "Build a clock.");
+            Action<string> errorResult = delegate(string error)
+            {
+                File.WriteAllText(exe, success, Encoding.ASCII);
+                File.WriteAllText(result, HuskJson.Write(HuskJson.Map("type", "result", "is_error", true, "result", error)) + "\n", new UTF8Encoding(false));
+            };
+            using (Workspace work = new Workspace(fixture, pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(fixture, "home"), Executable = exe })
+            using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+            {
+                WorkspaceChat chat = work.NewChat(project, false);
+                chatId = chat.Id;
+                work.Trust(chat, true);
+                window.PathAlias = alias;
+                window.Show(this);
+                window.ShowChat(chat);
+                WorkspaceItem prior = null;
+                for (int i = 0; i < 3; i++)
+                {
+                    string error = i == 0 ? unknown : i == 1 ? quota : signedOut;
+                    if (i == 1)
+                        File.WriteAllText(exe, success.Replace("type \"%~dp0result.txt\"", "type \"%~dp0fault.txt\" 1>&2\r\nexit /b 7"), Encoding.ASCII);
+                    else errorResult(error);
+                    if (i == 1) File.WriteAllText(Path.Combine(fixture, "fault.txt"), error, Encoding.ASCII);
+                    work.AddFiles(chat, new[] { attached });
+                    WorkspaceSent(work, chat, i == 1 ? "" : "Try the clock");
+                    WorkspaceItem failed = WorkspaceItems(chat).FindLast(delegate(WorkspaceItem item) { return item.Kind == "error"; });
+                    string expected = i == 0 ? unknown : i == 1 ? Workspace.UsageLimit + " It resets at 5pm (Australia/Sydney)." : Workspace.SignIn;
+                    if (failed == null || !failed.Retry || failed.Text != expected || i > 0 && failed.Input != error)
+                        throw new Exception("Workspace's failed turn lost its error, reset time, details or Retry.");
+                    window.RefreshChat();
+                    window.ScrollToEnd();
+                    if (window.Find("Retry") == null || i > 0 && !window.CopyText(failed).EndsWith(error, StringComparison.Ordinal))
+                        throw new Exception("The error card didn't expose Retry and its details.");
+                    if (i > 0)
+                    {
+                        Point details;
+                        if (!window.CardWords(out details, failed).Contains("Show the details") || details.IsEmpty)
+                            throw new Exception("Workspace's raw error link is missing.");
+                        window.PressTranscript(details);
+                        if (!window.CardWords(out details, failed).Contains("Hide the details"))
+                            throw new Exception("Workspace's raw error link didn't open.");
+                        window.PressTranscript(details);
+                        shoot(window, i == 1 ? "27-retry-usage-limit-100" : "28-retry-sign-in-100", null);
+                    }
+                    if (prior != null)
+                    {
+                        work.Retry(chat, prior);
+                        if (chat.Live != null || prior.Retry) throw new Exception("An older Retry sent another turn.");
+                    }
+                    if (i == 2) break;
+                    string input = File.ReadAllText(stdin);
+                    int users = WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "user"; }).Count;
+                    File.WriteAllText(exe, success, Encoding.ASCII);
+                    File.WriteAllText(result, normal, new UTF8Encoding(false));
+                    window.Find("Retry").PerformClick();
+                    WorkspaceWait(delegate { return !chat.Running; }, "Retry didn't finish.");
+                    if (File.ReadAllText(stdin) != input || !input.Contains("brief.txt") || failed.Retry ||
+                        WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "user"; }).Count != users ||
+                        !WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "text" && item.Text == "Done."; }))
+                        throw new Exception("Retry changed the prompt or attachments, duplicated the message or lost its answer.");
+                    prior = failed;
+                    if (i == 1)
+                    {
+                        errorResult(unknown);
+                        WorkspaceSent(work, chat, "Try once more");
+                        prior = WorkspaceItems(chat).FindLast(delegate(WorkspaceItem item) { return item.Kind == "error"; });
+                        if (prior == null || !prior.Retry) throw new Exception("The earlier error did not offer Retry before a new message.");
+                    }
+                }
+                work.Flush(chat);
+                window.Close();
+            }
+            using (Workspace work = new Workspace(fixture, pipe + Guid.NewGuid().ToString("N")) { Home = Path.Combine(fixture, "home"), Executable = exe })
+            using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, 1f, false))
+            {
+                WorkspaceChat chat = work.Chats().Find(delegate(WorkspaceChat item) { return item.Id == chatId; });
+                if (chat == null) throw new Exception("The failed Workspace chat did not reload.");
+                List<WorkspaceItem> retry = WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Retry; });
+                if (retry.Count != 1 || retry[0].Text != Workspace.SignIn || retry[0].Input != signedOut)
+                    throw new Exception("Workspace lost the latest Retry or its details after reopening.");
+                window.Show(this);
+                window.ShowChat(chat);
+                if (window.Find("Retry") == null) throw new Exception("Retry did not reopen with the chat.");
+                File.WriteAllText(exe, success.Replace("type \"%~dp0result.txt\"", ":wait\r\nping -n 2 127.0.0.1 > nul\r\ngoto wait"), Encoding.ASCII);
+                File.Delete(stdin);
+                WorkspaceTurn stopped;
+                lock (chat.Gate) { work.Retry(chat, retry[0]); stopped = chat.Live; }
+                if (stopped == null) throw new Exception("The reopened Retry did not start.");
+                WorkspaceWait(delegate { return File.Exists(stdin); }, "The stopped stand-in didn't start.");
+                work.Stop(chat);
+                if (!stopped.Done.WaitOne(8000) || WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Retry; }))
+                    throw new Exception("A stopped turn still offered Retry.");
+                window.Close();
+            }
+            checks.Add("PASS Workspace retries failed results and exit errors with the same attached files and one copy of the prompt, shows sign-in and limit details, keeps Retry after reopening and removes it when stopped or superseded");
         }
 
         // The pictures' stand-in answers in a believable few seconds, at a believable cost, instead of the 40 ms it takes.

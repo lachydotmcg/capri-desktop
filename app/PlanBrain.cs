@@ -165,14 +165,27 @@ namespace CapriDesktop
             return HuskJson.Write(HuskJson.Map("type", "user", "message", HuskJson.Map("role", "user", "content", blocks))) + "\n";
         }
 
+        internal enum Failure { Other, SignIn, Limit }
+
+        internal static Failure ProblemKind(string output)
+        {
+            string text = Regex.Replace(output ?? "", @"\s+", " ").Trim();
+            if (Regex.IsMatch(text, @"not (?:logged|signed) in|log ?in|sign ?in|authenticat|oauth|unauthori[sz]ed|invalid api key|\b401\b|credential", RegexOptions.IgnoreCase))
+                return Failure.SignIn;
+            if (Regex.IsMatch(text, @"usage limit|limit reached|hit your limit|rate.?limit|quota|too many requests|\b429\b|limit will reset|resets? at|\breset(?:s|ting)?\s+\d", RegexOptions.IgnoreCase))
+                return Failure.Limit;
+            return Failure.Other;
+        }
+
         // What went wrong, in her words: signed out, out of plan for now, or the app's own reason.
         internal static BrainException Problem(string kind, string output)
         {
             string text = Regex.Replace(Brain.Redacted(Brain.Scrubbed(output)), @"\s+", " ").Trim();
             string app = Plans.App(kind);
-            if (Regex.IsMatch(text, @"not (?:logged|signed) in|log ?in|sign ?in|authenticat|oauth|unauthori[sz]ed|invalid api key|\b401\b|credential", RegexOptions.IgnoreCase))
+            Failure failure = ProblemKind(text);
+            if (failure == Failure.SignIn)
                 return new BrainException(kind == "codex" ? "Codex isn't signed in. Run codex login first." : "Claude Code isn't signed in. Run claude and sign in.", true);
-            if (Regex.IsMatch(text, @"usage limit|limit reached|hit your limit|rate.?limit|quota|too many requests|\b429\b|limit will reset|resets? at", RegexOptions.IgnoreCase))
+            if (failure == Failure.Limit)
                 return new BrainException("Your " + Plans.Plan(kind) + " is out of messages for now.", true) { Detail = app + " says: " + Short(text) };
             return new BrainException(app + " couldn't answer" + (text.Length == 0 ? "." : ": " + Short(text)), true);
         }

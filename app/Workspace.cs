@@ -26,7 +26,7 @@ namespace CapriDesktop
         internal Dictionary<string, object> Json()
         {
             string text = Kind == "result" && Text.Length > 2000 ? Text.Substring(0, 2000) : Text;
-            return HuskJson.Map("kind", Kind, "text", text, "name", Name, "id", Id, "turn", Turn, "input", Kind == "tool" ? Input : "",
+            return HuskJson.Map("kind", Kind, "text", text, "name", Name, "id", Id, "turn", Turn, "input", Kind == "tool" || Kind == "error" ? Input : "",
                 "decision", Decision, "seconds", Seconds, "cost", Cost, "retry", Retry, "files", Files);
         }
 
@@ -84,12 +84,12 @@ namespace CapriDesktop
         internal readonly List<WorkspaceApproval> Asks = new List<WorkspaceApproval>();
         internal readonly HashSet<string> Tools = new HashSet<string>(StringComparer.Ordinal);
         internal readonly Dictionary<string, Dictionary<string, object>> Edits = new Dictionary<string, Dictionary<string, object>>(StringComparer.Ordinal);
-        internal readonly StringBuilder Errors = new StringBuilder(), Output = new StringBuilder();
+        internal readonly StringBuilder Errors = new StringBuilder(), Output = new StringBuilder(), ReportedErrors = new StringBuilder();
         internal readonly List<string> Extra = new List<string>(), Files = new List<string>();
         internal readonly Dictionary<string, WorkspaceMessage> Messages = new Dictionary<string, WorkspaceMessage>(StringComparer.Ordinal);
         internal readonly ManualResetEvent OutputDone = new ManualResetEvent(false), ErrorDone = new ManualResetEvent(false), Done = new ManualResetEvent(false), Cancel = new ManualResetEvent(false), Ready = new ManualResetEvent(false);
         internal WorkspaceChat Chat;
-        internal string Mode = "", Model = "", Session = "", Settings, Wrapper, ResultText = "", Fault;
+        internal string Mode = "", Model = "", Session = "", Settings, Wrapper, ResultText = "", Fault, AssistantFault = "";
         internal Process Process;
         internal WorkspaceJob Job;
         internal volatile bool Stopped, Result, Failed;
@@ -119,6 +119,8 @@ namespace CapriDesktop
 
     internal sealed class Workspace : IDisposable
     {
+        internal const string SignIn = "Claude Code isn't signed in. Open a terminal, run claude, sign in, then press Retry.";
+        internal const string UsageLimit = "Claude Code has reached a usage limit.";
         internal const string Missing = "Workspace runs Claude Code on this PC. Install it from claude.com/claude-code and sign in, then press Retry.";
         internal static readonly string[] Modes = { "Ask me", "Edits only", "Plan only", "Everything" };
         internal static readonly string[] Models = { "Default", "Opus", "Sonnet", "Haiku" };
@@ -186,6 +188,15 @@ namespace CapriDesktop
                         if (found.Kind == "undo-ask") { found.Kind = "undo"; found.Text = "Undo paused. Use Undo last edits to choose again."; }
                         chat.Items.Add(found);
                     }
+                    bool latest = true;
+                    for (int i = chat.Items.Count - 1; i >= 0; i--)
+                    {
+                        WorkspaceItem item = chat.Items[i];
+                        if (item.Kind == "user" || item.Kind == "stopped" || item.Kind == "end") latest = false;
+                        if (!item.Retry) continue;
+                        item.Retry = latest && item.Kind == "error";
+                        latest = false;
+                    }
                     if (turns != null) foreach (object turn in turns) if (turn is string && Key((string)turn)) chat.Turns.Add((string)turn);
                     if (allowed != null) foreach (object tool in allowed) if (tool is string) chat.Allowed.Add((string)tool);
                     List<object> folders = HuskJson.List(HuskJson.Get(row, "folders")), files = HuskJson.List(HuskJson.Get(row, "files")), sent = HuskJson.List(HuskJson.Get(row, "sent"));
@@ -201,7 +212,29 @@ namespace CapriDesktop
             saver.Start();
         }
 
-        internal static bool SignedOut(string text) { return Regex.IsMatch(text ?? "", @"not (?:logged|signed) in|log ?in|sign ?in|authenticat|oauth|unauthori[sz]ed|invalid api key|\b401\b|credential", RegexOptions.IgnoreCase); }
+        private static string ResetTime(string details)
+        {
+            const string clock = @"\d{1,2}(?::\d\d(?:\s*[ap]\.?m\.?)?|\s*[ap]\.?m\.?)";
+            const string date = @"(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[a-z]*,?\s+)?(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}";
+            const string iso = @"\d{4}-\d\d-\d\d(?:T[\d:.+-]+Z?)?";
+            const string zone = @"(?:\s*\([^()\r\n]+\)|\s+(?:UTC|GMT)[+-]?[\d:]*)?";
+            string pattern = @"\breset(?:s|ting)?\s+(?:(?<when>at|on|in)\s+)?(?<time>(?:" + iso + "|" + date + @"(?:,?\s+(?:at\s+)?" +
+                clock + @")?|" + clock + @"|\d+\s+(?:seconds?|minutes?|hours?|days?)|tomorrow)" + zone + ")";
+            Match found = Regex.Match(details, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            if (!found.Success) return "";
+            string when = found.Groups["when"].Value;
+            string time = found.Groups["time"].Value.TrimEnd(' ', '.');
+            if (when.Length == 0 && !time.Equals("tomorrow", StringComparison.OrdinalIgnoreCase))
+                when = Regex.IsMatch(time, @"\b(?:seconds?|minutes?|hours?|days?)\b", RegexOptions.IgnoreCase) ? "in" : char.IsDigit(time[0]) && !time.Contains("-") ? "at" : "on";
+            return " It resets " + (when.Length > 0 ? when + " " : "") + time + ".";
+        }
+
+        private static WorkspaceItem FailureCard(string reason, string details, string turn)
+        {
+            PlanBrain.Failure failure = PlanBrain.ProblemKind(details);
+            string text = failure == PlanBrain.Failure.SignIn ? SignIn : failure == PlanBrain.Failure.Limit ? UsageLimit + ResetTime(details) : reason;
+            return new WorkspaceItem { Kind = "error", Text = text, Input = details == text ? "" : details, Turn = turn, Retry = true };
+        }
 
         internal static bool Key(string value) { return Regex.IsMatch(value ?? "", "\\A[a-f0-9]{32}\\z", RegexOptions.CultureInvariant); }
         internal static string Mode(string value) { return Array.IndexOf(Modes, value) < 0 ? Modes[0] : value; }
@@ -803,6 +836,7 @@ namespace CapriDesktop
                 bool files = retry ? LastFiles(chat).Count > 0 : chat.Files.Exists(delegate(string file) { return !chat.Sent.Contains(file); });
                 if (string.IsNullOrWhiteSpace(text) && !files) return false;
                 if (chat.Live != null || chat.Deleted || chat.PendingText != null || chat.Undoing != null) return false;
+                for (int i = chat.Items.Count - 1; i >= 0 && chat.Items[i].Kind != "user"; i--) chat.Items[i].Retry = false;
                 if (!retry)
                 {
                     List<string> riding = chat.Files.FindAll(delegate(string file) { return !chat.Sent.Contains(file); });
@@ -851,7 +885,7 @@ namespace CapriDesktop
                 catch (Exception error)
                 {
                     chat.Live = null;
-                    Add(chat, new WorkspaceItem { Kind = "error", Text = error.Message, Turn = turn.Id });
+                    Add(chat, FailureCard(error.Message, error.Message, turn.Id));
                     turn.Done.Set();
                     return false;
                 }
@@ -870,11 +904,20 @@ namespace CapriDesktop
             return files;
         }
 
-        internal void Retry(WorkspaceChat chat)
+        internal void Retry(WorkspaceChat chat, WorkspaceItem failed = null)
         {
-            string text = null;
-            lock (chat.Gate) for (int i = chat.Items.Count - 1; i >= 0; i--) if (chat.Items[i].Kind == "user") { text = chat.Items[i].Text; break; }
-            if (text != null) Send(chat, text, true);
+            lock (chat.Gate)
+            {
+                WorkspaceItem current = null;
+                for (int i = chat.Items.Count - 1; i >= 0; i--)
+                {
+                    WorkspaceItem item = chat.Items[i];
+                    if (item.Retry && current == null) current = item;
+                    if (item.Kind != "user") continue;
+                    if (current != null && (failed == null || failed == current)) Send(chat, item.Text, true);
+                    return;
+                }
+            }
         }
 
         internal static ProcessStartInfo StartInfo(string exe, List<string> args, string folder)
@@ -907,6 +950,11 @@ namespace CapriDesktop
         {
             text.Append(line).Append('\n');
             if (text.Length > 8000) text.Remove(0, text.Length - 8000);
+        }
+
+        private static string DiagnosticTail(string raw)
+        {
+            return (raw.Length > 8000 ? raw.Substring(raw.Length - 8000) : raw).Trim();
         }
 
         private void Run(WorkspaceTurn turn, string exe, string text)
@@ -952,14 +1000,24 @@ namespace CapriDesktop
                         if (!turn.Stopped && !chat.Deleted)
                         {
                             string stderr;
-                            lock (turn.Errors) stderr = turn.Errors.ToString().Trim();
+                            lock (turn.Errors) stderr = turn.Errors.ToString();
                             if (turn.Failed || !turn.Result)
                             {
                                 string reason = turn.Fault ?? (turn.Failed && turn.ResultText.Length > 0 ? turn.ResultText : "");
-                                if (stderr.Length > 0) reason += (reason.Length > 0 ? "\n" : "") + stderr;
-                                if (reason.Length == 0) reason = turn.Output.ToString().Trim();
+                                string stderrTail = DiagnosticTail(stderr);
+                                if (stderrTail.Length > 0) reason += (reason.Length > 0 ? "\n" : "") + stderrTail;
+                                string stdout = turn.Output.ToString();
+                                if (reason.Length == 0) reason = DiagnosticTail(stdout);
                                 if (reason.Length == 0) reason = "Claude Code ended without a reply (exit " + code + ").";
-                                Add(chat, new WorkspaceItem { Kind = "error", Text = reason, Turn = turn.Id });
+                                List<string> details = new List<string>();
+                                foreach (string raw in new[] { turn.ResultText, stderr, stdout, turn.AssistantFault })
+                                {
+                                    string detail = raw.Trim();
+                                    if (detail.Length > 0 && !details.Exists(delegate(string kept) { return kept.Contains(detail); })) details.Add(detail);
+                                }
+                                string diagnostic = details.Count == 0 ? reason : string.Join("\n", details.ToArray());
+                                if (turn.Fault != null && !diagnostic.Contains(turn.Fault)) diagnostic = turn.Fault + "\n" + diagnostic;
+                                Add(chat, FailureCard(reason, diagnostic, turn.Id));
                             }
                         }
                         if (chat.Live == turn) chat.Live = null;
@@ -972,7 +1030,7 @@ namespace CapriDesktop
                     lock (chat.Gate)
                     {
                         if (chat.Live == turn) chat.Live = null;
-                        chat.Items.Add(new WorkspaceItem { Kind = "error", Text = error.Message, Turn = turn.Id });
+                        if (!turn.Stopped && !chat.Deleted) Add(chat, FailureCard(error.Message, error.Message, turn.Id));
                     }
                 }
                 finally
@@ -1019,7 +1077,7 @@ namespace CapriDesktop
                     {
                         if (turn.Active != attempt) return;
                         if (row.Data == null) { turn.ErrorDone.Set(); return; }
-                        lock (turn.Errors) Tail(turn.Errors, row.Data);
+                        lock (turn.Errors) turn.Errors.Append(row.Data).Append('\n');
                     }
                 };
                 try
@@ -1084,7 +1142,8 @@ namespace CapriDesktop
                 turn.Messages.Clear();
                 turn.Message = turn.Latest = "";
                 turn.Result = turn.Failed = turn.TextSeen = turn.Streamed = turn.SessionSeen = false;
-                turn.ResultText = "";
+                turn.ResultText = turn.AssistantFault = "";
+                turn.ReportedErrors.Clear();
                 turn.Fault = null;
                 turn.Output.Clear();
                 turn.Tools.Clear();
@@ -1234,7 +1293,7 @@ namespace CapriDesktop
         {
             Dictionary<string, object> row;
             try { row = HuskJson.Read(line) as Dictionary<string, object>; }
-            catch (FormatException) { lock (turn.Chat.Gate) Tail(turn.Output, line); return; }
+            catch (FormatException) { lock (turn.Chat.Gate) turn.Output.Append(line).Append('\n'); return; }
             if (row == null) return;
             WorkspaceChat chat = turn.Chat;
             lock (chat.Gate)
@@ -1267,7 +1326,9 @@ namespace CapriDesktop
                             if (!string.IsNullOrWhiteSpace(value)) turn.Latest = idMessage;
                             FinishedText(turn, streamed, value);
                         }
-                        if (value.Length > 0 && !SignedOut(value)) turn.Ready.Set();
+                        PlanBrain.Failure failure = PlanBrain.ProblemKind(value);
+                        if (failure != PlanBrain.Failure.Other) turn.AssistantFault = value;
+                        if (value.Length > 0 && failure != PlanBrain.Failure.SignIn) turn.Ready.Set();
                     }
                     else if (kind == "tool_use")
                     {
@@ -1291,6 +1352,8 @@ namespace CapriDesktop
                     if (turn.ResultText.Length == 0) turn.ResultText = Content(HuskJson.Get(row, "errors"));
                     turn.Failed = true.Equals(HuskJson.Get(row, "is_error")) || HuskJson.Text(row, "subtype").StartsWith("error", StringComparison.Ordinal);
                     EndStreams(turn, !turn.Failed);
+                    if (!turn.Failed && turn.ReportedErrors.Length > 0)
+                        Add(chat, new WorkspaceItem { Kind = "error", Text = turn.ReportedErrors.ToString().TrimEnd(), Turn = turn.Id });
                     if (!turn.TextSeen && !turn.Failed && turn.ResultText.Length > 0) Add(chat, new WorkspaceItem { Kind = "text", Text = turn.ResultText, Turn = turn.Id });
                     string cost = "";
                     object price = HuskJson.Get(row, "total_cost_usd") ?? HuskJson.Get(row, "cost_usd");
@@ -1304,8 +1367,8 @@ namespace CapriDesktop
                 else if (type == "error")
                 {
                     string error = Content(HuskJson.Get(row, "error") ?? HuskJson.Get(row, "message"));
-                    Tail(turn.Output, error);
-                    if ((turn.Session.Length == 0 || !Expired(error)) && !(turn.Partials && !turn.TextSeen && !turn.Streamed && !turn.SessionSeen && RejectedPartials(error))) Add(chat, new WorkspaceItem { Kind = "error", Text = error, Turn = turn.Id });
+                    turn.Output.Append(error).Append('\n');
+                    turn.ReportedErrors.Append(error).Append('\n');
                 }
             }
         }
