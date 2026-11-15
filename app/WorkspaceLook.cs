@@ -1180,23 +1180,23 @@ namespace CapriDesktop
                     window.Close();
                 }
 
-                WorkspaceChat layout = work.NewChat(project, false);
-                work.Trust(layout, true);
                 WorkspaceChat other = work.NewChat(second, false);
-                string code = "int total = 3;";
-                WorkspaceItem said = new WorkspaceItem { Kind = "text", Text = "I found the file.\n```cs\n" + code + "\n```\nHere is what changed." };
-                work.Add(layout, new WorkspaceItem { Kind = "user", Text = "Check this project." });
-                work.Add(layout, said);
-                work.Add(layout, new WorkspaceItem { Kind = "tool", Id = "layout-tool", Name = "Edit", Text = "Edit app/Capri.cs" });
-                work.Add(layout, new WorkspaceItem { Kind = "result", Id = "layout-tool", Text = "Saved the edit." });
-                WorkspaceItem approval = new WorkspaceItem { Kind = "approval", Name = "Bash", Text = "Bash: npm test", Input = HuskJson.Write(HuskJson.Map("command", "npm test", "description", "Run the tests")) };
-                approval.Ask = new WorkspaceApproval { Item = approval };
-                work.Add(layout, approval);
-                work.Add(layout, new WorkspaceItem { Kind = "error", Text = Workspace.Missing, Retry = true });
-                work.Add(layout, new WorkspaceItem { Kind = "end", Text = "1.3s | $0.02" });
                 MethodInfo keyDown = typeof(Control).GetMethod("OnKeyDown", BindingFlags.Instance | BindingFlags.NonPublic);
                 foreach (int scale in new[] { 100, 125, 150, 200 })
                 {
+                    WorkspaceChat layout = work.NewChat(project, false);
+                    work.Trust(layout, true);
+                    string code = "int total = 3;";
+                    WorkspaceItem said = new WorkspaceItem { Kind = "text", Text = "I found the file.\n```cs\n" + code + "\n```\nHere is what changed." };
+                    work.Add(layout, new WorkspaceItem { Kind = "user", Text = "Check this project." });
+                    work.Add(layout, said);
+                    work.Add(layout, new WorkspaceItem { Kind = "tool", Id = "layout-tool", Name = "Edit", Text = "Edit app/Capri.cs" });
+                    work.Add(layout, new WorkspaceItem { Kind = "result", Id = "layout-tool", Text = "Saved the edit." });
+                    WorkspaceItem approval = new WorkspaceItem { Kind = "approval", Name = "Bash", Text = "Bash: npm test", Input = HuskJson.Write(HuskJson.Map("command", "npm test", "description", "Run the tests")) };
+                    approval.Ask = new WorkspaceApproval { Item = approval };
+                    work.Add(layout, approval);
+                    work.Add(layout, new WorkspaceItem { Kind = "error", Text = Workspace.Missing, Retry = true });
+                    work.Add(layout, new WorkspaceItem { Kind = "end", Text = "1.3s | $0.02" });
                     float z = scale / 100f;
                     using (WorkspaceWindow window = new WorkspaceWindow(work, delegate { return false; }, z, false))
                     {
@@ -1254,8 +1254,6 @@ namespace CapriDesktop
                         WorkspaceTurn sentTurn;
                         lock (layout.Gate) { keyDown.Invoke(window.Input, new object[] { enter }); sentTurn = layout.Live; }
                         if (!enter.SuppressKeyPress || sentTurn == null || window.Input.Text.Length != 0 || !sentTurn.Done.WaitOne(8000)) throw new Exception("Workspace Enter didn't send and clear the message.");
-                        approval.Ask = new WorkspaceApproval { Item = approval };
-                        approval.Decision = "";
                         window.Close();
                     }
                     mainframe.LayoutScale(96, scale);
@@ -1263,8 +1261,6 @@ namespace CapriDesktop
                     if (keyFit != null) throw new Exception(keyFit);
                 }
                 mainframe.LayoutScale(0, 0);
-                approval.Ask.Answered.Dispose();
-                approval.Ask = null;
                 checks.Add("PASS Workspace window and Mainframe button fit at 100%, 125%, 150% and 200% and at the smallest size; code is in her mono, messages copy, tool results open, drafts and pickers save, scrolling follows only at the end, Enter sends and Shift+Enter adds a line");
                 checks.Add("PASS Workspace ignores mode scrolling and typing, and switches to Blackwall Mode at once with no question, like the Mainframe's Blackwall");
 
