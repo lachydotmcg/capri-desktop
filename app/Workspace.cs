@@ -1046,7 +1046,6 @@ namespace CapriDesktop
                 Dictionary<string, object> block = HuskJson.Get(part, "content_block") as Dictionary<string, object>;
                 if (HuskJson.Text(block, "type") != "text" || message.Blocks.ContainsKey(index)) return;
                 turn.Streamed = true;
-                turn.Latest = turn.Message;
                 WorkspaceItem ahead;
                 if (message.Ahead.TryGetValue(message.Texts.Count, out ahead))
                 {
@@ -1056,6 +1055,7 @@ namespace CapriDesktop
                 else
                 {
                     string first = HuskJson.Text(block, "text");
+                    if (!string.IsNullOrWhiteSpace(first)) turn.Latest = turn.Message;
                     text = new WorkspaceText { Item = new WorkspaceItem { Kind = "text", Text = first, Turn = turn.Id, Growing = true } };
                     text.Text.Append(first);
                     turn.Chat.Items.Add(text.Item);
@@ -1075,7 +1075,9 @@ namespace CapriDesktop
                 if (type == "content_block_stop") { PublishStreams(turn); return; }
                 Dictionary<string, object> delta = HuskJson.Get(part, "delta") as Dictionary<string, object>;
                 if (type != "content_block_delta" || text.Final || HuskJson.Text(delta, "type") != "text_delta") return;
-                text.Text.Append(HuskJson.Text(delta, "text"));
+                string words = HuskJson.Text(delta, "text");
+                text.Text.Append(words);
+                if (!string.IsNullOrWhiteSpace(words)) turn.Latest = turn.Message;
                 text.Dirty = true;
             }
         }
@@ -1184,7 +1186,11 @@ namespace CapriDesktop
                         turn.TextSeen = true;
                         string value = HuskJson.Text(content, "text");
                         if (streamed == null) Add(chat, new WorkspaceItem { Kind = "text", Text = value, Turn = turn.Id });
-                        else { turn.Latest = idMessage; FinishedText(turn, streamed, value); }
+                        else
+                        {
+                            if (!string.IsNullOrWhiteSpace(value)) turn.Latest = idMessage;
+                            FinishedText(turn, streamed, value);
+                        }
                         if (value.Length > 0 && !SignedOut(value)) turn.Ready.Set();
                     }
                     else if (kind == "tool_use")

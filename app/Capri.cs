@@ -45276,6 +45276,9 @@ namespace CapriDesktop
                     work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
                     long revision = chat.Revision;
                     work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", "Kept this far.")));
+                    work.Parse(turn, WorkspaceEvent("message_start", "message", HuskJson.Map("id", "empty-retry")));
+                    work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
+                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", " ")));
                     if (ending == 0)
                     {
                         work.Stop(chat);
@@ -45289,7 +45292,7 @@ namespace CapriDesktop
                     string saved = File.ReadAllText(Path.Combine(work.Root, "chats", chat.Id + ".json"));
                     if (kept.Growing || kept.Text != "Kept this far." || saved.IndexOf("Kept this far.", StringComparison.Ordinal) != saved.LastIndexOf("Kept this far.", StringComparison.Ordinal) || chat.Revision <= revision) throw new Exception("Workspace lost or repeated an interrupted prefix.");
                 }
-                checks.Add("PASS Workspace retains and saves an unfinished block once on Stop, an error result or end of output");
+                checks.Add("PASS Workspace retains and saves an unfinished block once on Stop, an error result or end of output, even after an empty retry");
 
                 WorkspaceChat plain = work.NewChat(project, false);
                 WorkspaceTurn ordinary = new WorkspaceTurn { Chat = plain };
