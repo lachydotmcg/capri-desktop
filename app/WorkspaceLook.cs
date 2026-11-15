@@ -924,6 +924,20 @@ namespace CapriDesktop
                         !File.ReadAllText(Path.Combine(folder, "args.txt")).Replace("\"", "").Contains("--resume " + session))
                         throw new Exception("Workspace moved or couldn't resume a shared-folder chat.");
                 }
+                using (Workspace loaded = new Workspace(data, null) { Home = home, HomeFallback = spare, Executable = exe })
+                {
+                    WorkspaceChat chat = loaded.Chats().Find(delegate(WorkspaceChat found) { return found.Id == firstId; });
+                    string replaced = chat.Folder;
+                    Directory.Move(replaced, replaced + " moved");
+                    Directory.CreateDirectory(replaced);
+                    if (loaded.Trusted(chat)) throw new Exception("Workspace trusted a replacement for a chat's own folder.");
+                    loaded.Trust(chat, true);
+                    File.Delete(Path.Combine(folder, "cwd.txt"));
+                    WorkspaceSent(loaded, chat, "Run in the replacement");
+                    if (File.Exists(Path.Combine(folder, "cwd.txt")) ||
+                        !WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "error" && item.Text.Contains("has changed"); }))
+                        throw new Exception("Workspace launched Claude Code in a replacement directory.");
+                }
                 string blocked = Path.Combine(folder, "blocked");
                 File.WriteAllText(blocked, "file in the way");
                 using (Workspace work = new Workspace(Path.Combine(folder, "fallback"), null) { Home = blocked, HomeFallback = spare, Executable = exe })
