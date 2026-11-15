@@ -310,35 +310,37 @@ namespace CapriDesktop
 
         // Two heads: the job keeps running on its own thread while this one sorts what they said and answers. Their "yes" or "no" to
         // something SECURITY held mid-job goes there first.
-        private void HeardMidJob(string text, Job running)
+        private void HeardMidJob(string text, Job running, string typed = null)
         {
+            string input = typed ?? text;
             BargeIn();
             heard = text;
-            if (chatting && !local && agent != null && agent.Ready) { AgentMidJob(text, running); agent.Say(text); return; }
+            if (chatting && !local && agent != null && agent.Ready) { AgentMidJob(input, running); agent.Say(text); return; }
             string held = Security.Holding;
-            if (held != null && (Security.Agrees(text) || Security.Declines(text)))
+            if (held != null && (Security.Agrees(input) || Security.Declines(input)))
             {
                 int ticket = asking, replyId = Interlocked.Increment(ref toolAside);
                 ThreadPool.QueueUserWorkItem(delegate
                 {
-                    string result = Security.Resume(text, delegate(string toolName, ToolArguments heldArgs)
+                    string result = Security.Resume(input, delegate(string toolName, ToolArguments heldArgs)
                     {
                         heldArgs.Reply = replyId;
                         return AsideRun(toolName, heldArgs, running, ticket);
                     }) ?? Security.Left;
-                    Post(delegate { AsideSay(result, running, text, replyId); });
+                    if (typed != null) running.Tell(text);
+                    Post(delegate { AsideSay(result, running, text, replyId, typed); });
                 });
                 return;
             }
-            if (held != null) Security.Drop();
+            if (held != null && (typed == null || input.Length > 0)) Security.Drop();
             string tool;
             ToolArguments args;
-            AsideKind? plain = Asides.Plain(text, out tool, out args, brain.Model != null);
+            AsideKind? plain = Asides.Plain(input, out tool, out args, brain.Model != null);
             if (plain == AsideKind.Stop) { Brain.Transcribe(local ? "You (voice)" : "You", text); StopJob(Lines.Pick(Lines.Stopped)); return; }
-            if (plain == AsideKind.Status) { AsideStatus(text, running); return; }
-            if (plain == AsideKind.Screen) { AsideScreen(text, args, running); return; }
-            if (plain == AsideKind.Tool) { AsideTool(text, tool, args, running); return; }
-            AsideHead(text, running);
+            if (plain == AsideKind.Status) { AsideStatus(text, running, typed); return; }
+            if (plain == AsideKind.Screen) { AsideScreen(text, args, running, typed); return; }
+            if (plain == AsideKind.Tool) { AsideTool(text, tool, args, running, typed); return; }
+            AsideHead(text, running, typed);
         }
 
         // Their "stop" ends the job like Esc does, and her line is the job's own last word.
@@ -349,17 +351,17 @@ namespace CapriDesktop
             Computer.Interrupt(line);
         }
 
-        private void AsideStatus(string text, Job running)
+        private void AsideStatus(string text, Job running, string typed = null)
         {
             JobReport report = running.Report();
-            string plain = Asides.Status(report, text);
-            if (brain.Remote == null && headTest == null) { AsideSay(plain, running, text); return; }
+            string plain = Asides.Status(report, typed ?? text);
+            if (brain.Remote == null && headTest == null) { AsideSay(plain, running, text, typed: typed); return; }
             bool said = false;
             Action<string> answer = delegate(string line)
             {
                 if (said) return;
                 said = true;
-                AsideSay(line, running, text);
+                AsideSay(line, running, text, typed: typed);
             };
             string system = Brain.Character + Asides.Asked;
             string facts = Asides.Facts(report, text, brain.History);
@@ -379,11 +381,11 @@ namespace CapriDesktop
 
         // A question about the screen gets its own picture, taken now through her hands' capture, so it's never the hands' last
         // picture from a turn or more ago. Their picture and their turn are left alone, and the capture runs off her window's thread.
-        private void AsideScreen(string text, ToolArguments args, Job running)
+        private void AsideScreen(string text, ToolArguments args, Job running, string typed = null)
         {
             string unseen = Unseeing();
-            if (unseen != null) { AsideSay(unseen, running, text); return; }
-            string asked = string.IsNullOrWhiteSpace(args.Focus) ? text : args.Focus;
+            if (unseen != null) { AsideSay(unseen, running, text, typed: typed); return; }
+            string asked = string.IsNullOrWhiteSpace(args.Focus) ? typed ?? text : args.Focus;
             JobReport report = running.Report();
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -391,28 +393,28 @@ namespace CapriDesktop
                 try
                 {
                     Picture fresh = Computer.Shoot(null);
-                    if (fresh == null || fresh.Jpeg == null) { Post(delegate { AsideSay(BlackScreen, running, text); }); return; }
+                    if (fresh == null || fresh.Jpeg == null) { Post(delegate { AsideSay(BlackScreen, running, text, typed: typed); }); return; }
                     shot = fresh.Jpeg;
                 }
-                catch (Exception) { Post(delegate { AsideSay("Couldn't grab the screen just now.", running, text); }); return; }
+                catch (Exception) { Post(delegate { AsideSay("Couldn't grab the screen just now.", running, text, typed: typed); }); return; }
                 string system = Brain.Character + Asides.Seen;
                 string facts = AsideFacts(running, report, asked, true, ref system);
                 string seen = null;
                 try { seen = Brain.Sparing(Brain.Clean(AskHead(system, facts, 200, shot)), false, Brain.Nickname); }
                 catch (Exception error) { Brain.Log("second head", -1, error.GetType().Name + ": " + error.Message); }
-                Post(delegate { AsideSay(string.IsNullOrEmpty(seen) ? Lines.Pick(Lines.Busy) : seen, running, text); });
+                Post(delegate { AsideSay(string.IsNullOrEmpty(seen) ? Lines.Pick(Lines.Busy) : seen, running, text, typed: typed); });
             });
         }
 
         // Volume, a dance, a clone or a setting runs beside the job. One that would need the mouse goes to the job instead.
-        private void AsideTool(string text, string tool, ToolArguments args, Job running)
+        private void AsideTool(string text, string tool, ToolArguments args, Job running, string typed = null)
         {
-            AsideTools(text, new List<KeyValuePair<string, ToolArguments>> { new KeyValuePair<string, ToolArguments>(tool, args) }, running);
+            AsideTools(text, new List<KeyValuePair<string, ToolArguments>> { new KeyValuePair<string, ToolArguments>(tool, args) }, running, typed: typed);
         }
 
         // The tools her fast head or her shortcuts picked beside the job, in order, on her ask's turn. One SECURITY holds stops
         // the rest, and its result is the line she says.
-        private void AsideTools(string text, List<KeyValuePair<string, ToolArguments>> calls, Job running, long sequence = 0, int ticket = -1)
+        private void AsideTools(string text, List<KeyValuePair<string, ToolArguments>> calls, Job running, long sequence = 0, int ticket = -1, string typed = null)
         {
             if (ticket < 0) ticket = asking;
             int replyId = Interlocked.Increment(ref toolAside);
@@ -424,20 +426,20 @@ namespace CapriDesktop
                 {
                     if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return;
                     ToolArguments args = call.Value ?? new ToolArguments();
-                    args.Asked = text;
+                    args.Asked = typed ?? text;
                     args.Reply = replyId;
                     args.Sequence = sequence;
                     args.Job = running;
                     try
                     {
-                        string result = AsideRun(call.Key, args, running, ticket);
+                        string result = AsideRun(call.Key, args, running, ticket, typed == null ? null : text);
                         results.Add(result);
                         if (Security.IsHold(result)) break;
                     }
                     catch (Exception error) { results.Add(Hands.Problem(error)); }
                 }
                 string resultLine = Security.Reply(results) ?? Hands.Shown(string.Join(" ", results.ToArray()));
-                Post(delegate { AsideSay(string.IsNullOrEmpty(resultLine) ? Lines.Pick(Lines.GotIt) : resultLine, running, text, replyId); });
+                Post(delegate { AsideSay(string.IsNullOrEmpty(resultLine) ? Lines.Pick(Lines.GotIt) : resultLine, running, text, replyId, typed); });
             });
         }
 
@@ -446,7 +448,7 @@ namespace CapriDesktop
 
         // One tool beside the job. A mouse job or a stream mid-job becomes part of the running job, and so does a tool that would
         // bring a window to the front, in their words, as it did before her fast head had tools.
-        private string AsideRun(string tool, ToolArguments args, Job running, int ticket)
+        private string AsideRun(string tool, ToolArguments args, Job running, int ticket, string text = null)
         {
             if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return "That turn has ended.";
             if (!Hands.Valid(tool, args)) return "Couldn't read that tool call. Try again.";
@@ -459,16 +461,18 @@ namespace CapriDesktop
                 {
                     Computer.Streaming = true;
                     running.Change(string.IsNullOrWhiteSpace(args.Name) ? "Stream the game that's open: play it yourself and talk to their chat." : "Stream " + args.Name + ": play it yourself and talk to their chat.", args.Sequence ?? running.Sequence());
+                    if (text != null) running.Tell(text);
                 }
-                else running.Tell(args.Task);
+                else { running.Tell(args.Task); if (text != null) running.Tell(text); }
                 return "Added that to my job.";
             }
             if (MidJob(running) && job == running && (Array.IndexOf(Fronting, tool) >= 0 || tool == "routine" && args.Action == "run"))
             {
                 if (args.Job != null && args.Job != running) return "That job has ended.";
-                running.Tell(string.IsNullOrWhiteSpace(args.Asked) ? tool : args.Asked);
+                running.Tell(text ?? (string.IsNullOrWhiteSpace(args.Asked) ? tool : args.Asked));
                 return "Added that to my job.";
             }
+            if (text != null) running.Tell(text);
             string result = DoTool(tool, args, ticket, true);
             // Her job control's results are for her brain; out loud she says it her way. Status, errors and holds stay as they are.
             if (tool == "job_control" && result == JobChanged) return Lines.Pick(Lines.Changed);
@@ -489,18 +493,18 @@ namespace CapriDesktop
             return Asides.Facts(report, text, brain.History, know);
         }
 
-        private void AsideHead(string text, Job running)
+        private void AsideHead(string text, Job running, string typed = null)
         {
             int ticket = asking;
             long sequence = running.Sequence();
-            AsideKind guess = Asides.Guess(text);
+            AsideKind guess = Asides.Guess(typed ?? text);
             // Every brain sorts what they say beside the job with her tools, a brain on this PC too: there it waits for the job's
             // turn, but a dance, a clone or a setting in any words runs as a tool instead of becoming a mouse step (Lachy, 3 Nov).
             Hands.Kit kit = Hands.KitFor(brain.Blind);
             string system = Brain.Character + Brain.Remembered() + Asides.Head + "\nYou have the same tools beside the job. Use them whenever they ask, suggest or hint at an ability, including your own moves, animations, clones and settings. Use job_control for stopping, checking or changing the job. ADD and CHANGE are only for instructions that belong to its mouse work. Call tools without claiming they ran; their results will be said.";
             if (CallHands(ticket)) system += CallSession.Tools + callSession.Context(callUserVersion);
             JobReport report = running.Report();
-            bool question = Asides.Question(text);
+            bool question = Asides.Question(typed ?? text);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string facts = AsideFacts(running, report, text, question, ref system);
@@ -512,38 +516,38 @@ namespace CapriDesktop
                     string raw;
                     if (headTest != null) { raw = AskHead(system + Hands.NoteFor(kit) + kit.Listing, facts, 300); calls.AddRange(Hands.Written(raw)); }
                     else raw = brain.QuickTools(system, facts, 300, calls, kit);
-                    if (calls.Count > 0) { AsideTools(text, calls, running, sequence, ticket); return; }
+                    if (calls.Count > 0) { AsideTools(text, calls, running, sequence, ticket, typed); return; }
                     kind = Asides.Read(raw, out line);
                 }
                 catch (Exception error) { if (!(error is WebException)) Brain.Log("second head", -1, error.GetType().Name + ": " + error.Message); }
-                Post(delegate { Sorted(text, running, kind, line, sequence); });
+                Post(delegate { Sorted(text, running, kind, line, sequence, typed); });
             });
         }
 
-        private void Sorted(string text, Job running, AsideKind kind, string line, long sequence)
+        private void Sorted(string text, Job running, AsideKind kind, string line, long sequence, string typed = null)
         {
             bool empty = string.IsNullOrEmpty(line);
             // The job ended while she was thinking: more for it is a new ask, and chat still gets its answer.
             if (!MidJob(running) || job != running)
             {
-                if (kind == AsideKind.Add || kind == AsideKind.Change) { Hear(text, text, "> you: "); return; }
-                if (kind != AsideKind.Stop && !empty) AsideSay(line, running, text);
+                if (kind == AsideKind.Add || kind == AsideKind.Change) { Hear(text, typed == null ? text : RemotePictures.Shown(typed), "> you: ", typed: typed); return; }
+                if (kind != AsideKind.Stop && !empty) AsideSay(line, running, text, typed: typed);
                 return;
             }
             if (kind == AsideKind.Stop) { Brain.Transcribe(local ? "You (voice)" : "You", text); StopJob(empty ? Lines.Pick(Lines.Stopped) : line); return; }
-            if (kind == AsideKind.Change) { running.Change(text, sequence); AsideSay(empty ? Lines.Pick(Lines.Changed) : line, running, text); return; }
-            if (kind == AsideKind.Add) { running.Tell(text); AsideSay(empty ? Lines.Pick(Lines.GotIt) : line, running, text); return; }
-            AsideSay(empty ? Lines.Pick(Lines.Busy) : line, running, text);
+            if (kind == AsideKind.Change) { running.Change(text, sequence); AsideSay(empty ? Lines.Pick(Lines.Changed) : line, running, text, typed: typed); return; }
+            if (kind == AsideKind.Add) { running.Tell(text); AsideSay(empty ? Lines.Pick(Lines.GotIt) : line, running, text, typed: typed); return; }
+            AsideSay(empty ? Lines.Pick(Lines.Busy) : line, running, text, typed: typed);
         }
 
         // Her reply beside the job: in her bubble over its status, out loud, and in her chat so she can pick it up later. It leaves
         // her ask's turn alone, so the line the job ends with still lands.
-        private void AsideSay(string line, Job running, string asked, int toolReply = -1)
+        private void AsideSay(string line, Job running, string asked, int toolReply = -1, string typed = null)
         {
             line = CallLine(asking, line);
             RemoteAside(asked, line);
             if (CallHands(asking)) callSession.Keep(callUserVersion, asked, line, Brain.Recall);
-            brain.Remember(asked, line);
+            brain.Remember(asked, line, typed);
             Action<string> test = asideTest;
             if (test != null) { ToolReplied(toolReply, true); test(line); return; }
             double now = clock.Elapsed.TotalSeconds;
