@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -7694,6 +7695,7 @@ namespace CapriDesktop
                 checks.Add("PASS Remote bridge context: the previous worker context is restored before hold cleanup, including when cleanup throws");
                 RemoteBridgeTools(bridge, delegate { return runs; });
                 RemoteBridgeAnswers(bridge, delegate { return runs; });
+                RemoteJobChecks(bridge);
 
                 Security.Pick(Security.Blackwall);
                 SkillDesk desk = new SkillDesk();
@@ -8271,7 +8273,7 @@ namespace CapriDesktop
                 Security.Has = delegate { return true; };
                 Hands.Work = Limbs.RemoteWork(new Func<string, string, string>(delegate { throw new Exception("A phone started Hands.Work."); }));
                 Security.Pick(Security.Blackwall);
-                string[] tools = { "use_computer", "stream", "job_control", "run_terminal" };
+                string[] tools = { "job_control", "run_terminal" };
                 for (int i = 0; i < tools.Length; i++)
                 {
                     string tool = tools[i], id = "held-worker-" + i;
@@ -8296,30 +8298,21 @@ namespace CapriDesktop
                     if (asked != 0 || runs() != before + 1 || bridge.Sink.ReplyFor(early).Text("text") != RemoteTurn.PcOnly || progress.Count != 2 || progress[1].Text("state") != "failed") throw new Exception("An early held call escaped its boundary: " + tool);
                 }
                 Hands.OnMac = true;
-                foreach (string route in new[] { "music", "work", "native", "computer", "terminal", "mod" })
                 {
-                    string id = "held-route-" + route;
+                    string id = "held-route-terminal";
                     int before = runs();
-                    Hands.Draw = delegate(ToolArguments args)
-                    {
-                        if (route == "work") return Hands.Work("a screen request from a drawing", args.Asked);
-                        if (route == "native") return Hands.NativeWork(args);
-                        if (route == "computer") return ComputerJobs.Run("a direct native job", args.Asked);
-                        return TerminalJobs.Run(args);
-                    };
+                    Hands.Draw = delegate(ToolArguments args) { return TerminalJobs.Run(args); };
                     pet.Think = delegate
                     {
-                        string result = route == "music" ? pet.Brain.Act("play_music", new ToolArguments { App = "applemusic", Song = "my bridge playlist", Kind = "playlist" })
-                            : route == "mod" ? pet.Brain.Act("mod", new ToolArguments { Name = "work-mod", Text = "a mod request" })
-                            : pet.Brain.Act("draw", new ToolArguments { Task = "private-task", Description = "a screen request", Asked = "run a terminal command", Command = "private-command" });
-                        if (result != RemoteTurn.PcOnly) throw new Exception("A side door returned the wrong result: " + route);
+                        string result = pet.Brain.Act("draw", new ToolArguments { Task = "private-task", Description = "a screen request", Asked = "run a terminal command", Command = "private-command" });
+                        if (result != RemoteTurn.PcOnly) throw new Exception("A terminal side door returned the wrong result.");
                         pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App" });
                         return "I tried that route and opened the app.";
                     };
                     bridge.Send(0, id, "try a side door");
-                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a held side door");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a held terminal side door");
                     List<RemoteJson.Map> progress = bridge.Sink.ToolsFor(id);
-                    if (runs() != before + 1 || bridge.Sink.ReplyFor(id).Text("text") != "I tried that route and opened the app." || progress.Count != 4 || progress[1].Text("state") != "failed" || progress[3].Text("state") != "done") throw new Exception("A side door started work or poisoned later tools: " + route);
+                    if (runs() != before + 1 || bridge.Sink.ReplyFor(id).Text("text") != "I tried that route and opened the app." || progress.Count != 4 || progress[1].Text("state") != "failed" || progress[3].Text("state") != "done") throw new Exception("A terminal side door started work or poisoned later tools.");
                 }
                 int allowed = 0;
                 Hands.JobControl = delegate(ToolArguments args) { Interlocked.Increment(ref allowed); return "Job " + args.Action; };
@@ -8381,7 +8374,7 @@ namespace CapriDesktop
                         if (bridge.Sink.ReplyFor(id + "-early").Text("text") != reason) throw new Exception("An early missing tool gained a PC-only reason.");
                     }
                 }
-                checks.Add("PASS Remote bridge boundaries: only mouse and keyboard starts, job change and terminal starts are held; each call fails alone and later tools and her own answer survive; direct phrases, real Apple Music fallback, Hands.Work, NativeWork, ComputerJobs and TerminalJobs starts keep the boundary");
+                checks.Add("PASS Remote bridge boundaries: job change and terminal starts stay at the PC; later tools and her own answer survive; direct phrases and TerminalJobs starts keep the boundary");
                 checks.Add("PASS Remote bridge ordinary tools: job status and stop, terminal status/read/stop, mod tools, quit, updates and animate run; plain stop and cancel keep their PC meaning; unavailable tools keep their own reason in dispatch and early phrases on both platforms");
             }
             finally
@@ -8390,6 +8383,392 @@ namespace CapriDesktop
                 Hands.Draw = draw; Hands.NativeTerminal = terminal; Hands.NativeTerminalJob = job; Hands.JobControl = control;
                 Hands.Quit = quit; Hands.Updates = updates; Hands.Animate = animate; Security.Has = has; Security.Drop(); Security.Load(permissions);
                 pet.SelfClose = close;
+            }
+        }
+
+        private void RemoteJobChecks(RemoteBridgeFake bridge)
+        {
+            Func<string, string> think = pet.Think;
+            Func<ToolArguments, string> native = Hands.NativeWork;
+            Func<string, string, string> work = Hands.Work;
+            Func<ComputerJob, CancellationToken, string> runner = ComputerJobs.TestRun;
+            Action<string, System.Text.Json.JsonElement> doing = Chores.Doing;
+            System.Reflection.FieldInfo observed = typeof(Chores).GetField("observed", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Func<int, bool> has = Security.Has;
+            Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
+            bool own = Hands.OwnHands, mac = Hands.OnMac, streaming = Hands.Streaming;
+            object quitting = RemoteWire.Get(pet, "quitting");
+            Func<bool> ready = Hands.HandsReady;
+            string permissions = Security.Saved;
+            const string secret = "job-private-typing-728461";
+            int runs = 0;
+            List<RemoteJson.Map> all = new List<RemoteJson.Map>();
+            try
+            {
+                pet.RemoteOutput = delegate(RemoteLink link) { return new RemoteLinkSink(link); };
+                bridge.Online();
+                Hands.OnMac = false; Hands.OwnHands = true; Hands.HandsReady = delegate { return true; };
+                Security.Has = delegate { return true; };
+                Security.Pick(Security.Blackwall);
+                Hands.NativeWork = Limbs.RemoteWork(new Func<ToolArguments, string>(args => ComputerJobs.Run(args.Task, args.Asked, args.Current)));
+                Hands.Work = Limbs.RemoteWork(new Func<string, string, string>((task, asked) => ComputerJobs.Run(task, asked)));
+                pet.Think = delegate { return pet.Brain.Act("use_computer", new ToolArguments { Task = "type " + secret, Asked = "type " + secret }); };
+                if (!bridge.Wire.Link.FeaturesNow.Contains("jobs") || bridge.Wire.Link.FeaturesNow.Contains("call")) throw new Exception("Remote job features changed.");
+                ComputerJobs.TestRun = delegate(ComputerJob job, CancellationToken token)
+                {
+                    Interlocked.Increment(ref runs);
+                    ComputerAction action = new ComputerAction { Action = "type", Text = secret, Keys = secret, Label = secret };
+                    ComputerJobs.Step(job, action, false, false);
+                    ComputerJobs.Step(job, action, true, false);
+                    job.SliceEnd = "done";
+                    return "The fake job finished.";
+                };
+                Security.Set(Security.Mouse, false);
+                bridge.Send(0, "jobs-held", "use the computer to fill the form");
+                List<RemoteJson.Map> rows = new List<RemoteJson.Map>();
+                RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "asking") && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-held" && row.Is("done", true)); }, "the held job question");
+                all.AddRange(rows);
+                string held = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking").Text("id");
+                if (runs != 0) throw new Exception("A held job ran before permission.");
+                bridge.JobCommand(1, "job.answer", held, true);
+                rows.Clear();
+                RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "done") && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("device") == bridge.Phones[1].Id && !row.ContainsKey("re")); }, "the allowed job");
+                all.AddRange(rows);
+                if (runs != 1 || !rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("device") == bridge.Phones[1].Id && !row.ContainsKey("re"))) throw new Exception("A job answer lost its answering phone or ran twice.");
+                bridge.SendJobJson(1, "{\"type\":\"job.list\"}");
+                List<RemoteJson.Map> completed = bridge.DrainJobs(); all.AddRange(completed);
+                RemoteJson.Map doneRecent = completed.Find(row => row.Text("type") == "job.recent");
+                List<object> doneList = doneRecent == null ? null : doneRecent.Items("list");
+                if (doneList == null || doneList.Count == 0 || ((RemoteJson.Map)doneList[0]).Text("id") != held || ((RemoteJson.Map)doneList[0]).Text("state") != "done") throw new Exception("Recent did not put the completed job first.");
+
+                bridge.JobCommand(1, "job.answer", held, true);
+                rows = bridge.DrainJobs(); all.AddRange(rows);
+                if (runs != 1 || !rows.Exists(row => row.Text("type") == "error" && row.Text("code") == "bad-message" && row.Text("re") == held)) throw new Exception("A repeated job answer was accepted.");
+                bridge.Send(0, "jobs-denied", "use the computer to fill the form");
+                rows.Clear();
+                RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "asking") && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-denied" && row.Is("done", true)); }, "another held job");
+                all.AddRange(rows);
+                held = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking").Text("id");
+                bridge.JobCommand(1, "job.answer", held, false);
+                rows.Clear();
+                RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "chat.reply" && !row.ContainsKey("re")); }, "the denied job answer");
+                all.AddRange(rows);
+                if (runs != 1) throw new Exception("A denied job ran.");
+                Security.Set(Security.Mouse, true);
+                using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+                {
+                    int before = runs;
+                    ComputerJobs.TestRun = delegate(ComputerJob job, CancellationToken token)
+                    {
+                        Interlocked.Increment(ref runs);
+                        ComputerAction typing = new ComputerAction { Action = "type", Text = secret, Label = secret };
+                        ComputerJobs.Step(job, typing, false, false);
+                        entered.Set();
+                        if (!release.Wait(30000)) throw new Exception("The successful job was not released.");
+                        token.ThrowIfCancellationRequested();
+                        ComputerJobs.Step(job, typing, true, false);
+                        ComputerAction key = new ComputerAction { Action = "press", Keys = secret, Label = secret };
+                        ComputerJobs.Step(job, key, false, false); ComputerJobs.Step(job, key, true, false);
+                        job.SliceEnd = "done";
+                        return "The fake job finished.";
+                    };
+                    try
+                    {
+                        bridge.Send(0, "jobs-toggle-on", "use the computer to fill the form");
+                        RemoteBridgeWait(delegate { return entered.IsSet; }, "the permitted successful job");
+                        rows = bridge.DrainJobs(); all.AddRange(rows);
+                        RemoteJson.Map started = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "running");
+                        RemoteJson.Map first = rows.Find(row => row.Text("type") == "job.step" && row.Text("device") == bridge.Phones[0].Id);
+                        if (started == null || first == null || !first.Is("done", false) || (double)first["n"] != 1 || runs != before + 1) throw new Exception("A permitted job lost its running state or first step.");
+                        string id = started.Text("id");
+                        release.Set(); rows.Clear();
+                        RemoteBridgeWait(delegate
+                        {
+                            rows.AddRange(bridge.DrainJobs());
+                            return !SelfJobs.Active && rows.Exists(row => row.Text("type") == "job.state" && row.Text("id") == id && row.Text("state") == "done")
+                                && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-toggle-on" && row.Is("done", true));
+                        }, "the permitted job completion");
+                        all.AddRange(rows);
+                        foreach (string device in bridge.Phones.Select(phone => phone.Id))
+                        {
+                            List<RemoteJson.Map> steps = rows.FindAll(row => row.Text("type") == "job.step" && row.Text("device") == device);
+                            if (steps.Count != 2 || (double)steps[0]["n"] != 1 || (double)steps[1]["n"] != 2 || steps.Any(row => !row.Is("done", true) || row.Is("failed", true))) throw new Exception("A successful job lost its ordered finished step replacements.");
+                        }
+                        bridge.SendJobJson(1, "{\"type\":\"job.list\"}");
+                        rows = bridge.DrainJobs(); all.AddRange(rows);
+                        RemoteJson.Map recent = rows.Find(row => row.Text("type") == "job.recent");
+                        List<object> list = recent == null ? null : recent.Items("list");
+                        if (list == null || list.Count == 0 || ((RemoteJson.Map)list[0]).Text("id") != id || ((RemoteJson.Map)list[0]).Text("state") != "done") throw new Exception("Recent lost the successful toggle-on job.");
+                    }
+                    finally { release.Set(); ComputerJobs.Stop(); }
+                }
+                Security.Set(Security.Sends, false);
+                foreach (string answer in new[] { "yes", "no", "stop" })
+                {
+                    int entries = 0, inputs = 0;
+                    ComputerAction heldAction = new ComputerAction { Action = "type", Text = secret, Label = secret, Risk = "send" };
+                    ComputerJobs.TestRun = delegate(ComputerJob job, CancellationToken token)
+                    {
+                        Interlocked.Increment(ref entries);
+                        if (job.Approved == null)
+                        {
+                            job.Waiting = heldAction; job.WaitingRisk = "send"; job.WaitingToggle = Security.Sends;
+                            return "May I send this?";
+                        }
+                        if (job.Approved != heldAction.ConsentKey) throw new Exception("The risk answer approved a different input.");
+                        Interlocked.Increment(ref inputs);
+                        ComputerJobs.Step(job, heldAction, false, false); ComputerJobs.Step(job, heldAction, true, false);
+                        job.SliceEnd = "done";
+                        return "The fake send finished.";
+                    };
+                    string request = "jobs-risk-" + answer;
+                    bridge.Send(0, request, "use the computer to fill the form");
+                    rows.Clear();
+                    RemoteBridgeWait(delegate
+                    {
+                        rows.AddRange(bridge.DrainJobs());
+                        return !SelfJobs.Active && rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "asking")
+                            && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == request);
+                    }, "the native risk question");
+                    all.AddRange(rows);
+                    RemoteJson.Map question = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking");
+                    string riskId = question.Text("id");
+                    if (entries != 1 || inputs != 0 || question.Text("ask").IndexOf("send", StringComparison.OrdinalIgnoreCase) < 0) throw new Exception("A native risk ran before approval or lost its send question.");
+                    if (answer == "yes")
+                    {
+                        bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"yes\":true}");
+                        bridge.SendJobJson(1, "{\"type\":\"job.stop\",\"id\":\"bad id\"}");
+                        bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"id\":\"" + riskId + "\",\"yes\":\"true\"}");
+                        rows.Clear();
+                        RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Count(row => row.Text("type") == "error" && row.Text("code") == "bad-message") == 3; }, "malformed commands during a held risk");
+                        all.AddRange(rows);
+                        List<RemoteJson.Map> errors = rows.FindAll(row => row.Text("type") == "error" && row.Text("code") == "bad-message");
+                        if (errors.Count(row => !row.ContainsKey("re")) != 2 || errors.Count(row => row.Text("re") == riskId) != 1 || entries != 1 || inputs != 0) throw new Exception("Malformed commands changed a held risk or lost their id rules.");
+                    }
+
+                    if (answer == "stop") bridge.JobCommand(1, "job.stop", riskId);
+                    else bridge.JobCommand(1, "job.answer", riskId, answer == "yes");
+                    rows.Clear();
+                    RemoteBridgeWait(delegate
+                    {
+                        rows.AddRange(bridge.DrainJobs());
+                        return !SelfJobs.Active && rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == (answer == "yes" ? "done" : "stopped"))
+                            && (answer == "stop" || rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("device") == bridge.Phones[1].Id && !row.ContainsKey("re")));
+                    }, "the native risk " + answer);
+                    all.AddRange(rows);
+                    if (entries != (answer == "yes" ? 2 : 1) || inputs != (answer == "yes" ? 1 : 0)) throw new Exception("A native risk answer ran the held input the wrong number of times.");
+                    bridge.JobCommand(0, "job.answer", riskId, true);
+                    rows.Clear();
+                    RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "error" && row.Text("code") == "bad-message" && row.Text("re") == riskId); }, "the obsolete native risk answer");
+                    all.AddRange(rows);
+                    if (inputs != (answer == "yes" ? 1 : 0)) throw new Exception("A second native risk answer replayed input.");
+                }
+                Security.Set(Security.Sends, true);
+                int streams = 0;
+                Hands.Work = Limbs.RemoteWork(new Func<string, string, string>(delegate(string task, string asked)
+                {
+                    Interlocked.Increment(ref streams);
+                    return "The fake stream started.";
+                }));
+                pet.Think = delegate { return pet.Brain.Act("stream", new ToolArguments { Action = "start", Name = "the open game", Asked = "stream the open game" }); };
+                foreach (bool enabled in new[] { false, true })
+                {
+                    Hands.Streaming = false;
+                    Security.Set(Security.Mouse, enabled);
+                    int before = streams;
+                    string request = enabled ? "jobs-stream-on" : "jobs-stream-off";
+                    bridge.Send(0, request, "try the stream tool");
+                    rows.Clear();
+                    RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == request && row.Is("done", true)); }, "the Linux stream tool");
+                    all.AddRange(rows);
+                    if (!enabled)
+                    {
+                        RemoteJson.Map question = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking");
+                        if (question == null || streams != before || Hands.Streaming) throw new Exception("A Linux stream escaped its jobs permission.");
+                        bridge.JobCommand(1, "job.answer", question.Text("id"), true);
+                        rows.Clear();
+                        RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("device") == bridge.Phones[1].Id && !row.ContainsKey("re")); }, "the approved Linux stream");
+                        all.AddRange(rows);
+                    }
+                    if (streams != before + 1 || !Hands.Streaming) throw new Exception("An available Linux stream failed to reach the fake work path once.");
+                }
+                Hands.Streaming = false;
+                Hands.Work = Limbs.RemoteWork(new Func<string, string, string>((task, asked) => ComputerJobs.Run(task, asked)));
+                pet.Think = delegate { return pet.Brain.Act("use_computer", new ToolArguments { Task = "type " + secret, Asked = "type " + secret }); };
+                Security.Set(Security.Mouse, true);
+                using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+                {
+                    ComputerJob current = null;
+                    ComputerJobs.TestRun = delegate(ComputerJob job, CancellationToken token)
+                    {
+                        current = job; Interlocked.Increment(ref runs);
+                        entered.Set();
+                        if (WaitHandle.WaitAny(new[] { release.WaitHandle, token.WaitHandle }, 30000) == WaitHandle.WaitTimeout) throw new Exception("The fake job was not released.");
+                        token.ThrowIfCancellationRequested(); job.SliceEnd = "done"; return "The fake job finished.";
+                    };
+                    try
+                    {
+                        bridge.Send(0, "jobs-running", "use the computer to fill the form");
+                        RemoteBridgeWait(delegate { return entered.IsSet; }, "the running job");
+                        rows = bridge.DrainJobs(); all.AddRange(rows);
+                        string id = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "running").Text("id");
+                        for (int n = 0; n < 35; n++)
+                        {
+                            ComputerAction action = new ComputerAction { Action = "type", Text = secret, Label = secret };
+                            ComputerJobs.Step(current, action, false, false); ComputerJobs.Step(current, action, true, false);
+                        }
+                        rows = bridge.DrainJobs(); all.AddRange(rows);
+                        foreach (string device in bridge.Phones.Select(phone => phone.Id))
+                        {
+                            List<RemoteJson.Map> steps = rows.FindAll(row => row.Text("type") == "job.step" && row.Text("device") == device);
+                            if (steps.Count != 30 || steps.Any(row => !row.Is("done", true))) throw new Exception("Job steps lost their replacement or pending bound.");
+                            for (int n = 1; n < steps.Count; n++) if ((double)steps[n]["n"] != (double)steps[n - 1]["n"] + 1) throw new Exception("Job steps changed order.");
+                        }
+                        bridge.Connect(1);
+                        rows = bridge.DrainJobs(); all.AddRange(rows);
+                        List<RemoteJson.Map> replay = rows.FindAll(row => row.Text("device") == bridge.Phones[1].Id);
+                        if (replay.Count != 31 || replay[0].Text("type") != "job.state" || replay.FindAll(row => row.Text("type") == "job.step").Count != 30) throw new Exception("Hello lost the current job or last thirty steps.");
+                        bridge.JobCommand(1, "job.answer", id, true);
+                        bridge.JobCommand(1, "job.stop", "wrong-job");
+                        bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"id\":\"" + id + "\",\"yes\":\"true\"}");
+                        rows = bridge.DrainJobs(); all.AddRange(rows);
+                        if (rows.Count(row => row.Text("type") == "error" && row.Text("code") == "bad-message" && (row.Text("re") == id || row.Text("re") == "wrong-job")) != 3) throw new Exception("Malformed job commands lost their errors.");
+                        bridge.JobCommand(1, "job.stop", id);
+                        rows.Clear();
+                        RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "stopped"); }, "the stopped job");
+                        all.AddRange(rows);
+                        RemoteBridgeWait(delegate { return !SelfJobs.Active; }, "the stopped job cleanup");
+                        bridge.SendJobJson(1, "{\"type\":\"job.list\"}");
+                        rows = bridge.DrainJobs(); all.AddRange(rows);
+                        RemoteJson.Map recent = rows.Find(row => row.Text("type") == "job.recent");
+                        if (recent == null || !System.Text.Json.JsonSerializer.Serialize(recent).Contains(id)) throw new Exception("Recent lost the stopped job.");
+                        foreach (string end in new[] { "revoke", "left", "off", "quit" })
+                        {
+                            bridge.Online(); entered.Reset();
+                            bridge.Send(0, "jobs-life-" + end, "use the computer to fill the form");
+                            RemoteBridgeWait(delegate { return entered.IsSet; }, "the job before " + end);
+                            rows = bridge.DrainJobs(); all.AddRange(rows);
+                            string liveId = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "running").Text("id");
+                            if (end == "revoke") pet.RevokeRemote(bridge.Phones[0].Id);
+                            if (end == "left") bridge.Left(0);
+                            if (end == "off") pet.SetRemote(false);
+                            if (end == "quit") { RemoteWire.Set(pet, "quitting", true); typeof(Pet).GetMethod("StopRemote", RemoteWire.Own).Invoke(pet, null); }
+                            all.AddRange(bridge.DrainJobs());
+                            int before = runs;
+                            bridge.JobCommand(0, "job.stop", liveId);
+                            bridge.JobCommand(0, "job.answer", liveId, true);
+                            ComputerAction action = new ComputerAction { Action = "type", Text = secret, Label = secret };
+                            ComputerJobs.Step(current, action, false, false); ComputerJobs.Step(current, action, true, false);
+                            rows = bridge.DrainJobs(); all.AddRange(rows);
+                            if (runs != before || !ComputerJobs.IsCurrent(current) || !SelfJobs.Active || rows.Exists(row => row.Text("device") == bridge.Phones[0].Id)) throw new Exception("An ended phone received job frames, controlled work or stopped its running job: " + end);
+                            ComputerJobs.Stop();
+                            RemoteBridgeWait(delegate { return !SelfJobs.Active; }, "the detached job cleanup");
+                            RemoteWire.Set(pet, "quitting", false);
+                        }
+
+                    }
+                    finally { release.Set(); ComputerJobs.Stop(); }
+                }
+                bridge.Online();
+                string[] fallbackKinds = { "type", "key", "right_click", "move", "drag", "scroll", "wait" };
+                string[] fallbackTools = { "type", "press", "click", "move", "drag", "scroll", "wait" };
+                int fallbackInputs = 0;
+                Chores.Doing = delegate { Interlocked.Increment(ref fallbackInputs); };
+                Hands.NativeWork = Limbs.RemoteWork(new Func<ToolArguments, string>(args => SelfJobs.Run(args, next =>
+                {
+                    ComputerJob following = new ComputerJob { Task = next.Task, Asked = next.Asked, Phone = RemoteTurn.Working };
+                    object previous = observed.GetValue(null);
+                    observed.SetValue(null, following);
+                    try
+                    {
+                        return ComputerJobs.Follow(following, delegate
+                        {
+                            foreach (string kind in fallbackKinds)
+                            {
+                                string json = new RemoteJson.Writer().Text("text", secret).Text("keys", secret).Text("label", secret)
+                                    .Number("x", 200).Number("y", 300).Number("to_x", 400).Number("to_y", 500).Number("amount", 2).Number("seconds", 1).ToString();
+                                using (System.Text.Json.JsonDocument order = System.Text.Json.JsonDocument.Parse(json)) Chores.Act(kind, order.RootElement, 1000, 1000);
+                            }
+                            following.SliceEnd = "done";
+                            return "The fake fallback job finished.";
+                        });
+                    }
+                    finally { observed.SetValue(null, previous); }
+                }, delegate { })));
+                bridge.Send(0, "jobs-fallback", "use the computer to fill the form");
+                List<RemoteJson.Map> fallback = new List<RemoteJson.Map>();
+                RemoteBridgeWait(delegate
+                {
+                    fallback.AddRange(bridge.DrainJobs());
+                    return !SelfJobs.Active && fallback.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "done")
+                        && fallback.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == "jobs-fallback" && row.Is("done", true));
+                }, "the observed fallback job");
+                all.AddRange(fallback);
+                if (fallbackInputs != fallbackKinds.Length) throw new Exception("The fallback observation changed fake input delivery.");
+                foreach (string device in bridge.Phones.Select(phone => phone.Id))
+                {
+                    List<RemoteJson.Map> steps = fallback.FindAll(row => row.Text("type") == "job.step" && row.Text("device") == device);
+                    if (steps.Count != fallbackKinds.Length) throw new Exception("The fallback job lost observed steps.");
+                    for (int n = 0; n < steps.Count; n++)
+                        if ((double)steps[n]["n"] != n + 1 || steps[n].Text("tool") != fallbackTools[n] || !steps[n].Is("done", true) || steps[n].Is("failed", true)
+                            || steps[n].Text("label") != RemoteJobWords.RemoteComputerLabel(fallbackTools[n], true, false)) throw new Exception("A fallback action lost its normalized private label.");
+                }
+                Chores.Doing = doing;
+                Hands.NativeWork = Limbs.RemoteWork(new Func<ToolArguments, string>(args => ComputerJobs.Run(args.Task, args.Asked, args.Current)));
+                Security.Set(Security.Sends, false);
+                foreach (string end in new[] { "revoke", "left", "off", "quit" })
+                {
+                    bridge.Online();
+                    ComputerJob waiting = null;
+                    int entries = 0;
+                    ComputerJobs.TestRun = delegate(ComputerJob job, CancellationToken token)
+                    {
+                        Interlocked.Increment(ref entries); waiting = job;
+                        job.Waiting = new ComputerAction { Action = "type", Text = secret, Label = secret, Risk = "send" };
+                        job.WaitingRisk = "send"; job.WaitingToggle = Security.Sends;
+                        return "May I send this?";
+                    };
+                    string request = "jobs-held-life-" + end;
+                    bridge.Send(0, request, "use the computer to fill the form");
+                    List<RemoteJson.Map> heldRows = new List<RemoteJson.Map>();
+                    RemoteBridgeWait(delegate
+                    {
+                        heldRows.AddRange(bridge.DrainJobs());
+                        return !SelfJobs.Active && heldRows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "asking")
+                            && heldRows.Exists(row => row.Text("type") == "chat.reply" && row.Text("re") == request && row.Is("done", true));
+                    }, "the held job before " + end);
+                    all.AddRange(heldRows);
+                    string heldId = heldRows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking").Text("id");
+                    if (end == "revoke") pet.RevokeRemote(bridge.Phones[0].Id);
+                    if (end == "left") bridge.Left(0);
+                    if (end == "off") pet.SetRemote(false);
+                    if (end == "quit") { RemoteWire.Set(pet, "quitting", true); typeof(Pet).GetMethod("StopRemote", RemoteWire.Own).Invoke(pet, null); }
+                    all.AddRange(bridge.DrainJobs());
+                    bridge.JobCommand(0, "job.answer", heldId, true);
+                    bridge.JobCommand(0, "job.stop", heldId);
+                    heldRows = bridge.DrainJobs(); all.AddRange(heldRows);
+                    if (entries != 1 || waiting.Waiting == null || !ComputerJobs.IsCurrent(waiting) || heldRows.Exists(row => row.Text("device") == bridge.Phones[0].Id)) throw new Exception("An ended phone answered, stopped or heard a held job: " + end);
+                    if (end == "off" || end == "quit")
+                    {
+                        RemoteWire.Set(pet, "quitting", false);
+                        pet.SetRemote(true);
+                    }
+                    bridge.Connect(1);
+                    heldRows = bridge.DrainJobs(); all.AddRange(heldRows);
+                    if (!heldRows.Exists(row => row.Text("type") == "job.state" && row.Text("id") == heldId && row.Text("state") == "asking" && row.Text("device") == bridge.Phones[1].Id)
+                        || entries != 1 || waiting.Waiting == null || !ComputerJobs.IsCurrent(waiting)) throw new Exception("A detached held question lost its replay or ran: " + end);
+                    ComputerJobs.Stop();
+                    RemoteBridgeWait(delegate { return !ComputerJobs.IsCurrent(waiting); }, "the held job PC stop");
+                    all.AddRange(bridge.DrainJobs());
+                }
+                foreach (RemoteJson.Map row in all) if (System.Text.Json.JsonSerializer.Serialize(row).Contains(secret)) throw new Exception("A job frame exposed typed text.");
+                checks.Add("PASS Remote jobs: encrypted two-phone frames cover jobs feature, held allow once and deny, native send allow/no/stop, Linux stream permission, fallback observation, detached held questions, private typing labels, ordered coalesced steps, hello replay, bad commands, stop and Recent");
+            }
+            finally
+            {
+                RemoteWire.Set(pet, "quitting", quitting); ComputerJobs.Stop(); ComputerJobs.TestRun = runner; Chores.Doing = doing; Hands.NativeWork = native; Hands.Work = work;
+                Hands.OwnHands = own; Hands.OnMac = mac; Hands.HandsReady = ready; Hands.Streaming = streaming; Security.Has = has;
+                Security.Drop(); Security.Load(permissions); pet.Think = think; pet.RemoteOutput = output; bridge.Online();
             }
         }
 
@@ -8890,6 +9269,8 @@ namespace CapriDesktop
             private readonly List<RemoteWire> wires = new List<RemoteWire>();
             private readonly Dictionary<string, RemoteKeys> keys = new Dictionary<string, RemoteKeys>();
             private readonly Dictionary<string, uint> sequences = new Dictionary<string, uint>();
+            private readonly Dictionary<string, uint> jobSequences = new Dictionary<string, uint>();
+            private long jobClock = long.MaxValue / 2;
             private bool over;
             internal readonly RemoteBridgeSink Sink = new RemoteBridgeSink();
             internal RemoteFileFake File;
@@ -8930,7 +9311,7 @@ namespace CapriDesktop
                 if (new RemoteStore(file).Save("ws://127.0.0.1:1", state) != RemoteStoreResult.Saved) throw new Exception("The bridge fake could not seed its store.");
                 Use(file); pet.SetRemote(true); Connect(0); Connect(1); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Sink.Clear();
             }
-            internal void Connect(int phone) { RemoteDevice device = Phones[phone]; keys[device.Id] = Wire.Hello(device, RemoteCrypto.Random(16)); sequences[device.Id] = 0; }
+            internal void Connect(int phone) { RemoteDevice device = Phones[phone]; keys[device.Id] = Wire.Hello(device, RemoteCrypto.Random(16)); sequences[device.Id] = 0; jobSequences[device.Id] = 0; }
             internal void Send(int phone, string id, string text) { SendJson(phone, id, new RemoteJson.Writer().Text("type", "chat.send").Text("id", id).Text("text", text).ToString()); }
             internal void SendPicture(int phone, string id, string text, string mime, string data)
             {
@@ -8953,6 +9334,42 @@ namespace CapriDesktop
                     RemoteJson.Map row = plain == null ? null : RemoteJson.Message(plain);
                     if (row == null) throw new Exception("Room's fake phone could not open its frame: " + why);
                     rows.Add(row);
+                }
+                return rows;
+            }
+            internal void SendJobJson(int phone, string json)
+            {
+                RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], sequences[device.Id]++, json);
+            }
+            internal void JobCommand(int phone, string type, string id, bool? yes = null)
+            {
+                RemoteJson.Writer json = new RemoteJson.Writer().Text("type", type).Text("id", id);
+                if (yes.HasValue) json.Flag("yes", yes.Value);
+                SendJobJson(phone, json.ToString());
+            }
+            internal List<RemoteJson.Map> DrainJobs()
+            {
+                List<RemoteJson.Map> rows = new List<RemoteJson.Map>();
+                for (int turn = 0; turn < 64; turn++)
+                {
+                    lock (RemoteWire.Get(Wire.Link, "gate"))
+                    {
+                        typeof(RemoteLink).GetMethod("FlushParts", RemoteWire.Own).Invoke(Wire.Link, new object[] { null });
+                        typeof(RemoteLink).GetMethod("FlushJobs", RemoteWire.Own).Invoke(Wire.Link, new object[] { jobClock });
+                        jobClock += 200;
+                    }
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    Wire.Pump();
+                    foreach (byte[] frame in Wire.BinaryFrames)
+                    {
+                        byte[] id = new byte[16]; Buffer.BlockCopy(frame, 0, id, 0, 16);
+                        string device = RemoteCrypto.B64u(id), why;
+                        uint sequence = jobSequences[device];
+                        byte[] plain = RemoteCrypto.Open(keys[device].PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, sequence, frame, 16, frame.Length - 16, out why);
+                        RemoteJson.Map row = plain == null ? null : RemoteJson.Message(plain);
+                        if (row == null) throw new Exception("The fake job phone could not open its frame: " + why);
+                        jobSequences[device] = sequence + 1; row["device"] = device; rows.Add(row);
+                    }
                 }
                 return rows;
             }

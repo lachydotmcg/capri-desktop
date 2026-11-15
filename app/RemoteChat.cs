@@ -539,7 +539,7 @@ namespace CapriDesktop
         }
 
         // Her words for a phone, with passwords she knows dotted out and keys, tokens and passwords taken out, as in her logs.
-        private static string RemoteOut(string text) { return Brain.Scrubbed(Brain.Redacted(Computer.Mask(text ?? ""))); }
+        private static string RemoteOut(string text) { return RemoteJobWords.RemoteOut(text); }
 
         private static string RemoteToolWords(string tool, ToolArguments args)
         {
@@ -621,92 +621,9 @@ namespace CapriDesktop
         // A job's title on the phone. Anything that could carry what they typed, like a message, a search or a password, says
         // only what kind of job it is. Her task's own words show only when it just opens apps by name, like "Open Steam and
         // launch Helldivers 2", masked and redacted like her replies.
-        private static string RemoteJobTask(string text)
-        {
-            string task = (text ?? "").ToLowerInvariant();
-            if (Regex.IsMatch(task, @"\b(send|message|post|reply|say|publish)\b")) return "Sending a message";
-            if (Regex.IsMatch(task, @"\b(type|write|paste|fill|enter|input|insert|password|passphrase|secret|token)\b")) return "Typing some text";
-            if (Regex.IsMatch(task, @"\b(search|find)\b")) return "Finding something on your PC";
-            string plain = text ?? "";
-            int exact = plain.IndexOf(Computer.Exact, StringComparison.Ordinal);
-            if (exact >= 0) plain = plain.Substring(0, exact);
-            plain = RemoteMessages.CleanText(RemoteOut(plain), 200);
-            const string app = @"[\p{L}\p{N}][\p{L}\p{N}._-]*(?:\s+(?!(?:and|then|with|in|on|for|to|using)\b)[\p{L}\p{N}][\p{L}\p{N}._-]*){0,7}";
-            if (Regex.IsMatch(plain, @"^(?:open|launch|start)\s+" + app + @"(?:\s+and\s+(?:open|launch|start)\s+" + app + @"){0,2}$", RegexOptions.IgnoreCase)) return plain;
-            if (Regex.IsMatch(task, @"\b(play|game)\b")) return "Playing on your PC";
-            if (Regex.IsMatch(task, @"\b(open|launch|start)\b")) return "Opening an app or site";
-            return "Using your computer";
-        }
+        private static string RemoteJobTask(string text) { return RemoteJobWords.RemoteJobTask(text); }
 
-        private static string RemoteJobAction(string tool, ToolArguments args, int toggle, string risk)
-        {
-            switch (risk)
-            {
-                case "buy": return "paying for this purchase";
-                case "send": return "sending this message";
-                case "delete": return "deleting this";
-                case "install": return "installing software";
-                case "uninstall": return "uninstalling software";
-                case "format": return "formatting this drive";
-                case "sign out": case "log out": return "signing you out";
-                case "unfriend": return "removing this friend";
-                case "block": return "blocking this person";
-                case "report": return "reporting this";
-                case "confirm": return "confirming this action";
-                case "keys": return "pressing these keys";
-            }
-            string action = args == null ? null : args.Action;
-            switch (toggle)
-            {
-                case Security.Open:
-                    if (tool == "updates") return "installing the Capri update";
-                    if (tool == "open_website") return "opening this site";
-                    if (tool == "clip") return "opening your clips";
-                    return "opening this app";
-                case Security.Media: return "changing music or volume";
-                case Security.Shortcuts: return "pressing this shortcut";
-                case Security.Windows:
-                    if (tool == "media") return "opening your media player";
-                    switch (action)
-                    {
-                        case "close": return "closing this app or tab";
-                        case "minimize": return "minimizing this app";
-                        case "maximize": return "maximizing this app";
-                        case "restore": return "restoring this app";
-                        case "snap_left": case "snap_right": case "snap_top": case "snap_bottom": return "snapping this app window";
-                        case "move_to_screen": case "move": return "moving this app window";
-                        case "resize": return "resizing this app window";
-                        case "pin_on_top": return "keeping this app on top";
-                        case "unpin": return "unpinning this app";
-                        default: return "switching apps or tabs";
-                    }
-                case Security.Power:
-                    switch (action)
-                    {
-                        case "shut_down": return "shutting down your PC";
-                        case "restart": return "restarting your PC";
-                        case "sleep": return "putting your PC to sleep";
-                        case "lock": return "locking your PC";
-                        case "sign_out": return "signing you out";
-                        default: return "changing your PC's power state";
-                    }
-                case Security.Mouse:
-                    if (tool == "stream") return "starting a live stream";
-                    if (tool == "job_control") return "changing this job";
-                    return "using your mouse and keyboard for this job";
-                case Security.Sends: return "sending, posting or deleting";
-                case Security.Pays: return "paying for this purchase";
-                case Security.Unasked: return "doing an extra step for this job";
-                case Security.Secrets: return "typing a password or card number";
-                default:
-                    switch (tool)
-                    {
-                        case "type": case "paste": case "insert_text": return "typing some text";
-                        case "press": case "key": case "hold_key": case "hold_and_press": return "pressing these keys";
-                        default: return null;
-                    }
-            }
-        }
+        private static string RemoteJobAction(string tool, ToolArguments args, int toggle, string risk) { return RemoteJobWords.RemoteJobAction(tool, args, toggle, risk); }
 
         private static List<string> RemoteJobActions(RemoteJob run)
         {
@@ -736,33 +653,11 @@ namespace CapriDesktop
             return RemoteJobQuestion(actions).Length > 200 && groups.Count > 0 ? groups : actions;
         }
 
-        private static string RemoteJobQuestion(List<string> actions)
-        {
-            return actions.Count == 0 ? "Allow this action?" : "Allow " + string.Join(" and ", actions.ToArray()) + "?";
-        }
+        private static string RemoteJobQuestion(List<string> actions) { return RemoteJobWords.RemoteJobQuestion(actions); }
 
         // A step on the phone. Typing and keys only say they happened. A click or an opened app keeps her label, which names
         // where, masked and redacted like her replies, and anything else says what kind of step it was.
-        private static string RemoteJobLabel(JobStep step)
-        {
-            string tool = step.Tool ?? "tool";
-            if (tool == "type" || tool == "paste" || tool == "insert_text") return step.Finished ? "Typed some text" : "Typing some text";
-            if (tool == "press" || tool == "key" || tool == "hold_key" || tool == "hold_and_press") return step.Finished ? "Pressed some keys" : "Pressing some keys";
-            if (step.Failed) return "That step failed";
-            if (tool == "click" || tool.EndsWith("_click", StringComparison.Ordinal) || tool == "open_app")
-                return RemoteMessages.CleanText(RemoteOut(Computer.Mask(step.Label)), 120);
-            switch (tool)
-            {
-                case "open_website": return step.Finished ? "Opened a website" : "Opening a website";
-                case "scroll": return step.Finished ? "Scrolled" : "Scrolling";
-                case "wait": case "wait_for": return step.Finished ? "Finished waiting" : "Waiting";
-                case "look": case "screenshot": return step.Finished ? "Looked at the screen" : "Looking at the screen";
-                case "note": case "learn": return step.Finished ? "Made a note" : "Making a note";
-                case "say": return step.Finished ? "Spoke" : "Speaking";
-                case "draw": return step.Finished ? "Drew on your screen" : "Drawing on your screen";
-                default: return step.Finished ? "Finished a step" : "Working on a step";
-            }
-        }
+        private static string RemoteJobLabel(JobStep step) { return RemoteJobWords.RemoteJobLabel(step.Tool, step.Label, step.Finished, step.Failed); }
 
         // To one phone, or to all of them with no device, through the link's job queue (RemoteLink.JobSend).
         private void RemoteJobSend(string device, string json)
@@ -1320,6 +1215,147 @@ namespace CapriDesktop
         }
     }
 #endif
+
+    internal static class RemoteJobWords
+    {
+        internal static string RemoteJobTask(string text)
+        {
+            string task = (text ?? "").ToLowerInvariant();
+            if (Regex.IsMatch(task, @"\b(send|message|post|reply|say|publish)\b")) return "Sending a message";
+            if (Regex.IsMatch(task, @"\b(type|write|paste|fill|enter|input|insert|password|passphrase|secret|token)\b")) return "Typing some text";
+            if (Regex.IsMatch(task, @"\b(search|find)\b")) return "Finding something on your PC";
+            string plain = text ?? "";
+            int exact = plain.IndexOf("\nTheir exact words: ", StringComparison.Ordinal);
+            if (exact >= 0) plain = plain.Substring(0, exact);
+            plain = RemoteMessages.CleanText(RemoteOut(plain), 200);
+            const string app = @"[\p{L}\p{N}][\p{L}\p{N}._-]*(?:\s+(?!(?:and|then|with|in|on|for|to|using)\b)[\p{L}\p{N}][\p{L}\p{N}._-]*){0,7}";
+            if (Regex.IsMatch(plain, @"^(?:open|launch|start)\s+" + app + @"(?:\s+and\s+(?:open|launch|start)\s+" + app + @"){0,2}$", RegexOptions.IgnoreCase)) return plain;
+            if (Regex.IsMatch(task, @"\b(play|game)\b")) return "Playing on your PC";
+            if (Regex.IsMatch(task, @"\b(open|launch|start)\b")) return "Opening an app or site";
+            return "Using your computer";
+        }
+
+        internal static string RemoteJobAction(string tool, ToolArguments args, int toggle, string risk)
+        {
+            switch (risk)
+            {
+                case "buy": return "paying for this purchase";
+                case "send": return "sending this message";
+                case "delete": return "deleting this";
+                case "install": return "installing software";
+                case "uninstall": return "uninstalling software";
+                case "format": return "formatting this drive";
+                case "sign out": case "log out": return "signing you out";
+                case "unfriend": return "removing this friend";
+                case "block": return "blocking this person";
+                case "report": return "reporting this";
+                case "confirm": return "confirming this action";
+                case "keys": return "pressing these keys";
+            }
+            string action = args == null ? null : args.Action;
+            switch (toggle)
+            {
+                case Security.Open:
+                    if (tool == "updates") return "installing the Capri update";
+                    if (tool == "open_website") return "opening this site";
+                    if (tool == "clip") return "opening your clips";
+                    return "opening this app";
+                case Security.Media: return "changing music or volume";
+                case Security.Shortcuts: return "pressing this shortcut";
+                case Security.Windows:
+                    if (tool == "media") return "opening your media player";
+                    switch (action)
+                    {
+                        case "close": return "closing this app or tab";
+                        case "minimize": return "minimizing this app";
+                        case "maximize": return "maximizing this app";
+                        case "restore": return "restoring this app";
+                        case "snap_left": case "snap_right": case "snap_top": case "snap_bottom": return "snapping this app window";
+                        case "move_to_screen": case "move": return "moving this app window";
+                        case "resize": return "resizing this app window";
+                        case "pin_on_top": return "keeping this app on top";
+                        case "unpin": return "unpinning this app";
+                        default: return "switching apps or tabs";
+                    }
+                case Security.Power:
+                    switch (action)
+                    {
+                        case "shut_down": return "shutting down your PC";
+                        case "restart": return "restarting your PC";
+                        case "sleep": return "putting your PC to sleep";
+                        case "lock": return "locking your PC";
+                        case "sign_out": return "signing you out";
+                        default: return "changing your PC's power state";
+                    }
+                case Security.Mouse:
+                    if (tool == "stream") return "starting a live stream";
+                    if (tool == "job_control") return "changing this job";
+                    return "using your mouse and keyboard for this job";
+                case Security.Sends: return "sending, posting or deleting";
+                case Security.Pays: return "paying for this purchase";
+                case Security.Unasked: return "doing an extra step for this job";
+                case Security.Secrets: return "typing a password or card number";
+                default:
+                    switch (tool)
+                    {
+                        case "type": case "paste": case "insert_text": return "typing some text";
+                        case "press": case "key": case "hold_key": case "hold_and_press": return "pressing these keys";
+                        default: return null;
+                    }
+            }
+        }
+
+        internal static string RemoteJobQuestion(List<string> actions)
+        {
+            return actions.Count == 0 ? "Allow this action?" : "Allow " + string.Join(" and ", actions.ToArray()) + "?";
+        }
+
+        internal static string RemoteJobLabel(string tool, string label, bool finished, bool failed)
+        {
+            tool = tool ?? "tool";
+            if (tool == "type" || tool == "paste" || tool == "insert_text") return finished ? "Typed some text" : "Typing some text";
+            if (tool == "press" || tool == "key" || tool == "hold_key" || tool == "hold_and_press") return finished ? "Pressed some keys" : "Pressing some keys";
+            if (failed) return "That step failed";
+            if (tool == "click" || tool.EndsWith("_click", StringComparison.Ordinal) || tool == "open_app")
+                return RemoteMessages.CleanText(RemoteOut(Mask(label)), 120);
+            switch (tool)
+            {
+                case "open_website": return finished ? "Opened a website" : "Opening a website";
+                case "scroll": return finished ? "Scrolled" : "Scrolling";
+                case "wait": case "wait_for": return finished ? "Finished waiting" : "Waiting";
+                case "look": case "screenshot": return finished ? "Looked at the screen" : "Looking at the screen";
+                case "note": case "learn": return finished ? "Made a note" : "Making a note";
+                case "say": return finished ? "Spoke" : "Speaking";
+                case "draw": return finished ? "Drew on your screen" : "Drawing on your screen";
+                default: return finished ? "Finished a step" : "Working on a step";
+            }
+        }
+
+        internal static string RemoteComputerLabel(string tool, bool finished, bool failed)
+        {
+            if (tool == "type" || tool == "press") return RemoteJobLabel(tool, null, finished, failed);
+            if (failed) return "That step failed";
+            switch (tool)
+            {
+                case "click": case "double_click": return finished ? "Clicked" : "Clicking";
+                case "drag": return finished ? "Dragged" : "Dragging";
+                case "move": return finished ? "Moved the pointer" : "Moving the pointer";
+                case "read_skill": return finished ? "Read a skill" : "Reading a skill";
+                default: return RemoteJobLabel(tool, null, finished, failed);
+            }
+        }
+
+        private static string Mask(string text)
+        {
+#if CROSS
+            return RemotePrivate.Mask(text);
+#else
+            return Computer.Mask(text);
+#endif
+        }
+
+        internal static string RemoteOut(string text) { return Brain.Scrubbed(Brain.Redacted(Mask(text ?? ""))); }
+    }
 
     internal static class RemotePictures
     {
