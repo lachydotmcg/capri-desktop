@@ -5656,6 +5656,8 @@ namespace CapriDesktop
                         if (args.Action == "save" && (done != "I'll remember notebook as https://example.com/page" || new Websites(root).Find("notebook") != "https://example.com/page") || args.Action == "list" && !done.Contains("notebook: https://example.com/page") || tool == "open_website" && opened != "https://example.com/page" || args.Action == "forget" && (done != "Forgot the notebook website." || new Websites(root).Find("notebook") != null)) throw new Exception("A nickname action changed its answer or saved state.");
                     }
                     if (!(SelfKnow.Matching("how does file search work") ?? "").Contains("worker") || !(SelfKnow.Matching("how do website nicknames work") ?? "").Contains("websites.json") || !(SelfKnow.Matching("what file types can you read") ?? "").Contains(".docx")) throw new Exception("Cross file help lost the working tools or file types.");
+                    foreach (string ask in new[] { "can you give me a summary of the pdf", "could you read the file I gave you", "can you read \"/x/report.pdf\"", "can you find my files", "can you read \"" + Path.Combine(root, "file types.txt") + "\"" })
+                        if (SelfKnow.Matching(ask) != null) throw new Exception("Cross file help took over an ordinary file question: " + ask);
                     brain.Attachments.Clear();
                     var provider = new FileToolBrain { Path = path }; brain.Model = "smoke-files"; brain.Provider = provider; brain.Act = Hands.Do;
                     brain.Ask("read \"" + path + "\"");
@@ -5674,6 +5676,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross reads without a brain show and keep her cleaned line, like Windows");
                 checks.Add("PASS cross drops are heard without their paths, and without a brain she reads and lists them, like Windows");
                 checks.Add("PASS cross Security without a brain: another message drops a held nickname open, so a late yes opens nothing");
+                checks.Add("PASS cross help: ordinary file questions and messages naming a path get no app-help facts");
             }
             finally
             {
