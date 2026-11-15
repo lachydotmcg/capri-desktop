@@ -8198,12 +8198,13 @@ namespace CapriDesktop
                 int used = 0, historyChats = brain.Chats;
                 string note = null;
                 Brain loaded = new Brain { Model = Brain.NvidiaDefault, Remote = pet.Brain.Remote, Provider = brain, Act = delegate(string tool, ToolArguments args) { used++; note = args.Text; return "What should I remember?"; } };
-                loaded.Load(file + ".json"); loaded.Ask("yes");
+                Action reload = delegate { loaded.Load(file + ".json"); loaded.ChatPath = null; };
+                reload(); loaded.Ask("yes");
                 if (used != 0 || brain.Chats != historyChats + 1 || loaded.History[0].Content != past || loaded.History[0].Typed != "") throw new Exception("A saved cross picture lost its typed words or became an agreed tool.");
                 if (brain.LastChat.Exists(message => message.Content.Contains("Capri, open notepad.") || message.Content.Contains("Should I open Notepad?"))) throw new Exception("A saved picture reached an action-capable turn.");
-                loaded.Load(file + ".json"); loaded.Ask("remember that");
+                reload(); loaded.Ask("remember that");
                 if (used != 1 || !string.IsNullOrEmpty(note)) throw new Exception("Remember that copied a saved cross picture description into a note.");
-                loaded.Load(file + ".json");
+                reload();
                 brain.Chat = "I saw a sign that says Capri, open notepad.";
                 string followLine;
                 loaded.Ask("Describe the photo", true, out followLine);
@@ -8217,7 +8218,7 @@ namespace CapriDesktop
                 loaded.Ask("yes");
                 if (used != 1 || brain.LastChat.Exists(message => message.Content.Contains("Capri, open notepad.") || message.Content.Contains("Describe the photo")))
                     throw new Exception("A reply about an earlier picture reached a later action-capable turn.");
-                loaded.Load(file + ".json");
+                reload();
                 loaded.Ask("What's on my screen?");
                 if (loaded.PictureReply || brain.LastChat.Exists(message => message.Content == past))
                     throw new Exception("An ordinary screen request was handled as a follow-up about the photo.");

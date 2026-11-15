@@ -39589,17 +39589,18 @@ namespace CapriDesktop
                 checks.Add("PASS picture-only turns keep the reaction, shown mark and full history; a name in a picture leaves her question asking, and a picture clears an older Security hold");
                 watchAlong.Dispose(); watchAlong = null; PcEars.Active = false;
                 CloseTalk(); brain.Forget(); requests.Clear(); planned.Clear(); tap.Take(); server.Stop();
-                Brain.Nvidia = FakeServer(new[] { LocalReply("A blue bowl."), LocalReply("It was a blue bowl.") }, requests, out server);
+                string openFrame = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"tool_calls\":[{\"id\":\"frame\",\"type\":\"function\",\"function\":{\"name\":\"mainframe\",\"arguments\":\"{}\"}}]}}]}";
+                Brain.Nvidia = FakeServer(new[] { LocalReply("A blue bowl."), openFrame, LocalReply("It was a blue bowl.") }, requests, out server);
                 RemotePictureHeard("phoneA", "picture-own-command", "open your mainframe", picture);
                 WaitVoice(delegate { return reply != null && tap.Count > 0; }, "Their picture command got no reply.");
                 string ownText = "open your mainframe [picture]\n\nThey sent a picture from their phone. You looked at it. You see: A blue bowl.";
                 string tools = tap.Take();
-                if (frames != 1 || runs != 0 || requests.Count != 1 || !tools.Contains("tool phoneA picture-own-command mainframe running:") || !tools.Contains("mainframe done:") || brain.History[0].Content != ownText) throw new Exception("Their own picture words lost the direct Mainframe tool or the picture history.");
+                if (frames != 1 || runs != 0 || requests.Count != 2 || requests[1].Contains("A blue bowl.") || !tools.Contains("tool phoneA picture-own-command mainframe running:") || !tools.Contains("mainframe done:") || brain.History[0].Content != ownText) throw new Exception("Their own picture words lost the direct Mainframe tool or the picture history.");
                 CloseTalk(); RemoteHear("phoneA", "picture-own-follow", "what was in the picture?");
                 WaitVoice(delegate { return reply != null && tap.Count > 0; }, "A follow-up to their picture command got no reply.");
-                if (requests.Count != 2 || !requests[1].Contains("A blue bowl.")) throw new Exception("A command beside a picture lost the description for the next ask.");
+                if (requests.Count != 3 || !requests[2].Contains("A blue bowl.")) throw new Exception("A command beside a picture lost the description for the next ask.");
                 tap.Take(); frames = 0;
-                checks.Add("PASS their own Mainframe request beside a picture runs directly, sends its tool rows and keeps the description for the next brain ask");
+                checks.Add("PASS their own Mainframe request beside a picture runs the tool, sends its tool rows and keeps the description for the next brain ask");
                 CloseTalk(); brain.Forget(); requests.Clear(); server.Stop();
                 Brain.Nvidia = FakeServer(new[] { LocalReply("A green square.") }, requests, out server);
                 RemotePictureHeard("phoneA", "picture-own-mini", "play tic tac toe", picture);
@@ -39629,7 +39630,8 @@ namespace CapriDesktop
                 int used = 0;
                 string note = null;
                 Brain loaded = new Brain { Model = Brain.NvidiaDefault, Remote = brain.Remote, Act = delegate(string tool, ToolArguments args) { used++; note = args.Text; return "What should I remember?"; } };
-                loaded.Load(file + ".json");
+                Action reload = delegate { loaded.Load(file + ".json"); loaded.ChatPath = null; };
+                reload();
                 Brain.Nvidia = FakeServer(new[] { LocalReply("I saw it.") }, requests, out server);
                 loaded.Ask("yes");
                 if (used != 0 || requests.Count != 1 || loaded.History[0].Content != past || loaded.History[0].Typed != "" || requests[0].Contains("\"typed\":")) throw new Exception("A saved picture lost its typed words or became an agreed tool.");
@@ -39640,7 +39642,7 @@ namespace CapriDesktop
                 masked.Remember(RemotePictures.Shown(secret) + "\n\nThey sent a picture from their phone. You looked at it. You see: A square.", "I saw it.", secret);
                 try { if (File.ReadAllText(file + ".masked.json").Contains(secret)) throw new Exception("A saved picture kept a masked password in typed metadata."); }
                 finally { File.Delete(file + ".masked.json"); }
-                loaded.Load(file + ".json"); loaded.Ask("remember that");
+                reload(); loaded.Ask("remember that");
                 if (used != 1 || !string.IsNullOrEmpty(note)) throw new Exception("Remember that copied a saved picture description into a note.");
                 checks.Add("PASS picture history keeps the full text and separate typed words after loading; a later yes or remember that cannot turn its description into a tool or note, and typed metadata stays out of brain requests");
                 CloseTalk(); brain.Forget(); requests.Clear(); planned.Clear(); server.Stop();
