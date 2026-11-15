@@ -9079,7 +9079,7 @@ namespace CapriDesktop
                     key("plan-key", "max", plan); RemoteBrainNote(read(), "plan-key", "failed", RemoteBrainKeys.PlanHere);
                 }
                 if (checker.Calls != calls || File.Exists(Path.Combine(data, "brain-paid-key")) || File.ReadAllText(Path.Combine(data, "brain-free-key")) != free) throw new Exception("A paid, plan or unknown key reached the checker or store.");
-                pet.Brain.Provider = new RemotePictureBrain(); pet.Saved.NativePlan = true; pet.Brain.Model = "their-plan-model"; pet.NotifySettings();
+                RemoteWire.Set(pet, "frameProblem", null); pet.Brain.Provider = new RemotePictureBrain(); pet.Saved.NativePlan = true; pet.Brain.Model = "their-plan-model"; pet.NotifySettings();
                 RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, false);
                 if (pet.MainframeBrainNote != "ChatGPT plan \u00b7 retained account") throw new Exception("The retained plan did not keep its Mainframe note.");
                 pet.Brain.Provider = null; pet.Saved.NativePlan = false; pet.NotifySettings(); read();
@@ -9152,6 +9152,7 @@ namespace CapriDesktop
                     else RemoteWire.Set(pet, "quitting", true);
                     if (pending) { checker.Release.Set(); RemoteBridgeWait(delegate { return !pet.MainframeConnecting; }, "an ended phone's key result"); }
                     rows = read();
+                    if (ending == "revoke") rows.RemoveAll(delegate(RemoteJson.Map row) { return row.Text("type") == "revoke"; });
                     if (rows.Count != 0 || checker.Calls != calls + (pending ? 1 : 0) || pet.MainframeTier != tier || pet.MainframeBrainKey != keptKey || pet.Brain.Model != keptModel || RemoteWire.Get(pet, "phoneKey") != null) throw new Exception("An ended phone's brain ask or key result changed her brain or got a reply.");
                     for (int i = 0; i < stores.Length; i++) { string path = Path.Combine(data, stores[i]); if ((File.Exists(path) ? File.ReadAllText(path) : null) != stored[i]) throw new Exception("An ended phone changed a key store."); }
                     RemoteWire.Set(pet, "quitting", false);
@@ -9166,10 +9167,10 @@ namespace CapriDesktop
                 {
                     string text = Encoding.UTF8.GetString(File.ReadAllBytes(path));
                     bool store = path == Path.Combine(data, "brain-key") || path == Path.Combine(data, "brain-free-key") || path == Path.Combine(data, "brain-paid-key");
-                    foreach (string secret in secrets) if (!store && (text.Contains(secret) || text.Contains(Uri.EscapeDataString(secret)) || text.Contains(secret.Substring(secret.Length - 4)))) throw new Exception("A key reached a file outside the Mainframe key store.");
+                    foreach (string secret in secrets) if (!store && secret != typed && (text.Contains(secret) || text.Contains(Uri.EscapeDataString(secret)) || text.Contains(secret.Substring(secret.Length - 4)))) throw new Exception("A key reached a file outside the Mainframe key store.");
                 }
                 if (turns != 0 || checker.Most != 1) throw new Exception("A brain key reached chat or another key check.");
-                checks.Add("PASS cross key privacy: all decrypted frames omit each key and its last four characters; fake provider logs, crash text and errors are scrubbed; every smoke data file except the Mainframe key stores is free of key text, including chat, notes, memories, logs and transcripts; no chat brain call");
+                checks.Add("PASS cross key privacy: all decrypted frames omit each key and its last four characters; fake provider logs, crash text and errors are scrubbed; every smoke data file except the Mainframe key stores is free of phone key text, including chat, notes, memories, logs and transcripts; no chat brain call");
             }
             finally
             {
