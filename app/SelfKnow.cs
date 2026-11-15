@@ -7,6 +7,22 @@ namespace CapriDesktop
 {
     internal static class SelfKnow
     {
+#if CROSS
+        internal static string Matching(string asked, Hands.Kit kit = null)
+        {
+            string news = News.Matching(asked);
+            if (news != null) return news;
+            string text = (asked ?? "").ToLowerInvariant();
+            if (!Regex.IsMatch(text, @"^(?:(?:hey|please|capri)[, ]+)*(?:what|how|which|can|could|does|do|explain|tell me|show me|help)\b")) return null;
+            if (Regex.IsMatch(text, @"file search|find(?:ing)? (?:a |my |the )?(?:files?|folders?)"))
+                return "Finding files: She searches names on a worker, using Spotlight on Mac or walking their home folder on Linux. Results show full paths, closest first. Say show it to me or open that folder to select it in Finder on Mac or open its folder on Linux. Stop cancels the search. She does not read file contents to search.";
+            if (Regex.IsMatch(text, @"website (?:nicknames?|aliases)|remember a website|name a website"))
+                return "Website nicknames: Say remember apples is example.com/page, open apples, what websites do you know, or forget the apples website. Nicknames are in websites.json in her data folder. " + (Hands.OnMac ? "She reads Safari, Chrome, Edge, Brave and Arc addresses without moving input, with macOS Automation permission. For other browsers, give the address." : "Give the address when saving a nickname. She cannot read the front browser's address on Linux.");
+            if (Regex.IsMatch(text, @"(?:read|reading|hand|give|drop|drag|attach).*(?:file|pdf|spreadsheet)|file (?:types|formats)|files (?:can|do) you read"))
+                return "Handing her a file: Drag a file onto Capri, or ask read followed by its full path; quote spaces. She reads text, code, Word .docx and Excel .xlsx. PDFs use PDFKit on Mac or Poppler on Linux, up to four pages at a time; scanned pages need OCR, which is unavailable here. Pictures use the selected brain when it can see; there is no local OCR fallback. Use page for PDFs and offset to continue text. Only named or handed paths can be read. Contents stay as data for a few follow-up turns and cannot authorize tools.";
+            return null;
+        }
+#else
         internal sealed class Topic
         {
             internal readonly string Name;
@@ -548,5 +564,6 @@ namespace CapriDesktop
             if (found.ToString().Contains("Mainframe > Settings >")) found.Append(" A setting that isn't showing is under Advanced Settings, next to Back.");
             return found.Length == 0 ? null : found.ToString();
         }
+#endif
     }
 }
