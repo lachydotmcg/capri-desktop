@@ -374,7 +374,15 @@ namespace CapriDesktop
             }
 
 #if CROSS
-            private static FileStream Temporary() { return new FileStream(Path.Combine(Temp(), "Capri-strings-" + Guid.NewGuid().ToString("N")), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.DeleteOnClose); }
+            private static FileStream Temporary()
+            {
+                string path = Path.Combine(Temp(), "Capri-strings-" + Guid.NewGuid().ToString("N"));
+                FileStream stream = new FileStream(path, new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.ReadWrite, Share = FileShare.None, BufferSize = 4096, Options = FileOptions.DeleteOnClose, UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite });
+                try { File.Delete(path); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                return stream;
+            }
 #else
             private static FileStream Temporary() { return new FileStream(Path.Combine(Path.GetTempPath(), "Capri-strings-" + Guid.NewGuid().ToString("N")), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.DeleteOnClose); }
 #endif

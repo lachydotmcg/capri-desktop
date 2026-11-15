@@ -5636,6 +5636,13 @@ namespace CapriDesktop
                     string refused = Files.Open(path, null).Line;
                     MacFiles.Run = reading;
                     if (refused != (platform ? "Allow Capri to read this file in System Settings > Privacy & Security > Files and Folders." : "I don't have access to that file.")) throw new Exception("A file she may not read lost its how-to-fix line: " + refused);
+                    var scratchFile = typeof(Files).GetNestedType("SharedText", System.Reflection.BindingFlags.NonPublic).GetMethod("Temporary", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                    using (var scratch = (FileStream)scratchFile.Invoke(null, null))
+                    {
+                        scratch.WriteByte(7); scratch.Position = 0;
+                        if (File.Exists(scratch.Name) || File.GetUnixFileMode(scratch.SafeFileHandle) != (UnixFileMode.UserRead | UnixFileMode.UserWrite) || scratch.ReadByte() != 7) throw new Exception("A spreadsheet scratch file stayed in the temp folder or other users could read it.");
+                    }
+                    if (Directory.GetFiles(root, "Capri-strings-*").Length != 0) throw new Exception("A spreadsheet read left scratch files behind.");
                     ReadFile image = Files.Open(picture, jpeg => jpeg.Length > 0 ? "A blue picture." : null);
                     if (image.Text != "A blue picture." || Files.Open(picture, null).Line != "picture.png is a picture. The selected brain couldn't see it, and OCR isn't available on this PC.") throw new Exception("Picture reading lost vision or its exact OCR limit.");
                     ReadFile first = Files.Open(pdf, null, 1), fifth = Files.Open(pdf, null, 5);
@@ -5689,6 +5696,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross help: ordinary file questions and messages naming a path get no app-help facts");
                 checks.Add("PASS cross reading: a file she may not read says how to allow it on Mac, or that she has no access on Linux");
                 checks.Add("PASS cross reading: Windows-1252 text falls back the way Windows reads it");
+                checks.Add("PASS cross reading: spreadsheet scratch files are private to their user and leave the temp folder at once");
             }
             finally
             {
