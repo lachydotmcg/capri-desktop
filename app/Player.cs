@@ -288,10 +288,15 @@ namespace CapriDesktop
             {
                 GlobalSystemMediaTransportControlsSessionManager sessions = Manager();
                 if (sessions == null) return kept;
-                GlobalSystemMediaTransportControlsSession current = sessions.GetCurrentSession();
-                if (current != null && string.Equals(current.SourceAppUserModelId, tune.App, StringComparison.OrdinalIgnoreCase)) return current;
+                GlobalSystemMediaTransportControlsSession replacement = null;
                 foreach (GlobalSystemMediaTransportControlsSession session in sessions.GetSessions())
-                    if (string.Equals(session.SourceAppUserModelId, tune.App, StringComparison.OrdinalIgnoreCase)) return session;
+                {
+                    if (ReferenceEquals(session, kept)) return kept;
+                    if (!string.Equals(session.SourceAppUserModelId, tune.App, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (replacement != null) return kept;
+                    replacement = session;
+                }
+                return replacement ?? kept;
             }
             catch (Exception) { manager = null; }
             return kept;
@@ -356,9 +361,8 @@ namespace CapriDesktop
         private static bool SendNow(Tune tune, string what)
         {
             if (what == "like" || what == "unlike") return LikeOnSpotify(what == "like");
-            GlobalSystemMediaTransportControlsSession session = SessionFor(tune);
-            if (tune != null && what.StartsWith("seek:", StringComparison.Ordinal))
-                session = tune.Session as GlobalSystemMediaTransportControlsSession;
+            GlobalSystemMediaTransportControlsSession session = tune == null ? null : what.StartsWith("seek:", StringComparison.Ordinal)
+                ? tune.Session as GlobalSystemMediaTransportControlsSession : SessionFor(tune);
             if (session != null)
             {
                 try
