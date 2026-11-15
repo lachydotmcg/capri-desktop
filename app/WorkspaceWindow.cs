@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace CapriDesktop
@@ -21,7 +22,7 @@ namespace CapriDesktop
             workspaceKey = Make("WORKSPACE (beta)", 190, 57, 166, 18, delegate { capri.OpenWorkspace(); });
             workspaceKey.Accent = Cyan;
             workspaceKey.AccessibleName = "Workspace: Claude Code chats in your folders";
-            Explain(workspaceKey, "WORKSPACE (beta)", "WorkspaceWindow.cs", null, "Workspace");
+            Explain(workspaceKey, "workspace", "WorkspaceWindow.cs", null, "Workspace");
         }
 
         internal string WorkspaceKeyFits()
@@ -45,31 +46,113 @@ namespace CapriDesktop
 
         internal static bool WorkspaceAsked(string text)
         {
-            return Regex.IsMatch((text ?? "").Trim(), @"\Aopen (?:your |the )?workspace[.!?]*\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return Regex.IsMatch((text ?? "").Trim(), @"\A(?:(?:(?:can|could|would) you )?open (?:your |the )?workspace|show me (?:your |the )?workspace)(?: please)?[.!?]*\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
+        private void LoadWorkspace()
+        {
+            if (workspace != null) return;
+            workspace = new Workspace(Path.GetDirectoryName(settingsPath), null);
+            workspace.Finished = delegate(WorkspaceChat chat) { Post(delegate { WorkspaceDone(chat); }); };
+            workspace.Waiting = delegate(WorkspaceChat chat, WorkspaceApproval ask) { Post(delegate { WorkspaceNeeds(chat, ask); }); };
+        }
+
+        private void ShowWorkspace() { ShowWorkspace(null); }
+
+        private void ShowWorkspace(Action ready)
+        {
+            LoadWorkspace();
+            if (workspaceWindow == null || workspaceWindow.IsDisposed)
+            {
+                Rectangle area = Screen.FromControl(mainframe).WorkingArea;
+                float fit = Math.Max(0.75f, Math.Min(mainframe.WorkspaceScale, Math.Min(area.Width / 900f, area.Height / 600f)));
+                workspaceWindow = new WorkspaceWindow(workspace, delegate { return Security.Preset == Security.Blackwall; }, fit, true);
+                workspaceWindow.Icon = mainframe.Icon;
+            }
+            if (ready != null) ready();
+            if (!workspaceWindow.Visible) workspaceWindow.Show();
+            if (workspaceWindow.WindowState == FormWindowState.Minimized) workspaceWindow.WindowState = FormWindowState.Normal;
+            workspaceWindow.Activate();
         }
 
         internal void OpenWorkspace()
         {
+            try { ShowWorkspace(); }
+            catch (Exception error) { Notice.Tell(mainframe, error.Message, "Workspace", true); }
+        }
+
+        private string WorkspaceTool(ToolArguments args)
+        {
+            if (args.Action == "status")
+            {
+                if (InvokeRequired) return (string)Invoke(new Func<string>(WorkspaceStatus));
+                return WorkspaceStatus();
+            }
+            bool start = Hands.WorkspaceStarts(args);
+            if (start && !string.IsNullOrEmpty(args.Folder) && !Directory.Exists(args.Folder)) return "That folder isn't here.";
             try
             {
-                if (workspace == null)
+                WorkspaceChat started = null;
+                Action open = delegate
                 {
-                    workspace = new Workspace(Path.GetDirectoryName(settingsPath), null);
-                    workspace.Finished = delegate(WorkspaceChat chat) { Post(delegate { WorkspaceDone(chat); }); };
-                    workspace.Waiting = delegate(WorkspaceChat chat, WorkspaceApproval ask) { Post(delegate { WorkspaceNeeds(chat, ask); }); };
-                }
-                if (workspaceWindow == null || workspaceWindow.IsDisposed)
-                {
-                    Rectangle area = Screen.FromControl(mainframe).WorkingArea;
-                    float fit = Math.Max(0.75f, Math.Min(mainframe.WorkspaceScale, Math.Min(area.Width / 900f, area.Height / 600f)));
-                    workspaceWindow = new WorkspaceWindow(workspace, delegate { return Security.Preset == Security.Blackwall; }, fit, true);
-                    workspaceWindow.Icon = mainframe.Icon;
-                }
-                if (!workspaceWindow.Visible) workspaceWindow.Show();
-                if (workspaceWindow.WindowState == FormWindowState.Minimized) workspaceWindow.WindowState = FormWindowState.Normal;
-                workspaceWindow.Activate();
+                    if (start) ShowWorkspace(delegate { started = workspaceWindow.Start(args.Task, args.Folder); });
+                    else ShowWorkspace();
+                };
+                if (InvokeRequired) Invoke(open); else open();
+                if (!start) return "Opened Workspace.";
+                if (started == null) return "Couldn't start the chat; see the Workspace window.";
+                WorkspaceTurn turn;
+                lock (started.Gate) turn = started.Live;
+                if (turn != null) WaitHandle.WaitAny(new WaitHandle[] { turn.Ready, turn.Done }, 30000);
+                return WorkspaceStarted(started);
             }
-            catch (Exception error) { Notice.Tell(mainframe, error.Message, "Workspace", true); }
+            catch (Exception error) { return "Couldn't open Workspace: " + error.Message; }
+        }
+
+        private static string WorkspaceStarted(WorkspaceChat chat)
+        {
+            lock (chat.Gate)
+            {
+                WorkspaceItem error = chat.Items.FindLast(delegate(WorkspaceItem item) { return item.Kind == "error"; });
+                if (error != null)
+                {
+                    if (error.Text == Workspace.Missing) return "Couldn't start the chat because Claude Code is missing.";
+                    if (Workspace.SignedOut(error.Text)) return "Couldn't start the chat because Claude Code isn't signed in.";
+                    return "Couldn't start the chat; see the Workspace window.";
+                }
+                string state = chat.PendingText != null ? "is waiting for folder trust" : Workspace.Pending(chat) ? "is waiting for your OK" : chat.Running ? "is running" : "finished";
+                string mode = chat.Mode == "Everything" ? "Everything mode runs without asking." : "It asks there before changing anything.";
+                return "The chat " + state + " in the Workspace window. " + mode;
+            }
+        }
+
+        private string WorkspaceStatus()
+        {
+            if (workspace == null && Directory.Exists(Path.Combine(Path.GetDirectoryName(settingsPath), "workspace", "chats"))) LoadWorkspace();
+            List<WorkspaceChat> chats = workspace == null ? new List<WorkspaceChat>() : workspace.Chats();
+            if (chats.Count == 0) return workspaceWindow == null ? "Workspace hasn't been opened and has no chats." : "No Workspace chats yet.";
+            StringBuilder text = new StringBuilder();
+            for (int i = 0; i < Math.Min(3, chats.Count); i++)
+            {
+                WorkspaceChat chat = chats[i];
+                lock (chat.Gate)
+                {
+                    string state = chat.PendingText != null || chat.Undoing != null || Workspace.Pending(chat) ? "waiting for an OK" : chat.Running ? "working" : "finished";
+                    WorkspaceItem answer = chat.Items.FindLast(delegate(WorkspaceItem item) { return item.Kind == "text" || item.Kind == "error"; });
+                    if (text.Length > 0) text.Append('\n');
+                    text.Append(WorkspaceBrief(chat.Title, 100)).Append(": ").Append(state).Append(". ").Append(answer == null ? "No answer yet." : (answer.Kind == "error" ? "Last error: " : "Claude Code said: ") + Voice.Quote(WorkspaceBrief(answer.Text, 1000)));
+                }
+            }
+            return text.ToString();
+        }
+
+        private static string WorkspaceBrief(string text, int length)
+        {
+            string line = Regex.Replace(text ?? "", @"\s+", " ").Trim();
+            if (line.Length <= length) return line;
+            int end = length - 3;
+            if (char.IsHighSurrogate(line[end - 1])) end--;
+            return line.Substring(0, end) + "...";
         }
 
         private void WorkspaceDone(WorkspaceChat chat)
@@ -369,19 +452,28 @@ namespace CapriDesktop
 
         // A new chat starts straight away in her own folder, ready to type in. A new chat there that hasn't been used yet is
         // opened again rather than making another. Its folder can still be changed from the "runs here" chip.
-        internal void NewChat()
+        internal void NewChat() { Try(delegate { NewChat(null, false); }); }
+
+        private WorkspaceChat NewChat(string folder, bool fresh)
         {
-            Try(delegate
+            WorkspaceChat unused = fresh ? null : workspace.Chats().Find(delegate(WorkspaceChat found)
             {
-                WorkspaceChat unused = workspace.Chats().Find(delegate(WorkspaceChat found)
-                {
-                    lock (found.Gate) return found.Items.Count == 0 && found.Folders.Count == 0 && found.Files.Count == 0 && found.Live == null && workspace.IsHome(found.Folder);
-                });
-                WorkspaceChat made = unused ?? workspace.HomeChat(blackwall != null && blackwall());
-                FillChats();
-                SelectChat(made);
-                composer.Input.Focus();
+                lock (found.Gate) return found.Items.Count == 0 && found.Folders.Count == 0 && found.Files.Count == 0 && found.Live == null && workspace.IsHome(found.Folder);
             });
+            WorkspaceChat made = unused ?? workspace.HomeChat(blackwall != null && blackwall());
+            if (!string.IsNullOrEmpty(folder)) workspace.Rehome(made, new[] { folder });
+            FillChats();
+            SelectChat(made);
+            composer.Input.Focus();
+            return made;
+        }
+
+        internal WorkspaceChat Start(string task, string folder)
+        {
+            WorkspaceChat made = NewChat(folder, true);
+            composer.Input.Text = task;
+            Send();
+            return made;
         }
 
         // Nothing sent yet, so the folder Claude Code runs in can still change.

@@ -12,6 +12,142 @@ namespace CapriDesktop
 {
     internal partial class Companion
     {
+        private static void SmokeCaptureWait(List<string> checks)
+        {
+            long tick = 0;
+            CaptureWait wait = new CaptureWait(delegate { return tick; });
+            IntPtr window = new IntPtr(7);
+            Rectangle bounds = new Rectangle(10, 20, 640, 480);
+            for (int turn = 0; turn < 100; turn++)
+                if (wait.Ready(window, bounds, false)) throw new Exception("A stopped capture clock became ready.");
+            tick = Stopwatch.Frequency - 1;
+            if (wait.Ready(window, bounds, false)) throw new Exception("Capture became ready before a full second.");
+            tick++;
+            if (!wait.Ready(window, bounds, false) || !wait.Ready(window, bounds, false)) throw new Exception("A steady window did not stay ready after a full second.");
+            Action<IntPtr, Rectangle, bool> restart = delegate(IntPtr next, Rectangle area, bool full)
+            {
+                if (wait.Ready(next, area, full)) throw new Exception("A changed capture did not restart its steady wait.");
+                tick += Stopwatch.Frequency - 1;
+                if (wait.Ready(next, area, full)) throw new Exception("A changed capture waited less than a full second.");
+                tick++;
+                if (!wait.Ready(next, area, full)) throw new Exception("A changed capture never became ready.");
+            };
+            window = new IntPtr(8);
+            restart(window, bounds, false);
+            bounds.Offset(15, -5);
+            restart(window, bounds, false);
+            bounds.Size = new Size(800, 600);
+            restart(window, bounds, false);
+            restart(window, bounds, true);
+            restart(window, bounds, false);
+            checks.Add("PASS capture waits a full monotonic second; a stopped clock stays waiting, and a new window, move, resize or exclusive change restarts the second");
+            for (int turn = 0; turn < 10; turn++)
+            {
+                tick += Stopwatch.Frequency * 2;
+                if (wait.Ready(IntPtr.Zero, bounds, false)) throw new Exception("A zero window became ready for capture.");
+            }
+            restart(window, bounds, false);
+            if (wait.Ready(window, Rectangle.Empty, false)) throw new Exception("Empty bounds became ready for capture.");
+            tick += Stopwatch.Frequency * 2;
+            if (wait.Ready(window, Rectangle.Empty, false)) throw new Exception("Empty bounds became ready after waiting.");
+            restart(window, bounds, false);
+            checks.Add("PASS a zero window or empty bounds never becomes ready, and returning to valid bounds waits a new full second");
+        }
+
+        private static void SmokeClipCapture(List<string> checks)
+        {
+            Func<GameCapture, bool, Sight, bool, bool> turn = delegate(GameCapture frames, bool on, Sight front, bool full)
+            {
+                Rectangle area;
+                return ClipBuffer.CaptureTurn(frames, on, new GameSeen { Window = front.Window }, full, out area, delegate { return front.Bounds; }) != null;
+            };
+            FrameGrab.CheckGameCapture(checks, "clips", turn);
+            FrameGrab.CheckCaptureQuiet(checks, "clips", turn);
+            long inspectAt = 0;
+            bool exclusive = false, answer = false;
+            int queries = 0;
+            Func<bool> query = delegate { queries++; return answer; };
+            for (long at = 0; at < 20000000; at += 150000) ClipBuffer.CaptureLook(at, true, ref inspectAt, ref exclusive, query);
+            if (queries != 8 || exclusive) throw new Exception("Clip capture queried exclusive state outside its look.");
+            answer = true;
+            if (ClipBuffer.CaptureLook(inspectAt - 1, true, ref inspectAt, ref exclusive, query) || exclusive || queries != 8) throw new Exception("Clip capture queried exclusive state before 250 ms.");
+            if (!ClipBuffer.CaptureLook(inspectAt, true, ref inspectAt, ref exclusive, query) || !exclusive || queries != 9) throw new Exception("Clip capture missed its next exclusive sample.");
+            ClipBuffer.CaptureLook(inspectAt, false, ref inspectAt, ref exclusive, query);
+            if (queries != 9) throw new Exception("Disabled clip capture queried exclusive state.");
+            checks.Add("PASS clip capture samples exclusive state only in its 250 ms look, including a changed answer and switching off");
+            long tick = 0, soundAt = 1, nextAt = 2, imageAt = 3;
+            IntPtr window = new IntPtr(7), foreground = window;
+            Rectangle bounds = new Rectangle(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Location, new Size(8, 8));
+            GameCapture capture = new GameCapture("clips", delegate { return tick; }, delegate { return new FrameGrab(delegate { return tick; }, delegate { return false; }, delegate { }, delegate { return false; }); }, delegate { return foreground; }, delegate { return false; });
+            ClipWait wait = null;
+            SoundTap tap = null;
+            Action pause = delegate { ClipBuffer.PauseCapture(ref wait, ref tap, ref soundAt, ref nextAt, ref imageAt); };
+            string logBefore = Brain.LogPath;
+            string log = Path.Combine(Path.GetTempPath(), "capri-capture-sound-" + Guid.NewGuid().ToString("N") + ".log");
+            using (MicCheck sound = new MicCheck())
+            try
+            {
+                Brain.LogPath = log;
+                Rectangle area;
+                GameSeen front = new GameSeen { Window = window };
+                Func<IntPtr, Rectangle> look = delegate { return bounds; };
+                if (ClipBuffer.CaptureTurn(capture, true, front, false, out area, look, pause) != null) throw new Exception("Clip sound fixture skipped its steady wait.");
+                tick += Stopwatch.Frequency;
+                if (ClipBuffer.CaptureTurn(capture, true, front, false, out area, look, pause) == null) throw new Exception("Clip sound fixture never opened capture.");
+                foreach (bool away in new[] { false, true })
+                {
+                    tap = new SoundTap("fake", sound, sound, 48000, 6, 32, true);
+                    soundAt = nextAt = imageAt = 123;
+                    if (away) foreground = new IntPtr(9);
+                    else bounds.Offset(1, 0);
+                    if (ClipBuffer.CaptureTurn(capture, true, front, false, out area, look, pause) != null || tap != null || wait != null || soundAt != 0 || nextAt != 0 || imageAt != 0) throw new Exception("A clip wait kept its sound tap or deadlines.");
+                    if (sound.Stops != (away ? 2 : 1) || sound.Polls != 0) throw new Exception("A clip wait read stale sound or failed to stop its tap.");
+                }
+                checks.Add("PASS clip capture closes its fake sound tap and clears deadlines while waiting for steady bounds and while another window is in front, without reading stale sound");
+            }
+            finally
+            {
+                capture.Close("switched off");
+                pause();
+                Brain.LogPath = logBefore;
+                if (File.Exists(log)) File.Delete(log);
+            }
+        }
+
+        private void SmokeWatchCapture(List<string> checks)
+        {
+            Rectangle before = ReactionGame;
+            Rectangle held = new Rectangle(13, 17, 19, 23);
+            ReactionGame = held;
+            Func<GameCapture, bool, Sight, bool, bool> turn = delegate(GameCapture frames, bool on, Sight front, bool full)
+            {
+                Rectangle area;
+                int queries = 0;
+                WatchFrame source = WatchCapture(frames, on, false, front.Window, out area, delegate { return front.Bounds; }, delegate { queries++; return full; });
+                bool inFront = on && front.Window != IntPtr.Zero && frames.Foreground == front.Window;
+                if (!inFront && source != WatchFrame.None) throw new Exception("The watcher chose a frame behind their Mainframe or shell.");
+                if (inFront && source == WatchFrame.None) throw new Exception("The watcher lost its frame source in front.");
+                if (queries != (on && front.Window != IntPtr.Zero ? 1 : 0)) throw new Exception("The watcher queried exclusive state more than once per turn.");
+                if (ReactionGame != held) throw new Exception("A capture turn rewrote the game reaction area.");
+                return source == WatchFrame.Grab;
+            };
+            try
+            {
+                FrameGrab.CheckGameCapture(checks, "watch", turn);
+                FrameGrab.CheckCaptureQuiet(checks, "watch", turn);
+                long tick = 0;
+                IntPtr window = new IntPtr(7), foreground = window;
+                GameCapture capture = new GameCapture("watch", delegate { return tick; }, delegate { throw new Exception("The watcher opened capture while clips supplied frames."); }, delegate { return foreground; }, delegate { return false; });
+                Rectangle bounds = new Rectangle(0, 0, 8, 8), area;
+                if (WatchCapture(capture, true, true, window, out area, delegate { return bounds; }, delegate { return false; }) != WatchFrame.Clips) throw new Exception("The watcher stopped sharing clip frames.");
+                foreground = new IntPtr(9);
+                if (WatchCapture(capture, true, true, window, out area, delegate { return bounds; }, delegate { return false; }) != WatchFrame.None) throw new Exception("The watcher shared clip frames behind their Mainframe.");
+                capture.Close("switched off");
+                checks.Add("PASS the watcher chooses no frame behind their Mainframe or shell, shares clip frames only in front, queries exclusive state once per turn and leaves the reaction area to its slower scan");
+            }
+            finally { ReactionGame = before; }
+        }
+
         private static void SmokeClipOptions(List<string> checks)
         {
             Preferences old;
@@ -387,6 +523,530 @@ namespace CapriDesktop
 
     internal sealed partial class FrameGrab
     {
+        private sealed class QuietGrab : IFrameGrab
+        {
+            internal int Calls, Disposals;
+            private Rectangle area;
+            private void Call() { Calls++; if (Disposals != 0) throw new Exception("A disposed fake grab was used."); }
+            public string Live { get { Call(); return "Graphics.CopyFromScreen"; } }
+            public Size Size { get { Call(); return area.Size; } }
+            public Action<int> Lost { set { Call(); } }
+            public void Open(Rectangle bounds) { Call(); area = bounds; }
+            public bool Next(int timeoutMs) { Call(); return true; }
+            public Bitmap Copy(int maxWidth) { Call(); return null; }
+            public byte[] Gray(int width, int height) { Call(); return null; }
+            public void Dispose() { if (++Disposals != 1) throw new Exception("A fake grab was disposed twice."); }
+        }
+
+        internal static void CheckCaptureQuiet(List<string> checks, string who, Func<GameCapture, bool, Sight, bool, bool> decide)
+        {
+            string before = Brain.LogPath;
+            string log = Path.Combine(Path.GetTempPath(), "capri-capture-quiet-" + Guid.NewGuid().ToString("N") + ".log");
+            long tick = 0;
+            IntPtr window = new IntPtr(7), foreground = window;
+            Rectangle bounds = new Rectangle(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Location, new Size(8, 8));
+            bool full = false;
+            List<QuietGrab> made = new List<QuietGrab>();
+            GameCapture frames = new GameCapture(who, delegate { return tick; }, delegate
+            {
+                foreach (QuietGrab old in made)
+                    if (old.Disposals != 1) throw new Exception(who + " made a new grab before releasing the old one.");
+                QuietGrab next = new QuietGrab();
+                made.Add(next);
+                return next;
+            }, delegate { return foreground; }, delegate { return false; });
+            Func<bool, bool> turn = delegate(bool on) { return decide(frames, on, new Sight { Window = window, Bounds = bounds }, full); };
+            try
+            {
+                Brain.LogPath = log;
+                if (turn(true) || made.Count != 0) throw new Exception(who + " skipped the quiet fixture's opening wait.");
+                tick += Stopwatch.Frequency;
+                if (!turn(true) || made.Count != 1) throw new Exception(who + " failed to open the quiet fixture.");
+                QuietGrab first = made[0];
+                first.Next(0); first.Copy(8); first.Gray(2, 2);
+                int calls = first.Calls;
+                foreground = new IntPtr(9);
+                if (turn(true) || frames.Grab != null || first.Disposals != 0 || first.Calls != calls) throw new Exception(who + " touched its grab when the game left the front.");
+                for (int turnAt = 0; turnAt < 10; turnAt++)
+                    if (turn(true) || first.Disposals != 0 || first.Calls != calls) throw new Exception(who + " touched its waiting grab on a stopped clock.");
+                frames.Close("error");
+                if (first.Disposals != 0 || first.Calls != calls) throw new Exception(who + " touched a pending grab during error cleanup.");
+                tick += Stopwatch.Frequency / 2;
+                foreground = new IntPtr(10);
+                turn(true);
+                tick += Stopwatch.Frequency / 2;
+                bounds.Offset(1, 0);
+                turn(true);
+                tick += Stopwatch.Frequency / 2;
+                full = true;
+                turn(true);
+                tick += Stopwatch.Frequency - 1;
+                if (turn(true) || first.Disposals != 0 || first.Calls != calls) throw new Exception(who + " released or used capture before the display was quiet.");
+                tick++;
+                if (turn(true) || first.Disposals != 1 || first.Calls != calls) throw new Exception(who + " failed to release capture after a quiet second.");
+                tick += Stopwatch.Frequency * 2;
+                turn(true);
+                if (first.Disposals != 1 || first.Calls != calls || made.Count != 1) throw new Exception(who + " repeated a quiet release or reopened behind the shell.");
+                foreground = window;
+                if (turn(true)) throw new Exception(who + " skipped the return wait in its quiet fixture.");
+                tick += Stopwatch.Frequency;
+                if (!turn(true)) throw new Exception(who + " failed to return in its quiet fixture.");
+                QuietGrab shell = made[made.Count - 1];
+                calls = shell.Calls;
+                foreground = new IntPtr(10);
+                if (turn(true) || frames.Grab != null || shell.Calls != calls || shell.Disposals != 0) throw new Exception(who + " kept using capture when the shell took the front.");
+                tick += Stopwatch.Frequency - 1;
+                if (turn(true) || shell.Calls != calls || shell.Disposals != 0) throw new Exception(who + " touched capture during the shell switch.");
+                tick++;
+                if (turn(true) || shell.Calls != calls || shell.Disposals != 1) throw new Exception(who + " kept capture after the shell was quiet.");
+                foreground = window;
+                if (turn(true)) throw new Exception(who + " skipped its wait after the shell.");
+                tick += Stopwatch.Frequency;
+                if (!turn(true)) throw new Exception(who + " failed to resume after the shell.");
+                foreach (bool resize in new[] { true, false })
+                {
+                    QuietGrab old = made[made.Count - 1];
+                    calls = old.Calls;
+                    if (resize) bounds.Offset(1, 0); else full = !full;
+                    if (turn(true) || old.Disposals != 0 || old.Calls != calls) throw new Exception(who + " touched capture during a bounds or exclusive switch.");
+                    tick += Stopwatch.Frequency / 2;
+                    if (resize) bounds.Offset(1, 0); else full = !full;
+                    turn(true);
+                    tick += Stopwatch.Frequency - 1;
+                    if (turn(true) || old.Disposals != 0 || old.Calls != calls) throw new Exception(who + " shortened a changed display's quiet second.");
+                    tick++;
+                    if (!turn(true) || old.Disposals != 1 || old.Calls != calls) throw new Exception(who + " failed to release capture before its replacement.");
+                }
+                QuietGrab waiting = made[made.Count - 1];
+                calls = waiting.Calls;
+                foreground = new IntPtr(9);
+                turn(true);
+                if (waiting.Disposals != 0 || waiting.Calls != calls) throw new Exception(who + " touched its last grab before switching off.");
+                if (turn(false) || waiting.Disposals != 1 || waiting.Calls != calls) throw new Exception(who + " kept a pending grab after switching off.");
+                turn(false);
+                foreground = window;
+                turn(true);
+                tick += Stopwatch.Frequency;
+                if (!turn(true)) throw new Exception(who + " failed to open its closing fixture.");
+                waiting = made[made.Count - 1];
+                calls = waiting.Calls;
+                foreground = new IntPtr(9);
+                turn(true);
+                frames.Close("switched off");
+                frames.Close("switched off");
+                if (waiting.Disposals != 1 || waiting.Calls != calls) throw new Exception(who + " kept or reused a pending grab while closing.");
+                foreach (QuietGrab old in made)
+                    if (old.Disposals != 1) throw new Exception(who + " left a grab waiting after shutdown.");
+            }
+            finally { frames.Close("switched off"); Brain.LogPath = before; if (File.Exists(log)) File.Delete(log); }
+            checks.Add("PASS " + who + " stops using capture at once, leaves it untouched through foreground, bounds and exclusive changes, releases it once after a quiet second or before making another, and releases pending capture at once on switch-off and closing");
+        }
+
+        internal static void CheckGameCapture(List<string> checks, string who, Func<GameCapture, bool, Sight, bool, bool> decide)
+        {
+            string before = Brain.LogPath;
+            Func<Sight> glimpseBefore = Computer.Glimpse;
+            string log = Path.Combine(Path.GetTempPath(), "capri-capture-" + Guid.NewGuid().ToString("N") + ".log");
+            long tick = 0;
+            int starts = 0, takes = 0, queries = 0;
+            bool dxgi = true;
+            bool minimized = false;
+            Rectangle bounds = new Rectangle(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Location, new Size(8, 8));
+            IntPtr window = new IntPtr(7), other = new IntPtr(8);
+            IntPtr foreground = window;
+            List<string> expected = new List<string>();
+            Action read = delegate { CheckCaptureLines(log, who, expected); };
+            GameCapture frames = new GameCapture(who, delegate { return tick; }, delegate
+            {
+                starts++;
+                FrameGrab frame = null;
+                frame = new FrameGrab(delegate { return tick; }, delegate { queries++; return true; }, delegate
+                {
+                    if (!dxgi) return;
+                    frame.duplication = Marshal.GetIUnknownForObject(new object());
+                    frame.describe = delegate(IntPtr output, out OutputDesc value) { value = new OutputDesc { Attached = 1, Left = frame.desktop.Left, Top = frame.desktop.Top, Right = frame.desktop.Right, Bottom = frame.desktop.Bottom }; return 0; };
+                    frame.acquire = delegate(IntPtr duplicate, int timeout, out FrameInfo info, out IntPtr resource) { takes++; info = new FrameInfo(); resource = IntPtr.Zero; return WaitTimeout; };
+                }, delegate { return true; });
+                return frame;
+            }, delegate { return foreground; }, delegate { return minimized; });
+            Sight candidate = new Sight { Window = window, Bounds = bounds };
+            Func<bool, IntPtr, Rectangle, bool, bool> step = delegate(bool on, IntPtr next, Rectangle area, bool full)
+            {
+                candidate = new Sight { Window = next, Bounds = area };
+                return decide(frames, on, Computer.Glimpse(), full);
+            };
+            try
+            {
+                Brain.LogPath = log;
+                Computer.Glimpse = delegate { return candidate; };
+                for (int turn = 0; turn < 10; turn++)
+                    if (step(true, window, bounds, true) || frames.Grab != null || starts != 0) throw new Exception(who + " made a grab while its clock was stopped.");
+                tick = Stopwatch.Frequency - 1;
+                if (step(true, window, bounds, true) || starts != 0) throw new Exception(who + " opened before a steady second.");
+                read();
+                tick++;
+                if (!step(true, window, bounds, true) || starts != 1) throw new Exception(who + " did not open after a steady second.");
+                expected.Add("opened DXGI 8x8 exclusive=yes");
+                read();
+                FrameGrab healthy = (FrameGrab)frames.Grab;
+                for (int turn = 0; turn < 3; turn++)
+                {
+                    tick += Stopwatch.Frequency * 3;
+                    if (!step(true, window, bounds, true) || frames.Grab != healthy) throw new Exception(who + " restarted a steady capture.");
+                    healthy.Next(0);
+                }
+                if (starts != 1 || takes != 3 || queries != 0) throw new Exception(who + " paused healthy duplication or queried fullscreen.");
+                read();
+                foreground = new IntPtr(9);
+                if (step(true, window, bounds, true) || frames.Grab != null) throw new Exception(who + " waited for another scan before leaving the front.");
+                if (healthy.disposed) throw new Exception(who + " disposed its grab during the display switch.");
+                expected.Add("closed left the front");
+                read();
+                tick += Stopwatch.Frequency - 1;
+                if (step(true, window, bounds, true) || healthy.disposed) throw new Exception(who + " released capture before a quiet second.");
+                tick++;
+                if (step(true, window, bounds, true) || !healthy.disposed) throw new Exception(who + " kept capture after a quiet second.");
+                foreach (IntPtr covering in new[] { new IntPtr(9), new IntPtr(10) })
+                {
+                    foreground = covering;
+                    for (int turn = 0; turn < 10; turn++)
+                    {
+                        tick += Stopwatch.Frequency * 2;
+                        Sight reported = Computer.Glimpse();
+                        if (reported.Window != window || step(true, reported.Window, reported.Bounds, true) || frames.Grab != null || starts != 1) throw new Exception(who + " captured a reported game behind their Mainframe or shell.");
+                    }
+                }
+                read();
+                foreground = window;
+                if (step(true, window, bounds, true)) throw new Exception(who + " reopened on its first foreground turn.");
+                tick += Stopwatch.Frequency - 1;
+                if (step(true, window, bounds, true)) throw new Exception(who + " shortened its return wait.");
+                tick++;
+                if (!step(true, window, bounds, true) || starts != 2) throw new Exception(who + " did not capture its steady return.");
+                expected.Add("opened DXGI 8x8 exclusive=yes");
+                read();
+                bounds.Offset(1, 1);
+                if (step(true, window, bounds, true) || frames.Grab != null) throw new Exception(who + " kept capture through a bounds change.");
+                expected.Add("closed bounds changed");
+                read();
+                tick += Stopwatch.Frequency / 2;
+                bounds.Size = new Size(12, 10);
+                if (step(true, window, bounds, true) || frames.Grab != null || starts != 2) throw new Exception(who + " made a grab while bounds kept changing.");
+                tick += Stopwatch.Frequency - 1;
+                if (step(true, window, bounds, true)) throw new Exception(who + " did not restart the second on a second bounds change.");
+                dxgi = false;
+                tick++;
+                if (!step(true, window, bounds, true) || starts != 3) throw new Exception(who + " never captured a settled resize.");
+                expected.Add("opened screen copy 12x10 exclusive=yes");
+                read();
+                if (step(true, window, bounds, false) || frames.Grab != null) throw new Exception(who + " kept capture through an exclusive change.");
+                expected.Add("closed exclusive changed");
+                read();
+                tick += Stopwatch.Frequency - 1;
+                if (step(true, window, bounds, false) || starts != 3) throw new Exception(who + " shortened its exclusive wait.");
+                tick++;
+                if (!step(true, window, bounds, false) || starts != 4) throw new Exception(who + " did not resume after an exclusive change.");
+                expected.Add("opened screen copy 12x10 exclusive=no");
+                if (step(false, window, bounds, false) || frames.Grab != null) throw new Exception(who + " kept capture after switching off.");
+                expected.Add("closed switched off");
+                for (int off = 0; off < 10; off++) step(false, window, bounds, false);
+                read();
+                if (step(true, window, bounds, false)) throw new Exception(who + " skipped its wait after switching on.");
+                tick += Stopwatch.Frequency;
+                if (!step(true, window, bounds, false)) throw new Exception(who + " did not resume after switching on.");
+                expected.Add("opened screen copy 12x10 exclusive=no");
+                frames.Close("error");
+                frames.Close("error");
+                expected.Add("closed error");
+                read();
+                if (step(true, window, bounds, false)) throw new Exception(who + " skipped its wait after an error.");
+                tick += Stopwatch.Frequency;
+                if (!step(true, window, bounds, false)) throw new Exception(who + " did not resume after an error.");
+                expected.Add("opened screen copy 12x10 exclusive=no");
+                foreground = other;
+                if (step(true, other, bounds, false) || frames.Grab != null) throw new Exception(who + " kept capture for a different game window.");
+                expected.Add("closed window changed");
+                tick += Stopwatch.Frequency;
+                if (!step(true, other, bounds, false)) throw new Exception(who + " did not capture the next steady window.");
+                expected.Add("opened screen copy 12x10 exclusive=no");
+                Rectangle screens = System.Windows.Forms.SystemInformation.VirtualScreen;
+                Rectangle edge = System.Windows.Forms.Screen.PrimaryScreen.Bounds;
+                foreach (System.Windows.Forms.Screen screen in System.Windows.Forms.Screen.AllScreens)
+                    if (screen.Bounds.Left < edge.Left) edge = screen.Bounds;
+                Rectangle clipped = new Rectangle(edge.Left - 4, edge.Top, 8, 8);
+                if (step(true, other, clipped, false) || frames.Grab != null) throw new Exception(who + " kept capture through a crop change.");
+                expected.Add("closed bounds changed");
+                tick += Stopwatch.Frequency;
+                if (!step(true, other, clipped, false) || frames.Grab.Size != new Size(4, 8)) throw new Exception(who + " lost the cropped capture size.");
+                expected.Add("opened screen copy 4x8 exclusive=no");
+                foreach (string why in new[] { "minimized", "bounds changed", "off screen" })
+                {
+                    minimized = why == "minimized";
+                    foreground = minimized ? new IntPtr(9) : other;
+                    Rectangle current = why == "bounds changed" ? Rectangle.Empty : why == "off screen" ? new Rectangle(screens.Right + 16, screens.Bottom + 16, 8, 8) : clipped;
+                    FrameGrab previous = (FrameGrab)frames.Grab;
+                    int opened = starts;
+                    if (minimized && step(true, other, current, false)) throw new Exception(who + " kept a minimized window on its foreground check.");
+                    if (step(true, other, current, false) || frames.Grab != null) throw new Exception(who + " kept capture with " + why + ".");
+                    if (previous.disposed) throw new Exception(who + " disposed capture before it settled with " + why + ".");
+                    expected.Add("closed " + why);
+                    for (int turn = 0; turn < 10; turn++)
+                    {
+                        tick += Stopwatch.Frequency * 2;
+                        foreground = other;
+                        if (step(true, other, current, false) || frames.Grab != null || starts != opened) throw new Exception(who + " opened capture with " + why + " after waiting.");
+                    }
+                    if (!previous.disposed) throw new Exception(who + " kept capture after settling with " + why + ".");
+                    read();
+                    minimized = false;
+                    foreground = other;
+                    if (step(true, other, clipped, false)) throw new Exception(who + " skipped its wait after " + why + ".");
+                    tick += Stopwatch.Frequency - 1;
+                    if (step(true, other, clipped, false) || starts != opened) throw new Exception(who + " shortened its wait after " + why + ".");
+                    tick++;
+                    if (!step(true, other, clipped, false) || starts != opened + 1) throw new Exception(who + " did not resume after " + why + ".");
+                    expected.Add("opened screen copy 4x8 exclusive=no");
+                    read();
+                }
+                frames.Close("switched off");
+                expected.Add("closed switched off");
+                read();
+            }
+            finally
+            {
+                frames.Close("switched off");
+                Computer.Glimpse = glimpseBefore;
+                Brain.LogPath = before;
+                if (File.Exists(log)) File.Delete(log);
+            }
+            checks.Add("PASS " + who + " closes on the first foreground check, makes no grab before a steady second, restarts on bounds or exclusive changes, and logs each open and close once with only capture state");
+            checks.Add("PASS " + who + " ignores a game reported behind their Mainframe or shell, waits a fresh second on return, and closes minimized, empty or off-screen capture without repeated opens or log lines");
+        }
+
+        internal static void CheckEmptyCapture(List<string> checks)
+        {
+            Rectangle screens = System.Windows.Forms.SystemInformation.VirtualScreen;
+            foreach (Rectangle bounds in new[] { new Rectangle(screens.Right + 16, screens.Bottom + 16, 8, 8), new Rectangle(screens.Right, screens.Top, 8, 8), new Rectangle(screens.Left, screens.Bottom, 8, 8) })
+            {
+                long tick = 0;
+                int starts = 0, copies = 0, queries = 0;
+                bool full = false;
+                using (FrameGrab frame = new FrameGrab(delegate { return tick; }, delegate { queries++; return full; }, delegate { starts++; }, delegate { copies++; return true; }))
+                {
+                    bool refused = false;
+                    try { frame.Open(Rectangle.Empty); } catch (ArgumentException) { refused = true; }
+                    if (!refused || starts != 0) throw new Exception("Empty frame bounds reached display setup.");
+                    frame.Open(bounds);
+                    if (frame.Size.Width > 0 && frame.Size.Height > 0) throw new Exception("Off-screen frame bounds kept a capture area.");
+                    for (int turn = 0; turn < 20; turn++)
+                    {
+                        tick += Stopwatch.Frequency * 3;
+                        full = turn % 2 == 0;
+                        if (frame.Next(0) || frame.Copy(8) != null || frame.Gray(2, 2) != null) throw new Exception("An empty capture area returned a frame.");
+                        frame.Reopen();
+                        if (starts != 0 || copies != 0 || queries != 0) throw new Exception("An empty capture area reached display setup, screen copy or fullscreen retry.");
+                    }
+                }
+            }
+            checks.Add("PASS empty, off-screen and screen-edge frame areas never reach display setup, screen copy or fullscreen retry across twenty later reopens");
+            Rectangle wanted = new Rectangle(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Location, new Size(8, 8));
+            Rectangle changed = new Rectangle(wanted.Right + 16, wanted.Bottom + 16, 8, 8);
+            long now = 0;
+            int setups = 0, frames = 0, questions = 0;
+            using (FrameGrab grab = new FrameGrab(delegate { return now; }, delegate { questions++; return false; }, delegate { setups++; }, delegate { frames++; return true; }, delegate { return changed; }))
+            {
+                grab.Open(wanted);
+                if (grab.Next(0) || setups != 0 || frames != 0 || questions != 0) throw new Exception("An empty crop touched display setup or screen copy.");
+                now = Stopwatch.Frequency * 2;
+                if (grab.Next(0) || setups != 0 || frames != 0 || questions != 0) throw new Exception("An empty crop reached display setup on its retry.");
+                changed = screens;
+                now = Stopwatch.Frequency * 4 - 1;
+                if (grab.Next(0) || setups != 0 || frames != 0 || questions != 0) throw new Exception("An empty crop retried before its timer.");
+                now++;
+                if (!grab.Next(0) || grab.Size != wanted.Size || setups != 1 || frames != 1 || questions != 1) throw new Exception("An empty crop failed to recover on the next retry after the screens changed.");
+            }
+            checks.Add("PASS an empty crop retries only its screen bounds, never display setup while empty, and receives frames on its next retry when fake screens include the area again");
+        }
+
+        private static void CheckCaptureLines(string path, string who, List<string> expected)
+        {
+            string[] lines = File.Exists(path) ? File.ReadAllLines(path) : new string[0];
+            if (lines.Length != expected.Count) throw new Exception("Capture events wrote the wrong number of log lines.");
+            for (int line = 0; line < lines.Length; line++)
+                if (lines[line].Length < 19 || lines[line].Substring(19) != " | game capture | - | " + who + " " + expected[line]) throw new Exception("A capture log line changed text or included private window details.");
+        }
+
+        internal static void CheckCaptureLoss(List<string> checks)
+        {
+            string before = Brain.LogPath;
+            string log = Path.Combine(Path.GetTempPath(), "capri-capture-loss-" + Guid.NewGuid().ToString("N") + ".log");
+            Rectangle bounds = new Rectangle(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Location, new Size(8, 8));
+            IntPtr window = new IntPtr(7);
+            string privateDetails = @"private window title private-process.exe C:\private-game\game.exe";
+            try
+            {
+                Brain.LogPath = log;
+                foreach (string failure in new[] { "next", "copy", "gray", "open", "mode", "screen", "win32" })
+                {
+                    File.WriteAllText(log, "");
+                    long tick = 0;
+                    int starts = 0, copies = 0, queries = 0;
+                    bool fail = true;
+                    bool screen = failure == "screen" || failure == "win32";
+                    int lost = failure == "next" ? unchecked((int)0x887A0005) : failure == "win32" ? new System.ComponentModel.Win32Exception(5, privateDetails).HResult : AccessLost;
+                    List<string> expected = new List<string>();
+                    FrameGrab frame = null;
+                    GameCapture frames = new GameCapture("watch", delegate { return tick; }, delegate
+                    {
+                        frame = new FrameGrab(delegate { return tick; }, delegate { queries++; return true; }, delegate
+                        {
+                            starts++;
+                            if (failure == "open") throw new COMException(privateDetails, lost);
+                            if (screen) return;
+                            frame.duplication = Marshal.GetIUnknownForObject(new object());
+                            frame.describe = delegate(IntPtr output, out OutputDesc value)
+                            {
+                                value = new OutputDesc { Attached = failure == "mode" ? 0 : 1, Left = frame.desktop.Left, Top = frame.desktop.Top, Right = frame.desktop.Right, Bottom = frame.desktop.Bottom };
+                                return failure == "next" ? lost : 0;
+                            };
+                            frame.map = delegate(IntPtr context, IntPtr texture, int subresource, int kind, int flags, out Mapped value) { value = new Mapped(); return lost; };
+                        }, delegate
+                        {
+                            copies++;
+                            if (fail)
+                            {
+                                if (failure == "win32") throw new System.ComponentModel.Win32Exception(5, privateDetails);
+                                throw new ExternalException(privateDetails, lost);
+                            }
+                            return true;
+                        });
+                        return frame;
+                    }, delegate { return window; }, delegate { return false; });
+                    try
+                    {
+                        if (frames.Update(true, window, bounds, true) || frame != null) throw new Exception("A loss fixture created capture before its steady second.");
+                        tick += Stopwatch.Frequency;
+                        if (!frames.Update(true, window, bounds, true)) throw new Exception("A loss fixture did not open capture.");
+                        if (failure == "open") expected.Add("screen lost 0x" + lost.ToString("X8"));
+                        expected.Add("opened " + (screen || failure == "open" ? "screen copy" : "DXGI") + " 8x8 exclusive=yes");
+                        if (failure == "copy" || failure == "gray") frame.ready = true;
+                        if (failure == "copy") { if (frame.Copy(8) != null) throw new Exception("Failed capture readback returned a picture."); }
+                        else if (failure == "gray") { if (frame.Gray(2, 2) != null) throw new Exception("Failed capture readback returned gray pixels."); }
+                        else if (frame.Next(0)) throw new Exception("A lost screen returned a frame.");
+                        if (failure != "open") expected.Add("screen lost 0x" + lost.ToString("X8"));
+                        CheckCaptureLines(log, "watch", expected);
+                        long lostAt = tick;
+                        int copied = copies;
+                        for (int turn = 1; turn <= 60; turn++)
+                        {
+                            tick = lostAt + turn * Stopwatch.Frequency / 61;
+                            if (!frames.Update(true, window, bounds, true) || frames.Grab != frame || frame.Next(0)) throw new Exception("Capture changed or returned a frame during a loss.");
+                            if (frame.Copy(8) != null || frame.Gray(2, 2) != null) throw new Exception("A lost screen kept readable pixels.");
+                        }
+                        if (starts != 1 || queries != 0 || (!screen && copies != copied)) throw new Exception("Capture bypassed the settle wait while logging a loss.");
+                        CheckCaptureLines(log, "watch", expected);
+                        fail = false;
+                        tick = lostAt + Stopwatch.Frequency * 4;
+                        if (!frame.Next(0) || starts != 1) throw new Exception("Logged fullscreen loss changed fallback recovery.");
+                        CheckCaptureLines(log, "watch", expected);
+                        fail = true;
+                        for (int turn = 0; turn < 10; turn++)
+                            if (frame.Next(0)) throw new Exception("A second lost screen returned a frame.");
+                        CheckCaptureLines(log, "watch", expected);
+                        frame.Open(bounds);
+                        if (failure == "copy" || failure == "gray") frame.ready = true;
+                        if (failure == "copy") { if (frame.Copy(8) != null) throw new Exception("Reopened failed readback returned a picture."); }
+                        else if (failure == "gray") { if (frame.Gray(2, 2) != null) throw new Exception("Reopened failed readback returned gray pixels."); }
+                        else if (frame.Next(0)) throw new Exception("A reopened lost screen returned a frame.");
+                        expected.Add("screen lost 0x" + lost.ToString("X8"));
+                        CheckCaptureLines(log, "watch", expected);
+                        frames.Close("switched off");
+                        expected.Add("closed switched off");
+                        CheckCaptureLines(log, "watch", expected);
+                    }
+                    finally { frames.Close("switched off"); }
+                }
+            }
+            finally { Brain.LogPath = before; if (File.Exists(log)) File.Delete(log); }
+            checks.Add("PASS fake open, next, copy, gray, mode and screen-copy losses log one hex HRESULT across sixty settle turns and fallback successes, re-arm when opened again, and exclude titles, processes, paths and exception text");
+        }
+
+        internal static void CheckCaptureRetry(List<string> checks)
+        {
+            string before = Brain.LogPath;
+            string log = Path.Combine(Path.GetTempPath(), "capri-capture-retry-" + Guid.NewGuid().ToString("N") + ".log");
+            Rectangle bounds = new Rectangle(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Location, new Size(8, 8));
+            IntPtr window = new IntPtr(7);
+            try
+            {
+                Brain.LogPath = log;
+                foreach (bool recover in new[] { false, true })
+                {
+                    File.WriteAllText(log, "");
+                    long tick = 0;
+                    int starts = 0, copies = 0, queries = 0;
+                    bool fail = true;
+                    FrameGrab frame = null;
+                    List<string> expected = new List<string>();
+                    GameCapture frames = new GameCapture("clips", delegate { return tick; }, delegate
+                    {
+                        frame = new FrameGrab(delegate { return tick; }, delegate { queries++; return false; }, delegate
+                        {
+                            starts++;
+                            if (!recover) throw new COMException("Fake display setup failure.", AccessLost);
+                            frame.duplication = Marshal.GetIUnknownForObject(new object());
+                            frame.describe = delegate(IntPtr output, out OutputDesc value) { value = new OutputDesc { Attached = 1, Left = frame.desktop.Left, Top = frame.desktop.Top, Right = frame.desktop.Right, Bottom = frame.desktop.Bottom }; return 0; };
+                        }, delegate { copies++; return true; }, null, delegate
+                        {
+                            if (fail) throw new COMException("Fake frame failure.", AccessLost);
+                            frame.ready = true;
+                            return true;
+                        });
+                        return frame;
+                    }, delegate { return window; }, delegate { return false; });
+                    try
+                    {
+                        if (frames.Update(true, window, bounds, false)) throw new Exception("A retry fixture skipped its opening wait.");
+                        tick += Stopwatch.Frequency;
+                        if (!frames.Update(true, window, bounds, false)) throw new Exception("A retry fixture failed to open capture.");
+                        if (!recover) expected.Add("screen lost 0x887A0026");
+                        expected.Add("opened " + (recover ? "DXGI" : "screen copy") + " 8x8 exclusive=no");
+                        if (recover)
+                        {
+                            if (frame.Next(0)) throw new Exception("A lost DXGI fixture returned a frame.");
+                            expected.Add("screen lost 0x887A0026");
+                            CheckCaptureLines(log, "clips", expected);
+                            fail = false;
+                            tick += Stopwatch.Frequency * 3 / 2;
+                            if (!frame.Next(0) || starts != 2 || copies != 0) throw new Exception("A DXGI loss fixture did not receive a healthy DXGI frame.");
+                            fail = true;
+                            if (frame.Next(0)) throw new Exception("A second DXGI loss returned a frame.");
+                            expected.Add("screen lost 0x887A0026");
+                            for (int turn = 0; turn < 60; turn++) frame.Next(0);
+                        }
+                        else
+                        {
+                            long began = tick;
+                            for (int turn = 1; turn <= 200; turn++)
+                            {
+                                tick = began + turn * Stopwatch.Frequency / 10;
+                                if (!frames.Update(true, window, bounds, false) || frames.Grab != frame) throw new Exception("A windowed loss fixture replaced its grab.");
+                                frame.Next(0);
+                            }
+                            if (starts != 11 || queries != 10 || copies == 0) throw new Exception("A windowed loss fixture missed failed setups or successful screen copies over twenty seconds.");
+                        }
+                        CheckCaptureLines(log, "clips", expected);
+                        frames.Close("switched off");
+                        expected.Add("closed switched off");
+                        CheckCaptureLines(log, "clips", expected);
+                    }
+                    finally { frames.Close("switched off"); }
+                }
+            }
+            finally { Brain.LogPath = before; if (File.Exists(log)) File.Delete(log); }
+            checks.Add("PASS a windowed game with failed DXGI setup and successful screen copies logs one loss over twenty fake seconds and eleven setup attempts; only a healthy DXGI frame re-arms the loss line");
+        }
+
         internal static void CheckRecovery(List<string> checks)
         {
             Rectangle bounds = new Rectangle(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Location, new Size(8, 8));

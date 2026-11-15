@@ -86,7 +86,7 @@ namespace CapriDesktop
         internal readonly StringBuilder Errors = new StringBuilder(), Output = new StringBuilder();
         internal readonly List<string> Extra = new List<string>(), Files = new List<string>();
         internal readonly Dictionary<string, WorkspaceMessage> Messages = new Dictionary<string, WorkspaceMessage>(StringComparer.Ordinal);
-        internal readonly ManualResetEvent OutputDone = new ManualResetEvent(false), ErrorDone = new ManualResetEvent(false), Done = new ManualResetEvent(false), Cancel = new ManualResetEvent(false);
+        internal readonly ManualResetEvent OutputDone = new ManualResetEvent(false), ErrorDone = new ManualResetEvent(false), Done = new ManualResetEvent(false), Cancel = new ManualResetEvent(false), Ready = new ManualResetEvent(false);
         internal WorkspaceChat Chat;
         internal string Mode = "", Model = "", Session = "", Settings, Wrapper, ResultText = "", Fault;
         internal Process Process;
@@ -197,6 +197,8 @@ namespace CapriDesktop
             saver = new Thread(SaveLoop) { IsBackground = true, Name = "Capri Workspace saves" };
             saver.Start();
         }
+
+        internal static bool SignedOut(string text) { return Regex.IsMatch(text ?? "", @"not (?:logged|signed) in|log ?in|sign ?in|authenticat|oauth|unauthori[sz]ed|invalid api key|\b401\b|credential", RegexOptions.IgnoreCase); }
 
         internal static bool Key(string value) { return Regex.IsMatch(value ?? "", "\\A[a-f0-9]{32}\\z", RegexOptions.CultureInvariant); }
         internal static string Mode(string value) { return Array.IndexOf(Modes, value) < 0 ? Modes[0] : value; }
@@ -1183,6 +1185,7 @@ namespace CapriDesktop
                         string value = HuskJson.Text(content, "text");
                         if (streamed == null) Add(chat, new WorkspaceItem { Kind = "text", Text = value, Turn = turn.Id });
                         else { turn.Latest = idMessage; FinishedText(turn, streamed, value); }
+                        if (value.Length > 0 && !SignedOut(value)) turn.Ready.Set();
                     }
                     else if (kind == "tool_use")
                     {
@@ -1191,6 +1194,7 @@ namespace CapriDesktop
                         Dictionary<string, object> input = HuskJson.Get(content, "input") as Dictionary<string, object>;
                         if (EditTool(tool)) turn.Edits[id] = HuskJson.Map("tool", tool, "input", input);
                         Add(chat, new WorkspaceItem { Kind = "tool", Name = tool, Id = id, Text = Summary(tool, input), Turn = turn.Id, Input = Shown(tool, input) });
+                        turn.Ready.Set();
                     }
                     else if (kind == "tool_result")
                     {
@@ -1510,6 +1514,7 @@ namespace CapriDesktop
             string reason = "Allowed in Workspace.";
             if (ask != null)
             {
+                turn.Ready.Set();
                 Action<WorkspaceChat, WorkspaceApproval> pending = Waiting;
                 if (pending != null) pending(chat, ask);
                 WaitHandle.WaitAny(new WaitHandle[] { ask.Answered, turn.Cancel }, ApprovalWait);

@@ -623,7 +623,18 @@ namespace CapriDesktop
             return link;
         }
 
-#if !CROSS
+#if CROSS
+        internal static byte[] SmokePictureBytes(int width, bool jpeg, int height = 2)
+        {
+            using (SkiaSharp.SKBitmap bitmap = new SkiaSharp.SKBitmap(width, height))
+            {
+                bitmap.Erase(SkiaSharp.SKColors.Red);
+                using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(bitmap))
+                using (SkiaSharp.SKData data = image.Encode(jpeg ? SkiaSharp.SKEncodedImageFormat.Jpeg : SkiaSharp.SKEncodedImageFormat.Png, 90)) return data.ToArray();
+            }
+        }
+#endif
+
         internal static void SmokePictureHeaders(List<string> checks)
         {
             Func<string, byte[], RemoteJson.Map> message = delegate(string mime, byte[] bytes)
@@ -651,12 +662,16 @@ namespace CapriDesktop
             foreach (bool asJpeg in new[] { false, true })
             {
                 byte[] bytes;
+#if CROSS
+                bytes = SmokePictureBytes(size, asJpeg, 1);
+#else
                 using (System.Drawing.Bitmap image = new System.Drawing.Bitmap(size, 1))
                 using (System.IO.MemoryStream output = new System.IO.MemoryStream())
                 {
                     image.Save(output, asJpeg ? System.Drawing.Imaging.ImageFormat.Jpeg : System.Drawing.Imaging.ImageFormat.Png);
                     bytes = output.ToArray();
                 }
+#endif
                 bool valid = RemotePicture.Header(message(asJpeg ? "image/jpeg" : "image/png", bytes), out picture);
                 if (valid && !picture.Confirm()) throw new Exception("A valid boundary picture failed decoding.");
                 if (valid != (size == 1568)) throw new Exception("The 1568 pixel boundary failed before decoding.");
@@ -667,31 +682,43 @@ namespace CapriDesktop
         internal static void SmokePictures(List<string> checks, Action<string, RemotePicture> answer = null)
         {
             byte[] bytes;
+#if CROSS
+            bytes = SmokePictureBytes(2, false);
+#else
             using (System.Drawing.Bitmap image = new System.Drawing.Bitmap(2, 2))
             using (System.IO.MemoryStream output = new System.IO.MemoryStream())
             {
                 image.Save(output, System.Drawing.Imaging.ImageFormat.Png);
                 bytes = output.ToArray();
             }
+#endif
             byte[] jpeg;
+#if CROSS
+            jpeg = SmokePictureBytes(2, true);
+#else
             using (System.Drawing.Bitmap image = new System.Drawing.Bitmap(2, 2))
             using (System.IO.MemoryStream output = new System.IO.MemoryStream())
             {
                 image.Save(output, System.Drawing.Imaging.ImageFormat.Jpeg);
                 jpeg = output.ToArray();
             }
+#endif
             RemotePicture decoded;
             string jpegJson = "{\"type\":\"chat.send\",\"picture\":{\"mime\":\"image/jpeg\",\"data\":\"" + RemoteCrypto.B64u(jpeg) + "\"}}";
             if (!RemotePicture.Read(RemoteJson.Message(Encoding.UTF8.GetBytes(jpegJson)), out decoded) || decoded == null || RemotePicture.Read(RemoteJson.Message(Encoding.UTF8.GetBytes(jpegJson.Replace("image/jpeg", "image/png"))), out decoded)) throw new Exception("JPEG decoding or MIME signature matching failed.");
             string vectorPng = "{\"type\":\"chat.send\",\"picture\":{\"mime\":\"image/png\",\"data\":\"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4____fwAJ-wP9KobjigAAAABJRU5ErkJggg\"}}";
             if (!RemotePicture.Read(RemoteJson.Message(Encoding.UTF8.GetBytes(vectorPng)), out decoded) || decoded == null) throw new Exception("The protocol PNG vector failed image decoding.");
             byte[] tooWide;
+#if CROSS
+            tooWide = SmokePictureBytes(1569, false, 1);
+#else
             using (System.Drawing.Bitmap image = new System.Drawing.Bitmap(1569, 1))
             using (System.IO.MemoryStream output = new System.IO.MemoryStream())
             {
                 image.Save(output, System.Drawing.Imaging.ImageFormat.Png);
                 tooWide = output.ToArray();
             }
+#endif
             RemoteState state = RemoteState.Fresh();
             RemoteDevice device = new RemoteDevice { Id = RemoteMessages.NewId(), Key = RemoteCrypto.Random(32), Name = "Phone" };
             state.Devices.Add(device);
@@ -831,9 +858,7 @@ namespace CapriDesktop
                 finally { release.Set(); link.Stop(); }
             }
         }
-#endif
 
-#if !CROSS
         internal static void SmokePictureTurns(Action<RemoteLink, string, Action<string>> run)
         {
             RemoteState state = RemoteState.Fresh();
@@ -1031,7 +1056,6 @@ namespace CapriDesktop
                 finally { link.wire.Socket.Dispose(); }
             }
         }
-#endif
 
         internal static void SmokePairing(List<string> checks)
         {

@@ -17,7 +17,7 @@
     if (!voiceOn || !r || r.info.native || r.info.demo || r.state !== 'connected') return;
     if (call?.active) return;
     if (!r.info.features?.includes('call')) {
-      if (!oldVoice) { voiceStatus('Her voice needs a newer Capri on your PC.'); oldVoice = true; }
+      if (!oldVoice) { voiceStatus("Her voice isn't on Mac or Linux PCs yet."); oldVoice = true; }
       return;
     }
     if (!call?.listen()) voiceStatus('Tap Voice to hear her.');

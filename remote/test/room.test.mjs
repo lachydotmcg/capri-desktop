@@ -183,7 +183,7 @@ test('room gives plain voice status, remembers Voice and keeps phone mode silent
   const r = await roomRig({ features: ['chat'], port: 29882, chrome: 29892 });
   try {
     await r.open();
-    assert.equal(await r.page.run("document.getElementById('room-voice-note').textContent"), 'Her voice needs a newer Capri on your PC.');
+    assert.equal(await r.page.run("document.getElementById('room-voice-note').textContent"), "Her voice isn't on Mac or Linux PCs yet.");
     assert.equal(await r.page.run('contexts.length'), 0);
     await r.click('room-close'); await r.open();
     assert.equal(await r.page.run("document.getElementById('room-voice-note').textContent"), '');

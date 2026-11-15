@@ -36,6 +36,7 @@ namespace CapriDesktop
         [DataMember(Name = "app")] public string App;
         [DataMember(Name = "kind")] public string Kind;
         [DataMember(Name = "task")] public string Task;
+        [DataMember(Name = "folder")] public string Folder;
         [DataMember(Name = "ask")] public string Ask;
         internal string Asked;
         internal Func<bool> Current;
@@ -356,6 +357,7 @@ namespace CapriDesktop
                 case "linux_system": return action == "service_start" || action == "service_stop" || action == "service_restart" ? Power : -1;
 #endif
                 case "use_computer": return Mouse;
+                case "workspace": return Hands.WorkspaceStarts(args) ? Mouse : -1;
                 case "stream": return action == "stop" ? -1 : Mouse;
                 case "job_control": return action == "change" ? Mouse : -1;
                 case "clip": return action == "open_folder" || action == "open_last" ? Open : -1;
@@ -652,6 +654,7 @@ namespace CapriDesktop
                 case "draw": return "draw " + Plain(a.Description ?? a.Text, "on your screen");
                 case "desktop_icons": return a.Action == "back" ? "put your desktop icons back" : a.Action == "hide" ? "hide your desktop icons briefly" : a.Action == "rampage" ? "ram your desktop icons into the screen edge and fling them around" : "scatter your desktop icons";
                 case "mini_game": return "play " + Plain(a.Name, "a mini game").Replace('_', ' ');
+                case "workspace": return a.Action == "status" ? "check Workspace" : Hands.WorkspaceStarts(a) ? "start a Workspace chat to " + Plain(Hands.Asked(a.Task ?? ""), "do that") + (string.IsNullOrEmpty(a.Folder) ? "" : " in " + Plain(a.Folder, "that folder")) : "open Workspace";
                 case "fake_crash": return a.Action == "stop" ? "stop the " + Hands.CrashKind : "show the " + Hands.CrashKind;
                 case "listen": return a.Action == "stop" ? "stop listening to PC dialogue" : "listen to PC dialogue";
                 case "list_windows": return "check your open windows";
@@ -1426,8 +1429,10 @@ namespace CapriDesktop
             { "quit", "Quit Capri after your reply is said when they ask, suggest or hint that you close yourself. This leaves their PC running.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"quit Capri\",\"enum\":[\"quit\"]}},\"required\":[\"action\"]}", "quit Capri after her reply", "quit Capri after your reply" },
 #if !CROSS
+            { "workspace", "Open your Workspace window, start a new Claude Code chat there, or check recent chats when they ask. open is the default; a task with no action means start. start needs task in their words; folder is optional and must exist, otherwise it uses your own Workspace folder. New chats use the window's usual mode: Everything under the Blackwall preset, Ask me otherwise. Folder trust and tool approvals stay in the window for them to answer. status gives up to three recent chats, whether they are working, waiting for an OK or finished, and their last answer.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"open by default, start a chat, or check status\",\"enum\":[\"open\",\"start\",\"status\"]},\"task\":{\"type\":\"string\",\"description\":\"Required for start: their first message in their words\"},\"folder\":{\"type\":\"string\",\"description\":\"For start: an existing folder; omit for your own Workspace folder\"}}}", "open Workspace, start a chat or check recent chats", "open Workspace, start a chat or check recent chats" },
             { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page; mixer is the setup for your voice in their mic, for friends in Discord or Roblox to hear you. This only opens it; keys, brains, voice services, SECURITY, Hey Capri and memories are changed there by them.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"mixer\",\"personality\",\"memories\",\"workspace\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
 #endif
             { "updates", "Check for a Capri update or read its status when they ask, suggest or hint at it. Install only when they clearly ask to install or update Capri, through the usual update checks. A status question or hint alone never authorizes installation.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"check, status or install; install needs a clear request\",\"enum\":[\"check\",\"status\",\"install\"]}},\"required\":[\"action\"]}", "check Capri updates or install when asked", "check Capri updates or install when asked" },
@@ -1463,7 +1468,7 @@ namespace CapriDesktop
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "read_skill" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status"; }
+        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates" || tool == "workspace") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "read_skill" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status"; }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1750,6 +1755,7 @@ namespace CapriDesktop
         internal static Func<string, string> MiniPlayer = delegate { return "Couldn't show my mini player."; };
 #if !CROSS
         internal static Func<ToolArguments, string> VoiceChat = delegate { return "Couldn't change voice chat."; };
+        internal static Func<ToolArguments, string> Workspace = delegate { return "Couldn't open Workspace."; };
         internal static Func<string, string> OpenClip = delegate { return "Couldn't open your clips."; };
 #endif
         // Mac and Linux have no clones, hologram or icon tricks yet, so asking for them gets this straight away instead of a joke from her brain.
@@ -1969,6 +1975,7 @@ namespace CapriDesktop
                 if (tool == "internet_status") return InternetStatus(args.Address);
                 if (tool == "desktop_icons") return Icons(args.Action);
                 if (tool == "voice_chat") return Valid(tool, args) ? VoiceChat(args) : "Couldn't find that voice chat action.";
+                if (tool == "workspace") return Valid(tool, args) ? Workspace(args) : "Couldn't find that Workspace action or task.";
 #endif
                 if (tool == "mini_player") return Valid(tool, args) ? MiniPlayer(args.Action) : "Couldn't find that mini player action.";
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
@@ -2129,7 +2136,7 @@ namespace CapriDesktop
 
         internal static string Schema(int i) { return Specs[i, 2]; }
 
-        internal static string ElevenLabsTool(int i) { return "{\"tool_config\":{\"type\":\"client\",\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Specs[i, 1]) + ",\"parameters\":" + Specs[i, 2] + ",\"expects_response\":true,\"response_timeout_secs\":" + (Specs[i, 0] == "use_computer" || Specs[i, 0] == "stream" || Specs[i, 0] == "listen" || Specs[i, 0] == "play_music" ? 60 : 20) + "}}"; }
+        internal static string ElevenLabsTool(int i) { return "{\"tool_config\":{\"type\":\"client\",\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Specs[i, 1]) + ",\"parameters\":" + Specs[i, 2] + ",\"expects_response\":true,\"response_timeout_secs\":" + (Specs[i, 0] == "use_computer" || Specs[i, 0] == "workspace" || Specs[i, 0] == "stream" || Specs[i, 0] == "listen" || Specs[i, 0] == "play_music" ? 60 : 20) + "}}"; }
 
         private static string Render(List<string[]> specs, bool claude)
         {
@@ -2245,14 +2252,15 @@ namespace CapriDesktop
 
         internal static bool CallTool(string tool)
         {
-            return Regex.IsMatch(tool ?? "", @"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|power|animate|draw|desktop_icons|clip|mini_game|fake_crash|listen|list_windows|check_app|app_volume|pc_status|internet_status)\z");
+            return Regex.IsMatch(tool ?? "", @"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|power|animate|draw|desktop_icons|clip|mini_game|workspace|fake_crash|listen|list_windows|check_app|app_volume|pc_status|internet_status)\z");
         }
 
         internal static bool CallAllowed(string tool, ToolArguments args)
         {
             if (!CallTool(tool) || args == null || !Valid(tool, args)) return false;
             if (tool == "mini_game" && (args.Action == "level" || !string.IsNullOrEmpty(args.Level))) return false;
-            if (tool != "use_computer") return true;
+            if (tool == "workspace" && args.Action == "status") return false;
+            if (tool != "use_computer" && (tool != "workspace" || !WorkspaceStarts(args))) return true;
             return !Regex.IsMatch(args.Task ?? "", @"\b(capri|mainframe|security|settings|preferences|call_errand|call_say|read_file|quit|remember|routine)\b|\b(?:read|inspect|cat|type|print|show)\b.{0,60}\b(?:file|me\.md|personality\.md)\b", RegexOptions.IgnoreCase);
         }
 
@@ -2301,7 +2309,7 @@ namespace CapriDesktop
         private static readonly string[] MacPresses = { "screenshot", "task_manager", "discord_mute", "discord_deafen", "show_desktop", "emoji", "narrator", "magnifier", "record", "clipboard" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
         // Her moves still missing outside Windows.
         private static string[] WindowsMoves { get { return new string[0]; } }
-        private static readonly string[] WindowsTools = { "draw", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "listen", "voice_chat" };
+        private static readonly string[] WindowsTools = { "draw", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "workspace", "listen", "voice_chat" };
         // Her window tool's arranging, still missing on Linux.
         private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 #endif
@@ -2425,6 +2433,7 @@ namespace CapriDesktop
             { "gaming_mode", "Gaming Mode", "Gaming Mode is only on Windows for now, choom." },
             { "clip", "game clips", "Game clips are only on Windows for now, choom." },
             { "mini_game", "mini games", "My mini games are only on Windows for now, choom." },
+            { "workspace", "Workspace", "Workspace is only on Windows for now." },
             { "game_notes", "saved game controls", "Saved game controls are only on Windows for now, choom." },
 #if CROSS
             { "watch_for", "watching their screen for something", "I can't watch your screen quietly on this desktop. Ask me to look when you need a check." },
@@ -2438,6 +2447,7 @@ namespace CapriDesktop
         // off. Narrow on purpose: talk about drawing or files isn't asking for them.
         private static readonly string[,] GapAsks =
         {
+            { "workspace", @"^(?:open|show(?: me)?|check)\s+(?:your |the )?workspace(?: please)?[.!?]*$|\byour workspace\b|\bworkspace (?:window|chats?)\b" },
             { "draw", @"^(?:draw|sketch|doodle|scribble|annotate)\b|^(?:write|circle|underline|highlight|point (?:at|to))\b.*\bon (?:my|the|your) screen$" },
             { "watch_along", @"^(?:(?:let'?s|wanna|can we)\s+)?watch\s+(?:(?:this|it|that|a|the|some)\s+)?(?:(?:video|stream|movie|show|anime|youtube|episode)\s+)?(?:(?:with|along with)\s+me|together)\b|^watch along\b|^react to (?:this|that|it)\b" },
             { "find_file", @"^(?:find|locate|search for|where(?:'s| is| are))\s+(?:my |the |a )?.*\b(?:files?|folders?|documents?|pdfs?)$|^show me (?:the )?(?:path|folder)\b" },
@@ -4091,7 +4101,7 @@ namespace CapriDesktop
             }
             string lone = inside.Trim().Trim('"', '\'');
             if (!paired && lone.Length > 0 && tool == "watch_for") { args.Text = lone; return args; }
-            if (!paired && lone.Length > 0) Set(args, tool == "find_file" ? "description" : tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" || tool == "stopwatch" || tool == "hologram" || tool == "move_yourself" || tool == "capri_settings" ? "action" : tool == "look_at_screen" || tool == "listen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : tool == "read_file" ? "path" : "name", lone);
+            if (!paired && lone.Length > 0) Set(args, tool == "find_file" ? "description" : tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" || tool == "stopwatch" || tool == "workspace" || tool == "hologram" || tool == "move_yourself" || tool == "capri_settings" ? "action" : tool == "look_at_screen" || tool == "listen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : tool == "read_file" ? "path" : "name", lone);
             return args;
         }
 
@@ -4107,6 +4117,7 @@ namespace CapriDesktop
             else if (key == "app") args.App = value;
             else if (key == "kind") args.Kind = value;
             else if (key == "task") args.Task = value;
+            else if (key == "folder") args.Folder = value;
             else if (key == "text") args.Text = value;
             else if (key == "description") args.Description = value;
             else if (key == "shapes") args.Shapes = value;
@@ -4274,6 +4285,8 @@ namespace CapriDesktop
             return loose.ToString();
         }
 
+        internal static bool WorkspaceStarts(ToolArguments args) { return args != null && (args.Action == "start" || string.IsNullOrEmpty(args.Action) && Named(args.Task)); }
+
         internal static bool Valid(string tool, ToolArguments args)
         {
 #if CROSS
@@ -4285,7 +4298,7 @@ namespace CapriDesktop
 #if CROSS
             if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|files|notes)\z"));
 #else
-            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories)\z"));
+            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories|workspace)\z"));
             if (tool == "call_errand") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(open_app|play_song|cancel)\z");
             if (tool == "call_say") return args != null && Named(args.Text);
 #endif
@@ -4299,6 +4312,7 @@ namespace CapriDesktop
             if (tool == "fake_crash") return args != null && (args.Action == "show" || args.Action == "stop");
 #if !CROSS
             if (tool == "voice_chat") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(on|off|status)\z");
+            if (tool == "workspace") return args != null && (string.IsNullOrEmpty(args.Action) || args.Action == "open" || args.Action == "status" || args.Action == "start" && Named(args.Task));
 #endif
             if (tool == "speech") return args != null && args.Action == "stop";
             if (tool == "job_control") return args != null && (args.Action == "stop" || args.Action == "status" || args.Action == "change" && Named(args.Task));
