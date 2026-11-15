@@ -30,12 +30,11 @@ namespace CapriDesktop
         internal static string Hide(string text, string key)
         {
             string words = text ?? "";
-            if (string.IsNullOrEmpty(key)) return words;
+            if (string.IsNullOrEmpty(key) || key.Length < 8) return words;
             words = words.Replace(key, "[redacted]");
             try { words = words.Replace(Uri.EscapeDataString(key), "[redacted]"); }
             catch (UriFormatException) { }
-            if (key.Length >= 4) words = words.Replace(key.Substring(key.Length - 4), "[redacted]");
-            return words;
+            return words.Replace(key.Substring(key.Length - 4), "[redacted]");
         }
 
         internal static bool Owns(string type) { return type == "brain.get" || type == "brain.use" || type == "brain.key"; }
