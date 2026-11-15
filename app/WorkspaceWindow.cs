@@ -223,7 +223,7 @@ namespace CapriDesktop
         internal double LastChange, ChangeMs;
         private WorkspaceItem pageEnd;
         private WorkspaceChat chat;
-        private bool filling, saving, arranging, picking;
+        private bool filling, saving, arranging, picking, correctingMaximized;
         private float zoom;
         private Font small, strong, keys, caption, mono, monoPlain, note, title, heading;
         private Rectangle titleBox, folderBox;
@@ -297,7 +297,6 @@ namespace CapriDesktop
             ApplyFonts();
             ClientSize = new Size(Z(Wide), Z(Tall));
             MinimumSize = new Size(Z(Narrowest), Z(Shortest));
-            MaximizedBounds = Screen.FromControl(this).WorkingArea;
             changeClock.Tick += delegate { FlushChanges(); };
             changed = QueueChange;
             workspace.Changed += changed;
@@ -999,9 +998,75 @@ namespace CapriDesktop
             base.OnKeyDown(e);
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WindowPosition
+        {
+            internal IntPtr Window, After;
+            internal int X, Y, Width, Height;
+            internal uint Flags;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern bool IsZoomed(IntPtr window);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(IntPtr window);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
+
+        internal static Rectangle MaximizedTarget(Rectangle proposed, IEnumerable<KeyValuePair<Rectangle, Rectangle>> monitors, Rectangle fallback)
+        {
+            Rectangle target = fallback;
+            long covered = 0;
+            foreach (KeyValuePair<Rectangle, Rectangle> monitor in monitors)
+            {
+                Rectangle overlap = Rectangle.Intersect(proposed, monitor.Key);
+                long pixels = (long)overlap.Width * overlap.Height;
+                if (pixels > covered || pixels > 0 && pixels == covered && monitor.Value == fallback)
+                {
+                    target = monitor.Value;
+                    covered = pixels;
+                }
+            }
+            return target;
+        }
+
+        private static void FitMaximizedWindow(IntPtr handle, IntPtr change)
+        {
+            const uint noSize = 1, noMove = 2;
+            WindowPosition position = (WindowPosition)Marshal.PtrToStructure(change, typeof(WindowPosition));
+            if ((position.Flags & (noSize | noMove)) == (noSize | noMove)) return;
+            Rectangle area = Screen.FromHandle(handle).WorkingArea;
+            if ((position.Flags & noMove) == 0)
+            {
+                Size size = (position.Flags & noSize) == 0 ? new Size(position.Width, position.Height) : area.Size;
+                Rectangle proposed = new Rectangle(new Point(position.X, position.Y), size);
+                List<KeyValuePair<Rectangle, Rectangle>> monitors = new List<KeyValuePair<Rectangle, Rectangle>>();
+                foreach (Screen screen in Screen.AllScreens) monitors.Add(new KeyValuePair<Rectangle, Rectangle>(screen.Bounds, screen.WorkingArea));
+                area = MaximizedTarget(proposed, monitors, area);
+            }
+            position.X = area.X; position.Y = area.Y; position.Width = area.Width; position.Height = area.Height;
+            position.Flags &= ~(noSize | noMove);
+            Marshal.StructureToPtr(position, change, false);
+        }
+
+        private void CorrectMaximizedWindow(IntPtr handle)
+        {
+            Rectangle area = Screen.FromHandle(handle).WorkingArea;
+            if (correctingMaximized || Bounds == area) return;
+            correctingMaximized = true;
+            try { SetWindowPos(handle, IntPtr.Zero, area.X, area.Y, area.Width, area.Height, 0x0414); }
+            finally { correctingMaximized = false; }
+        }
+
         protected override void WndProc(ref Message message)
         {
             base.WndProc(ref message);
+            if (message.Msg == 0x0046 && message.LParam != IntPtr.Zero && IsZoomed(message.HWnd) && !IsIconic(message.HWnd))
+                FitMaximizedWindow(message.HWnd, message.LParam);
+            if (message.Msg == 0x0047 && IsZoomed(message.HWnd) && !IsIconic(message.HWnd))
+                CorrectMaximizedWindow(message.HWnd);
             if (message.Msg == 0x0084 && message.Result == new IntPtr(1))
             {
                 long value = message.LParam.ToInt64();
@@ -1031,9 +1096,11 @@ namespace CapriDesktop
             zoom = factor;
             SetFonts();
             ApplyFonts();
-            MinimumSize = new Size(Math.Min(Z(Narrowest), area.Width), Math.Min(Z(Shortest), area.Height));
-            Size = new Size(Math.Min(Math.Max(Width, MinimumSize.Width), area.Width), Math.Min(Math.Max(Height, MinimumSize.Height), area.Height));
-            MaximizedBounds = area;
+            if (WindowState == FormWindowState.Normal)
+            {
+                MinimumSize = new Size(Math.Min(Z(Narrowest), area.Width), Math.Min(Z(Shortest), area.Height));
+                Size = new Size(Math.Min(Math.Max(Width, MinimumSize.Width), area.Width), Math.Min(Math.Max(Height, MinimumSize.Height), area.Height));
+            }
             transcript.Clear();
             SyncItems();
             Shape();
@@ -1053,6 +1120,7 @@ namespace CapriDesktop
         {
             string file = Path.Combine(workspace.Root, "window.json");
             Rectangle area = Screen.FromControl(this).WorkingArea;
+            bool maximized = false;
             try
             {
                 if (File.Exists(file))
@@ -1060,14 +1128,14 @@ namespace CapriDesktop
                     Dictionary<string, object> row = HuskJson.Read(File.ReadAllText(file, Encoding.UTF8)) as Dictionary<string, object>;
                     Rectangle saved = new Rectangle((int)Workspace.Number(row, "x"), (int)Workspace.Number(row, "y"), (int)Workspace.Number(row, "width"), (int)Workspace.Number(row, "height"));
                     if (saved.Width >= 300 && saved.Height >= 300) { area = Screen.FromRectangle(saved).WorkingArea; Bounds = saved; }
-                    if (true.Equals(HuskJson.Get(row, "maximized"))) WindowState = FormWindowState.Maximized;
+                    maximized = true.Equals(HuskJson.Get(row, "maximized"));
                 }
             }
             catch (Exception) { }
             MinimumSize = new Size(Math.Min(Z(Narrowest), area.Width), Math.Min(Z(Shortest), area.Height));
             Size = new Size(Math.Min(Width, area.Width), Math.Min(Height, area.Height));
             Location = new Point(Math.Max(area.Left, Math.Min(Left, area.Right - Width)), Math.Max(area.Top, Math.Min(Top, area.Bottom - Height)));
-            MaximizedBounds = area;
+            if (maximized) WindowState = FormWindowState.Maximized;
         }
 
         private void SavePlace()
@@ -1133,6 +1201,7 @@ namespace CapriDesktop
         internal void ScrollConversation(int offset) { transcript.ScrollTo(offset); }
         internal void ScrollToEnd() { transcript.ScrollTo(int.MaxValue); }
         internal int ConversationTall { get { return transcript.Content; } }
+        internal int ConversationHeight { get { return transcript.Height; } }
         internal string ToggleTool(string id) { return transcript.Toggle(id); }
         internal List<string> ToolWell(string id) { return transcript.Well(id); }
         // For the smoke and its pictures: the tool groups' summary lines, opening them, the shine's clock and where it draws.
@@ -2039,7 +2108,8 @@ namespace CapriDesktop
             private int dragFrom, dragOffset, laid = -1, round;
             private readonly HashSet<WorkspaceItem> opened;
             private readonly ToolTip tips;
-            private string tipShown;
+            private string tipShown, completedTurn;
+            private bool sawConversation;
             // The shine's clock, the one seam its frames hang on. On tryout-090 this line becomes:
             //     private readonly Beat shineClock = new Beat { Interval = 33 };
             private readonly System.Windows.Forms.Timer shineClock = new System.Windows.Forms.Timer { Interval = 33 };
@@ -2090,6 +2160,8 @@ namespace CapriDesktop
                 foreach (Block block in Blocks) Drop(block);
                 Blocks.Clear();
                 known.Clear();
+                completedTurn = null;
+                sawConversation = false;
                 thinkingClock.Stop();
                 thinking = false;
                 thinkLine = ThinkingInvalidated = Rectangle.Empty;
@@ -2180,7 +2252,48 @@ namespace CapriDesktop
                 else { thinkingClock.Stop(); thinkingText = "Thinking"; ThinkingInvalidated = Rectangle.Empty; }
                 slack = 0;
                 Arrange(true);
+                if (!hasNewer)
+                {
+                    Block first, last;
+                    string complete = FinishedReply(live, out first, out last);
+                    bool justFinished = sawConversation && complete != null && complete != completedTurn;
+                    sawConversation = true;
+                    if (complete != null) completedTurn = complete;
+                    if (follow && justFinished && last.Box.Bottom - first.Box.Top > Height)
+                    {
+                        ScrollTo(first.Box.Top);
+                        Following = false;
+                        return;
+                    }
+                }
                 Hold(follow, tall, anchors, was);
+            }
+
+            private string FinishedReply(string live, out Block first, out Block last)
+            {
+                first = last = null;
+                if (live != null) return null;
+                string turn = null;
+                for (int i = Blocks.Count - 1; i >= 0; i--)
+                {
+                    Block block = Blocks[i];
+                    WorkspaceItem item = block.Item;
+                    if (turn == null)
+                    {
+                        if (item.Kind == "user" || item.Kind == "error" || item.Kind == "stopped") return null;
+                        if (item.Kind == "end" && item.Turn.Length > 0) turn = item.Turn;
+                    }
+                    else if (item.Kind == "text" && item.Turn == turn && !item.Growing && !block.Hidden)
+                    {
+                        if (last == null) last = block;
+                        first = block;
+                    }
+                    else if (first != null || item.Kind == "user" || item.Kind == "error" || item.Kind == "stopped" || item.Kind == "tool")
+                    {
+                        break;
+                    }
+                }
+                return first == null ? null : turn;
             }
 
             // Keeps their place. At the end while the conversation grows, it follows, as Metis does. Otherwise the first thing they
