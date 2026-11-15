@@ -117,7 +117,7 @@ namespace CapriDesktop
                 if (error != null)
                 {
                     if (error.Text == Workspace.Missing) return "Couldn't start the chat because Claude Code is missing.";
-                    if (Workspace.SignedOut(error.Text)) return "Couldn't start the chat because Claude Code isn't signed in.";
+                    if (error.Text == Workspace.SignIn || PlanBrain.ProblemKind(error.Text) == PlanBrain.Failure.SignIn) return "Couldn't start the chat because Claude Code isn't signed in.";
                     return "Couldn't start the chat; see the Workspace window.";
                 }
                 string state = chat.PendingText != null ? "is waiting for folder trust" : Workspace.Pending(chat) ? "is waiting for your OK" : chat.Running ? "is running" : "finished";
@@ -1235,7 +1235,7 @@ namespace CapriDesktop
             return bitmap;
         }
         internal int TopOf(WorkspaceItem item) { return transcript.TopOf(item); }
-        internal List<string> CardWords(out Point details) { return transcript.CardWords(out details); }
+        internal List<string> CardWords(out Point details, WorkspaceItem card = null) { return transcript.CardWords(out details, card); }
         internal void PressTranscript(Point at) { transcript.PressAt(at); }
         internal static string EndText(string text) { return Transcript.EndShown(text); }
         internal string SelectedText { get { return transcript.Selected(); } }
@@ -2341,7 +2341,7 @@ namespace CapriDesktop
                 block.Shape = shape;
                 if (shape.Length == 0) return;
                 WorkspaceChat chat = window.chat;
-                if (shape == "retry") { Key(block, "Retry", Neon.Cyan, delegate { window.Try(delegate { window.workspace.Retry(chat); window.SyncItems(); window.UpdateKeys(); }); }); return; }
+                if (shape == "retry") { Key(block, "Retry", Neon.Cyan, delegate { window.Try(delegate { window.workspace.Retry(chat, item); window.SyncItems(); window.UpdateKeys(); }); }); return; }
                 if (item.Kind == "approval")
                 {
                     Key(block, "Allow", Neon.Cyan, delegate { Answer(block, true, false); });
@@ -2731,13 +2731,13 @@ namespace CapriDesktop
             }
 
             // A waiting card's words and the middle of its "Show the details" link.
-            internal List<string> CardWords(out Point details)
+            internal List<string> CardWords(out Point details, WorkspaceItem card)
             {
                 details = Point.Empty;
                 List<string> words = new List<string>();
                 foreach (Block block in Blocks)
                 {
-                    if (block.Item.Kind != "approval" || !Waiting(block.Item)) continue;
+                    if (card == null ? block.Item.Kind != "approval" || !Waiting(block.Item) : block.Item != card) continue;
                     foreach (Piece piece in block.Pieces) if (!piece.Code) words.Add(piece.Text);
                     if (!block.Toggle.IsEmpty) details = new Point(block.Toggle.Left + block.Toggle.Width / 2, block.Toggle.Top + block.Toggle.Height / 2 - Offset);
                 }
@@ -3671,24 +3671,34 @@ namespace CapriDesktop
                     if (about.Length > 0 && about != sentence) at = Words(block, about, window.small, Neon.Faint, left + pad, at, inner) + Z(8);
                     else at += Z(4);
                     // A command or a change is what they're agreeing to, so it shows; anything else is its raw input, one click away.
-                    if (raw)
-                    {
-                        string shownAs = block.All ? "Hide the details" : "Show the details";
-                        Piece link = Add(block, shownAs, window.small, Neon.Cyan, new Rectangle(left + pad, at, WorkPaint.Wide(shownAs, window.small) + Z(4), Z(20)));
-                        link.Line = true;
-                        block.Toggle = link.Box;
-                        at = link.Box.Bottom + Z(6);
-                        if (block.All) at = Well(block, string.Join("\n", lines.ToArray()), lines, inks, "", left + pad, at, inner, 0);
-                    }
+                    if (raw) at = Details(block, string.Join("\n", lines.ToArray()), lines, inks, left + pad, at, inner);
                     else at = Well(block, string.Join("\n", lines.ToArray()), lines, inks, "", left + pad, at, inner, 12);
                     at += Z(10);
 
                 }
                 else if (kind == "trust") at = Trusting(block, left + pad, at, inner) + Z(10);
-                else at = Words(block, window.Shorten(item.Text), window.Font, Neon.White, left + pad, at, inner) + Z(10);
+                else
+                {
+                    at = Words(block, window.Shorten(item.Text), window.Font, Neon.White, left + pad, at, inner) + Z(10);
+                    if (kind == "error" && item.Input.Length > 0)
+                    {
+                        List<string> lines = block.All ? new List<string>(item.Input.Replace("\r", "").Split('\n')) : null;
+                        at = Details(block, item.Input, lines, lines == null ? null : Inks(lines.Count, Neon.White), left + pad, at, inner) + Z(10);
+                    }
+                }
                 if (block.Keys.Count > 0) at = KeysRow(block, left + pad, at, inner) + Z(2);
                 if (block.Reason != null) { at += Z(8); block.Reason.Tag = new Rectangle(left + pad, at, inner, Z(30)); at += Z(30); }
                 block.Box = new Rectangle(left, y, width, at + pad - Z(4) - y);
+            }
+
+            private int Details(Block block, string copy, List<string> lines, List<Color> inks, int x, int top, int width)
+            {
+                string shownAs = block.All ? "Hide the details" : "Show the details";
+                Piece link = Add(block, shownAs, window.small, Neon.Cyan, new Rectangle(x, top, WorkPaint.Wide(shownAs, window.small) + Z(4), Z(20)));
+                link.Line = true;
+                block.Toggle = link.Box;
+                int at = link.Box.Bottom + Z(6);
+                return block.All ? Well(block, copy, lines, inks, "", x, at, width, 0) : at;
             }
 
             // Moves the cards' keys and boxes to where their card is on screen now.
@@ -4609,6 +4619,7 @@ namespace CapriDesktop
                 if (!known.TryGetValue(item, out block)) return null;
                 if (item.Kind == "tool") return item.Text + "\n" + block.Result;
                 if (item.Kind == "approval" && item.Input.Length > 0) return item.Text + "\n" + Lines(item.Input);
+                if (item.Kind == "error" && item.Input.Length > 0) return item.Text + "\n" + item.Input;
                 if (item.Kind == "text" && block.Parts.Count > 0) return WorkWords.Plain(block.Parts);
                 return item.Text;
             }

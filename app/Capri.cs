@@ -45753,7 +45753,7 @@ namespace CapriDesktop
                         }
                         string failed = run(delegate { return DoTool("workspace", new ToolArguments { Action = "start", Task = "try their task" }); });
                         WorkspaceItem error = WorkspaceItems(window.Chat).FindLast(delegate(WorkspaceItem item) { return item.Kind == "error"; });
-                        if (error == null || !Workspace.Same(window.Chat.Folder, fault == 0 ? work.Home : Path.Combine(work.Home, "try their task")) || failed != (fault == 0 ? "Couldn't start the chat because Claude Code is missing." : "Couldn't start the chat because Claude Code isn't signed in.") || (fault == 0 ? error.Text != Workspace.Missing || !error.Retry : !error.Text.Contains("Please sign in to Claude Code."))) throw new Exception("Workspace start hid a missing installation or sign-in failure.");
+                        if (error == null || !Workspace.Same(window.Chat.Folder, fault == 0 ? work.Home : Path.Combine(work.Home, "try their task")) || failed != (fault == 0 ? "Couldn't start the chat because Claude Code is missing." : "Couldn't start the chat because Claude Code isn't signed in.") || (fault == 0 ? error.Text != Workspace.Missing || !error.Retry : error.Text != Workspace.SignIn || !error.Input.Contains("Please sign in to Claude Code.") || !error.Retry)) throw new Exception("Workspace start hid a missing installation or sign-in failure.");
                     }
                     checks.Add("PASS Workspace start reports missing Claude Code and a sign-in failure in one sentence while keeping the window's usual errors");
 
@@ -45940,7 +45940,7 @@ namespace CapriDesktop
                         if (failed == null || !failed.Done.WaitOne(8000)) throw new Exception("Workspace's error stand-in didn't end.");
                         List<WorkspaceItem> errors = WorkspaceItems(chat).GetRange(before, WorkspaceItems(chat).Count - before);
                         WorkspaceItem error = errors.Find(delegate(WorkspaceItem item) { return item.Kind == "error"; });
-                        if (error == null || !error.Text.Contains("Claude Code stderr: sign in first.") || fault == 1 && !error.Text.Contains("Please sign in to Claude Code.")) throw new Exception("Workspace hid Claude Code's sign-in error or stderr.");
+                        if (error == null || error.Text != Workspace.SignIn || !error.Retry || !error.Input.Contains("Claude Code stderr: sign in first.") || fault == 1 && !error.Input.Contains("Please sign in to Claude Code.")) throw new Exception("Workspace hid Claude Code's sign-in error or stderr.");
                     }
                     work.Executable = Path.Combine(folder, "missing.cmd");
                     if (work.Send(chat, "Retry this", false)) throw new Exception("A missing Claude Code ran.");
