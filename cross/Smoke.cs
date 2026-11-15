@@ -2983,7 +2983,7 @@ namespace CapriDesktop
             KeyMarkPictures(frame);
             bool advancedWas = pet.Saved.AdvancedSettings, introWas = pet.Saved.NoIntro;
             int typingWas = pet.Saved.Typing, bubbleWas = pet.BubbleTime, tierWas = pet.MainframeTier, voiceWas = pet.MainframeVoiceMode;
-            if (frame.Mods != null) frame.Mods.Close();
+            if (frame.ModsBrowser != null) frame.ModsBrowser.Close();
             pet.SetAdvancedSettings(true); frame.ShowSettings(false);
             NeonButton settingsKey = frame.Button("Settings");
             frame.HoldRow(settingsKey);
@@ -3001,9 +3001,9 @@ namespace CapriDesktop
             var nameEntry = (NeonEntry)frame.Row("What should she call you?");
             frame.HoldRow(nameEntry);
             foreach (Avalonia.Input.Key letter in new[] { Avalonia.Input.Key.S, Avalonia.Input.Key.M, Avalonia.Input.Key.H, Avalonia.Input.Key.A }) frame.Strike(letter);
-            bool typed = frame.SettingsShown && pet.Saved.AdvancedSettings && frame.Mods == null && frame.HeldNow == nameEntry;
+            bool typed = frame.SettingsShown && pet.Saved.AdvancedSettings && !frame.ModsShown && frame.HeldNow == nameEntry;
             frame.Strike(Avalonia.Input.Key.M, KeyModifiers.Control);
-            bool held = frame.SettingsShown && frame.Mods == null;
+            bool held = frame.SettingsShown && !frame.ModsShown;
             if (!settings || !simple || !advanced || !home || !offSettings || !typed || !held)
                 throw new Exception("Her Mainframe's page keys went wrong: settings " + settings + ", simple " + simple + ", advanced " + advanced + ", home " + home + ", A off Settings " + offSettings + ", in a text box " + typed + ", with Ctrl " + held);
             checks.Add("PASS Mainframe page keys: S opens Settings, H goes back to her main page and A switches Simple and Advanced Settings; each lands on the page's first option with its mark, and none fires while a text box has the keyboard or with Ctrl held");
@@ -3096,17 +3096,19 @@ namespace CapriDesktop
 
             frame.Strike(Avalonia.Input.Key.H);
             frame.Strike(Avalonia.Input.Key.M);
-            ModsWindow sheet = frame.Mods;
-            if (sheet == null) throw new Exception("M did not open her Mods window.");
-            sheet.Strike(Avalonia.Input.Key.Tab);
-            bool modsFirst = sheet.HeldSection == "DIRECTORY" && sheet.HeldFirst && sheet.HeldMarked;
-            sheet.Strike(Avalonia.Input.Key.Tab);
-            bool modsNext = sheet.HeldSection != "DIRECTORY" && sheet.HeldFirst;
-            sheet.Strike(Avalonia.Input.Key.Tab, KeyModifiers.Shift);
-            bool modsBack = sheet.HeldSection == "DIRECTORY";
-            KeyRemoveChecks(sheet);
-            sheet.Strike(Avalonia.Input.Key.Escape);
-            bool modsShut = frame.Mods == null;
+            if (!frame.ModsShown || frame.SettingsShown) throw new Exception("M did not open her Mods page.");
+            bool modsFirst = frame.HeldSection == "MODS" && frame.HeldFirst && frame.HeldMarked && frame.HeldNow == frame.Button("Import mod");
+            frame.Strike(Avalonia.Input.Key.Tab);
+            bool modsNext = frame.HeldSection == "INSTALLED" && frame.HeldFirst;
+            frame.Strike(Avalonia.Input.Key.Tab, KeyModifiers.Shift);
+            bool modsBack = frame.HeldSection == "MODS";
+            string modsWalk = TabWalk(frame, KeyModifiers.None);
+            modsBack = modsBack && modsWalk == "INSTALLED COLORS MODS";
+            frame.Strike(Avalonia.Input.Key.M);
+            modsBack = modsBack && frame.ModsShown && frame.ModsBrowser == null;
+            KeyRemoveChecks(frame);
+            frame.Strike(Avalonia.Input.Key.Escape);
+            bool modsShut = !frame.ModsShown && !frame.SettingsShown && frame.HeldNow == frame.Button("Mods");
             frame.HoldRow(settingsKey);
             frame.Strike(Avalonia.Input.Key.S);
             frame.HoldRow(nameEntry);
@@ -3116,8 +3118,8 @@ namespace CapriDesktop
             bool shut = pet.Frame == null || frame.WindowState == WindowState.Minimized;
             pet.SetAdvancedSettings(advancedWas); pet.SetTypingMode(typingWas);
             if (!modsFirst || !modsNext || !modsBack || !modsShut || !left || !shut)
-                throw new Exception("Esc in her Mainframe went wrong: M and Tab in Mods " + modsFirst + ", next " + modsNext + ", back " + modsBack + ", Esc shut Mods " + modsShut + ", Esc left Settings " + left + ", Esc closed her Mainframe " + shut);
-            checks.Add("PASS Mainframe Esc: M opens her Mods window, where Tab jumps between its sections and Esc closes it; in Settings Esc goes back to her main page, a text box included, and from her main page it closes the Mainframe");
+                throw new Exception("Esc in her Mainframe went wrong: M and Tab on Mods " + modsFirst + ", next " + modsNext + ", back " + modsBack + " (" + modsWalk + "), Esc left Mods " + modsShut + ", Esc left Settings " + left + ", Esc closed her Mainframe " + shut);
+            checks.Add("PASS Mainframe Esc: M opens her Mods page on Import mod, where Tab jumps between MODS, INSTALLED and COLORS and Esc goes back to her main page on Mods; in Settings Esc goes back to her main page, a text box included, and from her main page it closes the Mainframe");
         }
 
         private void KeyMarkPictures(Mainframe frame)
@@ -3313,7 +3315,7 @@ namespace CapriDesktop
             }
         }
 
-        private void KeyRemoveChecks(ModsWindow sheet)
+        private void KeyRemoveChecks(Mainframe sheet)
         {
             Mods mods = pet.ModList;
             if (Program.Smoke == null || Path.GetFullPath(mods.Folder) != Path.GetFullPath(Path.Combine(folder, "mods")) || mods.All.Count != 0)
@@ -3324,17 +3326,18 @@ namespace CapriDesktop
             {
                 if (!sheet.ImportMod(ModSample(input, "smoke-key-one", "\"wake_names\":[\"Keyone\"]")) || !sheet.ImportMod(ModSample(input, "smoke-key-two", "\"wake_names\":[\"Keytwo\"]")) || mods.All.Count != 2)
                     throw new Exception("The keyboard mod check could not install its two made-up mods.");
+                sheet.Sync();
                 string removed = mods.All[0].Path, kept = mods.All[1].Path;
                 NeonButton remove = null;
                 foreach (Control control in sheet.Page.Children)
-                    if (control is NeonButton button && button.Text == "Remove" && Canvas.GetTop(button) == 130) { remove = button; break; }
-                if (remove == null) throw new Exception("The Mods window has no first Remove button.");
+                    if (control is NeonButton button && button.Text == "Remove" && button.IsVisible && Canvas.GetTop(button) == 238) { remove = button; break; }
+                if (remove == null) throw new Exception("The Mods page has no first Remove button.");
                 sheet.StrikeDown(Avalonia.Input.Key.Enter, control: remove);
                 sheet.StrikeDown(Avalonia.Input.Key.Enter, control: remove);
                 if (mods.All.Count != 1 || File.Exists(removed) || !File.Exists(kept) || mods.All[0].Path != kept)
                     throw new Exception("Held Enter on Remove did not leave the second made-up mod installed.");
                 sheet.StrikeUp(Avalonia.Input.Key.Enter);
-                checks.Add("PASS Mods held Enter: two key-downs on the window's Remove button delete one of its two made-up installed mods and leave the other file and row");
+                checks.Add("PASS Mods held Enter: two key-downs on the Mods page's Remove button delete one of its two made-up installed mods and leave the other file and row");
             }
             finally
             {
@@ -4293,7 +4296,7 @@ namespace CapriDesktop
             using (Stream stream = zip.CreateEntry(name).Open()) stream.Write(bytes, 0, bytes.Length);
         }
 
-        private static NeonEntry ModColour(ModsWindow sheet, string name)
+        private static NeonEntry ModColour(Mainframe sheet, string name)
         {
             foreach (Control control in sheet.Page.Children)
                 if (Avalonia.Automation.AutomationProperties.GetName(control) == name + " color") return (NeonEntry)control;
@@ -4374,7 +4377,7 @@ namespace CapriDesktop
 
         // Legacy stand: his line on its row, her 0.8.5 strip byte for byte, a live swap each way through its switch and her tool, saved
         // in both settings files, colours on it, and a skin's own idle over it.
-        private void LegacyChecks(Mainframe frame, ModsWindow sheet, Clip idle, string blue, string input)
+        private void LegacyChecks(Mainframe frame, Clip idle, string blue, string input)
         {
             Mods mods = pet.ModList;
             System.Reflection.BindingFlags own = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
@@ -4416,7 +4419,7 @@ namespace CapriDesktop
 
             frame.Change("Legacy stand", 1);
             SkiaSharp.SKColor accent = ModPixel(idle.Strip, 120, 200);
-            if (!sheet.ImportMod(blue)) throw new Exception("A colour mod was refused on Legacy stand.");
+            if (!frame.ImportMod(blue)) throw new Exception("A colour mod was refused on Legacy stand.");
             SkiaSharp.SKColor hair = ModPixel(idle.Strip, 95, 90), sameAccent = ModPixel(idle.Strip, 120, 200);
             if (!idle.Old || hair.Blue < 200 || hair.Red > 30 || Math.Abs(sameAccent.Green - accent.Green) > 4) throw new Exception("A colour mod didn't reach Legacy stand: " + hair);
             frame.Change("Legacy stand", 0);
@@ -4426,9 +4429,9 @@ namespace CapriDesktop
             foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
             if (ModPixel(idle.Strip, 95, 90) != new SkiaSharp.SKColor(251, 0, 72)) throw new Exception("Taking a colour mod off left Legacy stand coloured.");
             PixelSize size = Pet.ArtSize("Capri.Sprite.idle.png");
-            if (!sheet.ImportMod(ModSkin(input, "smoke-legacy-old", "idle.png", Mods.OldIdleWide, Mods.OldIdleHigh)) || !idle.Old || ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("Legacy stand went over a skin's own old idle.");
+            if (!frame.ImportMod(ModSkin(input, "smoke-legacy-old", "idle.png", Mods.OldIdleWide, Mods.OldIdleHigh)) || !idle.Old || ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("Legacy stand went over a skin's own old idle.");
             foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
-            if (!sheet.ImportMod(ModSkin(input, "smoke-legacy-new", "idle.png", size.Width, size.Height)) || idle.Old || idle.Count != 60 || idle.Fps != 24 || ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("Legacy stand went over a skin's own new idle.");
+            if (!frame.ImportMod(ModSkin(input, "smoke-legacy-new", "idle.png", size.Width, size.Height)) || idle.Old || idle.Count != 60 || idle.Fps != 24 || ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("Legacy stand went over a skin's own new idle.");
             foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
             if (!idle.Old || idle.Count != 16) throw new Exception("Taking a skin off lost Legacy stand.");
             frame.Change("Legacy stand", 0);
@@ -4463,15 +4466,19 @@ namespace CapriDesktop
             Mods mods = pet.ModList;
             string input = Path.Combine(folder, "mod-inputs"); Directory.CreateDirectory(input);
             if (mods.Folder != Path.Combine(folder, "mods")) throw new Exception("Mods are not beside her settings.");
-            frame.ShowSettings(false); frame.Press("Mods");
-            ModsWindow sheet = frame.Mods;
-            if (sheet == null || sheet.SystemDecorations != SystemDecorations.None) throw new Exception("The CAPRI band's Mods key did not open her Mods window.");
-            frame.OpenPage("mods");
-            if (frame.Mods != sheet) throw new Exception("The Mods page opened a second window.");
+            frame.ShowSettings(false);
+            ModsTitleChecks(frame);
+            frame.Press("Mods");
+            if (!frame.ModsShown || frame.SettingsShown || frame.ModsBrowser != null) throw new Exception("The title bar's Mods key did not open her Mods page.");
+            frame.Press("Browse mods");
+            ModsWindow sheet = frame.ModsBrowser;
+            if (sheet == null || sheet.SystemDecorations != SystemDecorations.None || sheet.Owner != frame) throw new Exception("Browse mods on her Mods page did not open the mods directory window.");
+            frame.Press("Browse mods"); frame.OpenPage("mods");
+            if (frame.ModsBrowser != sheet || !frame.ModsShown) throw new Exception("Browse mods or the Mods page route opened a second directory window.");
             try
             {
                 string settings = ModSample(input, "smoke-names", "\"wake_names\":[\"Vee\",\"Cap\"],\"heard_as\":[\"coffee\"],\"sounds_like\":true,\"hearing_log\":true");
-                if (!sheet.ImportMod(settings) || mods.All.Count != 1 || !mods.All[0].On || mods.WakeNames.Length != 2 || !Hands.HeardName("hey Vee") || !Hands.HeardName("coffee") || !Hands.HeardName("capp") || !Hands.AlsoCalled().Contains("Vee")) throw new Exception("A settings mod did not add her names and spellings.");
+                if (!frame.ImportMod(settings) || mods.All.Count != 1 || !mods.All[0].On || mods.WakeNames.Length != 2 || !Hands.HeardName("hey Vee") || !Hands.HeardName("coffee") || !Hands.HeardName("capp") || !Hands.AlsoCalled().Contains("Vee")) throw new Exception("A settings mod did not add her names and spellings.");
                 Func<string, string> think = pet.Think;
                 try
                 {
@@ -4482,33 +4489,33 @@ namespace CapriDesktop
                 }
                 finally { pet.Think = think; }
                 if (!File.Exists(mods.LogPath) || !File.ReadAllText(mods.LogPath).Contains("FOR HER | hey Vee")) throw new Exception("A settings mod did not keep its hearing log.");
-                sheet.SwitchMod(0); mods.Load();
+                frame.SwitchMod(0); mods.Load();
                 if (mods.All[0].On || Hands.HeardName("Vee") || Hands.HeardName("coffee") || Hands.HeardName("capp") || Hands.AlsoCalled().Length != 0 || File.Exists(mods.LogPath)) throw new Exception("Turning a settings mod off did not undo it or survive reload.");
-                sheet.SwitchMod(0); mods.Load();
+                frame.SwitchMod(0); mods.Load();
                 if (!mods.All[0].On || !Hands.HeardName("Vee")) throw new Exception("Turning a settings mod on did not survive reload.");
-                sheet.RemoveMod(0);
+                frame.RemoveMod(0);
                 if (mods.All.Count != 0 || File.Exists(Path.Combine(mods.Folder, "smoke-names" + Mods.Extension)) || Hands.HeardName("Vee")) throw new Exception("Removing a settings mod left it applied.");
                 checks.Add("PASS mods settings: import, on, off, reload and remove share Windows' names, spellings, sounds-like and hearing-log behavior");
 
                 Clip idle = pet.Clips[0], walk = pet.Clips[10];
                 SkiaSharp.SKColor original = ModPixel(idle.Strip, 36, 74), accent = ModPixel(idle.Strip, 52, 218);
                 string blue = ModSample(input, "smoke-blue", "\"colors\":{\"hair\":\"#0000FF\"}");
-                if (!sheet.ImportMod(blue)) throw new Exception("A colour mod was refused.");
+                if (!frame.ImportMod(blue)) throw new Exception("A colour mod was refused.");
                 SkiaSharp.SKColor hair = ModPixel(idle.Strip, 36, 74), sameAccent = ModPixel(idle.Strip, 52, 218);
                 if (hair.Blue < 200 || hair.Red > 30 || hair.Alpha != original.Alpha || Math.Abs(sameAccent.Green - accent.Green) > 4) throw new Exception("A colour mod did not recolour her hair alone.");
                 mods.Load();
                 if (ModPixel(idle.Strip, 36, 74).Blue < 200) throw new Exception("A colour mod did not survive reload.");
-                sheet.SwitchMod(0);
+                frame.SwitchMod(0);
                 if (ModPixel(idle.Strip, 36, 74) != original) throw new Exception("A colour mod did not restore her original art when off.");
-                sheet.SwitchMod(0);
+                frame.SwitchMod(0);
                 mods.SetColour(ArtColors.Eyes, "#FFAA00");
                 if (mods.All.FindAll(m => m.On && m.File.Colors != null).Count != 1 || mods.ColoursNow[ArtColors.Hair] != "#0000FF") throw new Exception("Picked colors lost the other slots or left two sets on.");
-                sheet.Sync();
-                ModColour(sheet, "Hair").Box.Text = "#00FF00"; ModColour(sheet, "Eyes").Box.Text = "#12";
-                sheet.SaveColours();
-                if (mods.ColoursNow[ArtColors.Hair] != "#0000FF" || !sheet.StatusText.Contains("isn't a colour")) throw new Exception("Invalid color entry saved part of a change.");
-                ModColour(sheet, "Eyes").Box.Text = "#FFAA00"; sheet.SaveColours(); mods.Load();
-                if (mods.ColoursNow[ArtColors.Hair] != "#00FF00" || ModPixel(idle.Strip, 36, 74).Green < 200) throw new Exception("The Mods window did not save and apply picked colors.");
+                frame.Sync();
+                ModColour(frame, "Hair").Box.Text = "#00FF00"; ModColour(frame, "Eyes").Box.Text = "#12";
+                frame.SaveColours();
+                if (mods.ColoursNow[ArtColors.Hair] != "#0000FF" || !frame.ModStatusText.Contains("isn't a colour")) throw new Exception("Invalid color entry saved part of a change.");
+                ModColour(frame, "Eyes").Box.Text = "#FFAA00"; frame.SaveColours(); mods.Load();
+                if (mods.ColoursNow[ArtColors.Hair] != "#00FF00" || ModPixel(idle.Strip, 36, 74).Green < 200) throw new Exception("The Mods page did not save and apply picked colors.");
                 mods.ResetColours();
                 if (ModPixel(idle.Strip, 36, 74) != original || ArtColors.Active) throw new Exception("Reset did not restore her colors.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
@@ -4522,13 +4529,13 @@ namespace CapriDesktop
                 PixelSize size = Pet.ArtSize("Capri.Sprite.idle.png");
                 SkiaSharp.SKColor walkWas = ModPixel(walk.Strip, 0, 0);
                 string skin = ModSkin(input, "smoke-skin", "idle.png", size.Width, size.Height);
-                if (!sheet.ImportMod(skin) || ModPixel(idle.Strip, 0, 0).Red != 255 || ModPixel(walk.Strip, 0, 0) != walkWas) throw new Exception("A skin did not swap its strip or changed a strip it doesn't hold.");
-                sheet.SwitchMod(0);
+                if (!frame.ImportMod(skin) || ModPixel(idle.Strip, 0, 0).Red != 255 || ModPixel(walk.Strip, 0, 0) != walkWas) throw new Exception("A skin did not swap its strip or changed a strip it doesn't hold.");
+                frame.SwitchMod(0);
                 if (ModPixel(idle.Strip, 36, 74) != original) throw new Exception("Turning a skin off did not restore her art.");
-                sheet.SwitchMod(0); mods.Load();
+                frame.SwitchMod(0); mods.Load();
                 if (ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("A skin did not survive reload.");
                 string ears = ModAccessory(input, "smoke-ears", size.Width, size.Height);
-                if (!sheet.ImportMod(ears)) throw new Exception("An accessory was refused.");
+                if (!frame.ImportMod(ears)) throw new Exception("An accessory was refused.");
                 Mod earsMod = mods.All.Find(m => m.File.Id == "smoke-ears"), skinMod = mods.All.Find(m => m.File.Id == "smoke-skin");
                 SkiaSharp.SKColor topped = ModPixel(idle.Strip, 1, 1), under = ModPixel(idle.Strip, 20, 20);
                 if (earsMod == null || !earsMod.On || !skinMod.On || topped.Green < 200 || topped.Red > 30 || under.Red != 255) throw new Exception("An accessory did not draw over the outfit under it, or took the outfit off.");
@@ -4540,7 +4547,7 @@ namespace CapriDesktop
                 if (Pet.SkinAccessories.Length != 0 || ModPixel(idle.Strip, 1, 1).Red != 255) throw new Exception("Removing an accessory left it drawn.");
                 checks.Add("PASS mods accessories: an accessory draws over the outfit under it or her own art, keeps the outfit on, and off and remove take it away");
                 string hat = ModHatSkin(input, "smoke-hat");
-                if (!sheet.ImportMod(hat)) throw new Exception("A whole skin to stack was refused.");
+                if (!frame.ImportMod(hat)) throw new Exception("A whole skin to stack was refused.");
                 Mod hatMod = mods.All.Find(m => m.File.Id == "smoke-hat");
                 SkiaSharp.SKColor hatTop = ModPixel(idle.Strip, 5, 5), hatHair = ModPixel(idle.Strip, 36, 74);
                 if (hatMod == null || !hatMod.On || !mods.All.Find(m => m.File.Id == "smoke-skin").On || mods.SkinStack.Count != 2 || mods.SkinStack[1] != hatMod
@@ -4549,7 +4556,7 @@ namespace CapriDesktop
                 mods.Remove(hatMod);
                 if (Pet.SkinAccessories.Length != 0 || ModPixel(idle.Strip, 5, 5).Red != 255) throw new Exception("Removing a stacked whole skin left it drawn.");
                 checks.Add("PASS mods stacking: a whole skin stacked over another adds only what it changes from her own art, so the outfit under it shows everywhere else, like on Windows");
-                sheet.ImportMod(blue);
+                frame.ImportMod(blue);
                 if (ModPixel(idle.Strip, 0, 0).Blue < 200) throw new Exception("Colors did not apply to a skin.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
                 if (Pet.SkinFolder != null || ModPixel(idle.Strip, 36, 74) != original || Directory.Exists(Path.Combine(mods.Folder, "smoke-skin-skin"))) throw new Exception("Removing skins left her art changed.");
@@ -4563,22 +4570,22 @@ namespace CapriDesktop
                 checks.Add("PASS mods skins: import swaps art, missing strips keep hers, off and removal restore it, reload and colors work, and invalid sizes and paths are refused");
 
                 string oldSkin = ModSkin(input, "smoke-old", "idle.png", Mods.OldIdleWide, Mods.OldIdleHigh);
-                if (!sheet.ImportMod(oldSkin) || !idle.Old || idle.Count != 16 || idle.Fps != 8 || idle.ShiftX != 0 || !idle.Even || idle.Wide != 240) throw new Exception("A skin from before her standing set didn't keep its 16 cells: " + idle.Count + " at " + idle.Fps + ".");
+                if (!frame.ImportMod(oldSkin) || !idle.Old || idle.Count != 16 || idle.Fps != 8 || idle.ShiftX != 0 || !idle.Even || idle.Wide != 240) throw new Exception("A skin from before her standing set didn't keep its 16 cells: " + idle.Count + " at " + idle.Fps + ".");
                 mods.Load();
                 if (!idle.Old) throw new Exception("An old skin didn't stay in its cells after a reload.");
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
                 if (idle.Old || idle.Count != 60 || idle.Fps != 24 || idle.Wide != 116) throw new Exception("Taking an old skin off didn't bring her new stand back.");
                 checks.Add("PASS mods old skins: a 3840 x 384 idle.png keeps its 16 cells at 8 fps through a reload, and off brings her new stand back");
-                LegacyChecks(frame, sheet, idle, blue, input);
+                LegacyChecks(frame, idle, blue, input);
 
-                CodeModChecks(sheet, mods, input);
+                CodeModChecks(frame, mods, input);
 
                 string skill = Path.Combine(input, "smoke-skill" + Mods.SkillExtension);
                 File.WriteAllText(skill, "---\ncapri-skill: 1\nid: smoke-skill\nname: Smoke skill\ngames: Minecraft\n---\nOnly dig straight down with a ladder.\n");
                 Func<string> openWas = Hands.GameOpen;
                 try
                 {
-                    if (!sheet.ImportMod(skill) || mods.All.Count != 1 || !mods.All[0].Skill) throw new Exception("A skill didn't import on " + Hands.ThisComputer + ".");
+                    if (!frame.ImportMod(skill) || mods.All.Count != 1 || !mods.All[0].Skill) throw new Exception("A skill didn't import on " + Hands.ThisComputer + ".");
                     Hands.GameOpen = delegate { return "Minecraft 26.3 - Singleplayer"; };
                     if (!Chores.Skilled().Contains("Only dig straight down with a ladder.")) throw new Exception("A skill didn't reach her jobs while its game was open.");
                     Hands.GameOpen = delegate { return "Terraria"; };
@@ -4586,7 +4593,7 @@ namespace CapriDesktop
                     string generalFile = Path.Combine(input, "skill-general" + Mods.SkillExtension), hiddenFile = Path.Combine(input, "skill-off" + Mods.SkillExtension);
                     File.WriteAllText(generalFile, "---\ncapri-skill: 1\nid: skill-general\nname: General workflow\n---\nKeep the steps in order.");
                     File.WriteAllText(hiddenFile, "---\ncapri-skill: 1\nid: skill-off\nname: Hidden skill\n---\nHidden know-how.");
-                    if (!sheet.ImportMod(generalFile)) throw new Exception("The Mac or Linux Mods window couldn't import a general skill.");
+                    if (!frame.ImportMod(generalFile)) throw new Exception("The Mac or Linux Mods page couldn't import a general skill.");
                     Mod general = mods.All.Find(mod => mod.File.Id == "skill-general"), hidden = mods.Import(hiddenFile, null);
                     mods.Set(hidden, false, null);
                     string line = mods.SkillNote;
@@ -4637,22 +4644,23 @@ namespace CapriDesktop
                     checks.Add("PASS mods skills: Mac and Linux chat and jobs list enabled titles, read full skills by title or id, accept general skills and keep reads out of input and approvals");
                 }
                 finally { Hands.GameOpen = openWas; }
-                sheet.RemoveMod(0);
+                frame.Sync(); frame.RemoveMod(0);
                 if (mods.All.Count != 0 || Chores.Skilled() != "") throw new Exception("Removing a skill left it behind.");
                 foreach (string prompt in new[] { Hands.Note, Hands.Prompt + Hands.Listing, Hands.Tools, Hands.ClaudeTools, Chores.Allowed })
                     if (prompt.Contains("Skills on in Mods") || prompt.Contains("read_skill")) throw new Exception("A Mac or Linux prompt or tool list told her about skills with none on.");
                 checks.Add("PASS mods skills: a .capri-skill imports, reaches her jobs only while its game is open, and removing it takes it out");
 
-                ModDirectoryChecks(sheet, input, blue, skin);
+                ModDirectoryChecks(frame, sheet, input, blue, skin);
             }
             finally
             {
                 sheet.Close();
+                frame.ShowMods(false);
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
             }
         }
 
-        private void ModDirectoryChecks(ModsWindow sheet, string input, string blue, string skin)
+        private void ModDirectoryChecks(Mainframe frame, ModsWindow sheet, string input, string blue, string skin)
         {
             Func<string, long, byte[]> get = ModDirectory.Get, soon = ModDirectory.GetSoon;
             Func<string, string, byte[]> post = ModDirectory.Post;
@@ -4735,7 +4743,7 @@ namespace CapriDesktop
                 indexJson = goodIndex;
                 checks.Add("PASS mods index: exact folder and file matches add capped plain names, authors and descriptions; mismatches, missing entries, broken and oversized indexes fall back without changing tree fingerprints");
                 sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working && sheet.HasPreview(0) && sheet.HasPreview(1); }, "the mods directory and previews");
-                if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.AuthorOf(0) != "by Vocyn" || sheet.AboutOf(0) != about || sheet.TitleOf(1) != "B Sample Skin" || sheet.AuthorOf(1) != null || sheet.AboutOf(1) != null || sheet.PageText != "Page 1 of 2" || !sheet.CanDownload(0)) throw new Exception("The Mods window did not show its real names, authors, descriptions and fallbacks.");
+                if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.AuthorOf(0) != "by Vocyn" || sheet.AboutOf(0) != about || sheet.TitleOf(1) != "B Sample Skin" || sheet.AuthorOf(1) != null || sheet.AboutOf(1) != null || sheet.TitleOf(2) != "Code: Sample" || sheet.TitleOf(3) != "D Names" || sheet.TitleOf(4) != null || sheet.PageText != null || !sheet.CanDownload(0)) throw new Exception("The Mods window did not show its real names, authors, descriptions and fallbacks.");
                 sheet.Search("VOCYN colour");
                 if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.TitleOf(1) != null) throw new Exception("The directory did not search author and description words together.");
                 sheet.Search("");
@@ -4748,11 +4756,9 @@ namespace CapriDesktop
                 sheet.PickSort(1);
                 if (sheet.TitleOf(0) != "D Names" || sheet.TitleOf(1) != "Colors: Blue & Bright") throw new Exception("Sorting by Downloads didn't put the most downloaded first: " + sheet.TitleOf(0) + " / " + sheet.TitleOf(1));
                 sheet.PickSort(2);
-                string rated1 = sheet.TitleOf(0), rated2 = sheet.TitleOf(1);
-                sheet.NextPage();
-                if (rated1 != "Code: Sample" || rated2 != "Colors: Blue & Bright" || sheet.TitleOf(0) != "D Names" || sheet.TitleOf(1) != "B Sample Skin") throw new Exception("Sorting by Top rated didn't put the best rated first and unrated last: " + rated1 + " / " + rated2 + " / " + sheet.TitleOf(0) + " / " + sheet.TitleOf(1));
+                if (sheet.TitleOf(0) != "Code: Sample" || sheet.TitleOf(1) != "Colors: Blue & Bright" || sheet.TitleOf(2) != "D Names" || sheet.TitleOf(3) != "B Sample Skin") throw new Exception("Sorting by Top rated didn't put the best rated first and unrated last: " + sheet.TitleOf(0) + " / " + sheet.TitleOf(1) + " / " + sheet.TitleOf(2) + " / " + sheet.TitleOf(3));
                 sheet.PickSort(0);
-                if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.TitleOf(1) != "B Sample Skin" || sheet.PageText != "Page 1 of 2") throw new Exception("Sorting A to Z again didn't go back to the first page in name order.");
+                if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.TitleOf(1) != "B Sample Skin" || sheet.TitleOf(2) != "Code: Sample") throw new Exception("Sorting A to Z again didn't go back to name order.");
                 checks.Add("PASS mods directory sort: A to Z, Downloads and Top rated order the cards like Windows, unrated last, each from page 1");
                 sheet.View(0);
                 ReadmeWindow reading = sheet.Readme;
@@ -4772,8 +4778,7 @@ namespace CapriDesktop
                 reading.Close();
                 MainframeWait(delegate { return sheet.Readme == null; }, "closing a README");
                 checks.Add("PASS mods directory View: a card's README shows its useful lines once a session, and a mod with no README, or one GitHub doesn't answer for, shows its description");
-                sheet.NextPage();
-                if (sheet.TitleOf(0) != "Code: Sample" || sheet.AuthorOf(0) != "by Sample Author") throw new Exception("The directory did not change page.");
+                if (sheet.TitleOf(2) != "Code: Sample" || sheet.AuthorOf(2) != "by Sample Author") throw new Exception("The directory's third card lost its name or author.");
                 sheet.PickKind(2);
                 if (!sheet.CanDownload(0) || sheet.MetaOf(0) != "RUNS CODE.") throw new Exception("A code mod in the directory didn't look installable on Mac and Linux: " + sheet.MetaOf(0));
                 sheet.PickKind(1); sheet.Search("names");
@@ -4787,34 +4792,45 @@ namespace CapriDesktop
                 if (rated != 1 || sheet.StatusText != "Rating saved.") throw new Exception("A mod rating did not reach the worker.");
                 sheet.Install(1); MainframeWait(delegate { return !sheet.Working && counted == 3; }, "a directory skin");
                 if (!pet.ModList.All.Exists(m => m.Skin && m.On)) throw new Exception("A directory skin did not install.");
-                sheet.ImportMod(names);
-                sheet.ImportMod(ModSample(input, "smoke-extra-a", "\"wake_names\":[\"Ari\"]"));
-                sheet.ImportMod(ModSample(input, "smoke-extra-b", "\"wake_names\":[\"Bea\"]"));
-                sheet.NextInstalledPage();
-                if (sheet.InstalledPageText != "Page 2 of 2") throw new Exception("Installed mods did not reach their second page.");
-                sheet.SwitchMod(0);
+                frame.ImportMod(names);
+                frame.ImportMod(ModSample(input, "smoke-extra-a", "\"wake_names\":[\"Ari\"]"));
+                frame.ImportMod(ModSample(input, "smoke-extra-b", "\"wake_names\":[\"Bea\"]"));
+                frame.NextInstalledPage();
+                if (frame.InstalledPageText != "Page 2 of 2") throw new Exception("Installed mods did not reach their second page.");
+                frame.SwitchMod(0);
                 if (pet.ModList.All.Find(m => m.File.Id == "smoke-skin").On) throw new Exception("The second installed page switched the wrong mod.");
-                sheet.RemoveMod(0);
-                if (pet.ModList.All.Count != 4 || sheet.InstalledPageText != "Page 1 of 1") throw new Exception("Removing the last installed page did not bring the list back.");
+                frame.RemoveMod(0);
+                if (pet.ModList.All.Count != 4 || frame.InstalledPageText != null) throw new Exception("Removing the last installed page did not bring the list back to one page.");
                 foreach (Mod extra in pet.ModList.All.ToArray()) if (extra.File.Id.StartsWith("smoke-extra-", StringComparison.Ordinal)) pet.ModList.Remove(extra);
                 string older = Path.Combine(input, "older"); Directory.CreateDirectory(older);
-                if (!sheet.ImportMod(ModSample(older, "smoke-directory-names", "\"version\":\"0.1\",\"wake_names\":[\"Vee\"]"))) throw new Exception("An older copy of a directory mod didn't import: " + sheet.StatusText);
+                if (!frame.ImportMod(ModSample(older, "smoke-directory-names", "\"version\":\"0.1\",\"wake_names\":[\"Vee\"]"))) throw new Exception("An older copy of a directory mod didn't import: " + frame.ModStatusText);
                 pet.ModList.Set(pet.ModList.All.Find(m => m.File.Id == "smoke-directory-names"), false, null);
                 int fetchedBefore = fetched, countedBefore = counted;
-                sheet.UpdateMods(); MainframeWait(delegate { return !sheet.Working; }, "a look for mod updates");
-                if (sheet.UpdateText != "Update 1" || sheet.StatusText != "There's an update for D Names. Press Update 1 to get it." || fetched != fetchedBefore + 1) throw new Exception("Update mods didn't find the newer copy: " + sheet.UpdateText + " | " + sheet.StatusText);
+                frame.Press("Update mods"); MainframeWait(delegate { return !frame.ModsWorking; }, "a look for mod updates");
+                if (frame.UpdateText != "Update 1" || frame.ModStatusText != "There's an update for D Names. Press Update 1 to get it." || fetched != fetchedBefore + 1) throw new Exception("Update mods didn't find the newer copy: " + frame.UpdateText + " | " + frame.ModStatusText);
                 sheet.Search("names");
                 if (sheet.DownloadText(0) != "Update" || sheet.MetaOf(0) != "SETTINGS. Update available.") throw new Exception("A card with an update didn't say so: " + sheet.DownloadText(0) + " | " + sheet.MetaOf(0));
                 sheet.Search("");
-                sheet.UpdateMods(); MainframeWait(delegate { return !sheet.Working; }, "getting mod updates");
+                frame.UpdateMods();
+                sheet.Search("names");
+                bool cardOff = frame.ModsBusy && sheet.DownloadText(0) == "Update" && !sheet.CanDownload(0);
+                sheet.Install(0);
+                bool cardRefused = sheet.StatusText == "Wait for her mods to finish updating.";
+                sheet.Search("");
+                MainframeWait(delegate { return !frame.ModsWorking; }, "getting mod updates");
+                if (!cardOff || !cardRefused) throw new Exception("A card's Update ran beside Update mods for the same mod: off " + cardOff + ", " + sheet.StatusText);
                 Mod updated = pet.ModList.All.Find(m => m.File.Id == "smoke-directory-names");
-                if (sheet.StatusText != "Updated D Names." || sheet.UpdateText != "Update mods" || fetched != fetchedBefore + 1 || counted != countedBefore || updated == null || updated.On || updated.File.Version != null)
-                    throw new Exception("Getting an update didn't use its download, keep it off and leave the count alone: " + sheet.StatusText + " | " + sheet.UpdateText);
-                sheet.UpdateMods(); MainframeWait(delegate { return !sheet.Working; }, "a second look for mod updates");
-                if (sheet.StatusText != "Your mods are up to date." || fetched != fetchedBefore + 1) throw new Exception("An updated mod still looked out of date: " + sheet.StatusText);
+                if (frame.ModStatusText != "Updated D Names." || frame.UpdateText != "Update mods" || fetched != fetchedBefore + 1 || counted != countedBefore || updated == null || updated.On || updated.File.Version != null)
+                    throw new Exception("Getting an update didn't use its download, keep it off and leave the count alone: " + frame.ModStatusText + " | " + frame.UpdateText);
+                frame.UpdateMods(); MainframeWait(delegate { return !frame.ModsWorking; }, "a second look for mod updates");
+                if (frame.ModStatusText != "Your mods are up to date." || fetched != fetchedBefore + 1) throw new Exception("An updated mod still looked out of date: " + frame.ModStatusText);
                 pet.ModList.Set(updated, true, null);
+                checks.Add("PASS mods busy: while Update mods gets a mod, that mod's card Update is off and refuses, so it downloads and updates once");
                 checks.Add("PASS mods updates: Update mods finds a newer directory copy and marks its card, the second press gets it from the kept download with the mod still off and no download counted, and then they're up to date");
-                sheet.ImportMod(skin);
+                frame.ImportMod(skin);
+                byte[] fewJson = json;
+                json = ModManyTree(tree.ToString(), blobs, preview, previewSha, names);
+                ModGridChecks(frame, sheet);
                 StringBuilder fullIndex = new StringBuilder("{\"format\":1,\"mods\":[");
                 for (int i = 0; i < folders.Length; i++)
                     fullIndex.Append("{\"folder\":\"" + folders[i] + "\",\"file\":\"" + Path.GetFileName(files[i]) + "\",\"name\":\"Colors: Bubblegum & " + new string('N', 140) + "\",\"author\":\"" + new string('A', 90) + "\",\"about\":\"Pink hair and cyan accents. " + new string('x', 700) + "\"},");
@@ -4828,18 +4844,127 @@ namespace CapriDesktop
                     if (wrong != null || Math.Abs(sheet.Zoom - scale / 100.0) > 0.001) throw new Exception("Mods layout at " + scale + "%: " + wrong);
                     sheet.SavePicture(Path.Combine(folder, "mainframe-mods-" + scale + ".png"));
                 }
-                indexJson = goodIndex;
+                ModsPageChecks(frame);
+                indexJson = goodIndex; json = fewJson;
                 sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the named directory after layout checks");
                 pet.SetMainframeSize(100); sheet.Sync(); sheet.SavePicture(Path.Combine(folder, "mainframe-mods.png"));
                 using (Bitmap picture = new Bitmap(Path.Combine(folder, "mainframe-mods.png"))) if (picture.PixelSize.Width < 380 || picture.PixelSize.Height < 100) throw new Exception("The Mods window picture is empty.");
                 checks.Add("PASS mods directory: fake GitHub tree, previews, filters, pages, verified downloads, worker counts and ratings; code mods install on Mac and Linux too");
-                checks.Add("PASS mods window: long names, authors and descriptions fit with Barlow and cut corners at 100%, 150% and 200% without overlaps; Mainframe pictures include mainframe-mods.png");
+                checks.Add("PASS mods window: long names, authors and descriptions fit the 3 x 2 cards with Barlow and cut corners at 100%, 150% and 200% without overlaps; Mainframe pictures include mainframe-mods.png");
             }
             finally
             {
                 try { MainframeWait(delegate { return !sheet.PreviewsPending && !sheet.Working; }, "pending mod requests"); }
                 finally { ModDirectory.Get = get; ModDirectory.GetSoon = soon; ModDirectory.Post = post; ModDirectory.ForgetReadmes(); }
             }
+        }
+
+        // The fake directory with four more mods after its own, so the 3 x 2 cards need a second page.
+        private static byte[] ModManyTree(string tree, Dictionary<string, byte[]> blobs, byte[] preview, string previewSha, string names)
+        {
+            byte[] bytes = File.ReadAllBytes(names); string sha = ModDirectory.BlobSha(bytes); blobs[sha] = bytes;
+            StringBuilder more = new StringBuilder();
+            for (int i = 1; i <= 4; i++)
+                more.Append(",{\"path\":\"mods/e-extra-" + i + "/extra-" + i + Mods.Extension + "\",\"type\":\"blob\",\"sha\":\"" + sha + "\",\"size\":" + bytes.Length + "},{\"path\":\"mods/e-extra-" + i + "/preview.png\",\"type\":\"blob\",\"sha\":\"" + previewSha + "\",\"size\":" + preview.Length + "}");
+            return Encoding.UTF8.GetBytes(tree.Substring(0, tree.Length - 2) + more + "]}");
+        }
+
+        // The directory window at Windows' size: three cards across and two down, its keys where Windows has them, and a second
+        // page once there are more than six mods.
+        private void ModGridChecks(Mainframe frame, ModsWindow sheet)
+        {
+            pet.SetMainframeSize(100); sheet.Sync();
+            sheet.Search(""); sheet.PickKind(0); sheet.PickSort(0);
+            sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working && !sheet.PreviewsPending; }, "a directory with eight mods");
+            sheet.UpdateLayout();
+            string wrong = null;
+            if (ModsWindow.Wide != 744 || ModsWindow.Tall != 782 || ModsWindow.Across != 3 || ModsWindow.Down != 2 || sheet.Page.Width != 744 || sheet.Page.Height != 782) wrong = "its size is " + sheet.Page.Width + " x " + sheet.Page.Height;
+            for (int i = 0; wrong == null && i < ModsWindow.Cards; i++)
+            {
+                Rect card = sheet.CardBox(i), want = new Rect(28 + 233 * (i % 3), 140 + 284 * (i / 3), 222, 272);
+                if (sheet.TitleOf(i) == null || !sheet.HasPreview(i) || card != want) wrong = "card " + i + " is at " + card;
+            }
+            string[] names = { "Search the mods directory", "Show all in the mods directory", "Show skills in the mods directory", "Sort the mods directory by a to z", "Sort the mods directory by top rated", "Refresh", "Close", "Back", "Next" };
+            Rect[] boxes = { new Rect(28, 74, 270, 26), new Rect(306, 76, 76, 22), new Rect(634, 76, 76, 22), new Rect(476, 106, 76, 22), new Rect(640, 106, 76, 22), new Rect(604, 20, 80, 22), new Rect(690, 20, 26, 22), new Rect(28, 710, 60, 22), new Rect(656, 710, 60, 22) };
+            for (int i = 0; wrong == null && i < names.Length; i++) if (sheet.BoxOf(names[i]) != boxes[i]) wrong = names[i] + " is at " + sheet.BoxOf(names[i]);
+            if (wrong == null && (sheet.PageText != "Page 1 of 2" || sheet.EmptyText != null)) wrong = "eight mods show " + sheet.PageText;
+            if (wrong == null) wrong = sheet.Crowded();
+            pet.SetMainframeSize(150); sheet.Sync(); sheet.UpdateLayout();
+            sheet.SavePicture(Path.Combine(folder, "mods-directory-150.png"));
+            pet.SetMainframeSize(100); sheet.Sync(); sheet.UpdateLayout();
+            sheet.SavePicture(Path.Combine(folder, "mods-directory-100.png"));
+            sheet.NextPage();
+            if (wrong == null && (sheet.PageText != "Page 2 of 2" || sheet.TitleOf(0) == null || sheet.TitleOf(1) == null || sheet.TitleOf(2) != null || sheet.TitleOf(5) != null)) wrong = "the second page shows " + sheet.PageText + ", " + sheet.TitleOf(2);
+            sheet.PickSort(1);
+            if (wrong == null && (sheet.PageText != "Page 1 of 2" || sheet.TitleOf(0) != "D Names")) wrong = "sorting from the second page shows " + sheet.PageText + ", " + sheet.TitleOf(0);
+            sheet.PickSort(0); sheet.Search("no mod is called this");
+            if (wrong == null && (sheet.EmptyText != "No mods match that." || sheet.PageText != null || sheet.TitleOf(0) != null)) wrong = "a search with no match shows " + sheet.EmptyText;
+            sheet.Search("");
+            if (wrong != null) throw new Exception("The mods directory isn't Windows' 3 x 2 grid: " + wrong);
+            checks.Add("PASS mods directory grid: a 744 x 782 window like Windows with three cards across and two down, 222 wide at 28 + 233 across and 140 + 284 down; search, the five kinds, the three sorts, Refresh, Close, Back and Next where Windows has them; eight mods page 1 of 2 to 2 of 2, a new sort goes back to page 1, and no match says so; mods-directory-100.png and mods-directory-150.png");
+        }
+
+        // Mods beside Settings in her title bar and her version beside Support, where Windows has them.
+        private void ModsTitleChecks(Mainframe frame)
+        {
+            NeonButton settings = frame.Button("Settings"), mods = frame.Button("Mods"), remote = frame.Button("Remote"), support = frame.Button("Support");
+            NeonCaption version = frame.VersionLabel;
+            string wrong = null;
+            if (settings == null || mods == null || remote == null || support == null || frame.ModsShown || frame.Count("Mods") != 1) wrong = "it has no Settings, Remote and Support with one Mods";
+            else if (Canvas.GetLeft(settings) != 146 || Canvas.GetTop(settings) != 20 || Canvas.GetLeft(mods) != 234 || Canvas.GetTop(mods) != 20 || mods.Width != 56 || mods.Height != 22) wrong = "Mods is at " + Canvas.GetLeft(mods) + ", " + Canvas.GetTop(mods);
+            else if (!version.IsVisible || version.Text != "v" + typeof(Pet).Assembly.GetName().Version || Canvas.GetLeft(version) != 196 || version.Width != 66 || Canvas.GetTop(version) != Canvas.GetTop(support) || version.Align != TextAlignment.Right
+                || Canvas.GetLeft(remote) + remote.Width > Canvas.GetLeft(version) || Canvas.GetLeft(version) + version.Width > Canvas.GetLeft(support) || version.TextFits() != null) wrong = "the version " + version.Text + " is at " + Canvas.GetLeft(version) + ", " + Canvas.GetTop(version);
+            frame.ShowSettings(true);
+            if (wrong == null && (mods.IsVisible || version.IsVisible)) wrong = "Mods or the version stayed on Settings' page";
+            frame.ShowSettings(false); frame.Press("Mods");
+            NeonButton back = frame.Button("Back");
+            if (wrong == null && (!frame.ModsShown || back != settings || Canvas.GetLeft(back) != 146 || !mods.IsVisible || version.IsVisible || frame.Page.Width != 380)) wrong = "the Mods page didn't turn Settings into Back with Mods still beside it";
+            frame.Press("Mods");
+            if (wrong == null && (frame.ModsShown || frame.Button("Settings") != settings)) wrong = "Mods didn't toggle her Mods page off";
+            frame.Press("Mods"); frame.Press("Back");
+            if (wrong == null && (frame.ModsShown || frame.SettingsShown)) wrong = "Back didn't leave her Mods page";
+            frame.ShowMods(true); frame.ShowSettings(true);
+            if (wrong == null && (frame.ModsShown || !frame.SettingsShown)) wrong = "Settings didn't take over from Mods";
+            frame.ShowMods(true);
+            if (wrong == null && (!frame.ModsShown || frame.SettingsShown)) wrong = "Mods didn't take over from Settings";
+            frame.ShowMods(false);
+            if (wrong != null) throw new Exception("Her title bar is wrong: " + wrong);
+            checks.Add("PASS Mainframe title bar: Mods sits beside Settings at 234 like Windows and toggles her Mods page, where Settings turns into Back; it waits off Settings' page, Mods and Settings swap cleanly, and her version sits right-aligned beside Support in the CAPRI band");
+        }
+
+        // Her Mods page in the Mainframe like Windows': its keys where Windows has them, the installed rows, their pages and her
+        // colors, nothing out of place at 100%, 150% and 200%, and pictures of it.
+        private void ModsPageChecks(Mainframe frame)
+        {
+            frame.ShowMods(true); frame.SearchInstalled("");
+            pet.SetMainframeSize(100); frame.Sync(); frame.UpdateLayout();
+            string wrong = null;
+            string[] names = { "Import mod", "Browse mods", "Mods folder", "Update mods", "Save colors", "Reset colors", "Mods", "Back" };
+            Rect[] boxes = { new Rect(28, 104, 100, 28), new Rect(134, 104, 100, 28), new Rect(240, 104, 116, 28), new Rect(256, 204, 100, 26), new Rect(28, 688, 160, 24), new Rect(196, 688, 160, 24), new Rect(234, 20, 56, 22), new Rect(146, 20, 84, 22) };
+            for (int i = 0; wrong == null && i < names.Length; i++)
+            {
+                NeonButton key = frame.Button(names[i]);
+                Rect box = key == null ? new Rect() : new Rect(Canvas.GetLeft(key), Canvas.GetTop(key), key.Width, key.Height);
+                if (box != boxes[i]) wrong = names[i] + " is at " + box;
+            }
+            Control search = frame.Row("Search your installed mods"), hair = frame.Row("Hair color");
+            NeonButton remove = frame.Button("Remove"), on = frame.Button(pet.ModList.All[0].On ? "On" : "Off");
+            if (wrong == null && (Canvas.GetLeft(search) != 28 || Canvas.GetTop(search) != 204 || search.Width != 222 || Canvas.GetLeft(hair) != 184 || Canvas.GetTop(hair) != 543)) wrong = "the search or colors are out of place";
+            if (wrong == null && (remove == null || on == null || Canvas.GetLeft(remove) != 290 || Canvas.GetTop(remove) != 238 || Canvas.GetLeft(on) != 230 || Canvas.GetTop(on) != 238)) wrong = "the first installed row is out of place";
+            if (wrong == null && (frame.Page.Width != 380 || frame.Button("Import mod").Accent != MainframeTheme.Cyan)) wrong = "the page is " + frame.Page.Width + " wide";
+            foreach (int scale in new[] { 100, 150, 200 })
+            {
+                pet.SetMainframeSize(scale); frame.Sync(); frame.UpdateLayout();
+                string crowded = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+                if (wrong == null && (crowded != null || Math.Abs(frame.Zoom - scale / 100.0) > 0.001)) wrong = "at " + scale + "%: " + crowded;
+                if (scale < 200) frame.SavePicture(Path.Combine(folder, "mainframe-mods-page-" + scale + ".png"));
+            }
+            pet.SetMainframeSize(100); frame.Sync();
+            frame.SearchInstalled("no mod is called this");
+            if (wrong == null && (frame.Button("Remove") != null || frame.Button("Import mod") == null)) wrong = "a search with no match still showed a row";
+            frame.SearchInstalled("");
+            if (wrong != null) throw new Exception("Her Mods page isn't like Windows': " + wrong);
+            checks.Add("PASS Mods page: her Mainframe's Mods page has Import mod, Browse mods and Mods folder under MODS, search and Update mods over four installed rows under INSTALLED, and her colors under COLORS, where Windows has them, and fits at 100%, 150% and 200%; mainframe-mods-page-100.png and mainframe-mods-page-150.png");
         }
 
         private void MainframePictures(Mainframe frame, Voice voice)
@@ -4896,11 +5021,11 @@ namespace CapriDesktop
         }
 
         // Code mods on Mac and Linux: the same files, hooks and approve box as Windows, and parts only Windows has refused by name.
-        private void CodeModChecks(ModsWindow sheet, Mods mods, string input)
+        private void CodeModChecks(Mainframe frame, Mods mods, string input)
         {
             ModFile asked = null;
-            Func<ModFile, string, bool> askWas = sheet.ModAsk;
-            sheet.ModAsk = delegate(ModFile file, string hash) { asked = file; return true; };
+            Func<ModFile, string, bool> askWas = frame.ModAsk;
+            frame.ModAsk = delegate(ModFile file, string hash) { asked = file; return true; };
             Func<string, string, string, string> write = delegate(string id, string permissions, string body)
             {
                 string file = Path.Combine(input, id + Mods.CodeExtension);
@@ -4913,21 +5038,21 @@ namespace CapriDesktop
             try
             {
                 string junk = Path.Combine(input, "smoke-code" + Mods.CodeExtension); File.WriteAllText(junk, "This must never be compiled.");
-                if (sheet.ImportMod(junk) || asked != null || mods.All.Count != 0) throw new Exception("A code file that isn't a mod was asked about or let in.");
-                if (sheet.ImportMod(write("windowsy", "chat", "public class M : ICapriMod { public void Start(ICapriHost h) { h.Ui.SetOptions(\"x\", null); } public bool Heard(string w) { return false; } public void Stop() { } }"))
-                    || asked != null || sheet.StatusText.IndexOf("only Windows has (Ui.SetOptions)", StringComparison.Ordinal) < 0 || mods.All.Count != 0)
-                    throw new Exception("A code mod using a Windows-only part wasn't refused by name before asking: " + sheet.StatusText);
-                if (!sheet.ImportMod(write("own-names", null, "public class M : ICapriMod { class Prefs { public string Window = \"w\"; public string Art() { return \"a\"; } } Prefs settings = new Prefs(); public string Font { get { return \"Barlow\"; } }\n"
+                if (frame.ImportMod(junk) || asked != null || mods.All.Count != 0) throw new Exception("A code file that isn't a mod was asked about or let in.");
+                if (frame.ImportMod(write("windowsy", "chat", "public class M : ICapriMod { public void Start(ICapriHost h) { h.Ui.SetOptions(\"x\", null); } public bool Heard(string w) { return false; } public void Stop() { } }"))
+                    || asked != null || frame.ModStatusText.IndexOf("only Windows has (Ui.SetOptions)", StringComparison.Ordinal) < 0 || mods.All.Count != 0)
+                    throw new Exception("A code mod using a Windows-only part wasn't refused by name before asking: " + frame.ModStatusText);
+                if (!frame.ImportMod(write("own-names", null, "public class M : ICapriMod { class Prefs { public string Window = \"w\"; public string Art() { return \"a\"; } } Prefs settings = new Prefs(); public string Font { get { return \"Barlow\"; } }\n"
                     + "public void Start(ICapriHost h) { string Image = settings.Window + settings.Art() + Font; int Graphics = Image.Length; if (Graphics < 0) throw new InvalidOperationException(); } public bool Heard(string w) { return false; } public void Stop() { } }"))
                     || asked == null || !pet.ModRunningNow("own-names"))
-                    throw new Exception("A code mod with its own Font, Image, Graphics, Art or settings.Window was taken for Windows-only parts: " + sheet.StatusText);
+                    throw new Exception("A code mod with its own Font, Image, Graphics, Art or settings.Window was taken for Windows-only parts: " + frame.ModStatusText);
                 mods.Remove(mods.All.Find(mod => mod.File.Id == "own-names"));
                 checks.Add("PASS mods code: a mod's own names like Font, Image, Graphics, Art() or settings.Window aren't taken for Windows-only parts, and it runs");
                 asked = null;
                 string deep = write("too-deep", null, "public class M : ICapriMod { public void Start(ICapriHost h) { var x = " + new string('(', 60000) + "Font" + new string(')', 60000) + "; } public bool Heard(string w) { return false; } public void Stop() { } }");
                 Stopwatch deepTime = Stopwatch.StartNew();
-                if (sheet.ImportMod(deep) || asked != null || sheet.StatusText != "That code mod nests too deeply to read safely." || mods.All.Exists(mod => mod.File.Id == "too-deep") || deepTime.ElapsedMilliseconds > 2000)
-                    throw new Exception("A code mod nested 60,000 deep wasn't refused quickly before asking: " + sheet.StatusText + " (" + deepTime.ElapsedMilliseconds + " ms)");
+                if (frame.ImportMod(deep) || asked != null || frame.ModStatusText != "That code mod nests too deeply to read safely." || mods.All.Exists(mod => mod.File.Id == "too-deep") || deepTime.ElapsedMilliseconds > 2000)
+                    throw new Exception("A code mod nested 60,000 deep wasn't refused quickly before asking: " + frame.ModStatusText + " (" + deepTime.ElapsedMilliseconds + " ms)");
                 string deepDropped = Path.Combine(mods.Folder, "too-deep" + Mods.CodeExtension);
                 File.Copy(deep, deepDropped, true);
                 deepTime.Restart();
@@ -4937,9 +5062,9 @@ namespace CapriDesktop
                 mods.Load();
                 if (deepListed || !deepNamed || deepTime.ElapsedMilliseconds > 2000) throw new Exception("A code mod nested too deep in her mods folder wasn't skipped with its reason when she loaded her mods.");
                 checks.Add("PASS mods code: a code mod nested 60,000 deep is refused at once with a plain reason, imported or dropped into her mods folder, instead of overflowing her stack");
-                if (sheet.ImportMod(write("sneaky", null, "public class M : ICapriMod { public void Start(ICapriHost h) { h.Chat.Sending += delegate(CapriMessage m) { }; } public bool Heard(string w) { return false; } public void Stop() { } }"))
-                    || mods.Running != 0 || sheet.StatusText.IndexOf("didn't ask for the chat permission", StringComparison.Ordinal) < 0)
-                    throw new Exception("A code mod used a hook it didn't ask for: " + sheet.StatusText);
+                if (frame.ImportMod(write("sneaky", null, "public class M : ICapriMod { public void Start(ICapriHost h) { h.Chat.Sending += delegate(CapriMessage m) { }; } public bool Heard(string w) { return false; } public void Stop() { } }"))
+                    || mods.Running != 0 || frame.ModStatusText.IndexOf("didn't ask for the chat permission", StringComparison.Ordinal) < 0)
+                    throw new Exception("A code mod used a hook it didn't ask for: " + frame.ModStatusText);
                 foreach (Mod old in mods.All.ToArray()) mods.Remove(old);
                 asked = null;
                 checks.Add("PASS mods code: a file that isn't a mod and a mod using a Windows-only part are refused without asking, and a hook it didn't ask for stops it");
@@ -4972,7 +5097,7 @@ namespace CapriDesktop
                     + "File.WriteAllBytes(Path.Combine(h.Folder, \"beep.wav\"), Wav());\n"
                     + "Mark(\"sound\", h.Sounds.Play(\"beep.wav\", 0.5) + \" \" + h.Sounds.Play(\"nothing.wav\")); }\n"
                     + "public bool Heard(string w) { return w == \"hook heard\"; } public void Stop() { } }";
-                if (!sheet.ImportMod(write("hooks3", "chat, voice, personality, settings, tools, system, hotkeys", body))) throw new Exception("A code mod using the hooks it asked for was refused: " + sheet.StatusText);
+                if (!frame.ImportMod(write("hooks3", "chat, voice, personality, settings, tools, system, hotkeys", body))) throw new Exception("A code mod using the hooks it asked for was refused: " + frame.ModStatusText);
                 string data = Path.Combine(mods.Folder, "hooks3-data");
                 Func<string, string> mark = delegate(string name) { string file = Path.Combine(data, name); return File.Exists(file) ? File.ReadAllText(file) : null; };
                 if (asked == null || string.Join(",", asked.Permissions) != "chat,voice,personality,settings,tools,system,hotkeys" || mark("api") != Mods.Api + " True False" || !pet.ModRunningNow("hooks3"))
@@ -5031,19 +5156,19 @@ namespace CapriDesktop
                 finally { Security.Drop(); Security.TheySaid(); Security.Load(securityWas); Security.Changed?.Invoke(); pet.Talk.Dismiss(); }
                 checks.Add("PASS mods code: mod tools have their own SECURITY toggle, off on Lockdown and Guarded, a held one waits for their own yes, and a mod's Chat.Send never answers it");
 
-                if (!sheet.ImportMod(write("hooks-friend", "skins\n// requires: api 3, hooks3", "public class M : ICapriMod { public void Start(ICapriHost h) { h.Mods.Send(\"hello\", \"from friend\"); } public bool Heard(string w) { return false; } public void Stop() { } }")))
-                    throw new Exception("A mod that requires a running mod was refused: " + sheet.StatusText);
+                if (!frame.ImportMod(write("hooks-friend", "skins\n// requires: api 3, hooks3", "public class M : ICapriMod { public void Start(ICapriHost h) { h.Mods.Send(\"hello\", \"from friend\"); } public bool Heard(string w) { return false; } public void Stop() { } }")))
+                    throw new Exception("A mod that requires a running mod was refused: " + frame.ModStatusText);
                 MainframeWait(delegate { return mark("got") == "hooks-friend hello from friend"; }, "a mod's message to another mod");
-                if (sheet.ImportMod(write("needy", "skins\n// requires: api 99", empty)) || sheet.StatusText.IndexOf("needs a newer Capri", StringComparison.Ordinal) < 0) throw new Exception("A mod for a newer API was let in: " + sheet.StatusText);
-                if (sheet.ImportMod(write("needy-two", "skins\n// requires: not-installed", empty)) || sheet.StatusText.IndexOf("needs not-installed installed and on first", StringComparison.Ordinal) < 0 || pet.ModRunningNow("needy-two"))
-                    throw new Exception("A mod that needs a mod that isn't there started: " + sheet.StatusText);
+                if (frame.ImportMod(write("needy", "skins\n// requires: api 99", empty)) || frame.ModStatusText.IndexOf("needs a newer Capri", StringComparison.Ordinal) < 0) throw new Exception("A mod for a newer API was let in: " + frame.ModStatusText);
+                if (frame.ImportMod(write("needy-two", "skins\n// requires: not-installed", empty)) || frame.ModStatusText.IndexOf("needs not-installed installed and on first", StringComparison.Ordinal) < 0 || pet.ModRunningNow("needy-two"))
+                    throw new Exception("A mod that needs a mod that isn't there started: " + frame.ModStatusText);
                 checks.Add("PASS mods code: mods message each other, and // requires: refuses a newer API or a missing mod");
 
                 Mod hooks = mods.All.Find(mod => mod.File.Id == "hooks3");
-                sheet.SwitchMod(mods.All.IndexOf(hooks));
+                frame.Sync(); frame.SwitchMod(mods.All.IndexOf(hooks));
                 if (hooks.On || pet.ModRunningNow("hooks3")) throw new Exception("Turning a code mod off left it running.");
                 asked = null;
-                sheet.SwitchMod(mods.All.IndexOf(hooks));
+                frame.Sync(); frame.SwitchMod(mods.All.IndexOf(hooks));
                 hooks = mods.All.Find(mod => mod.File.Id == "hooks3");
                 if (hooks == null || !hooks.On || !pet.ModRunningNow("hooks3") || asked != null) throw new Exception("Turning an approved code mod back on didn't start it, or asked again.");
                 mods.Remove(hooks);
@@ -5061,10 +5186,38 @@ namespace CapriDesktop
                 if (found == null || found.On || !found.Changed || pet.ModRunningNow("dropped")) throw new Exception("A code mod dropped into the folder ran without their OK.");
                 mods.Remove(found);
                 checks.Add("PASS mods code: off stops a code mod and on starts it again without asking, removing takes everything it added, and one dropped into the folder waits for their OK");
+
+                PixelSize art = Pet.ArtSize("Capri.Sprite.idle.png");
+                if (!frame.ImportMod(ModSkin(input, "smoke-guard-skin", "idle.png", art.Width, art.Height))) throw new Exception("The approve box check couldn't put a skin on: " + frame.ModStatusText);
+                frame.Sync();
+                ModsWindow browser = frame.ModsBrowser;
+                string blocked = null;
+                frame.ModAsk = delegate(ModFile file, string hash)
+                {
+                    asked = file;
+                    NeonButton remove = frame.Button("Remove");
+                    if (frame.IsEnabled || browser == null || browser.IsEnabled || !frame.ModsBusy || remove == null || remove.IsEnabled || frame.Button("Update mods").IsEnabled) blocked = "a window or key stayed on";
+                    frame.SwitchMod(0); frame.RemoveMod(0); frame.UpdateMods();
+                    if (blocked == null && frame.ModStatusText != "Answer the code mod's box first.") blocked = "her Mods page said " + frame.ModStatusText;
+                    if (blocked == null && frame.ImportMod(write("guard-second", null, empty))) blocked = "a second import went in";
+                    browser.Install(0);
+                    if (blocked == null && browser.StatusText != "Answer the code mod's box first.") blocked = "the directory said " + browser.StatusText;
+                    Mod skinNow = mods.All.Find(mod => mod.File.Id == "smoke-guard-skin");
+                    if (blocked == null && (skinNow == null || !skinNow.On)) blocked = "the skin was switched or removed under the box";
+                    return true;
+                };
+                bool guardIn = frame.ImportMod(write("guard-code", null, empty));
+                Mod guardSkin = mods.All.Find(mod => mod.File.Id == "smoke-guard-skin");
+                if (!guardIn || blocked != null || guardSkin == null || !guardSkin.On || mods.All.Exists(mod => mod.File.Id == "guard-second") || !frame.IsEnabled || !browser.IsEnabled || frame.ModsBusy || !frame.Button("Remove").IsEnabled)
+                    throw new Exception("The approve box let her mods change under it: " + (blocked ?? frame.ModStatusText));
+                frame.ModAsk = delegate(ModFile file, string hash) { asked = file; return true; };
+                foreach (Mod old in mods.All.ToArray()) mods.Remove(old);
+                frame.Sync();
+                checks.Add("PASS mods approve box: while a code mod's box is up, her Mainframe and the directory window are both off and on/off, Remove, Import, Update mods and a card's Download all refuse, so a skin left on is still on after the answer");
             }
             finally
             {
-                sheet.ModAsk = askWas;
+                frame.ModAsk = askWas;
                 if (pet.Saved.Size != sizeWas) pet.Resize(sizeWas);
                 foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
             }
@@ -8773,8 +8926,8 @@ namespace CapriDesktop
             pet.RemoteOutput = delegate(RemoteLink link) { return new RemoteSheetSink(link, bridge.Sink); };
             NeonButton key = frame.Button("Remote"), mods = frame.Button("Mods"), support = frame.Button("Support");
             if (key == null || Avalonia.Automation.AutomationProperties.GetName(key) != "Capri Remote: chat with her from your phone" || key.Text != "Remote" || key.Glyph != 0 || key.Heart
-                || Canvas.GetLeft(key) != 94 || key.Width != 88 || key.Height != 18 || Canvas.GetTop(key) != Canvas.GetTop(mods) || key.Height != mods.Height || key.Height != support.Height
-                || Canvas.GetLeft(mods) != 190 || mods.Width != 70 || Canvas.GetLeft(support) != 268 || support.Width != 88) throw new Exception("Remote's CAPRI key changed its name, words, size or neighbours.");
+                || Canvas.GetLeft(key) != 100 || key.Width != 88 || key.Height != 18 || Canvas.GetTop(key) != Canvas.GetTop(support) || key.Height != support.Height || Canvas.GetTop(mods) != 20
+                || Canvas.GetLeft(frame.VersionLabel) != 196 || Canvas.GetTop(frame.VersionLabel) != Canvas.GetTop(key) || Canvas.GetLeft(support) != 268 || support.Width != 88) throw new Exception("Remote's CAPRI key changed its name, words, size or neighbours.");
             foreach (int scale in new[] { 100, 150, 200 })
             {
                 pet.SetMainframeSize(scale); frame.ShowSettings(false); frame.UpdateLayout();

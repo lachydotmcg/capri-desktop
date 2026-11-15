@@ -354,7 +354,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed class Mainframe : MainframeWindow
+    internal sealed partial class Mainframe : MainframeWindow
     {
         private sealed class Item
         {
@@ -369,7 +369,6 @@ namespace CapriDesktop
         private readonly Dictionary<string, Control> rows = new Dictionary<string, Control>();
         private readonly Dictionary<string, Action<int>> changes = new Dictionary<string, Action<int>>();
         private readonly List<Window> sheets = new List<Window>();
-        internal ModsWindow Mods { get; private set; }
         internal RemoteSheet Remote { get; private set; }
         private readonly DispatcherTimer status = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         // Support's heart beats twice every 7 seconds while her main page shows, and its rim lights with it (Lachy, 4 Nov).
@@ -409,7 +408,6 @@ namespace CapriDesktop
             pet = owner;
             Steered = true;
             Caption("MAINFRAME", 24, 15, 120, 29, MainframeTheme.Rose, 64.0 / 3, true, true);
-            build = Caption("v" + typeof(Pet).Assembly.GetName().Version.ToString(), 230, 20, 62, 22, MainframeTheme.Faint, 34.0 / 3); build.Align = TextAlignment.Right;
             // Kelv's Hyprland changes: a minimized Mainframe has no taskbar there to come back from, so it gets only Close,
             // and Super+C closes it the way Hyprland folk expect. Super is Meta here; on a Mac Meta is Cmd and Cmd+C is copy,
             // so this stays on Hyprland.
@@ -424,7 +422,9 @@ namespace CapriDesktop
             AutomationProperties.SetName(close, "Close");
             MainframeTips.Explain(close, "Close");
             if (hyprland) KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.C && e.KeyModifiers == KeyModifiers.Meta) { e.Handled = true; Program.Guard(Shut); } };
-            more = Key("Settings", 146, 20, 84, 22, () => ShowSettings(!paged)); more.Accent = MainframeTheme.Cyan; more.Loud = true;
+            more = Key("Settings", 146, 20, 84, 22, () => { if (modded) ShowMods(false); else ShowSettings(!paged); }); more.Accent = MainframeTheme.Cyan; more.Loud = true;
+            // Mods sits right beside Settings in her title bar, as on Windows (Lachy, 4 Nov: "I like mods better next to settings").
+            modsKey = Key("Mods", 234, 20, 56, 22, () => ShowMods(!modded));
             foreach (Item item in items) item.Page = -1;
             Section("BRAIN", 0, 58);
             if (TerminalJobs.Supported) { Key("ChatGPT plan", 230, 56, 126, 20, pet.UsePlan); Key("Stop", 134, 56, 86, 20, pet.StopNativeWork); }
@@ -495,9 +495,10 @@ namespace CapriDesktop
                 MainframeTips.Explain(nameListeningNote, "Local decoder · 20-second follow-ups · selected physical microphone");
             }
             Section("CAPRI", 0, 540);
-            remoteKey = Key("Remote", 94, 539, 88, 18, OpenRemote);
+            remoteKey = Key("Remote", 100, 539, 88, 18, OpenRemote);
             AutomationProperties.SetName(remoteKey, "Capri Remote: chat with her from your phone");
-            Key("Mods", 190, 539, 70, 18, OpenMods).Accent = MainframeTheme.Cyan;
+            // Her version sits where Mods was, beside Support, now Mods is up by Settings.
+            build = Caption("v" + typeof(Pet).Assembly.GetName().Version.ToString(), 196, 539, 66, 18, MainframeTheme.Faint, 34.0 / 3); build.Align = TextAlignment.Right;
             // Shorter than a band's other keys and level with CAPRI, so its lit rim stays off the band's teal rule (Lachy, 4 Nov).
             support = Key("Support", 268, 539, 88, 18, () => { if (Program.Smoke == null) Pet.Browse("https://ko-fi.com/lachysdev"); });
             support.Heart = true;
@@ -644,13 +645,14 @@ namespace CapriDesktop
                 time.Height = 22; time.Options(names);
             }
             Key("Edit check-in lines", 408, 1380, 328, 20, pet.OpenCare);
+            BuildMods();
             if (OperatingSystem.IsLinux()) foreach (Item item in items) if (item.Y < 50) PinHeader(item.Control);
             status.Tick += (_, _) => Program.Guard(Sync);
             pet.SettingsChanged += Sync;
             heartbeat.Tick += (_, _) => Program.Guard(Heartbeat);
             Opened += (_, _) => { Sync(); status.Start(); heartbeat.Start(); };
-            Closed += (_, _) => { closed = true; status.Stop(); heartbeat.Stop(); pet.SettingsChanged -= Sync; foreach (Window sheet in sheets.ToArray()) sheet.Close(); CloseMenus(); };
-            Closing += (_, e) => { if (MacQuit.MinimizeMainframe(OperatingSystem.IsMacOS(), OperatingSystem.IsLinux(), finishing, e.CloseReason)) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };
+            Closed += (_, _) => { closed = true; status.Stop(); heartbeat.Stop(); pet.SettingsChanged -= Sync; foreach (Window sheet in sheets.ToArray()) sheet.Close(); CloseMenus(); ForgetModUpdates(); };
+            Closing += (_, e) => { if (MacQuit.MinimizeMainframe(OperatingSystem.IsMacOS(), OperatingSystem.IsLinux(), finishing, e.CloseReason)) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); StopModUpdates(); WindowState = WindowState.Minimized; } };
             Sync();
         }
 
@@ -780,18 +782,20 @@ namespace CapriDesktop
                 showHide.Text = pet.Away ? "Show Capri" : "Hide Capri";
                 updateNote.Text = pet.MainframeUpdate;
                 Read(nickname, Brain.Nickname); Read(custom, pet.Brain.Model); Read(localAddress, pet.Brain.Server); Read(voiceId, pet.Saved.VoiceId);
-                more.Text = paged ? "Back" : "Settings"; advanced.Text = pet.Saved.AdvancedSettings ? "Simple Settings" : "Advanced Settings";
-                string next = paged + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null);
+                more.Text = paged || modded ? "Back" : "Settings"; advanced.Text = pet.Saved.AdvancedSettings ? "Simple Settings" : "Advanced Settings";
+                string next = paged + "|" + modded + "|" + pet.Saved.AdvancedSettings + "|" + Pet.FrameSize(pet.Saved.MainframeSize) + "|" + pet.MainframeTier + "|" + pet.MainframeVoiceMode + "|" + (pet.MainframeVoiceKey != null) + "|" + Expanded + "|" + (paidKey != null);
                 if (layout != next) { layout = next; ArrangePage(); }
+                FillMods();
             }
             finally { syncing = false; }
         }
         private bool Expanded { get { return pet.MainframeTier == 0 && (pet.Brain.Model == null || pet.MainframePulling); } }
         internal bool SettingsShown { get { return paged; } }
         internal void Shut() { finishing = true; Close(); }
-        internal void ShowSettings(bool on) { paged = on; layout = null; CloseMenus(); Top(); Sync(); }
+        internal void ShowSettings(bool on) { paged = on; if (on) modded = false; layout = null; CloseMenus(); Top(); Sync(); }
         protected override void Back()
         {
+            if (modded) { ShowMods(false); Hold(modsKey); return; }
             if (!paged) { Close(); return; }
             ShowSettings(false);
             Hold(more);
@@ -799,16 +803,17 @@ namespace CapriDesktop
         protected override bool PageKey(Avalonia.Input.Key key)
         {
             if (key == Avalonia.Input.Key.S) { if (!paged) { ShowSettings(true); Land(); } return true; }
-            if (key == Avalonia.Input.Key.M) { OpenMods(); return true; }
-            if (key == Avalonia.Input.Key.H) { if (paged) ShowSettings(false); Land(); return true; }
+            if (key == Avalonia.Input.Key.M) { if (!modded) { ShowMods(true); Land(); } return true; }
+            if (key == Avalonia.Input.Key.H) { if (modded) ShowMods(false); if (paged) ShowSettings(false); Land(); return true; }
             if (key == Avalonia.Input.Key.A && paged) { advanced.Press(); Land(); return true; }
             return false;
         }
         internal void OpenPage(string name)
         {
             name = (name ?? "main").Trim().ToLowerInvariant();
-            if (name == "mods") { OpenMods(); return; }
+            if (name == "mods") { ShowMods(true); return; }
             if (name == "remote") { OpenRemote(); return; }
+            modded = false;
             ShowSettings(!string.IsNullOrEmpty(name) && name != "main" && name != "brain" && name != "voice");
             if (paged && name != "settings" && !pet.Saved.AdvancedSettings) { pet.SetAdvancedSettings(true); ShowSettings(true); }
             if (name == "layers") { OpenLayers(); return; }
@@ -837,8 +842,10 @@ namespace CapriDesktop
             {
                 Control control = item.Control;
                 double x = item.X, y = item.Y;
-                bool show = item.Page == -1 || item.Page == (paged ? 1 : 0);
-                if (item.Page == -1 && (control == build || control == minimize || control == close)) x += paged ? 380 : 0;
+                bool show = item.Page == -1 || item.Page == (paged ? 1 : modded ? 2 : 0);
+                if (item.Page == -1 && (control == minimize || control == close)) x += paged ? 380 : 0;
+                // Settings' own Advanced Settings key takes Mods' place by Back, so Mods waits off that page, as on Windows.
+                if (control == modsKey) show &= !paged;
                 if (item.Page == 1 && control != advanced)
                 {
                     bool right = x >= 380;
@@ -907,6 +914,8 @@ namespace CapriDesktop
         internal void Press(string text) { foreach (Item item in items) if (item.Control is NeonButton button && button.Text == text && button.IsVisible) { button.Press(); return; } throw new Exception("No Mainframe button: " + text); }
         internal NeonButton Button(string text) { foreach (Item item in items) if (item.Control is NeonButton button && button.Text == text && button.IsVisible) return button; return null; }
         internal Control Row(string name) { return rows[name]; }
+        internal int Count(string text) { int found = 0; foreach (Item item in items) if (item.Control is NeonButton button && button.Text == text && button.IsVisible) found++; return found; }
+        internal NeonCaption VersionLabel { get { return build; } }
         internal string Value(string name)
         {
             Control row = rows[name];
@@ -961,17 +970,6 @@ namespace CapriDesktop
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
-        internal void OpenMods()
-        {
-            if (Mods == null)
-            {
-                ModsWindow sheet = new ModsWindow(pet);
-                Mods = sheet;
-                sheet.Closed += delegate { Mods = null; };
-                ShowSheet(sheet);
-            }
-            else { Mods.WindowState = WindowState.Normal; Mods.Activate(); }
-        }
         internal void OpenRemote()
         {
             if (Remote == null)
