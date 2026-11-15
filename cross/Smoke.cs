@@ -8386,6 +8386,14 @@ namespace CapriDesktop
             }
         }
 
+        private void RemoteJobModAnswer(string text)
+        {
+            object depth = RemoteWire.Get(pet, "modSendDepth");
+            RemoteWire.Set(pet, "modSendDepth", (int)depth + 1);
+            try { pet.Hear(text); }
+            finally { RemoteWire.Set(pet, "modSendDepth", depth); }
+        }
+
         private void RemoteJobChecks(RemoteBridgeFake bridge)
         {
             Func<string, string> think = pet.Think;
@@ -8430,6 +8438,8 @@ namespace CapriDesktop
                 all.AddRange(rows);
                 string held = rows.Find(row => row.Text("type") == "job.state" && row.Text("state") == "asking").Text("id");
                 if (runs != 0) throw new Exception("A held job ran before permission.");
+                RemoteJobModAnswer("yes");
+                RemoteJobModAnswer("no");
                 bridge.JobCommand(1, "job.answer", held, true);
                 rows.Clear();
                 RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Exists(row => row.Text("type") == "job.state" && row.Text("state") == "done") && rows.Exists(row => row.Text("type") == "chat.reply" && row.Text("device") == bridge.Phones[1].Id && !row.ContainsKey("re")); }, "the allowed job");
@@ -8536,14 +8546,17 @@ namespace CapriDesktop
                     if (entries != 1 || inputs != 0 || question.Text("ask").IndexOf("send", StringComparison.OrdinalIgnoreCase) < 0) throw new Exception("A native risk ran before approval or lost its send question.");
                     if (answer == "yes")
                     {
+                        RemoteJobModAnswer("yes");
+                        RemoteJobModAnswer("no");
                         bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"yes\":true}");
                         bridge.SendJobJson(1, "{\"type\":\"job.stop\",\"id\":\"bad id\"}");
                         bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"id\":\"" + riskId + "\",\"yes\":\"true\"}");
+                        bridge.SendJobJson(1, "{\"type\":\"job.answer\",\"id\":\"" + riskId + "\"}");
                         rows.Clear();
-                        RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Count(row => row.Text("type") == "error" && row.Text("code") == "bad-message") == 3; }, "malformed commands during a held risk");
+                        RemoteBridgeWait(delegate { rows.AddRange(bridge.DrainJobs()); return rows.Count(row => row.Text("type") == "error" && row.Text("code") == "bad-message") == 4; }, "malformed commands during a held risk");
                         all.AddRange(rows);
                         List<RemoteJson.Map> errors = rows.FindAll(row => row.Text("type") == "error" && row.Text("code") == "bad-message");
-                        if (errors.Count(row => !row.ContainsKey("re")) != 2 || errors.Count(row => row.Text("re") == riskId) != 1 || entries != 1 || inputs != 0) throw new Exception("Malformed commands changed a held risk or lost their id rules.");
+                        if (errors.Count(row => !row.ContainsKey("re")) != 2 || errors.Count(row => row.Text("re") == riskId) != 2 || entries != 1 || inputs != 0) throw new Exception("Malformed commands changed a held risk or lost their id rules.");
                     }
 
                     if (answer == "stop") bridge.JobCommand(1, "job.stop", riskId);

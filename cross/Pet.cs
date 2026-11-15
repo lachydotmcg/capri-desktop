@@ -4826,12 +4826,12 @@ namespace CapriDesktop
             internal ComputerAction Action;
         }
 
-        private void RemoteJobSend(string device, string json)
+        private void RemoteJobSend(string device, string json, bool coalesce = true)
         {
             RemoteLink link = remoteLink;
             if (!RemoteLinkCurrent(link, remoteGeneration) || !Saved.RemoteOn) return;
             if (device == null) link.JobBroadcast(json);
-            else link.JobSend(device, json);
+            else link.JobSend(device, json, coalesce);
         }
 
         private static string RemoteJobState(RemoteJob run)
@@ -4980,7 +4980,7 @@ namespace CapriDesktop
 
         private void RemoteJobBad(string device, string id)
         {
-            RemoteJobSend(device, RemoteMessages.Error("bad-message", RemoteMessages.IdOk(id) ? id : null));
+            RemoteJobSend(device, RemoteMessages.Error("bad-message", RemoteMessages.IdOk(id) ? id : null), coalesce: false);
         }
 
         private void RemoteJobCommand(RemoteLink link, int generation, int session, string device, RemoteJson.Map message)
@@ -5089,7 +5089,7 @@ namespace CapriDesktop
             Dispatcher.UIThread.Post(delegate { if (!quitting && !MacQuit.Quitting) Reply(asking, "(chat)", said); });
         }
 
-        private bool RemoteJobReply(string text)
+        private bool RemoteJobReply(string text, bool fromMod)
         {
             if (!Security.Agrees(text) && !Security.Declines(text)) return false;
             RemoteJob run;
@@ -5097,6 +5097,7 @@ namespace CapriDesktop
             {
                 run = remoteJob;
                 if (run == null || run.State != "asking" || !RemoteJobCurrent(run)) return false;
+                if (fromMod) return true;
                 run.Answering++;
                 RemoteJobSet(run, "running");
             }
@@ -5739,12 +5740,13 @@ namespace CapriDesktop
             }
             StopListening();
             if (modSendDepth == 0 && !(phone != null && phone.Hold != null && Security.Declines(text)) && System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:stop|cancel)(?: please)?[.!]?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) { StopNativeWork(); StopCrash(); ClonesOff(); return; }
+            bool fromMod = false;
             if (!meeting.Asking || phone != null)
             {
                 // A code mod can change or take what they said first, like on Windows.
                 string sent = ModsSending(text);
                 if (sent == null) return;
-                bool fromMod = modSendDepth > 0 || sent != text;
+                fromMod = modSendDepth > 0 || sent != text;
                 text = sent;
                 if (fromMod) Security.ModSaid(text); else Security.TheySaid();
                 if (phone != null && fromMod) phone.Hold = null;
@@ -5761,7 +5763,7 @@ namespace CapriDesktop
                 if (phone.Hold != null && Security.Declines(text)) { Ask(phone.Ticket, text, 0, 0, phone); return; }
             }
             if (phone == null && SelfJobRequest(text)) return;
-            if (phone == null && RemoteJobReply(text)) return;
+            if (phone == null && RemoteJobReply(text, fromMod)) return;
             int ticket = phone == null ? ++asking : phone.Ticket;
             bool working = SelfJobs.Active;
             if (!working) ComputerJobs.Stop();

@@ -461,13 +461,13 @@ namespace CapriDesktop
 
         // Job messages (PROTOCOL.md section 8.4) wait in each phone's own queue instead of going straight out: to one phone,
         // or to every phone that's online, one partway through hello too, so a job that ends then still reaches it.
-        internal void JobSend(string device, string json)
+        internal void JobSend(string device, string json, bool coalesce = true)
         {
             lock (gate)
             {
                 Phone phone = Live(device);
                 if (phone == null || !phone.Online || phone.Kicked) return;
-                QueueJob(phone, json);
+                QueueJob(phone, json, coalesce);
             }
         }
 
@@ -482,14 +482,14 @@ namespace CapriDesktop
         // behind gets where things are now. A different state never jumps an older one, so running, asking and running again
         // arrive in order. A phone that can't keep up, like during a game's quick keys, keeps her newest 30 steps, the most
         // JOBS lists, instead of falling minutes behind.
-        private void QueueJob(Phone phone, string json)
+        private void QueueJob(Phone phone, string json, bool coalesce = true)
         {
             RemoteJson.Map message = RemoteJson.ParseMap(json);
             if (message == null) return;
             string type = message.Text("type");
             double n;
             string key = type + " " + (message.Text("id") ?? message.Text("re")) + " " + (message.Number("n", out n) ? n.ToString(System.Globalization.CultureInfo.InvariantCulture) : message.Text("state"));
-            for (int i = phone.Jobs.Count - 1; i >= 0; i--)
+            for (int i = phone.Jobs.Count - 1; coalesce && i >= 0; i--)
             {
                 if (phone.Jobs[i].Key == key) { phone.Jobs[i] = new KeyValuePair<string, string>(key, json); Arm(200); return; }
                 if (type == "job.state" && phone.Jobs[i].Key.StartsWith("job.state " + message.Text("id") + " ", StringComparison.Ordinal)) break;
