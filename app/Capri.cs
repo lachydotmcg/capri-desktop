@@ -36752,6 +36752,7 @@ namespace CapriDesktop
                 DateTime timeDate = DateTime.Now;
                 if (!timeLine.StartsWith("\nIf the time or date is needed, it's ", StringComparison.Ordinal) || !timeLine.Contains(timeDate.ToString("dddd", System.Globalization.CultureInfo.InvariantCulture)) || !timeLine.Contains(timeDate.ToString("yyyy", System.Globalization.CultureInfo.InvariantCulture)) || System.Text.RegularExpressions.Regex.IsMatch(timeLine, @"\b(answer|tell|say)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)) throw new Exception("Her time line lost its condition or date, or gives an order to answer.");
                 if (Brain.Now("How are you today?") != "" || Brain.Now("What time is it in Tokyo?") != "" || Brain.Now("What time is the game?") != "" || Brain.Now("What day is it today?") == "" || Brain.Now("Can you tell me the date and time?") == "" || Brain.Now("What date will it be tomorrow?") == "" || Brain.Now("What time is it, and where am I?") == "") throw new Exception("Her time context did not distinguish calendar questions from other chat.");
+                if (Brain.Now("What's tomorrow's date?") == "" || Brain.Now("Make a schedule for next week") == "") throw new Exception("Her time context missed a date-dependent plan.");
                 checks.Add("PASS her time line: local clock and calendar questions get it, other chat does not");
                 Brain keeperWas = Brain.Keeper;
                 Brain.Keeper = null;

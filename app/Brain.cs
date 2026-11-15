@@ -4511,12 +4511,16 @@ namespace CapriDesktop
         private static string ForYou(string parts) { return parts.Length == 0 ? "" : "(For you, not from them:" + parts + "\n)\n\n"; }
 
         private static readonly Regex CalendarQuestion = new Regex(
-            @"\b(?:current (?:time|date|day|month|year)|local (?:time|date)|(?:what(?:['’]?s| is) (?:the )?|tell me (?:the )?)(?:date and time|time and date)|today['’]s date|(?:what|which) (?:time|date|day|month|year) (?:is it(?=\s*(?:[,;?!.]|$))|will it be|is today|is tomorrow|was yesterday)|how (?:many days|long) (?:until|since)|(?:how many days|what date|what day) (?:from now|ago))\b",
+            @"\b(?:current (?:time|date|day|month|year)|local (?:time|date)|(?:what(?:['’]?s| is) (?:the )?|tell me (?:the )?)(?:date and time|time and date)|(?:today|tomorrow|yesterday)['’]s date|(?:what|which) (?:time|date|day|month|year) (?:is it(?=\s*(?:[,;?!.]|$))|will it be|is today|is tomorrow|was yesterday)|how (?:many days|long) (?:until|since)|(?:how many days|what date|what day) (?:from now|ago)|(?:calendar|schedule|agenda) (?:for )?(?:today|tomorrow|this week|next week))\b",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         internal static string Now(string input)
         {
-            if (!Hands.ClockAsked(input) && !CalendarQuestion.IsMatch(input ?? "")) return "";
+            return Hands.ClockAsked(input) || CalendarQuestion.IsMatch(input ?? "") ? Now() : "";
+        }
+
+        private static string Now()
+        {
             return "\nIf the time or date is needed, it's " + DateTime.Now.ToString("dddd d MMMM yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture) + " where they are, so there's no need to search for it.";
         }
 
