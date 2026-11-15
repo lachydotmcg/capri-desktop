@@ -8957,7 +8957,7 @@ namespace CapriDesktop
         private static void RemoteBrainNote(List<RemoteJson.Map> rows, string id, string state, string text)
         {
             RemoteJson.Map note = RemoteBrainRow(rows, "brain.note", id);
-            if (note == null || note.Text("state") != state || note.Text("text") != text) throw new Exception("A phone got the wrong brain key note.");
+            if (note == null || note.Text("state") != state || note.Text("text") != text) throw new Exception("A phone got " + (note == null ? "no" : "the wrong") + " brain key note for " + id + ".");
         }
 
         private void RemoteBrainShown(Mainframe frame, List<RemoteJson.Map> rows, string device, bool medium, bool max)
