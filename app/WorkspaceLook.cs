@@ -1294,7 +1294,7 @@ namespace CapriDesktop
                 using (WorkspaceWindow kept = new WorkspaceWindow(work, delegate { return false; }, 1f, true))
                 {
                     kept.Show(this);
-                    kept.ShowChat(layout);
+                    kept.ShowChat(longChat);
                     kept.ClientSize = new Size(940, 640);
                     kept.Location = Screen.FromControl(this).WorkingArea.Location;
                     place = kept.Bounds;
