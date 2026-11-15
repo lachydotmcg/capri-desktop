@@ -192,6 +192,20 @@ test('room gives plain voice status, remembers Voice and keeps phone mode silent
     assert.equal(await r.page.run("document.getElementById('room-voice-note').textContent"), '');
     await r.click('room-close');
     await r.state('connected', { native: false, features: ['chat', 'call'] });
+    await r.open();
+    assert.equal(await r.page.run("document.getElementById('room-voice-note').textContent"), 'Update Capri on your PC to hear her in Room.');
+    await r.click('room-voice');
+    await r.click('room-voice');
+    assert.equal(await r.page.run('CapriCall.listen()'), false);
+    assert.equal(await r.page.run('contexts.length'), 0);
+    assert.deepEqual(await r.page.run('pc.sent.filter(m => m.type === "call.start")'), []);
+    await r.click('room-close');
+    await r.click('f-call');
+    await r.page.until('CapriCall.stats().micLive && CapriCall.state === "on"', 'ordinary call on legacy PC');
+    assert.deepEqual(await r.page.run('pc.sent.filter(m => m.type === "call.start")'), [{ type: 'call.start', hush: true }]);
+    await r.page.run('CapriCall.end()');
+    await r.page.until("contexts.every(c => c.state === 'closed')", 'ordinary call sound released');
+    await r.state('connected', { features: ['chat', 'call', 'call-listen'] });
     await r.page.run('window.blockSound = true');
     await r.open();
     await r.page.run('contexts.at(-1).suspend()');
@@ -440,7 +454,7 @@ test('room and ordinary calls share sound without ending each other or leaving t
 });
 
 test('small call layout contains the room and pressed buttons keep their fill under hover and focus', { skip: !chromePath() }, async () => {
-  const r=await roomRig({features:['chat','call','listen','pictures'],port:29883,chrome:29893});
+  const r=await roomRig({features:['chat','call','call-listen','pictures'],port:29883,chrome:29893});
   const {page,click}=r;
   try {
     await page.send('Emulation.setDeviceMetricsOverride',{width:360,height:640,deviceScaleFactor:1,mobile:false});
@@ -461,7 +475,7 @@ test('small call layout contains the room and pressed buttons keep their fill un
 
 for (const size of [[360, 640], [360, 800]]) {
   test('room fits every status at ' + size.join('x'), { skip: !chromePath() }, async t => {
-    const r = await roomRig({ features: ['chat', 'call', 'listen', 'pictures'], port: 29885, chrome: 29895 });
+    const r = await roomRig({ features: ['chat', 'call', 'call-listen', 'pictures'], port: 29885, chrome: 29895 });
     try {
       await setPhone(r.page, size);
       await r.page.run('document.fonts.ready');
@@ -492,7 +506,7 @@ for (const [size, mode] of [
   [[430, 932], SAFARI], [[430, 932], HOME_SCREEN], [[1000, 800], SAFARI]
 ]) {
   test('room keeps its original layout at ' + size.join('x') + ' ' + mode.name, { skip: !chromePath() }, async t => {
-    const r = await roomRig({ features: ['chat', 'call', 'listen', 'pictures'], port: 29885, chrome: 29895 });
+    const r = await roomRig({ features: ['chat', 'call', 'call-listen', 'pictures'], port: 29885, chrome: 29895 });
     try {
       await setPhone(r.page, size, mode);
       await r.page.run('document.fonts.ready');

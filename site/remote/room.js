@@ -20,6 +20,10 @@
       if (!oldVoice) { voiceStatus("Her voice isn't on Mac or Linux PCs yet."); oldVoice = true; }
       return;
     }
+    if (!r.info.features.includes('call-listen')) {
+      voiceStatus('Update Capri on your PC to hear her in Room.');
+      return;
+    }
     if (!call?.listen()) voiceStatus('Tap Voice to hear her.');
   };
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');

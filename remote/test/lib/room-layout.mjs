@@ -35,7 +35,7 @@ export async function* roomStates(r) {
   await note("Her voice isn't on Mac or Linux PCs yet.");
   yield 'newer-pc';
   await page.run('pc.answer = {type:"call.state",on:true,voice:true,ears:true}');
-  await r.state('connected', { features: ['chat', 'call', 'listen', 'pictures'] });
+  await r.state('connected', { features: ['chat', 'call', 'call-listen', 'pictures'] });
   await click('f-call');
   await page.until('CapriCall.state === "on" && CapriCall.stats().micLive', 'layout call');
   await page.run('CapriCall.room()');

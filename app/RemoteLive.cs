@@ -368,7 +368,8 @@ namespace CapriDesktop
                 Speaker.Hushed = RemoteVoiceHushed;
                 voiceInTest = true;
                 string[] features = link.FeaturesNow;
-                if (Array.IndexOf(features, "call") < 0 || Array.IndexOf(features, RemoteCall.HushFeature) < 0) throw new Exception("Her hello-ok offers " + string.Join(", ", features) + ", not call and " + RemoteCall.HushFeature + ".");
+                foreach (string feature in new[] { "call", RemoteCall.HushFeature, RemoteCall.ListenFeature })
+                    if (Array.IndexOf(features, feature) < 0) throw new Exception("Her hello-ok is missing " + feature + ".");
                 call.Heard(Phone, "{\"type\":\"call.start\",\"hush\":true}");
                 call.Heard("phoneOld", "{\"type\":\"call.start\"}");
                 if (!call.OnCall(Phone) || !call.Hushes(Phone) || !call.OnCall("phoneOld") || call.Hushes("phoneOld")) throw new Exception("A phone's call.start didn't put it on a call, or said wrongly whether it stops her with call.hush.");

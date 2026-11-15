@@ -2,7 +2,7 @@ import { launch } from './cdp.mjs';
 import { FakePc } from './fakes.mjs';
 import { earlyAccess, startSite } from './site.mjs';
 
-export async function roomRig({ features = ['chat', 'call'], native = false, port = 29881, chrome = 29891, heart = false } = {}) {
+export async function roomRig({ features = ['chat', 'call', 'call-listen'], native = false, port = 29881, chrome = 29891, heart = false } = {}) {
   const site = await startSite(port);
   let page, heartRequest, heartReady;
   const heartWaiting = new Promise(resolve => { heartReady = resolve; });

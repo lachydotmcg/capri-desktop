@@ -207,7 +207,9 @@
 
   const supported = (listen = false) => {
     const r = remote();
-    return !!(r && r.state === 'connected' && Array.isArray(r.info.features) && r.info.features.includes('call') && C && (window.AudioContext || window.webkitAudioContext) && (listen || (navigator.mediaDevices && navigator.mediaDevices.getUserMedia)));
+    const features = r?.info.features;
+    return !!(r && r.state === 'connected' && Array.isArray(features) && features.includes('call') && C && (window.AudioContext || window.webkitAudioContext)
+      && (listen ? features.includes('call-listen') : navigator.mediaDevices?.getUserMedia));
   };
   const live = () => state === 'ringing' || state === 'on';
   const fullScreen = () => live() && window.CapriScreen && window.CapriScreen.mode === 'full';

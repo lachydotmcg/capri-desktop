@@ -19,6 +19,7 @@ namespace CapriDesktop
         internal const int PartMs = 250;
         // hello-ok's feature for a PC that stops her answer when a phone on a call sends call.hush.
         internal const string HushFeature = "hush";
+        internal const string ListenFeature = "call-listen";
         private const int LinesAtOnce = 2, FlushMs = 120, TimedForMs = 60000;
 
         // The phones on a call changed: the badge reads Callers(). Raised on whatever thread made the change.
@@ -59,6 +60,7 @@ namespace CapriDesktop
             flusher = new Timer(Flush);
             link.Offer("call");
             link.Offer(HushFeature);
+            link.Offer(ListenFeature);
             link.LiveHeard += Heard;
             link.Happened += Happened;
         }
