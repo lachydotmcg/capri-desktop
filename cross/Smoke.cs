@@ -8921,7 +8921,7 @@ namespace CapriDesktop
         {
             internal readonly ManualResetEventSlim Entered = new ManualResetEventSlim();
             internal readonly ManualResetEventSlim Release = new ManualResetEventSlim();
-            internal string Hold, Refuse, Broken, ModelKey;
+            internal string Hold, Refuse, Echo, Broken, ModelKey;
             internal int Calls, Active, Most;
             internal bool Free;
 
@@ -8938,6 +8938,7 @@ namespace CapriDesktop
                     if (Cloud.IsCode(key)) Brain.Log("their fake code", -1, key.ToUpperInvariant() + " " + key.Substring(key.Length - 4).ToUpperInvariant());
                     if (key == Hold) { Entered.Set(); if (!Release.Wait(10000)) throw new Exception("The fake key check was not released."); }
                     if (key == Refuse) throw new BrainException(Brain.Rejected("NVIDIA"), true);
+                    if (key == Echo) throw new BrainException("Their provider refused " + key + " ending " + key.Substring(key.Length - 4), true);
                     if (key == Broken) throw new IOException("Their test provider repeated " + key + " " + key.Substring(key.Length - 4));
                     return key == ModelKey ? new List<string> { key + "-model", "their-chat-model" } : new List<string> { "their-chat-model" };
                 }
@@ -8997,8 +8998,8 @@ namespace CapriDesktop
             var timer = (Avalonia.Threading.DispatcherTimer)RemoteWire.Get(pet, "frames");
             bool ticking = timer.IsEnabled;
             string data = Path.Combine(folder, "remote-brain-data");
-            string free = "nvapi-their-free+K4p7", paid = "sk-their-paid-P8v2", typed = "sk-their-typed-Q5w3", refused = "nvapi-their-refused-R8q5", broken = "nvapi-their-broken-T6u9", slow = "nvapi-their-slow-S3c6", second = "nvapi-their-second-B9m4", changed = "nvapi-their-changed-C7n2", unknown = "their-unknown-U7x2";
-            var secrets = new List<string> { free, paid, typed, refused, broken, slow, second, changed, unknown };
+            string free = "nvapi-their-free+K4p7", paid = "sk-their-paid-P8v2", typed = "sk-their-typed-Q5w3", refused = "nvapi-their-refused-R8q5", echoed = "nvapi-their-echoed-J4w6", broken = "nvapi-their-broken-T6u9", slow = "nvapi-their-slow-S3c6", second = "nvapi-their-second-B9m4", changed = "nvapi-their-changed-C7n2", unknown = "their-unknown-U7x2";
+            var secrets = new List<string> { free, paid, typed, refused, echoed, broken, slow, second, changed, unknown };
             string code = "capri-test-2345-6789-abcd-efgh";
             secrets.Add(code); secrets.Add(code.ToUpperInvariant());
             var heard = new List<string>();
@@ -9019,7 +9020,7 @@ namespace CapriDesktop
                 Brain.MemoriesPath = Path.Combine(data, "memories.md"); Brain.MemoryPath = Path.Combine(data, "me.md"); Brain.TranscriptPath = Path.Combine(data, "transcripts");
                 pet.Think = delegate { Interlocked.Increment(ref turns); return "Their test answer."; };
                 pet.BrainKeyCheck = checker.Check; pet.RemoteBrainNow = delegate { return time; };
-                checker.Refuse = refused; checker.Broken = broken; checker.ModelKey = free;
+                checker.Refuse = refused; checker.Echo = echoed; checker.Broken = broken; checker.ModelKey = free;
                 bridge.Online();
                 frame = new Mainframe(pet); frame.Show();
                 Func<List<RemoteJson.Map>> read = delegate { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return bridge.ReadBrains(received, heard); };
@@ -9066,7 +9067,7 @@ namespace CapriDesktop
                 if (pet.MainframeTier != 2 || pet.MainframeBrainKey != null || File.Exists(Path.Combine(data, "brain-paid-key")) || File.Exists(Path.Combine(data, "brain-key"))) throw new Exception("The PC's Forget did not reach the phone or the key store.");
                 checks.Add("PASS cross brain keys: checking then saved, with no thinking bubble or new answer ticket on the PC; the free and paid Mainframe stores, Capri code spelling and private file mode; a PC notice names the phone and brain; typing and forgetting on the PC notify a watching phone even when its saved-key flags stay the same");
 
-                foreach (string rejected in new[] { refused, broken })
+                foreach (string rejected in new[] { refused, echoed, broken })
                 {
                     key("refused-key", "medium", rejected);
                     Avalonia.Threading.Dispatcher.UIThread.RunJobs();
@@ -9087,7 +9088,7 @@ namespace CapriDesktop
                 RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, false);
                 if (pet.MainframeBrainNote != "ChatGPT plan \u00b7 retained account") throw new Exception("The retained plan did not keep its Mainframe note.");
                 pet.Brain.Provider = null; pet.Saved.NativePlan = false; pet.NotifySettings(); read();
-                checks.Add("PASS cross key refusals: provider and ordinary failures use the Mainframe note without saving; unknown keys, trimmed first like the key box even with a newline, a tab or padding past 400, a short junk key that leaves the note's words whole, paid keys under medium and PC-only plans use their fixed words; retained-plan state matches the Mainframe");
+                checks.Add("PASS cross key refusals: provider refusals, one repeating the key and its last four, and ordinary failures use the Mainframe note without saving; unknown keys, trimmed first like the key box even with a newline, a tab or padding past 400, a short junk key that leaves the note's words whole, paid keys under medium and PC-only plans use their fixed words; retained-plan state matches the Mainframe");
 
                 checker.WaitFor(changed); key("changed-key", "max", changed);
                 RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "the held key check");
@@ -9176,7 +9177,7 @@ namespace CapriDesktop
                     foreach (string secret in secrets) if (!store && secret != typed && (text.Contains(secret) || text.Contains(Uri.EscapeDataString(secret)) || text.Contains(secret.Substring(secret.Length - 4)))) throw new Exception("A key reached a file outside the Mainframe key store.");
                 }
                 if (turns != 0 || checker.Most != 1) throw new Exception("A brain key reached chat or another key check.");
-                checks.Add("PASS cross key privacy: all decrypted frames omit each key and its last four characters; fake provider logs, crash text and errors are scrubbed; every smoke data file except the Mainframe key stores is free of phone key text, including chat, notes, memories, logs and transcripts; no chat brain call");
+                checks.Add("PASS cross key privacy: all decrypted frames omit each key and its last four characters, even after a refusal that repeated them; fake provider logs, crash text and errors are scrubbed; every smoke data file except the Mainframe key stores is free of phone key text, including chat, notes, memories, logs and transcripts; no chat brain call");
             }
             finally
             {
