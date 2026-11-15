@@ -9076,6 +9076,7 @@ namespace CapriDesktop
                 }
                 int calls = checker.Calls;
                 key("unknown-key", "max", "\n" + unknown + "\t" + new string(' ', RemoteBrainKeys.MostKey)); RemoteBrainNote(read(), "unknown-key", "failed", Pet.NotAKey);
+                key("short-key", "max", "key"); RemoteBrainNote(read(), "short-key", "failed", Pet.NotAKey);
                 key("wrong-rung", "medium", paid); RemoteBrainNote(read(), "wrong-rung", "failed", RemoteBrainKeys.PaidNote);
                 foreach (string plan in new[] { Plans.ClaudeKey, Plans.CodexKey })
                 {
@@ -9086,7 +9087,7 @@ namespace CapriDesktop
                 RemoteBrainShown(frame, read(), bridge.Phones[0].Id, true, false);
                 if (pet.MainframeBrainNote != "ChatGPT plan \u00b7 retained account") throw new Exception("The retained plan did not keep its Mainframe note.");
                 pet.Brain.Provider = null; pet.Saved.NativePlan = false; pet.NotifySettings(); read();
-                checks.Add("PASS cross key refusals: provider and ordinary failures use the Mainframe note without saving; unknown keys, trimmed first like the key box even with a newline, a tab or padding past 400, paid keys under medium and PC-only plans use their fixed words; retained-plan state matches the Mainframe");
+                checks.Add("PASS cross key refusals: provider and ordinary failures use the Mainframe note without saving; unknown keys, trimmed first like the key box even with a newline, a tab or padding past 400, a short junk key that leaves the note's words whole, paid keys under medium and PC-only plans use their fixed words; retained-plan state matches the Mainframe");
 
                 checker.WaitFor(changed); key("changed-key", "max", changed);
                 RemoteBridgeWait(delegate { return checker.Entered.IsSet; }, "the held key check");
