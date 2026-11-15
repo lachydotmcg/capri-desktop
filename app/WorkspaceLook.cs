@@ -1837,18 +1837,42 @@ namespace CapriDesktop
             lock (chat.Gate) { item.Text = whole; item.Growing = false; }
             window.RefreshChat();
             window.ScrollToEnd();
-            int height = window.ConversationTall;
             string plain = window.CopyText(item);
             List<byte[]> baseline = WorkspaceConversationPixels(window);
+            int height = window.ConversationTall, differs = -1;
             for (int cut = 0; cut <= whole.Length; cut++)
             {
                 lock (chat.Gate) { item.Text = whole.Substring(0, cut); item.Growing = true; }
                 window.RefreshChat();
                 window.ScrollToEnd();
-                using (Bitmap drawn = window.DrawConversation())
-                    if (drawn.Width == 0 || drawn.Height == 0) failures.Add("A streamed Markdown prefix drew an empty image at " + cut + ".");
-                if (cut == whole.Length / 2) shoot(window, "g-stream-growing-100", null);
+                // Every seventh prefix, what was laid out from the kept blocks of the ones before it against the whole prefix
+                // laid out afresh.
+                if (differs < 0 && (cut % 7 == 0 || cut == whole.Length))
+                {
+                    string kept = window.LayoutSignature(item);
+                    window.LayOutWhole(item);
+                    if (kept.Length == 0 || kept != window.LayoutSignature(item)) differs = cut;
+                }
+                if (cut == whole.Length / 2)
+                {
+                    window.ThinkingSeconds = delegate { return 14; };
+                    lock (chat.Gate) chat.Live = new WorkspaceTurn { Chat = chat };
+                    try
+                    {
+                        window.RefreshChat();
+                        window.ScrollToEnd();
+                        if (window.Find("Stop") == null || window.Find("Send") != null || !window.Thinking) failures.Add("The growing-reply picture was not staged as a running turn.");
+                        shoot(window, "g-stream-growing-100", null);
+                    }
+                    finally
+                    {
+                        lock (chat.Gate) chat.Live = null;
+                        window.ThinkingSeconds = null;
+                        window.RefreshChat();
+                    }
+                }
             }
+            if (differs >= 0) failures.Add("A growing reply laid out from its kept blocks differs from the same prefix laid out whole, at " + differs + " characters.");
             lock (chat.Gate) item.Growing = false;
             window.RefreshChat();
             List<byte[]> final = WorkspaceConversationPixels(window);
@@ -2015,7 +2039,7 @@ namespace CapriDesktop
                     flowing.Title = "Forty, streamed";
                     say(flowing, "text", "");
                     WorkspaceItem growing;
-                    lock (flowing.Gate) growing = flowing.Items[1];
+                    lock (flowing.Gate) { growing = flowing.Items[1]; growing.Growing = true; }
                     window.ShowChat(flowing);
                     string all = longer.ToString();
                     long worst = 0, total = 0;
@@ -2034,6 +2058,8 @@ namespace CapriDesktop
                         steps++;
                         if (upTo == all.Length) break;
                     }
+                    lock (flowing.Gate) growing.Growing = false;
+                    window.RefreshChat();
                     timings.Add("Workspace at " + scale + "%: a 40-part formatted reply (" + all.Length + " letters) lays out and draws in " + took + " ms whole; streamed in " + steps + " steps of 600 letters it took " + total + " ms in all, " + (total / steps) + " ms a step on average and " + worst + " ms at worst");
                     if (worst > 1500) failures.Add(scale + "%: a step of the streamed 40-part reply took " + worst + " ms.");
                 }

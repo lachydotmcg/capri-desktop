@@ -45035,6 +45035,35 @@ namespace CapriDesktop
             return HuskJson.Write(HuskJson.Map("type", "assistant", "message", HuskJson.Map("id", id, "role", "assistant", "content", new List<object> { HuskJson.Map("type", "text", "text", text) }), "parent_tool_use_id", parent));
         }
 
+        private static string WorkspaceLongReply(int size)
+        {
+            string[] words = { "the", "reader", "keeps", "every", "block", "it", "already", "laid", "out", "so", "only", "new", "words", "cost", "anything", "while", "a", "reply", "grows", "and", "then", "settles", "window", "follows", "end", "of", "transcript", "with", "cached", "layout", "paging", "Markdown", "streamed", "text", "table", "code", "list", "heading" };
+            Random random = new Random(20261115);
+            StringBuilder text = new StringBuilder();
+            Func<int, string> sentence = delegate(int count)
+            {
+                StringBuilder line = new StringBuilder();
+                for (int i = 0; i < count; i++)
+                {
+                    string word = words[random.Next(words.Length)];
+                    int style = random.Next(40);
+                    if (i > 0) line.Append(' ');
+                    line.Append(i == 0 ? char.ToUpperInvariant(word[0]) + word.Substring(1) : style == 0 ? "**" + word + "**" : style == 1 ? "`" + word + "`" : style == 2 ? "*" + word + "*" : word);
+                }
+                return line.Append('.').ToString();
+            };
+            for (int part = 1; text.Length < size; part++)
+            {
+                text.Append("## Part ").Append(part).Append("\n\n");
+                text.Append(sentence(45)).Append(' ').Append(sentence(30)).Append("\n\n");
+                text.Append("- ").Append(sentence(12)).Append("\n- ").Append(sentence(9)).Append("\n  - ").Append(sentence(7)).Append("\n- ").Append(sentence(10)).Append("\n\n");
+                text.Append("```csharp\nint total = ").Append(part).Append(";\nforeach (string line in lines) total += line.Length;\nConsole.WriteLine(total);\n```\n\n");
+                text.Append(sentence(35)).Append("\n\n");
+                text.Append("| File | Lines | Change |\n|:-----|------:|:------:|\n| `app\\Part").Append(part).Append(".cs` | ").Append(40 + part).Append(" | edited |\n| `app\\Words.cs` | 12 | new |\n\n");
+            }
+            return text.ToString(0, size);
+        }
+
         private void SmokeWorkspaceStream(List<string> checks, string folder)
         {
             folder = Path.Combine(folder, Guid.NewGuid().ToString("N"));
@@ -45088,10 +45117,14 @@ namespace CapriDesktop
                     work.Parse(turn, WorkspaceTextRow("msg-worker", "Worker reply.", "tool-worker"));
                     work.Parse(turn, WorkspaceEvent("content_block_start", "index", 2, "content_block", HuskJson.Map("type", "text", "text", "")));
                     work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 2, "delta", HuskJson.Map("type", "text_delta", "text", "Second block.")));
-                    work.Parse(turn, WorkspaceTextRow("msg-one", "Second block.", null));
+                    if (order != 2) work.Parse(turn, WorkspaceTextRow("msg-one", "Second block.", null));
                     work.Parse(turn, WorkspaceEvent("content_block_stop", "index", 2));
                     work.Parse(turn, WorkspaceEvent("message_stop"));
-                    if (order == 2) work.Parse(turn, WorkspaceTextRow("msg-one", value, null));
+                    if (order == 2)
+                    {
+                        work.Parse(turn, WorkspaceTextRow("msg-one", value, null));
+                        work.Parse(turn, WorkspaceTextRow("msg-one", "Second block.", null));
+                    }
                     work.Parse(turn, WorkspaceEvent("message_start", "message", HuskJson.Map("id", "msg-two")));
                     work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
                     work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", "Another message.")));
@@ -45113,37 +45146,105 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS Workspace settles the same streamed item before and after block stop, after message stop and before stream start; two blocks, two messages, interleaved workers, tools, unknown kinds and bad JSON keep one saved copy");
 
-                for (int early = 0; early < 3; early++)
+                // Finished rows that come before their block streams, while it is empty or growing, or both before anything
+                // streams; both blocks start with the same word, so nothing can be matched by its first letters.
+                for (int early = 0; early < 4; early++)
                 {
                     WorkspaceChat chat = work.NewChat(project, false);
                     WorkspaceTurn turn = new WorkspaceTurn { Chat = chat };
-                    if (early == 0) work.Parse(turn, WorkspaceTextRow("early", "Second reply block.", null));
+                    string one = "I think the reader is fine.", two = "I also checked the table.";
+                    if (early == 0 || early == 3) work.Parse(turn, WorkspaceTextRow("early", one, null));
+                    if (early == 3) work.Parse(turn, WorkspaceTextRow("early", two, null));
                     work.Parse(turn, WorkspaceEvent("message_start", "message", HuskJson.Map("id", "early")));
                     work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
-                    if (early == 1) work.Parse(turn, WorkspaceTextRow("early", "Second reply block.", null));
-                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", "First reply")));
+                    if (early == 1) work.Parse(turn, WorkspaceTextRow("early", one, null));
+                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", "I")));
                     work.PublishStreams(turn);
                     WorkspaceItem first = WorkspaceItems(chat)[0];
-                    if (early == 2) work.Parse(turn, WorkspaceTextRow("early", "Second reply block.", null));
-                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", " block.")));
-                    work.Parse(turn, WorkspaceTextRow("early", "First reply block.", null));
+                    if (early == 2) work.Parse(turn, WorkspaceTextRow("early", one, null));
+                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", " think the reader is fine.")));
                     work.Parse(turn, WorkspaceEvent("content_block_stop", "index", 0));
                     work.Parse(turn, WorkspaceEvent("content_block_start", "index", 1, "content_block", HuskJson.Map("type", "text", "text", "")));
-                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 1, "delta", HuskJson.Map("type", "text_delta", "text", "Second reply")));
-                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 1, "delta", HuskJson.Map("type", "text_delta", "text", " block.")));
+                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 1, "delta", HuskJson.Map("type", "text_delta", "text", "I")));
+                    work.PublishStreams(turn);
+                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 1, "delta", HuskJson.Map("type", "text_delta", "text", " also checked the table.")));
+                    if (early != 3) work.Parse(turn, WorkspaceTextRow("early", two, null));
                     work.Parse(turn, WorkspaceEvent("content_block_stop", "index", 1));
                     work.Parse(turn, WorkspaceEvent("message_stop"));
-                    work.Parse(turn, HuskJson.Write(HuskJson.Map("type", "assistant", "message", HuskJson.Map("id", "early", "content", new List<object> {
-                        HuskJson.Map("type", "text", "text", "First reply block."), HuskJson.Map("type", "text", "text", "Second reply block.")
-                    }))));
                     work.EndStreams(turn);
                     List<WorkspaceItem> items = WorkspaceItems(chat);
-                    if (items.Count != 2 || !object.ReferenceEquals(first, items[0]) || first.Text != "First reply block." || items[1].Text != "Second reply block." || first.Growing || items[1].Growing) throw new Exception("Workspace bound an early later-block final to an empty or unrelated block.");
+                    if (items.Count != 2 || !object.ReferenceEquals(first, items[0]) || first.Text != one || items[1].Text != two || first.Growing || items[1].Growing) throw new Exception("Workspace bound an early finished row to the wrong block or showed it twice.");
                     work.Flush(chat);
-                    List<object> saved = HuskJson.List(HuskJson.Get(HuskJson.Read(File.ReadAllText(Path.Combine(work.Root, "chats", chat.Id + ".json"))) as Dictionary<string, object>, "items"));
-                    if (saved.Count != 2) throw new Exception("Workspace saved an extra early-final placeholder.");
+                    string saved = File.ReadAllText(Path.Combine(work.Root, "chats", chat.Id + ".json"));
+                    if (HuskJson.List(HuskJson.Get(HuskJson.Read(saved) as Dictionary<string, object>, "items")).Count != 2 || saved.IndexOf(one, StringComparison.Ordinal) != saved.LastIndexOf(one, StringComparison.Ordinal) || saved.IndexOf(two, StringComparison.Ordinal) != saved.LastIndexOf(two, StringComparison.Ordinal)) throw new Exception("Workspace saved an early finished row twice.");
                 }
-                checks.Add("PASS Workspace keeps an early later-block final separate while the first block is absent, empty or growing, then binds each block once in order");
+                checks.Add("PASS Workspace binds finished rows that arrive before their block, while it is empty or growing, or before anything streams, to their own block in order, even when both blocks start with the same word");
+
+                // A finished text that is not what streamed: a trailing line break dropped, a word corrected, more words.
+                string[,] differing = { { "All done.\n", "All done." }, { "The colour is red.", "The color is red." }, { "Plan:\n\n- one", "Plan:\n\n- one\n- two" } };
+                for (int i = 0; i < differing.GetLength(0); i++)
+                {
+                    WorkspaceChat chat = work.NewChat(project, false);
+                    WorkspaceTurn turn = new WorkspaceTurn { Chat = chat };
+                    chat.Live = turn;
+                    string streamed = differing[i, 0], finished = differing[i, 1];
+                    work.Parse(turn, WorkspaceEvent("message_start", "message", HuskJson.Map("id", "differs")));
+                    work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
+                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", streamed)));
+                    work.PublishStreams(turn);
+                    WorkspaceItem shown = WorkspaceItems(chat)[0];
+                    work.Parse(turn, WorkspaceEvent("content_block_stop", "index", 0));
+                    work.Parse(turn, WorkspaceTextRow("differs", finished, null));
+                    work.Parse(turn, WorkspaceEvent("message_stop"));
+                    work.Parse(turn, HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "duration_ms", 900, "total_cost_usd", 0.01)));
+                    chat.Live = null;
+                    work.Flush(chat);
+                    List<WorkspaceItem> texts = WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "text"; });
+                    string saved = File.ReadAllText(Path.Combine(work.Root, "chats", chat.Id + ".json"));
+                    int savedTexts = 0;
+                    foreach (object item in HuskJson.List(HuskJson.Get(HuskJson.Read(saved) as Dictionary<string, object>, "items")))
+                        if (HuskJson.Text(item as Dictionary<string, object>, "kind") == "text") savedTexts++;
+                    if (texts.Count != 1 || !object.ReferenceEquals(texts[0], shown) || shown.Text != finished || shown.Growing || savedTexts != 1) throw new Exception("Workspace showed or saved a reply twice when its finished text differed from what streamed: " + HuskJson.Write(streamed));
+                }
+                checks.Add("PASS Workspace settles a streamed reply on its finished text, once in the window and the saved chat, when the finished text drops a trailing line break, corrects a word or adds more");
+
+                // A message that streams and never gets a finished row, then its replacement: gone after a turn that ends
+                // well, kept after Stop or a failed turn.
+                for (int ending = 0; ending < 3; ending++)
+                {
+                    WorkspaceChat chat = work.NewChat(project, false);
+                    WorkspaceTurn turn = new WorkspaceTurn { Chat = chat };
+                    chat.Live = turn;
+                    string cut = "Cut off half way thr", whole = "The whole reply, from the retried request.";
+                    work.Parse(turn, WorkspaceEvent("message_start", "message", HuskJson.Map("id", "abandoned")));
+                    work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
+                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", cut)));
+                    work.PublishStreams(turn);
+                    work.Parse(turn, WorkspaceEvent("message_start", "message", HuskJson.Map("id", "replacement")));
+                    work.Parse(turn, WorkspaceEvent("content_block_start", "index", 0, "content_block", HuskJson.Map("type", "text", "text", "")));
+                    work.Parse(turn, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", whole)));
+                    work.Parse(turn, WorkspaceEvent("content_block_stop", "index", 0));
+                    work.Parse(turn, WorkspaceTextRow("replacement", whole, null));
+                    work.Parse(turn, WorkspaceEvent("message_stop"));
+                    if (WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "text"; }).Count != 2) throw new Exception("Workspace did not show the unfinished stream while the turn ran.");
+                    if (ending == 0) work.Parse(turn, HuskJson.Write(HuskJson.Map("type", "result", "is_error", false, "duration_ms", 900, "total_cost_usd", 0.01)));
+                    else if (ending == 1)
+                    {
+                        work.Stop(chat);
+                        WorkspaceWait(delegate { return WorkspaceItems(chat).Exists(delegate(WorkspaceItem item) { return item.Kind == "stopped"; }); }, "Workspace did not record a stop.");
+                    }
+                    else work.Parse(turn, HuskJson.Write(HuskJson.Map("type", "result", "is_error", true, "result", "Overloaded.")));
+                    chat.Live = null;
+                    work.Flush(chat);
+                    List<WorkspaceItem> texts = WorkspaceItems(chat).FindAll(delegate(WorkspaceItem item) { return item.Kind == "text"; });
+                    string saved = File.ReadAllText(Path.Combine(work.Root, "chats", chat.Id + ".json"));
+                    bool kept = ending != 0;
+                    if (texts.Count != (kept ? 2 : 1) || texts[texts.Count - 1].Text != whole || kept && texts[0].Text != cut || texts.Exists(delegate(WorkspaceItem item) { return item.Growing; })
+                        || saved.IndexOf(whole, StringComparison.Ordinal) < 0 || saved.IndexOf(whole, StringComparison.Ordinal) != saved.LastIndexOf(whole, StringComparison.Ordinal)
+                        || (saved.IndexOf(cut, StringComparison.Ordinal) >= 0) != kept || saved.IndexOf(cut, StringComparison.Ordinal) != saved.LastIndexOf(cut, StringComparison.Ordinal))
+                        throw new Exception("Workspace " + (kept ? "lost" : "kept") + " a stream that never finished after " + (ending == 0 ? "a turn that ended well." : ending == 1 ? "Stop." : "a failed turn."));
+                }
+                checks.Add("PASS Workspace drops a stream that never got its finished row once the turn ends well, and keeps it once in the window and the saved chat after Stop or a failed turn");
 
                 for (int ending = 0; ending < 3; ending++)
                 {
@@ -45189,7 +45290,7 @@ namespace CapriDesktop
                     work.Flush(plain);
                     if (before != Convert.ToBase64String(File.ReadAllBytes(file))) throw new Exception("Workspace changed saved bytes without partial rows.");
                 }
-                checks.Add("PASS Workspace without partial rows saves the same bytes as the original finished-row path, including turn time and cost");
+                checks.Add("PASS Workspace without partial rows saves the same bytes for a finished row with a message id as for one without, the path that predates streaming, including turn time and cost");
 
                 WorkspaceChat cost = work.NewChat(project, false);
                 for (int i = 0; i < 180; i++) work.Add(cost, new WorkspaceItem { Kind = "text", Text = "Earlier words " + i + "." });
@@ -45207,17 +45308,37 @@ namespace CapriDesktop
                     int measured = window.LayoutMeasures, layouts = window.LayoutPasses, fills = window.ItemFills, oldMeasures = window.MeasuresOf(cached);
                     object cachedLayout = window.LayoutOf(cached);
                     long revision = cost.Revision;
+                    // A 50,000-character reply of headings, paragraphs, lists, code and tables, 16 characters a piece and shown every
+                    // second piece (about a 40 ms publish at twice the pace Claude writes), each update timed with its repaint.
+                    string reply = WorkspaceLongReply(50000);
+                    Control drawn = window.Named("Conversation");
+                    int laid = window.LaidWords, publishes = 0, lateCount = 0;
+                    double worst = 0, late = 0, latePaint = 0, early = 0, all = 0;
+                    int earlyCount = 0;
                     Stopwatch took = Stopwatch.StartNew();
-                    string piece = WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", "abcdefghij"));
-                    for (int i = 1; i <= 2000; i++)
+                    for (int at = 0, n = 0; at < reply.Length; at += 16, n++)
                     {
-                        work.Parse(feed, piece);
-                        if (i % 25 == 0) { work.PublishStreams(feed); window.FlushChanges(); }
+                        work.Parse(feed, WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", reply.Substring(at, Math.Min(16, reply.Length - at)))));
+                        if (n % 2 == 0 && at + 16 < reply.Length) continue;
+                        work.PublishStreams(feed);
+                        window.FlushChanges();
+                        Stopwatch paint = Stopwatch.StartNew();
+                        drawn.Refresh();
+                        double one = window.LastChange + paint.Elapsed.TotalMilliseconds;
+                        publishes++;
+                        all += one;
+                        worst = Math.Max(worst, one);
+                        if (at >= reply.Length * 9 / 10) { late += one; latePaint += paint.Elapsed.TotalMilliseconds; lateCount++; }
+                        if (at < reply.Length / 10) { early += one; earlyCount++; }
                     }
                     took.Stop();
-                    int ran = window.LayoutMeasures - measured, passes = window.LayoutPasses - layouts;
-                    if (changing.Text.Length != 20000 || ran != 80 || passes != 80 || window.ItemFills != fills || cost.Revision != revision || window.MeasuresOf(cached) != oldMeasures || !object.ReferenceEquals(cachedLayout, window.LayoutOf(cached)) || !window.AtEnd || !window.FollowingEnd) throw new Exception("Workspace re-read old Markdown, rebuilt paging, saved pieces or lost following while streaming.");
-                    checks.Add("PASS Workspace 20,000 characters in 2,000 pieces: " + ran + " item layouts, " + passes + " cached layout passes, " + took.ElapsedMilliseconds + " ms feed; earlier layouts and paging reused");
+                    int ran = window.LayoutMeasures - measured, passes = window.LayoutPasses - layouts, blocksLaid = window.LaidWords - laid, blocks = WorkWords.Read(reply).Count;
+                    Stopwatch reading = Stopwatch.StartNew();
+                    WorkWords.Read(reply);
+                    reading.Stop();
+                    if (changing.Text != reply || ran != publishes || passes != publishes || blocksLaid > blocks + 3 * publishes || late / Math.Max(1, lateCount) > 3 * early / Math.Max(1, earlyCount) + 10 || window.ItemFills != fills || cost.Revision != revision || window.MeasuresOf(cached) != oldMeasures || !object.ReferenceEquals(cachedLayout, window.LayoutOf(cached)) || !window.AtEnd || !window.FollowingEnd) throw new Exception("Workspace laid out its whole growing reply again, rebuilt paging, saved pieces or lost following while streaming: " + blocksLaid + " blocks laid for " + blocks + " in " + publishes + " updates.");
+                    checks.Add("PASS Workspace 50,000-character reply in " + publishes + " updates: " + blocksLaid + " Markdown blocks laid for its " + blocks + ", " + (all / publishes).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms an update with its repaint on average, " + (early / Math.Max(1, earlyCount)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms in the first tenth, " + (late / Math.Max(1, lateCount)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms in the last (" + (latePaint / Math.Max(1, lateCount)).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms of it the repaint), " + worst.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms at worst, " + took.ElapsedMilliseconds + " ms feed; reading all of it takes " + reading.ElapsedMilliseconds + " ms; earlier layouts and paging reused");
+                    string piece = WorkspaceEvent("content_block_delta", "index", 0, "delta", HuskJson.Map("type", "text_delta", "text", " more"));
                     int flushes = window.ChangeFlushes;
                     for (int i = 0; i < 100; i++) window.QueueChange(cost, changing);
                     window.FlushChanges();
@@ -45272,6 +45393,38 @@ namespace CapriDesktop
                         if (invalidated.Count != 0 || !window.ThinkingInvalidated.IsEmpty) throw new Exception("Workspace repainted a clock outside the view.");
                     }
                     finally { conversation.Invalidated -= ticked; window.ThinkingSeconds = null; }
+
+                    // After a slow update (the whole reply laid out afresh) the next growing piece waits three times as long
+                    // as it took; anything else shows at once.
+                    Application.DoEvents();
+                    window.ForgetLayout(changing);
+                    work.Parse(feed, piece);
+                    work.PublishStreams(feed);
+                    window.FlushChanges();
+                    double slow = window.LastChange, first = slow;
+                    Stopwatch since = Stopwatch.StartNew();
+                    int paced = window.ChangeFlushes;
+                    work.Parse(feed, piece);
+                    work.PublishStreams(feed);
+                    Application.DoEvents();
+                    if (window.ChangeFlushes != paced && since.Elapsed.TotalMilliseconds < slow * 3) throw new Exception("Workspace showed a growing piece " + since.ElapsedMilliseconds + " ms after an update that took " + slow.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms.");
+                    while (window.ChangeFlushes == paced && since.ElapsedMilliseconds < 5000) { Application.DoEvents(); System.Threading.Thread.Sleep(1); }
+                    double waited = since.Elapsed.TotalMilliseconds;
+                    if (window.ChangeFlushes == paced || waited < slow * 3 - 2) throw new Exception("Workspace did not pace a growing piece after a " + slow.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms update: it waited " + waited.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms.");
+                    window.ForgetLayout(changing);
+                    work.Parse(feed, piece);
+                    work.PublishStreams(feed);
+                    window.FlushChanges();
+                    slow = window.LastChange;
+                    since.Restart();
+                    paced = window.ChangeFlushes;
+                    work.Parse(feed, piece);
+                    work.PublishStreams(feed);
+                    Application.DoEvents();
+                    window.QueueChange(cost, null);
+                    Application.DoEvents();
+                    if (window.ChangeFlushes == paced) throw new Exception("Workspace held back a change that wasn't a growing reply.");
+                    checks.Add("PASS Workspace waits " + waited.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " ms to show a growing piece after a " + first.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " ms update that laid out the whole 50,000-character reply afresh, and shows any other change at once");
                     work.EndStreams(feed);
                     cost.Live = null;
                     window.FlushChanges();
