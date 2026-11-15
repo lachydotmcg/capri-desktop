@@ -281,7 +281,12 @@ namespace CapriDesktop
             try { return Decoded(path, new UTF8Encoding(false, true), offset, result); }
             catch (DecoderFallbackException)
             {
+#if CROSS
+                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+                try { return Decoded(path, Encoding.GetEncoding(1252, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback), offset, result); }
+#else
                 try { return Decoded(path, Encoding.GetEncoding(Encoding.Default.CodePage, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback), offset, result); }
+#endif
                 catch (DecoderFallbackException) { return null; }
             }
         }

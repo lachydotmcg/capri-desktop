@@ -5626,6 +5626,11 @@ namespace CapriDesktop
                     if (!Hands.Typed("read_file{\"path\":" + Voice.Quote(path) + ",\"page\":5,\"offset\":24000}", out tool, out args) || args.Page != 5 || args.Offset != 24000) throw new Exception("Written read_file lost page or offset.");
                     if (Files.Open(binary, null).Line != "I can't read that kind of file yet: program.exe." || Files.Open(damaged, null).Readable || Files.Open(Path.Combine(root, "missing.txt"), null).Line != "I couldn't find the file missing.txt.") throw new Exception("Windows file refusals were bypassed.");
                     if (Files.Open(word, null).Text != "Word contents\n" || !Files.Open(book, null).Text.Contains("A1: cell contents") || Files.Open(word, null, null, 5).Text != "contents\n") throw new Exception("Shared document readers changed their text or offsets.");
+                    string accents = Path.Combine(root, "accents.csv");
+                    File.WriteAllBytes(accents, new byte[] { 99, 97, 102, 233, 44, 32, 99, 114, 232, 109, 101 });
+                    ReadFile legacy = Files.Open(accents, null);
+                    File.Delete(accents);
+                    if (legacy.Line != "accents.csv is a text file." || legacy.Text != "caf" + (char)233 + ", cr" + (char)232 + "me") throw new Exception("A Windows-1252 text file wasn't read the way Windows reads it: " + legacy.Line);
                     var reading = MacFiles.Run;
                     MacFiles.Run = (_, _, _, _) => throw new UnauthorizedAccessException();
                     string refused = Files.Open(path, null).Line;
@@ -5683,6 +5688,7 @@ namespace CapriDesktop
                 checks.Add("PASS cross Security without a brain: another message drops a held nickname open, so a late yes opens nothing");
                 checks.Add("PASS cross help: ordinary file questions and messages naming a path get no app-help facts");
                 checks.Add("PASS cross reading: a file she may not read says how to allow it on Mac, or that she has no access on Linux");
+                checks.Add("PASS cross reading: Windows-1252 text falls back the way Windows reads it");
             }
             finally
             {
