@@ -1661,6 +1661,9 @@ namespace CapriDesktop
                     e.Graphics.FillRectangle(rule, Scaled(6), lineTop, Width - Scaled(6), thick);
                     e.Graphics.FillRectangle(rule, Scaled(6), lineFoot, Width - Scaled(6), thick);
                 }
+                if (status != null && status.Text.Length > 0)
+                    TextRenderer.DrawText(e.Graphics, status.Text, status.Font, status.Bounds, status.ForeColor,
+                        TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
             }
 
             protected override bool ProcessCmdKey(ref Message message, Keys keys)
@@ -1837,7 +1840,13 @@ namespace CapriDesktop
         // The status line, drawn on whatever the page is being drawn on.
         private sealed class Note : Label
         {
-            protected override void OnPaintBackground(PaintEventArgs e) { e.Graphics.Clear(Paper); }
+            protected override void WndProc(ref Message message)
+            {
+                if (message.Msg == 0x0317 || message.Msg == 0x0318) return;
+                base.WndProc(ref message);
+            }
+
+            protected override void OnTextChanged(EventArgs e) { base.OnTextChanged(e); Touch(this); }
             protected override void OnInvalidated(InvalidateEventArgs e) { base.OnInvalidated(e); Touch(this); }
         }
 
