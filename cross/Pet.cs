@@ -4728,6 +4728,7 @@ namespace CapriDesktop
         internal void FindBrain()
         {
             if (Brain.Provider != null || MainframeTier != 0) return;
+            if (Program.Smoke != null && BrainKeyCheck != null) return;
             string saved = Saved.Model;
             string server;
             string serverKey;
@@ -4939,6 +4940,7 @@ namespace CapriDesktop
             link.Happened += remoteChanged;
             link.Said += remoteHeard;
             link.PictureSaid += remotePictured;
+            RemoteBrainsOn(link, generation);
             link.Offer("pictures");
             Saved.RemoteOn = true;
             if (Program.Smoke == null && RemoteMake == null) link.Start();
@@ -4955,6 +4957,7 @@ namespace CapriDesktop
                 remoteLink = null;
                 remoteSink = null;
                 remoteGeneration++;
+                RemoteBrainsOff(link);
                 foreach (RemoteTurn turn in remoteNewest.Values) { turn.Closed = true; if (turn.Held != null) Security.Drop(turn.Held); turn.Enter(); }
                 remoteNewest.Clear(); remoteTickets.Clear(); remoteQueue.Clear(); remoteHolds.Clear(); remoteSessions.Clear();
                 remoteActive = null;
@@ -5734,34 +5737,71 @@ namespace CapriDesktop
 
         internal void SaveBrainKey(string key, int tier)
         {
+            SaveBrainKey(key, tier, null);
+        }
+
+        private void SaveBrainKey(string key, int tier, PhoneKey phone)
+        {
+            if (phone == null) RemoteBrainTakenOver();
             key = (key ?? "").Trim();
             if (key.Length == 0) return;
             string kind = Cloud.KindOf(key);
-            if (kind == null) { frameProblem = NotAKey; NotifySettings(); Talk.Answer(BrainKeyHeard, NotAKey); return; }
+            if (kind == null) { frameProblem = NotAKey; if (phone != null) DropPhoneKey(NotAKey); NotifySettings(); Talk.Answer(BrainKeyHeard, NotAKey); return; }
             frameProblem = null;
             int pickedTier = tier == 1 && Cloud.MediumKind(kind) ? 1 : 2;
             int request = ++brainRequests;
+            if (phone != null) phone.Request = request;
             brainPending++;
             int ticket = ++asking;
             Talk.Thinking(BrainKeyHeard);
+            Func<string, bool, List<string>> check = BrainKeyCheck;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 List<string> found = null;
                 string problem = null;
                 string company = new Cloud(key, null).Company;
-                try { found = Brain.CloudModels(key, pickedTier == 1); }
-                catch (BrainException error) { problem = error.Message; }
-                catch (Exception error) { Brain.Log(company + " models", -1, error.Message); problem = "Couldn't reach " + company + ". Check your internet, then paste the key again."; }
+                Func<string, string> clean = Brain.CleanSecret;
+                if (phone != null) Brain.CleanSecret = delegate(string text) { return BrainKeyText(text, key); };
+                try
+                {
+                    found = check == null ? Brain.CloudModels(key, pickedTier == 1) : check(key, pickedTier == 1);
+                    if (phone != null && found != null) found = found.FindAll(delegate(string model) { return model != null && BrainKeyText(model, key) == model; });
+                }
+                catch (BrainException error) { problem = phone == null ? error.Message : Brain.Redacted(BrainKeyText(error.Message, key)); }
+                catch (Exception error) { Brain.Log(company + " models", -1, phone == null ? error.Message : BrainKeyText(error.Message, key)); problem = "Couldn't reach " + company + ". Check your internet, then paste the key again."; }
+                finally { Brain.CleanSecret = clean; }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    brainPending--;
-                    if (request != brainRequests) { NotifySettings(); return; }
-                    string model = found == null ? null : Brain.DefaultCloudModel(kind, found);
-                    if (problem == null && model == null) problem = "That key can't use any chat models.";
-                    if (problem != null) { frameProblem = problem; NotifySettings(); if (ticket == asking) Talk.Answer(BrainKeyHeard, problem); return; }
-                    UseCloud(key, model, found, pickedTier);
-                    WriteSecret(BrainKeyFile, key, "brain key");
-                    if (ticket == asking) Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under BRAIN in Capri Mainframe.");
+                    Action finish = delegate
+                    {
+                        Func<string, string> before = Brain.CleanSecret;
+                        if (phone != null) Brain.CleanSecret = delegate(string text) { return BrainKeyText(text, key); };
+                        try
+                        {
+                            if (request != brainRequests) { NotifySettings(); return; }
+                            string model = found == null ? null : Brain.DefaultCloudModel(kind, found);
+                            if (problem == null && model == null) problem = "That key can't use any chat models.";
+                            if (problem != null) { frameProblem = problem; if (phone != null) DropPhoneKey(Brain.Brief(problem) ?? problem); NotifySettings(); if (ticket == asking) Talk.Answer(BrainKeyHeard, problem); return; }
+                            if (phone != null) { phoneKey = null; if (remoteBrainTimer != null) remoteBrainTimer.Stop(); }
+                            UseCloud(key, model, found, pickedTier);
+                            WriteSecret(BrainKeyFile, key, "brain key");
+                            if (ticket == asking) Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under BRAIN in Capri Mainframe.");
+                            if (phone != null)
+                            {
+                                BrainKeyNote(phone.Device, phone.Current, phone.Id, "saved", RemoteBrainKeys.Saved, phone.Key);
+                                RemoteKeyNotice(phone);
+                            }
+                        }
+                        finally { Brain.CleanSecret = before; }
+                    };
+                    lock (remoteGate)
+                    {
+                        brainPending--;
+                        if (phone == null) { finish(); return; }
+                        RemoteBrainTick();
+                        if (phoneKey != phone) { NotifySettings(); return; }
+                        if (remoteLink == null || !remoteLink.BrainDo(phone.Current, finish)) { DropPhoneKey(null); NotifySettings(); }
+                    }
                 });
             });
         }
