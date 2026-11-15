@@ -74,7 +74,7 @@ namespace CapriDesktop
                         }
                     }
                     if (message.Images != null) foreach (string image in message.Images)
-                        content.Add(new { type = "input_image", image_url = "data:image/jpeg;base64," + image, detail = "original" });
+                        content.Add(new { type = "input_image", image_url = "data:" + (message.ImageMime ?? "image/jpeg") + ";base64," + image, detail = "original" });
                     input.Add(new { role = message.Role == "assistant" ? "assistant" : "user", content });
                 }
                 if (tools != null)

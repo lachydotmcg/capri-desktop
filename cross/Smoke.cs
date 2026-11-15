@@ -6981,6 +6981,25 @@ namespace CapriDesktop
                 || !RemoteMessages.IdOk("a_Z-09") || RemoteMessages.IdOk("a b") || RemoteMessages.IdOk(new string('a', 65))) throw new Exception("Remote protocol messages changed.");
             checks.Add("PASS Remote core JSON: values and text round-trip, malformed JSON and UTF-8 fail, and control and chat messages keep their protocol fields");
 
+            if (RemoteMessages.ToolMove("move_yourself", "lie_down", null) != "lie_down" ||
+                RemoteMessages.ToolMove("move_yourself", "sit", null) != "sit" ||
+                RemoteMessages.ToolMove("move_yourself", "sit_on", null) != "sit" ||
+                RemoteMessages.ToolMove("move_yourself", "sit_up", null) != "sit" ||
+                RemoteMessages.ToolMove("animate", null, "heart") != "heart" ||
+                RemoteMessages.ToolMove("animate", null, "grin") != null ||
+                RemoteMessages.ToolMove("move_yourself", "stand_up", null) != null ||
+                RemoteMessages.ToolMove("animate", null, null) != null) throw new Exception("Room moves did not match her tools.");
+            foreach (string move in new[] { "sit", "lie_down", "heart" })
+            {
+                if (RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "done", null, move)).Text("move") != move ||
+                    RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "running", null, move)).Text("move") != null ||
+                    RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "failed", null, move)).Text("move") != null)
+                    throw new Exception("Room moves went before a tool succeeded.");
+            }
+            if (RemoteJson.ParseMap(RemoteMessages.Tool("room", "animate", "Animation", "done", null, "other")).Text("move") != null)
+                throw new Exception("An unknown room move reached the phone.");
+            checks.Add("PASS Room tools share the pose mapping and only done carries a known move");
+
             byte[] ikm = RemoteVectors.FromHex("0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b");
             byte[] hkdf = RemoteCrypto.Hkdf(ikm, RemoteVectors.FromHex("000102030405060708090a0b0c"), RemoteVectors.FromHex("f0f1f2f3f4f5f6f7f8f9"), 42);
             if (RemoteVectors.Hex(hkdf) != "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865") throw new Exception("Remote HKDF missed RFC 5869.");
@@ -7229,7 +7248,7 @@ namespace CapriDesktop
             RemoteKeys keys = wire.Hello(phone, nonce);
             if (!wire.Link.HasSession(phone.Id) || !wire.Link.IsOnline(phone.Id)) throw new Exception("Remote hello did not start a session.");
             RemotePicture refused;
-            if (Array.IndexOf(wire.Link.FeaturesNow, "pictures") >= 0 || Array.IndexOf(wire.Link.FeaturesNow, "call") >= 0 || RemotePicture.Read(RemoteJson.ParseMap("{\"type\":\"chat.send\",\"picture\":{\"mime\":\"image/png\",\"data\":\"bad\"}}"), out refused)) throw new Exception("The cross host offered calls or pictures, or decoded a phone picture.");
+            if (Array.IndexOf(wire.Link.FeaturesNow, "call") >= 0 || RemotePicture.Read(RemoteJson.ParseMap("{\"type\":\"chat.send\",\"picture\":{\"mime\":\"image/png\",\"data\":\"bad\"}}"), out refused)) throw new Exception("The cross core offered calls or decoded a bad phone picture.");
             sink.Tool(phone.Id, "t1", "open_app", "Opening an app", "running", "m1");
             wire.Pump();
             byte[] tool = wire.BinaryFrames[0];
@@ -7240,12 +7259,12 @@ namespace CapriDesktop
             wire.Send(phone, keys, 0, chat);
             wire.Send(phone, keys, 1, chat);
             if (wire.Said.Count != 1 || wire.Said[0][0] != phone.Id || wire.Said[0][1] != "m1" || wire.Said[0][2] != "Hello") throw new Exception("Remote chat lost its source or deduplication.");
-            wire.Send(phone, keys, 2, "{\"type\":\"chat.send\",\"id\":\"no-pictures\",\"text\":\"\",\"picture\":{\"mime\":\"image/png\",\"data\":\"bad\"}}");
+            wire.Send(phone, keys, 2, "{\"type\":\"chat.send\",\"id\":\"bad-picture\",\"text\":\"\",\"picture\":{\"mime\":\"image/png\",\"data\":\"bad\"}}");
             wire.Pump();
             byte[] refusal = wire.BinaryFrames[wire.BinaryFrames.Count - 1];
             plain = RemoteCrypto.Open(keys.PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, 2, refusal, 16, refusal.Length - 16, out why);
             RemoteJson.Map badPicture = plain == null ? null : RemoteJson.Message(plain);
-            if (badPicture == null || badPicture.Text("type") != "error" || badPicture.Text("code") != "bad-message" || badPicture.Text("re") != "no-pictures" || wire.Said.Count != 1) throw new Exception("The cross host did not refuse a picture before receipt and dispatch.");
+            if (badPicture == null || badPicture.Text("type") != "error" || badPicture.Text("code") != "bad-message" || badPicture.Text("re") != "bad-picture" || wire.Said.Count != 1) throw new Exception("The cross core did not refuse bad picture data before receipt and dispatch.");
             wire.Send(phone, keys, 4, chat);
             if (wire.Link.HasSession(phone.Id)) throw new Exception("Remote kept an out-of-order session.");
             byte[] later = new byte[16]; later[0] = 1;
@@ -7472,7 +7491,7 @@ namespace CapriDesktop
                 byte[] opened = RemoteCrypto.Open(hello.PcToPhone, RemoteCrypto.KindHello, RemoteCrypto.PcToPhone, 0, frame, 16, frame.Length - 16, out reason);
                 RemoteJson.Map response = opened == null ? null : RemoteJson.Message(opened);
                 if (response == null || response.Text("type") != "hello-ok" || response.Text("echo") != RemoteCrypto.B64u(nonce)
-                    || response.Items("features").Count != 2 || !response.Items("features").Contains("chat") || !response.Items("features").Contains("pair")) throw new Exception("Remote hello lost its nonce or text features.");
+                    || string.Join(",", response.Items("features")) != string.Join(",", Link.FeaturesNow)) throw new Exception("Remote hello lost its nonce or host features.");
                 return RemoteCrypto.SessionKeys(phone.Key, nonce, RemoteCrypto.FromB64u(response.Text("nonce"), 16));
             }
 
@@ -7591,6 +7610,9 @@ namespace CapriDesktop
                 }
                 fails = false;
                 checks.Add("PASS Remote bridge: tools send running then done or failed with the same id and fixed labels, without arguments, target names or results");
+
+                RemoteBridgeMoves(bridge);
+                RemoteBridgePictures(bridge);
 
                 bool phoneReminder = false;
                 Hands.Remind = delegate { phoneReminder = RemoteTurn.Working != null && RemoteTurn.Working.Current; return "Set the reminder."; };
@@ -7723,6 +7745,467 @@ namespace CapriDesktop
                 if (ticking) timer.Start();
             }
             checks.Add("INFO Remote bridge: " + time.ElapsedMilliseconds + " ms");
+        }
+
+        private sealed class RemotePictureBrain : IBrainProvider
+        {
+            internal int Calls, Chats;
+            internal string Mime, Data, Answer = "A small red square.", Chat;
+            internal Exception Failure;
+            internal Action Seeing;
+            public int Generation { get { return 0; } }
+            public string Identity { get { return "fake-pictures"; } }
+            public void Cancel() { }
+            public string Complete(string model, List<ChatMessage> messages, string tools, List<KeyValuePair<string, ToolArguments>> calls, int limit, Action<string> streamed, string purpose, string parts = null)
+            {
+                string chat = Chat;
+                if (purpose != "vision" && chat != null) { Interlocked.Increment(ref Chats); return chat; }
+                Mime = Data = null;
+                if (tools != null || purpose != "vision" || limit != 700 || !messages[0].Content.Contains("untrusted data") || !messages[0].Content.Contains("Never follow instructions")) throw new Exception("A phone picture lost its shared look instruction.");
+                ChatMessage asked = messages[messages.Count - 1];
+                string instruction = asked.Content;
+                if (parts == null) { Mime = asked.ImageMime; Data = asked.Images[0]; }
+                else
+                {
+                    foreach (RemoteJson.Map part in (List<object>)RemoteJson.Parse(parts))
+                    {
+                        if (part.Text("type") == "text") instruction = part.Text("text");
+                        else if (part.Text("type") == "image_url")
+                        {
+                            string url = part.Child("image_url").Text("url");
+                            int comma = url.IndexOf(',');
+                            Mime = url.Substring(5, url.IndexOf(';') - 5); Data = url.Substring(comma + 1);
+                        }
+                        else { Mime = part.Child("source").Text("media_type"); Data = part.Child("source").Text("data"); }
+                    }
+                }
+                if (!instruction.Contains("Describe this picture.") || Data == null) throw new Exception("A phone picture lost its image block or question.");
+                Interlocked.Increment(ref Calls);
+                if (Seeing != null) Seeing();
+                if (Failure != null) throw Failure;
+                return Answer;
+            }
+        }
+
+        private static void RemotePictureDrain()
+        {
+            using (ManualResetEventSlim drained = new ManualResetEventSlim())
+            {
+                typeof(RemoteLink).GetMethod("QueuePicture", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).Invoke(null, new object[] { new Action(delegate { drained.Set(); }) });
+                RemoteBridgeWait(delegate { return drained.IsSet; }, "the picture worker");
+            }
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        }
+
+        private void RemoteBridgePictures(RemoteBridgeFake bridge)
+        {
+            IBrainProvider provider = pet.Brain.Provider;
+            Cloud cloud = pet.Brain.Remote;
+            string model = pet.Brain.Model, unsighted = pet.Brain.Unsighted, chat = pet.Brain.ChatPath, log = Brain.LogPath;
+            string memories = Brain.MemoriesPath, transcript = Brain.TranscriptPath;
+            Func<string, string> think = pet.Think;
+            Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
+            List<ChatMessage> history = pet.Brain.History;
+            RemotePictureBrain brain = new RemotePictureBrain();
+            List<string> turns = new List<string>();
+            string data = Path.Combine(folder, "remote-picture-data");
+            Directory.CreateDirectory(data);
+            string[] before = Directory.GetFileSystemEntries(data, "*", SearchOption.AllDirectories);
+            Array.Sort(before, StringComparer.Ordinal);
+            try
+            {
+                pet.Brain.Provider = brain; pet.Brain.Remote = new Cloud("nvapi-test", Brain.NvidiaDefault); pet.Brain.Model = Brain.NvidiaDefault;
+                pet.Brain.ChatPath = Path.Combine(data, "chat.json"); Brain.LogPath = Path.Combine(data, "brain.log");
+                Brain.MemoriesPath = Path.Combine(data, "memories.md"); Brain.TranscriptPath = Path.Combine(data, "transcripts");
+                pet.Think = delegate(string text) { lock (turns) turns.Add(text); return "I saw it."; };
+                pet.RemoteOutput = delegate(RemoteLink link) { return new RemoteSheetSink(link, bridge.Sink); };
+                RemoteLink.SmokePictureHeaders(checks);
+                RemoteLink.SmokePictures(checks, delegate(string text, RemotePicture picture)
+                {
+                    RemotePictures.Answer(new Brain { Model = "fake-pictures", Provider = brain }, text, picture);
+                    if (brain.Mime != "image/png") throw new Exception("A provider image block lost its PNG MIME.");
+                });
+                RemoteLink.SmokePictureOrder(checks);
+                RemoteLink.SmokePictureReceipts(checks);
+                bridge.Online();
+                if (Array.IndexOf(bridge.Wire.Link.FeaturesNow, "pictures") < 0 || Array.IndexOf(bridge.Wire.Link.FeaturesNow, "call") >= 0) throw new Exception("The cross host did not offer pictures alone.");
+                uint sequence = 0;
+                int n = 0, decodes = 0, received = 0;
+                RemoteWire.Set(bridge.Wire.Link, "pictureDecoding", new Action<string>(delegate { Interlocked.Increment(ref decodes); }));
+                bridge.Wire.Link.PictureSaid += delegate { Interlocked.Increment(ref received); };
+                byte[] png = RemoteLink.SmokePictureBytes(2, false), jpeg = RemoteLink.SmokePictureBytes(2, true);
+                foreach (bool asJpeg in new[] { true, false })
+                {
+                    string id = "cross-picture-" + n++, mime = asJpeg ? "image/jpeg" : "image/png";
+                    byte[] bytes = asJpeg ? jpeg : png;
+                    int calls = brain.Calls, heard = turns.Count;
+                    bridge.SendPicture(0, id, asJpeg ? "what is here?" : "", mime, RemoteCrypto.B64u(bytes));
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a picture answer");
+                    List<RemoteJson.Map> frames = bridge.Read(0, ref sequence);
+                    if (brain.Calls != calls + 1 || received != n || brain.Mime != mime || brain.Data != Convert.ToBase64String(bytes) || turns.Count != heard + 1
+                        || !turns[heard].Contains("You see: " + brain.Answer) || !turns[heard].Contains("[picture]") || !asJpeg && !turns[heard].Contains("React to the picture.")
+                        || frames.FindAll(row => row.Text("type") == "chat.typing" && row.Is("on", true) && row.Text("re") == id).Count != 1
+                        || frames.FindAll(row => row.Text("type") == "chat.reply" && row.Text("re") == id).Count != 1) throw new Exception("A JPEG or PNG lost its receipt, bytes, description or normal turn.");
+                    bridge.SendPicture(0, id, "", mime, RemoteCrypto.B64u(bytes));
+                    RemotePictureDrain();
+                    if (brain.Calls != calls + 1 || turns.Count != heard + 1 || bridge.Read(0, ref sequence).Count != 0) throw new Exception("A picture resend reached her twice.");
+                }
+                checks.Add("PASS cross pictures: hello offers pictures and no call; JPEG and PNG each reach Brain.See in memory once, get one receipt and normal answer, pass the description to her turn, and resends are dropped");
+
+                byte[] wide = (byte[])png.Clone(), cut = new byte[20], empty = new byte[33];
+                wide[18] = 6; wide[19] = 33;
+                Buffer.BlockCopy(png, 0, cut, 0, cut.Length); Buffer.BlockCopy(png, 0, empty, 0, empty.Length);
+                string[][] bad = {
+                    new[] { "wide", "image/png", RemoteCrypto.B64u(wide) },
+                    new[] { "cut", "image/png", RemoteCrypto.B64u(cut) },
+                    new[] { "mime", "image/png", RemoteCrypto.B64u(jpeg) },
+                    new[] { "base64", "image/png", "bad=" },
+                    new[] { "body", "image/png", RemoteCrypto.B64u(empty) }
+                };
+                foreach (string[] row in bad)
+                {
+                    string id = "cross-picture-bad-" + row[0];
+                    int calls = brain.Calls, heard = turns.Count, decoded = decodes, reached = received;
+                    bridge.SendPicture(0, id, "", row[1], row[2]);
+                    RemotePictureDrain();
+                    List<RemoteJson.Map> frames = bridge.Read(0, ref sequence);
+                    if (frames.Count != 1 || frames[0].Text("type") != "error" || frames[0].Text("code") != "bad-message" || frames[0].Text("re") != id
+                        || brain.Calls != calls || turns.Count != heard || received != reached || decodes != decoded + (row[0] == "body" ? 1 : 0)) throw new Exception("A bad picture got a receipt, decoder or brain call: " + row[0] + ".");
+                }
+                checks.Add("PASS cross picture refusals: 1569 pixels, a truncated header, wrong MIME and bad base64 fail before decoding; an empty PNG body fails decoding; each gets only bad-message with re and no brain call");
+
+                foreach (string kind in new[] { "blind", "codex" })
+                {
+                    pet.Brain.Remote = kind == "codex" ? new Cloud(Plans.CodexKey, "codex-test") : new Cloud("nvapi-test", "deepseek-ai/deepseek-v3.1");
+                    pet.Brain.Unsighted = kind == "blind" ? pet.Brain.Remote.Sight : null;
+                    string id = "cross-picture-" + kind;
+                    int calls = brain.Calls, heard = turns.Count;
+                    bridge.SendPicture(0, id, "", "image/png", RemoteCrypto.B64u(png));
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a sightless picture answer");
+                    if (brain.Calls != calls || turns.Count != heard || bridge.Sink.ReplyFor(id).Text("text") != RemoteTurn.Out(Brain.Sightless(pet.Brain.Remote), 16000)) throw new Exception("A sightless brain looked at a picture or lost its existing line.");
+                    bridge.Read(0, ref sequence);
+                }
+                pet.Brain.Remote = new Cloud("nvapi-test", Brain.NvidiaDefault);
+                pet.Brain.Unsighted = null;
+                string encoded = Convert.ToBase64String(png);
+                brain.Answer = encoded;
+                bridge.SendPicture(0, "cross-picture-echo", "", "image/png", RemoteCrypto.B64u(png));
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("cross-picture-echo") != null; }, "a redacted picture look");
+                if (turns[turns.Count - 1].Contains(encoded) || !turns[turns.Count - 1].Contains("[redacted]")) throw new Exception("Echoed picture bytes entered her normal turn.");
+                bridge.Read(0, ref sequence);
+                brain.Failure = new BrainException("Couldn't read " + encoded) { Detail = encoded };
+                bridge.SendPicture(0, "cross-picture-error", "", "image/png", RemoteCrypto.B64u(png));
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("cross-picture-error") != null; }, "a redacted picture error");
+                if (bridge.Sink.ReplyFor("cross-picture-error").Text("text").Contains(encoded)) throw new Exception("A picture error returned its bytes.");
+                bridge.Read(0, ref sequence);
+                brain.Failure = new IOException(encoded);
+                bridge.SendPicture(0, "cross-picture-thrown", "", "image/png", RemoteCrypto.B64u(png));
+                RemoteBridgeWait(delegate { return bridge.Sink.ErrorFor("cross-picture-thrown") != null; }, "a thrown picture look");
+                if (bridge.Sink.ErrorFor("cross-picture-thrown").Text("code") != "busy") throw new Exception("A failed look lost its existing error code.");
+                bridge.Read(0, ref sequence);
+                brain.Failure = null; brain.Answer = "A small red square.";
+                checks.Add("PASS cross picture brains: blind and Codex brains return the shared sightless line without looking; echoed bytes are redacted from descriptions and errors");
+
+                foreach (string end in new[] { "session", "revoked", "off", "quit" })
+                foreach (bool looking in new[] { false, true })
+                using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim(), finished = new ManualResetEventSlim())
+                {
+                    bridge.Online();
+                    string id = "cross-picture-ended-" + end + (looking ? "-look" : "-decode");
+                    int calls = brain.Calls, heard = turns.Count;
+                    bool delivered = looking || end == "quit";
+                    Action pause = delegate { entered.Set(); if (!release.Wait(30000)) throw new Exception("The ended picture was not released."); };
+                    if (looking) brain.Seeing = pause;
+                    else RemoteWire.Set(bridge.Wire.Link, "pictureDecoding", new Action<string>(delegate { pause(); }));
+                    if (delivered)
+                    {
+                        RemoteLink link = bridge.Wire.Link;
+                        var handler = (Action<string, string, string, RemotePicture, Func<bool>, Action>)RemoteWire.Get(pet, "remotePictured");
+                        link.PictureSaid -= handler;
+                        link.PictureSaid += delegate(string phone, string re, string text, RemotePicture picture, Func<bool> current, Action done)
+                        {
+                            handler(phone, re, text, picture, current, delegate { try { done(); } finally { finished.Set(); } });
+                        };
+                    }
+                    try
+                    {
+                        bridge.SendPicture(0, id, "", "image/png", RemoteCrypto.B64u(png));
+                        RemoteBridgeWait(delegate { return entered.IsSet; }, "a picture before its session ends");
+                        if (end == "session") bridge.Connect(0);
+                        else if (end == "revoked") pet.RevokeRemote(bridge.Phones[0].Id);
+                        else if (end == "off") pet.SetRemote(false);
+                        else RemoteWire.Set(pet, "quitting", true);
+                        release.Set();
+                        RemotePictureDrain();
+                        if (delivered) RemoteBridgeWait(delegate { return finished.IsSet; }, "the ended picture's callback");
+                        if (brain.Calls != calls + (looking ? 1 : 0) || turns.Count != heard || bridge.Sink.ReplyFor(id) != null || bridge.Sink.ErrorFor(id) != null) throw new Exception("An ended picture reached the brain or answered: " + end + ".");
+                    }
+                    finally { release.Set(); brain.Seeing = null; RemoteWire.Set(pet, "quitting", false); }
+                }
+                checks.Add("PASS cross stale pictures: a new session, revoke, Remote off or quit during decoding prevents any brain call; the same changes during a look prevent its normal turn and answer");
+
+                bridge.Online();
+                using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+                {
+                    pet.Think = delegate(string text)
+                    {
+                        if (text == "hold the other phone") { entered.Set(); if (!release.Wait(30000)) throw new Exception("The other phone was not released."); }
+                        else lock (turns) turns.Add(text);
+                        return "The queued text answered.";
+                    };
+                    try
+                    {
+                        bridge.Send(0, "picture-queue-hold", "hold the other phone");
+                        RemoteBridgeWait(delegate { return entered.IsSet; }, "the other phone's turn");
+                        int heard = turns.Count;
+                        bridge.SendPicture(1, "picture-queue-old", "", "image/png", RemoteCrypto.B64u(png));
+                        var queue = (List<RemoteTurn>)RemoteWire.Get(pet, "remoteQueue");
+                        RemoteBridgeWait(delegate { return queue.Exists(turn => turn.Id == "picture-queue-old"); }, "a queued picture turn");
+                        RemoteTurn queued = queue.Find(turn => turn.Id == "picture-queue-old");
+                        bridge.Send(1, "picture-queue-text", "after the queued picture");
+                        if (queued.Entered == null || bridge.Wire.Said.Exists(row => row[1] == "picture-queue-text")) throw new Exception("A picture released later chat before turn entry.");
+                        bridge.Connect(1);
+                        RemoteBridgeWait(delegate { return queue.Exists(turn => turn.Id == "picture-queue-text"); }, "the text after an ended picture");
+                        if (queued.Entered != null || queued.Current || queued.Ticket != 0 || turns.Count != heard) throw new Exception("An ended queued picture entered her turn or kept later chat waiting.");
+                        release.Set();
+                        RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("picture-queue-text") != null; }, "the queued text's answer");
+                        if (turns.Count != heard + 1 || turns[heard] != "after the queued picture" || bridge.Sink.ReplyFor("picture-queue-old") != null) throw new Exception("An ended picture answered or lost the text after it.");
+                    }
+                    finally { release.Set(); }
+                }
+                checks.Add("PASS cross queued pictures: later chat waits for turn entry; replacing the session drops a picture waiting behind another phone, releases its callback and still answers the queued text");
+
+                string[] after = Directory.GetFileSystemEntries(data, "*", SearchOption.AllDirectories);
+                Array.Sort(after, StringComparer.Ordinal);
+                if (string.Join("\n", before) != string.Join("\n", after)) throw new Exception("Phone pictures wrote under their test data folder.");
+                foreach (ChatMessage message in pet.Brain.History) if ((message.Content ?? "").Contains(encoded) || (message.Content ?? "").Contains(Convert.ToBase64String(jpeg))) throw new Exception("Phone picture bytes entered chat history.");
+                checks.Add("PASS cross picture disk check: the test data folder has the same entry list before and after valid, invalid, blind, echoed and stale pictures; no encoded bytes enter chat history");
+
+                bridge.Online();
+                pet.Think = null; brain.Chat = "That looks like a small red square.";
+                int looks = brain.Calls, chats = brain.Chats;
+                bridge.SendPicture(0, "cross-picture-kept", "what is here?", "image/jpeg", RemoteCrypto.B64u(jpeg));
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("cross-picture-kept") != null; }, "a picture answered by her own brain");
+                if (brain.Calls != looks + 1 || brain.Chats == chats || !File.Exists(pet.Brain.ChatPath)
+                    || !pet.Brain.History.Exists(message => (message.Content ?? "").Contains("You see: " + brain.Answer))) throw new Exception("A picture turn did not reach her own brain, history and chat.json.");
+                List<string> leaks = new List<string>();
+                foreach (byte[] bytes in new[] { jpeg, png })
+                foreach (string text in new[] { Convert.ToBase64String(bytes), RemoteCrypto.B64u(bytes) })
+                {
+                    leaks.Add(text);
+                    string slice = null;
+                    for (int at = text.Length / 2; slice == null && at + 16 <= text.Length; at++)
+                        if (Regex.IsMatch(text.Substring(at, 16), "^[A-Za-z0-9]{16}$") && !text.Substring(at, 16).Contains("AAA")) slice = text.Substring(at, 16);
+                    if (slice == null) throw new Exception("The picture disk check found no slice to look for.");
+                    leaks.Add(slice);
+                }
+                List<string> written = new List<string>(Directory.GetFiles(data, "*", SearchOption.AllDirectories));
+                if (File.Exists(Brain.LogPath) && !written.Contains(Brain.LogPath)) written.Add(Brain.LogPath);
+                foreach (string path in written)
+                {
+                    string saved = File.ReadAllText(path);
+                    foreach (string leak in leaks) if (saved.Contains(leak)) throw new Exception("Phone picture bytes reached " + Path.GetFileName(path) + ".");
+                }
+                foreach (ChatMessage message in pet.Brain.History)
+                {
+                    if (message.Images != null && message.Images.Length > 0 || message.ImageMime != null) throw new Exception("A phone picture entered chat history.");
+                    foreach (string leak in leaks) if ((message.Content ?? "").Contains(leak)) throw new Exception("Phone picture bytes entered chat history.");
+                }
+                checks.Add("PASS cross picture brain turn: a picture answered by her own brain writes her history and chat.json under the test data folder; no file there and not the brain log holds its base64 or base64url bytes or a slice of them, and chat history holds no image");
+            }
+            finally
+            {
+                brain.Seeing = null; brain.Chat = null; RemoteWire.Set(pet, "quitting", false);
+                List<ChatMessage> live = (List<ChatMessage>)RemoteWire.Get(pet.Brain, "history");
+                lock (RemoteWire.Get(pet.Brain, "gate")) { live.Clear(); live.AddRange(history); }
+                pet.Brain.Provider = provider; pet.Brain.Remote = cloud; pet.Brain.Model = model; pet.Brain.Unsighted = unsighted; pet.Brain.ChatPath = chat; Brain.LogPath = log;
+                Brain.MemoriesPath = memories; Brain.TranscriptPath = transcript;
+                pet.Think = think; pet.RemoteOutput = output; bridge.Online();
+            }
+        }
+
+        private void RemoteBridgeMoves(RemoteBridgeFake bridge)
+        {
+            Func<string, string, string> moveSelf = Hands.MoveSelf;
+            Func<string, string> animate = Hands.Animate, think = pet.Think;
+            Func<RemoteLink, RemoteSink> output = pet.RemoteOutput;
+            string permissions = Security.Saved, blind = Limbs.Blind, model = pet.Brain.Model;
+            try
+            {
+                pet.RemoteOutput = delegate(RemoteLink link) { return new RemoteSheetSink(link, bridge.Sink); };
+                bridge.Online();
+                uint sequence = 0;
+                int moved = 0, n = 0;
+                Limbs.Blind = "The fake window list was unavailable.";
+                foreach (string[] row in new[] {
+                    new[] { "sit", "Sitting down.", "done", "sit" },
+                    new[] { "sit_on", "Sitting on their window.", "done", "sit" },
+                    new[] { "sit_up", "Sitting up.", "done", "sit" },
+                    new[] { "lie_down", "Lying down.", "done", "lie_down" },
+                    new[] { "stand_up", "Standing up.", "done", null },
+                    new[] { "sit", "Couldn't sit down.", "failed", null },
+                    new[] { "lie_down", "That window isn't open.", "failed", null },
+                    new[] { "sit", "throw", "failed", null },
+                    new[] { "lie_down", "Lying down on a window you name is only on Windows so far.", "failed", null },
+                    new[] { "sit_on", "Which window?", "failed", null },
+                    new[] { "sit_on", "I can't see Bridge App open.", "failed", null },
+                    new[] { "sit_on", "I couldn't find an open window with that name.", "failed", null },
+                    new[] { "sit_on", "I can see that app, but I can't track the top of that window here.", "failed", null },
+                    new[] { "sit_on", "That window is minimized. Open it first.", "failed", null },
+                    new[] { "sit_on", "That app won't let me resize its window.", "failed", null },
+                    new[] { "sit_on", "Those windows have the same title. Give one a different title first.", "failed", null },
+                    new[] { "sit_on", "Take that window out of full screen before arranging it.", "failed", null },
+                    new[] { "sit_on", "Window arranging still needs Accessibility.", "failed", null },
+                    new[] { "sit_on", "Turn Capri on in System Settings > Privacy & Security > Accessibility.", "failed", null },
+                    new[] { "sit_on", "Allow Capri to control System Events in System Settings > Privacy & Security > Automation.", "failed", null },
+                    new[] { "sit_on", MacWindows.Timeout, "failed", null },
+                    new[] { "sit_on", Limbs.Blind, "failed", null } })
+                {
+                    string id = "room-move-" + n++, action = row[0], result = row[1], ran = null, target = null;
+                    ToolArguments args = new ToolArguments { Action = action, Window = "Bridge App" };
+                    int before = moved;
+                    Hands.MoveSelf = delegate(string asked, string window)
+                    {
+                        Interlocked.Increment(ref moved); ran = asked; target = window;
+                        args.Action = "stand_up";
+                        if (result == "throw") throw new IOException("The fake pose failed.");
+                        return result;
+                    };
+                    pet.Think = delegate { return pet.Brain.Act("move_yourself", args); };
+                    bridge.Send(0, id, "room move please");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a Room move result");
+                    RemoteRoomPair(bridge.Read(0, ref sequence), id, row[2], row[3]);
+                    if (moved != before + 1 || ran != action || target != (action == "sit_on" || action == "lie_down" ? "Bridge App" : null)) throw new Exception("A Room move did not use its tool arguments once.");
+                }
+                foreach (string name in new[] { "grin", "heart" })
+                {
+                    string id = "room-animation-" + name;
+                    Hands.Animate = delegate { return "Animated."; };
+                    pet.Think = delegate { return pet.Brain.Act("animate", new ToolArguments { Name = name }); };
+                    bridge.Send(0, id, "room animation please");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null; }, "a Room animation result");
+                    RemoteRoomPair(bridge.Read(0, ref sequence), id, "done", null);
+                }
+                checks.Add("PASS Room frames: sit, sit on and sit up send sit; lie down sends lie_down; running has no move, native pose refusals, window errors, failures and throws have no move, and other tools and the absent heart animation send no move");
+
+                pet.Think = delegate { return pet.Brain.Act("job_control", new ToolArguments { Action = "change", Task = "sit", Name = "heart" }); };
+                bridge.Send(0, "room-refused", "room job please");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("room-refused") != null; }, "a refused Room tool");
+                RemoteRoomPair(bridge.Read(0, ref sequence), "room-refused", "failed", null);
+                if (bridge.Sink.ReplyFor("room-refused").Text("text") != RemoteTurn.PcOnly) throw new Exception("A refused Room tool lost its PC boundary.");
+                Security.Set(Security.Open, false);
+                pet.Think = delegate { return pet.Brain.Act("open_app", new ToolArguments { Name = "Bridge App", Action = "sit" }); };
+                bridge.Send(0, "room-held", "room app please");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("room-held") != null; }, "a held Room tool");
+                List<RemoteJson.Map> held = bridge.Read(0, ref sequence);
+                if (held.Exists(row => row.Text("type") == "chat.tool" || row.ContainsKey("move")) || bridge.Sink.ToolsFor("room-held").Count != 0 || bridge.Sink.ReplyFor("room-held").Text("text") != "Open Bridge App?" + Security.Yes) throw new Exception("A held Room tool sent progress or a move.");
+                bridge.Send(0, "room-no", "no");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("room-no") != null; }, "a declined Room tool");
+                if (bridge.Read(0, ref sequence).Exists(row => row.Text("type") == "chat.tool" || row.ContainsKey("move")) || Security.HoldingId != null) throw new Exception("A declined Room tool sent progress or a move.");
+                Security.Set(Security.Open, true);
+                checks.Add("PASS Room frames: a refused tool sends running and failed without a move; Security holds and their no send no tool progress or move");
+
+                pet.Think = null; pet.Brain.Model = null;
+                foreach (string result in new[] { "Sitting down.", "Couldn't sit down.", "Which window?", "throw" })
+                {
+                    string id = "room-direct-" + n++;
+                    int before = moved;
+                    Hands.MoveSelf = delegate(string action, string target)
+                    {
+                        if (action != "sit" || target != null) throw new Exception("The direct sit changed its arguments.");
+                        Interlocked.Increment(ref moved);
+                        if (result == "throw") throw new IOException("The fake direct pose failed.");
+                        return result;
+                    };
+                    bridge.Send(0, id, "sit");
+                    RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(id) != null || bridge.Sink.Count > 0 && bridge.Sink.ToolsFor(id).Count == 2; }, "a direct sit result");
+                    bool sat = result == "Sitting down.";
+                    RemoteRoomPair(bridge.Read(0, ref sequence), id, sat ? "done" : "failed", sat ? "sit" : null);
+                    if (moved != before + 1) throw new Exception("A direct sit did not run once without a brain.");
+                }
+                string unable = Hands.Unable("desktop_icons", new ToolArguments { Task = "private-task", Text = "private-argument", Name = "Bridge App", Action = "on" });
+                bridge.Send(0, "room-direct-unable", "remote boundary desktop_icons");
+                RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor("room-direct-unable") != null; }, "a direct tool that can't work here");
+                if (unable == null || bridge.Sink.ReplyFor("room-direct-unable").Text("text") != RemoteTurn.Out(unable, 16000) || bridge.Sink.ToolsFor("room-direct-unable").Count != 0
+                    || bridge.Read(0, ref sequence).Exists(row => row.Text("type") == "chat.tool")) throw new Exception("A direct tool that can't work here sent tool progress or lost its reason.");
+                int beforeStale = moved;
+                bool ended = false;
+                Func<string, KeyValuePair<string, ToolArguments>> plan = Hands.Plan;
+                Hands.MoveSelf = delegate { Interlocked.Increment(ref moved); return "Sitting down."; };
+                Hands.Plan = delegate(string said)
+                {
+                    if (!ended && said == "sit") { ended = true; bridge.Left(0); }
+                    return plan(said);
+                };
+                try
+                {
+                    bridge.Send(0, "room-direct-ended", "sit");
+                    RemoteBridgeWait(delegate { return ended; }, "a direct sit that ends after its ticket");
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                }
+                finally { Hands.Plan = plan; }
+                if (moved != beforeStale || bridge.Sink.ToolsFor("room-direct-ended").Count != 0 || bridge.Sink.ReplyFor("room-direct-ended") != null
+                    || bridge.Read(0, ref sequence).Exists(row => row.Text("type") == "chat.tool" || row.ContainsKey("move"))) throw new Exception("An ended direct sit sent progress or moved.");
+                bridge.Online(); sequence = 0;
+                int beforeWork = moved;
+                Hands.MoveSelf = delegate { Interlocked.Increment(ref moved); bridge.Left(0); return "Sitting down."; };
+                bridge.Send(0, "room-direct-ending", "sit");
+                RemoteBridgeWait(delegate { return moved != beforeWork; }, "a direct sit that ends during its pose");
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                List<RemoteJson.Map> ending = bridge.Sink.ToolsFor("room-direct-ending");
+                if (moved != beforeWork + 1 || ending.Count != 1 || ending[0].Text("state") != "running" || ending[0].ContainsKey("move") || bridge.Sink.ReplyFor("room-direct-ending") != null
+                    || bridge.Read(0, ref sequence).Exists(row => row.Text("type") == "chat.tool" && row.Text("state") != "running" || row.ContainsKey("move"))) throw new Exception("A direct sit that ended during its pose sent a result, a move or an answer.");
+                pet.Brain.Model = model; pet.Think = think;
+                bridge.Online(); sequence = 0;
+                checks.Add("PASS Room direct turns: plain sit without a brain sends running then done with sit; refusals and throws send failed without a move; a tool that can't work here answers with its reason and no tool row; a turn ended after its ticket sends no tool or answer and does not move; one ended during its pose sends no result, move or answer");
+
+                foreach (bool running in new[] { false, true })
+                using (ManualResetEventSlim entered = new ManualResetEventSlim(), release = new ManualResetEventSlim())
+                {
+                    string oldId = running ? "room-running-old" : "room-waiting-old", newId = oldId + "-new";
+                    RemoteTurn older = null;
+                    Hands.MoveSelf = delegate
+                    {
+                        if (running) { entered.Set(); if (!release.Wait(30000)) throw new Exception("The old Room tool was not released."); }
+                        return "Sitting down.";
+                    };
+                    pet.Think = delegate(string text)
+                    {
+                        if (text != "room old turn") return "The new Room turn.";
+                        older = RemoteTurn.Working;
+                        if (!running) { entered.Set(); if (!release.Wait(30000)) throw new Exception("The old Room turn was not released."); }
+                        return pet.Brain.Act("move_yourself", new ToolArguments { Action = "sit" });
+                    };
+                    try
+                    {
+                        bridge.Send(0, oldId, "room old turn");
+                        RemoteBridgeWait(delegate { return entered.IsSet; }, "an old Room turn");
+                        List<RemoteJson.Map> started = bridge.Read(0, ref sequence).FindAll(row => row.Text("type") == "chat.tool");
+                        if (started.Count != (running ? 1 : 0) || running && (started[0].Text("state") != "running" || started[0].ContainsKey("move"))) throw new Exception("A waiting Room tool sent a move.");
+                        bridge.Send(0, newId, "room new turn");
+                        RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(oldId) != null && !older.Current; }, "the old Room turn's close");
+                        if (bridge.Read(0, ref sequence).Exists(row => row.Text("type") == "chat.tool" || row.ContainsKey("move"))) throw new Exception("A replaced Room turn sent a tool result.");
+                        release.Set();
+                        RemoteBridgeWait(delegate { return bridge.Sink.ReplyFor(newId) != null && !older.Waiting; }, "the new Room turn");
+                        if (bridge.Read(0, ref sequence).Exists(row => row.Text("type") == "chat.tool" || row.ContainsKey("move")) || bridge.Sink.ToolsFor(oldId).Count != (running ? 1 : 0) || bridge.Sink.ReplyFor(newId).Text("text") != "The new Room turn.") throw new Exception("A stale Room tool sent progress or a move.");
+                    }
+                    finally { release.Set(); }
+                }
+                checks.Add("PASS Room frames: replacing a phone turn before dispatch sends no tool frames; replacing it during a tool drops its completion and move");
+            }
+            finally
+            {
+                Hands.MoveSelf = moveSelf; Hands.Animate = animate; pet.Think = think; pet.Brain.Model = model;
+                Security.Drop(); Security.Load(permissions); Limbs.Blind = blind; pet.RemoteOutput = output; bridge.Online();
+            }
+        }
+
+        private static void RemoteRoomPair(List<RemoteJson.Map> frames, string id, string state, string move)
+        {
+            List<RemoteJson.Map> tools = frames.FindAll(row => row.Text("type") == "chat.tool" && row.Text("re") == id);
+            if (tools.Count != 2 || tools[0].Text("state") != "running" || tools[1].Text("state") != state || tools[0].Text("id") != tools[1].Text("id")
+                || tools[0].Text("name") != tools[1].Text("name") || tools[0].Text("summary") != tools[1].Text("summary") || tools[0].ContainsKey("move")
+                || (move == null ? tools[1].ContainsKey("move") : tools[1].Text("move") != move)) throw new Exception("Room tool frames lost their progress or move: " + id + ".");
         }
 
         private static void RemoteBridgeWait(Func<bool> ready, string what)
@@ -8395,6 +8878,7 @@ namespace CapriDesktop
             public void Tool(string device, string id, string name, string summary, string state, string re, string move = null) { Add(device, RemoteMessages.Tool(id, name, summary, state, re, move)); }
             public void Error(string device, string code, string re) { Add(device, RemoteMessages.Error(code, re)); }
             internal RemoteJson.Map ReplyFor(string re) { lock (rows) return rows.Find(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply" && row.Text("re") == re; }); }
+            internal RemoteJson.Map ErrorFor(string re) { lock (rows) return rows.Find(delegate(RemoteJson.Map row) { return row.Text("type") == "error" && row.Text("re") == re; }); }
             internal int CountFor(string re) { lock (rows) return rows.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.reply" && row.Text("re") == re; }).Count; }
             internal List<RemoteJson.Map> ToolsFor(string re) { lock (rows) return rows.FindAll(delegate(RemoteJson.Map row) { return row.Text("type") == "chat.tool" && row.Text("re") == re; }); }
             internal void Clear() { lock (rows) rows.Clear(); }
@@ -8447,7 +8931,31 @@ namespace CapriDesktop
                 Use(file); pet.SetRemote(true); Connect(0); Connect(1); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Sink.Clear();
             }
             internal void Connect(int phone) { RemoteDevice device = Phones[phone]; keys[device.Id] = Wire.Hello(device, RemoteCrypto.Random(16)); sequences[device.Id] = 0; }
-            internal void Send(int phone, string id, string text) { if (!RemoteMessages.IdOk(id)) throw new Exception("The phone check used an invalid message id."); RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], sequences[device.Id]++, new RemoteJson.Writer().Text("type", "chat.send").Text("id", id).Text("text", text).ToString()); }
+            internal void Send(int phone, string id, string text) { SendJson(phone, id, new RemoteJson.Writer().Text("type", "chat.send").Text("id", id).Text("text", text).ToString()); }
+            internal void SendPicture(int phone, string id, string text, string mime, string data)
+            {
+                string json = new RemoteJson.Writer().Text("type", "chat.send").Text("id", id).Text("text", text).ToString();
+                SendJson(phone, id, json.Substring(0, json.Length - 1) + ",\"picture\":" + new RemoteJson.Writer().Text("mime", mime).Text("data", data) + "}");
+            }
+            private void SendJson(int phone, string id, string json) { if (!RemoteMessages.IdOk(id)) throw new Exception("The phone check used an invalid message id."); RemoteDevice device = Phones[phone]; Wire.Send(device, keys[device.Id], sequences[device.Id]++, json); }
+            internal List<RemoteJson.Map> Read(int phone, ref uint sequence)
+            {
+                RemoteDevice device = Phones[phone];
+                lock (RemoteWire.Get(Wire.Link, "gate")) typeof(RemoteLink).GetMethod("FlushParts", RemoteWire.Own).Invoke(Wire.Link, new object[] { null });
+                Wire.Pump();
+                List<RemoteJson.Map> rows = new List<RemoteJson.Map>();
+                foreach (byte[] frame in Wire.BinaryFrames)
+                {
+                    byte[] id = new byte[16]; Buffer.BlockCopy(frame, 0, id, 0, 16);
+                    if (RemoteCrypto.B64u(id) != device.Id) throw new Exception("Room sent a tool frame to another phone.");
+                    string why;
+                    byte[] plain = RemoteCrypto.Open(keys[device.Id].PcToPhone, RemoteCrypto.KindSession, RemoteCrypto.PcToPhone, sequence++, frame, 16, frame.Length - 16, out why);
+                    RemoteJson.Map row = plain == null ? null : RemoteJson.Message(plain);
+                    if (row == null) throw new Exception("Room's fake phone could not open its frame: " + why);
+                    rows.Add(row);
+                }
+                return rows;
+            }
             internal void Left(int phone) { Wire.Text(new RemoteJson.Writer().Text("t", "left").Text("device", Phones[phone].Id).ToString()); }
             public void Dispose() { if (over) return; over = true; pet.SetRemote(false); foreach (RemoteWire wire in wires) wire.Dispose(); }
         }

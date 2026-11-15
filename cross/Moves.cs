@@ -467,6 +467,8 @@ namespace CapriDesktop
                         settle();
                     }
                 }
+                if (!Limbs.MoveFailed("Lying down on a window you name is only on Windows so far.") || Array.Exists(new[] { "Lying down.", "Sitting up.", "Sitting on your Roblox window.", "Going for a little walk.", "Off somewhere else.", "Hopped off your cursor." }, Limbs.MoveFailed))
+                    throw new Exception("The phone's pose result check misread her real pose answers.");
                 Hands.OnMac = false;
                 if (tool("sit_on", "my Roblox window") != "Sitting on your Roblox window." || !pet.askedHop) throw new Exception("Named seating did not use the tool.");
                 settle();
@@ -568,6 +570,7 @@ namespace CapriDesktop
                 checks.Add("PASS asked moves on Mac and Linux use her walk, perch and laydown clips, keep her in the work area, land on real seats and stop for dragging, naps and work");
                 checks.Add("PASS sit up and hop off end their moves, losing the cursor drops her safely, Linux finds a named window and Mac keeps its named window gap");
                 checks.Add("PASS non-job tools and Mac shortcuts keep moves running, job input holds stop moves, background stops post without waiting, and rides restore hologram click-through");
+                checks.Add("PASS the phone's pose result check reads her Mac named-lying refusal as failed and her sit, lie, walk, wander and hop answers as done");
                 fake.Shown.Clear();
                 pet.desktopDrag = pet.desktopReleased = false;
                 pet.pressed = pet.dragging = false;
